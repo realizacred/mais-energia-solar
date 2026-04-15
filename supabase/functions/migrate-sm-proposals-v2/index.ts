@@ -705,26 +705,155 @@ async function handleSyncPipelines(adminClient: any, tenantId: string): Promise<
     }
   }
 
-  // 7. Activate operational projeto_funis (exclude "Vendedor" — not a real process funil)
+  // 7. Sync projeto_funis + projeto_etapas from SM operational funnels
+  //    Creates missing funis/etapas AND activates existing inactive ones.
+  //    Excluded from auto-activation: Vendedor, SDR, Prospecção
   const funisActivated: string[] = [];
+  const funisCreated: string[] = [];
   {
-    const { data: inactiveFunis } = await adminClient
+    const EXCLUDED_FUNIS = ["vendedor", "sdr", "prospeccao", "sdr / prospeccao", "lead"];
+
+    // Load existing projeto_funis
+    const { data: existingFunis } = await adminClient
       .from("projeto_funis")
-      .select("id, nome")
-      .eq("tenant_id", tenantId)
-      .eq("ativo", false);
+      .select("id, nome, ativo, ordem")
+      .eq("tenant_id", tenantId);
 
-    const EXCLUDED_FUNIS = ["vendedor", "sdr", "prospeccao", "sdr / prospeccao"];
-    const toActivate = (inactiveFunis || []).filter(
-      (f: any) => !EXCLUDED_FUNIS.includes(normalizeNameForCompare(f.nome))
-    );
+    const existingFunisMap = new Map<string, { id: string; ativo: boolean; ordem: number }>();
+    for (const f of existingFunis || []) {
+      existingFunisMap.set(normalizeNameForCompare(f.nome), { id: f.id, ativo: f.ativo, ordem: f.ordem });
+    }
 
-    for (const f of toActivate) {
-      const { error: activateErr } = await adminClient
-        .from("projeto_funis")
-        .update({ ativo: true })
-        .eq("id", f.id);
-      if (!activateErr) funisActivated.push(f.nome);
+    // Load existing projeto_etapas
+    const { data: existingEtapas } = await adminClient
+      .from("projeto_etapas")
+      .select("id, funil_id, nome")
+      .eq("tenant_id", tenantId);
+    const existingEtapaKeys = new Set<string>();
+    for (const e of existingEtapas || []) {
+      existingEtapaKeys.add(`${e.funil_id}::${normalizeNameForCompare(e.nome)}`);
+    }
+
+    let nextFunilOrdem = Math.max(0, ...(existingFunis || []).map((f: any) => f.ordem ?? 0)) + 1;
+
+    // For each SM operational funnel, ensure projeto_funis + projeto_etapas exist
+    for (const [funnelName, stageNames] of funnelStagesMap) {
+      const normalizedFunnelName = normalizeNameForCompare(funnelName);
+      if (EXCLUDED_FUNIS.includes(normalizedFunnelName)) continue;
+
+      let existingFunil = existingFunisMap.get(normalizedFunnelName);
+
+      // Also try partial match (e.g. "compesação" → "compensação")
+      if (!existingFunil) {
+        for (const [k, v] of existingFunisMap) {
+          if (k.includes(normalizedFunnelName) || normalizedFunnelName.includes(k)) {
+            existingFunil = v;
+            break;
+          }
+        }
+      }
+
+      let funilId: string;
+
+      if (existingFunil) {
+        funilId = existingFunil.id;
+        // Activate if inactive
+        if (!existingFunil.ativo) {
+          const { error: activateErr } = await adminClient
+            .from("projeto_funis")
+            .update({ ativo: true })
+            .eq("id", funilId);
+          if (!activateErr) funisActivated.push(funnelName);
+        }
+      } else {
+        // Create new projeto_funil
+        const { data: newFunil, error: funilErr } = await adminClient
+          .from("projeto_funis")
+          .insert({
+            tenant_id: tenantId,
+            nome: funnelName,
+            ordem: nextFunilOrdem++,
+            ativo: true,
+          })
+          .select("id")
+          .single();
+
+        if (funilErr) {
+          console.error(`[SM Sync] Failed to create projeto_funil "${funnelName}": ${funilErr.message}`);
+          continue;
+        }
+        funilId = newFunil!.id;
+        funisCreated.push(funnelName);
+        existingFunisMap.set(normalizedFunnelName, { id: funilId, ativo: true, ordem: nextFunilOrdem - 1 });
+      }
+
+      // Ensure etapas exist for this funil — use SM ordered stages when available
+      const orderedStages = smOrderedMap.get(funnelName);
+      const stageList: Array<{ name: string; order: number }> = [];
+
+      if (orderedStages && orderedStages.length > 0) {
+        for (const s of orderedStages) {
+          stageList.push({ name: s.stage_name, order: s.stage_order });
+        }
+        // Append extras from project data not in ordered list
+        let extraOrder = Math.max(...orderedStages.map(s => s.stage_order), 0) + 1;
+        for (const sName of stageNames) {
+          const normalizedS = normalizeNameForCompare(sName);
+          if (stageList.some(s => normalizeNameForCompare(s.name) === normalizedS)) continue;
+          stageList.push({ name: sName, order: extraOrder++ });
+        }
+      } else {
+        // Unordered fallback
+        let order = 0;
+        for (const sName of stageNames) {
+          stageList.push({ name: sName, order: order++ });
+        }
+      }
+
+      for (const stage of stageList) {
+        const etapaKey = `${funilId}::${normalizeNameForCompare(stage.name)}`;
+        if (existingEtapaKeys.has(etapaKey)) continue;
+
+        const { error: etapaErr } = await adminClient
+          .from("projeto_etapas")
+          .insert({
+            tenant_id: tenantId,
+            funil_id: funilId,
+            nome: stage.name.trim(),
+            ordem: stage.order,
+            cor: "#6366f1",
+          });
+
+        if (etapaErr) {
+          console.error(`[SM Sync] Failed to create projeto_etapa "${stage.name}" for funil "${funnelName}": ${etapaErr.message}`);
+        } else {
+          existingEtapaKeys.add(etapaKey);
+        }
+      }
+    }
+
+    // Also activate any remaining inactive operational funis not covered by SM data
+    for (const [, v] of existingFunisMap) {
+      if (!v.ativo) {
+        // Check if this funil name is excluded
+        let isExcluded = false;
+        for (const f of existingFunis || []) {
+          if (f.id === v.id && EXCLUDED_FUNIS.includes(normalizeNameForCompare(f.nome))) {
+            isExcluded = true;
+            break;
+          }
+        }
+        if (!isExcluded) {
+          const { error: activateErr } = await adminClient
+            .from("projeto_funis")
+            .update({ ativo: true })
+            .eq("id", v.id);
+          if (!activateErr) {
+            const matchedName = (existingFunis || []).find((f: any) => f.id === v.id)?.nome || v.id;
+            funisActivated.push(matchedName);
+          }
+        }
+      }
     }
   }
 
@@ -732,7 +861,7 @@ async function handleSyncPipelines(adminClient: any, tenantId: string): Promise<
     JSON.stringify({
       action: "sync_pipelines",
       success: true,
-      report: { ...report, funis_activated: funisActivated },
+      report: { ...report, funis_activated: funisActivated, funis_created: funisCreated },
       total_projects_scanned: allProjects.length,
     }),
     { headers: { ...corsHeaders, "Content-Type": "application/json" } },
@@ -3334,6 +3463,87 @@ Deno.serve(async (req) => {
             if (!projetoId && !existingByCodigoId && !projetoByDeal.get(dealId)) {
                 const smProjDate = smProp.sm_created_at || smProp.generated_at || null;
 
+                // Resolve funil_id outside object literal (avoids Deno bundler IIFE parse issue)
+                const resolvedProjFunilId: string | null = (() => {
+                  const smProj = smProp.sm_project_id ? smProjectMap.get(smProp.sm_project_id) : null;
+                  const smFunnelName = smProj?.sm_funnel_name || null;
+                  const nf = normalizeComparableName(smFunnelName);
+                  if (nf && !NON_OPERATIONAL_FUNNELS.has(nf)) {
+                    if (nf.includes('compesa') || nf.includes('compensa')) {
+                      return projetoFunisMap.get(normalizeComparableName('Compensação'))
+                        || projetoFunisMap.get(normalizeComparableName('Compesação'))
+                        || null;
+                    }
+                    const directMatch = projetoFunisMap.get(nf);
+                    if (directMatch) return directMatch;
+                    for (const [k, v] of projetoFunisMap) {
+                      if (k.includes(nf) || nf.includes(k)) return v;
+                    }
+                  }
+                  const bestOp = resolveBestOperationalFunnel(smProj?.all_funnels, projetoFunisMap, projetoFunisOrdemMap);
+                  if (bestOp) return bestOp.funilId;
+                  return COMERCIAL_FUNIL_ID || FALLBACK_FUNIL_ID || null;
+                })();
+
+                // Resolve etapa_id outside object literal
+                const resolvedProjEtapaId: string | null = (() => {
+                  const smProj = smProp.sm_project_id ? smProjectMap.get(smProp.sm_project_id) : null;
+                  const smFunnelName = smProj?.sm_funnel_name || null;
+                  const nf = normalizeComparableName(smFunnelName);
+                  const smStageName = smProj?.sm_stage_name || null;
+
+                  const matchEtapa = (funilId: string, stageName: string | null): string | null => {
+                    if (!stageName) return null;
+                    return funilEtapaByNameMap.get(`${funilId}::${normalizeComparableName(stageName)}`) || null;
+                  };
+
+                  let targetFunilId: string | null = null;
+                  let resolvedStageName: string | null = null;
+
+                  if (nf && !NON_OPERATIONAL_FUNNELS.has(nf)) {
+                    if (nf.includes('compesa') || nf.includes('compensa')) {
+                      targetFunilId = projetoFunisMap.get(normalizeComparableName('Compensação'))
+                        || projetoFunisMap.get(normalizeComparableName('Compesação'))
+                        || null;
+                    } else {
+                      targetFunilId = projetoFunisMap.get(nf) || null;
+                      if (!targetFunilId) {
+                        for (const [k, v] of projetoFunisMap) {
+                          if (k.includes(nf) || nf.includes(k)) { targetFunilId = v; break; }
+                        }
+                      }
+                    }
+                    resolvedStageName = smStageName;
+                  } else {
+                    const bestOp = resolveBestOperationalFunnel(smProj?.all_funnels, projetoFunisMap, projetoFunisOrdemMap);
+                    if (bestOp) {
+                      targetFunilId = bestOp.funilId;
+                      resolvedStageName = bestOp.stageName;
+                    } else {
+                      targetFunilId = COMERCIAL_FUNIL_ID || FALLBACK_FUNIL_ID || null;
+                    }
+                  }
+
+                  if (!targetFunilId) return COMERCIAL_ETAPA_ID || FALLBACK_ETAPA_ID || null;
+
+                  if (resolvedStageName) {
+                    const matched = matchEtapa(targetFunilId, resolvedStageName);
+                    if (matched) return matched;
+                  }
+
+                  const funnels: any[] = smProj?.all_funnels || [];
+                  for (const f of funnels) {
+                    const fName = normalizeComparableName(readSmFunnelName(f));
+                    if (!fName || NON_OPERATIONAL_FUNNELS.has(fName)) continue;
+                    const fStageName = readSmStageName(f);
+                    if (fStageName) {
+                      const matched = matchEtapa(targetFunilId, fStageName);
+                      if (matched) return matched;
+                    }
+                  }
+
+                  return funilFirstEtapaMap.get(targetFunilId) || null;
+                })();
 
                 const projInsert: Record<string, any> = {
                     origem: "imported",
@@ -3360,102 +3570,9 @@ Deno.serve(async (req) => {
                     status: mapSmStatusToDeal(smProp) === "won" ? "concluido" : "criado",
                     codigo: projetoCodigo,
                     projeto_num: null,
-                    is_principal: false, // avoid unique constraint on is_principal per cliente
-                    funil_id: (() => {
-                      // Resolve operational funil from SM data.
-                      // "Vendedores" is NOT a process funil — it identifies the consultor.
-                      // Priority: 1) sm_funnel_name if operational, 2) best operational from all_funnels, 3) Engenharia fallback
-                      const smProj = smProp.sm_project_id ? smProjectMap.get(smProp.sm_project_id) : null;
-                      const smFunnelName = smProj?.sm_funnel_name || null;
-                      const normalizedFunnel = normalizeComparableName(smFunnelName);
-
-                      // If sm_funnel_name is a real operational funnel, use it directly
-                      if (normalizedFunnel && !NON_OPERATIONAL_FUNNELS.has(normalizedFunnel)) {
-                      if (normalizedFunnel.includes('compesa') || normalizedFunnel.includes('compensa')) {
-                        return projetoFunisMap.get(normalizeComparableName('Compensação'))
-                          || projetoFunisMap.get(normalizeComparableName('Compesação'))
-                          || null; // No Engenharia fallback — rule: null if no real operational funnel
-                        }
-                        const directMatch = projetoFunisMap.get(normalizedFunnel);
-                        if (directMatch) return directMatch;
-                        for (const [k, v] of projetoFunisMap) {
-                          if (k.includes(normalizedFunnel) || normalizedFunnel.includes(k)) return v;
-                        }
-                      }
-
-                      // sm_funnel_name is Vendedores/LEAD/NULL — scan all_funnels for best operational funnel
-                      const bestOp = resolveBestOperationalFunnel(smProj?.all_funnels, projetoFunisMap, projetoFunisOrdemMap);
-                      if (bestOp) return bestOp.funilId;
-
-                      // No operational funnel found → fallback to Comercial, then Engenharia
-                      return COMERCIAL_FUNIL_ID || FALLBACK_FUNIL_ID || null;
-                    })(),
-                    etapa_id: (() => {
-                      // Resolve etapa matching the resolved funil.
-                      const smProj = smProp.sm_project_id ? smProjectMap.get(smProp.sm_project_id) : null;
-                      const smFunnelName = smProj?.sm_funnel_name || null;
-                      const normalizedFunnel = normalizeComparableName(smFunnelName);
-                      const smStageName = smProj?.sm_stage_name || null;
-
-                      const matchEtapaByName = (funilId: string, stageName: string | null): string | null => {
-                        if (!stageName) return null;
-                        const nameKey = `${funilId}::${normalizeComparableName(stageName)}`;
-                        return funilEtapaByNameMap.get(nameKey) || null;
-                      };
-
-                      // Determine target funil (same logic as funil_id above)
-                      let targetFunilId: string | null = null;
-                      let resolvedStageName: string | null = null;
-
-                      if (normalizedFunnel && !NON_OPERATIONAL_FUNNELS.has(normalizedFunnel)) {
-                        // sm_funnel_name is operational
-                        if (normalizedFunnel.includes('compesa') || normalizedFunnel.includes('compensa')) {
-                          targetFunilId = projetoFunisMap.get(normalizeComparableName('Compensação'))
-                            || projetoFunisMap.get(normalizeComparableName('Compesação'))
-                            || null; // No Engenharia fallback
-                        } else {
-                          targetFunilId = projetoFunisMap.get(normalizedFunnel) || null;
-                          if (!targetFunilId) {
-                            for (const [k, v] of projetoFunisMap) {
-                              if (k.includes(normalizedFunnel) || normalizedFunnel.includes(k)) { targetFunilId = v; break; }
-                            }
-                          }
-                        }
-                        resolvedStageName = smStageName;
-                      } else {
-                        // sm_funnel_name is Vendedores/LEAD/NULL — use best operational from all_funnels
-                        const bestOp = resolveBestOperationalFunnel(smProj?.all_funnels, projetoFunisMap, projetoFunisOrdemMap);
-                        if (bestOp) {
-                          targetFunilId = bestOp.funilId;
-                          resolvedStageName = bestOp.stageName;
-                        } else {
-                          // No operational funnel found → fallback to Comercial, then Engenharia
-                          targetFunilId = COMERCIAL_FUNIL_ID || FALLBACK_FUNIL_ID || null;
-                        }
-                      }
-
-                      if (!targetFunilId) return COMERCIAL_ETAPA_ID || FALLBACK_ETAPA_ID || null;
-
-                      // Try matching resolved stage name
-                      if (resolvedStageName) {
-                        const matched = matchEtapaByName(targetFunilId, resolvedStageName);
-                        if (matched) return matched;
-                      }
-
-                      // Also try all operational funnels' stage names for matching
-                      const funnels: any[] = smProj?.all_funnels || [];
-                      for (const f of funnels) {
-                        const fName = normalizeComparableName(readSmFunnelName(f));
-                        if (!fName || NON_OPERATIONAL_FUNNELS.has(fName)) continue;
-                        const fStageName = readSmStageName(f);
-                        if (fStageName) {
-                          const matched = matchEtapaByName(targetFunilId, fStageName);
-                          if (matched) return matched;
-                        }
-                      }
-
-                      return funilFirstEtapaMap.get(targetFunilId) || null; // No Engenharia fallback for etapa
-                    })(),
+                    is_principal: false,
+                    funil_id: resolvedProjFunilId,
+                    etapa_id: resolvedProjEtapaId,
                 };
                 if (smProjDate) {
                   projInsert.created_at = smProjDate;
