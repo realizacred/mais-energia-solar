@@ -2796,9 +2796,11 @@ Deno.serve(async (req) => {
           //           3) Fallback → Escritório (projetos sem consultor definido)
           // NOTE: responsible.name removido da cadeia — causava atribuição errada
           //       (Bruno era o responsible padrão no SM, inflava seus deals)
-          let resolvedOwnerId = params.owner_id || null;
+          // RULE: When auto_resolve_owner is enabled, IGNORE params.owner_id completely
+          // to prevent the frontend's logged-in user from contaminating consultor resolution.
+          let resolvedOwnerId: string | null = autoResolveOwner ? null : (params.owner_id || null);
           let ownerAutoCreated = false;
-          let ownerSource = resolvedOwnerId ? "manual_fallback" : "none";
+          let ownerSource = resolvedOwnerId ? "manual_param" : "none";
 
           if (autoResolveOwner && smProp.sm_project_id) {
             const smProj = smProjectMap.get(smProp.sm_project_id);
