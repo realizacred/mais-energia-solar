@@ -685,7 +685,7 @@ Deno.serve(async (req) => {
     }
     // ─── END BLOCK CHECK ───────────────────────────────────
     // Auth — supports JWT (user) or x-cron-secret (pg_cron auto-resume)
-    const authHeader = req.headers.get("authorization") || req.headers.get("Authorization") || "";
+    const authHeader = req.headers.get("authorization") || "";
     const cronSecretHeader = req.headers.get("x-cron-secret");
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -695,9 +695,6 @@ Deno.serve(async (req) => {
       hasCron: !!cronSecretHeader,
       hasAuth: !!authHeader,
       authLen: authHeader.length,
-      method: req.method,
-      url: req.url,
-      userAgent: req.headers.get("user-agent")?.substring(0, 80) || "none",
     });
 
     let tenantId: string;
