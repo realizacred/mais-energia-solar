@@ -52,7 +52,7 @@ function projetoStatusToDeal(status: string): string {
 function projetoToCard(p: ProjetoItem, etapaMap: Map<string, ProjetoEtapa>): DealKanbanCard {
   const etapa = p.etapa_id ? etapaMap.get(p.etapa_id) : null;
   return {
-    deal_id: p.id,
+    deal_id: p.deal_id || p.id,
     tenant_id: "",
     pipeline_id: p.funil_id || "",
     stage_id: p.etapa_id || "",
@@ -637,7 +637,7 @@ export function ProjetosManager() {
                   <ProjetoListView
                     projetos={projetos}
                     etapas={selectedFunilEtapas}
-                    onViewProjeto={(p) => setSelectedProjetoId(p.id)}
+                    onViewProjeto={(p) => setSelectedProjetoId(p.deal_id || p.id)}
                   />
                 )}
               </div>
