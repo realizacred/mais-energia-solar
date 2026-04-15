@@ -71,6 +71,7 @@ export interface ProjetoDetalheContextValue {
   dealId: string;
   onBack: () => void;
   initialPipelineId?: string;
+  initialPipelineName?: string;
 
   // Data
   deal: DealDetail | null;
@@ -165,10 +166,11 @@ interface ProviderProps {
   dealId: string;
   onBack: () => void;
   initialPipelineId?: string;
+  initialPipelineName?: string;
   children: ReactNode;
 }
 
-export function ProjetoDetalheProvider({ dealId, onBack, initialPipelineId, children }: ProviderProps) {
+export function ProjetoDetalheProvider({ dealId, onBack, initialPipelineId, initialPipelineName, children }: ProviderProps) {
   const queryClient = useQueryClient();
 
   // ── Data from hooks ──
@@ -448,6 +450,7 @@ export function ProjetoDetalheProvider({ dealId, onBack, initialPipelineId, chil
     dealId,
     onBack,
     initialPipelineId,
+    initialPipelineName,
     deal,
     history,
     stages,
@@ -503,7 +506,7 @@ export function ProjetoDetalheProvider({ dealId, onBack, initialPipelineId, chil
     getStageNameById,
     tabBadge,
   }), [
-    dealId, onBack, initialPipelineId,
+    dealId, onBack, initialPipelineId, initialPipelineName,
     deal, history, stages, loadingData,
     customerName, customerPhone, customerEmail, customerCpfCnpj, customerAddress, customerEmpresa,
     ownerName, pipelines, allStagesMap, propostasCountData, docsCount, userNamesMap,
