@@ -94,27 +94,6 @@ async function fetchAllProjetosRows(baseQuery: any) {
   return allRows;
 }
 
-const normalizeComparableName = (value: string | null | undefined): string => {
-  const normalized = String(value || "")
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase()
-    .trim();
-
-  if (normalized.includes("compesa") || normalized.includes("compensa")) {
-    return "compensacao";
-  }
-
-  return normalized;
-};
-
-const namesMatch = (left: string | null | undefined, right: string | null | undefined) => {
-  const a = normalizeComparableName(left);
-  const b = normalizeComparableName(right);
-  if (!a || !b) return false;
-  return a === b || a.includes(b) || b.includes(a);
-};
-
 const PROPOSTA_STATUS_PRIORITY: Record<string, number> = {
   aceita: 1,
   accepted: 1,
@@ -235,86 +214,13 @@ export function useProjetoPipeline() {
 
     let filteredData = data || [];
     if (f.funilId) {
-      const targetFunil = availableFunis.find((funil) => funil.id === f.funilId) || null;
-      const targetEtapas = (etapasByFunil.get(f.funilId) || []).sort((a, b) => a.ordem - b.ordem);
-      const directMatches = new Map<string, any>();
-
-      filteredData.forEach((p: any) => {
+      filteredData = filteredData.filter((p: any) => {
         const effectiveFunilId = p.etapa_id
           ? (etapaFunilMap.get(p.etapa_id) ?? p.funil_id ?? null)
           : (p.funil_id ?? null);
-        if (effectiveFunilId === f.funilId) {
-          directMatches.set(p.id, p);
-        }
+
+        return effectiveFunilId === f.funilId;
       });
-
-      const unresolved = filteredData.filter((p: any) => !directMatches.has(p.id) && !!p.deal_id);
-
-      if (targetFunil && unresolved.length > 0) {
-        const dealIds = [...new Set(unresolved.map((p: any) => p.deal_id).filter(Boolean))] as string[];
-        const memberships: Array<{ deal_id: string; pipeline_id: string; stage_id: string }> = [];
-
-        for (let i = 0; i < dealIds.length; i += 500) {
-          const chunk = dealIds.slice(i, i + 500);
-          const { data: membershipRows, error: membershipErr } = await supabase
-            .from("deal_pipeline_stages")
-            .select("deal_id, pipeline_id, stage_id")
-            .in("deal_id", chunk);
-
-          if (membershipErr) throw membershipErr;
-          memberships.push(...((membershipRows || []) as Array<{ deal_id: string; pipeline_id: string; stage_id: string }>));
-        }
-
-        if (memberships.length > 0) {
-          const pipelineIds = [...new Set(memberships.map((item) => item.pipeline_id))];
-          const stageIds = [...new Set(memberships.map((item) => item.stage_id))];
-
-          const [crmPipelinesRes, crmStagesRes] = await Promise.all([
-            supabase.from("pipelines").select("id, name").in("id", pipelineIds),
-            supabase.from("pipeline_stages").select("id, pipeline_id, name").in("id", stageIds),
-          ]);
-
-          if (crmPipelinesRes.error) throw crmPipelinesRes.error;
-          if (crmStagesRes.error) throw crmStagesRes.error;
-
-          const pipelineNameById = new Map<string, string>();
-          (crmPipelinesRes.data || []).forEach((pipeline: any) => {
-            pipelineNameById.set(pipeline.id, pipeline.name);
-          });
-
-          const stageNameById = new Map<string, string>();
-          (crmStagesRes.data || []).forEach((stage: any) => {
-            stageNameById.set(stage.id, stage.name);
-          });
-
-          const membershipsByDeal = new Map<string, Array<{ pipeline_id: string; stage_id: string }>>();
-          memberships.forEach((membership) => {
-            const arr = membershipsByDeal.get(membership.deal_id) || [];
-            arr.push({ pipeline_id: membership.pipeline_id, stage_id: membership.stage_id });
-            membershipsByDeal.set(membership.deal_id, arr);
-          });
-
-          unresolved.forEach((projeto: any) => {
-            const dealMemberships = membershipsByDeal.get(projeto.deal_id) || [];
-            const matchedMembership = dealMemberships.find((membership) =>
-              namesMatch(pipelineNameById.get(membership.pipeline_id), targetFunil.nome)
-            );
-
-            if (!matchedMembership) return;
-
-            const crmStageName = stageNameById.get(matchedMembership.stage_id) || null;
-            const matchedEtapa = targetEtapas.find((etapa) => namesMatch(etapa.nome, crmStageName));
-
-            directMatches.set(projeto.id, {
-              ...projeto,
-              funil_id: f.funilId,
-              etapa_id: matchedEtapa?.id || targetEtapas[0]?.id || projeto.etapa_id,
-            });
-          });
-        }
-      }
-
-      filteredData = Array.from(directMatches.values());
     }
 
     if (f.etiquetaIds.length > 0) {
