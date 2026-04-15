@@ -130,6 +130,8 @@ let FALLBACK_PIPELINE_ID = '';
 let FALLBACK_STAGE_ID    = '';
 let FALLBACK_FUNIL_ID    = '';
 let FALLBACK_ETAPA_ID    = '';
+let COMERCIAL_FUNIL_ID   = '';
+let COMERCIAL_ETAPA_ID   = '';
 let CANONICAL_DEFAULT_PIPELINE_ID = '';
 let CANONICAL_DEFAULT_STAGE_ID = '';
 
@@ -1098,10 +1100,12 @@ Deno.serve(async (req) => {
             if (bestOp) {
               targetFunilId = bestOp.funilId;
               resolvedStageName = bestOp.stageName;
+            } else {
+              // No operational funnel found → fallback to Comercial
+              targetFunilId = COMERCIAL_FUNIL_ID || null;
             }
           }
-          // No operational funnel found → null (don't force into Engenharia without evidence)
-          // targetFunilId remains null — project stays in Comercial pipeline only
+          // If still no funnel, Comercial fallback was already applied above
 
           // Resolve etapa_id
           let targetEtapaId: string | null = null;
@@ -1124,9 +1128,11 @@ Deno.serve(async (req) => {
                 }
               }
             }
-            if (!targetEtapaId) targetEtapaId = fixEtapaFirstMap.get(targetFunilId) || null;
+            if (!targetEtapaId) targetEtapaId = funilFirstEtapaMap.get(targetFunilId) || (targetFunilId === COMERCIAL_FUNIL_ID ? COMERCIAL_ETAPA_ID : null) || null;
+          } else {
+            // No funil → use Comercial etapa directly
+            targetEtapaId = COMERCIAL_ETAPA_ID || null;
           }
-          // No etapa fallback — consistent with funil_id null rule above
 
           // Resolve consultor from Vendedores funnel
           let targetConsultorId: string | null = null;
@@ -1627,6 +1633,39 @@ Deno.serve(async (req) => {
           .maybeSingle();
         if (firstEtapa) FALLBACK_ETAPA_ID = firstEtapa.id;
       }
+
+      // Resolve "Comercial" funil — used as fallback for projects without operational funnel
+      const { data: comercialFunil } = await adminClient
+        .from("projeto_funis")
+        .select("id")
+        .eq("tenant_id", tenantId)
+        .ilike("nome", "%comercial%")
+        .maybeSingle();
+      if (comercialFunil) {
+        COMERCIAL_FUNIL_ID = comercialFunil.id;
+        const { data: comercialEtapa } = await adminClient
+          .from("projeto_etapas")
+          .select("id")
+          .eq("tenant_id", tenantId)
+          .eq("funil_id", comercialFunil.id)
+          .ilike("nome", "%andamento%")
+          .limit(1)
+          .maybeSingle();
+        if (comercialEtapa) {
+          COMERCIAL_ETAPA_ID = comercialEtapa.id;
+        } else {
+          // Fallback to first etapa of Comercial
+          const { data: firstComEtapa } = await adminClient
+            .from("projeto_etapas")
+            .select("id")
+            .eq("tenant_id", tenantId)
+            .eq("funil_id", comercialFunil.id)
+            .order("ordem", { ascending: true })
+            .limit(1)
+            .maybeSingle();
+          if (firstComEtapa) COMERCIAL_ETAPA_ID = firstComEtapa.id;
+        }
+      }
       // Pre-fetch ALL projeto_funis for dynamic funil resolution
       const { data: allProjetoFunis } = await adminClient
         .from("projeto_funis")
@@ -1662,7 +1701,7 @@ Deno.serve(async (req) => {
         }
       }
 
-      console.error(`[SM Migration] Dynamic fallbacks resolved: pipeline=${FALLBACK_PIPELINE_ID}, stage=${FALLBACK_STAGE_ID}, funil=${FALLBACK_FUNIL_ID}, etapa=${FALLBACK_ETAPA_ID}`);
+      console.error(`[SM Migration] Dynamic fallbacks resolved: pipeline=${FALLBACK_PIPELINE_ID}, stage=${FALLBACK_STAGE_ID}, funil=${FALLBACK_FUNIL_ID}, etapa=${FALLBACK_ETAPA_ID}, comercial_funil=${COMERCIAL_FUNIL_ID}, comercial_etapa=${COMERCIAL_ETAPA_ID}`);
 
       if (!FALLBACK_PIPELINE_ID || !FALLBACK_STAGE_ID) {
         const errMsg = "Não foi possível resolver pipeline/stage de fallback. Configure sm_migration_settings ou crie um pipeline padrão.";
@@ -3229,7 +3268,7 @@ Deno.serve(async (req) => {
                 }
                 const bestOp = resolveBestOperationalFunnel(smProj?.all_funnels, projetoFunisMap, projetoFunisOrdemMap);
                 if (bestOp) return bestOp.funilId;
-                return null;
+                return COMERCIAL_FUNIL_ID || null;
               })();
 
               const resolvedEtapaId = (() => {
@@ -3252,7 +3291,7 @@ Deno.serve(async (req) => {
                   const matched = matchEtapaByName(resolvedFunilId, bestOp.stageName);
                   if (matched) return matched;
                 }
-                return funilFirstEtapaMap.get(resolvedFunilId) || null;
+                return funilFirstEtapaMap.get(resolvedFunilId) || (resolvedFunilId === COMERCIAL_FUNIL_ID ? COMERCIAL_ETAPA_ID : null) || null;
               })();
 
               const projUpdateFields: Record<string, any> = {
@@ -3329,9 +3368,8 @@ Deno.serve(async (req) => {
                       const bestOp = resolveBestOperationalFunnel(smProj?.all_funnels, projetoFunisMap, projetoFunisOrdemMap);
                       if (bestOp) return bestOp.funilId;
 
-                      // No operational funnel found → null (don't force into Engenharia without evidence)
-                      // Rule: "não criar projeto operacional sem evidência de funil operacional real"
-                      return null;
+                      // No operational funnel found → fallback to Comercial
+                      return COMERCIAL_FUNIL_ID || null;
                     })(),
                     etapa_id: (() => {
                       // Resolve etapa matching the resolved funil.
@@ -3372,12 +3410,12 @@ Deno.serve(async (req) => {
                           targetFunilId = bestOp.funilId;
                           resolvedStageName = bestOp.stageName;
                         } else {
-                          // No operational funnel found → null (consistent with funil_id rule above)
-                          targetFunilId = null;
+                          // No operational funnel found → fallback to Comercial
+                          targetFunilId = COMERCIAL_FUNIL_ID || null;
                         }
                       }
 
-                      if (!targetFunilId) return null; // No operational funnel → no etapa
+                      if (!targetFunilId) return COMERCIAL_ETAPA_ID || null;
 
                       // Try matching resolved stage name
                       if (resolvedStageName) {
