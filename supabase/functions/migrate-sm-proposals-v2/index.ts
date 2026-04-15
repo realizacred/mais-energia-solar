@@ -478,19 +478,19 @@ async function handleSyncPipelines(adminClient: any, tenantId: string): Promise<
     }
 
     for (const f of funnels) {
+      const canonicalFunilName = toCanonicalProjetoFunilName(f.funnelName);
       const normalizedFunnel = normalizeNameForCompare(f.funnelName);
       if (normalizedFunnel === "vendedores") {
-        // Collect vendedor names for consultor creation
         if (f.stageName) vendedorNames.add(f.stageName);
         continue;
       }
-      if (!f.funnelName) continue;
+      if (!canonicalFunilName) continue;
 
-      if (!funnelStagesMap.has(f.funnelName)) {
-        funnelStagesMap.set(f.funnelName, new Set());
+      if (!funnelStagesMap.has(canonicalFunilName)) {
+        funnelStagesMap.set(canonicalFunilName, new Set());
       }
       if (f.stageName) {
-        funnelStagesMap.get(f.funnelName)!.add(f.stageName);
+        funnelStagesMap.get(canonicalFunilName)!.add(f.stageName);
       }
     }
   }
