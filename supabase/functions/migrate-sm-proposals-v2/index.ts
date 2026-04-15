@@ -3233,6 +3233,8 @@ Deno.serve(async (req) => {
               }
             }
 
+            console.error("DEPOIS_PROJETO", { projetoId, status: report.steps.projeto?.status });
+
             // Link projeto_id to deal (backfill for new or existing deals)
             if (projetoId && dealId) {
               await adminClient
@@ -3245,6 +3247,7 @@ Deno.serve(async (req) => {
             report.steps.projeto = { status: dry_run ? "WOULD_CREATE" : "ERROR", reason: dry_run ? undefined : "no deal_id" };
           }
 
+          console.error("ANTES_PROPOSTA_NATIVA", { projetoId, dealId });
           // ── E. Proposta Nativa ──
           const smIdKey = `${smProp.sm_project_id || 0}:${smProp.sm_proposal_id}`;
           let propostaId: string | null = existingPropostas.get(smIdKey) || null;
