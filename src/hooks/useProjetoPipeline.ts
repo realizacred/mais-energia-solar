@@ -57,6 +57,7 @@ export interface ProjetoItem {
 export interface ConsultorColumn {
   id: string;
   nome: string;
+  ativo: boolean;
   projetos: ProjetoItem[];
   totalValor: number;
   totalKwp: number;
@@ -78,7 +79,7 @@ export function useProjetoPipeline() {
   const [etapas, setEtapas] = useState<ProjetoEtapa[]>([]);
   const [etiquetas, setEtiquetas] = useState<ProjetoEtiqueta[]>([]);
   const [projetos, setProjetos] = useState<ProjetoItem[]>([]);
-  const [consultores, setConsultores] = useState<{ id: string; nome: string }[]>([]);
+  const [consultores, setConsultores] = useState<{ id: string; nome: string; ativo: boolean }[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedFunilId, setSelectedFunilId] = useState<string | null>(null);
   const [filters, setFilters] = useState<ProjetoFiltersState>({
@@ -96,7 +97,7 @@ export function useProjetoPipeline() {
       supabase.from("projeto_funis").select("id, nome, ordem, ativo, tenant_id").order("ordem"),
       supabase.from("projeto_etapas").select("id, funil_id, nome, cor, ordem, categoria, tenant_id").order("ordem"),
       supabase.from("projeto_etiquetas").select("id, nome, cor, tenant_id"),
-      supabase.from("consultores").select("id, nome").eq("ativo", true).order("nome"),
+      supabase.from("consultores").select("id, nome, ativo").order("nome"),
     ]);
 
     if (funisRes.error) throw funisRes.error;
@@ -458,20 +459,25 @@ export function useProjetoPipeline() {
       }
     });
 
-    // Show ALL active consultores, even those without projects
+    // Show ALL consultores (active + inactive), even those without projects
     return consultores
       .map(c => {
         const items = map.get(c.id) || [];
         return {
           id: c.id,
           nome: c.nome,
+          ativo: c.ativo,
           projetos: items,
           totalValor: items.reduce((sum, p) => sum + (p.valor_total || 0), 0),
           totalKwp: items.reduce((sum, p) => sum + (p.potencia_kwp || 0), 0),
           count: items.length,
         };
       })
-      .sort((a, b) => b.totalValor - a.totalValor || a.nome.localeCompare(b.nome));
+      // Active first, then by value desc, then name
+      .sort((a, b) => {
+        if (a.ativo !== b.ativo) return a.ativo ? -1 : 1;
+        return b.totalValor - a.totalValor || a.nome.localeCompare(b.nome);
+      });
   }, [projetos, consultores]);
 
   // Unique consultores for filter (from loaded consultores)
