@@ -6,6 +6,12 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-cron-secret, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+// ─── Conditional logging (only when DEBUG_MODE=true) ────
+const DEBUG = Deno.env.get("DEBUG_MODE") === "true";
+const logDebug = (msg: string, data?: unknown) => {
+  if (DEBUG) console.error(msg, data ?? "");
+};
+
 // ─── Global helpers ─────────────────────────────────────
 const normalizeComparableName = (value: string | null | undefined): string => {
   return String(value || "")
