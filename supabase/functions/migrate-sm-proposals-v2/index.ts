@@ -1646,7 +1646,7 @@ Deno.serve(async (req) => {
       if ((page || []).length < pageSize) break;
       offset += pageSize;
     }
-    console.error("propostas carregadas");
+    console.error("propostas OK");
 
     // console.log(`[SM Migration] Found ${allProposals.length} proposals matching filters`);
 
@@ -1674,7 +1674,7 @@ Deno.serve(async (req) => {
         smClientMap.set(c.sm_client_id, c);
       }
     }
-    console.error("clientes carregados");
+    console.error("clientes OK");
 
     // console.log(`[SM Migration] Loaded ${smClientMap.size} SM clients`);
 
@@ -1695,7 +1695,7 @@ Deno.serve(async (req) => {
         smProjectMap.set(p.sm_project_id, { responsible_name: respName, sm_funnel_name: p.sm_funnel_name, sm_stage_name: p.sm_stage_name, all_funnels: p.all_funnels || null });
       }
     }
-    console.error("sm_projects carregados");
+    console.error("sm_projects OK");
     // console.log(`[SM Migration] Loaded ${smProjectMap.size} SM projects for responsible resolution`);
 
 
@@ -2064,7 +2064,7 @@ Deno.serve(async (req) => {
         if (d.legacy_key) existingDeals.set(d.legacy_key, d.id);
       }
     }
-    console.error("deals carregados");
+    console.error("deals OK");
 
     // ─── 4. Pre-fetch existing propostas_nativas with sm_id ─
 
@@ -2231,7 +2231,7 @@ Deno.serve(async (req) => {
         console.error(`[SM Migration] Fixed position of ${positionsFixed} existing stages using SM order`);
       }
     }
-    console.error("pipelines carregados");
+    console.error("pipelines OK");
 
     // ─── 5a. Batch pre-fetch canonical entities for O(1) lookup ──
     // Pre-fetch ALL clientes for this tenant to avoid N+1 phone/email/doc lookups
@@ -2329,7 +2329,7 @@ Deno.serve(async (req) => {
     }
     console.error("versoes carregadas", { count: existingVersoes.size });
 
-    console.error("INICIANDO LOOP DE PROPOSTAS");
+    console.error("INICIANDO LOOP");
     inPreLoad = false;
 
     // ─── 5. Process proposals ────────────────────────────
