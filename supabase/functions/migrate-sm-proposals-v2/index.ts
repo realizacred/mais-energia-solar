@@ -15,6 +15,20 @@ const normalizeComparableName = (value: string | null | undefined): string => {
     .trim();
 };
 
+function readSmFunnelName(funnel: any): string {
+  const rawFunnel = funnel?.funnelName ?? funnel?.funnel_name ?? funnel?.name ?? "";
+  return String(rawFunnel || "").trim();
+}
+
+function readSmStageName(funnel: any): string {
+  const rawStage = funnel?.stageName
+    ?? funnel?.stage_name
+    ?? funnel?.currentStageName
+    ?? (typeof funnel?.stage === "string" ? funnel.stage : funnel?.stage?.name)
+    ?? "";
+  return String(rawStage || "").trim();
+}
+
 // Non-operational funnel names in SolarMarket — used for consultor resolution, NOT project funnels
 const NON_OPERATIONAL_FUNNELS = new Set(["vendedores", "vendedor", "lead"]);
 
