@@ -1,0 +1,1 @@
+SELECT cron.unschedule('solarmarket-auto-sync');
