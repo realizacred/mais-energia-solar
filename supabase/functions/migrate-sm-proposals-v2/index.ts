@@ -2247,63 +2247,88 @@ Deno.serve(async (req) => {
 
 
 
-    // ─── Vendedor name mapping (SM stage name → canonical consultor name) ──
-    // Ex-funcionários mapeados diretamente para Escritório (DA confirmado 2026-04-10)
-    const EX_FUNCIONARIOS = ['rogerio', 'rogério', 'ricardo'];
+    // ─── Consultor name mapping (SM stage name → canonical consultor name) ──
+    // Loaded from sm_consultor_mapping table (replaces hardcoded VENDEDOR_MAP)
+    const smConsultorMap = new Map<string, { canonical_name: string; consultor_id: string | null; is_ex_funcionario: boolean }>();
+    {
+      const { data: mappings } = await adminClient
+        .from("sm_consultor_mapping")
+        .select("sm_name, canonical_name, consultor_id, is_ex_funcionario")
+        .eq("tenant_id", tenantId);
+      for (const m of (mappings || [])) {
+        smConsultorMap.set(normalizeComparableName(m.sm_name), {
+          canonical_name: m.canonical_name,
+          consultor_id: m.consultor_id,
+          is_ex_funcionario: m.is_ex_funcionario,
+        });
+      }
+    }
 
-    const VENDEDOR_MAP: Record<string, string> = {
-      'bruno': 'BRUNO BANDEIRA',
-      'claudia': 'claudia',
-      'diego': 'diego',
-      'ian': 'ian souza',
-      'renan': 'renan',
-      'sebastiao': 'sebastião',
-      'sebastião': 'sebastião',
-      'escritorio': 'escritório',
-      'escritório': 'escritório',
-    };
+    // Fallback hardcoded defaults (used if sm_consultor_mapping is empty for this tenant)
+    if (smConsultorMap.size === 0) {
+      const DEFAULTS: Array<[string, string, boolean]> = [
+        ['rogerio', 'escritório', true], ['rogério', 'escritório', true], ['ricardo', 'escritório', true],
+        ['bruno', 'BRUNO BANDEIRA', false], ['claudia', 'claudia', false],
+        ['diego', 'diego', false], ['ian', 'ian souza', false],
+        ['renan', 'renan', false], ['sebastiao', 'sebastião', false],
+        ['sebastião', 'sebastião', false], ['escritorio', 'escritório', false],
+        ['escritório', 'escritório', false],
+      ];
+      for (const [sm, canonical, isEx] of DEFAULTS) {
+        smConsultorMap.set(sm, { canonical_name: canonical, consultor_id: null, is_ex_funcionario: isEx });
+      }
+    }
 
     async function resolveOrCreateConsultor(stageName: string): Promise<{ id: string; created: boolean }> {
       const key = normalizeComparableName(stageName);
       if (!key) {
-        // console.error(`[SM Migration] CONSULTOR_MATCH stageName="" → Escritório (empty name)`);
         return resolveOrCreateEscritorio();
       }
 
-      // Priority 0: ex-funcionários → Escritório direto (sem log de erro)
-      if (EX_FUNCIONARIOS.includes(key)) {
-        // console.error(`[SM Migration] CONSULTOR_MATCH stageName="${stageName}" normalized="${key}" → Escritório (ex-funcionário)`);
+      // Priority 0: DB mapping with is_ex_funcionario → Escritório
+      const dbMapping = smConsultorMap.get(key);
+      if (dbMapping?.is_ex_funcionario) {
         return resolveOrCreateEscritorio();
+      }
+
+      // Priority 0b: DB mapping with direct consultor_id
+      if (dbMapping?.consultor_id) {
+        return { id: dbMapping.consultor_id, created: false };
       }
 
       // Priority 1: exact match in consultoresMap
       const existing = consultoresMap.get(key);
       if (existing) {
-        // console.error(`[SM Migration] CONSULTOR_MATCH stageName="${stageName}" normalized="${key}" → exact match id=${existing}`);
         return { id: existing, created: false };
       }
 
-      // Priority 2: VENDEDOR_MAP lookup — find canonical name and match (word-boundary safe)
-      const mappedName = Object.entries(VENDEDOR_MAP).find(([k]) => key === k || key.startsWith(k + ' ') || key.endsWith(' ' + k))?.[1];
-      if (mappedName) {
-        const normalizedMapped = normalizeComparableName(mappedName);
+      // Priority 2: DB mapping lookup — find canonical name and match
+      if (dbMapping) {
+        const normalizedMapped = normalizeComparableName(dbMapping.canonical_name);
         const mapped = consultoresMap.get(normalizedMapped);
         if (mapped) {
-          // console.error(`[SM Migration] CONSULTOR_MATCH stageName="${stageName}" normalized="${key}" → VENDEDOR_MAP "${mappedName}" id=${mapped}`);
           return { id: mapped, created: false };
         }
       }
 
-      // Priority 3: partial match (first name)
+      // Priority 2b: word-boundary match against all mappings
+      const mappedEntry = [...smConsultorMap.entries()].find(([k]) => key === k || key.startsWith(k + ' ') || key.endsWith(' ' + k));
+      if (mappedEntry) {
+        if (mappedEntry[1].is_ex_funcionario) return resolveOrCreateEscritorio();
+        if (mappedEntry[1].consultor_id) return { id: mappedEntry[1].consultor_id, created: false };
+        const normalizedMapped = normalizeComparableName(mappedEntry[1].canonical_name);
+        const mapped = consultoresMap.get(normalizedMapped);
+        if (mapped) return { id: mapped, created: false };
+      }
+
+      // Priority 3: partial match (first name) in consultoresMap
       for (const [k, v] of consultoresMap) {
         if (k.startsWith(key) || key.startsWith(k)) {
-          // console.error(`[SM Migration] CONSULTOR_MATCH stageName="${stageName}" normalized="${key}" → partial match "${k}" id=${v}`);
           return { id: v, created: false };
         }
       }
 
-      // Priority 4: No match found — fallback to "Escritório" instead of creating new consultor
-      // console.error(`[SM Migration] CONSULTOR_MATCH stageName="${stageName}" normalized="${key}" → NO MATCH → Escritório`);
+      // Priority 4: No match found — fallback to "Escritório"
       return resolveOrCreateEscritorio();
     }
 
