@@ -3129,13 +3129,14 @@ Deno.serve(async (req) => {
           if (autoResolveOwner && smProp.sm_project_id) {
             const smProj = smProjectMap.get(smProp.sm_project_id);
 
-            // ── AUDIT: log all inputs for owner resolution ──
+            // AUDIT logs disabled for performance
+            /*
             const auditFunnels = smProj?.all_funnels || [];
             const vendedorFunnel = auditFunnels.find((f: any) => {
               const fn = readSmFunnelName(f).toLowerCase().trim();
               return fn === "vendedores";
             });
-            // console.error(`[SM Migration] OWNER_AUDIT proposal=${smProp.sm_proposal_id}`, {
+            console.error(`[SM Migration] OWNER_AUDIT proposal=${smProp.sm_proposal_id}`, {
               sm_project_id: smProp.sm_project_id,
               vendedor_raw: vendedorFunnel ? readSmStageName(vendedorFunnel) : null,
               vendedor_normalized: vendedorFunnel ? normalizeComparableName(readSmStageName(vendedorFunnel)) : null,
@@ -3144,7 +3145,8 @@ Deno.serve(async (req) => {
               params_owner_id: params.owner_id || null,
               consultores_available: [...consultoresMap.keys()],
             });
-            // console.error("CONSULTOR_MAP_KEYS", [...consultoresMap.keys()]);
+            console.error("CONSULTOR_MAP_KEYS", [...consultoresMap.keys()]);
+            */
 
             // Priority 1: DB cached funnel data (fast, no external call)
             if (!resolvedOwnerId || ownerSource.startsWith("manual")) {
