@@ -3202,7 +3202,74 @@ Deno.serve(async (req) => {
               if (existingByDealId) {
                 projetoId = existingByDealId;
                 report.steps.projeto = { status: "WOULD_LINK", id: projetoId, reason: "matched by deal_id" };
+              }
+            }
+
+            // ── UPDATE existing project with resolved consultor/funil/etapa ──
+            if (projetoId && (existingByCodigoId || projetoByDeal.get(dealId))) {
+              const resolvedFunilId = (() => {
+                const smProj = smProp.sm_project_id ? smProjectMap.get(smProp.sm_project_id) : null;
+                const smFunnelName = smProj?.sm_funnel_name || null;
+                const normalizedFunnel = normalizeComparableName(smFunnelName);
+                if (normalizedFunnel && !NON_OPERATIONAL_FUNNELS.has(normalizedFunnel)) {
+                  if (normalizedFunnel.includes('compesa') || normalizedFunnel.includes('compensa')) {
+                    return projetoFunisMap.get(normalizeComparableName('Compensação'))
+                      || projetoFunisMap.get(normalizeComparableName('Compesação'))
+                      || null;
+                  }
+                  const directMatch = projetoFunisMap.get(normalizedFunnel);
+                  if (directMatch) return directMatch;
+                  for (const [k, v] of projetoFunisMap) {
+                    if (k.includes(normalizedFunnel) || normalizedFunnel.includes(k)) return v;
+                  }
+                }
+                const bestOp = resolveBestOperationalFunnel(smProj?.all_funnels, projetoFunisMap, projetoFunisOrdemMap);
+                if (bestOp) return bestOp.funilId;
+                return null;
+              })();
+
+              const resolvedEtapaId = (() => {
+                if (!resolvedFunilId) return null;
+                const smProj = smProp.sm_project_id ? smProjectMap.get(smProp.sm_project_id) : null;
+                const smStageName = smProj?.sm_stage_name || null;
+                const matchEtapaByName = (funilId: string, stageName: string | null): string | null => {
+                  if (!stageName) return null;
+                  const nameKey = `${funilId}::${normalizeComparableName(stageName)}`;
+                  return funilEtapaByNameMap.get(nameKey) || null;
+                };
+                // Try sm_stage_name
+                if (smStageName) {
+                  const matched = matchEtapaByName(resolvedFunilId, smStageName);
+                  if (matched) return matched;
+                }
+                // Try all_funnels stage names
+                const bestOp = resolveBestOperationalFunnel(smProj?.all_funnels, projetoFunisMap, projetoFunisOrdemMap);
+                if (bestOp?.stageName) {
+                  const matched = matchEtapaByName(resolvedFunilId, bestOp.stageName);
+                  if (matched) return matched;
+                }
+                return funilFirstEtapaMap.get(resolvedFunilId) || null;
+              })();
+
+              const projUpdateFields: Record<string, any> = {
+                consultor_id: resolvedOwnerId || null,
+                funil_id: resolvedFunilId,
+                etapa_id: resolvedEtapaId,
+              };
+
+              const { error: projUpdErr } = await adminClient
+                .from("projetos")
+                .update(projUpdateFields)
+                .eq("id", projetoId);
+
+              if (projUpdErr) {
+                console.error(`[SM Migration] Failed to update existing project ${projetoId}: ${projUpdErr.message}`);
               } else {
+                console.error(`[SM Migration] Updated existing project ${projetoId}`, projUpdateFields);
+              }
+            }
+
+            if (!projetoId && !existingByCodigoId && !projetoByDeal.get(dealId)) {
                 const smProjDate = smProp.sm_created_at || smProp.generated_at || null;
 
 
