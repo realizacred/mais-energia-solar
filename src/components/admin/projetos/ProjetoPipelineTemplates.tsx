@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Zap, FileText, Wrench, DollarSign, Headphones, Plus, ChevronRight } from "lucide-react";
+import { Zap, FileText, Wrench, DollarSign, Plus, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
