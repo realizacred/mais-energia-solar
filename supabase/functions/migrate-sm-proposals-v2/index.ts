@@ -3463,6 +3463,87 @@ Deno.serve(async (req) => {
             if (!projetoId && !existingByCodigoId && !projetoByDeal.get(dealId)) {
                 const smProjDate = smProp.sm_created_at || smProp.generated_at || null;
 
+                // Resolve funil_id outside object literal (avoids Deno bundler IIFE parse issue)
+                const resolvedProjFunilId: string | null = (() => {
+                  const smProj = smProp.sm_project_id ? smProjectMap.get(smProp.sm_project_id) : null;
+                  const smFunnelName = smProj?.sm_funnel_name || null;
+                  const nf = normalizeComparableName(smFunnelName);
+                  if (nf && !NON_OPERATIONAL_FUNNELS.has(nf)) {
+                    if (nf.includes('compesa') || nf.includes('compensa')) {
+                      return projetoFunisMap.get(normalizeComparableName('Compensação'))
+                        || projetoFunisMap.get(normalizeComparableName('Compesação'))
+                        || null;
+                    }
+                    const directMatch = projetoFunisMap.get(nf);
+                    if (directMatch) return directMatch;
+                    for (const [k, v] of projetoFunisMap) {
+                      if (k.includes(nf) || nf.includes(k)) return v;
+                    }
+                  }
+                  const bestOp = resolveBestOperationalFunnel(smProj?.all_funnels, projetoFunisMap, projetoFunisOrdemMap);
+                  if (bestOp) return bestOp.funilId;
+                  return COMERCIAL_FUNIL_ID || FALLBACK_FUNIL_ID || null;
+                })();
+
+                // Resolve etapa_id outside object literal
+                const resolvedProjEtapaId: string | null = (() => {
+                  const smProj = smProp.sm_project_id ? smProjectMap.get(smProp.sm_project_id) : null;
+                  const smFunnelName = smProj?.sm_funnel_name || null;
+                  const nf = normalizeComparableName(smFunnelName);
+                  const smStageName = smProj?.sm_stage_name || null;
+
+                  const matchEtapa = (funilId: string, stageName: string | null): string | null => {
+                    if (!stageName) return null;
+                    return funilEtapaByNameMap.get(`${funilId}::${normalizeComparableName(stageName)}`) || null;
+                  };
+
+                  let targetFunilId: string | null = null;
+                  let resolvedStageName: string | null = null;
+
+                  if (nf && !NON_OPERATIONAL_FUNNELS.has(nf)) {
+                    if (nf.includes('compesa') || nf.includes('compensa')) {
+                      targetFunilId = projetoFunisMap.get(normalizeComparableName('Compensação'))
+                        || projetoFunisMap.get(normalizeComparableName('Compesação'))
+                        || null;
+                    } else {
+                      targetFunilId = projetoFunisMap.get(nf) || null;
+                      if (!targetFunilId) {
+                        for (const [k, v] of projetoFunisMap) {
+                          if (k.includes(nf) || nf.includes(k)) { targetFunilId = v; break; }
+                        }
+                      }
+                    }
+                    resolvedStageName = smStageName;
+                  } else {
+                    const bestOp = resolveBestOperationalFunnel(smProj?.all_funnels, projetoFunisMap, projetoFunisOrdemMap);
+                    if (bestOp) {
+                      targetFunilId = bestOp.funilId;
+                      resolvedStageName = bestOp.stageName;
+                    } else {
+                      targetFunilId = COMERCIAL_FUNIL_ID || FALLBACK_FUNIL_ID || null;
+                    }
+                  }
+
+                  if (!targetFunilId) return COMERCIAL_ETAPA_ID || FALLBACK_ETAPA_ID || null;
+
+                  if (resolvedStageName) {
+                    const matched = matchEtapa(targetFunilId, resolvedStageName);
+                    if (matched) return matched;
+                  }
+
+                  const funnels: any[] = smProj?.all_funnels || [];
+                  for (const f of funnels) {
+                    const fName = normalizeComparableName(readSmFunnelName(f));
+                    if (!fName || NON_OPERATIONAL_FUNNELS.has(fName)) continue;
+                    const fStageName = readSmStageName(f);
+                    if (fStageName) {
+                      const matched = matchEtapa(targetFunilId, fStageName);
+                      if (matched) return matched;
+                    }
+                  }
+
+                  return funilFirstEtapaMap.get(targetFunilId) || null;
+                })();
 
                 const projInsert: Record<string, any> = {
                     origem: "imported",
@@ -3489,102 +3570,9 @@ Deno.serve(async (req) => {
                     status: mapSmStatusToDeal(smProp) === "won" ? "concluido" : "criado",
                     codigo: projetoCodigo,
                     projeto_num: null,
-                    is_principal: false, // avoid unique constraint on is_principal per cliente
-                    funil_id: (() => {
-                      // Resolve operational funil from SM data.
-                      // "Vendedores" is NOT a process funil — it identifies the consultor.
-                      // Priority: 1) sm_funnel_name if operational, 2) best operational from all_funnels, 3) Engenharia fallback
-                      const smProj = smProp.sm_project_id ? smProjectMap.get(smProp.sm_project_id) : null;
-                      const smFunnelName = smProj?.sm_funnel_name || null;
-                      const normalizedFunnel = normalizeComparableName(smFunnelName);
-
-                      // If sm_funnel_name is a real operational funnel, use it directly
-                      if (normalizedFunnel && !NON_OPERATIONAL_FUNNELS.has(normalizedFunnel)) {
-                      if (normalizedFunnel.includes('compesa') || normalizedFunnel.includes('compensa')) {
-                        return projetoFunisMap.get(normalizeComparableName('Compensação'))
-                          || projetoFunisMap.get(normalizeComparableName('Compesação'))
-                          || null; // No Engenharia fallback — rule: null if no real operational funnel
-                        }
-                        const directMatch = projetoFunisMap.get(normalizedFunnel);
-                        if (directMatch) return directMatch;
-                        for (const [k, v] of projetoFunisMap) {
-                          if (k.includes(normalizedFunnel) || normalizedFunnel.includes(k)) return v;
-                        }
-                      }
-
-                      // sm_funnel_name is Vendedores/LEAD/NULL — scan all_funnels for best operational funnel
-                      const bestOp = resolveBestOperationalFunnel(smProj?.all_funnels, projetoFunisMap, projetoFunisOrdemMap);
-                      if (bestOp) return bestOp.funilId;
-
-                      // No operational funnel found → fallback to Comercial, then Engenharia
-                      return COMERCIAL_FUNIL_ID || FALLBACK_FUNIL_ID || null;
-                    })(),
-                    etapa_id: (() => {
-                      // Resolve etapa matching the resolved funil.
-                      const smProj = smProp.sm_project_id ? smProjectMap.get(smProp.sm_project_id) : null;
-                      const smFunnelName = smProj?.sm_funnel_name || null;
-                      const normalizedFunnel = normalizeComparableName(smFunnelName);
-                      const smStageName = smProj?.sm_stage_name || null;
-
-                      const matchEtapaByName = (funilId: string, stageName: string | null): string | null => {
-                        if (!stageName) return null;
-                        const nameKey = `${funilId}::${normalizeComparableName(stageName)}`;
-                        return funilEtapaByNameMap.get(nameKey) || null;
-                      };
-
-                      // Determine target funil (same logic as funil_id above)
-                      let targetFunilId: string | null = null;
-                      let resolvedStageName: string | null = null;
-
-                      if (normalizedFunnel && !NON_OPERATIONAL_FUNNELS.has(normalizedFunnel)) {
-                        // sm_funnel_name is operational
-                        if (normalizedFunnel.includes('compesa') || normalizedFunnel.includes('compensa')) {
-                          targetFunilId = projetoFunisMap.get(normalizeComparableName('Compensação'))
-                            || projetoFunisMap.get(normalizeComparableName('Compesação'))
-                            || null; // No Engenharia fallback
-                        } else {
-                          targetFunilId = projetoFunisMap.get(normalizedFunnel) || null;
-                          if (!targetFunilId) {
-                            for (const [k, v] of projetoFunisMap) {
-                              if (k.includes(normalizedFunnel) || normalizedFunnel.includes(k)) { targetFunilId = v; break; }
-                            }
-                          }
-                        }
-                        resolvedStageName = smStageName;
-                      } else {
-                        // sm_funnel_name is Vendedores/LEAD/NULL — use best operational from all_funnels
-                        const bestOp = resolveBestOperationalFunnel(smProj?.all_funnels, projetoFunisMap, projetoFunisOrdemMap);
-                        if (bestOp) {
-                          targetFunilId = bestOp.funilId;
-                          resolvedStageName = bestOp.stageName;
-                        } else {
-                          // No operational funnel found → fallback to Comercial, then Engenharia
-                          targetFunilId = COMERCIAL_FUNIL_ID || FALLBACK_FUNIL_ID || null;
-                        }
-                      }
-
-                      if (!targetFunilId) return COMERCIAL_ETAPA_ID || FALLBACK_ETAPA_ID || null;
-
-                      // Try matching resolved stage name
-                      if (resolvedStageName) {
-                        const matched = matchEtapaByName(targetFunilId, resolvedStageName);
-                        if (matched) return matched;
-                      }
-
-                      // Also try all operational funnels' stage names for matching
-                      const funnels: any[] = smProj?.all_funnels || [];
-                      for (const f of funnels) {
-                        const fName = normalizeComparableName(readSmFunnelName(f));
-                        if (!fName || NON_OPERATIONAL_FUNNELS.has(fName)) continue;
-                        const fStageName = readSmStageName(f);
-                        if (fStageName) {
-                          const matched = matchEtapaByName(targetFunilId, fStageName);
-                          if (matched) return matched;
-                        }
-                      }
-
-                      return funilFirstEtapaMap.get(targetFunilId) || null; // No Engenharia fallback for etapa
-                    })(),
+                    is_principal: false,
+                    funil_id: resolvedProjFunilId,
+                    etapa_id: resolvedProjEtapaId,
                 };
                 if (smProjDate) {
                   projInsert.created_at = smProjDate;
