@@ -981,11 +981,13 @@ Deno.serve(async (req) => {
       // 1. Load all projeto_funis and projeto_etapas for this tenant (cache)
       const { data: fixFunis } = await adminClient
         .from("projeto_funis")
-        .select("id, nome")
+        .select("id, nome, ordem")
         .eq("tenant_id", tenantId);
       const fixFunisMap = new Map<string, string>();
+      const fixFunisOrdemMap = new Map<string, number>();
       for (const f of fixFunis || []) {
         fixFunisMap.set(normalizeNameForCompare(f.nome), f.id);
+        fixFunisOrdemMap.set(f.id, f.ordem ?? 0);
       }
 
       const { data: fixEtapas } = await adminClient
