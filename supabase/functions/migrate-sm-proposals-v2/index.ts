@@ -725,13 +725,14 @@ async function handleSyncPipelines(adminClient: any, tenantId: string): Promise<
     }
   }
 
-  // 7. Sync projeto_funis + projeto_etapas from SM operational funnels
-  //    Creates missing funis/etapas AND activates existing inactive ones.
-  //    Excluded from auto-activation: Vendedor, SDR, Prospecção
+  // 7. Sync projeto_funis + projeto_etapas from SM canonical operational funnels
+  //    Allowed plan: Comercial, Engenharia, Equipamento, Compensação, Pagamento
+  //    Excluded from materialization/activation: Vendedor, Vendedores, SDR, Prospecção
   const funisActivated: string[] = [];
   const funisCreated: string[] = [];
   {
-    const EXCLUDED_FUNIS = ["vendedor", "sdr", "prospeccao", "sdr / prospeccao", "lead"];
+    const EXCLUDED_FUNIS = ["vendedor", "vendedores", "sdr", "prospeccao", "sdr / prospeccao"];
+    const ALLOWED_FUNIS = new Set(["comercial", "engenharia", "equipamento", "compensacao"]);
 
     // Load existing projeto_funis
     const { data: existingFunis } = await adminClient
