@@ -332,6 +332,26 @@ function normalizeNameForCompare(value: string | null | undefined): string {
     .trim();
 }
 
+const CANONICAL_SM_TO_PROJETO_FUNIL: Record<string, string | null> = {
+  lead: "Comercial",
+  engenharia: "Engenharia",
+  equipamento: "Equipamento",
+  compesacao: "Compensação",
+  compensacao: "Compensação",
+  pagamento: "Pagamento",
+  vendedores: null,
+  vendedor: null,
+  sdr: null,
+  prospeccao: null,
+  "sdr / prospeccao": null,
+};
+
+function toCanonicalProjetoFunilName(smFunnelName: string | null | undefined): string | null {
+  const normalized = normalizeNameForCompare(smFunnelName);
+  if (!normalized) return null;
+  return CANONICAL_SM_TO_PROJETO_FUNIL[normalized] ?? null;
+}
+
 function dispatchBackgroundMigrationRun(params: {
   supabaseUrl: string;
   serviceKey: string;
