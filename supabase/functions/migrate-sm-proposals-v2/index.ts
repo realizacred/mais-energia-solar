@@ -124,8 +124,9 @@ interface MigrationParams {
 
 type StepStatus = "WOULD_CREATE" | "CREATED" | "WOULD_LINK" | "WOULD_SKIP" | "FALLBACK_USED" | "CONFLICT" | "ERROR";
 
-// ── Fallback IDs — resolved dynamically per tenant from sm_migration_settings + DB lookups ──
-// These are populated at runtime in resolveDynamicFallbacks() before any migration logic runs.
+// ── Fallback IDs — resolved dynamically per tenant per request ──
+// CRITICAL: These MUST be reset at the start of each request to avoid cross-tenant contamination.
+// Deno Deploy reuses isolates across requests, so module-level `let` vars persist.
 let FALLBACK_PIPELINE_ID = '';
 let FALLBACK_STAGE_ID    = '';
 let FALLBACK_FUNIL_ID    = '';
@@ -134,6 +135,18 @@ let COMERCIAL_FUNIL_ID   = '';
 let COMERCIAL_ETAPA_ID   = '';
 let CANONICAL_DEFAULT_PIPELINE_ID = '';
 let CANONICAL_DEFAULT_STAGE_ID = '';
+
+/** Reset all global mutable state — MUST be called at the top of every request handler. */
+function resetGlobalState() {
+  FALLBACK_PIPELINE_ID = '';
+  FALLBACK_STAGE_ID = '';
+  FALLBACK_FUNIL_ID = '';
+  FALLBACK_ETAPA_ID = '';
+  COMERCIAL_FUNIL_ID = '';
+  COMERCIAL_ETAPA_ID = '';
+  CANONICAL_DEFAULT_PIPELINE_ID = '';
+  CANONICAL_DEFAULT_STAGE_ID = '';
+}
 
 interface StepResult {
   status: StepStatus;
