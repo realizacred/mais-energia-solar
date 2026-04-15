@@ -1100,10 +1100,12 @@ Deno.serve(async (req) => {
             if (bestOp) {
               targetFunilId = bestOp.funilId;
               resolvedStageName = bestOp.stageName;
+            } else {
+              // No operational funnel found → fallback to Comercial
+              targetFunilId = COMERCIAL_FUNIL_ID || null;
             }
           }
-          // No operational funnel found → null (don't force into Engenharia without evidence)
-          // targetFunilId remains null — project stays in Comercial pipeline only
+          // If still no funnel, Comercial fallback was already applied above
 
           // Resolve etapa_id
           let targetEtapaId: string | null = null;
