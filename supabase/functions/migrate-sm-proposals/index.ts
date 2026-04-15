@@ -634,8 +634,9 @@ async function handleSyncPipelines(adminClient: any, tenantId: string): Promise<
       .eq("tenant_id", tenantId)
       .eq("ativo", false);
 
+    const EXCLUDED_FUNIS = ["vendedor", "sdr", "prospeccao", "sdr / prospeccao"];
     const toActivate = (inactiveFunis || []).filter(
-      (f: any) => normalizeNameForCompare(f.nome) !== "vendedor"
+      (f: any) => !EXCLUDED_FUNIS.includes(normalizeNameForCompare(f.nome))
     );
 
     for (const f of toActivate) {
