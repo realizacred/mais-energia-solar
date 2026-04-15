@@ -765,6 +765,19 @@ async function handleSyncPipelines(adminClient: any, tenantId: string): Promise<
 
     let nextFunilOrdem = Math.max(0, ...(existingFunis || []).map((f: any) => f.ordem ?? 0)) + 1;
 
+    // Normalize existing planned funnels to the approved order
+    for (const f of existingFunis || []) {
+      const normalizedExisting = normalizeNameForCompare(f.nome);
+      const plannedOrder = PLANNED_PROJETO_FUNIL_ORDER[normalizedExisting];
+      if (plannedOrder === undefined) continue;
+      if ((f.ordem ?? -1) !== plannedOrder) {
+        await adminClient
+          .from("projeto_funis")
+          .update({ ordem: plannedOrder })
+          .eq("id", f.id);
+      }
+    }
+
     // For each planned funnel, ensure projeto_funis + projeto_etapas exist
     for (const [funnelName, stageNames] of funnelStagesMap) {
       const normalizedFunnelName = normalizeNameForCompare(funnelName);
