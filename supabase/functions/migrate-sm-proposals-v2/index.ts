@@ -661,6 +661,8 @@ async function handleSyncPipelines(adminClient: any, tenantId: string): Promise<
 // ─── Main Handler ───────────────────────────────────────
 
 Deno.serve(async (req) => {
+  console.error("[SM Migration] HANDLER ENTRY", req.method);
+
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
@@ -688,6 +690,15 @@ Deno.serve(async (req) => {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const adminClient = createClient(supabaseUrl, serviceKey);
+
+    console.error("[SM Migration] AUTH CHECK", {
+      hasCron: !!cronSecretHeader,
+      hasAuth: !!authHeader,
+      authLen: authHeader.length,
+      method: req.method,
+      url: req.url,
+      userAgent: req.headers.get("user-agent")?.substring(0, 80) || "none",
+    });
 
     let tenantId: string;
     let rawBody: any;
