@@ -15,6 +15,69 @@ const normalizeComparableName = (value: string | null | undefined): string => {
     .trim();
 };
 
+// Non-operational funnel names in SolarMarket — used for consultor resolution, NOT project funnels
+const NON_OPERATIONAL_FUNNELS = new Set(["vendedores", "vendedor", "lead"]);
+
+/**
+ * Resolve the best operational funnel from SM all_funnels.
+ * Scans all_funnels for non-Vendedores/LEAD funnels and picks the one
+ * with the highest ordem (most advanced) in projeto_funis.
+ * Returns { funilId, funilName, stageName } or null if no operational funnel found.
+ */
+function resolveBestOperationalFunnel(
+  allFunnels: any[] | null | undefined,
+  projetoFunisMap: Map<string, string>,
+  projetoFunisOrdemMap: Map<string, number>,
+): { funilId: string; normalizedFunnel: string; stageName: string | null } | null {
+  if (!Array.isArray(allFunnels) || allFunnels.length === 0) return null;
+
+  let bestMatch: { funilId: string; normalizedFunnel: string; stageName: string | null; ordem: number } | null = null;
+
+  for (const f of allFunnels) {
+    const fName = normalizeComparableName(String(f.funnelName || "").trim());
+    if (!fName || NON_OPERATIONAL_FUNNELS.has(fName)) continue;
+
+    // Try to match this funnel name to projeto_funis
+    let funilId: string | null = null;
+    let matchedKey = fName;
+
+    // Compensação typo handling
+    if (fName.includes("compesa") || fName.includes("compensa")) {
+      funilId = projetoFunisMap.get(normalizeComparableName("Compensação"))
+        || projetoFunisMap.get(normalizeComparableName("Compesação"))
+        || null;
+      if (funilId) matchedKey = normalizeComparableName("Compensação");
+    } else {
+      // Direct match
+      funilId = projetoFunisMap.get(fName) || null;
+      // Partial match
+      if (!funilId) {
+        for (const [k, v] of projetoFunisMap) {
+          if (k.includes(fName) || fName.includes(k)) {
+            funilId = v;
+            matchedKey = k;
+            break;
+          }
+        }
+      }
+    }
+
+    if (!funilId) continue;
+
+    const ordem = projetoFunisOrdemMap.get(funilId) ?? -1;
+    if (!bestMatch || ordem > bestMatch.ordem) {
+      bestMatch = {
+        funilId,
+        normalizedFunnel: matchedKey,
+        stageName: String(f.stageName || "").trim() || null,
+        ordem,
+      };
+    }
+  }
+
+  return bestMatch ? { funilId: bestMatch.funilId, normalizedFunnel: bestMatch.normalizedFunnel, stageName: bestMatch.stageName } : null;
+}
+
 // ─── Types ──────────────────────────────────────────────
 
 interface MigrationParams {
