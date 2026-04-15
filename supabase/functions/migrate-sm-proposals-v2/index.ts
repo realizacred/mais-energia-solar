@@ -1697,7 +1697,7 @@ Deno.serve(async (req) => {
         }
       }
 
-      console.error(`[SM Migration] Dynamic fallbacks resolved: pipeline=${FALLBACK_PIPELINE_ID}, stage=${FALLBACK_STAGE_ID}, funil=${FALLBACK_FUNIL_ID}, etapa=${FALLBACK_ETAPA_ID}`);
+      console.error(`[SM Migration] Dynamic fallbacks resolved: pipeline=${FALLBACK_PIPELINE_ID}, stage=${FALLBACK_STAGE_ID}, funil=${FALLBACK_FUNIL_ID}, etapa=${FALLBACK_ETAPA_ID}, comercial_funil=${COMERCIAL_FUNIL_ID}, comercial_etapa=${COMERCIAL_ETAPA_ID}`);
 
       if (!FALLBACK_PIPELINE_ID || !FALLBACK_STAGE_ID) {
         const errMsg = "Não foi possível resolver pipeline/stage de fallback. Configure sm_migration_settings ou crie um pipeline padrão.";
