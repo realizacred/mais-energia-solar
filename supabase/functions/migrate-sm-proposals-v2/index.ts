@@ -3777,7 +3777,6 @@ Deno.serve(async (req) => {
                   report.steps.projeto = { status: "CREATED", id: projetoId };
                 }
               }
-            }
 
             console.error("DEPOIS_PROJETO", { projetoId, status: report.steps.projeto?.status });
 
