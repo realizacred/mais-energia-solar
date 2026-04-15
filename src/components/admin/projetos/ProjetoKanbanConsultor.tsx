@@ -316,6 +316,7 @@ export function ProjetoKanbanConsultor({ ownerColumns, allDeals, onViewProjeto, 
               className={cn(
                 "rounded-xl border border-border/50 transition-all flex flex-col min-w-0",
                 "bg-card/60",
+                col.ativo === false && "opacity-50",
                 isOver && "ring-2 ring-primary/30 bg-primary/5",
                 isColDragging && "opacity-50 scale-95",
                 isColOver && "ring-2 ring-warning/50 border-warning/40"
@@ -354,6 +355,11 @@ export function ProjetoKanbanConsultor({ ownerColumns, allDeals, onViewProjeto, 
                   <h3 className={cn("text-[11px] font-bold leading-tight truncate uppercase tracking-wider", isOrphanColumn(col.id) ? "text-warning" : "text-secondary")}>
                     {col.nome}
                   </h3>
+                  {col.ativo === false && (
+                    <Badge variant="outline" className="text-[8px] h-4 px-1 border-destructive/30 text-destructive shrink-0">
+                      Inativo
+                    </Badge>
+                  )}
                 </div>
                 <div className="flex items-center gap-2.5 text-[10px] text-muted-foreground">
                   <span className="flex items-center gap-0.5 font-bold text-[11px] font-mono text-success">

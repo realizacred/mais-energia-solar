@@ -94,6 +94,7 @@ function consultorColumnToOwner(c: ProjetoConsultorColumn, etapaMap: Map<string,
   return {
     id: c.id,
     nome: c.nome,
+    ativo: c.ativo,
     deals: c.projetos.map(p => projetoToCard(p, etapaMap)),
     totalValor: c.totalValor,
     totalKwp: c.totalKwp,
