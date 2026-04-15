@@ -528,6 +528,8 @@ async function handleSyncPipelines(adminClient: any, tenantId: string): Promise<
 
   // 3b. Pre-fetch ordered stages from solar_market_funnel_stages (SSOT for SM stage order)
   const smOrderedMap = new Map<string, Array<{ stage_name: string; stage_order: number }>>();
+  const canonicalOperationalStagesMap = new Map<string, Set<string>>();
+  const canonicalOperationalOrderedMap = new Map<string, Array<{ stage_name: string; stage_order: number }>>();
   {
     const { data: smFunnelStages } = await adminClient
       .from("solar_market_funnel_stages")
@@ -543,6 +545,34 @@ async function handleSyncPipelines(adminClient: any, tenantId: string): Promise<
       if (!arr.some(s => s.stage_name === sName)) {
         arr.push({ stage_name: sName, stage_order: row.stage_order ?? arr.length });
       }
+
+      const canonicalFunilName = toCanonicalProjetoFunilName(fName);
+      if (canonicalFunilName) {
+        if (!canonicalOperationalStagesMap.has(canonicalFunilName)) {
+          canonicalOperationalStagesMap.set(canonicalFunilName, new Set());
+        }
+        canonicalOperationalStagesMap.get(canonicalFunilName)!.add(sName);
+
+        if (!canonicalOperationalOrderedMap.has(canonicalFunilName)) {
+          canonicalOperationalOrderedMap.set(canonicalFunilName, []);
+        }
+        const canonicalArr = canonicalOperationalOrderedMap.get(canonicalFunilName)!;
+        if (!canonicalArr.some(s => normalizeNameForCompare(s.stage_name) === normalizeNameForCompare(sName))) {
+          canonicalArr.push({ stage_name: sName, stage_order: row.stage_order ?? canonicalArr.length });
+        }
+      }
+    }
+  }
+
+  for (const [funnelName, stageNames] of funnelStagesMap) {
+    const normalizedFunnelName = normalizeNameForCompare(funnelName);
+    if (!["comercial", "engenharia", "equipamento", "compensacao", "pagamento"].includes(normalizedFunnelName)) continue;
+    if (!canonicalOperationalStagesMap.has(funnelName)) {
+      canonicalOperationalStagesMap.set(funnelName, new Set());
+    }
+    const targetSet = canonicalOperationalStagesMap.get(funnelName)!;
+    for (const stageName of stageNames) {
+      if (stageName) targetSet.add(stageName);
     }
   }
 
@@ -781,7 +811,8 @@ async function handleSyncPipelines(adminClient: any, tenantId: string): Promise<
     }
 
     // For each planned funnel, ensure projeto_funis + projeto_etapas exist
-    for (const [funnelName, stageNames] of funnelStagesMap) {
+    // Source of truth = solar_market_funnel_stages, with project-derived stages merged in.
+    for (const [funnelName, stageNames] of canonicalOperationalStagesMap) {
       const normalizedFunnelName = normalizeNameForCompare(funnelName);
       if (EXCLUDED_FUNIS.includes(normalizedFunnelName)) continue;
       if (!ALLOWED_FUNIS.has(normalizedFunnelName)) continue;
@@ -838,7 +869,7 @@ async function handleSyncPipelines(adminClient: any, tenantId: string): Promise<
       }
 
       // Ensure etapas exist for this funil — use SM ordered stages when available
-      const orderedStages = smOrderedMap.get(funnelName);
+      const orderedStages = canonicalOperationalOrderedMap.get(funnelName);
       const stageList: Array<{ name: string; order: number }> = [];
 
       if (orderedStages && orderedStages.length > 0) {
@@ -3746,7 +3777,6 @@ Deno.serve(async (req) => {
                   report.steps.projeto = { status: "CREATED", id: projetoId };
                 }
               }
-            }
 
             console.error("DEPOIS_PROJETO", { projetoId, status: report.steps.projeto?.status });
 
