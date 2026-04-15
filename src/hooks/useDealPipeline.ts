@@ -71,6 +71,7 @@ export interface DealKanbanCard {
 export interface OwnerColumn {
   id: string;
   nome: string;
+  ativo?: boolean;
   deals: DealKanbanCard[];
   totalValor: number;
   totalKwp: number; // kept for compat, not used in deals yet
