@@ -1424,6 +1424,10 @@ Deno.serve(async (req) => {
     }
 
     // ─── 0b. Resolve dynamic fallback IDs — is_default first, sm_migration_settings as override ──
+    // Declare maps outside block scope so they're accessible in projeto creation (section D)
+    let projetoFunisMap = new Map<string, string>(); // normalized name → funil_id
+    let funilFirstEtapaMap = new Map<string, string>(); // funil_id → first etapa_id
+    let funilEtapaByNameMap = new Map<string, string>(); // "funil_id::normalizedName" → etapa_id
     {
       CANONICAL_DEFAULT_PIPELINE_ID = '';
       CANONICAL_DEFAULT_STAGE_ID = '';
@@ -1536,14 +1540,14 @@ Deno.serve(async (req) => {
         .from("projeto_funis")
         .select("id, nome")
         .eq("tenant_id", tenantId);
-      const projetoFunisMap = new Map<string, string>(); // normalized name → funil_id
+      projetoFunisMap = new Map<string, string>();
       for (const f of allProjetoFunis || []) {
         projetoFunisMap.set(normalizeComparableName(f.nome), f.id);
       }
 
       // Pre-fetch first etapa per funil for quick fallback + name-based lookup
-      const funilFirstEtapaMap = new Map<string, string>(); // funil_id → first etapa_id
-      const funilEtapaByNameMap = new Map<string, string>(); // "funil_id::normalizedName" → etapa_id
+      funilFirstEtapaMap = new Map<string, string>();
+      funilEtapaByNameMap = new Map<string, string>();
       {
         const { data: allEtapas } = await adminClient
           .from("projeto_etapas")
