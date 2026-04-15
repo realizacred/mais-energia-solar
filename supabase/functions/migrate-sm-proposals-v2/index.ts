@@ -1128,9 +1128,11 @@ Deno.serve(async (req) => {
                 }
               }
             }
-            if (!targetEtapaId) targetEtapaId = fixEtapaFirstMap.get(targetFunilId) || null;
+            if (!targetEtapaId) targetEtapaId = funilFirstEtapaMap.get(targetFunilId) || (targetFunilId === COMERCIAL_FUNIL_ID ? COMERCIAL_ETAPA_ID : null) || null;
+          } else {
+            // No funil → use Comercial etapa directly
+            targetEtapaId = COMERCIAL_ETAPA_ID || null;
           }
-          // No etapa fallback — consistent with funil_id null rule above
 
           // Resolve consultor from Vendedores funnel
           let targetConsultorId: string | null = null;
