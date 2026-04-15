@@ -345,11 +345,14 @@ export function ProjetosManager() {
 
   // ── Detail View ──
   if (selectedProjetoId) {
+    const selectedFunilName = funis.find(f => f.id === selectedFunilId)?.nome;
+
     return (
       <ProjetoDetalhe
         dealId={selectedProjetoId}
         onBack={() => { setSelectedProjetoId(null); fetchAll(); }}
         initialPipelineId={selectedFunilId || undefined}
+        initialPipelineName={selectedFunilName}
       />
     );
   }

@@ -42,9 +42,11 @@ interface Props {
   onMembershipChange?: () => void;
   /** ID do pipeline a selecionar por default (ex: quando vem do kanban) */
   initialPipelineId?: string;
+  /** Nome do funil selecionado no kanban, usado quando IDs não batem */
+  initialPipelineName?: string;
 }
 
-export function ProjetoMultiPipelineManager({ dealId, dealStatus, pipelines, allStagesMap, onMembershipChange, initialPipelineId }: Props) {
+export function ProjetoMultiPipelineManager({ dealId, dealStatus, pipelines, allStagesMap, onMembershipChange, initialPipelineId, initialPipelineName }: Props) {
   const isLocked = dealStatus === "lost" || dealStatus === "won";
   const [memberships, setMemberships] = useState<DealPipelineMembership[]>([]);
   const [loading, setLoading] = useState(true);
@@ -82,13 +84,19 @@ export function ProjetoMultiPipelineManager({ dealId, dealStatus, pipelines, all
 
   // Auto-select first pipeline tab when memberships load
   useEffect(() => {
-    if (memberships.length > 0 && !activePipelineId) {
-      const initial = initialPipelineId && memberships.some(m => m.pipeline_id === initialPipelineId)
-        ? initialPipelineId
-        : memberships[0].pipeline_id;
-      setActivePipelineId(initial);
-    }
-  }, [memberships, initialPipelineId]);
+    if (memberships.length === 0) return;
+
+    const hasCurrent = activePipelineId && memberships.some(m => m.pipeline_id === activePipelineId);
+    if (hasCurrent) return;
+
+    const normalizedInitialName = (initialPipelineName || "").trim().toLowerCase();
+    const byId = initialPipelineId && memberships.find(m => m.pipeline_id === initialPipelineId)?.pipeline_id;
+    const byName = normalizedInitialName
+      ? memberships.find(m => m.pipeline_name.trim().toLowerCase() === normalizedInitialName)?.pipeline_id
+      : null;
+
+    setActivePipelineId(byId || byName || memberships[0].pipeline_id);
+  }, [memberships, activePipelineId, initialPipelineId, initialPipelineName]);
 
   const activeMembership = memberships.find(m => m.pipeline_id === activePipelineId) || null;
 

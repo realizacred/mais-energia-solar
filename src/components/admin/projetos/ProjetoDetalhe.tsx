@@ -110,6 +110,7 @@ interface Props {
   dealId: string;
   onBack: () => void;
   initialPipelineId?: string;
+  initialPipelineName?: string;
 }
 
 const TABS = [
@@ -245,10 +246,10 @@ class ProjetoDetalheErrorBoundary extends React.Component<
   }
 }
 
-export function ProjetoDetalhe({ dealId, onBack, initialPipelineId }: Props) {
+export function ProjetoDetalhe({ dealId, onBack, initialPipelineId, initialPipelineName }: Props) {
   return (
     <ProjetoDetalheErrorBoundary onBack={onBack}>
-      <ProjetoDetalheProvider dealId={dealId} onBack={onBack} initialPipelineId={initialPipelineId}>
+      <ProjetoDetalheProvider dealId={dealId} onBack={onBack} initialPipelineId={initialPipelineId} initialPipelineName={initialPipelineName}>
         <ProjetoDetalheContent />
       </ProjetoDetalheProvider>
     </ProjetoDetalheErrorBoundary>
@@ -452,6 +453,7 @@ function ProjetoDetalheContent() {
               allStagesMap={allStagesMap}
               onMembershipChange={silentRefresh}
               initialPipelineId={initialPipelineId}
+              initialPipelineName={ctx.initialPipelineName}
             />
           </CardContent>
         </Card>
