@@ -72,6 +72,27 @@ export interface ProjetoFiltersState {
   search: string;
 }
 
+const normalizeComparableName = (value: string | null | undefined): string => {
+  const normalized = String(value || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim();
+
+  if (normalized.includes("compesa") || normalized.includes("compensa")) {
+    return "compensacao";
+  }
+
+  return normalized;
+};
+
+const namesMatch = (left: string | null | undefined, right: string | null | undefined) => {
+  const a = normalizeComparableName(left);
+  const b = normalizeComparableName(right);
+  if (!a || !b) return false;
+  return a === b || a.includes(b) || b.includes(a);
+};
+
 // ─── Hook ────────────────────────────────────────────────────
 
 export function useProjetoPipeline() {
@@ -118,13 +139,16 @@ export function useProjetoPipeline() {
   }, []);
 
   // ─── Fetch projetos with backend filters ──────────────────
-  const fetchProjetos = useCallback(async (f: ProjetoFiltersState, availableEtapas: ProjetoEtapa[] = etapas) => {
+  const fetchProjetos = useCallback(async (
+    f: ProjetoFiltersState,
+    availableEtapas: ProjetoEtapa[] = etapas,
+    availableFunis: ProjetoFunil[] = funis,
+  ) => {
     let query = supabase
       .from("projetos")
       .select("id, deal_id, codigo, projeto_num, lead_id, cliente_id, consultor_id, funil_id, etapa_id, proposta_id, potencia_kwp, valor_total, status, observacoes, created_at, updated_at, clientes:cliente_id(nome, telefone)")
       .order("created_at", { ascending: false });
 
-    // Backend filters
     if (f.consultorId !== "todos") {
       query = query.eq("consultor_id", f.consultorId);
     }
@@ -132,18 +156,15 @@ export function useProjetoPipeline() {
       query = query.eq("status", f.status as any);
     }
     if (f.search) {
-      // Search by codigo or client name via ilike on codigo (client search needs post-filter)
       query = query.or(`codigo.ilike.%${f.search}%`);
     }
 
     const { data, error } = await query;
     if (error) throw error;
 
-    // Fetch etiqueta relations in a single batch query
     const projetoIds = (data || []).map((p: any) => p.id);
     const relMap = new Map<string, string[]>();
     if (projetoIds.length > 0) {
-      // Supabase .in() has a practical limit; batch in chunks of 500
       const chunkSize = 500;
       for (let i = 0; i < projetoIds.length; i += chunkSize) {
         const chunk = projetoIds.slice(i, i + chunkSize);
@@ -160,31 +181,108 @@ export function useProjetoPipeline() {
     }
 
     const etapaFunilMap = new Map<string, string>();
-    availableEtapas.forEach((etapa) => etapaFunilMap.set(etapa.id, etapa.funil_id));
+    const etapasByFunil = new Map<string, ProjetoEtapa[]>();
+    availableEtapas.forEach((etapa) => {
+      etapaFunilMap.set(etapa.id, etapa.funil_id);
+      const arr = etapasByFunil.get(etapa.funil_id) || [];
+      arr.push(etapa);
+      etapasByFunil.set(etapa.funil_id, arr);
+    });
 
-    // Filter by funil using etapa.funil_id as source of truth when available
     let filteredData = data || [];
     if (f.funilId) {
-      filteredData = filteredData.filter((p: any) => {
+      const targetFunil = availableFunis.find((funil) => funil.id === f.funilId) || null;
+      const targetEtapas = (etapasByFunil.get(f.funilId) || []).sort((a, b) => a.ordem - b.ordem);
+      const directMatches = new Map<string, any>();
+
+      filteredData.forEach((p: any) => {
         const effectiveFunilId = p.etapa_id
           ? (etapaFunilMap.get(p.etapa_id) ?? p.funil_id ?? null)
           : (p.funil_id ?? null);
-        return effectiveFunilId === f.funilId;
+        if (effectiveFunilId === f.funilId) {
+          directMatches.set(p.id, p);
+        }
       });
+
+      const unresolved = filteredData.filter((p: any) => !directMatches.has(p.id) && !!p.deal_id);
+
+      if (targetFunil && unresolved.length > 0) {
+        const dealIds = [...new Set(unresolved.map((p: any) => p.deal_id).filter(Boolean))] as string[];
+        const memberships: Array<{ deal_id: string; pipeline_id: string; stage_id: string }> = [];
+
+        for (let i = 0; i < dealIds.length; i += 500) {
+          const chunk = dealIds.slice(i, i + 500);
+          const { data: membershipRows, error: membershipErr } = await supabase
+            .from("deal_pipeline_stages")
+            .select("deal_id, pipeline_id, stage_id")
+            .in("deal_id", chunk);
+
+          if (membershipErr) throw membershipErr;
+          memberships.push(...((membershipRows || []) as Array<{ deal_id: string; pipeline_id: string; stage_id: string }>));
+        }
+
+        if (memberships.length > 0) {
+          const pipelineIds = [...new Set(memberships.map((item) => item.pipeline_id))];
+          const stageIds = [...new Set(memberships.map((item) => item.stage_id))];
+
+          const [crmPipelinesRes, crmStagesRes] = await Promise.all([
+            supabase.from("pipelines").select("id, name").in("id", pipelineIds),
+            supabase.from("pipeline_stages").select("id, pipeline_id, name").in("id", stageIds),
+          ]);
+
+          if (crmPipelinesRes.error) throw crmPipelinesRes.error;
+          if (crmStagesRes.error) throw crmStagesRes.error;
+
+          const pipelineNameById = new Map<string, string>();
+          (crmPipelinesRes.data || []).forEach((pipeline: any) => {
+            pipelineNameById.set(pipeline.id, pipeline.name);
+          });
+
+          const stageNameById = new Map<string, string>();
+          (crmStagesRes.data || []).forEach((stage: any) => {
+            stageNameById.set(stage.id, stage.name);
+          });
+
+          const membershipsByDeal = new Map<string, Array<{ pipeline_id: string; stage_id: string }>>();
+          memberships.forEach((membership) => {
+            const arr = membershipsByDeal.get(membership.deal_id) || [];
+            arr.push({ pipeline_id: membership.pipeline_id, stage_id: membership.stage_id });
+            membershipsByDeal.set(membership.deal_id, arr);
+          });
+
+          unresolved.forEach((projeto: any) => {
+            const dealMemberships = membershipsByDeal.get(projeto.deal_id) || [];
+            const matchedMembership = dealMemberships.find((membership) =>
+              namesMatch(pipelineNameById.get(membership.pipeline_id), targetFunil.nome)
+            );
+
+            if (!matchedMembership) return;
+
+            const crmStageName = stageNameById.get(matchedMembership.stage_id) || null;
+            const matchedEtapa = targetEtapas.find((etapa) => namesMatch(etapa.nome, crmStageName));
+
+            directMatches.set(projeto.id, {
+              ...projeto,
+              funil_id: f.funilId,
+              etapa_id: matchedEtapa?.id || targetEtapas[0]?.id || projeto.etapa_id,
+            });
+          });
+        }
+      }
+
+      filteredData = Array.from(directMatches.values());
     }
 
-    // Filter by etiquetas if any selected
     if (f.etiquetaIds.length > 0) {
       const projetosComEtiqueta = new Set<string>();
       relMap.forEach((etIds, projId) => {
-        if (f.etiquetaIds.some(eid => etIds.includes(eid))) {
+        if (f.etiquetaIds.some((eid) => etIds.includes(eid))) {
           projetosComEtiqueta.add(projId);
         }
       });
       filteredData = filteredData.filter((p: any) => projetosComEtiqueta.has(p.id));
     }
 
-    // Fetch consultor names separately (no FK on projetos.consultor_id)
     const consultorIds = [...new Set(filteredData.map((p: any) => p.consultor_id).filter(Boolean))];
     const consultorMap = new Map<string, { nome: string }>();
     if (consultorIds.length > 0) {
@@ -199,7 +297,6 @@ export function useProjetoPipeline() {
       }
     }
 
-    // Enrich — consultant data merged from separate query
     let enriched: ProjetoItem[] = filteredData.map((p: any) => ({
       ...p,
       cliente: p.clientes || null,
@@ -210,7 +307,7 @@ export function useProjetoPipeline() {
 
     if (f.search) {
       const q = f.search.toLowerCase();
-      enriched = enriched.filter(p =>
+      enriched = enriched.filter((p) =>
         (p.cliente?.nome || "").toLowerCase().includes(q) ||
         (p.cliente?.telefone || "").toLowerCase().includes(q) ||
         (p.codigo || "").toLowerCase().includes(q) ||
@@ -219,14 +316,14 @@ export function useProjetoPipeline() {
     }
 
     return enriched;
-  }, [etapas]);
+  }, [etapas, funis]);
 
   // ─── Full fetch ──────────────────────────────────────────
   const fetchAll = useCallback(async () => {
     setLoading(true);
     try {
       const metadata = await fetchMetadata();
-      const enriched = await fetchProjetos(filters, metadata.etapas);
+      const enriched = await fetchProjetos(filters, metadata.etapas, metadata.funis);
       setProjetos(enriched);
 
       // Auto-select first funil
