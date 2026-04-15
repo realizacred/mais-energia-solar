@@ -3675,7 +3675,7 @@ Deno.serve(async (req) => {
 
               let transformed: any;
               try {
-                transformed = applyTransform(entry.value ?? entry.raw_value, mapping.transform);
+                transformed = applyTransform(entry.value ?? entry.raw_value ?? entry.value_text ?? entry.value_string ?? entry.display_value, mapping.transform);
               } catch (e) {
                 transformErrors[bareKey] = (e as Error).message;
                 unmappedCf[bareKey] = entry;
@@ -3780,7 +3780,7 @@ Deno.serve(async (req) => {
 
               for (const [key, entry] of Object.entries(cfVals)) {
                 const bareKey = normalizeCfKey(key);
-                const val = (entry as any)?.value ?? (entry as any)?.raw_value ?? "";
+                const val = (entry as any)?.value ?? (entry as any)?.raw_value ?? (entry as any)?.value_text ?? (entry as any)?.value_string ?? (entry as any)?.display_value ?? "";
                 if (val === "" || val == null) continue;
                 const area = detectCfArea(bareKey);
                 const normalizedKey = normalizeFieldKey(bareKey);
