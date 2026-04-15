@@ -732,7 +732,7 @@ async function handleSyncPipelines(adminClient: any, tenantId: string): Promise<
   const funisCreated: string[] = [];
   {
     const EXCLUDED_FUNIS = ["vendedor", "vendedores", "sdr", "prospeccao", "sdr / prospeccao"];
-    const ALLOWED_FUNIS = new Set(["comercial", "engenharia", "equipamento", "compensacao"]);
+    const ALLOWED_FUNIS = new Set(["comercial", "engenharia", "equipamento", "compensacao", "pagamento"]);
 
     // Load existing projeto_funis
     const { data: existingFunis } = await adminClient
@@ -757,10 +757,11 @@ async function handleSyncPipelines(adminClient: any, tenantId: string): Promise<
 
     let nextFunilOrdem = Math.max(0, ...(existingFunis || []).map((f: any) => f.ordem ?? 0)) + 1;
 
-    // For each SM operational funnel, ensure projeto_funis + projeto_etapas exist
+    // For each planned funnel, ensure projeto_funis + projeto_etapas exist
     for (const [funnelName, stageNames] of funnelStagesMap) {
       const normalizedFunnelName = normalizeNameForCompare(funnelName);
       if (EXCLUDED_FUNIS.includes(normalizedFunnelName)) continue;
+      if (!ALLOWED_FUNIS.has(normalizedFunnelName)) continue;
 
       let existingFunil = existingFunisMap.get(normalizedFunnelName);
 
@@ -778,7 +779,6 @@ async function handleSyncPipelines(adminClient: any, tenantId: string): Promise<
 
       if (existingFunil) {
         funilId = existingFunil.id;
-        // Activate if inactive
         if (!existingFunil.ativo) {
           const { error: activateErr } = await adminClient
             .from("projeto_funis")
