@@ -142,6 +142,7 @@ interface StepResult {
 
 interface ProposalReport {
   sm_proposal_id: number;
+  sm_project_id?: number | null;
   sm_client_name: string | null;
   aborted: boolean;
   _error?: string;
@@ -2525,6 +2526,7 @@ Deno.serve(async (req) => {
 
         const report: ProposalReport = {
           sm_proposal_id: smProp.sm_proposal_id,
+          sm_project_id: smProp.sm_project_id ?? null,
           sm_client_name: null,
           aborted: false,
           steps: {},
@@ -4478,7 +4480,7 @@ async function logItem(
       sm_proposal_id: smProposalId,
       sm_client_name: smClientName,
       status: finalStatus,
-      payload: { steps: report.steps, aborted: report.aborted },
+      payload: { sm_project_id: report.sm_project_id ?? null, steps: report.steps, aborted: report.aborted },
       is_dry_run: isDryRun,
     });
   } catch (e) {
