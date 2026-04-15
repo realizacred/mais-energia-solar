@@ -48,6 +48,8 @@ export interface ProjetoItem {
   observacoes: string | null;
   created_at: string;
   updated_at: string;
+  proposta_id?: string | null;
+  proposta_status?: string | null;
   // Joined
   cliente?: { nome: string; telefone: string } | null;
   consultor?: { nome: string } | null;
@@ -91,6 +93,29 @@ const namesMatch = (left: string | null | undefined, right: string | null | unde
   const b = normalizeComparableName(right);
   if (!a || !b) return false;
   return a === b || a.includes(b) || b.includes(a);
+};
+
+const PROPOSTA_STATUS_PRIORITY: Record<string, number> = {
+  aceita: 1,
+  accepted: 1,
+  aprovada: 1,
+  ganha: 1,
+  enviada: 2,
+  sent: 2,
+  vista: 2,
+  visualizada: 2,
+  gerada: 3,
+  generated: 3,
+  rascunho: 4,
+  draft: 4,
+  recusada: 5,
+  rejeitada: 5,
+  perdida: 5,
+  rejected: 5,
+  cancelada: 6,
+  expirada: 6,
+  arquivada: 7,
+  excluida: 99,
 };
 
 // ─── Hook ────────────────────────────────────────────────────
@@ -297,10 +322,83 @@ export function useProjetoPipeline() {
       }
     }
 
+    const projetoIds = filteredData.map((p: any) => p.id);
+    const dealToProjetoId = new Map<string, string>();
+    filteredData.forEach((p: any) => {
+      if (p.deal_id) dealToProjetoId.set(p.deal_id, p.id);
+    });
+
+    const propostaRows: any[] = [];
+    if (projetoIds.length > 0) {
+      const chunkSize = 500;
+      for (let i = 0; i < projetoIds.length; i += chunkSize) {
+        const projetoChunk = projetoIds.slice(i, i + chunkSize);
+        const dealChunk = filteredData
+          .slice(i, i + chunkSize)
+          .map((p: any) => p.deal_id)
+          .filter(Boolean);
+
+        const [byProjeto, byDeal] = await Promise.all([
+          supabase
+            .from("propostas_nativas")
+            .select("id, deal_id, projeto_id, status, is_principal, created_at")
+            .in("projeto_id", projetoChunk)
+            .order("created_at", { ascending: false }),
+          dealChunk.length > 0
+            ? supabase
+                .from("propostas_nativas")
+                .select("id, deal_id, projeto_id, status, is_principal, created_at")
+                .in("deal_id", dealChunk)
+                .order("created_at", { ascending: false })
+            : Promise.resolve({ data: [], error: null }),
+        ]);
+
+        if (byProjeto.error) throw byProjeto.error;
+        if (byDeal.error) throw byDeal.error;
+
+        propostaRows.push(...(byProjeto.data || []), ...(byDeal.data || []));
+      }
+    }
+
+    const uniquePropostas = new Map<string, any>();
+    propostaRows.forEach((proposta) => uniquePropostas.set(proposta.id, proposta));
+
+    const propostasByProjeto = new Map<string, any[]>();
+    Array.from(uniquePropostas.values()).forEach((proposta) => {
+      const projetoId = proposta.projeto_id || (proposta.deal_id ? dealToProjetoId.get(proposta.deal_id) : null);
+      if (!projetoId) return;
+      const arr = propostasByProjeto.get(projetoId) || [];
+      arr.push(proposta);
+      propostasByProjeto.set(projetoId, arr);
+    });
+
+    const bestPropostaByProjeto = new Map<string, { id: string; status: string | null }>();
+    propostasByProjeto.forEach((propostas, projetoId) => {
+      const principal = propostas.find((p) => p.is_principal && !["excluida", "cancelada", "arquivada"].includes(String(p.status || "").toLowerCase()));
+      if (principal) {
+        bestPropostaByProjeto.set(projetoId, { id: principal.id, status: principal.status || null });
+        return;
+      }
+
+      const sorted = [...propostas].sort((a, b) => {
+        const pa = PROPOSTA_STATUS_PRIORITY[String(a.status || "").toLowerCase()] ?? 50;
+        const pb = PROPOSTA_STATUS_PRIORITY[String(b.status || "").toLowerCase()] ?? 50;
+        if (pa !== pb) return pa - pb;
+        return new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime();
+      });
+
+      const best = sorted[0];
+      if (best) {
+        bestPropostaByProjeto.set(projetoId, { id: best.id, status: best.status || null });
+      }
+    });
+
     let enriched: ProjetoItem[] = filteredData.map((p: any) => ({
       ...p,
       cliente: p.clientes || null,
       consultor: p.consultor_id ? (consultorMap.get(p.consultor_id) || null) : null,
+      proposta_id: bestPropostaByProjeto.get(p.id)?.id || null,
+      proposta_status: bestPropostaByProjeto.get(p.id)?.status || null,
       clientes: undefined,
       etiquetas: relMap.get(p.id) || [],
     }));

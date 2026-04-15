@@ -75,6 +75,8 @@ function projetoToCard(p: ProjetoItem, etapaMap: Map<string, ProjetoEtapa>): Dea
     notas: p.observacoes,
     cliente_code: p.codigo,
     deal_num: p.projeto_num ?? null,
+    proposta_id: p.proposta_id || null,
+    proposta_status: p.proposta_status || null,
   };
 }
 
