@@ -1,1474 +1,850 @@
-# AGENTS.md v3.12 ‚Äî Mais Energia Solar CRM
-# Padr√µes obrigat√≥rios para gera√ß√£o de c√≥digo via AI (Lovable, Copilot, etc.)
-# √öltima atualiza√ß√£o: 2026-04-12 (v3.12 ‚Äî Migra√ß√£o SM resiliente, Realtime, Template WEB, C√°lculo GD)
-# Changelog v3.12: RB-52..RB-56, DA-36..DA-39 (JWT refresh, Realtime obrigat√≥rio, template_id_used, calcGrupoB, pipeline_stages)
-# Changelog v3.11: DA-33..DA-35, RB-51 (Autentique adapter, signat√°rios auto, PDF sem re-gera√ß√£o, purge jobs)
-# Changelog v3.10: RB-50, DA-32 (quickConvertToProposal, usePropostaRapidaLead)
-# Changelog v3.7: RB-47..RB-49, DA-25..DA-26 (public action, auto-expire, empresa_*, CEP)
-# Changelog v3.6: RB-44..RB-46, DA-24 (prote√ß√£o signed, edi√ß√£o aceita, [cidade])
-# Changelog v3.5: RB-40..RB-43, DA-22..DA-23 (aceite/contrato, purge jobs, hooks)
-# Changelog v3.3: RB-29..RB-38 adicionados (landing, DOCX, cards, sa√∫de, badges)
-#                 DA-16..DA-20 adicionados (governan√ßa, aliases, ZapSign, RLS)
-#                 AP-25..AP-29 adicionados
-#                 Corre√ß√µes cr√≠ticas: vari√°veis, documentos, landing, sistema
-# Changelog v3.2: Migra√ß√£o C-01 conclu√≠da (40+ hooks, ~170 queries migradas)
-#                 RB-22 (gate instala√ß√£o), RB-23 (console.log EF) adicionados
-#                 DA-15 (arquitetura dois resolvers) adicionado
-#                 Tabela completa de hooks criados adicionada
-# Changelog v3.1: Sprints Visuais V1-V5 conclu√≠dos ‚Äî ver Bloco 10
-# Changelog v3.0: RB-16, RB-17, AP-21, AP-22, AP-23, AP-24 adicionados
-#                 DA-12, DA-13, DA-14 adicionados
-#                 ¬ß48, ¬ß49, ¬ß50 adicionados
-#                 Bloco 10 atualizado com status de corre√ß√µes
-#                 Bloco 12 novo ‚Äî Design System Visual
 
-# =============================================================================
-# ‚ö†Ô∏è INSTRU√á√ÉO PRIM√ÅRIA PARA AI ‚Äî LEIA PRIMEIRO
-# =============================================================================
-
-# SEMPRE siga estas regras na ordem de prioridade:
-# 1. REGRAS BLOQUEANTES (Bloco 1) ‚Äî NUNCA quebrar, build falha se descumprir
-# 2. SNIPPETS OBRIGAT√ìRIOS (Bloco 3) ‚Äî Copie e cole EXATAMENTE, n√£o improvise
-# 3. ANTI-PADR√ïES (Bloco 4) ‚Äî NUNCA fa√ßa isso, j√° foi proibido
-# 4. DECIS√ïES (Bloco 5) ‚Äî Entenda o "por que" antes de criar algo novo
-# 5. BOAS PR√ÅTICAS (Bloco 2) ‚Äî Siga quando n√£o conflitar com 1-4
-
-# =============================================================================
-# BLOCO 0 ‚Äî √çNDICE R√ÅPIDO POR TIPO DE TAREFA
-# =============================================================================
-
-Estou criando...             | Regras principais              | Snippet          | Anti-padr√µes
------------------------------|-------------------------------|------------------|---------------------------
-Novo componente React        | ¬ß1 ‚Üí ¬ß22 ‚Üí ¬ß32                | ¬ß25-S1           | AP-02, AP-05, AP-07
-Nova query Supabase          | ¬ß16 ‚Üí ¬ß23 ‚Üí ¬ß18               | ¬ß16-S1           | AP-01, AP-09
-Novo modal/drawer            | ¬ß25 ‚Üí ¬ß36 ‚Üí ¬ß39               | ¬ß25-S1           | AP-03, AP-04
-Novo input formul√°rio        | ¬ß13 ‚Üí ¬ß2 ‚Üí ¬ß33                | ¬ß13 (lista)      | AP-05, AP-08
-Nova feature WhatsApp        | ¬ß39 ‚Üí ¬ß41 ‚Üí ¬ß43               | ¬ß39-S1           | AP-04
-Nova Edge Function           | ¬ßEF ‚Üí ¬ßEF-S1 ‚Üí ¬ß45            | ¬ßEF-S1           | AP-17..AP-20
-Novo fornecedor              | ¬ßCATALOG-S1 ‚Üí ¬ßEF ‚Üí DA-09     | ¬ßCATALOG-S1      | AP-17..AP-20
-Corre√ß√£o sync/cat√°logo       | ¬ßCATALOG-S2 ‚Üí Bloco 10        | ‚Äî                | AP-17, AP-20
-Novo hook customizado        | ¬ß16 ‚Üí ¬ß23 ‚Üí ¬ß20               | ¬ß16-S1           | AP-01, AP-09
-Corre√ß√£o de bug visual       | ¬ß1 ‚Üí Bloco 12                 | ‚Äî                | AP-02, AP-03, AP-04
-Nova tela admin              | ¬ß6 ‚Üí ¬ß26 ‚Üí ¬ß29 ‚Üí Bloco 12    | ¬ß25-S1           | AP-06
-Nova tabela/lista            | ¬ß4 ‚Üí ¬ß12 ‚Üí ¬ß34                | ¬ß4-S1            | AP-06
-Novo gr√°fico                 | ¬ß5 ‚Üí ¬ß27                      | ¬ß5-S1            | AP-21 (novo)
-Formata√ß√£o de valor          | ¬ß19 ‚Üí ¬ß48 (novo)              | ‚Äî                | AP-14, AP-22 (novo)
-Debug/logging                | ¬ß49 (novo)                    | ‚Äî                | AP-23 (novo)
-
-# =============================================================================
-# BLOCO 1 ‚Äî REGRAS BLOQUEANTES (RB-XX)
-# NUNCA quebrar. Build falha, PR √© rejeitado, c√≥digo √© revertido.
-# =============================================================================
-
-RB-01 CORES SEM√ÇNTICAS OBRIGAT√ìRIAS
-    NUNCA use: orange-*, blue-*, green-*, red-*, #FF6600, #3b82f6, text-orange-500, bg-blue-600
-    SEMPRE use vari√°veis CSS:
-      - A√ß√£o principal:  bg-primary, text-primary, border-primary, bg-primary/10
-      - Superf√≠cies:     bg-card, bg-background, bg-muted
-      - Textos:          text-foreground, text-muted-foreground, text-card-foreground
-      - Bordas:          border-border, border-input
-      - Estados:         bg-success, bg-warning, bg-destructive, bg-info
-
+=============================================================================
+BLOCO 1 ó REGRAS BLOQUEANTES (RB-XX)
+NUNCA quebrar. Build falha, PR È rejeitado, cÛdigo È revertido.
+=============================================================================
+RB-01 CORES SEM¬NTICAS OBRIGAT”RIAS
+NUNCA use: orange-, blue-, green-, red-, #FF6600, #3b82f6, text-orange-500, bg-blue-600
+SEMPRE use vari·veis CSS:
+- AÁ„o principal:  bg-primary, text-primary, border-primary, bg-primary/10
+- SuperfÌcies:     bg-card, bg-background, bg-muted
+- Textos:          text-foreground, text-muted-foreground, text-card-foreground
+- Bordas:          border-border, border-input
+- Estados:         bg-success, bg-warning, bg-destructive, bg-info
 RB-02 DARK MODE EM TODA TELA NOVA
-    NUNCA use: bg-white, text-black, text-gray-500, border-gray-200
-    SEMPRE use: bg-card, text-foreground, text-muted-foreground, border-border
-    Exce√ß√µes permitidas:
-      - Canvas de assinatura (branco por requisito f√≠sico)
-      - P√°ginas p√∫blicas/landing (documentar o motivo)
-      - Tarifas com N casas decimais (ver RB-16)
-
-RB-03 BOT√ÉO SHADCN OBRIGAT√ìRIO
-    NUNCA use: <button> HTML nativo
-    SEMPRE use: <Button> de @/components/ui/button
-    Variantes por hierarquia:
-      - A√ß√£o principal:  variant="default"
-      - A√ß√£o secund√°ria: variant="outline"
-      - Destrutiva:      variant="outline" className="border-destructive text-destructive"
-      - Cancelar/fechar: variant="ghost"
-
-RB-04 QUERIES S√ì EM HOOKS
-    NUNCA fa√ßa: supabase.from() dentro de componente React
-    SEMPRE use: hook em src/hooks/ com useQuery
-    ‚Üí Ver ¬ß16-S1 para template exato
-
-RB-05 STALETIME OBRIGAT√ìRIO EM TODA QUERY
-    NUNCA use: useQuery sem staleTime
-    Padr√µes:
-      - Listas, formul√°rios:   staleTime: 1000 * 60 * 5  (5 min)
-      - Dados em tempo real:   staleTime: 1000 * 30       (30 seg)
-      - Configura√ß√µes est√°ticas: staleTime: 1000 * 60 * 15 (15 min)
-
-RB-06 SKELETON NO LOADING OBRIGAT√ìRIO
-    NUNCA deixe: tela em branco, "Carregando..." texto solto, spinner sem estrutura
-    SEMPRE use: Skeleton de @/components/ui/skeleton OU componente branded do projeto:
-      - LoadingState  (@/components/shared/LoadingState)   ‚Üê para p√°ginas inteiras
-      - SunLoader     (@/components/shared/SunLoader)      ‚Üê para se√ß√µes tem√°ticas
-      - Skeleton      (@/components/ui/skeleton)           ‚Üê para itens inline/tabelas
-    NUNCA substitua LoadingState/SunLoader por Skeleton simples ‚Äî s√£o branded e superiores
-
-RB-07 MODAL COM w-[90vw] OBRIGAT√ìRIO
-    NUNCA use: max-w-* sozinho
-    SEMPRE use: w-[90vw] max-w-[tamanho]
-
-RB-08 SCROLL INTERNO COM min-h-0 OBRIGAT√ìRIO
-    NUNCA use: flex-1 overflow-y-auto sem min-h-0
-    SEMPRE use: flex-1 min-h-0 overflow-y-auto
-
+NUNCA use: bg-white, text-black, text-gray-500, border-gray-200
+SEMPRE use: bg-card, text-foreground, text-muted-foreground, border-border
+ExceÁıes permitidas (documentar no topo do arquivo):
+- Canvas de assinatura (branco por requisito fÌsico)
+- P·ginas p˙blicas/landing (ver RB-29)
+- Tarifas com N casas decimais (ver RB-16)
+RB-03 BOT√O SHADCN OBRIGAT”RIO
+NUNCA use: <button> HTML nativo
+SEMPRE use: <Button> de @/components/ui/button
+Variantes por hierarquia:
+- AÁ„o principal:  variant="default"
+- AÁ„o secund·ria: variant="outline"
+- Destrutiva:      variant="outline" className="border-destructive text-destructive"
+- Cancelar/fechar: variant="ghost"
+RB-04 QUERIES S” EM HOOKS
+NUNCA faÁa: supabase.from() dentro de componente React
+SEMPRE use: hook em src/hooks/ com useQuery
+? Ver ß16-S1 para template exato
+RB-05 STALETIME OBRIGAT”RIO EM TODA QUERY
+NUNCA use: useQuery sem staleTime
+Padrıes:
+- Listas, formul·rios:       staleTime: 1000 * 60 * 5   (5 min)
+- Dados em tempo real:       staleTime: 1000 * 30        (30 seg)
+- ConfiguraÁıes est·ticas:   staleTime: 1000 * 60 * 15  (15 min)
+RB-06 SKELETON NO LOADING OBRIGAT”RIO
+NUNCA deixe: tela em branco, "Carregando..." texto solto, spinner sem estrutura
+SEMPRE use:
+- LoadingState  (@/components/shared/LoadingState)   ? p·ginas inteiras
+- SunLoader     (@/components/shared/SunLoader)      ? seÁıes tem·ticas
+- Skeleton      (@/components/ui/skeleton)           ? itens inline/tabelas
+NUNCA substitua LoadingState/SunLoader por Skeleton simples (AP-24)
+RB-07 MODAL COM w-[90vw] OBRIGAT”RIO
+NUNCA use: max-w-* sozinho
+SEMPRE use: w-[90vw] max-w-[tamanho]
+RB-08 SCROLL INTERNO COM min-h-0 OBRIGAT”RIO
+NUNCA use: flex-1 overflow-y-auto sem min-h-0
+SEMPRE use: flex-1 min-h-0 overflow-y-auto
 RB-09 COMPONENTES EXISTENTES ANTES DE CRIAR NOVO
-    Lista obrigat√≥ria ‚Äî verificar antes de criar:
-      - Telefone:   PhoneInput    (@/components/ui-kit/inputs/PhoneInput)
-      - CPF/CNPJ:   CpfCnpjInput  (@/components/shared/CpfCnpjInput)
-      - Endere√ßo:   AddressFields (@/components/shared/AddressFields)
-      - Moeda:      CurrencyInput (@/components/ui-kit/inputs/CurrencyInput)
-      - Data:       DateInput     (@/components/ui-kit/inputs/DateInput)
-      - Loading:    LoadingState  (@/components/shared/LoadingState)
-
-RB-10 RESPONSIVIDADE OBRIGAT√ìRIA
-    NUNCA use: largura fixa em px (w-[400px], w-[500px])
-    NUNCA use: max-w-* em p√°ginas admin (exceto modais)
-    SEMPRE use:
-      - Grids: grid-cols-1 sm:grid-cols-2 lg:grid-cols-3
-      - Flex:  flex-wrap, flex-1, min-w-0
-      - Teste: 320px (mobile) e 1920px (desktop)
-
-RB-11 HEADER DE P√ÅGINA ANTES DE ABAS
-    NUNCA coloque: TabsList antes do t√≠tulo da p√°gina
-    SEMPRE ordem: Header (√≠cone + t√≠tulo + subt√≠tulo) ‚Üí TabsList ‚Üí Conte√∫do
-
-RB-12 N√ÉO MODIFICAR src/components/ui/
-    NUNCA edite: arquivos em src/components/ui/ (exceto switch.tsx e slider.tsx)
-
-RB-13 FUSO HOR√ÅRIO BRAS√çLIA OBRIGAT√ìRIO
-    NUNCA use: toLocaleString("pt-BR") sem timeZone
-    SEMPRE use: toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })
-
+Lista obrigatÛria ó verificar antes de criar:
+- Telefone:   PhoneInput    (@/components/ui-kit/inputs/PhoneInput)
+- CPF/CNPJ:   CpfCnpjInput  (@/components/shared/CpfCnpjInput)
+- EndereÁo:   AddressFields (@/components/shared/AddressFields)
+- Moeda:      CurrencyInput (@/components/ui-kit/inputs/CurrencyInput)
+- Data:       DateInput     (@/components/ui-kit/inputs/DateInput)
+- Loading:    LoadingState  (@/components/shared/LoadingState)
+RB-10 RESPONSIVIDADE OBRIGAT”RIA
+NUNCA use: largura fixa em px (w-[400px], w-[500px])
+NUNCA use: max-w-* em p·ginas admin (exceto modais)
+SEMPRE use:
+- Grids: grid-cols-1 sm:grid-cols-2 lg:grid-cols-3
+- Flex:  flex-wrap, flex-1, min-w-0
+- Teste: 320px (mobile) e 1920px (desktop)
+RB-11 HEADER DE P¡GINA ANTES DE ABAS
+NUNCA coloque: TabsList antes do tÌtulo da p·gina
+SEMPRE ordem: Header (Ìcone + tÌtulo + subtÌtulo) ? TabsList ? Conte˙do
+RB-12 N√O MODIFICAR src/components/ui/
+NUNCA edite: arquivos em src/components/ui/ (exceto switch.tsx e slider.tsx)
+RB-13 FUSO HOR¡RIO BRASÕLIA OBRIGAT”RIO
+NUNCA use: toLocaleString("pt-BR") sem timeZone
+SEMPRE use: toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })
 RB-14 EDGE FUNCTION SEM CHAMADA DIRETA DE FORNECEDOR NO FRONTEND
-    NUNCA chame: APIs de fornecedor diretamente do frontend
-    SEMPRE use: Edge Function como intermedi√°rio
-
+NUNCA chame: APIs de fornecedor diretamente do frontend
+SEMPRE use: Edge Function como intermedi·rio
 RB-15 CATALOG SYNC SEM FORNECEDOR_ID COMO DISCRIMINADOR
-    NUNCA filtre: dados de cat√°logo usando campo "source" em queries de neg√≥cio
-    SEMPRE use: campo "fornecedor_id" (UUID) como discriminador
+NUNCA filtre: dados de cat·logo usando campo "source" em queries de negÛcio
+SEMPRE use: campo "fornecedor_id" (UUID) como discriminador
+RB-16 FORMATADORES POR TIPO DE VALOR
+NUNCA use: formatBRL para tarifas com mais de 2 casas decimais
+NUNCA use: formatBRL para valores inteiros (ex: economia total sem centavos)
+REGRA DE ESCOLHA:
+- Valor monet·rio padr„o (R$ 1.234,56):      formatBRL(valor)
+- Valor monet·rio inteiro (R$ 1.234):         formatBRLInteger(valor)
+- Valor compacto para espaÁo pequeno:         formatBRLCompact(valor)
+- Tarifa com 4-6 casas (R$ 0.756432/kWh):    N√O usar formatter ó manter como est·
+- PotÍncia/energia:                           formatKwh(valor)
+? Ver ß48 para tabela completa de formatadores
+RB-17 SEM CONSOLE.LOG EM C”DIGO DE PRODU«√O
+NUNCA use: console.log() em src/components/, src/pages/, src/hooks/
+NUNCA use: console.log() em supabase/functions/
+PERMITIDO:
+- console.error() para erros sem outro tratamento visÌvel
+- console.warn() para avisos intencionais de comportamento
+Para debug tempor·rio: usar // console.log() comentado, nunca ativo
+?? Detectar: grep -rn "console.log" src/ supabase/functions/ --include=".ts" --include=".tsx" | grep -v "//"
+RB-18 TABELA SEMPRE COM overflow-x-auto
+NUNCA use: <Table> sem overflow-x-auto no container pai
+SEMPRE use: <div className="rounded-lg border border-border overflow-x-auto"><Table>
+RB-19 TABLIST SEMPRE COM overflow-x-auto
+NUNCA use: <TabsList> sem overflow-x-auto quando tem 3+ abas
+SEMPRE use: <TabsList className="overflow-x-auto flex-wrap h-auto">
+EXCE«√O: TabsList com grid (layout fixo) ó n„o aplicar
+RB-20 GRID SEMPRE COM BREAKPOINT MOBILE
+NUNCA use: grid-cols-2 fixo em p·ginas (sem sm: ou md:)
+SEMPRE use: grid-cols-1 sm:grid-cols-2 como base mÌnima
+EXCE«√O: grids dentro de Dialog/Modal pequenos
+EXCE«√O: grids compactos de dados (text-xs, font-mono)
+RB-21 SHADOW SEM¬NTICO EM CARDS
+NUNCA use: shadow-lg em cards de lista ou KPI
+SEMPRE use: shadow-sm para cards est·ticos
+SEMPRE use: hover:shadow-md para cards com hover
+EXCE«√O: tooltips, dropdowns, modais, elementos flutuantes
+RB-22 GATE DE INSTALA«√O OBRIGAT”RIO
+Todo projeto deve bloquear "Iniciar checklist de instalaÁ„o" enquanto
+n„o houver proposta com status IN ('aceita','accepted','aprovada','ganha')
+OU is_principal = true.
+SEMPRE use: useQuery + disabled no bot„o + banner de aviso bg-warning/10
+Implementado em: ProjetoInstalacaoTab.tsx
+RB-23 CONSOLE.LOG PROIBIDO EM EDGE FUNCTIONS
+Edge Functions em produÁ„o n„o podem ter console.log ativo.
+SEMPRE use: console.error apenas para erros reais com prefixo do mÛdulo
+Para debug: comentar // console.log() ó nunca ativo no deploy
+ATEN«√O: ao comentar console.log multi-linha, comentar TODAS as linhas
+(incluindo o corpo do objeto), n„o apenas a primeira linha com sed
+RB-24 RECEBIMENTOS USAM MODELO CONTA CORRENTE
+N„o criar parcelas fixas manualmente.
+Usar PagamentoLivreDialog para baixas avulsas.
+Status controlado pelo saldo (total_pago vs valor_total).
+RB-25 WA AUTOM¡TICO … FIRE-AND-FORGET
+Nunca bloquear fluxo de pagamento por falha WA.
+Sempre usar .catch(() => {}) na chamada.
+Falha no WA = log de erro, n„o erro para o usu·rio.
+RB-26 EDGE FUNCTIONS DE NOTIFICA«√O WA
+Sempre usar enqueue_wa_outbox_item via service role.
+Nunca chamar API WA diretamente da edge function.
+Idempotency key obrigatÛria para evitar duplicatas.
+RB-27 MIGRATIONS FINANCEIRAS
+Trigger sync_recebimento_total_pago deve existir
+para manter total_pago sincronizado automaticamente.
+Nunca calcular total_pago apenas no frontend.
+RB-28 SOLARYUM ó ENDPOINT MAP
+Usar integracaoPlataforma para BuscarKits/MontarKits/BuscarFiltros.
+Usar hubB2B apenas para Produtos/Categoria.
+IBGE de Cataguases = '3115300'.
+Nunca hardcodar IBGE no hook ó sempre propagar do WizardState.
+RB-29 LANDING PAGE P⁄BLICA ó TEMA PR”PRIO
+P·gina /pl/:token È exceÁ„o documentada de RB-02.
+Paleta prÛpria: #1B3A8C (azul) + #F07B24 (laranja).
+3 modelos: ?modelo=1 (padr„o), ?modelo=2 (clean), ?modelo=3 (dark)
+Documentar no topo: "P·gina p˙blica ó exceÁ„o RB-02 aprovada"
+Sem AuthGuard. Acesso via token v·lido (RLS configurado).
+RB-30 TEMPLATES DOCX ó DESFRAGMENTA«√O XML OBRIGAT”RIA
+Word fragmenta [ variavel ] em m˙ltiplos <w:r> runs.
+SEMPRE usar defragmentXml() ANTES de normalizeVariableFormat().
+Normalizar: [ variavel ] e [variavel] ? {{variavel}}
+Aplicar em: generate-document, template-preview, docx-to-pdf
+Shared: supabase/functions/_shared/normalizeVariableFormat.ts
+RB-31 CARD DO PROJETO ó STATUS DA PROPOSTA MAIS RELEVANTE
+Card deve mostrar status da proposta mais relevante:
+1. is_principal = true ? usar essa
+2. aceita/ganha ? verde com borda + fundo success/5
+3. enviada ? azul com borda info/40
+4. SÛ mostrar recusada se TODAS recusadas ? vermelho
+5. Default ? border-border sem destaque
+NUNCA usar a proposta mais recente por created_at como padr„o.
+RB-32 PROPOSTA DESATUALIZADA ó APENAS EDI«√O MANUAL
+"Desatualizada" APENAS quando usu·rio editou apÛs geraÁ„o.
+Comparar versao.updated_at vs versao.gerado_em (N√O deal.updated_at).
+Grace period mÌnimo 60s para ignorar updates autom·ticos do sistema.
+N√O marcar como desatualizada por: geraÁ„o de PDF, update de status,
+processos autom·ticos, triggers do banco.
+RB-33 SEM AUTOSAVE NO WIZARD DE PROPOSTA
+Wizard N√O salva automaticamente no banco de dados.
+Autosave em localStorage È PERMITIDO (recuperaÁ„o de rascunho).
+persistAtomic() APENAS por aÁ„o explÌcita do usu·rio.
+RB-34 DOCUMENTOS GERADOS ó A«’ES OBRIGAT”RIAS
+Todo documento gerado DEVE ter:
+- Bot„o PDF ? abre/baixa PDF (se pdf_path existe)
+- Bot„o DOCX ? baixa DOCX (se docx_filled_path existe)
+- Bot„o Preview (Eye) ? abre PDF em nova aba via signed URL
+- Bot„o WhatsApp ? envia link ao cliente (fire-and-forget RB-25)
+- Bot„o Deletar (Trash2) ? com confirmaÁ„o dialog
+Badge de contagem deve incluir: storage files + generated_documents
+RB-35 VARI¡VEIS LEGADO ó MAPEAMENTO OBRIGAT”RIO
+Todo alias/legado deve ter substituta mapeada em DEPRECATED_VARS.
+Mapeamentos obrigatÛrios implementados:
+capo_m?modulo_garantia, preco_total?valor_total,
+vc_nome?cliente_nome, payback_meses?payback,
+custo_kit?kits_custo_total, margem_percentual?margem_lucro
+RB-36 BOLINHA DE SA⁄DE ó MAPA DE CORES OBRIGAT”RIO
+NUNCA usar cor fixa na bolinha de sa˙de de vari·veis.
+SEMPRE usar mapa HEALTH_COLOR com valores do classifier:
+IMPLEMENTADA/PASSTHROUGH/CUSTOM* ? bg-success (verde)
+FEATURE_NAO_IMPLEMENTADA/CDD    ? bg-muted-foreground/30 (cinza)
+FANTASMA_REAL                   ? bg-destructive (vermelho)
+ALIAS_LEGADO/PARCIAL_BE_ONLY    ? bg-warning (amarelo)
+RB-37 BADGES DE STATUS EM COLUNA
+NUNCA colocar badge "Em uso" ao lado do badge de STATUS.
+SEMPRE usar flex-col para empilhar badges verticalmente.
+RB-38 HIST”RICO ó FILTRAR RUÕDO DO SISTEMA
+Eventos value_changed com from_value=0 ou to_value=0
+devem ser filtrados da exibiÁ„o do histÛrico.
+S„o causados por geraÁ„o de proposta, n„o por usu·rio.
+RB-39 PIPELINE COMPLETO DE SUBSTITUI«√O EM DOCX
+Vari·veis em DOCX existem em TODOS os nÛs XML:
+- Par·grafos normais, cÈlulas de tabela, cabeÁalhos, rodapÈs, Text Boxes
+PIPELINE OBRIGAT”RIO (nesta ordem exata):
+1. defragmentXml()
+2. cleanupRemainingFragments()
+3. normalizeVariableFormat()
+4. Limpar XML tags residuais dentro de {{ e }}
+5. replaceVars() com escapeXml()
+6. evaluateInlineFormulas()
+7. Limpar placeholders residuais
+RUNTIME: Edge Functions usam Deno + fflate (n„o docxtemplater/PizZip)
+RB-40 ACEITE DE PROPOSTA ó EFEITOS COLATERAIS OBRIGAT”RIOS
+Ao aceitar uma proposta (proposal-transition ? accept):
+1. Setar is_principal = true na proposta aceita
+2. Setar status = 'recusada' + is_principal = false nas irm„s
+3. Cancelar generated_documents com status = 'generated' do mesmo projeto
+? setar status = 'cancelled', observacao = 'Nova proposta aceita'
+4. NUNCA cancelar documento com signature_status = 'signed' ó È INTOC¡VEL
+RB-41 CANCELAMENTO DE CONTRATO ó MOTIVO OBRIGAT”RIO
+Ao cancelar um documento gerado manualmente:
+- Abrir modal pedindo motivo/observaÁ„o
+- Salvar em generated_documents.observacao
+NUNCA cancelar sem motivo ó UX e auditoria exigem rastreabilidade.
+RB-42 VARI¡VEIS MONET¡RIAS ó SEM PREFIXO R$
+Vari·veis retornam APENAS o n˙mero formatado (ex: "7.718,40").
+O template DOCX j· tem "R$" escrito antes da vari·vel.
+Implementado em: _shared/resolvers/resolveFinanceiro.ts
+RB-43 GENERATE-DOCUMENT ó QUERY COM OR OBRIGAT”RIO
+SEMPRE usar .or(deal_id.eq.${deal_id},projeto_id.eq.${deal_id})
+NUNCA simplificar para .eq("projeto_id", deal_id) apenas.
+RB-44 CONTRATO ASSINADO … INTOC¡VEL
+Documento com signature_status = 'signed' NUNCA pode ser cancelado
+automaticamente. Toda query de cancelamento DEVE incluir:
+.neq("signature_status", "signed")
+RB-45 EDI«√O DE PROPOSTA ACEITA REQUER CONFIRMA«√O
+Ao editar proposta com status 'aceita':
+1. Exibir Dialog de confirmaÁ„o com aviso
+2. Campo motivo/observaÁ„o obrigatÛrio (Textarea)
+3. Cancelar generated_documents (status='generated', signature_status != 'signed')
+4. Salvar motivo em generated_documents.observacao
+5. SÛ ent„o redirecionar ao wizard
+Implementado em: PropostaExpandedDetail.tsx (handleEditWithProtection)
+RB-46 CANCELAR PROPOSTA ACEITA CANCELA CONTRATOS
+Quando proposal-transition processa aceita ? cancelada:
+- Cancelar generated_documents (status='generated', signature_status != 'signed')
+- observacao = 'Proposta cancelada'
+RB-47 ACEITE/RECUSA P⁄BLICO VIA EDGE FUNCTION
+P·ginas p˙blicas NUNCA fazem UPDATE direto em propostas_nativas.
+SEMPRE usar edge function proposal-public-action.
+RB-48 EXPIRA«√O AUTOM¡TICA DE PROPOSTAS
+Cron job di·rio ‡s 08:00 UTC (job 64) via proposal-auto-expire.
+NUNCA expirar propostas 'aceita' ou 'rascunho'.
+RB-49 CONTRATO ASSINADO BLOQUEIA EDI«√O
+Se existir generated_documents com signature_status = 'signed'
+vinculado ao projeto da proposta, bloquear ediÁ„o completamente.
+Toast: "Esta proposta possui contrato assinado digitalmente e n„o pode ser editada."
+RB-50 FLUXO R¡PIDO LEAD ? PROPOSTA
+NUNCA criar cliente/projeto duplicado ó sempre buscar antes de criar.
+Implementado em: src/hooks/usePropostaRapidaLead.ts
+RB-51 PDF DE PROPOSTA ó SEM RE-GERA«√O AUTOM¡TICA
+NUNCA re-gerar PDF automaticamente ao abrir aba "Arquivo".
+Se proposta tem pdf_path salvo ? exibir diretamente do storage.
+RB-52 MIGRA«√O SM ó NUNCA DEPENDER DE SESS√O DO USU¡RIO
+SEMPRE renovar o token antes de cada lote no auto-resume:
+const { data: { session } } = await supabase.auth.getSession()
+if (expiresAt - now < 300) await supabase.auth.refreshSession()
+NUNCA assumir que o token È v·lido durante toda a migraÁ„o.
+RB-53 REALTIME ó TABELAS CRÕTICAS OBRIGAT”RIAS
+As seguintes tabelas DEVEM estar na publicaÁ„o supabase_realtime:
+deals, clientes, leads, propostas_nativas, proposta_versoes,
+projetos, generated_documents, pipeline_stages
+Verificar: SELECT tablename FROM pg_publication_tables WHERE pubname = 'supabase_realtime'
+NUNCA lanÁar feature com Realtime sem verificar a publicaÁ„o.
+RB-54 TEMPLATE WEB ó template_id_used OBRIGAT”RIO (CORRIGIDO v3.13)
+Ao gerar proposta com template HTML, SEMPRE gravar template_id_used
+em proposta_versoes apÛs persistAtomic() bem-sucedido.
+NUNCA deixar template_id_used NULL em versıes com template HTML.
+Se template_id_used È NULL em template HTML em produÁ„o ? considerar
+bug de gravaÁ„o: logar console.error("[ProposalWizard] template_id_used
+n„o gravado") e exibir toast de aviso ao usu·rio.
+[ContradiÁ„o com DA-38 resolvida: NULL È tolerado apenas em DOCX e
+em templates HTML gerados antes de v3.12 ó n„o em geraÁ„o nova.]
+RB-55 REFER NCIA CIRCULAR ó VERIFICAR ANTES DE DEPLOY
+Erro "Cannot access X before initialization" = referÍncia circular no bundle.
+SEMPRE verificar antes de deploy: npx madge --circular src/
+useCallback/useEffect que usa funÁ„o local: declarar a funÁ„o ANTES do hook.
+Este check est· no validate-agents.js (Bloco 7) ó rodar via npm run prebuild.
+RB-56 PIPELINE_STAGES ó NOME CORRETO DA TABELA
+A tabela de etapas se chama pipeline_stages (N√O deal_pipeline_stages).
+A tabela de pipelines se chama pipelines (N√O deal_pipelines).
+A coluna de fechamento se chama is_closed (N√O is_lost).
+SEMPRE verificar nomes reais antes de usar em edge functions.
+--- NOVAS v3.13 --------------------------------------------------------------
+RB-57 EDGE FUNCTION ó PROIBIDO LET MUT¡VEL NO ESCOPO DE M”DULO
+Contexto: Deno Deploy reutiliza o mesmo isolate entre requests.
+Vari·veis let no topo do mÛdulo s„o compartilhadas entre tenants diferentes,
+causando contaminaÁ„o de dados silenciosa e intermitente.
+NUNCA use:
+  let FALLBACK_PIPELINE_ID: string | null = null;   // ? estado global mut·vel
+  let COMERCIAL_FUNIL_ID: string | null = null;     // ? persiste entre requests
 
-RB-16 FORMATADORES POR TIPO DE VALOR (NOVO v3.0)
-    NUNCA use: formatBRL para tarifas com mais de 2 casas decimais
-    NUNCA use: formatBRL para valores inteiros (ex: economia total sem centavos)
-    REGRA DE ESCOLHA:
-      - Valor monet√°rio padr√£o (R$ 1.234,56):     formatBRL(valor)
-      - Valor monet√°rio inteiro (R$ 1.234):        formatBRLInteger(valor)
-      - Valor compacto para espa√ßo pequeno:        formatBRLCompact(valor)
-      - Tarifa com 4-6 casas (R$ 0.756432/kWh):   N√ÉO usar formatter ‚Äî manter como est√°
-      - Pot√™ncia/energia:                          formatKwh(valor)
-    ‚Üí Ver ¬ß48 para tabela completa de formatadores
+SEMPRE use:
+  // OpÁ„o A ó constante imut·vel (para valores fixos):
+  const DEFAULT_TIMEOUT = 30_000;                   // ? imut·vel, seguro
 
-RB-17 SEM CONSOLE.LOG EM C√ìDIGO DE PRODU√á√ÉO (NOVO v3.0)
-    NUNCA use: console.log() em src/components/, src/pages/, src/hooks/
-    NUNCA use: console.log() em supabase/functions/
-    PERMITIDO:
-      - console.error() para erros sem outro tratamento vis√≠vel
-      - console.warn() para avisos intencionais de comportamento
-    Para debug tempor√°rio: use // console.log() comentado, nunca ativo
-    üîç Detectar: grep -rn "console\.log" src/ supabase/functions/ --include="*.ts" --include="*.tsx" | grep -v "//"
+  // OpÁ„o B ó funÁ„o resetGlobalState() chamada no inÌcio de cada request:
+  function createInitialState() {
+    return { fallbackPipelineId: null, comercialFunilId: null };
+  }
+  Deno.serve(async (req) => {
+    const state = createInitialState(); // ? novo estado por request
+    // ...
+  });
 
-RB-18 TABELA SEMPRE COM overflow-x-auto (NOVO v3.1)
-    NUNCA use: <Table> sem overflow-x-auto no container pai
-    SEMPRE use: <div className="rounded-lg border border-border overflow-x-auto"><Table>
+?? Detectar: grep -n "^let " supabase/functions/ --include="*.ts" -r | grep -v "//"
+?? ConsequÍncia: dados de um tenant aparecem em requests de outro tenant.
+                 Bug silencioso, difÌcil de reproduzir, catastrÛfico em produÁ„o.
+RB-58 UPDATE CRÕTICO ó VERIFICAR LINHAS AFETADAS
+Contexto: Supabase retorna sucesso (sem erro) em UPDATE com 0 linhas afetadas
+quando n„o h· violaÁ„o de constraint. Bugs silenciosos como o drag-and-drop
+do Kanban (deal_id passado onde projetos.id era esperado) s„o invisÌveis.
+NUNCA use para aÁıes crÌticas (kanban, status, owner, pipeline):
+  await supabase.from("projetos").update({ etapa_id }).eq("id", deal_id);
+  // ? pode retornar {error: null, count: 0} sem aviso
 
-RB-19 TABLIST SEMPRE COM overflow-x-auto (NOVO v3.1)
-    NUNCA use: <TabsList> sem overflow-x-auto quando tem 3+ abas
-    SEMPRE use: <TabsList className="overflow-x-auto flex-wrap h-auto">
-    EXCE√á√ÉO: TabsList com grid (layout fixo) ‚Äî n√£o aplicar
+SEMPRE use uma das opÁıes:
+  // OpÁ„o A ó verificar count:
+  const { error, count } = await supabase
+    .from("projetos").update({ etapa_id }).eq("id", projeto_id);
+  if (!error && count === 0) {
+    console.error("[hook] UPDATE afetou 0 linhas ó id n„o encontrado:", projeto_id);
+    throw new Error("Projeto n„o encontrado");
+  }
 
-RB-20 GRID SEMPRE COM BREAKPOINT MOBILE (NOVO v3.1)
-    NUNCA use: grid-cols-2 fixo em p√°ginas (sem sm: ou md:)
-    SEMPRE use: grid-cols-1 sm:grid-cols-2 como base m√≠nima
-    EXCE√á√ÉO: grids dentro de Dialog/Modal pequenos
-    EXCE√á√ÉO: grids compactos de dados (text-xs, font-mono)
+  // OpÁ„o B ó usar .select() para confirmar:
+  const { data, error } = await supabase
+    .from("projetos").update({ etapa_id }).eq("id", projeto_id).select("id");
+  if (!error && (!data || data.length === 0)) {
+    throw new Error("Projeto n„o encontrado");
+  }
 
-RB-21 SHADOW SEM√ÇNTICO EM CARDS (NOVO v3.1)
-    NUNCA use: shadow-lg em cards de lista ou KPI
-    SEMPRE use: shadow-sm para cards est√°ticos
-    SEMPRE use: hover:shadow-md para cards com hover
-    EXCE√á√ÉO: tooltips, dropdowns, modais, elementos flutuantes
+AÁıes crÌticas que EXIGEM verificaÁ„o:
+- moveProjetoToConsultor, moveProjetoToEtapa (Kanban)
+- updatePropostaStatus
+- qualquer UPDATE que muda owner, pipeline, stage ou status
 
-RB-22 GATE DE INSTALA√á√ÉO OBRIGAT√ìRIO (NOVO v3.2)
-    Todo projeto deve bloquear "Iniciar checklist de instala√ß√£o" enquanto
-    n√£o houver proposta com status IN ('aceita','accepted','aprovada','ganha')
-    OU is_principal = true.
-    SEMPRE use: useQuery + disabled no bot√£o + banner de aviso bg-warning/10
-    Implementado em: ProjetoInstalacaoTab.tsx
-
-RB-23 CONSOLE.LOG PROIBIDO EM EDGE FUNCTIONS (NOVO v3.2)
-    Edge Functions em produ√ß√£o n√£o podem ter console.log ativo.
-    SEMPRE use: console.error apenas para erros reais com prefixo do m√≥dulo
-    Para debug: comentar // console.log() ‚Äî nunca ativo no deploy
-    ATEN√á√ÉO: ao comentar console.log multi-linha, comentar TODAS as linhas
-    (incluindo o corpo do objeto), n√£o apenas a primeira linha
-
-# =============================================================================
-# BLOCO 2 ‚Äî BOAS PR√ÅTICAS
-# =============================================================================
-
-BP-01 FRAMER MOTION EM ENTRADAS ‚Äî Animate cards com stagger para UX premium
+?? Detectar: auditar hooks que usam .update() sem checar count ou .select()
+?? ConsequÍncia: aÁ„o parece ter funcionado (sem toast de erro), mas o banco
+                 n„o foi alterado. Reload desfaz tudo. Usu·rio sem feedback.
+=============================================================================
+BLOCO 2 ó BOAS PR¡TICAS
+=============================================================================
+BP-01 FRAMER MOTION EM ENTRADAS ó Animate cards com stagger para UX premium
 BP-02 TOOLTIP EM TEXTO TRUNCADO MOBILE
-BP-03 FORMATADORES CENTRALIZADOS ‚Äî usar formatBRL, formatKwh, formatDateBR de src/lib/formatters
-BP-04 L√ìGICA EM SERVICES, N√ÉO COMPONENTES
-BP-05 PRINC√çPIOS DE ENGENHARIA ‚Äî SRP, DRY, SSOT, KISS, YAGNI
-BP-06 SAFE QUERY PATTERNS ‚Äî Respeite tenant isolation, evite selects desnecess√°rios
-
-# =============================================================================
-# BLOCO 3 ‚Äî SNIPPETS OBRIGAT√ìRIOS
-# =============================================================================
-
-# [Mantidos integralmente da v2.5 ‚Äî ¬ß16-S1, ¬ß25-S1, ¬ß36-S1, ¬ß39-S1, ¬ßEF-S1, ¬ßCATALOG-S1, ¬ßCATALOG-S2, ¬ß4-S1, ¬ß12-S1, ¬ß26-S1, ¬ß27-S1, ¬ß5-S1]
-# Novos snippets adicionados abaixo:
-
-# ------------------------------------------------------------------------------
-# ¬ß48-S1 ‚Äî FORMATADORES (Refer√™ncia Completa v3.0)
-# ------------------------------------------------------------------------------
-
-# TABELA DE FORMATADORES ‚Äî escolha pelo tipo de dado, n√£o pelo visual desejado:
-#
-# Dado                          | Formatter              | Exemplo de sa√≠da
-# ------------------------------|------------------------|------------------
-# Moeda padr√£o                  | formatBRL(v)           | R$ 1.234,56
-# Moeda sem decimais            | formatBRLInteger(v)    | R$ 1.234
-# Moeda compacta (espa√ßo pequeno)| formatBRLCompact(v)   | R$ 1,2k
-# Pot√™ncia/energia              | formatKwh(v)           | 6,1 kWp
-# Percentual                    | formatPercent(v)       | 12,5%
-# Data                          | formatDateBR(v)        | 15/03/2026
-# Telefone                      | formatPhoneBR(v)       | (11) 98765-4321
-# Tarifa c/ 4-6 casas decimais  | N√ÉO usar formatter     | R$ 0.756432/kWh
-# R√≥tulo de eixo Y em gr√°fico   | N√ÉO usar formatter     | R$ 1,2k (inline)
-#
-# CASOS ESPECIAIS ‚Äî N√ÉO substituir por formatter:
-# - Tarifas de energia el√©trica com 4-6 casas decimais ‚Üí manter como est√°
-# - R√≥tulos compactos de eixo Y em gr√°ficos ‚Üí manter express√£o inline
-# - Valores via prop formatCurrency ‚Üí j√° est√° correto, n√£o alterar
-# - Tick formatters de gr√°fico (ex: `R$ ${(v/1000).toFixed(0)}k`) ‚Üí manter
-
-# ------------------------------------------------------------------------------
-# ¬ß49-S1 ‚Äî LOGGING (Regras v3.0)
-# ------------------------------------------------------------------------------
-
-# PERMITIDO:
-console.error("[NomeDoModulo] Erro ao buscar dados:", error);   // sem outro tratamento
-console.warn("[NomeDoModulo] Dado ausente, usando fallback");   // aviso intencional
-
-# PROIBIDO em produ√ß√£o:
-console.log("dados:", data);        // ‚ùå debug puro
-console.log("clicou:", item);       // ‚ùå debug de evento
-console.log("teste");               // ‚ùå teste manual
-
-# Para debug tempor√°rio durante desenvolvimento:
+BP-03 FORMATADORES CENTRALIZADOS ó usar formatBRL, formatKwh, formatDateBR de src/lib/formatters
+BP-04 L”GICA EM SERVICES, N√O COMPONENTES
+BP-05 PRINCÕPIOS DE ENGENHARIA ó SRP, DRY, SSOT, KISS, YAGNI
+BP-06 SAFE QUERY PATTERNS ó Respeite tenant isolation, evite selects desnecess·rios
+=============================================================================
+BLOCO 3 ó SNIPPETS OBRIGAT”RIOS
+=============================================================================
+[Mantidos integralmente da v3.12 ó ß16-S1, ß25-S1, ß36-S1, ß39-S1,
+ßEF-S1, ßCATALOG-S1, ßCATALOG-S2, ß4-S1, ß12-S1, ß26-S1, ß27-S1, ß5-S1]
+------------------------------------------------------------------------------
+ß48-S1 ó FORMATADORES (ReferÍncia Completa)
+------------------------------------------------------------------------------
+Dado                          | Formatter              | Exemplo de saÌda
+------------------------------|------------------------|------------------
+Moeda padr„o                  | formatBRL(v)           | R$ 1.234,56
+Moeda sem decimais            | formatBRLInteger(v)    | R$ 1.234
+Moeda compacta (espaÁo pequeno)| formatBRLCompact(v)  | R$ 1,2k
+PotÍncia/energia              | formatKwh(v)           | 6,1 kWp
+Percentual                    | formatPercent(v)       | 12,5%
+Data                          | formatDateBR(v)        | 15/03/2026
+Telefone                      | formatPhoneBR(v)       | (11) 98765-4321
+Tarifa c/ 4-6 casas decimais  | N√O usar formatter     | R$ 0.756432/kWh
+RÛtulo de eixo Y em gr·fico   | N√O usar formatter     | R$ 1,2k (inline)
+------------------------------------------------------------------------------
+ß49-S1 ó LOGGING (Regras de produÁ„o)
+------------------------------------------------------------------------------
+PERMITIDO:
+console.error("[NomeDoModulo] Erro ao buscar dados:", error);
+console.warn("[NomeDoModulo] Dado ausente, usando fallback");
+PROIBIDO em produÁ„o:
+console.log("dados:", data);        // ?
+console.log("clicou:", item);       // ?
+Para debug tempor·rio:
 // console.log("[debug] valor:", value);   // comentado, nunca ativo no commit
+Edge Functions ó usar console.error com prefixo do mÛdulo:
+console.error("[nome-da-function] Error:", e);   // ?
+------------------------------------------------------------------------------
+ß50-S1 ó MIGRA«’ES PROGRESSIVAS (dÈbito tÈcnico)
+------------------------------------------------------------------------------
+C-01 (183 queries diretas em componentes) ó migraÁ„o por mÛdulo:
+N√O migrar tudo de uma vez. Seguir esta ordem:
+1. Auditar mÛdulo-alvo: quais tabelas s„o acessadas?
+2. Criar hook em src/hooks/ seguindo ß16-S1
+3. Substituir no componente
+4. npm run build ó 0 erros
+5. SÛ ent„o prÛximo mÛdulo
 
-# Edge Functions ‚Äî usar console.error com prefixo do m√≥dulo:
-console.error("[nome-da-function] Error:", e);   // ‚úÖ padr√£o EF-S1
-
-# ------------------------------------------------------------------------------
-# ¬ß50-S1 ‚Äî MIGRA√á√ïES PROGRESSIVAS (Regra para d√©bito t√©cnico v3.0)
-# ------------------------------------------------------------------------------
-
-# C-01 (183 queries diretas em componentes) ‚Äî migra√ß√£o por m√≥dulo:
-# N√ÉO migrar tudo de uma vez. Seguir esta ordem:
-# 1. Auditar m√≥dulo-alvo: quais tabelas s√£o acessadas?
-# 2. Criar hook em src/hooks/ seguindo ¬ß16-S1
-# 3. Substituir no componente
-# 4. npm run build ‚Äî 0 erros
-# 5. S√≥ ent√£o pr√≥ximo m√≥dulo
-#
-# Prioridade sugerida de migra√ß√£o:
-# Sprint A: ComissoesManager, EquipamentosManager (mais acessados)
-# Sprint B: PerformanceDashboard, FollowUpManager
-# Sprint C: FornecedoresManager, LeadForm
-# Sprint D: demais
-
-# =============================================================================
-# BLOCO 4 ‚Äî ANTI-PADR√ïES (AP-XX)
-# =============================================================================
-
-# [Mantidos AP-01 a AP-20 da v2.5 integralmente]
-
-AP-21 CORES HARDCODED EM GR√ÅFICOS (NOVO v3.0)
-    ‚ùå Errado: stroke="#3b82f6", fill="#10b981", stopColor="#FF6600"
-    ‚úÖ Certo:  stroke="hsl(var(--primary))", fill="hsl(var(--success))"
-    üîç Detectar: grep -rn 'stopColor\|stroke="\#\|fill="\#' src/ --include="*.tsx" | grep -v "url(#\|context-stroke\|none"
-    üí• Consequ√™ncia: Gr√°ficos quebram em dark mode, cores inconsistentes com tema
-
-AP-22 FORMATTER ERRADO PARA TIPO DE DADO (NOVO v3.0)
-    ‚ùå Errado: formatBRL(tarifa) onde tarifa = 0.756432 (perde precis√£o)
-    ‚ùå Errado: formatBRL(economiaTotal) quando n√£o precisa de centavos
-    ‚úÖ Certo:  escolher formatter pelo tipo ‚Äî ver ¬ß48-S1
-    üîç Detectar: grep -rn "formatBRL(" src/ --include="*.tsx" | grep -i "tarif\|kwh\|rate"
-    üí• Consequ√™ncia: Tarifas de energia aparecem como R$ 0,76 em vez de R$ 0.756432/kWh
-
-AP-23 CONSOLE.LOG EM PRODU√á√ÉO (NOVO v3.0)
-    ‚ùå Errado: console.log("dados:", data) em componentes/hooks/pages
-    ‚úÖ Certo:  remover ou comentar ‚Äî // console.log("dados:", data)
-    ‚úÖ Permitido: console.error() e console.warn() quando necess√°rios
-    üîç Detectar: grep -rn "console\.log" src/ --include="*.ts" --include="*.tsx" | grep -v "//"
-    üí• Consequ√™ncia: Dados sens√≠veis expostos no browser, performance degradada
-
-AP-24 LOADING STATE BRANDED SUBSTITU√çDO POR SKELETON SIMPLES (NOVO v3.0)
-    ‚ùå Errado: substituir <LoadingState /> ou <SunLoader /> por <Skeleton />
-    ‚úÖ Certo:  LoadingState e SunLoader s√£o branded e superiores ‚Äî manter
-               Skeleton √© para itens inline (linhas de tabela, cards individuais)
-    üîç Detectar: git diff | grep -A2 -B2 "LoadingState\|SunLoader" | grep "Skeleton"
-    üí• Consequ√™ncia: Regress√£o de UX ‚Äî perde identidade visual da marca
-
-# =============================================================================
-# BLOCO 5 ‚Äî DECIS√ïES ARQUITETURAIS (DA-XX)
-# =============================================================================
-
-# [Mantidos DA-01 a DA-11 da v2.5 integralmente]
-
-DA-12 FORMATADORES POR TIPO, N√ÉO POR APAR√äNCIA (NOVO v3.0)
-    Contexto: Auditoria 2026-03 ‚Äî ConcessionariasManager usava tarifas com 4-6 casas
-              decimais. Se formatBRL fosse aplicado, perderia precis√£o cr√≠tica.
-    Decis√£o: Escolher formatter pelo TIPO do dado (moeda? tarifa? pot√™ncia?),
-             n√£o pelo visual desejado.
-    Quando quebrar: NUNCA ‚Äî a precis√£o do dado sempre prevalece sobre a apar√™ncia.
-
-DA-13 LOADING STATES BRANDED S√ÉO DESIGN SYSTEM (NOVO v3.0)
-    Contexto: Auditoria 2026-03 ‚Äî LoadingState e SunLoader identificados como
-              componentes branded com useLoadingConfig. Substitui√ß√£o por Skeleton
-              seria regress√£o de identidade visual.
-    Decis√£o: LoadingState = p√°ginas inteiras. SunLoader = se√ß√µes tem√°ticas.
-             Skeleton = itens inline. Os tr√™s coexistem com prop√≥sitos distintos.
-    Quando quebrar: NUNCA ‚Äî s√£o componentes do design system do produto.
-
-DA-14 MIGRA√á√ÉO PROGRESSIVA DE D√âBITO T√âCNICO (NOVO v3.0)
-    Contexto: 183 queries diretas em componentes (C-01). Migra√ß√£o em massa
-              causaria regress√µes em cascata.
-    Decis√£o: Migrar por m√≥dulo, um por vez, com build verificado entre cada m√≥dulo.
-             Priorizar por frequ√™ncia de edi√ß√£o, n√£o por tamanho do componente.
-    Quando quebrar: NUNCA migrar mais de um m√≥dulo por PR sem revis√£o.
-
-DA-15 ARQUITETURA DE VARI√ÅVEIS DE PROPOSTA ‚Äî DOIS RESOLVERS (NOVO v3.2)
-    Contexto: Auditoria 2026-04 ‚Äî 59 vari√°veis existiam s√≥ no backend.
-              O FE usa deepGet(finalSnapshot, key) como fallback autom√°tico.
-    Decis√£o: Frontend (resolveProposalVariables.ts) = preview/audit no wizard.
-             Backend (_shared/resolvers/) = gera√ß√£o do PDF.
-             Fallback via snapshot elimina necessidade de duplicar l√≥gica.
-             Adicionar ao FE apenas se precisar de preview em tempo real.
-    Quando quebrar: NUNCA duplicar l√≥gica de c√°lculo entre FE e BE.
-    Documentado em: AP-15 no resolver FE (coment√°rio de topo).
-
-# =============================================================================
-# BLOCO 6 ‚Äî REFER√äNCIA R√ÅPIDA DE PADR√ïES (¬ß1‚Äì¬ß50)
-# =============================================================================
-
-# [Mantidos ¬ß1‚Äì¬ß47 da v2.5 integralmente]
-
-## ¬ß48. FORMATADORES ‚Äî Tabela completa (v3.0)
-‚Üí Ver ¬ß48-S1 acima para tabela completa
-Regra r√°pida: NUNCA formatar tarifa com formatBRL. NUNCA formatar inteiro com formatBRL.
-
-## ¬ß49. LOGGING ‚Äî Regras de produ√ß√£o (v3.0)
-‚Üí Ver ¬ß49-S1 acima
-Regra r√°pida: console.log = proibido. console.error/warn = permitido com modera√ß√£o.
-
-## ¬ß50. D√âBITO T√âCNICO ‚Äî Migra√ß√£o de queries (v3.0)
-‚Üí Ver ¬ß50-S1 acima
-183 queries diretas em componentes aguardam migra√ß√£o progressiva por m√≥dulo.
-
-# =============================================================================
-# BLOCO 7 ‚Äî VALIDA√á√ÉO AUTOM√ÅTICA (SCRIPT PRE-BUILD)
-# =============================================================================
-
-# [Mantido da v2.5 + novas verifica√ß√µes abaixo]
-
-# ADICIONAR ao scripts/validate-agents.js existente:
-
-// AP-23: console.log em produ√ß√£o
+C-02 (SolarMarketPage.tsx ó 1413 linhas) ó backlog:
+Extrair cada tab em componente separado, 1 por PR.
+Prioridade: tab de migraÁ„o ? tab de sync ? tab de configuraÁ„o.
+=============================================================================
+BLOCO 4 ó ANTI-PADR’ES (AP-XX)
+=============================================================================
+AP-01 QUERY DIRETA EM COMPONENTE
+AP-02 COR HARDCODED / N√O-SEM¬NTICA
+AP-03 MODAL SEM w-[90vw]
+AP-04 SCROLL SEM min-h-0
+AP-05 INPUT HTML NATIVO (usar CurrencyInput, PhoneInput, etc.)
+AP-06 TABELA SEM overflow-x-auto
+AP-07 MARGIN EM COMPONENTE FILHO (usar gap no pai)
+AP-08 BOT√O HTML NATIVO (usar <Button>)
+AP-09 useQuery SEM staleTime
+AP-10..AP-20 [mantidos da v3.0]
+AP-21 CORES HARDCODED EM GR¡FICOS
+? Errado: stroke="#3b82f6", fill="#10b981"
+? Certo:  stroke="hsl(var(--primary))", fill="hsl(var(--success))"
+AP-22 FORMATTER ERRADO PARA TIPO DE DADO
+? Errado: formatBRL(tarifa) onde tarifa = 0.756432 (perde precis„o)
+? Certo:  escolher formatter pelo tipo ó ver ß48-S1
+AP-23 CONSOLE.LOG EM PRODU«√O
+? Errado: console.log("dados:", data)
+? Certo:  remover ou comentar
+AP-24 LOADING STATE BRANDED SUBSTITUÕDO POR SKELETON SIMPLES
+? Errado: substituir <LoadingState /> por <Skeleton />
+? Certo:  LoadingState = p·ginas, SunLoader = seÁıes, Skeleton = inline
+AP-25 BADGE EM USO SOBREPONDO STATUS
+? flex gap-1 (sobreposiÁ„o em colunas estreitas)
+? flex flex-col gap-1 items-start
+AP-26 BOLINHA DE SA⁄DE SEM MAPA
+? Cor fixa ou hardcoded
+? HEALTH_COLOR[v.governance] ?? HEALTH_COLOR[v.healthClassification]
+AP-27 CARD COM PROPOSTA MAIS RECENTE
+? propostas.sort(created_at)[0]
+? Priorizar is_principal, depois por relev‚ncia de status
+AP-28 CONTAGEM DE DOCUMENTOS INCOMPLETA
+? Contar apenas storage bucket
+? storage files + generated_documents table
+AP-29 CONTRATO SEM DESFRAGMENTA«√O
+? normalizeVariableFormat() direto no XML do Word
+? defragmentXml() ANTES de normalizeVariableFormat()
+=============================================================================
+BLOCO 5 ó DECIS’ES ARQUITETURAIS (DA-XX)
+=============================================================================
+DA-01..DA-11 [mantidos da v2.5 integralmente]
+DA-12 FORMATADORES POR TIPO, N√O POR APAR NCIA
+DA-13 LOADING STATES BRANDED S√O DESIGN SYSTEM
+DA-14 MIGRA«√O PROGRESSIVA DE D…BITO T…CNICO
+DA-15 ARQUITETURA DE VARI¡VEIS DE PROPOSTA ó DOIS RESOLVERS
+DA-16 MOTOR DE GOVERNAN«A DE VARI¡VEIS
+DA-17 ALIASES OBRIGAT”RIOS NO RESOLVER BE
+DA-18 ASSINATURA ELETR‘NICA ó ZAPSIGN
+DA-19 LANDING PAGE ó DADOS DO SNAPSHOT
+DA-20 RLS LANDING PAGE P⁄BLICA
+DA-21 DOCX PROCESSING ó FFLATE NATIVO, N√O DOCXTEMPLATER
+DA-22 JOBS DE PURGE ó RETEN«√O AUTOM¡TICA
+DA-23 HOOKS DEDICADOS PARA QUERIES
+DA-24 VARI¡VEL [cidade] ó FALLBACK CHAIN
+DA-25 EMPRESA_* L  DE TENANTS COM FALLBACK BRAND_SETTINGS
+DA-26 CEP COM M¡SCARA OBRIGAT”RIA
+DA-27 ADAPTER PATTERN PARA ASSINATURA DIGITAL
+DA-28 CLICKSIGN USA 3 CHAMADAS API
+DA-29 WEBHOOK DETECTA PROVIDER PELO PAYLOAD
+DA-30 APP_URL UNIFICADO ó FALLBACK CORRETO
+DomÌnio canÙnico: https://maisenergiasolar.lovable.app
+Rota canÙnica de proposta p˙blica: /proposta/:token (NUNCA /pl/:token)
+DA-31 WEBHOOK DE ASSINATURA ó URL EXIBIDA EM SIGNATURETAB
+DA-32 HOOK usePropostaRapidaLead ó INTERFACE QuickLeadData
+DA-33 AUTENTIQUE ó ADAPTER GRAPHQL
+DA-34 SIGNAT¡RIOS AUTOM¡TICOS NO ENVIO PARA ASSINATURA
+DA-35 BANCO DE DADOS ó JOBS DE PURGE ATIVOS
+DA-36 MIGRA«√O SM ó ARQUITETURA DEFINITIVA
+DA-37 C¡LCULO FINANCEIRO ó MOTOR CAN‘NICO
+calcGrupoB.ts È o motor canÙnico para Grupo B.
+calcGrupoA.ts È o motor canÙnico para Grupo A.
+calcFinancialSeries.ts DEVE chamar calcGrupoB/calcGrupoA ó nunca lÛgica prÛpria.
+DA-38 TEMPLATE WEB ó FLUXO CORRETO (CORRIGIDO v3.13)
+Templates WEB (tipo html) armazenados como JSON de TemplateBlock[] em template_html.
+Rota p˙blica: /proposta/:token verifica template_id_used na vers„o.
+Se template_id_used existe ? redireciona para /pl/:token.
+Se template_id_used È NULL:
+- Em geraÁ„o anterior a v3.12 ? usa layout padr„o (tolerado)
+- Em geraÁ„o nova (pÛs v3.12) ? È bug: logar e exibir aviso (ver RB-54)
+NUNCA usar template_id_used com templates DOCX ó apenas HTML.
+DA-39 REALTIME ó PADR√O OBRIGAT”RIO
+Todo canal Realtime DEVE seguir:
+const channel = supabase.channel('nome-unico')
+.on('postgres_changes', { event: '*', schema: 'public', table: 'tabela' },
+() => queryClient.invalidateQueries({ queryKey: ['chave'] }))
+.subscribe()
+return () => supabase.removeChannel(channel)
+Verificar pg_publication_tables antes de implementar (RB-53).
+--- NOVAS v3.13 --------------------------------------------------------------
+DA-40 MAPEAMENTOS DE NEG”CIO V M DO BANCO, N√O DO C”DIGO
+Contexto: VENDEDOR_MAP com nomes de consultores hardcoded na edge function
+migrate-sm-proposals-v2. Quando um consultor entra, sai ou muda de nome,
+exige redeploy da edge function ó risco alto de inconsistÍncia.
+Decis„o: Mapeamentos de negÛcio (consultores, pipelines, etapas especiais)
+DEVEM ser lidos de tabelas do banco via query na inicializaÁ„o do request.
+Quando implementar: antes da prÛxima alteraÁ„o na lÛgica de consultores.
+Tabela alvo: sm_vendedor_mappings (nome_sm TEXT, consultor_id UUID, tenant_id UUID).
+Quando quebrar: NUNCA hardcodar nomes prÛprios de negÛcio em Edge Functions.
+DA-41 SECURITY DEFINER VIEWS ó GOVERNAN«A OBRIGAT”RIA
+Contexto: 4 Security Definer Views identificadas na auditoria 2026-04.
+Views com SECURITY DEFINER executam com privilÈgio do owner, bypassando RLS.
+Isso pode permitir que uma query de um tenant leia dados de outro tenant.
+Decis„o: Toda view com SECURITY DEFINER deve:
+1. Filtrar por tenant_id explicitamente (WHERE tenant_id = get_user_tenant_id())
+2. Ser auditada semestralmente
+3. Ter coment·rio no topo: -- SECURITY DEFINER: filtro tenant_id obrigatÛrio
+Verificar: SELECT viewname, definition FROM pg_views
+JOIN pg_proc ON ... WHERE prosecdef = true;
+Quando quebrar: NUNCA criar nova view SECURITY DEFINER sem filtro de tenant.
+DA-42 resolveFunilEtapa() ó EXTRAIR ANTES DA PR”XIMA MUDAN«A DE PIPELINE
+Contexto: LÛgica de resoluÁ„o de funil_id/etapa_id est· duplicada 3x
+em migrate-sm-proposals-v2 (create, update, fix_existing).
+Decis„o: Extrair para funÁ„o compartilhada resolveFunilEtapa(params) antes
+de qualquer prÛxima mudanÁa na lÛgica de pipeline.
+Uma mudanÁa de negÛcio exige atualizaÁ„o em 3 lugares ó garantia de bug.
+Quando implementar: prÛxima sprint que tocar em pipeline da migraÁ„o SM.
+Quando quebrar: NUNCA duplicar lÛgica de resoluÁ„o de funil em nova feature.
+=============================================================================
+BLOCO 6 ó REFER NCIA R¡PIDA DE PADR’ES (ß1ñß50)
+=============================================================================
+[Mantidos ß1ñß47 da v3.12 integralmente]
+ß48. FORMATADORES ó Tabela completa ? ver ß48-S1
+ß49. LOGGING ó Regras de produÁ„o ? ver ß49-S1
+ß50. D…BITO T…CNICO ó MigraÁ„o progressiva ? ver ß50-S1
+=============================================================================
+BLOCO 7 ó VALIDA«√O AUTOM¡TICA (SCRIPT PRE-BUILD)
+=============================================================================
+Adicionar ao scripts/validate-agents.js existente:
+// AP-23: console.log em produÁ„o
 files.forEach(file => {
-  if (!file.includes('node_modules')) {
-    const content = fs.readFileSync(file, 'utf8');
-    const lines = content.split('\n');
-    lines.forEach((line, idx) => {
-      if (/console\.log\(/.test(line) && !/^\s*\/\//.test(line)) {
-        violations.push(`[AP-23] console.log ativo em ${file}:${idx+1}`);
-      }
-    });
-  }
+if (!file.includes('node_modules')) {
+const content = fs.readFileSync(file, 'utf8');
+const lines = content.split('\n');
+lines.forEach((line, idx) => {
+if (/console.log(/.test(line) && !/^\s*///.test(line)) {
+violations.push([AP-23] console.log ativo em ${file}:${idx+1});
+}
 });
-
-// AP-21: cores hardcoded em gr√°ficos
+}
+});
+// AP-21: cores hardcoded em gr·ficos
 files.forEach(file => {
-  if (file.endsWith('.tsx')) {
-    const content = fs.readFileSync(file, 'utf8');
-    if (/stopColor="|stroke="#|fill="#/.test(content)) {
-      const lines = content.split('\n');
-      lines.forEach((line, idx) => {
-        if (/stopColor="|stroke="#|fill="#/.test(line) && !/url\(#|context-stroke|none/.test(line) && !/\/\//.test(line)) {
-          violations.push(`[AP-21] Cor hardcoded em gr√°fico ${file}:${idx+1}`);
-        }
-      });
+if (file.endsWith('.tsx')) {
+const content = fs.readFileSync(file, 'utf8');
+if (/stopColor="|stroke="#|fill="#/.test(content)) {
+const lines = content.split('\n');
+lines.forEach((line, idx) => {
+if (/stopColor="|stroke="#|fill="#/.test(line) && !/url(#|context-stroke|none/.test(line) && !////.test(line)) {
+violations.push([AP-21] Cor hardcoded em gr·fico ${file}:${idx+1});
+}
+});
+}
+}
+});
+// RB-57: let mut·vel no escopo de mÛdulo em Edge Functions (NOVO v3.13)
+const efFiles = glob.sync('supabase/functions/**/*.ts');
+efFiles.forEach(file => {
+  const content = fs.readFileSync(file, 'utf8');
+  const lines = content.split('\n');
+  let inFunction = false;
+  lines.forEach((line, idx) => {
+    if (/^(async\s+)?function |^const .* = (async\s+)?\(|^Deno\.serve/.test(line)) inFunction = true;
+    if (!inFunction && /^let /.test(line) && !/\/\//.test(line)) {
+      violations.push(`[RB-57] let mut·vel em escopo de mÛdulo em file:{file}:
+file:{idx+1} ó risco de cross-tenant contamination`);
     }
-  }
+  });
 });
 
-// RB-16: formatBRL aplicado a tarifa (heur√≠stica)
+// RB-55: referÍncias circulares (NOVO v3.13)
+// Executado via: npx madge --circular src/ --exit-code
+// Adicionar ao package.json scripts:
+// "check:circular": "npx madge --circular src/ --exit-code"
+// "prebuild": "node scripts/validate-agents.js && npm run check:circular"
+// RB-16: formatBRL aplicado a tarifa (heurÌstica)
 files.forEach(file => {
-  if (file.endsWith('.tsx') || file.endsWith('.ts')) {
-    const content = fs.readFileSync(file, 'utf8');
-    if (/formatBRL\(.*tarif|formatBRL\(.*rate|formatBRL\(.*kwh/i.test(content)) {
-      violations.push(`[RB-16] Poss√≠vel formatBRL em tarifa/kwh em ${file} ‚Äî verificar manualmente`);
-    }
-  }
+if (file.endsWith('.tsx') || file.endsWith('.ts')) {
+const content = fs.readFileSync(file, 'utf8');
+if (/formatBRL(.*tarif|formatBRL(.*rate|formatBRL(.*kwh/i.test(content)) {
+violations.push([RB-16] PossÌvel formatBRL em tarifa/kwh em ${file} ó verificar manualmente);
+}
+}
 });
-
-# =============================================================================
-# BLOCO 8 ‚Äî CONVEN√á√ïES DE NOMENCLATURA
-# =============================================================================
-# [Mantido integralmente da v2.5]
-
-# =============================================================================
-# BLOCO 9 ‚Äî CHECKLIST FINAL ANTES DE COMMITAR
-# =============================================================================
-
+=============================================================================
+BLOCO 8 ó CONVEN«’ES DE NOMENCLATURA
+=============================================================================
+[Mantido integralmente da v2.5]
+=============================================================================
+BLOCO 9 ó CHECKLIST FINAL ANTES DE COMMITAR (CONSOLIDADO v3.13)
+=============================================================================
+Checklist base (todo commit)
 [ ] Build passa: npm run build (zero erros)
 [ ] Lint passa: npm run lint
-[ ] Valida√ß√£o AGENTS: npm run prebuild
-[ ] Cores: Nenhum orange-*, blue-*, #hex em componentes novos
+[ ] ValidaÁ„o AGENTS: npm run prebuild
+[ ] ReferÍncias circulares: npx madge --circular src/ (RB-55)
+[ ] Cores: Nenhum orange-, blue-, #hex em componentes novos
 [ ] Dark mode: Testei em modo escuro
 [ ] Responsive: Testei em 320px e 1920px
-[ ] Queries: Est√£o em hooks com staleTime
-[ ] Bot√µes: Todos s√£o <Button> do shadcn
-[ ] Modais: T√™m w-[90vw] e min-h-0
-[ ] Formatadores: Escolhi o formatter correto pelo TIPO do dado (¬ß48)
+[ ] Queries: Est„o em hooks com staleTime
+[ ] Botıes: Todos s„o <Button> do shadcn
+[ ] Modais: TÍm w-[90vw] e min-h-0
+[ ] Formatadores: Escolhi o formatter correto pelo TIPO do dado (ß48)
 [ ] Console.log: Nenhum ativo em src/ (apenas comentados)
-[ ] Loading states: Usei LoadingState/SunLoader para p√°ginas, Skeleton para inline
+[ ] Loading states: Usei LoadingState/SunLoader para p·ginas, Skeleton para inline
 [ ] Tabelas: overflow-x-auto no container pai (RB-18)
 [ ] TabsList: overflow-x-auto flex-wrap h-auto quando 3+ abas (RB-19)
-[ ] Grids: grid-cols-1 como base m√≠nima (RB-20)
+[ ] Grids: grid-cols-1 como base mÌnima (RB-20)
 [ ] Shadows: shadow-sm em cards, shadow-lg apenas em flutuantes (RB-21)
-[ ] Changelog: Atualizado se mudan√ßa funcional
+[ ] Changelog: Atualizado se mudanÁa funcional
+Se alterou Edge Function
+[ ] Nenhum let no escopo de mÛdulo (RB-57)
+[ ] console.log removidos ou comentados (RB-23)
+[ ] tenant_id validado em todas as queries
+[ ] UPDATEs crÌticos verificam count ou usam .select() (RB-58)
+[ ] Se alterou _shared/*.ts ? redeploy: template-preview, generate-proposal, docx-to-pdf
+Se criou/alterou UPDATE de estado
+[ ] VerificaÁ„o de count > 0 ou .select() apÛs update crÌtico (RB-58)
+[ ] Toast de erro se 0 linhas afetadas
+Se usou Realtime
+[ ] Verificar pg_publication_tables antes (RB-53)
+[ ] Cleanup com supabase.removeChannel no return do useEffect (DA-39)
+Se gerou proposta com template HTML
+[ ] template_id_used gravado apÛs persistAtomic (RB-54)
+Se adicionou vari·vel aos resolvers
+[ ] knownKeys.ts atualizado (DA-16)
+[ ] Alias/legado mapeado em DEPRECATED_VARS (RB-35)
+Se trabalhou com DOCX
+[ ] Pipeline completo: defragment ? cleanup ? normalize ? replace ? formulas ? cleanup residual (RB-39)
+[ ] Vari·veis monet·rias sem prefixo R$ no resolver (RB-42)
+Se adicionou Security Definer View
+[ ] Filtro por tenant_id obrigatÛrio (DA-41)
+[ ] Coment·rio no topo da view documentando o SECURITY DEFINER (DA-41)
+Se adicionou mapeamento de negÛcio
+[ ] Vem do banco, n„o hardcoded no cÛdigo (DA-40)
+[ ] Cat·logo: queries usam fornecedor_id, n„o source
 [ ] Edge Functions: sem loop com await em batch (AP-20)
-[ ] Edge Functions: tenant_id validado em todas as queries
-[ ] Cat√°logo: queries usam fornecedor_id, n√£o source
-[ ] Redeploy: se alterou _shared/*.ts, fez redeploy de template-preview + generate-proposal + docx-to-pdf
+=============================================================================
+BLOCO 10 ó REGRESS’ES CONHECIDAS ó NUNCA QUEBRAR
+=============================================================================
+WhatsApp / process-webhook-events
 
-# =============================================================================
-# BLOCO 10 ‚Äî REGRESS√ïES CONHECIDAS ‚Äî NUNCA QUEBRAR
-# =============================================================================
+extractMessageContent trata ephemeralMessage, audioMessage, documentMessage ó N√O alterar
+Nunca remover fallback msg.message || {}
 
-### WhatsApp / process-webhook-events
-- extractMessageContent trata ephemeralMessage, audioMessage, documentMessage ‚Äî N√ÉO alterar
-- Nunca remover fallback msg.message || {}
+AuthForm / handleSignIn ó N√O MODIFICAR
 
-### AuthForm / handleSignIn
-- DEVE ter: const handleSignIn = async (data: LoginData) => { ‚Äî nunca mover
+DEVE ter: const handleSignIn = async (data: LoginData) => {
 
-### Edge Functions ‚Äî deploy obrigat√≥rio
-- Ap√≥s altera√ß√£o em supabase/functions/_shared/*.ts:
-  redeploy: template-preview, generate-proposal, docx-to-pdf
+Edge Functions ó deploy obrigatÛrio
 
-### Snapshot camelCase ‚Äî fallback duplo obrigat√≥rio
-- pagamentoOpcoes ?? pagamento_opcoes (e demais campos)
-- Nunca remover fallbacks de camelCase
+ApÛs alteraÁ„o em supabase/functions/_shared/*.ts:
+redeploy: template-preview, generate-proposal, docx-to-pdf
 
-### Resolvers de proposta ‚Äî implementa√ß√£o paralela (AP-15)
-- FRONTEND: src/lib/resolveProposalVariables.ts
-- BACKEND:  supabase/functions/_shared/resolvers/
-- Sempre sincronizar os dois
+Snapshot camelCase ó fallback duplo obrigatÛrio
 
-### Campos de kit ‚Äî nomes corretos (AP-16)
-- SEMPRE: modulo?.potencia_w, inversor?.potencia_w
-- NUNCA:  modulo?.potencia (campo n√£o existe)
+pagamentoOpcoes ?? pagamento_opcoes (e demais campos)
+Nunca remover fallbacks de camelCase
 
-### usePaybackEngine ‚Äî queries useQuery (n√£o reverter para useState)
+Resolvers de proposta ó implementaÁ„o paralela (AP-15)
 
-### Itens inativos ‚Äî opacity-50 obrigat√≥rio
+FRONTEND: src/lib/resolveProposalVariables.ts
+BACKEND:  supabase/functions/_shared/resolvers/
+Sempre sincronizar os dois
 
-### Cat√°logo multi-fornecedor
-- NUNCA .eq("source", "edeltec") ‚Äî usar .eq("fornecedor_id", id) ‚úÖ CORRIGIDO v3.0
-- NUNCA kit.source === "edeltec" ‚Äî usar !!kit.fornecedor_id ‚úÖ CORRIGIDO v3.0
+Campos de kit ó nomes corretos (AP-16)
 
-### N+1 nas Edge Functions ‚Äî CORRIGIDO v3.0
-- detect-upsell-opportunities: batch SELECT + batch INSERT ‚úÖ
-- calculate-gd-energy-month: batch invoices + batch allocations upsert + batch credits ‚úÖ
-- google-contacts-integration: normaliza√ß√£o pura + batch identity lookup ‚úÖ
+SEMPRE: modulo?.potencia_w, inversor?.potencia_w
+NUNCA:  modulo?.potencia (campo n„o existe)
 
-### console.log ‚Äî REMOVIDOS v3.0
-- 132 console.log comentados em src/components/, src/pages/, src/hooks/ ‚úÖ
-- supabase/functions/ n√£o alterado (usa console.error com prefixo ‚Äî correto)
+usePaybackEngine ó queries useQuery (n„o reverter para useState)
+Itens inativos ó opacity-50 obrigatÛrio
+Cat·logo multi-fornecedor
 
-### Modais sem w-[90vw] ‚Äî BACKLOG LIMPO v3.0
-- Arquivos do backlog v2.5 verificados: removidos ou corrigidos ‚úÖ
+NUNCA .eq("source", "edeltec") ó usar .eq("fornecedor_id", id) ?
+NUNCA kit.source === "edeltec" ó usar !!kit.fornecedor_id ?
 
-### Scroll sem min-h-0 ‚Äî CORRIGIDO v3.0
-- ModuloImportDialog, FornecedorImportDialog, ProjetoKanbanConsultor, MobileNav ‚úÖ
+N+1 nas Edge Functions ó CORRIGIDO v3.0 ?
+Drag-and-drop Kanban ó CORRIGIDO v3.13 ?
 
-### Formatadores manuais R$ ‚Äî CORRIGIDOS v3.0
-- FormasPagamentoPage, ValidacaoVendasManager, BillingFeaturesPage ‚úÖ
-- EnergiaDashboard (formatBRLInteger), EstoquePage (formatBRLInteger) ‚úÖ
-- ItemsTable, MovementsTable ‚úÖ
-- ConcessionariasManager: tarifas com 4-6 casas ‚Äî CORRETO n√£o usar formatter ‚úÖ
+useProjetoPipeline.ts: moveProjetoToConsultor e moveProjetoToEtapa
+DEVEM usar projetos.id (n„o deal_id) no UPDATE
+Supabase retorna sucesso em UPDATE com 0 linhas afetadas sem erro
+SEMPRE verificar count > 0 apÛs o update (RB-58)
+NUNCA passar deal_id onde projetos.id È esperado ó s„o campos distintos
 
-### Sprints Visuais ‚Äî CONCLU√çDOS v3.1
+Estado global mut·vel em Edge Functions ó CORRIGIDO v3.13 ?
 
-#### V1 ‚Äî Tabelas sem overflow-x-auto ‚úÖ
-- 78 arquivos corrigidos
-- Padr√£o: <div className="rounded-lg border border-border overflow-x-auto"><Table>
-- NUNCA usar <Table> sem overflow-x-auto no container pai
+migrate-sm-proposals-v2: vari·veis como FALLBACK_PIPELINE_ID e COMERCIAL_FUNIL_ID
+eram let no escopo do mÛdulo ó causavam cross-tenant contamination
+CorreÁ„o: resetGlobalState() chamado no inÌcio de cada request
+NUNCA usar let no escopo de mÛdulo em Edge Functions (RB-57)
 
-#### V2 ‚Äî Tabs sem overflow-x-auto ‚úÖ
-- 12 arquivos corrigidos (TabsList n√£o-grid)
-- Padr√£o: <TabsList className="overflow-x-auto flex-wrap h-auto">
-- <TabsTrigger className="shrink-0 whitespace-nowrap">
-- EXCE√á√ÉO: TabsList com grid (layout fixo intencional) ‚Äî N√ÉO adicionar overflow-x-auto
+console.log ó REMOVIDOS v3.0 / v3.12 ?
+Modais sem w-[90vw] ó BACKLOG LIMPO v3.0 ?
+Scroll sem min-h-0 ó CORRIGIDO v3.0 ?
+Formatadores manuais R$ ó CORRIGIDOS v3.0 ?
+Sprints Visuais V1-V5 ó CONCLUÕDOS v3.1 ?
+MigraÁ„o C-01 (~170 queries) ó CONCLUÕDA v3.2 ?
+Gate de instalaÁ„o ó IMPLEMENTADO v3.2 ?
+MigraÁ„o SM (1.799 propostas)
 
-#### V3 ‚Äî Grids sem breakpoint mobile ‚úÖ
-- 130 linhas corrigidas em p√°ginas admin e wizard
-- Padr√£o: grid-cols-1 sm:grid-cols-2 lg:grid-cols-3
-- EXCE√á√ÉO: grids dentro de Dialog/Modal com layout fixo ‚Äî manter como est√°
-- EXCE√á√ÉO: grids de dados compactos (text-xs, font-mono) ‚Äî manter como est√°
+JWT refresh antes de cada lote (RB-52) ?
+resetGlobalState() a cada request (RB-57) ?
+Õndices parciais: idx_smp_tenant_migrado_pending / _done ?
+VENDEDOR_MAP: usar startsWith ao invÈs de includes (word-boundary) ?
+VENDEDOR_MAP ainda hardcoded ó migrar para banco (DA-40, backlog)
 
-#### V4 ‚Äî Tipografia inconsistente ‚úÖ
-- 26 arquivos corrigidos
-- Hierarquia definitiva (ver ¬ßDS-01):
-  - T√≠tulo p√°gina:    text-xl font-bold      (n√£o font-semibold)
-  - T√≠tulo card/se√ß√£o: text-base font-semibold (n√£o font-bold)
-  - KPI/m√©trica:      text-lg font-bold      (correto ‚Äî manter)
-- EXCE√á√ÉO: valores KPI/m√©trica com text-lg font-bold ‚Äî correto, n√£o alterar
+=============================================================================
+BLOCO 11 ó REGRAS DE ESCOPO
+=============================================================================
 
-#### V5 ‚Äî Shadow e rounded fora do padr√£o ‚úÖ
-- 20 elementos corrigidos
-- Cards est√°ticos: shadow-sm (nunca shadow-lg)
-- Cards com hover: hover:shadow-md (nunca hover:shadow-lg)
-- Cards containers: rounded-xl m√°ximo (nunca rounded-2xl)
-- EXCE√á√ÉO: tooltips, dropdowns, modais, FAB ‚Äî shadow-lg correto
-- EXCE√á√ÉO: chat bubbles, avatares, √≠cones decorativos ‚Äî rounded-2xl correto
-- EXCE√á√ÉO: landing page institucional ‚Äî estilo pr√≥prio, n√£o alterar
+Quando a tarefa diz "only touch X", N√O tocar em outros arquivos
+Se encontrar outro bug, REPORTAR mas n„o corrigir ó abrir tarefa separada
+Nunca "aproveitar" para refatorar cÛdigo adjacente
+MigraÁ„o de dÈbito tÈcnico (C-01/C-02): m·ximo 1 mÛdulo por PR
+Security Definer Views: auditar em sess„o dedicada, n„o como sub-tarefa
 
-### Migra√ß√£o C-01 ‚Äî CONCLU√çDA v3.2
-- Total de queries migradas: ~170
-- Hooks criados: 40+
-- supabase.from() restantes em componentes: 91 (writes imperativos em handlers ‚Äî corretos per ¬ß16)
-- PropostaPublica.tsx: p√°gina p√∫blica, aceit√°vel per Bloco 10
-- AuthForm.tsx: protegido per Bloco 10, n√£o modificar
-
-#### Hooks criados ‚Äî Tabela completa
-
-| Hook | Fun√ß√µes exportadas | M√≥dulo |
-|---|---|---|
-| useSignatureData.ts | useSaveSignatureSettings, useDeleteSigner, useSaveSigner | SignatureTab |
-| useTemplatePreview.ts | usePropostasParaPreview, buildPropostaContext | TemplatePreviewDialog |
-| useMeterDetail.ts | useLinkedUC, useDeleteMeter | MeterDetailPage |
-| useImportCsvAneel.ts | useConcessionariasForMatch, useInsertAneelSyncRun | ImportCsvAneelDialog |
-| useWaInstances.ts | vendedoresQuery, instanceVendedoresQuery, saveVendedoresMutation | WaInstancesManager |
-| useFiscalEmissao.ts | useFiscalInvoices, useFiscalMunicipalServices, useFiscalSettings, useFiscalInvoiceEvents, useCreateFiscalInvoice | FiscalEmissao |
-| useVariableMapper.ts | useVariableMapperData | VariableMapperPanel |
-| useBaseMeteorologica.ts | useAdminGuard, useIrradianceDatasetsAndVersions | BaseMeteorologicaPage |
-| useFiscalWizard.ts | useFiscalWizardSettings, useFiscalWizardServices, useSaveFiscalSettings | FiscalWizard |
-| useConvertLeadToClient.ts | useConversionEquipment | ConvertLeadToClientDialog |
-| useAutoReplyConfig.ts | useAutoReplyConfigData, useSaveAutoReplyConfig | AutoReplyConfig |
-| useParcelasManager.ts | useParcelasData, useGatewayActive | ParcelasManager |
-| useEmailTemplates.ts | useEmailTemplatesList, useSaveEmailTemplate, useDeleteEmailTemplate, useDuplicateEmailTemplate | EmailTemplatesPage |
-| useProjetoKanbanStage.ts | useKanbanAutomations, useKanbanStagePermissions | ProjetoKanbanStage |
-| useFiscalLogs.ts | useFiscalProviderRequests, useFiscalProviderWebhooks | FiscalLogs |
-| useDirectorOverview.ts | useLeadStats | DirectorOverview |
-| useUsuarios.ts | useIsAdmin, useUsuariosList, useRefreshUsuarios | UsuariosManager |
-| useConfSolar.ts | usePricingConfig, usePremissasTecnicas, usePropostaTemplates, usePropostaVariaveisCustom | conf-solar tabs |
-| useAprovacaoUsuarios.ts | usePendingUsers, useRefreshPendingUsers | AprovacaoUsuarios |
-| usePagamentosComissao.ts | usePagamentosComissao, useRefreshPagamentosComissao | PagamentosComissaoDialog |
-| useRecebimentos.ts | useRecebimentosFull, useClientesAtivos, useRefreshRecebimentos | RecebimentosManager |
-| useReleaseChecklist.ts | useReleaseHistory, useRefreshReleaseHistory | ReleaseChecklist |
-| useServicos.ts | useServicosData, useRefreshServicos | ServicosManager |
-| useVendedorMetas.ts | useVendedorMetasData, useRefreshVendedorMetas | VendedorMetasIndividuais |
-| useVendedores.ts | useVendedoresList, useUserProfiles, useRefreshVendedores | VendedoresManager |
-| useImportContaEnergia.ts | useConcessionariasAtivas | ImportContaEnergiaDialog |
-
-### Gate de instala√ß√£o ‚Äî IMPLEMENTADO v3.2
-- ProjetoInstalacaoTab.tsx: useQuery verifica proposta aceita
-- Bot√µes "Iniciar checklist" desabilitados sem proposta aceita
-- Banner bg-warning/10 com AlertTriangle exibido
-
-### Valida√ß√£o pr√©-gera√ß√£o ‚Äî MELHORADA v3.2
-- validatePropostaFinal.ts: adicionada verifica√ß√£o W6b (economia mensal)
-- economiaMensal passada pelo ProposalWizard ao validador
-
-### console.log em Edge Functions ‚Äî LIMPO v3.2
-- template-preview/index.ts: 24 console.log comentados
-- Corrigidos 2 blocos multi-linha com corpo de objeto dangling
-
-# =============================================================================
-# BLOCO 11 ‚Äî REGRAS DE ESCOPO
-# =============================================================================
-
-- Quando a tarefa diz "only touch X", N√ÉO tocar em outros arquivos
-- Se encontrar outro bug, REPORTAR mas n√£o corrigir ‚Äî abrir tarefa separada
-- Nunca "aproveitar" para refatorar c√≥digo adjacente
-- Migra√ß√£o de d√©bito t√©cnico (C-01): m√°ximo 1 m√≥dulo por PR
-
-# =============================================================================
-# BLOCO 12 ‚Äî DESIGN SYSTEM VISUAL (NOVO v3.0)
-# Regras para consist√™ncia visual entre todas as telas
-# =============================================================================
-
-## ¬ßDS-01 TIPOGRAFIA ‚Äî Hierarquia √∫nica
-
-Elemento                  | Classes obrigat√≥rias
---------------------------|--------------------------------------------------
-T√≠tulo de p√°gina (h1)     | text-xl font-bold text-foreground
-Subt√≠tulo de p√°gina       | text-sm text-muted-foreground
-T√≠tulo de card/se√ß√£o (h2) | text-base font-semibold text-foreground
-Label de campo            | text-sm font-medium text-foreground
-Texto de corpo            | text-sm text-foreground
-Texto auxiliar/hint       | text-xs text-muted-foreground
-Valor num√©rico destaque   | text-2xl font-bold tracking-tight text-foreground
-Valor monet√°rio em tabela | text-sm font-mono text-foreground
-
-NUNCA misture: font-bold com text-lg em t√≠tulo de card (reservado para p√°gina)
-NUNCA use: text-base font-bold ‚Äî use text-base font-semibold
-
-## ¬ßDS-02 CARDS ‚Äî Padr√£o √∫nico
-
-// Card de conte√∫do padr√£o:
+=============================================================================
+BLOCO 12 ó DESIGN SYSTEM VISUAL
+=============================================================================
+ßDS-01 TIPOGRAFIA ó Hierarquia ˙nica
+ElementoClasses obrigatÛriasTÌtulo de p·gina (h1)text-xl font-bold text-foregroundSubtÌtulo de p·ginatext-sm text-muted-foregroundTÌtulo de card/seÁ„o (h2)text-base font-semibold text-foregroundLabel de campotext-sm font-medium text-foregroundTexto de corpotext-sm text-foregroundTexto auxiliar/hinttext-xs text-muted-foregroundValor numÈrico destaquetext-2xl font-bold tracking-tight text-foregroundValor monet·rio em tabelatext-sm font-mono text-foreground
+ßDS-02 CARDS ó Padr„o ˙nico
+// Card padr„o:
 <Card className="bg-card border-border shadow-sm hover:shadow-md transition-shadow">
-  <CardContent className="p-5">
-    {/* conte√∫do */}
-  </CardContent>
+<CardContent className="p-5">{/* conte˙do */}</CardContent>
 </Card>
-
-// Card de KPI (m√©trica):
+// Card KPI:
 <Card className="border-l-[3px] border-l-primary bg-card shadow-sm">
-  <CardContent className="flex items-center gap-4 p-5">
-    <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-primary/10 shrink-0">
-      <Icon className="w-5 h-5 text-primary" />
-    </div>
-    <div>
-      <p className="text-2xl font-bold tracking-tight text-foreground leading-none">Valor</p>
-      <p className="text-sm text-muted-foreground mt-1">Label</p>
-    </div>
-  </CardContent>
+<CardContent className="flex items-center gap-4 p-5">
+<div className="w-10 h-10 rounded-lg flex items-center justify-center bg-primary/10 shrink-0">
+<Icon className="w-5 h-5 text-primary" />
+</div>
+<div>
+<p className="text-2xl font-bold tracking-tight text-foreground leading-none">Valor</p>
+<p className="text-sm text-muted-foreground mt-1">Label</p>
+</div>
+</CardContent>
 </Card>
-
-// Varia√ß√µes de cor do card KPI:
-// border-l-primary    + bg-primary/10    (padr√£o)
+// VariaÁıes de cor do card KPI:
+// border-l-primary    + bg-primary/10    (padr„o)
 // border-l-destructive + bg-destructive/10 (alerta)
 // border-l-success    + bg-success/10    (positivo)
-// border-l-warning    + bg-warning/10    (aten√ß√£o)
-
-NUNCA use: shadow-lg em cards de lista (reservado para modais)
-NUNCA use: rounded-2xl em cards (padr√£o √© rounded-lg via border-radius do shadcn)
-
-## ¬ßDS-03 √çCONES NOS HEADERS ‚Äî Padr√£o √∫nico
-
-// Header de p√°gina:
-<div className="w-10 h-10 rounded-lg flex items-center justify-center bg-primary/10 text-primary">
-  <Icon className="w-5 h-5" />
-</div>
-
-// Header de modal:
-<div className="w-9 h-9 rounded-lg flex items-center justify-center bg-primary/10 shrink-0">
-  <Icon className="w-5 h-5 text-primary" />
-</div>
-
-NUNCA use: √≠cone sem container colorido em headers
-NUNCA varie: o tamanho do container entre telas (w-10 h-10 em p√°ginas, w-9 h-9 em modais)
-
-## ¬ßDS-04 ESPA√áAMENTO ‚Äî Grid de 4px
-
-Espa√ßamento interno de card:  p-5  (20px)
-Gap entre cards:              gap-4 (16px) ou gap-6 (24px)
-Gap entre se√ß√µes na p√°gina:   space-y-6 (24px)
-Gap entre campos de form:     space-y-4 (16px) ou grid gap-4
-Padding de p√°gina:            p-4 md:p-6
-Padding de modal body:        p-5
-
-NUNCA use: p-3 em cards (muito apertado) ou p-8 (muito largo)
-NUNCA use: margin direta em componentes filhos (AP-07) ‚Äî usar gap/space no pai
-
-## ¬ßDS-05 BADGES E STATUS ‚Äî Padr√£o sem√¢ntico
-
-// Badge de status:
-<Badge variant="outline" className="text-xs bg-success/10 text-success border-success/20">
-  Ativo
-</Badge>
-
-// Cores por sem√¢ntica:
-// Ativo/Conclu√≠do/Aprovado:  bg-success/10 text-success border-success/20
+// border-l-warning    + bg-warning/10    (atenÁ„o)
+ßDS-03..ßDS-08 [mantidos integralmente da v3.0]
+ßDS-05 BADGES E STATUS
+// Ativo/ConcluÌdo/Aprovado:  bg-success/10 text-success border-success/20
 // Pendente/Em progresso:     bg-warning/10 text-warning border-warning/20
 // Inativo/Cancelado/Erro:    bg-destructive/10 text-destructive border-destructive/20
 // Informativo/Neutro:        bg-muted text-muted-foreground border-border
 // Destaque/Principal:        bg-primary/10 text-primary border-primary/20
-
-NUNCA use: bg-green-100 text-green-800 (cores fixas quebram dark mode)
-NUNCA use: Badge variant="default" para status (reservado para a√ß√µes)
-
-## ¬ßDS-06 FORMUL√ÅRIOS ‚Äî Layout obrigat√≥rio
-
-// Grid responsivo para formul√°rios:
-<div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-  <div className="space-y-2">
-    <Label htmlFor="campo">Label do campo</Label>
-    <Input id="campo" placeholder="Placeholder" />
-  </div>
-</div>
-
-// Campo que ocupa linha inteira:
-<div className="col-span-1 sm:col-span-2 space-y-2">
-
-// Se√ß√µes de formul√°rio separadas:
-<div className="space-y-4">
-  <h3 className="text-base font-semibold text-foreground border-b border-border pb-2">
-    T√≠tulo da se√ß√£o
-  </h3>
-  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-    {/* campos */}
-  </div>
-</div>
-
-NUNCA use: flex para layout de formul√°rio (use grid)
-NUNCA use: margin-bottom em campos individuais (use gap no grid pai)
-
-## ¬ßDS-07 TABELAS ‚Äî Padr√£o visual
-
-// Container obrigat√≥rio:
-<div className="rounded-lg border border-border overflow-hidden overflow-x-auto">
-  <Table>
-    <TableHeader>
-      <TableRow className="bg-muted/50 hover:bg-muted/50">
-        <TableHead className="font-semibold text-foreground">Coluna</TableHead>
-      </TableRow>
-    </TableHeader>
-    <TableBody>
-      <TableRow className="hover:bg-muted/30 cursor-pointer transition-colors">
-        <TableCell className="text-foreground">Valor</TableCell>
-      </TableRow>
-    </TableBody>
-  </Table>
-</div>
-
-// Coluna de valor monet√°rio:
-<TableCell className="text-right font-mono text-sm text-foreground">
-  {formatBRL(item.valor)}
-</TableCell>
-
-// Item inativo ‚Äî obrigat√≥rio:
-<TableRow className={cn("hover:bg-muted/30", !item.ativo && "opacity-50")}>
-
-NUNCA use: tabela sem borda e sem rounded-lg no container
-NUNCA use: TableHead sem font-semibold
-
-## ¬ßDS-08 RESPONSIVIDADE ‚Äî Breakpoints e comportamento
-
-Breakpoint | Comportamento esperado
------------|---------------------------------------------------------------
-< 640px    | 1 coluna, bot√µes full-width, a√ß√µes em DropdownMenu
-640-768px  | 2 colunas em grids, modais em 90vw
-768-1024px | 2-3 colunas, tabelas com scroll horizontal se necess√°rio
-> 1024px   | Layout completo, bot√µes inline em tabelas, sidebars vis√≠veis
-
-Regras de adapta√ß√£o:
-- Tabelas: sempre overflow-x-auto no container pai em mobile
-- Bot√µes de a√ß√£o em tabela: hidden lg:flex inline, flex lg:hidden dropdown
-- Modais: sempre w-[90vw] ‚Äî nunca largura fixa
-- Headers de p√°gina: flex-col sm:flex-row quando bot√µes n√£o cabem
-- Grids: sempre come√ßar com grid-cols-1, subir com sm: e lg:
-
-# =============================================================================
-# BLOCO 13 ‚Äî SPRINTS CONCLU√çDOS (v3.2)
-# =============================================================================
-
-## M√≥dulo Financeiro
-- F1: Trigger trg_proposta_aceita_recebimento
-- F2: Lan√ßamentos financeiros avulsos
-- F3: Fechamento de caixa com despesas
-- F4: DRE mensal com gr√°fico e exporta√ß√£o CSV
-
-## Gateways de Cobran√ßa
-- G1: Migration gateways em tenant_premises
-- G2: Edge function gerar-cobranca
-- G3: CobrancaDialog + ParcelasManager
-- G4: PagamentosDialog (8 formas de pagamento)
-- G5: Webhook autom√°tico PagSeguro/Asaas
-
-## Conta Corrente do Cliente
-- R1: Recebimentos como conta corrente
-  (PagamentoLivreDialog, trigger sync_recebimento_total_pago)
-- R2: WA autom√°tico ao receber pagamento
-  (notificar-pagamento-wa edge function)
-- R3: Cron di√°rio de lembretes de vencimento
-  (verificar-vencimentos edge function)
-- R4: Bot√£o cobran√ßa manual por WA
-  (enviar-cobranca-wa edge function)
-
-## Integra√ß√£o Solaryum JNG/Vertys
-- S1: Infrastructure (solaryum-proxy + TabIntegracoes)
-- S2: IBGE propagado do cliente para WizardState
-- S3: Aba Distribuidores no StepKitSelection
-
-# =============================================================================
-# BLOCO 14 ‚Äî NOVAS REGRAS (v3.2)
-# =============================================================================
-
-RB-24 RECEBIMENTOS USAM MODELO CONTA CORRENTE
-    N√£o criar parcelas fixas manualmente.
-    Usar PagamentoLivreDialog para baixas avulsas.
-    Status controlado pelo saldo (total_pago vs valor_total).
-
-RB-25 WA AUTOM√ÅTICO √â FIRE-AND-FORGET
-    Nunca bloquear fluxo de pagamento por falha WA.
-    Sempre usar .catch(() => {}) na chamada.
-    Falha no WA = log de erro, n√£o erro pro usu√°rio.
-
-RB-26 EDGE FUNCTIONS DE NOTIFICA√á√ÉO WA
-    Sempre usar enqueue_wa_outbox_item via service role.
-    Nunca chamar API WA diretamente da edge function.
-    Idempotency key obrigat√≥ria para evitar duplicatas.
-
-RB-27 MIGRATIONS FINANCEIRAS
-    Trigger sync_recebimento_total_pago deve existir
-    para manter total_pago sincronizado automaticamente.
-    Nunca calcular total_pago apenas no frontend.
-
-RB-28 SOLARYUM ‚Äî ENDPOINT MAP
-    Usar integracaoPlataforma para BuscarKits/MontarKits/BuscarFiltros.
-    Usar hubB2B apenas para Produtos/Categoria.
-    IBGE de Cataguases = '3115300'.
-    Nunca hardcodar IBGE no hook ‚Äî sempre propagar do WizardState.
-
-# =============================================================================
-# BLOCO 15 ‚Äî CHANGELOG v3.3 ‚Äî Sess√£o 2026-04-04/05
-# =============================================================================
-
-## NOVAS REGRAS BLOQUEANTES
-
-RB-29 LANDING PAGE P√öBLICA ‚Äî TEMA PR√ìPRIO
-    P√°gina /pl/:token √© exce√ß√£o documentada de RB-02.
-    Paleta pr√≥pria: #1B3A8C (azul) + #F07B24 (laranja).
-    3 modelos: ?modelo=1 (padr√£o), ?modelo=2 (clean), ?modelo=3 (dark)
-    Documentar no topo: "P√°gina p√∫blica ‚Äî exce√ß√£o RB-02 aprovada"
-    Sem AuthGuard. Acesso via token v√°lido (RLS configurado).
-
-RB-30 TEMPLATES DOCX ‚Äî DESFRAGMENTA√á√ÉO XML OBRIGAT√ìRIA
-    Word fragmenta [ variavel ] em m√∫ltiplos <w:r> runs.
-    SEMPRE usar defragmentXml() ANTES de normalizeVariableFormat().
-    Normalizar: [ variavel ] e [variavel] ‚Üí {{variavel}}
-    Aplicar em: generate-document, template-preview, docx-to-pdf
-    Shared: supabase/functions/_shared/normalizeVariableFormat.ts
-
-RB-39 PIPELINE COMPLETO DE SUBSTITUI√á√ÉO EM DOCX (NOVO v3.4)
-    Vari√°veis em DOCX existem em TODOS os n√≥s XML:
-    - Par√°grafos normais (w:p > w:r > w:t) ‚úÖ
-    - C√©lulas de tabela (w:tbl > w:tr > w:tc > w:p > w:r > w:t) ‚úÖ
-    - Cabe√ßalhos (word/header*.xml) ‚úÖ
-    - Rodap√©s (word/footer*.xml) ‚úÖ
-    - Text boxes (w:txbxContent) ‚úÖ
-    PIPELINE OBRIGAT√ìRIO (nesta ordem exata):
-    1. defragmentXml() ‚Äî consolida runs fragmentados pelo Word
-    2. cleanupRemainingFragments() ‚Äî limpeza agressiva de par√°grafos
-       com placeholders ainda fragmentados (proofErr, bookmarks, etc.)
-    3. normalizeVariableFormat() ‚Äî [ var ] e [var] ‚Üí {{var}}
-    4. Limpar XML tags residuais dentro de {{ e }}
-    5. replaceVars() com escapeXml() ‚Äî substituir valores com escape XML
-    6. evaluateInlineFormulas() ‚Äî IF()/SWITCH() p√≥s-substitui√ß√£o
-    7. Limpar placeholders residuais ({{...}} e [...] ‚Üí vazio)
-    ESCOPO: processar TODOS os arquivos word/*.xml (n√£o apenas document.xml)
-    RUNTIME: Edge Functions usam Deno + fflate (n√£o docxtemplater/PizZip)
-    IMPLEMENTADO EM:
-    - generate-document/index.ts ‚Üí processDocx()
-    - template-preview/index.ts ‚Üí processTemplate()
-    - _shared/normalizeVariableFormat.ts ‚Üí defragmentXml(), normalizeVariableFormat()
-    NUNCA pular etapa 2 (cleanupRemainingFragments) ‚Äî √© o que resolve
-    vari√°veis em tabelas onde defragmentXml sozinho n√£o basta.
-
-RB-31 CARD DO PROJETO ‚Äî STATUS DA PROPOSTA MAIS RELEVANTE
-    Card deve mostrar status da proposta mais relevante:
-    1. is_principal = true ‚Üí usar essa
-    2. aceita/ganha ‚Üí verde com borda + fundo success/5
-    3. enviada ‚Üí azul com borda info/40
-    4. S√≥ mostrar recusada se TODAS recusadas ‚Üí vermelho
-    5. Default ‚Üí border-border sem destaque
-    NUNCA usar a proposta mais recente por created_at como padr√£o.
-
-RB-32 PROPOSTA DESATUALIZADA ‚Äî APENAS EDI√á√ÉO MANUAL
-    "Desatualizada" APENAS quando usu√°rio editou ap√≥s gera√ß√£o.
-    Comparar versao.updated_at vs versao.gerado_em (N√ÉO deal.updated_at).
-    Grace period m√≠nimo 60s para ignorar updates autom√°ticos do sistema.
-    N√ÉO marcar como desatualizada por: gera√ß√£o de PDF, update de status,
-    processos autom√°ticos, triggers do banco.
-
-RB-33 SEM AUTOSAVE NO WIZARD DE PROPOSTA
-    Wizard N√ÉO salva automaticamente no banco de dados.
-    Autosave em localStorage √© PERMITIDO (recupera√ß√£o de rascunho).
-    persistAtomic() APENAS por a√ß√£o expl√≠cita do usu√°rio:
-    - Clique em "Salvar Rascunho"
-    - Clique em "Salvar" / "Ativar"
-    - Clique em "Gerar"
-
-RB-34 DOCUMENTOS GERADOS ‚Äî A√á√ïES OBRIGAT√ìRIAS
-    Todo documento gerado DEVE ter:
-    - Bot√£o PDF ‚Üí abre/baixa PDF (se pdf_path existe)
-    - Bot√£o DOCX ‚Üí baixa DOCX (se docx_filled_path existe)
-    - Bot√£o Preview (Eye) ‚Üí abre PDF em nova aba via signed URL
-    - Bot√£o WhatsApp ‚Üí envia link ao cliente (fire-and-forget RB-25)
-    - Bot√£o Deletar (Trash2) ‚Üí com confirma√ß√£o dialog
-    Badge de contagem deve incluir: storage files + generated_documents
-
-RB-35 VARI√ÅVEIS LEGADO ‚Äî MAPEAMENTO OBRIGAT√ìRIO
-    Todo alias/legado deve ter substituta mapeada em DEPRECATED_VARS.
-    Mapeamentos obrigat√≥rios implementados:
-    capo_m‚Üímodulo_garantia, preco_total‚Üívalor_total,
-    vc_nome‚Üícliente_nome, payback_meses‚Üípayback,
-    custo_kit‚Üíkits_custo_total, margem_percentual‚Üímargem_lucro
-
-RB-36 BOLINHA DE SA√öDE ‚Äî MAPA DE CORES OBRIGAT√ìRIO
-    NUNCA usar cor fixa na bolinha de sa√∫de de vari√°veis.
-    SEMPRE usar mapa HEALTH_COLOR com valores do classifier:
-    IMPLEMENTADA/PASSTHROUGH/CUSTOM* ‚Üí bg-success (verde)
-    FEATURE_NAO_IMPLEMENTADA/CDD ‚Üí bg-muted-foreground/30 (cinza)
-    FANTASMA_REAL ‚Üí bg-destructive (vermelho)
-    ALIAS_LEGADO/PARCIAL_BE_ONLY ‚Üí bg-warning (amarelo)
-
-RB-37 BADGES DE STATUS EM COLUNA
-    NUNCA colocar badge "Em uso" ao lado do badge de STATUS.
-    SEMPRE usar flex-col para empilhar badges verticalmente:
-    <div className="flex flex-col gap-1 items-start">
-      <Badge>Status</Badge>
-      <Badge>Em uso</Badge>
-    </div>
-
-RB-38 HIST√ìRICO ‚Äî FILTRAR RU√çDO DO SISTEMA
-    Eventos value_changed com from_value=0 ou to_value=0
-    devem ser filtrados da exibi√ß√£o do hist√≥rico.
-    S√£o causados por gera√ß√£o de proposta, n√£o por usu√°rio.
-
-## NOVAS DECIS√ïES ARQUITETURAIS
-
-DA-21 DOCX PROCESSING ‚Äî FFLATE NATIVO, N√ÉO DOCXTEMPLATER (NOVO v3.4)
-    Contexto: Edge Functions rodam em Deno. docxtemplater + PizZip s√£o
-    pacotes npm pesados com compatibilidade Deno incerta.
-    Decis√£o: Usar fflate (unzipSync/zipSync) + defragmentXml() +
-    cleanupRemainingFragments() customizados. Isso d√° controle total
-    sobre o pipeline e funciona em Deno sem polyfills.
-    Quando quebrar: Se migrar para Node.js runtime, avaliar docxtemplater.
-    Implementado em: _shared/normalizeVariableFormat.ts
-
-DA-16 MOTOR DE GOVERNAN√áA DE VARI√ÅVEIS
-    knownKeys.ts gerado automaticamente dos resolvers BE (522 chaves).
-    Fantasma = n√£o est√° em BE, FE, passthrough, custom, nem notImplemented.
-    Futuras (notImplemented=true) N√ÉO s√£o fantasmas ‚Äî s√£o planejadas.
-    Meta permanente: 0 fantasmas, sa√∫de ‚â• 95%.
-    Atualizar knownKeys.ts sempre que adicionar vars aos resolvers.
-
-DA-17 ALIASES OBRIGAT√ìRIOS NO RESOLVER BE
-    Aliases criados para compatibilidade com f√≥rmulas custom:
-    preco ‚Üí valor_total
-    investimento ‚Üí valor_total
-    potencia ‚Üí potencia_kwp
-    potencia_sistema ‚Üí potencia_kwp
-    geracao_anual_0..25 ‚Üí calculado automaticamente se ausente
-    Implementados em: resolveFinanceiro.ts, resolveSistemaSolar.ts
-
-DA-18 ASSINATURA ELETR√îNICA ‚Äî ZAPSIGN
-    Provedor: ZapSign (api.zapsign.com.br)
-    Edge functions: signature-send + signature-webhook
-    Webhook: /functions/v1/signature-webhook
-    Status: sent ‚Üí viewed ‚Üí signed/refused/cancelled
-    Configura√ß√£o por tenant em signature_settings.
-    Redeploy obrigat√≥rio ap√≥s altera√ß√£o.
-
-DA-19 LANDING PAGE ‚Äî DADOS DO SNAPSHOT
-    Dados v√™m do finalSnapshot via hook usePropostaPublica.ts.
-    Usar deepGet com fallback camelCase/snake_case.
-    Fallbacks em cadeia: snapshot ‚Üí _raw ‚Üí ucs[0] ‚Üí selectedLead.
-    Gera√ß√£o mensal: calcular com irradia√ß√£o se ausente no snapshot.
-    IRRAD_MEDIA_MES = [5.4,5.1,4.8,4.4,4.1,3.9,4.2,4.7,5.0,5.2,5.3,5.5]
-
-DA-20 RLS LANDING PAGE P√öBLICA
-    3 policies para acesso an√¥nimo via token v√°lido:
-    - proposta_versoes: SELECT via proposta_aceite_tokens
-    - propostas_nativas: SELECT via proposta_aceite_tokens
-    - proposta_templates: SELECT via vers√£o + token
-    Token deve ser v√°lido (expires_at > now(), invalidado_em IS NULL)
-
-## NOVOS ANTI-PADR√ïES
-
-AP-25 BADGE EM USO SOBREPONDO STATUS
-    ‚ùå flex gap-1 (sobreposi√ß√£o em colunas estreitas)
-    ‚úÖ flex flex-col gap-1 items-start
-
-AP-26 BOLINHA DE SA√öDE SEM MAPA
-    ‚ùå Cor fixa ou hardcoded na bolinha
-    ‚úÖ HEALTH_COLOR[v.governance] ?? HEALTH_COLOR[v.healthClassification]
-
-AP-27 CARD COM PROPOSTA MAIS RECENTE
-    ‚ùå propostas.sort(created_at)[0] para exibir status no card
-    ‚úÖ Priorizar is_principal, depois por relev√¢ncia de status
-
-AP-28 CONTAGEM DE DOCUMENTOS INCOMPLETA
-    ‚ùå Contar apenas storage bucket
-    ‚úÖ storage files + generated_documents table
-
-AP-29 CONTRATO SEM DESFRAGMENTA√á√ÉO
-    ‚ùå normalizeVariableFormat() direto no XML do Word
-    ‚úÖ defragmentXml() ANTES de normalizeVariableFormat()
-
-## CORRE√á√ïES CR√çTICAS DESTA SESS√ÉO
-
-### Vari√°veis
-- capo_i: era valor_total (bug sem√¢ntico), agora inversor_garantia ‚úÖ
-- [preco] alias ‚Üí valor_total (f√≥rmulas custom falhavam) ‚úÖ
-- Engine: IF, SWITCH, MAX, MIN, ^, separadores , e ; ‚úÖ
-- 0 fantasmas, 96% sa√∫de ‚úÖ
-
-### Documentos
-- Contrato [ variavel ] ‚Üí defragmentXml resolve fragmenta√ß√£o Word ‚úÖ
-- Bot√µes PDF + DOCX + Preview + WhatsApp + Deletar ‚úÖ
-- Badge contagem inclui generated_documents ‚úÖ
-
-### Landing page
-- RLS corrigido para acesso an√¥nimo ‚úÖ
-- Gera√ß√£o mensal com fallback de irradia√ß√£o ‚úÖ
-- Cidade, concession√°ria, estrutura com fallbacks ‚úÖ
-- 3 modelos visuais implementados ‚úÖ
-- Chat IA integrado ‚úÖ
-
-### Sistema
-- Clone proposta: 'draft' ‚Üí 'rascunho' ‚úÖ
-- Hist√≥rico: filtro de ru√≠do do sistema ‚úÖ
-- TIR/VPL/Payback: lendo snapshot.financeiro.* ‚úÖ
-- Card: prioridade is_principal + status relevante ‚úÖ
-- Card: destaque verde (borda + fundo) quando proposta aceita ‚úÖ
-- "Desatualizada": grace period 60s, s√≥ edi√ß√£o manual ‚úÖ
-- ZapSign: assinatura eletr√¥nica integrada ‚úÖ
-- Bolinha de sa√∫de: mapa HEALTH_COLOR por governan√ßa ‚úÖ
-
-## CHECKLIST ADICIONAL v3.3
-
-[ ] defragmentXml() antes de normalizeVariableFormat() em DOCX
-[ ] knownKeys.ts atualizado ao adicionar vars nos resolvers
-[ ] Badge contagem documentos = storage + generated_documents
-[ ] Card projeto mostra proposta is_principal ou mais relevante
-[ ] Landing page tem exce√ß√£o RB-02 documentada no topo
-[ ] Aliases preco/investimento/potencia_sistema no resolver BE
-[ ] HEALTH_COLOR mapa completo para bolinha de sa√∫de
-[ ] Badges de status em flex-col (nunca flex-row)
-[ ] Pipeline DOCX completo: defragment ‚Üí cleanup ‚Üí normalize ‚Üí replace ‚Üí formulas ‚Üí cleanup residual
-[ ] Vari√°veis em tabelas DOCX processadas (RB-39)
-[ ] Aceite de proposta cancela documentos gerados do projeto
-[ ] Cancelamento de contrato exige motivo (observacao)
-[ ] Vari√°veis monet√°rias sem prefixo R$ no resolver
-[ ] generate-document usa .or() para deal_id/projeto_id
-
-# =============================================================================
-# BLOCO 16 ‚Äî REGRAS v3.5 ‚Äî Sess√£o 2026-04-07
-# =============================================================================
-
-## Fluxo de Proposta ‚Üí Contrato
-
-### RB-40 ACEITE DE PROPOSTA ‚Äî EFEITOS COLATERAIS OBRIGAT√ìRIOS
-    Ao aceitar uma proposta (proposal-transition ‚Üí accept):
-    1. Setar is_principal = true na proposta aceita
-    2. Setar status = 'recusada' + is_principal = false nas irm√£s
-       do mesmo projeto com status IN ('rascunho','gerada','enviada','vista')
-    3. Cancelar generated_documents com status = 'generated' do mesmo projeto
-       ‚Üí setar status = 'cancelled', observacao = 'Nova proposta aceita'
-    4. NUNCA cancelar documento com signature_status = 'signed' ‚Äî √© INTOC√ÅVEL
-    Implementado em: supabase/functions/proposal-transition/index.ts
-
-### RB-41 CANCELAMENTO DE CONTRATO ‚Äî MOTIVO OBRIGAT√ìRIO
-    Ao cancelar um documento gerado manualmente:
-    - Abrir modal pedindo motivo/observa√ß√£o
-    - Salvar em generated_documents.observacao
-    - Exibir motivo no card do documento cancelado (texto muted)
-    NUNCA cancelar sem motivo ‚Äî UX e auditoria exigem rastreabilidade
-    Implementado em: DocumentosTab.tsx + useProjetoDocumentos.ts
-
-### RB-42 VARI√ÅVEIS MONET√ÅRIAS ‚Äî SEM PREFIXO R$
-    Vari√°veis retornam APENAS o n√∫mero formatado (ex: "7.718,40").
-    O template DOCX j√° tem "R$" escrito antes da vari√°vel.
-    Campos afetados: [preco], [equipamentos_custo_total],
-    [instalacao_preco_total], e qualquer campo monet√°rio do snapshot.
-    Implementado em: _shared/resolvers/resolveFinanceiro.ts
-    (strip via regex: s.replace(/^[\s ]*R\$[\s ]*/i, "").trim())
-
-### RB-43 GENERATE-DOCUMENT ‚Äî QUERY COM OR OBRIGAT√ìRIO
-    SEMPRE usar .or(`deal_id.eq.${deal_id},projeto_id.eq.${deal_id}`)
-    para buscar proposta em generate-document.
-    NUNCA simplificar para .eq("projeto_id", deal_id) apenas,
-    pois deal_id e projeto_id s√£o campos diferentes em propostas_nativas.
-
-## Banco de dados ‚Äî Manuten√ß√£o autom√°tica
-
-### DA-22 JOBS DE PURGE ‚Äî RETEN√á√ÉO AUTOM√ÅTICA
-    Fun√ß√µes de purge existentes (SECURITY DEFINER, batches de 5000):
-    - purge_monitor_payloads_old()        ‚Üí job 51, di√°rio 03:00 UTC
-    - purge_wa_webhook_events_old()       ‚Üí job 60, domingo 02:00 UTC
-    - purge_cron_job_run_details()        ‚Üí job 61, domingo 02:00 UTC
-    - purge_monitor_readings_realtime()   ‚Üí job 62, di√°rio 03:00 UTC
-    - purge_monitor_string_metrics()      ‚Üí job 63, domingo 04:00 UTC
-    NUNCA usar VACUUM FULL em produ√ß√£o ‚Äî bloqueia tabelas por horas.
-    VACUUM normal √© executado automaticamente pelo autovacuum do Postgres.
-    Quando quebrar: NUNCA ‚Äî incidente 2026-04-06 confirmou o risco.
-
-## Hooks existentes ‚Äî Refer√™ncia (RB-04)
-
-### DA-23 HOOKS DEDICADOS PARA QUERIES
-    Queries Supabase SEMPRE em hooks dedicados em src/hooks/.
-    NUNCA usar useQuery diretamente em p√°ginas/componentes.
-    Hooks criados na sess√£o 2026-04-07:
-    | Hook | Uso |
-    |---|---|
-    | useWaChannel.ts | WaChannelPage |
-    | useContacts.ts | ContactsPage |
-    | useEdeltecApiConfig.ts | EdeltecIntegrationPage |
-    | useGoogleMapsConfig.ts | GoogleMapsConfigPage |
-    | useTenantId.ts | EdeltecIntegrationPage (compartilhado) |
-    | useUCPublicData.ts | UCPublica (4 queries: token, monitoring, invoices, tarifa) |
-
-## Corre√ß√µes aplicadas nesta sess√£o
-
-### Logging ‚Äî solarmarket-sync
-- 9x console.error informativo ‚Üí console.log (RB-23 compliance)
-- "Time budget exhausted" ‚Üí console.warn
-
-### Resolver financeiro ‚Äî strip R$
-- costFields: regex remove prefixo "R$" do snapshot antes de retornar
-- Evita "R$ R$ 7.718,40" nos PDFs gerados
-
-### proposal-transition ‚Äî aceite completo
-- Cancela generated_documents do projeto ao aceitar nova proposta
-- Respeita signature_status = 'signed' (intoc√°vel) ‚Äî .neq("signature_status", "signed")
-- Cancela generated_documents ao cancelar proposta aceita (aceita ‚Üí cancelada)
-
-### DocumentosTab ‚Äî cancelamento com motivo
-- Modal com textarea para observa√ß√£o
-- Exibi√ß√£o do motivo no card cancelado
-- Coluna observacao adicionada em generated_documents
-
-### PropostaExpandedDetail ‚Äî prote√ß√£o edi√ß√£o aceita
-- Modal de confirma√ß√£o ao editar proposta com status 'aceita'
-- Motivo obrigat√≥rio ‚Üí salvo em generated_documents.observacao
-- Cancela documentos gerados (n√£o assinados) antes de redirecionar ao wizard
-
-### Resolver ‚Äî vari√°vel [cidade]
-- resolveClienteComercial.ts: set("cidade", ...) com fallback cliente ‚Üí lead ‚Üí snapshot ‚Üí ucs[0]
-- Resolve templates que usam [cidade] gen√©rica (sem prefixo cliente_)
-
-# =============================================================================
-# BLOCO 17 ‚Äî REGRAS v3.6 ‚Äî Sess√£o 2026-04-07 (cont.)
-# =============================================================================
-
-### RB-44 CONTRATO ASSINADO √â INTOC√ÅVEL
-    Documento com signature_status = 'signed' NUNCA pode ser cancelado
-    automaticamente. Toda query de cancelamento autom√°tico DEVE incluir:
-    .neq("signature_status", "signed")
-    Aplica-se a: proposal-transition (aceite e cancelamento),
-    PropostaExpandedDetail (edi√ß√£o aceita), DocumentosTab (cancelamento manual).
-
-### RB-45 EDI√á√ÉO DE PROPOSTA ACEITA REQUER CONFIRMA√á√ÉO
-    Ao editar proposta com status 'aceita':
-    1. Exibir Dialog de confirma√ß√£o com aviso
-    2. Campo motivo/observa√ß√£o obrigat√≥rio (Textarea)
-    3. Cancelar generated_documents com status='generated' e
-       signature_status != 'signed' do mesmo projeto
-    4. Salvar motivo em generated_documents.observacao
-    5. S√≥ ent√£o redirecionar ao wizard
-    Implementado em: PropostaExpandedDetail.tsx (handleEditWithProtection)
-
-### RB-46 CANCELAR PROPOSTA ACEITA CANCELA CONTRATOS
-    Quando proposal-transition processa aceita ‚Üí cancelada:
-    - Cancelar generated_documents do projeto (status='generated', signature_status != 'signed')
-    - observacao = 'Proposta cancelada'
-    Implementado em: proposal-transition/index.ts (se√ß√£o 6b)
-
-### DA-24 VARI√ÅVEL [cidade] ‚Äî FALLBACK CHAIN
-    A vari√°vel gen√©rica [cidade] √© resolvida em resolveClienteComercial.ts:
-    cliente.cidade ‚Üí lead.cidade ‚Üí snapCliente.cidade ‚Üí snap.locCidade ‚Üí snap.ucs[0].cidade
-    Diferente de [cliente_cidade] que tem a mesma chain mas prefixo diferente.
-    Quando quebrar: NUNCA ‚Äî muitos templates usam [cidade] sem prefixo.
-
-# =============================================================================
-# BLOCO 18 ‚Äî REGRAS v3.7 ‚Äî Sess√£o 2026-04-07 (cont.)
-# =============================================================================
-
-### RB-47 ACEITE/RECUSA P√öBLICO VIA EDGE FUNCTION
-    P√°ginas p√∫blicas (PropostaPublica, PropostaLanding) NUNCA fazem UPDATE
-    direto em propostas_nativas. SEMPRE usar edge function proposal-public-action.
-    A fun√ß√£o valida token, aplica state machine, rejeita irm√£s, cancela
-    documentos, gera comiss√£o ‚Äî mesma l√≥gica de proposal-transition.
-    Autentica√ß√£o via token p√∫blico (sem JWT).
-    Implementado em: proposal-public-action/index.ts
-
-### RB-48 EXPIRA√á√ÉO AUTOM√ÅTICA DE PROPOSTAS
-    Cron job di√°rio √†s 08:00 UTC (job 64) via proposal-auto-expire.
-    Busca propostas com status IN ('enviada','vista','gerada')
-    e proposta_versoes.valido_ate < NOW() (n√£o nulo).
-    Seta status = 'expirada', registra evento em proposal_events.
-    NUNCA expirar propostas 'aceita' ou 'rascunho'.
-    Implementado em: proposal-auto-expire/index.ts
-
-### RB-49 CONTRATO ASSINADO BLOQUEIA EDI√á√ÉO
-    Se existir generated_documents com signature_status = 'signed'
-    vinculado ao projeto da proposta, bloquear edi√ß√£o completamente.
-    Toast: "Esta proposta possui contrato assinado digitalmente e n√£o pode ser editada."
-    Verifica√ß√£o feita ANTES de exibir o dialog de confirma√ß√£o.
-    Implementado em: PropostaExpandedDetail.tsx (handleEditWithProtection)
-
-### DA-25 EMPRESA_* L√ä DE TENANTS COM FALLBACK BRAND_SETTINGS
-    [empresa_cnpj/cidade/estado/inscricao_estadual] ‚Üí tenants (dados reais).
-    [empresa_telefone/email/endereco/bairro/cep] ‚Üí tenants ‚Üí brand_settings.
-    [empresa_logo_url/representante_*] ‚Üí brand_settings (sem mudan√ßa).
-    ext.tenantData passado por generate-document e template-preview.
-
-### DA-26 CEP COM M√ÅSCARA OBRIGAT√ìRIA
-    [cliente_cep] e [empresa_cep] formatados: "36770-038".
-    formatCep() em resolveClienteComercial.ts.
-
-# =============================================================================
-# BLOCO 19 ‚Äî REGRAS v3.8 ‚Äî Sess√£o 2026-04-07 (cont.)
-# =============================================================================
-
-### DA-27 ADAPTER PATTERN PARA ASSINATURA DIGITAL
-    Interface SignatureAdapter em _shared/signatureAdapters.ts.
-    Factory getSignatureAdapter(provider) retorna ZapSignAdapter ou ClickSignAdapter.
-    Provider escolhido por tenant via signature_settings.provider.
-    signature-send usa adapter.createEnvelope() ‚Äî provider-agnostic.
-    NUNCA hardcodar l√≥gica de provider em signature-send.
-    Para adicionar novo provider: criar class + adicionar ao switch em getSignatureAdapter.
-
-### DA-28 CLICKSIGN USA 3 CHAMADAS API
-    Diferente do ZapSign (1 chamada), Clicksign requer:
-    1. POST /api/v2/documents ‚Äî upload do PDF (via URL)
-    2. POST /api/v2/signers ‚Äî criar signat√°rio
-    3. POST /api/v2/lists ‚Äî vincular signat√°rio ao documento
-    4. POST /api/v2/notifications ‚Äî notificar signat√°rio (n√£o-fatal)
-    Sandbox: sandbox.clicksign.com | Produ√ß√£o: app.clicksign.com
-    Auth: ?access_token={token} como query param (n√£o header).
-    Implementado em: ClickSignAdapter._shared/signatureAdapters.ts
-
-### DA-29 WEBHOOK DETECTA PROVIDER PELO PAYLOAD
-    detectWebhookProvider() em _shared/signatureAdapters.ts:
-    - Clicksign: { event: { name }, document: { key } }
-    - ZapSign: { doc: { token, status } } ou { token, status }
-    Cada provider tem parser + mapper de status dedicados.
-    signature-webhook/index.ts √© provider-agnostic.
-    Status mapping:
-    | Clicksign event | ZapSign status | Status interno |
-    |---|---|---|
-    | document_signed | signed/completed | signed |
-    | document_refused | refused/rejected | refused |
-    | signer_link_opened | link_opened | viewed |
-    | document_cancelled | cancelled | cancelled |
-
-# =============================================================================
-# BLOCO 20 ‚Äî REGRAS v3.9 ‚Äî Sess√£o 2026-04-07 (cont.)
-# =============================================================================
-
-### DA-30 APP_URL UNIFICADO ‚Äî FALLBACK CORRETO
-    O dom√≠nio can√¥nico do sistema √©: https://maisenergiasolar.lovable.app
-    Secret APP_URL no Supabase = https://maisenergiasolar.lovable.app
-    Env VITE_PUBLIC_URL = https://maisenergiasolar.lovable.app
-    Todo fallback hardcoded DEVE usar este dom√≠nio.
-    NUNCA usar "https://app.maisenergiasolar.com.br" como fallback.
-    Rota can√¥nica de proposta p√∫blica: /proposta/:token (NUNCA /pl/:token).
-    Implementado em: resolveClienteComercial.ts, resolveProposalVariables.ts
-
-### DA-31 WEBHOOK DE ASSINATURA ‚Äî URL EXIBIDA EM SIGNATURETAB
-    SignatureTab.tsx exibe campo read-only com URL do webhook:
-    ${VITE_SUPABASE_URL}/functions/v1/signature-webhook
-    Bot√£o de copiar para clipboard ao lado.
-    O usu√°rio deve configurar esta URL no painel Clicksign/ZapSign.
-    Implementado em: src/components/admin/documentos/SignatureTab.tsx
-
-# =============================================================================
-# BLOCO 21 ‚Äî REGRAS v3.10 ‚Äî Sess√£o 2026-04-07 (cont.)
-# =============================================================================
-
-### RB-50 FLUXO R√ÅPIDO LEAD ‚Üí PROPOSTA (quickConvertToProposal)
-    Bot√£o "Gerar Proposta R√°pida" (√≠cone ScrollText, cor warning) nas tabelas:
-    - LeadsTable (admin)
-    - VendorLeadsTable (vendedor)
-    - VendorOrcamentosTable (vendedor)
-    Fluxo:
-    1. Buscar cliente existente por lead_id
-    2. Se n√£o existe ‚Üí criar cliente m√≠nimo (nome, telefone, cidade, estado)
-    3. Buscar projeto existente via cliente_id
-    4. Se j√° existe ‚Üí toast info + redirecionar ao wizard
-    5. Se n√£o existe ‚Üí criar deal (pipeline default) + projeto
-    6. Redirecionar: /admin/propostas-nativas/nova?deal_id=X&customer_id=Y&lead_id=Z
-    NUNCA criar cliente/projeto duplicado ‚Äî sempre buscar antes.
-    Loading spinner no bot√£o durante opera√ß√£o.
-    Implementado em: src/hooks/usePropostaRapidaLead.ts
-
-### DA-32 HOOK usePropostaRapidaLead ‚Äî INTERFACE QuickLeadData
-    O hook aceita QuickLeadData (n√£o Lead direto) para funcionar com
-    Lead, OrcamentoVendedor e qualquer entidade com dados m√≠nimos.
-    Campos obrigat√≥rios: id, nome, telefone.
-    Campos opcionais: cidade, estado, bairro, rua, cep, consultor_id, valor_estimado.
-    Implementado em: src/hooks/usePropostaRapidaLead.ts
-
-# =============================================================================
-# BLOCO 22 ‚Äî REGRAS v3.11 ‚Äî Sess√£o 2026-04-07 (cont.)
-# =============================================================================
-
-### DA-33 AUTENTIQUE ‚Äî ADAPTER GRAPHQL
-    API GraphQL: https://api.autentique.com.br/v2/graphql
-    Auth: Authorization: Bearer {token}
-    Mutation createDocument(document, signers) retorna id + short_link por signat√°rio.
-    Webhook payload: { event: "sign"|"reject"|"view", document: { id } }
-    detectWebhookProvider detecta por body.event sem body.document.key.
-    Implementado em: _shared/signatureAdapters.ts (AutentiqueAdapter)
-
-### DA-34 SIGNAT√ÅRIOS AUTOM√ÅTICOS NO ENVIO PARA ASSINATURA
-    Modal SignatureModal.tsx preenche signat√°rios automaticamente:
-    - Contratante: clientes.nome + email + cpf_cnpj (via projeto.cliente_id)
-    - Contratada: brand_settings.representante_legal + representante_email
-    Avisos se email faltando ou representante n√£o configurado.
-    Usu√°rio pode editar/adicionar/remover signat√°rios antes de enviar.
-    NUNCA enviar sem confirma√ß√£o do usu√°rio.
-    Implementado em: src/components/admin/projetos/SignatureModal.tsx
-
-### RB-51 PDF DE PROPOSTA ‚Äî SEM RE-GERA√á√ÉO AUTOM√ÅTICA
-    NUNCA re-gerar PDF automaticamente ao abrir aba "Arquivo".
-    Se proposta tem pdf_path salvo ‚Üí exibir diretamente do storage.
-    PDF s√≥ √© gerado ao clicar explicitamente em "Gerar Proposta".
-    Estado "Documento pronto" = pdf_path existe no banco.
-    Re-gera√ß√£o autom√°tica causa lentid√£o desnecess√°ria.
-
-### DA-35 BANCO DE DADOS ‚Äî JOBS DE PURGE ATIVOS
-    Fun√ß√µes SECURITY DEFINER criadas:
-    - purge_monitor_payloads_old() ‚Üí job 51 di√°rio 03:00
-    - purge_wa_webhook_events_old() ‚Üí job 60 domingo 02:00
-    - purge_cron_job_run_details() ‚Üí job 61 domingo 02:00
-    - purge_monitor_readings_realtime() ‚Üí job 62 di√°rio 03:00
-    - purge_monitor_string_metrics() ‚Üí job 63 domingo 04:00
-    NUNCA usar VACUUM FULL em produ√ß√£o ‚Äî bloqueia tabelas.
-    √çndice: idx_monitor_provider_payloads_received_at criado.
-
-# =============================================================================
-# BLOCO 23 ‚Äî REGRAS v3.12 ‚Äî Sess√£o 2026-04-12
-# =============================================================================
-
-## REGRAS BLOQUEANTES NOVAS
-
-### RB-52 MIGRA√á√ÉO SM ‚Äî NUNCA DEPENDER DE SESS√ÉO DO USU√ÅRIO
-    A edge function migrate-sm-proposals usa JWT do usu√°rio que expira em ~1h.
-    SEMPRE renovar o token antes de cada lote no auto-resume:
-      const { data: { session } } = await supabase.auth.getSession()
-      if (expiresAt - now < 300) await supabase.auth.refreshSession()
-    NUNCA assumir que o token √© v√°lido durante toda a migra√ß√£o.
-    Implementado em: SmMigrationDrawer.tsx (getValidSession antes de cada lote)
-
-### RB-53 REALTIME ‚Äî TABELAS CR√çTICAS OBRIGAT√ìRIAS
-    As seguintes tabelas DEVEM estar na publica√ß√£o supabase_realtime:
-    deals, clientes, leads, propostas_nativas, proposta_versoes,
-    projetos, generated_documents, pipeline_stages
-    Verificar: SELECT tablename FROM pg_publication_tables WHERE pubname = 'supabase_realtime'
-    Adicionar se ausente: ALTER PUBLICATION supabase_realtime ADD TABLE public.{tabela}
-    NUNCA lan√ßar feature com realtime sem verificar a publica√ß√£o.
-
-### RB-54 TEMPLATE WEB ‚Äî template_id_used OBRIGAT√ìRIO
-    Ao gerar proposta com template HTML, SEMPRE gravar template_id_used
-    em proposta_versoes ap√≥s persistAtomic() bem-sucedido.
-    NUNCA deixar template_id_used NULL em vers√µes com template HTML.
-    Sem isso, a landing page ignora o template e usa layout padr√£o.
-    Implementado em: ProposalWizard.tsx (syncTemplateIdUsed ap√≥s persistAtomic)
-
-### RB-55 REFER√äNCIA CIRCULAR ‚Äî VERIFICAR ANTES DE DEPLOY
-    Erro "Cannot access X before initialization" = refer√™ncia circular no bundle.
-    SEMPRE verificar imports circulares antes de deploy:
-      npx madge --circular src/
-    Vari√°veis declaradas com const/let NUNCA podem ser usadas antes da declara√ß√£o.
-    useCallback/useEffect que usa fun√ß√£o local: declarar a fun√ß√£o ANTES do hook.
-
-### RB-56 PIPELINE_STAGES ‚Äî NOME CORRETO DA TABELA
-    A tabela de etapas se chama pipeline_stages (N√ÉO deal_pipeline_stages).
-    A tabela de pipelines se chama pipelines (N√ÉO deal_pipelines).
-    A coluna de fechamento se chama is_closed (N√ÉO is_lost).
-    SEMPRE verificar nomes reais antes de usar em edge functions.
-    Executar: SELECT table_name FROM information_schema.tables WHERE table_name LIKE '%pipeline%'
-
-## DECIS√ïES ARQUITETURAIS NOVAS
-
-### DA-36 MIGRA√á√ÉO SM ‚Äî ARQUITETURA DEFINITIVA
-    A migra√ß√£o das 1813 propostas SM √© frontend-driven (SmMigrationDrawer).
-    O auto-resume renova JWT antes de cada lote (RB-52).
-    Futuramente: mover para pg_cron job server-side que n√£o depende de browser.
-    Deduplica√ß√£o tripla: migrado_em IS NULL + legacy_key cache + ON CONFLICT.
-    Group B (projetos sem proposta) √© opt-in ‚Äî nunca roda por padr√£o.
-
-### DA-37 C√ÅLCULO FINANCEIRO ‚Äî MOTOR CAN√îNICO
-    calcGrupoB.ts √© o motor can√¥nico para Grupo B (GD I, GD II, GD III).
-    calcGrupoA.ts √© o motor can√¥nico para Grupo A (tarifa bin√¥mia).
-    calcFinancialSeries.ts DEVE chamar calcGrupoB/calcGrupoA ‚Äî nunca l√≥gica pr√≥pria.
-    REN 1000 / Lei 14.300: Fio B progressivo 2023‚Üí2029 em calcGrupoB.
-    Economia baseada na gera√ß√£o total (n√£o apenas consumo).
-    Excedente injetado na rede desconta Fio B progressivo.
-
-### DA-38 TEMPLATE WEB ‚Äî FLUXO CORRETO
-    Templates WEB (tipo html) s√£o armazenados como JSON de TemplateBlock[] em template_html.
-    Rota p√∫blica: /proposta/:token verifica template_id_used na vers√£o.
-    Se template_id_used existe ‚Üí redireciona para /pl/:token (PropostaLanding).
-    Se n√£o existe ‚Üí layout padr√£o (n√£o quebrar).
-    NUNCA usar template_id_used com templates DOCX ‚Äî apenas HTML.
-
-### DA-39 REALTIME ‚Äî PADR√ÉO OBRIGAT√ìRIO
-    Todo canal Realtime DEVE seguir este padr√£o:
-      const channel = supabase.channel('nome-unico')
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'tabela' },
-          () => queryClient.invalidateQueries({ queryKey: ['chave'] }))
-        .subscribe()
-      return () => supabase.removeChannel(channel)
-    Verificar publica√ß√£o supabase_realtime antes de implementar.
-    Tabelas n√£o publicadas n√£o disparam eventos mesmo com canal configurado.
-
-## CORRE√á√ïES CR√çTICAS DA SESS√ÉO 2026-04-12
-
-### Migra√ß√£o SM
-- JWT refresh autom√°tico antes de cada lote no auto-resume ‚úÖ
-- Group B defaulta false ‚Äî nunca roda sozinho ‚úÖ
-- verErr agora aborta o fluxo (report.aborted = true + continue) ‚úÖ
-- VENDEDOR_MAP com word-boundary seguro (startsWith ao inv√©s de includes) ‚úÖ
-- resolveOrCreateStage: 1 query por pipeline com bulk-load + cache ‚úÖ
-- inferTipoPagamento: tipo de pagamento inferido do texto SM ‚úÖ
-- console.logs comentados em migrate-sm-proposals e solarmarket-sync ‚úÖ
-- Conflitos de merge resolvidos (8 marcadores) ‚úÖ
-
-### √Årea de proposta
-- calcFinancialSeries agora usa calcGrupoB como motor can√¥nico ‚úÖ
-- GD I adicionado no wizard ‚úÖ
-- calcGrupoA criado para Grupo A (tarifa bin√¥mia, demanda fixa) ‚úÖ
-- Tarifas horossazonais processadas no c√°lculo financeiro ‚úÖ
-- REN 1000 / Lei 14.300 implementada com Fio B progressivo ‚úÖ
-- Economia baseada na gera√ß√£o total ‚úÖ
-- template_id_used gravado ap√≥s persistAtomic ‚úÖ
-- PropostaPublica redireciona para template WEB quando existe ‚úÖ
-- Landing page: badge subgrupo + 3 cards economia + barra cobertura ‚úÖ
-
-### Infraestrutura
-- Realtime habilitado: deals, clientes, leads, sm_migration_log, solar_market_proposals ‚úÖ
-- SolarMarketPage: refer√™ncia circular corrigida (addLog/updateStep antes do useEffect) ‚úÖ
-- syncAll: interrompe stages dependentes em caso de falha (clients ‚Üí projects ‚Üí proposals) ‚úÖ
-- usePendingMigrationCount: mostra erros reais do banco ‚úÖ
-
-### Comercial
-- Campo email no lead: formul√°rio, busca, exporta√ß√£o CSV ‚úÖ
-- Origens de lead configur√°veis: tabela lead_origens, CRUD admin, 27 origens seeded ‚úÖ
-- Importa√ß√£o CSV/XLSX: wizard 4 passos, deduplica√ß√£o, batches 50 ‚úÖ
-- M√©tricas: LeadsByOriginChart, ClosingTimeCard, RevenuePrevVsRealizedChart ‚úÖ
-
-### WhatsApp
-- Merge Realtime seletivo (filtrar null) em useWaInbox.ts ‚úÖ
-- RLS com SECURITY DEFINER para evitar recurs√£o ‚úÖ
-- Automa√ß√£o do funil: cron job criado (job 65), bug contador corrigido ‚úÖ
-
-## CHECKLIST ADICIONAL v3.12
-
-[ ] JWT refresh antes de cada lote em opera√ß√µes longas (RB-52)
-[ ] Verificar pg_publication_tables antes de confiar no Realtime (RB-53)
-[ ] template_id_used gravado ap√≥s persistAtomic para templates HTML (RB-54)
-[ ] Sem refer√™ncia circular: npx madge --circular src/ (RB-55)
-[ ] Nomes corretos de tabela: pipeline_stages, pipelines, is_closed (RB-56)
-[ ] calcFinancialSeries usa calcGrupoB/calcGrupoA ‚Äî nunca l√≥gica pr√≥pria (DA-37)
-[ ] Realtime: cleanup com supabase.removeChannel no return do useEffect (DA-39)
-
-# =============================================================================
-# FIM DO AGENTS.md v3.12
-# =============================================================================
+=============================================================================
+BLOCO 13 ó SPRINTS CONCLUÕDOS
+=============================================================================
+MÛdulo Financeiro (F1-F4), Gateways (G1-G5), Conta Corrente (R1-R4) ?
+IntegraÁ„o Solaryum JNG/Vertys (S1-S3) ?
+MigraÁ„o C-01 (~170 queries ? hooks) ?
+Sprints Visuais V1-V5 ?
+IntegraÁ„o SolarMarket: 1.907 clientes, 1.877 projetos, 1.799 propostas ?
+Backlog ativo
+
+C-02: SolarMarketPage.tsx (1.413 linhas) ? extrair tabs (ß50-S1)
+SM: VENDEDOR_MAP ? tabela sm_vendedor_mappings (DA-40)
+SM: resolveFunilEtapa() ? extrair funÁ„o compartilhada (DA-42)
+Banco: Security Definer Views ? auditoria dedicada (DA-41)
+Banco: dividir edge function (5.040 linhas) em mÛdulos separados
+
+=============================================================================
+BLOCO 14 ó CONTEXTO DO PROJETO
+=============================================================================
+Stack: React + Vite + TypeScript + Supabase + Tailwind CSS + shadcn/ui + React Query
+Agente de geraÁ„o: Lovable
+Tenant real: 17de8315-2e2f-4a79-8751-e5d507d69a41
+Pipelines:
+
+Comercial: 6 stages
+Engenharia: 11 stages
+
+Consultores: Bruno Bandeira, Claudia, Diego, Ian Souza, Renan, Sebasti„o, N„o Definido
+ConfiguraÁıes: 4 bancos, 35 concession·rias, 8 motivos de perda
+Arquivos protegidos (NUNCA modificar):
+
+src/pages/Auth.tsx
+src/pages/PendingApproval.tsx
+src/components/ui/AuthForm.tsx (bypass admin/super_admin)
+src/pages/PropostaPublica.tsx
+
+Nomes corretos de tabelas (armadilhas comuns ó RB-56):
+
+pipeline_stages       (N√O deal_pipeline_stages)
+pipelines             (N√O deal_pipelines)
+is_closed             (N√O is_lost)
+propostas_nativas     (N√O propostas)
+proposta_versoes      (N√O versoes_proposta)
+
+DomÌnio canÙnico: https://maisenergiasolar.lovable.app
+Rota p˙blica de proposta: /proposta/:token
+=============================================================================
+BLOCO 15..22 ó HIST”RICO DE SESS’ES
+=============================================================================
+[Mantidos integralmente da v3.12 ó Blocos 15 a 22]
+=============================================================================
+BLOCO 23 ó CORRE«’ES E MELHORIAS v3.13
+=============================================================================
+ContradiÁıes resolvidas
+RB-54 vs DA-38 (template_id_used NULL)
+ANTES: RB-54 proibia NULL mas DA-38 dizia "n„o quebrar" se NULL.
+DEPOIS: NULL È tolerado apenas em geraÁ„o anterior a v3.12 (legado).
+        Em geraÁ„o nova (pÛs v3.12), NULL È bug ó logar e avisar usu·rio.
+        DA-38 atualizada para refletir isso. (ver RB-54 e DA-38 atualizados)
+Novos riscos documentados
+Cross-tenant contamination via let em Edge Functions (RB-57)
+Bug crÌtico encontrado em migrate-sm-proposals-v2.
+Corrido com resetGlobalState(). Regra criada para prevenir recorrÍncia.
+UPDATE silencioso com 0 linhas afetadas (RB-58)
+Bug do drag-and-drop (deal_id vs projetos.id) detectado na auditoria.
+Supabase n„o retorna erro em UPDATE com 0 linhas ó silencioso e perigoso.
+Regra criada exigindo verificaÁ„o de count ou .select() em UPDATEs crÌticos.
+Melhorias de processo
+validate-agents.js
+Adicionado check de RB-57 (let em escopo de mÛdulo em EFs).
+Adicionado check de RB-55 (circular dependencies via madge).
+Script agora cobre: AP-21, AP-23, RB-16, RB-55, RB-57.
+Bloco 0 (Ìndice r·pido)
+Atualizado com entradas para: Realtime, Template Web, Assinatura Digital,
+MigraÁ„o SM, UPDATE de estado crÌtico.
+Bloco 9 (checklist)
+Consolidado: checklists adicionais de v3.11 e v3.12 (antes separados)
+agora est„o dentro do Bloco 9, organizados por categoria.
+Bloco 10 (regressıes)
+Adicionado: bug drag-and-drop (deal_id vs projetos.id) ó documentado
+para evitar regress„o futura.
+Adicionado: estado global mut·vel em Edge Functions ó documentado.
+=============================================================================
+FIM DO AGENTS.md v3.13
+===================================
