@@ -15,6 +15,20 @@ const normalizeComparableName = (value: string | null | undefined): string => {
     .trim();
 };
 
+function readSmFunnelName(funnel: any): string {
+  const rawFunnel = funnel?.funnelName ?? funnel?.funnel_name ?? funnel?.name ?? "";
+  return String(rawFunnel || "").trim();
+}
+
+function readSmStageName(funnel: any): string {
+  const rawStage = funnel?.stageName
+    ?? funnel?.stage_name
+    ?? funnel?.currentStageName
+    ?? (typeof funnel?.stage === "string" ? funnel.stage : funnel?.stage?.name)
+    ?? "";
+  return String(rawStage || "").trim();
+}
+
 // Non-operational funnel names in SolarMarket — used for consultor resolution, NOT project funnels
 const NON_OPERATIONAL_FUNNELS = new Set(["vendedores", "vendedor", "lead"]);
 
@@ -34,7 +48,7 @@ function resolveBestOperationalFunnel(
   let bestMatch: { funilId: string; normalizedFunnel: string; stageName: string | null; ordem: number } | null = null;
 
   for (const f of allFunnels) {
-    const fName = normalizeComparableName(String(f.funnelName || "").trim());
+    const fName = normalizeComparableName(readSmFunnelName(f));
     if (!fName || NON_OPERATIONAL_FUNNELS.has(fName)) continue;
 
     // Try to match this funnel name to projeto_funis
@@ -69,7 +83,7 @@ function resolveBestOperationalFunnel(
       bestMatch = {
         funilId,
         normalizedFunnel: matchedKey,
-        stageName: String(f.stageName || "").trim() || null,
+        stageName: readSmStageName(f) || null,
         ordem,
       };
     }
@@ -426,8 +440,8 @@ async function handleSyncPipelines(adminClient: any, tenantId: string): Promise<
     // From all_funnels array
     if (Array.isArray(proj.all_funnels)) {
       for (const f of proj.all_funnels) {
-        const fName = String(f.funnelName || f.funnel_name || "").trim();
-        const sName = String(f.stageName || f.stage_name || "").trim();
+        const fName = readSmFunnelName(f);
+        const sName = readSmStageName(f);
         if (fName) funnels.push({ funnelName: fName, stageName: sName });
       }
     }
@@ -1098,9 +1112,9 @@ Deno.serve(async (req) => {
             // Try all operational funnels' stage names
             if (!targetEtapaId && Array.isArray(smProj.all_funnels)) {
               for (const f of smProj.all_funnels) {
-                const fName = normalizeNameForCompare(String(f.funnelName || "").trim());
+                const fName = normalizeNameForCompare(readSmFunnelName(f));
                 if (!fName || NON_OPERATIONAL_FUNNELS.has(fName)) continue;
-                const fStageName = String(f.stageName || "").trim();
+                const fStageName = readSmStageName(f);
                 if (fStageName) {
                   const nameKey = `${targetFunilId}::${normalizeNameForCompare(fStageName)}`;
                   targetEtapaId = fixEtapaByNameMap.get(nameKey) || null;
@@ -1116,9 +1130,9 @@ Deno.serve(async (req) => {
           let targetConsultorId: string | null = null;
           if (Array.isArray(smProj.all_funnels)) {
             for (const f of smProj.all_funnels) {
-              const fName = normalizeNameForCompare(String(f.funnelName || "").trim());
+              const fName = normalizeNameForCompare(readSmFunnelName(f));
               if (fName === "vendedores") {
-                const sName = normalizeNameForCompare(String(f.stageName || "").trim());
+                const sName = normalizeNameForCompare(readSmStageName(f));
                 if (sName) {
                   if (EX_FUNC_FIX.includes(sName)) {
                     targetConsultorId = fixEscritorioId;
@@ -1488,9 +1502,9 @@ Deno.serve(async (req) => {
         const data = await res.json();
         const funnels = Array.isArray(data) ? data : data.data ? (Array.isArray(data.data) ? data.data : [data.data]) : [data];
         for (const f of funnels) {
-          const fName = f.funnelName || f.funnel_name || f.name || "";
+          const fName = readSmFunnelName(f);
           if (fName === "Vendedores") {
-            return f.stageName || f.stage_name || f.currentStageName || f.stage?.name || null;
+            return readSmStageName(f) || null;
           }
         }
         return null;
@@ -2227,8 +2241,8 @@ Deno.serve(async (req) => {
       for (const [, proj] of smProjectMap) {
         const funnels: any[] = proj.all_funnels || [];
         for (const f of funnels) {
-          const fName = String(f.funnelName || "").trim();
-          const sName = String(f.stageName || "").trim();
+          const fName = readSmFunnelName(f);
+          const sName = readSmStageName(f);
           if (!fName || normalizeComparableName(fName) === "vendedores") continue;
           if (!allFunnelStages.has(fName)) allFunnelStages.set(fName, new Set());
           if (sName) allFunnelStages.get(fName)!.add(sName);
@@ -2458,8 +2472,8 @@ Deno.serve(async (req) => {
       for (const [projId, proj] of smProjectMap) {
         const funnels: any[] = proj.all_funnels || [];
         for (const f of funnels) {
-          const fName = (f.funnelName || "").toLowerCase();
-          const sName = (f.stageName || "").toLowerCase().trim();
+          const fName = readSmFunnelName(f).toLowerCase();
+          const sName = readSmStageName(f).toLowerCase().trim();
           if (fName === "vendedores" && sName === vendedorFilter) {
             vendedorProjectIds.add(projId);
           }
@@ -2792,26 +2806,27 @@ Deno.serve(async (req) => {
             // ── AUDIT: log all inputs for owner resolution ──
             const auditFunnels = smProj?.all_funnels || [];
             const vendedorFunnel = auditFunnels.find((f: any) => {
-              const fn = String(f.funnelName || f.funnel_name || "").toLowerCase().trim();
+              const fn = readSmFunnelName(f).toLowerCase().trim();
               return fn === "vendedores";
             });
             console.error(`[SM Migration] OWNER_AUDIT proposal=${smProp.sm_proposal_id}`, {
               sm_project_id: smProp.sm_project_id,
-              vendedor_raw: vendedorFunnel ? String(vendedorFunnel.stageName || vendedorFunnel.stage_name || "") : null,
-              vendedor_normalized: vendedorFunnel ? normalizeComparableName(String(vendedorFunnel.stageName || vendedorFunnel.stage_name || "")) : null,
+              vendedor_raw: vendedorFunnel ? readSmStageName(vendedorFunnel) : null,
+              vendedor_normalized: vendedorFunnel ? normalizeComparableName(readSmStageName(vendedorFunnel)) : null,
               sm_funnel_name: smProj?.sm_funnel_name || null,
               sm_stage_name: smProj?.sm_stage_name || null,
               params_owner_id: params.owner_id || null,
               consultores_available: [...consultoresMap.keys()],
             });
+            console.error("CONSULTOR_MAP_KEYS", [...consultoresMap.keys()]);
 
             // Priority 1: DB cached funnel data (fast, no external call)
             if (!resolvedOwnerId || ownerSource.startsWith("manual")) {
               // Check all_funnels first (richer data than sm_funnel_name)
               if (smProj?.all_funnels && Array.isArray(smProj.all_funnels)) {
                 for (const f of smProj.all_funnels) {
-                  const fName = String(f.funnelName || f.funnel_name || "").toLowerCase().trim();
-                  const sName = String(f.stageName || f.stage_name || "").trim();
+                  const fName = readSmFunnelName(f).toLowerCase().trim();
+                  const sName = readSmStageName(f);
                   if (fName === "vendedores" && sName) {
                     try {
                       const { id, created } = await resolveOrCreateConsultor(sName);
@@ -3091,19 +3106,23 @@ Deno.serve(async (req) => {
           if (dealId && smProp.sm_project_id) {
             const smProj = smProjectMap.get(smProp.sm_project_id);
             const funnels: any[] = smProj?.all_funnels || [];
+            console.error("RAW_FUNNELS", JSON.stringify(smProj?.all_funnels ?? null, null, 2));
             const validFunnels = funnels.filter((f: any) => {
-              const funnelName = String(f.funnelName || "").trim();
+              const funnelName = readSmFunnelName(f);
+              const stageName = readSmStageName(f);
               const normalized = normalizeComparableName(funnelName);
-              return funnelName && !NON_OPERATIONAL_FUNNELS.has(normalized) && f.stageName;
+              console.error("NORMALIZED_FUNNEL", normalized);
+              return funnelName && !NON_OPERATIONAL_FUNNELS.has(normalized) && !!stageName;
             });
+            console.error("VALID_FUNNELS_COUNT", validFunnels.length);
 
             // ── AUDIT: log funnel resolution inputs ──
             console.error(`[SM Migration] FUNNEL_AUDIT proposal=${smProp.sm_proposal_id}`, {
               sm_funnel_name: smProj?.sm_funnel_name || null,
               all_funnels: funnels.map((f: any) => ({
-                name: String(f.funnelName || "").trim(),
-                stage: String(f.stageName || "").trim(),
-                is_operational: !NON_OPERATIONAL_FUNNELS.has(normalizeComparableName(String(f.funnelName || ""))),
+                name: readSmFunnelName(f),
+                stage: readSmStageName(f),
+                is_operational: !NON_OPERATIONAL_FUNNELS.has(normalizeComparableName(readSmFunnelName(f))),
               })),
               valid_count: validFunnels.length,
               will_fallback: validFunnels.length === 0,
@@ -3112,8 +3131,8 @@ Deno.serve(async (req) => {
             if (validFunnels.length > 0) {
               const funnelStageGroups = new Map<string, string[]>();
               for (const funnel of validFunnels) {
-                const funnelName = String(funnel.funnelName || "").trim();
-                const stageName = String(funnel.stageName || "").trim();
+                const funnelName = readSmFunnelName(funnel);
+                const stageName = readSmStageName(funnel);
                 if (!funnelName || !stageName) continue;
                 const stages = funnelStageGroups.get(funnelName) || [];
                 if (!stages.includes(stageName)) stages.push(stageName);
@@ -3296,9 +3315,9 @@ Deno.serve(async (req) => {
                       // Also try all operational funnels' stage names for matching
                       const funnels: any[] = smProj?.all_funnels || [];
                       for (const f of funnels) {
-                        const fName = normalizeComparableName(String(f.funnelName || "").trim());
+                        const fName = normalizeComparableName(readSmFunnelName(f));
                         if (!fName || NON_OPERATIONAL_FUNNELS.has(fName)) continue;
-                        const fStageName = String(f.stageName || "").trim();
+                        const fStageName = readSmStageName(f);
                         if (fStageName) {
                           const matched = matchEtapaByName(targetFunilId, fStageName);
                           if (matched) return matched;
