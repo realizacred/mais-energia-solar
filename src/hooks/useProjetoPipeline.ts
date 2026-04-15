@@ -572,11 +572,20 @@ export function useProjetoPipeline() {
 
   // ─── Projeto actions ─────────────────────────────────────
 
-  const moveProjetoToEtapa = useCallback(async (projetoId: string, etapaId: string) => {
+  // Resolve projetos.id from either projetos.id or deals.id
+  const resolveProjetoId = useCallback((idOrDealId: string): string | null => {
+    const found = projetos.find(p => p.id === idOrDealId || p.deal_id === idOrDealId);
+    return found?.id ?? null;
+  }, [projetos]);
+
+  const moveProjetoToEtapa = useCallback(async (projetoIdOrDealId: string, etapaId: string) => {
+    const realId = resolveProjetoId(projetoIdOrDealId);
+    if (!realId) return;
+
     const etapa = etapas.find((item) => item.id === etapaId);
     const nextFunilId = etapa?.funil_id ?? null;
 
-    setProjetos(prev => prev.map(p => p.id === projetoId ? {
+    setProjetos(prev => prev.map(p => p.id === realId ? {
       ...p,
       etapa_id: etapaId,
       funil_id: nextFunilId ?? p.funil_id,
@@ -586,25 +595,28 @@ export function useProjetoPipeline() {
       ? { etapa_id: etapaId, funil_id: etapa.funil_id }
       : { etapa_id: etapaId };
 
-    const { error } = await supabase.from("projetos").update(updatePayload).eq("id", projetoId);
+    const { error } = await supabase.from("projetos").update(updatePayload).eq("id", realId);
     if (error) {
       toast({ title: "Erro ao mover projeto", description: error.message, variant: "destructive" });
       fetchAll();
     }
-  }, [toast, fetchAll, etapas]);
+  }, [toast, fetchAll, etapas, resolveProjetoId]);
 
-  const moveProjetoToConsultor = useCallback(async (projetoId: string, consultorId: string) => {
+  const moveProjetoToConsultor = useCallback(async (projetoIdOrDealId: string, consultorId: string) => {
+    const realId = resolveProjetoId(projetoIdOrDealId);
+    if (!realId) return;
+
     const consultor = consultores.find(c => c.id === consultorId);
-    setProjetos(prev => prev.map(p => p.id === projetoId
+    setProjetos(prev => prev.map(p => p.id === realId
       ? { ...p, consultor_id: consultorId, consultor: consultor ? { nome: consultor.nome } : null }
       : p
     ));
-    const { error } = await supabase.from("projetos").update({ consultor_id: consultorId }).eq("id", projetoId);
+    const { error } = await supabase.from("projetos").update({ consultor_id: consultorId }).eq("id", realId);
     if (error) {
       toast({ title: "Erro ao mover projeto", description: error.message, variant: "destructive" });
       fetchAll();
     }
-  }, [toast, fetchAll, consultores]);
+  }, [toast, fetchAll, consultores, resolveProjetoId]);
 
   // ─── Computed ────────────────────────────────────────────
 
