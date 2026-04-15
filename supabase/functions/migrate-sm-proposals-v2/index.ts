@@ -4147,6 +4147,116 @@ Deno.serve(async (req) => {
             }
           }
 
+          // ── G3. Migrate file-type custom fields (identidade, comprovante_endereco) to native attachments ──
+          // Downloads remote URLs and uploads to bucket "documentos-clientes", updating clientes columns
+          if (!dry_run && clienteId && smProp.custom_fields_raw?.values) {
+            try {
+              const cfVals = smProp.custom_fields_raw.values as Record<string, any>;
+              // Map: normalized CF key → { clienteColumn, storageCategory }
+              const FILE_FIELD_MAP: Record<string, { column: string; category: string }> = {
+                identidade: { column: "identidade_urls", category: "identidade_urls" },
+                comprovante_endereco: { column: "comprovante_endereco_urls", category: "comprovante_endereco_urls" },
+                comprovante_beneficiaria: { column: "comprovante_beneficiaria_urls", category: "comprovante_beneficiaria_urls" },
+              };
+
+              const fileUpdates: Record<string, string[]> = {};
+
+              for (const [key, entry] of Object.entries(cfVals)) {
+                const bareKey = normalizeCfKey(key);
+                const normalizedKey = normalizeFieldKey(bareKey);
+                const val = String((entry as any)?.value ?? (entry as any)?.raw_value ?? "").trim();
+                if (!val) continue;
+
+                // Check if this is a file field we want to migrate
+                const fileMapping = FILE_FIELD_MAP[normalizedKey];
+                if (!fileMapping) continue;
+
+                // Only process URLs (http/https)
+                if (!val.startsWith("http://") && !val.startsWith("https://")) continue;
+
+                // Download the remote file
+                try {
+                  const dlResp = await fetch(val, { signal: AbortSignal.timeout(30000) });
+                  if (!dlResp.ok) {
+                    console.warn(`[SM Migration] File download failed for ${normalizedKey}: HTTP ${dlResp.status} from ${val}`);
+                    continue;
+                  }
+
+                  const blob = await dlResp.blob();
+                  const contentType = dlResp.headers.get("content-type") || blob.type || "application/octet-stream";
+
+                  // Detect extension from URL or content-type
+                  let ext = "bin";
+                  const urlPath = new URL(val).pathname;
+                  const urlExt = urlPath.split(".").pop()?.toLowerCase();
+                  if (urlExt && /^(jpg|jpeg|png|gif|webp|pdf|doc|docx)$/.test(urlExt)) {
+                    ext = urlExt;
+                  } else if (contentType.includes("jpeg") || contentType.includes("jpg")) {
+                    ext = "jpg";
+                  } else if (contentType.includes("png")) {
+                    ext = "png";
+                  } else if (contentType.includes("pdf")) {
+                    ext = "pdf";
+                  } else if (contentType.includes("webp")) {
+                    ext = "webp";
+                  }
+
+                  // Upload to native storage: {tenant_id}/{cliente_id}/{category}/{timestamp}-{random}.{ext}
+                  const randomSuffix = Math.random().toString(36).substring(2, 9);
+                  const storagePath = `${tenantId}/${clienteId}/${fileMapping.category}/${Date.now()}-${randomSuffix}.${ext}`;
+
+                  const { error: uploadErr } = await adminClient.storage
+                    .from("documentos-clientes")
+                    .upload(storagePath, blob, { contentType, upsert: false });
+
+                  if (uploadErr) {
+                    console.warn(`[SM Migration] File upload failed for ${normalizedKey}: ${uploadErr.message}`);
+                    continue;
+                  }
+
+                  // Collect paths to update on cliente
+                  if (!fileUpdates[fileMapping.column]) fileUpdates[fileMapping.column] = [];
+                  fileUpdates[fileMapping.column].push(storagePath);
+
+                  console.error(`[SM Migration] File migrated: ${normalizedKey} → ${storagePath} (${contentType}, ${blob.size} bytes)`);
+                } catch (dlErr) {
+                  console.warn(`[SM Migration] File download/upload error for ${normalizedKey}: ${(dlErr as Error).message}`);
+                }
+              }
+
+              // Update cliente document URL arrays (append, don't overwrite)
+              if (Object.keys(fileUpdates).length > 0 && clienteId) {
+                // Read current arrays
+                const { data: currentCliente } = await adminClient
+                  .from("clientes")
+                  .select("identidade_urls, comprovante_endereco_urls, comprovante_beneficiaria_urls")
+                  .eq("id", clienteId)
+                  .maybeSingle();
+
+                const updatePayload: Record<string, string[]> = {};
+                for (const [col, newPaths] of Object.entries(fileUpdates)) {
+                  const existing: string[] = (currentCliente as any)?.[col] || [];
+                  // Avoid duplicates by checking if path already exists
+                  const merged = [...existing, ...newPaths.filter(p => !existing.includes(p))];
+                  updatePayload[col] = merged;
+                }
+
+                const { error: clienteUpdateErr } = await adminClient
+                  .from("clientes")
+                  .update(updatePayload)
+                  .eq("id", clienteId);
+
+                if (clienteUpdateErr) {
+                  console.warn(`[SM Migration] Cliente file URLs update error: ${clienteUpdateErr.message}`);
+                } else {
+                  (report as any).file_attachments_migrated = fileUpdates;
+                }
+              }
+            } catch (fileMigErr) {
+              console.warn(`[SM Migration] File migration error: ${(fileMigErr as Error).message}`);
+            }
+          }
+
           // Determine overall status for logging
           const allSteps = Object.values(report.steps);
           const hasError = allSteps.some((s) => s.status === "ERROR");
