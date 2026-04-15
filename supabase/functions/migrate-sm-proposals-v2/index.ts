@@ -1081,7 +1081,7 @@ Deno.serve(async (req) => {
             if (normalizedFunnel.includes('compesa') || normalizedFunnel.includes('compensa')) {
               targetFunilId = fixFunisMap.get(normalizeNameForCompare('Compensação'))
                 || fixFunisMap.get(normalizeNameForCompare('Compesação'))
-                || fixEngenhariaFunilId;
+                || null; // No Engenharia fallback
             } else {
               targetFunilId = fixFunisMap.get(normalizedFunnel) || null;
               if (!targetFunilId) {
@@ -1174,10 +1174,11 @@ Deno.serve(async (req) => {
 
           if (!needsUpdate) { fixReport.skipped++; continue; }
 
-          const updateFields: Record<string, any> = {};
-          if (targetFunilId) updateFields.funil_id = targetFunilId;
-          if (targetEtapaId) updateFields.etapa_id = targetEtapaId;
-          if (targetConsultorId) updateFields.consultor_id = targetConsultorId;
+          const updateFields: Record<string, any> = {
+            funil_id: targetFunilId,     // null is valid — clears wrong funil
+            etapa_id: targetEtapaId,     // null is valid — clears wrong etapa
+            consultor_id: targetConsultorId,
+          };
           updateFields.updated_at = new Date().toISOString();
 
           const { error: updErr } = await adminClient
@@ -2798,9 +2799,11 @@ Deno.serve(async (req) => {
           //           3) Fallback → Escritório (projetos sem consultor definido)
           // NOTE: responsible.name removido da cadeia — causava atribuição errada
           //       (Bruno era o responsible padrão no SM, inflava seus deals)
-          let resolvedOwnerId = params.owner_id || null;
+          // RULE: When auto_resolve_owner is enabled, IGNORE params.owner_id completely
+          // to prevent the frontend's logged-in user from contaminating consultor resolution.
+          let resolvedOwnerId: string | null = autoResolveOwner ? null : (params.owner_id || null);
           let ownerAutoCreated = false;
-          let ownerSource = resolvedOwnerId ? "manual_fallback" : "none";
+          let ownerSource = resolvedOwnerId ? "manual_param" : "none";
 
           if (autoResolveOwner && smProp.sm_project_id) {
             const smProj = smProjectMap.get(smProp.sm_project_id);
@@ -3202,7 +3205,74 @@ Deno.serve(async (req) => {
               if (existingByDealId) {
                 projetoId = existingByDealId;
                 report.steps.projeto = { status: "WOULD_LINK", id: projetoId, reason: "matched by deal_id" };
+              }
+            }
+
+            // ── UPDATE existing project with resolved consultor/funil/etapa ──
+            if (projetoId && (existingByCodigoId || projetoByDeal.get(dealId))) {
+              const resolvedFunilId = (() => {
+                const smProj = smProp.sm_project_id ? smProjectMap.get(smProp.sm_project_id) : null;
+                const smFunnelName = smProj?.sm_funnel_name || null;
+                const normalizedFunnel = normalizeComparableName(smFunnelName);
+                if (normalizedFunnel && !NON_OPERATIONAL_FUNNELS.has(normalizedFunnel)) {
+                  if (normalizedFunnel.includes('compesa') || normalizedFunnel.includes('compensa')) {
+                    return projetoFunisMap.get(normalizeComparableName('Compensação'))
+                      || projetoFunisMap.get(normalizeComparableName('Compesação'))
+                      || null;
+                  }
+                  const directMatch = projetoFunisMap.get(normalizedFunnel);
+                  if (directMatch) return directMatch;
+                  for (const [k, v] of projetoFunisMap) {
+                    if (k.includes(normalizedFunnel) || normalizedFunnel.includes(k)) return v;
+                  }
+                }
+                const bestOp = resolveBestOperationalFunnel(smProj?.all_funnels, projetoFunisMap, projetoFunisOrdemMap);
+                if (bestOp) return bestOp.funilId;
+                return null;
+              })();
+
+              const resolvedEtapaId = (() => {
+                if (!resolvedFunilId) return null;
+                const smProj = smProp.sm_project_id ? smProjectMap.get(smProp.sm_project_id) : null;
+                const smStageName = smProj?.sm_stage_name || null;
+                const matchEtapaByName = (funilId: string, stageName: string | null): string | null => {
+                  if (!stageName) return null;
+                  const nameKey = `${funilId}::${normalizeComparableName(stageName)}`;
+                  return funilEtapaByNameMap.get(nameKey) || null;
+                };
+                // Try sm_stage_name
+                if (smStageName) {
+                  const matched = matchEtapaByName(resolvedFunilId, smStageName);
+                  if (matched) return matched;
+                }
+                // Try all_funnels stage names
+                const bestOp = resolveBestOperationalFunnel(smProj?.all_funnels, projetoFunisMap, projetoFunisOrdemMap);
+                if (bestOp?.stageName) {
+                  const matched = matchEtapaByName(resolvedFunilId, bestOp.stageName);
+                  if (matched) return matched;
+                }
+                return funilFirstEtapaMap.get(resolvedFunilId) || null;
+              })();
+
+              const projUpdateFields: Record<string, any> = {
+                consultor_id: resolvedOwnerId || null,
+                funil_id: resolvedFunilId,
+                etapa_id: resolvedEtapaId,
+              };
+
+              const { error: projUpdErr } = await adminClient
+                .from("projetos")
+                .update(projUpdateFields)
+                .eq("id", projetoId);
+
+              if (projUpdErr) {
+                console.error(`[SM Migration] Failed to update existing project ${projetoId}: ${projUpdErr.message}`);
               } else {
+                console.error(`[SM Migration] Updated existing project ${projetoId}`, projUpdateFields);
+              }
+            }
+
+            if (!projetoId && !existingByCodigoId && !projetoByDeal.get(dealId)) {
                 const smProjDate = smProp.sm_created_at || smProp.generated_at || null;
 
 
@@ -3242,10 +3312,10 @@ Deno.serve(async (req) => {
 
                       // If sm_funnel_name is a real operational funnel, use it directly
                       if (normalizedFunnel && !NON_OPERATIONAL_FUNNELS.has(normalizedFunnel)) {
-                        if (normalizedFunnel.includes('compesa') || normalizedFunnel.includes('compensa')) {
-                          return projetoFunisMap.get(normalizeComparableName('Compensação'))
-                            || projetoFunisMap.get(normalizeComparableName('Compesação'))
-                            || FALLBACK_FUNIL_ID;
+                      if (normalizedFunnel.includes('compesa') || normalizedFunnel.includes('compensa')) {
+                        return projetoFunisMap.get(normalizeComparableName('Compensação'))
+                          || projetoFunisMap.get(normalizeComparableName('Compesação'))
+                          || null; // No Engenharia fallback — rule: null if no real operational funnel
                         }
                         const directMatch = projetoFunisMap.get(normalizedFunnel);
                         if (directMatch) return directMatch;
@@ -3284,7 +3354,7 @@ Deno.serve(async (req) => {
                         if (normalizedFunnel.includes('compesa') || normalizedFunnel.includes('compensa')) {
                           targetFunilId = projetoFunisMap.get(normalizeComparableName('Compensação'))
                             || projetoFunisMap.get(normalizeComparableName('Compesação'))
-                            || FALLBACK_FUNIL_ID;
+                            || null; // No Engenharia fallback
                         } else {
                           targetFunilId = projetoFunisMap.get(normalizedFunnel) || null;
                           if (!targetFunilId) {
@@ -3326,7 +3396,7 @@ Deno.serve(async (req) => {
                         }
                       }
 
-                      return funilFirstEtapaMap.get(targetFunilId) || FALLBACK_ETAPA_ID;
+                      return funilFirstEtapaMap.get(targetFunilId) || null; // No Engenharia fallback for etapa
                     })(),
                 };
                 if (smProjDate) {
