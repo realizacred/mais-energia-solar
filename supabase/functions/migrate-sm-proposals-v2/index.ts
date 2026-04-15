@@ -3445,8 +3445,8 @@ Deno.serve(async (req) => {
             });
             // console.error("VALID_FUNNELS_COUNT", validFunnels.length);
 
-            // ── AUDIT: log funnel resolution inputs ──
-            // console.error(`[SM Migration] FUNNEL_AUDIT proposal=${smProp.sm_proposal_id}`, {
+            /* AUDIT: funnel resolution (disabled for performance)
+            console.error(`[SM Migration] FUNNEL_AUDIT proposal=${smProp.sm_proposal_id}`, {
               sm_funnel_name: smProj?.sm_funnel_name || null,
               all_funnels: funnels.map((f: any) => ({
                 name: readSmFunnelName(f),
@@ -3456,6 +3456,7 @@ Deno.serve(async (req) => {
               valid_count: validFunnels.length,
               will_fallback: validFunnels.length === 0,
             });
+            */
 
             if (validFunnels.length > 0) {
               const funnelStageGroups = new Map<string, string[]>();
