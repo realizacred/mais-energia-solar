@@ -1101,8 +1101,8 @@ Deno.serve(async (req) => {
               targetFunilId = bestOp.funilId;
               resolvedStageName = bestOp.stageName;
             } else {
-              // No operational funnel found → fallback to Comercial
-              targetFunilId = COMERCIAL_FUNIL_ID || null;
+              // No operational funnel found → fallback to Comercial, then Engenharia
+              targetFunilId = COMERCIAL_FUNIL_ID || FALLBACK_FUNIL_ID || null;
             }
           }
           // If still no funnel, Comercial fallback was already applied above
@@ -1128,10 +1128,10 @@ Deno.serve(async (req) => {
                 }
               }
             }
-            if (!targetEtapaId) targetEtapaId = funilFirstEtapaMap.get(targetFunilId) || (targetFunilId === COMERCIAL_FUNIL_ID ? COMERCIAL_ETAPA_ID : null) || null;
+            if (!targetEtapaId) targetEtapaId = funilFirstEtapaMap.get(targetFunilId) || (targetFunilId === COMERCIAL_FUNIL_ID ? COMERCIAL_ETAPA_ID : null) || FALLBACK_ETAPA_ID || null;
           } else {
             // No funil → use Comercial etapa directly
-            targetEtapaId = COMERCIAL_ETAPA_ID || null;
+            targetEtapaId = COMERCIAL_ETAPA_ID || FALLBACK_ETAPA_ID || null;
           }
 
           // Resolve consultor from Vendedores funnel
@@ -3268,7 +3268,7 @@ Deno.serve(async (req) => {
                 }
                 const bestOp = resolveBestOperationalFunnel(smProj?.all_funnels, projetoFunisMap, projetoFunisOrdemMap);
                 if (bestOp) return bestOp.funilId;
-                return COMERCIAL_FUNIL_ID || null;
+                return COMERCIAL_FUNIL_ID || FALLBACK_FUNIL_ID || null;
               })();
 
               const resolvedEtapaId = (() => {
@@ -3291,7 +3291,7 @@ Deno.serve(async (req) => {
                   const matched = matchEtapaByName(resolvedFunilId, bestOp.stageName);
                   if (matched) return matched;
                 }
-                return funilFirstEtapaMap.get(resolvedFunilId) || (resolvedFunilId === COMERCIAL_FUNIL_ID ? COMERCIAL_ETAPA_ID : null) || null;
+                return funilFirstEtapaMap.get(resolvedFunilId) || (resolvedFunilId === COMERCIAL_FUNIL_ID ? COMERCIAL_ETAPA_ID : null) || FALLBACK_ETAPA_ID || null;
               })();
 
               const projUpdateFields: Record<string, any> = {
