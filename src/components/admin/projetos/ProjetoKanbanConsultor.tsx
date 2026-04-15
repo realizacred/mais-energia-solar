@@ -247,7 +247,12 @@ export function ProjetoKanbanConsultor({ ownerColumns, allDeals, onViewProjeto, 
                         {getInitials(col.nome)}
                       </AvatarFallback>
                     </Avatar>
-                    <h3 className="text-sm font-bold text-foreground truncate">{col.nome}</h3>
+                    <h3 className={cn("text-sm font-bold text-foreground truncate", col.ativo === false && "opacity-60")}>{col.nome}</h3>
+                    {col.ativo === false && (
+                      <Badge variant="outline" className="text-[8px] h-4 px-1 border-destructive/30 text-destructive shrink-0">
+                        Inativo
+                      </Badge>
+                    )}
                     <Badge variant="outline" className="text-[10px] h-5 font-semibold rounded-lg">
                       {col.count}
                     </Badge>
