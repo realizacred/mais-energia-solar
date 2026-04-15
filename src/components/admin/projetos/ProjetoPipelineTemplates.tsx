@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Zap, FileText, Wrench, DollarSign, Headphones, Plus, ChevronRight } from "lucide-react";
+import { Zap, FileText, Wrench, DollarSign, Plus, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -22,21 +22,6 @@ export interface PipelineTemplate {
 }
 
 const TEMPLATES: PipelineTemplate[] = [
-  {
-    id: "sdr",
-    name: "SDR / Prospecção",
-    description: "Qualificação inicial de leads e agendamento de visitas",
-    icon: Headphones,
-    stages: [
-      { name: "Novo Lead", probability: 5 },
-      { name: "Tentativa de Contato", probability: 10 },
-      { name: "Contato Realizado", probability: 20 },
-      { name: "Qualificado (MQL)", probability: 40 },
-      { name: "Visita Agendada", probability: 60 },
-      { name: "Passado p/ Vendas", probability: 80, is_closed: true, is_won: true, categoria: "ganho" },
-      { name: "Descartado", probability: 0, is_closed: true, is_won: false, categoria: "perdido" },
-    ],
-  },
   {
     id: "vendas",
     name: "Vendas (Micro/Mini GD)",
