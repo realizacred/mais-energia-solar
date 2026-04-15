@@ -1084,7 +1084,8 @@ Deno.serve(async (req) => {
               resolvedStageName = bestOp.stageName;
             }
           }
-          if (!targetFunilId) targetFunilId = fixEngenhariaFunilId;
+          // No operational funnel found → null (don't force into Engenharia without evidence)
+          // targetFunilId remains null — project stays in Comercial pipeline only
 
           // Resolve etapa_id
           let targetEtapaId: string | null = null;
@@ -1109,7 +1110,7 @@ Deno.serve(async (req) => {
             }
             if (!targetEtapaId) targetEtapaId = fixEtapaFirstMap.get(targetFunilId) || null;
           }
-          if (!targetEtapaId) targetEtapaId = fixEngenhariaFirstEtapa;
+          // No etapa fallback — consistent with funil_id null rule above
 
           // Resolve consultor from Vendedores funnel
           let targetConsultorId: string | null = null;
@@ -3192,8 +3193,9 @@ Deno.serve(async (req) => {
                       const bestOp = resolveBestOperationalFunnel(smProj?.all_funnels, projetoFunisMap, projetoFunisOrdemMap);
                       if (bestOp) return bestOp.funilId;
 
-                      // No operational funnel found anywhere → Engenharia fallback
-                      return projetoFunisMap.get(normalizeComparableName('Engenharia')) || FALLBACK_FUNIL_ID;
+                      // No operational funnel found → null (don't force into Engenharia without evidence)
+                      // Rule: "não criar projeto operacional sem evidência de funil operacional real"
+                      return null;
                     })(),
                     etapa_id: (() => {
                       // Resolve etapa matching the resolved funil.
@@ -3234,11 +3236,12 @@ Deno.serve(async (req) => {
                           targetFunilId = bestOp.funilId;
                           resolvedStageName = bestOp.stageName;
                         } else {
-                          targetFunilId = projetoFunisMap.get(normalizeComparableName('Engenharia')) || FALLBACK_FUNIL_ID;
+                          // No operational funnel found → null (consistent with funil_id rule above)
+                          targetFunilId = null;
                         }
                       }
 
-                      if (!targetFunilId) return FALLBACK_ETAPA_ID;
+                      if (!targetFunilId) return null; // No operational funnel → no etapa
 
                       // Try matching resolved stage name
                       if (resolvedStageName) {
