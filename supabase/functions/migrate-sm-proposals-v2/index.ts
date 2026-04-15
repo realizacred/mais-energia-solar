@@ -3242,10 +3242,10 @@ Deno.serve(async (req) => {
 
                       // If sm_funnel_name is a real operational funnel, use it directly
                       if (normalizedFunnel && !NON_OPERATIONAL_FUNNELS.has(normalizedFunnel)) {
-                        if (normalizedFunnel.includes('compesa') || normalizedFunnel.includes('compensa')) {
-                          return projetoFunisMap.get(normalizeComparableName('Compensação'))
-                            || projetoFunisMap.get(normalizeComparableName('Compesação'))
-                            || FALLBACK_FUNIL_ID;
+                      if (normalizedFunnel.includes('compesa') || normalizedFunnel.includes('compensa')) {
+                        return projetoFunisMap.get(normalizeComparableName('Compensação'))
+                          || projetoFunisMap.get(normalizeComparableName('Compesação'))
+                          || null; // No Engenharia fallback — rule: null if no real operational funnel
                         }
                         const directMatch = projetoFunisMap.get(normalizedFunnel);
                         if (directMatch) return directMatch;
@@ -3284,7 +3284,7 @@ Deno.serve(async (req) => {
                         if (normalizedFunnel.includes('compesa') || normalizedFunnel.includes('compensa')) {
                           targetFunilId = projetoFunisMap.get(normalizeComparableName('Compensação'))
                             || projetoFunisMap.get(normalizeComparableName('Compesação'))
-                            || FALLBACK_FUNIL_ID;
+                            || null; // No Engenharia fallback
                         } else {
                           targetFunilId = projetoFunisMap.get(normalizedFunnel) || null;
                           if (!targetFunilId) {
