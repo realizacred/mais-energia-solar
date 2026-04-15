@@ -332,6 +332,34 @@ function normalizeNameForCompare(value: string | null | undefined): string {
     .trim();
 }
 
+const CANONICAL_SM_TO_PROJETO_FUNIL: Record<string, string | null> = {
+  lead: "Comercial",
+  engenharia: "Engenharia",
+  equipamento: "Equipamento",
+  compesacao: "Compensação",
+  compensacao: "Compensação",
+  pagamento: "Pagamento",
+  vendedores: null,
+  vendedor: null,
+  sdr: null,
+  prospeccao: null,
+  "sdr / prospeccao": null,
+};
+
+const PLANNED_PROJETO_FUNIL_ORDER: Record<string, number> = {
+  comercial: 0,
+  engenharia: 1,
+  equipamento: 2,
+  compensacao: 3,
+  pagamento: 4,
+};
+
+function toCanonicalProjetoFunilName(smFunnelName: string | null | undefined): string | null {
+  const normalized = normalizeNameForCompare(smFunnelName);
+  if (!normalized) return null;
+  return CANONICAL_SM_TO_PROJETO_FUNIL[normalized] ?? null;
+}
+
 function dispatchBackgroundMigrationRun(params: {
   supabaseUrl: string;
   serviceKey: string;
@@ -458,19 +486,19 @@ async function handleSyncPipelines(adminClient: any, tenantId: string): Promise<
     }
 
     for (const f of funnels) {
+      const canonicalFunilName = toCanonicalProjetoFunilName(f.funnelName);
       const normalizedFunnel = normalizeNameForCompare(f.funnelName);
       if (normalizedFunnel === "vendedores") {
-        // Collect vendedor names for consultor creation
         if (f.stageName) vendedorNames.add(f.stageName);
         continue;
       }
-      if (!f.funnelName) continue;
+      if (!canonicalFunilName) continue;
 
-      if (!funnelStagesMap.has(f.funnelName)) {
-        funnelStagesMap.set(f.funnelName, new Set());
+      if (!funnelStagesMap.has(canonicalFunilName)) {
+        funnelStagesMap.set(canonicalFunilName, new Set());
       }
       if (f.stageName) {
-        funnelStagesMap.get(f.funnelName)!.add(f.stageName);
+        funnelStagesMap.get(canonicalFunilName)!.add(f.stageName);
       }
     }
   }
@@ -705,13 +733,14 @@ async function handleSyncPipelines(adminClient: any, tenantId: string): Promise<
     }
   }
 
-  // 7. Sync projeto_funis + projeto_etapas from SM operational funnels
-  //    Creates missing funis/etapas AND activates existing inactive ones.
-  //    Excluded from auto-activation: Vendedor, SDR, Prospecção
+  // 7. Sync projeto_funis + projeto_etapas from SM canonical operational funnels
+  //    Allowed plan: Comercial, Engenharia, Equipamento, Compensação, Pagamento
+  //    Excluded from materialization/activation: Vendedor, Vendedores, SDR, Prospecção
   const funisActivated: string[] = [];
   const funisCreated: string[] = [];
   {
-    const EXCLUDED_FUNIS = ["vendedor", "sdr", "prospeccao", "sdr / prospeccao", "lead"];
+    const EXCLUDED_FUNIS = ["vendedor", "vendedores", "sdr", "prospeccao", "sdr / prospeccao"];
+    const ALLOWED_FUNIS = new Set(["comercial", "engenharia", "equipamento", "compensacao", "pagamento"]);
 
     // Load existing projeto_funis
     const { data: existingFunis } = await adminClient
@@ -736,10 +765,24 @@ async function handleSyncPipelines(adminClient: any, tenantId: string): Promise<
 
     let nextFunilOrdem = Math.max(0, ...(existingFunis || []).map((f: any) => f.ordem ?? 0)) + 1;
 
-    // For each SM operational funnel, ensure projeto_funis + projeto_etapas exist
+    // Normalize existing planned funnels to the approved order
+    for (const f of existingFunis || []) {
+      const normalizedExisting = normalizeNameForCompare(f.nome);
+      const plannedOrder = PLANNED_PROJETO_FUNIL_ORDER[normalizedExisting];
+      if (plannedOrder === undefined) continue;
+      if ((f.ordem ?? -1) !== plannedOrder) {
+        await adminClient
+          .from("projeto_funis")
+          .update({ ordem: plannedOrder })
+          .eq("id", f.id);
+      }
+    }
+
+    // For each planned funnel, ensure projeto_funis + projeto_etapas exist
     for (const [funnelName, stageNames] of funnelStagesMap) {
       const normalizedFunnelName = normalizeNameForCompare(funnelName);
       if (EXCLUDED_FUNIS.includes(normalizedFunnelName)) continue;
+      if (!ALLOWED_FUNIS.has(normalizedFunnelName)) continue;
 
       let existingFunil = existingFunisMap.get(normalizedFunnelName);
 
@@ -757,7 +800,6 @@ async function handleSyncPipelines(adminClient: any, tenantId: string): Promise<
 
       if (existingFunil) {
         funilId = existingFunil.id;
-        // Activate if inactive
         if (!existingFunil.ativo) {
           const { error: activateErr } = await adminClient
             .from("projeto_funis")
@@ -766,13 +808,14 @@ async function handleSyncPipelines(adminClient: any, tenantId: string): Promise<
           if (!activateErr) funisActivated.push(funnelName);
         }
       } else {
-        // Create new projeto_funil
+        const plannedOrder = PLANNED_PROJETO_FUNIL_ORDER[normalizedFunnelName];
+        const resolvedOrder = plannedOrder ?? nextFunilOrdem++;
         const { data: newFunil, error: funilErr } = await adminClient
           .from("projeto_funis")
           .insert({
             tenant_id: tenantId,
             nome: funnelName,
-            ordem: nextFunilOrdem++,
+            ordem: resolvedOrder,
             ativo: true,
           })
           .select("id")
