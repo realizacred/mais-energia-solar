@@ -1772,12 +1772,13 @@ Deno.serve(async (req) => {
         .maybeSingle();
       if (comercialFunil) {
         COMERCIAL_FUNIL_ID = comercialFunil.id;
+        // Default Comercial etapa for orphan projects: "Proposta Enviada"
         const { data: comercialEtapa } = await adminClient
           .from("projeto_etapas")
           .select("id")
           .eq("tenant_id", tenantId)
           .eq("funil_id", comercialFunil.id)
-          .ilike("nome", "%andamento%")
+          .ilike("nome", "%proposta enviada%")
           .limit(1)
           .maybeSingle();
         if (comercialEtapa) {
