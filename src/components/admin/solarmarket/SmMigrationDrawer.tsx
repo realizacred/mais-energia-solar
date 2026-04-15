@@ -94,7 +94,130 @@ function getBlockedMessage(errBody: MigrationBlockedPayload, fallback: string) {
   return errBody?.message || errBody?.error || fallback;
 }
 
+// ─── Humanization helpers ─────────────────────────────────
+
+const SUMMARY_KEY_LABELS: Record<string, string> = {
+  CREATED: "Migradas com sucesso",
+  OK: "Processadas",
+  ERROR: "Com erro",
+  WOULD_CREATE: "Seriam criadas",
+  WOULD_SKIP: "Já existentes",
+  WOULD_LINK: "Seriam vinculadas",
+  FALLBACK_USED: "Destino automático",
+  CONFLICT: "Conflito",
+};
+
+function formatSummaryKey(key: string): string {
+  return SUMMARY_KEY_LABELS[key] || key;
+}
+
+const STEP_LABELS: Record<string, string> = {
+  cliente: "Cliente",
+  deal: "Negócio",
+  projeto: "Projeto",
+  proposta_nativa: "Proposta",
+  proposta_versao: "Versão",
+  pipelines: "Pipeline",
+  _fatal: "Erro fatal",
+};
+
+function humanizeStepResult(
+  stepKey: string,
+  stepVal: { status: string; id?: string; reason?: string },
+): { label: string; description: string; colorClass: string } {
+  const stepLabel = STEP_LABELS[stepKey] || stepKey;
+  const status = stepVal.status || "";
+  const reason = stepVal.reason || "";
+
+  let colorClass = "text-muted-foreground";
+  if (status.includes("ERROR")) colorClass = "text-destructive";
+  else if (status.includes("CREATE") || status === "CREATED") colorClass = "text-success";
+  else if (status.includes("LINK")) colorClass = "text-info";
+
+  let description = "";
+
+  if (status === "CREATED" || status === "WOULD_CREATE") {
+    description = "Criado";
+    if (reason) description = humanizeReason(reason);
+  } else if (status === "WOULD_SKIP") {
+    description = "Já existia no sistema";
+  } else if (status === "WOULD_LINK") {
+    description = "Vinculado a registro existente";
+  } else if (status === "FALLBACK_USED") {
+    description = humanizeFallbackReason(reason);
+  } else if (status === "ERROR") {
+    description = reason || "Erro durante o processamento";
+  } else if (status === "CONFLICT") {
+    description = reason || "Conflito detectado";
+  } else {
+    description = reason || status;
+  }
+
+  return { label: stepLabel, description, colorClass };
+}
+
+function humanizeReason(reason: string): string {
+  if (reason.includes("comercial_default")) return "Enviado ao pipeline Comercial";
+  if (reason.includes("fallback_escritorio")) return "Consultor: Escritório (vendedor não encontrado)";
+  if (reason.includes("fallback_mandatory")) return "Pipeline Comercial (sem funil operacional)";
+  if (reason.includes("fallback_default")) return "Pipeline Comercial (destino padrão)";
+  if (reason.includes("sm_lifecycle")) {
+    const match = reason.match(/sm_lifecycle:(\w+)/);
+    const lifecycle = match?.[1];
+    const labels: Record<string, string> = {
+      approved: "Proposta aprovada → Ganho",
+      sent: "Proposta enviada",
+      viewed: "Proposta visualizada → Negociação",
+      generated: "Proposta gerada → Qualificação",
+      draft: "Rascunho → Entrada",
+      rejected: "Proposta recusada → Perdido",
+    };
+    return labels[lifecycle || ""] || `Status: ${lifecycle}`;
+  }
+  if (reason.includes("db_all_funnels:")) {
+    const name = reason.replace(/.*db_all_funnels:/, "").trim();
+    return `Consultor: ${name} (vendedor SM)`;
+  }
+  if (reason.includes("db_funnel:")) {
+    const name = reason.replace(/.*db_funnel:/, "").trim();
+    return `Consultor: ${name} (vendedor SM)`;
+  }
+  if (reason.includes("api_funnel:")) {
+    const name = reason.replace(/.*api_funnel:/, "").trim();
+    return `Consultor: ${name} (API SM)`;
+  }
+  if (reason.includes("owner:")) {
+    const ownerMatch = reason.match(/owner:\s*([^,]+)/);
+    const pipelineMatch = reason.match(/pipeline:\s*(.+)/);
+    const parts: string[] = [];
+    if (ownerMatch) {
+      const src = ownerMatch[1].trim();
+      if (src.includes("escritorio")) parts.push("Consultor: Escritório");
+      else if (src.includes("db_all_funnels")) parts.push("Consultor detectado do SM");
+      else if (src !== "none") parts.push(`Consultor: ${src}`);
+    }
+    if (pipelineMatch) {
+      const src = pipelineMatch[1].trim();
+      if (src.includes("comercial")) parts.push("Pipeline Comercial");
+      else if (src.includes("lifecycle")) parts.push("Etapa pelo status da proposta");
+      else parts.push(`Pipeline: ${src}`);
+    }
+    return parts.join(" · ") || reason;
+  }
+  if (reason.includes("matched by codigo")) return "Vinculado pelo código do projeto";
+  if (reason.includes("matched by deal_id")) return "Vinculado pelo negócio";
+  if (reason.includes("funis mapeados")) return reason.replace("funis mapeados", "pipelines detectados no SM");
+  return reason;
+}
+
+function humanizeFallbackReason(reason: string): string {
+  if (reason.includes("Nenhum funil real")) return "Sem funil operacional no SM — mantido no Comercial";
+  if (reason.includes("Comercial")) return "Pipeline Comercial (destino automático)";
+  return reason || "Destino definido automaticamente";
+}
+
 // ─── Hook: fetch consultores for owner dropdown ─────────
+
 
 function useConsultores(isReady: boolean) {
   return useQuery<{ id: string; nome: string }[]>({
