@@ -616,7 +616,7 @@ export function ProposalWizard() {
     const legacyKitCost = Number(raw.venda?.custo_kit ?? raw.venda?.custo_equipamentos ?? raw.equipment_cost ?? 0);
     const fallbackPanelQty = Number(raw.panel_quantity || 0);
 
-    // ── Helper: extract wattage from model name (same logic as migrate-sm-proposals) ──
+    // ── Helper: extract wattage from model name (same logic as migrate-sm-proposals-v2) ──
     const extractPotenciaFromModel = (model: string | null): number => {
       if (!model) return 0;
       const norm = model.toUpperCase();
