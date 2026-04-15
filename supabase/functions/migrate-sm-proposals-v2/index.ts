@@ -3241,7 +3241,7 @@ Deno.serve(async (req) => {
                         }
                       }
 
-                      if (!targetFunilId) return FALLBACK_ETAPA_ID;
+                      if (!targetFunilId) return null; // No operational funnel → no etapa
 
                       // Try matching resolved stage name
                       if (resolvedStageName) {
