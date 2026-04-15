@@ -655,7 +655,14 @@ export default function SolarMarketPage() {
 
   const [migrateAllOpen, setMigrateAllOpen] = useState(false);
   const [syncPipelinesRunning, setSyncPipelinesRunning] = useState(false);
-  const [syncPipelinesResult, setSyncPipelinesResult] = useState<{ pipelines: { created: number; existing: number }; stages: { created: number; existing: number }; consultores: { created: number; existing: number }; funis_activated?: string[] } | null>(null);
+  const [syncPipelinesResult, setSyncPipelinesResult] = useState<{
+    pipelines: { created: number; existing: number };
+    stages: { created: number; existing: number };
+    consultores: { created: number; existing: number };
+    operational_funis?: { created: number; existing: number; activated: number; active_total: number };
+    operational_etapas?: { created: number; existing: number; total: number };
+    funis_activated?: string[];
+  } | null>(null);
 
   // Check if operational funis are active (pre-requisite for migration)
   const [hasActiveFunis, setHasActiveFunis] = useState<boolean | null>(null);
@@ -1115,8 +1122,10 @@ export default function SolarMarketPage() {
         <div className="flex items-center gap-2 px-3 py-2 rounded-md bg-success/5 border border-success/20 text-sm">
           <CheckCircle className="h-4 w-4 text-success shrink-0" />
           <span className="text-foreground">
-            Funis sincronizados: {syncPipelinesResult.pipelines.created} criados, {syncPipelinesResult.pipelines.existing} existentes
-            {" · "}Etapas: {syncPipelinesResult.stages.created} criadas, {syncPipelinesResult.stages.existing} existentes
+            Funis operacionais: {syncPipelinesResult.operational_funis?.created ?? 0} criados, {syncPipelinesResult.operational_funis?.existing ?? 0} existentes, {syncPipelinesResult.operational_funis?.activated ?? 0} ativados
+            {" · "}Etapas operacionais: {syncPipelinesResult.operational_etapas?.created ?? 0} criadas, {syncPipelinesResult.operational_etapas?.existing ?? 0} existentes
+            {" · "}Pipeline comercial: {syncPipelinesResult.pipelines.created} criado(s), {syncPipelinesResult.pipelines.existing} existente(s)
+            {" · "}Etapas comerciais: {syncPipelinesResult.stages.created} criadas, {syncPipelinesResult.stages.existing} existentes
             {" · "}Consultores: {syncPipelinesResult.consultores.created} criados, {syncPipelinesResult.consultores.existing} existentes
             {syncPipelinesResult.funis_activated && syncPipelinesResult.funis_activated.length > 0 && (
               <>{" · "}Funis ativados: {syncPipelinesResult.funis_activated.join(", ")}</>

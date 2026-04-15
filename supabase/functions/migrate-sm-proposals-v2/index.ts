@@ -442,6 +442,8 @@ async function handleSyncPipelines(adminClient: any, tenantId: string): Promise<
     pipelines: { created: 0, existing: 0, names: [] as string[] },
     stages: { created: 0, existing: 0 },
     consultores: { created: 0, existing: 0 },
+    operational_funis: { created: 0, existing: 0, activated: 0, active_total: 0 },
+    operational_etapas: { created: 0, existing: 0, total: 0 },
   };
 
   // 1. Fetch ALL SM projects for this tenant
@@ -800,12 +802,16 @@ async function handleSyncPipelines(adminClient: any, tenantId: string): Promise<
 
       if (existingFunil) {
         funilId = existingFunil.id;
+        report.operational_funis.existing++;
         if (!existingFunil.ativo) {
           const { error: activateErr } = await adminClient
             .from("projeto_funis")
             .update({ ativo: true })
             .eq("id", funilId);
-          if (!activateErr) funisActivated.push(funnelName);
+          if (!activateErr) {
+            funisActivated.push(funnelName);
+            report.operational_funis.activated++;
+          }
         }
       } else {
         const plannedOrder = PLANNED_PROJETO_FUNIL_ORDER[normalizedFunnelName];
@@ -827,6 +833,7 @@ async function handleSyncPipelines(adminClient: any, tenantId: string): Promise<
         }
         funilId = newFunil!.id;
         funisCreated.push(funnelName);
+        report.operational_funis.created++;
         existingFunisMap.set(normalizedFunnelName, { id: funilId, ativo: true, ordem: nextFunilOrdem - 1 });
       }
 
@@ -855,7 +862,10 @@ async function handleSyncPipelines(adminClient: any, tenantId: string): Promise<
 
       for (const stage of stageList) {
         const etapaKey = `${funilId}::${normalizeNameForCompare(stage.name)}`;
-        if (existingEtapaKeys.has(etapaKey)) continue;
+        if (existingEtapaKeys.has(etapaKey)) {
+          report.operational_etapas.existing++;
+          continue;
+        }
 
         const { error: etapaErr } = await adminClient
           .from("projeto_etapas")
@@ -871,6 +881,7 @@ async function handleSyncPipelines(adminClient: any, tenantId: string): Promise<
           console.error(`[SM Sync] Failed to create projeto_etapa "${stage.name}" for funil "${funnelName}": ${etapaErr.message}`);
         } else {
           existingEtapaKeys.add(etapaKey);
+          report.operational_etapas.created++;
         }
       }
     }
@@ -894,10 +905,39 @@ async function handleSyncPipelines(adminClient: any, tenantId: string): Promise<
           if (!activateErr) {
             const matchedName = (existingFunis || []).find((f: any) => f.id === v.id)?.nome || v.id;
             funisActivated.push(matchedName);
+            report.operational_funis.activated++;
           }
         }
       }
     }
+  }
+
+  const [{ count: activeFunisCount }, { count: totalEtapasCount }] = await Promise.all([
+    adminClient
+      .from("projeto_funis")
+      .select("id", { count: "exact", head: true })
+      .eq("tenant_id", tenantId)
+      .eq("ativo", true),
+    adminClient
+      .from("projeto_etapas")
+      .select("id", { count: "exact", head: true })
+      .eq("tenant_id", tenantId),
+  ]);
+
+  report.operational_funis.active_total = activeFunisCount ?? 0;
+  report.operational_etapas.total = totalEtapasCount ?? 0;
+
+  if ((activeFunisCount ?? 0) === 0 || (totalEtapasCount ?? 0) === 0) {
+    return new Response(
+      JSON.stringify({
+        action: "sync_pipelines",
+        success: false,
+        error: "A sincronização não materializou funis operacionais na área de Projetos. Nenhuma migração será liberada até que projeto_funis e projeto_etapas existam de fato.",
+        report: { ...report, funis_activated: funisActivated, funis_created: funisCreated },
+        total_projects_scanned: allProjects.length,
+      }),
+      { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+    );
   }
 
   return new Response(
