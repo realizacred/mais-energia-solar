@@ -1540,7 +1540,7 @@ Deno.serve(async (req) => {
         .from("projeto_funis")
         .select("id, nome")
         .eq("tenant_id", tenantId);
-      const projetoFunisMap = new Map<string, string>(); // normalized name → funil_id
+      projetoFunisMap = new Map<string, string>();
       for (const f of allProjetoFunis || []) {
         projetoFunisMap.set(normalizeComparableName(f.nome), f.id);
       }
