@@ -1602,11 +1602,13 @@ Deno.serve(async (req) => {
       // Pre-fetch ALL projeto_funis for dynamic funil resolution
       const { data: allProjetoFunis } = await adminClient
         .from("projeto_funis")
-        .select("id, nome")
+        .select("id, nome, ordem")
         .eq("tenant_id", tenantId);
       projetoFunisMap = new Map<string, string>();
+      projetoFunisOrdemMap = new Map<string, number>();
       for (const f of allProjetoFunis || []) {
         projetoFunisMap.set(normalizeComparableName(f.nome), f.id);
+        projetoFunisOrdemMap.set(f.id, f.ordem ?? 0);
       }
 
       // Pre-fetch first etapa per funil for quick fallback + name-based lookup
