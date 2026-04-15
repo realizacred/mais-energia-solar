@@ -48,7 +48,6 @@ export interface ProjetoItem {
   observacoes: string | null;
   created_at: string;
   updated_at: string;
-  proposta_id: string | null;
   proposta_status?: string | null;
   // Joined
   cliente?: { nome: string; telefone: string } | null;
