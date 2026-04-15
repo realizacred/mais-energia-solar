@@ -1629,6 +1629,39 @@ Deno.serve(async (req) => {
           .maybeSingle();
         if (firstEtapa) FALLBACK_ETAPA_ID = firstEtapa.id;
       }
+
+      // Resolve "Comercial" funil — used as fallback for projects without operational funnel
+      const { data: comercialFunil } = await adminClient
+        .from("projeto_funis")
+        .select("id")
+        .eq("tenant_id", tenantId)
+        .ilike("nome", "%comercial%")
+        .maybeSingle();
+      if (comercialFunil) {
+        COMERCIAL_FUNIL_ID = comercialFunil.id;
+        const { data: comercialEtapa } = await adminClient
+          .from("projeto_etapas")
+          .select("id")
+          .eq("tenant_id", tenantId)
+          .eq("funil_id", comercialFunil.id)
+          .ilike("nome", "%andamento%")
+          .limit(1)
+          .maybeSingle();
+        if (comercialEtapa) {
+          COMERCIAL_ETAPA_ID = comercialEtapa.id;
+        } else {
+          // Fallback to first etapa of Comercial
+          const { data: firstComEtapa } = await adminClient
+            .from("projeto_etapas")
+            .select("id")
+            .eq("tenant_id", tenantId)
+            .eq("funil_id", comercialFunil.id)
+            .order("ordem", { ascending: true })
+            .limit(1)
+            .maybeSingle();
+          if (firstComEtapa) COMERCIAL_ETAPA_ID = firstComEtapa.id;
+        }
+      }
       // Pre-fetch ALL projeto_funis for dynamic funil resolution
       const { data: allProjetoFunis } = await adminClient
         .from("projeto_funis")
