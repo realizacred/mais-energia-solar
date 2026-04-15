@@ -2065,7 +2065,7 @@ Deno.serve(async (req) => {
       }
     }
 
-    console.error("START MIGRATION");
+    logDebug("[SM Migration] START MIGRATION");
     let preLoadStep = "inicializando pre-load";
     let inPreLoad = true;
 
@@ -2082,9 +2082,7 @@ Deno.serve(async (req) => {
       if ((page || []).length < pageSize) break;
       offset += pageSize;
     }
-    console.error("propostas OK");
-
-    // console.log(`[SM Migration] Found ${allProposals.length} proposals matching filters`);
+    logDebug("[SM Migration] propostas OK", { count: allProposals.length });
 
     if (allProposals.length === 0) {
       return new Response(
@@ -2110,9 +2108,7 @@ Deno.serve(async (req) => {
         smClientMap.set(c.sm_client_id, c);
       }
     }
-    console.error("clientes OK");
-
-    // console.log(`[SM Migration] Loaded ${smClientMap.size} SM clients`);
+    logDebug("[SM Migration] clientes OK", { count: smClientMap.size });
 
     // ─── 2b. Pre-fetch SM projects to resolve responsible (vendedor) & funnels ─
     preLoadStep = "carregando sm_projects";
@@ -2131,8 +2127,7 @@ Deno.serve(async (req) => {
         smProjectMap.set(p.sm_project_id, { responsible_name: respName, sm_funnel_name: p.sm_funnel_name, sm_stage_name: p.sm_stage_name, all_funnels: p.all_funnels || null });
       }
     }
-    console.error("sm_projects OK");
-    // console.log(`[SM Migration] Loaded ${smProjectMap.size} SM projects for responsible resolution`);
+    logDebug("[SM Migration] sm_projects OK", { count: smProjectMap.size });
 
 
     // ─── 2c. Pre-fetch consultores for owner auto-resolution ─
@@ -2533,7 +2528,7 @@ Deno.serve(async (req) => {
         if (d.legacy_key) existingDeals.set(d.legacy_key, d.id);
       }
     }
-    console.error("deals OK");
+    logDebug("[SM Migration] deals OK", { count: existingDeals.size });
 
     // ─── 4. Pre-fetch existing propostas_nativas with sm_id ─
 
@@ -2699,7 +2694,7 @@ Deno.serve(async (req) => {
         logDebug(`[SM Migration] Fixed position of ${positionsFixed} existing stages using SM order`);
       }
     }
-    console.error("pipelines OK");
+    logDebug("[SM Migration] pipelines OK");
 
     // ─── 5a. Batch pre-fetch canonical entities for O(1) lookup ──
     // Pre-fetch ALL clientes for this tenant to avoid N+1 phone/email/doc lookups
@@ -2794,7 +2789,7 @@ Deno.serve(async (req) => {
       }
     }
 
-    console.error("INICIANDO LOOP");
+    logDebug("[SM Migration] INICIANDO LOOP", { total: allProposals.length });
     inPreLoad = false;
 
     // ─── 5. Process proposals ────────────────────────────
@@ -3160,24 +3155,7 @@ Deno.serve(async (req) => {
           if (autoResolveOwner && smProp.sm_project_id) {
             const smProj = smProjectMap.get(smProp.sm_project_id);
 
-            // AUDIT logs disabled for performance
-            /*
-            const auditFunnels = smProj?.all_funnels || [];
-            const vendedorFunnel = auditFunnels.find((f: any) => {
-              const fn = readSmFunnelName(f).toLowerCase().trim();
-              return fn === "vendedores";
-            });
-            logDebug(`[SM Migration] OWNER_AUDIT proposal=${smProp.sm_proposal_id}`, {
-              sm_project_id: smProp.sm_project_id,
-              vendedor_raw: vendedorFunnel ? readSmStageName(vendedorFunnel) : null,
-              vendedor_normalized: vendedorFunnel ? normalizeComparableName(readSmStageName(vendedorFunnel)) : null,
-              sm_funnel_name: smProj?.sm_funnel_name || null,
-              sm_stage_name: smProj?.sm_stage_name || null,
-              params_owner_id: params.owner_id || null,
-              consultores_available: [...consultoresMap.keys()],
-            });
-            console.error("CONSULTOR_MAP_KEYS", [...consultoresMap.keys()]);
-            */
+            // AUDIT: OWNER_AUDIT removed (RB-23 compliance)
 
             // Priority 1: DB cached funnel data (fast, no external call)
             if (!resolvedOwnerId || ownerSource.startsWith("manual")) {
@@ -3476,18 +3454,7 @@ Deno.serve(async (req) => {
             });
             // console.error("VALID_FUNNELS_COUNT", validFunnels.length);
 
-            /* AUDIT: funnel resolution (disabled for performance)
-            logDebug(`[SM Migration] FUNNEL_AUDIT proposal=${smProp.sm_proposal_id}`, {
-              sm_funnel_name: smProj?.sm_funnel_name || null,
-              all_funnels: funnels.map((f: any) => ({
-                name: readSmFunnelName(f),
-                stage: readSmStageName(f),
-                is_operational: !NON_OPERATIONAL_FUNNELS.has(normalizeComparableName(readSmFunnelName(f))),
-              })),
-              valid_count: validFunnels.length,
-              will_fallback: validFunnels.length === 0,
-            });
-            */
+            // AUDIT: FUNNEL_AUDIT removed (RB-23 compliance)
 
             if (validFunnels.length > 0) {
               const funnelStageGroups = new Map<string, string[]>();
