@@ -1112,9 +1112,9 @@ Deno.serve(async (req) => {
             // Try all operational funnels' stage names
             if (!targetEtapaId && Array.isArray(smProj.all_funnels)) {
               for (const f of smProj.all_funnels) {
-                const fName = normalizeNameForCompare(String(f.funnelName || "").trim());
+                const fName = normalizeNameForCompare(readSmFunnelName(f));
                 if (!fName || NON_OPERATIONAL_FUNNELS.has(fName)) continue;
-                const fStageName = String(f.stageName || "").trim();
+                const fStageName = readSmStageName(f);
                 if (fStageName) {
                   const nameKey = `${targetFunilId}::${normalizeNameForCompare(fStageName)}`;
                   targetEtapaId = fixEtapaByNameMap.get(nameKey) || null;
@@ -1130,9 +1130,9 @@ Deno.serve(async (req) => {
           let targetConsultorId: string | null = null;
           if (Array.isArray(smProj.all_funnels)) {
             for (const f of smProj.all_funnels) {
-              const fName = normalizeNameForCompare(String(f.funnelName || "").trim());
+              const fName = normalizeNameForCompare(readSmFunnelName(f));
               if (fName === "vendedores") {
-                const sName = normalizeNameForCompare(String(f.stageName || "").trim());
+                const sName = normalizeNameForCompare(readSmStageName(f));
                 if (sName) {
                   if (EX_FUNC_FIX.includes(sName)) {
                     targetConsultorId = fixEscritorioId;
