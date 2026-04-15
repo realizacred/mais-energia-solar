@@ -3085,7 +3085,20 @@ Deno.serve(async (req) => {
             const funnels: any[] = smProj?.all_funnels || [];
             const validFunnels = funnels.filter((f: any) => {
               const funnelName = String(f.funnelName || "").trim();
-              return funnelName && normalizeComparableName(funnelName) !== "vendedores" && f.stageName;
+              const normalized = normalizeComparableName(funnelName);
+              return funnelName && !NON_OPERATIONAL_FUNNELS.has(normalized) && f.stageName;
+            });
+
+            // ── AUDIT: log funnel resolution inputs ──
+            console.error(`[SM Migration] FUNNEL_AUDIT proposal=${smProp.sm_proposal_id}`, {
+              sm_funnel_name: smProj?.sm_funnel_name || null,
+              all_funnels: funnels.map((f: any) => ({
+                name: String(f.funnelName || "").trim(),
+                stage: String(f.stageName || "").trim(),
+                is_operational: !NON_OPERATIONAL_FUNNELS.has(normalizeComparableName(String(f.funnelName || ""))),
+              })),
+              valid_count: validFunnels.length,
+              will_fallback: validFunnels.length === 0,
             });
 
             if (validFunnels.length > 0) {
