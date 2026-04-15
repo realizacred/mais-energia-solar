@@ -3287,7 +3287,7 @@ Deno.serve(async (req) => {
                   const matched = matchEtapaByName(resolvedFunilId, bestOp.stageName);
                   if (matched) return matched;
                 }
-                return funilFirstEtapaMap.get(resolvedFunilId) || null;
+                return funilFirstEtapaMap.get(resolvedFunilId) || (resolvedFunilId === COMERCIAL_FUNIL_ID ? COMERCIAL_ETAPA_ID : null) || null;
               })();
 
               const projUpdateFields: Record<string, any> = {
