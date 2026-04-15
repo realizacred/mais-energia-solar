@@ -685,19 +685,24 @@ Deno.serve(async (req) => {
     }
     // ─── END BLOCK CHECK ───────────────────────────────────
     // Auth — supports JWT (user) or x-cron-secret (pg_cron auto-resume)
-    const authHeader = req.headers.get("authorization") || req.headers.get("Authorization") || "";
+    const authHeader = req.headers.get("authorization") || "";
     const cronSecretHeader = req.headers.get("x-cron-secret");
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const adminClient = createClient(supabaseUrl, serviceKey);
 
+    // Dump ALL headers for debugging auth issue
+    const allHeaders: Record<string, string> = {};
+    req.headers.forEach((value, key) => {
+      allHeaders[key] = key.toLowerCase() === "authorization"
+        ? `${value.substring(0, 20)}...(len=${value.length})`
+        : value.substring(0, 80);
+    });
     console.error("[SM Migration] AUTH CHECK", {
       hasCron: !!cronSecretHeader,
       hasAuth: !!authHeader,
       authLen: authHeader.length,
-      method: req.method,
-      url: req.url,
-      userAgent: req.headers.get("user-agent")?.substring(0, 80) || "none",
+      allHeaders,
     });
 
     let tenantId: string;
