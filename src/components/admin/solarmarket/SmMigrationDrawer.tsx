@@ -1054,6 +1054,15 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange, onRunningChan
         }
       }
 
+      // Ensure no steps remain stuck in "running" or "pending" after completion
+      for (const s of ["fetch", "cliente", "deal", "projeto", "proposta", "versao"] as StepName[]) {
+        setSteps(prev => prev.map(st =>
+          st.name === s && (st.state === "running" || st.state === "pending")
+            ? { ...st, state: "done", detail: st.detail?.replace(/🖥️ Servidor processando.*/, "Concluído") || "Concluído" }
+            : st
+        ));
+      }
+
       updateStep("done", {
         state: hasBatchErrors || (mergedResult.summary.ERROR || 0) > 0 ? "error" : "done",
         detail: hasBatchErrors
