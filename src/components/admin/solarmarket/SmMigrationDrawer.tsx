@@ -94,7 +94,130 @@ function getBlockedMessage(errBody: MigrationBlockedPayload, fallback: string) {
   return errBody?.message || errBody?.error || fallback;
 }
 
+// ─── Humanization helpers ─────────────────────────────────
+
+const SUMMARY_KEY_LABELS: Record<string, string> = {
+  CREATED: "Migradas com sucesso",
+  OK: "Processadas",
+  ERROR: "Com erro",
+  WOULD_CREATE: "Seriam criadas",
+  WOULD_SKIP: "Já existentes",
+  WOULD_LINK: "Seriam vinculadas",
+  FALLBACK_USED: "Destino automático",
+  CONFLICT: "Conflito",
+};
+
+function formatSummaryKey(key: string): string {
+  return SUMMARY_KEY_LABELS[key] || key;
+}
+
+const STEP_LABELS: Record<string, string> = {
+  cliente: "Cliente",
+  deal: "Negócio",
+  projeto: "Projeto",
+  proposta_nativa: "Proposta",
+  proposta_versao: "Versão",
+  pipelines: "Pipeline",
+  _fatal: "Erro fatal",
+};
+
+function humanizeStepResult(
+  stepKey: string,
+  stepVal: { status: string; id?: string; reason?: string },
+): { label: string; description: string; colorClass: string } {
+  const stepLabel = STEP_LABELS[stepKey] || stepKey;
+  const status = stepVal.status || "";
+  const reason = stepVal.reason || "";
+
+  let colorClass = "text-muted-foreground";
+  if (status.includes("ERROR")) colorClass = "text-destructive";
+  else if (status.includes("CREATE") || status === "CREATED") colorClass = "text-success";
+  else if (status.includes("LINK")) colorClass = "text-info";
+
+  let description = "";
+
+  if (status === "CREATED" || status === "WOULD_CREATE") {
+    description = "Criado";
+    if (reason) description = humanizeReason(reason);
+  } else if (status === "WOULD_SKIP") {
+    description = "Já existia no sistema";
+  } else if (status === "WOULD_LINK") {
+    description = "Vinculado a registro existente";
+  } else if (status === "FALLBACK_USED") {
+    description = humanizeFallbackReason(reason);
+  } else if (status === "ERROR") {
+    description = reason || "Erro durante o processamento";
+  } else if (status === "CONFLICT") {
+    description = reason || "Conflito detectado";
+  } else {
+    description = reason || status;
+  }
+
+  return { label: stepLabel, description, colorClass };
+}
+
+function humanizeReason(reason: string): string {
+  if (reason.includes("comercial_default")) return "Enviado ao pipeline Comercial";
+  if (reason.includes("fallback_escritorio")) return "Consultor: Escritório (vendedor não encontrado)";
+  if (reason.includes("fallback_mandatory")) return "Pipeline Comercial (sem funil operacional)";
+  if (reason.includes("fallback_default")) return "Pipeline Comercial (destino padrão)";
+  if (reason.includes("sm_lifecycle")) {
+    const match = reason.match(/sm_lifecycle:(\w+)/);
+    const lifecycle = match?.[1];
+    const labels: Record<string, string> = {
+      approved: "Proposta aprovada → Ganho",
+      sent: "Proposta enviada",
+      viewed: "Proposta visualizada → Negociação",
+      generated: "Proposta gerada → Qualificação",
+      draft: "Rascunho → Entrada",
+      rejected: "Proposta recusada → Perdido",
+    };
+    return labels[lifecycle || ""] || `Status: ${lifecycle}`;
+  }
+  if (reason.includes("db_all_funnels:")) {
+    const name = reason.replace(/.*db_all_funnels:/, "").trim();
+    return `Consultor: ${name} (vendedor SM)`;
+  }
+  if (reason.includes("db_funnel:")) {
+    const name = reason.replace(/.*db_funnel:/, "").trim();
+    return `Consultor: ${name} (vendedor SM)`;
+  }
+  if (reason.includes("api_funnel:")) {
+    const name = reason.replace(/.*api_funnel:/, "").trim();
+    return `Consultor: ${name} (API SM)`;
+  }
+  if (reason.includes("owner:")) {
+    const ownerMatch = reason.match(/owner:\s*([^,]+)/);
+    const pipelineMatch = reason.match(/pipeline:\s*(.+)/);
+    const parts: string[] = [];
+    if (ownerMatch) {
+      const src = ownerMatch[1].trim();
+      if (src.includes("escritorio")) parts.push("Consultor: Escritório");
+      else if (src.includes("db_all_funnels")) parts.push("Consultor detectado do SM");
+      else if (src !== "none") parts.push(`Consultor: ${src}`);
+    }
+    if (pipelineMatch) {
+      const src = pipelineMatch[1].trim();
+      if (src.includes("comercial")) parts.push("Pipeline Comercial");
+      else if (src.includes("lifecycle")) parts.push("Etapa pelo status da proposta");
+      else parts.push(`Pipeline: ${src}`);
+    }
+    return parts.join(" · ") || reason;
+  }
+  if (reason.includes("matched by codigo")) return "Vinculado pelo código do projeto";
+  if (reason.includes("matched by deal_id")) return "Vinculado pelo negócio";
+  if (reason.includes("funis mapeados")) return reason.replace("funis mapeados", "pipelines detectados no SM");
+  return reason;
+}
+
+function humanizeFallbackReason(reason: string): string {
+  if (reason.includes("Nenhum funil real")) return "Sem funil operacional no SM — mantido no Comercial";
+  if (reason.includes("Comercial")) return "Pipeline Comercial (destino automático)";
+  return reason || "Destino definido automaticamente";
+}
+
 // ─── Hook: fetch consultores for owner dropdown ─────────
+
 
 function useConsultores(isReady: boolean) {
   return useQuery<{ id: string; nome: string }[]>({
@@ -1279,25 +1402,25 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange, onRunningChan
               </div>
             )}
 
-            {/* Owner selector — optional fallback, auto-resolved from project responsible */}
+            {/* Owner selector — optional fallback, auto-resolved from SM Vendedores */}
             <div className="space-y-1.5">
               <label className="text-xs font-medium text-muted-foreground">
-                Responsável (fallback opcional)
+                Consultor responsável
               </label>
               <Select value={ownerId} onValueChange={setOwnerId}>
                 <SelectTrigger className="h-9">
-                  <SelectValue placeholder="Automático (campo responsible do projeto)" />
+                  <SelectValue placeholder="Automático (vendedor do SolarMarket)" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="__auto__">🔄 Automático (responsible do projeto SM)</SelectItem>
+                  <SelectItem value="__auto__">🔄 Automático (detectar pelo vendedor SM)</SelectItem>
                   {consultores.map(c => (
                     <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
               <p className="text-[10px] text-muted-foreground">
-                O consultor é resolvido automaticamente: 1º busca na API SM o funil "Vendedores" (nome da etapa = nome do consultor),
-                2º usa o campo "responsible" do projeto SM. Consultores inexistentes serão criados sem acesso ao sistema.
+                O consultor é definido pelo vendedor do SolarMarket. Se o vendedor existir como consultor cadastrado, será usado.
+                Se não existir ou estiver ausente, será atribuído a "Escritório".
               </p>
             </div>
 
@@ -1328,11 +1451,11 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange, onRunningChan
             {activePipelineId && (
               <div className="space-y-1.5">
                 <label className="text-xs font-medium text-muted-foreground">
-                  Etapa padrão {needsStage && <span className="text-destructive">*</span>}
+                  Etapa inicial {needsStage && <span className="text-destructive">*</span>}
                 </label>
                 <Select value={activeStageId} onValueChange={setSelectedStageId}>
                   <SelectTrigger className="h-9">
-                    <SelectValue placeholder="Primeira etapa (padrão)" />
+                    <SelectValue placeholder="Definida automaticamente pelo status" />
                   </SelectTrigger>
                   <SelectContent>
                     {pipelineStages.map(s => (
@@ -1342,12 +1465,12 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange, onRunningChan
                 </Select>
                 <p className="text-[10px] text-muted-foreground">
                   {pipelineStages.length === 0
-                    ? "Nenhuma etapa aberta encontrada; a EF usará fallback."
-                    : `Status SM "${statusLabel.label}" → Etapa: ${pipelineStages.find(s => s.id === activeStageId)?.name || "primeira disponível"}`}
+                    ? "Nenhuma etapa disponível neste pipeline."
+                    : `A etapa é definida pelo status da proposta no SolarMarket. Propostas aprovadas vão para "Ganho", enviadas para "Proposta Enviada", etc.`}
                 </p>
                 {needsStage && !activeStageId && pipelineStages.length > 0 && (
                   <p className="text-[10px] text-destructive">
-                    Obrigatório para pipelines do tipo processo
+                    Selecione uma etapa para continuar
                   </p>
                 )}
               </div>
@@ -1436,7 +1559,13 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange, onRunningChan
                 <p className="text-xs font-medium">Resumo ({result.total_processed} processadas)</p>
                 <div className="flex flex-wrap gap-1.5">
                   {Object.entries(result.summary).filter(([, v]) => v > 0).map(([key, count]) => (
-                    <Badge key={key} variant="outline" className="text-[10px]">{key}: {count}</Badge>
+                    <Badge key={key} variant="outline" className={cn(
+                      "text-[10px]",
+                      key === "ERROR" && "border-destructive/50 text-destructive",
+                      (key === "CREATED" || key === "OK") && "border-success/50 text-success",
+                    )}>
+                      {formatSummaryKey(key)}: {count}
+                    </Badge>
                   ))}
                 </div>
               </div>
@@ -1445,27 +1574,25 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange, onRunningChan
             {/* Result details */}
             {result?.details && result.details.length > 0 && (
               <div className="space-y-1.5">
-                <p className="text-xs font-medium">Detalhes</p>
+                <p className="text-xs font-medium">Detalhes por proposta</p>
                 <div className="max-h-40 overflow-y-auto space-y-1">
                   {result.details.map((d, i) => (
-                    <div key={i} className="text-[11px] p-2 rounded bg-muted/30 space-y-0.5">
+                    <div key={i} className="text-[11px] p-2 rounded bg-muted/30 space-y-1">
                       <div className="flex items-center gap-1.5">
                         {d.aborted ? <XCircle className="h-3 w-3 text-destructive" /> : <CheckCircle className="h-3 w-3 text-success" />}
-                        <span className="font-medium">SM #{d.sm_proposal_id}</span>
-                        <span className="text-muted-foreground">{d.sm_client_name}</span>
+                        <span className="font-medium">{d.sm_client_name || `Proposta #${d.sm_proposal_id}`}</span>
                       </div>
-                      <div className="flex flex-wrap gap-1 ml-4">
-                        {Object.entries(d.steps).map(([k, v]) => (
-                          <Badge key={k} variant="outline" className={cn(
-                            "text-[9px]",
-                            v.status.includes("ERROR") && "border-destructive/50 text-destructive",
-                            v.status.includes("CREATE") && "border-success/50 text-success",
-                            v.status.includes("LINK") && "border-info/50 text-info",
-                            v.status.includes("SKIP") && "border-muted-foreground/50 text-muted-foreground",
-                          )}>
-                            {k}: {v.status}{v.id ? ` → ${v.id.slice(0, 8)}` : ""}
-                          </Badge>
-                        ))}
+                      {/* Humanized step results */}
+                      <div className="ml-5 space-y-0.5">
+                        {Object.entries(d.steps).map(([stepKey, stepVal]) => {
+                          const { label, description, colorClass } = humanizeStepResult(stepKey, stepVal);
+                          return (
+                            <div key={stepKey} className="flex items-start gap-1.5">
+                              <span className={cn("text-[10px] font-medium shrink-0", colorClass)}>{label}</span>
+                              {description && <span className="text-[10px] text-muted-foreground">{description}</span>}
+                            </div>
+                          );
+                        })}
                       </div>
                     </div>
                   ))}
