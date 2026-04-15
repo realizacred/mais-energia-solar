@@ -1011,7 +1011,7 @@ async function handleSyncPipelines(adminClient: any, tenantId: string): Promise<
 Deno.serve(async (req) => {
   // CRITICAL: Reset global mutable state to prevent cross-request contamination
   resetGlobalState();
-  console.error("[SM Migration] HANDLER ENTRY", req.method);
+  logDebug("[SM Migration] HANDLER ENTRY", req.method);
 
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -1041,7 +1041,7 @@ Deno.serve(async (req) => {
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const adminClient = createClient(supabaseUrl, serviceKey);
 
-    console.error("[SM Migration] AUTH CHECK", {
+    logDebug("[SM Migration] AUTH CHECK", {
       hasCron: !!cronSecretHeader,
       hasAuth: !!authHeader,
       authLen: authHeader.length,
@@ -1106,7 +1106,7 @@ Deno.serve(async (req) => {
 
         try {
           const fetchUrl = `${supabaseUrl}/functions/v1/migrate-sm-proposals-v2`;
-          console.error("[SM Migration] CRON FETCH ANTES", { tenant: s.tenant_id, url: fetchUrl, svcKeyLen: serviceKey?.length });
+          logDebug("[SM Migration] CRON FETCH ANTES", { tenant: s.tenant_id, url: fetchUrl, svcKeyLen: serviceKey?.length });
           const innerResp = await fetch(fetchUrl, {
             method: "POST",
             headers: {
@@ -1116,7 +1116,7 @@ Deno.serve(async (req) => {
             body: JSON.stringify(payload),
           });
           const innerBody = await innerResp.text().catch(() => "");
-          console.error("[SM Migration] CRON FETCH DEPOIS", { tenant: s.tenant_id, status: innerResp.status, bodyPreview: innerBody.substring(0, 300) });
+          logDebug("[SM Migration] CRON FETCH DEPOIS", { tenant: s.tenant_id, status: innerResp.status, bodyPreview: innerBody.substring(0, 300) });
           let parsed: any = {};
           try { parsed = JSON.parse(innerBody); } catch { parsed = { raw: innerBody.substring(0, 200) }; }
           cronResults.push({ tenant_id: s.tenant_id, status: innerResp.ok ? "ok" : "error", pending: pendingCount, response: parsed });
@@ -1190,7 +1190,7 @@ Deno.serve(async (req) => {
 
         try {
           const fetchUrl2 = `${supabaseUrl}/functions/v1/migrate-sm-proposals-v2`;
-          console.error("[SM Migration] DISPATCH FETCH ANTES", { tenant: s.tenant_id, url: fetchUrl2, svcKeyLen: serviceKey?.length });
+          logDebug("[SM Migration] DISPATCH FETCH ANTES", { tenant: s.tenant_id, url: fetchUrl2, svcKeyLen: serviceKey?.length });
           const innerResp = await fetch(fetchUrl2, {
             method: "POST",
             headers: {
@@ -1200,7 +1200,7 @@ Deno.serve(async (req) => {
             body: JSON.stringify(payload),
           });
           const innerBody = await innerResp.text().catch(() => "");
-          console.error("[SM Migration] DISPATCH FETCH DEPOIS", { tenant: s.tenant_id, status: innerResp.status, bodyPreview: innerBody.substring(0, 300) });
+          logDebug("[SM Migration] DISPATCH FETCH DEPOIS", { tenant: s.tenant_id, status: innerResp.status, bodyPreview: innerBody.substring(0, 300) });
           let parsed2: any = {};
           try { parsed2 = JSON.parse(innerBody); } catch { parsed2 = { raw: innerBody.substring(0, 200) }; }
           cronResults.push({ tenant_id: s.tenant_id, status: innerResp.ok ? "ok" : "error", pending: pendingCount, response: parsed2 });
@@ -1218,7 +1218,7 @@ Deno.serve(async (req) => {
     // If called with service_role key + _cron_tenant_id, skip user auth (internal call from dispatch)
     if (token === serviceKey && rawBody?._cron_tenant_id) {
       tenantId = rawBody._cron_tenant_id;
-      console.error(`[SM Migration] Cron mode: tenant=${tenantId}`);
+      logDebug(`[SM Migration] Cron mode: tenant=${tenantId}`);
     } else {
       // Standard user JWT auth
       const { data: { user }, error: authErr } = await adminClient.auth.getUser(token);
@@ -1695,7 +1695,7 @@ Deno.serve(async (req) => {
 
       // Override filters with auto-fetched IDs
       filters = { ...filters, internal_ids: pendentes.map((p: any) => p.id) };
-      console.error(`[SM Migration] auto_resume: fetched ${pendentes.length} pending proposals`);
+      logDebug(`[SM Migration] auto_resume: fetched ${pendentes.length} pending proposals`);
     }
 
     // Validate required params — owner_id is optional when auto_resolve_owner is enabled
@@ -1762,7 +1762,7 @@ Deno.serve(async (req) => {
           if (signinRes.ok) {
             const signinData = await signinRes.json();
             smAccessToken = signinData.access_token || signinData.accessToken || signinData.token || null;
-            console.error(`[SM Migration] SM API authenticated (token len=${smAccessToken?.length})`);
+            logDebug(`[SM Migration] SM API authenticated (token len=${smAccessToken?.length})`);
           } else {
             console.warn(`[SM Migration] SM API auth failed: ${signinRes.status}`);
           }
@@ -1988,7 +1988,7 @@ Deno.serve(async (req) => {
         }
       }
 
-      console.error(`[SM Migration] Dynamic fallbacks resolved: pipeline=${FALLBACK_PIPELINE_ID}, stage=${FALLBACK_STAGE_ID}, funil=${FALLBACK_FUNIL_ID}, etapa=${FALLBACK_ETAPA_ID}, comercial_funil=${COMERCIAL_FUNIL_ID}, comercial_etapa=${COMERCIAL_ETAPA_ID}`);
+      logDebug(`[SM Migration] Dynamic fallbacks resolved: pipeline=${FALLBACK_PIPELINE_ID}, stage=${FALLBACK_STAGE_ID}, funil=${FALLBACK_FUNIL_ID}, etapa=${FALLBACK_ETAPA_ID}, comercial_funil=${COMERCIAL_FUNIL_ID}, comercial_etapa=${COMERCIAL_ETAPA_ID}`);
 
       if (!FALLBACK_PIPELINE_ID || !FALLBACK_STAGE_ID) {
         const errMsg = "Não foi possível resolver pipeline/stage de fallback. Configure sm_migration_settings ou crie um pipeline padrão.";
@@ -2461,7 +2461,7 @@ Deno.serve(async (req) => {
             .eq("tenant_id", tenantId);
           if (!updErr) {
             stagePositionCache.set(cacheKey, position);
-            console.error(`[SM Migration] Retrofix stage "${stageName}" position: ${currentPos} → ${position}`);
+            logDebug(`[SM Migration] Retrofix stage "${stageName}" position: ${currentPos} → ${position}`);
           }
         }
         return existingId;
@@ -2667,7 +2667,7 @@ Deno.serve(async (req) => {
           console.warn(`[SM Migration] Pre-create pipeline "${funnelName}" error: ${(e as Error).message}`);
         }
       }
-      console.error(`[SM Migration] Pre-created ${pipelinesCreated} pipelines, ${stagesCreated} stages from SM funnels (ordered)`);
+      logDebug(`[SM Migration] Pre-created ${pipelinesCreated} pipelines, ${stagesCreated} stages from SM funnels (ordered)`);
 
       // 4) Fix position of existing stages that were created with wrong order
       let positionsFixed = 0;
@@ -2696,7 +2696,7 @@ Deno.serve(async (req) => {
         }
       }
       if (positionsFixed > 0) {
-        console.error(`[SM Migration] Fixed position of ${positionsFixed} existing stages using SM order`);
+        logDebug(`[SM Migration] Fixed position of ${positionsFixed} existing stages using SM order`);
       }
     }
     console.error("pipelines OK");
@@ -2811,7 +2811,7 @@ Deno.serve(async (req) => {
 
     // Limit total processing to batch_size to avoid timeout
     let proposalsToProcess = allProposals.slice(0, batch_size);
-    console.error(`[SM Migration] Processing ${proposalsToProcess.length} of ${allProposals.length} proposals (batch_size=${batch_size})`);
+    logDebug(`[SM Migration] Processing ${proposalsToProcess.length} of ${allProposals.length} proposals (batch_size=${batch_size})`);
 
     // Time budget: stop processing before edge function timeout (wall-clock ~60s)
     const MIGRATION_TIMEOUT_MS = 50_000;
@@ -2848,7 +2848,7 @@ Deno.serve(async (req) => {
     for (const smProp of proposalsToProcess) {
         // Check time budget before each proposal
         if (Date.now() - migrationStartTime > MIGRATION_TIMEOUT_MS) {
-          console.error(`[SM Migration] Time budget exceeded (${MIGRATION_TIMEOUT_MS}ms). Stopping with partial results.`);
+          logDebug(`[SM Migration] Time budget exceeded (${MIGRATION_TIMEOUT_MS}ms). Stopping with partial results.`);
           break;
         }
 
@@ -3167,7 +3167,7 @@ Deno.serve(async (req) => {
               const fn = readSmFunnelName(f).toLowerCase().trim();
               return fn === "vendedores";
             });
-            console.error(`[SM Migration] OWNER_AUDIT proposal=${smProp.sm_proposal_id}`, {
+            logDebug(`[SM Migration] OWNER_AUDIT proposal=${smProp.sm_proposal_id}`, {
               sm_project_id: smProp.sm_project_id,
               vendedor_raw: vendedorFunnel ? readSmStageName(vendedorFunnel) : null,
               vendedor_normalized: vendedorFunnel ? normalizeComparableName(readSmStageName(vendedorFunnel)) : null,
@@ -3246,7 +3246,7 @@ Deno.serve(async (req) => {
           }
 
           /* AUDIT: log final owner decision (disabled for performance)
-          console.error(`[SM Migration] OWNER_RESOLVED proposal=${smProp.sm_proposal_id}`, {
+          logDebug(`[SM Migration] OWNER_RESOLVED proposal=${smProp.sm_proposal_id}`, {
             owner_id: resolvedOwnerId,
             owner_source: ownerSource,
             auto_created: ownerAutoCreated,
@@ -3477,7 +3477,7 @@ Deno.serve(async (req) => {
             // console.error("VALID_FUNNELS_COUNT", validFunnels.length);
 
             /* AUDIT: funnel resolution (disabled for performance)
-            console.error(`[SM Migration] FUNNEL_AUDIT proposal=${smProp.sm_proposal_id}`, {
+            logDebug(`[SM Migration] FUNNEL_AUDIT proposal=${smProp.sm_proposal_id}`, {
               sm_funnel_name: smProj?.sm_funnel_name || null,
               all_funnels: funnels.map((f: any) => ({
                 name: readSmFunnelName(f),
@@ -3624,7 +3624,7 @@ Deno.serve(async (req) => {
               if (projUpdErr) {
                 console.error(`[SM Migration] Failed to update existing project ${projetoId}: ${projUpdErr.message}`);
               } else {
-                console.error(`[SM Migration] Updated existing project ${projetoId}`, projUpdateFields);
+                logDebug(`[SM Migration] Updated existing project ${projetoId}`, projUpdateFields);
               }
             }
 
@@ -4597,7 +4597,7 @@ Deno.serve(async (req) => {
                   if (!fileUpdates[fileMapping.column]) fileUpdates[fileMapping.column] = [];
                   fileUpdates[fileMapping.column].push(storagePath);
 
-                  console.error(`[SM Migration] File migrated: ${normalizedKey} → ${storagePath} (${contentType}, ${blob.size} bytes)`);
+                  logDebug(`[SM Migration] File migrated: ${normalizedKey} → ${storagePath} (${contentType}, ${blob.size} bytes)`);
                 } catch (dlErr) {
                   console.warn(`[SM Migration] File download/upload error for ${normalizedKey}: ${(dlErr as Error).message}`);
                 }
@@ -4706,7 +4706,7 @@ Deno.serve(async (req) => {
       for (const proj of pwp) {
         // Time budget check inside Group B loop
         if (Date.now() - migrationStartTime > MIGRATION_TIMEOUT_MS) {
-          console.error(`[SM Migration] Group B time budget exceeded, stopping early`);
+          logDebug(`[SM Migration] Group B time budget exceeded, stopping early`);
           break;
         }
         const groupBReport: any = {
