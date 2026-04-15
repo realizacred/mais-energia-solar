@@ -1003,6 +1003,8 @@ async function handleSyncPipelines(adminClient: any, tenantId: string): Promise<
 // ─── Main Handler ───────────────────────────────────────
 
 Deno.serve(async (req) => {
+  // CRITICAL: Reset global mutable state to prevent cross-request contamination
+  resetGlobalState();
   console.error("[SM Migration] HANDLER ENTRY", req.method);
 
   if (req.method === "OPTIONS") {
