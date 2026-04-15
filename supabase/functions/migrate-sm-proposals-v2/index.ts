@@ -691,18 +691,10 @@ Deno.serve(async (req) => {
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const adminClient = createClient(supabaseUrl, serviceKey);
 
-    // Dump ALL headers for debugging auth issue
-    const allHeaders: Record<string, string> = {};
-    req.headers.forEach((value, key) => {
-      allHeaders[key] = key.toLowerCase() === "authorization"
-        ? `${value.substring(0, 20)}...(len=${value.length})`
-        : value.substring(0, 80);
-    });
     console.error("[SM Migration] AUTH CHECK", {
       hasCron: !!cronSecretHeader,
       hasAuth: !!authHeader,
       authLen: authHeader.length,
-      allHeaders,
     });
 
     let tenantId: string;
