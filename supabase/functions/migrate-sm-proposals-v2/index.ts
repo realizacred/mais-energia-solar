@@ -3695,6 +3695,8 @@ Deno.serve(async (req) => {
             report.steps.proposta_versao = { status: "WOULD_CREATE" };
           }
 
+          console.error("DEPOIS_VERSAO", { propostaId, versaoStatus: report.steps.proposta_versao?.status });
+
           // ── G. Apply Custom Field Mappings to canonical entities ──
           // WHITELIST: only these real columns can be written via target_path
           const CLIENT_COLUMN_WHITELIST = new Set([
