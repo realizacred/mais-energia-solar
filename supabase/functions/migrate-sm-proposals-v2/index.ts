@@ -1546,8 +1546,8 @@ Deno.serve(async (req) => {
       }
 
       // Pre-fetch first etapa per funil for quick fallback + name-based lookup
-      const funilFirstEtapaMap = new Map<string, string>(); // funil_id → first etapa_id
-      const funilEtapaByNameMap = new Map<string, string>(); // "funil_id::normalizedName" → etapa_id
+      funilFirstEtapaMap = new Map<string, string>();
+      funilEtapaByNameMap = new Map<string, string>();
       {
         const { data: allEtapas } = await adminClient
           .from("projeto_etapas")
