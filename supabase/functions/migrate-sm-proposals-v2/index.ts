@@ -842,7 +842,9 @@ Deno.serve(async (req) => {
         };
 
         try {
-          const innerResp = await fetch(`${supabaseUrl}/functions/v1/migrate-sm-proposals-v2`, {
+          const fetchUrl2 = `${supabaseUrl}/functions/v1/migrate-sm-proposals-v2`;
+          console.error("[SM Migration] DISPATCH FETCH ANTES", { tenant: s.tenant_id, url: fetchUrl2, svcKeyLen: serviceKey?.length });
+          const innerResp = await fetch(fetchUrl2, {
             method: "POST",
             headers: {
               "Authorization": `Bearer ${serviceKey}`,
@@ -850,9 +852,13 @@ Deno.serve(async (req) => {
             },
             body: JSON.stringify(payload),
           });
-          const innerBody = await innerResp.json().catch(() => ({}));
-          cronResults.push({ tenant_id: s.tenant_id, status: innerResp.ok ? "ok" : "error", pending: pendingCount, response: innerBody });
+          const innerBody = await innerResp.text().catch(() => "");
+          console.error("[SM Migration] DISPATCH FETCH DEPOIS", { tenant: s.tenant_id, status: innerResp.status, bodyPreview: innerBody.substring(0, 300) });
+          let parsed2: any = {};
+          try { parsed2 = JSON.parse(innerBody); } catch { parsed2 = { raw: innerBody.substring(0, 200) }; }
+          cronResults.push({ tenant_id: s.tenant_id, status: innerResp.ok ? "ok" : "error", pending: pendingCount, response: parsed2 });
         } catch (e) {
+          console.error("[SM Migration] DISPATCH FETCH ERROR", { tenant: s.tenant_id, error: (e as Error).message, stack: (e as Error).stack?.substring(0, 300) });
           cronResults.push({ tenant_id: s.tenant_id, status: "error", error: (e as Error).message });
         }
       }
