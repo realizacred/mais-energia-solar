@@ -346,6 +346,14 @@ const CANONICAL_SM_TO_PROJETO_FUNIL: Record<string, string | null> = {
   "sdr / prospeccao": null,
 };
 
+const PLANNED_PROJETO_FUNIL_ORDER: Record<string, number> = {
+  comercial: 0,
+  engenharia: 1,
+  equipamento: 2,
+  compensacao: 3,
+  pagamento: 4,
+};
+
 function toCanonicalProjetoFunilName(smFunnelName: string | null | undefined): string | null {
   const normalized = normalizeNameForCompare(smFunnelName);
   if (!normalized) return null;
