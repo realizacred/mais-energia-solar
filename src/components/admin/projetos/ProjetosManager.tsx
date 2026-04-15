@@ -594,10 +594,9 @@ export function ProjetosManager() {
                   onRenameStage={renameEtapa}
                   onReorderStages={reorderEtapas}
                   onDeleteStage={deleteEtapa}
-                  onDeletePipeline={async (id, moveDealsTo) => {
-                    await toggleFunilAtivo(id, false);
-                    return true;
-                  }}
+                   onDeletePipeline={async (id, moveDealsTo) => {
+                     return await deleteFunil(id) ?? true;
+                   }}
                 />
               )}
             </div>
