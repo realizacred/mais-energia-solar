@@ -689,6 +689,14 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange, onRunningChan
       setCancelling(false);
       cancelRef.current = false;
       const msg = "Sem avanço recente no monitor. A fila continua agendada no servidor e pode ser retomada automaticamente.";
+      // Mark all intermediate steps as done before finalizing
+      for (const s of ["cliente", "deal", "projeto", "proposta", "versao"] as StepName[]) {
+        setSteps(prev => prev.map(st =>
+          st.name === s && st.state === "running"
+            ? { ...st, state: "done", detail: "Concluído" }
+            : st
+        ));
+      }
       updateStep("done", { state: "done", detail: msg });
       qc.invalidateQueries({ queryKey: ["sm-proposals"] });
       qc.invalidateQueries({ queryKey: ["sm-migration-pending-count"] });
