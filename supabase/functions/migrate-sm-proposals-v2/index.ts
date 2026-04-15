@@ -1080,7 +1080,7 @@ Deno.serve(async (req) => {
             if (normalizedFunnel.includes('compesa') || normalizedFunnel.includes('compensa')) {
               targetFunilId = fixFunisMap.get(normalizeNameForCompare('Compensação'))
                 || fixFunisMap.get(normalizeNameForCompare('Compesação'))
-                || fixEngenhariaFunilId;
+                || null; // No Engenharia fallback
             } else {
               targetFunilId = fixFunisMap.get(normalizedFunnel) || null;
               if (!targetFunilId) {
@@ -1173,10 +1173,11 @@ Deno.serve(async (req) => {
 
           if (!needsUpdate) { fixReport.skipped++; continue; }
 
-          const updateFields: Record<string, any> = {};
-          if (targetFunilId) updateFields.funil_id = targetFunilId;
-          if (targetEtapaId) updateFields.etapa_id = targetEtapaId;
-          if (targetConsultorId) updateFields.consultor_id = targetConsultorId;
+          const updateFields: Record<string, any> = {
+            funil_id: targetFunilId,     // null is valid — clears wrong funil
+            etapa_id: targetEtapaId,     // null is valid — clears wrong etapa
+            consultor_id: targetConsultorId,
+          };
           updateFields.updated_at = new Date().toISOString();
 
           const { error: updErr } = await adminClient
