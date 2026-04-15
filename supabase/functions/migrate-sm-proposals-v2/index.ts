@@ -3044,6 +3044,7 @@ Deno.serve(async (req) => {
           }
 
           // ── D. Projeto ──
+          console.error("ANTES_PROJETO", { dealId, clienteId, projetoFunisMapSize: projetoFunisMap?.size, funilFirstEtapaMapSize: funilFirstEtapaMap?.size });
           let projetoId: string | null = null;
           const projetoCodigo = `PROJ-SM-${smProp.sm_project_id || smProp.sm_proposal_id}`;
 
@@ -3182,6 +3183,7 @@ Deno.serve(async (req) => {
                   projInsert.created_at = smProjDate;
                   projInsert.updated_at = smProp.sm_updated_at || smProp.acceptance_date || smProjDate;
                 }
+                console.error("PROJETO_INSERT_PAYLOAD", { tenant_id: tenantId, deal_id: dealId, funil_id: projInsert.funil_id, etapa_id: projInsert.etapa_id, codigo: projInsert.codigo });
                 const { data: newProj, error: projErr } = await adminClient
                   .from("projetos")
                   .insert(projInsert)
@@ -3189,6 +3191,8 @@ Deno.serve(async (req) => {
                   .single();
 
                 if (projErr) {
+                  console.error("PROJETO_INSERT_ERROR", projErr.message);
+
                   // If unique constraint on codigo, fetch existing
                   if (projErr.message.includes("uq_projetos_tenant_codigo")) {
                     const { data: existingByCode } = await adminClient
@@ -3229,6 +3233,8 @@ Deno.serve(async (req) => {
               }
             }
 
+            console.error("DEPOIS_PROJETO", { projetoId, status: report.steps.projeto?.status });
+
             // Link projeto_id to deal (backfill for new or existing deals)
             if (projetoId && dealId) {
               await adminClient
@@ -3241,6 +3247,7 @@ Deno.serve(async (req) => {
             report.steps.projeto = { status: dry_run ? "WOULD_CREATE" : "ERROR", reason: dry_run ? undefined : "no deal_id" };
           }
 
+          console.error("ANTES_PROPOSTA_NATIVA", { projetoId, dealId });
           // ── E. Proposta Nativa ──
           const smIdKey = `${smProp.sm_project_id || 0}:${smProp.sm_proposal_id}`;
           let propostaId: string | null = existingPropostas.get(smIdKey) || null;
@@ -3305,6 +3312,9 @@ Deno.serve(async (req) => {
             }
           }
 
+          console.error("DEPOIS_PROPOSTA_NATIVA", { propostaId, status: report.steps.proposta_nativa?.status });
+
+          console.error("ANTES_VERSAO", { propostaId });
           // ── F. Proposta Versão ──
           // FIX: Always attempt version creation if propostaId exists and version is missing,
           // even when proposta_nativa was WOULD_SKIP (re-run after partial migration).
@@ -3684,6 +3694,8 @@ Deno.serve(async (req) => {
           } else if (dry_run) {
             report.steps.proposta_versao = { status: "WOULD_CREATE" };
           }
+
+          console.error("DEPOIS_VERSAO", { propostaId, versaoStatus: report.steps.proposta_versao?.status });
 
           // ── G. Apply Custom Field Mappings to canonical entities ──
           // WHITELIST: only these real columns can be written via target_path
