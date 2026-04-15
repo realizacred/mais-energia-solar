@@ -3387,8 +3387,8 @@ Deno.serve(async (req) => {
                       const bestOp = resolveBestOperationalFunnel(smProj?.all_funnels, projetoFunisMap, projetoFunisOrdemMap);
                       if (bestOp) return bestOp.funilId;
 
-                      // No operational funnel found → fallback to Comercial
-                      return COMERCIAL_FUNIL_ID || null;
+                      // No operational funnel found → fallback to Comercial, then Engenharia
+                      return COMERCIAL_FUNIL_ID || FALLBACK_FUNIL_ID || null;
                     })(),
                     etapa_id: (() => {
                       // Resolve etapa matching the resolved funil.
@@ -3429,12 +3429,12 @@ Deno.serve(async (req) => {
                           targetFunilId = bestOp.funilId;
                           resolvedStageName = bestOp.stageName;
                         } else {
-                          // No operational funnel found → fallback to Comercial
-                          targetFunilId = COMERCIAL_FUNIL_ID || null;
+                          // No operational funnel found → fallback to Comercial, then Engenharia
+                          targetFunilId = COMERCIAL_FUNIL_ID || FALLBACK_FUNIL_ID || null;
                         }
                       }
 
-                      if (!targetFunilId) return COMERCIAL_ETAPA_ID || null;
+                      if (!targetFunilId) return COMERCIAL_ETAPA_ID || FALLBACK_ETAPA_ID || null;
 
                       // Try matching resolved stage name
                       if (resolvedStageName) {
