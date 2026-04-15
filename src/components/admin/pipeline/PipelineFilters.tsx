@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -54,7 +55,8 @@ export function PipelineFilters({
   activeFiltersCount,
   onClearFilters,
 }: PipelineFiltersProps) {
-  const [showFilters, setShowFilters] = useState(false);
+  const isDesktop = useMediaQuery("(min-width: 768px)");
+  const [showFilters, setShowFilters] = useState(isDesktop);
 
   return (
     <div className="space-y-3">
