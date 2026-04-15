@@ -3214,12 +3214,13 @@ Deno.serve(async (req) => {
             }
           }
 
-          // ── AUDIT: log final owner decision ──
-          // console.error(`[SM Migration] OWNER_RESOLVED proposal=${smProp.sm_proposal_id}`, {
+          /* AUDIT: log final owner decision (disabled for performance)
+          console.error(`[SM Migration] OWNER_RESOLVED proposal=${smProp.sm_proposal_id}`, {
             owner_id: resolvedOwnerId,
             owner_source: ownerSource,
             auto_created: ownerAutoCreated,
           });
+          */
 
           // ── C. Deal (idempotent via legacy_key) ──
           const legacyKey = `sm:${smProp.sm_project_id || 0}:${smProp.sm_proposal_id}`;
