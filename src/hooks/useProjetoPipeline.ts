@@ -458,8 +458,8 @@ export function useProjetoPipeline() {
       }
     });
 
+    // Show ALL active consultores, even those without projects
     return consultores
-      .filter(c => map.has(c.id) || true) // Show all active consultores
       .map(c => {
         const items = map.get(c.id) || [];
         return {
@@ -471,8 +471,7 @@ export function useProjetoPipeline() {
           count: items.length,
         };
       })
-      .filter(c => c.count > 0) // Only show consultores with projects
-      .sort((a, b) => b.totalValor - a.totalValor);
+      .sort((a, b) => b.totalValor - a.totalValor || a.nome.localeCompare(b.nome));
   }, [projetos, consultores]);
 
   // Unique consultores for filter (from loaded consultores)
