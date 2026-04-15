@@ -808,13 +808,14 @@ async function handleSyncPipelines(adminClient: any, tenantId: string): Promise<
           if (!activateErr) funisActivated.push(funnelName);
         }
       } else {
-        // Create new projeto_funil
+        const plannedOrder = PLANNED_PROJETO_FUNIL_ORDER[normalizedFunnelName];
+        const resolvedOrder = plannedOrder ?? nextFunilOrdem++;
         const { data: newFunil, error: funilErr } = await adminClient
           .from("projeto_funis")
           .insert({
             tenant_id: tenantId,
             nome: funnelName,
-            ordem: nextFunilOrdem++,
+            ordem: resolvedOrder,
             ativo: true,
           })
           .select("id")
