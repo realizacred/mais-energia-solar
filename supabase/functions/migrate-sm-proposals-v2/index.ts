@@ -48,7 +48,7 @@ function resolveBestOperationalFunnel(
   let bestMatch: { funilId: string; normalizedFunnel: string; stageName: string | null; ordem: number } | null = null;
 
   for (const f of allFunnels) {
-    const fName = normalizeComparableName(String(f.funnelName || "").trim());
+    const fName = normalizeComparableName(readSmFunnelName(f));
     if (!fName || NON_OPERATIONAL_FUNNELS.has(fName)) continue;
 
     // Try to match this funnel name to projeto_funis
@@ -83,7 +83,7 @@ function resolveBestOperationalFunnel(
       bestMatch = {
         funilId,
         normalizedFunnel: matchedKey,
-        stageName: String(f.stageName || "").trim() || null,
+        stageName: readSmStageName(f) || null,
         ordem,
       };
     }
