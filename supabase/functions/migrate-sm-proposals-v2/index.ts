@@ -705,26 +705,155 @@ async function handleSyncPipelines(adminClient: any, tenantId: string): Promise<
     }
   }
 
-  // 7. Activate operational projeto_funis (exclude "Vendedor" — not a real process funil)
+  // 7. Sync projeto_funis + projeto_etapas from SM operational funnels
+  //    Creates missing funis/etapas AND activates existing inactive ones.
+  //    Excluded from auto-activation: Vendedor, SDR, Prospecção
   const funisActivated: string[] = [];
+  const funisCreated: string[] = [];
   {
-    const { data: inactiveFunis } = await adminClient
+    const EXCLUDED_FUNIS = ["vendedor", "sdr", "prospeccao", "sdr / prospeccao", "lead"];
+
+    // Load existing projeto_funis
+    const { data: existingFunis } = await adminClient
       .from("projeto_funis")
-      .select("id, nome")
-      .eq("tenant_id", tenantId)
-      .eq("ativo", false);
+      .select("id, nome, ativo, ordem")
+      .eq("tenant_id", tenantId);
 
-    const EXCLUDED_FUNIS = ["vendedor", "sdr", "prospeccao", "sdr / prospeccao"];
-    const toActivate = (inactiveFunis || []).filter(
-      (f: any) => !EXCLUDED_FUNIS.includes(normalizeNameForCompare(f.nome))
-    );
+    const existingFunisMap = new Map<string, { id: string; ativo: boolean; ordem: number }>();
+    for (const f of existingFunis || []) {
+      existingFunisMap.set(normalizeNameForCompare(f.nome), { id: f.id, ativo: f.ativo, ordem: f.ordem });
+    }
 
-    for (const f of toActivate) {
-      const { error: activateErr } = await adminClient
-        .from("projeto_funis")
-        .update({ ativo: true })
-        .eq("id", f.id);
-      if (!activateErr) funisActivated.push(f.nome);
+    // Load existing projeto_etapas
+    const { data: existingEtapas } = await adminClient
+      .from("projeto_etapas")
+      .select("id, funil_id, nome")
+      .eq("tenant_id", tenantId);
+    const existingEtapaKeys = new Set<string>();
+    for (const e of existingEtapas || []) {
+      existingEtapaKeys.add(`${e.funil_id}::${normalizeNameForCompare(e.nome)}`);
+    }
+
+    let nextFunilOrdem = Math.max(0, ...(existingFunis || []).map((f: any) => f.ordem ?? 0)) + 1;
+
+    // For each SM operational funnel, ensure projeto_funis + projeto_etapas exist
+    for (const [funnelName, stageNames] of funnelStagesMap) {
+      const normalizedFunnelName = normalizeNameForCompare(funnelName);
+      if (EXCLUDED_FUNIS.includes(normalizedFunnelName)) continue;
+
+      let existingFunil = existingFunisMap.get(normalizedFunnelName);
+
+      // Also try partial match (e.g. "compesação" → "compensação")
+      if (!existingFunil) {
+        for (const [k, v] of existingFunisMap) {
+          if (k.includes(normalizedFunnelName) || normalizedFunnelName.includes(k)) {
+            existingFunil = v;
+            break;
+          }
+        }
+      }
+
+      let funilId: string;
+
+      if (existingFunil) {
+        funilId = existingFunil.id;
+        // Activate if inactive
+        if (!existingFunil.ativo) {
+          const { error: activateErr } = await adminClient
+            .from("projeto_funis")
+            .update({ ativo: true })
+            .eq("id", funilId);
+          if (!activateErr) funisActivated.push(funnelName);
+        }
+      } else {
+        // Create new projeto_funil
+        const { data: newFunil, error: funilErr } = await adminClient
+          .from("projeto_funis")
+          .insert({
+            tenant_id: tenantId,
+            nome: funnelName,
+            ordem: nextFunilOrdem++,
+            ativo: true,
+          })
+          .select("id")
+          .single();
+
+        if (funilErr) {
+          console.error(`[SM Sync] Failed to create projeto_funil "${funnelName}": ${funilErr.message}`);
+          continue;
+        }
+        funilId = newFunil!.id;
+        funisCreated.push(funnelName);
+        existingFunisMap.set(normalizedFunnelName, { id: funilId, ativo: true, ordem: nextFunilOrdem - 1 });
+      }
+
+      // Ensure etapas exist for this funil — use SM ordered stages when available
+      const orderedStages = smOrderedMap.get(funnelName);
+      const stageList: Array<{ name: string; order: number }> = [];
+
+      if (orderedStages && orderedStages.length > 0) {
+        for (const s of orderedStages) {
+          stageList.push({ name: s.stage_name, order: s.stage_order });
+        }
+        // Append extras from project data not in ordered list
+        let extraOrder = Math.max(...orderedStages.map(s => s.stage_order), 0) + 1;
+        for (const sName of stageNames) {
+          const normalizedS = normalizeNameForCompare(sName);
+          if (stageList.some(s => normalizeNameForCompare(s.name) === normalizedS)) continue;
+          stageList.push({ name: sName, order: extraOrder++ });
+        }
+      } else {
+        // Unordered fallback
+        let order = 0;
+        for (const sName of stageNames) {
+          stageList.push({ name: sName, order: order++ });
+        }
+      }
+
+      for (const stage of stageList) {
+        const etapaKey = `${funilId}::${normalizeNameForCompare(stage.name)}`;
+        if (existingEtapaKeys.has(etapaKey)) continue;
+
+        const { error: etapaErr } = await adminClient
+          .from("projeto_etapas")
+          .insert({
+            tenant_id: tenantId,
+            funil_id: funilId,
+            nome: stage.name.trim(),
+            ordem: stage.order,
+            cor: "#6366f1",
+          });
+
+        if (etapaErr) {
+          console.error(`[SM Sync] Failed to create projeto_etapa "${stage.name}" for funil "${funnelName}": ${etapaErr.message}`);
+        } else {
+          existingEtapaKeys.add(etapaKey);
+        }
+      }
+    }
+
+    // Also activate any remaining inactive operational funis not covered by SM data
+    for (const [, v] of existingFunisMap) {
+      if (!v.ativo) {
+        // Check if this funil name is excluded
+        let isExcluded = false;
+        for (const f of existingFunis || []) {
+          if (f.id === v.id && EXCLUDED_FUNIS.includes(normalizeNameForCompare(f.nome))) {
+            isExcluded = true;
+            break;
+          }
+        }
+        if (!isExcluded) {
+          const { error: activateErr } = await adminClient
+            .from("projeto_funis")
+            .update({ ativo: true })
+            .eq("id", v.id);
+          if (!activateErr) {
+            const matchedName = (existingFunis || []).find((f: any) => f.id === v.id)?.nome || v.id;
+            funisActivated.push(matchedName);
+          }
+        }
+      }
     }
   }
 
