@@ -117,7 +117,7 @@ export function ProjetosManager() {
     selectedFunilEtapas, projetosByEtapa, consultorColumns,
     consultoresFilter,
     fetchAll,
-    createFunil, renameFunil, toggleFunilAtivo, reorderFunis,
+    createFunil, renameFunil, toggleFunilAtivo, deleteFunil, reorderFunis,
     createEtapa, renameEtapa, updateEtapaCor, updateEtapaCategoria,
     reorderEtapas, deleteEtapa,
     moveProjetoToEtapa, moveProjetoToConsultor,
