@@ -258,6 +258,21 @@ export function ProjetosManager() {
   );
 
   useEffect(() => {
+    if (viewMode !== "kanban-etapa") return;
+
+    const resolvedFunilId = selectedFunilId || activeFunis[0]?.id || null;
+    if (!resolvedFunilId) return;
+    if (filters.funilId === resolvedFunilId) return;
+
+    if (!selectedFunilId) {
+      setSelectedFunilId(resolvedFunilId);
+    }
+
+    applyFilters({ funilId: resolvedFunilId });
+    savePrefs({ funilId: resolvedFunilId });
+  }, [viewMode, selectedFunilId, activeFunis, filters.funilId, applyFilters, savePrefs, setSelectedFunilId]);
+
+  useEffect(() => {
     if (!defaultFunilApplied && activeFunis.length > 0) {
       if (!selectedFunilId) {
         applyFilters({ funilId: null });

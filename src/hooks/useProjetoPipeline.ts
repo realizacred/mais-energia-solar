@@ -364,6 +364,9 @@ export function useProjetoPipeline() {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'projetos' }, refreshProjetos)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'projeto_etapas' }, refreshProjetos)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'projeto_funis' }, refreshProjetos)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'deal_pipeline_stages' }, refreshProjetos)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'pipelines' }, refreshProjetos)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'pipeline_stages' }, refreshProjetos)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'propostas_nativas' }, refreshProjetos)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'clientes' }, refreshProjetos)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'deals' }, refreshProjetos)
@@ -389,6 +392,9 @@ export function useProjetoPipeline() {
   // Re-fetch projetos when filters change (but not on initial load)
   const applyFilters = useCallback(async (newFilters: Partial<ProjetoFiltersState>) => {
     const merged = { ...filters, ...newFilters };
+    if (Object.prototype.hasOwnProperty.call(newFilters, "funilId")) {
+      setSelectedFunilId(newFilters.funilId ?? null);
+    }
     setFilters(merged);
     setLoading(true);
     try {
