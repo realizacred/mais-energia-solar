@@ -2266,20 +2266,20 @@ Deno.serve(async (req) => {
     async function resolveOrCreateConsultor(stageName: string): Promise<{ id: string; created: boolean }> {
       const key = normalizeComparableName(stageName);
       if (!key) {
-        console.error(`[SM Migration] CONSULTOR_MATCH stageName="" → Escritório (empty name)`);
+        // console.error(`[SM Migration] CONSULTOR_MATCH stageName="" → Escritório (empty name)`);
         return resolveOrCreateEscritorio();
       }
 
       // Priority 0: ex-funcionários → Escritório direto (sem log de erro)
       if (EX_FUNCIONARIOS.includes(key)) {
-        console.error(`[SM Migration] CONSULTOR_MATCH stageName="${stageName}" normalized="${key}" → Escritório (ex-funcionário)`);
+        // console.error(`[SM Migration] CONSULTOR_MATCH stageName="${stageName}" normalized="${key}" → Escritório (ex-funcionário)`);
         return resolveOrCreateEscritorio();
       }
 
       // Priority 1: exact match in consultoresMap
       const existing = consultoresMap.get(key);
       if (existing) {
-        console.error(`[SM Migration] CONSULTOR_MATCH stageName="${stageName}" normalized="${key}" → exact match id=${existing}`);
+        // console.error(`[SM Migration] CONSULTOR_MATCH stageName="${stageName}" normalized="${key}" → exact match id=${existing}`);
         return { id: existing, created: false };
       }
 
@@ -2289,7 +2289,7 @@ Deno.serve(async (req) => {
         const normalizedMapped = normalizeComparableName(mappedName);
         const mapped = consultoresMap.get(normalizedMapped);
         if (mapped) {
-          console.error(`[SM Migration] CONSULTOR_MATCH stageName="${stageName}" normalized="${key}" → VENDEDOR_MAP "${mappedName}" id=${mapped}`);
+          // console.error(`[SM Migration] CONSULTOR_MATCH stageName="${stageName}" normalized="${key}" → VENDEDOR_MAP "${mappedName}" id=${mapped}`);
           return { id: mapped, created: false };
         }
       }
@@ -2297,13 +2297,13 @@ Deno.serve(async (req) => {
       // Priority 3: partial match (first name)
       for (const [k, v] of consultoresMap) {
         if (k.startsWith(key) || key.startsWith(k)) {
-          console.error(`[SM Migration] CONSULTOR_MATCH stageName="${stageName}" normalized="${key}" → partial match "${k}" id=${v}`);
+          // console.error(`[SM Migration] CONSULTOR_MATCH stageName="${stageName}" normalized="${key}" → partial match "${k}" id=${v}`);
           return { id: v, created: false };
         }
       }
 
       // Priority 4: No match found — fallback to "Escritório" instead of creating new consultor
-      console.error(`[SM Migration] CONSULTOR_MATCH stageName="${stageName}" normalized="${key}" → NO MATCH → Escritório`);
+      // console.error(`[SM Migration] CONSULTOR_MATCH stageName="${stageName}" normalized="${key}" → NO MATCH → Escritório`);
       return resolveOrCreateEscritorio();
     }
 
@@ -3135,7 +3135,7 @@ Deno.serve(async (req) => {
               const fn = readSmFunnelName(f).toLowerCase().trim();
               return fn === "vendedores";
             });
-            console.error(`[SM Migration] OWNER_AUDIT proposal=${smProp.sm_proposal_id}`, {
+            // console.error(`[SM Migration] OWNER_AUDIT proposal=${smProp.sm_proposal_id}`, {
               sm_project_id: smProp.sm_project_id,
               vendedor_raw: vendedorFunnel ? readSmStageName(vendedorFunnel) : null,
               vendedor_normalized: vendedorFunnel ? normalizeComparableName(readSmStageName(vendedorFunnel)) : null,
@@ -3144,7 +3144,7 @@ Deno.serve(async (req) => {
               params_owner_id: params.owner_id || null,
               consultores_available: [...consultoresMap.keys()],
             });
-            console.error("CONSULTOR_MAP_KEYS", [...consultoresMap.keys()]);
+            // console.error("CONSULTOR_MAP_KEYS", [...consultoresMap.keys()]);
 
             // Priority 1: DB cached funnel data (fast, no external call)
             if (!resolvedOwnerId || ownerSource.startsWith("manual")) {
@@ -3213,7 +3213,7 @@ Deno.serve(async (req) => {
           }
 
           // ── AUDIT: log final owner decision ──
-          console.error(`[SM Migration] OWNER_RESOLVED proposal=${smProp.sm_proposal_id}`, {
+          // console.error(`[SM Migration] OWNER_RESOLVED proposal=${smProp.sm_proposal_id}`, {
             owner_id: resolvedOwnerId,
             owner_source: ownerSource,
             auto_created: ownerAutoCreated,
@@ -3432,18 +3432,18 @@ Deno.serve(async (req) => {
           if (dealId && smProp.sm_project_id) {
             const smProj = smProjectMap.get(smProp.sm_project_id);
             const funnels: any[] = smProj?.all_funnels || [];
-            console.error("RAW_FUNNELS", JSON.stringify(smProj?.all_funnels ?? null, null, 2));
+            // console.error("RAW_FUNNELS", JSON.stringify(smProj?.all_funnels ?? null, null, 2));
             const validFunnels = funnels.filter((f: any) => {
               const funnelName = readSmFunnelName(f);
               const stageName = readSmStageName(f);
               const normalized = normalizeComparableName(funnelName);
-              console.error("NORMALIZED_FUNNEL", normalized);
+              // console.error("NORMALIZED_FUNNEL", normalized);
               return funnelName && !NON_OPERATIONAL_FUNNELS.has(normalized) && !!stageName;
             });
-            console.error("VALID_FUNNELS_COUNT", validFunnels.length);
+            // console.error("VALID_FUNNELS_COUNT", validFunnels.length);
 
             // ── AUDIT: log funnel resolution inputs ──
-            console.error(`[SM Migration] FUNNEL_AUDIT proposal=${smProp.sm_proposal_id}`, {
+            // console.error(`[SM Migration] FUNNEL_AUDIT proposal=${smProp.sm_proposal_id}`, {
               sm_funnel_name: smProj?.sm_funnel_name || null,
               all_funnels: funnels.map((f: any) => ({
                 name: readSmFunnelName(f),
@@ -3510,7 +3510,7 @@ Deno.serve(async (req) => {
           }
 
           // ── D. Projeto ──
-          console.error("ANTES_PROJETO", { dealId, clienteId, projetoFunisMapSize: projetoFunisMap?.size, funilFirstEtapaMapSize: funilFirstEtapaMap?.size });
+          // console.error("ANTES_PROJETO", { dealId, clienteId, projetoFunisMapSize: projetoFunisMap?.size, funilFirstEtapaMapSize: funilFirstEtapaMap?.size });
           let projetoId: string | null = null;
           const projetoCodigo = `PROJ-SM-${smProp.sm_project_id || smProp.sm_proposal_id}`;
 
@@ -3730,7 +3730,7 @@ Deno.serve(async (req) => {
                   projInsert.created_at = smProjDate;
                   projInsert.updated_at = smProp.sm_updated_at || smProp.acceptance_date || smProjDate;
                 }
-                console.error("PROJETO_INSERT_PAYLOAD", { tenant_id: tenantId, deal_id: dealId, funil_id: projInsert.funil_id, etapa_id: projInsert.etapa_id, codigo: projInsert.codigo });
+                // console.error("PROJETO_INSERT_PAYLOAD", { tenant_id: tenantId, deal_id: dealId, funil_id: projInsert.funil_id, etapa_id: projInsert.etapa_id, codigo: projInsert.codigo });
                 const { data: newProj, error: projErr } = await adminClient
                   .from("projetos")
                   .insert(projInsert)
@@ -3798,7 +3798,7 @@ Deno.serve(async (req) => {
                 }
               }
 
-            console.error("DEPOIS_PROJETO", { projetoId, status: report.steps.projeto?.status });
+            // console.error("DEPOIS_PROJETO", { projetoId, status: report.steps.projeto?.status });
 
             // Link projeto_id to deal (backfill for new or existing deals)
             if (projetoId && dealId) {
@@ -3812,7 +3812,7 @@ Deno.serve(async (req) => {
             report.steps.projeto = { status: dry_run ? "WOULD_CREATE" : "ERROR", reason: dry_run ? undefined : "no deal_id" };
           }
 
-          console.error("ANTES_PROPOSTA_NATIVA", { projetoId, dealId });
+          // console.error("ANTES_PROPOSTA_NATIVA", { projetoId, dealId });
           // ── E. Proposta Nativa ──
           const smIdKey = `${smProp.sm_project_id || 0}:${smProp.sm_proposal_id}`;
           let propostaId: string | null = existingPropostas.get(smIdKey) || null;
@@ -3877,9 +3877,9 @@ Deno.serve(async (req) => {
             }
           }
 
-          console.error("DEPOIS_PROPOSTA_NATIVA", { propostaId, status: report.steps.proposta_nativa?.status });
+          // console.error("DEPOIS_PROPOSTA_NATIVA", { propostaId, status: report.steps.proposta_nativa?.status });
 
-          console.error("ANTES_VERSAO", { propostaId });
+          // console.error("ANTES_VERSAO", { propostaId });
           // ── F. Proposta Versão ──
           // FIX: Always attempt version creation if propostaId exists and version is missing,
           // even when proposta_nativa was WOULD_SKIP (re-run after partial migration).
@@ -4260,7 +4260,7 @@ Deno.serve(async (req) => {
             report.steps.proposta_versao = { status: "WOULD_CREATE" };
           }
 
-          console.error("DEPOIS_VERSAO", { propostaId, versaoStatus: report.steps.proposta_versao?.status });
+          // console.error("DEPOIS_VERSAO", { propostaId, versaoStatus: report.steps.proposta_versao?.status });
 
           // ── G. Apply Custom Field Mappings to canonical entities ──
           // WHITELIST: only these real columns can be written via target_path
