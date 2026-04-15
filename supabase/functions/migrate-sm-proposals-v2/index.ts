@@ -3264,7 +3264,7 @@ Deno.serve(async (req) => {
                 }
                 const bestOp = resolveBestOperationalFunnel(smProj?.all_funnels, projetoFunisMap, projetoFunisOrdemMap);
                 if (bestOp) return bestOp.funilId;
-                return null;
+                return COMERCIAL_FUNIL_ID || null;
               })();
 
               const resolvedEtapaId = (() => {
@@ -3364,9 +3364,8 @@ Deno.serve(async (req) => {
                       const bestOp = resolveBestOperationalFunnel(smProj?.all_funnels, projetoFunisMap, projetoFunisOrdemMap);
                       if (bestOp) return bestOp.funilId;
 
-                      // No operational funnel found → null (don't force into Engenharia without evidence)
-                      // Rule: "não criar projeto operacional sem evidência de funil operacional real"
-                      return null;
+                      // No operational funnel found → fallback to Comercial
+                      return COMERCIAL_FUNIL_ID || null;
                     })(),
                     etapa_id: (() => {
                       // Resolve etapa matching the resolved funil.
