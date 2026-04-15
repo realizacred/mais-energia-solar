@@ -812,10 +812,15 @@ async function handleSyncPipelines(adminClient: any, tenantId: string): Promise<
 
     // For each planned funnel, ensure projeto_funis + projeto_etapas exist
     // Source of truth = solar_market_funnel_stages, with project-derived stages merged in.
+    console.error("[SM Sync] canonicalOperationalStagesMap entries:", [...canonicalOperationalStagesMap.keys()]);
+    console.error("[SM Sync] funnelStagesMap entries:", [...funnelStagesMap.keys()]);
+    console.error("[SM Sync] existingFunisMap entries:", [...existingFunisMap.keys()]);
+    console.error("[SM Sync] ALLOWED_FUNIS:", [...ALLOWED_FUNIS]);
     for (const [funnelName, stageNames] of canonicalOperationalStagesMap) {
       const normalizedFunnelName = normalizeNameForCompare(funnelName);
       if (EXCLUDED_FUNIS.includes(normalizedFunnelName)) continue;
       if (!ALLOWED_FUNIS.has(normalizedFunnelName)) continue;
+      console.error(`[SM Sync] Processing funil "${funnelName}" (normalized: "${normalizedFunnelName}") with ${stageNames.size} stages`);
 
       let existingFunil = existingFunisMap.get(normalizedFunnelName);
 
