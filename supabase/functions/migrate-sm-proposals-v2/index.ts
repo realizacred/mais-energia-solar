@@ -1929,36 +1929,44 @@ Deno.serve(async (req) => {
     async function resolveOrCreateConsultor(stageName: string): Promise<{ id: string; created: boolean }> {
       const key = normalizeComparableName(stageName);
       if (!key) {
-        // Empty name → use "Escritório"
+        console.error(`[SM Migration] CONSULTOR_MATCH stageName="" → Escritório (empty name)`);
         return resolveOrCreateEscritorio();
       }
 
       // Priority 0: ex-funcionários → Escritório direto (sem log de erro)
       if (EX_FUNCIONARIOS.includes(key)) {
+        console.error(`[SM Migration] CONSULTOR_MATCH stageName="${stageName}" normalized="${key}" → Escritório (ex-funcionário)`);
         return resolveOrCreateEscritorio();
       }
 
       // Priority 1: exact match in consultoresMap
       const existing = consultoresMap.get(key);
-      if (existing) return { id: existing, created: false };
+      if (existing) {
+        console.error(`[SM Migration] CONSULTOR_MATCH stageName="${stageName}" normalized="${key}" → exact match id=${existing}`);
+        return { id: existing, created: false };
+      }
 
       // Priority 2: VENDEDOR_MAP lookup — find canonical name and match (word-boundary safe)
       const mappedName = Object.entries(VENDEDOR_MAP).find(([k]) => key === k || key.startsWith(k + ' ') || key.endsWith(' ' + k))?.[1];
       if (mappedName) {
         const normalizedMapped = normalizeComparableName(mappedName);
         const mapped = consultoresMap.get(normalizedMapped);
-        if (mapped) return { id: mapped, created: false };
+        if (mapped) {
+          console.error(`[SM Migration] CONSULTOR_MATCH stageName="${stageName}" normalized="${key}" → VENDEDOR_MAP "${mappedName}" id=${mapped}`);
+          return { id: mapped, created: false };
+        }
       }
 
       // Priority 3: partial match (first name)
       for (const [k, v] of consultoresMap) {
         if (k.startsWith(key) || key.startsWith(k)) {
+          console.error(`[SM Migration] CONSULTOR_MATCH stageName="${stageName}" normalized="${key}" → partial match "${k}" id=${v}`);
           return { id: v, created: false };
         }
       }
 
       // Priority 4: No match found — fallback to "Escritório" instead of creating new consultor
-      console.error(`[SM Migration] Consultor "${stageName}" not found, falling back to Escritório`);
+      console.error(`[SM Migration] CONSULTOR_MATCH stageName="${stageName}" normalized="${key}" → NO MATCH → Escritório`);
       return resolveOrCreateEscritorio();
     }
 
@@ -2781,6 +2789,22 @@ Deno.serve(async (req) => {
           if (autoResolveOwner && smProp.sm_project_id) {
             const smProj = smProjectMap.get(smProp.sm_project_id);
 
+            // ── AUDIT: log all inputs for owner resolution ──
+            const auditFunnels = smProj?.all_funnels || [];
+            const vendedorFunnel = auditFunnels.find((f: any) => {
+              const fn = String(f.funnelName || f.funnel_name || "").toLowerCase().trim();
+              return fn === "vendedores";
+            });
+            console.error(`[SM Migration] OWNER_AUDIT proposal=${smProp.sm_proposal_id}`, {
+              sm_project_id: smProp.sm_project_id,
+              vendedor_raw: vendedorFunnel ? String(vendedorFunnel.stageName || vendedorFunnel.stage_name || "") : null,
+              vendedor_normalized: vendedorFunnel ? normalizeComparableName(String(vendedorFunnel.stageName || vendedorFunnel.stage_name || "")) : null,
+              sm_funnel_name: smProj?.sm_funnel_name || null,
+              sm_stage_name: smProj?.sm_stage_name || null,
+              params_owner_id: params.owner_id || null,
+              consultores_available: [...consultoresMap.keys()],
+            });
+
             // Priority 1: DB cached funnel data (fast, no external call)
             if (!resolvedOwnerId || ownerSource.startsWith("manual")) {
               // Check all_funnels first (richer data than sm_funnel_name)
@@ -2846,6 +2870,13 @@ Deno.serve(async (req) => {
               continue;
             }
           }
+
+          // ── AUDIT: log final owner decision ──
+          console.error(`[SM Migration] OWNER_RESOLVED proposal=${smProp.sm_proposal_id}`, {
+            owner_id: resolvedOwnerId,
+            owner_source: ownerSource,
+            auto_created: ownerAutoCreated,
+          });
 
           // ── C. Deal (idempotent via legacy_key) ──
           const legacyKey = `sm:${smProp.sm_project_id || 0}:${smProp.sm_proposal_id}`;
@@ -3062,7 +3093,20 @@ Deno.serve(async (req) => {
             const funnels: any[] = smProj?.all_funnels || [];
             const validFunnels = funnels.filter((f: any) => {
               const funnelName = String(f.funnelName || "").trim();
-              return funnelName && normalizeComparableName(funnelName) !== "vendedores" && f.stageName;
+              const normalized = normalizeComparableName(funnelName);
+              return funnelName && !NON_OPERATIONAL_FUNNELS.has(normalized) && f.stageName;
+            });
+
+            // ── AUDIT: log funnel resolution inputs ──
+            console.error(`[SM Migration] FUNNEL_AUDIT proposal=${smProp.sm_proposal_id}`, {
+              sm_funnel_name: smProj?.sm_funnel_name || null,
+              all_funnels: funnels.map((f: any) => ({
+                name: String(f.funnelName || "").trim(),
+                stage: String(f.stageName || "").trim(),
+                is_operational: !NON_OPERATIONAL_FUNNELS.has(normalizeComparableName(String(f.funnelName || ""))),
+              })),
+              valid_count: validFunnels.length,
+              will_fallback: validFunnels.length === 0,
             });
 
             if (validFunnels.length > 0) {
