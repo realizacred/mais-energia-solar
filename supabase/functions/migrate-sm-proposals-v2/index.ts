@@ -1230,16 +1230,25 @@ Deno.serve(async (req) => {
               targetFunilId = bestOp.funilId;
               resolvedStageName = bestOp.stageName;
             } else {
-              // No operational funnel found → fallback to Comercial, then Engenharia
+              // No operational funnel found → fallback to Comercial
               targetFunilId = COMERCIAL_FUNIL_ID || FALLBACK_FUNIL_ID || null;
+              // Check if LEAD funnel exists in all_funnels for stage mapping to Comercial
+              if (targetFunilId === COMERCIAL_FUNIL_ID && Array.isArray(smProj.all_funnels)) {
+                for (const f of smProj.all_funnels) {
+                  const fName = normalizeNameForCompare(readSmFunnelName(f));
+                  if (fName === "lead") {
+                    resolvedStageName = readSmStageName(f) || null;
+                    break;
+                  }
+                }
+              }
             }
           }
-          // If still no funnel, Comercial fallback was already applied above
 
           // Resolve etapa_id
           let targetEtapaId: string | null = null;
           if (targetFunilId) {
-            // Try resolved stage name first
+            // Try resolved stage name first (maps LEAD stage names to Comercial etapas)
             if (resolvedStageName) {
               const nameKey = `${targetFunilId}::${normalizeNameForCompare(resolvedStageName)}`;
               targetEtapaId = fixEtapaByNameMap.get(nameKey) || null;
@@ -1257,9 +1266,17 @@ Deno.serve(async (req) => {
                 }
               }
             }
-            if (!targetEtapaId) targetEtapaId = funilFirstEtapaMap.get(targetFunilId) || (targetFunilId === COMERCIAL_FUNIL_ID ? COMERCIAL_ETAPA_ID : null) || FALLBACK_ETAPA_ID || null;
+            // Default: for Comercial fallback use "Proposta Enviada", for others use first etapa
+            if (!targetEtapaId) {
+              if (targetFunilId === COMERCIAL_FUNIL_ID) {
+                targetEtapaId = COMERCIAL_ETAPA_ID || funilFirstEtapaMap.get(targetFunilId) || null;
+              } else {
+                targetEtapaId = funilFirstEtapaMap.get(targetFunilId) || FALLBACK_ETAPA_ID || null;
+              }
+            }
           } else {
             // No funil → use Comercial etapa directly
+            targetFunilId = COMERCIAL_FUNIL_ID || null;
             targetEtapaId = COMERCIAL_ETAPA_ID || FALLBACK_ETAPA_ID || null;
           }
 
@@ -1772,12 +1789,13 @@ Deno.serve(async (req) => {
         .maybeSingle();
       if (comercialFunil) {
         COMERCIAL_FUNIL_ID = comercialFunil.id;
+        // Default Comercial etapa for orphan projects: "Proposta Enviada"
         const { data: comercialEtapa } = await adminClient
           .from("projeto_etapas")
           .select("id")
           .eq("tenant_id", tenantId)
           .eq("funil_id", comercialFunil.id)
-          .ilike("nome", "%andamento%")
+          .ilike("nome", "%proposta enviada%")
           .limit(1)
           .maybeSingle();
         if (comercialEtapa) {
