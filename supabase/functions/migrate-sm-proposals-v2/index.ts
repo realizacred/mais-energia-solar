@@ -861,7 +861,7 @@ async function handleSyncPipelines(adminClient: any, tenantId: string): Promise<
     JSON.stringify({
       action: "sync_pipelines",
       success: true,
-      report: { ...report, funis_activated: funisActivated },
+      report: { ...report, funis_activated: funisActivated, funis_created: funisCreated },
       total_projects_scanned: allProjects.length,
     }),
     { headers: { ...corsHeaders, "Content-Type": "application/json" } },
