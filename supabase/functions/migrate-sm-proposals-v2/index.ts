@@ -602,7 +602,7 @@ async function handleSyncPipelines(adminClient: any, tenantId: string): Promise<
 
       if (pipeErr) throw new Error(`Falha ao criar pipeline "${pipelineName}": ${pipeErr.message}`);
       pipelineId = newPipe!.id;
-      pipelineMap.set(normalizedPipeName, pipelineId);
+      pipelineMap.set(normalizedPipeName, pipelineId!);
       report.pipelines.created++;
     }
 
@@ -613,7 +613,7 @@ async function handleSyncPipelines(adminClient: any, tenantId: string): Promise<
       .from("pipeline_stages")
       .select("id, name, position")
       .eq("tenant_id", tenantId)
-      .eq("pipeline_id", pipelineId);
+      .eq("pipeline_id", pipelineId!);
 
     const existingStageMap = new Map<string, { id: string; position: number }>();
     for (const s of existingStages || []) {
@@ -812,10 +812,15 @@ async function handleSyncPipelines(adminClient: any, tenantId: string): Promise<
 
     // For each planned funnel, ensure projeto_funis + projeto_etapas exist
     // Source of truth = solar_market_funnel_stages, with project-derived stages merged in.
+    console.error("[SM Sync] canonicalOperationalStagesMap entries:", [...canonicalOperationalStagesMap.keys()]);
+    console.error("[SM Sync] funnelStagesMap entries:", [...funnelStagesMap.keys()]);
+    console.error("[SM Sync] existingFunisMap entries:", [...existingFunisMap.keys()]);
+    console.error("[SM Sync] ALLOWED_FUNIS:", [...ALLOWED_FUNIS]);
     for (const [funnelName, stageNames] of canonicalOperationalStagesMap) {
       const normalizedFunnelName = normalizeNameForCompare(funnelName);
       if (EXCLUDED_FUNIS.includes(normalizedFunnelName)) continue;
       if (!ALLOWED_FUNIS.has(normalizedFunnelName)) continue;
+      console.error(`[SM Sync] Processing funil "${funnelName}" (normalized: "${normalizedFunnelName}") with ${stageNames.size} stages`);
 
       let existingFunil = existingFunisMap.get(normalizedFunnelName);
 
@@ -1383,9 +1388,9 @@ Deno.serve(async (req) => {
             // Default: for Comercial fallback use "Proposta Enviada", for others use first etapa
             if (!targetEtapaId) {
               if (targetFunilId === COMERCIAL_FUNIL_ID) {
-                targetEtapaId = COMERCIAL_ETAPA_ID || funilFirstEtapaMap.get(targetFunilId) || null;
+                targetEtapaId = COMERCIAL_ETAPA_ID || fixEtapaFirstMap.get(targetFunilId) || null;
               } else {
-                targetEtapaId = funilFirstEtapaMap.get(targetFunilId) || FALLBACK_ETAPA_ID || null;
+                targetEtapaId = fixEtapaFirstMap.get(targetFunilId) || FALLBACK_ETAPA_ID || null;
               }
             }
           } else {
@@ -2993,7 +2998,7 @@ Deno.serve(async (req) => {
                     .maybeSingle();
                   if (existing) {
                     clienteId = existing.id;
-                    report.steps.cliente = { status: "WOULD_LINK", id: clienteId, reason: "cliente_code já existia" };
+                    report.steps.cliente = { status: "WOULD_LINK", id: clienteId ?? undefined, reason: "cliente_code já existia" };
                   } else {
                     report.aborted = true;
                     report.steps.cliente = { status: "ERROR", reason: insErr.message };
@@ -3043,7 +3048,7 @@ Deno.serve(async (req) => {
                   }
                   if (existing) {
                     clienteId = existing.id;
-                    if (phoneNorm) clienteByPhone.set(phoneNorm, { id: clienteId, count: 1 });
+                    if (phoneNorm && clienteId) clienteByPhone.set(phoneNorm, { id: clienteId, count: 1 });
                     report.steps.cliente = { status: "WOULD_LINK", id: clienteId, reason: "telefone já existia — vinculado ao cliente existente" };
                   } else {
                     report.aborted = true;
@@ -3064,12 +3069,12 @@ Deno.serve(async (req) => {
               } else {
                 clienteId = newClient!.id;
                 // Update local maps for future iterations
-                if (phoneNorm) clienteByPhone.set(phoneNorm, { id: clienteId, count: 1 });
-                if (smClient.email) clienteByEmail.set(smClient.email.trim().toLowerCase(), clienteId);
+                if (phoneNorm && clienteId) clienteByPhone.set(phoneNorm, { id: clienteId, count: 1 });
+                if (smClient.email && clienteId) clienteByEmail.set(smClient.email.trim().toLowerCase(), clienteId);
                 const docNorm2 = smClient.document ? smClient.document.replace(/\D/g, "") : "";
-                if (docNorm2.length >= 11) clienteByDoc.set(docNorm2, clienteId);
-                clienteByCode.set(clienteCode, clienteId);
-                clienteAddressMap.set(clienteId, { rua: smClient.address || null, cidade: smClient.city || smProp.cidade || null });
+                if (docNorm2.length >= 11 && clienteId) clienteByDoc.set(docNorm2, clienteId);
+                if (clienteId) clienteByCode.set(clienteCode, clienteId);
+                if (clienteId) clienteAddressMap.set(clienteId, { rua: smClient.address || null, cidade: smClient.city || smProp.cidade || null });
                 report.steps.cliente = { status: "CREATED", id: clienteId };
               }
             }
