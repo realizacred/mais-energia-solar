@@ -3393,7 +3393,7 @@ Deno.serve(async (req) => {
                         }
                       }
 
-                      return funilFirstEtapaMap.get(targetFunilId) || FALLBACK_ETAPA_ID;
+                      return funilFirstEtapaMap.get(targetFunilId) || null; // No Engenharia fallback for etapa
                     })(),
                 };
                 if (smProjDate) {
