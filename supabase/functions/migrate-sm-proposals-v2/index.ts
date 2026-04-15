@@ -3044,6 +3044,7 @@ Deno.serve(async (req) => {
           }
 
           // ── D. Projeto ──
+          console.error("ANTES_PROJETO", { dealId, clienteId, projetoFunisMapSize: projetoFunisMap?.size, funilFirstEtapaMapSize: funilFirstEtapaMap?.size });
           let projetoId: string | null = null;
           const projetoCodigo = `PROJ-SM-${smProp.sm_project_id || smProp.sm_proposal_id}`;
 
