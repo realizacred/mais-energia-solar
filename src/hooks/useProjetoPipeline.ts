@@ -73,6 +73,27 @@ export interface ProjetoFiltersState {
   search: string;
 }
 
+const PROJETOS_FETCH_BATCH_SIZE = 1000;
+
+async function fetchAllProjetosRows(baseQuery: ReturnType<typeof supabase.from<"projetos">>) {
+  const allRows: any[] = [];
+  let from = 0;
+
+  while (true) {
+    const to = from + PROJETOS_FETCH_BATCH_SIZE - 1;
+    const { data, error } = await (baseQuery as any).range(from, to);
+    if (error) throw error;
+
+    const batch = data || [];
+    allRows.push(...batch);
+
+    if (batch.length < PROJETOS_FETCH_BATCH_SIZE) break;
+    from += PROJETOS_FETCH_BATCH_SIZE;
+  }
+
+  return allRows;
+}
+
 const normalizeComparableName = (value: string | null | undefined): string => {
   const normalized = String(value || "")
     .normalize("NFD")
@@ -183,8 +204,7 @@ export function useProjetoPipeline() {
       query = query.or(`codigo.ilike.%${f.search}%`);
     }
 
-    const { data, error } = await query;
-    if (error) throw error;
+    const data = await fetchAllProjetosRows(query as any);
 
     const projetoIds = (data || []).map((p: any) => p.id);
     const relMap = new Map<string, string[]>();
@@ -665,7 +685,7 @@ export function useProjetoPipeline() {
   const projetosByEtapa = useMemo(() => {
     const map = new Map<string | null, ProjetoItem[]>();
     projetos
-      .filter(p => p.funil_id === selectedFunilId || (!p.funil_id && selectedFunilId))
+      .filter(p => p.funil_id === selectedFunilId)
       .forEach(p => {
         const key = p.etapa_id || null;
         const arr = map.get(key) || [];
