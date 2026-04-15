@@ -1101,8 +1101,8 @@ Deno.serve(async (req) => {
               targetFunilId = bestOp.funilId;
               resolvedStageName = bestOp.stageName;
             } else {
-              // No operational funnel found → fallback to Comercial
-              targetFunilId = COMERCIAL_FUNIL_ID || null;
+              // No operational funnel found → fallback to Comercial, then Engenharia
+              targetFunilId = COMERCIAL_FUNIL_ID || FALLBACK_FUNIL_ID || null;
             }
           }
           // If still no funnel, Comercial fallback was already applied above
@@ -1128,10 +1128,10 @@ Deno.serve(async (req) => {
                 }
               }
             }
-            if (!targetEtapaId) targetEtapaId = funilFirstEtapaMap.get(targetFunilId) || (targetFunilId === COMERCIAL_FUNIL_ID ? COMERCIAL_ETAPA_ID : null) || null;
+            if (!targetEtapaId) targetEtapaId = funilFirstEtapaMap.get(targetFunilId) || (targetFunilId === COMERCIAL_FUNIL_ID ? COMERCIAL_ETAPA_ID : null) || FALLBACK_ETAPA_ID || null;
           } else {
             // No funil → use Comercial etapa directly
-            targetEtapaId = COMERCIAL_ETAPA_ID || null;
+            targetEtapaId = COMERCIAL_ETAPA_ID || FALLBACK_ETAPA_ID || null;
           }
 
           // Resolve consultor from Vendedores funnel
@@ -3268,7 +3268,7 @@ Deno.serve(async (req) => {
                 }
                 const bestOp = resolveBestOperationalFunnel(smProj?.all_funnels, projetoFunisMap, projetoFunisOrdemMap);
                 if (bestOp) return bestOp.funilId;
-                return COMERCIAL_FUNIL_ID || null;
+                return COMERCIAL_FUNIL_ID || FALLBACK_FUNIL_ID || null;
               })();
 
               const resolvedEtapaId = (() => {
@@ -3291,7 +3291,7 @@ Deno.serve(async (req) => {
                   const matched = matchEtapaByName(resolvedFunilId, bestOp.stageName);
                   if (matched) return matched;
                 }
-                return funilFirstEtapaMap.get(resolvedFunilId) || (resolvedFunilId === COMERCIAL_FUNIL_ID ? COMERCIAL_ETAPA_ID : null) || null;
+                return funilFirstEtapaMap.get(resolvedFunilId) || (resolvedFunilId === COMERCIAL_FUNIL_ID ? COMERCIAL_ETAPA_ID : null) || FALLBACK_ETAPA_ID || null;
               })();
 
               const projUpdateFields: Record<string, any> = {
@@ -3387,8 +3387,8 @@ Deno.serve(async (req) => {
                       const bestOp = resolveBestOperationalFunnel(smProj?.all_funnels, projetoFunisMap, projetoFunisOrdemMap);
                       if (bestOp) return bestOp.funilId;
 
-                      // No operational funnel found → fallback to Comercial
-                      return COMERCIAL_FUNIL_ID || null;
+                      // No operational funnel found → fallback to Comercial, then Engenharia
+                      return COMERCIAL_FUNIL_ID || FALLBACK_FUNIL_ID || null;
                     })(),
                     etapa_id: (() => {
                       // Resolve etapa matching the resolved funil.
@@ -3429,12 +3429,12 @@ Deno.serve(async (req) => {
                           targetFunilId = bestOp.funilId;
                           resolvedStageName = bestOp.stageName;
                         } else {
-                          // No operational funnel found → fallback to Comercial
-                          targetFunilId = COMERCIAL_FUNIL_ID || null;
+                          // No operational funnel found → fallback to Comercial, then Engenharia
+                          targetFunilId = COMERCIAL_FUNIL_ID || FALLBACK_FUNIL_ID || null;
                         }
                       }
 
-                      if (!targetFunilId) return COMERCIAL_ETAPA_ID || null;
+                      if (!targetFunilId) return COMERCIAL_ETAPA_ID || FALLBACK_ETAPA_ID || null;
 
                       // Try matching resolved stage name
                       if (resolvedStageName) {
@@ -4539,13 +4539,42 @@ Deno.serve(async (req) => {
               : proj.status === "lost" ? "perdido"
               : "em_andamento";
 
+            // Resolve funil/etapa for Group B projects
+            const groupBFunilId = (() => {
+              const bestOp = resolveBestOperationalFunnel(proj.all_funnels, projetoFunisMap, projetoFunisOrdemMap);
+              if (bestOp) return bestOp.funilId;
+              return COMERCIAL_FUNIL_ID || FALLBACK_FUNIL_ID || null;
+            })();
+            const groupBEtapaId = (() => {
+              if (!groupBFunilId) return COMERCIAL_ETAPA_ID || FALLBACK_ETAPA_ID || null;
+              // Try to match stage name from all_funnels
+              if (Array.isArray(proj.all_funnels)) {
+                for (const f of proj.all_funnels) {
+                  const fName = normalizeComparableName(readSmFunnelName(f));
+                  if (!fName || NON_OPERATIONAL_FUNNELS.has(fName)) continue;
+                  const fStageName = readSmStageName(f);
+                  if (fStageName) {
+                    const nameKey = `${groupBFunilId}::${normalizeComparableName(fStageName)}`;
+                    const matched = funilEtapaByNameMap.get(nameKey);
+                    if (matched) return matched;
+                  }
+                }
+              }
+              // Try sm_stage_name
+              if (proj.sm_stage_name) {
+                const nameKey = `${groupBFunilId}::${normalizeComparableName(proj.sm_stage_name)}`;
+                const matched = funilEtapaByNameMap.get(nameKey);
+                if (matched) return matched;
+              }
+              return funilFirstEtapaMap.get(groupBFunilId) || FALLBACK_ETAPA_ID || null;
+            })();
+
             const { data: newProj, error: projErr } = await adminClient
               .from("projetos")
               .insert({
                 origem: "imported",
                 import_source: "solar_market",
                 tenant_id: tenantId,
-                nome: proj.name || "Projeto SM",
                 cliente_id: clienteId,
                 potencia_kwp: proj.potencia_kwp,
                 status: canonicalStatus === "ganho" ? "concluido" : "criado",
@@ -4556,12 +4585,9 @@ Deno.serve(async (req) => {
                 cep_instalacao: proj.zip_code,
                 tipo_instalacao: proj.installation_type,
                 valor_total: proj.valor,
-                source_metadata: {
-                  provider: "solarmarket",
-                  sm_project_id: proj.sm_project_id,
-                  imported_at: new Date().toISOString(),
-                  no_active_proposal: true,
-                },
+                funil_id: groupBFunilId,
+                etapa_id: groupBEtapaId,
+                is_principal: false,
                 codigo: `PROJ-SM-NP-${proj.sm_project_id}`,
               })
               .select("id")
