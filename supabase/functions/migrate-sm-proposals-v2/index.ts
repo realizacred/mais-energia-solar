@@ -3313,6 +3313,25 @@ Deno.serve(async (req) => {
             }
 
             if (!projetoId && !existingByCodigoId && !projetoByDeal.get(dealId)) {
+                // Re-check live DB because another flow/trigger may have created the project
+                // right after the deal insert, making the preloaded cache stale in this run.
+                const { data: liveProjetoByDeal } = await adminClient
+                  .from("projetos")
+                  .select("id, codigo, deal_id")
+                  .eq("tenant_id", tenantId)
+                  .eq("deal_id", dealId)
+                  .limit(1)
+                  .maybeSingle();
+
+                if (liveProjetoByDeal?.id) {
+                  projetoId = liveProjetoByDeal.id;
+                  if (liveProjetoByDeal.codigo) projetoByCodigo.set(liveProjetoByDeal.codigo, projetoId);
+                  if (liveProjetoByDeal.deal_id) projetoByDeal.set(liveProjetoByDeal.deal_id, projetoId);
+                  report.steps.projeto = { status: "WOULD_LINK", id: projetoId, reason: "matched by live deal_id lookup" };
+                }
+            }
+
+            if (!projetoId && !existingByCodigoId && !projetoByDeal.get(dealId)) {
                 const smProjDate = smProp.sm_created_at || smProp.generated_at || null;
 
 
@@ -3452,16 +3471,33 @@ Deno.serve(async (req) => {
                 if (projErr) {
                   console.error("PROJETO_INSERT_ERROR", projErr.message);
 
+                  const { data: existingByDealLive } = await adminClient
+                    .from("projetos")
+                    .select("id, codigo, deal_id")
+                    .eq("tenant_id", tenantId)
+                    .eq("deal_id", dealId)
+                    .limit(1)
+                    .maybeSingle();
+
+                  if (existingByDealLive?.id) {
+                    projetoId = existingByDealLive.id;
+                    if (existingByDealLive.codigo) projetoByCodigo.set(existingByDealLive.codigo, projetoId);
+                    if (existingByDealLive.deal_id) projetoByDeal.set(existingByDealLive.deal_id, projetoId);
+                    report.steps.projeto = { status: "WOULD_LINK", id: projetoId, reason: "deal_id conflict resolved" };
+                  }
+
                   // If unique constraint on codigo, fetch existing
-                  if (projErr.message.includes("uq_projetos_tenant_codigo")) {
+                  else if (projErr.message.includes("uq_projetos_tenant_codigo")) {
                     const { data: existingByCode } = await adminClient
                       .from("projetos")
-                      .select("id")
+                      .select("id, codigo, deal_id")
                       .eq("tenant_id", tenantId)
                       .eq("codigo", projetoCodigo)
                       .maybeSingle();
                     if (existingByCode) {
                       projetoId = existingByCode.id;
+                      if (existingByCode.codigo) projetoByCodigo.set(existingByCode.codigo, projetoId);
+                      if (existingByCode.deal_id) projetoByDeal.set(existingByCode.deal_id, projetoId);
                       report.steps.projeto = { status: "WOULD_LINK", id: projetoId, reason: "codigo conflict resolved" };
                     } else {
                       report.steps.projeto = { status: "ERROR", reason: projErr.message };
@@ -3478,6 +3514,8 @@ Deno.serve(async (req) => {
                       report.steps.projeto = { status: "ERROR", reason: retryErr.message };
                     } else {
                       projetoId = retryProj!.id;
+                      projetoByCodigo.set(projetoCodigo, projetoId);
+                      projetoByDeal.set(dealId, projetoId);
                       report.steps.projeto = { status: "CREATED", id: projetoId };
                     }
                   } else {
