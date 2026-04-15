@@ -1502,9 +1502,9 @@ Deno.serve(async (req) => {
         const data = await res.json();
         const funnels = Array.isArray(data) ? data : data.data ? (Array.isArray(data.data) ? data.data : [data.data]) : [data];
         for (const f of funnels) {
-          const fName = f.funnelName || f.funnel_name || f.name || "";
+          const fName = readSmFunnelName(f);
           if (fName === "Vendedores") {
-            return f.stageName || f.stage_name || f.currentStageName || f.stage?.name || null;
+            return readSmStageName(f) || null;
           }
         }
         return null;
