@@ -20397,6 +20397,54 @@ export type Database = {
         }
         Relationships: []
       }
+      sm_consultor_mapping: {
+        Row: {
+          canonical_name: string
+          consultor_id: string | null
+          created_at: string
+          id: string
+          is_ex_funcionario: boolean
+          sm_name: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          canonical_name: string
+          consultor_id?: string | null
+          created_at?: string
+          id?: string
+          is_ex_funcionario?: boolean
+          sm_name: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          canonical_name?: string
+          consultor_id?: string | null
+          created_at?: string
+          id?: string
+          is_ex_funcionario?: boolean
+          sm_name?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sm_consultor_mapping_consultor_id_fkey"
+            columns: ["consultor_id"]
+            isOneToOne: false
+            referencedRelation: "consultores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sm_consultor_mapping_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sm_migration_log: {
         Row: {
           created_at: string
