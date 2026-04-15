@@ -75,7 +75,7 @@ export interface ProjetoFiltersState {
 
 const PROJETOS_FETCH_BATCH_SIZE = 1000;
 
-async function fetchAllProjetosRows(baseQuery: ReturnType<typeof supabase.from<"projetos">>) {
+async function fetchAllProjetosRows(baseQuery: any) {
   const allRows: any[] = [];
   let from = 0;
 
