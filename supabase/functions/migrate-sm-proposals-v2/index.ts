@@ -662,6 +662,7 @@ async function handleSyncPipelines(adminClient: any, tenantId: string): Promise<
 
 Deno.serve(async (req) => {
   console.error("[SM Migration] HANDLER ENTRY", req.method);
+
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
@@ -690,11 +691,19 @@ Deno.serve(async (req) => {
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const adminClient = createClient(supabaseUrl, serviceKey);
 
+    console.error("[SM Migration] AUTH CHECK", {
+      hasCron: !!cronSecretHeader,
+      hasAuth: !!authHeader,
+      authLen: authHeader.length,
+      method: req.method,
+      url: req.url,
+      userAgent: req.headers.get("user-agent")?.substring(0, 80) || "none",
+    });
+
     let tenantId: string;
     let rawBody: any;
 
     // ── CRON MODE: auto-resume for all enabled tenants ──
-    console.error("[SM Migration] AUTH CHECK", { hasCron: !!cronSecretHeader, hasAuth: !!authHeader });
     if (cronSecretHeader) {
       const expectedCronSecret = Deno.env.get("CRON_SECRET");
       if (!expectedCronSecret || cronSecretHeader !== expectedCronSecret) {
@@ -749,8 +758,9 @@ Deno.serve(async (req) => {
         };
 
         try {
-          console.error(`[SM Migration] CRON dispatching inner call for tenant=${s.tenant_id}, pending=${pendingCount}`);
-          const innerResp = await fetch(`${supabaseUrl}/functions/v1/migrate-sm-proposals-v2`, {
+          const fetchUrl = `${supabaseUrl}/functions/v1/migrate-sm-proposals-v2`;
+          console.error("[SM Migration] CRON FETCH ANTES", { tenant: s.tenant_id, url: fetchUrl, svcKeyLen: serviceKey?.length });
+          const innerResp = await fetch(fetchUrl, {
             method: "POST",
             headers: {
               "Authorization": `Bearer ${serviceKey}`,
@@ -758,11 +768,13 @@ Deno.serve(async (req) => {
             },
             body: JSON.stringify(payload),
           });
-          const innerBody = await innerResp.json().catch(() => ({}));
-          console.error(`[SM Migration] CRON inner response: status=${innerResp.status}`, JSON.stringify(innerBody).slice(0, 500));
-          cronResults.push({ tenant_id: s.tenant_id, status: innerResp.ok ? "ok" : "error", pending: pendingCount, response: innerBody });
+          const innerBody = await innerResp.text().catch(() => "");
+          console.error("[SM Migration] CRON FETCH DEPOIS", { tenant: s.tenant_id, status: innerResp.status, bodyPreview: innerBody.substring(0, 300) });
+          let parsed: any = {};
+          try { parsed = JSON.parse(innerBody); } catch { parsed = { raw: innerBody.substring(0, 200) }; }
+          cronResults.push({ tenant_id: s.tenant_id, status: innerResp.ok ? "ok" : "error", pending: pendingCount, response: parsed });
         } catch (e) {
-          console.error(`[SM Migration] CRON inner call FAILED for tenant=${s.tenant_id}:`, (e as Error).message);
+          console.error("[SM Migration] CRON FETCH ERROR", { tenant: s.tenant_id, error: (e as Error).message, stack: (e as Error).stack?.substring(0, 300) });
           cronResults.push({ tenant_id: s.tenant_id, status: "error", error: (e as Error).message });
         }
       }
@@ -830,7 +842,9 @@ Deno.serve(async (req) => {
         };
 
         try {
-          const innerResp = await fetch(`${supabaseUrl}/functions/v1/migrate-sm-proposals-v2`, {
+          const fetchUrl2 = `${supabaseUrl}/functions/v1/migrate-sm-proposals-v2`;
+          console.error("[SM Migration] DISPATCH FETCH ANTES", { tenant: s.tenant_id, url: fetchUrl2, svcKeyLen: serviceKey?.length });
+          const innerResp = await fetch(fetchUrl2, {
             method: "POST",
             headers: {
               "Authorization": `Bearer ${serviceKey}`,
@@ -838,9 +852,13 @@ Deno.serve(async (req) => {
             },
             body: JSON.stringify(payload),
           });
-          const innerBody = await innerResp.json().catch(() => ({}));
-          cronResults.push({ tenant_id: s.tenant_id, status: innerResp.ok ? "ok" : "error", pending: pendingCount, response: innerBody });
+          const innerBody = await innerResp.text().catch(() => "");
+          console.error("[SM Migration] DISPATCH FETCH DEPOIS", { tenant: s.tenant_id, status: innerResp.status, bodyPreview: innerBody.substring(0, 300) });
+          let parsed2: any = {};
+          try { parsed2 = JSON.parse(innerBody); } catch { parsed2 = { raw: innerBody.substring(0, 200) }; }
+          cronResults.push({ tenant_id: s.tenant_id, status: innerResp.ok ? "ok" : "error", pending: pendingCount, response: parsed2 });
         } catch (e) {
+          console.error("[SM Migration] DISPATCH FETCH ERROR", { tenant: s.tenant_id, error: (e as Error).message, stack: (e as Error).stack?.substring(0, 300) });
           cronResults.push({ tenant_id: s.tenant_id, status: "error", error: (e as Error).message });
         }
       }
@@ -1202,7 +1220,6 @@ Deno.serve(async (req) => {
 
     // ─── Formal Lock: prevent concurrent SM operations ─────
     let smOpRunId: string | null = null;
-    console.error("[SM Migration] BEFORE LOCK", { dry_run, tenantId, auto_resume: params.auto_resume });
     if (!dry_run) {
       const { data: lockResult, error: lockErr } = await adminClient.rpc(
         "acquire_sm_operation_lock",
@@ -1216,7 +1233,6 @@ Deno.serve(async (req) => {
 
       if (lockErr || !lockResult?.acquired) {
         const reason = lockResult?.reason || lockErr?.message || "Lock acquisition failed";
-        console.error("[SM Migration] LOCK BLOCKED", { reason, blocked_by: lockResult?.blocked_by_type });
         return new Response(JSON.stringify({
           error: reason,
           blocked: true,
@@ -1227,7 +1243,6 @@ Deno.serve(async (req) => {
         });
       }
       smOpRunId = lockResult.run_id;
-      console.error("[SM Migration] LOCK ACQUIRED", { smOpRunId });
     }
 
     // ─── AUTO_RESUME: fetch next pending batch automatically ─────
@@ -2079,7 +2094,6 @@ Deno.serve(async (req) => {
         if (p.sm_id) existingPropostas.set(p.sm_id, p.id);
       }
     }
-    console.error("propostas_nativas carregadas", { count: existingPropostas.size });
 
     // ─── 5b. Pre-fetch concessionárias for distribuidora matching ─
     const concMap = new Map<string, { id: string; nome: string }>();
@@ -2247,8 +2261,7 @@ Deno.serve(async (req) => {
         allClientes.push(...(cPage || []));
         if ((cPage || []).length < 1000) break;
         cOffset += 1000;
-    }
-    console.error("clientes carregados (canonicos)", { count: allClientes.length });
+      }
     }
     const clienteByPhone = new Map<string, { id: string; count: number }>();
     const clienteByEmail = new Map<string, string>();
@@ -2291,7 +2304,6 @@ Deno.serve(async (req) => {
       if (p.codigo) projetoByCodigo.set(p.codigo, p.id);
       if (p.deal_id) projetoByDeal.set(p.deal_id, p.id);
     }
-    console.error("projetos carregados", { count: allProjetos.length });
 
     // Pre-fetch first stages of all pipelines for fallback
     const pipelineFirstStage = new Map<string, string>();
@@ -2327,7 +2339,6 @@ Deno.serve(async (req) => {
         vOffset += 1000;
       }
     }
-    console.error("versoes carregadas", { count: existingVersoes.size });
 
     console.error("INICIANDO LOOP DE PROPOSTAS");
     inPreLoad = false;
