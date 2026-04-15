@@ -469,11 +469,14 @@ export function useProjetoPipeline() {
   }, [toast]);
 
   const toggleFunilAtivo = useCallback(async (id: string, ativo: boolean) => {
-    // Protect the "Comercial" funnel from deactivation
+    // Protect "Comercial" only if it has projects
     const funil = funis.find(f => f.id === id);
     if (!ativo && funil?.nome?.toLowerCase() === "comercial") {
-      toast({ title: "Funil protegido", description: "O funil 'Comercial' não pode ser desativado.", variant: "destructive" });
-      return;
+      const hasProjects = projetos.some(p => p.funil_id === id);
+      if (hasProjects) {
+        toast({ title: "Funil protegido", description: "O funil 'Comercial' não pode ser desativado enquanto tiver projetos.", variant: "destructive" });
+        return;
+      }
     }
     const { error } = await supabase.from("projeto_funis").update({ ativo }).eq("id", id);
     if (error) { toast({ title: "Erro", description: error.message, variant: "destructive" }); return; }
@@ -483,7 +486,29 @@ export function useProjetoPipeline() {
       if (next) setSelectedFunilId(next.id);
     }
     toast({ title: ativo ? "Funil reativado" : "Funil desativado" });
-  }, [toast, selectedFunilId, funis]);
+  }, [toast, selectedFunilId, funis, projetos]);
+
+  const deleteFunil = useCallback(async (id: string) => {
+    const funil = funis.find(f => f.id === id);
+    const hasProjects = projetos.some(p => p.funil_id === id);
+    if (hasProjects) {
+      toast({ title: "Erro", description: "Não é possível deletar funil com projetos vinculados.", variant: "destructive" });
+      return false;
+    }
+    // Delete etapas first, then the funil
+    const { error: etapaErr } = await supabase.from("projeto_etapas").delete().eq("funil_id", id);
+    if (etapaErr) { toast({ title: "Erro ao deletar etapas", description: etapaErr.message, variant: "destructive" }); return false; }
+    const { error } = await supabase.from("projeto_funis").delete().eq("id", id);
+    if (error) { toast({ title: "Erro ao deletar funil", description: error.message, variant: "destructive" }); return false; }
+    setFunis(prev => prev.filter(f => f.id !== id));
+    setEtapas(prev => prev.filter(e => e.funil_id !== id));
+    if (selectedFunilId === id) {
+      const next = funis.find(f => f.id !== id && f.ativo);
+      if (next) setSelectedFunilId(next.id);
+    }
+    toast({ title: `Funil "${funil?.nome}" deletado com sucesso` });
+    return true;
+  }, [funis, projetos, selectedFunilId, toast]);
 
   const reorderFunis = useCallback(async (orderedIds: string[]) => {
     setFunis(prev => prev.map(f => {
@@ -658,6 +683,7 @@ export function useProjetoPipeline() {
     createFunil,
     renameFunil,
     toggleFunilAtivo,
+    deleteFunil,
     reorderFunis,
     createEtapa,
     renameEtapa,
