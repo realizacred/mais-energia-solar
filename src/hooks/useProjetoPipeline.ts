@@ -48,7 +48,7 @@ export interface ProjetoItem {
   observacoes: string | null;
   created_at: string;
   updated_at: string;
-  proposta_id?: string | null;
+  proposta_id: string | null;
   proposta_status?: string | null;
   // Joined
   cliente?: { nome: string; telefone: string } | null;
@@ -322,17 +322,17 @@ export function useProjetoPipeline() {
       }
     }
 
-    const projetoIds = filteredData.map((p: any) => p.id);
+    const filteredProjetoIds = filteredData.map((p: any) => p.id);
     const dealToProjetoId = new Map<string, string>();
     filteredData.forEach((p: any) => {
       if (p.deal_id) dealToProjetoId.set(p.deal_id, p.id);
     });
 
     const propostaRows: any[] = [];
-    if (projetoIds.length > 0) {
+    if (filteredProjetoIds.length > 0) {
       const chunkSize = 500;
-      for (let i = 0; i < projetoIds.length; i += chunkSize) {
-        const projetoChunk = projetoIds.slice(i, i + chunkSize);
+      for (let i = 0; i < filteredProjetoIds.length; i += chunkSize) {
+        const projetoChunk = filteredProjetoIds.slice(i, i + chunkSize);
         const dealChunk = filteredData
           .slice(i, i + chunkSize)
           .map((p: any) => p.deal_id)
