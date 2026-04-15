@@ -4252,7 +4252,7 @@ Deno.serve(async (req) => {
     } catch (error) {
       if (inPreLoad) {
         const preLoadError = error instanceof Error ? error : new Error(String(error));
-        console.error("ERRO PRE-LOAD:", {
+        console.error("PRELOAD ERROR:", {
           step: preLoadStep,
           error: preLoadError.message,
           stack: preLoadError.stack,
