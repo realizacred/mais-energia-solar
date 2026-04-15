@@ -1424,6 +1424,10 @@ Deno.serve(async (req) => {
     }
 
     // ─── 0b. Resolve dynamic fallback IDs — is_default first, sm_migration_settings as override ──
+    // Declare maps outside block scope so they're accessible in projeto creation (section D)
+    let projetoFunisMap = new Map<string, string>(); // normalized name → funil_id
+    let funilFirstEtapaMap = new Map<string, string>(); // funil_id → first etapa_id
+    let funilEtapaByNameMap = new Map<string, string>(); // "funil_id::normalizedName" → etapa_id
     {
       CANONICAL_DEFAULT_PIPELINE_ID = '';
       CANONICAL_DEFAULT_STAGE_ID = '';
