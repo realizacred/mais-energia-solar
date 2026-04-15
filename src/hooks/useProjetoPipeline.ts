@@ -323,7 +323,7 @@ export function useProjetoPipeline() {
     setLoading(true);
     try {
       const metadata = await fetchMetadata();
-      const enriched = await fetchProjetos(filters, metadata.etapas);
+      const enriched = await fetchProjetos(filters, metadata.etapas, metadata.funis);
       setProjetos(enriched);
 
       // Auto-select first funil
