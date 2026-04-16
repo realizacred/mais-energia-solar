@@ -3662,7 +3662,7 @@ Deno.serve(async (req) => {
                   if (matched) return matched;
                 }
                 // Status-based etapa resolution (approved→ganho, sent/viewed→acompanhamento, etc.)
-                const statusEtapa = resolveEtapaBySmStatus(smProp, resolvedFunilId, funilEtapaByNameMap, funilEtapaByCategoriaMap, funilFirstEtapaMap);
+                const statusEtapa = resolveEtapaBySmStatus(smProp, resolvedFunilId, funilEtapaByNameMap, funilEtapaByCategoriaMap, funilFirstEtapaMap, projetoFunisMap);
                 if (statusEtapa) return statusEtapa;
                 return funilFirstEtapaMap.get(resolvedFunilId) || (resolvedFunilId === COMERCIAL_FUNIL_ID ? COMERCIAL_ETAPA_ID : null) || FALLBACK_ETAPA_ID || null;
               })();
@@ -3787,7 +3787,7 @@ Deno.serve(async (req) => {
                   }
 
                   // Status-based etapa resolution (approved→ganho, sent/viewed→acompanhamento, etc.)
-                  const statusEtapa = resolveEtapaBySmStatus(smProp, targetFunilId, funilEtapaByNameMap, funilEtapaByCategoriaMap, funilFirstEtapaMap);
+                  const statusEtapa = resolveEtapaBySmStatus(smProp, targetFunilId, funilEtapaByNameMap, funilEtapaByCategoriaMap, funilFirstEtapaMap, projetoFunisMap);
                   if (statusEtapa) return statusEtapa;
                   return funilFirstEtapaMap.get(targetFunilId) || null;
                 })();
