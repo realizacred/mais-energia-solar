@@ -3854,8 +3854,8 @@ Deno.serve(async (req) => {
 
               const projUpdateFields: Record<string, any> = {
                 consultor_id: resolvedOwnerId || null,
-                funil_id: updIntegrity.funilId,
-                etapa_id: updIntegrity.etapaId,
+                funil_id: updResolved.funilId,
+                etapa_id: updResolved.etapaId,
                 ...(smProp.acceptance_date ? { data_venda: smProp.acceptance_date } : {}),
               };
 
