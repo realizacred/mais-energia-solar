@@ -40,6 +40,10 @@ function getTimeInStage(lastChange: string) {
   if (hours < 1) return "agora";
   if (hours < 24) return `${hours}h`;
   const days = differenceInDays(new Date(), new Date(lastChange));
+  if (days >= 30) {
+    const months = Math.floor(days / 30);
+    return `${months} ${months === 1 ? "mês" : "meses"}`;
+  }
   return `${days}d`;
 }
 
