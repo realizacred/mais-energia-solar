@@ -917,13 +917,16 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
     })();
   }, [isExpanded, latestVersao?.id, p.id]);
 
-  // Auto-render ONLY when no persisted PDF exists and status indicates generation happened
-  // If output_pdf_path exists, the Arquivo tab will use signed URL instead
+  // Auto-render ONLY when no persisted PDF exists, status indicates generation happened,
+  // AND the version was actually generated with a template (template_id_used is set).
+  // Without template_id_used, no auto-render — avoids showing a random template preview.
   useEffect(() => {
     if (!isExpanded || activeTab !== "arquivo" || html || rendering) return;
     if (!latestVersao?.id) return;
     // Skip auto-render if persisted PDF or external link_pdf exists (migrated proposals)
     if (latestVersao.output_pdf_path || latestVersao.link_pdf) return;
+    // Skip auto-render if version was never generated with a template
+    if (!latestVersao.template_id_used && !templateSelecionado) return;
     const vStatus = latestVersao.status?.toLowerCase();
     const pStatus = p.status?.toLowerCase();
     if (vStatus === "generated" || vStatus === "gerada" || vStatus === "ativa" ||
