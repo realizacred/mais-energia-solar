@@ -115,25 +115,25 @@ export function usePropostaRapidaLead() {
         return;
       }
 
-      // 4. Buscar pipeline comercial e stage default (deals)
+      // 4. Buscar pipeline comercial e stage default (deals) — opcional
       const { data: pipeline } = await supabase
         .from("pipelines")
         .select("id")
         .eq("tenant_id", tenantId)
         .limit(1)
-        .single();
+        .maybeSingle();
 
-      if (!pipeline) throw new Error("Nenhum pipeline encontrado. Configure o funil comercial primeiro.");
-
-      const { data: stage } = await supabase
-        .from("pipeline_stages")
-        .select("id")
-        .eq("pipeline_id", pipeline.id)
-        .order("position", { ascending: true })
-        .limit(1)
-        .single();
-
-      if (!stage) throw new Error("Nenhuma etapa encontrada no pipeline.");
+      let dealStageId: string | null = null;
+      if (pipeline) {
+        const { data: stage } = await supabase
+          .from("pipeline_stages")
+          .select("id")
+          .eq("pipeline_id", pipeline.id)
+          .order("position", { ascending: true })
+          .limit(1)
+          .maybeSingle();
+        dealStageId = stage?.id || null;
+      }
 
       // 4b. Buscar funil de projetos (projeto_funis) e primeira etapa (projeto_etapas)
       const { data: funilComercial } = await supabase
@@ -162,22 +162,26 @@ export function usePropostaRapidaLead() {
         etapaId = primeiraEtapa?.id || null;
       }
 
-      // 5. Criar deal
-      const { data: newDeal, error: dealError } = await supabase
-        .from("deals")
-        .insert({
-          pipeline_id: pipeline.id,
-          stage_id: stage.id,
-          owner_id: lead.consultor_id || null,
-          customer_id: clienteId!,
-          value: lead.valor_estimado || 0,
-          title: lead.nome,
-          tenant_id: tenantId,
-        } as any)
-        .select("id")
-        .single();
+      // 5. Criar deal (apenas se pipeline comercial existir)
+      let newDealId: string | null = null;
+      if (pipeline && dealStageId) {
+        const { data: newDeal, error: dealError } = await supabase
+          .from("deals")
+          .insert({
+            pipeline_id: pipeline.id,
+            stage_id: dealStageId,
+            owner_id: lead.consultor_id || null,
+            customer_id: clienteId!,
+            value: lead.valor_estimado || 0,
+            title: lead.nome,
+            tenant_id: tenantId,
+          } as any)
+          .select("id")
+          .single();
 
-      if (dealError) throw dealError;
+        if (dealError) throw dealError;
+        newDealId = newDeal.id;
+      }
 
       // 6. Criar projeto com funil_id e etapa_id para visibilidade no Kanban
       const { data: newProjeto, error: projetoError } = await supabase
@@ -185,7 +189,7 @@ export function usePropostaRapidaLead() {
         .insert({
           cliente_id: clienteId!,
           consultor_id: lead.consultor_id || null,
-          deal_id: newDeal.id,
+          deal_id: newDealId,
           funil_id: funilId,
           etapa_id: etapaId,
           status: "criado",
@@ -196,11 +200,13 @@ export function usePropostaRapidaLead() {
 
       if (projetoError) throw projetoError;
 
-      // 7. Vincular projeto ao deal
-      await supabase
-        .from("deals")
-        .update({ projeto_id: newProjeto.id } as any)
-        .eq("id", newDeal.id);
+      // 7. Vincular projeto ao deal (se deal foi criado)
+      if (newDealId) {
+        await supabase
+          .from("deals")
+          .update({ projeto_id: newProjeto.id } as any)
+          .eq("id", newDealId);
+      }
 
       await markLeadAsViewed(lead.id, tenantId);
 
@@ -230,8 +236,9 @@ export function usePropostaRapidaLead() {
       });
 
       // Redirecionar ao wizard por padrão
+      const wizardDealParam = newDealId || newProjeto.id;
       navigate(
-        `/admin/propostas-nativas/nova?deal_id=${newDeal.id}&customer_id=${clienteId}&lead_id=${lead.id}`
+        `/admin/propostas-nativas/nova?deal_id=${wizardDealParam}&customer_id=${clienteId}&lead_id=${lead.id}`
       );
     } catch (err: any) {
       console.error("[usePropostaRapidaLead] Erro:", err);
