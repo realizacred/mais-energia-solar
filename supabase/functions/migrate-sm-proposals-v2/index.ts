@@ -1533,7 +1533,7 @@ Deno.serve(async (req) => {
     }
 
     const params: MigrationParams = rawBody as MigrationParams;
-    const { dry_run = false, batch_size = 50 } = params;
+    const { dry_run = false, batch_size = 20 } = params;
     let { filters = {} } = params;
     const autoResolveOwner = params.auto_resolve_owner !== false;
 
@@ -1830,7 +1830,7 @@ Deno.serve(async (req) => {
         });
       }
 
-      const effectiveBatchSize = Math.max(1, Math.min(Number(params.batch_size || 25), 100));
+      const effectiveBatchSize = Math.max(1, Math.min(Number(params.batch_size || 20), 50));
 
       await adminClient
         .from("sm_migration_settings")
@@ -3326,6 +3326,9 @@ Deno.serve(async (req) => {
                 })
                 .select("id")
                 .single();
+
+              // Throttle client inserts to avoid table lock contention
+              await new Promise(r => setTimeout(r, 500));
 
               if (insErr) {
                 // If duplicate cliente_code, find existing and link
@@ -5032,6 +5035,8 @@ Deno.serve(async (req) => {
                 })
                 .select("id")
                 .single();
+              // Throttle client inserts to avoid table lock contention
+              await new Promise(r => setTimeout(r, 500));
               if (!insErr && newClient) {
                 clienteId = newClient.id;
                 groupBReport.steps.cliente = { status: "CREATED", id: clienteId };
@@ -5215,7 +5220,7 @@ Deno.serve(async (req) => {
           stageId: params.stage_id || null,
           ownerId: params.owner_id || null,
           autoResolveOwner,
-          batchSize: Math.max(1, Math.min(Number(batch_size || 25), 100)),
+          batchSize: Math.max(1, Math.min(Number(batch_size || 20), 50)),
         });
       } else {
         await adminClient
