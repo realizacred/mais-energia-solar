@@ -18,6 +18,10 @@ import type { SmProposal } from "@/hooks/useSolarMarket";
 import { cn } from "@/lib/utils";
 import { formatDateTime, formatDate, formatTime, formatDateShort } from "@/lib/dateUtils";
 import { useActiveSmOperation } from "@/hooks/useSmOperationRuns";
+import { SmBentoKpis } from "@/components/admin/solarmarket/SmBentoKpis";
+import { SmVerticalStepper } from "@/components/admin/solarmarket/SmVerticalStepper";
+import { SmTerminalLog } from "@/components/admin/solarmarket/SmTerminalLog";
+import { SmCompletionBanner } from "@/components/admin/solarmarket/SmCompletionBanner";
 
 // ─── Constants ──────────────────────────────────────────
 
