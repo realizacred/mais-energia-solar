@@ -1812,6 +1812,7 @@ Deno.serve(async (req) => {
     let projetoFunisOrdemMap = new Map<string, number>(); // funil_id → ordem (for best-match resolution)
     let funilFirstEtapaMap = new Map<string, string>(); // funil_id → first etapa_id
     let funilEtapaByNameMap = new Map<string, string>(); // "funil_id::normalizedName" → etapa_id
+    let funilEtapaByCategoriaMap = new Map<string, string>(); // "funil_id::categoria" → first etapa_id
     {
       CANONICAL_DEFAULT_PIPELINE_ID = '';
       CANONICAL_DEFAULT_STAGE_ID = '';
