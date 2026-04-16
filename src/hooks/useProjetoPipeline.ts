@@ -74,6 +74,7 @@ export interface ProjetoFiltersState {
 }
 
 const PROJETOS_FETCH_BATCH_SIZE = 1000;
+const MAX_CARDS_PER_STAGE = 200;
 
 async function fetchAllProjetosRows(baseQuery: any) {
   const allRows: any[] = [];
@@ -170,7 +171,7 @@ export function useProjetoPipeline() {
   ) => {
     let query = supabase
       .from("projetos")
-      .select("id, deal_id, codigo, projeto_num, lead_id, cliente_id, consultor_id, funil_id, etapa_id, proposta_id, potencia_kwp, valor_total, status, observacoes, created_at, updated_at, clientes:cliente_id(nome, telefone)")
+      .select("id, deal_id, codigo, projeto_num, lead_id, cliente_id, consultor_id, funil_id, etapa_id, proposta_id, potencia_kwp, valor_total, status, observacoes, created_at, updated_at, clientes:cliente_id(nome, telefone)", { count: "exact" })
       .order("created_at", { ascending: false });
 
     if (f.consultorId !== "todos") {
@@ -632,7 +633,10 @@ export function useProjetoPipeline() {
       .forEach(p => {
         const key = p.etapa_id || null;
         const arr = map.get(key) || [];
-        arr.push(p);
+        // Cap cards per stage for rendering performance (mem://architecture/kanban-performance-rendering)
+        if (arr.length < MAX_CARDS_PER_STAGE) {
+          arr.push(p);
+        }
         map.set(key, arr);
       });
     return map;

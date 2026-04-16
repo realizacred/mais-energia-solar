@@ -251,6 +251,51 @@ function mapSmStatusToVersao(smProp: any): string {
   }
 }
 
+/**
+ * Maps SM lifecycle status to projeto_etapas.categoria for status-based etapa resolution.
+ */
+function smLifecycleToEtapaCategoria(smLifecycle: string): string {
+  if (smLifecycle === "approved") return "ganho";
+  if (["rejected", "expired", "cancelled"].includes(smLifecycle)) return "perdido";
+  return "aberto";
+}
+
+/**
+ * Resolves projeto etapa_id based on SM proposal status using semantic name matching + categoria fallback.
+ */
+function resolveEtapaBySmStatus(
+  smProp: any,
+  funilId: string,
+  funilEtapaByNameMap: Map<string, string>,
+  funilEtapaByCategoriaMap: Map<string, string>,
+  funilFirstEtapaMap: Map<string, string>,
+): string | null {
+  const smLifecycle = resolveSmLifecycle(smProp);
+  const semanticEtapaMap: Record<string, string[]> = {
+    "approved": ["ganho", "fechado", "contrato", "aprovado", "concluido"],
+    "sent":     ["proposta", "enviada", "acompanhamento", "follow"],
+    "viewed":   ["negociacao", "negociação", "acompanhamento", "follow", "proposta"],
+    "generated": ["proposta", "novo", "recebido"],
+    "draft":    ["novo", "recebido", "entrada", "triagem"],
+    "rejected": ["perdido", "recusado", "cancelado"],
+    "expired":  ["perdido", "expirado"],
+    "cancelled": ["perdido", "cancelado"],
+  };
+  const keywords = semanticEtapaMap[smLifecycle] ?? [];
+  for (const keyword of keywords) {
+    for (const [mapKey, etapaId] of funilEtapaByNameMap) {
+      if (mapKey.startsWith(`${funilId}::`) && mapKey.includes(keyword)) {
+        return etapaId;
+      }
+    }
+  }
+  const targetCategoria = smLifecycleToEtapaCategoria(smLifecycle);
+  const catKey = `${funilId}::${targetCategoria}`;
+  const catMatch = funilEtapaByCategoriaMap.get(catKey);
+  if (catMatch) return catMatch;
+  return funilFirstEtapaMap.get(funilId) || null;
+}
+
 function parsePaybackMonths(payback: string | null): number | null {
   if (!payback) return null;
   // Parse "X anos e Y meses" or "X anos" or "Y meses"
@@ -1812,6 +1857,7 @@ Deno.serve(async (req) => {
     let projetoFunisOrdemMap = new Map<string, number>(); // funil_id → ordem (for best-match resolution)
     let funilFirstEtapaMap = new Map<string, string>(); // funil_id → first etapa_id
     let funilEtapaByNameMap = new Map<string, string>(); // "funil_id::normalizedName" → etapa_id
+    let funilEtapaByCategoriaMap = new Map<string, string>(); // "funil_id::categoria" → first etapa_id
     {
       CANONICAL_DEFAULT_PIPELINE_ID = '';
       CANONICAL_DEFAULT_STAGE_ID = '';
@@ -1971,7 +2017,7 @@ Deno.serve(async (req) => {
       {
         const { data: allEtapas } = await adminClient
           .from("projeto_etapas")
-          .select("id, funil_id, nome, ordem")
+          .select("id, funil_id, nome, ordem, categoria")
           .eq("tenant_id", tenantId)
           .order("ordem", { ascending: true });
         for (const e of allEtapas || []) {
@@ -1983,6 +2029,13 @@ Deno.serve(async (req) => {
             const nameKey = `${e.funil_id}::${normalizeComparableName(e.nome)}`;
             if (!funilEtapaByNameMap.has(nameKey)) {
               funilEtapaByNameMap.set(nameKey, e.id);
+            }
+          }
+          // Build categoria-based lookup for SM status→etapa resolution
+          if ((e as any).categoria) {
+            const catKey = `${e.funil_id}::${(e as any).categoria}`;
+            if (!funilEtapaByCategoriaMap.has(catKey)) {
+              funilEtapaByCategoriaMap.set(catKey, e.id);
             }
           }
         }
@@ -3574,6 +3627,9 @@ Deno.serve(async (req) => {
                   const matched = matchEtapaByName(resolvedFunilId, bestOp.stageName);
                   if (matched) return matched;
                 }
+                // Status-based etapa resolution (approved→ganho, sent/viewed→acompanhamento, etc.)
+                const statusEtapa = resolveEtapaBySmStatus(smProp, resolvedFunilId, funilEtapaByNameMap, funilEtapaByCategoriaMap, funilFirstEtapaMap);
+                if (statusEtapa) return statusEtapa;
                 return funilFirstEtapaMap.get(resolvedFunilId) || (resolvedFunilId === COMERCIAL_FUNIL_ID ? COMERCIAL_ETAPA_ID : null) || FALLBACK_ETAPA_ID || null;
               })();
 
@@ -3696,6 +3752,9 @@ Deno.serve(async (req) => {
                     }
                   }
 
+                  // Status-based etapa resolution (approved→ganho, sent/viewed→acompanhamento, etc.)
+                  const statusEtapa = resolveEtapaBySmStatus(smProp, targetFunilId, funilEtapaByNameMap, funilEtapaByCategoriaMap, funilFirstEtapaMap);
+                  if (statusEtapa) return statusEtapa;
                   return funilFirstEtapaMap.get(targetFunilId) || null;
                 })();
 
