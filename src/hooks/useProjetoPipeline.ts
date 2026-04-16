@@ -210,6 +210,28 @@ export function useProjetoPipeline() {
     }
 
     const data = await fetchAllProjetosRows(query as any);
+
+    const projetoIds = (data || []).map((p: any) => p.id);
+    const relMap = new Map<string, string[]>();
+    if (projetoIds.length > 0) {
+      const chunkSize = 500;
+      for (let i = 0; i < projetoIds.length; i += chunkSize) {
+        const chunk = projetoIds.slice(i, i + chunkSize);
+        const { data: rels } = await supabase
+          .from("projeto_etiqueta_rel")
+          .select("projeto_id, etiqueta_id")
+          .in("projeto_id", chunk);
+        (rels || []).forEach((r: any) => {
+          const arr = relMap.get(r.projeto_id) || [];
+          arr.push(r.etiqueta_id);
+          relMap.set(r.projeto_id, arr);
+        });
+      }
+    }
+
+    let filteredData = data || [];
+
+    if (f.etiquetaIds.length > 0) {
       const projetosComEtiqueta = new Set<string>();
       relMap.forEach((etIds, projId) => {
         if (f.etiquetaIds.some((eid) => etIds.includes(eid))) {
