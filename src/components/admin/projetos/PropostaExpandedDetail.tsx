@@ -1607,6 +1607,7 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
                         }
                         generationError={null}
                         missingVars={[]}
+                        skipTemplateAutoSelect={!latestVersao?.template_id_used}
                         onGenerate={latestVersao?.link_pdf && !latestVersao?.output_pdf_path
                           ? () => window.open(latestVersao.link_pdf!, "_blank", "noopener,noreferrer")
                           : handleRender}
