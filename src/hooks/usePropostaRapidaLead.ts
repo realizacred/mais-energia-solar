@@ -203,7 +203,6 @@ export function usePropostaRapidaLead() {
         .eq("id", newDeal.id);
 
       await markLeadAsViewed(lead.id, tenantId);
-      toast.success("Projeto criado! Abrindo wizard de proposta...");
 
       // Atualizar status do lead para "Convertido" se existir
       const { data: convertidoStatus } = await supabase
@@ -220,7 +219,17 @@ export function usePropostaRapidaLead() {
           .eq("tenant_id", tenantId);
       }
 
-      // 8. Redirecionar ao wizard
+      // 8. Perguntar ao usuário: wizard ou kanban?
+      toast.success("Projeto criado com sucesso!", {
+        description: "Deseja abrir o wizard de proposta ou ver no Kanban?",
+        duration: 8000,
+        action: {
+          label: "Ver no Kanban",
+          onClick: () => navigate("/admin/projetos"),
+        },
+      });
+
+      // Redirecionar ao wizard por padrão
       navigate(
         `/admin/propostas-nativas/nova?deal_id=${newDeal.id}&customer_id=${clienteId}&lead_id=${lead.id}`
       );
