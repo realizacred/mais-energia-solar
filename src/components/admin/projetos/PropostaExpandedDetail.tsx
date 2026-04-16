@@ -1507,7 +1507,7 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
                         <MessageCircle className="h-3 w-3" /> WhatsApp
                       </Button>
                       <Button size="sm" variant="outline" className="h-7 text-xs gap-1.5" onClick={() => setMessageDrawerOpen(true)}>
-                        <Mail className="h-3 w-3" /> E-mail
+                        <MessageCircle className="h-3 w-3" /> Enviar Resumo
                       </Button>
 
                       {(latestVersao.output_pdf_path || latestVersao.link_pdf || latestVersao.output_docx_path) && (
