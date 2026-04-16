@@ -14,6 +14,8 @@
  *   error/stale   → stale heartbeat
  */
 import { useSmSyncProgress } from "@/hooks/useSmSyncProgress";
+import { SmBentoKpis } from "@/components/admin/solarmarket/SmBentoKpis";
+import { SmCompletionBanner } from "@/components/admin/solarmarket/SmCompletionBanner";
 import { useActiveSmOperation, useLastCompletedSmOperation } from "@/hooks/useSmOperationRuns";
 import { useExpireStaleSmOperations } from "@/hooks/useExpireStaleSmOperations";
 import { useIsBackgroundSyncActive } from "@/hooks/useSolarMarket";
