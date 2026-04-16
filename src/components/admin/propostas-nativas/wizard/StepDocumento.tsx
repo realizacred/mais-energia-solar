@@ -65,6 +65,8 @@ interface StepDocumentoProps {
   generationAuditReport?: GenerationAuditReport | null;
   /** When true, all "Gerar Proposta" buttons are disabled (estimativa not accepted) */
   estimativaBlocked?: boolean;
+  /** When true, skip auto-selecting the first template */
+  skipTemplateAutoSelect?: boolean;
 }
 
 // ─── Main Component ───────────────────────────────────────
