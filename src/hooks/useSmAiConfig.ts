@@ -68,16 +68,8 @@ export function useSaveSmAiConfig() {
 
   return useMutation({
     mutationFn: async (config: { systemPrompt: string; isActive: boolean }) => {
-      if (!user) throw new Error("Usuário não autenticado");
-
-      // Get tenant_id — use user_id column, not id
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("tenant_id")
-        .eq("user_id", user.id)
-        .single();
-
-      if (!profile?.tenant_id) throw new Error("Tenant não encontrado");
+      // Use canonical tenant resolver — handles auth + profile + RLS safely
+      const { tenantId, userId } = await getCurrentTenantId();
 
       const { data: existing } = await supabase
         .from("integration_configs")
