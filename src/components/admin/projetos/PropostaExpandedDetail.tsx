@@ -1396,13 +1396,41 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56" onClick={(e) => e.stopPropagation()}>
-                {/* Enviar Resumo — abre drawer de mensagem */}
-                {latestVersao && (
-                  <DropdownMenuItem onClick={() => setMessageDrawerOpen(true)}>
-                    <MessageCircle className="h-3.5 w-3.5 mr-2 text-primary" /> Enviar Resumo
+                {/* Ações de compartilhamento */}
+                {!isMigrated && latestVersao && (
+                  <>
+                    <DropdownMenuItem onClick={openPublicProposal}>
+                      <ExternalLink className="h-3.5 w-3.5 mr-2 text-primary" /> Abrir proposta web
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={copyTrackedLink}>
+                      <Link2 className="h-3.5 w-3.5 mr-2 text-muted-foreground" /> Copiar link c/ rastreio
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={copyPublicLink}>
+                      <Link2 className="h-3.5 w-3.5 mr-2 text-muted-foreground" /> Copiar link público
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => handleSend("whatsapp")} disabled={sending}>
+                      <MessageCircle className="h-3.5 w-3.5 mr-2 text-success" /> Enviar WhatsApp
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setMessageDrawerOpen(true)}>
+                      <Mail className="h-3.5 w-3.5 mr-2 text-primary" /> Enviar Resumo
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                  </>
+                )}
+                {/* Downloads */}
+                {latestVersao && (latestVersao.output_pdf_path || latestVersao.link_pdf) && (
+                  <DropdownMenuItem onClick={handleDownloadPdf} disabled={downloadingPdf}>
+                    <Download className="h-3.5 w-3.5 mr-2 text-muted-foreground" /> Baixar PDF
                   </DropdownMenuItem>
                 )}
-                <DropdownMenuSeparator />
+                {latestVersao?.output_docx_path && (
+                  <DropdownMenuItem onClick={handleDownloadDocx}>
+                    <Download className="h-3.5 w-3.5 mr-2 text-muted-foreground" /> Baixar DOCX
+                  </DropdownMenuItem>
+                )}
+                {latestVersao && (latestVersao.output_pdf_path || latestVersao.link_pdf || latestVersao.output_docx_path) && (
+                  <DropdownMenuSeparator />
+                )}
                 <DropdownMenuItem onClick={() => handleEditWithProtection(() => navigate(`/admin/propostas-nativas?edit=${p.id}`))}>
                   <Pencil className="h-3.5 w-3.5 mr-2 text-primary" /> Editar proposta
                 </DropdownMenuItem>
@@ -1490,50 +1518,6 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
                   )}
                 </div>
 
-                {!isMigrated && latestVersao && (
-                  <div className="pt-3 pb-1">
-                    <div className="flex flex-wrap items-center gap-2 p-3 rounded-lg bg-primary/5 border border-primary/15">
-                      <div className="flex items-center gap-1.5 mr-2">
-                        <div className="w-6 h-6 rounded-md bg-primary/10 flex items-center justify-center">
-                          <ExternalLink className="h-3.5 w-3.5 text-primary" />
-                        </div>
-                        <span className="text-xs font-semibold text-foreground">Proposta Web</span>
-                      </div>
-                      <Button size="sm" variant="default" className="h-7 text-xs gap-1.5" onClick={openPublicProposal}>
-                        <ExternalLink className="h-3 w-3" /> Abrir proposta
-                      </Button>
-                      <Button size="sm" variant="outline" className="h-7 text-xs gap-1.5" onClick={copyTrackedLink}>
-                        <Link2 className="h-3 w-3" /> Link c/ rastreio
-                      </Button>
-                      <Button size="sm" variant="outline" className="h-7 text-xs gap-1.5" onClick={copyPublicLink}>
-                        <Link2 className="h-3 w-3" /> Link público
-                      </Button>
-                      <Button size="sm" variant="outline" className="h-7 text-xs gap-1.5" onClick={() => handleSend("whatsapp")} disabled={sending}>
-                        <MessageCircle className="h-3 w-3" /> WhatsApp
-                      </Button>
-                      <Button size="sm" variant="outline" className="h-7 text-xs gap-1.5" onClick={() => setMessageDrawerOpen(true)}>
-                        <MessageCircle className="h-3 w-3" /> Enviar Resumo
-                      </Button>
-
-                      {(latestVersao.output_pdf_path || latestVersao.link_pdf || latestVersao.output_docx_path) && (
-                        <>
-                          <div className="w-px h-5 bg-border mx-1 hidden sm:block" />
-                          <span className="text-[10px] text-muted-foreground hidden sm:inline">Documentos:</span>
-                          {(latestVersao.output_pdf_path || latestVersao.link_pdf) && (
-                            <Button size="sm" variant="ghost" className="h-7 text-xs gap-1 text-muted-foreground" onClick={handleDownloadPdf} disabled={downloadingPdf}>
-                              <Download className="h-3 w-3" /> PDF
-                            </Button>
-                          )}
-                          {latestVersao.output_docx_path && (
-                            <Button size="sm" variant="ghost" className="h-7 text-xs gap-1 text-muted-foreground" onClick={handleDownloadDocx}>
-                              <Download className="h-3 w-3" /> DOCX
-                            </Button>
-                          )}
-                        </>
-                      )}
-                    </div>
-                  </div>
-                )}
               </div>
 
               {loadingDetail ? (
