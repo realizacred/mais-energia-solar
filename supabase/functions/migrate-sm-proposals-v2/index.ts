@@ -1986,6 +1986,13 @@ Deno.serve(async (req) => {
               funilEtapaByNameMap.set(nameKey, e.id);
             }
           }
+          // Build categoria-based lookup for SM status→etapa resolution
+          if ((e as any).categoria) {
+            const catKey = `${e.funil_id}::${(e as any).categoria}`;
+            if (!funilEtapaByCategoriaMap.has(catKey)) {
+              funilEtapaByCategoriaMap.set(catKey, e.id);
+            }
+          }
         }
       }
 
