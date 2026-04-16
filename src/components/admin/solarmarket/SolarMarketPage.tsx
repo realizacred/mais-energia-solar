@@ -2,7 +2,7 @@ import { useState, useMemo, useCallback, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
-import { Sun, Users, FolderKanban, FileText, RefreshCw, Clock, CheckCircle, XCircle, UserX, UserMinus, Eye, MessageSquare, Edit, Trash2, GitBranch, Settings2, Filter, ArrowRightLeft, AlertTriangle, Loader2, Upload, ExternalLink, Activity, Play, StopCircle, History } from "lucide-react";
+import { Sun, Users, FolderKanban, FileText, RefreshCw, Clock, CheckCircle, XCircle, UserX, UserMinus, Eye, MessageSquare, Edit, Trash2, GitBranch, Settings2, Filter, ArrowRightLeft, AlertTriangle, Loader2, Upload, ExternalLink, Activity, Play, StopCircle, History, Brain } from "lucide-react";
 import { PageHeader, SectionCard, EmptyState } from "@/components/ui-kit";
 import { SearchInput } from "@/components/ui-kit/SearchInput";
 import { Button } from "@/components/ui/button";
@@ -1191,6 +1191,10 @@ export default function SolarMarketPage() {
               <Clock className="h-3.5 w-3.5" />
               Logs
             </TabsTrigger>
+            <TabsTrigger value="ai-config" className="shrink-0 whitespace-nowrap text-xs px-3 h-8 gap-1.5">
+              <Brain className="h-3.5 w-3.5" />
+              Config. IA
+            </TabsTrigger>
           </TabsList>
 
           {/* Filters row */}
@@ -1382,6 +1386,11 @@ export default function SolarMarketPage() {
           ) : (
             <SyncLogsTable logs={syncLogs} />
           )}
+        </TabsContent>
+
+        {/* ─── AI Config Tab ──────────────────────────────── */}
+        <TabsContent value="ai-config" className="mt-3">
+          <SmAiConfigTab />
         </TabsContent>
       </Tabs>
 
