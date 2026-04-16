@@ -3838,6 +3838,18 @@ Deno.serve(async (req) => {
                   return funilFirstEtapaMap.get(targetFunilId) || null;
                 })();
 
+                // ── Integrity check: validate etapa belongs to funil ──
+                const integrityCheck = validateFunilEtapaIntegrity(
+                  resolvedProjFunilId, resolvedProjEtapaId,
+                  funilFirstEtapaMap, funilEtapaByNameMap,
+                  `INSERT sm_proposal=${smProp.sm_proposal_id}`
+                );
+                const validatedFunilId = integrityCheck.funilId;
+                const validatedEtapaId = integrityCheck.etapaId;
+                if (integrityCheck.warning) {
+                  report.steps.projeto = { status: "FALLBACK_USED", reason: integrityCheck.warning };
+                }
+
                 const projInsert: Record<string, any> = {
                     origem: "imported",
                     import_source: "solar_market",
