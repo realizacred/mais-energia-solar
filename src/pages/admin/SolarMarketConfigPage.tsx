@@ -5,14 +5,16 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { LoadingState } from "@/components/ui-kit/LoadingState";
 
 const SmCustomFieldsManager = lazy(() => import("@/components/admin/solarmarket/SmCustomFieldsManager"));
+const SmConsultorMappingManager = lazy(() => import("@/components/admin/solarmarket/SmConsultorMappingManager"));
 
 export default function SolarMarketConfigPage() {
   return (
     <div className="space-y-6">
       <Tabs defaultValue="api-key" className="w-full">
-        <TabsList className="grid w-full grid-cols-2">
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="api-key">API Key</TabsTrigger>
           <TabsTrigger value="custom-fields">Campos Personalizados</TabsTrigger>
+          <TabsTrigger value="consultor-mapping">Consultores</TabsTrigger>
         </TabsList>
 
         <TabsContent value="api-key">
@@ -29,6 +31,12 @@ export default function SolarMarketConfigPage() {
         <TabsContent value="custom-fields">
           <Suspense fallback={<LoadingState />}>
             <SmCustomFieldsManager />
+          </Suspense>
+        </TabsContent>
+
+        <TabsContent value="consultor-mapping">
+          <Suspense fallback={<LoadingState />}>
+            <SmConsultorMappingManager />
           </Suspense>
         </TabsContent>
       </Tabs>
