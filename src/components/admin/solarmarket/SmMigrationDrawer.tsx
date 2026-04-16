@@ -18,6 +18,10 @@ import type { SmProposal } from "@/hooks/useSolarMarket";
 import { cn } from "@/lib/utils";
 import { formatDateTime, formatDate, formatTime, formatDateShort } from "@/lib/dateUtils";
 import { useActiveSmOperation } from "@/hooks/useSmOperationRuns";
+import { SmBentoKpis } from "@/components/admin/solarmarket/SmBentoKpis";
+import { SmVerticalStepper } from "@/components/admin/solarmarket/SmVerticalStepper";
+import { SmTerminalLog } from "@/components/admin/solarmarket/SmTerminalLog";
+import { SmCompletionBanner } from "@/components/admin/solarmarket/SmCompletionBanner";
 
 // ─── Constants ──────────────────────────────────────────
 
@@ -1298,26 +1302,33 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange, onRunningChan
 
             {/* Pending migration stats */}
             {pendingStats && (
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                <div className="rounded-lg border border-border bg-muted/30 p-3 text-center">
-                  <p className="text-lg font-bold text-foreground">{pendingStats.migrated}</p>
-                  <p className="text-[10px] text-muted-foreground">Migradas</p>
-                </div>
-                <div className="rounded-lg border border-border bg-muted/30 p-3 text-center">
-                  <p className="text-lg font-bold text-foreground">{pendingStats.pending}</p>
-                  <p className="text-[10px] text-muted-foreground">Pendentes</p>
-                </div>
-                <div className="rounded-lg border border-border bg-muted/30 p-3 text-center">
-                  <p className="text-lg font-bold text-destructive">{pendingStats.errors}</p>
-                  <p className="text-[10px] text-muted-foreground">Erros última rodada</p>
-                </div>
-                <div className="rounded-lg border border-border bg-muted/30 p-3 text-center">
-                  <p className="text-lg font-bold text-foreground">
-                    {pendingStats.total > 0 ? Math.round((pendingStats.migrated / pendingStats.total) * 100) : 0}%
-                  </p>
-                  <p className="text-[10px] text-muted-foreground">Progresso total</p>
-                </div>
-              </div>
+              <SmBentoKpis items={[
+                {
+                  icon: CheckCircle,
+                  label: "Migradas",
+                  value: pendingStats.migrated,
+                  color: pendingStats.migrated > 0 ? "success" : "muted",
+                },
+                {
+                  icon: Clock,
+                  label: "Pendentes",
+                  value: pendingStats.pending,
+                  color: pendingStats.pending > 0 ? "warning" : "success",
+                },
+                {
+                  icon: XCircle,
+                  label: "Erros última rodada",
+                  value: pendingStats.errors,
+                  color: pendingStats.errors > 0 ? "destructive" : "muted",
+                },
+                {
+                  icon: FileText,
+                  label: "Progresso total",
+                  value: `${pendingStats.total > 0 ? Math.round((pendingStats.migrated / pendingStats.total) * 100) : 0}%`,
+                  color: "primary",
+                  progress: pendingStats.total > 0 ? Math.round((pendingStats.migrated / pendingStats.total) * 100) : 0,
+                },
+              ]} />
             )}
 
             {/* Auto-resume progress */}
@@ -1546,27 +1557,16 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange, onRunningChan
                   </div>
                 )}
 
-                {/* Step list */}
-                <div className="space-y-1">
-                  {steps.map(step => (
-                    <div key={step.name} className={cn(
-                      "flex items-center gap-2 p-2 rounded text-sm transition-colors",
-                      step.state === "running" && "bg-primary/5 border border-primary/20",
-                      step.state === "done" && "bg-success/5",
-                      step.state === "error" && "bg-destructive/5",
-                    )}>
-                      {step.state === "running" && <Loader2 className="h-4 w-4 text-primary animate-spin shrink-0" />}
-                      {step.state === "done" && <CheckCircle className="h-4 w-4 text-success shrink-0" />}
-                      {step.state === "error" && <XCircle className="h-4 w-4 text-destructive shrink-0" />}
-                      {step.state === "pending" && <Clock className="h-4 w-4 text-muted-foreground/40 shrink-0" />}
-                      {step.state === "skipped" && <Clock className="h-4 w-4 text-muted-foreground/30 shrink-0" />}
-                      <div className="flex-1 min-w-0">
-                        <p className="text-xs font-medium">{step.label}</p>
-                        {step.detail && <p className="text-[10px] text-muted-foreground truncate">{step.detail}</p>}
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                {/* Vertical Stepper */}
+                <SmVerticalStepper steps={steps} />
+
+                {/* Completion Banner */}
+                <SmCompletionBanner
+                  migrated={result?.summary?.CREATED || result?.summary?.OK || result?.total_processed || 0}
+                  errors={result?.summary?.ERROR || 0}
+                  total={result?.total_found || 0}
+                  visible={!running && !!result && progressPercent === 100}
+                />
               </div>
             )}
 
@@ -1627,17 +1627,8 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange, onRunningChan
               </div>
             )}
 
-            {/* Client-side logs */}
-            {logs.length > 0 && (
-              <details className="text-xs">
-                <summary className="cursor-pointer text-muted-foreground hover:text-foreground">
-                  Logs ({logs.length})
-                </summary>
-                <pre className="mt-1 p-2 rounded bg-muted/30 max-h-32 overflow-auto whitespace-pre-wrap text-[10px]">
-                  {logs.join("\n")}
-                </pre>
-              </details>
-            )}
+            {/* Terminal Logs */}
+            <SmTerminalLog logs={logs} />
           </div>
 
           <DrawerFooter className="flex-col gap-2 pt-2">

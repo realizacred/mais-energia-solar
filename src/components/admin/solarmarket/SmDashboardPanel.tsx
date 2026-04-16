@@ -14,13 +14,14 @@
  *   error/stale   → stale heartbeat
  */
 import { useSmSyncProgress } from "@/hooks/useSmSyncProgress";
+import { SmBentoKpis } from "@/components/admin/solarmarket/SmBentoKpis";
+import { SmCompletionBanner } from "@/components/admin/solarmarket/SmCompletionBanner";
 import { useActiveSmOperation, useLastCompletedSmOperation } from "@/hooks/useSmOperationRuns";
 import { useExpireStaleSmOperations } from "@/hooks/useExpireStaleSmOperations";
 import { useIsBackgroundSyncActive } from "@/hooks/useSolarMarket";
 import type { SyncProgress, SyncStageStatus } from "@/hooks/useSolarMarketSync";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent } from "@/components/ui/card";
 import {
   FolderKanban,
   FileText,
@@ -71,61 +72,8 @@ const STATE_CONFIG: Record<OperationalState, StateConfig> = {
   stale:               { label: "Operação travada", sublabel: "Sem heartbeat há mais de 5 minutos", color: "destructive", icon: AlertTriangle },
 };
 
-// ─── KPI Card ───────────────────────────────────────────
 
-function KpiCard({ icon: Icon, label, value, sub, color, progress: progressValue }: {
-  icon: React.ElementType;
-  label: string;
-  value: string | number;
-  sub?: string;
-  color: "primary" | "success" | "warning" | "info" | "destructive" | "muted";
-  progress?: number;
-}) {
-  const borderColors: Record<string, string> = {
-    primary: "border-l-primary",
-    success: "border-l-success",
-    warning: "border-l-warning",
-    info: "border-l-info",
-    destructive: "border-l-destructive",
-    muted: "border-l-muted-foreground",
-  };
-  const bgColors: Record<string, string> = {
-    primary: "bg-primary/10",
-    success: "bg-success/10",
-    warning: "bg-warning/10",
-    info: "bg-info/10",
-    destructive: "bg-destructive/10",
-    muted: "bg-muted",
-  };
-  const iconColors: Record<string, string> = {
-    primary: "text-primary",
-    success: "text-success",
-    warning: "text-warning",
-    info: "text-info",
-    destructive: "text-destructive",
-    muted: "text-muted-foreground",
-  };
 
-  return (
-    <Card className={cn("border-l-[3px] shadow-sm", borderColors[color])}>
-      <CardContent className="p-4 space-y-2">
-        <div className="flex items-center gap-3">
-          <div className={cn("w-9 h-9 rounded-lg flex items-center justify-center shrink-0", bgColors[color])}>
-            <Icon className={cn("w-4 h-4", iconColors[color])} />
-          </div>
-          <div className="min-w-0 flex-1">
-            <p className="text-xl font-bold tracking-tight text-foreground leading-none">{value}</p>
-            <p className="text-xs text-muted-foreground mt-0.5">{label}</p>
-          </div>
-        </div>
-        {progressValue !== undefined && (
-          <Progress value={progressValue} className="h-1.5" />
-        )}
-        {sub && <p className="text-[10px] text-muted-foreground leading-snug">{sub}</p>}
-      </CardContent>
-    </Card>
-  );
-}
 
 // ─── Stage status icon ──────────────────────────────────
 
@@ -496,81 +444,55 @@ export function SmDashboardPanel({
         </div>
       )}
 
-      {/* ── Staging vs Conversion sections ── */}
-      <div className="grid grid-cols-1 gap-4 2xl:grid-cols-2">
-        {/* Staging — Dados importados */}
-        <div className="space-y-3">
-          <div className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded-md bg-info/10 flex items-center justify-center">
-              <Database className="h-3.5 w-3.5 text-info" />
-            </div>
-            <h3 className="text-sm font-semibold text-foreground">Dados importados</h3>
-            <span className="text-[10px] text-muted-foreground">(staging)</span>
-          </div>
-          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-3">
-            <KpiCard
-              icon={Users}
-              label="Clientes"
-              value={totalClients}
-              color="primary"
-              sub={totalClients > 0 ? "Importados do SolarMarket" : "Sincronize para importar"}
-            />
-            <KpiCard
-              icon={FolderKanban}
-              label="Projetos verificados"
-              value={`${projectsScanned} / ${totalProjects}`}
-              color={projectsRemaining === 0 && totalProjects > 0 ? "success" : "info"}
-              progress={scanPercent}
-              sub={projectsRemaining === 0 && totalProjects > 0
-                ? "Todos os projetos verificados"
-                : `${projectsRemaining} restantes para varrer`}
-            />
-            <KpiCard
-              icon={FileText}
-              label="Propostas encontradas"
-              value={totalProposals}
-              color={totalProposals > 0 ? "success" : "muted"}
-              sub={totalProposals > 0
-                ? `Em ${projectsScanned} projetos varridos`
-                : "Nenhuma proposta encontrada ainda"}
-            />
-          </div>
-        </div>
+      {/* ── Completion Banner ── */}
+      <SmCompletionBanner
+        migrated={proposalsMigrated}
+        errors={0}
+        total={totalProposals}
+        visible={state === "migration_complete" && totalProposals > 0}
+      />
 
-        {/* Conversion — Migração para CRM */}
-        <div className="space-y-3">
-          <div className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded-md bg-warning/10 flex items-center justify-center">
-              <TrendingUp className="h-3.5 w-3.5 text-warning" />
-            </div>
-            <h3 className="text-sm font-semibold text-foreground">Conversão para CRM</h3>
-            <span className="text-[10px] text-muted-foreground">(migração)</span>
-          </div>
-          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-            <KpiCard
-              icon={ArrowRightLeft}
-              label="Migradas"
-              value={proposalsMigrated}
-              color={proposalsMigrated > 0 ? "success" : "muted"}
-              progress={migrationPercent}
-              sub={proposalsMigrated > 0
-                ? `${migrationPercent}% de ${totalProposals} propostas`
-                : "Nenhuma proposta migrada ainda"}
-            />
-            <KpiCard
-              icon={Clock}
-              label="Pendentes"
-              value={proposalsPending}
-              color={proposalsPending > 0 ? "warning" : "success"}
-              sub={proposalsPending > 0
-                ? "Aguardando conversão para o CRM"
-                : totalProposals > 0
-                  ? "Todas as propostas foram migradas"
-                  : "Sem propostas para migrar"}
-            />
-          </div>
-        </div>
-      </div>
+      {/* ── Bento KPI Grid ── */}
+      <SmBentoKpis items={[
+        {
+          icon: Users,
+          label: "Clientes importados",
+          value: totalClients,
+          color: totalClients > 0 ? "primary" : "muted",
+          sub: totalClients > 0 ? "Importados do SolarMarket" : "Sincronize para importar",
+        },
+        {
+          icon: FolderKanban,
+          label: "Projetos verificados",
+          value: `${projectsScanned} / ${totalProjects}`,
+          color: projectsRemaining === 0 && totalProjects > 0 ? "success" : "info",
+          progress: scanPercent,
+          sub: projectsRemaining === 0 && totalProjects > 0
+            ? "Todos os projetos verificados"
+            : `${projectsRemaining} restantes`,
+        },
+        {
+          icon: ArrowRightLeft,
+          label: "Migradas",
+          value: proposalsMigrated,
+          color: proposalsMigrated > 0 ? "success" : "muted",
+          progress: migrationPercent,
+          sub: proposalsMigrated > 0
+            ? `${migrationPercent}% de ${totalProposals}`
+            : "Nenhuma migrada ainda",
+        },
+        {
+          icon: Clock,
+          label: "Pendentes",
+          value: proposalsPending,
+          color: proposalsPending > 0 ? "warning" : "success",
+          sub: proposalsPending > 0
+            ? "Aguardando conversão"
+            : totalProposals > 0
+              ? "Todas migradas"
+              : "Sem propostas",
+        },
+      ]} />
     </div>
   );
 }
