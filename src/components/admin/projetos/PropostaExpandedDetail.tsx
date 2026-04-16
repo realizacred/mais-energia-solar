@@ -1396,36 +1396,7 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56" onClick={(e) => e.stopPropagation()}>
-                {!isMigrated && latestVersao && (
-                  <>
-                    <DropdownMenuItem onClick={openPublicProposal}>
-                      <ExternalLink className="h-3.5 w-3.5 mr-2 text-primary" /> Abrir proposta web
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={copyTrackedLink}>
-                      <Link2 className="h-3.5 w-3.5 mr-2 text-primary" /> Copiar link c/ rastreio
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={copyPublicLink}>
-                      <Link2 className="h-3.5 w-3.5 mr-2 text-muted-foreground" /> Copiar link público
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => handleSend("whatsapp")} disabled={sending}>
-                      <MessageCircle className="h-3.5 w-3.5 mr-2 text-success" /> Enviar por WhatsApp
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => setMessageDrawerOpen(true)}>
-                      <Mail className="h-3.5 w-3.5 mr-2 text-primary" /> Enviar por e-mail
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                  </>
-                )}
-
-                {isMigrated && latestVersao && (
-                  <>
-                    <DropdownMenuItem disabled>
-                      <ExternalLink className="h-3.5 w-3.5 mr-2 text-muted-foreground" /> Proposta web indisponível
-                      <span className="ml-auto text-[9px] text-muted-foreground/60">Migrada</span>
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                  </>
-                )}
+                {/* Links and send actions are in the inline action bar below — no duplication here */}
 
                 <DropdownMenuItem onClick={() => handleEditWithProtection(() => navigate(`/admin/propostas-nativas?edit=${p.id}`))}>
                   <Pencil className="h-3.5 w-3.5 mr-2 text-primary" /> Editar proposta
