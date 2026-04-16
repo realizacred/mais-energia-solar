@@ -126,12 +126,13 @@ export function StepDocumento({
     return d.toISOString().split("T")[0];
   });
 
-  // Auto-select first template
+  // Auto-select first template (skip when used in read-only detail view)
   useEffect(() => {
+    if (skipTemplateAutoSelect) return;
     if (!templateSelecionado && templates.length > 0) {
       onTemplateSelecionado(templates[0].id);
     }
-  }, [templates, templateSelecionado, onTemplateSelecionado]);
+  }, [templates, templateSelecionado, onTemplateSelecionado, skipTemplateAutoSelect]);
 
   // Auto-select first email template
   useEffect(() => {
