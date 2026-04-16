@@ -123,23 +123,34 @@ export function ProjetosManager() {
     moveProjetoToEtapa, moveProjetoToConsultor,
   } = useProjetoPipeline();
 
-  // Build etapa map for adapters
+  // Build etapa map for adapters (canonical source: projeto_etapas)
   const etapaMap = useMemo(() => new Map(etapas.map(e => [e.id, e])), [etapas]);
+  const existingEtapaIds = useMemo(() => new Set(etapas.map(e => e.id)), [etapas]);
 
-  // Adapted data for child components
+  // Adapted data for child components — columns come exclusively from projeto_etapas (Sistema B)
   const adaptedStages = useMemo(
     () => selectedFunilEtapas.map(etapaToPipelineStage),
     [selectedFunilEtapas]
   );
 
+  // Filter out orphan projetos (etapa_id pointing to deleted/invalid stage)
+  // so cards never land in the wrong column or in an empty bucket.
+  const validProjetos = useMemo(
+    () => projetos.filter(p => p.etapa_id && existingEtapaIds.has(p.etapa_id)),
+    [projetos, existingEtapaIds]
+  );
+
   const adaptedDeals = useMemo(
-    () => projetos.map(p => projetoToCard(p, etapaMap)),
-    [projetos, etapaMap]
+    () => validProjetos.map(p => projetoToCard(p, etapaMap)),
+    [validProjetos, etapaMap]
   );
 
   const adaptedOwnerColumns = useMemo(
-    () => consultorColumns.map(c => consultorColumnToOwner(c, etapaMap)),
-    [consultorColumns, etapaMap]
+    () => consultorColumns.map(c => ({
+      ...c,
+      projetos: c.projetos.filter(p => p.etapa_id && existingEtapaIds.has(p.etapa_id)),
+    })).map(c => consultorColumnToOwner(c, etapaMap)),
+    [consultorColumns, etapaMap, existingEtapaIds]
   );
 
   // ── Persistent filter storage ──
