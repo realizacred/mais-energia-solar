@@ -84,7 +84,7 @@ export function useSaveSmAiConfig() {
             api_key: config.systemPrompt,
             is_active: config.isActive,
             updated_at: new Date().toISOString(),
-            updated_by: user.id,
+            updated_by: userId,
           })
           .eq("id", existing.id);
         if (error) throw error;
@@ -95,8 +95,8 @@ export function useSaveSmAiConfig() {
             service_key: SERVICE_KEY,
             api_key: config.systemPrompt,
             is_active: config.isActive,
-            tenant_id: profile.tenant_id,
-            updated_by: user.id,
+            tenant_id: tenantId,
+            updated_by: userId,
           });
         if (error) throw error;
       }
