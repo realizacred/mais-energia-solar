@@ -35,7 +35,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 const CustomTooltip = ({ active, payload, label }: any) => {
   if (!active || !payload?.length) return null;
   return (
-    <div className="bg-card border border-border rounded-lg shadow-lg p-3 text-sm">
+    <div className="bg-card border border-border rounded-lg shadow-sm p-3 text-sm">
       <p className="font-medium text-foreground mb-1">{label}</p>
       {payload.map((p: any) => (
         <p key={p.name} className="text-muted-foreground">

@@ -120,7 +120,7 @@ export function InadimplenciaDashboard() {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard icon={AlertTriangle} label="Parcelas Atrasadas" value={String(stats.totalAtrasadas)} color="destructive" />
         <StatCard icon={DollarSign} label="Valor em Atraso" value={formatCurrency(stats.valorTotalAtrasado)} color="destructive" />
         <StatCard icon={Users} label="Clientes Inadimplentes" value={String(stats.clientesInadimplentes)} color="warning" />

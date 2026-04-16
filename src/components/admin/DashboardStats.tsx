@@ -20,7 +20,7 @@ const cardVariants = {
 const CustomTooltip = ({ active, payload, label }: any) => {
   if (!active || !payload?.length) return null;
   return (
-    <div className="bg-card border border-border rounded-lg shadow-lg p-3 text-sm">
+    <div className="bg-card border border-border rounded-lg shadow-sm p-3 text-sm">
       <p className="font-medium text-foreground mb-1">{label}</p>
       {payload.map((p: any) => (
         <p key={p.name} className="text-muted-foreground">
@@ -153,7 +153,7 @@ export default function DashboardStats({ leads }: DashboardStatsProps) {
   return (
     <motion.div className="space-y-6" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
       {/* KPI Cards — Command Center */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-5">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
         {[
           { icon: Users, label: "Total de leads", value: leads.length, accent: "secondary" as const },
           { icon: Zap, label: "kWh total", value: totalKwh.toLocaleString(), accent: "success" as const },
