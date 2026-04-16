@@ -1971,7 +1971,7 @@ Deno.serve(async (req) => {
       {
         const { data: allEtapas } = await adminClient
           .from("projeto_etapas")
-          .select("id, funil_id, nome, ordem")
+          .select("id, funil_id, nome, ordem, categoria")
           .eq("tenant_id", tenantId)
           .order("ordem", { ascending: true });
         for (const e of allEtapas || []) {
