@@ -3877,8 +3877,8 @@ Deno.serve(async (req) => {
                     codigo: projetoCodigo,
                     projeto_num: null,
                     is_principal: false,
-                    funil_id: resolvedProjFunilId,
-                    etapa_id: resolvedProjEtapaId,
+                    funil_id: validatedFunilId,
+                    etapa_id: validatedEtapaId,
                 };
                 if (smProjDate) {
                   projInsert.created_at = smProjDate;
