@@ -192,44 +192,37 @@ export function StageDealCard({
       {/* Left color bar */}
       <div className="kanban-card__top-bar" style={topBarStyle} />
 
-      <div className="relative px-3 pt-2.5 pb-2.5 space-y-2 flex-1 min-w-0">
+      <div className="relative px-2.5 pt-2 pb-2 space-y-1.5 flex-1 min-w-0">
         {/* Accepted check icon */}
         {isPropostaAceita && (
-          <div className="absolute top-2.5 right-3">
-            <CheckCircle2 className="h-4 w-4 text-success" />
+          <div className="absolute top-2 right-2.5">
+            <CheckCircle2 className="h-3.5 w-3.5 text-success" />
           </div>
         )}
 
-        {/* HEADER: Avatar + Name + kWp badge */}
-        <div className="flex items-center gap-2.5">
-          <Avatar className="h-8 w-8 border border-border/40 shrink-0">
-            <AvatarFallback className={cn("text-[10px] font-bold", getAvatarColor(deal.customer_name || deal.deal_title || "?"))}>
+        {/* HEADER: Avatar + Name */}
+        <div className="flex items-center gap-2">
+          <Avatar className="h-7 w-7 border border-border/40 shrink-0">
+            <AvatarFallback className={cn("text-[9px] font-bold", getAvatarColor(deal.customer_name || deal.deal_title || "?"))}>
               {getInitials(deal.customer_name || deal.deal_title || "?")}
             </AvatarFallback>
           </Avatar>
-            <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-1.5">
-              <p className={cn(
-                "text-sm font-semibold leading-tight line-clamp-2",
-                isInactive ? "text-muted-foreground" : "text-foreground"
-              )}>
-                {deal.customer_name || "Sem nome"}
-              </p>
-              {deal.deal_num != null && (
-                <span className="text-[10px] font-mono text-muted-foreground/70 shrink-0">
-                  #{deal.deal_num}
-                </span>
-              )}
-            </div>
+          <div className="min-w-0 flex-1">
+            <p className={cn(
+              "text-xs font-semibold leading-tight line-clamp-1",
+              isInactive ? "text-muted-foreground" : "text-foreground"
+            )}>
+              {deal.customer_name || "Sem nome"}
+            </p>
             {visibleFields.has("cidade") && (deal.customer_city || deal.customer_state) && (
-              <p className="text-[11px] text-muted-foreground truncate leading-snug mt-0.5">
+              <p className="text-[10px] text-muted-foreground truncate leading-snug">
                 {[deal.customer_city, deal.customer_state].filter(Boolean).join(", ")}
               </p>
             )}
           </div>
           {visibleFields.has("potencia_kwp") && hasKwp && (
-            <Badge variant="outline" className="shrink-0 text-[10px] h-[20px] px-1.5 font-semibold bg-success/10 text-success border-success/20 gap-0.5">
-              <Zap className="h-3 w-3" />
+            <Badge variant="outline" className="shrink-0 text-[9px] h-[18px] px-1 font-semibold bg-success/10 text-success border-success/20 gap-0.5">
+              <Zap className="h-2.5 w-2.5" />
               {deal.deal_kwp.toFixed(1).replace(".", ",")}
             </Badge>
           )}
@@ -237,26 +230,32 @@ export function StageDealCard({
 
         {/* METRICS — value + time + status */}
         {visibleFields.has("valor_projeto") && (
-          <div className="flex items-center gap-2 text-xs px-0.5">
-            <span className="font-bold tabular-nums text-foreground text-sm">
+          <div className="flex items-center gap-1.5 text-[11px] px-0.5">
+            <span className="font-bold tabular-nums text-foreground text-xs">
               {hasValue ? formatBRL(deal.deal_value) : "R$ —"}
             </span>
             <span className="text-muted-foreground/30">·</span>
             <span className={cn(
-              "tabular-nums font-medium",
+              "tabular-nums font-medium flex items-center gap-0.5",
               stagnation === "critical" ? "text-destructive" :
               stagnation === "warning" ? "text-warning" :
               "text-muted-foreground"
             )}>
+              <Clock className="h-2.5 w-2.5" />
               {formatTimeInStage(deal.last_stage_change)}
             </span>
             {propostaInfo && (
               <>
                 <span className="text-muted-foreground/30">·</span>
-                <Badge variant="outline" className={cn("text-[9px] h-[18px] px-1.5 py-0 font-medium border", propostaInfo.className)}>
+                <Badge variant="outline" className={cn("text-[8px] h-[16px] px-1 py-0 font-medium border bg-transparent", propostaInfo.className)}>
                   {propostaInfo.label}
                 </Badge>
               </>
+            )}
+            {deal.deal_num != null && (
+              <span className="text-[9px] font-mono text-muted-foreground/50 ml-auto shrink-0">
+                #{deal.deal_num}
+              </span>
             )}
           </div>
         )}
