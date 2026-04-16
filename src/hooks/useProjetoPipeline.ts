@@ -633,7 +633,10 @@ export function useProjetoPipeline() {
       .forEach(p => {
         const key = p.etapa_id || null;
         const arr = map.get(key) || [];
-        arr.push(p);
+        // Cap cards per stage for rendering performance (mem://architecture/kanban-performance-rendering)
+        if (arr.length < MAX_CARDS_PER_STAGE) {
+          arr.push(p);
+        }
         map.set(key, arr);
       });
     return map;
