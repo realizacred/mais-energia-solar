@@ -46,6 +46,7 @@ import { SmProposalDetailDialog } from "@/components/admin/solarmarket/SmProposa
 import { SmMigrationToggle } from "@/components/admin/solarmarket/SmMigrationToggle";
 import { SmOperationStatusPanel } from "@/components/admin/solarmarket/SmOperationStatusPanel";
 import { SmMigrationDrawer } from "@/components/admin/solarmarket/SmMigrationDrawer";
+import { SmAiConfigTab } from "@/components/admin/solarmarket/SmAiConfigTab";
 import { Checkbox } from "@/components/ui/checkbox";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
