@@ -4257,6 +4257,19 @@ Deno.serve(async (req) => {
               // P1: Inject customFieldValues from custom_fields_raw into snapshot
               // Classify by prefix: cap_ → projeto, cape_ → pré-dimensionamento, capo_ → pós-dimensionamento
               // Use BASE KEY (without prefix) for dedup — cap_valor_total and cape_valor_total → same base "valor_total"
+
+              // ── P0: Known SM keys → canonical snapshot fields (De/Para) ──
+              // Maps SM custom field keys to existing canonical fields instead of creating dynamic fields.
+              const SM_CANONICAL_FIELD_MAP: Record<string, string> = {
+                "i": "garantia_inversor",
+                "m": "garantia_modulos",
+                "mi": "garantia_modulos",
+                "seguro": "seguro",
+                "string_box": "string_box",
+              };
+              // Keys that contain no critical data — concatenate into observacoes
+              const SM_NOISE_KEYS = new Set(["overlord"]);
+
               if (smProp.custom_fields_raw?.values) {
                 const cfVals = smProp.custom_fields_raw.values as Record<string, any>;
                 const customFieldValues: Record<string, string> = {};
@@ -4266,18 +4279,40 @@ Deno.serve(async (req) => {
                   pos_dimensionamento: {},
                   outros: {},
                 };
+                const noiseNotes: string[] = [];
+
                 for (const [key, entry] of Object.entries(cfVals)) {
                   const bareKey = normalizeCfKey(key);
                   const val = (entry as any)?.value ?? (entry as any)?.raw_value ?? "";
-                  if (val !== "" && val != null) {
-                    const strVal = String(val);
-                    const area = detectCfArea(bareKey);
-                    const normalizedKey = normalizeFieldKey(bareKey);
-                    // Use normalized key for snapshot dedup
-                    customFieldValues[normalizedKey] = strVal;
-                    customFieldsByArea[area][normalizedKey] = strVal;
+                  if (val === "" || val == null) continue;
+                  const strVal = String(val);
+                  const normalizedKey = normalizeFieldKey(bareKey);
+
+                  // Check canonical mapping first
+                  const canonicalTarget = SM_CANONICAL_FIELD_MAP[normalizedKey] || SM_CANONICAL_FIELD_MAP[bareKey.toLowerCase()];
+                  if (canonicalTarget) {
+                    finalSnapshot[canonicalTarget] = strVal;
+                    continue;
                   }
+
+                  // Check noise keys — aggregate into observacoes
+                  if (SM_NOISE_KEYS.has(normalizedKey) || SM_NOISE_KEYS.has(bareKey.toLowerCase())) {
+                    noiseNotes.push(`${bareKey}: ${strVal}`);
+                    continue;
+                  }
+
+                  // Standard flow: classify by area
+                  const area = detectCfArea(bareKey);
+                  customFieldValues[normalizedKey] = strVal;
+                  customFieldsByArea[area][normalizedKey] = strVal;
                 }
+
+                // Append noise keys to snapshot observacoes
+                if (noiseNotes.length > 0) {
+                  const existing = finalSnapshot.observacoes_sm || "";
+                  finalSnapshot.observacoes_sm = [existing, ...noiseNotes].filter(Boolean).join(" | ");
+                }
+
                 if (Object.keys(customFieldValues).length > 0) {
                   finalSnapshot.customFieldValues = customFieldValues;
                 }
