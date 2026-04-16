@@ -3712,10 +3712,20 @@ Deno.serve(async (req) => {
                 return funilFirstEtapaMap.get(resolvedFunilId) || (resolvedFunilId === COMERCIAL_FUNIL_ID ? COMERCIAL_ETAPA_ID : null) || FALLBACK_ETAPA_ID || null;
               })();
 
+              // ── Integrity check: validate etapa belongs to funil ──
+              const updIntegrity = validateFunilEtapaIntegrity(
+                resolvedFunilId, resolvedEtapaId,
+                funilFirstEtapaMap, funilEtapaByNameMap,
+                `UPDATE projeto=${projetoId} sm_proposal=${smProp.sm_proposal_id}`
+              );
+              if (updIntegrity.warning) {
+                report.steps.projeto = { status: "FALLBACK_USED", id: projetoId, reason: updIntegrity.warning };
+              }
+
               const projUpdateFields: Record<string, any> = {
                 consultor_id: resolvedOwnerId || null,
-                funil_id: resolvedFunilId,
-                etapa_id: resolvedEtapaId,
+                funil_id: updIntegrity.funilId,
+                etapa_id: updIntegrity.etapaId,
                 ...(smProp.acceptance_date ? { data_venda: smProp.acceptance_date } : {}),
               };
 
