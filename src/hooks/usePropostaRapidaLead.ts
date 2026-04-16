@@ -115,7 +115,7 @@ export function usePropostaRapidaLead() {
         return;
       }
 
-      // 4. Buscar pipeline e stage default
+      // 4. Buscar pipeline comercial e stage default (deals)
       const { data: pipeline } = await supabase
         .from("pipelines")
         .select("id")
@@ -135,6 +135,33 @@ export function usePropostaRapidaLead() {
 
       if (!stage) throw new Error("Nenhuma etapa encontrada no pipeline.");
 
+      // 4b. Buscar funil de projetos (projeto_funis) e primeira etapa (projeto_etapas)
+      const { data: funilComercial } = await supabase
+        .from("projeto_funis")
+        .select("id")
+        .eq("tenant_id", tenantId)
+        .eq("ativo", true)
+        .order("ordem", { ascending: true })
+        .limit(1)
+        .maybeSingle();
+
+      let funilId: string | null = null;
+      let etapaId: string | null = null;
+
+      if (funilComercial) {
+        funilId = funilComercial.id;
+        // Buscar primeira etapa do funil
+        const { data: primeiraEtapa } = await supabase
+          .from("projeto_etapas")
+          .select("id")
+          .eq("funil_id", funilComercial.id)
+          .order("ordem", { ascending: true })
+          .limit(1)
+          .maybeSingle();
+
+        etapaId = primeiraEtapa?.id || null;
+      }
+
       // 5. Criar deal
       const { data: newDeal, error: dealError } = await supabase
         .from("deals")
@@ -152,13 +179,15 @@ export function usePropostaRapidaLead() {
 
       if (dealError) throw dealError;
 
-      // 6. Criar projeto
+      // 6. Criar projeto com funil_id e etapa_id para visibilidade no Kanban
       const { data: newProjeto, error: projetoError } = await supabase
         .from("projetos")
         .insert({
           cliente_id: clienteId!,
           consultor_id: lead.consultor_id || null,
           deal_id: newDeal.id,
+          funil_id: funilId,
+          etapa_id: etapaId,
           status: "criado",
           tenant_id: tenantId,
         } as any)
@@ -174,7 +203,6 @@ export function usePropostaRapidaLead() {
         .eq("id", newDeal.id);
 
       await markLeadAsViewed(lead.id, tenantId);
-      toast.success("Projeto criado! Abrindo wizard de proposta...");
 
       // Atualizar status do lead para "Convertido" se existir
       const { data: convertidoStatus } = await supabase
@@ -191,7 +219,17 @@ export function usePropostaRapidaLead() {
           .eq("tenant_id", tenantId);
       }
 
-      // 8. Redirecionar ao wizard
+      // 8. Perguntar ao usuário: wizard ou kanban?
+      toast.success("Projeto criado com sucesso!", {
+        description: "Deseja abrir o wizard de proposta ou ver no Kanban?",
+        duration: 8000,
+        action: {
+          label: "Ver no Kanban",
+          onClick: () => navigate("/admin/projetos"),
+        },
+      });
+
+      // Redirecionar ao wizard por padrão
       navigate(
         `/admin/propostas-nativas/nova?deal_id=${newDeal.id}&customer_id=${clienteId}&lead_id=${lead.id}`
       );
