@@ -1490,7 +1490,6 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
                   )}
                 </div>
 
-                )}
               </div>
 
               {loadingDetail ? (
