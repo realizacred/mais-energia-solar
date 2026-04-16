@@ -15246,6 +15246,7 @@ export type Database = {
       }
       projeto_etapas: {
         Row: {
+          card_visible_fields: string[] | null
           categoria: Database["public"]["Enums"]["projeto_etapa_categoria"]
           cor: string
           created_at: string
@@ -15257,6 +15258,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          card_visible_fields?: string[] | null
           categoria?: Database["public"]["Enums"]["projeto_etapa_categoria"]
           cor?: string
           created_at?: string
@@ -15268,6 +15270,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          card_visible_fields?: string[] | null
           categoria?: Database["public"]["Enums"]["projeto_etapa_categoria"]
           cor?: string
           created_at?: string

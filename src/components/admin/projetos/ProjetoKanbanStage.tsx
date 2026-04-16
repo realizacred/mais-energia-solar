@@ -528,9 +528,18 @@ function ResizableKanbanColumn({
     { key: "status", label: "Status da proposta" },
   ];
 
+  // RB-56: Kanban de Projetos opera sobre projeto_etapas (motor Engenharia),
+  // NÃO sobre pipeline_stages (motor Comercial). RB-58: verifica linhas afetadas.
   const handleColorChange = async (color: string | null) => {
     setStageColor(color);
-    await supabase.from("pipeline_stages").update({ color } as any).eq("id", stage.id);
+    const { error, data } = await supabase
+      .from("projeto_etapas")
+      .update({ cor: color } as any)
+      .eq("id", stage.id)
+      .select("id");
+    if (error || !data || data.length === 0) {
+      console.error("[ProjetoKanbanStage] Falha ao atualizar cor da etapa:", error?.message ?? "0 linhas afetadas", "id:", stage.id);
+    }
   };
 
   const handleToggleField = async (fieldKey: string) => {
@@ -539,7 +548,14 @@ function ResizableKanbanColumn({
     if (idx >= 0) current.splice(idx, 1);
     else current.push(fieldKey);
     setVisibleFields(current);
-    await supabase.from("pipeline_stages").update({ card_visible_fields: current } as any).eq("id", stage.id);
+    const { error, data } = await supabase
+      .from("projeto_etapas")
+      .update({ card_visible_fields: current } as any)
+      .eq("id", stage.id)
+      .select("id");
+    if (error || !data || data.length === 0) {
+      console.error("[ProjetoKanbanStage] Falha ao atualizar campos visíveis da etapa:", error?.message ?? "0 linhas afetadas", "id:", stage.id);
+    }
   };
 
   const overdueCount = useMemo(() => {
