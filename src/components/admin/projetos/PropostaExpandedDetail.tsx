@@ -1397,39 +1397,39 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56" onClick={(e) => e.stopPropagation()}>
                 {/* Ações de compartilhamento */}
-                {!isMigrated && latestVersao && (
+                {latestVersao && (
                   <>
-                    <DropdownMenuItem onClick={openPublicProposal}>
-                      <ExternalLink className="h-3.5 w-3.5 mr-2 text-primary" /> Abrir proposta web
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={copyTrackedLink}>
-                      <Link2 className="h-3.5 w-3.5 mr-2 text-muted-foreground" /> Copiar link c/ rastreio
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={copyPublicLink}>
-                      <Link2 className="h-3.5 w-3.5 mr-2 text-muted-foreground" /> Copiar link público
-                    </DropdownMenuItem>
+                    {!isMigrated && (
+                      <>
+                        <DropdownMenuItem onClick={openPublicProposal}>
+                          <ExternalLink className="h-3.5 w-3.5 mr-2 text-primary" /> Abrir proposta web
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={copyTrackedLink}>
+                          <Link2 className="h-3.5 w-3.5 mr-2 text-muted-foreground" /> Copiar link c/ rastreio
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={copyPublicLink}>
+                          <Link2 className="h-3.5 w-3.5 mr-2 text-muted-foreground" /> Copiar link público
+                        </DropdownMenuItem>
+                      </>
+                    )}
                     <DropdownMenuItem onClick={() => handleSend("whatsapp")} disabled={sending}>
                       <MessageCircle className="h-3.5 w-3.5 mr-2 text-success" /> Enviar WhatsApp
                     </DropdownMenuItem>
                     <DropdownMenuItem onClick={() => setMessageDrawerOpen(true)}>
                       <Mail className="h-3.5 w-3.5 mr-2 text-primary" /> Enviar Resumo
                     </DropdownMenuItem>
+                    {(latestVersao.output_pdf_path || latestVersao.link_pdf) && (
+                      <DropdownMenuItem onClick={handleDownloadPdf} disabled={downloadingPdf}>
+                        <Download className="h-3.5 w-3.5 mr-2 text-muted-foreground" /> Baixar PDF
+                      </DropdownMenuItem>
+                    )}
+                    {latestVersao.output_docx_path && (
+                      <DropdownMenuItem onClick={handleDownloadDocx}>
+                        <Download className="h-3.5 w-3.5 mr-2 text-muted-foreground" /> Baixar DOCX
+                      </DropdownMenuItem>
+                    )}
                     <DropdownMenuSeparator />
                   </>
-                )}
-                {/* Downloads */}
-                {latestVersao && (latestVersao.output_pdf_path || latestVersao.link_pdf) && (
-                  <DropdownMenuItem onClick={handleDownloadPdf} disabled={downloadingPdf}>
-                    <Download className="h-3.5 w-3.5 mr-2 text-muted-foreground" /> Baixar PDF
-                  </DropdownMenuItem>
-                )}
-                {latestVersao?.output_docx_path && (
-                  <DropdownMenuItem onClick={handleDownloadDocx}>
-                    <Download className="h-3.5 w-3.5 mr-2 text-muted-foreground" /> Baixar DOCX
-                  </DropdownMenuItem>
-                )}
-                {latestVersao && (latestVersao.output_pdf_path || latestVersao.link_pdf || latestVersao.output_docx_path) && (
-                  <DropdownMenuSeparator />
                 )}
                 <DropdownMenuItem onClick={() => handleEditWithProtection(() => navigate(`/admin/propostas-nativas?edit=${p.id}`))}>
                   <Pencil className="h-3.5 w-3.5 mr-2 text-primary" /> Editar proposta
