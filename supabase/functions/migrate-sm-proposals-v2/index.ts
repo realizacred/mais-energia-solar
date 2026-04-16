@@ -5079,12 +5079,16 @@ Deno.serve(async (req) => {
               .select("id")
               .single();
 
+            let groupBInsertFailed = false;
             try {
               assertMutationAffectedRows({ error: projErr, count: insertedCount }, `GROUP_B sm_project=${proj.sm_project_id}`);
             } catch (error) {
+              groupBInsertFailed = true;
               groupBReport.steps.projeto = { status: "ERROR", reason: (error as Error).message };
               summary.ERROR = (summary.ERROR || 0) + 1;
-            } else {
+            }
+
+            if (!groupBInsertFailed) {
               groupBReport.steps.projeto = groupBResolved.warning
                 ? { status: "FALLBACK_USED", id: newProj!.id, reason: groupBResolved.warning }
                 : { status: "CREATED", id: newProj!.id };
