@@ -1591,9 +1591,19 @@ Deno.serve(async (req) => {
 
           if (!needsUpdate) { fixReport.skipped++; continue; }
 
+          // ── Integrity check: validate etapa belongs to funil ──
+          const fixIntegrity = validateFunilEtapaIntegrity(
+            targetFunilId, targetEtapaId,
+            fixEtapaFirstMap, fixEtapaByNameMap,
+            `FIX projeto=${proj.id} (${proj.codigo})`
+          );
+          if (fixIntegrity.warning) {
+            fixReport.errors.push(`INTEGRITY: ${fixIntegrity.warning}`);
+          }
+
           const updateFields: Record<string, any> = {
-            funil_id: targetFunilId,     // null is valid — clears wrong funil
-            etapa_id: targetEtapaId,     // null is valid — clears wrong etapa
+            funil_id: fixIntegrity.funilId,
+            etapa_id: fixIntegrity.etapaId,
             consultor_id: targetConsultorId,
           };
           updateFields.updated_at = new Date().toISOString();
