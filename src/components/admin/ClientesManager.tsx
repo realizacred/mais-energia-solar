@@ -460,7 +460,7 @@ export function ClientesManager({ onSelectCliente }: ClientesManagerProps) {
       />
 
       {/* KPI Cards §27 */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
         <KpiCard icon={Users} label="Total de clientes" value={kpis.total} borderColor="border-l-primary" iconBg="bg-primary/10 text-primary" />
         <KpiCard icon={UserCheck} label="Pessoas físicas" value={kpis.pf} borderColor="border-l-info" iconBg="bg-info/10 text-info" />
         <KpiCard icon={Building2} label="Pessoas jurídicas" value={kpis.pj} borderColor="border-l-warning" iconBg="bg-warning/10 text-warning" />

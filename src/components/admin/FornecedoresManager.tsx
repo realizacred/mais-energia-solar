@@ -287,7 +287,7 @@ export function FornecedoresManager() {
 
       {/* KPI Cards */}
       {!loading && (
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
           <Card className="border-l-[3px] border-l-primary">
             <CardContent className="flex items-center gap-3 p-4">
               <div className="w-9 h-9 rounded-lg flex items-center justify-center bg-primary/10 text-primary shrink-0">
@@ -670,7 +670,7 @@ export function FornecedoresManager() {
 
               {/* Endereço */}
               <SectionCard icon={MapPin} title="Endereço">
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                   <div className="col-span-1 sm:col-span-2 space-y-1.5">
                     <Label>Endereço</Label>
                     <Input value={form.endereco} onChange={e => setForm(p => ({ ...p, endereco: e.target.value }))} />

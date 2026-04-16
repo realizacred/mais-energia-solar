@@ -69,7 +69,7 @@ export default function AnalyticsDashboard({ leads: propLeads, statuses: propSta
   if (isLoading) {
     return (
       <div className="space-y-6">
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
           {Array.from({ length: 4 }).map((_, i) => (
             <Card key={i} className="p-5">
               <Skeleton className="h-8 w-24 mb-2" />
@@ -94,7 +94,7 @@ export default function AnalyticsDashboard({ leads: propLeads, statuses: propSta
       />
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-5">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
         <Card className="border-l-[3px] border-l-secondary bg-card">
           <CardContent className="flex items-center gap-4 p-5">
             <div className="w-10 h-10 rounded-lg bg-secondary/10 flex items-center justify-center shrink-0">

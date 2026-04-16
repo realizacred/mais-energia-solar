@@ -370,7 +370,7 @@ export function ValidacaoVendasManager() {
             <Skeleton className="h-4 w-64" />
           </div>
         </div>
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {Array.from({ length: 4 }).map((_, i) => (
             <Card key={i} className="border-l-[3px] border-l-primary bg-card shadow-sm">
               <CardContent className="flex items-center gap-4 p-5">
@@ -402,7 +402,7 @@ export function ValidacaoVendasManager() {
       />
 
       {/* §27 — KPI Cards — ALL border-l-primary */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {[
           { icon: Clock, label: "Pendentes", value: stats.count.toString() },
           { icon: DollarSign, label: "Valor Total", value: formatBRL(stats.totalValue) },
