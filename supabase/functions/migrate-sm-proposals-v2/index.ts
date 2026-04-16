@@ -3893,101 +3893,27 @@ Deno.serve(async (req) => {
             if (!projetoId && !existingByCodigoId && !projetoByDeal.get(dealId)) {
                 const smProjDate = smProp.sm_created_at || smProp.generated_at || null;
 
-                // Resolve funil_id outside object literal (avoids Deno bundler IIFE parse issue)
-                const resolvedProjFunilId: string | null = (() => {
-                  const smProj = smProp.sm_project_id ? smProjectMap.get(smProp.sm_project_id) : null;
-                  const smFunnelName = smProj?.sm_funnel_name || null;
-                  const nf = normalizeComparableName(smFunnelName);
-                  if (nf && !NON_OPERATIONAL_FUNNELS.has(nf)) {
-                    if (nf.includes('compesa') || nf.includes('compensa')) {
-                      return projetoFunisMap.get(normalizeComparableName('Compensação'))
-                        || projetoFunisMap.get(normalizeComparableName('Compesação'))
-                        || null;
-                    }
-                    const directMatch = projetoFunisMap.get(nf);
-                    if (directMatch) return directMatch;
-                    for (const [k, v] of projetoFunisMap) {
-                      if (k.includes(nf) || nf.includes(k)) return v;
-                    }
-                  }
-                  const bestOp = resolveBestOperationalFunnel(smProj?.all_funnels, projetoFunisMap, projetoFunisOrdemMap);
-                  if (bestOp) return bestOp.funilId;
-                  return COMERCIAL_FUNIL_ID || FALLBACK_FUNIL_ID || null;
-                })();
-
-                // Resolve etapa_id outside object literal
-                const resolvedProjEtapaId: string | null = (() => {
-                  const smProj = smProp.sm_project_id ? smProjectMap.get(smProp.sm_project_id) : null;
-                  const smFunnelName = smProj?.sm_funnel_name || null;
-                  const nf = normalizeComparableName(smFunnelName);
-                  const smStageName = smProj?.sm_stage_name || null;
-
-                  const matchEtapa = (funilId: string, stageName: string | null): string | null => {
-                    if (!stageName) return null;
-                    return funilEtapaByNameMap.get(`${funilId}::${normalizeComparableName(stageName)}`) || null;
-                  };
-
-                  let targetFunilId: string | null = null;
-                  let resolvedStageName: string | null = null;
-
-                  if (nf && !NON_OPERATIONAL_FUNNELS.has(nf)) {
-                    if (nf.includes('compesa') || nf.includes('compensa')) {
-                      targetFunilId = projetoFunisMap.get(normalizeComparableName('Compensação'))
-                        || projetoFunisMap.get(normalizeComparableName('Compesação'))
-                        || null;
-                    } else {
-                      targetFunilId = projetoFunisMap.get(nf) || null;
-                      if (!targetFunilId) {
-                        for (const [k, v] of projetoFunisMap) {
-                          if (k.includes(nf) || nf.includes(k)) { targetFunilId = v; break; }
-                        }
-                      }
-                    }
-                    resolvedStageName = smStageName;
-                  } else {
-                    const bestOp = resolveBestOperationalFunnel(smProj?.all_funnels, projetoFunisMap, projetoFunisOrdemMap);
-                    if (bestOp) {
-                      targetFunilId = bestOp.funilId;
-                      resolvedStageName = bestOp.stageName;
-                    } else {
-                      targetFunilId = COMERCIAL_FUNIL_ID || FALLBACK_FUNIL_ID || null;
-                    }
-                  }
-
-                  if (!targetFunilId) return COMERCIAL_ETAPA_ID || FALLBACK_ETAPA_ID || null;
-
-                  if (resolvedStageName) {
-                    const matched = matchEtapa(targetFunilId, resolvedStageName);
-                    if (matched) return matched;
-                  }
-
-                  const funnels: any[] = smProj?.all_funnels || [];
-                  for (const f of funnels) {
-                    const fName = normalizeComparableName(readSmFunnelName(f));
-                    if (!fName || NON_OPERATIONAL_FUNNELS.has(fName)) continue;
-                    const fStageName = readSmStageName(f);
-                    if (fStageName) {
-                      const matched = matchEtapa(targetFunilId, fStageName);
-                      if (matched) return matched;
-                    }
-                  }
-
-                  // Status-based etapa resolution (approved→ganho, sent/viewed→acompanhamento, etc.)
-                  const statusEtapa = resolveEtapaBySmStatus(smProp, targetFunilId, funilEtapaByNameMap, funilEtapaByCategoriaMap, funilFirstEtapaMap, projetoFunisMap);
-                  if (statusEtapa) return statusEtapa;
-                  return funilFirstEtapaMap.get(targetFunilId) || null;
-                })();
-
-                // ── Integrity check: validate etapa belongs to funil ──
-                const integrityCheck = validateFunilEtapaIntegrity(
-                  resolvedProjFunilId, resolvedProjEtapaId,
-                  funilFirstEtapaMap, funilEtapaByNameMap,
-                  `INSERT sm_proposal=${smProp.sm_proposal_id}`
-                );
-                const validatedFunilId = integrityCheck.funilId;
-                const validatedEtapaId = integrityCheck.etapaId;
-                if (integrityCheck.warning) {
-                  report.steps.projeto = { status: "FALLBACK_USED", reason: integrityCheck.warning };
+                // Resolve funil_id + etapa_id via shared resolver (DA-42)
+                const smProjForCreate = smProp.sm_project_id ? smProjectMap.get(smProp.sm_project_id) : null;
+                const createResolved = resolveFunilEtapa({
+                  smProjectData: smProjForCreate ? {
+                    sm_funnel_name: smProjForCreate.sm_funnel_name || null,
+                    sm_stage_name: smProjForCreate.sm_stage_name || null,
+                    all_funnels: smProjForCreate.all_funnels || null,
+                  } : null,
+                  smProp,
+                  projetoFunisMap, projetoFunisOrdemMap,
+                  funilFirstEtapaMap, funilEtapaByNameMap, funilEtapaByCategoriaMap,
+                  comercialFunilId: COMERCIAL_FUNIL_ID,
+                  comercialEtapaId: COMERCIAL_ETAPA_ID,
+                  fallbackFunilId: FALLBACK_FUNIL_ID,
+                  fallbackEtapaId: FALLBACK_ETAPA_ID,
+                  context: `INSERT sm_proposal=${smProp.sm_proposal_id}`,
+                });
+                const validatedFunilId = createResolved.funilId;
+                const validatedEtapaId = createResolved.etapaId;
+                if (createResolved.warning) {
+                  report.steps.projeto = { status: "FALLBACK_USED", reason: createResolved.warning };
                 }
 
                 const projInsert: Record<string, any> = {
