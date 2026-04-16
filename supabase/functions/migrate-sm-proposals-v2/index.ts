@@ -339,6 +339,51 @@ function parsePaybackMonths(payback: string | null): number | null {
   return totalMonths > 0 ? totalMonths : null;
 }
 
+/**
+ * Validate that an etapa_id belongs to the specified funil_id.
+ * If not, logs a warning and returns the first etapa of the funil (or null).
+ * This prevents orphan projeto records with mismatched funil/etapa.
+ */
+function validateFunilEtapaIntegrity(
+  funilId: string | null,
+  etapaId: string | null,
+  funilFirstEtapaMap: Map<string, string>,
+  funilEtapaByNameMap: Map<string, string>,
+  context: string,
+): { funilId: string | null; etapaId: string | null; warning: string | null } {
+  if (!funilId || !etapaId) {
+    if (funilId && !etapaId) {
+      const fallbackEtapa = funilFirstEtapaMap.get(funilId) || null;
+      const msg = `[SM Migration][${context}] etapa_id is null for funil_id=${funilId}. Using first etapa: ${fallbackEtapa}`;
+      console.error(msg);
+      return { funilId, etapaId: fallbackEtapa, warning: msg };
+    }
+    return { funilId, etapaId, warning: null };
+  }
+
+  // Check: does this etapa belong to this funil?
+  let belongsToFunil = false;
+  for (const [key, id] of funilEtapaByNameMap) {
+    if (key.startsWith(`${funilId}::`) && id === etapaId) {
+      belongsToFunil = true;
+      break;
+    }
+  }
+  // Also check funilFirstEtapaMap
+  if (!belongsToFunil && funilFirstEtapaMap.get(funilId) === etapaId) {
+    belongsToFunil = true;
+  }
+
+  if (!belongsToFunil) {
+    const fallbackEtapa = funilFirstEtapaMap.get(funilId) || null;
+    const msg = `[SM Migration][${context}] INTEGRITY VIOLATION: etapa_id=${etapaId} does NOT belong to funil_id=${funilId}. Correcting to first etapa: ${fallbackEtapa}`;
+    console.error(msg);
+    return { funilId, etapaId: fallbackEtapa, warning: msg };
+  }
+
+  return { funilId, etapaId, warning: null };
+}
+
 function inferNumeroParcelas(paymentConditions: string | null | undefined): number {
   if (!paymentConditions) return 1;
 
@@ -1546,9 +1591,19 @@ Deno.serve(async (req) => {
 
           if (!needsUpdate) { fixReport.skipped++; continue; }
 
+          // ── Integrity check: validate etapa belongs to funil ──
+          const fixIntegrity = validateFunilEtapaIntegrity(
+            targetFunilId, targetEtapaId,
+            fixEtapaFirstMap, fixEtapaByNameMap,
+            `FIX projeto=${proj.id} (${proj.codigo})`
+          );
+          if (fixIntegrity.warning) {
+            fixReport.errors.push(`INTEGRITY: ${fixIntegrity.warning}`);
+          }
+
           const updateFields: Record<string, any> = {
-            funil_id: targetFunilId,     // null is valid — clears wrong funil
-            etapa_id: targetEtapaId,     // null is valid — clears wrong etapa
+            funil_id: fixIntegrity.funilId,
+            etapa_id: fixIntegrity.etapaId,
             consultor_id: targetConsultorId,
           };
           updateFields.updated_at = new Date().toISOString();
@@ -3667,10 +3722,20 @@ Deno.serve(async (req) => {
                 return funilFirstEtapaMap.get(resolvedFunilId) || (resolvedFunilId === COMERCIAL_FUNIL_ID ? COMERCIAL_ETAPA_ID : null) || FALLBACK_ETAPA_ID || null;
               })();
 
+              // ── Integrity check: validate etapa belongs to funil ──
+              const updIntegrity = validateFunilEtapaIntegrity(
+                resolvedFunilId, resolvedEtapaId,
+                funilFirstEtapaMap, funilEtapaByNameMap,
+                `UPDATE projeto=${projetoId} sm_proposal=${smProp.sm_proposal_id}`
+              );
+              if (updIntegrity.warning) {
+                report.steps.projeto = { status: "FALLBACK_USED", id: projetoId, reason: updIntegrity.warning };
+              }
+
               const projUpdateFields: Record<string, any> = {
                 consultor_id: resolvedOwnerId || null,
-                funil_id: resolvedFunilId,
-                etapa_id: resolvedEtapaId,
+                funil_id: updIntegrity.funilId,
+                etapa_id: updIntegrity.etapaId,
                 ...(smProp.acceptance_date ? { data_venda: smProp.acceptance_date } : {}),
               };
 
@@ -3793,6 +3858,18 @@ Deno.serve(async (req) => {
                   return funilFirstEtapaMap.get(targetFunilId) || null;
                 })();
 
+                // ── Integrity check: validate etapa belongs to funil ──
+                const integrityCheck = validateFunilEtapaIntegrity(
+                  resolvedProjFunilId, resolvedProjEtapaId,
+                  funilFirstEtapaMap, funilEtapaByNameMap,
+                  `INSERT sm_proposal=${smProp.sm_proposal_id}`
+                );
+                const validatedFunilId = integrityCheck.funilId;
+                const validatedEtapaId = integrityCheck.etapaId;
+                if (integrityCheck.warning) {
+                  report.steps.projeto = { status: "FALLBACK_USED", reason: integrityCheck.warning };
+                }
+
                 const projInsert: Record<string, any> = {
                     origem: "imported",
                     import_source: "solar_market",
@@ -3820,8 +3897,8 @@ Deno.serve(async (req) => {
                     codigo: projetoCodigo,
                     projeto_num: null,
                     is_principal: false,
-                    funil_id: resolvedProjFunilId,
-                    etapa_id: resolvedProjEtapaId,
+                    funil_id: validatedFunilId,
+                    etapa_id: validatedEtapaId,
                 };
                 if (smProjDate) {
                   projInsert.created_at = smProjDate;

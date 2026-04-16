@@ -202,13 +202,13 @@ export function StageDealCard({
               {getInitials(deal.customer_name || deal.deal_title || "?")}
             </AvatarFallback>
           </Avatar>
-          <div className="min-w-0 flex-1">
+            <div className="min-w-0 flex-1">
             <div className="flex items-center gap-1.5">
               <p className={cn(
                 "text-sm font-semibold leading-tight line-clamp-2",
                 isInactive ? "text-muted-foreground" : "text-foreground"
               )}>
-                {deal.customer_name || deal.deal_title || "Sem nome"}
+                {deal.customer_name || "Sem nome"}
               </p>
               {deal.deal_num != null && (
                 <span className="text-[10px] font-mono text-muted-foreground/70 shrink-0">
