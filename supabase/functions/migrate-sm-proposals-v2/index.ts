@@ -251,6 +251,51 @@ function mapSmStatusToVersao(smProp: any): string {
   }
 }
 
+/**
+ * Maps SM lifecycle status to projeto_etapas.categoria for status-based etapa resolution.
+ */
+function smLifecycleToEtapaCategoria(smLifecycle: string): string {
+  if (smLifecycle === "approved") return "ganho";
+  if (["rejected", "expired", "cancelled"].includes(smLifecycle)) return "perdido";
+  return "aberto";
+}
+
+/**
+ * Resolves projeto etapa_id based on SM proposal status using semantic name matching + categoria fallback.
+ */
+function resolveEtapaBySmStatus(
+  smProp: any,
+  funilId: string,
+  funilEtapaByNameMap: Map<string, string>,
+  funilEtapaByCategoriaMap: Map<string, string>,
+  funilFirstEtapaMap: Map<string, string>,
+): string | null {
+  const smLifecycle = resolveSmLifecycle(smProp);
+  const semanticEtapaMap: Record<string, string[]> = {
+    "approved": ["ganho", "fechado", "contrato", "aprovado", "concluido"],
+    "sent":     ["proposta", "enviada", "acompanhamento", "follow"],
+    "viewed":   ["negociacao", "negociação", "acompanhamento", "follow", "proposta"],
+    "generated": ["proposta", "novo", "recebido"],
+    "draft":    ["novo", "recebido", "entrada", "triagem"],
+    "rejected": ["perdido", "recusado", "cancelado"],
+    "expired":  ["perdido", "expirado"],
+    "cancelled": ["perdido", "cancelado"],
+  };
+  const keywords = semanticEtapaMap[smLifecycle] ?? [];
+  for (const keyword of keywords) {
+    for (const [mapKey, etapaId] of funilEtapaByNameMap) {
+      if (mapKey.startsWith(`${funilId}::`) && mapKey.includes(keyword)) {
+        return etapaId;
+      }
+    }
+  }
+  const targetCategoria = smLifecycleToEtapaCategoria(smLifecycle);
+  const catKey = `${funilId}::${targetCategoria}`;
+  const catMatch = funilEtapaByCategoriaMap.get(catKey);
+  if (catMatch) return catMatch;
+  return funilFirstEtapaMap.get(funilId) || null;
+}
+
 function parsePaybackMonths(payback: string | null): number | null {
   if (!payback) return null;
   // Parse "X anos e Y meses" or "X anos" or "Y meses"
@@ -3640,6 +3685,9 @@ function resolveEtapaBySmStatus(
                   const matched = matchEtapaByName(resolvedFunilId, bestOp.stageName);
                   if (matched) return matched;
                 }
+                // Status-based etapa resolution (approved→ganho, sent/viewed→acompanhamento, etc.)
+                const statusEtapa = resolveEtapaBySmStatus(smProp, resolvedFunilId, funilEtapaByNameMap, funilEtapaByCategoriaMap, funilFirstEtapaMap);
+                if (statusEtapa) return statusEtapa;
                 return funilFirstEtapaMap.get(resolvedFunilId) || (resolvedFunilId === COMERCIAL_FUNIL_ID ? COMERCIAL_ETAPA_ID : null) || FALLBACK_ETAPA_ID || null;
               })();
 
@@ -3762,6 +3810,9 @@ function resolveEtapaBySmStatus(
                     }
                   }
 
+                  // Status-based etapa resolution (approved→ganho, sent/viewed→acompanhamento, etc.)
+                  const statusEtapa = resolveEtapaBySmStatus(smProp, targetFunilId, funilEtapaByNameMap, funilEtapaByCategoriaMap, funilFirstEtapaMap);
+                  if (statusEtapa) return statusEtapa;
                   return funilFirstEtapaMap.get(targetFunilId) || null;
                 })();
 
