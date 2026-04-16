@@ -395,7 +395,7 @@ export function useProjetoPipeline() {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'projetos' }, refreshProjetos)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'projeto_etapas' }, refreshProjetos)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'projeto_funis' }, refreshProjetos)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'deal_pipeline_stages' }, refreshProjetos)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'projeto_etapas' }, refreshProjetos)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'pipelines' }, refreshProjetos)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'pipeline_stages' }, refreshProjetos)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'propostas_nativas' }, refreshProjetos)
@@ -603,9 +603,13 @@ export function useProjetoPipeline() {
       ? { etapa_id: etapaId, funil_id: etapa.funil_id }
       : { etapa_id: etapaId };
 
-    const { error } = await supabase.from("projetos").update(updatePayload).eq("id", realId);
+    const { error, count } = await supabase.from("projetos").update(updatePayload).eq("id", realId);
     if (error) {
       toast({ title: "Erro ao mover projeto", description: error.message, variant: "destructive" });
+      fetchAll();
+    } else if (count === 0) {
+      console.error("[useProjetoPipeline] moveProjetoToEtapa UPDATE afetou 0 linhas — id não encontrado:", realId);
+      toast({ title: "Projeto não encontrado", description: "O projeto pode ter sido removido. Recarregando...", variant: "destructive" });
       fetchAll();
     }
   }, [toast, fetchAll, etapas, resolveProjetoId]);
@@ -619,9 +623,13 @@ export function useProjetoPipeline() {
       ? { ...p, consultor_id: consultorId, consultor: consultor ? { nome: consultor.nome } : null }
       : p
     ));
-    const { error } = await supabase.from("projetos").update({ consultor_id: consultorId }).eq("id", realId);
+    const { error, count } = await supabase.from("projetos").update({ consultor_id: consultorId }).eq("id", realId);
     if (error) {
       toast({ title: "Erro ao mover projeto", description: error.message, variant: "destructive" });
+      fetchAll();
+    } else if (count === 0) {
+      console.error("[useProjetoPipeline] moveProjetoToConsultor UPDATE afetou 0 linhas — id não encontrado:", realId);
+      toast({ title: "Projeto não encontrado", description: "O projeto pode ter sido removido. Recarregando...", variant: "destructive" });
       fetchAll();
     }
   }, [toast, fetchAll, consultores, resolveProjetoId]);
