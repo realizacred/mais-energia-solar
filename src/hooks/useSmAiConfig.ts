@@ -42,7 +42,15 @@ export function useSmAiConfig() {
         .eq("service_key", SERVICE_KEY)
         .maybeSingle();
 
-      if (error) throw error;
+      // RLS may block non-admins — treat as empty (use defaults)
+      if (error) {
+        console.error("[useSmAiConfig] Query error (may be RLS):", error.message);
+        return {
+          id: null,
+          systemPrompt: DEFAULT_PROMPT,
+          isActive: false,
+        };
+      }
 
       return {
         id: data?.id ?? null,
@@ -61,11 +69,11 @@ export function useSaveSmAiConfig() {
     mutationFn: async (config: { systemPrompt: string; isActive: boolean }) => {
       if (!user) throw new Error("Usuário não autenticado");
 
-      // Get tenant_id
+      // Get tenant_id — use user_id column, not id
       const { data: profile } = await supabase
         .from("profiles")
         .select("tenant_id")
-        .eq("id", user.id)
+        .eq("user_id", user.id)
         .single();
 
       if (!profile?.tenant_id) throw new Error("Tenant não encontrado");
