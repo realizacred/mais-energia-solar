@@ -1656,82 +1656,23 @@ Deno.serve(async (req) => {
 
           if (!smProj) { fixReport.skipped++; continue; }
 
-          // Resolve funil_id — same logic as main migration path
-          const normalizedFunnel = normalizeNameForCompare(smProj.sm_funnel_name);
-          let targetFunilId: string | null = null;
-          let resolvedStageName: string | null = null;
+          const resolvedProjeto = resolveFunilEtapa({
+            smProjectData: buildSmProjectData(smProj),
+            smProp: null,
+            projetoFunisMap: fixFunisMap,
+            projetoFunisOrdemMap: fixFunisOrdemMap,
+            funilFirstEtapaMap: fixEtapaFirstMap,
+            funilEtapaByNameMap: fixEtapaByNameMap,
+            funilEtapaByCategoriaMap: new Map<string, string>(),
+            comercialFunilId: COMERCIAL_FUNIL_ID,
+            comercialEtapaId: COMERCIAL_ETAPA_ID,
+            fallbackFunilId: FALLBACK_FUNIL_ID,
+            fallbackEtapaId: FALLBACK_ETAPA_ID,
+            context: `FIX projeto=${proj.id} (${proj.codigo})`,
+          });
 
-          if (normalizedFunnel && !NON_OPERATIONAL_FUNNELS.has(normalizedFunnel)) {
-            // sm_funnel_name is operational — use directly
-            if (normalizedFunnel.includes('compesa') || normalizedFunnel.includes('compensa')) {
-              targetFunilId = fixFunisMap.get(normalizeNameForCompare('Compensação'))
-                || fixFunisMap.get(normalizeNameForCompare('Compesação'))
-                || null; // No Engenharia fallback
-            } else {
-              targetFunilId = fixFunisMap.get(normalizedFunnel) || null;
-              if (!targetFunilId) {
-                for (const [k, v] of fixFunisMap) {
-                  if (k.includes(normalizedFunnel) || normalizedFunnel.includes(k)) { targetFunilId = v; break; }
-                }
-              }
-            }
-            resolvedStageName = smProj.sm_stage_name || null;
-          } else {
-            // Vendedores/LEAD/NULL — scan all_funnels for best operational funnel
-            const bestOp = resolveBestOperationalFunnel(smProj.all_funnels, fixFunisMap, fixFunisOrdemMap);
-            if (bestOp) {
-              targetFunilId = bestOp.funilId;
-              resolvedStageName = bestOp.stageName;
-            } else {
-              // No operational funnel found → fallback to Comercial
-              targetFunilId = COMERCIAL_FUNIL_ID || FALLBACK_FUNIL_ID || null;
-              // Check if LEAD funnel exists in all_funnels for stage mapping to Comercial
-              if (targetFunilId === COMERCIAL_FUNIL_ID && Array.isArray(smProj.all_funnels)) {
-                for (const f of smProj.all_funnels) {
-                  const fName = normalizeNameForCompare(readSmFunnelName(f));
-                  if (fName === "lead") {
-                    resolvedStageName = readSmStageName(f) || null;
-                    break;
-                  }
-                }
-              }
-            }
-          }
-
-          // Resolve etapa_id
-          let targetEtapaId: string | null = null;
-          if (targetFunilId) {
-            // Try resolved stage name first (maps LEAD stage names to Comercial etapas)
-            if (resolvedStageName) {
-              const nameKey = `${targetFunilId}::${normalizeNameForCompare(resolvedStageName)}`;
-              targetEtapaId = fixEtapaByNameMap.get(nameKey) || null;
-            }
-            // Try all operational funnels' stage names
-            if (!targetEtapaId && Array.isArray(smProj.all_funnels)) {
-              for (const f of smProj.all_funnels) {
-                const fName = normalizeNameForCompare(readSmFunnelName(f));
-                if (!fName || NON_OPERATIONAL_FUNNELS.has(fName)) continue;
-                const fStageName = readSmStageName(f);
-                if (fStageName) {
-                  const nameKey = `${targetFunilId}::${normalizeNameForCompare(fStageName)}`;
-                  targetEtapaId = fixEtapaByNameMap.get(nameKey) || null;
-                  if (targetEtapaId) break;
-                }
-              }
-            }
-            // Default: for Comercial fallback use "Proposta Enviada", for others use first etapa
-            if (!targetEtapaId) {
-              if (targetFunilId === COMERCIAL_FUNIL_ID) {
-                targetEtapaId = COMERCIAL_ETAPA_ID || fixEtapaFirstMap.get(targetFunilId) || null;
-              } else {
-                targetEtapaId = fixEtapaFirstMap.get(targetFunilId) || FALLBACK_ETAPA_ID || null;
-              }
-            }
-          } else {
-            // No funil → use Comercial etapa directly
-            targetFunilId = COMERCIAL_FUNIL_ID || null;
-            targetEtapaId = COMERCIAL_ETAPA_ID || FALLBACK_ETAPA_ID || null;
-          }
+          let targetFunilId: string | null = resolvedProjeto.funilId;
+          let targetEtapaId: string | null = resolvedProjeto.etapaId;
 
           // Resolve consultor from Vendedores funnel
           let targetConsultorId: string | null = null;
@@ -1780,33 +1721,28 @@ Deno.serve(async (req) => {
 
           if (!needsUpdate) { fixReport.skipped++; continue; }
 
-          // ── Integrity check: validate etapa belongs to funil ──
-          const fixIntegrity = validateFunilEtapaIntegrity(
-            targetFunilId, targetEtapaId,
-            fixEtapaFirstMap, fixEtapaByNameMap,
-            `FIX projeto=${proj.id} (${proj.codigo})`
-          );
-          if (fixIntegrity.warning) {
-            fixReport.errors.push(`INTEGRITY: ${fixIntegrity.warning}`);
+          if (resolvedProjeto.warning) {
+            fixReport.errors.push(`INTEGRITY: ${resolvedProjeto.warning}`);
           }
 
           const updateFields: Record<string, any> = {
-            funil_id: fixIntegrity.funilId,
-            etapa_id: fixIntegrity.etapaId,
+            funil_id: targetFunilId,
+            etapa_id: targetEtapaId,
             consultor_id: targetConsultorId,
           };
           updateFields.updated_at = new Date().toISOString();
 
-          const { error: updErr } = await adminClient
+          const { error: updErr, count: updatedCount } = await adminClient
             .from("projetos")
             .update(updateFields)
             .eq("id", proj.id)
             .eq("tenant_id", tenantId);
 
-          if (updErr) {
-            fixReport.errors.push(`${proj.codigo}: ${updErr.message}`);
-          } else {
+          try {
+            assertMutationAffectedRows({ error: updErr, count: updatedCount }, `FIX projeto=${proj.id} (${proj.codigo})`);
             fixReport.updated++;
+          } catch (error) {
+            fixReport.errors.push(`${proj.codigo}: ${(error as Error).message}`);
           }
         } catch (e) {
           fixReport.errors.push(`${proj.codigo}: ${(e as Error).message}`);
@@ -3869,11 +3805,7 @@ Deno.serve(async (req) => {
             if (projetoId && (existingByCodigoId || projetoByDeal.get(dealId))) {
               const smProjForUpdate = smProp.sm_project_id ? smProjectMap.get(smProp.sm_project_id) : null;
               const updResolved = resolveFunilEtapa({
-                smProjectData: smProjForUpdate ? {
-                  sm_funnel_name: smProjForUpdate.sm_funnel_name || null,
-                  sm_stage_name: smProjForUpdate.sm_stage_name || null,
-                  all_funnels: smProjForUpdate.all_funnels || null,
-                } : null,
+                smProjectData: buildSmProjectData(smProjForUpdate),
                 smProp,
                 projetoFunisMap, projetoFunisOrdemMap,
                 funilFirstEtapaMap, funilEtapaByNameMap, funilEtapaByCategoriaMap,
@@ -3894,15 +3826,19 @@ Deno.serve(async (req) => {
                 ...(smProp.acceptance_date ? { data_venda: smProp.acceptance_date } : {}),
               };
 
-              const { error: projUpdErr } = await adminClient
+              const { error: projUpdErr, count: updatedCount } = await adminClient
                 .from("projetos")
                 .update(projUpdateFields)
-                .eq("id", projetoId);
+                .eq("id", projetoId)
+                .eq("tenant_id", tenantId);
 
-              if (projUpdErr) {
-                console.error(`[SM Migration] Failed to update existing project ${projetoId}: ${projUpdErr.message}`);
-              } else {
+              try {
+                assertMutationAffectedRows({ error: projUpdErr, count: updatedCount }, `UPDATE projeto=${projetoId} sm_proposal=${smProp.sm_proposal_id}`);
                 logDebug(`[SM Migration] Updated existing project ${projetoId}`, projUpdateFields);
+              } catch (error) {
+                const message = (error as Error).message;
+                console.error(`[SM Migration] Failed to update existing project ${projetoId}: ${message}`);
+                report.steps.projeto = { status: "ERROR", id: projetoId, reason: message };
               }
             }
 
@@ -3931,11 +3867,7 @@ Deno.serve(async (req) => {
                 // Resolve funil_id + etapa_id via shared resolver (DA-42)
                 const smProjForCreate = smProp.sm_project_id ? smProjectMap.get(smProp.sm_project_id) : null;
                 const createResolved = resolveFunilEtapa({
-                  smProjectData: smProjForCreate ? {
-                    sm_funnel_name: smProjForCreate.sm_funnel_name || null,
-                    sm_stage_name: smProjForCreate.sm_stage_name || null,
-                    all_funnels: smProjForCreate.all_funnels || null,
-                  } : null,
+                  smProjectData: buildSmProjectData(smProjForCreate),
                   smProp,
                   projetoFunisMap, projetoFunisOrdemMap,
                   funilFirstEtapaMap, funilEtapaByNameMap, funilEtapaByCategoriaMap,
@@ -4057,11 +3989,17 @@ Deno.serve(async (req) => {
 
             // Link projeto_id to deal (backfill for new or existing deals)
             if (projetoId && dealId) {
-              await adminClient
+              const { error: dealLinkError, count: linkedCount } = await adminClient
                 .from("deals")
                 .update({ projeto_id: projetoId })
                 .eq("id", dealId)
                 .is("projeto_id", null);
+
+              if (dealLinkError) {
+                console.error(`[SM Migration] Failed to backfill projeto_id on deal ${dealId}: ${dealLinkError.message}`);
+              } else if ((linkedCount ?? 0) === 0) {
+                console.warn(`[SM Migration] Deal ${dealId} already had projeto_id or was not found during backfill`);
+              }
             }
           } else {
             report.steps.projeto = { status: dry_run ? "WOULD_CREATE" : "ERROR", reason: dry_run ? undefined : "no deal_id" };
@@ -5099,37 +5037,25 @@ Deno.serve(async (req) => {
               : proj.status === "lost" ? "perdido"
               : "em_andamento";
 
-            // Resolve funil/etapa for Group B projects
-            const groupBFunilId = (() => {
-              const bestOp = resolveBestOperationalFunnel(proj.all_funnels, projetoFunisMap, projetoFunisOrdemMap);
-              if (bestOp) return bestOp.funilId;
-              return COMERCIAL_FUNIL_ID || FALLBACK_FUNIL_ID || null;
-            })();
-            const groupBEtapaId = (() => {
-              if (!groupBFunilId) return COMERCIAL_ETAPA_ID || FALLBACK_ETAPA_ID || null;
-              // Try to match stage name from all_funnels
-              if (Array.isArray(proj.all_funnels)) {
-                for (const f of proj.all_funnels) {
-                  const fName = normalizeComparableName(readSmFunnelName(f));
-                  if (!fName || NON_OPERATIONAL_FUNNELS.has(fName)) continue;
-                  const fStageName = readSmStageName(f);
-                  if (fStageName) {
-                    const nameKey = `${groupBFunilId}::${normalizeComparableName(fStageName)}`;
-                    const matched = funilEtapaByNameMap.get(nameKey);
-                    if (matched) return matched;
-                  }
-                }
-              }
-              // Try sm_stage_name
-              if (proj.sm_stage_name) {
-                const nameKey = `${groupBFunilId}::${normalizeComparableName(proj.sm_stage_name)}`;
-                const matched = funilEtapaByNameMap.get(nameKey);
-                if (matched) return matched;
-              }
-              return funilFirstEtapaMap.get(groupBFunilId) || FALLBACK_ETAPA_ID || null;
-            })();
+            const groupBResolved = resolveFunilEtapa({
+              smProjectData: buildSmProjectData(proj),
+              smProp: null,
+              projetoFunisMap,
+              projetoFunisOrdemMap,
+              funilFirstEtapaMap,
+              funilEtapaByNameMap,
+              funilEtapaByCategoriaMap,
+              comercialFunilId: COMERCIAL_FUNIL_ID,
+              comercialEtapaId: COMERCIAL_ETAPA_ID,
+              fallbackFunilId: FALLBACK_FUNIL_ID,
+              fallbackEtapaId: FALLBACK_ETAPA_ID,
+              context: `GROUP_B sm_project=${proj.sm_project_id}`,
+            });
 
-            const { data: newProj, error: projErr } = await adminClient
+            const groupBFunilId = groupBResolved.funilId;
+            const groupBEtapaId = groupBResolved.etapaId;
+
+            const { data: newProj, error: projErr, count: insertedCount } = await adminClient
               .from("projetos")
               .insert({
                 origem: "imported",
@@ -5153,11 +5079,15 @@ Deno.serve(async (req) => {
               .select("id")
               .single();
 
-            if (projErr) {
-              groupBReport.steps.projeto = { status: "ERROR", reason: projErr.message };
+            try {
+              assertMutationAffectedRows({ error: projErr, count: insertedCount }, `GROUP_B sm_project=${proj.sm_project_id}`);
+            } catch (error) {
+              groupBReport.steps.projeto = { status: "ERROR", reason: (error as Error).message };
               summary.ERROR = (summary.ERROR || 0) + 1;
             } else {
-              groupBReport.steps.projeto = { status: "CREATED", id: newProj!.id };
+              groupBReport.steps.projeto = groupBResolved.warning
+                ? { status: "FALLBACK_USED", id: newProj!.id, reason: groupBResolved.warning }
+                : { status: "CREATED", id: newProj!.id };
               summary.SUCCESS = (summary.SUCCESS || 0) + 1;
 
               // Stamp migrado_em on the SM project after successful migration
