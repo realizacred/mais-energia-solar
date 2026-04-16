@@ -548,7 +548,5 @@ export function SmDashboardPanel({
         },
       ]} />
     </div>
-      </div>
-    </div>
   );
 }
