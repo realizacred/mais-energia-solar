@@ -1554,6 +1554,61 @@ function resolveEtapaBySmStatus(
   return funilFirstEtapaMap.get(funilId) || null;
 }
 
+/**
+ * Maps SM lifecycle status to projeto_etapas.categoria for status-based etapa resolution.
+ * approved → ganho, rejected/expired/cancelled → perdido, others → aberto
+ */
+function smLifecycleToEtapaCategoria(smLifecycle: string): string {
+  if (smLifecycle === "approved") return "ganho";
+  if (["rejected", "expired", "cancelled"].includes(smLifecycle)) return "perdido";
+  return "aberto";
+}
+
+/**
+ * Resolves projeto etapa_id based on SM proposal status using semantic name matching + categoria fallback.
+ * Priority: 1) Semantic keyword match in etapa names, 2) Categoria-based match, 3) First etapa fallback
+ */
+function resolveEtapaBySmStatus(
+  smProp: any,
+  funilId: string,
+  funilEtapaByNameMap: Map<string, string>,
+  funilEtapaByCategoriaMap: Map<string, string>,
+  funilFirstEtapaMap: Map<string, string>,
+): string | null {
+  const smLifecycle = resolveSmLifecycle(smProp);
+
+  const semanticEtapaMap: Record<string, string[]> = {
+    "approved": ["ganho", "fechado", "contrato", "aprovado", "concluido"],
+    "sent":     ["proposta", "enviada", "acompanhamento", "follow"],
+    "viewed":   ["negociacao", "negociação", "acompanhamento", "follow", "proposta"],
+    "generated": ["proposta", "novo", "recebido"],
+    "draft":    ["novo", "recebido", "entrada", "triagem"],
+    "rejected": ["perdido", "recusado", "cancelado"],
+    "expired":  ["perdido", "expirado"],
+    "cancelled": ["perdido", "cancelado"],
+  };
+
+  const keywords = semanticEtapaMap[smLifecycle] ?? [];
+
+  // 1. Keyword-based search in etapa names for this funil
+  for (const keyword of keywords) {
+    for (const [mapKey, etapaId] of funilEtapaByNameMap) {
+      if (mapKey.startsWith(`${funilId}::`) && mapKey.includes(keyword)) {
+        return etapaId;
+      }
+    }
+  }
+
+  // 2. Categoria-based fallback (ganho/perdido/aberto)
+  const targetCategoria = smLifecycleToEtapaCategoria(smLifecycle);
+  const catKey = `${funilId}::${targetCategoria}`;
+  const catMatch = funilEtapaByCategoriaMap.get(catKey);
+  if (catMatch) return catMatch;
+
+  // 3. First etapa of the funil
+  return funilFirstEtapaMap.get(funilId) || null;
+}
+
 
     if (rawBody?.action === "pause_background_migration") {
       // 1. Disable future runs
