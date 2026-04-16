@@ -26,8 +26,13 @@ export function SmAiConfigTab() {
       setPrompt(config.systemPrompt);
       setIsActive(config.isActive);
       setIsDirty(false);
+    } else if (!isLoading) {
+      // No record found (first time or RLS blocked) — show defaults
+      setPrompt(DEFAULT_PROMPT);
+      setIsActive(false);
+      setIsDirty(false);
     }
-  }, [config]);
+  }, [config, isLoading]);
 
   const handleSave = () => {
     saveMutation.mutate({ systemPrompt: prompt, isActive });
