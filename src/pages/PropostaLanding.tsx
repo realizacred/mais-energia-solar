@@ -31,6 +31,7 @@ import { ProposalHeroSection } from "@/components/proposal-landing/sections/Prop
 import { ProposalProblemSection } from "@/components/proposal-landing/sections/ProposalProblemSection";
 import { ProposalSolutionSection } from "@/components/proposal-landing/sections/ProposalSolutionSection";
 import { ProposalEquipmentSection } from "@/components/proposal-landing/sections/ProposalEquipmentSection";
+import { TemplateInterativo } from "@/components/proposal-landing/sections/TemplateInterativo";
 import { ProposalFinancialSection } from "@/components/proposal-landing/sections/ProposalFinancialSection";
 import { ProposalAuthoritySection } from "@/components/proposal-landing/sections/ProposalAuthoritySection";
 import { ProposalSecuritySection } from "@/components/proposal-landing/sections/ProposalSecuritySection";
@@ -412,6 +413,9 @@ export default function PropostaLanding() {
 
       {/* 4. EQUIPAMENTOS — Premium tech showcase */}
       <ProposalEquipmentSection {...sectionProps} />
+
+      {/* 4.5 INTERATIVO — Equipamentos com hover, simulador de impacto, galeria de estrutura */}
+      <TemplateInterativo {...sectionProps} />
 
       {/* 5. RESULTADO FINANCEIRO — Dark dramatic section */}
       <ProposalFinancialSection {...sectionProps} activeCenario={activeCenario} />
