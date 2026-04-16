@@ -3815,6 +3815,7 @@ Deno.serve(async (req) => {
                     valor_mao_obra: smProp.installation_cost || null,
                     geracao_mensal_media_kwh: smProp.geracao_anual ? Math.round(smProp.geracao_anual / 12) : null,
                     status: mapSmStatusToDeal(smProp) === "won" ? "concluido" : "criado",
+                    data_venda: smProp.acceptance_date || null,
                     codigo: projetoCodigo,
                     projeto_num: null,
                     is_principal: false,
