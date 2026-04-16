@@ -498,80 +498,56 @@ export function SmDashboardPanel({
         </div>
       )}
 
-      {/* ── Staging vs Conversion sections ── */}
-      <div className="grid grid-cols-1 gap-4 2xl:grid-cols-2">
-        {/* Staging — Dados importados */}
-        <div className="space-y-3">
-          <div className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded-md bg-info/10 flex items-center justify-center">
-              <Database className="h-3.5 w-3.5 text-info" />
-            </div>
-            <h3 className="text-sm font-semibold text-foreground">Dados importados</h3>
-            <span className="text-[10px] text-muted-foreground">(staging)</span>
-          </div>
-          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-3">
-            <KpiCard
-              icon={Users}
-              label="Clientes"
-              value={totalClients}
-              color="primary"
-              sub={totalClients > 0 ? "Importados do SolarMarket" : "Sincronize para importar"}
-            />
-            <KpiCard
-              icon={FolderKanban}
-              label="Projetos verificados"
-              value={`${projectsScanned} / ${totalProjects}`}
-              color={projectsRemaining === 0 && totalProjects > 0 ? "success" : "info"}
-              progress={scanPercent}
-              sub={projectsRemaining === 0 && totalProjects > 0
-                ? "Todos os projetos verificados"
-                : `${projectsRemaining} restantes para varrer`}
-            />
-            <KpiCard
-              icon={FileText}
-              label="Propostas encontradas"
-              value={totalProposals}
-              color={totalProposals > 0 ? "success" : "muted"}
-              sub={totalProposals > 0
-                ? `Em ${projectsScanned} projetos varridos`
-                : "Nenhuma proposta encontrada ainda"}
-            />
-          </div>
-        </div>
+      {/* ── Completion Banner ── */}
+      <SmCompletionBanner
+        migrated={proposalsMigrated}
+        errors={0}
+        total={totalProposals}
+        visible={state === "migration_complete" && totalProposals > 0}
+      />
 
-        {/* Conversion — Migração para CRM */}
-        <div className="space-y-3">
-          <div className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded-md bg-warning/10 flex items-center justify-center">
-              <TrendingUp className="h-3.5 w-3.5 text-warning" />
-            </div>
-            <h3 className="text-sm font-semibold text-foreground">Conversão para CRM</h3>
-            <span className="text-[10px] text-muted-foreground">(migração)</span>
-          </div>
-          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-            <KpiCard
-              icon={ArrowRightLeft}
-              label="Migradas"
-              value={proposalsMigrated}
-              color={proposalsMigrated > 0 ? "success" : "muted"}
-              progress={migrationPercent}
-              sub={proposalsMigrated > 0
-                ? `${migrationPercent}% de ${totalProposals} propostas`
-                : "Nenhuma proposta migrada ainda"}
-            />
-            <KpiCard
-              icon={Clock}
-              label="Pendentes"
-              value={proposalsPending}
-              color={proposalsPending > 0 ? "warning" : "success"}
-              sub={proposalsPending > 0
-                ? "Aguardando conversão para o CRM"
-                : totalProposals > 0
-                  ? "Todas as propostas foram migradas"
-                  : "Sem propostas para migrar"}
-            />
-          </div>
-        </div>
+      {/* ── Bento KPI Grid ── */}
+      <SmBentoKpis items={[
+        {
+          icon: Users,
+          label: "Clientes importados",
+          value: totalClients,
+          color: totalClients > 0 ? "primary" : "muted",
+          sub: totalClients > 0 ? "Importados do SolarMarket" : "Sincronize para importar",
+        },
+        {
+          icon: FolderKanban,
+          label: "Projetos verificados",
+          value: `${projectsScanned} / ${totalProjects}`,
+          color: projectsRemaining === 0 && totalProjects > 0 ? "success" : "info",
+          progress: scanPercent,
+          sub: projectsRemaining === 0 && totalProjects > 0
+            ? "Todos os projetos verificados"
+            : `${projectsRemaining} restantes`,
+        },
+        {
+          icon: ArrowRightLeft,
+          label: "Migradas",
+          value: proposalsMigrated,
+          color: proposalsMigrated > 0 ? "success" : "muted",
+          progress: migrationPercent,
+          sub: proposalsMigrated > 0
+            ? `${migrationPercent}% de ${totalProposals}`
+            : "Nenhuma migrada ainda",
+        },
+        {
+          icon: Clock,
+          label: "Pendentes",
+          value: proposalsPending,
+          color: proposalsPending > 0 ? "warning" : "success",
+          sub: proposalsPending > 0
+            ? "Aguardando conversão"
+            : totalProposals > 0
+              ? "Todas migradas"
+              : "Sem propostas",
+        },
+      ]} />
+    </div>
       </div>
     </div>
   );
