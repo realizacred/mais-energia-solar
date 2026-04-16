@@ -171,7 +171,7 @@ export function useProjetoPipeline() {
   ) => {
     let query = supabase
       .from("projetos")
-      .select("id, deal_id, codigo, projeto_num, lead_id, cliente_id, consultor_id, funil_id, etapa_id, proposta_id, potencia_kwp, valor_total, status, observacoes, created_at, updated_at, clientes:cliente_id(nome, telefone)")
+      .select("id, deal_id, codigo, projeto_num, lead_id, cliente_id, consultor_id, funil_id, etapa_id, proposta_id, potencia_kwp, valor_total, status, observacoes, created_at, updated_at, clientes:cliente_id(nome, telefone)", { count: "exact" })
       .order("created_at", { ascending: false });
 
     if (f.consultorId !== "todos") {
