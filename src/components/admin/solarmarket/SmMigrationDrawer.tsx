@@ -1627,17 +1627,8 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange, onRunningChan
               </div>
             )}
 
-            {/* Client-side logs */}
-            {logs.length > 0 && (
-              <details className="text-xs">
-                <summary className="cursor-pointer text-muted-foreground hover:text-foreground">
-                  Logs ({logs.length})
-                </summary>
-                <pre className="mt-1 p-2 rounded bg-muted/30 max-h-32 overflow-auto whitespace-pre-wrap text-[10px]">
-                  {logs.join("\n")}
-                </pre>
-              </details>
-            )}
+            {/* Terminal Logs */}
+            <SmTerminalLog logs={logs} />
           </div>
 
           <DrawerFooter className="flex-col gap-2 pt-2">
