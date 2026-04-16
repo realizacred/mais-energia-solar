@@ -5035,6 +5035,8 @@ Deno.serve(async (req) => {
                 })
                 .select("id")
                 .single();
+              // Throttle client inserts to avoid table lock contention
+              await new Promise(r => setTimeout(r, 500));
               if (!insErr && newClient) {
                 clienteId = newClient.id;
                 groupBReport.steps.cliente = { status: "CREATED", id: clienteId };
