@@ -704,7 +704,7 @@ export default function Admin() {
                 <Route path="asaas-conversao" element={<AsaasConversionPage />} />
                 <Route path="openai-config" element={<OpenAIConfigPage />} />
                 <Route path="gemini-config" element={<GeminiConfigPage />} />
-                <Route path="solarmarket-config" element={<Navigate to="/admin/catalogo-integracoes" replace />} />
+                <Route path="solarmarket-config" element={<SolarMarketConfigPage />} />
                 <Route path="solarmarket" element={<SolarMarketPage />} />
                 <Route path="meta-facebook-config" element={<MetaFacebookConfigPage />} />
                 <Route path="meta-dashboard" element={<MetaDashboardPage />} />
