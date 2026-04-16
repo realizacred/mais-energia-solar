@@ -301,8 +301,8 @@ export function StageDealCard({
         )}
 
         {/* FOOTER: Actions + Owner */}
-        <div className="flex items-center justify-between pt-1.5 border-t border-border/30">
-          <div className="flex items-center gap-0.5">
+        <div className="flex items-center justify-between pt-1 border-t border-border/20">
+          <div className="flex items-center gap-0">
             <TooltipProvider delayDuration={200}>
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -311,7 +311,7 @@ export function StageDealCard({
                     onClick={(e) => { e.stopPropagation(); if (deal.customer_phone) setWhatsappDialogOpen(true); }}
                     disabled={!deal.customer_phone}
                   >
-                    <MessageSquare className="h-3.5 w-3.5 md:h-3 md:w-3" />
+                    <MessageSquare className="h-3 w-3" />
                   </button>
                 </TooltipTrigger>
                 <TooltipContent className="text-xs">WhatsApp</TooltipContent>
@@ -323,7 +323,7 @@ export function StageDealCard({
                     onClick={(e) => { e.stopPropagation(); if (deal.customer_phone) window.open(`tel:${deal.customer_phone}`); }}
                     disabled={!deal.customer_phone}
                   >
-                    <Phone className="h-3.5 w-3.5 md:h-3 md:w-3" />
+                    <Phone className="h-3 w-3" />
                   </button>
                 </TooltipTrigger>
                 <TooltipContent className="text-xs">Ligar</TooltipContent>
@@ -334,7 +334,7 @@ export function StageDealCard({
                     className="action-icon-btn action-icon-btn--proposal"
                     onClick={(e) => { e.stopPropagation(); onProposalClick ? onProposalClick() : onClick(); }}
                   >
-                    <FileText className="h-3.5 w-3.5 md:h-3 md:w-3" />
+                    <FileText className="h-3 w-3" />
                   </button>
                 </TooltipTrigger>
                 <TooltipContent className="text-xs">Propostas</TooltipContent>
@@ -343,7 +343,7 @@ export function StageDealCard({
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <span className="action-icon-btn action-icon-btn--note">
-                      <StickyNote className="h-3.5 w-3.5 md:h-3 md:w-3" />
+                      <StickyNote className="h-3 w-3" />
                     </span>
                   </TooltipTrigger>
                   <TooltipContent className="text-xs max-w-[250px]">
@@ -355,18 +355,18 @@ export function StageDealCard({
           </div>
 
           {/* Owner + expected close */}
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-1">
             {deal.expected_close_date && (
               <span className={cn(
-                "flex items-center gap-0.5 text-[10px]",
+                "flex items-center gap-0.5 text-[9px]",
                 isOverdue ? "text-destructive font-semibold" : "text-muted-foreground"
               )}>
-                <Clock className="h-3 w-3" />
+                <Clock className="h-2.5 w-2.5" />
                 {formatDate(deal.expected_close_date)}
               </span>
             )}
-            <Avatar className="h-5 w-5 border border-border/40">
-              <AvatarFallback className={cn("text-[7px] font-bold", getAvatarColor(deal.owner_name))}>
+            <Avatar className="h-4.5 w-4.5 border border-border/40">
+              <AvatarFallback className={cn("text-[6px] font-bold", getAvatarColor(deal.owner_name))}>
                 {getInitials(deal.owner_name)}
               </AvatarFallback>
             </Avatar>
