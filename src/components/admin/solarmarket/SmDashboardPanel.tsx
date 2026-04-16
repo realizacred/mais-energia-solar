@@ -22,7 +22,6 @@ import { useIsBackgroundSyncActive } from "@/hooks/useSolarMarket";
 import type { SyncProgress, SyncStageStatus } from "@/hooks/useSolarMarketSync";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent } from "@/components/ui/card";
 import {
   FolderKanban,
   FileText,
@@ -73,61 +72,8 @@ const STATE_CONFIG: Record<OperationalState, StateConfig> = {
   stale:               { label: "Operação travada", sublabel: "Sem heartbeat há mais de 5 minutos", color: "destructive", icon: AlertTriangle },
 };
 
-// ─── KPI Card ───────────────────────────────────────────
 
-function KpiCard({ icon: Icon, label, value, sub, color, progress: progressValue }: {
-  icon: React.ElementType;
-  label: string;
-  value: string | number;
-  sub?: string;
-  color: "primary" | "success" | "warning" | "info" | "destructive" | "muted";
-  progress?: number;
-}) {
-  const borderColors: Record<string, string> = {
-    primary: "border-l-primary",
-    success: "border-l-success",
-    warning: "border-l-warning",
-    info: "border-l-info",
-    destructive: "border-l-destructive",
-    muted: "border-l-muted-foreground",
-  };
-  const bgColors: Record<string, string> = {
-    primary: "bg-primary/10",
-    success: "bg-success/10",
-    warning: "bg-warning/10",
-    info: "bg-info/10",
-    destructive: "bg-destructive/10",
-    muted: "bg-muted",
-  };
-  const iconColors: Record<string, string> = {
-    primary: "text-primary",
-    success: "text-success",
-    warning: "text-warning",
-    info: "text-info",
-    destructive: "text-destructive",
-    muted: "text-muted-foreground",
-  };
 
-  return (
-    <Card className={cn("border-l-[3px] shadow-sm", borderColors[color])}>
-      <CardContent className="p-4 space-y-2">
-        <div className="flex items-center gap-3">
-          <div className={cn("w-9 h-9 rounded-lg flex items-center justify-center shrink-0", bgColors[color])}>
-            <Icon className={cn("w-4 h-4", iconColors[color])} />
-          </div>
-          <div className="min-w-0 flex-1">
-            <p className="text-xl font-bold tracking-tight text-foreground leading-none">{value}</p>
-            <p className="text-xs text-muted-foreground mt-0.5">{label}</p>
-          </div>
-        </div>
-        {progressValue !== undefined && (
-          <Progress value={progressValue} className="h-1.5" />
-        )}
-        {sub && <p className="text-[10px] text-muted-foreground leading-snug">{sub}</p>}
-      </CardContent>
-    </Card>
-  );
-}
 
 // ─── Stage status icon ──────────────────────────────────
 
