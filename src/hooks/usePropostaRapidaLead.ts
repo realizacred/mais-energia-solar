@@ -236,8 +236,9 @@ export function usePropostaRapidaLead() {
       });
 
       // Redirecionar ao wizard por padrão
+      const wizardDealParam = newDealId || newProjeto.id;
       navigate(
-        `/admin/propostas-nativas/nova?deal_id=${newDeal.id}&customer_id=${clienteId}&lead_id=${lead.id}`
+        `/admin/propostas-nativas/nova?deal_id=${wizardDealParam}&customer_id=${clienteId}&lead_id=${lead.id}`
       );
     } catch (err: any) {
       console.error("[usePropostaRapidaLead] Erro:", err);
