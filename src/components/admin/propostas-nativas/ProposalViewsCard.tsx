@@ -105,7 +105,7 @@ export function ProposalViewsCard({ propostaId, versaoId, statusVisualizacao, pr
   const ChartTooltip = ({ active, payload, label }: any) => {
     if (!active || !payload?.length) return null;
     return (
-      <div className="bg-card border border-border rounded-lg shadow-lg p-2 text-xs">
+      <div className="bg-card border border-border rounded-lg shadow-sm p-2 text-xs">
         <p className="font-medium text-foreground">{label}</p>
         <p className="text-muted-foreground">
           Visualizações: <span className="font-semibold text-foreground">{payload[0].value}</span>

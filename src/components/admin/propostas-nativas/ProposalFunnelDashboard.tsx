@@ -88,13 +88,13 @@ export default function ProposalFunnelDashboard() {
 
       {/* KPIs */}
       {isLoading ? (
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {Array.from({ length: 4 }).map((_, i) => (
             <Card key={i} className="p-5"><Skeleton className="h-8 w-24 mb-2" /><Skeleton className="h-4 w-32" /></Card>
           ))}
         </div>
       ) : (
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <KpiCard icon={Send} label="Propostas Enviadas" value={m?.total_enviadas ?? 0} />
           <KpiCard icon={Eye} label="Taxa de Visualização" value={`${m?.taxa_visualizacao ?? 0}%`}
             borderColor="border-l-info" iconBg="bg-info/10 text-info" />
