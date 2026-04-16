@@ -415,6 +415,24 @@ interface ResolveFunilEtapaResult {
   source: string;
 }
 
+interface MutationResult {
+  error: { message: string } | null;
+  count?: number | null;
+}
+
+function assertMutationAffectedRows(
+  result: MutationResult,
+  context: string,
+): void {
+  if (result.error) {
+    throw new Error(`[SM Migration][${context}] ${result.error.message}`);
+  }
+
+  if ((result.count ?? 0) === 0) {
+    throw new Error(`[SM Migration][${context}] operação não afetou linhas`);
+  }
+}
+
 function resolveFunilEtapa(params: ResolveFunilEtapaParams): ResolveFunilEtapaResult {
   const {
     smProjectData, smProp,
@@ -538,6 +556,20 @@ function resolveFunilEtapa(params: ResolveFunilEtapaParams): ResolveFunilEtapaRe
     etapaId: integrity.etapaId,
     warning: integrity.warning,
     source,
+  };
+}
+
+function buildSmProjectData(smProjectData: {
+  sm_funnel_name?: string | null;
+  sm_stage_name?: string | null;
+  all_funnels?: any[] | null;
+} | null | undefined) {
+  if (!smProjectData) return null;
+
+  return {
+    sm_funnel_name: smProjectData.sm_funnel_name || null,
+    sm_stage_name: smProjectData.sm_stage_name || null,
+    all_funnels: smProjectData.all_funnels || null,
   };
 }
 
