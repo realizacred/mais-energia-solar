@@ -269,6 +269,8 @@ function resolveEtapaBySmStatus(
   funilEtapaByNameMap: Map<string, string>,
   funilEtapaByCategoriaMap: Map<string, string>,
   funilFirstEtapaMap: Map<string, string>,
+  /** All projeto_funis IDs keyed by normalized name — used for cross-funil fallback on "approved" */
+  projetoFunisMap?: Map<string, string>,
 ): string | null {
   const smLifecycle = resolveSmLifecycle(smProp);
   const semanticEtapaMap: Record<string, string[]> = {
@@ -282,6 +284,8 @@ function resolveEtapaBySmStatus(
     "cancelled": ["perdido", "cancelado"],
   };
   const keywords = semanticEtapaMap[smLifecycle] ?? [];
+
+  // 1. Try semantic name match in the target funil
   for (const keyword of keywords) {
     for (const [mapKey, etapaId] of funilEtapaByNameMap) {
       if (mapKey.startsWith(`${funilId}::`) && mapKey.includes(keyword)) {
@@ -289,10 +293,40 @@ function resolveEtapaBySmStatus(
       }
     }
   }
+
+  // 2. Try categoria match in the target funil
   const targetCategoria = smLifecycleToEtapaCategoria(smLifecycle);
   const catKey = `${funilId}::${targetCategoria}`;
   const catMatch = funilEtapaByCategoriaMap.get(catKey);
   if (catMatch) return catMatch;
+
+  // 3. APPROVED CROSS-FUNIL FALLBACK: if approved but no "ganho" stage in current funil,
+  //    try Engenharia funil first, then any funil with a "ganho" categoria stage
+  if (smLifecycle === "approved" && projetoFunisMap) {
+    // Try Engenharia funil
+    const engenhariaFunilId = projetoFunisMap.get(normalizeComparableName("Engenharia"));
+    if (engenhariaFunilId && engenhariaFunilId !== funilId) {
+      const engCatKey = `${engenhariaFunilId}::ganho`;
+      const engMatch = funilEtapaByCategoriaMap.get(engCatKey);
+      if (engMatch) return engMatch;
+      // Try semantic name match in Engenharia
+      for (const keyword of keywords) {
+        for (const [mapKey, etapaId] of funilEtapaByNameMap) {
+          if (mapKey.startsWith(`${engenhariaFunilId}::`) && mapKey.includes(keyword)) {
+            return etapaId;
+          }
+        }
+      }
+    }
+    // Try any funil with ganho
+    for (const [, otherFunilId] of projetoFunisMap) {
+      if (otherFunilId === funilId) continue;
+      const otherCatKey = `${otherFunilId}::ganho`;
+      const otherMatch = funilEtapaByCategoriaMap.get(otherCatKey);
+      if (otherMatch) return otherMatch;
+    }
+  }
+
   return funilFirstEtapaMap.get(funilId) || null;
 }
 
