@@ -1396,8 +1396,13 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56" onClick={(e) => e.stopPropagation()}>
-                {/* Links and send actions are in the inline action bar below — no duplication here */}
-
+                {/* Enviar Resumo — abre drawer de mensagem */}
+                {latestVersao && (
+                  <DropdownMenuItem onClick={() => setMessageDrawerOpen(true)}>
+                    <MessageCircle className="h-3.5 w-3.5 mr-2 text-primary" /> Enviar Resumo
+                  </DropdownMenuItem>
+                )}
+                <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={() => handleEditWithProtection(() => navigate(`/admin/propostas-nativas?edit=${p.id}`))}>
                   <Pencil className="h-3.5 w-3.5 mr-2 text-primary" /> Editar proposta
                 </DropdownMenuItem>
@@ -1507,7 +1512,7 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
                         <MessageCircle className="h-3 w-3" /> WhatsApp
                       </Button>
                       <Button size="sm" variant="outline" className="h-7 text-xs gap-1.5" onClick={() => setMessageDrawerOpen(true)}>
-                        <Mail className="h-3 w-3" /> E-mail
+                        <MessageCircle className="h-3 w-3" /> Enviar Resumo
                       </Button>
 
                       {(latestVersao.output_pdf_path || latestVersao.link_pdf || latestVersao.output_docx_path) && (
