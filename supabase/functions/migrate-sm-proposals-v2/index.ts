@@ -3327,6 +3327,9 @@ Deno.serve(async (req) => {
                 .select("id")
                 .single();
 
+              // Throttle client inserts to avoid table lock contention
+              await new Promise(r => setTimeout(r, 500));
+
               if (insErr) {
                 // If duplicate cliente_code, find existing and link
                 if (insErr.message.includes("uq_clientes_tenant_cliente_code")) {
