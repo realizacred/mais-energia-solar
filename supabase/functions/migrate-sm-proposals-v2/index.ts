@@ -3832,61 +3832,24 @@ Deno.serve(async (req) => {
 
             // ── UPDATE existing project with resolved consultor/funil/etapa ──
             if (projetoId && (existingByCodigoId || projetoByDeal.get(dealId))) {
-              const resolvedFunilId = (() => {
-                const smProj = smProp.sm_project_id ? smProjectMap.get(smProp.sm_project_id) : null;
-                const smFunnelName = smProj?.sm_funnel_name || null;
-                const normalizedFunnel = normalizeComparableName(smFunnelName);
-                if (normalizedFunnel && !NON_OPERATIONAL_FUNNELS.has(normalizedFunnel)) {
-                  if (normalizedFunnel.includes('compesa') || normalizedFunnel.includes('compensa')) {
-                    return projetoFunisMap.get(normalizeComparableName('Compensação'))
-                      || projetoFunisMap.get(normalizeComparableName('Compesação'))
-                      || null;
-                  }
-                  const directMatch = projetoFunisMap.get(normalizedFunnel);
-                  if (directMatch) return directMatch;
-                  for (const [k, v] of projetoFunisMap) {
-                    if (k.includes(normalizedFunnel) || normalizedFunnel.includes(k)) return v;
-                  }
-                }
-                const bestOp = resolveBestOperationalFunnel(smProj?.all_funnels, projetoFunisMap, projetoFunisOrdemMap);
-                if (bestOp) return bestOp.funilId;
-                return COMERCIAL_FUNIL_ID || FALLBACK_FUNIL_ID || null;
-              })();
-
-              const resolvedEtapaId = (() => {
-                if (!resolvedFunilId) return null;
-                const smProj = smProp.sm_project_id ? smProjectMap.get(smProp.sm_project_id) : null;
-                const smStageName = smProj?.sm_stage_name || null;
-                const matchEtapaByName = (funilId: string, stageName: string | null): string | null => {
-                  if (!stageName) return null;
-                  const nameKey = `${funilId}::${normalizeComparableName(stageName)}`;
-                  return funilEtapaByNameMap.get(nameKey) || null;
-                };
-                // Try sm_stage_name
-                if (smStageName) {
-                  const matched = matchEtapaByName(resolvedFunilId, smStageName);
-                  if (matched) return matched;
-                }
-                // Try all_funnels stage names
-                const bestOp = resolveBestOperationalFunnel(smProj?.all_funnels, projetoFunisMap, projetoFunisOrdemMap);
-                if (bestOp?.stageName) {
-                  const matched = matchEtapaByName(resolvedFunilId, bestOp.stageName);
-                  if (matched) return matched;
-                }
-                // Status-based etapa resolution (approved→ganho, sent/viewed→acompanhamento, etc.)
-                const statusEtapa = resolveEtapaBySmStatus(smProp, resolvedFunilId, funilEtapaByNameMap, funilEtapaByCategoriaMap, funilFirstEtapaMap, projetoFunisMap);
-                if (statusEtapa) return statusEtapa;
-                return funilFirstEtapaMap.get(resolvedFunilId) || (resolvedFunilId === COMERCIAL_FUNIL_ID ? COMERCIAL_ETAPA_ID : null) || FALLBACK_ETAPA_ID || null;
-              })();
-
-              // ── Integrity check: validate etapa belongs to funil ──
-              const updIntegrity = validateFunilEtapaIntegrity(
-                resolvedFunilId, resolvedEtapaId,
-                funilFirstEtapaMap, funilEtapaByNameMap,
-                `UPDATE projeto=${projetoId} sm_proposal=${smProp.sm_proposal_id}`
-              );
-              if (updIntegrity.warning) {
-                report.steps.projeto = { status: "FALLBACK_USED", id: projetoId, reason: updIntegrity.warning };
+              const smProjForUpdate = smProp.sm_project_id ? smProjectMap.get(smProp.sm_project_id) : null;
+              const updResolved = resolveFunilEtapa({
+                smProjectData: smProjForUpdate ? {
+                  sm_funnel_name: smProjForUpdate.sm_funnel_name || null,
+                  sm_stage_name: smProjForUpdate.sm_stage_name || null,
+                  all_funnels: smProjForUpdate.all_funnels || null,
+                } : null,
+                smProp,
+                projetoFunisMap, projetoFunisOrdemMap,
+                funilFirstEtapaMap, funilEtapaByNameMap, funilEtapaByCategoriaMap,
+                comercialFunilId: COMERCIAL_FUNIL_ID,
+                comercialEtapaId: COMERCIAL_ETAPA_ID,
+                fallbackFunilId: FALLBACK_FUNIL_ID,
+                fallbackEtapaId: FALLBACK_ETAPA_ID,
+                context: `UPDATE projeto=${projetoId} sm_proposal=${smProp.sm_proposal_id}`,
+              });
+              if (updResolved.warning) {
+                report.steps.projeto = { status: "FALLBACK_USED", id: projetoId, reason: updResolved.warning };
               }
 
               const projUpdateFields: Record<string, any> = {
