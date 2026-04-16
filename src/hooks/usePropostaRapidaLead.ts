@@ -115,25 +115,25 @@ export function usePropostaRapidaLead() {
         return;
       }
 
-      // 4. Buscar pipeline comercial e stage default (deals)
+      // 4. Buscar pipeline comercial e stage default (deals) — opcional
       const { data: pipeline } = await supabase
         .from("pipelines")
         .select("id")
         .eq("tenant_id", tenantId)
         .limit(1)
-        .single();
+        .maybeSingle();
 
-      if (!pipeline) throw new Error("Nenhum pipeline encontrado. Configure o funil comercial primeiro.");
-
-      const { data: stage } = await supabase
-        .from("pipeline_stages")
-        .select("id")
-        .eq("pipeline_id", pipeline.id)
-        .order("position", { ascending: true })
-        .limit(1)
-        .single();
-
-      if (!stage) throw new Error("Nenhuma etapa encontrada no pipeline.");
+      let dealStageId: string | null = null;
+      if (pipeline) {
+        const { data: stage } = await supabase
+          .from("pipeline_stages")
+          .select("id")
+          .eq("pipeline_id", pipeline.id)
+          .order("position", { ascending: true })
+          .limit(1)
+          .maybeSingle();
+        dealStageId = stage?.id || null;
+      }
 
       // 4b. Buscar funil de projetos (projeto_funis) e primeira etapa (projeto_etapas)
       const { data: funilComercial } = await supabase
