@@ -162,22 +162,26 @@ export function usePropostaRapidaLead() {
         etapaId = primeiraEtapa?.id || null;
       }
 
-      // 5. Criar deal
-      const { data: newDeal, error: dealError } = await supabase
-        .from("deals")
-        .insert({
-          pipeline_id: pipeline.id,
-          stage_id: stage.id,
-          owner_id: lead.consultor_id || null,
-          customer_id: clienteId!,
-          value: lead.valor_estimado || 0,
-          title: lead.nome,
-          tenant_id: tenantId,
-        } as any)
-        .select("id")
-        .single();
+      // 5. Criar deal (apenas se pipeline comercial existir)
+      let newDealId: string | null = null;
+      if (pipeline && dealStageId) {
+        const { data: newDeal, error: dealError } = await supabase
+          .from("deals")
+          .insert({
+            pipeline_id: pipeline.id,
+            stage_id: dealStageId,
+            owner_id: lead.consultor_id || null,
+            customer_id: clienteId!,
+            value: lead.valor_estimado || 0,
+            title: lead.nome,
+            tenant_id: tenantId,
+          } as any)
+          .select("id")
+          .single();
 
-      if (dealError) throw dealError;
+        if (dealError) throw dealError;
+        newDealId = newDeal.id;
+      }
 
       // 6. Criar projeto com funil_id e etapa_id para visibilidade no Kanban
       const { data: newProjeto, error: projetoError } = await supabase
@@ -185,7 +189,7 @@ export function usePropostaRapidaLead() {
         .insert({
           cliente_id: clienteId!,
           consultor_id: lead.consultor_id || null,
-          deal_id: newDeal.id,
+          deal_id: newDealId,
           funil_id: funilId,
           etapa_id: etapaId,
           status: "criado",
@@ -196,11 +200,13 @@ export function usePropostaRapidaLead() {
 
       if (projetoError) throw projetoError;
 
-      // 7. Vincular projeto ao deal
-      await supabase
-        .from("deals")
-        .update({ projeto_id: newProjeto.id } as any)
-        .eq("id", newDeal.id);
+      // 7. Vincular projeto ao deal (se deal foi criado)
+      if (newDealId) {
+        await supabase
+          .from("deals")
+          .update({ projeto_id: newProjeto.id } as any)
+          .eq("id", newDealId);
+      }
 
       await markLeadAsViewed(lead.id, tenantId);
 
