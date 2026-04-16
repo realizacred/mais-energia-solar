@@ -165,16 +165,17 @@ export function StageDealCard({
     ? { background: `linear-gradient(180deg, ${etiquetaCfg.cor}, ${etiquetaCfg.cor}80)` }
     : undefined;
 
-  // Format time as Xh XXmin
+  // Format time humanized: <24h → Xh, <30d → Xd, else → X meses
   function formatTimeInStage(lastChange: string) {
     const hours = differenceInHours(new Date(), new Date(lastChange));
     if (hours < 1) return "agora";
-    if (hours < 24) {
-      return `${hours}h 00min`;
-    }
+    if (hours < 24) return `${hours}h`;
     const days = differenceInDays(new Date(), new Date(lastChange));
-    const remainingHours = hours - (days * 24);
-    return `${days * 24 + remainingHours}h`;
+    if (days >= 30) {
+      const months = Math.floor(days / 30);
+      return `${months} ${months === 1 ? "mês" : "meses"}`;
+    }
+    return `${days}d`;
   }
 
   const cardContent = (
