@@ -4,6 +4,7 @@
  */
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { getCurrentTenantId } from "@/lib/getCurrentTenantId";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 
@@ -67,16 +68,8 @@ export function useSaveSmAiConfig() {
 
   return useMutation({
     mutationFn: async (config: { systemPrompt: string; isActive: boolean }) => {
-      if (!user) throw new Error("Usuário não autenticado");
-
-      // Get tenant_id — use user_id column, not id
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("tenant_id")
-        .eq("user_id", user.id)
-        .single();
-
-      if (!profile?.tenant_id) throw new Error("Tenant não encontrado");
+      // Use canonical tenant resolver — handles auth + profile + RLS safely
+      const { tenantId, userId } = await getCurrentTenantId();
 
       const { data: existing } = await supabase
         .from("integration_configs")
@@ -91,7 +84,7 @@ export function useSaveSmAiConfig() {
             api_key: config.systemPrompt,
             is_active: config.isActive,
             updated_at: new Date().toISOString(),
-            updated_by: user.id,
+            updated_by: userId,
           })
           .eq("id", existing.id);
         if (error) throw error;
@@ -102,8 +95,8 @@ export function useSaveSmAiConfig() {
             service_key: SERVICE_KEY,
             api_key: config.systemPrompt,
             is_active: config.isActive,
-            tenant_id: profile.tenant_id,
-            updated_by: user.id,
+            tenant_id: tenantId,
+            updated_by: userId,
           });
         if (error) throw error;
       }
