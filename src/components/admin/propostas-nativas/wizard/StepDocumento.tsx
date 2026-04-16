@@ -86,6 +86,7 @@ export function StepDocumento({
   docxBlob,
   generationAuditReport,
   estimativaBlocked = false,
+  skipTemplateAutoSelect = false,
 }: StepDocumentoProps) {
   // ─── Queries via hooks (§16 AGENTS.md) ──────────────────
   const queryClient = useQueryClient();
