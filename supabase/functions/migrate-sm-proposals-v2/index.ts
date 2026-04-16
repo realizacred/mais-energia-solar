@@ -3671,6 +3671,7 @@ Deno.serve(async (req) => {
                 consultor_id: resolvedOwnerId || null,
                 funil_id: resolvedFunilId,
                 etapa_id: resolvedEtapaId,
+                ...(smProp.acceptance_date ? { data_venda: smProp.acceptance_date } : {}),
               };
 
               const { error: projUpdErr } = await adminClient
