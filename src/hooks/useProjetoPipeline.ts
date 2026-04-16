@@ -169,6 +169,16 @@ export function useProjetoPipeline() {
     availableEtapas: ProjetoEtapa[] = etapas,
     availableFunis: ProjetoFunil[] = funis,
   ) => {
+    // Build etapa→funil map for funil filter resolution
+    const etapaFunilMap = new Map<string, string>();
+    const etapasByFunil = new Map<string, ProjetoEtapa[]>();
+    availableEtapas.forEach((etapa) => {
+      etapaFunilMap.set(etapa.id, etapa.funil_id);
+      const arr = etapasByFunil.get(etapa.funil_id) || [];
+      arr.push(etapa);
+      etapasByFunil.set(etapa.funil_id, arr);
+    });
+
     let query = supabase
       .from("projetos")
       .select("id, deal_id, codigo, projeto_num, lead_id, cliente_id, consultor_id, funil_id, etapa_id, proposta_id, potencia_kwp, valor_total, status, observacoes, created_at, updated_at, clientes:cliente_id(nome, telefone)", { count: "exact" })
@@ -184,47 +194,22 @@ export function useProjetoPipeline() {
       query = query.or(`codigo.ilike.%${f.search}%`);
     }
 
-    const data = await fetchAllProjetosRows(query as any);
+    // SERVER-SIDE funil filter: filter by etapa_ids belonging to the selected funil
+    // This avoids loading all projetos and filtering client-side
+    if (f.funilId) {
+      const funilEtapaIds = availableEtapas
+        .filter(e => e.funil_id === f.funilId)
+        .map(e => e.id);
 
-    const projetoIds = (data || []).map((p: any) => p.id);
-    const relMap = new Map<string, string[]>();
-    if (projetoIds.length > 0) {
-      const chunkSize = 500;
-      for (let i = 0; i < projetoIds.length; i += chunkSize) {
-        const chunk = projetoIds.slice(i, i + chunkSize);
-        const { data: rels } = await supabase
-          .from("projeto_etiqueta_rel")
-          .select("projeto_id, etiqueta_id")
-          .in("projeto_id", chunk);
-        (rels || []).forEach((r: any) => {
-          const arr = relMap.get(r.projeto_id) || [];
-          arr.push(r.etiqueta_id);
-          relMap.set(r.projeto_id, arr);
-        });
+      if (funilEtapaIds.length > 0) {
+        // Filter: etapa_id in funil OR funil_id matches (for projetos without etapa_id)
+        query = query.or(`etapa_id.in.(${funilEtapaIds.join(",")}),funil_id.eq.${f.funilId}`);
+      } else {
+        query = query.eq("funil_id", f.funilId);
       }
     }
 
-    const etapaFunilMap = new Map<string, string>();
-    const etapasByFunil = new Map<string, ProjetoEtapa[]>();
-    availableEtapas.forEach((etapa) => {
-      etapaFunilMap.set(etapa.id, etapa.funil_id);
-      const arr = etapasByFunil.get(etapa.funil_id) || [];
-      arr.push(etapa);
-      etapasByFunil.set(etapa.funil_id, arr);
-    });
-
-    let filteredData = data || [];
-    if (f.funilId) {
-      filteredData = filteredData.filter((p: any) => {
-        const effectiveFunilId = p.etapa_id
-          ? (etapaFunilMap.get(p.etapa_id) ?? p.funil_id ?? null)
-          : (p.funil_id ?? null);
-
-        return effectiveFunilId === f.funilId;
-      });
-    }
-
-    if (f.etiquetaIds.length > 0) {
+    const data = await fetchAllProjetosRows(query as any);
       const projetosComEtiqueta = new Set<string>();
       relMap.forEach((etIds, projId) => {
         if (f.etiquetaIds.some((eid) => etIds.includes(eid))) {
