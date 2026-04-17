@@ -588,7 +588,7 @@ export default function SolarMarketPage() {
   const ssotMigratedProposals = syncProgressData?.proposalsMigrated ?? migratedProposalsCount;
   const pendingMigrationTotal = ssotPendingProposals + pendingProjectsNoProposal.length;
 
-  const [migrateAllOpen, setMigrateAllOpen] = useState(false);
+  
   const [syncPipelinesRunning, setSyncPipelinesRunning] = useState(false);
   const [syncPipelinesResult, setSyncPipelinesResult] = useState<{
     pipelines: { created: number; existing: number };
