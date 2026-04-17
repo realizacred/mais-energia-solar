@@ -1090,7 +1090,11 @@ Deno.serve(async (req) => {
                 const ra = parseInt(res.headers.get("retry-after") || "10", 10);
                 await delay(ra * 1000);
               }
-              await res.text();
+              const body = await res.text();
+              // Diagnóstico: por que enrichment está falhando silenciosamente?
+              if (processedProjects <= 3) {
+                console.error(`[SM Sync][projects_funnels] skip projId=${projId} status=${res.status} ct="${ct}" body="${body.slice(0, 200)}"`);
+              }
               continue;
             }
 
