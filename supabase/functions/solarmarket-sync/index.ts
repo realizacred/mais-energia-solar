@@ -1065,9 +1065,13 @@ Deno.serve(async (req) => {
 
         const pendingEnrich = allProjIds.filter((id: number) => !alreadyEnrichedSet.has(id));
         totalFetched = pendingEnrich.length;
+        console.error(`[SM Sync][projects_funnels] start tenant=${tenantId} total=${allProjIds.length} already=${alreadyEnrichedSet.size} pending=${pendingEnrich.length}`);
 
         let processedProjects = 0;
         let enriched = 0;
+        // Telemetria detalhada do enrichment
+        let httpOk = 0, httpErr = 0, emptyFunnels = 0, parseErr = 0, exceptions = 0;
+        const statusCounts: Record<string, number> = {};
         const funnelTimeBudget = 45_000; // 45s budget — leave margin to finalize logs + release lock
         const funnelStart = Date.now();
 
@@ -1084,19 +1088,22 @@ Deno.serve(async (req) => {
             const fUrl = `${baseUrl}/projects/${projId}/funnels`;
             const res = await fetch(fUrl, { headers: smHeaders });
             const ct = res.headers.get("content-type") || "";
+            statusCounts[String(res.status)] = (statusCounts[String(res.status)] || 0) + 1;
 
             if (!res.ok || !ct.includes("application/json")) {
+              httpErr++;
               if (res.status === 429) {
                 const ra = parseInt(res.headers.get("retry-after") || "10", 10);
                 await delay(ra * 1000);
               }
               const body = await res.text();
-              // Diagnóstico: por que enrichment está falhando silenciosamente?
-              if (processedProjects <= 3) {
-                console.error(`[SM Sync][projects_funnels] skip projId=${projId} status=${res.status} ct="${ct}" body="${body.slice(0, 200)}"`);
+              // Telemetria: log das 5 primeiras falhas HTTP para diagnóstico
+              if (httpErr <= 5) {
+                console.error(`[SM Sync][projects_funnels] HTTP_FAIL projId=${projId} status=${res.status} ct="${ct}" body="${body.slice(0, 300)}"`);
               }
               continue;
             }
+            httpOk++;
 
             const funnelData = await res.json();
             const funnels = Array.isArray(funnelData) ? funnelData : funnelData.data ? (Array.isArray(funnelData.data) ? funnelData.data : [funnelData.data]) : [funnelData];
