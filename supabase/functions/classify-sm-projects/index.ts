@@ -152,24 +152,39 @@ Deno.serve(async (req) => {
       return state.consultorNames.has(lower);
     };
 
-    const classifyKind = (funilNome: string | null, _stageNome: string | null): {
+    const classifyKind = (funilNome: string | null, stageNome: string | null): {
       kind: "comercial" | "engenharia" | "equipamento" | "compensacao" | "verificar_dados";
       funilNomeAlvo: string | null;
+      etapaNomeOverride?: string;
     } => {
       if (!funilNome || !funilNome.trim()) {
         return { kind: "verificar_dados", funilNomeAlvo: null };
       }
 
-      // Vendedores → tratar como Comercial (o funil de vendedor é projeção comercial)
-      if (isFunilConsultor(funilNome)) return { kind: "comercial", funilNomeAlvo: "Comercial" };
+      // Vendedores OU consultor → Comercial (vendedor é responsável, não pipeline)
+      if (isFunilConsultor(funilNome)) {
+        return { kind: "comercial", funilNomeAlvo: "Comercial" };
+      }
 
       // Financeiro fora do pipeline principal
       if (FINANCE_RE.test(funilNome)) return { kind: "verificar_dados", funilNomeAlvo: null };
 
-      if (ENG_RE.test(funilNome))   return { kind: "engenharia",   funilNomeAlvo: funilNome };
-      if (EQUIP_RE.test(funilNome)) return { kind: "equipamento",  funilNomeAlvo: funilNome };
-      if (COMP_RE.test(funilNome))  return { kind: "compensacao",  funilNomeAlvo: funilNome };
-      if (COMM_RE.test(funilNome))  return { kind: "comercial",    funilNomeAlvo: funilNome };
+      // Perdido → Comercial / Perdido (etapa override)
+      if (PERDIDO_RE.test(funilNome) || (stageNome && PERDIDO_RE.test(stageNome))) {
+        return { kind: "comercial", funilNomeAlvo: "Comercial", etapaNomeOverride: "Perdido" };
+      }
+
+      // LEAD literal → Comercial
+      if (/^lead$/i.test(funilNome.trim())) {
+        return { kind: "comercial", funilNomeAlvo: "Comercial" };
+      }
+
+      // Compensação (aceita typo "Compesação") → SEMPRE normaliza para "Compensação"
+      if (COMP_RE.test(funilNome)) return { kind: "compensacao", funilNomeAlvo: "Compensação" };
+
+      if (ENG_RE.test(funilNome))   return { kind: "engenharia",   funilNomeAlvo: "Engenharia" };
+      if (EQUIP_RE.test(funilNome)) return { kind: "equipamento",  funilNomeAlvo: "Equipamento" };
+      if (COMM_RE.test(funilNome))  return { kind: "comercial",    funilNomeAlvo: "Comercial" };
 
       // Sem match claro → fallback
       return { kind: "verificar_dados", funilNomeAlvo: null };
