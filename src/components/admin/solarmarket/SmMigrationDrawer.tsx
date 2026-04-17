@@ -124,7 +124,7 @@ const STEP_LABELS: Record<string, string> = {
   _fatal: "Erro fatal",
 };
 
-const SUCCESS_STEP_STATUSES = ["CREATED", "SUCCESS", "WOULD_CREATE", "WOULD_LINK", "WOULD_SKIP"] as const;
+const SUCCESS_STEP_STATUSES = new Set<string>(["CREATED", "SUCCESS", "WOULD_CREATE", "WOULD_LINK", "WOULD_SKIP"]);
 
 function humanizeStepResult(
   stepKey: string,
