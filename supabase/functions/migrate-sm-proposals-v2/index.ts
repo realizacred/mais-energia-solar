@@ -1363,83 +1363,13 @@ Deno.serve(async (req) => {
     let tenantId: string;
     let rawBody: any;
 
-    // ── CRON MODE: auto-resume for all enabled tenants ──
+    // [REMOVIDO] CRON MODE (x-cron-secret) — auto-invocação para todos os tenants desativada.
     if (cronSecretHeader) {
-      const expectedCronSecret = Deno.env.get("CRON_SECRET");
-      if (!expectedCronSecret || cronSecretHeader !== expectedCronSecret) {
-        return new Response(JSON.stringify({ error: "Invalid cron secret" }), {
-          status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-
-      // Fetch all tenants with enabled migration settings AND pending proposals
-      const { data: settings } = await adminClient
-        .from("sm_migration_settings")
-        .select("tenant_id, pipeline_id, stage_id, owner_id, auto_resolve_owner, batch_size")
-        .eq("enabled", true);
-
-      if (!settings || settings.length === 0) {
-        return new Response(JSON.stringify({ cron: true, message: "No tenants with enabled migration" }), {
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-
-      const cronResults: any[] = [];
-      for (const s of settings) {
-        // Check if there are pending proposals for this tenant
-        const { count: pendingCount } = await adminClient
-          .from("solar_market_proposals")
-          .select("id", { count: "exact", head: true })
-          .eq("tenant_id", s.tenant_id)
-          .is("migrado_em", null);
-
-        if (!pendingCount || pendingCount === 0) {
-          // Auto-disable when done
-          await adminClient
-            .from("sm_migration_settings")
-            .update({ enabled: false, updated_at: new Date().toISOString() })
-            .eq("tenant_id", s.tenant_id);
-          cronResults.push({ tenant_id: s.tenant_id, status: "completed", pending: 0 });
-          continue;
-        }
-
-        // Call self recursively via internal fetch with service_role auth
-        // Build payload matching user-mode params
-        const payload = {
-          dry_run: false,
-          pipeline_id: s.pipeline_id,
-          stage_id: s.stage_id || null,
-          auto_resolve_owner: s.auto_resolve_owner ?? true,
-          auto_resume: true,
-          batch_size: s.batch_size || 10,
-          include_projects_without_proposal: false,
-          ...(s.owner_id ? { owner_id: s.owner_id } : {}),
-          _cron_tenant_id: s.tenant_id, // internal: tenant override for cron
-        };
-
-        try {
-          const fetchUrl = `${supabaseUrl}/functions/v1/migrate-sm-proposals-v2`;
-          logDebug("[SM Migration] CRON FETCH ANTES", { tenant: s.tenant_id, url: fetchUrl, svcKeyLen: serviceKey?.length });
-          const innerResp = await fetch(fetchUrl, {
-            method: "POST",
-            headers: {
-              "Authorization": `Bearer ${serviceKey}`,
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify(payload),
-          });
-          const innerBody = await innerResp.text().catch(() => "");
-          logDebug("[SM Migration] CRON FETCH DEPOIS", { tenant: s.tenant_id, status: innerResp.status, bodyPreview: innerBody.substring(0, 300) });
-          let parsed: any = {};
-          try { parsed = JSON.parse(innerBody); } catch { parsed = { raw: innerBody.substring(0, 200) }; }
-          cronResults.push({ tenant_id: s.tenant_id, status: innerResp.ok ? "ok" : "error", pending: pendingCount, response: parsed });
-        } catch (e) {
-          console.error("[SM Migration] CRON FETCH ERROR", { tenant: s.tenant_id, error: (e as Error).message, stack: (e as Error).stack?.substring(0, 300) });
-          cronResults.push({ tenant_id: s.tenant_id, status: "error", error: (e as Error).message });
-        }
-      }
-
-      return new Response(JSON.stringify({ cron: true, results: cronResults }), {
+      return new Response(JSON.stringify({
+        error: "cron_mode_disabled",
+        message: "Auto-resume via cron foi removido permanentemente. Migração só executa por ação manual do usuário.",
+      }), {
+        status: 410,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
