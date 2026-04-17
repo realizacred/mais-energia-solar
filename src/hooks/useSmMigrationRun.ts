@@ -142,7 +142,23 @@ export function useSmMigrationRun() {
         r.logs.forEach((l) => appendLog(`  ${l}`));
         return ok;
       } catch (e: any) {
-        const reason = e?.message ?? String(e);
+        let reason = e?.message ?? String(e);
+
+        if (e?.name === "FunctionsHttpError" && e?.context) {
+          try {
+            const body = await e.context.json();
+            const details = [body?.error, body?.detail, body?.hint].filter(Boolean).join(" · ");
+            if (details) reason = details;
+          } catch {
+            try {
+              const text = await e.context.text();
+              if (text) reason = text;
+            } catch {
+              // mantém mensagem original
+            }
+          }
+        }
+
         updatePhase(
           key,
           { status: "error", failedCount: 1 },

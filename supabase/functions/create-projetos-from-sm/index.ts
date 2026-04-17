@@ -437,9 +437,12 @@ Deno.serve(async (req) => {
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   } catch (err: any) {
-    console.error("[create-projetos-from-sm] fatal:", err);
+    const message = err?.message ?? "erro desconhecido";
+    const detail = err?.details ?? err?.detail ?? null;
+    const hint = err?.hint ?? null;
+    console.error("[create-projetos-from-sm] fatal:", { message, detail, hint, stack: err?.stack ?? null });
     return new Response(
-      JSON.stringify({ error: err?.message ?? "erro desconhecido" }),
+      JSON.stringify({ error: message, detail, hint }),
       {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
