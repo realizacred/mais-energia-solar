@@ -33,8 +33,11 @@ interface RunState {
   would_insert_projects: number;
   inserted_clients: number;
   inserted_projects: number;
+  reused_clients: number;
+  failed_clients: number;
+  failed_projects: number;
   skipped_existing_projects: number;
-  failed: Array<{ sm_project_id: number; reason: string }>;
+  failed: Array<{ sm_project_id: number; reason: string; phase: "client" | "project" }>;
 }
 
 function newState(): RunState {
@@ -43,6 +46,9 @@ function newState(): RunState {
     would_insert_projects: 0,
     inserted_clients: 0,
     inserted_projects: 0,
+    reused_clients: 0,
+    failed_clients: 0,
+    failed_projects: 0,
     skipped_existing_projects: 0,
     failed: [],
   };
@@ -326,6 +332,7 @@ Deno.serve(async (req) => {
       // já criamos via outra iteração?
       if (smcEffective != null && existingClients.has(smcEffective)) {
         projectClientId.set(smpId, existingClients.get(smcEffective)!);
+        state.reused_clients++;
         continue;
       }
 
@@ -351,6 +358,7 @@ Deno.serve(async (req) => {
           existingClients.set(smcEffective, clienteId);
         }
         projectClientId.set(smpId, clienteId);
+        state.reused_clients++;
         continue;
       }
 
@@ -391,10 +399,12 @@ Deno.serve(async (req) => {
               existingClients.set(smcEffective, recovered);
             }
             projectClientId.set(smpId, recovered);
+            state.reused_clients++;
             continue;
           }
         }
-        state.failed.push({ sm_project_id: smpId, reason: `cliente insert: ${insErr.message}` });
+        state.failed.push({ sm_project_id: smpId, reason: `cliente insert: ${insErr.message}`, phase: "client" });
+        state.failed_clients++;
         continue;
       }
 
@@ -449,7 +459,9 @@ Deno.serve(async (req) => {
           state.failed.push({
             sm_project_id: Number(row.sm_project_id ?? 0),
             reason: `projeto insert: ${rowError.message}`,
+            phase: "project",
           });
+          state.failed_projects++;
           continue;
         }
 
@@ -465,8 +477,12 @@ Deno.serve(async (req) => {
         tenant_id: tenantId,
         eligible: projects.length,
         already_exist: state.skipped_existing_projects,
+        reused_projects: state.skipped_existing_projects,
         inserted_projects: state.inserted_projects,
         inserted_clients: state.inserted_clients,
+        reused_clients: state.reused_clients,
+        failed_clients: state.failed_clients,
+        failed_projects: state.failed_projects,
         failed_count: state.failed.length,
         failed_sample: state.failed.slice(0, 20),
       }),

@@ -2,7 +2,7 @@
  * BlocoExecucao — Botão único de migração + stepper visual + barra de progresso.
  * O sistema executa classify → create → apply em sequência.
  */
-import { Rocket, Loader2, RotateCcw, CheckCircle2, XCircle, Circle, Ban } from "lucide-react";
+import { Rocket, Loader2, RotateCcw, CheckCircle2, XCircle, Circle, Ban, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { SectionCard } from "@/components/ui-kit";
@@ -94,23 +94,44 @@ function PhaseRow({ phase }: { phase: PhaseStatus }) {
   const Icon =
     phase.status === "success" ? CheckCircle2 :
     phase.status === "error" ? XCircle :
-    phase.status === "running" ? Loader2 : Circle;
+    phase.status === "running" ? Loader2 :
+    phase.status === "placeholder" ? Clock : Circle;
   const tone =
     phase.status === "success" ? "text-success" :
     phase.status === "error" ? "text-destructive" :
-    phase.status === "running" ? "text-primary" : "text-muted-foreground";
+    phase.status === "running" ? "text-primary" :
+    phase.status === "placeholder" ? "text-muted-foreground/60" : "text-muted-foreground";
+
+  const showCounts = phase.status === "success" || phase.status === "error" || phase.status === "running";
 
   return (
-    <li className="flex items-center justify-between gap-3 rounded-md border bg-card px-3 py-2 text-sm">
-      <div className="flex items-center gap-2 min-w-0">
-        <Icon className={cn("h-4 w-4 shrink-0", tone, phase.status === "running" && "animate-spin")} />
-        <span className="truncate">{phase.label}</span>
+    <li className={cn(
+      "rounded-md border bg-card px-3 py-2 text-sm",
+      phase.status === "placeholder" && "opacity-60 border-dashed"
+    )}>
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2 min-w-0">
+          <Icon className={cn("h-4 w-4 shrink-0", tone, phase.status === "running" && "animate-spin")} />
+          <span className="truncate">{phase.label}</span>
+        </div>
+        {showCounts && (
+          <span className="text-xs text-muted-foreground tabular-nums shrink-0">
+            {phase.successCount} ok
+            {phase.failedCount > 0 && <span className="text-destructive ml-1">· {phase.failedCount} falha(s)</span>}
+          </span>
+        )}
       </div>
-      {(phase.status === "success" || phase.status === "error") && (
-        <span className="text-xs text-muted-foreground tabular-nums shrink-0">
-          {phase.successCount} ok
-          {phase.failedCount > 0 && <span className="text-destructive ml-1">· {phase.failedCount} falha(s)</span>}
-        </span>
+      {phase.details.length > 0 && (
+        <ul className="mt-1.5 ml-6 space-y-0.5">
+          {phase.details.map((d, i) => (
+            <li key={i} className={cn(
+              "text-xs leading-tight",
+              phase.status === "error" ? "text-destructive/90" : "text-muted-foreground"
+            )}>
+              · {d}
+            </li>
+          ))}
+        </ul>
       )}
     </li>
   );
