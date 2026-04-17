@@ -229,6 +229,9 @@ verify_jwt = false
 [functions.migrate-sm-proposals-v2]
 verify_jwt = false
 
+[functions.create-projetos-from-sm]
+verify_jwt = false
+
 [functions.monitoring-connect]
 verify_jwt = false
 
