@@ -16,7 +16,7 @@ import { BlocoExecucao } from "./BlocoExecucao";
 import { BlocoResultado } from "./BlocoResultado";
 
 export default function SmMigrationPanelV3() {
-  const { run, isRunning, start, reset } = useSmMigrationRun();
+  const { run, isRunning, start, reset, cancel } = useSmMigrationRun();
   const { data: distribution, isLoading: loadingDist } = useSmClassificationDistribution();
 
   return (
@@ -31,7 +31,7 @@ export default function SmMigrationPanelV3() {
 
       <div className="grid gap-4 lg:grid-cols-2">
         <BlocoDistribuicao rows={distribution} isLoading={loadingDist} />
-        <BlocoExecucao run={run} isRunning={isRunning} onStart={start} onReset={reset} />
+        <BlocoExecucao run={run} isRunning={isRunning} onStart={start} onReset={reset} onCancel={cancel} />
       </div>
 
       <BlocoResultado run={run} />
