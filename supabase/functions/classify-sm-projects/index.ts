@@ -209,7 +209,7 @@ Deno.serve(async (req) => {
         continue;
       }
 
-      const { kind, funilNomeAlvo } = classifyKind(sm.sm_funnel_name, sm.sm_stage_name);
+      const { kind, funilNomeAlvo, etapaNomeOverride } = classifyKind(sm.sm_funnel_name, sm.sm_stage_name);
       const telefoneValido = await validatePhone(supabase, sm.customer_phone);
 
       let funilDestinoId: string | null = null;
@@ -221,18 +221,21 @@ Deno.serve(async (req) => {
         etapaDestinoId = fallbackEtapaId;
         motivo = `Fallback: funil_origem="${sm.sm_funnel_name ?? "—"}" não classificável`;
       } else {
-        // Resolver funil pelo nome alvo
         const funilHit = state.funilCache.get(funilNomeAlvo.toLowerCase().trim());
         if (funilHit) {
           funilDestinoId = funilHit.id;
-          // Resolver etapa pelo nome (case-insensitive)
-          if (sm.sm_stage_name) {
+          // 1) Override de etapa (ex: Perdido)
+          // 2) Etapa por nome do SM (case-insensitive)
+          const stageLookup = etapaNomeOverride ?? sm.sm_stage_name;
+          if (stageLookup) {
             const etapaHit = state.etapaCache.get(
-              `${funilHit.id}:${sm.sm_stage_name.toLowerCase().trim()}`
+              `${funilHit.id}:${stageLookup.toLowerCase().trim()}`
             );
             if (etapaHit) etapaDestinoId = etapaHit.id;
           }
-          motivo = `Auto: funil="${funilNomeAlvo}" etapa="${sm.sm_stage_name ?? "—"}"`;
+          motivo = etapaNomeOverride
+            ? `Auto: funil="${funilNomeAlvo}" etapa_override="${etapaNomeOverride}"`
+            : `Auto: funil="${funilNomeAlvo}" etapa="${sm.sm_stage_name ?? "—"}"`;
         } else {
           // Funil alvo ainda não existe no nativo → fallback
           funilDestinoId = fallbackFunilId;
