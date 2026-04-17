@@ -301,6 +301,18 @@ Deno.serve(async (req) => {
         .maybeSingle();
       return (data?.id as string) ?? null;
     }
+    async function nextProjetoNum(): Promise<number> {
+      const { data, error } = await sb.rpc("next_tenant_number", {
+        p_tenant_id: tenantId,
+        p_entity: "projeto",
+      });
+      if (error) throw new Error(`next_tenant_number(projeto): ${error.message}`);
+      const value = Number(data);
+      if (!Number.isFinite(value) || value <= 0) {
+        throw new Error(`next_tenant_number(projeto) retornou valor inválido: ${String(data)}`);
+      }
+      return value;
+    }
 
     for (const p of pending) {
       const smpId = Number(p.sm_project_id);
@@ -402,10 +414,12 @@ Deno.serve(async (req) => {
         // já registrado em failed acima
         continue;
       }
+      const projeto_num = await nextProjetoNum();
       projetoRows.push({
         tenant_id: tenantId,
         sm_project_id: smpId,
         cliente_id,
+        projeto_num,
         codigo: `SM-${smpId}`,
         import_source: "solar_market",
       });
@@ -416,11 +430,33 @@ Deno.serve(async (req) => {
         .from("projetos")
         .insert(batch)
         .select("id");
-      if (error) {
-        state.failed.push({ sm_project_id: 0, reason: `projeto batch falhou: ${error.message}` });
+
+      if (!error) {
+        state.inserted_projects += data?.length ?? 0;
         continue;
       }
-      state.inserted_projects += data?.length ?? 0;
+
+      // Fallback granular: quando o batch falha, identificar exatamente qual
+      // sm_project_id está quebrando sem alterar a regra de negócio.
+      for (const row of batch) {
+        const { data: rowData, error: rowError } = await sb
+          .from("projetos")
+          .insert(row)
+          .select("id")
+          .maybeSingle();
+
+        if (rowError) {
+          state.failed.push({
+            sm_project_id: Number(row.sm_project_id ?? 0),
+            reason: `projeto insert: ${rowError.message}`,
+          });
+          continue;
+        }
+
+        if (rowData?.id) {
+          state.inserted_projects += 1;
+        }
+      }
     }
 
     return new Response(
@@ -437,9 +473,12 @@ Deno.serve(async (req) => {
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   } catch (err: any) {
-    console.error("[create-projetos-from-sm] fatal:", err);
+    const message = err?.message ?? "erro desconhecido";
+    const detail = err?.details ?? err?.detail ?? null;
+    const hint = err?.hint ?? null;
+    console.error("[create-projetos-from-sm] fatal:", { message, detail, hint, stack: err?.stack ?? null });
     return new Response(
-      JSON.stringify({ error: err?.message ?? "erro desconhecido" }),
+      JSON.stringify({ error: message, detail, hint }),
       {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
