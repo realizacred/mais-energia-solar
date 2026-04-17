@@ -27736,6 +27736,10 @@ export type Database = {
         }
         Returns: string
       }
+      get_or_create_verificar_dados_stage: {
+        Args: { _tenant_id: string }
+        Returns: Json
+      }
       get_payback_config: {
         Args: never
         Returns: {
