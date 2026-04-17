@@ -177,7 +177,7 @@ export function useSmMigrationRun() {
       const { data, error } = await supabase.functions.invoke("classify-sm-projects", {
         body: { tenant_id: tenantId, reclassify_all: false },
       });
-      if (error) throw new Error(error.message);
+      if (error) throw error;
       const classified = Number(data?.classified ?? 0);
       const skipped = Number(data?.skipped ?? 0);
       const eligible = Number(data?.total_eligible ?? 0);
@@ -213,7 +213,7 @@ export function useSmMigrationRun() {
             const { data, error } = await supabase.functions.invoke("create-projetos-from-sm", {
               body: { tenant_id: tenantId, confirm_apply: true, limit: BATCH },
             });
-            if (error) throw new Error(error.message);
+            if (error) throw error;
             const inserted = Number(data?.inserted_projects ?? 0);
             const insertedClients = Number(data?.inserted_clients ?? 0);
             const failed = Number(data?.failed_count ?? 0);
@@ -251,7 +251,7 @@ export function useSmMigrationRun() {
         const { data, error } = await supabase.functions.invoke("migrate-sm-proposals-v3", {
           body: { tenant_id: tenantId, confirm_apply: true },
         });
-        if (error) throw new Error(error.message);
+        if (error) throw error;
         const c = data?.counters ?? {};
         const updated = Number(c.updated ?? 0);
         const failed = Number(c.failed ?? (Array.isArray(c.errors) ? c.errors.length : 0));
