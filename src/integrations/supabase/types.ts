@@ -28164,14 +28164,24 @@ export type Database = {
         Args: { _deal_id: string; _proposta_id: string }
         Returns: undefined
       }
-      sm_classify_funnel_stage: {
-        Args: {
-          p_funnel_name: string
-          p_stage_name: string
-          p_tenant_id: string
-        }
-        Returns: Json
-      }
+      sm_classify_funnel_stage:
+        | {
+            Args: {
+              p_funnel_name: string
+              p_stage_name: string
+              p_tenant_id: string
+            }
+            Returns: Json
+          }
+        | {
+            Args: {
+              p_funnel_name: string
+              p_stage_name: string
+              p_status?: string
+              p_tenant_id: string
+            }
+            Returns: Json
+          }
       sm_match_clients_to_leads: {
         Args: { p_tenant_id: string }
         Returns: number
