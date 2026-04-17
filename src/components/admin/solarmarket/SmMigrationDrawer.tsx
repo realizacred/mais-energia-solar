@@ -757,7 +757,7 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange, onRunningChan
               for (const [key, stepName] of Object.entries(stepMap)) {
                 const serverStep = (detail.steps as Record<string, any>)[key];
                 if (serverStep) {
-                  const isOk = SUCCESS_STEP_STATUSES.includes(serverStep.status);
+                  const isOk = SUCCESS_STEP_STATUSES.has(serverStep.status);
                   updateStep(stepName, {
                     state: isOk ? "done" : "error",
                     detail: `${serverStep.status}${serverStep.id ? ` → ${serverStep.id.slice(0, 8)}...` : ""}${serverStep.reason ? ` (${serverStep.reason})` : ""}`,
@@ -871,7 +871,7 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange, onRunningChan
         for (const [key, stepName] of Object.entries(stepMap)) {
           const serverStep = detail.steps[key];
           if (serverStep) {
-            const isOk = SUCCESS_STEP_STATUSES.includes(serverStep.status);
+            const isOk = SUCCESS_STEP_STATUSES.has(serverStep.status);
             updateStep(stepName, {
               state: isOk ? "done" : "error",
               detail: `${serverStep.status}${serverStep.id ? ` → ${serverStep.id.slice(0, 8)}...` : ""}${serverStep.reason ? ` (${serverStep.reason})` : ""}`,
