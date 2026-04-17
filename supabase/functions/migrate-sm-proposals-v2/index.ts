@@ -692,52 +692,8 @@ function toCanonicalProjetoFunilName(smFunnelName: string | null | undefined): s
   return CANONICAL_SM_TO_PROJETO_FUNIL[normalized] ?? null;
 }
 
-function dispatchBackgroundMigrationRun(params: {
-  supabaseUrl: string;
-  serviceKey: string;
-  tenantId: string;
-  pipelineId: string;
-  stageId?: string | null;
-  ownerId?: string | null;
-  autoResolveOwner: boolean;
-  batchSize: number;
-}) {
-  const payload = {
-    dry_run: false,
-    pipeline_id: params.pipelineId,
-    stage_id: params.stageId ?? null,
-    auto_resolve_owner: params.autoResolveOwner,
-    auto_resume: true,
-    batch_size: params.batchSize,
-    include_projects_without_proposal: false,
-    ...(params.ownerId ? { owner_id: params.ownerId } : {}),
-    _cron_tenant_id: params.tenantId,
-  };
-
-  const dispatchPromise = fetch(`${params.supabaseUrl}/functions/v1/migrate-sm-proposals-v2`, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${params.serviceKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(payload),
-  }).then(async (response) => {
-    if (!response.ok) {
-      const body = await response.text().catch(() => "");
-      console.error(`[SM Migration] Background dispatch failed: HTTP ${response.status} ${body}`);
-    }
-  }).catch((error) => {
-    console.error(`[SM Migration] Background dispatch error: ${error instanceof Error ? error.message : String(error)}`);
-  });
-
-  const edgeRuntime = (globalThis as { EdgeRuntime?: { waitUntil: (promise: Promise<unknown>) => void } }).EdgeRuntime;
-  if (edgeRuntime?.waitUntil) {
-    edgeRuntime.waitUntil(dispatchPromise);
-    return;
-  }
-
-  void dispatchPromise;
-}
+// [REMOVIDO] dispatchBackgroundMigrationRun — auto-invocação da própria edge function
+// foi eliminada permanentemente para impedir qualquer reativação acidental da migração.
 
 async function isBackgroundMigrationEnabled(adminClient: any, tenantId: string): Promise<boolean> {
   const { data, error } = await adminClient
@@ -1363,83 +1319,13 @@ Deno.serve(async (req) => {
     let tenantId: string;
     let rawBody: any;
 
-    // ── CRON MODE: auto-resume for all enabled tenants ──
+    // [REMOVIDO] CRON MODE (x-cron-secret) — auto-invocação para todos os tenants desativada.
     if (cronSecretHeader) {
-      const expectedCronSecret = Deno.env.get("CRON_SECRET");
-      if (!expectedCronSecret || cronSecretHeader !== expectedCronSecret) {
-        return new Response(JSON.stringify({ error: "Invalid cron secret" }), {
-          status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-
-      // Fetch all tenants with enabled migration settings AND pending proposals
-      const { data: settings } = await adminClient
-        .from("sm_migration_settings")
-        .select("tenant_id, pipeline_id, stage_id, owner_id, auto_resolve_owner, batch_size")
-        .eq("enabled", true);
-
-      if (!settings || settings.length === 0) {
-        return new Response(JSON.stringify({ cron: true, message: "No tenants with enabled migration" }), {
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-
-      const cronResults: any[] = [];
-      for (const s of settings) {
-        // Check if there are pending proposals for this tenant
-        const { count: pendingCount } = await adminClient
-          .from("solar_market_proposals")
-          .select("id", { count: "exact", head: true })
-          .eq("tenant_id", s.tenant_id)
-          .is("migrado_em", null);
-
-        if (!pendingCount || pendingCount === 0) {
-          // Auto-disable when done
-          await adminClient
-            .from("sm_migration_settings")
-            .update({ enabled: false, updated_at: new Date().toISOString() })
-            .eq("tenant_id", s.tenant_id);
-          cronResults.push({ tenant_id: s.tenant_id, status: "completed", pending: 0 });
-          continue;
-        }
-
-        // Call self recursively via internal fetch with service_role auth
-        // Build payload matching user-mode params
-        const payload = {
-          dry_run: false,
-          pipeline_id: s.pipeline_id,
-          stage_id: s.stage_id || null,
-          auto_resolve_owner: s.auto_resolve_owner ?? true,
-          auto_resume: true,
-          batch_size: s.batch_size || 10,
-          include_projects_without_proposal: false,
-          ...(s.owner_id ? { owner_id: s.owner_id } : {}),
-          _cron_tenant_id: s.tenant_id, // internal: tenant override for cron
-        };
-
-        try {
-          const fetchUrl = `${supabaseUrl}/functions/v1/migrate-sm-proposals-v2`;
-          logDebug("[SM Migration] CRON FETCH ANTES", { tenant: s.tenant_id, url: fetchUrl, svcKeyLen: serviceKey?.length });
-          const innerResp = await fetch(fetchUrl, {
-            method: "POST",
-            headers: {
-              "Authorization": `Bearer ${serviceKey}`,
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify(payload),
-          });
-          const innerBody = await innerResp.text().catch(() => "");
-          logDebug("[SM Migration] CRON FETCH DEPOIS", { tenant: s.tenant_id, status: innerResp.status, bodyPreview: innerBody.substring(0, 300) });
-          let parsed: any = {};
-          try { parsed = JSON.parse(innerBody); } catch { parsed = { raw: innerBody.substring(0, 200) }; }
-          cronResults.push({ tenant_id: s.tenant_id, status: innerResp.ok ? "ok" : "error", pending: pendingCount, response: parsed });
-        } catch (e) {
-          console.error("[SM Migration] CRON FETCH ERROR", { tenant: s.tenant_id, error: (e as Error).message, stack: (e as Error).stack?.substring(0, 300) });
-          cronResults.push({ tenant_id: s.tenant_id, status: "error", error: (e as Error).message });
-        }
-      }
-
-      return new Response(JSON.stringify({ cron: true, results: cronResults }), {
+      return new Response(JSON.stringify({
+        error: "cron_mode_disabled",
+        message: "Auto-resume via cron foi removido permanentemente. Migração só executa por ação manual do usuário.",
+      }), {
+        status: 410,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -1447,8 +1333,8 @@ Deno.serve(async (req) => {
     // ── USER / SERVICE_ROLE MODE ──
     rawBody = await req.json();
 
-    // ── CRON DISPATCH MODE: service_role + _cron_dispatch ──
-    // pg_cron calls with service_role key and _cron_dispatch flag
+    // [REMOVIDO] CRON DISPATCH MODE (_cron_dispatch) — auto-invocação desativada.
+    // Tokens precisam apenas ser validados a seguir.
     const token = authHeader.replace(/^Bearer\s+/i, "");
     if (!token) {
       return new Response(JSON.stringify({ error: "Unauthorized", step: "token_extract" }), {
@@ -1458,72 +1344,12 @@ Deno.serve(async (req) => {
 
     let userId: string | null = null;
 
-    if (token === serviceKey && rawBody?._cron_dispatch) {
-      // Cron dispatch: iterate all enabled tenants with pending proposals
-      const { data: settings } = await adminClient
-        .from("sm_migration_settings")
-        .select("tenant_id, pipeline_id, stage_id, owner_id, auto_resolve_owner, batch_size")
-        .eq("enabled", true);
-
-      if (!settings || settings.length === 0) {
-        return new Response(JSON.stringify({ cron: true, message: "No tenants with enabled migration" }), {
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-
-      const cronResults: any[] = [];
-      for (const s of settings) {
-        const { count: pendingCount } = await adminClient
-          .from("solar_market_proposals")
-          .select("id", { count: "exact", head: true })
-          .eq("tenant_id", s.tenant_id)
-          .is("migrado_em", null);
-
-        if (!pendingCount || pendingCount === 0) {
-          await adminClient
-            .from("sm_migration_settings")
-            .update({ enabled: false, updated_at: new Date().toISOString() })
-            .eq("tenant_id", s.tenant_id);
-          cronResults.push({ tenant_id: s.tenant_id, status: "completed", pending: 0 });
-          continue;
-        }
-
-        // Call self with service_role + _cron_tenant_id for single-tenant processing
-        const payload = {
-          dry_run: false,
-          pipeline_id: s.pipeline_id,
-          stage_id: s.stage_id || null,
-          auto_resolve_owner: s.auto_resolve_owner ?? true,
-          auto_resume: true,
-          batch_size: s.batch_size || 10,
-          include_projects_without_proposal: false,
-          ...(s.owner_id ? { owner_id: s.owner_id } : {}),
-          _cron_tenant_id: s.tenant_id,
-        };
-
-        try {
-          const fetchUrl2 = `${supabaseUrl}/functions/v1/migrate-sm-proposals-v2`;
-          logDebug("[SM Migration] DISPATCH FETCH ANTES", { tenant: s.tenant_id, url: fetchUrl2, svcKeyLen: serviceKey?.length });
-          const innerResp = await fetch(fetchUrl2, {
-            method: "POST",
-            headers: {
-              "Authorization": `Bearer ${serviceKey}`,
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify(payload),
-          });
-          const innerBody = await innerResp.text().catch(() => "");
-          logDebug("[SM Migration] DISPATCH FETCH DEPOIS", { tenant: s.tenant_id, status: innerResp.status, bodyPreview: innerBody.substring(0, 300) });
-          let parsed2: any = {};
-          try { parsed2 = JSON.parse(innerBody); } catch { parsed2 = { raw: innerBody.substring(0, 200) }; }
-          cronResults.push({ tenant_id: s.tenant_id, status: innerResp.ok ? "ok" : "error", pending: pendingCount, response: parsed2 });
-        } catch (e) {
-          console.error("[SM Migration] DISPATCH FETCH ERROR", { tenant: s.tenant_id, error: (e as Error).message, stack: (e as Error).stack?.substring(0, 300) });
-          cronResults.push({ tenant_id: s.tenant_id, status: "error", error: (e as Error).message });
-        }
-      }
-
-      return new Response(JSON.stringify({ cron: true, results: cronResults }), {
+    if (rawBody?._cron_dispatch) {
+      return new Response(JSON.stringify({
+        error: "cron_dispatch_disabled",
+        message: "Auto-dispatch via _cron_dispatch foi removido permanentemente.",
+      }), {
+        status: 410,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -1835,24 +1661,22 @@ Deno.serve(async (req) => {
         });
       }
 
-      dispatchBackgroundMigrationRun({
-        supabaseUrl,
-        serviceKey,
-        tenantId,
-        pipelineId: params.pipeline_id,
-        stageId: params.stage_id || null,
-        ownerId: params.owner_id || null,
-        autoResolveOwner,
-        batchSize: effectiveBatchSize,
-      });
+      // [REMOVIDO] dispatchBackgroundMigrationRun — auto-dispatch desativado.
+      // start_background_migration não inicia mais execução automática.
+      // O usuário deve disparar cada batch manualmente.
+      await adminClient
+        .from("sm_migration_settings")
+        .update({ enabled: false, updated_at: new Date().toISOString() })
+        .eq("tenant_id", tenantId);
 
       return new Response(JSON.stringify({
-        accepted: true,
+        accepted: false,
+        background_disabled: true,
         pending: pendingCount,
         batch_size: effectiveBatchSize,
-        message: "Migração enviada para execução no servidor. Ela continuará mesmo se você fechar a tela.",
+        message: "Migração automática em background foi desativada. Execute cada batch manualmente.",
       }), {
-        status: 202,
+        status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -5169,32 +4993,14 @@ Deno.serve(async (req) => {
       } catch (_) { /* best-effort */ }
     }
 
+    // [REMOVIDO] auto-dispatch da próxima leva da migração em background.
+    // Cada batch executa apenas o pedido pelo cliente — nada se auto-encadeia.
+    // Sempre desabilita o flag enabled após qualquer batch para evitar reativação acidental.
     if (!dry_run && params.auto_resume) {
-      if (pendingAfter === 0) {
-        await adminClient
-          .from("sm_migration_settings")
-          .update({ enabled: false, updated_at: new Date().toISOString() })
-          .eq("tenant_id", tenantId);
-      } else if (!backgroundMigrationEnabled) {
-        console.warn(`[SM Migration] Auto-resume stopped by user for tenant ${tenantId}; skipping next dispatch.`);
-      } else if ((successCount > 0 || skipCount > 0) && params.pipeline_id) {
-        dispatchBackgroundMigrationRun({
-          supabaseUrl,
-          serviceKey,
-          tenantId,
-          pipelineId: params.pipeline_id,
-          stageId: params.stage_id || null,
-          ownerId: params.owner_id || null,
-          autoResolveOwner,
-          batchSize: Math.max(1, Math.min(Number(batch_size || 20), 50)),
-        });
-      } else {
-        await adminClient
-          .from("sm_migration_settings")
-          .update({ enabled: false, updated_at: new Date().toISOString() })
-          .eq("tenant_id", tenantId);
-        console.warn("[SM Migration] Auto-resume paused after a batch with no progress.");
-      }
+      await adminClient
+        .from("sm_migration_settings")
+        .update({ enabled: false, updated_at: new Date().toISOString() })
+        .eq("tenant_id", tenantId);
     }
 
     return new Response(JSON.stringify(result), {
