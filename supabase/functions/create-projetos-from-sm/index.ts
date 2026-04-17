@@ -253,21 +253,15 @@ Deno.serve(async (req) => {
     }
 
     // ── APPLY ──────────────────────────────────────────────────────────────
-    // 5) Criar clientes faltantes (sm_client_id por sm_client_id)
-    for (const smcId of clientsToCreateIds) {
+    // 5) Criar clientes faltantes em BATCH
+    const clienteRows = clientsToCreateIds.map((smcId) => {
       const c = clientsBySm.get(smcId);
-      const projectForFallback = pending.find(
-        (p) => Number(p.sm_client_id) === smcId,
-      );
-      const nome = clientName(c, fallbackName(projectForFallback ?? { sm_project_id: smcId }));
-      const telefone = fallbackPhone(c);
-      const cliente_code = `SM-${smcId}`;
-
-      const insert = {
+      const projectForFallback = pending.find((p) => Number(p.sm_client_id) === smcId);
+      return {
         tenant_id: tenantId,
         sm_client_id: smcId,
-        nome,
-        telefone,
+        nome: clientName(c, fallbackName(projectForFallback ?? { sm_project_id: smcId })),
+        telefone: fallbackPhone(c),
         telefone_normalized: c?.phone_normalized ?? null,
         email: c?.email ?? null,
         cpf_cnpj: c?.document ?? null,
@@ -278,33 +272,32 @@ Deno.serve(async (req) => {
         cidade: c?.city ?? null,
         estado: c?.state ?? null,
         cep: c?.zip_code ?? null,
-        cliente_code,
+        cliente_code: `SM-${smcId}`,
         import_source: "solar_market",
       };
+    });
 
+    for (const batch of chunk(clienteRows, CHUNK)) {
       const { data, error } = await sb
         .from("clientes")
-        .insert(insert)
-        .select("id")
-        .maybeSingle();
-
-      if (error || !data?.id) {
-        state.failed.push({
-          sm_project_id: smcId,
-          reason: `cliente insert falhou: ${error?.message ?? "no row"}`,
-        });
+        .insert(batch)
+        .select("id, sm_client_id");
+      if (error) {
+        state.failed.push({ sm_project_id: 0, reason: `cliente batch falhou: ${error.message}` });
         continue;
       }
-      existingClients.set(smcId, data.id);
-      state.inserted_clients++;
+      for (const r of data ?? []) {
+        if (r.sm_client_id) existingClients.set(Number(r.sm_client_id), r.id as string);
+        state.inserted_clients++;
+      }
     }
 
-    // 6) Criar projetos
+    // 6) Criar projetos em BATCH
+    const projetoRows: any[] = [];
     for (const p of pending) {
       const smpId = Number(p.sm_project_id);
       const smcId = p.sm_client_id != null ? Number(p.sm_client_id) : null;
       const cliente_id = smcId != null ? existingClients.get(smcId) : null;
-
       if (!cliente_id) {
         state.failed.push({
           sm_project_id: smpId,
@@ -312,31 +305,25 @@ Deno.serve(async (req) => {
         });
         continue;
       }
-
-      const codigo = `SM-${smpId}`;
-      const insert = {
+      projetoRows.push({
         tenant_id: tenantId,
         sm_project_id: smpId,
         cliente_id,
-        codigo,
+        codigo: `SM-${smpId}`,
         import_source: "solar_market",
-        // funil_id / etapa_id intencionalmente NÃO definidos — escopo do v3
-      };
+      });
+    }
 
+    for (const batch of chunk(projetoRows, CHUNK)) {
       const { data, error } = await sb
         .from("projetos")
-        .insert(insert)
-        .select("id")
-        .maybeSingle();
-
-      if (error || !data?.id) {
-        state.failed.push({
-          sm_project_id: smpId,
-          reason: `projeto insert falhou: ${error?.message ?? "no row"}`,
-        });
+        .insert(batch)
+        .select("id");
+      if (error) {
+        state.failed.push({ sm_project_id: 0, reason: `projeto batch falhou: ${error.message}` });
         continue;
       }
-      state.inserted_projects++;
+      state.inserted_projects += data?.length ?? 0;
     }
 
     return new Response(

@@ -231,6 +231,7 @@ verify_jwt = false
 
 [functions.create-projetos-from-sm]
 verify_jwt = false
+wall_clock_limit = 300
 
 [functions.monitoring-connect]
 verify_jwt = false
