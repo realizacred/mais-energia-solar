@@ -170,7 +170,10 @@ export function useSmMigrationRun() {
         failed: 0,
         eligible,
         sample: [],
-        logs: [`Elegíveis: ${eligible} · Classificados: ${classified} · Ignorados: ${skipped}`],
+        logs: [
+          `Elegíveis: ${eligible} · Novos classificados: ${classified} · Já classificados antes: ${skipped}`,
+          ...(skipped > 0 ? [`(${skipped} projetos mantêm a classificação anterior — idempotência)`] : []),
+        ],
       };
     });
 
