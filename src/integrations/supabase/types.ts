@@ -28182,11 +28182,23 @@ export type Database = {
             }
             Returns: Json
           }
+      sm_ensure_canonical_pipelines: {
+        Args: { p_tenant_id: string }
+        Returns: Json
+      }
       sm_match_clients_to_leads: {
         Args: { p_tenant_id: string }
         Returns: number
       }
+      sm_migration_apply: {
+        Args: { p_dry_run?: boolean; p_tenant_id: string }
+        Returns: Json
+      }
       sm_migration_dry_run: { Args: { p_tenant_id: string }; Returns: Json }
+      sm_resolve_or_create_cliente: {
+        Args: { p_dry_run?: boolean; p_raw_payload: Json; p_tenant_id: string }
+        Returns: string
+      }
       start_conversation_by_phone:
         | {
             Args: {
