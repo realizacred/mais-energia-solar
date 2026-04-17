@@ -260,59 +260,30 @@ function ProjectsTable({ projects, onSelect, onNavigateProposals, clientsMap, pa
   );
 }
 
-function ProposalsTable({ proposals, onSelect, pagination, selectedIds, onToggleSelect, onToggleAll, onMigrate }: {
+function ProposalsTable({ proposals, onSelect, pagination }: {
   proposals: SmProposal[];
   onSelect: (p: SmProposal) => void;
   pagination?: { page: number; pageSize: number; onPageChange: (p: number) => void; onPageSizeChange: (s: number) => void };
-  selectedIds: Set<string>;
-  onToggleSelect: (id: string) => void;
-  onToggleAll: (displayed: SmProposal[]) => void;
-  onMigrate: (proposals: SmProposal[]) => void;
 }) {
   const displayed = pagination ? paginate(proposals, pagination.page, pagination.pageSize) : proposals;
-  const allDisplayedSelected = displayed.length > 0 && displayed.every(p => selectedIds.has(p.id));
-  const hasSelection = selectedIds.size > 0;
 
   return (
-    <SectionCard icon={FileText} title="Propostas" variant="neutral" noPadding
-      actions={hasSelection ? (
-        <Button size="sm" variant="outline" className="text-xs h-7" onClick={() => {
-          const selected = proposals.filter(p => selectedIds.has(p.id));
-          onMigrate(selected.slice(0, 10));
-        }}>
-          <ArrowRightLeft className="h-3 w-3 mr-1" />
-          Migrar {selectedIds.size > 10 ? "10 de " : ""}{selectedIds.size} selecionada(s)
-        </Button>
-      ) : undefined}
-    >
+    <SectionCard icon={FileText} title="Propostas" variant="neutral" noPadding>
       <div className="overflow-x-auto">
       <Table>
         <TableHeader>
           <TableRow className="bg-muted/50 hover:bg-muted/50">
-            <TableHead className="w-10">
-              <Checkbox
-                checked={allDisplayedSelected}
-                onCheckedChange={() => onToggleAll(displayed)}
-              />
-            </TableHead>
             <TableHead>Título</TableHead>
             <TableHead>Potência</TableHead>
             <TableHead>Valor</TableHead>
             <TableHead>Status</TableHead>
             <TableHead>Status Migração</TableHead>
-            <TableHead>Migração</TableHead>
             <TableHead className="text-right">Ações</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {displayed.map(pr => (
             <TableRow key={pr.id} className="cursor-pointer" onClick={() => onSelect(pr)}>
-              <TableCell onClick={e => e.stopPropagation()}>
-                <Checkbox
-                  checked={selectedIds.has(pr.id)}
-                  onCheckedChange={() => onToggleSelect(pr.id)}
-                />
-              </TableCell>
               <TableCell>
                 <div className="flex items-center gap-1.5">
                   <p className="font-medium">{pr.titulo || "—"}</p>
@@ -353,18 +324,10 @@ function ProposalsTable({ proposals, onSelect, pagination, selectedIds, onToggle
                   </Badge>
                 )}
               </TableCell>
-              <TableCell>
-                <SmMigrationToggle proposal={pr} />
-              </TableCell>
               <TableCell className="text-right" onClick={e => e.stopPropagation()}>
-                <div className="flex justify-end gap-1">
-                  <Button size="sm" variant="ghost" className="text-primary hover:text-primary h-7 px-1.5" onClick={() => onMigrate([pr])} title="Migrar">
-                    <ArrowRightLeft className="h-3.5 w-3.5" />
-                  </Button>
-                  <Button size="sm" variant="ghost" className="text-secondary hover:text-secondary h-7 px-1.5" onClick={() => onSelect(pr)} title="Detalhes">
-                    <Eye className="h-3.5 w-3.5" />
-                  </Button>
-                </div>
+                <Button size="sm" variant="ghost" className="text-secondary hover:text-secondary h-7 px-1.5" onClick={() => onSelect(pr)} title="Detalhes">
+                  <Eye className="h-3.5 w-3.5" />
+                </Button>
               </TableCell>
             </TableRow>
           ))}
