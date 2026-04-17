@@ -233,19 +233,31 @@ Deno.serve(async (req) => {
       } else {
         const funilHit = state.funilCache.get(funilNomeAlvo.toLowerCase().trim());
         if (funilHit) {
-          funilDestinoId = funilHit.id;
           // 1) Override de etapa (ex: Perdido)
           // 2) Etapa por nome do SM (case-insensitive)
           const stageLookup = etapaNomeOverride ?? sm.sm_stage_name;
+          let etapaHitId: string | null = null;
           if (stageLookup) {
             const etapaHit = state.etapaCache.get(
               `${funilHit.id}:${stageLookup.toLowerCase().trim()}`
             );
-            if (etapaHit) etapaDestinoId = etapaHit.id;
+            if (etapaHit) etapaHitId = etapaHit.id;
           }
-          motivo = etapaNomeOverride
-            ? `Auto: funil="${funilNomeAlvo}" etapa_override="${etapaNomeOverride}"`
-            : `Auto: funil="${funilNomeAlvo}" etapa="${sm.sm_stage_name ?? "—"}"`;
+
+          // Regra (decisão usuário): se origem é funil de vendedor/consultor e
+          // não há match confiável de etapa, NÃO inferir default → Verificar Dados
+          const origemEhVendedor = sm.sm_funnel_name && isFunilConsultor(sm.sm_funnel_name);
+          if (origemEhVendedor && !etapaHitId && !etapaNomeOverride) {
+            funilDestinoId = fallbackFunilId;
+            etapaDestinoId = fallbackEtapaId;
+            motivo = `Fallback: origem="vendedor (${sm.sm_funnel_name})" sem etapa confiável`;
+          } else {
+            funilDestinoId = funilHit.id;
+            etapaDestinoId = etapaHitId;
+            motivo = etapaNomeOverride
+              ? `Auto: funil="${funilNomeAlvo}" etapa_override="${etapaNomeOverride}"`
+              : `Auto: funil="${funilNomeAlvo}" etapa="${sm.sm_stage_name ?? "—"}"`;
+          }
         } else {
           // Funil alvo ainda não existe no nativo → fallback
           funilDestinoId = fallbackFunilId;
