@@ -416,11 +416,33 @@ Deno.serve(async (req) => {
         .from("projetos")
         .insert(batch)
         .select("id");
-      if (error) {
-        state.failed.push({ sm_project_id: 0, reason: `projeto batch falhou: ${error.message}` });
+
+      if (!error) {
+        state.inserted_projects += data?.length ?? 0;
         continue;
       }
-      state.inserted_projects += data?.length ?? 0;
+
+      // Fallback granular: quando o batch falha, identificar exatamente qual
+      // sm_project_id está quebrando sem alterar a regra de negócio.
+      for (const row of batch) {
+        const { data: rowData, error: rowError } = await sb
+          .from("projetos")
+          .insert(row)
+          .select("id")
+          .maybeSingle();
+
+        if (rowError) {
+          state.failed.push({
+            sm_project_id: Number(row.sm_project_id ?? 0),
+            reason: `projeto insert: ${rowError.message}`,
+          });
+          continue;
+        }
+
+        if (rowData?.id) {
+          state.inserted_projects += 1;
+        }
+      }
     }
 
     return new Response(
