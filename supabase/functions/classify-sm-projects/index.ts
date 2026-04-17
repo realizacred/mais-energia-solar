@@ -32,8 +32,10 @@ Deno.serve(async (req) => {
   const FINANCE_RE = /(pagamento|financeiro|cobran[çc]a|recebimento|faturamento|financiamento)/i;
   const ENG_RE     = /(engenharia|projeto|t[eé]cnico|homologa[çc][aã]o|instala[çc][aã]o|p[oó]s[- ]?venda)/i;
   const EQUIP_RE   = /(equipamento|kit|log[íi]stica|entrega|expedi[çc][aã]o|estoque)/i;
-  const COMP_RE    = /(compensa[çc][aã]o|cr[eé]dito|monitoramento|geradora)/i;
-  const COMM_RE    = /(comercial|venda|negocia[çc][aã]o|prospec)/i;
+  // Aceita typo "compesação" (sem N) vindo do SolarMarket
+  const COMP_RE    = /(compe?nsa[çc][aã]o|compesa[çc][aã]o|cr[eé]dito|monitoramento|geradora)/i;
+  const COMM_RE    = /(comercial|venda|negocia[çc][aã]o|prospec|^lead$)/i;
+  const PERDIDO_RE = /(perdido|perda|cancelad)/i;
 
   try {
     const supabase = createClient(
@@ -86,17 +88,48 @@ Deno.serve(async (req) => {
       state.consultorNames.add(c.nome.toLowerCase().trim());
     }
 
-    // 5) Buscar projetos SM elegíveis (têm proposta)
-    //    Critério canônico: existe proposta no SM (sm_proposal_id NOT NULL ou tabela de propostas SM)
-    //    Aqui usamos a coluna sm_proposal_id como proxy. Sem ela, projetos sem proposta são ignorados.
-    let query = supabase
-      .from("solar_market_projects")
-      .select("id, sm_funnel_name, sm_stage_name, customer_phone, sm_proposal_id, customer_name")
-      .eq("tenant_id", tenant_id)
-      .not("sm_proposal_id", "is", null);
+    // 5) Buscar projetos SM elegíveis (regra canônica: existe proposta SM)
+    //    Critério: EXISTS em solar_market_proposals via sm_project_id (bigint)
+    // Paginar (PostgREST limita 1000 por página)
+    const eligibleIdsRaw: any[] = [];
+    const PAGE = 1000;
+    for (let from = 0; ; from += PAGE) {
+      const { data, error } = await supabase
+        .from("solar_market_proposals")
+        .select("sm_project_id")
+        .eq("tenant_id", tenant_id)
+        .not("sm_project_id", "is", null)
+        .range(from, from + PAGE - 1);
+      if (error) throw error;
+      if (!data || data.length === 0) break;
+      eligibleIdsRaw.push(...data);
+      if (data.length < PAGE) break;
+    }
 
-    const { data: smProjects, error: smErr } = await query;
-    if (smErr) throw smErr;
+    const eligibleSmIds = Array.from(
+      new Set((eligibleIdsRaw ?? []).map((r: any) => Number(r.sm_project_id)))
+    );
+
+    if (eligibleSmIds.length === 0) {
+      return new Response(
+        JSON.stringify({ message: "Nenhum projeto SM com proposta", classified: 0, skipped: 0 }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Paginar projetos elegíveis (limite de IN do PostgREST ~ 1000)
+    const smProjects: any[] = [];
+    const CHUNK = 500;
+    for (let i = 0; i < eligibleSmIds.length; i += CHUNK) {
+      const slice = eligibleSmIds.slice(i, i + CHUNK);
+      const { data, error } = await supabase
+        .from("solar_market_projects")
+        .select("id, sm_project_id, sm_funnel_name, sm_stage_name, sm_client_id")
+        .eq("tenant_id", tenant_id)
+        .in("sm_project_id", slice);
+      if (error) throw error;
+      smProjects.push(...(data ?? []));
+    }
 
     if (!smProjects || smProjects.length === 0) {
       return new Response(
@@ -128,24 +161,39 @@ Deno.serve(async (req) => {
       return state.consultorNames.has(lower);
     };
 
-    const classifyKind = (funilNome: string | null, _stageNome: string | null): {
+    const classifyKind = (funilNome: string | null, stageNome: string | null): {
       kind: "comercial" | "engenharia" | "equipamento" | "compensacao" | "verificar_dados";
       funilNomeAlvo: string | null;
+      etapaNomeOverride?: string;
     } => {
       if (!funilNome || !funilNome.trim()) {
         return { kind: "verificar_dados", funilNomeAlvo: null };
       }
 
-      // Vendedores → tratar como Comercial (o funil de vendedor é projeção comercial)
-      if (isFunilConsultor(funilNome)) return { kind: "comercial", funilNomeAlvo: "Comercial" };
+      // Vendedores OU consultor → Comercial (vendedor é responsável, não pipeline)
+      if (isFunilConsultor(funilNome)) {
+        return { kind: "comercial", funilNomeAlvo: "Comercial" };
+      }
 
       // Financeiro fora do pipeline principal
       if (FINANCE_RE.test(funilNome)) return { kind: "verificar_dados", funilNomeAlvo: null };
 
-      if (ENG_RE.test(funilNome))   return { kind: "engenharia",   funilNomeAlvo: funilNome };
-      if (EQUIP_RE.test(funilNome)) return { kind: "equipamento",  funilNomeAlvo: funilNome };
-      if (COMP_RE.test(funilNome))  return { kind: "compensacao",  funilNomeAlvo: funilNome };
-      if (COMM_RE.test(funilNome))  return { kind: "comercial",    funilNomeAlvo: funilNome };
+      // Perdido → Comercial / Perdido (etapa override)
+      if (PERDIDO_RE.test(funilNome) || (stageNome && PERDIDO_RE.test(stageNome))) {
+        return { kind: "comercial", funilNomeAlvo: "Comercial", etapaNomeOverride: "Perdido" };
+      }
+
+      // LEAD literal → Comercial
+      if (/^lead$/i.test(funilNome.trim())) {
+        return { kind: "comercial", funilNomeAlvo: "Comercial" };
+      }
+
+      // Compensação (aceita typo "Compesação") → SEMPRE normaliza para "Compensação"
+      if (COMP_RE.test(funilNome)) return { kind: "compensacao", funilNomeAlvo: "Compensação" };
+
+      if (ENG_RE.test(funilNome))   return { kind: "engenharia",   funilNomeAlvo: "Engenharia" };
+      if (EQUIP_RE.test(funilNome)) return { kind: "equipamento",  funilNomeAlvo: "Equipamento" };
+      if (COMM_RE.test(funilNome))  return { kind: "comercial",    funilNomeAlvo: "Comercial" };
 
       // Sem match claro → fallback
       return { kind: "verificar_dados", funilNomeAlvo: null };
@@ -170,8 +218,9 @@ Deno.serve(async (req) => {
         continue;
       }
 
-      const { kind, funilNomeAlvo } = classifyKind(sm.sm_funnel_name, sm.sm_stage_name);
-      const telefoneValido = await validatePhone(supabase, sm.customer_phone);
+      const { kind, funilNomeAlvo, etapaNomeOverride } = classifyKind(sm.sm_funnel_name, sm.sm_stage_name);
+      // telefone_valido é resolvido via tabela solar_market_clients (não bloqueia migração)
+      const telefoneValido = false;
 
       let funilDestinoId: string | null = null;
       let etapaDestinoId: string | null = null;
@@ -182,18 +231,21 @@ Deno.serve(async (req) => {
         etapaDestinoId = fallbackEtapaId;
         motivo = `Fallback: funil_origem="${sm.sm_funnel_name ?? "—"}" não classificável`;
       } else {
-        // Resolver funil pelo nome alvo
         const funilHit = state.funilCache.get(funilNomeAlvo.toLowerCase().trim());
         if (funilHit) {
           funilDestinoId = funilHit.id;
-          // Resolver etapa pelo nome (case-insensitive)
-          if (sm.sm_stage_name) {
+          // 1) Override de etapa (ex: Perdido)
+          // 2) Etapa por nome do SM (case-insensitive)
+          const stageLookup = etapaNomeOverride ?? sm.sm_stage_name;
+          if (stageLookup) {
             const etapaHit = state.etapaCache.get(
-              `${funilHit.id}:${sm.sm_stage_name.toLowerCase().trim()}`
+              `${funilHit.id}:${stageLookup.toLowerCase().trim()}`
             );
             if (etapaHit) etapaDestinoId = etapaHit.id;
           }
-          motivo = `Auto: funil="${funilNomeAlvo}" etapa="${sm.sm_stage_name ?? "—"}"`;
+          motivo = etapaNomeOverride
+            ? `Auto: funil="${funilNomeAlvo}" etapa_override="${etapaNomeOverride}"`
+            : `Auto: funil="${funilNomeAlvo}" etapa="${sm.sm_stage_name ?? "—"}"`;
         } else {
           // Funil alvo ainda não existe no nativo → fallback
           funilDestinoId = fallbackFunilId;
