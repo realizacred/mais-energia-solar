@@ -28182,6 +28182,16 @@ export type Database = {
             }
             Returns: Json
           }
+        | {
+            Args: {
+              p_funnel_name: string
+              p_phone: string
+              p_stage_name: string
+              p_status: string
+              p_tenant_id: string
+            }
+            Returns: Json
+          }
       sm_ensure_canonical_pipelines: {
         Args: { p_tenant_id: string }
         Returns: Json
@@ -28195,6 +28205,7 @@ export type Database = {
         Returns: Json
       }
       sm_migration_dry_run: { Args: { p_tenant_id: string }; Returns: Json }
+      sm_phone_is_valid: { Args: { p_phone: string }; Returns: boolean }
       sm_resolve_or_create_cliente: {
         Args: { p_dry_run?: boolean; p_raw_payload: Json; p_tenant_id: string }
         Returns: string
