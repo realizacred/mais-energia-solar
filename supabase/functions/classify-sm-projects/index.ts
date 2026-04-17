@@ -90,12 +90,21 @@ Deno.serve(async (req) => {
 
     // 5) Buscar projetos SM elegíveis (regra canônica: existe proposta SM)
     //    Critério: EXISTS em solar_market_proposals via sm_project_id (bigint)
-    const { data: eligibleIdsRaw, error: eligErr } = await supabase
-      .from("solar_market_proposals")
-      .select("sm_project_id")
-      .eq("tenant_id", tenant_id)
-      .not("sm_project_id", "is", null);
-    if (eligErr) throw eligErr;
+    // Paginar (PostgREST limita 1000 por página)
+    const eligibleIdsRaw: any[] = [];
+    const PAGE = 1000;
+    for (let from = 0; ; from += PAGE) {
+      const { data, error } = await supabase
+        .from("solar_market_proposals")
+        .select("sm_project_id")
+        .eq("tenant_id", tenant_id)
+        .not("sm_project_id", "is", null)
+        .range(from, from + PAGE - 1);
+      if (error) throw error;
+      if (!data || data.length === 0) break;
+      eligibleIdsRaw.push(...data);
+      if (data.length < PAGE) break;
+    }
 
     const eligibleSmIds = Array.from(
       new Set((eligibleIdsRaw ?? []).map((r: any) => Number(r.sm_project_id)))
