@@ -49,6 +49,7 @@ import { SmProposalDetailDialog } from "@/components/admin/solarmarket/SmProposa
 import { SmMigrationToggle } from "@/components/admin/solarmarket/SmMigrationToggle";
 import { SmOperationStatusPanel } from "@/components/admin/solarmarket/SmOperationStatusPanel";
 import { SmMigrationDrawer } from "@/components/admin/solarmarket/SmMigrationDrawer";
+import SmMigrationPanelV3 from "@/components/admin/solarmarket/migration-v3/SmMigrationPanelV3";
 import { Checkbox } from "@/components/ui/checkbox";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -526,7 +527,7 @@ function SyncLogsTable({ logs }: { logs: Array<{ id: string; sync_type: string; 
 // ─── Main Page ──────────────────────────────────────────
 
 export default function SolarMarketPage() {
-  const [tab, setTab] = useState("clientes");
+  const [tab, setTab] = useState("migracao");
   const [search, setSearch] = useState("");
   const [filterCity, setFilterCity] = useState("");
   const [filterResponsible, setFilterResponsible] = useState("");
@@ -1179,6 +1180,10 @@ export default function SolarMarketPage() {
         <div className="space-y-3">
           {/* Primary tabs row */}
           <TabsList className="overflow-x-auto flex-nowrap h-auto gap-0.5 p-1 w-full justify-start">
+            <TabsTrigger value="migracao" className="shrink-0 whitespace-nowrap text-xs px-3 h-8 gap-1.5">
+              <ArrowRightLeft className="h-3.5 w-3.5" />
+              Migração
+            </TabsTrigger>
             <TabsTrigger value="clientes" className="shrink-0 whitespace-nowrap text-xs px-3 h-8 gap-1.5">
               <Users className="h-3.5 w-3.5" />
               Clientes
@@ -1255,6 +1260,11 @@ export default function SolarMarketPage() {
             )}
           </div>
         </div>
+
+        {/* ─── Migração Tab (v3) ───────────────────────────── */}
+        <TabsContent value="migracao" className="mt-3 space-y-3">
+          <SmMigrationPanelV3 />
+        </TabsContent>
 
         {/* ─── Clientes Tab ───────────────────────────────── */}
         <TabsContent value="clientes" className="mt-3 space-y-3">
