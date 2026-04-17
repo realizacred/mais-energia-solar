@@ -2,7 +2,7 @@
  * BlocoExecucao — Botão único de migração + stepper visual + barra de progresso.
  * O sistema executa classify → create → apply em sequência.
  */
-import { Rocket, Loader2, RotateCcw, CheckCircle2, XCircle, Circle, Ban } from "lucide-react";
+import { Rocket, Loader2, RotateCcw, CheckCircle2, XCircle, Circle, Ban, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { SectionCard } from "@/components/ui-kit";
