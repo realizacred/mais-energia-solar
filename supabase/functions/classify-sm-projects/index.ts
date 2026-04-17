@@ -202,6 +202,7 @@ Deno.serve(async (req) => {
     let classified = 0;
     let skipped = 0;
     let overridden_preserved = 0;
+    const toUpsertBatch: any[] = [];
 
     for (const sm of smProjects) {
       const prev = existingMap.get(sm.id);
@@ -233,19 +234,31 @@ Deno.serve(async (req) => {
       } else {
         const funilHit = state.funilCache.get(funilNomeAlvo.toLowerCase().trim());
         if (funilHit) {
-          funilDestinoId = funilHit.id;
           // 1) Override de etapa (ex: Perdido)
           // 2) Etapa por nome do SM (case-insensitive)
           const stageLookup = etapaNomeOverride ?? sm.sm_stage_name;
+          let etapaHitId: string | null = null;
           if (stageLookup) {
             const etapaHit = state.etapaCache.get(
               `${funilHit.id}:${stageLookup.toLowerCase().trim()}`
             );
-            if (etapaHit) etapaDestinoId = etapaHit.id;
+            if (etapaHit) etapaHitId = etapaHit.id;
           }
-          motivo = etapaNomeOverride
-            ? `Auto: funil="${funilNomeAlvo}" etapa_override="${etapaNomeOverride}"`
-            : `Auto: funil="${funilNomeAlvo}" etapa="${sm.sm_stage_name ?? "—"}"`;
+
+          // Regra (decisão usuário): se origem é funil de vendedor/consultor e
+          // não há match confiável de etapa, NÃO inferir default → Verificar Dados
+          const origemEhVendedor = sm.sm_funnel_name && isFunilConsultor(sm.sm_funnel_name);
+          if (origemEhVendedor && !etapaHitId && !etapaNomeOverride) {
+            funilDestinoId = fallbackFunilId;
+            etapaDestinoId = fallbackEtapaId;
+            motivo = `Fallback: origem="vendedor (${sm.sm_funnel_name})" sem etapa confiável`;
+          } else {
+            funilDestinoId = funilHit.id;
+            etapaDestinoId = etapaHitId;
+            motivo = etapaNomeOverride
+              ? `Auto: funil="${funilNomeAlvo}" etapa_override="${etapaNomeOverride}"`
+              : `Auto: funil="${funilNomeAlvo}" etapa="${sm.sm_stage_name ?? "—"}"`;
+          }
         } else {
           // Funil alvo ainda não existe no nativo → fallback
           funilDestinoId = fallbackFunilId;
@@ -254,8 +267,7 @@ Deno.serve(async (req) => {
         }
       }
 
-      // Upsert (preserva override se reclassify_all=true E há override → não sobrescreve)
-      const payload = {
+      toUpsertBatch.push({
         tenant_id,
         sm_project_id: sm.id,
         pipeline_kind: kind,
@@ -263,27 +275,21 @@ Deno.serve(async (req) => {
         etapa_destino_id: etapaDestinoId,
         telefone_valido: telefoneValido,
         motivo,
-      };
+      });
+    }
 
-      if (prev) {
-        const { error: upErr } = await supabase
-          .from("sm_project_classification")
-          .update(payload)
-          .eq("sm_project_id", sm.id);
-        if (upErr) {
-          console.error(`[classify] update error sm=${sm.id}:`, upErr.message);
-          continue;
-        }
-      } else {
-        const { error: insErr } = await supabase
-          .from("sm_project_classification")
-          .insert(payload);
-        if (insErr) {
-          console.error(`[classify] insert error sm=${sm.id}:`, insErr.message);
-          continue;
-        }
+    // Upsert em batch (chunks de 500) — ON CONFLICT (tenant_id, sm_project_id)
+    const UPSERT_CHUNK = 500;
+    for (let i = 0; i < toUpsertBatch.length; i += UPSERT_CHUNK) {
+      const slice = toUpsertBatch.slice(i, i + UPSERT_CHUNK);
+      const { error } = await supabase
+        .from("sm_project_classification")
+        .upsert(slice, { onConflict: "sm_project_id" });
+      if (error) {
+        console.error(`[classify] batch upsert error chunk=${i}:`, error.message);
+        throw error;
       }
-      classified++;
+      classified += slice.length;
     }
 
     return new Response(
