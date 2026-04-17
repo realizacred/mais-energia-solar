@@ -987,51 +987,7 @@ export default function SolarMarketPage() {
         </div>
       </div>
 
-      {/* Migrate All Dialog */}
-      <AlertDialog open={migrateAllOpen} onOpenChange={setMigrateAllOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle className="flex items-center gap-2">
-              <Upload className="h-5 w-5 text-primary" />
-              Migrar tudo para o sistema canônico
-            </AlertDialogTitle>
-            <AlertDialogDescription asChild>
-              <div className="space-y-3">
-                <div className="rounded-md border border-primary/20 bg-primary/5 p-3 text-sm text-foreground">
-                  <strong>PASSO 0:</strong> Funis, etapas e consultores serão sincronizados automaticamente antes da migração.
-                </div>
-                <p className="text-sm text-foreground font-medium">Serão migrados:</p>
-                <ul className="text-sm text-muted-foreground list-disc pl-5 space-y-1">
-                  <li><strong>{ssotPendingProposals}</strong> propostas pendentes</li>
-                  <li><strong>{pendingProjectsNoProposal.length}</strong> projetos sem proposta pendentes</li>
-                </ul>
-                {ssotMigratedProposals > 0 && (
-                  <p className="text-xs text-muted-foreground">
-                    Já migrados anteriormente: <strong>{ssotMigratedProposals}</strong> (serão ignorados)
-                  </p>
-                )}
-              </div>
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <Button
-              onClick={async () => {
-                setMigrateAllOpen(false);
-                // PASSO 0: sync pipelines first
-                try {
-                  await runSyncPipelines();
-                } catch {
-                  // Best-effort — continue with migration
-                }
-                openMigrationDrawer(pendingProposals);
-              }}
-            >
-              Confirmar Migração
-            </Button>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      {/* (Removido: dialog "Migrar tudo" legado — fluxo unificado em SmMigrationPanelV3) */}
 
       {/* Warning: no active funis */}
       {hasActiveFunis === false && !syncPipelinesResult && (
