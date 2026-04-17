@@ -332,6 +332,7 @@ Deno.serve(async (req) => {
       // já criamos via outra iteração?
       if (smcEffective != null && existingClients.has(smcEffective)) {
         projectClientId.set(smpId, existingClients.get(smcEffective)!);
+        state.reused_clients++;
         continue;
       }
 
