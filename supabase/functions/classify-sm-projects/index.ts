@@ -202,6 +202,7 @@ Deno.serve(async (req) => {
     let classified = 0;
     let skipped = 0;
     let overridden_preserved = 0;
+    const toUpsertBatch: any[] = [];
 
     for (const sm of smProjects) {
       const prev = existingMap.get(sm.id);
