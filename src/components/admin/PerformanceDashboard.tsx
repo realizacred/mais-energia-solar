@@ -398,7 +398,7 @@ export default function PerformanceDashboard() {
           />
           <KpiCard
             icon={<TrendingUp className="h-5 w-5 text-warning" />}
-            label="Pipeline total"
+            label="Funil total"
             value={formatCompact(kpis.totalPipeline)}
             sub={`${kpis.activeDeals} deals ativos${kpis.wonValue > 0 ? " · " + formatCompact(kpis.wonValue) + " ganho" : ""}`}
             colorBorder="border-warning/40"

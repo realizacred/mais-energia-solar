@@ -58,8 +58,8 @@ const MODULE_CATEGORIES: ModuleCategory[] = [
     label: "Comercial",
     icon: <ClipboardList className="h-4 w-4" />,
     modules: [
-      { key: "leads", label: "Leads", description: "Gestão de leads e pipeline" },
-      { key: "pipeline", label: "Pipeline", description: "Kanban de oportunidades" },
+      { key: "leads", label: "Leads", description: "Gestão de leads e funil" },
+      { key: "pipeline", label: "Funil", description: "Kanban de oportunidades" },
       { key: "followup", label: "Follow-up", description: "Acompanhamento de leads" },
       { key: "propostas", label: "Propostas", description: "Propostas comerciais" },
       { key: "projetos", label: "Projetos", description: "Gestão de projetos" },

@@ -411,7 +411,7 @@ export function PipelineAutomations() {
               <TableRow className="bg-muted/50 hover:bg-muted/50">
                 <TableHead className="font-semibold text-foreground w-[50px]">Status</TableHead>
                 <TableHead className="font-semibold text-foreground">Nome</TableHead>
-                <TableHead className="font-semibold text-foreground">Pipeline</TableHead>
+                <TableHead className="font-semibold text-foreground">Funil</TableHead>
                 <TableHead className="font-semibold text-foreground">Gatilho</TableHead>
                 <TableHead className="font-semibold text-foreground">Destino</TableHead>
                 <TableHead className="font-semibold text-foreground text-right">Execuções</TableHead>
@@ -530,12 +530,12 @@ export function PipelineAutomations() {
               />
             </div>
 
-            {/* Pipeline */}
+            {/* Funil */}
             <div className="space-y-2">
-              <Label>Pipeline</Label>
+              <Label>Funil</Label>
               <Select value={formPipelineId} onValueChange={setFormPipelineId}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Selecione o pipeline" />
+                  <SelectValue placeholder="Selecione o funil" />
                 </SelectTrigger>
                 <SelectContent>
                   {(pipelines || []).map((p) => (
