@@ -12,12 +12,11 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
-import { Sun, CheckCircle, XCircle, Loader2, Clock, ArrowRight, AlertTriangle, FileText, User, Briefcase, FolderKanban, Copy, StopCircle, PlayCircle } from "lucide-react";
+import { Sun, CheckCircle, XCircle, Loader2, Clock, ArrowRight, AlertTriangle, FileText, User, Briefcase, FolderKanban, Copy, StopCircle } from "lucide-react";
 import { toast } from "sonner";
 import type { SmProposal } from "@/hooks/useSolarMarket";
 import { cn } from "@/lib/utils";
 import { formatDateTime, formatDate, formatTime, formatDateShort } from "@/lib/dateUtils";
-import { useActiveSmOperation } from "@/hooks/useSmOperationRuns";
 import { SmBentoKpis } from "@/components/admin/solarmarket/SmBentoKpis";
 import { SmVerticalStepper } from "@/components/admin/solarmarket/SmVerticalStepper";
 import { SmTerminalLog } from "@/components/admin/solarmarket/SmTerminalLog";
@@ -448,38 +447,16 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange, onRunningChan
   const [cancelling, setCancelling] = useState(false);
   const [cancelConfirmOpen, setCancelConfirmOpen] = useState(false);
 
-  // Cleanup: cancel auto-resume on unmount to prevent background loops
-  // Also notify parent that running stopped (prevents stuck "Migrando..." in parent)
   useEffect(() => {
     return () => {
       cancelRef.current = true;
-      if (backgroundMonitorIntervalRef.current) clearInterval(backgroundMonitorIntervalRef.current);
-      // Ensure parent knows migration is no longer running from this drawer instance
       onRunningChange?.(false);
     };
   }, [onRunningChange]);
 
-  // Track when tab was last hidden for stall detection
   const lastHiddenAtRef = useRef<number | null>(null);
   const progressIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  // Auto-resume state
-  const [autoResumeRunning, setAutoResumeRunning] = useState(false);
-  const [autoResumeStats, setAutoResumeStats] = useState<{
-    migrated: number;
-    errors: number;
-    startTime: number;
-    round: number;
-    initialPending: number;
-  } | null>(null);
-  const [autoResumeConfirmOpen, setAutoResumeConfirmOpen] = useState(false);
-  const [autoResumeConfirmText, setAutoResumeConfirmText] = useState("");
-  const autoResumeErrorIdsRef = useRef<Set<number>>(new Set());
-  const backgroundMonitorIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const autoResumeLastProgressAtRef = useRef<number>(0);
-  const autoResumeLastMigratedRef = useRef<number>(0);
-  const manualStopRequestedRef = useRef(false);
 
-  // Notify parent of running state changes
   useEffect(() => {
     onRunningChange?.(running);
   }, [running, onRunningChange]);
@@ -491,11 +468,7 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange, onRunningChan
   const { data: pipelines = [] } = usePipelines(isAuthReady);
   const { data: pipelineStages = [] } = usePipelineStages(selectedPipelineId || null, isAuthReady);
   const { data: pendingStats, refetch: refetchPending } = usePendingMigrationCount();
-  const { data: activeSmRun } = useActiveSmOperation();
   const qc = useQueryClient();
-  const isServerMigrationRunning = activeSmRun?.operation_type === "migrate_to_native"
-    && (activeSmRun as any)?._stale !== true
-    && ["running", "queued"].includes(activeSmRun?.status ?? "");
 
   // ─── Visibility change: refetch all data when tab regains focus ──
   useEffect(() => {
@@ -547,30 +520,6 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange, onRunningChan
     };
   }, [open, refetchPending]);
 
-  useEffect(() => {
-    if (!autoResumeRunning) {
-      if (backgroundMonitorIntervalRef.current) {
-        clearInterval(backgroundMonitorIntervalRef.current);
-        backgroundMonitorIntervalRef.current = null;
-      }
-      return;
-    }
-
-    if (backgroundMonitorIntervalRef.current) clearInterval(backgroundMonitorIntervalRef.current);
-    backgroundMonitorIntervalRef.current = setInterval(() => {
-      refetchPending();
-      qc.invalidateQueries({ queryKey: ["sm-proposals"] });
-      qc.invalidateQueries({ queryKey: ["canonical-check"] });
-    }, 4000);
-
-    return () => {
-      if (backgroundMonitorIntervalRef.current) {
-        clearInterval(backgroundMonitorIntervalRef.current);
-        backgroundMonitorIntervalRef.current = null;
-      }
-    };
-  }, [autoResumeRunning, qc, refetchPending]);
-
   const addLog = useCallback((msg: string) => {
     setLogs(prev => [...prev, `[${formatTime(new Date())}] ${msg}`]);
   }, []);
@@ -578,110 +527,6 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange, onRunningChan
   const updateStep = useCallback((name: StepName, update: Partial<MigrationStep>) => {
     setSteps(prev => prev.map(s => s.name === name ? { ...s, ...update } : s));
   }, []);
-
-  // Auto-resume removido: a migração só inicia quando o usuário clica explicitamente em "Migrar".
-  // O polling de status (heartbeat/refetchPending) permanece ativo nos outros effects acima.
-
-  useEffect(() => {
-    if (!autoResumeRunning || !autoResumeStats || !pendingStats) return;
-
-    const now = Date.now();
-    const migrated = pendingStats.migrated;
-    const errors = pendingStats.errors;
-    const pending = pendingStats.pending;
-
-    if (migrated > autoResumeLastMigratedRef.current) {
-      autoResumeLastMigratedRef.current = migrated;
-      autoResumeLastProgressAtRef.current = now;
-    }
-
-    setAutoResumeStats((prev) => {
-      if (!prev) return prev;
-      if (prev.migrated === migrated && prev.errors === errors) return prev;
-      return { ...prev, migrated, errors };
-    });
-
-    const elapsed = (now - autoResumeStats.startTime) / 1000;
-    const rate = migrated / Math.max(elapsed, 1);
-    const eta = rate > 0 ? Math.round(pending / rate) : 0;
-
-    for (const stepName of ["cliente", "deal", "projeto", "proposta", "versao"] as StepName[]) {
-      updateStep(stepName, {
-        state: "running",
-        detail: `🖥️ Servidor processando • ${migrated}/${autoResumeStats.initialPending} migradas • ETA: ${eta}s`,
-      });
-    }
-
-    setSmoothProgress(
-      autoResumeStats.initialPending > 0
-        ? Math.min(95, Math.round((migrated / autoResumeStats.initialPending) * 100))
-        : 0,
-    );
-
-    if (cancelRef.current) {
-      if (backgroundMonitorIntervalRef.current) clearInterval(backgroundMonitorIntervalRef.current);
-      setAutoResumeRunning(false);
-      setRunning(false);
-      setCancelling(false);
-      cancelRef.current = false;
-      addLog("Migração pausada — o progresso salvo será retomado na próxima execução manual.");
-      updateStep("done", {
-        state: "error",
-        detail: "Migração pausada. Execute novamente para continuar de onde parou.",
-      });
-      toast.warning("Migração pausada. Execute novamente para continuar de onde parou.");
-      return;
-    }
-
-    if (pending === 0) {
-      if (backgroundMonitorIntervalRef.current) clearInterval(backgroundMonitorIntervalRef.current);
-      setAutoResumeRunning(false);
-      setRunning(false);
-      setCancelling(false);
-      cancelRef.current = false;
-      setSmoothProgress(100);
-      for (const stepName of ["cliente", "deal", "projeto", "proposta", "versao"] as StepName[]) {
-        updateStep(stepName, {
-          state: "done",
-          detail: `${migrated} proposta(s) migradas em segundo plano`,
-        });
-      }
-      updateStep("done", {
-        state: "done",
-        detail: `${migrated} migrados, ${errors} erros`,
-      });
-      qc.invalidateQueries({ queryKey: ["sm-proposals"] });
-      qc.invalidateQueries({ queryKey: ["sm-migration-pending-count"] });
-      qc.invalidateQueries({ queryKey: ["canonical-check"] });
-      qc.invalidateQueries({ queryKey: ["sm-sync-progress"] });
-      qc.invalidateQueries({ queryKey: ["projetos"] });
-      qc.invalidateQueries({ queryKey: ["deals"] });
-      qc.invalidateQueries({ queryKey: ["clientes"] });
-      toast.success(`Migração completa! ${migrated} propostas migradas.`);
-      return;
-    }
-
-    if (autoResumeLastProgressAtRef.current && now - autoResumeLastProgressAtRef.current > 180_000 && !isServerMigrationRunning) {
-      if (backgroundMonitorIntervalRef.current) clearInterval(backgroundMonitorIntervalRef.current);
-      setAutoResumeRunning(false);
-      setRunning(false);
-      setCancelling(false);
-      cancelRef.current = false;
-      const msg = "Sem avanço recente no monitor. A fila continua agendada no servidor e pode ser retomada automaticamente.";
-      // Mark all intermediate steps as done before finalizing
-      for (const s of ["cliente", "deal", "projeto", "proposta", "versao"] as StepName[]) {
-        setSteps(prev => prev.map(st =>
-          st.name === s && st.state === "running"
-            ? { ...st, state: "done", detail: "Concluído" }
-            : st
-        ));
-      }
-      updateStep("done", { state: "done", detail: msg });
-      qc.invalidateQueries({ queryKey: ["sm-proposals"] });
-      qc.invalidateQueries({ queryKey: ["sm-migration-pending-count"] });
-      toast.info(msg);
-    }
-  }, [autoResumeRunning, autoResumeStats, pendingStats, addLog, qc, updateStep, isServerMigrationRunning]);
 
   const proposal = proposals[0]; // Single or first for display
   const isBulk = proposals.length > 1;
@@ -712,7 +557,6 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange, onRunningChan
     setLogs([]);
     setConfirmText("");
     setSmoothProgress(0);
-    autoResumeErrorIdsRef.current = new Set();
     if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
   }, []);
 
@@ -1090,152 +934,9 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange, onRunningChan
     runMigration(false);
   };
 
-  // ─── Auto-resume: migrate all pending proposals in loop ──
-  const runAutoResume = useCallback(async () => {
-    if (!activePipelineId) {
-      setError("Nenhum pipeline encontrado.");
-      return;
-    }
-
-    // Save migration settings for server-side auto-resume (pg_cron)
-    resetState();
-    setBatchProgress(null);
-    setAutoResumeRunning(true);
-    setRunning(true);
-    setCancelling(false);
-    cancelRef.current = false;
-    manualStopRequestedRef.current = false;
-
-    const MAX_ROUNDS = 200;
-    const MAX_STAGNANT_ROUNDS = 5;
-    const initialPending = pendingStats?.pending ?? proposals.length;
-    const initialMigrated = pendingStats?.migrated ?? 0;
-    const initialErrors = pendingStats?.errors ?? 0;
-
-    let currentStats = {
-      migrated: initialMigrated,
-      errors: initialErrors,
-      startTime: Date.now(),
-      round: 1,
-      initialPending,
-    };
-
-    setAutoResumeStats(currentStats);
-    autoResumeLastProgressAtRef.current = Date.now();
-    autoResumeLastMigratedRef.current = initialMigrated;
-
-    updateStep("fetch", {
-      state: "done",
-      detail: `${initialPending} proposta(s) pendente(s) identificada(s)`,
-    });
-    for (const stepName of ["cliente", "deal", "projeto", "proposta", "versao"] as StepName[]) {
-      updateStep(stepName, {
-        state: "running",
-        detail: "Preparando processamento em lotes...",
-      });
-    }
-    addLog(`Iniciando migração em lote para ${initialPending} pendentes...`);
-
-    try {
-      const { data: { session: currentSession } } = await supabase.auth.getSession();
-      if (!currentSession?.access_token) throw new Error("Sessão expirada. Faça login novamente.");
-
-      const expiresAt = currentSession.expires_at ?? 0;
-      const now = Math.floor(Date.now() / 1000);
-      let session = currentSession;
-      if (expiresAt - now < 300) {
-        const { data: refreshed } = await supabase.auth.refreshSession();
-        if (!refreshed.session?.access_token) throw new Error("Não foi possível renovar a sessão.");
-        session = refreshed.session;
-      }
-
-      const projectUrl = import.meta.env.VITE_SUPABASE_URL;
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 120_000);
-
-      try {
-        const response = await fetch(`${projectUrl}/functions/v1/migrate-sm-proposals-v2`, {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${session.access_token}`,
-            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            action: "start_background_migration",
-            dry_run: false,
-            pipeline_id: activePipelineId,
-            stage_id: activeStageId || null,
-            auto_resolve_owner: true,
-            batch_size: 25,
-            include_projects_without_proposal: false,
-            ...(ownerId && ownerId !== "__auto__" ? { owner_id: ownerId } : {}),
-          }),
-          signal: controller.signal,
-        });
-
-        const data = await response.json().catch(() => ({} as Record<string, any>));
-        if (!response.ok) {
-          throw new Error(getBlockedMessage(data as MigrationBlockedPayload, `HTTP ${response.status}`));
-        }
-
-        if (data.completed) {
-          manualStopRequestedRef.current = false;
-          setAutoResumeRunning(false);
-          setRunning(false);
-          setSmoothProgress(100);
-          updateStep("done", { state: "done", detail: data.message || "Nenhuma proposta pendente para migrar." });
-          toast.success(data.message || "Nenhuma proposta pendente para migrar.");
-          return;
-        }
-
-        addLog(data.message || "Migração enviada ao servidor.");
-        for (const stepName of ["cliente", "deal", "projeto", "proposta", "versao"] as StepName[]) {
-          updateStep(stepName, {
-            state: "running",
-            detail: `🖥️ Servidor processando • ${initialMigrated}/${Math.max(initialPending, 1)} migradas`,
-          });
-        }
-        qc.invalidateQueries({ queryKey: ["sm-proposals"] });
-        qc.invalidateQueries({ queryKey: ["sm-migration-pending-count"] });
-        qc.invalidateQueries({ queryKey: ["sm-sync-progress"] });
-        toast.success(data.message || "Migração iniciada no servidor.");
-      } finally {
-        clearTimeout(timeoutId);
-      }
-    } catch (err: any) {
-      const msg = err?.name === "AbortError"
-        ? "Timeout ao solicitar a migração em background."
-        : err?.message ?? "Erro desconhecido";
-      setAutoResumeRunning(false);
-      setRunning(false);
-      setCancelling(false);
-      cancelRef.current = false;
-      setError(msg);
-      addLog(`ERRO FATAL: ${msg}`);
-      for (const stepName of ["cliente", "deal", "projeto", "proposta", "versao", "done"] as StepName[]) {
-        updateStep(stepName, { state: "error", detail: msg });
-      }
-    }
-  }, [activePipelineId, activeStageId, ownerId, addLog, pendingStats?.pending, pendingStats?.migrated, pendingStats?.errors, proposals.length, resetState, updateStep, qc]);
-
-  const handleAutoResumeConfirm = () => {
-    setAutoResumeConfirmOpen(false);
-    setAutoResumeConfirmText("");
-    toast.error("Migração em background foi descontinuada. Use 'Migrar selecionadas' (batches manuais).");
-  };
-
   // Progress calculation
-  const completedSteps = steps.filter(s => s.state === "done" || s.state === "error" || s.state === "skipped").length;
-  const autoResumeTotal = autoResumeStats?.initialPending ?? 0;
-  const autoResumeTotalRounds = Math.max(Math.ceil(Math.max(autoResumeTotal, 1) / 10), 1);
-  const autoResumeCurrentRound = Math.min(Math.max(autoResumeStats?.round ?? 1, 1), autoResumeTotalRounds);
   const progressPercent = running
-    ? autoResumeRunning && autoResumeStats
-      ? autoResumeTotal > 0
-        ? Math.min(95, Math.round((autoResumeStats.migrated / autoResumeTotal) * 100))
-        : smoothProgress
-      : (batchProgress && isBulk ? Math.min(95, Math.round((batchProgress.current / batchProgress.total) * 100)) : smoothProgress)
+    ? (batchProgress && isBulk ? Math.min(95, Math.round((batchProgress.current / batchProgress.total) * 100)) : smoothProgress)
     : (result ? 100 : 0);
 
   if (!proposal) return null;
@@ -1243,11 +944,6 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange, onRunningChan
   return (
     <>
         <Drawer open={open} onOpenChange={(v) => {
-        if (!v && running && autoResumeRunning) {
-          toast.info("Migração em andamento no servidor. Você pode fechar esta tela com segurança.");
-          onOpenChange(v);
-          return;
-        }
         if (!v && running) {
           toast.warning("Migração em andamento. Cancele a migração antes de fechar.");
           return;
@@ -1304,46 +1000,6 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange, onRunningChan
                   progress: pendingStats.total > 0 ? Math.round((pendingStats.migrated / pendingStats.total) * 100) : 0,
                 },
               ]} />
-            )}
-
-            {/* Auto-resume progress */}
-            {autoResumeRunning && autoResumeStats && (
-              <div className="rounded-lg border border-primary/20 bg-primary/5 p-3 space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-semibold text-foreground flex items-center gap-1.5">
-                    <Loader2 className="h-4 w-4 animate-spin text-primary" />
-                    Migração em lote em andamento
-                  </span>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="h-7 text-xs border-destructive text-destructive"
-                    disabled={cancelling}
-                    onClick={() => setCancelConfirmOpen(true)}
-                  >
-                    {cancelling ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <StopCircle className="h-3 w-3 mr-1" />}
-                    {cancelling ? "Cancelando..." : "Parar"}
-                  </Button>
-                </div>
-                <div className="rounded-md border border-warning/20 bg-warning/5 px-3 py-2 flex items-start gap-2">
-                  <AlertTriangle className="h-4 w-4 text-warning shrink-0 mt-0.5" />
-                  <div className="text-xs text-muted-foreground">
-                    <p className="font-medium text-foreground">Migração no servidor</p>
-                    <p>Você pode fechar esta tela. O processamento continua em background e o painel atualizará quando houver progresso.</p>
-                  </div>
-                </div>
-                <Progress value={smoothProgress} className="h-2" />
-                <div className="flex justify-between text-[10px] text-muted-foreground">
-                  <span>Rodada {autoResumeCurrentRound}/{autoResumeTotalRounds} • {autoResumeStats.migrated} migrados, {autoResumeStats.errors} erros</span>
-                  <span>{(() => {
-                    const elapsed = (Date.now() - autoResumeStats.startTime) / 1000;
-                    const rate = autoResumeStats.migrated / Math.max(elapsed, 1);
-                    const remaining = Math.max(0, autoResumeStats.initialPending - autoResumeStats.migrated);
-                    const eta = rate > 0 ? Math.round(remaining / rate) : 0;
-                    return eta > 60 ? `~${Math.round(eta / 60)}min restantes` : `~${eta}s restantes`;
-                  })()}</span>
-                </div>
-              </div>
             )}
 
             {/* Proposal Summary */}
@@ -1509,18 +1165,7 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange, onRunningChan
                 <Progress value={progressPercent} className="h-2" />
 
                 {/* Batch counter */}
-                {running && autoResumeRunning && autoResumeStats && (
-                  <div className="flex items-center justify-between text-xs text-muted-foreground">
-                    <span>
-                      Rodada <span className="font-semibold text-foreground">{autoResumeCurrentRound}</span> de{" "}
-                      <span className="font-semibold text-foreground">{autoResumeTotalRounds}</span>
-                    </span>
-                    <span>
-                      <span className="font-semibold text-foreground">{autoResumeStats.migrated}</span>/{autoResumeStats.initialPending} propostas
-                    </span>
-                  </div>
-                )}
-                {running && !autoResumeRunning && batchProgress && isBulk && (
+                {running && batchProgress && isBulk && (
                   <div className="flex items-center justify-between text-xs text-muted-foreground">
                     <span>
                       Lote <span className="font-semibold text-foreground">{batchProgress.current}</span> de{" "}
@@ -1629,7 +1274,7 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange, onRunningChan
                 onClick={() => runMigration(true)}
                 disabled={running}
               >
-                {running && !autoResumeRunning ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : null}
+                {running ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : null}
                 Simular (Dry-run)
               </Button>
               <Button
@@ -1701,70 +1346,11 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange, onRunningChan
             <AlertDialogCancel>Voltar</AlertDialogCancel>
             <AlertDialogAction
               className="border-destructive bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              onClick={async () => {
+              onClick={() => {
                 setCancelConfirmOpen(false);
-                // Always set cancelRef immediately so monitoring loops detect it
                 cancelRef.current = true;
-                manualStopRequestedRef.current = true;
                 setCancelling(true);
                 addLog("Cancelamento solicitado...");
-
-                if (autoResumeRunning) {
-                  try {
-                    const { data: { session: currentSession } } = await supabase.auth.getSession();
-                    if (!currentSession?.access_token) throw new Error("Sessão expirada. Faça login novamente.");
-
-                    const projectUrl = import.meta.env.VITE_SUPABASE_URL;
-                    const response = await fetch(`${projectUrl}/functions/v1/migrate-sm-proposals-v2`, {
-                      method: "POST",
-                      headers: {
-                        Authorization: `Bearer ${currentSession.access_token}`,
-                        apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-                        "Content-Type": "application/json",
-                      },
-                      body: JSON.stringify({ action: "pause_background_migration", dry_run: false }),
-                    });
-
-                    const data = await response.json().catch(() => ({} as Record<string, any>));
-                    if (!response.ok) throw new Error(getBlockedMessage(data as MigrationBlockedPayload, `HTTP ${response.status}`));
-
-                    // Force-stop all local state immediately
-                    if (backgroundMonitorIntervalRef.current) {
-                      clearInterval(backgroundMonitorIntervalRef.current);
-                      backgroundMonitorIntervalRef.current = null;
-                    }
-                    setAutoResumeRunning(false);
-                    setRunning(false);
-                    setSmoothProgress(0);
-                    addLog(data.message || "Migração pausada e operações canceladas.");
-                    updateStep("done", {
-                      state: "error",
-                      detail: "Migração cancelada com sucesso.",
-                    });
-                    qc.invalidateQueries({ queryKey: ["sm-migration-pending-count"] });
-                    qc.invalidateQueries({ queryKey: ["sm-proposals"] });
-                    qc.invalidateQueries({ queryKey: ["sm-sync-progress"] });
-                    qc.invalidateQueries({ queryKey: ["sm-operation-runs"] });
-                    toast.warning(data.message || "Migração cancelada.");
-                  } catch (err: any) {
-                    // Even on error, force-stop local state
-                    if (backgroundMonitorIntervalRef.current) {
-                      clearInterval(backgroundMonitorIntervalRef.current);
-                      backgroundMonitorIntervalRef.current = null;
-                    }
-                    setAutoResumeRunning(false);
-                    setRunning(false);
-                    setSmoothProgress(0);
-                    const msg = err?.message ?? "Erro ao pausar migração.";
-                    setError(msg);
-                    addLog(`ERRO: ${msg}`);
-                    toast.error(msg);
-                  } finally {
-                    setCancelling(false);
-                  }
-                  return;
-                }
-
                 addLog("Aguardando lote atual terminar...");
               }}
             >
@@ -1774,47 +1360,6 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange, onRunningChan
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Auto-resume confirmation */}
-      <Dialog open={autoResumeConfirmOpen} onOpenChange={setAutoResumeConfirmOpen}>
-        <DialogContent className="w-[90vw] max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <PlayCircle className="h-5 w-5 text-primary" />
-              Migrar todos os pendentes
-            </DialogTitle>
-          </DialogHeader>
-          <div className="space-y-3">
-            <p className="text-sm text-muted-foreground">
-              Isto vai migrar automaticamente todas as <span className="font-bold text-foreground">{pendingStats?.pending || 0}</span> propostas
-              pendentes em lotes de 25, criando clientes, deals, projetos e propostas no sistema canônico.
-            </p>
-            <p className="text-sm text-muted-foreground">
-              A migração pode ser pausada a qualquer momento. Os registros já processados serão mantidos.
-            </p>
-            <p className="text-sm">
-              Digite <span className="font-bold text-destructive">MIGRAR TODOS</span> para confirmar:
-            </p>
-            <Input
-              value={autoResumeConfirmText}
-              onChange={e => setAutoResumeConfirmText(e.target.value)}
-              placeholder="MIGRAR TODOS"
-              className="font-mono"
-            />
-          </div>
-          <DialogFooter>
-            <Button variant="ghost" onClick={() => { setAutoResumeConfirmOpen(false); setAutoResumeConfirmText(""); }}>
-              Cancelar
-            </Button>
-            <Button
-              variant="default"
-              disabled={autoResumeConfirmText !== "MIGRAR TODOS"}
-              onClick={handleAutoResumeConfirm}
-            >
-              Iniciar migração
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </>
   );
 }
