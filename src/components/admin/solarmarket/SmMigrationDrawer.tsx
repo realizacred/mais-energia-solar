@@ -1002,46 +1002,6 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange, onRunningChan
               ]} />
             )}
 
-            {/* Auto-resume progress */}
-            {autoResumeRunning && autoResumeStats && (
-              <div className="rounded-lg border border-primary/20 bg-primary/5 p-3 space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-semibold text-foreground flex items-center gap-1.5">
-                    <Loader2 className="h-4 w-4 animate-spin text-primary" />
-                    Migração em lote em andamento
-                  </span>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="h-7 text-xs border-destructive text-destructive"
-                    disabled={cancelling}
-                    onClick={() => setCancelConfirmOpen(true)}
-                  >
-                    {cancelling ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <StopCircle className="h-3 w-3 mr-1" />}
-                    {cancelling ? "Cancelando..." : "Parar"}
-                  </Button>
-                </div>
-                <div className="rounded-md border border-warning/20 bg-warning/5 px-3 py-2 flex items-start gap-2">
-                  <AlertTriangle className="h-4 w-4 text-warning shrink-0 mt-0.5" />
-                  <div className="text-xs text-muted-foreground">
-                    <p className="font-medium text-foreground">Migração no servidor</p>
-                    <p>Você pode fechar esta tela. O processamento continua em background e o painel atualizará quando houver progresso.</p>
-                  </div>
-                </div>
-                <Progress value={smoothProgress} className="h-2" />
-                <div className="flex justify-between text-[10px] text-muted-foreground">
-                  <span>Rodada {autoResumeCurrentRound}/{autoResumeTotalRounds} • {autoResumeStats.migrated} migrados, {autoResumeStats.errors} erros</span>
-                  <span>{(() => {
-                    const elapsed = (Date.now() - autoResumeStats.startTime) / 1000;
-                    const rate = autoResumeStats.migrated / Math.max(elapsed, 1);
-                    const remaining = Math.max(0, autoResumeStats.initialPending - autoResumeStats.migrated);
-                    const eta = rate > 0 ? Math.round(remaining / rate) : 0;
-                    return eta > 60 ? `~${Math.round(eta / 60)}min restantes` : `~${eta}s restantes`;
-                  })()}</span>
-                </div>
-              </div>
-            )}
-
             {/* Proposal Summary */}
             {!isBulk && (
               <>
@@ -1205,18 +1165,7 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange, onRunningChan
                 <Progress value={progressPercent} className="h-2" />
 
                 {/* Batch counter */}
-                {running && autoResumeRunning && autoResumeStats && (
-                  <div className="flex items-center justify-between text-xs text-muted-foreground">
-                    <span>
-                      Rodada <span className="font-semibold text-foreground">{autoResumeCurrentRound}</span> de{" "}
-                      <span className="font-semibold text-foreground">{autoResumeTotalRounds}</span>
-                    </span>
-                    <span>
-                      <span className="font-semibold text-foreground">{autoResumeStats.migrated}</span>/{autoResumeStats.initialPending} propostas
-                    </span>
-                  </div>
-                )}
-                {running && !autoResumeRunning && batchProgress && isBulk && (
+                {running && batchProgress && isBulk && (
                   <div className="flex items-center justify-between text-xs text-muted-foreground">
                     <span>
                       Lote <span className="font-semibold text-foreground">{batchProgress.current}</span> de{" "}
@@ -1325,7 +1274,7 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange, onRunningChan
                 onClick={() => runMigration(true)}
                 disabled={running}
               >
-                {running && !autoResumeRunning ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : null}
+                {running ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : null}
                 Simular (Dry-run)
               </Button>
               <Button
@@ -1397,70 +1346,11 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange, onRunningChan
             <AlertDialogCancel>Voltar</AlertDialogCancel>
             <AlertDialogAction
               className="border-destructive bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              onClick={async () => {
+              onClick={() => {
                 setCancelConfirmOpen(false);
-                // Always set cancelRef immediately so monitoring loops detect it
                 cancelRef.current = true;
-                manualStopRequestedRef.current = true;
                 setCancelling(true);
                 addLog("Cancelamento solicitado...");
-
-                if (autoResumeRunning) {
-                  try {
-                    const { data: { session: currentSession } } = await supabase.auth.getSession();
-                    if (!currentSession?.access_token) throw new Error("Sessão expirada. Faça login novamente.");
-
-                    const projectUrl = import.meta.env.VITE_SUPABASE_URL;
-                    const response = await fetch(`${projectUrl}/functions/v1/migrate-sm-proposals-v2`, {
-                      method: "POST",
-                      headers: {
-                        Authorization: `Bearer ${currentSession.access_token}`,
-                        apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-                        "Content-Type": "application/json",
-                      },
-                      body: JSON.stringify({ action: "pause_background_migration", dry_run: false }),
-                    });
-
-                    const data = await response.json().catch(() => ({} as Record<string, any>));
-                    if (!response.ok) throw new Error(getBlockedMessage(data as MigrationBlockedPayload, `HTTP ${response.status}`));
-
-                    // Force-stop all local state immediately
-                    if (backgroundMonitorIntervalRef.current) {
-                      clearInterval(backgroundMonitorIntervalRef.current);
-                      backgroundMonitorIntervalRef.current = null;
-                    }
-                    setAutoResumeRunning(false);
-                    setRunning(false);
-                    setSmoothProgress(0);
-                    addLog(data.message || "Migração pausada e operações canceladas.");
-                    updateStep("done", {
-                      state: "error",
-                      detail: "Migração cancelada com sucesso.",
-                    });
-                    qc.invalidateQueries({ queryKey: ["sm-migration-pending-count"] });
-                    qc.invalidateQueries({ queryKey: ["sm-proposals"] });
-                    qc.invalidateQueries({ queryKey: ["sm-sync-progress"] });
-                    qc.invalidateQueries({ queryKey: ["sm-operation-runs"] });
-                    toast.warning(data.message || "Migração cancelada.");
-                  } catch (err: any) {
-                    // Even on error, force-stop local state
-                    if (backgroundMonitorIntervalRef.current) {
-                      clearInterval(backgroundMonitorIntervalRef.current);
-                      backgroundMonitorIntervalRef.current = null;
-                    }
-                    setAutoResumeRunning(false);
-                    setRunning(false);
-                    setSmoothProgress(0);
-                    const msg = err?.message ?? "Erro ao pausar migração.";
-                    setError(msg);
-                    addLog(`ERRO: ${msg}`);
-                    toast.error(msg);
-                  } finally {
-                    setCancelling(false);
-                  }
-                  return;
-                }
-
                 addLog("Aguardando lote atual terminar...");
               }}
             >
@@ -1470,47 +1360,6 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange, onRunningChan
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Auto-resume confirmation */}
-      <Dialog open={autoResumeConfirmOpen} onOpenChange={setAutoResumeConfirmOpen}>
-        <DialogContent className="w-[90vw] max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <PlayCircle className="h-5 w-5 text-primary" />
-              Migrar todos os pendentes
-            </DialogTitle>
-          </DialogHeader>
-          <div className="space-y-3">
-            <p className="text-sm text-muted-foreground">
-              Isto vai migrar automaticamente todas as <span className="font-bold text-foreground">{pendingStats?.pending || 0}</span> propostas
-              pendentes em lotes de 25, criando clientes, deals, projetos e propostas no sistema canônico.
-            </p>
-            <p className="text-sm text-muted-foreground">
-              A migração pode ser pausada a qualquer momento. Os registros já processados serão mantidos.
-            </p>
-            <p className="text-sm">
-              Digite <span className="font-bold text-destructive">MIGRAR TODOS</span> para confirmar:
-            </p>
-            <Input
-              value={autoResumeConfirmText}
-              onChange={e => setAutoResumeConfirmText(e.target.value)}
-              placeholder="MIGRAR TODOS"
-              className="font-mono"
-            />
-          </div>
-          <DialogFooter>
-            <Button variant="ghost" onClick={() => { setAutoResumeConfirmOpen(false); setAutoResumeConfirmText(""); }}>
-              Cancelar
-            </Button>
-            <Button
-              variant="default"
-              disabled={autoResumeConfirmText !== "MIGRAR TODOS"}
-              onClick={handleAutoResumeConfirm}
-            >
-              Iniciar migração
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </>
   );
 }
