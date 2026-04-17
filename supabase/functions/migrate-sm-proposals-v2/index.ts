@@ -692,52 +692,8 @@ function toCanonicalProjetoFunilName(smFunnelName: string | null | undefined): s
   return CANONICAL_SM_TO_PROJETO_FUNIL[normalized] ?? null;
 }
 
-function dispatchBackgroundMigrationRun(params: {
-  supabaseUrl: string;
-  serviceKey: string;
-  tenantId: string;
-  pipelineId: string;
-  stageId?: string | null;
-  ownerId?: string | null;
-  autoResolveOwner: boolean;
-  batchSize: number;
-}) {
-  const payload = {
-    dry_run: false,
-    pipeline_id: params.pipelineId,
-    stage_id: params.stageId ?? null,
-    auto_resolve_owner: params.autoResolveOwner,
-    auto_resume: true,
-    batch_size: params.batchSize,
-    include_projects_without_proposal: false,
-    ...(params.ownerId ? { owner_id: params.ownerId } : {}),
-    _cron_tenant_id: params.tenantId,
-  };
-
-  const dispatchPromise = fetch(`${params.supabaseUrl}/functions/v1/migrate-sm-proposals-v2`, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${params.serviceKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(payload),
-  }).then(async (response) => {
-    if (!response.ok) {
-      const body = await response.text().catch(() => "");
-      console.error(`[SM Migration] Background dispatch failed: HTTP ${response.status} ${body}`);
-    }
-  }).catch((error) => {
-    console.error(`[SM Migration] Background dispatch error: ${error instanceof Error ? error.message : String(error)}`);
-  });
-
-  const edgeRuntime = (globalThis as { EdgeRuntime?: { waitUntil: (promise: Promise<unknown>) => void } }).EdgeRuntime;
-  if (edgeRuntime?.waitUntil) {
-    edgeRuntime.waitUntil(dispatchPromise);
-    return;
-  }
-
-  void dispatchPromise;
-}
+// [REMOVIDO] dispatchBackgroundMigrationRun — auto-invocação da própria edge function
+// foi eliminada permanentemente para impedir qualquer reativação acidental da migração.
 
 async function isBackgroundMigrationEnabled(adminClient: any, tenantId: string): Promise<boolean> {
   const { data, error } = await adminClient
