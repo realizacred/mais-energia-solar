@@ -253,82 +253,123 @@ Deno.serve(async (req) => {
     }
 
     // ── APPLY ──────────────────────────────────────────────────────────────
-    // 5) Reuso por telefone: buscar clientes existentes por (tenant, telefone)
-    //    Evita colisão da constraint uq_clientes_tenant_telefone.
-    const desiredRows = clientsToCreateIds.map((smcId) => {
-      const c = clientsBySm.get(smcId);
-      const projectForFallback = pending.find((p) => Number(p.sm_client_id) === smcId);
-      return {
-        smcId,
-        nome: clientName(c, fallbackName(projectForFallback ?? { sm_project_id: smcId })),
-        telefone: fallbackPhone(c),
-        c,
-      };
-    });
+    // 5) Resolver/criar cliente para cada projeto pendente (um a um, resiliente)
+    //    Estratégia:
+    //      a) Se sm_client_id ausente → placeholder único por sm_project_id
+    //      b) Reuso por telefone (uq_clientes_tenant_telefone)
+    //      c) Reuso por CPF/CNPJ (idx_clientes_tenant_cpf_cnpj_unique)
+    //      d) Insert; se 23505, refaz lookup e reusa
+    const projectClientId = new Map<number, string>(); // sm_project_id → clientes.id
 
-    const phones = Array.from(new Set(desiredRows.map((r) => r.telefone)));
-    const phoneToExistingId = new Map<string, string>();
-    for (const ids of chunk(phones, CHUNK)) {
-      const { data, error } = await sb
+    async function findByPhone(tel: string): Promise<string | null> {
+      const { data } = await sb
         .from("clientes")
-        .select("id, telefone, sm_client_id")
+        .select("id")
         .eq("tenant_id", tenantId)
-        .in("telefone", ids);
-      if (error) throw error;
-      for (const r of data ?? []) {
-        if (r.telefone) phoneToExistingId.set(r.telefone as string, r.id as string);
-      }
+        .eq("telefone", tel)
+        .limit(1)
+        .maybeSingle();
+      return (data?.id as string) ?? null;
     }
-
-    // 5a) Reusar: vincular sm_client_id no existente quando ainda for null
-    const toLink: Array<{ id: string; smcId: number }> = [];
-    const reallyNew: typeof desiredRows = [];
-    for (const r of desiredRows) {
-      const existId = phoneToExistingId.get(r.telefone);
-      if (existId) {
-        existingClients.set(r.smcId, existId);
-        toLink.push({ id: existId, smcId: r.smcId });
-      } else {
-        reallyNew.push(r);
-      }
-    }
-    // UPDATE individual (apenas onde sm_client_id ainda é null)
-    for (const lk of toLink) {
-      await sb.from("clientes").update({ sm_client_id: lk.smcId }).eq("id", lk.id).is("sm_client_id", null);
-    }
-
-    // 5b) Inserir os realmente novos em BATCH
-    const clienteRows = reallyNew.map(({ smcId, nome, telefone, c }) => ({
-      tenant_id: tenantId,
-      sm_client_id: smcId,
-      nome,
-      telefone,
-      telefone_normalized: c?.phone_normalized ?? null,
-      email: c?.email ?? null,
-      cpf_cnpj: c?.document ?? null,
-      rua: c?.address ?? null,
-      numero: c?.number ?? null,
-      complemento: c?.complement ?? null,
-      bairro: c?.neighborhood ?? null,
-      cidade: c?.city ?? null,
-      estado: c?.state ?? null,
-      cep: c?.zip_code ?? null,
-      cliente_code: `SM-${smcId}`,
-      import_source: "solar_market",
-    }));
-
-    for (const batch of chunk(clienteRows, CHUNK)) {
-      const { data, error } = await sb
+    async function findByCpf(cpf: string): Promise<string | null> {
+      const { data } = await sb
         .from("clientes")
-        .insert(batch)
-        .select("id, sm_client_id");
-      if (error) {
-        state.failed.push({ sm_project_id: 0, reason: `cliente batch falhou: ${error.message}` });
+        .select("id")
+        .eq("tenant_id", tenantId)
+        .eq("cpf_cnpj", cpf)
+        .limit(1)
+        .maybeSingle();
+      return (data?.id as string) ?? null;
+    }
+
+    for (const p of pending) {
+      const smpId = Number(p.sm_project_id);
+      const smcIdRaw = p.sm_client_id != null ? Number(p.sm_client_id) : null;
+
+      // (a) projeto órfão → placeholder
+      const isOrphan = smcIdRaw == null || !clientsBySm.has(smcIdRaw);
+      const c = isOrphan ? null : clientsBySm.get(smcIdRaw!);
+      const smcEffective = isOrphan ? null : smcIdRaw;
+
+      // já criamos via outra iteração?
+      if (smcEffective != null && existingClients.has(smcEffective)) {
+        projectClientId.set(smpId, existingClients.get(smcEffective)!);
         continue;
       }
-      for (const r of data ?? []) {
-        if (r.sm_client_id) existingClients.set(Number(r.sm_client_id), r.id as string);
+
+      const nome = isOrphan
+        ? fallbackName(p)
+        : clientName(c, fallbackName(p));
+      const telefone = isOrphan
+        ? `SM-P${smpId}`
+        : fallbackPhone(c);
+      const cpf = (!isOrphan && c?.document?.toString().trim()) || null;
+
+      // (b) reuso por telefone
+      let clienteId: string | null = null;
+      if (!isOrphan) {
+        clienteId = await findByPhone(telefone);
+        // (c) reuso por CPF
+        if (!clienteId && cpf) clienteId = await findByCpf(cpf);
+      }
+
+      if (clienteId) {
+        if (smcEffective != null) {
+          await sb.from("clientes").update({ sm_client_id: smcEffective }).eq("id", clienteId).is("sm_client_id", null);
+          existingClients.set(smcEffective, clienteId);
+        }
+        projectClientId.set(smpId, clienteId);
+        continue;
+      }
+
+      // (d) insert
+      const row = {
+        tenant_id: tenantId,
+        sm_client_id: smcEffective,
+        nome,
+        telefone,
+        telefone_normalized: c?.phone_normalized ?? null,
+        email: c?.email ?? null,
+        cpf_cnpj: cpf,
+        rua: c?.address ?? null,
+        numero: c?.number ?? null,
+        complemento: c?.complement ?? null,
+        bairro: c?.neighborhood ?? null,
+        cidade: c?.city ?? null,
+        estado: c?.state ?? null,
+        cep: c?.zip_code ?? null,
+        cliente_code: smcEffective != null ? `SM-${smcEffective}` : `SM-P${smpId}`,
+        import_source: "solar_market",
+      };
+      const { data: ins, error: insErr } = await sb
+        .from("clientes")
+        .insert(row)
+        .select("id")
+        .maybeSingle();
+
+      if (insErr) {
+        // 23505 → constraint colidiu (corrida ou intra-batch). Tentar refazer lookup.
+        const isUnique = (insErr as any).code === "23505" || /duplicate key/i.test(insErr.message);
+        if (isUnique) {
+          let recovered = await findByPhone(telefone);
+          if (!recovered && cpf) recovered = await findByCpf(cpf);
+          if (recovered) {
+            if (smcEffective != null) {
+              await sb.from("clientes").update({ sm_client_id: smcEffective }).eq("id", recovered).is("sm_client_id", null);
+              existingClients.set(smcEffective, recovered);
+            }
+            projectClientId.set(smpId, recovered);
+            continue;
+          }
+        }
+        state.failed.push({ sm_project_id: smpId, reason: `cliente insert: ${insErr.message}` });
+        continue;
+      }
+
+      if (ins?.id) {
         state.inserted_clients++;
+        if (smcEffective != null) existingClients.set(smcEffective, ins.id as string);
+        projectClientId.set(smpId, ins.id as string);
       }
     }
 
@@ -336,13 +377,9 @@ Deno.serve(async (req) => {
     const projetoRows: any[] = [];
     for (const p of pending) {
       const smpId = Number(p.sm_project_id);
-      const smcId = p.sm_client_id != null ? Number(p.sm_client_id) : null;
-      const cliente_id = smcId != null ? existingClients.get(smcId) : null;
+      const cliente_id = projectClientId.get(smpId);
       if (!cliente_id) {
-        state.failed.push({
-          sm_project_id: smpId,
-          reason: "cliente_id não resolvido (sm_client_id ausente ou cliente não criado)",
-        });
+        // já registrado em failed acima
         continue;
       }
       projetoRows.push({
