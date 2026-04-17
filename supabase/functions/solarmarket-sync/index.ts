@@ -1108,6 +1108,13 @@ Deno.serve(async (req) => {
             const funnelData = await res.json();
             const funnels = Array.isArray(funnelData) ? funnelData : funnelData.data ? (Array.isArray(funnelData.data) ? funnelData.data : [funnelData.data]) : [funnelData];
 
+            if (funnels.length === 0) {
+              emptyFunnels++;
+              if (emptyFunnels <= 5) {
+                console.error(`[SM Sync][projects_funnels] EMPTY projId=${projId} payload=${JSON.stringify(funnelData).slice(0, 300)}`);
+              }
+            }
+
             if (funnels.length > 0) {
               let vendedoresFunnel: any = null;
               let primaryFunnel: any = funnels[0];
@@ -1148,6 +1155,11 @@ Deno.serve(async (req) => {
                   errors.push(`projects_funnels update ${projId}: ${updateErr.message}`);
                 } else {
                   enriched++;
+                }
+              } else {
+                parseErr++;
+                if (parseErr <= 3) {
+                  console.error(`[SM Sync][projects_funnels] PARSE_NO_IDS projId=${projId} sample=${JSON.stringify(funnels[0]).slice(0, 300)}`);
                 }
               }
             }
