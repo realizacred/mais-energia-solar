@@ -16,16 +16,10 @@ Deno.serve(async (req) => {
   };
 
   try {
-    const supabaseUrl = Deno.env.get("SUPABASE_URL");
-    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-    if (!supabaseUrl || !serviceRoleKey) {
-      console.error("[sync-projeto-funis] Missing env: SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY");
-      return new Response(
-        JSON.stringify({ error: "Server configuration error" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-    const supabase = createClient(supabaseUrl, serviceRoleKey);
+    const supabase = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+    );
 
     const { tenant_id } = await req.json();
     if (!tenant_id) throw new Error("tenant_id obrigatório");
@@ -41,7 +35,7 @@ Deno.serve(async (req) => {
       state.consultorCache.set(c.nome.toLowerCase().trim(), c.id);
     }
 
-    // 2. Buscar todos funis/etapas distintos do SM para esse tenant
+    // 2. Buscar funis/etapas distintos do SM para esse tenant
     const { data: smRows, error: smError } = await supabase
       .from("solar_market_projects")
       .select("sm_funnel_name, sm_stage_name")
@@ -60,7 +54,8 @@ Deno.serve(async (req) => {
     }
 
     // 4. Detectar funil de consultor — sem hardcode de nomes
-    // Regra: se >=50% das etapas batem com consultores cadastrados → é funil de consultor
+    // Regra validada pelos dados reais: se >=50% das etapas batem
+    // com consultores cadastrados (ILIKE) → é funil de consultor, não criar
     const isFunilConsultor = (etapas: Set<string>): boolean => {
       if (etapas.size === 0) return false;
       let matches = 0;
@@ -68,8 +63,12 @@ Deno.serve(async (req) => {
         const etapaLower = etapa.toLowerCase().trim();
         if (state.consultorCache.has(etapaLower)) { matches++; continue; }
         for (const [nomeConsultor] of state.consultorCache) {
-          if (nomeConsultor.includes(etapaLower) || etapaLower.includes(nomeConsultor)) {
-            matches++; break;
+          if (
+            nomeConsultor.includes(etapaLower) ||
+            etapaLower.includes(nomeConsultor)
+          ) {
+            matches++;
+            break;
           }
         }
       }
@@ -110,7 +109,7 @@ Deno.serve(async (req) => {
         funilOrdem++;
       }
 
-      // Buscar ordem máxima atual
+      // Buscar ordem máxima atual das etapas desse funil
       const { data: ordemData } = await supabase
         .from("projeto_etapas")
         .select("ordem")
@@ -154,27 +153,24 @@ Deno.serve(async (req) => {
       }
     }
 
-    // 6. Rodar backfill após criar funis/etapas
+    // 6. Backfill — alocar projetos nas etapas criadas
     const { data: backfill } = await supabase
       .rpc("backfill_projetos_funil_etapa", { p_tenant_id: tenant_id });
-
-    const bf = backfill as { total?: number; sm_matched?: number } | null;
 
     return new Response(
       JSON.stringify({
         funisCriados,
         etapasCriadas,
-        projetosAlocados: bf?.total ?? 0,
-        smMatched: bf?.sm_matched ?? 0,
+        projetosAlocados: (backfill as Record<string, number> | null)?.total ?? 0,
+        smMatched: (backfill as Record<string, number> | null)?.sm_matched ?? 0,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
 
-  } catch (e) {
-    const msg = e instanceof Error ? e.message : "erro desconhecido";
-    console.error("[sync-projeto-funis] erro:", msg);
+  } catch (e: any) {
+    console.error("[sync-projeto-funis] erro:", e);
     return new Response(
-      JSON.stringify({ error: msg }),
+      JSON.stringify({ error: e?.message ?? "erro desconhecido" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
