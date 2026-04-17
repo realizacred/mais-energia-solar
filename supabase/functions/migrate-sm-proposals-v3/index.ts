@@ -65,61 +65,86 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    // 1. Carregar classificações resolvidas (com destino completo) do tenant
-    let q = supabase
-      .from("sm_project_classification")
-      .select("sm_project_id, funil_destino_id, etapa_destino_id, pipeline_kind, motivo")
-      .eq("tenant_id", body.tenant_id)
-      .not("funil_destino_id", "is", null)
-      .not("etapa_destino_id", "is", null);
+    // 1. Carregar classificações resolvidas (com destino completo) do tenant.
+    // Paginação manual para passar do limite default 1000 do PostgREST.
+    const PAGE = 1000;
+    type Classif = { sm_project_id: string; funil_destino_id: string; etapa_destino_id: string; pipeline_kind: string; motivo: string | null };
+    const classifications: Classif[] = [];
+    let from = 0;
+    while (true) {
+      let q = supabase
+        .from("sm_project_classification")
+        .select("sm_project_id, funil_destino_id, etapa_destino_id, pipeline_kind, motivo")
+        .eq("tenant_id", body.tenant_id)
+        .not("funil_destino_id", "is", null)
+        .not("etapa_destino_id", "is", null)
+        .order("sm_project_id", { ascending: true })
+        .range(from, from + PAGE - 1);
+      if (body.limit) q = q.limit(body.limit);
+      const { data, error: cErr } = await q;
+      if (cErr) throw cErr;
+      if (!data?.length) break;
+      classifications.push(...(data as Classif[]));
+      if (data.length < PAGE || (body.limit && classifications.length >= body.limit)) break;
+      from += PAGE;
+    }
 
-    if (body.limit) q = q.limit(body.limit);
-
-    const { data: classifications, error: cErr } = await q;
-    if (cErr) throw cErr;
-
-    if (!classifications?.length) {
+    if (!classifications.length) {
       return json({ dry_run: dryRun, message: "Nenhuma classificação resolvida.", counters });
     }
 
-    // 2. Buscar staging projects correspondentes (id interno → sm_project_id externo)
+    // 2. Buscar staging projects correspondentes (id interno → sm_project_id externo).
+    // Paginar em chunks para não estourar o limite de URL do PostgREST (~2KB).
     const stagingIds = classifications.map((c) => c.sm_project_id);
-    const { data: stagingRows, error: sErr } = await supabase
-      .from("solar_market_projects")
-      .select("id, sm_project_id, tenant_id, name, sm_funnel_name, sm_stage_name")
-      .in("id", stagingIds);
-    if (sErr) throw sErr;
+    const stagingRows: Array<{ id: string; sm_project_id: number | null; tenant_id: string; name: string | null; sm_funnel_name: string | null; sm_stage_name: string | null }> = [];
+    const CHUNK = 200;
+    for (let i = 0; i < stagingIds.length; i += CHUNK) {
+      const slice = stagingIds.slice(i, i + CHUNK);
+      const { data, error: sErr } = await supabase
+        .from("solar_market_projects")
+        .select("id, sm_project_id, tenant_id, name, sm_funnel_name, sm_stage_name")
+        .in("id", slice);
+      if (sErr) throw sErr;
+      if (data) stagingRows.push(...data);
+    }
 
-    const stagingById = new Map<string, typeof stagingRows[0]>();
-    for (const r of stagingRows ?? []) stagingById.set(r.id, r);
+    const stagingById = new Map<string, (typeof stagingRows)[number]>();
+    for (const r of stagingRows) stagingById.set(r.id, r);
 
-    // 3. Filtrar elegíveis (com proposta) — chave externa sm_project_id
-    const externalIds = (stagingRows ?? []).map((r) => r.sm_project_id).filter(Boolean);
-    const { data: propRows, error: pErr } = await supabase
-      .from("solar_market_proposals")
-      .select("sm_project_id")
-      .eq("tenant_id", body.tenant_id)
-      .in("sm_project_id", externalIds);
-    if (pErr) throw pErr;
-    const eligibleSet = new Set((propRows ?? []).map((p) => p.sm_project_id));
+    // 3. Filtrar elegíveis (com proposta) — chave externa sm_project_id (paginado)
+    const externalIds = stagingRows.map((r) => r.sm_project_id).filter((v): v is number => v != null);
+    const eligibleSet = new Set<number>();
+    for (let i = 0; i < externalIds.length; i += CHUNK) {
+      const slice = externalIds.slice(i, i + CHUNK);
+      const { data: propRows, error: pErr } = await supabase
+        .from("solar_market_proposals")
+        .select("sm_project_id")
+        .eq("tenant_id", body.tenant_id)
+        .in("sm_project_id", slice);
+      if (pErr) throw pErr;
+      for (const p of propRows ?? []) if (p.sm_project_id != null) eligibleSet.add(Number(p.sm_project_id));
+    }
 
     // 4. Filtros opcionais por subset
     const subset = body.sm_project_ids?.length ? new Set(body.sm_project_ids) : null;
 
-    // 5. Pré-carregar projetos nativos já vinculados por sm_project_id
-    const targetExternalIds = (stagingRows ?? [])
+    // 5. Pré-carregar projetos nativos já vinculados por sm_project_id (paginado)
+    const targetExternalIds = stagingRows
       .map((r) => r.sm_project_id)
-      .filter((id) => eligibleSet.has(id) && (!subset || subset.has(id)));
+      .filter((id): id is number => id != null && eligibleSet.has(id) && (!subset || subset.has(id)));
 
-    const { data: existingProjetos, error: epErr } = await supabase
-      .from("projetos")
-      .select("id, sm_project_id, funil_id, etapa_id")
-      .eq("tenant_id", body.tenant_id)
-      .in("sm_project_id", targetExternalIds);
-    if (epErr) throw epErr;
-    const projByExt = new Map<number, typeof existingProjetos[0]>();
-    for (const p of existingProjetos ?? []) {
-      if (p.sm_project_id != null) projByExt.set(Number(p.sm_project_id), p);
+    const projByExt = new Map<number, { id: string; sm_project_id: number | null; funil_id: string | null; etapa_id: string | null }>();
+    for (let i = 0; i < targetExternalIds.length; i += CHUNK) {
+      const slice = targetExternalIds.slice(i, i + CHUNK);
+      const { data: existingProjetos, error: epErr } = await supabase
+        .from("projetos")
+        .select("id, sm_project_id, funil_id, etapa_id")
+        .eq("tenant_id", body.tenant_id)
+        .in("sm_project_id", slice);
+      if (epErr) throw epErr;
+      for (const p of existingProjetos ?? []) {
+        if (p.sm_project_id != null) projByExt.set(Number(p.sm_project_id), p);
+      }
     }
 
     // 6. Iterar classificações
@@ -188,8 +213,14 @@ Deno.serve(async (req) => {
       counters,
     });
   } catch (e: any) {
-    console.error("[migrate-sm-proposals-v3] erro:", e);
-    return json({ error: e?.message ?? "erro desconhecido", counters }, 500);
+    console.error("[migrate-sm-proposals-v3] erro:", JSON.stringify({
+      message: e?.message, code: e?.code, details: e?.details, hint: e?.hint, stack: e?.stack,
+    }));
+    return json({
+      error: e?.message ?? "erro desconhecido",
+      code: e?.code, details: e?.details, hint: e?.hint,
+      counters,
+    }, 500);
   }
 });
 
