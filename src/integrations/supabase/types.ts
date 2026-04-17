@@ -15669,6 +15669,7 @@ export type Database = {
           projeto_num: number
           proposta_id: string | null
           rua_instalacao: string | null
+          sm_project_id: number | null
           status: Database["public"]["Enums"]["projeto_status"]
           tenant_id: string
           tipo_instalacao: string | null
@@ -15724,6 +15725,7 @@ export type Database = {
           projeto_num?: number
           proposta_id?: string | null
           rua_instalacao?: string | null
+          sm_project_id?: number | null
           status?: Database["public"]["Enums"]["projeto_status"]
           tenant_id?: string
           tipo_instalacao?: string | null
@@ -15779,6 +15781,7 @@ export type Database = {
           projeto_num?: number
           proposta_id?: string | null
           rua_instalacao?: string | null
+          sm_project_id?: number | null
           status?: Database["public"]["Enums"]["projeto_status"]
           tenant_id?: string
           tipo_instalacao?: string | null
@@ -28161,10 +28164,19 @@ export type Database = {
         Args: { _deal_id: string; _proposta_id: string }
         Returns: undefined
       }
+      sm_classify_funnel_stage: {
+        Args: {
+          p_funnel_name: string
+          p_stage_name: string
+          p_tenant_id: string
+        }
+        Returns: Json
+      }
       sm_match_clients_to_leads: {
         Args: { p_tenant_id: string }
         Returns: number
       }
+      sm_migration_dry_run: { Args: { p_tenant_id: string }; Returns: Json }
       start_conversation_by_phone:
         | {
             Args: {
@@ -28207,6 +28219,7 @@ export type Database = {
             Returns: boolean
           }
       try_webhook_lock: { Args: never; Returns: boolean }
+      unaccent: { Args: { "": string }; Returns: string }
       update_parcelas_atrasadas: { Args: never; Returns: undefined }
       update_sm_operation_heartbeat: {
         Args: {
