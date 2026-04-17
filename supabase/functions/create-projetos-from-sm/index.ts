@@ -459,7 +459,9 @@ Deno.serve(async (req) => {
           state.failed.push({
             sm_project_id: Number(row.sm_project_id ?? 0),
             reason: `projeto insert: ${rowError.message}`,
+            phase: "project",
           });
+          state.failed_projects++;
           continue;
         }
 
