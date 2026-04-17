@@ -227,7 +227,7 @@ export function useSmMigrationRun() {
       : false;
 
     // ── Fase 3: apply (APPLY) ────────────────────────────
-    if (ok2) {
+    if (ok2 && !cancelRef.current) {
       await runPhase("apply", "Aplicando funis/etapas", async () => {
         const { data, error } = await supabase.functions.invoke("migrate-sm-proposals-v3", {
           body: { tenant_id: tenantId, confirm_apply: true },
