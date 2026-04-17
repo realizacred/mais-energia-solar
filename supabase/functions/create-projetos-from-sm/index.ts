@@ -100,6 +100,26 @@ async function fetchEligibleProjects(
     const filter = new Set(smIds);
     candidate = candidate.filter((id) => filter.has(id));
   }
+
+  // Excluir sm_project_id já materializados em projetos (idempotência no fetch)
+  // Sem isso, batches subsequentes retornam sempre os mesmos IDs e o loop
+  // do orquestrador termina cedo, deixando elegíveis pendentes.
+  if (candidate.length) {
+    const existingIds = new Set<number>();
+    for (const ids of chunk(candidate, CHUNK)) {
+      const { data, error } = await sb
+        .from("projetos")
+        .select("sm_project_id")
+        .eq("tenant_id", tenantId)
+        .in("sm_project_id", ids);
+      if (error) throw error;
+      for (const r of data ?? []) {
+        if (r.sm_project_id != null) existingIds.add(Number(r.sm_project_id));
+      }
+    }
+    if (existingIds.size) candidate = candidate.filter((id) => !existingIds.has(id));
+  }
+
   if (limit && candidate.length > limit) candidate = candidate.slice(0, limit);
 
   // 2) Buscar dados em chunks
