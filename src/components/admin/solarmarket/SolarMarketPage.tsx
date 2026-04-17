@@ -872,19 +872,19 @@ export default function SolarMarketPage() {
             {syncPipelinesRunning ? "Sincronizando..." : "Funis & Etapas"}
           </Button>
           <Button
-            onClick={() => syncStage("projects_funnels" as any)}
-            disabled={syncIsRunning || projects.length === 0}
+            onClick={() => runBackfillProjetosFunil()}
+            disabled={backfillProjetosRunning || projects.length === 0}
             size="sm"
             variant="outline"
             className="gap-1 h-7 text-xs"
-            title="Busca dados de funil para cada projeto na API do SolarMarket"
+            title="Aloca os projetos importados nas etapas corretas dos funis nativos"
           >
-            {syncIsRunning && progress.currentStage === ("projects_funnels" as any) ? (
+            {backfillProjetosRunning ? (
               <Loader2 className="h-3 w-3 animate-spin" />
             ) : (
               <GitBranch className="h-3 w-3" />
             )}
-            Funis Projetos
+            {backfillProjetosRunning ? "Alocando..." : "Funis Projetos"}
           </Button>
         </div>
 
