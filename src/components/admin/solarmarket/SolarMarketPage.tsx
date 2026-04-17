@@ -1306,7 +1306,7 @@ export default function SolarMarketPage() {
             filtered.proposals.length === 0 ? (
               <EmptyState icon={FileText} title="Nenhuma proposta encontrada" description="Propostas são descobertas durante a varredura de projetos. Execute a sincronização completa." />
             ) : (
-              <ProposalsTable proposals={filtered.proposals} onSelect={setSelectedProposal} selectedIds={selectedProposalIds} onToggleSelect={toggleProposalSelect} onToggleAll={toggleAllProposals} onMigrate={openMigrationDrawer} pagination={{ page: proposalsPag.page, pageSize: proposalsPag.pageSize, onPageChange: proposalsPag.setPage, onPageSizeChange: proposalsPag.setPageSize }} />
+              <ProposalsTable proposals={filtered.proposals} onSelect={setSelectedProposal} pagination={{ page: proposalsPag.page, pageSize: proposalsPag.pageSize, onPageChange: proposalsPag.setPage, onPageSizeChange: proposalsPag.setPageSize }} />
             )}
         </TabsContent>
 
