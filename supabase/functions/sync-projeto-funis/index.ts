@@ -79,9 +79,14 @@ Deno.serve(async (req) => {
     let etapasCriadas = 0;
     let funilOrdem = 1;
 
-    // 5. Criar funis e etapas — só os que não são de consultor
+    // Funis financeiros: dimensão paralela, não entram no pipeline principal
+    const FINANCE_FUNNEL_RE = /(pagamento|financeiro|cobran[çc]a|recebimento|faturamento|financiamento)/i;
+    const isFunilFinanceiro = (nome: string): boolean => FINANCE_FUNNEL_RE.test(nome);
+
+    // 5. Criar funis e etapas — só os que não são de consultor nem financeiros
     for (const [funilNome, etapas] of funilMap.entries()) {
       if (isFunilConsultor(etapas)) continue;
+      if (isFunilFinanceiro(funilNome)) continue;
 
       // Buscar ou criar funil
       let funilId = state.funilCache.get(funilNome.toLowerCase());
