@@ -28409,6 +28409,10 @@ export type Database = {
         }[]
       }
       validate_phone_quality: { Args: { _phone: string }; Returns: boolean }
+      validate_sm_migration_integrity: {
+        Args: { p_tenant_id: string }
+        Returns: Json
+      }
     }
     Enums: {
       achievement_type:
