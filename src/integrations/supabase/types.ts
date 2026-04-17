@@ -27369,6 +27369,7 @@ export type Database = {
       delete_seed_data: { Args: never; Returns: Json }
       delete_uc_permanently: { Args: { p_unit_id: string }; Returns: Json }
       detect_proposal_followups: { Args: never; Returns: Json }
+      dry_run_sm_migration: { Args: { _tenant_id: string }; Returns: Json }
       encrypt_secret: {
         Args: { plain: string; secret: string }
         Returns: string
