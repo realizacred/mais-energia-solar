@@ -266,8 +266,7 @@ Deno.serve(async (req) => {
         }
       }
 
-      // Upsert (preserva override se reclassify_all=true E há override → não sobrescreve)
-      const payload = {
+      toUpsertBatch.push({
         tenant_id,
         sm_project_id: sm.id,
         pipeline_kind: kind,
@@ -275,27 +274,21 @@ Deno.serve(async (req) => {
         etapa_destino_id: etapaDestinoId,
         telefone_valido: telefoneValido,
         motivo,
-      };
+      });
+    }
 
-      if (prev) {
-        const { error: upErr } = await supabase
-          .from("sm_project_classification")
-          .update(payload)
-          .eq("sm_project_id", sm.id);
-        if (upErr) {
-          console.error(`[classify] update error sm=${sm.id}:`, upErr.message);
-          continue;
-        }
-      } else {
-        const { error: insErr } = await supabase
-          .from("sm_project_classification")
-          .insert(payload);
-        if (insErr) {
-          console.error(`[classify] insert error sm=${sm.id}:`, insErr.message);
-          continue;
-        }
+    // Upsert em batch (chunks de 500) — ON CONFLICT (tenant_id, sm_project_id)
+    const UPSERT_CHUNK = 500;
+    for (let i = 0; i < toUpsertBatch.length; i += UPSERT_CHUNK) {
+      const slice = toUpsertBatch.slice(i, i + UPSERT_CHUNK);
+      const { error } = await supabase
+        .from("sm_project_classification")
+        .upsert(slice, { onConflict: "tenant_id,sm_project_id" });
+      if (error) {
+        console.error(`[classify] batch upsert error chunk=${i}:`, error.message);
+        throw error;
       }
-      classified++;
+      classified += slice.length;
     }
 
     return new Response(
