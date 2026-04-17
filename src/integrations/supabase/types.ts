@@ -27106,6 +27106,10 @@ export type Database = {
         Returns: string
       }
       auto_mark_missed_appointments: { Args: never; Returns: undefined }
+      backfill_projetos_funil_etapa: {
+        Args: { p_tenant_id: string }
+        Returns: Json
+      }
       bridge_solar_to_monitor_plants: { Args: never; Returns: Json }
       calcular_custo_ia_mes: { Args: { p_tenant_id: string }; Returns: number }
       can_access_wa_conversation: {
