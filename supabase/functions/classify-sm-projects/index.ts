@@ -32,8 +32,10 @@ Deno.serve(async (req) => {
   const FINANCE_RE = /(pagamento|financeiro|cobran[çc]a|recebimento|faturamento|financiamento)/i;
   const ENG_RE     = /(engenharia|projeto|t[eé]cnico|homologa[çc][aã]o|instala[çc][aã]o|p[oó]s[- ]?venda)/i;
   const EQUIP_RE   = /(equipamento|kit|log[íi]stica|entrega|expedi[çc][aã]o|estoque)/i;
-  const COMP_RE    = /(compensa[çc][aã]o|cr[eé]dito|monitoramento|geradora)/i;
-  const COMM_RE    = /(comercial|venda|negocia[çc][aã]o|prospec)/i;
+  // Aceita typo "compesação" (sem N) vindo do SolarMarket
+  const COMP_RE    = /(compe?nsa[çc][aã]o|compesa[çc][aã]o|cr[eé]dito|monitoramento|geradora)/i;
+  const COMM_RE    = /(comercial|venda|negocia[çc][aã]o|prospec|^lead$)/i;
+  const PERDIDO_RE = /(perdido|perda|cancelad)/i;
 
   try {
     const supabase = createClient(
