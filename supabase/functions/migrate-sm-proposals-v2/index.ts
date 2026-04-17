@@ -1344,16 +1344,6 @@ Deno.serve(async (req) => {
 
     let userId: string | null = null;
 
-    if (rawBody?._cron_dispatch) {
-      return new Response(JSON.stringify({
-        error: "cron_dispatch_disabled",
-        message: "Auto-dispatch via _cron_dispatch foi removido permanentemente.",
-      }), {
-        status: 410,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
     // If called with service_role key + _cron_tenant_id, skip user auth (internal call from dispatch)
     if (token === serviceKey && rawBody?._cron_tenant_id) {
       tenantId = rawBody._cron_tenant_id;
