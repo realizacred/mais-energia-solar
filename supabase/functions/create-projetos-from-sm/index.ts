@@ -358,6 +358,7 @@ Deno.serve(async (req) => {
           existingClients.set(smcEffective, clienteId);
         }
         projectClientId.set(smpId, clienteId);
+        state.reused_clients++;
         continue;
       }
 
