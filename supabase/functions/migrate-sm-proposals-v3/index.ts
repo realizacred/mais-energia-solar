@@ -65,20 +65,31 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    // 1. Carregar classificações resolvidas (com destino completo) do tenant
-    let q = supabase
-      .from("sm_project_classification")
-      .select("sm_project_id, funil_destino_id, etapa_destino_id, pipeline_kind, motivo")
-      .eq("tenant_id", body.tenant_id)
-      .not("funil_destino_id", "is", null)
-      .not("etapa_destino_id", "is", null);
+    // 1. Carregar classificações resolvidas (com destino completo) do tenant.
+    // Paginação manual para passar do limite default 1000 do PostgREST.
+    const PAGE = 1000;
+    type Classif = { sm_project_id: string; funil_destino_id: string; etapa_destino_id: string; pipeline_kind: string; motivo: string | null };
+    const classifications: Classif[] = [];
+    let from = 0;
+    while (true) {
+      let q = supabase
+        .from("sm_project_classification")
+        .select("sm_project_id, funil_destino_id, etapa_destino_id, pipeline_kind, motivo")
+        .eq("tenant_id", body.tenant_id)
+        .not("funil_destino_id", "is", null)
+        .not("etapa_destino_id", "is", null)
+        .order("sm_project_id", { ascending: true })
+        .range(from, from + PAGE - 1);
+      if (body.limit) q = q.limit(body.limit);
+      const { data, error: cErr } = await q;
+      if (cErr) throw cErr;
+      if (!data?.length) break;
+      classifications.push(...(data as Classif[]));
+      if (data.length < PAGE || (body.limit && classifications.length >= body.limit)) break;
+      from += PAGE;
+    }
 
-    if (body.limit) q = q.limit(body.limit);
-
-    const { data: classifications, error: cErr } = await q;
-    if (cErr) throw cErr;
-
-    if (!classifications?.length) {
+    if (!classifications.length) {
       return json({ dry_run: dryRun, message: "Nenhuma classificação resolvida.", counters });
     }
 
