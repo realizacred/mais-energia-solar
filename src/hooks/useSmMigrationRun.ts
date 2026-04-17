@@ -251,7 +251,11 @@ export function useSmMigrationRun() {
       updatePhase("createProjects", { status: "running" });
       appendLog(`[${fmtTime(new Date().toISOString())}] ▶ Criando clientes e projetos`);
 
-      const BATCH = 200;
+      // Lote menor para manter cada invocação abaixo do timeout da Edge Function.
+      // A função create-projetos-from-sm ainda executa etapas sequenciais por projeto
+      // (lookup/reuso/criação de cliente + geração de projeto_num), então 200 itens
+      // por chamada estouravam o tempo de resposta e retornavam erro HTTP genérico.
+      const BATCH = 25;
       let totInsertedClients = 0;
       let totReusedClients = 0;
       let totInsertedProjects = 0;
