@@ -1,66 +1,45 @@
 /**
- * BlocoResumo — KPI cards (SSOT: useSmMigrationCounters + última rodada).
- * Border-l semântico, sem cores hardcoded.
+ * BlocoResumo — KPIs derivados EXCLUSIVAMENTE do UnifiedRunResult.
+ * Se houve falha no log, "Falhas" reflete obrigatoriamente.
  */
-import { Users, FolderKanban, ListChecks, Target, Sparkles, AlertOctagon } from "lucide-react";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Sparkles, ListChecks, CheckCircle2, AlertOctagon, Activity } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { MigrationCounters, RunResult } from "@/hooks/useSmMigrationV3";
+import type { UnifiedRunResult } from "@/hooks/useSmMigrationRun";
 
 interface Props {
-  counters: MigrationCounters | undefined;
-  isLoading: boolean;
-  /** Última rodada concluída (qualquer kind). Define "Erros última rodada". */
-  lastRun: RunResult | null;
+  run: UnifiedRunResult;
+  isRunning: boolean;
 }
 
-interface Card {
-  icon: React.ElementType;
-  label: string;
-  value: number | string;
-  borderClass: string;
-  iconClass: string;
-}
-
-export function BlocoResumo({ counters, isLoading, lastRun }: Props) {
-  if (isLoading || !counters) {
-    return (
-      <div className="grid grid-cols-2 lg:grid-cols-6 gap-3">
-        {Array.from({ length: 6 }).map((_, i) => (
-          <Skeleton key={i} className="h-20 rounded-lg" />
-        ))}
-      </div>
-    );
-  }
-
-  const lastFailed = lastRun?.failedCount ?? 0;
-
-  const cards: Card[] = [
-    { icon: Sparkles, label: "Elegíveis", value: counters.eligible, borderClass: "border-l-info", iconClass: "text-info" },
-    { icon: ListChecks, label: "Classificados", value: counters.classified, borderClass: "border-l-secondary", iconClass: "text-secondary" },
-    { icon: FolderKanban, label: "Projetos criados", value: counters.projectsCreated, borderClass: "border-l-primary", iconClass: "text-primary" },
-    { icon: Users, label: "Clientes criados", value: counters.clientsCreated, borderClass: "border-l-primary", iconClass: "text-primary" },
-    { icon: Target, label: "Funis aplicados", value: counters.funnelsApplied, borderClass: "border-l-success", iconClass: "text-success" },
+export function BlocoResumo({ run, isRunning }: Props) {
+  const cards = [
+    { icon: Sparkles, label: "Elegíveis", value: run.eligible, border: "border-l-info", color: "text-info" },
+    { icon: ListChecks, label: "Processados", value: run.successCount + run.failedCount, border: "border-l-secondary", color: "text-secondary" },
+    { icon: CheckCircle2, label: "Sucesso", value: run.successCount, border: "border-l-success", color: "text-success" },
     {
       icon: AlertOctagon,
-      label: "Erros última rodada",
-      value: lastFailed,
-      borderClass: lastFailed > 0 ? "border-l-destructive" : "border-l-muted",
-      iconClass: lastFailed > 0 ? "text-destructive" : "text-muted-foreground",
+      label: "Falhas",
+      value: run.failedCount,
+      border: run.failedCount > 0 ? "border-l-destructive" : "border-l-muted",
+      color: run.failedCount > 0 ? "text-destructive" : "text-muted-foreground",
+    },
+    {
+      icon: Activity,
+      label: isRunning ? "Em execução" : run.finishedAt ? "Finalizado" : "Aguardando",
+      value: `${run.progress}%`,
+      border: isRunning ? "border-l-primary" : "border-l-muted",
+      color: isRunning ? "text-primary" : "text-muted-foreground",
     },
   ];
 
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-6 gap-3">
+    <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
       {cards.map((c) => (
         <div
           key={c.label}
-          className={cn(
-            "rounded-lg border bg-card p-3 border-l-4 flex items-start gap-3 transition-colors",
-            c.borderClass,
-          )}
+          className={cn("rounded-lg border bg-card p-3 border-l-4 flex items-start gap-3", c.border)}
         >
-          <c.icon className={cn("h-5 w-5 mt-0.5 shrink-0", c.iconClass)} />
+          <c.icon className={cn("h-5 w-5 mt-0.5 shrink-0", c.color)} />
           <div className="min-w-0">
             <p className="text-2xl font-semibold tabular-nums leading-none">{c.value}</p>
             <p className="text-[11px] text-muted-foreground mt-1 leading-tight">{c.label}</p>

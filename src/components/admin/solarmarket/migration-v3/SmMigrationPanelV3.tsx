@@ -1,95 +1,40 @@
 /**
- * SmMigrationPanelV3 — Painel reconstruído do módulo de Migração SolarMarket.
+ * SmMigrationPanelV3 — Experiência de migração SolarMarket (rebuild).
  *
- * Substitui o fluxo legado (pipeline global / etapa global / drawer com background).
- * Toda a UI deriva da mesma fonte de verdade:
- *   - useSmMigrationCounters         → KPIs (Bloco A)
- *   - useSmClassificationDistribution → distribuição (Bloco B)
- *   - mutations classify/create/apply → terminal + erros (Bloco D)
- *
- * Sem pipeline_id / stage_id globais. O destino vem de sm_project_classification.
+ * Princípios:
+ *   - 1 botão único: "Migrar dados do SolarMarket"
+ *   - SSOT: useSmMigrationRun → UnifiedRunResult alimenta TODA a UI
+ *   - Sem pipeline/etapa global. Sem background. Sem botões técnicos.
  */
-import { useState, useCallback } from "react";
 import { Sun } from "lucide-react";
 import { PageHeader } from "@/components/ui-kit";
-import {
-  useSmMigrationCounters,
-  useSmClassificationDistribution,
-  useClassifyMutation,
-  useCreateProjetosMutation,
-  useApplyFunilMutation,
-  type RunResult,
-} from "@/hooks/useSmMigrationV3";
-import { toast } from "sonner";
+import { useSmClassificationDistribution } from "@/hooks/useSmMigrationV3";
+import { useSmMigrationRun } from "@/hooks/useSmMigrationRun";
 import { BlocoResumo } from "./BlocoResumo";
 import { BlocoDistribuicao } from "./BlocoDistribuicao";
 import { BlocoExecucao } from "./BlocoExecucao";
 import { BlocoResultado } from "./BlocoResultado";
 
 export default function SmMigrationPanelV3() {
-  const [lastRun, setLastRun] = useState<RunResult | null>(null);
-
-  const { data: counters, isLoading: loadingCounters } = useSmMigrationCounters();
+  const { run, isRunning, start, reset } = useSmMigrationRun();
   const { data: distribution, isLoading: loadingDist } = useSmClassificationDistribution();
-
-  const classify = useClassifyMutation();
-  const createMut = useCreateProjetosMutation();
-  const applyMut = useApplyFunilMutation();
-
-  const handleResult = useCallback((r: RunResult) => {
-    setLastRun(r);
-    if (r.ok && r.failedCount === 0) {
-      toast.success(`${labelKind(r.kind)} concluída`, { description: `${r.successCount} item(ns) processados.` });
-    } else {
-      toast.error(`${labelKind(r.kind)} com falhas`, { description: `${r.failedCount} item(ns) falharam.` });
-    }
-  }, []);
-
-  const onClassify = useCallback(() => {
-    classify.mutate({ reclassifyAll: false }, { onSuccess: handleResult });
-  }, [classify, handleResult]);
-
-  const onCreate = useCallback(
-    (confirmApply: boolean) => {
-      createMut.mutate({ confirmApply }, { onSuccess: handleResult });
-    },
-    [createMut, handleResult],
-  );
-
-  const onApply = useCallback(
-    (confirmApply: boolean) => {
-      applyMut.mutate({ confirmApply }, { onSuccess: handleResult });
-    },
-    [applyMut, handleResult],
-  );
 
   return (
     <div className="space-y-4">
       <PageHeader
         icon={Sun}
-        title="Migração SolarMarket"
-        description="Classificação por registro · sem pipeline global · execução por etapas"
+        title="Importar dados do SolarMarket"
+        description="Sincronize, classifique e migre seus dados para o sistema nativo em um único fluxo."
       />
 
-      <BlocoResumo counters={counters} isLoading={loadingCounters} lastRun={lastRun} />
+      <BlocoResumo run={run} isRunning={isRunning} />
 
       <div className="grid gap-4 lg:grid-cols-2">
         <BlocoDistribuicao rows={distribution} isLoading={loadingDist} />
-        <BlocoExecucao
-          classifying={classify.isPending}
-          creating={createMut.isPending}
-          applying={applyMut.isPending}
-          onClassify={onClassify}
-          onCreate={onCreate}
-          onApply={onApply}
-        />
+        <BlocoExecucao run={run} isRunning={isRunning} onStart={start} onReset={reset} />
       </div>
 
-      <BlocoResultado lastRun={lastRun} />
+      <BlocoResultado run={run} />
     </div>
   );
-}
-
-function labelKind(k: RunResult["kind"]): string {
-  return k === "classify" ? "Classificação" : k === "create" ? "Criação de projetos" : "Aplicação de funil/etapa";
 }

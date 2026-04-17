@@ -1,206 +1,102 @@
 /**
- * BlocoExecucao — 3 ações disparáveis.
- * Sem pipeline global / sem etapa global. Cada botão chama o backend correto.
+ * BlocoExecucao — Botão único de migração + stepper visual + barra de progresso.
+ * O sistema executa classify → create → apply em sequência.
  */
-import { useState } from "react";
-import { Play, FolderPlus, Target, Loader2, ShieldAlert } from "lucide-react";
+import { Rocket, Loader2, RotateCcw, CheckCircle2, XCircle, Circle } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
+import { Progress } from "@/components/ui/progress";
 import { SectionCard } from "@/components/ui-kit";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
+import { cn } from "@/lib/utils";
+import type { UnifiedRunResult, PhaseStatus } from "@/hooks/useSmMigrationRun";
 
 interface Props {
-  classifying: boolean;
-  creating: boolean;
-  applying: boolean;
-  onClassify: () => void;
-  onCreate: (confirmApply: boolean) => void;
-  onApply: (confirmApply: boolean) => void;
+  run: UnifiedRunResult;
+  isRunning: boolean;
+  onStart: () => void;
+  onReset: () => void;
 }
 
-export function BlocoExecucao({
-  classifying,
-  creating,
-  applying,
-  onClassify,
-  onCreate,
-  onApply,
-}: Props) {
-  const [applyMode, setApplyMode] = useState(false);
-  const busy = classifying || creating || applying;
+export function BlocoExecucao({ run, isRunning, onStart, onReset }: Props) {
+  const finished = !!run.finishedAt && !isRunning;
 
   return (
     <SectionCard
-      icon={Play}
+      icon={Rocket}
       title="Execução"
-      description="Cada etapa é independente e idempotente. Padrão: dry-run. Ative APPLY para gravar no banco."
+      description="Inicie a migração. O sistema classifica, cria projetos nativos e aplica funis automaticamente."
       variant="neutral"
     >
       <div className="space-y-4">
-        {/* Apply switch */}
-        <div className="flex items-center justify-between rounded-md border bg-muted/30 px-3 py-2">
-          <div className="flex items-center gap-2">
-            <ShieldAlert className={applyMode ? "h-4 w-4 text-warning" : "h-4 w-4 text-muted-foreground"} />
-            <Label htmlFor="apply-mode" className="text-sm cursor-pointer">
-              {applyMode ? "Modo APPLY (grava no banco)" : "Modo dry-run (simulação)"}
-            </Label>
-          </div>
-          <Switch id="apply-mode" checked={applyMode} onCheckedChange={setApplyMode} disabled={busy} />
-        </div>
-
-        {/* Buttons */}
-        <div className="grid gap-3 sm:grid-cols-3">
-          {/* 1. Classificar — sempre seguro, escreve em sm_project_classification */}
-          <ActionButton
-            icon={Play}
-            label="Rodar classificação"
-            sub="classify-sm-projects"
-            loading={classifying}
-            disabled={busy}
-            onClick={onClassify}
-          />
-
-          {/* 2. Criar projetos nativos — exige confirmação se APPLY */}
-          {applyMode ? (
-            <ConfirmAction
-              icon={FolderPlus}
-              label="Criar projetos nativos"
-              sub="create-projetos-from-sm · APPLY"
-              variant="warning"
-              loading={creating}
-              disabled={busy}
-              confirmTitle="Criar projetos nativos no banco?"
-              confirmDesc="Vai inserir clientes e projetos a partir de todos os SM elegíveis. Idempotente, mas grava de fato."
-              onConfirm={() => onCreate(true)}
-            />
+        <Button
+          size="lg"
+          className="w-full h-12 text-sm font-medium"
+          onClick={onStart}
+          disabled={isRunning}
+        >
+          {isRunning ? (
+            <>
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              Migrando...
+            </>
           ) : (
-            <ActionButton
-              icon={FolderPlus}
-              label="Criar projetos nativos"
-              sub="create-projetos-from-sm · dry-run"
-              loading={creating}
-              disabled={busy}
-              onClick={() => onCreate(false)}
-            />
+            <>
+              <Rocket className="h-4 w-4 mr-2" />
+              Migrar dados do SolarMarket
+            </>
           )}
+        </Button>
 
-          {/* 3. Aplicar funil/etapa */}
-          {applyMode ? (
-            <ConfirmAction
-              icon={Target}
-              label="Aplicar funil/etapa"
-              sub="migrate-sm-proposals-v3 · APPLY"
-              variant="warning"
-              loading={applying}
-              disabled={busy}
-              confirmTitle="Aplicar funil/etapa em projetos nativos?"
-              confirmDesc="Atualiza funil_id/etapa_id em projetos já criados, conforme sm_project_classification."
-              onConfirm={() => onApply(true)}
-            />
-          ) : (
-            <ActionButton
-              icon={Target}
-              label="Aplicar funil/etapa"
-              sub="migrate-sm-proposals-v3 · dry-run"
-              loading={applying}
-              disabled={busy}
-              onClick={() => onApply(false)}
-            />
-          )}
-        </div>
+        {(isRunning || finished) && (
+          <>
+            <div className="space-y-1.5">
+              <div className="flex justify-between text-xs text-muted-foreground">
+                <span>Progresso</span>
+                <span className="tabular-nums">{run.progress}%</span>
+              </div>
+              <Progress value={run.progress} className="h-2" />
+            </div>
+
+            <ul className="space-y-1.5">
+              {run.phases.map((p) => (
+                <PhaseRow key={p.key} phase={p} />
+              ))}
+            </ul>
+          </>
+        )}
+
+        {finished && (
+          <Button variant="ghost" size="sm" className="w-full" onClick={onReset}>
+            <RotateCcw className="h-3.5 w-3.5 mr-2" />
+            Limpar resultado
+          </Button>
+        )}
       </div>
     </SectionCard>
   );
 }
 
-function ActionButton({
-  icon: Icon,
-  label,
-  sub,
-  loading,
-  disabled,
-  onClick,
-}: {
-  icon: React.ElementType;
-  label: string;
-  sub: string;
-  loading: boolean;
-  disabled: boolean;
-  onClick: () => void;
-}) {
-  return (
-    <Button
-      variant="outline"
-      className="h-auto py-3 px-3 flex flex-col items-start gap-1 text-left"
-      disabled={disabled}
-      onClick={onClick}
-    >
-      <div className="flex items-center gap-2 w-full">
-        {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Icon className="h-4 w-4" />}
-        <span className="text-sm font-medium">{label}</span>
-      </div>
-      <span className="text-[10px] text-muted-foreground font-mono truncate w-full">{sub}</span>
-    </Button>
-  );
-}
+function PhaseRow({ phase }: { phase: PhaseStatus }) {
+  const Icon =
+    phase.status === "success" ? CheckCircle2 :
+    phase.status === "error" ? XCircle :
+    phase.status === "running" ? Loader2 : Circle;
+  const tone =
+    phase.status === "success" ? "text-success" :
+    phase.status === "error" ? "text-destructive" :
+    phase.status === "running" ? "text-primary" : "text-muted-foreground";
 
-function ConfirmAction({
-  icon: Icon,
-  label,
-  sub,
-  loading,
-  disabled,
-  variant,
-  confirmTitle,
-  confirmDesc,
-  onConfirm,
-}: {
-  icon: React.ElementType;
-  label: string;
-  sub: string;
-  loading: boolean;
-  disabled: boolean;
-  variant: "warning";
-  confirmTitle: string;
-  confirmDesc: string;
-  onConfirm: () => void;
-}) {
   return (
-    <AlertDialog>
-      <AlertDialogTrigger asChild>
-        <Button
-          variant="outline"
-          className="h-auto py-3 px-3 flex flex-col items-start gap-1 text-left border-warning/40"
-          disabled={disabled}
-        >
-          <div className="flex items-center gap-2 w-full">
-            {loading ? <Loader2 className="h-4 w-4 animate-spin text-warning" /> : <Icon className="h-4 w-4 text-warning" />}
-            <span className="text-sm font-medium">{label}</span>
-          </div>
-          <span className="text-[10px] text-warning font-mono truncate w-full">{sub}</span>
-        </Button>
-      </AlertDialogTrigger>
-      <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogTitle>{confirmTitle}</AlertDialogTitle>
-          <AlertDialogDescription>{confirmDesc}</AlertDialogDescription>
-        </AlertDialogHeader>
-        <AlertDialogFooter>
-          <AlertDialogCancel>Cancelar</AlertDialogCancel>
-          <AlertDialogAction onClick={onConfirm}>Confirmar</AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
+    <li className="flex items-center justify-between gap-3 rounded-md border bg-card px-3 py-2 text-sm">
+      <div className="flex items-center gap-2 min-w-0">
+        <Icon className={cn("h-4 w-4 shrink-0", tone, phase.status === "running" && "animate-spin")} />
+        <span className="truncate">{phase.label}</span>
+      </div>
+      {(phase.status === "success" || phase.status === "error") && (
+        <span className="text-xs text-muted-foreground tabular-nums shrink-0">
+          {phase.successCount} ok
+          {phase.failedCount > 0 && <span className="text-destructive ml-1">· {phase.failedCount} falha(s)</span>}
+        </span>
+      )}
+    </li>
   );
 }
