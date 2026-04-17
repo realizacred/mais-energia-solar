@@ -168,25 +168,50 @@ export function useSmMigrationRun() {
       };
     });
 
-    // ── Fase 2: create (APPLY) ───────────────────────────
+    // ── Fase 2: create (APPLY) — chunked para evitar timeout HTTP ─────────
     const ok2 = ok1
       ? await runPhase("create", "Criando projetos nativos", async () => {
-          const { data, error } = await supabase.functions.invoke("create-projetos-from-sm", {
-            body: { tenant_id: tenantId, confirm_apply: true },
-          });
-          if (error) throw new Error(error.message);
-          const inserted = Number(data?.inserted_projects ?? 0);
-          const insertedClients = Number(data?.inserted_clients ?? 0);
-          const failed = Number(data?.failed_count ?? 0);
-          const sample = Array.isArray(data?.failed_sample) ? data.failed_sample : [];
+          const BATCH = 200;
+          let totalInserted = 0;
+          let totalClients = 0;
+          let totalFailed = 0;
+          const allSample: Array<{ ref: string | number; reason: string }> = [];
+          const logs: string[] = [];
+          let pass = 0;
+
+          while (true) {
+            pass++;
+            const { data, error } = await supabase.functions.invoke("create-projetos-from-sm", {
+              body: { tenant_id: tenantId, confirm_apply: true, limit: BATCH },
+            });
+            if (error) throw new Error(error.message);
+            const inserted = Number(data?.inserted_projects ?? 0);
+            const insertedClients = Number(data?.inserted_clients ?? 0);
+            const failed = Number(data?.failed_count ?? 0);
+            const eligible = Number(data?.eligible ?? 0);
+            const alreadyExist = Number(data?.already_exist ?? 0);
+            const sample = Array.isArray(data?.failed_sample) ? data.failed_sample : [];
+
+            totalInserted += inserted;
+            totalClients += insertedClients;
+            totalFailed += failed;
+            for (const s of sample) {
+              allSample.push({ ref: s.sm_project_id ?? "?", reason: s.reason ?? "sem motivo" });
+            }
+            logs.push(`Lote ${pass}: +${inserted} projetos · +${insertedClients} clientes · ${failed} falha(s)`);
+
+            // Sai quando não houver mais o que inserir neste lote
+            const remaining = eligible - alreadyExist;
+            if (remaining <= 0 || inserted + failed === 0) break;
+            // segurança: no máximo 50 lotes (10k projetos)
+            if (pass >= 50) break;
+          }
+
           return {
-            success: inserted,
-            failed,
-            sample: sample.slice(0, 10).map((s: any) => ({
-              ref: s.sm_project_id ?? "?",
-              reason: s.reason ?? "sem motivo",
-            })),
-            logs: [`Projetos: ${inserted} · Clientes: ${insertedClients} · Falhas: ${failed}`],
+            success: totalInserted,
+            failed: totalFailed,
+            sample: allSample.slice(0, 10),
+            logs: [...logs, `Total: ${totalInserted} projetos · ${totalClients} clientes · ${totalFailed} falha(s)`],
           };
         })
       : false;
