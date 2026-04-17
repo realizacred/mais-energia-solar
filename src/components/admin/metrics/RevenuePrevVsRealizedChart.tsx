@@ -57,7 +57,7 @@ export function RevenuePrevVsRealizedChart() {
           </div>
           <div>
             <CardTitle className="text-base font-semibold">Receita Prevista vs Realizada</CardTitle>
-            <CardDescription>Comparação mensal de pipeline criado vs receita ganha</CardDescription>
+            <CardDescription>Comparação mensal de funil criado vs receita ganha</CardDescription>
           </div>
         </div>
         <Select value={String(months)} onValueChange={(v) => setMonths(Number(v))}>
@@ -76,7 +76,7 @@ export function RevenuePrevVsRealizedChart() {
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <div className="rounded-lg bg-muted/30 border border-border/40 p-3 text-center">
             <p className="text-lg font-bold tracking-tight text-foreground">{formatBRLCompact(totalPrevisto)}</p>
-            <p className="text-xs text-muted-foreground mt-0.5">Pipeline criado</p>
+            <p className="text-xs text-muted-foreground mt-0.5">Funil criado</p>
           </div>
           <div className="rounded-lg bg-success/5 border border-success/20 p-3 text-center">
             <p className="text-lg font-bold tracking-tight text-success">{formatBRLCompact(totalRealizado)}</p>
@@ -101,7 +101,7 @@ export function RevenuePrevVsRealizedChart() {
         {monthly.length > 0 ? (
           <ChartContainer
             config={{
-              previsto: { label: "Pipeline criado", color: "hsl(var(--muted-foreground))" },
+              previsto: { label: "Funil criado", color: "hsl(var(--muted-foreground))" },
               realizado: { label: "Receita realizada", color: "hsl(var(--success))" },
             }}
             className="h-[280px]"

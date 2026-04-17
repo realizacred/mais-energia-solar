@@ -45,7 +45,7 @@ interface ChecklistItem {
 const DEFAULT_CHECKLIST_ITEMS: Omit<ChecklistItem, "checked">[] = [
   { id: "login", label: "Login/Logout funcional", category: "Funcionalidades Críticas", required: true },
   { id: "lead_form", label: "Formulário de lead (público) funciona", category: "Funcionalidades Críticas", required: true },
-  { id: "lead_pipeline", label: "Pipeline de leads (drag & drop)", category: "Funcionalidades Críticas", required: true },
+  { id: "lead_pipeline", label: "Funil de leads (drag & drop)", category: "Funcionalidades Críticas", required: true },
   { id: "orcamento", label: "Criação de orçamento", category: "Funcionalidades Críticas", required: true },
   { id: "financeiro", label: "Financeiro (parcelas/recebimentos)", category: "Funcionalidades Críticas", required: true },
   { id: "checklist_inst", label: "Checklist de instalação", category: "Funcionalidades Críticas", required: true },

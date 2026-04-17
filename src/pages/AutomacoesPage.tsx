@@ -45,7 +45,7 @@ export default function AutomacoesPage() {
         <TabsList className="overflow-x-auto flex-wrap h-auto">
           <TabsTrigger value="pipeline" className="gap-2 shrink-0 whitespace-nowrap">
             <Kanban className="h-4 w-4" />
-            Pipeline
+            Funil
           </TabsTrigger>
           <TabsTrigger value="whatsapp" className="gap-2 shrink-0 whitespace-nowrap">
             <MessageCircle className="h-4 w-4" />
@@ -58,7 +58,7 @@ export default function AutomacoesPage() {
         </TabsList>
 
         <TabsContent value="pipeline" className="mt-0">
-          <Suspense fallback={<LoadingState message="Carregando automações de pipeline..." />}>
+          <Suspense fallback={<LoadingState message="Carregando automações de funil..." />}>
             <PipelineAutomations />
           </Suspense>
         </TabsContent>

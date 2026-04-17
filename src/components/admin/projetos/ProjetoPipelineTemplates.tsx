@@ -25,7 +25,7 @@ const TEMPLATES: PipelineTemplate[] = [
   {
     id: "vendas",
     name: "Vendas (Micro/Mini GD)",
-    description: "Pipeline comercial completo para projetos de geração distribuída",
+    description: "Funil comercial completo para projetos de geração distribuída",
     icon: Zap,
     stages: [
       { name: "Qualificação Técnica", probability: 10 },
