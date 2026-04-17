@@ -46,11 +46,8 @@ import { useSmSyncProgress } from "@/hooks/useSmSyncProgress";
 import { SmClientDetailDialog } from "@/components/admin/solarmarket/SmClientDetailDialog";
 import { SmProjectDetailDialog } from "@/components/admin/solarmarket/SmProjectDetailDialog";
 import { SmProposalDetailDialog } from "@/components/admin/solarmarket/SmProposalDetailDialog";
-import { SmMigrationToggle } from "@/components/admin/solarmarket/SmMigrationToggle";
 import { SmOperationStatusPanel } from "@/components/admin/solarmarket/SmOperationStatusPanel";
-import { SmMigrationDrawer } from "@/components/admin/solarmarket/SmMigrationDrawer";
 import SmMigrationPanelV3 from "@/components/admin/solarmarket/migration-v3/SmMigrationPanelV3";
-import { Checkbox } from "@/components/ui/checkbox";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { TablePagination } from "@/components/ui-kit/TablePagination";
@@ -263,59 +260,30 @@ function ProjectsTable({ projects, onSelect, onNavigateProposals, clientsMap, pa
   );
 }
 
-function ProposalsTable({ proposals, onSelect, pagination, selectedIds, onToggleSelect, onToggleAll, onMigrate }: {
+function ProposalsTable({ proposals, onSelect, pagination }: {
   proposals: SmProposal[];
   onSelect: (p: SmProposal) => void;
   pagination?: { page: number; pageSize: number; onPageChange: (p: number) => void; onPageSizeChange: (s: number) => void };
-  selectedIds: Set<string>;
-  onToggleSelect: (id: string) => void;
-  onToggleAll: (displayed: SmProposal[]) => void;
-  onMigrate: (proposals: SmProposal[]) => void;
 }) {
   const displayed = pagination ? paginate(proposals, pagination.page, pagination.pageSize) : proposals;
-  const allDisplayedSelected = displayed.length > 0 && displayed.every(p => selectedIds.has(p.id));
-  const hasSelection = selectedIds.size > 0;
 
   return (
-    <SectionCard icon={FileText} title="Propostas" variant="neutral" noPadding
-      actions={hasSelection ? (
-        <Button size="sm" variant="outline" className="text-xs h-7" onClick={() => {
-          const selected = proposals.filter(p => selectedIds.has(p.id));
-          onMigrate(selected.slice(0, 10));
-        }}>
-          <ArrowRightLeft className="h-3 w-3 mr-1" />
-          Migrar {selectedIds.size > 10 ? "10 de " : ""}{selectedIds.size} selecionada(s)
-        </Button>
-      ) : undefined}
-    >
+    <SectionCard icon={FileText} title="Propostas" variant="neutral" noPadding>
       <div className="overflow-x-auto">
       <Table>
         <TableHeader>
           <TableRow className="bg-muted/50 hover:bg-muted/50">
-            <TableHead className="w-10">
-              <Checkbox
-                checked={allDisplayedSelected}
-                onCheckedChange={() => onToggleAll(displayed)}
-              />
-            </TableHead>
             <TableHead>Título</TableHead>
             <TableHead>Potência</TableHead>
             <TableHead>Valor</TableHead>
             <TableHead>Status</TableHead>
             <TableHead>Status Migração</TableHead>
-            <TableHead>Migração</TableHead>
             <TableHead className="text-right">Ações</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {displayed.map(pr => (
             <TableRow key={pr.id} className="cursor-pointer" onClick={() => onSelect(pr)}>
-              <TableCell onClick={e => e.stopPropagation()}>
-                <Checkbox
-                  checked={selectedIds.has(pr.id)}
-                  onCheckedChange={() => onToggleSelect(pr.id)}
-                />
-              </TableCell>
               <TableCell>
                 <div className="flex items-center gap-1.5">
                   <p className="font-medium">{pr.titulo || "—"}</p>
@@ -356,18 +324,10 @@ function ProposalsTable({ proposals, onSelect, pagination, selectedIds, onToggle
                   </Badge>
                 )}
               </TableCell>
-              <TableCell>
-                <SmMigrationToggle proposal={pr} />
-              </TableCell>
               <TableCell className="text-right" onClick={e => e.stopPropagation()}>
-                <div className="flex justify-end gap-1">
-                  <Button size="sm" variant="ghost" className="text-primary hover:text-primary h-7 px-1.5" onClick={() => onMigrate([pr])} title="Migrar">
-                    <ArrowRightLeft className="h-3.5 w-3.5" />
-                  </Button>
-                  <Button size="sm" variant="ghost" className="text-secondary hover:text-secondary h-7 px-1.5" onClick={() => onSelect(pr)} title="Detalhes">
-                    <Eye className="h-3.5 w-3.5" />
-                  </Button>
-                </div>
+                <Button size="sm" variant="ghost" className="text-secondary hover:text-secondary h-7 px-1.5" onClick={() => onSelect(pr)} title="Detalhes">
+                  <Eye className="h-3.5 w-3.5" />
+                </Button>
               </TableCell>
             </TableRow>
           ))}
@@ -553,36 +513,8 @@ export default function SolarMarketPage() {
   const canResetMigrated = resetMigratedText === "LIMPAR MIGRADOS" && !resetMigratedMutation.isPending;
 
 
-  const [selectedProposalIds, setSelectedProposalIds] = useState<Set<string>>(new Set());
-  const [migrationDrawerProposals, setMigrationDrawerProposals] = useState<SmProposal[]>([]);
-  const [migrationDrawerOpen, setMigrationDrawerOpen] = useState(false);
-  const [migrationRunning, setMigrationRunning] = useState(false);
+  // (Removido: estado de seleção/drawer de migração legado — agora unificado em SmMigrationPanelV3)
 
-  const toggleProposalSelect = useCallback((id: string) => {
-    setSelectedProposalIds(prev => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id); else next.add(id);
-      return next;
-    });
-  }, []);
-
-  const toggleAllProposals = useCallback((displayed: SmProposal[]) => {
-    setSelectedProposalIds(prev => {
-      const allSelected = displayed.every(p => prev.has(p.id));
-      const next = new Set(prev);
-      if (allSelected) {
-        displayed.forEach(p => next.delete(p.id));
-      } else {
-        displayed.forEach(p => next.add(p.id));
-      }
-      return next;
-    });
-  }, []);
-
-  const openMigrationDrawer = useCallback((proposals: SmProposal[]) => {
-    setMigrationDrawerProposals(proposals);
-    setMigrationDrawerOpen(true);
-  }, []);
 
   // Pagination state per tab
   const clientsPag = usePagination(100);
@@ -628,8 +560,7 @@ export default function SolarMarketPage() {
   const { data: activeSmRun } = useActiveSmOperation();
   const isAnySyncActive = syncIsRunning || isBgSyncActive;
   const isBackgroundMigrationActive = activeSmRun?.operation_type === "migrate_to_native" && (activeSmRun as any)?._stale !== true;
-  const isDrawerMigrationRunning = migrationDrawerOpen && migrationRunning;
-  const isMigrationActive = isDrawerMigrationRunning || isBackgroundMigrationActive;
+  const isMigrationActive = isBackgroundMigrationActive;
 
   const { data: syncProgressData } = useSmSyncProgress();
 
@@ -657,7 +588,7 @@ export default function SolarMarketPage() {
   const ssotMigratedProposals = syncProgressData?.proposalsMigrated ?? migratedProposalsCount;
   const pendingMigrationTotal = ssotPendingProposals + pendingProjectsNoProposal.length;
 
-  const [migrateAllOpen, setMigrateAllOpen] = useState(false);
+  
   const [syncPipelinesRunning, setSyncPipelinesRunning] = useState(false);
   const [syncPipelinesResult, setSyncPipelinesResult] = useState<{
     pipelines: { created: number; existing: number };
@@ -858,16 +789,6 @@ export default function SolarMarketPage() {
                 <StopCircle className="h-3.5 w-3.5" />
                 Parar Sync
               </Button>
-            ) : isMigrationActive ? (
-              <Button onClick={() => setMigrationDrawerOpen(true)} size="sm" className="w-full gap-1.5 sm:w-auto">
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                Ver Migração
-              </Button>
-            ) : pendingMigrationTotal > 0 && !syncIsRunning && projects.length > 0 && hasActiveFunis !== false ? (
-              <Button onClick={() => setMigrateAllOpen(true)} size="sm" variant="default" className="w-full gap-1.5 sm:w-auto">
-                <ArrowRightLeft className="h-3.5 w-3.5" />
-                Migrar {pendingMigrationTotal} Propostas
-              </Button>
             ) : (
               <Button onClick={syncUntilComplete} disabled={syncIsRunning} size="sm" className="w-full gap-1.5 sm:w-auto">
                 {syncIsRunning ? (
@@ -919,33 +840,7 @@ export default function SolarMarketPage() {
           </Button>
         </div>
 
-        {/* Migration actions */}
-        <div className="flex flex-wrap items-center gap-1.5 rounded-lg border border-border bg-card/50 px-3 py-2">
-          <span className="mr-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Migrar</span>
-          <Button
-            onClick={() => {
-                if (isMigrationActive) {
-                setMigrationDrawerOpen(true);
-              } else {
-                setMigrateAllOpen(true);
-              }
-            }}
-            disabled={!isMigrationActive && (pendingMigrationTotal === 0 || hasActiveFunis === false)}
-            title={hasActiveFunis === false ? "Sincronize funis e etapas antes de migrar" : undefined}
-            size="sm"
-            variant={isMigrationActive ? "default" : "outline"}
-            className={cn("gap-1 h-7 text-xs", isMigrationActive && "animate-pulse")}
-          >
-            {isMigrationActive ? (
-              <Loader2 className="h-3 w-3 animate-spin" />
-            ) : (
-              <Upload className="h-3 w-3" />
-            )}
-            {isMigrationActive
-              ? "Migrando..."
-              : `Migrar (${pendingMigrationTotal})`}
-          </Button>
-        </div>
+        {/* (Removido: bloco "Migrar" legado — agora unificado em SmMigrationPanelV3) */}
 
         {/* Reset actions */}
         <div className="flex flex-wrap items-center gap-1.5 rounded-lg border border-border bg-card/50 px-3 py-2 xl:justify-end">
@@ -1092,51 +987,7 @@ export default function SolarMarketPage() {
         </div>
       </div>
 
-      {/* Migrate All Dialog */}
-      <AlertDialog open={migrateAllOpen} onOpenChange={setMigrateAllOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle className="flex items-center gap-2">
-              <Upload className="h-5 w-5 text-primary" />
-              Migrar tudo para o sistema canônico
-            </AlertDialogTitle>
-            <AlertDialogDescription asChild>
-              <div className="space-y-3">
-                <div className="rounded-md border border-primary/20 bg-primary/5 p-3 text-sm text-foreground">
-                  <strong>PASSO 0:</strong> Funis, etapas e consultores serão sincronizados automaticamente antes da migração.
-                </div>
-                <p className="text-sm text-foreground font-medium">Serão migrados:</p>
-                <ul className="text-sm text-muted-foreground list-disc pl-5 space-y-1">
-                  <li><strong>{ssotPendingProposals}</strong> propostas pendentes</li>
-                  <li><strong>{pendingProjectsNoProposal.length}</strong> projetos sem proposta pendentes</li>
-                </ul>
-                {ssotMigratedProposals > 0 && (
-                  <p className="text-xs text-muted-foreground">
-                    Já migrados anteriormente: <strong>{ssotMigratedProposals}</strong> (serão ignorados)
-                  </p>
-                )}
-              </div>
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <Button
-              onClick={async () => {
-                setMigrateAllOpen(false);
-                // PASSO 0: sync pipelines first
-                try {
-                  await runSyncPipelines();
-                } catch {
-                  // Best-effort — continue with migration
-                }
-                openMigrationDrawer(pendingProposals);
-              }}
-            >
-              Confirmar Migração
-            </Button>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      {/* (Removido: dialog "Migrar tudo" legado — fluxo unificado em SmMigrationPanelV3) */}
 
       {/* Warning: no active funis */}
       {hasActiveFunis === false && !syncPipelinesResult && (
@@ -1346,7 +1197,7 @@ export default function SolarMarketPage() {
             filtered.proposals.length === 0 ? (
               <EmptyState icon={FileText} title="Nenhuma proposta encontrada" description="Propostas são descobertas durante a varredura de projetos. Execute a sincronização completa." />
             ) : (
-              <ProposalsTable proposals={filtered.proposals} onSelect={setSelectedProposal} selectedIds={selectedProposalIds} onToggleSelect={toggleProposalSelect} onToggleAll={toggleAllProposals} onMigrate={openMigrationDrawer} pagination={{ page: proposalsPag.page, pageSize: proposalsPag.pageSize, onPageChange: proposalsPag.setPage, onPageSizeChange: proposalsPag.setPageSize }} />
+              <ProposalsTable proposals={filtered.proposals} onSelect={setSelectedProposal} pagination={{ page: proposalsPag.page, pageSize: proposalsPag.pageSize, onPageChange: proposalsPag.setPage, onPageSizeChange: proposalsPag.setPageSize }} />
             )}
         </TabsContent>
 
@@ -1442,12 +1293,6 @@ export default function SolarMarketPage() {
         proposal={selectedProposal}
         open={!!selectedProposal}
         onOpenChange={(v) => { if (!v) setSelectedProposal(null); }}
-      />
-      <SmMigrationDrawer
-        proposals={migrationDrawerProposals}
-        open={migrationDrawerOpen}
-        onOpenChange={setMigrationDrawerOpen}
-        onRunningChange={setMigrationRunning}
       />
     </div>
   );
