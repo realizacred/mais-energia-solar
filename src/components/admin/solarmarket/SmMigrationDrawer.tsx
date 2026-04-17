@@ -124,6 +124,8 @@ const STEP_LABELS: Record<string, string> = {
   _fatal: "Erro fatal",
 };
 
+const SUCCESS_STEP_STATUSES = ["CREATED", "SUCCESS", "WOULD_CREATE", "WOULD_LINK", "WOULD_SKIP"] as const;
+
 function humanizeStepResult(
   stepKey: string,
   stepVal: { status: string; id?: string; reason?: string },
@@ -755,7 +757,7 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange, onRunningChan
               for (const [key, stepName] of Object.entries(stepMap)) {
                 const serverStep = (detail.steps as Record<string, any>)[key];
                 if (serverStep) {
-                  const isOk = ["WOULD_CREATE", "WOULD_LINK", "WOULD_SKIP", "SUCCESS"].includes(serverStep.status);
+                  const isOk = SUCCESS_STEP_STATUSES.includes(serverStep.status);
                   updateStep(stepName, {
                     state: isOk ? "done" : "error",
                     detail: `${serverStep.status}${serverStep.id ? ` → ${serverStep.id.slice(0, 8)}...` : ""}${serverStep.reason ? ` (${serverStep.reason})` : ""}`,
@@ -869,7 +871,7 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange, onRunningChan
         for (const [key, stepName] of Object.entries(stepMap)) {
           const serverStep = detail.steps[key];
           if (serverStep) {
-            const isOk = ["WOULD_CREATE", "WOULD_LINK", "WOULD_SKIP", "SUCCESS"].includes(serverStep.status);
+            const isOk = SUCCESS_STEP_STATUSES.includes(serverStep.status);
             updateStep(stepName, {
               state: isOk ? "done" : "error",
               detail: `${serverStep.status}${serverStep.id ? ` → ${serverStep.id.slice(0, 8)}...` : ""}${serverStep.reason ? ` (${serverStep.reason})` : ""}`,
