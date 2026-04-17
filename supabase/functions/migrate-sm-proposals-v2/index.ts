@@ -5169,32 +5169,14 @@ Deno.serve(async (req) => {
       } catch (_) { /* best-effort */ }
     }
 
+    // [REMOVIDO] auto-dispatch da próxima leva da migração em background.
+    // Cada batch executa apenas o pedido pelo cliente — nada se auto-encadeia.
+    // Sempre desabilita o flag enabled após qualquer batch para evitar reativação acidental.
     if (!dry_run && params.auto_resume) {
-      if (pendingAfter === 0) {
-        await adminClient
-          .from("sm_migration_settings")
-          .update({ enabled: false, updated_at: new Date().toISOString() })
-          .eq("tenant_id", tenantId);
-      } else if (!backgroundMigrationEnabled) {
-        console.warn(`[SM Migration] Auto-resume stopped by user for tenant ${tenantId}; skipping next dispatch.`);
-      } else if ((successCount > 0 || skipCount > 0) && params.pipeline_id) {
-        dispatchBackgroundMigrationRun({
-          supabaseUrl,
-          serviceKey,
-          tenantId,
-          pipelineId: params.pipeline_id,
-          stageId: params.stage_id || null,
-          ownerId: params.owner_id || null,
-          autoResolveOwner,
-          batchSize: Math.max(1, Math.min(Number(batch_size || 20), 50)),
-        });
-      } else {
-        await adminClient
-          .from("sm_migration_settings")
-          .update({ enabled: false, updated_at: new Date().toISOString() })
-          .eq("tenant_id", tenantId);
-        console.warn("[SM Migration] Auto-resume paused after a batch with no progress.");
-      }
+      await adminClient
+        .from("sm_migration_settings")
+        .update({ enabled: false, updated_at: new Date().toISOString() })
+        .eq("tenant_id", tenantId);
     }
 
     return new Response(JSON.stringify(result), {
