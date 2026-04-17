@@ -1403,12 +1403,6 @@ export default function SolarMarketPage() {
         open={!!selectedProposal}
         onOpenChange={(v) => { if (!v) setSelectedProposal(null); }}
       />
-      <SmMigrationDrawer
-        proposals={migrationDrawerProposals}
-        open={migrationDrawerOpen}
-        onOpenChange={setMigrationDrawerOpen}
-        onRunningChange={setMigrationRunning}
-      />
     </div>
   );
 }
