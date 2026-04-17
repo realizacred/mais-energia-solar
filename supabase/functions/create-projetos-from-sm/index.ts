@@ -301,6 +301,18 @@ Deno.serve(async (req) => {
         .maybeSingle();
       return (data?.id as string) ?? null;
     }
+    async function nextProjetoNum(): Promise<number> {
+      const { data, error } = await sb.rpc("next_tenant_number", {
+        p_tenant_id: tenantId,
+        p_entity: "projeto",
+      });
+      if (error) throw new Error(`next_tenant_number(projeto): ${error.message}`);
+      const value = Number(data);
+      if (!Number.isFinite(value) || value <= 0) {
+        throw new Error(`next_tenant_number(projeto) retornou valor inválido: ${String(data)}`);
+      }
+      return value;
+    }
 
     for (const p of pending) {
       const smpId = Number(p.sm_project_id);
@@ -402,10 +414,12 @@ Deno.serve(async (req) => {
         // já registrado em failed acima
         continue;
       }
+      const projeto_num = await nextProjetoNum();
       projetoRows.push({
         tenant_id: tenantId,
         sm_project_id: smpId,
         cliente_id,
+        projeto_num,
         codigo: `SM-${smpId}`,
         import_source: "solar_market",
       });
