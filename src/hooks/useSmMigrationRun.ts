@@ -10,7 +10,7 @@
  * Sem pipeline global. Sem etapa global. Sem background.
  * O usuário só inicia e acompanha.
  */
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { getCurrentTenantId } from "@/lib/getCurrentTenantId";
@@ -76,13 +76,19 @@ export function useSmMigrationRun() {
   const qc = useQueryClient();
   const [run, setRun] = useState<UnifiedRunResult>(emptyRun);
   const [isRunning, setIsRunning] = useState(false);
+  const cancelRef = useRef(false);
 
   const reset = useCallback(() => {
     setRun(emptyRun());
   }, []);
 
+  const cancel = useCallback(() => {
+    cancelRef.current = true;
+  }, []);
+
   const start = useCallback(async () => {
     if (isRunning) return;
+    cancelRef.current = false;
     setIsRunning(true);
     const startedAt = new Date().toISOString();
     let state: UnifiedRunResult = { ...emptyRun(), startedAt, logLines: [`[${fmtTime(startedAt)}] Iniciando migração SolarMarket`] };
@@ -180,6 +186,10 @@ export function useSmMigrationRun() {
           let pass = 0;
 
           while (true) {
+            if (cancelRef.current) {
+              logs.push(`⛔ Cancelado pelo usuário no lote ${pass}`);
+              break;
+            }
             pass++;
             const { data, error } = await supabase.functions.invoke("create-projetos-from-sm", {
               body: { tenant_id: tenantId, confirm_apply: true, limit: BATCH },
@@ -217,7 +227,7 @@ export function useSmMigrationRun() {
       : false;
 
     // ── Fase 3: apply (APPLY) ────────────────────────────
-    if (ok2) {
+    if (ok2 && !cancelRef.current) {
       await runPhase("apply", "Aplicando funis/etapas", async () => {
         const { data, error } = await supabase.functions.invoke("migrate-sm-proposals-v3", {
           body: { tenant_id: tenantId, confirm_apply: true },
@@ -240,20 +250,28 @@ export function useSmMigrationRun() {
     }
 
     const finishedAt = new Date().toISOString();
+    const wasCancelled = cancelRef.current;
     state = {
       ...state,
       finishedAt,
-      ok: state.failedCount === 0 && state.phases.every((p) => p.status === "success"),
+      ok: !wasCancelled && state.failedCount === 0 && state.phases.every((p) => p.status === "success"),
       logLines: [
         ...state.logLines,
-        `[${fmtTime(finishedAt)}] ${state.failedCount === 0 ? "✔ Migração concluída" : `✖ Migração com ${state.failedCount} falha(s)`}`,
+        `[${fmtTime(finishedAt)}] ${
+          wasCancelled
+            ? "⛔ Migração cancelada pelo usuário"
+            : state.failedCount === 0
+              ? "✔ Migração concluída"
+              : `✖ Migração com ${state.failedCount} falha(s)`
+        }`,
       ],
     };
     setRun({ ...state });
     setIsRunning(false);
+    cancelRef.current = false;
 
     qc.invalidateQueries({ queryKey: ["sm-migration-v3"] });
   }, [isRunning, qc]);
 
-  return { run, isRunning, start, reset };
+  return { run, isRunning, start, reset, cancel };
 }

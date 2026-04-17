@@ -2,7 +2,7 @@
  * BlocoExecucao — Botão único de migração + stepper visual + barra de progresso.
  * O sistema executa classify → create → apply em sequência.
  */
-import { Rocket, Loader2, RotateCcw, CheckCircle2, XCircle, Circle } from "lucide-react";
+import { Rocket, Loader2, RotateCcw, CheckCircle2, XCircle, Circle, Ban } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { SectionCard } from "@/components/ui-kit";
@@ -14,9 +14,10 @@ interface Props {
   isRunning: boolean;
   onStart: () => void;
   onReset: () => void;
+  onCancel?: () => void;
 }
 
-export function BlocoExecucao({ run, isRunning, onStart, onReset }: Props) {
+export function BlocoExecucao({ run, isRunning, onStart, onReset, onCancel }: Props) {
   const finished = !!run.finishedAt && !isRunning;
 
   return (
@@ -27,24 +28,38 @@ export function BlocoExecucao({ run, isRunning, onStart, onReset }: Props) {
       variant="neutral"
     >
       <div className="space-y-4">
-        <Button
-          size="lg"
-          className="w-full h-12 text-sm font-medium"
-          onClick={onStart}
-          disabled={isRunning}
-        >
-          {isRunning ? (
-            <>
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              Migrando...
-            </>
-          ) : (
-            <>
-              <Rocket className="h-4 w-4 mr-2" />
-              Migrar dados do SolarMarket
-            </>
+        <div className="flex gap-2">
+          <Button
+            size="lg"
+            className="flex-1 h-12 text-sm font-medium"
+            onClick={onStart}
+            disabled={isRunning}
+          >
+            {isRunning ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                Migrando...
+              </>
+            ) : (
+              <>
+                <Rocket className="h-4 w-4 mr-2" />
+                Migrar dados do SolarMarket
+              </>
+            )}
+          </Button>
+          {isRunning && onCancel && (
+            <Button
+              size="lg"
+              variant="destructive"
+              className="h-12"
+              onClick={onCancel}
+              title="Aguarda o lote atual terminar e interrompe os próximos"
+            >
+              <Ban className="h-4 w-4 mr-2" />
+              Cancelar
+            </Button>
           )}
-        </Button>
+        </div>
 
         {(isRunning || finished) && (
           <>
