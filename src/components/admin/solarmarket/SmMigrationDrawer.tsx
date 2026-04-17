@@ -1607,17 +1607,20 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange, onRunningChan
           </div>
 
           <DrawerFooter className="flex-col gap-2 pt-2">
-            {/* Auto-resume button — top priority */}
+            {/* Migração em background foi descontinuada — agora apenas batches manuais */}
             {pendingStats && pendingStats.pending > 0 && (
-              <Button
-                className="w-full"
-                variant="default"
-                onClick={() => setAutoResumeConfirmOpen(true)}
-                disabled={running || !canMigrate}
-              >
-                <PlayCircle className="h-4 w-4 mr-1.5" />
-                Migrar todos os {pendingStats.pending} pendentes
-              </Button>
+              <div className="w-full rounded-md border border-warning/30 bg-warning/5 p-3 text-xs text-foreground space-y-1">
+                <p className="font-semibold text-warning">
+                  Migração automática em background descontinuada
+                </p>
+                <p className="text-muted-foreground">
+                  O modo "Migrar todos" em segundo plano não está mais disponível. Use{" "}
+                  <span className="font-medium text-foreground">"Migrar selecionadas"</span>{" "}
+                  para processar lotes manualmente, ou execute o fluxo novo{" "}
+                  <span className="font-mono">create-projetos-from-sm</span> +{" "}
+                  <span className="font-mono">migrate-sm-proposals-v3</span>.
+                </p>
+              </div>
             )}
             <div className="flex gap-2">
               <Button
