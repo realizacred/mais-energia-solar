@@ -579,33 +579,8 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange, onRunningChan
     setSteps(prev => prev.map(s => s.name === name ? { ...s, ...update } : s));
   }, []);
 
-  useEffect(() => {
-    if (!open || autoResumeRunning || !pendingStats || !isServerMigrationRunning || manualStopRequestedRef.current) return;
-
-    const initialPending = pendingStats.pending + pendingStats.migrated;
-    setAutoResumeRunning(true);
-    setRunning(true);
-    setCancelling(false);
-    setAutoResumeStats({
-      migrated: pendingStats.migrated,
-      errors: pendingStats.errors,
-      startTime: Date.now(),
-      round: 1,
-      initialPending,
-    });
-    autoResumeLastProgressAtRef.current = Date.now();
-    autoResumeLastMigratedRef.current = pendingStats.migrated;
-    updateStep("fetch", {
-      state: "done",
-      detail: `${pendingStats.pending} proposta(s) aguardando no servidor`,
-    });
-    for (const stepName of ["cliente", "deal", "projeto", "proposta", "versao"] as StepName[]) {
-      updateStep(stepName, {
-        state: "running",
-        detail: `🖥️ Servidor processando • ${pendingStats.migrated}/${Math.max(initialPending, 1)} migradas`,
-      });
-    }
-  }, [open, autoResumeRunning, pendingStats, isServerMigrationRunning, updateStep]);
+  // Auto-resume removido: a migração só inicia quando o usuário clica explicitamente em "Migrar".
+  // O polling de status (heartbeat/refetchPending) permanece ativo nos outros effects acima.
 
   useEffect(() => {
     if (!autoResumeRunning || !autoResumeStats || !pendingStats) return;

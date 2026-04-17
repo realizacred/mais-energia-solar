@@ -2,6 +2,9 @@ import { useState, useMemo, useCallback, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import { useQueryClient } from "@tanstack/react-query";
+import { getCurrentTenantId } from "@/lib/getCurrentTenantId";
 import { Sun, Users, FolderKanban, FileText, RefreshCw, Clock, CheckCircle, XCircle, UserX, UserMinus, Eye, MessageSquare, Edit, Trash2, GitBranch, Settings2, Filter, ArrowRightLeft, AlertTriangle, Loader2, Upload, ExternalLink, Activity, Play, StopCircle, History } from "lucide-react";
 import { PageHeader, SectionCard, EmptyState } from "@/components/ui-kit";
 import { SearchInput } from "@/components/ui-kit/SearchInput";
@@ -714,6 +717,34 @@ export default function SolarMarketPage() {
     }
   }, []);
 
+  // Backfill: aloca projetos sem funil/etapa nas etapas corretas dos funis nativos
+  const qcBackfill = useQueryClient();
+  const [backfillProjetosRunning, setBackfillProjetosRunning] = useState(false);
+  const runBackfillProjetosFunil = useCallback(async () => {
+    setBackfillProjetosRunning(true);
+    const tid = toast.loading("Alocando projetos nos funis...");
+    try {
+      const { tenantId } = await getCurrentTenantId();
+      const { data, error } = await (supabase as any).rpc("backfill_projetos_funil_etapa", {
+        p_tenant_id: tenantId,
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      const total = data?.total ?? 0;
+      const matched = data?.sm_matched ?? 0;
+      toast.success(
+        `${total} projeto(s) alocado(s) — ${matched} com etapa correspondente, ${total - matched} no padrão.`,
+        { id: tid }
+      );
+      qcBackfill.invalidateQueries({ queryKey: ["projetos-kanban"] });
+      qcBackfill.invalidateQueries({ queryKey: ["projetos"] });
+    } catch (e: any) {
+      toast.error(`Falha ao alocar: ${e?.message || "erro desconhecido"}`, { id: tid });
+    } finally {
+      setBackfillProjetosRunning(false);
+    }
+  }, [qcBackfill]);
+
   const clientsWithoutProposalsCount = useMemo(() => {
     const clientIdsWithProposals = new Set(proposals.map(p => p.sm_client_id).filter(Boolean));
     return clients.filter(c => !clientIdsWithProposals.has(c.sm_client_id)).length;
@@ -872,19 +903,19 @@ export default function SolarMarketPage() {
             {syncPipelinesRunning ? "Sincronizando..." : "Funis & Etapas"}
           </Button>
           <Button
-            onClick={() => syncStage("projects_funnels" as any)}
-            disabled={syncIsRunning || projects.length === 0}
+            onClick={() => runBackfillProjetosFunil()}
+            disabled={backfillProjetosRunning || projects.length === 0}
             size="sm"
             variant="outline"
             className="gap-1 h-7 text-xs"
-            title="Busca dados de funil para cada projeto na API do SolarMarket"
+            title="Aloca os projetos importados nas etapas corretas dos funis nativos"
           >
-            {syncIsRunning && progress.currentStage === ("projects_funnels" as any) ? (
+            {backfillProjetosRunning ? (
               <Loader2 className="h-3 w-3 animate-spin" />
             ) : (
               <GitBranch className="h-3 w-3" />
             )}
-            Funis Projetos
+            {backfillProjetosRunning ? "Alocando..." : "Funis Projetos"}
           </Button>
         </div>
 
