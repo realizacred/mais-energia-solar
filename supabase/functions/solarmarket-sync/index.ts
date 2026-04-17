@@ -1196,11 +1196,17 @@ Deno.serve(async (req) => {
 
             await delay(100); // 100ms between requests (was 250ms)
           } catch (e) {
+            exceptions++;
             totalErrors++;
-            errors.push(`projects_funnels ${projId}: ${(e as Error).message || "erro desconhecido"}`);
+            const emsg = (e as Error).message || "erro desconhecido";
+            if (exceptions <= 5) {
+              console.error(`[SM Sync][projects_funnels] EXCEPTION projId=${projId} msg="${emsg}"`);
+            }
+            errors.push(`projects_funnels ${projId}: ${emsg}`);
           }
         }
         totalUpserted = enriched;
+        console.error(`[SM Sync][projects_funnels] DONE processed=${processedProjects} enriched=${enriched} httpOk=${httpOk} httpErr=${httpErr} empty=${emptyFunnels} parseNoIds=${parseErr} exceptions=${exceptions} statusCounts=${JSON.stringify(statusCounts)} partial=${isPartialSync} remaining=${partialRemaining}`);
       } catch (e) {
         console.error("[SM Sync] Projects funnels enrichment error:", e);
         const msg = (e as Error).message;
