@@ -20613,6 +20613,93 @@ export type Database = {
           },
         ]
       }
+      sm_project_classification: {
+        Row: {
+          classification_version: number
+          created_at: string
+          etapa_destino_id: string | null
+          funil_destino_id: string | null
+          id: string
+          motivo: string | null
+          overridden_at: string | null
+          override_by: string | null
+          override_reason: string | null
+          pipeline_kind: Database["public"]["Enums"]["sm_pipeline_kind"]
+          sm_project_id: string
+          telefone_valido: boolean
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          classification_version?: number
+          created_at?: string
+          etapa_destino_id?: string | null
+          funil_destino_id?: string | null
+          id?: string
+          motivo?: string | null
+          overridden_at?: string | null
+          override_by?: string | null
+          override_reason?: string | null
+          pipeline_kind?: Database["public"]["Enums"]["sm_pipeline_kind"]
+          sm_project_id: string
+          telefone_valido?: boolean
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          classification_version?: number
+          created_at?: string
+          etapa_destino_id?: string | null
+          funil_destino_id?: string | null
+          id?: string
+          motivo?: string | null
+          overridden_at?: string | null
+          override_by?: string | null
+          override_reason?: string | null
+          pipeline_kind?: Database["public"]["Enums"]["sm_pipeline_kind"]
+          sm_project_id?: string
+          telefone_valido?: boolean
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sm_project_classification_etapa_destino_id_fkey"
+            columns: ["etapa_destino_id"]
+            isOneToOne: false
+            referencedRelation: "projeto_etapas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sm_project_classification_funil_destino_id_fkey"
+            columns: ["funil_destino_id"]
+            isOneToOne: false
+            referencedRelation: "projeto_funis"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sm_project_classification_sm_project_id_fkey"
+            columns: ["sm_project_id"]
+            isOneToOne: true
+            referencedRelation: "sm_analytics_view"
+            referencedColumns: ["project_id"]
+          },
+          {
+            foreignKeyName: "sm_project_classification_sm_project_id_fkey"
+            columns: ["sm_project_id"]
+            isOneToOne: true
+            referencedRelation: "solar_market_projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sm_project_classification_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       smtp_settings: {
         Row: {
           created_at: string
@@ -27884,6 +27971,7 @@ export type Database = {
         }[]
       }
       is_admin: { Args: { _user_id: string }; Returns: boolean }
+      is_admin_or_super: { Args: { _user_id: string }; Returns: boolean }
       is_last_admin_of_tenant: {
         Args: { _tenant_id: string; _user_id: string }
         Returns: boolean
@@ -28277,6 +28365,7 @@ export type Database = {
           valid: boolean
         }[]
       }
+      validate_phone_quality: { Args: { _phone: string }; Returns: boolean }
     }
     Enums: {
       achievement_type:
@@ -28433,6 +28522,12 @@ export type Database = {
         | "cancelado"
         | "reagendado"
       servico_tipo: "instalacao" | "manutencao" | "visita_tecnica" | "suporte"
+      sm_pipeline_kind:
+        | "comercial"
+        | "engenharia"
+        | "equipamento"
+        | "compensacao"
+        | "verificar_dados"
       subscription_status:
         | "trialing"
         | "active"
@@ -28747,6 +28842,13 @@ export const Constants = {
         "reagendado",
       ],
       servico_tipo: ["instalacao", "manutencao", "visita_tecnica", "suporte"],
+      sm_pipeline_kind: [
+        "comercial",
+        "engenharia",
+        "equipamento",
+        "compensacao",
+        "verificar_dados",
+      ],
       subscription_status: [
         "trialing",
         "active",
