@@ -33,8 +33,11 @@ interface RunState {
   would_insert_projects: number;
   inserted_clients: number;
   inserted_projects: number;
+  reused_clients: number;
+  failed_clients: number;
+  failed_projects: number;
   skipped_existing_projects: number;
-  failed: Array<{ sm_project_id: number; reason: string }>;
+  failed: Array<{ sm_project_id: number; reason: string; phase: "client" | "project" }>;
 }
 
 function newState(): RunState {
@@ -43,6 +46,9 @@ function newState(): RunState {
     would_insert_projects: 0,
     inserted_clients: 0,
     inserted_projects: 0,
+    reused_clients: 0,
+    failed_clients: 0,
+    failed_projects: 0,
     skipped_existing_projects: 0,
     failed: [],
   };
