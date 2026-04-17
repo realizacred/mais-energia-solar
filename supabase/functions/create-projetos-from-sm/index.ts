@@ -253,29 +253,69 @@ Deno.serve(async (req) => {
     }
 
     // ── APPLY ──────────────────────────────────────────────────────────────
-    // 5) Criar clientes faltantes em BATCH
-    const clienteRows = clientsToCreateIds.map((smcId) => {
+    // 5) Reuso por telefone: buscar clientes existentes por (tenant, telefone)
+    //    Evita colisão da constraint uq_clientes_tenant_telefone.
+    const desiredRows = clientsToCreateIds.map((smcId) => {
       const c = clientsBySm.get(smcId);
       const projectForFallback = pending.find((p) => Number(p.sm_client_id) === smcId);
       return {
-        tenant_id: tenantId,
-        sm_client_id: smcId,
+        smcId,
         nome: clientName(c, fallbackName(projectForFallback ?? { sm_project_id: smcId })),
         telefone: fallbackPhone(c),
-        telefone_normalized: c?.phone_normalized ?? null,
-        email: c?.email ?? null,
-        cpf_cnpj: c?.document ?? null,
-        rua: c?.address ?? null,
-        numero: c?.number ?? null,
-        complemento: c?.complement ?? null,
-        bairro: c?.neighborhood ?? null,
-        cidade: c?.city ?? null,
-        estado: c?.state ?? null,
-        cep: c?.zip_code ?? null,
-        cliente_code: `SM-${smcId}`,
-        import_source: "solar_market",
+        c,
       };
     });
+
+    const phones = Array.from(new Set(desiredRows.map((r) => r.telefone)));
+    const phoneToExistingId = new Map<string, string>();
+    for (const ids of chunk(phones, CHUNK)) {
+      const { data, error } = await sb
+        .from("clientes")
+        .select("id, telefone, sm_client_id")
+        .eq("tenant_id", tenantId)
+        .in("telefone", ids);
+      if (error) throw error;
+      for (const r of data ?? []) {
+        if (r.telefone) phoneToExistingId.set(r.telefone as string, r.id as string);
+      }
+    }
+
+    // 5a) Reusar: vincular sm_client_id no existente quando ainda for null
+    const toLink: Array<{ id: string; smcId: number }> = [];
+    const reallyNew: typeof desiredRows = [];
+    for (const r of desiredRows) {
+      const existId = phoneToExistingId.get(r.telefone);
+      if (existId) {
+        existingClients.set(r.smcId, existId);
+        toLink.push({ id: existId, smcId: r.smcId });
+      } else {
+        reallyNew.push(r);
+      }
+    }
+    // UPDATE individual (apenas onde sm_client_id ainda é null)
+    for (const lk of toLink) {
+      await sb.from("clientes").update({ sm_client_id: lk.smcId }).eq("id", lk.id).is("sm_client_id", null);
+    }
+
+    // 5b) Inserir os realmente novos em BATCH
+    const clienteRows = reallyNew.map(({ smcId, nome, telefone, c }) => ({
+      tenant_id: tenantId,
+      sm_client_id: smcId,
+      nome,
+      telefone,
+      telefone_normalized: c?.phone_normalized ?? null,
+      email: c?.email ?? null,
+      cpf_cnpj: c?.document ?? null,
+      rua: c?.address ?? null,
+      numero: c?.number ?? null,
+      complemento: c?.complement ?? null,
+      bairro: c?.neighborhood ?? null,
+      cidade: c?.city ?? null,
+      estado: c?.state ?? null,
+      cep: c?.zip_code ?? null,
+      cliente_code: `SM-${smcId}`,
+      import_source: "solar_market",
+    }));
 
     for (const batch of chunk(clienteRows, CHUNK)) {
       const { data, error } = await sb
