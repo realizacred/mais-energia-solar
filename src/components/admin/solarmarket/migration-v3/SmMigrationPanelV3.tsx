@@ -68,7 +68,7 @@ export default function SmMigrationPanelV3() {
       <PageHeader
         icon={Sun}
         title="Migração SolarMarket"
-        subtitle="Classificação por registro · sem pipeline global · execução por etapas"
+        description="Classificação por registro · sem pipeline global · execução por etapas"
       />
 
       <BlocoResumo counters={counters} isLoading={loadingCounters} lastRun={lastRun} />
