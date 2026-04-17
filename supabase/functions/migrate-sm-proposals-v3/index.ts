@@ -188,8 +188,14 @@ Deno.serve(async (req) => {
       counters,
     });
   } catch (e: any) {
-    console.error("[migrate-sm-proposals-v3] erro:", e);
-    return json({ error: e?.message ?? "erro desconhecido", counters }, 500);
+    console.error("[migrate-sm-proposals-v3] erro:", JSON.stringify({
+      message: e?.message, code: e?.code, details: e?.details, hint: e?.hint, stack: e?.stack,
+    }));
+    return json({
+      error: e?.message ?? "erro desconhecido",
+      code: e?.code, details: e?.details, hint: e?.hint,
+      counters,
+    }, 500);
   }
 });
 
