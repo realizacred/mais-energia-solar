@@ -1835,24 +1835,22 @@ Deno.serve(async (req) => {
         });
       }
 
-      dispatchBackgroundMigrationRun({
-        supabaseUrl,
-        serviceKey,
-        tenantId,
-        pipelineId: params.pipeline_id,
-        stageId: params.stage_id || null,
-        ownerId: params.owner_id || null,
-        autoResolveOwner,
-        batchSize: effectiveBatchSize,
-      });
+      // [REMOVIDO] dispatchBackgroundMigrationRun — auto-dispatch desativado.
+      // start_background_migration não inicia mais execução automática.
+      // O usuário deve disparar cada batch manualmente.
+      await adminClient
+        .from("sm_migration_settings")
+        .update({ enabled: false, updated_at: new Date().toISOString() })
+        .eq("tenant_id", tenantId);
 
       return new Response(JSON.stringify({
-        accepted: true,
+        accepted: false,
+        background_disabled: true,
         pending: pendingCount,
         batch_size: effectiveBatchSize,
-        message: "Migração enviada para execução no servidor. Ela continuará mesmo se você fechar a tela.",
+        message: "Migração automática em background foi desativada. Execute cada batch manualmente.",
       }), {
-        status: 202,
+        status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
