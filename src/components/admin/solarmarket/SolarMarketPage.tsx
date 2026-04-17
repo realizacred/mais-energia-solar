@@ -722,24 +722,23 @@ export default function SolarMarketPage() {
   const [backfillProjetosRunning, setBackfillProjetosRunning] = useState(false);
   const runBackfillProjetosFunil = useCallback(async () => {
     setBackfillProjetosRunning(true);
-    const tid = toast.loading("Alocando projetos nos funis...");
+    const tid = toast.loading("Sincronizando funis e alocando projetos...");
     try {
       const { tenantId } = await getCurrentTenantId();
-      const { data, error } = await (supabase as any).rpc("backfill_projetos_funil_etapa", {
-        p_tenant_id: tenantId,
+      const { data, error } = await supabase.functions.invoke("sync-projeto-funis", {
+        body: { tenant_id: tenantId },
       });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
-      const total = data?.total ?? 0;
-      const matched = data?.sm_matched ?? 0;
       toast.success(
-        `${total} projeto(s) alocado(s) — ${matched} com etapa correspondente, ${total - matched} no padrão.`,
+        `${data?.funisCriados ?? 0} funis criados, ${data?.etapasCriadas ?? 0} etapas criadas, ${data?.projetosAlocados ?? 0} projetos alocados`,
         { id: tid }
       );
+      qcBackfill.invalidateQueries({ queryKey: ["projeto-funis"] });
       qcBackfill.invalidateQueries({ queryKey: ["projetos-kanban"] });
       qcBackfill.invalidateQueries({ queryKey: ["projetos"] });
     } catch (e: any) {
-      toast.error(`Falha ao alocar: ${e?.message || "erro desconhecido"}`, { id: tid });
+      toast.error(`Falha: ${e?.message || "erro desconhecido"}`, { id: tid });
     } finally {
       setBackfillProjetosRunning(false);
     }
