@@ -557,7 +557,6 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange, onRunningChan
     setLogs([]);
     setConfirmText("");
     setSmoothProgress(0);
-    autoResumeErrorIdsRef.current = new Set();
     if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
   }, []);
 
@@ -935,152 +934,9 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange, onRunningChan
     runMigration(false);
   };
 
-  // ─── Auto-resume: migrate all pending proposals in loop ──
-  const runAutoResume = useCallback(async () => {
-    if (!activePipelineId) {
-      setError("Nenhum pipeline encontrado.");
-      return;
-    }
-
-    // Save migration settings for server-side auto-resume (pg_cron)
-    resetState();
-    setBatchProgress(null);
-    setAutoResumeRunning(true);
-    setRunning(true);
-    setCancelling(false);
-    cancelRef.current = false;
-    manualStopRequestedRef.current = false;
-
-    const MAX_ROUNDS = 200;
-    const MAX_STAGNANT_ROUNDS = 5;
-    const initialPending = pendingStats?.pending ?? proposals.length;
-    const initialMigrated = pendingStats?.migrated ?? 0;
-    const initialErrors = pendingStats?.errors ?? 0;
-
-    let currentStats = {
-      migrated: initialMigrated,
-      errors: initialErrors,
-      startTime: Date.now(),
-      round: 1,
-      initialPending,
-    };
-
-    setAutoResumeStats(currentStats);
-    autoResumeLastProgressAtRef.current = Date.now();
-    autoResumeLastMigratedRef.current = initialMigrated;
-
-    updateStep("fetch", {
-      state: "done",
-      detail: `${initialPending} proposta(s) pendente(s) identificada(s)`,
-    });
-    for (const stepName of ["cliente", "deal", "projeto", "proposta", "versao"] as StepName[]) {
-      updateStep(stepName, {
-        state: "running",
-        detail: "Preparando processamento em lotes...",
-      });
-    }
-    addLog(`Iniciando migração em lote para ${initialPending} pendentes...`);
-
-    try {
-      const { data: { session: currentSession } } = await supabase.auth.getSession();
-      if (!currentSession?.access_token) throw new Error("Sessão expirada. Faça login novamente.");
-
-      const expiresAt = currentSession.expires_at ?? 0;
-      const now = Math.floor(Date.now() / 1000);
-      let session = currentSession;
-      if (expiresAt - now < 300) {
-        const { data: refreshed } = await supabase.auth.refreshSession();
-        if (!refreshed.session?.access_token) throw new Error("Não foi possível renovar a sessão.");
-        session = refreshed.session;
-      }
-
-      const projectUrl = import.meta.env.VITE_SUPABASE_URL;
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 120_000);
-
-      try {
-        const response = await fetch(`${projectUrl}/functions/v1/migrate-sm-proposals-v2`, {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${session.access_token}`,
-            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            action: "start_background_migration",
-            dry_run: false,
-            pipeline_id: activePipelineId,
-            stage_id: activeStageId || null,
-            auto_resolve_owner: true,
-            batch_size: 25,
-            include_projects_without_proposal: false,
-            ...(ownerId && ownerId !== "__auto__" ? { owner_id: ownerId } : {}),
-          }),
-          signal: controller.signal,
-        });
-
-        const data = await response.json().catch(() => ({} as Record<string, any>));
-        if (!response.ok) {
-          throw new Error(getBlockedMessage(data as MigrationBlockedPayload, `HTTP ${response.status}`));
-        }
-
-        if (data.completed) {
-          manualStopRequestedRef.current = false;
-          setAutoResumeRunning(false);
-          setRunning(false);
-          setSmoothProgress(100);
-          updateStep("done", { state: "done", detail: data.message || "Nenhuma proposta pendente para migrar." });
-          toast.success(data.message || "Nenhuma proposta pendente para migrar.");
-          return;
-        }
-
-        addLog(data.message || "Migração enviada ao servidor.");
-        for (const stepName of ["cliente", "deal", "projeto", "proposta", "versao"] as StepName[]) {
-          updateStep(stepName, {
-            state: "running",
-            detail: `🖥️ Servidor processando • ${initialMigrated}/${Math.max(initialPending, 1)} migradas`,
-          });
-        }
-        qc.invalidateQueries({ queryKey: ["sm-proposals"] });
-        qc.invalidateQueries({ queryKey: ["sm-migration-pending-count"] });
-        qc.invalidateQueries({ queryKey: ["sm-sync-progress"] });
-        toast.success(data.message || "Migração iniciada no servidor.");
-      } finally {
-        clearTimeout(timeoutId);
-      }
-    } catch (err: any) {
-      const msg = err?.name === "AbortError"
-        ? "Timeout ao solicitar a migração em background."
-        : err?.message ?? "Erro desconhecido";
-      setAutoResumeRunning(false);
-      setRunning(false);
-      setCancelling(false);
-      cancelRef.current = false;
-      setError(msg);
-      addLog(`ERRO FATAL: ${msg}`);
-      for (const stepName of ["cliente", "deal", "projeto", "proposta", "versao", "done"] as StepName[]) {
-        updateStep(stepName, { state: "error", detail: msg });
-      }
-    }
-  }, [activePipelineId, activeStageId, ownerId, addLog, pendingStats?.pending, pendingStats?.migrated, pendingStats?.errors, proposals.length, resetState, updateStep, qc]);
-
-  const handleAutoResumeConfirm = () => {
-    setAutoResumeConfirmOpen(false);
-    setAutoResumeConfirmText("");
-    toast.error("Migração em background foi descontinuada. Use 'Migrar selecionadas' (batches manuais).");
-  };
-
   // Progress calculation
-  const completedSteps = steps.filter(s => s.state === "done" || s.state === "error" || s.state === "skipped").length;
-  const autoResumeTotal = autoResumeStats?.initialPending ?? 0;
-  const autoResumeTotalRounds = Math.max(Math.ceil(Math.max(autoResumeTotal, 1) / 10), 1);
-  const autoResumeCurrentRound = Math.min(Math.max(autoResumeStats?.round ?? 1, 1), autoResumeTotalRounds);
   const progressPercent = running
-    ? autoResumeRunning && autoResumeStats
-      ? autoResumeTotal > 0
-        ? Math.min(95, Math.round((autoResumeStats.migrated / autoResumeTotal) * 100))
-        : smoothProgress
-      : (batchProgress && isBulk ? Math.min(95, Math.round((batchProgress.current / batchProgress.total) * 100)) : smoothProgress)
+    ? (batchProgress && isBulk ? Math.min(95, Math.round((batchProgress.current / batchProgress.total) * 100)) : smoothProgress)
     : (result ? 100 : 0);
 
   if (!proposal) return null;
@@ -1088,11 +944,6 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange, onRunningChan
   return (
     <>
         <Drawer open={open} onOpenChange={(v) => {
-        if (!v && running && autoResumeRunning) {
-          toast.info("Migração em andamento no servidor. Você pode fechar esta tela com segurança.");
-          onOpenChange(v);
-          return;
-        }
         if (!v && running) {
           toast.warning("Migração em andamento. Cancele a migração antes de fechar.");
           return;
