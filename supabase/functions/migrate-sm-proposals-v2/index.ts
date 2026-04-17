@@ -1447,8 +1447,8 @@ Deno.serve(async (req) => {
     // ── USER / SERVICE_ROLE MODE ──
     rawBody = await req.json();
 
-    // ── CRON DISPATCH MODE: service_role + _cron_dispatch ──
-    // pg_cron calls with service_role key and _cron_dispatch flag
+    // [REMOVIDO] CRON DISPATCH MODE (_cron_dispatch) — auto-invocação desativada.
+    // Tokens precisam apenas ser validados a seguir.
     const token = authHeader.replace(/^Bearer\s+/i, "");
     if (!token) {
       return new Response(JSON.stringify({ error: "Unauthorized", step: "token_extract" }), {
@@ -1458,72 +1458,12 @@ Deno.serve(async (req) => {
 
     let userId: string | null = null;
 
-    if (token === serviceKey && rawBody?._cron_dispatch) {
-      // Cron dispatch: iterate all enabled tenants with pending proposals
-      const { data: settings } = await adminClient
-        .from("sm_migration_settings")
-        .select("tenant_id, pipeline_id, stage_id, owner_id, auto_resolve_owner, batch_size")
-        .eq("enabled", true);
-
-      if (!settings || settings.length === 0) {
-        return new Response(JSON.stringify({ cron: true, message: "No tenants with enabled migration" }), {
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-
-      const cronResults: any[] = [];
-      for (const s of settings) {
-        const { count: pendingCount } = await adminClient
-          .from("solar_market_proposals")
-          .select("id", { count: "exact", head: true })
-          .eq("tenant_id", s.tenant_id)
-          .is("migrado_em", null);
-
-        if (!pendingCount || pendingCount === 0) {
-          await adminClient
-            .from("sm_migration_settings")
-            .update({ enabled: false, updated_at: new Date().toISOString() })
-            .eq("tenant_id", s.tenant_id);
-          cronResults.push({ tenant_id: s.tenant_id, status: "completed", pending: 0 });
-          continue;
-        }
-
-        // Call self with service_role + _cron_tenant_id for single-tenant processing
-        const payload = {
-          dry_run: false,
-          pipeline_id: s.pipeline_id,
-          stage_id: s.stage_id || null,
-          auto_resolve_owner: s.auto_resolve_owner ?? true,
-          auto_resume: true,
-          batch_size: s.batch_size || 10,
-          include_projects_without_proposal: false,
-          ...(s.owner_id ? { owner_id: s.owner_id } : {}),
-          _cron_tenant_id: s.tenant_id,
-        };
-
-        try {
-          const fetchUrl2 = `${supabaseUrl}/functions/v1/migrate-sm-proposals-v2`;
-          logDebug("[SM Migration] DISPATCH FETCH ANTES", { tenant: s.tenant_id, url: fetchUrl2, svcKeyLen: serviceKey?.length });
-          const innerResp = await fetch(fetchUrl2, {
-            method: "POST",
-            headers: {
-              "Authorization": `Bearer ${serviceKey}`,
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify(payload),
-          });
-          const innerBody = await innerResp.text().catch(() => "");
-          logDebug("[SM Migration] DISPATCH FETCH DEPOIS", { tenant: s.tenant_id, status: innerResp.status, bodyPreview: innerBody.substring(0, 300) });
-          let parsed2: any = {};
-          try { parsed2 = JSON.parse(innerBody); } catch { parsed2 = { raw: innerBody.substring(0, 200) }; }
-          cronResults.push({ tenant_id: s.tenant_id, status: innerResp.ok ? "ok" : "error", pending: pendingCount, response: parsed2 });
-        } catch (e) {
-          console.error("[SM Migration] DISPATCH FETCH ERROR", { tenant: s.tenant_id, error: (e as Error).message, stack: (e as Error).stack?.substring(0, 300) });
-          cronResults.push({ tenant_id: s.tenant_id, status: "error", error: (e as Error).message });
-        }
-      }
-
-      return new Response(JSON.stringify({ cron: true, results: cronResults }), {
+    if (rawBody?._cron_dispatch) {
+      return new Response(JSON.stringify({
+        error: "cron_dispatch_disabled",
+        message: "Auto-dispatch via _cron_dispatch foi removido permanentemente.",
+      }), {
+        status: 410,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
