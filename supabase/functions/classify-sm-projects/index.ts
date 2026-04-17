@@ -88,17 +88,39 @@ Deno.serve(async (req) => {
       state.consultorNames.add(c.nome.toLowerCase().trim());
     }
 
-    // 5) Buscar projetos SM elegíveis (têm proposta)
-    //    Critério canônico: existe proposta no SM (sm_proposal_id NOT NULL ou tabela de propostas SM)
-    //    Aqui usamos a coluna sm_proposal_id como proxy. Sem ela, projetos sem proposta são ignorados.
-    let query = supabase
-      .from("solar_market_projects")
-      .select("id, sm_funnel_name, sm_stage_name, customer_phone, sm_proposal_id, customer_name")
+    // 5) Buscar projetos SM elegíveis (regra canônica: existe proposta SM)
+    //    Critério: EXISTS em solar_market_proposals via sm_project_id (bigint)
+    const { data: eligibleIdsRaw, error: eligErr } = await supabase
+      .from("solar_market_proposals")
+      .select("sm_project_id")
       .eq("tenant_id", tenant_id)
-      .not("sm_proposal_id", "is", null);
+      .not("sm_project_id", "is", null);
+    if (eligErr) throw eligErr;
 
-    const { data: smProjects, error: smErr } = await query;
-    if (smErr) throw smErr;
+    const eligibleSmIds = Array.from(
+      new Set((eligibleIdsRaw ?? []).map((r: any) => Number(r.sm_project_id)))
+    );
+
+    if (eligibleSmIds.length === 0) {
+      return new Response(
+        JSON.stringify({ message: "Nenhum projeto SM com proposta", classified: 0, skipped: 0 }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Paginar projetos elegíveis (limite de IN do PostgREST ~ 1000)
+    const smProjects: any[] = [];
+    const CHUNK = 500;
+    for (let i = 0; i < eligibleSmIds.length; i += CHUNK) {
+      const slice = eligibleSmIds.slice(i, i + CHUNK);
+      const { data, error } = await supabase
+        .from("solar_market_projects")
+        .select("id, sm_project_id, sm_funnel_name, sm_stage_name, customer_phone, customer_name")
+        .eq("tenant_id", tenant_id)
+        .in("sm_project_id", slice);
+      if (error) throw error;
+      smProjects.push(...(data ?? []));
+    }
 
     if (!smProjects || smProjects.length === 0) {
       return new Response(
