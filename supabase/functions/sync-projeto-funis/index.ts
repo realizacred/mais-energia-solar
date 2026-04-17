@@ -185,17 +185,26 @@ Deno.serve(async (req) => {
       .rpc("backfill_projetos_funil_etapa", { p_tenant_id: tenant_id });
 
     // 7. Resolver classificações pendentes (Fase 1)
-    // Lê sm_project_classification.pending → preenche target_* (decisão)
-    // e resolved_*_id (execução) a partir dos caches.
+    // Princípios:
+    //  - Não reler origem (sem JOIN com solar_market_projects)
+    //  - Não recalcular: usar funil_destino_id/etapa_destino_id já gravados
+    //  - Apenas validar que esses IDs ainda existem no nativo (caches)
+    //    e espelhar em resolved_*_id (execução)
+    //  - Proteger contra overwrite: WHERE resolved_funil_id IS NULL
     let classificacoesResolvidas = 0;
     let classificacoesPuladas = 0;
     let classificacoesComErro = 0;
 
+    // Construir set rápido de IDs nativos válidos a partir dos caches já carregados
+    const funisValidos = new Set<string>(state.funilCache.values());
+    const etapasValidas = new Set<string>(state.etapaCache.values());
+
     const { data: pendentes, error: pendentesError } = await supabase
       .from("sm_project_classification")
-      .select("id, sm_project_id, sm:solar_market_projects!inner(sm_funnel_name, sm_stage_name)")
+      .select("id, funil_destino_id, etapa_destino_id")
       .eq("tenant_id", tenant_id)
       .eq("resolution_status", "pending")
+      .is("resolved_funil_id", null)
       .limit(2000);
 
     if (pendentesError) {
@@ -204,66 +213,57 @@ Deno.serve(async (req) => {
 
     const nowIso = new Date().toISOString();
 
-    for (const c of pendentes ?? []) {
-      const sm = (c as any).sm;
-      const funilNome: string | null = sm?.sm_funnel_name?.trim() ?? null;
-      const etapaNome: string | null = sm?.sm_stage_name?.trim() ?? null;
+    for (const c of (pendentes ?? []) as Array<{ id: string; funil_destino_id: string | null; etapa_destino_id: string | null }>) {
+      const funilDest = c.funil_destino_id;
+      const etapaDest = c.etapa_destino_id;
 
-      // Caso 1: sem funil de origem → skip (não há decisão a tomar)
-      if (!funilNome) {
-        await supabase.from("sm_project_classification").update({
-          target_funnel_name: null,
-          target_stage_name: null,
-          resolution_status: "skipped",
-          resolution_error: "sm_funnel_name vazio",
-          resolved_at: nowIso,
-        }).eq("id", c.id);
-        classificacoesPuladas++;
+      // Caso 1: classificação sem funil decidido → skip (nada a resolver nesta fase)
+      if (!funilDest) {
+        const { error } = await supabase
+          .from("sm_project_classification")
+          .update({
+            resolution_status: "skipped",
+            resolution_error: "funil_destino_id ausente — classificação incompleta",
+            resolved_at: nowIso,
+          })
+          .eq("id", c.id)
+          .is("resolved_funil_id", null);
+        if (error) classificacoesComErro++; else classificacoesPuladas++;
         continue;
       }
 
-      // Decisão: por ora target = origem (sem reclassificação semântica nesta fase)
-      const targetFunnel = funilNome;
-      const targetStage = etapaNome;
-
-      const funilId = state.funilCache.get(targetFunnel.toLowerCase());
-
-      // Caso 2: funil-alvo não existe no nativo (consultor/financeiro/não criado)
-      if (!funilId) {
-        await supabase.from("sm_project_classification").update({
-          target_funnel_name: targetFunnel,
-          target_stage_name: targetStage,
-          resolved_funil_id: null,
-          resolved_etapa_id: null,
-          resolution_status: "skipped",
-          resolution_error: `funil '${targetFunnel}' não disponível no nativo (consultor/financeiro)`,
-          resolved_at: nowIso,
-        }).eq("id", c.id);
-        classificacoesPuladas++;
+      // Caso 2: funil decidido não existe mais no nativo → skip auditável
+      if (!funisValidos.has(funilDest)) {
+        const { error } = await supabase
+          .from("sm_project_classification")
+          .update({
+            resolution_status: "skipped",
+            resolution_error: `funil_destino_id '${funilDest}' não existe no nativo`,
+            resolved_at: nowIso,
+          })
+          .eq("id", c.id)
+          .is("resolved_funil_id", null);
+        if (error) classificacoesComErro++; else classificacoesPuladas++;
         continue;
       }
 
-      const etapaId = targetStage
-        ? state.etapaCache.get(`${funilId}:${targetStage.toLowerCase()}`) ?? null
-        : null;
+      // Caso 3: etapa decidida ausente ou inválida → error auditável
+      const etapaOk = !!etapaDest && etapasValidas.has(etapaDest);
+      const ok = etapaOk;
 
-      // Caso 3: funil OK, etapa OK → resolved
-      // Caso 4: funil OK, etapa ausente/não encontrada → error (auditável)
-      const ok = !!etapaId;
       const { error: updErr } = await supabase
         .from("sm_project_classification")
         .update({
-          target_funnel_name: targetFunnel,
-          target_stage_name: targetStage,
-          resolved_funil_id: funilId,
-          resolved_etapa_id: etapaId,
+          resolved_funil_id: funilDest,
+          resolved_etapa_id: ok ? etapaDest : null,
           resolution_status: ok ? "resolved" : "error",
           resolution_error: ok
             ? null
-            : `etapa '${targetStage ?? "(vazia)"}' não encontrada no funil '${targetFunnel}'`,
+            : `etapa_destino_id '${etapaDest ?? "(vazia)"}' inválida ou ausente para o funil`,
           resolved_at: nowIso,
         })
-        .eq("id", c.id);
+        .eq("id", c.id)
+        .is("resolved_funil_id", null); // trava anti-overwrite
 
       if (updErr) classificacoesComErro++;
       else if (ok) classificacoesResolvidas++;
