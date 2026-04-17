@@ -35,6 +35,28 @@ Deno.serve(async (req) => {
       state.consultorCache.set(c.nome.toLowerCase().trim(), c.id);
     }
 
+    // 1b. Pré-carregar funis e etapas EXISTENTES do tenant (Fase 1)
+    // Necessário para resolver classificações em tenants já configurados,
+    // onde nenhum funil/etapa novo será criado nesta rodada.
+    const { data: funisExistentes } = await supabase
+      .from("projeto_funis")
+      .select("id, nome")
+      .eq("tenant_id", tenant_id);
+    for (const f of funisExistentes ?? []) {
+      state.funilCache.set(f.nome.toLowerCase().trim(), f.id);
+    }
+
+    const funilIds = (funisExistentes ?? []).map((f) => f.id);
+    if (funilIds.length) {
+      const { data: etapasExistentes } = await supabase
+        .from("projeto_etapas")
+        .select("id, nome, funil_id")
+        .in("funil_id", funilIds);
+      for (const e of etapasExistentes ?? []) {
+        state.etapaCache.set(`${e.funil_id}:${e.nome.toLowerCase().trim()}`, e.id);
+      }
+    }
+
     // 2. Buscar funis/etapas distintos do SM para esse tenant
     const { data: smRows, error: smError } = await supabase
       .from("solar_market_projects")
@@ -77,7 +99,7 @@ Deno.serve(async (req) => {
 
     let funisCriados = 0;
     let etapasCriadas = 0;
-    let funilOrdem = 1;
+    let funilOrdem = (funisExistentes?.length ?? 0) + 1;
 
     // Funis financeiros: dimensão paralela, não entram no pipeline principal
     const FINANCE_FUNNEL_RE = /(pagamento|financeiro|cobran[çc]a|recebimento|faturamento|financiamento)/i;
@@ -162,12 +184,102 @@ Deno.serve(async (req) => {
     const { data: backfill } = await supabase
       .rpc("backfill_projetos_funil_etapa", { p_tenant_id: tenant_id });
 
+    // 7. Resolver classificações pendentes (Fase 1)
+    // Lê sm_project_classification.pending → preenche target_* (decisão)
+    // e resolved_*_id (execução) a partir dos caches.
+    let classificacoesResolvidas = 0;
+    let classificacoesPuladas = 0;
+    let classificacoesComErro = 0;
+
+    const { data: pendentes, error: pendentesError } = await supabase
+      .from("sm_project_classification")
+      .select("id, sm_project_id, sm:solar_market_projects!inner(sm_funnel_name, sm_stage_name)")
+      .eq("tenant_id", tenant_id)
+      .eq("resolution_status", "pending")
+      .limit(2000);
+
+    if (pendentesError) {
+      console.error("[sync-projeto-funis] erro ao buscar pendentes:", pendentesError);
+    }
+
+    const nowIso = new Date().toISOString();
+
+    for (const c of pendentes ?? []) {
+      const sm = (c as any).sm;
+      const funilNome: string | null = sm?.sm_funnel_name?.trim() ?? null;
+      const etapaNome: string | null = sm?.sm_stage_name?.trim() ?? null;
+
+      // Caso 1: sem funil de origem → skip (não há decisão a tomar)
+      if (!funilNome) {
+        await supabase.from("sm_project_classification").update({
+          target_funnel_name: null,
+          target_stage_name: null,
+          resolution_status: "skipped",
+          resolution_error: "sm_funnel_name vazio",
+          resolved_at: nowIso,
+        }).eq("id", c.id);
+        classificacoesPuladas++;
+        continue;
+      }
+
+      // Decisão: por ora target = origem (sem reclassificação semântica nesta fase)
+      const targetFunnel = funilNome;
+      const targetStage = etapaNome;
+
+      const funilId = state.funilCache.get(targetFunnel.toLowerCase());
+
+      // Caso 2: funil-alvo não existe no nativo (consultor/financeiro/não criado)
+      if (!funilId) {
+        await supabase.from("sm_project_classification").update({
+          target_funnel_name: targetFunnel,
+          target_stage_name: targetStage,
+          resolved_funil_id: null,
+          resolved_etapa_id: null,
+          resolution_status: "skipped",
+          resolution_error: `funil '${targetFunnel}' não disponível no nativo (consultor/financeiro)`,
+          resolved_at: nowIso,
+        }).eq("id", c.id);
+        classificacoesPuladas++;
+        continue;
+      }
+
+      const etapaId = targetStage
+        ? state.etapaCache.get(`${funilId}:${targetStage.toLowerCase()}`) ?? null
+        : null;
+
+      // Caso 3: funil OK, etapa OK → resolved
+      // Caso 4: funil OK, etapa ausente/não encontrada → error (auditável)
+      const ok = !!etapaId;
+      const { error: updErr } = await supabase
+        .from("sm_project_classification")
+        .update({
+          target_funnel_name: targetFunnel,
+          target_stage_name: targetStage,
+          resolved_funil_id: funilId,
+          resolved_etapa_id: etapaId,
+          resolution_status: ok ? "resolved" : "error",
+          resolution_error: ok
+            ? null
+            : `etapa '${targetStage ?? "(vazia)"}' não encontrada no funil '${targetFunnel}'`,
+          resolved_at: nowIso,
+        })
+        .eq("id", c.id);
+
+      if (updErr) classificacoesComErro++;
+      else if (ok) classificacoesResolvidas++;
+      else classificacoesComErro++;
+    }
+
     return new Response(
       JSON.stringify({
         funisCriados,
         etapasCriadas,
         projetosAlocados: (backfill as Record<string, number> | null)?.total ?? 0,
         smMatched: (backfill as Record<string, number> | null)?.sm_matched ?? 0,
+        // Fase 1 — métricas de resolução
+        classificacoesResolvidas,
+        classificacoesPuladas,
+        classificacoesComErro,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );

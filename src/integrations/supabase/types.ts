@@ -20628,7 +20628,14 @@ export type Database = {
           override_by: string | null
           override_reason: string | null
           pipeline_kind: Database["public"]["Enums"]["sm_pipeline_kind"]
+          resolution_error: string | null
+          resolution_status: string
+          resolved_at: string | null
+          resolved_etapa_id: string | null
+          resolved_funil_id: string | null
           sm_project_id: string
+          target_funnel_name: string | null
+          target_stage_name: string | null
           telefone_valido: boolean
           tenant_id: string
           updated_at: string
@@ -20644,7 +20651,14 @@ export type Database = {
           override_by?: string | null
           override_reason?: string | null
           pipeline_kind?: Database["public"]["Enums"]["sm_pipeline_kind"]
+          resolution_error?: string | null
+          resolution_status?: string
+          resolved_at?: string | null
+          resolved_etapa_id?: string | null
+          resolved_funil_id?: string | null
           sm_project_id: string
+          target_funnel_name?: string | null
+          target_stage_name?: string | null
           telefone_valido?: boolean
           tenant_id: string
           updated_at?: string
@@ -20660,7 +20674,14 @@ export type Database = {
           override_by?: string | null
           override_reason?: string | null
           pipeline_kind?: Database["public"]["Enums"]["sm_pipeline_kind"]
+          resolution_error?: string | null
+          resolution_status?: string
+          resolved_at?: string | null
+          resolved_etapa_id?: string | null
+          resolved_funil_id?: string | null
           sm_project_id?: string
+          target_funnel_name?: string | null
+          target_stage_name?: string | null
           telefone_valido?: boolean
           tenant_id?: string
           updated_at?: string
@@ -20676,6 +20697,20 @@ export type Database = {
           {
             foreignKeyName: "sm_project_classification_funil_destino_id_fkey"
             columns: ["funil_destino_id"]
+            isOneToOne: false
+            referencedRelation: "projeto_funis"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sm_project_classification_resolved_etapa_id_fkey"
+            columns: ["resolved_etapa_id"]
+            isOneToOne: false
+            referencedRelation: "projeto_etapas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sm_project_classification_resolved_funil_id_fkey"
+            columns: ["resolved_funil_id"]
             isOneToOne: false
             referencedRelation: "projeto_funis"
             referencedColumns: ["id"]
