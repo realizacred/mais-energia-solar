@@ -82,13 +82,20 @@ Deno.serve(async (req) => {
       return json({ dry_run: dryRun, message: "Nenhuma classificação resolvida.", counters });
     }
 
-    // 2. Buscar staging projects correspondentes (id interno → sm_project_id externo)
+    // 2. Buscar staging projects correspondentes (id interno → sm_project_id externo).
+    // Paginar em chunks para não estourar o limite de URL do PostgREST (~2KB).
     const stagingIds = classifications.map((c) => c.sm_project_id);
-    const { data: stagingRows, error: sErr } = await supabase
-      .from("solar_market_projects")
-      .select("id, sm_project_id, tenant_id, name, sm_funnel_name, sm_stage_name")
-      .in("id", stagingIds);
-    if (sErr) throw sErr;
+    const stagingRows: Array<{ id: string; sm_project_id: number | null; tenant_id: string; name: string | null; sm_funnel_name: string | null; sm_stage_name: string | null }> = [];
+    const CHUNK = 200;
+    for (let i = 0; i < stagingIds.length; i += CHUNK) {
+      const slice = stagingIds.slice(i, i + CHUNK);
+      const { data, error: sErr } = await supabase
+        .from("solar_market_projects")
+        .select("id, sm_project_id, tenant_id, name, sm_funnel_name, sm_stage_name")
+        .in("id", slice);
+      if (sErr) throw sErr;
+      if (data) stagingRows.push(...data);
+    }
 
     const stagingById = new Map<string, typeof stagingRows[0]>();
     for (const r of stagingRows ?? []) stagingById.set(r.id, r);

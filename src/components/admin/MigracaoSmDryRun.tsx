@@ -106,6 +106,21 @@ export function MigracaoSmDryRun() {
   const { data: vendedores = [], isLoading: loadingVendedores } = useSmVendedores();
 
   const runDryRun = async () => {
+    // ⛔ DESCONTINUADO (Fase B): contrato antigo com pipeline_id/stage_id global ignora a
+    // classificação por registro em sm_project_classification e forçaria todos os projetos
+    // para o mesmo destino. Apply real está bloqueado. Use o endpoint v3:
+    // POST /functions/v1/migrate-sm-proposals-v3
+    setError(
+      "Esta tela foi descontinuada. O contrato com 'pipeline_id'/'stage_id' global é incompatível " +
+      "com a classificação por registro (Fase B). Use a edge function 'migrate-sm-proposals-v3'."
+    );
+    setErrorDetails({
+      body: "Endpoint correto:\n  POST /functions/v1/migrate-sm-proposals-v3\n\n" +
+            "Dry-run: { tenant_id }\nApply:   { tenant_id, confirm_apply: true }",
+    });
+    return;
+
+    // eslint-disable-next-line no-unreachable
     setLoading(true);
     setError(null);
     setErrorDetails(null);
