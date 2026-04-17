@@ -513,36 +513,8 @@ export default function SolarMarketPage() {
   const canResetMigrated = resetMigratedText === "LIMPAR MIGRADOS" && !resetMigratedMutation.isPending;
 
 
-  const [selectedProposalIds, setSelectedProposalIds] = useState<Set<string>>(new Set());
-  const [migrationDrawerProposals, setMigrationDrawerProposals] = useState<SmProposal[]>([]);
-  const [migrationDrawerOpen, setMigrationDrawerOpen] = useState(false);
-  const [migrationRunning, setMigrationRunning] = useState(false);
+  // (Removido: estado de seleção/drawer de migração legado — agora unificado em SmMigrationPanelV3)
 
-  const toggleProposalSelect = useCallback((id: string) => {
-    setSelectedProposalIds(prev => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id); else next.add(id);
-      return next;
-    });
-  }, []);
-
-  const toggleAllProposals = useCallback((displayed: SmProposal[]) => {
-    setSelectedProposalIds(prev => {
-      const allSelected = displayed.every(p => prev.has(p.id));
-      const next = new Set(prev);
-      if (allSelected) {
-        displayed.forEach(p => next.delete(p.id));
-      } else {
-        displayed.forEach(p => next.add(p.id));
-      }
-      return next;
-    });
-  }, []);
-
-  const openMigrationDrawer = useCallback((proposals: SmProposal[]) => {
-    setMigrationDrawerProposals(proposals);
-    setMigrationDrawerOpen(true);
-  }, []);
 
   // Pagination state per tab
   const clientsPag = usePagination(100);
