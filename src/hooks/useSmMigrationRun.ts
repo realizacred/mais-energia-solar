@@ -250,20 +250,28 @@ export function useSmMigrationRun() {
     }
 
     const finishedAt = new Date().toISOString();
+    const wasCancelled = cancelRef.current;
     state = {
       ...state,
       finishedAt,
-      ok: state.failedCount === 0 && state.phases.every((p) => p.status === "success"),
+      ok: !wasCancelled && state.failedCount === 0 && state.phases.every((p) => p.status === "success"),
       logLines: [
         ...state.logLines,
-        `[${fmtTime(finishedAt)}] ${state.failedCount === 0 ? "✔ Migração concluída" : `✖ Migração com ${state.failedCount} falha(s)`}`,
+        `[${fmtTime(finishedAt)}] ${
+          wasCancelled
+            ? "⛔ Migração cancelada pelo usuário"
+            : state.failedCount === 0
+              ? "✔ Migração concluída"
+              : `✖ Migração com ${state.failedCount} falha(s)`
+        }`,
       ],
     };
     setRun({ ...state });
     setIsRunning(false);
+    cancelRef.current = false;
 
     qc.invalidateQueries({ queryKey: ["sm-migration-v3"] });
   }, [isRunning, qc]);
 
-  return { run, isRunning, start, reset };
+  return { run, isRunning, start, reset, cancel };
 }
