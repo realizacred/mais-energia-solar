@@ -1222,7 +1222,7 @@ export function SmMigrationDrawer({ proposals, open, onOpenChange, onRunningChan
   const handleAutoResumeConfirm = () => {
     setAutoResumeConfirmOpen(false);
     setAutoResumeConfirmText("");
-    runAutoResume();
+    toast.error("Migração em background foi descontinuada. Use 'Migrar selecionadas' (batches manuais).");
   };
 
   // Progress calculation
