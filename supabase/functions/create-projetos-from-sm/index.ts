@@ -399,10 +399,12 @@ Deno.serve(async (req) => {
               existingClients.set(smcEffective, recovered);
             }
             projectClientId.set(smpId, recovered);
+            state.reused_clients++;
             continue;
           }
         }
-        state.failed.push({ sm_project_id: smpId, reason: `cliente insert: ${insErr.message}` });
+        state.failed.push({ sm_project_id: smpId, reason: `cliente insert: ${insErr.message}`, phase: "client" });
+        state.failed_clients++;
         continue;
       }
 
