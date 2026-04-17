@@ -115,7 +115,7 @@ Deno.serve(async (req) => {
       const slice = eligibleSmIds.slice(i, i + CHUNK);
       const { data, error } = await supabase
         .from("solar_market_projects")
-        .select("id, sm_project_id, sm_funnel_name, sm_stage_name, customer_phone, customer_name")
+        .select("id, sm_project_id, sm_funnel_name, sm_stage_name, sm_client_id")
         .eq("tenant_id", tenant_id)
         .in("sm_project_id", slice);
       if (error) throw error;
