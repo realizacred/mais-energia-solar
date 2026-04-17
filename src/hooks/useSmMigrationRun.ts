@@ -302,8 +302,18 @@ export function useSmMigrationRun() {
           if (remaining <= 0 || (insProjects + failedTotal === 0)) break;
           if (pass >= 50) break;
         } catch (e: any) {
-          fatalError = e?.message ?? String(e);
-          appendLog(`  ✖ ${fatalError}`);
+          let reason = e?.message ?? String(e);
+          if (e?.name === "FunctionsHttpError" && e?.context) {
+            try {
+              const body = await e.context.json();
+              const parts = [body?.error, body?.detail, body?.hint].filter(Boolean);
+              if (parts.length) reason = parts.join(" · ");
+            } catch {
+              try { const text = await e.context.text(); if (text) reason = text; } catch { /* noop */ }
+            }
+          }
+          fatalError = reason;
+          appendLog(`  ✖ Lote ${pass}: ${reason}`);
           break;
         }
       }
