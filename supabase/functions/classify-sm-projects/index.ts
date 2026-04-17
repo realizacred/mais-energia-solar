@@ -210,7 +210,8 @@ Deno.serve(async (req) => {
       }
 
       const { kind, funilNomeAlvo, etapaNomeOverride } = classifyKind(sm.sm_funnel_name, sm.sm_stage_name);
-      const telefoneValido = await validatePhone(supabase, sm.customer_phone);
+      // telefone_valido é resolvido via tabela solar_market_clients (não bloqueia migração)
+      const telefoneValido = false;
 
       let funilDestinoId: string | null = null;
       let etapaDestinoId: string | null = null;
