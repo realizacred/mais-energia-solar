@@ -284,7 +284,7 @@ Deno.serve(async (req) => {
       const slice = toUpsertBatch.slice(i, i + UPSERT_CHUNK);
       const { error } = await supabase
         .from("sm_project_classification")
-        .upsert(slice, { onConflict: "tenant_id,sm_project_id" });
+        .upsert(slice, { onConflict: "sm_project_id" });
       if (error) {
         console.error(`[classify] batch upsert error chunk=${i}:`, error.message);
         throw error;
