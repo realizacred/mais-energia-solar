@@ -789,16 +789,6 @@ export default function SolarMarketPage() {
                 <StopCircle className="h-3.5 w-3.5" />
                 Parar Sync
               </Button>
-            ) : isMigrationActive ? (
-              <Button onClick={() => setMigrationDrawerOpen(true)} size="sm" className="w-full gap-1.5 sm:w-auto">
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                Ver Migração
-              </Button>
-            ) : pendingMigrationTotal > 0 && !syncIsRunning && projects.length > 0 && hasActiveFunis !== false ? (
-              <Button onClick={() => setMigrateAllOpen(true)} size="sm" variant="default" className="w-full gap-1.5 sm:w-auto">
-                <ArrowRightLeft className="h-3.5 w-3.5" />
-                Migrar {pendingMigrationTotal} Propostas
-              </Button>
             ) : (
               <Button onClick={syncUntilComplete} disabled={syncIsRunning} size="sm" className="w-full gap-1.5 sm:w-auto">
                 {syncIsRunning ? (
@@ -850,33 +840,7 @@ export default function SolarMarketPage() {
           </Button>
         </div>
 
-        {/* Migration actions */}
-        <div className="flex flex-wrap items-center gap-1.5 rounded-lg border border-border bg-card/50 px-3 py-2">
-          <span className="mr-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Migrar</span>
-          <Button
-            onClick={() => {
-                if (isMigrationActive) {
-                setMigrationDrawerOpen(true);
-              } else {
-                setMigrateAllOpen(true);
-              }
-            }}
-            disabled={!isMigrationActive && (pendingMigrationTotal === 0 || hasActiveFunis === false)}
-            title={hasActiveFunis === false ? "Sincronize funis e etapas antes de migrar" : undefined}
-            size="sm"
-            variant={isMigrationActive ? "default" : "outline"}
-            className={cn("gap-1 h-7 text-xs", isMigrationActive && "animate-pulse")}
-          >
-            {isMigrationActive ? (
-              <Loader2 className="h-3 w-3 animate-spin" />
-            ) : (
-              <Upload className="h-3 w-3" />
-            )}
-            {isMigrationActive
-              ? "Migrando..."
-              : `Migrar (${pendingMigrationTotal})`}
-          </Button>
-        </div>
+        {/* (Removido: bloco "Migrar" legado — agora unificado em SmMigrationPanelV3) */}
 
         {/* Reset actions */}
         <div className="flex flex-wrap items-center gap-1.5 rounded-lg border border-border bg-card/50 px-3 py-2 xl:justify-end">
