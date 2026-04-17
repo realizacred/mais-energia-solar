@@ -560,8 +560,7 @@ export default function SolarMarketPage() {
   const { data: activeSmRun } = useActiveSmOperation();
   const isAnySyncActive = syncIsRunning || isBgSyncActive;
   const isBackgroundMigrationActive = activeSmRun?.operation_type === "migrate_to_native" && (activeSmRun as any)?._stale !== true;
-  const isDrawerMigrationRunning = migrationDrawerOpen && migrationRunning;
-  const isMigrationActive = isDrawerMigrationRunning || isBackgroundMigrationActive;
+  const isMigrationActive = isBackgroundMigrationActive;
 
   const { data: syncProgressData } = useSmSyncProgress();
 
