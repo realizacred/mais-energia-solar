@@ -145,12 +145,24 @@ Deno.serve(async (req) => {
     // 6) Carregar classificações existentes para evitar reprocessar (idempotência)
     const { data: existing } = await supabase
       .from("sm_project_classification")
-      .select("sm_project_id, override_by")
+      .select("sm_project_id, override_by, funil_destino_id, etapa_destino_id, resolved_funil_id, resolved_etapa_id")
       .eq("tenant_id", tenant_id);
 
-    const existingMap = new Map<string, { override_by: string | null }>();
+    const existingMap = new Map<string, {
+      override_by: string | null;
+      funil_destino_id: string | null;
+      etapa_destino_id: string | null;
+      resolved_funil_id: string | null;
+      resolved_etapa_id: string | null;
+    }>();
     for (const e of existing ?? []) {
-      existingMap.set(e.sm_project_id, { override_by: e.override_by });
+      existingMap.set(e.sm_project_id, {
+        override_by: e.override_by,
+        funil_destino_id: e.funil_destino_id,
+        etapa_destino_id: e.etapa_destino_id,
+        resolved_funil_id: e.resolved_funil_id,
+        resolved_etapa_id: e.resolved_etapa_id,
+      });
     }
 
     // 7) Classificar cada projeto
@@ -206,6 +218,12 @@ Deno.serve(async (req) => {
 
     for (const sm of smProjects) {
       const prev = existingMap.get(sm.id);
+      const prevFullyResolved = Boolean(
+        prev?.funil_destino_id &&
+        prev?.etapa_destino_id &&
+        prev?.resolved_funil_id &&
+        prev?.resolved_etapa_id,
+      );
 
       // Preservar overrides manuais
       if (prev?.override_by && !reclassify_all) {
@@ -213,8 +231,8 @@ Deno.serve(async (req) => {
         continue;
       }
 
-      // Pular se já classificado e não é reclassify_all
-      if (prev && !reclassify_all) {
+      // Só pular quando a classificação anterior estiver realmente completa.
+      if (prev && prevFullyResolved && !reclassify_all) {
         skipped++;
         continue;
       }
