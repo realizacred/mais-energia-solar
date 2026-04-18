@@ -10875,6 +10875,113 @@ export type Database = {
           },
         ]
       }
+      migration_jobs: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          created_by: string | null
+          error_message: string | null
+          id: string
+          job_type: string
+          metadata: Json
+          started_at: string | null
+          status: string
+          tenant_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          error_message?: string | null
+          id?: string
+          job_type: string
+          metadata?: Json
+          started_at?: string | null
+          status?: string
+          tenant_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          error_message?: string | null
+          id?: string
+          job_type?: string
+          metadata?: Json
+          started_at?: string | null
+          status?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "migration_jobs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      migration_records: {
+        Row: {
+          created_at: string
+          entity_type: string
+          error_message: string | null
+          id: string
+          job_id: string
+          migrated_at: string | null
+          native_entity_id: string | null
+          sm_entity_id: number
+          source_data: Json | null
+          status: string
+          tenant_id: string
+          validation_errors: Json | null
+        }
+        Insert: {
+          created_at?: string
+          entity_type: string
+          error_message?: string | null
+          id?: string
+          job_id: string
+          migrated_at?: string | null
+          native_entity_id?: string | null
+          sm_entity_id: number
+          source_data?: Json | null
+          status: string
+          tenant_id: string
+          validation_errors?: Json | null
+        }
+        Update: {
+          created_at?: string
+          entity_type?: string
+          error_message?: string | null
+          id?: string
+          job_id?: string
+          migrated_at?: string | null
+          native_entity_id?: string | null
+          sm_entity_id?: number
+          source_data?: Json | null
+          status?: string
+          tenant_id?: string
+          validation_errors?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "migration_records_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "migration_jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "migration_records_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       modulos_fotovoltaicos: {
         Row: {
           ativo: boolean
@@ -20406,6 +20513,73 @@ export type Database = {
         }
         Relationships: []
       }
+      sm_classification_v2: {
+        Row: {
+          category: string
+          classification_reason: string | null
+          classified_at: string
+          confidence_score: number | null
+          id: string
+          override_by: string | null
+          override_reason: string | null
+          sm_project_id: number
+          target_etapa_id: string | null
+          target_funil_id: string | null
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          category: string
+          classification_reason?: string | null
+          classified_at?: string
+          confidence_score?: number | null
+          id?: string
+          override_by?: string | null
+          override_reason?: string | null
+          sm_project_id: number
+          target_etapa_id?: string | null
+          target_funil_id?: string | null
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          classification_reason?: string | null
+          classified_at?: string
+          confidence_score?: number | null
+          id?: string
+          override_by?: string | null
+          override_reason?: string | null
+          sm_project_id?: number
+          target_etapa_id?: string | null
+          target_funil_id?: string | null
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sm_classification_v2_target_etapa_id_fkey"
+            columns: ["target_etapa_id"]
+            isOneToOne: false
+            referencedRelation: "projeto_etapas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sm_classification_v2_target_funil_id_fkey"
+            columns: ["target_funil_id"]
+            isOneToOne: false
+            referencedRelation: "projeto_funis"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sm_classification_v2_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sm_consultor_mapping: {
         Row: {
           canonical_name: string
@@ -20616,7 +20790,7 @@ export type Database = {
           },
         ]
       }
-      sm_project_classification: {
+      sm_project_classification_old_backup: {
         Row: {
           classification_version: number
           created_at: string
