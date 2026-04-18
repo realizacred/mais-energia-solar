@@ -264,6 +264,7 @@ export function useSmMigrationRun() {
       let totFailedProjects = 0;
       const allSample: Array<{ ref: string | number; reason: string; phase: "client" | "project" }> = [];
       let pass = 0;
+      let stagnantRounds = 0;
       let fatalError: string | null = null;
 
       while (true) {
@@ -304,6 +305,19 @@ export function useSmMigrationRun() {
 
           const remaining = eligible - reusedProjects;
           if (remaining <= 0 || (insProjects + failedTotal === 0)) break;
+
+          // Detectar estagnação: batch com elegíveis mas sem nenhum projeto inserido
+          // indica que os mesmos projetos continuarão falhando nas próximas rodadas.
+          if (insProjects === 0 && eligible > 0) {
+            stagnantRounds++;
+            if (stagnantRounds >= 3) {
+              appendLog(`  ⚠ ${stagnantRounds} lotes sem progresso — interrompendo para evitar reprocessamento infinito`);
+              break;
+            }
+          } else {
+            stagnantRounds = 0;
+          }
+
           if (pass >= 50) break;
         } catch (e: any) {
           let reason = e?.message ?? String(e);
@@ -372,7 +386,9 @@ export function useSmMigrationRun() {
         },
       );
 
-      ok34 = !fatalError && totFailedProjects === 0;
+      // applyFunnels deve rodar mesmo com falhas parciais de projetos,
+      // pois os projetos criados com sucesso ainda precisam de funil/etapa.
+      ok34 = !fatalError;
     }
 
     // ── Fase 5: applyFunnels ────────────────────────────────────────

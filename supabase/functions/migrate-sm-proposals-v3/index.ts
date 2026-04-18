@@ -190,20 +190,13 @@ Deno.serve(async (req) => {
         }
         counters.updated++;
       } else {
-        // INSERT — apply real cria projeto vinculado.
-        // Nesta v3, INSERT real é stub: a criação completa exige resolver cliente_id,
-        // codigo, projeto_num, etc. Mantemos contagem para a próxima onda.
+        // Projeto nativo ainda não existe — cria‑se via create-projetos-from-sm (fase anterior).
+        // Esta fase apenas aplica funil/etapa em projetos já existentes; se não existe, skip.
         if (dryRun) {
           counters.would_insert++;
           continue;
         }
-        // Apply real de INSERT está intencionalmente DESABILITADO nesta versão.
-        counters.skipped_no_classification++;
-        counters.errors.push({
-          sm_project_id: extId,
-          error: "INSERT não implementado em v3 — projeto nativo não existe para esse sm_project_id",
-        });
-        counters.failed++;
+        counters.skipped_no_destination++;
       }
     }
 
