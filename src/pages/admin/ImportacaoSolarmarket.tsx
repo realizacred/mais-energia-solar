@@ -222,7 +222,7 @@ export default function ImportacaoSolarmarket() {
       {runningJob && (
         <Card className="border-l-[3px] border-l-info bg-card shadow-sm">
           <CardContent className="p-5 space-y-3">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between gap-3">
               <div>
                 <p className="text-sm font-semibold text-foreground">
                   Importação em andamento
@@ -231,7 +231,23 @@ export default function ImportacaoSolarmarket() {
                   Etapa atual: {runningJob.current_step ?? "—"}
                 </p>
               </div>
-              <Loader2 className="w-5 h-5 animate-spin text-info" />
+              <div className="flex items-center gap-2">
+                <Loader2 className="w-5 h-5 animate-spin text-info" />
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleCancel}
+                  disabled={cancelImport.isPending}
+                  className="border-destructive text-destructive hover:bg-destructive/10"
+                >
+                  {cancelImport.isPending ? (
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  ) : (
+                    <Ban className="w-4 h-4 mr-2" />
+                  )}
+                  Cancelar
+                </Button>
+              </div>
             </div>
             <Progress value={Number(runningJob.progress_pct ?? 0)} />
           </CardContent>
