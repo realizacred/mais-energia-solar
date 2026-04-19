@@ -134,6 +134,7 @@ const OpenAIConfigPage = lazy(() => import("@/pages/admin/OpenAIConfigPage"));
 const GeminiConfigPage = lazy(() => import("@/pages/admin/GeminiConfigPage"));
 const SolarMarketConfigPage = lazy(() => import("@/pages/admin/SolarMarketConfigPage"));
 const SolarMarketPage = lazy(() => import("@/components/admin/solarmarket/SolarMarketPage"));
+const MigrationCenter = lazy(() => import("@/pages/admin/MigrationCenter"));
 const MetaFacebookConfigPage = lazy(() => import("@/pages/admin/MetaFacebookConfigPage"));
 const MetaDashboardPage = lazy(() => import("@/pages/admin/meta/MetaDashboardPage"));
 const MetaLeadsPage = lazy(() => import("@/pages/admin/meta/MetaLeadsPage"));
@@ -706,6 +707,7 @@ export default function Admin() {
                 <Route path="gemini-config" element={<GeminiConfigPage />} />
                 <Route path="solarmarket-config" element={<SolarMarketConfigPage />} />
                 <Route path="solarmarket" element={<SolarMarketPage />} />
+                <Route path="migration-center" element={<MigrationCenter />} />
                 <Route path="meta-facebook-config" element={<MetaFacebookConfigPage />} />
                 <Route path="meta-dashboard" element={<MetaDashboardPage />} />
                 <Route path="meta-leads" element={<MetaLeadsPage />} />
