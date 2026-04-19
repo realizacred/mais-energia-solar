@@ -95,10 +95,35 @@ export function useSolarmarketImport() {
     },
   });
 
+  const cancelImport = useMutation({
+    mutationFn: async (jobId: string) => {
+      // RB-58: usar .select() para garantir que o UPDATE afetou linhas
+      const { data, error } = await (supabase as any)
+        .from("solarmarket_import_jobs")
+        .update({
+          status: "cancelled",
+          error_message: "Cancelado manualmente pelo usuário.",
+          finished_at: new Date().toISOString(),
+        })
+        .eq("id", jobId)
+        .in("status", ["pending", "running"])
+        .select("id");
+      if (error) throw error;
+      if (!data || data.length === 0) {
+        throw new Error("Job não encontrado ou já finalizado.");
+      }
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: JOBS_KEY });
+    },
+  });
+
   return {
     jobs: jobsQuery.data ?? [],
     isLoading: jobsQuery.isLoading,
     testConnection,
     importAll,
+    cancelImport,
   };
 }

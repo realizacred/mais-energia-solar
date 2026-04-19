@@ -11,7 +11,7 @@ import { useSolarmarketImport, type ImportScope } from "@/hooks/useSolarmarketIm
 import { useSolarmarketConfig } from "@/hooks/useSolarmarketConfig";
 import { toast } from "@/hooks/use-toast";
 import {
-  Cloud, CheckCircle2, XCircle, Loader2, Download, Plug, Settings, AlertTriangle,
+  Cloud, CheckCircle2, XCircle, Loader2, Download, Plug, Settings, AlertTriangle, Ban,
 } from "lucide-react";
 
 const formatBR = (iso: string | null) =>
@@ -33,7 +33,7 @@ function statusBadge(status: string) {
 }
 
 export default function ImportacaoSolarmarket() {
-  const { jobs, isLoading, testConnection, importAll } = useSolarmarketImport();
+  const { jobs, isLoading, testConnection, importAll, cancelImport } = useSolarmarketImport();
   const { config, isConfigured, isLoading: loadingCfg } = useSolarmarketConfig();
   const [scope, setScope] = useState<ImportScope>({
     clientes: true,
@@ -81,6 +81,21 @@ export default function ImportacaoSolarmarket() {
 
   const toggle = (k: keyof ImportScope) =>
     setScope((s) => ({ ...s, [k]: !s[k] }));
+
+  const handleCancel = async () => {
+    if (!runningJob) return;
+    if (!confirm("Cancelar a importação em andamento?")) return;
+    try {
+      await cancelImport.mutateAsync(runningJob.id);
+      toast({ title: "Importação cancelada" });
+    } catch (e: any) {
+      toast({
+        title: "Erro ao cancelar",
+        description: e?.message || "Tente novamente.",
+        variant: "destructive",
+      });
+    }
+  };
 
   if (isLoading || loadingCfg) return <LoadingState message="Carregando importações..." />;
 
@@ -207,7 +222,7 @@ export default function ImportacaoSolarmarket() {
       {runningJob && (
         <Card className="border-l-[3px] border-l-info bg-card shadow-sm">
           <CardContent className="p-5 space-y-3">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between gap-3">
               <div>
                 <p className="text-sm font-semibold text-foreground">
                   Importação em andamento
@@ -216,7 +231,23 @@ export default function ImportacaoSolarmarket() {
                   Etapa atual: {runningJob.current_step ?? "—"}
                 </p>
               </div>
-              <Loader2 className="w-5 h-5 animate-spin text-info" />
+              <div className="flex items-center gap-2">
+                <Loader2 className="w-5 h-5 animate-spin text-info" />
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleCancel}
+                  disabled={cancelImport.isPending}
+                  className="border-destructive text-destructive hover:bg-destructive/10"
+                >
+                  {cancelImport.isPending ? (
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  ) : (
+                    <Ban className="w-4 h-4 mr-2" />
+                  )}
+                  Cancelar
+                </Button>
+              </div>
             </div>
             <Progress value={Number(runningJob.progress_pct ?? 0)} />
           </CardContent>
