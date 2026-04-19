@@ -976,39 +976,69 @@ async function migrateProposals(
         );
         counters.skipped++;
       } else {
-        const proposalNumber = await nextProposalNumberForProject(admin, tenant_id, (projeto as any).id);
+        // Retry-loop pequeno para race em proposta_num
+        // (uq_propostas_tenant_projeto_proposta_num) e em codigo (uq_propostas_tenant_codigo).
         const titulo = String((pr as any).titulo ?? (pr as any).description ?? "").trim() || `Proposta Migrada SM #${sm_project_id}`;
-        const codigo = `SM-PROP-${sm_project_id}-${proposalNumber}`;
-        const { data: inserted, error } = await admin
-          .from("propostas_nativas")
-          .insert({
-            tenant_id,
-            projeto_id: (projeto as any).id,
-            cliente_id: (projeto as any).cliente_id,
-            titulo,
-            codigo,
-            proposta_num: proposalNumber,
-            origem: "imported",
-            import_source: "solar_market",
-            is_principal: proposalNumber === 1,
-            sm_id: stagingId,
-            sm_project_id: String(sm_project_id),
-            sm_raw_payload: (pr as any).raw_payload ?? pr,
-            status: "gerada",
-            metadata: {
-              source: "solar_market",
-              sm_proposal_id,
-              sm_project_id,
-              link_pdf: (pr as any).link_pdf ?? null,
-              valor_total: (pr as any).valor_total ?? null,
-              source_status: (pr as any).status ?? null,
-            },
-          })
-          .select("id")
-          .single();
-        if (error) throw error;
-        nativeId = (inserted as any).id;
-        counters.migrated++;
+        const baseInsert = {
+          tenant_id,
+          projeto_id: (projeto as any).id,
+          cliente_id: (projeto as any).cliente_id,
+          titulo,
+          origem: "imported",
+          import_source: "solar_market",
+          sm_id: stagingId,
+          sm_project_id: String(sm_project_id),
+          sm_raw_payload: (pr as any).raw_payload ?? pr,
+          status: "gerada",
+          metadata: {
+            source: "solar_market",
+            sm_proposal_id,
+            sm_project_id,
+            link_pdf: (pr as any).link_pdf ?? null,
+            valor_total: (pr as any).valor_total ?? null,
+            source_status: (pr as any).status ?? null,
+          },
+        } as Record<string, any>;
+
+        let inserted: { id: string } | null = null;
+        let lastError: any = null;
+        for (let attempt = 0; attempt < 3 && !inserted; attempt++) {
+          const proposalNumber = await nextProposalNumberForProject(admin, tenant_id, (projeto as any).id);
+          const codigo = `SM-PROP-${sm_project_id}-${proposalNumber}`;
+          const { data, error } = await admin
+            .from("propostas_nativas")
+            .insert({
+              ...baseInsert,
+              codigo,
+              proposta_num: proposalNumber,
+              is_principal: proposalNumber === 1,
+            })
+            .select("id")
+            .single();
+          if (!error) { inserted = data as any; break; }
+          lastError = error;
+          const isDup = (error as any)?.code === "23505" || /duplicate key|unique constraint/i.test(String((error as any)?.message ?? ""));
+          if (!isDup) throw error;
+          // Se duplicou em sm_id → outro batch já criou, recupera e sai
+          const { data: dupBySmId } = await admin
+            .from("propostas_nativas")
+            .select("id")
+            .eq("tenant_id", tenant_id)
+            .eq("sm_id", stagingId)
+            .maybeSingle();
+          if (dupBySmId) {
+            nativeId = (dupBySmId as any).id;
+            counters.skipped++;
+            break;
+          }
+          // Senão é colisão de proposta_num/codigo → retry com novo número
+        }
+        if (inserted) {
+          nativeId = inserted.id;
+          counters.migrated++;
+        } else if (!nativeId) {
+          throw lastError ?? new Error("Falha ao inserir proposta após retries");
+        }
       }
 
       if (nativeId) {
