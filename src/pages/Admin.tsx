@@ -38,6 +38,7 @@ const FinanciamentoConfig = lazy(() => import("@/components/admin/FinanciamentoC
 const FormasPagamentoPage = lazy(() => import("@/components/admin/FormasPagamentoPage").then(m => ({ default: m.FormasPagamentoPage })));
 const WebhookManager = lazy(() => import("@/components/admin/WebhookManager"));
 const ImportacaoSolarmarket = lazy(() => import("@/pages/admin/ImportacaoSolarmarket"));
+const SolarmarketConfigPage = lazy(() => import("@/pages/admin/SolarmarketConfigPage"));
 const ClientesManager = lazy(() => import("@/components/admin/ClientesManager").then(m => ({ default: m.ClientesManager })));
 const RecebimentosManager = lazy(() => import("@/components/admin/RecebimentosManager").then(m => ({ default: m.RecebimentosManager })));
 const FinanceiroDashboard = lazy(() => import("@/components/admin/FinanceiroDashboard").then(m => ({ default: m.FinanceiroDashboard })));
@@ -743,6 +744,7 @@ export default function Admin() {
                 <Route path="dev/reset-seed" element={<DevToolsPage />} />
                 <Route path="dev/rls-test" element={<RlsTestPage />} />
                 <Route path="importacao-solarmarket" element={<ImportacaoSolarmarket />} />
+                <Route path="configuracoes/integracoes/solarmarket" element={<SolarmarketConfigPage />} />
                 
                 {/* Catch-all */}
                 <Route path="*" element={<Navigate to="leads" replace />} />
