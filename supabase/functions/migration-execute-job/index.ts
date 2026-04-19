@@ -299,7 +299,15 @@ async function migrateClients(
 
       if (existing) {
         nativeId = (existing as any).id;
-        await recordOk(admin, job_id, tenant_id, "client", sm_client_id, nativeId);
+        await recordSkip(
+          admin,
+          job_id,
+          tenant_id,
+          "client",
+          sm_client_id,
+          `cliente já existe no destino (id=${nativeId}; match por sm_client_id/CPF/email)`,
+          nativeId,
+        );
         counters.skipped++;
         continue;
       }
@@ -538,6 +546,7 @@ async function recordSkip(
   entity_type: "client" | "project" | "proposal",
   sm_entity_id: number,
   reason: string,
+  native_entity_id: string | null = null,
 ) {
   await admin
     .from("migration_records")
@@ -547,6 +556,7 @@ async function recordSkip(
         tenant_id,
         entity_type,
         sm_entity_id,
+        native_entity_id,
         status: "skipped",
         error_message: reason,
       },
