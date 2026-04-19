@@ -348,13 +348,13 @@ function classifyByText(funilName: string | null, stageName: string | null): {
 }
 
 /**
- * Garante que existem os pipelines canônicos (Comercial, Engenharia, Equipamento,
- * Compensação, Verificar Dados) na tabela NATIVA `pipelines` (name/kind=process)
- * com pelo menos uma etapa em `pipeline_stages` (name/position/pipeline_id).
+ * Garante que existem os funis canônicos de PROJETOS (Comercial, Engenharia,
+ * Equipamento, Compensação, Verificar Dados) em `projeto_funis`, com pelo menos
+ * uma etapa em `projeto_etapas`.
  *
- * Mantém o shape `{ funil_id, etapa_id }` para preservar todos os callers existentes.
- * funil_id  = pipelines.id
- * etapa_id  = pipeline_stages.id (primeira etapa por position)
+ * Mantém o shape `{ funil_id, etapa_id }` para preservar os callers existentes.
+ * funil_id = projeto_funis.id
+ * etapa_id = projeto_etapas.id (primeira etapa por ordem)
  */
 async function ensureCanonicalFunis(admin: SupabaseClient, tenant_id: string) {
   const cats = ["comercial", "engenharia", "equipamento", "compensacao", "verificar_dados"];
@@ -364,16 +364,16 @@ async function ensureCanonicalFunis(admin: SupabaseClient, tenant_id: string) {
     const nome = cat === "verificar_dados" ? "Verificar Dados" : capitalize(cat);
 
     let { data: pipe } = await admin
-      .from("pipelines")
+      .from("projeto_funis")
       .select("id")
       .eq("tenant_id", tenant_id)
-      .ilike("name", nome)
+      .ilike("nome", nome)
       .maybeSingle();
 
     if (!pipe) {
       const { data: created, error } = await admin
-        .from("pipelines")
-        .insert({ tenant_id, name: nome, kind: "process", is_active: true })
+        .from("projeto_funis")
+        .insert({ tenant_id, nome, ativo: true })
         .select("id")
         .single();
       if (error) throw error;
@@ -381,18 +381,18 @@ async function ensureCanonicalFunis(admin: SupabaseClient, tenant_id: string) {
     }
 
     let { data: stage } = await admin
-      .from("pipeline_stages")
+      .from("projeto_etapas")
       .select("id")
       .eq("tenant_id", tenant_id)
-      .eq("pipeline_id", pipe!.id)
-      .order("position", { ascending: true })
+      .eq("funil_id", pipe!.id)
+      .order("ordem", { ascending: true })
       .limit(1)
       .maybeSingle();
 
     if (!stage) {
       const { data: createdStage, error } = await admin
-        .from("pipeline_stages")
-        .insert({ tenant_id, pipeline_id: pipe!.id, name: "Novo", position: 0 })
+        .from("projeto_etapas")
+        .insert({ tenant_id, funil_id: pipe!.id, nome: "Novo", ordem: 0 })
         .select("id")
         .single();
       if (error) throw error;
@@ -406,43 +406,43 @@ async function ensureCanonicalFunis(admin: SupabaseClient, tenant_id: string) {
 
 /**
  * Item 2 — Etapa equivalente por nome no pipeline Comercial.
- * Procura etapa com mesmo nome (case-insensitive) dentro do pipeline Comercial.
+ * Procura etapa com mesmo nome (case-insensitive) dentro do funil Comercial.
  * Se não existir, cria preservando o nome do SM.
  * Retorna null se stageName for vazio (caller usa etapa default do canonical).
  */
 async function resolveComercialEtapaByName(
   admin: SupabaseClient,
   tenant_id: string,
-  comercialPipelineId: string,
+  comercialFunilId: string,
   stageName: string | null,
 ): Promise<string | null> {
   const nome = (stageName ?? "").trim();
   if (!nome) return null;
 
   const { data: existing } = await admin
-    .from("pipeline_stages")
+    .from("projeto_etapas")
     .select("id")
     .eq("tenant_id", tenant_id)
-    .eq("pipeline_id", comercialPipelineId)
-    .ilike("name", nome)
+    .eq("funil_id", comercialFunilId)
+    .ilike("nome", nome)
     .maybeSingle();
 
   if (existing) return (existing as any).id;
 
   // Cria etapa equivalente — preserva nome do SM
   const { data: maxPos } = await admin
-    .from("pipeline_stages")
-    .select("position")
+    .from("projeto_etapas")
+    .select("ordem")
     .eq("tenant_id", tenant_id)
-    .eq("pipeline_id", comercialPipelineId)
-    .order("position", { ascending: false })
+    .eq("funil_id", comercialFunilId)
+    .order("ordem", { ascending: false })
     .limit(1)
     .maybeSingle();
-  const nextPos = ((maxPos as any)?.position ?? -1) + 1;
+  const nextPos = ((maxPos as any)?.ordem ?? -1) + 1;
 
   const { data: created, error } = await admin
-    .from("pipeline_stages")
-    .insert({ tenant_id, pipeline_id: comercialPipelineId, name: nome, position: nextPos })
+    .from("projeto_etapas")
+    .insert({ tenant_id, funil_id: comercialFunilId, nome, ordem: nextPos })
     .select("id")
     .single();
   if (error) throw error;
