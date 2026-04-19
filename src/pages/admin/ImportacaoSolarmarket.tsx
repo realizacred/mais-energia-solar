@@ -55,12 +55,12 @@ export default function ImportacaoSolarmarket() {
     custom_fields: true,
   });
 
-  const runningJob = jobs.find((j) => {
-    if (j.status !== "running") return false;
-    // Considera "travado" se passou mais de 10 min sem finalizar
-    const startedMs = new Date(j.started_at ?? j.created_at).getTime();
-    return Date.now() - startedMs < 10 * 60 * 1000;
-  });
+  // Qualquer job em "running" é considerado ativo (e cancelável).
+  // Se passou de 10 min, marcamos como "stale" para o usuário ver e cancelar.
+  const runningJob = jobs.find((j) => j.status === "running");
+  const isStale = runningJob
+    ? Date.now() - new Date(runningJob.started_at ?? runningJob.created_at).getTime() > 10 * 60 * 1000
+    : false;
 
   const handleTest = async () => {
     try {
