@@ -340,31 +340,51 @@ async function migrateClients(
         .single();
 
       if (error) {
-        // Fallback para corrida/duplicado por telefone (constraint uq_clientes_tenant_telefone)
-        if ((error as any).code === "23505" && telDigits.length >= 8) {
-          const { data: dup } = await admin
-            .from("clientes")
-            .select("id, sm_client_id")
-            .eq("tenant_id", tenant_id)
-            .eq("telefone_normalized", telDigits)
-            .limit(1)
-            .maybeSingle();
-          if (dup) {
-            nativeId = (dup as any).id;
-            if (!(dup as any).sm_client_id) {
-              await admin
-                .from("clientes")
-                .update({ sm_client_id, import_source: "solar_market" })
-                .eq("id", nativeId);
+        const errAny = error as any;
+        const errMsg = String(errAny?.message ?? "");
+        const isDup =
+          errAny?.code === "23505" ||
+          /duplicate key|unique constraint/i.test(errMsg);
+        // Fallback para corrida/duplicado por telefone (uq_clientes_tenant_telefone) ou cpf/email
+        if (isDup) {
+          // tenta achar o registro conflitante por telefone, cpf ou email
+          const orParts2 = [
+            telDigits.length >= 8 ? `telefone_normalized.eq.${telDigits}` : null,
+            cpfCnpj ? `cpf_cnpj.eq.${cpfCnpj}` : null,
+            email ? `email.eq.${email}` : null,
+          ].filter(Boolean) as string[];
+          if (orParts2.length > 0) {
+            const { data: dup } = await admin
+              .from("clientes")
+              .select("id, sm_client_id")
+              .eq("tenant_id", tenant_id)
+              .or(orParts2.join(","))
+              .limit(1)
+              .maybeSingle();
+            if (dup) {
+              nativeId = (dup as any).id;
+              if (!(dup as any).sm_client_id) {
+                await admin
+                  .from("clientes")
+                  .update({ sm_client_id, import_source: "solar_market" })
+                  .eq("id", nativeId);
+              }
+              await recordSkip(
+                admin, job_id, tenant_id, "client", sm_client_id,
+                `cliente já existe no destino (id=${nativeId}; match após conflito)`,
+                nativeId,
+              );
+              counters.skipped++;
+              continue;
             }
-            await recordSkip(
-              admin, job_id, tenant_id, "client", sm_client_id,
-              `cliente já existe no destino (id=${nativeId}; match por telefone após conflito)`,
-              nativeId,
-            );
-            counters.skipped++;
-            continue;
           }
+          // não achou o conflitante: registra como skipped com motivo claro
+          await recordSkip(
+            admin, job_id, tenant_id, "client", sm_client_id,
+            `duplicado no destino mas sem match recuperável (telefone="${telefone}")`,
+          );
+          counters.skipped++;
+          continue;
         }
         throw error;
       }
