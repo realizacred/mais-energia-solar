@@ -415,7 +415,46 @@ async function importEntity(
   return { count, errors, pathUsed: found.path };
 }
 
-// Mappers — upsert idempotente via (tenant_id, external_source, external_id)
+// Mappers — idempotência via busca por (tenant_id, external_source, external_id)
+
+async function upsertImportedRecord(
+  state: RequestState,
+  table: "clientes" | "projetos" | "propostas_nativas",
+  externalId: string,
+  payload: Record<string, unknown>,
+): Promise<{ id: string; action: "created" | "updated" }> {
+  const { data: existingRows, error: existingError } = await state.supabase
+    .from(table)
+    .select("id")
+    .eq("tenant_id", state.tenantId)
+    .eq("external_source", EXTERNAL_SOURCE)
+    .eq("external_id", externalId)
+    .limit(1);
+
+  if (existingError) throw new Error(existingError.message);
+
+  const existingId = existingRows?.[0]?.id;
+  if (existingId) {
+    const { data, error } = await state.supabase
+      .from(table)
+      .update(payload)
+      .eq("id", existingId)
+      .select("id")
+      .single();
+    if (error) throw new Error(error.message);
+    if (!data?.id) throw new Error(`Falha ao atualizar ${table} ${externalId}.`);
+    return { id: data.id, action: "updated" };
+  }
+
+  const { data, error } = await state.supabase
+    .from(table)
+    .insert(payload)
+    .select("id")
+    .single();
+  if (error) throw new Error(error.message);
+  if (!data?.id) throw new Error(`Falha ao criar ${table} ${externalId}.`);
+  return { id: data.id, action: "created" };
+}
 
 async function mapCliente(state: RequestState, item: any) {
   const externalId = String(item?.id ?? item?.uuid ?? "");
@@ -435,17 +474,9 @@ async function mapCliente(state: RequestState, item: any) {
     ativo: true,
   };
 
-  // UPSERT idempotente via índice único parcial (tenant_id, external_source, external_id)
-  const { data: up, error } = await state.supabase
-    .from("clientes")
-    .upsert(payload, { onConflict: "tenant_id,external_source,external_id", ignoreDuplicates: false })
-    .select("id")
-    .single();
-  if (error) throw new Error(error.message);
-  // Detecta se foi created/updated checando created_at vs updated_at não é confiável aqui;
-  // usamos uma 2ª query leve apenas se quisermos diferenciar — para idempotência basta "created or updated".
-  await logEntry(state, "cliente", "updated", externalId, up.id);
-  return "updated" as const;
+  const saved = await upsertImportedRecord(state, "clientes", externalId, payload);
+  await logEntry(state, "cliente", saved.action, externalId, saved.id);
+  return saved.action;
 }
 
 async function mapProjeto(state: RequestState, item: any) {
@@ -493,14 +524,9 @@ async function mapProjeto(state: RequestState, item: any) {
     cliente_id: cli.id,
   };
 
-  const { data: up, error } = await state.supabase
-    .from("projetos")
-    .upsert(payload, { onConflict: "tenant_id,external_source,external_id", ignoreDuplicates: false })
-    .select("id")
-    .single();
-  if (error) throw new Error(error.message);
-  await logEntry(state, "projeto", "updated", externalId, up.id);
-  return "updated" as const;
+  const saved = await upsertImportedRecord(state, "projetos", externalId, payload);
+  await logEntry(state, "projeto", saved.action, externalId, saved.id);
+  return saved.action;
 }
 
 async function mapProposta(state: RequestState, item: any) {
@@ -549,14 +575,9 @@ async function mapProposta(state: RequestState, item: any) {
     status: "rascunho",
   };
 
-  const { data: up, error } = await state.supabase
-    .from("propostas_nativas")
-    .upsert(payload, { onConflict: "tenant_id,external_source,external_id", ignoreDuplicates: false })
-    .select("id")
-    .single();
-  if (error) throw new Error(error.message);
-  await logEntry(state, "proposta", "updated", externalId, up.id);
-  return "updated" as const;
+  const saved = await upsertImportedRecord(state, "propostas_nativas", externalId, payload);
+  await logEntry(state, "proposta", saved.action, externalId, saved.id);
+  return saved.action;
 }
 
 // -------- Handler principal --------
