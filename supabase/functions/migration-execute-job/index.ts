@@ -699,17 +699,19 @@ async function migrateProposals(
 
   const { data: proposals } = await admin
     .from("solar_market_proposals")
-    .select("*")
+    .select("id, sm_proposal_id, sm_project_id, titulo, description, raw_payload, valor_total, link_pdf, status")
     .eq("tenant_id", tenant_id)
-    .order("sm_proposal_id", { ascending: true })
+    .order("sm_project_id", { ascending: true })
     .range(offset, offset + batchSize - 1);
 
   for (const pr of proposals ?? []) {
-    const sm_proposal_id = (pr as any).sm_proposal_id ?? (pr as any).id;
+    const stagingId = String((pr as any).id ?? "");
+    const sm_proposal_id = (pr as any).sm_proposal_id ?? null;
+    const sm_project_id = (pr as any).sm_project_id as number | null;
+    const trackingId = sm_project_id ?? (typeof sm_proposal_id === "number" ? sm_proposal_id : 0);
     try {
-      const sm_project_id = (pr as any).sm_project_id as number | null;
       if (!sm_project_id) {
-        await recordSkip(admin, job_id, tenant_id, "proposal", sm_proposal_id, "sem sm_project_id");
+        await recordSkip(admin, job_id, tenant_id, "proposal", trackingId, `sem sm_project_id (proposal_row=${stagingId})`);
         counters.skipped++;
         continue;
       }
@@ -721,34 +723,60 @@ async function migrateProposals(
         .eq("sm_project_id", sm_project_id)
         .maybeSingle();
       if (!projeto) {
-        await recordSkip(admin, job_id, tenant_id, "proposal", sm_proposal_id, "projeto nativo não encontrado");
+        await recordSkip(admin, job_id, tenant_id, "proposal", trackingId, "projeto nativo não encontrado");
         counters.skipped++;
         continue;
       }
 
-      // Idempotência por sm_proposal_id
+      // Idempotência pela linha canônica do staging (UUID em sm_id)
       const { data: existing } = await admin
         .from("propostas_nativas")
         .select("id")
         .eq("tenant_id", tenant_id)
-        .eq("sm_proposal_id", sm_proposal_id)
+        .eq("sm_id", stagingId)
         .maybeSingle();
 
       let nativeId: string | null = null;
       if (existing) {
         nativeId = (existing as any).id;
+        await recordSkip(
+          admin,
+          job_id,
+          tenant_id,
+          "proposal",
+          trackingId,
+          `proposta já existe no destino (id=${nativeId})`,
+          nativeId,
+        );
         counters.skipped++;
       } else {
+        const proposalNumber = await nextProposalNumberForProject(admin, tenant_id, (projeto as any).id);
+        const titulo = String((pr as any).titulo ?? (pr as any).description ?? "").trim() || `Proposta Migrada SM #${sm_project_id}`;
+        const codigo = `SM-PROP-${sm_project_id}-${proposalNumber}`;
         const { data: inserted, error } = await admin
           .from("propostas_nativas")
           .insert({
             tenant_id,
             projeto_id: (projeto as any).id,
             cliente_id: (projeto as any).cliente_id,
-            sm_proposal_id,
-            valor_total: (pr as any).valor_total ?? 0,
-            source: "legacy_import",
+            titulo,
+            codigo,
+            proposta_num: proposalNumber,
+            origem: "imported",
             import_source: "solar_market",
+            is_principal: proposalNumber === 1,
+            sm_id: stagingId,
+            sm_project_id: String(sm_project_id),
+            sm_raw_payload: (pr as any).raw_payload ?? pr,
+            status: "gerada",
+            metadata: {
+              source: "solar_market",
+              sm_proposal_id,
+              sm_project_id,
+              link_pdf: (pr as any).link_pdf ?? null,
+              valor_total: (pr as any).valor_total ?? null,
+              source_status: (pr as any).status ?? null,
+            },
           })
           .select("id")
           .single();
@@ -757,14 +785,33 @@ async function migrateProposals(
         counters.migrated++;
       }
 
-      await recordOk(admin, job_id, tenant_id, "proposal", sm_proposal_id, nativeId);
+      if (nativeId) {
+        await recordOk(admin, job_id, tenant_id, "proposal", trackingId, nativeId);
+      }
     } catch (e) {
-      await recordFail(admin, job_id, tenant_id, "proposal", sm_proposal_id, (e as Error).message);
+      await recordFail(admin, job_id, tenant_id, "proposal", trackingId, (e as Error).message);
       counters.failed++;
     }
   }
   const hasMore = (proposals?.length ?? 0) === batchSize;
   return { counters, hasMore, nextOffset: hasMore ? offset + batchSize : null };
+}
+
+async function nextProposalNumberForProject(
+  admin: SupabaseClient,
+  tenant_id: string,
+  projeto_id: string,
+) {
+  const { data: latest } = await admin
+    .from("propostas_nativas")
+    .select("proposta_num")
+    .eq("tenant_id", tenant_id)
+    .eq("projeto_id", projeto_id)
+    .order("proposta_num", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  return Number((latest as any)?.proposta_num ?? 0) + 1;
 }
 
 // ============================================================
