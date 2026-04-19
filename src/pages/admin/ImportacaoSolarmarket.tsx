@@ -43,7 +43,12 @@ export default function ImportacaoSolarmarket() {
     custom_fields: true,
   });
 
-  const runningJob = jobs.find((j) => j.status === "running");
+  const runningJob = jobs.find((j) => {
+    if (j.status !== "running") return false;
+    // Considera "travado" se passou mais de 10 min sem finalizar
+    const startedMs = new Date(j.started_at ?? j.created_at).getTime();
+    return Date.now() - startedMs < 10 * 60 * 1000;
+  });
 
   const handleTest = async () => {
     try {
