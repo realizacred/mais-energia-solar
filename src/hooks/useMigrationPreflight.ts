@@ -42,6 +42,16 @@ export interface PreflightResult {
 
 const VENDEDOR_FUNNEL_RE = /vendedor(es)?/i;
 
+/** Normaliza nome de etapa: trim, lowercase, remove acentos e colapsa espaços. */
+function normalizeStageName(s: unknown): string {
+  return String(s ?? "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 export function useMigrationPreflight(tenantId: string | null | undefined) {
   return useQuery({
     queryKey: ["migration-preflight", tenantId],
@@ -94,57 +104,53 @@ export function useMigrationPreflight(tenantId: string | null | undefined) {
       }
 
       // 2) Classificação por funil — colunas reais do staging
+      // Paginação para evitar teto silencioso (sem limit arbitrário).
       let vendedorAsConsultor = 0;
       let defaultedToComercial = 0;
       let otherProjects = 0;
       const sourceStages = new Set<string>();
 
-      const { data: projRows, error: projErr } = await (supabase as any)
-        .from("solar_market_projects")
-        .select("sm_funnel_name, sm_stage_name")
-        .eq("tenant_id", tenantId)
-        .limit(10000);
-
-      if (projErr) {
-        diagnostics.push(`projects.sm_funnel_name: ${projErr.message}`);
-      } else {
-        for (const r of projRows ?? []) {
+      const PAGE = 1000;
+      const HARD_CAP = 100_000; // 50x o volume real conhecido — apenas guarda
+      let from = 0;
+      let pagedErr: any = null;
+      while (from < HARD_CAP) {
+        const { data: page, error: pErr } = await (supabase as any)
+          .from("solar_market_projects")
+          .select("sm_funnel_name, sm_stage_name")
+          .eq("tenant_id", tenantId)
+          .range(from, from + PAGE - 1);
+        if (pErr) { pagedErr = pErr; break; }
+        const rows = page ?? [];
+        for (const r of rows) {
           const funil = String(r?.sm_funnel_name ?? "").trim();
           const etapa = String(r?.sm_stage_name ?? "").trim();
-
-          if (!funil) {
-            // Regra confirmada: NULL/vazio → Comercial
-            defaultedToComercial++;
-            // não conta sm_stage_name como etapa nesse caso (vai por status)
-            continue;
-          }
-
-          if (VENDEDOR_FUNNEL_RE.test(funil)) {
-            // Semântica especial: sm_stage_name aqui é nome de vendedor,
-            // não de etapa — não entra em sourceStages.
-            vendedorAsConsultor++;
-            continue;
-          }
-
+          if (!funil) { defaultedToComercial++; continue; }
+          if (VENDEDOR_FUNNEL_RE.test(funil)) { vendedorAsConsultor++; continue; }
           otherProjects++;
-          if (etapa) sourceStages.add(etapa.toLowerCase());
+          if (etapa) sourceStages.add(normalizeStageName(etapa));
         }
+        if (rows.length < PAGE) break;
+        from += PAGE;
+      }
+      if (pagedErr) {
+        diagnostics.push(`projects.sm_funnel_name: ${pagedErr.message}`);
+      } else if (from >= HARD_CAP) {
+        diagnostics.push(`HARD_CAP de ${HARD_CAP} atingido — possível subcontagem`);
       }
 
-      // 3) Etapas faltando — comparar com pipeline_stages (fonte da verdade)
+      // 3) Etapas faltando — pipeline_stages.name (não "nome") é o real.
       let missingStagesEstimate = 0;
       const { data: nativeStages, error: stagesErr } = await (supabase as any)
         .from("pipeline_stages")
-        .select("nome")
+        .select("name")
         .eq("tenant_id", tenantId);
 
       if (stagesErr) {
         diagnostics.push(`pipeline_stages: ${stagesErr.message}`);
       } else {
         const nativeSet = new Set(
-          (nativeStages ?? []).map((s: any) =>
-            String(s.nome ?? "").trim().toLowerCase(),
-          ),
+          (nativeStages ?? []).map((s: any) => normalizeStageName(s.name)),
         );
         for (const s of sourceStages) {
           if (!nativeSet.has(s)) missingStagesEstimate++;
