@@ -21,14 +21,16 @@ interface Props {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   onCreated?: (jobId: string) => void;
+  tenantId: string | null;
 }
 
-export function NewJobModal({ open, onOpenChange, onCreated }: Props) {
+export function NewJobModal({ open, onOpenChange, onCreated, tenantId }: Props) {
   const [type, setType] = useState<JobType>("full_migration");
   const create = useCreateMigrationJob();
 
   const handleCreate = async () => {
-    const jobId = await create.mutateAsync(type);
+    if (!tenantId) return;
+    const jobId = await create.mutateAsync({ job_type: type, tenant_id: tenantId });
     onCreated?.(jobId);
     onOpenChange(false);
   };
@@ -61,7 +63,7 @@ export function NewJobModal({ open, onOpenChange, onCreated }: Props) {
           <Button variant="ghost" onClick={() => onOpenChange(false)} disabled={create.isPending}>
             Cancelar
           </Button>
-          <Button onClick={handleCreate} disabled={create.isPending}>
+          <Button onClick={handleCreate} disabled={create.isPending || !tenantId}>
             {create.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
             Criar e executar
           </Button>
