@@ -171,9 +171,11 @@ export function SolarmarketImportedTabs() {
             </TabsTrigger>
             <TabsTrigger value="funis" className="gap-1">
               <GitBranch className="w-3.5 h-3.5" /> Funis e Etapas
+              <CountBadge value={(counts.data?.pipelines ?? 0) + (counts.data?.stages ?? 0)} loading={counts.isLoading} />
             </TabsTrigger>
             <TabsTrigger value="custom_fields" className="gap-1">
               <Settings2 className="w-3.5 h-3.5" /> Campos Custom
+              <CountBadge value={counts.data?.custom_fields ?? 0} loading={counts.isLoading} />
             </TabsTrigger>
           </TabsList>
 
@@ -215,10 +217,18 @@ export function SolarmarketImportedTabs() {
             <ListaPropostas search={search} page={page} setPage={setPage} isImporting={isImporting} />
           </TabsContent>
           <TabsContent value="funis" className="mt-4">
-            <FunisPlaceholder onReimport={() => handleReimport("funis")} disabled={importAll.isPending || !!runningJob} />
+            <ListaFunis
+              onReimport={() => handleReimport("funis")}
+              disabled={importAll.isPending || !!runningJob}
+              isImporting={isImporting}
+            />
           </TabsContent>
           <TabsContent value="custom_fields" className="mt-4">
-            <CustomFieldsPlaceholder onReimport={() => handleReimport("custom_fields")} disabled={importAll.isPending || !!runningJob} />
+            <ListaCustomFields
+              onReimport={() => handleReimport("custom_fields")}
+              disabled={importAll.isPending || !!runningJob}
+              isImporting={isImporting}
+            />
           </TabsContent>
         </Tabs>
       </CardContent>
