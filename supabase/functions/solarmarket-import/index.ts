@@ -274,12 +274,38 @@ async function tryPaths(
   return null;
 }
 
+/** Verifica se o job foi cancelado externamente (UI). */
+async function isJobCancelled(state: RequestState): Promise<boolean> {
+  if (!state.jobId) return false;
+  const { data } = await state.supabase
+    .from("solarmarket_import_jobs")
+    .select("status")
+    .eq("id", state.jobId)
+    .maybeSingle();
+  return (data as any)?.status === "cancelled";
+}
+
 async function importEntity(
   state: RequestState,
   entityKey: string,
   candidatePaths: string[],
   mapper: (item: any) => Promise<"created" | "updated" | "skipped" | "error">,
+  opts: {
+    counterField?: string; // ex: "total_clientes" — atualiza incrementalmente
+    progressStart?: number; // % no início
+    progressEnd?: number; // % ao final
+  } = {},
 ): Promise<{ count: number; errors: number; pathUsed: string | null }> {
+  const startedAt = new Date().toISOString();
+  await logEntry(
+    state,
+    entityKey,
+    "skipped",
+    null,
+    null,
+    `[start] Buscando endpoint para ${entityKey}. Candidatos: ${candidatePaths.join(", ")}`,
+  );
+
   const found = await tryPaths(state, candidatePaths);
   if (!found) {
     await logEntry(
@@ -293,12 +319,35 @@ async function importEntity(
     return { count: 0, errors: 1, pathUsed: null };
   }
 
+  await logEntry(
+    state,
+    entityKey,
+    "skipped",
+    null,
+    null,
+    `[endpoint] ${entityKey} usando "${found.path}" (started_at=${startedAt})`,
+  );
+
   let count = 0;
   let errors = 0;
   let page = 1;
   const limit = 100;
+  const pStart = opts.progressStart ?? 0;
+  const pEnd = opts.progressEnd ?? 0;
 
   while (true) {
+    if (await isJobCancelled(state)) {
+      await logEntry(
+        state,
+        entityKey,
+        "skipped",
+        null,
+        null,
+        `[cancelled] Importação interrompida em ${entityKey} (page=${page}, count=${count})`,
+      );
+      return { count, errors, pathUsed: found.path };
+    }
+
     const r = await smGet(state, found.path, { page, limit });
     if (!r.ok) {
       errors++;
@@ -323,10 +372,32 @@ async function importEntity(
         );
       }
     }
+
+    // Atualiza job incrementalmente (contador parcial + progress + updated_at vivo)
+    if (opts.counterField) {
+      const incrementalProgress = pEnd > pStart
+        ? Math.min(pEnd, pStart + Math.round((pEnd - pStart) * (page / Math.max(page, 5))))
+        : undefined;
+      await updateJob(state, {
+        [opts.counterField]: count,
+        ...(incrementalProgress !== undefined ? { progress_pct: incrementalProgress } : {}),
+        updated_at: new Date().toISOString(),
+      });
+    }
+
     if (items.length < limit) break;
     page++;
     if (page > 200) break; // hard stop
   }
+
+  await logEntry(
+    state,
+    entityKey,
+    "skipped",
+    null,
+    null,
+    `[end] ${entityKey} concluído: count=${count}, errors=${errors}, endpoint="${found.path}"`,
+  );
 
   return { count, errors, pathUsed: found.path };
 }
@@ -648,67 +719,73 @@ Deno.serve(async (req) => {
 
       let totalErrors = 0;
 
+      // Helper: aborta se cancelado
+      const checkCancel = async (): Promise<boolean> => {
+        if (await isJobCancelled(state)) {
+          await logEntry(state, "job", "skipped", null, null, "[cancelled] Importação interrompida pelo usuário.");
+          return true;
+        }
+        return false;
+      };
+
+      // 1) Funis e Etapas (primeiro — base para projetos)
+      if (sc.funis) {
+        if (await checkCancel()) return new Response(JSON.stringify({ ok: false, cancelled: true }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        await updateJob(state, { current_step: "funis", progress_pct: 5, updated_at: new Date().toISOString() });
+        await logEntry(state, "funil", "skipped", null, null, "[start] Funis e Etapas — endpoint não confirmado na doc pública. Etapa pulada para evitar hallucination.");
+        await updateJob(state, { progress_pct: 10, updated_at: new Date().toISOString() });
+      }
+
+      // 2) Clientes
       if (sc.clientes) {
-        await updateJob(state, { current_step: "clientes", progress_pct: 10 });
+        if (await checkCancel()) return new Response(JSON.stringify({ ok: false, cancelled: true }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        await updateJob(state, { current_step: "clientes", progress_pct: 15, updated_at: new Date().toISOString() });
         const r = await importEntity(
           state,
           "cliente",
           ["/clients", "/customers", "/clientes"],
           (item) => mapCliente(state, item),
+          { counterField: "total_clientes", progressStart: 15, progressEnd: 40 },
         );
-        await updateJob(state, { total_clientes: r.count, progress_pct: 30 });
+        await updateJob(state, { total_clientes: r.count, progress_pct: 40, updated_at: new Date().toISOString() });
         totalErrors += r.errors;
       }
 
+      // 3) Projetos
       if (sc.projetos) {
-        await updateJob(state, { current_step: "projetos", progress_pct: 40 });
+        if (await checkCancel()) return new Response(JSON.stringify({ ok: false, cancelled: true }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        await updateJob(state, { current_step: "projetos", progress_pct: 45, updated_at: new Date().toISOString() });
         const r = await importEntity(
           state,
           "projeto",
           ["/projects", "/deals", "/projetos"],
           (item) => mapProjeto(state, item),
+          { counterField: "total_projetos", progressStart: 45, progressEnd: 70 },
         );
-        await updateJob(state, { total_projetos: r.count, progress_pct: 60 });
+        await updateJob(state, { total_projetos: r.count, progress_pct: 70, updated_at: new Date().toISOString() });
         totalErrors += r.errors;
       }
 
+      // 4) Propostas
       if (sc.propostas) {
-        await updateJob(state, { current_step: "propostas", progress_pct: 70 });
+        if (await checkCancel()) return new Response(JSON.stringify({ ok: false, cancelled: true }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        await updateJob(state, { current_step: "propostas", progress_pct: 75, updated_at: new Date().toISOString() });
         const r = await importEntity(
           state,
           "proposta",
           ["/proposals", "/quotes", "/propostas"],
           (item) => mapProposta(state, item),
+          { counterField: "total_propostas", progressStart: 75, progressEnd: 92 },
         );
-        await updateJob(state, { total_propostas: r.count, progress_pct: 85 });
+        await updateJob(state, { total_propostas: r.count, progress_pct: 92, updated_at: new Date().toISOString() });
         totalErrors += r.errors;
       }
 
-      if (sc.funis) {
-        await updateJob(state, { current_step: "funis", progress_pct: 90 });
-        await logEntry(
-          state,
-          "funil",
-          "skipped",
-          null,
-          null,
-          "Endpoint de funis/etapas não confirmado na doc pública. Importação ignorada para evitar hallucination.",
-        );
-      }
-
+      // 5) Campos Customizados (último)
       if (sc.custom_fields) {
-        await updateJob(state, {
-          current_step: "custom_fields",
-          progress_pct: 95,
-        });
-        await logEntry(
-          state,
-          "custom_field",
-          "skipped",
-          null,
-          null,
-          "Endpoint de campos customizados não confirmado na doc pública. Importação ignorada.",
-        );
+        if (await checkCancel()) return new Response(JSON.stringify({ ok: false, cancelled: true }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        await updateJob(state, { current_step: "custom_fields", progress_pct: 95, updated_at: new Date().toISOString() });
+        await logEntry(state, "custom_field", "skipped", null, null, "[start] Campos Customizados — endpoint não confirmado na doc pública. Etapa pulada.");
       }
 
       const finalStatus = totalErrors > 0 ? "partial" : "success";
@@ -718,6 +795,7 @@ Deno.serve(async (req) => {
         progress_pct: 100,
         total_errors: totalErrors,
         finished_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
       });
 
       // Atualiza last_sync_at na config
