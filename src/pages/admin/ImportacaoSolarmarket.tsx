@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -7,8 +8,11 @@ import { Progress } from "@/components/ui/progress";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { LoadingState } from "@/components/ui-kit/LoadingState";
 import { useSolarmarketImport, type ImportScope } from "@/hooks/useSolarmarketImport";
+import { useSolarmarketConfig } from "@/hooks/useSolarmarketConfig";
 import { toast } from "@/hooks/use-toast";
-import { Cloud, CheckCircle2, XCircle, Loader2, Download, Plug } from "lucide-react";
+import {
+  Cloud, CheckCircle2, XCircle, Loader2, Download, Plug, Settings, AlertTriangle,
+} from "lucide-react";
 
 const formatBR = (iso: string | null) =>
   iso
@@ -30,6 +34,7 @@ function statusBadge(status: string) {
 
 export default function ImportacaoSolarmarket() {
   const { jobs, isLoading, testConnection, importAll } = useSolarmarketImport();
+  const { config, isConfigured, isLoading: loadingCfg } = useSolarmarketConfig();
   const [scope, setScope] = useState<ImportScope>({
     clientes: true,
     projetos: true,
@@ -50,7 +55,7 @@ export default function ImportacaoSolarmarket() {
     } catch (e: any) {
       toast({
         title: "Falha na conexão",
-        description: e?.message || "Verifique SOLARMARKET_API_URL e SOLARMARKET_API_TOKEN.",
+        description: e?.message || "Verifique a configuração.",
         variant: "destructive",
       });
     }
@@ -72,22 +77,53 @@ export default function ImportacaoSolarmarket() {
   const toggle = (k: keyof ImportScope) =>
     setScope((s) => ({ ...s, [k]: !s[k] }));
 
-  if (isLoading) return <LoadingState message="Carregando importações..." />;
+  if (isLoading || loadingCfg) return <LoadingState message="Carregando importações..." />;
 
   return (
     <div className="container mx-auto p-6 space-y-6">
       {/* Header */}
-      <div className="flex items-center gap-3">
-        <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-          <Cloud className="w-5 h-5 text-primary" />
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+            <Cloud className="w-5 h-5 text-primary" />
+          </div>
+          <div>
+            <h1 className="text-xl font-bold text-foreground">Importação SolarMarket</h1>
+            <p className="text-sm text-muted-foreground">
+              Importação one-shot de Clientes, Projetos, Propostas, Funis e Campos Customizados.
+            </p>
+          </div>
         </div>
-        <div>
-          <h1 className="text-xl font-bold text-foreground">Importação SolarMarket</h1>
-          <p className="text-sm text-muted-foreground">
-            Importação one-shot de Clientes, Projetos, Propostas, Funis e Campos Customizados.
-          </p>
-        </div>
+        <Button asChild variant="outline" size="sm">
+          <Link to="/admin/configuracoes/integracoes/solarmarket">
+            <Settings className="w-4 h-4 mr-2" /> Configuração
+          </Link>
+        </Button>
       </div>
+
+      {/* Bloqueio se não configurado */}
+      {!isConfigured && (
+        <Card className="border-l-[3px] border-l-warning bg-warning/5 shadow-sm">
+          <CardContent className="p-5 flex flex-col sm:flex-row sm:items-center gap-4">
+            <AlertTriangle className="w-6 h-6 text-warning shrink-0" />
+            <div className="flex-1">
+              <p className="text-sm font-semibold text-foreground">
+                Integração SolarMarket não configurada
+              </p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                {config && !config.is_active
+                  ? "Configuração existe mas está desativada. Ative-a para liberar a importação."
+                  : "Cadastre URL base e token da API antes de importar."}
+              </p>
+            </div>
+            <Button asChild>
+              <Link to="/admin/configuracoes/integracoes/solarmarket">
+                <Settings className="w-4 h-4 mr-2" /> Ir para configuração
+              </Link>
+            </Button>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Conexão */}
       <Card className="bg-card border-border shadow-sm">
@@ -99,13 +135,12 @@ export default function ImportacaoSolarmarket() {
         </CardHeader>
         <CardContent className="flex flex-wrap items-center gap-3">
           <p className="text-sm text-muted-foreground flex-1 min-w-[200px]">
-            Credenciais são lidas dos secrets <code className="text-xs bg-muted px-1 py-0.5 rounded">SOLARMARKET_API_URL</code> e{" "}
-            <code className="text-xs bg-muted px-1 py-0.5 rounded">SOLARMARKET_API_TOKEN</code>.
+            URL: <code className="text-xs bg-muted px-1 py-0.5 rounded">{config?.base_url || "—"}</code>
           </p>
           <Button
             variant="outline"
             onClick={handleTest}
-            disabled={testConnection.isPending}
+            disabled={!isConfigured || testConnection.isPending}
           >
             {testConnection.isPending ? (
               <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -145,11 +180,12 @@ export default function ImportacaoSolarmarket() {
 
           <div className="flex items-center justify-between pt-2 border-t border-border">
             <p className="text-xs text-muted-foreground">
-              Importação idempotente via <code>external_source</code> + <code>external_id</code>. Não recria registros existentes.
+              Importação idempotente via <code>external_source</code> + <code>external_id</code>.
+              Throttle de 60 req/min com backoff em 429.
             </p>
             <Button
               onClick={handleImport}
-              disabled={importAll.isPending || !!runningJob}
+              disabled={!isConfigured || importAll.isPending || !!runningJob}
             >
               {importAll.isPending || runningJob ? (
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
