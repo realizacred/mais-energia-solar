@@ -171,7 +171,7 @@ export function SolarmarketImportedTabs() {
             </TabsTrigger>
           </TabsList>
 
-          {/* Toolbar de busca + reimportar */}
+          {/* Toolbar de busca */}
           {(activeTab === "clientes" || activeTab === "projetos" || activeTab === "propostas") && (
             <div className="flex flex-col sm:flex-row gap-2 mt-4 mb-3">
               <div className="relative flex-1 min-w-0">
@@ -183,19 +183,6 @@ export function SolarmarketImportedTabs() {
                   onChange={(e) => { setSearch(e.target.value); setPage(0); }}
                 />
               </div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => handleReimport(activeTab as keyof ImportScope)}
-                disabled={importAll.isPending || !!runningJob}
-              >
-                {importAll.isPending ? (
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                ) : (
-                  <RefreshCw className="w-4 h-4 mr-2" />
-                )}
-                Reimportar
-              </Button>
             </div>
           )}
 
