@@ -750,13 +750,6 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
       setEditAceitaMotivo("");
       setEditAceitaDialogOpen(true);
     } else {
-      // Clear migration origin when editing — proposal becomes native
-      if (isMigrated) {
-        await supabase
-          .from("propostas_nativas")
-          .update({ origem: "nativo", sm_id: null } as any)
-          .eq("id", p.id);
-      }
       editFn();
     }
   };
@@ -779,14 +772,6 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
         .eq("deal_id", dealId)
         .eq("status", "generated")
         .neq("signature_status", "signed");
-
-      // Clear migration origin when editing — proposal becomes native
-      if (isMigrated) {
-        await supabase
-          .from("propostas_nativas")
-          .update({ origem: "nativo", sm_id: null } as any)
-          .eq("id", p.id);
-      }
 
       setEditAceitaDialogOpen(false);
       pendingEditAction?.();
