@@ -28,7 +28,10 @@ const MAX_RETRIES_429 = 4;
 
 function normalizeBaseUrl(u: string | undefined | null): string {
   if (!u) return "";
-  return u.replace(/\/+$/, "");
+  let s = u.trim().replace(/\/+$/, "");
+  // Tolerar URL colada com sufixos comuns: /auth/signin, /users/me, etc.
+  s = s.replace(/\/(auth\/signin|auth\/login|users\/me)\/?$/i, "");
+  return s.replace(/\/+$/, "");
 }
 
 interface RequestState {
