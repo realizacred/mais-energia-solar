@@ -7,6 +7,7 @@
 import { useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { parseInvokeError } from "@/lib/supabaseFunctionError";
 
 export interface ImportScope {
   clientes: boolean;
@@ -35,6 +36,36 @@ export interface SolarmarketImportJob {
 }
 
 const JOBS_KEY = ["solarmarket-import-jobs"];
+const IMPORT_RECOVERY_WINDOW_MS = 1000 * 60 * 2;
+
+function isAmbiguousEdgeFunctionFailure(message: string) {
+  const normalized = (message || "").toLowerCase();
+  return (
+    normalized.includes("edge function returned a non-2xx") ||
+    normalized.includes("failed to fetch") ||
+    normalized.includes("networkerror")
+  );
+}
+
+async function findRecentActiveImportJob(): Promise<SolarmarketImportJob | null> {
+  const { data, error } = await (supabase as any)
+    .from("solarmarket_import_jobs")
+    .select(
+      "id, status, scope, current_step, progress_pct, total_clientes, total_projetos, total_propostas, total_funis, total_custom_fields, total_errors, error_message, started_at, finished_at, created_at"
+    )
+    .in("status", ["pending", "running"])
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error || !data) return null;
+
+  const startedAt = new Date(data.started_at ?? data.created_at).getTime();
+  if (Number.isNaN(startedAt)) return null;
+  if (Date.now() - startedAt > IMPORT_RECOVERY_WINDOW_MS) return null;
+
+  return data as SolarmarketImportJob;
+}
 
 export function useSolarmarketImport() {
   const queryClient = useQueryClient();
@@ -76,21 +107,42 @@ export function useSolarmarketImport() {
         "solarmarket-import",
         { body: { action: "test-connection" } }
       );
-      if (error) throw error;
+      if (error) {
+        const parsed = await parseInvokeError(error);
+        throw new Error(parsed.message || "Erro ao testar conexão SolarMarket.");
+      }
       return data;
     },
   });
 
   const importAll = useMutation({
     mutationFn: async (scope: ImportScope) => {
-      const { data, error } = await supabase.functions.invoke(
-        "solarmarket-import",
-        { body: { action: "import-all", scope } }
-      );
-      if (error) throw error;
-      return data;
+      try {
+        const { data, error } = await supabase.functions.invoke(
+          "solarmarket-import",
+          { body: { action: "import-all", scope } }
+        );
+        if (error) throw error;
+        return data;
+      } catch (error) {
+        const parsed = await parseInvokeError(error);
+
+        if (isAmbiguousEdgeFunctionFailure(parsed.message)) {
+          const recentJob = await findRecentActiveImportJob();
+          if (recentJob) {
+            return {
+              ok: true,
+              job_id: recentJob.id,
+              status: recentJob.status,
+              recovered_from_gateway: true,
+            };
+          }
+        }
+
+        throw new Error(parsed.message || "Erro ao iniciar importação SolarMarket.");
+      }
     },
-    onSuccess: () => {
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: JOBS_KEY });
     },
   });
@@ -138,7 +190,10 @@ export function useSolarmarketImport() {
         "solarmarket-import",
         { body: { action: "cleanup-imported" } }
       );
-      if (error) throw error;
+      if (error) {
+        const parsed = await parseInvokeError(error);
+        throw new Error(parsed.message || "Erro ao limpar dados importados.");
+      }
       return data as {
         ok: boolean;
         removed: { propostas: number; projetos: number; clientes: number; logs: number; jobs: number };
