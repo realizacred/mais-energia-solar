@@ -8,6 +8,7 @@
  * ser usados como staging.
  *
  * RB-04/RB-05: queries com staleTime. RB-19/RB-21/DS-02 mantidos.
+ * Cada linha possui ação "Ver detalhes" abrindo drawer dedicado por entidade.
  */
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -24,9 +25,17 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import {
   Users, FolderKanban, FileText, GitBranch, Settings2,
-  RefreshCw, Database, Search, AlertTriangle,
+  RefreshCw, Database, Search, AlertTriangle, Eye,
 } from "lucide-react";
 import { useSolarmarketImport, type ImportScope } from "@/hooks/useSolarmarketImport";
+import {
+  SolarmarketRecordDetailDrawer,
+  type RawEntityKind,
+  type RawRecord,
+} from "./SolarmarketRecordDetailDrawer";
+import {
+  formatPhoneBR, formatDocument, formatDateTime, formatBRL, formatUF, sanitizeText,
+} from "@/lib/formatters/index";
 
 const PAGE_SIZE = 25;
 const STALE = 1000 * 60 * 5;
@@ -38,8 +47,22 @@ type RawTable =
   | "sm_funis_raw"
   | "sm_custom_fields_raw";
 
-const fmtBR = (iso?: string | null) =>
-  iso ? new Date(iso).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" }) : "—";
+const KIND_TO_TABLE: Record<RawEntityKind, RawTable> = {
+  clientes: "sm_clientes_raw",
+  projetos: "sm_projetos_raw",
+  propostas: "sm_propostas_raw",
+  funis: "sm_funis_raw",
+  custom_fields: "sm_custom_fields_raw",
+};
+
+function pickPayload(payload: any, ...keys: string[]): any {
+  if (!payload) return null;
+  for (const k of keys) {
+    const v = payload[k];
+    if (v !== undefined && v !== null && v !== "") return v;
+  }
+  return null;
+}
 
 function CountBadge({ value, loading }: { value: number; loading: boolean }) {
   if (loading) return <Skeleton className="h-5 w-8 inline-block" />;
@@ -130,7 +153,6 @@ function useRawList(
 
       const term = search.trim();
       if (term) {
-        // external_id sempre suportado; payload->>name/nome para texto
         q = q.or(
           [
             `external_id.ilike.%${term}%`,
@@ -154,9 +176,27 @@ export function SolarmarketImportedTabs() {
   const runningJob = jobs.find((j) => j.status === "running" || j.status === "pending");
   const isImporting = !!runningJob;
   const counts = useImportedCounts(isImporting);
-  const [activeTab, setActiveTab] = useState("clientes");
+  const [activeTab, setActiveTab] = useState<RawEntityKind>("clientes");
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(0);
+
+  // Drawer state
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [drawerRecord, setDrawerRecord] = useState<RawRecord | null>(null);
+  const [drawerKind, setDrawerKind] = useState<RawEntityKind>("clientes");
+
+  const openDetail = (record: RawRecord, kind: RawEntityKind) => {
+    setDrawerRecord(record);
+    setDrawerKind(kind);
+    setDrawerOpen(true);
+  };
+
+  const handleNavigate = (kind: RawEntityKind, searchTerm: string) => {
+    setDrawerOpen(false);
+    setActiveTab(kind);
+    setSearch(searchTerm);
+    setPage(0);
+  };
 
   const handleReimport = async (entity: keyof ImportScope) => {
     const labels: Record<string, string> = {
@@ -189,7 +229,10 @@ export function SolarmarketImportedTabs() {
       </CardHeader>
       <CardContent>
         <StagingNotice />
-        <Tabs value={activeTab} onValueChange={(v) => { setActiveTab(v); setSearch(""); setPage(0); }}>
+        <Tabs
+          value={activeTab}
+          onValueChange={(v) => { setActiveTab(v as RawEntityKind); setSearch(""); setPage(0); }}
+        >
           <TabsList className="overflow-x-auto flex-wrap h-auto">
             <TabsTrigger value="clientes" className="gap-1">
               <Users className="w-3.5 h-3.5" /> Clientes
@@ -234,41 +277,71 @@ export function SolarmarketImportedTabs() {
           </div>
 
           <TabsContent value="clientes">
-            <ListaRaw table="sm_clientes_raw" labels={{ icon: Users, empty: "Nenhum cliente em staging." }}
-              search={search} page={page} setPage={setPage} isImporting={isImporting} />
+            <ListaRaw
+              table="sm_clientes_raw" kind="clientes"
+              labels={{ icon: Users, empty: "Nenhum cliente em staging." }}
+              search={search} page={page} setPage={setPage} isImporting={isImporting}
+              onOpenDetail={openDetail}
+            />
           </TabsContent>
           <TabsContent value="projetos">
-            <ListaRaw table="sm_projetos_raw" labels={{ icon: FolderKanban, empty: "Nenhum projeto em staging." }}
-              search={search} page={page} setPage={setPage} isImporting={isImporting} />
+            <ListaRaw
+              table="sm_projetos_raw" kind="projetos"
+              labels={{ icon: FolderKanban, empty: "Nenhum projeto em staging." }}
+              search={search} page={page} setPage={setPage} isImporting={isImporting}
+              onOpenDetail={openDetail}
+            />
           </TabsContent>
           <TabsContent value="propostas">
-            <ListaRaw table="sm_propostas_raw" labels={{ icon: FileText, empty: "Nenhuma proposta em staging." }}
-              search={search} page={page} setPage={setPage} isImporting={isImporting} />
+            <ListaRaw
+              table="sm_propostas_raw" kind="propostas"
+              labels={{ icon: FileText, empty: "Nenhuma proposta em staging." }}
+              search={search} page={page} setPage={setPage} isImporting={isImporting}
+              onOpenDetail={openDetail}
+            />
           </TabsContent>
           <TabsContent value="funis">
-            <ListaRaw table="sm_funis_raw" labels={{ icon: GitBranch, empty: "Nenhum funil em staging." }}
-              search={search} page={page} setPage={setPage} isImporting={isImporting} />
+            <ListaRaw
+              table="sm_funis_raw" kind="funis"
+              labels={{ icon: GitBranch, empty: "Nenhum funil em staging." }}
+              search={search} page={page} setPage={setPage} isImporting={isImporting}
+              onOpenDetail={openDetail}
+            />
           </TabsContent>
           <TabsContent value="custom_fields">
-            <ListaRaw table="sm_custom_fields_raw" labels={{ icon: Settings2, empty: "Nenhum campo custom em staging." }}
-              search={search} page={page} setPage={setPage} isImporting={isImporting} />
+            <ListaRaw
+              table="sm_custom_fields_raw" kind="custom_fields"
+              labels={{ icon: Settings2, empty: "Nenhum campo custom em staging." }}
+              search={search} page={page} setPage={setPage} isImporting={isImporting}
+              onOpenDetail={openDetail}
+            />
           </TabsContent>
         </Tabs>
+
+        <SolarmarketRecordDetailDrawer
+          open={drawerOpen}
+          onOpenChange={setDrawerOpen}
+          record={drawerRecord}
+          kind={drawerKind}
+          onNavigate={handleNavigate}
+        />
       </CardContent>
     </Card>
   );
 }
 
 // ─────────────────────────────────────────────────────────────────────────
-// Lista genérica de raw (mesma forma para todas as tabelas)
+// Lista por entidade — colunas dedicadas + ação "Ver detalhes"
 // ─────────────────────────────────────────────────────────────────────────
 type ListaRawProps = {
   table: RawTable;
+  kind: RawEntityKind;
   labels: { icon: any; empty: string };
   search: string;
   page: number;
   setPage: (n: number) => void;
   isImporting: boolean;
+  onOpenDetail: (record: RawRecord, kind: RawEntityKind) => void;
 };
 
 function Pagination({ page, setPage, total }: { page: number; setPage: (n: number) => void; total: number }) {
@@ -288,16 +361,125 @@ function Pagination({ page, setPage, total }: { page: number; setPage: (n: numbe
   );
 }
 
-function previewName(payload: any): string {
-  return (
-    payload?.name ?? payload?.nome ?? payload?.title ?? payload?.label ?? "—"
-  );
-}
-
-function ListaRaw({ table, labels, search, page, setPage, isImporting }: ListaRawProps) {
+function ListaRaw({
+  table, kind, labels, search, page, setPage, isImporting, onOpenDetail,
+}: ListaRawProps) {
   const { data, isLoading } = useRawList(table, page, search, isImporting);
   if (isLoading) return <Skeleton className="h-48 w-full" />;
   if (!data?.rows.length) return <EmptyState icon={labels.icon} message={labels.empty} />;
+
+  const renderRow = (r: any) => {
+    const p = r.payload ?? {};
+    const importedAt = (
+      <span className="text-xs">{formatDateTime(r.imported_at ?? r.created_at)}</span>
+    );
+    const extId = (
+      <code className="text-xs font-mono text-muted-foreground">{r.external_id ?? "—"}</code>
+    );
+    const action = (
+      <Button variant="ghost" size="sm" onClick={() => onOpenDetail(r as RawRecord, kind)}>
+        <Eye className="w-3.5 h-3.5 mr-1.5" /> Ver detalhes
+      </Button>
+    );
+
+    if (kind === "clientes") {
+      const nome = pickPayload(p, "name", "nome", "razao_social");
+      const tel = pickPayload(p, "phone", "telefone", "celular", "mobile");
+      const doc = pickPayload(p, "cpf_cnpj", "document", "documento", "cpf", "cnpj");
+      const cidade = pickPayload(p, "city", "cidade") ?? pickPayload(p.address ?? {}, "city", "cidade");
+      const uf = pickPayload(p, "state", "estado", "uf") ?? pickPayload(p.address ?? {}, "state", "estado", "uf");
+      return (
+        <TableRow key={r.id}>
+          <TableCell className="font-medium text-foreground">{sanitizeText(nome) || "—"}</TableCell>
+          <TableCell className="text-sm">{formatPhoneBR(tel)}</TableCell>
+          <TableCell className="text-sm">{doc ? formatDocument(String(doc)) : "—"}</TableCell>
+          <TableCell className="text-sm">
+            {cidade ? `${sanitizeText(String(cidade))}${uf ? "/" + formatUF(String(uf)) : ""}` : "—"}
+          </TableCell>
+          <TableCell>{importedAt}</TableCell>
+          <TableCell className="text-right">{action}</TableCell>
+        </TableRow>
+      );
+    }
+    if (kind === "projetos") {
+      const titulo = pickPayload(p, "name", "nome", "title");
+      const clienteExt = pickPayload(p, "client_id", "cliente_id", "customer_id");
+      const status = pickPayload(p, "status", "situacao");
+      const funil = pickPayload(p, "funnel_id", "funil_id", "pipeline_id");
+      const etapa = pickPayload(p, "stage_id", "etapa_id", "step_id");
+      return (
+        <TableRow key={r.id}>
+          <TableCell className="font-medium text-foreground">{sanitizeText(titulo) || "—"}</TableCell>
+          <TableCell><code className="text-xs">{clienteExt ?? "—"}</code></TableCell>
+          <TableCell>{status ? <Badge variant="outline" className="text-xs">{String(status)}</Badge> : "—"}</TableCell>
+          <TableCell className="text-xs text-muted-foreground">
+            {funil ?? "—"}{etapa ? ` / ${etapa}` : ""}
+          </TableCell>
+          <TableCell>{importedAt}</TableCell>
+          <TableCell className="text-right">{action}</TableCell>
+        </TableRow>
+      );
+    }
+    if (kind === "propostas") {
+      const titulo = pickPayload(p, "title", "name", "description", "descricao");
+      const clienteExt = pickPayload(p, "client_id", "cliente_id");
+      const projetoExt = pickPayload(p, "project_id", "projeto_id", "deal_id");
+      const valor = pickPayload(p, "total_value", "valor_total", "total", "value", "amount");
+      const status = pickPayload(p, "status", "situacao");
+      return (
+        <TableRow key={r.id}>
+          <TableCell className="font-medium text-foreground max-w-xs truncate">
+            {sanitizeText(String(titulo ?? "")) || "—"}
+          </TableCell>
+          <TableCell><code className="text-xs">{clienteExt ?? "—"}</code></TableCell>
+          <TableCell><code className="text-xs">{projetoExt ?? "—"}</code></TableCell>
+          <TableCell className="text-sm font-mono">
+            {valor != null ? formatBRL(Number(valor)) : "—"}
+          </TableCell>
+          <TableCell>{status ? <Badge variant="outline" className="text-xs">{String(status)}</Badge> : "—"}</TableCell>
+          <TableCell>{importedAt}</TableCell>
+          <TableCell className="text-right">{action}</TableCell>
+        </TableRow>
+      );
+    }
+    if (kind === "funis") {
+      const nome = pickPayload(p, "name", "nome", "title");
+      const stages = p?.stages ?? p?.etapas ?? p?.steps ?? [];
+      const qtd = Array.isArray(stages) ? stages.length : 0;
+      return (
+        <TableRow key={r.id}>
+          <TableCell className="font-medium text-foreground">{sanitizeText(nome) || "—"}</TableCell>
+          <TableCell>
+            <Badge variant="outline" className="text-xs">{qtd} etapa(s)</Badge>
+          </TableCell>
+          <TableCell>{extId}</TableCell>
+          <TableCell>{importedAt}</TableCell>
+          <TableCell className="text-right">{action}</TableCell>
+        </TableRow>
+      );
+    }
+    // custom_fields
+    const cfNome = pickPayload(p, "name", "nome", "label");
+    const cfTipo = pickPayload(p, "type", "tipo", "field_type");
+    const cfReq = pickPayload(p, "required", "obrigatorio", "is_required");
+    return (
+      <TableRow key={r.id}>
+        <TableCell className="font-medium text-foreground">{sanitizeText(cfNome) || "—"}</TableCell>
+        <TableCell>{cfTipo ? <Badge variant="outline" className="text-xs">{String(cfTipo)}</Badge> : "—"}</TableCell>
+        <TableCell className="text-sm">{cfReq === true || cfReq === "true" ? "Sim" : "Não"}</TableCell>
+        <TableCell>{importedAt}</TableCell>
+        <TableCell className="text-right">{action}</TableCell>
+      </TableRow>
+    );
+  };
+
+  const headers: Record<RawEntityKind, string[]> = {
+    clientes: ["Nome", "Telefone", "CPF/CNPJ", "Cidade/UF", "Importado em", ""],
+    projetos: ["Título", "Cliente ext.", "Status", "Funil/Etapa", "Importado em", ""],
+    propostas: ["Título", "Cliente ext.", "Projeto ext.", "Valor", "Status", "Importado em", ""],
+    funis: ["Nome", "Etapas", "ID Externo", "Importado em", ""],
+    custom_fields: ["Nome", "Tipo", "Obrigatório", "Importado em", ""],
+  };
 
   return (
     <>
@@ -305,25 +487,15 @@ function ListaRaw({ table, labels, search, page, setPage, isImporting }: ListaRa
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Nome / Título</TableHead>
-              <TableHead>ID Externo</TableHead>
-              <TableHead>Importado em</TableHead>
-              <TableHead className="text-right">Payload</TableHead>
+              {headers[kind].map((h, i) => (
+                <TableHead key={i} className={i === headers[kind].length - 1 ? "text-right" : ""}>
+                  {h}
+                </TableHead>
+              ))}
             </TableRow>
           </TableHeader>
           <TableBody>
-            {data.rows.map((r: any) => (
-              <TableRow key={r.id}>
-                <TableCell className="font-medium text-foreground">{previewName(r.payload)}</TableCell>
-                <TableCell className="text-xs font-mono text-muted-foreground">{r.external_id ?? "—"}</TableCell>
-                <TableCell className="text-xs">{fmtBR(r.imported_at ?? r.created_at)}</TableCell>
-                <TableCell className="text-right">
-                  <Badge variant="outline" className="text-[10px] font-mono text-muted-foreground">
-                    {Object.keys(r.payload ?? {}).length} chaves
-                  </Badge>
-                </TableCell>
-              </TableRow>
-            ))}
+            {data.rows.map(renderRow)}
           </TableBody>
         </Table>
       </div>
