@@ -164,7 +164,7 @@ Deno.serve(async (req) => {
         return json({ status: "running", counters: allCounters, next_stage: nextStage }, 202);
       }
 
-      await admin
+      const { error: completeError } = await admin
         .from("migration_jobs")
         .update({
           status: "completed",
@@ -177,9 +177,11 @@ Deno.serve(async (req) => {
         })
         .eq("id", job_id);
 
+      if (completeError) throw completeError;
+
       return json({ status: "completed", counters: allCounters }, 200);
     } catch (e) {
-      await admin
+      const { error: failError } = await admin
         .from("migration_jobs")
         .update({
           status: "failed",
@@ -187,6 +189,9 @@ Deno.serve(async (req) => {
           error_message: (e as Error).message,
         })
         .eq("id", job_id);
+      if (failError) {
+        return json({ status: "failed", error: `${(e as Error).message} | status_update_failed: ${failError.message}`, counters: allCounters }, 500);
+      }
       return json({ status: "failed", error: (e as Error).message, counters: allCounters }, 500);
     }
   } catch (e) {
