@@ -105,13 +105,25 @@ export default function MigrationCenter() {
                 </AlertDialogFooter>
               </AlertDialogContent>
             </AlertDialog>
-            <Button onClick={() => setNewOpen(true)}>
+            <Button
+              onClick={() => setNewOpen(true)}
+              disabled={!canCreateJob}
+              title={
+                !tenantId
+                  ? "Selecione um tenant"
+                  : (stagingCounts?.total ?? 0) === 0
+                  ? "Tenant sem dados de staging"
+                  : undefined
+              }
+            >
               <Plus className="h-4 w-4 mr-2" />
               Novo job
             </Button>
           </div>
         }
       />
+
+      <TenantSelector value={tenantId} onChange={setTenantId} />
 
       <MigrationKpiCards jobs={jobs} />
 
@@ -148,6 +160,7 @@ export default function MigrationCenter() {
       <NewJobModal
         open={newOpen}
         onOpenChange={setNewOpen}
+        tenantId={tenantId}
         onCreated={(id) => {
           setSelectedId(id);
           setDrawerOpen(true);
