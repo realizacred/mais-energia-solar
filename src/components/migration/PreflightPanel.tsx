@@ -56,30 +56,28 @@ export function PreflightPanel({ tenantId }: Props) {
       : { tone: "err", label: "Sem dados de staging" },
   );
   if (data.stagingOk) {
-    checks.push(
-      data.classificationDone
-        ? { tone: "ok", label: "Classificação já executada" }
-        : {
-            tone: "info",
-            label: "Classificação ainda não executada — rode antes de migrar projetos/propostas",
-          },
-    );
-    if (data.leadIgnored > 0) {
-      checks.push({
-        tone: "warn",
-        label: `${data.leadIgnored.toLocaleString("pt-BR")} registros Lead serão ignorados`,
-      });
-    }
-    if (data.comercialConverted > 0) {
+    if (data.defaultedToComercial > 0) {
       checks.push({
         tone: "info",
-        label: `${data.comercialConverted.toLocaleString("pt-BR")} registros Vendedor → Comercial`,
+        label: `${data.defaultedToComercial.toLocaleString("pt-BR")} projetos sem funil → pipeline Comercial`,
+      });
+    }
+    if (data.vendedorAsConsultor > 0) {
+      checks.push({
+        tone: "info",
+        label: `${data.vendedorAsConsultor.toLocaleString("pt-BR")} projetos do funil "Vendedores" → consultor + status`,
       });
     }
     if (data.missingStagesEstimate > 0) {
       checks.push({
         tone: "warn",
         label: `${data.missingStagesEstimate} etapas serão criadas se não existirem`,
+      });
+    }
+    if (data.diagnostics.length > 0) {
+      checks.push({
+        tone: "warn",
+        label: `Diagnóstico: ${data.diagnostics.join("; ")}`,
       });
     }
   }
@@ -116,16 +114,15 @@ export function PreflightPanel({ tenantId }: Props) {
           <Estimate label="Projetos (staging)" value={data.totalProjects} />
           <Estimate label="Propostas (staging)" value={data.totalProposals} />
           <Estimate
-            label="Lead ignorados"
-            value={data.leadIgnored}
-            tone={data.leadIgnored > 0 ? "warn" : undefined}
+            label="Vendedor → consultor"
+            value={data.vendedorAsConsultor}
+            tone={data.vendedorAsConsultor > 0 ? "warn" : undefined}
           />
         </div>
 
         <p className="text-[11px] text-muted-foreground">
-          Os números de Lead/Comercial/etapas faltantes são uma <strong>estimativa</strong>{" "}
-          baseada nos nomes de funil/etapa do staging — a contagem definitiva é apurada
-          durante a execução do job.
+          Projetos sem funil ({data.defaultedToComercial.toLocaleString("pt-BR")}) caem em <strong>Comercial</strong>.
+          Projetos do funil "Vendedores" ({data.vendedorAsConsultor.toLocaleString("pt-BR")}) viram <strong>consultor responsável</strong> e a etapa é derivada do status da proposta. A contagem definitiva é apurada durante a execução do job.
         </p>
       </div>
     </SectionCard>
