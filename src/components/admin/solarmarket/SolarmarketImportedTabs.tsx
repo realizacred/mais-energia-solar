@@ -1,14 +1,16 @@
 /**
- * SolarmarketImportedTabs — Visualização dos dados importados do SolarMarket.
- * Lista clientes/projetos/propostas com external_source='solarmarket' e
- * permite ver detalhe nativo ou reimportar a entidade inteira.
+ * SolarmarketImportedTabs — Visualização da camada raw/staging SolarMarket.
  *
- * RB-04: queries em hook (inline aqui apenas para listagem read-only de auditoria).
- * Padrão: tabs horizontais (RB-19), Card padrão (DS-02), badges semânticos.
+ * P0 (contenção arquitetural): após a refatoração de `solarmarket-import`,
+ * todos os dados externos passam a residir EXCLUSIVAMENTE em `sm_*_raw`
+ * (payload bruto). Esta tela NÃO lê mais de `clientes` / `projetos` /
+ * `propostas_nativas` — esses são domínios canônicos do CRM e não devem
+ * ser usados como staging.
+ *
+ * RB-04/RB-05: queries com staleTime. RB-19/RB-21/DS-02 mantidos.
  */
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Link } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -22,12 +24,20 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import {
   Users, FolderKanban, FileText, GitBranch, Settings2,
-  ExternalLink, RefreshCw, Loader2, Database, Search,
+  RefreshCw, Database, Search, AlertTriangle,
 } from "lucide-react";
 import { useSolarmarketImport, type ImportScope } from "@/hooks/useSolarmarketImport";
 
 const PAGE_SIZE = 25;
 const STALE = 1000 * 60 * 5;
+
+type RawTable =
+  | "sm_clientes_raw"
+  | "sm_projetos_raw"
+  | "sm_propostas_raw"
+  | "sm_funis_raw"
+  | "sm_custom_fields_raw";
+
 const fmtBR = (iso?: string | null) =>
   iso ? new Date(iso).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" }) : "—";
 
@@ -49,8 +59,23 @@ function EmptyState({ icon: Icon, message }: { icon: any; message: string }) {
   );
 }
 
+function StagingNotice() {
+  return (
+    <div className="flex items-start gap-3 rounded-lg border border-warning/30 bg-warning/10 p-3 mb-4">
+      <AlertTriangle className="w-4 h-4 text-warning mt-0.5 shrink-0" />
+      <div className="text-xs text-foreground space-y-1">
+        <p className="font-medium">Dados brutos importados — ainda não incorporados ao CRM.</p>
+        <p className="text-muted-foreground">
+          Esta camada é apenas inspeção/auditoria do que veio da API SolarMarket.
+          Nada aqui aparece em Clientes/Projetos/Propostas do sistema até a fase de promoção deliberada.
+        </p>
+      </div>
+    </div>
+  );
+}
+
 // ─────────────────────────────────────────────────────────────────────────
-// Hook: contadores totais (sempre carregados para os badges das abas)
+// Hook: contadores totais (sm_*_raw)
 // ─────────────────────────────────────────────────────────────────────────
 function useImportedCounts(isImporting: boolean) {
   return useQuery({
@@ -58,34 +83,37 @@ function useImportedCounts(isImporting: boolean) {
     staleTime: isImporting ? 0 : STALE,
     refetchInterval: isImporting ? 3000 : false,
     queryFn: async () => {
-      const [c, p, pr, pipes, stages, fields] = await Promise.all([
-        supabase.from("clientes").select("id", { count: "exact", head: true }).eq("external_source", "solarmarket"),
-        supabase.from("projetos").select("id", { count: "exact", head: true }).eq("external_source", "solarmarket"),
-        supabase.from("propostas_nativas").select("id", { count: "exact", head: true }).eq("external_source", "solarmarket"),
-        supabase.from("pipelines").select("id", { count: "exact", head: true }).eq("is_active", true),
-        supabase.from("pipeline_stages").select("id", { count: "exact", head: true }),
-        supabase.from("deal_custom_fields").select("id", { count: "exact", head: true }).eq("is_active", true),
-      ]);
+      const tables: RawTable[] = [
+        "sm_clientes_raw",
+        "sm_projetos_raw",
+        "sm_propostas_raw",
+        "sm_funis_raw",
+        "sm_custom_fields_raw",
+      ];
+      const results = await Promise.all(
+        tables.map((t) =>
+          (supabase as any).from(t).select("id", { count: "exact", head: true }),
+        ),
+      );
       return {
-        clientes: c.count ?? 0,
-        projetos: p.count ?? 0,
-        propostas: pr.count ?? 0,
-        pipelines: pipes.count ?? 0,
-        stages: stages.count ?? 0,
-        custom_fields: fields.count ?? 0,
+        clientes:      results[0].count ?? 0,
+        projetos:      results[1].count ?? 0,
+        propostas:     results[2].count ?? 0,
+        funis:         results[3].count ?? 0,
+        custom_fields: results[4].count ?? 0,
       };
     },
   });
 }
 
 // ─────────────────────────────────────────────────────────────────────────
-// Hook: listagem paginada
+// Hook: listagem paginada de uma tabela raw, com busca em payload->>name
 // ─────────────────────────────────────────────────────────────────────────
-function useImportedList(
-  table: "clientes" | "projetos" | "propostas_nativas",
+function useRawList(
+  table: RawTable,
   page: number,
   search: string,
-  isImporting: boolean
+  isImporting: boolean,
 ) {
   return useQuery({
     queryKey: ["sm-imported-list", table, page, search],
@@ -94,17 +122,22 @@ function useImportedList(
     queryFn: async () => {
       const from = page * PAGE_SIZE;
       const to = from + PAGE_SIZE - 1;
-      let q = supabase.from(table).select("*", { count: "exact" })
-        .eq("external_source", "solarmarket")
-        .order("created_at", { ascending: false })
+      let q = (supabase as any)
+        .from(table)
+        .select("id, external_id, payload, imported_at, created_at", { count: "exact" })
+        .order("imported_at", { ascending: false })
         .range(from, to);
 
-      if (search.trim()) {
-        if (table === "clientes") {
-          q = q.or(`nome.ilike.%${search}%,cliente_code.ilike.%${search}%,external_id.ilike.%${search}%`);
-        } else {
-          q = q.ilike("external_id", `%${search}%`);
-        }
+      const term = search.trim();
+      if (term) {
+        // external_id sempre suportado; payload->>name/nome para texto
+        q = q.or(
+          [
+            `external_id.ilike.%${term}%`,
+            `payload->>name.ilike.%${term}%`,
+            `payload->>nome.ilike.%${term}%`,
+          ].join(","),
+        );
       }
       const { data, count, error } = await q;
       if (error) throw error;
@@ -133,14 +166,14 @@ export function SolarmarketImportedTabs() {
       funis: "Funis e Etapas",
       custom_fields: "Campos Customizados",
     };
-    if (!confirm(`Reimportar ${labels[entity]} do SolarMarket? Será iniciada uma nova importação.`)) return;
+    if (!confirm(`Reimportar ${labels[entity]} do SolarMarket? Será iniciada uma nova importação (apenas em staging).`)) return;
     try {
       const scope: ImportScope = {
         clientes: false, projetos: false, propostas: false, funis: false, custom_fields: false,
         [entity]: true,
       };
       await importAll.mutateAsync(scope);
-      toast({ title: `Reimportação iniciada`, description: `${labels[entity]} sendo reimportados.` });
+      toast({ title: `Reimportação iniciada`, description: `${labels[entity]} sendo gravados em staging.` });
     } catch (e: any) {
       toast({ title: "Erro ao reimportar", description: e?.message, variant: "destructive" });
     }
@@ -151,10 +184,11 @@ export function SolarmarketImportedTabs() {
       <CardHeader>
         <CardTitle className="text-base font-semibold flex items-center gap-2">
           <Database className="w-4 h-4 text-primary" />
-          Dados Importados
+          Dados Brutos Importados (Staging)
         </CardTitle>
       </CardHeader>
       <CardContent>
+        <StagingNotice />
         <Tabs value={activeTab} onValueChange={(v) => { setActiveTab(v); setSearch(""); setPage(0); }}>
           <TabsList className="overflow-x-auto flex-wrap h-auto">
             <TabsTrigger value="clientes" className="gap-1">
@@ -170,8 +204,8 @@ export function SolarmarketImportedTabs() {
               <CountBadge value={counts.data?.propostas ?? 0} loading={counts.isLoading} />
             </TabsTrigger>
             <TabsTrigger value="funis" className="gap-1">
-              <GitBranch className="w-3.5 h-3.5" /> Funis e Etapas
-              <CountBadge value={(counts.data?.pipelines ?? 0) + (counts.data?.stages ?? 0)} loading={counts.isLoading} />
+              <GitBranch className="w-3.5 h-3.5" /> Funis
+              <CountBadge value={counts.data?.funis ?? 0} loading={counts.isLoading} />
             </TabsTrigger>
             <TabsTrigger value="custom_fields" className="gap-1">
               <Settings2 className="w-3.5 h-3.5" /> Campos Custom
@@ -179,43 +213,45 @@ export function SolarmarketImportedTabs() {
             </TabsTrigger>
           </TabsList>
 
-          {/* Toolbar de busca */}
-          {(activeTab === "clientes" || activeTab === "projetos" || activeTab === "propostas") && (
-            <div className="flex flex-col sm:flex-row gap-2 mt-4 mb-3">
-              <div className="relative flex-1 min-w-0">
-                <Search className="w-4 h-4 absolute left-2.5 top-2.5 text-muted-foreground" />
-                <Input
-                  placeholder="Buscar por nome, código ou ID externo…"
-                  className="pl-8"
-                  value={search}
-                  onChange={(e) => { setSearch(e.target.value); setPage(0); }}
-                />
-              </div>
+          <div className="flex flex-col sm:flex-row gap-2 mt-4 mb-3">
+            <div className="relative flex-1 min-w-0">
+              <Search className="w-4 h-4 absolute left-2.5 top-2.5 text-muted-foreground" />
+              <Input
+                placeholder="Buscar por nome ou ID externo…"
+                className="pl-8"
+                value={search}
+                onChange={(e) => { setSearch(e.target.value); setPage(0); }}
+              />
             </div>
-          )}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handleReimport(activeTab as keyof ImportScope)}
+              disabled={importAll.isPending || !!runningJob}
+            >
+              <RefreshCw className="w-4 h-4 mr-2" /> Reimportar
+            </Button>
+          </div>
 
           <TabsContent value="clientes">
-            <ListaClientes search={search} page={page} setPage={setPage} isImporting={isImporting} />
+            <ListaRaw table="sm_clientes_raw" labels={{ icon: Users, empty: "Nenhum cliente em staging." }}
+              search={search} page={page} setPage={setPage} isImporting={isImporting} />
           </TabsContent>
           <TabsContent value="projetos">
-            <ListaProjetos search={search} page={page} setPage={setPage} isImporting={isImporting} />
+            <ListaRaw table="sm_projetos_raw" labels={{ icon: FolderKanban, empty: "Nenhum projeto em staging." }}
+              search={search} page={page} setPage={setPage} isImporting={isImporting} />
           </TabsContent>
           <TabsContent value="propostas">
-            <ListaPropostas search={search} page={page} setPage={setPage} isImporting={isImporting} />
+            <ListaRaw table="sm_propostas_raw" labels={{ icon: FileText, empty: "Nenhuma proposta em staging." }}
+              search={search} page={page} setPage={setPage} isImporting={isImporting} />
           </TabsContent>
-          <TabsContent value="funis" className="mt-4">
-            <ListaFunis
-              onReimport={() => handleReimport("funis")}
-              disabled={importAll.isPending || !!runningJob}
-              isImporting={isImporting}
-            />
+          <TabsContent value="funis">
+            <ListaRaw table="sm_funis_raw" labels={{ icon: GitBranch, empty: "Nenhum funil em staging." }}
+              search={search} page={page} setPage={setPage} isImporting={isImporting} />
           </TabsContent>
-          <TabsContent value="custom_fields" className="mt-4">
-            <ListaCustomFields
-              onReimport={() => handleReimport("custom_fields")}
-              disabled={importAll.isPending || !!runningJob}
-              isImporting={isImporting}
-            />
+          <TabsContent value="custom_fields">
+            <ListaRaw table="sm_custom_fields_raw" labels={{ icon: Settings2, empty: "Nenhum campo custom em staging." }}
+              search={search} page={page} setPage={setPage} isImporting={isImporting} />
           </TabsContent>
         </Tabs>
       </CardContent>
@@ -224,9 +260,16 @@ export function SolarmarketImportedTabs() {
 }
 
 // ─────────────────────────────────────────────────────────────────────────
-// Sub-listas
+// Lista genérica de raw (mesma forma para todas as tabelas)
 // ─────────────────────────────────────────────────────────────────────────
-type ListProps = { search: string; page: number; setPage: (n: number) => void; isImporting: boolean };
+type ListaRawProps = {
+  table: RawTable;
+  labels: { icon: any; empty: string };
+  search: string;
+  page: number;
+  setPage: (n: number) => void;
+  isImporting: boolean;
+};
 
 function Pagination({ page, setPage, total }: { page: number; setPage: (n: number) => void; total: number }) {
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
@@ -245,38 +288,39 @@ function Pagination({ page, setPage, total }: { page: number; setPage: (n: numbe
   );
 }
 
-function ListaClientes({ search, page, setPage, isImporting }: ListProps) {
-  const { data, isLoading } = useImportedList("clientes", page, search, isImporting);
+function previewName(payload: any): string {
+  return (
+    payload?.name ?? payload?.nome ?? payload?.title ?? payload?.label ?? "—"
+  );
+}
+
+function ListaRaw({ table, labels, search, page, setPage, isImporting }: ListaRawProps) {
+  const { data, isLoading } = useRawList(table, page, search, isImporting);
   if (isLoading) return <Skeleton className="h-48 w-full" />;
-  if (!data?.rows.length) return <EmptyState icon={Users} message="Nenhum cliente importado encontrado." />;
+  if (!data?.rows.length) return <EmptyState icon={labels.icon} message={labels.empty} />;
+
   return (
     <>
       <div className="rounded-lg border border-border overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Nome</TableHead>
-              <TableHead>Código</TableHead>
+              <TableHead>Nome / Título</TableHead>
               <TableHead>ID Externo</TableHead>
-              <TableHead>Cidade/UF</TableHead>
               <TableHead>Importado em</TableHead>
-              <TableHead className="text-right">Ações</TableHead>
+              <TableHead className="text-right">Payload</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {data.rows.map((c: any) => (
-              <TableRow key={c.id}>
-                <TableCell className="font-medium text-foreground">{c.nome ?? "—"}</TableCell>
-                <TableCell className="text-xs font-mono">{c.cliente_code ?? "—"}</TableCell>
-                <TableCell className="text-xs font-mono text-muted-foreground">{c.external_id ?? "—"}</TableCell>
-                <TableCell className="text-xs">{[c.cidade, c.estado].filter(Boolean).join(" / ") || "—"}</TableCell>
-                <TableCell className="text-xs">{fmtBR(c.created_at)}</TableCell>
+            {data.rows.map((r: any) => (
+              <TableRow key={r.id}>
+                <TableCell className="font-medium text-foreground">{previewName(r.payload)}</TableCell>
+                <TableCell className="text-xs font-mono text-muted-foreground">{r.external_id ?? "—"}</TableCell>
+                <TableCell className="text-xs">{fmtBR(r.imported_at ?? r.created_at)}</TableCell>
                 <TableCell className="text-right">
-                  <Button asChild variant="ghost" size="sm" className="h-7 px-2">
-                    <Link to={`/admin/clientes?focus=${c.id}`}>
-                      <ExternalLink className="w-3.5 h-3.5 mr-1" /> Ver
-                    </Link>
-                  </Button>
+                  <Badge variant="outline" className="text-[10px] font-mono text-muted-foreground">
+                    {Object.keys(r.payload ?? {}).length} chaves
+                  </Badge>
                 </TableCell>
               </TableRow>
             ))}
@@ -285,227 +329,5 @@ function ListaClientes({ search, page, setPage, isImporting }: ListProps) {
       </div>
       <Pagination page={page} setPage={setPage} total={data.total} />
     </>
-  );
-}
-
-function ListaProjetos({ search, page, setPage, isImporting }: ListProps) {
-  const { data, isLoading } = useImportedList("projetos", page, search, isImporting);
-  if (isLoading) return <Skeleton className="h-48 w-full" />;
-  if (!data?.rows.length) return <EmptyState icon={FolderKanban} message="Nenhum projeto importado encontrado." />;
-  return (
-    <>
-      <div className="rounded-lg border border-border overflow-x-auto">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>ID Externo</TableHead>
-              <TableHead>Cliente ID</TableHead>
-              <TableHead>Importado em</TableHead>
-              <TableHead className="text-right">Ações</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {data.rows.map((p: any) => (
-              <TableRow key={p.id}>
-                <TableCell className="text-xs font-mono">{p.external_id ?? "—"}</TableCell>
-                <TableCell className="text-xs font-mono text-muted-foreground">{p.cliente_id?.slice(0, 8) ?? "—"}…</TableCell>
-                <TableCell className="text-xs">{fmtBR(p.created_at)}</TableCell>
-                <TableCell className="text-right">
-                  <Button asChild variant="ghost" size="sm" className="h-7 px-2">
-                    <Link to={`/admin/projetos?focus=${p.id}`}>
-                      <ExternalLink className="w-3.5 h-3.5 mr-1" /> Ver
-                    </Link>
-                  </Button>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
-      <Pagination page={page} setPage={setPage} total={data.total} />
-    </>
-  );
-}
-
-function ListaPropostas({ search, page, setPage, isImporting }: ListProps) {
-  const { data, isLoading } = useImportedList("propostas_nativas", page, search, isImporting);
-  if (isLoading) return <Skeleton className="h-48 w-full" />;
-  if (!data?.rows.length) return <EmptyState icon={FileText} message="Nenhuma proposta importada encontrada." />;
-  return (
-    <>
-      <div className="rounded-lg border border-border overflow-x-auto">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>ID Externo</TableHead>
-              <TableHead>Projeto ID</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Importada em</TableHead>
-              <TableHead className="text-right">Ações</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {data.rows.map((pr: any) => (
-              <TableRow key={pr.id}>
-                <TableCell className="text-xs font-mono">{pr.external_id ?? "—"}</TableCell>
-                <TableCell className="text-xs font-mono text-muted-foreground">
-                  {pr.projeto_id?.slice(0, 8) ?? "—"}…
-                </TableCell>
-                <TableCell className="text-xs">{pr.status ?? "—"}</TableCell>
-                <TableCell className="text-xs">{fmtBR(pr.created_at)}</TableCell>
-                <TableCell className="text-right">
-                  <Button asChild variant="ghost" size="sm" className="h-7 px-2">
-                    <Link to={`/admin/propostas?focus=${pr.id}`}>
-                      <ExternalLink className="w-3.5 h-3.5 mr-1" /> Ver
-                    </Link>
-                  </Button>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
-      <Pagination page={page} setPage={setPage} total={data.total} />
-    </>
-  );
-}
-
-// ─────────────────────────────────────────────────────────────────────────
-// Placeholders para Funis e Campos Customizados
-// (não há tabela de staging com external_source — exibimos card informativo)
-// ─────────────────────────────────────────────────────────────────────────
-type ExtraListProps = { onReimport: () => void; disabled: boolean; isImporting: boolean };
-
-function ListaFunis({ onReimport, disabled, isImporting }: ExtraListProps) {
-  const { data, isLoading } = useQuery({
-    queryKey: ["sm-imported-funis"],
-    staleTime: isImporting ? 0 : STALE,
-    refetchInterval: isImporting ? 3000 : false,
-    queryFn: async () => {
-      const { data: pipes, error: e1 } = await supabase
-        .from("pipelines")
-        .select("id,name,kind,is_active,is_default,created_at")
-        .order("created_at", { ascending: false });
-      if (e1) throw e1;
-      const ids = (pipes ?? []).map((p) => p.id);
-      const { data: stages, error: e2 } = ids.length
-        ? await supabase.from("pipeline_stages").select("id,pipeline_id,name,position").in("pipeline_id", ids)
-        : { data: [], error: null };
-      if (e2) throw e2;
-      const byPipe = new Map<string, number>();
-      (stages ?? []).forEach((s: any) => byPipe.set(s.pipeline_id, (byPipe.get(s.pipeline_id) ?? 0) + 1));
-      return (pipes ?? []).map((p: any) => ({ ...p, stages: byPipe.get(p.id) ?? 0 }));
-    },
-  });
-
-  return (
-    <div className="space-y-3">
-      <div className="flex justify-end">
-        <Button variant="outline" size="sm" onClick={onReimport} disabled={disabled}>
-          <RefreshCw className="w-4 h-4 mr-2" /> Reimportar Funis
-        </Button>
-      </div>
-      {isLoading ? (
-        <Skeleton className="h-48 w-full" />
-      ) : !data?.length ? (
-        <EmptyState icon={GitBranch} message="Nenhum funil encontrado." />
-      ) : (
-        <div className="rounded-lg border border-border overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Funil</TableHead>
-                <TableHead>Tipo</TableHead>
-                <TableHead className="text-center">Etapas</TableHead>
-                <TableHead>Ativo</TableHead>
-                <TableHead>Padrão</TableHead>
-                <TableHead>Criado em</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {data.map((p: any) => (
-                <TableRow key={p.id}>
-                  <TableCell className="font-medium text-foreground">{p.name}</TableCell>
-                  <TableCell className="text-xs">{p.kind ?? "—"}</TableCell>
-                  <TableCell className="text-center text-xs font-mono">{p.stages}</TableCell>
-                  <TableCell>
-                    {p.is_active ? (
-                      <Badge className="bg-success/10 text-success border-success/20">Sim</Badge>
-                    ) : (
-                      <Badge variant="outline" className="text-muted-foreground">Não</Badge>
-                    )}
-                  </TableCell>
-                  <TableCell className="text-xs">{p.is_default ? "★" : "—"}</TableCell>
-                  <TableCell className="text-xs">{fmtBR(p.created_at)}</TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
-      )}
-    </div>
-  );
-}
-
-function ListaCustomFields({ onReimport, disabled, isImporting }: ExtraListProps) {
-  const { data, isLoading } = useQuery({
-    queryKey: ["sm-imported-custom-fields"],
-    staleTime: isImporting ? 0 : STALE,
-    refetchInterval: isImporting ? 3000 : false,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("deal_custom_fields")
-        .select("id,title,field_key,field_type,field_context,is_active,created_at")
-        .order("field_context", { ascending: true })
-        .order("ordem", { ascending: true });
-      if (error) throw error;
-      return data ?? [];
-    },
-  });
-
-  return (
-    <div className="space-y-3">
-      <div className="flex justify-end">
-        <Button variant="outline" size="sm" onClick={onReimport} disabled={disabled}>
-          <RefreshCw className="w-4 h-4 mr-2" /> Reimportar Campos
-        </Button>
-      </div>
-      {isLoading ? (
-        <Skeleton className="h-48 w-full" />
-      ) : !data?.length ? (
-        <EmptyState icon={Settings2} message="Nenhum campo customizado encontrado." />
-      ) : (
-        <div className="rounded-lg border border-border overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Título</TableHead>
-                <TableHead>Chave</TableHead>
-                <TableHead>Tipo</TableHead>
-                <TableHead>Contexto</TableHead>
-                <TableHead>Ativo</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {data.map((f: any) => (
-                <TableRow key={f.id}>
-                  <TableCell className="font-medium text-foreground">{f.title}</TableCell>
-                  <TableCell className="text-xs font-mono text-muted-foreground">{f.field_key}</TableCell>
-                  <TableCell className="text-xs">{f.field_type}</TableCell>
-                  <TableCell className="text-xs">{f.field_context ?? "—"}</TableCell>
-                  <TableCell>
-                    {f.is_active ? (
-                      <Badge className="bg-success/10 text-success border-success/20">Sim</Badge>
-                    ) : (
-                      <Badge variant="outline" className="text-muted-foreground">Não</Badge>
-                    )}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
-      )}
-    </div>
   );
 }
