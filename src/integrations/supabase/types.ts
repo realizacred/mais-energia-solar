@@ -3517,7 +3517,7 @@ export type Database = {
           origem: string | null
           owner_id: string
           pipeline_id: string
-          projeto_id: string | null
+          projeto_id: string
           stage_id: string | null
           status: string
           tenant_id: string
@@ -3542,7 +3542,7 @@ export type Database = {
           origem?: string | null
           owner_id: string
           pipeline_id: string
-          projeto_id?: string | null
+          projeto_id: string
           stage_id?: string | null
           status?: string
           tenant_id?: string
@@ -3567,7 +3567,7 @@ export type Database = {
           origem?: string | null
           owner_id?: string
           pipeline_id?: string
-          projeto_id?: string | null
+          projeto_id?: string
           stage_id?: string | null
           status?: string
           tenant_id?: string
@@ -22103,6 +22103,78 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      staging_clientes_map: {
+        Row: {
+          cliente_id: string | null
+          staging_id: string | null
+        }
+        Insert: {
+          cliente_id?: string | null
+          staging_id?: string | null
+        }
+        Update: {
+          cliente_id?: string | null
+          staging_id?: string | null
+        }
+        Relationships: []
+      }
+      staging_import: {
+        Row: {
+          email: string | null
+          nome: string | null
+          origem: string | null
+          raw: Json | null
+          telefone: string | null
+        }
+        Insert: {
+          email?: string | null
+          nome?: string | null
+          origem?: string | null
+          raw?: Json | null
+          telefone?: string | null
+        }
+        Update: {
+          email?: string | null
+          nome?: string | null
+          origem?: string | null
+          raw?: Json | null
+          telefone?: string | null
+        }
+        Relationships: []
+      }
+      staging_importacao: {
+        Row: {
+          created_at: string | null
+          email: string | null
+          id: string | null
+          nome: string | null
+          origem: string | null
+          status: string | null
+          telefone: string | null
+          valor: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          email?: string | null
+          id?: string | null
+          nome?: string | null
+          origem?: string | null
+          status?: string | null
+          telefone?: string | null
+          valor?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          email?: string | null
+          id?: string | null
+          nome?: string | null
+          origem?: string | null
+          status?: string | null
+          telefone?: string | null
+          valor?: string | null
+        }
+        Relationships: []
       }
       subscriptions: {
         Row: {
