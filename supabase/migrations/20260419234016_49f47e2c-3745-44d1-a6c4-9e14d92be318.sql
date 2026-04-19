@@ -1,0 +1,1 @@
+UPDATE public.solarmarket_import_jobs SET status = 'cancelled', current_step = 'cancelled', progress_pct = 21, error_message = 'Cancelado manualmente pelo usuário (status corrigido retroativamente — auditoria identificou success falso)' WHERE id = '1786428b-d3c8-4066-9a61-ac102430c7f4';
