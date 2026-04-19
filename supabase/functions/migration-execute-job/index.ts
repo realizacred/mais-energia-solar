@@ -14,6 +14,12 @@
  */
 import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
+declare const EdgeRuntime:
+  | {
+      waitUntil?: (promise: Promise<unknown>) => void;
+    }
+  | undefined;
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
@@ -299,6 +305,14 @@ async function requeueJob(
     },
     body: JSON.stringify({ job_id, offset, batch_size, stage }),
   });
+}
+
+function runInBackground(task: Promise<unknown>) {
+  if (typeof EdgeRuntime !== "undefined" && typeof EdgeRuntime.waitUntil === "function") {
+    EdgeRuntime.waitUntil(task);
+    return;
+  }
+  task.catch(console.error);
 }
 
 async function classifyProjects(
