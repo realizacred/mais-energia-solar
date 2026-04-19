@@ -196,7 +196,12 @@ Deno.serve(async (req) => {
           break;
         case "migrate_proposals":
           // Proposal-first: resolve/cria cliente e projeto on-demand a partir da proposta.
-          ({ counters: allCounters.proposals, hasMore, nextOffset } = await migrateProposals(admin, tenant_id, job_id, offset, batchSize));
+          // Flag opcional `config.only_marked` (piloto controlado): processa apenas
+          // staging com migrar_para_canonico = true. Sem a flag, comportamento normal.
+          ({ counters: allCounters.proposals, hasMore, nextOffset } = await migrateProposals(
+            admin, tenant_id, job_id, offset, batchSize,
+            { onlyMarked: Boolean((job.metadata as any)?.config?.only_marked) },
+          ));
           break;
         case "full_migration":
           // Novo fluxo: classify → clients → proposals (cria projetos on-demand) → projects (órfãos)
@@ -207,7 +212,10 @@ Deno.serve(async (req) => {
             ({ counters: allCounters.clients, hasMore, nextOffset } = await migrateClients(admin, tenant_id, job_id, offset, batchSize));
             nextStage = hasMore ? "migrate_clients" : "migrate_proposals";
           } else if (currentStage === "migrate_proposals") {
-            ({ counters: allCounters.proposals, hasMore, nextOffset } = await migrateProposals(admin, tenant_id, job_id, offset, batchSize));
+            ({ counters: allCounters.proposals, hasMore, nextOffset } = await migrateProposals(
+              admin, tenant_id, job_id, offset, batchSize,
+              { onlyMarked: Boolean((job.metadata as any)?.config?.only_marked) },
+            ));
             nextStage = hasMore ? "migrate_proposals" : "migrate_projects";
           } else {
             ({ counters: allCounters.projects, hasMore, nextOffset } = await migrateProjects(admin, tenant_id, job_id, offset, batchSize));
@@ -1202,14 +1210,21 @@ async function migrateProposals(
   job_id: string,
   offset = 0,
   batchSize = DEFAULT_BATCH_SIZE,
+  opts: { onlyMarked?: boolean } = {},
 ): Promise<ProcessBatchResult> {
   const counters: Counters = { migrated: 0, skipped: 0, failed: 0 };
   const canonical = await ensureCanonicalFunis(admin, tenant_id);
 
-  const { data: proposals } = await admin
+  // Filtro tenant-safe: quando onlyMarked=true, processa apenas staging com
+  // migrar_para_canonico=true. Quando false/ausente, comportamento normal preservado.
+  let q = admin
     .from("solar_market_proposals")
     .select("id, sm_proposal_id, sm_project_id, sm_client_id, titulo, description, raw_payload, valor_total, link_pdf, status, cidade, estado")
-    .eq("tenant_id", tenant_id)
+    .eq("tenant_id", tenant_id);
+  if (opts.onlyMarked) {
+    q = q.eq("migrar_para_canonico", true);
+  }
+  const { data: proposals } = await q
     .order("id", { ascending: true })
     .range(offset, offset + batchSize - 1);
 
