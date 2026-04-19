@@ -254,7 +254,7 @@ export default function ImportacaoSolarmarket() {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={handleCancel}
+                  onClick={() => handleCancel()}
                   disabled={cancelImport.isPending}
                   className="border-destructive text-destructive hover:bg-destructive/10"
                 >
@@ -267,6 +267,15 @@ export default function ImportacaoSolarmarket() {
                 </Button>
               </div>
             </div>
+            {isStale && (
+              <div className="flex items-start gap-2 rounded-md border border-warning/30 bg-warning/5 p-2 text-xs text-warning">
+                <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
+                <span>
+                  Esta importação está em execução há mais de 10 minutos sem progresso.
+                  Provavelmente travou — clique em <strong>Cancelar</strong> para liberar e tentar novamente.
+                </span>
+              </div>
+            )}
             <Progress value={Number(runningJob.progress_pct ?? 0)} />
             {/* Contadores parciais */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-2">
