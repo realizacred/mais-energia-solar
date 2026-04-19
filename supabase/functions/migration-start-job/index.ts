@@ -54,15 +54,42 @@ Deno.serve(async (req) => {
       return json({ error: `Invalid job_type: ${job_type}` }, 400);
     }
 
-    if (!tenant_id) {
-      const { data: profile } = await admin
-        .from("profiles")
-        .select("tenant_id")
-        .eq("user_id", userId)
-        .single();
-      tenant_id = profile?.tenant_id ?? null;
-    }
+    // Resolve tenant do próprio usuário (sempre)
+    const { data: profile } = await admin
+      .from("profiles")
+      .select("tenant_id")
+      .eq("user_id", userId)
+      .maybeSingle();
+    const ownTenantId = (profile?.tenant_id ?? null) as string | null;
+
+    if (!tenant_id) tenant_id = ownTenantId;
     if (!tenant_id) return json({ error: "tenant_id not resolved" }, 400);
+
+    // Se o caller pediu tenant diferente do próprio, exige super_admin (RB-80)
+    if (tenant_id !== ownTenantId) {
+      const { data: roles } = await admin
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", userId);
+      const isSuper = (roles ?? []).some((r: any) => r.role === "super_admin");
+      if (!isSuper) {
+        return json({ error: "Forbidden: only super_admin can target another tenant" }, 403);
+      }
+    }
+
+    // Bloqueia criação de job se o tenant não tem staging SM
+    const [{ count: cClients }, { count: cProjects }, { count: cProposals }] = await Promise.all([
+      admin.from("solar_market_clients").select("id", { count: "exact", head: true }).eq("tenant_id", tenant_id),
+      admin.from("solar_market_projects").select("id", { count: "exact", head: true }).eq("tenant_id", tenant_id),
+      admin.from("solar_market_proposals").select("id", { count: "exact", head: true }).eq("tenant_id", tenant_id),
+    ]);
+    const totalStaging = (cClients ?? 0) + (cProjects ?? 0) + (cProposals ?? 0);
+    if (totalStaging === 0) {
+      return json(
+        { error: "Tenant sem dados de staging SolarMarket. Sincronize o staging antes de criar jobs." },
+        409,
+      );
+    }
 
     const { data: job, error } = await admin
       .from("migration_jobs")

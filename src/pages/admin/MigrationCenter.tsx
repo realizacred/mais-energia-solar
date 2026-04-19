@@ -19,19 +19,25 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useMigrationJobs } from "@/hooks/useMigrationJobs";
 import { useClearMigrationHistory } from "@/hooks/useClearMigrationHistory";
+import { useStagingCounts } from "@/hooks/useMigrationTenant";
 import { JobsTable } from "@/components/migration/JobsTable";
 import { JobDetailPanel } from "@/components/migration/JobDetailPanel";
 import { NewJobModal } from "@/components/migration/NewJobModal";
 import { MigrationKpiCards } from "@/components/migration/MigrationKpiCards";
 import { JobsToolbar, type JobsFilter } from "@/components/migration/JobsToolbar";
+import { TenantSelector } from "@/components/migration/TenantSelector";
 
 export default function MigrationCenter() {
   const { data: jobs = [], isLoading } = useMigrationJobs();
   const clearHistory = useClearMigrationHistory();
+  const [tenantId, setTenantId] = useState<string | null>(null);
+  const { data: stagingCounts } = useStagingCounts(tenantId);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [newOpen, setNewOpen] = useState(false);
   const [filter, setFilter] = useState<JobsFilter>({ q: "", status: "all", type: "all" });
+
+  const canCreateJob = !!tenantId && (stagingCounts?.total ?? 0) > 0;
 
   // Auto-abre drawer quando o usuário clica em um job
   const handleSelect = (id: string) => {
@@ -99,13 +105,25 @@ export default function MigrationCenter() {
                 </AlertDialogFooter>
               </AlertDialogContent>
             </AlertDialog>
-            <Button onClick={() => setNewOpen(true)}>
+            <Button
+              onClick={() => setNewOpen(true)}
+              disabled={!canCreateJob}
+              title={
+                !tenantId
+                  ? "Selecione um tenant"
+                  : (stagingCounts?.total ?? 0) === 0
+                  ? "Tenant sem dados de staging"
+                  : undefined
+              }
+            >
               <Plus className="h-4 w-4 mr-2" />
               Novo job
             </Button>
           </div>
         }
       />
+
+      <TenantSelector value={tenantId} onChange={setTenantId} />
 
       <MigrationKpiCards jobs={jobs} />
 
@@ -142,6 +160,7 @@ export default function MigrationCenter() {
       <NewJobModal
         open={newOpen}
         onOpenChange={setNewOpen}
+        tenantId={tenantId}
         onCreated={(id) => {
           setSelectedId(id);
           setDrawerOpen(true);
