@@ -563,10 +563,11 @@ async function migrateProjects(
   batchSize = DEFAULT_BATCH_SIZE,
 ): Promise<ProcessBatchResult> {
   const counters: Counters = { migrated: 0, skipped: 0, failed: 0 };
+  const canonical = await ensureCanonicalFunis(admin, tenant_id);
 
   const { data: projects } = await admin
     .from("solar_market_projects")
-    .select("sm_project_id, sm_client_id, name")
+    .select("sm_project_id, sm_client_id, name, sm_funnel_name, sm_stage_name")
     .eq("tenant_id", tenant_id)
     .order("sm_project_id", { ascending: true })
     .range(offset, offset + batchSize - 1);
@@ -575,12 +576,46 @@ async function migrateProjects(
     const sm_project_id = (p as any).sm_project_id as number;
     try {
       // Classificação obrigatória
-      const { data: cls } = await admin
+      let { data: cls } = await admin
         .from("sm_classification_v2")
         .select("target_funil_id, target_etapa_id")
         .eq("tenant_id", tenant_id)
         .eq("sm_project_id", sm_project_id)
         .maybeSingle();
+
+      if (!cls?.target_funil_id || !cls?.target_etapa_id) {
+        const { category, reason, confidence } = classifyByText(
+          (p as any).sm_funnel_name ?? null,
+          (p as any).sm_stage_name ?? null,
+        );
+        const target = canonical[category];
+
+        const { error: classifyError } = await admin
+          .from("sm_classification_v2")
+          .upsert(
+            {
+              tenant_id,
+              sm_project_id,
+              category,
+              target_funil_id: target.funil_id,
+              target_etapa_id: target.etapa_id,
+              confidence_score: confidence,
+              classification_reason: `auto_from_migrate_projects:${reason}`,
+            },
+            { onConflict: "tenant_id,sm_project_id" },
+          );
+
+        if (classifyError) throw classifyError;
+
+        const { data: resolvedCls } = await admin
+          .from("sm_classification_v2")
+          .select("target_funil_id, target_etapa_id")
+          .eq("tenant_id", tenant_id)
+          .eq("sm_project_id", sm_project_id)
+          .maybeSingle();
+
+        cls = resolvedCls;
+      }
 
       if (!cls?.target_funil_id || !cls?.target_etapa_id) {
         await recordSkip(admin, job_id, tenant_id, "project", sm_project_id, "sem classificação resolvida");
