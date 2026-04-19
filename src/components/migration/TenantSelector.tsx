@@ -61,10 +61,25 @@ export function TenantSelector({ value, onChange }: Props) {
 
   return (
     <div className="rounded-lg border border-border bg-card p-4 space-y-3">
-      <div className="flex flex-col sm:flex-row sm:items-center gap-3 justify-between">
-        <div className="flex items-center gap-2 min-w-0">
-          <Building2 className="h-4 w-4 text-muted-foreground shrink-0" />
-          <span className="text-sm font-medium text-foreground">Tenant da migração</span>
+      <div className="flex flex-col sm:flex-row sm:items-start gap-3 justify-between">
+        <div className="flex items-start gap-2 min-w-0">
+          <Building2 className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
+          <div className="min-w-0">
+            <p className="text-sm font-medium text-foreground leading-none">
+              {isSuper ? "Tenant da migração" : "Tenant em uso"}
+            </p>
+            <div className="flex items-center gap-2 mt-1">
+              <span className="text-xs text-muted-foreground truncate">{activeTenantNome}</span>
+              {value && (
+                <span
+                  className="text-[10px] font-mono text-muted-foreground/70 tabular-nums"
+                  title={value}
+                >
+                  {value.slice(0, 8)}…
+                </span>
+              )}
+            </div>
+          </div>
         </div>
 
         {isSuper ? (
@@ -99,8 +114,8 @@ export function TenantSelector({ value, onChange }: Props) {
             </Select>
           )
         ) : (
-          <Badge variant="outline" className="font-mono text-[11px]">
-            {activeTenantNome}
+          <Badge variant="outline" className="text-[11px] shrink-0">
+            read-only
           </Badge>
         )}
       </div>
