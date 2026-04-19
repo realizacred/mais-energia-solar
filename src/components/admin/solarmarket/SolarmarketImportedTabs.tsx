@@ -52,10 +52,11 @@ function EmptyState({ icon: Icon, message }: { icon: any; message: string }) {
 // ─────────────────────────────────────────────────────────────────────────
 // Hook: contadores totais (sempre carregados para os badges das abas)
 // ─────────────────────────────────────────────────────────────────────────
-function useImportedCounts() {
+function useImportedCounts(isImporting: boolean) {
   return useQuery({
     queryKey: ["sm-imported-counts"],
-    staleTime: STALE,
+    staleTime: isImporting ? 0 : STALE,
+    refetchInterval: isImporting ? 3000 : false,
     queryFn: async () => {
       const [c, p, pr] = await Promise.all([
         supabase.from("clientes").select("id", { count: "exact", head: true }).eq("external_source", "solarmarket"),
@@ -77,11 +78,13 @@ function useImportedCounts() {
 function useImportedList(
   table: "clientes" | "projetos" | "propostas_nativas",
   page: number,
-  search: string
+  search: string,
+  isImporting: boolean
 ) {
   return useQuery({
     queryKey: ["sm-imported-list", table, page, search],
-    staleTime: STALE,
+    staleTime: isImporting ? 0 : STALE,
+    refetchInterval: isImporting ? 3000 : false,
     queryFn: async () => {
       const from = page * PAGE_SIZE;
       const to = from + PAGE_SIZE - 1;
@@ -108,13 +111,13 @@ function useImportedList(
 // Componente principal
 // ─────────────────────────────────────────────────────────────────────────
 export function SolarmarketImportedTabs() {
-  const counts = useImportedCounts();
   const { importAll, jobs } = useSolarmarketImport();
+  const runningJob = jobs.find((j) => j.status === "running" || j.status === "pending");
+  const isImporting = !!runningJob;
+  const counts = useImportedCounts(isImporting);
   const [activeTab, setActiveTab] = useState("clientes");
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(0);
-
-  const runningJob = jobs.find((j) => j.status === "running");
 
   const handleReimport = async (entity: keyof ImportScope) => {
     const labels: Record<string, string> = {
@@ -197,13 +200,13 @@ export function SolarmarketImportedTabs() {
           )}
 
           <TabsContent value="clientes">
-            <ListaClientes search={search} page={page} setPage={setPage} />
+            <ListaClientes search={search} page={page} setPage={setPage} isImporting={isImporting} />
           </TabsContent>
           <TabsContent value="projetos">
-            <ListaProjetos search={search} page={page} setPage={setPage} />
+            <ListaProjetos search={search} page={page} setPage={setPage} isImporting={isImporting} />
           </TabsContent>
           <TabsContent value="propostas">
-            <ListaPropostas search={search} page={page} setPage={setPage} />
+            <ListaPropostas search={search} page={page} setPage={setPage} isImporting={isImporting} />
           </TabsContent>
           <TabsContent value="funis" className="mt-4">
             <FunisPlaceholder onReimport={() => handleReimport("funis")} disabled={importAll.isPending || !!runningJob} />
@@ -220,7 +223,7 @@ export function SolarmarketImportedTabs() {
 // ─────────────────────────────────────────────────────────────────────────
 // Sub-listas
 // ─────────────────────────────────────────────────────────────────────────
-type ListProps = { search: string; page: number; setPage: (n: number) => void };
+type ListProps = { search: string; page: number; setPage: (n: number) => void; isImporting: boolean };
 
 function Pagination({ page, setPage, total }: { page: number; setPage: (n: number) => void; total: number }) {
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
@@ -239,8 +242,8 @@ function Pagination({ page, setPage, total }: { page: number; setPage: (n: numbe
   );
 }
 
-function ListaClientes({ search, page, setPage }: ListProps) {
-  const { data, isLoading } = useImportedList("clientes", page, search);
+function ListaClientes({ search, page, setPage, isImporting }: ListProps) {
+  const { data, isLoading } = useImportedList("clientes", page, search, isImporting);
   if (isLoading) return <Skeleton className="h-48 w-full" />;
   if (!data?.rows.length) return <EmptyState icon={Users} message="Nenhum cliente importado encontrado." />;
   return (
@@ -282,8 +285,8 @@ function ListaClientes({ search, page, setPage }: ListProps) {
   );
 }
 
-function ListaProjetos({ search, page, setPage }: ListProps) {
-  const { data, isLoading } = useImportedList("projetos", page, search);
+function ListaProjetos({ search, page, setPage, isImporting }: ListProps) {
+  const { data, isLoading } = useImportedList("projetos", page, search, isImporting);
   if (isLoading) return <Skeleton className="h-48 w-full" />;
   if (!data?.rows.length) return <EmptyState icon={FolderKanban} message="Nenhum projeto importado encontrado." />;
   return (
@@ -321,8 +324,8 @@ function ListaProjetos({ search, page, setPage }: ListProps) {
   );
 }
 
-function ListaPropostas({ search, page, setPage }: ListProps) {
-  const { data, isLoading } = useImportedList("propostas_nativas", page, search);
+function ListaPropostas({ search, page, setPage, isImporting }: ListProps) {
+  const { data, isLoading } = useImportedList("propostas_nativas", page, search, isImporting);
   if (isLoading) return <Skeleton className="h-48 w-full" />;
   if (!data?.rows.length) return <EmptyState icon={FileText} message="Nenhuma proposta importada encontrada." />;
   return (
