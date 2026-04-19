@@ -22,6 +22,7 @@ interface Props {
 export function JobDetailPanel({ jobId }: Props) {
   const { data, isLoading } = useMigrationJobStatus(jobId);
   const rollback = useMigrationRollback();
+  const cancel = useCancelMigrationJob();
 
   if (isLoading || !data) {
     return (
