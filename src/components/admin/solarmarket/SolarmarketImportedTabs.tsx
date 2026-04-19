@@ -387,42 +387,138 @@ function ListaPropostas({ search, page, setPage, isImporting }: ListProps) {
 // Placeholders para Funis e Campos Customizados
 // (não há tabela de staging com external_source — exibimos card informativo)
 // ─────────────────────────────────────────────────────────────────────────
-function FunisPlaceholder({ onReimport, disabled }: { onReimport: () => void; disabled: boolean }) {
+type ExtraListProps = { onReimport: () => void; disabled: boolean; isImporting: boolean };
+
+function ListaFunis({ onReimport, disabled, isImporting }: ExtraListProps) {
+  const { data, isLoading } = useQuery({
+    queryKey: ["sm-imported-funis"],
+    staleTime: isImporting ? 0 : STALE,
+    refetchInterval: isImporting ? 3000 : false,
+    queryFn: async () => {
+      const { data: pipes, error: e1 } = await supabase
+        .from("pipelines")
+        .select("id,name,kind,is_active,is_default,created_at")
+        .order("created_at", { ascending: false });
+      if (e1) throw e1;
+      const ids = (pipes ?? []).map((p) => p.id);
+      const { data: stages, error: e2 } = ids.length
+        ? await supabase.from("pipeline_stages").select("id,pipeline_id,name,position").in("pipeline_id", ids)
+        : { data: [], error: null };
+      if (e2) throw e2;
+      const byPipe = new Map<string, number>();
+      (stages ?? []).forEach((s: any) => byPipe.set(s.pipeline_id, (byPipe.get(s.pipeline_id) ?? 0) + 1));
+      return (pipes ?? []).map((p: any) => ({ ...p, stages: byPipe.get(p.id) ?? 0 }));
+    },
+  });
+
   return (
-    <Card className="bg-muted/20 border-border shadow-sm">
-      <CardContent className="p-6 flex flex-col sm:flex-row items-start sm:items-center gap-4">
-        <GitBranch className="w-8 h-8 text-muted-foreground shrink-0" />
-        <div className="flex-1">
-          <p className="text-sm font-semibold text-foreground">Funis e Etapas</p>
-          <p className="text-xs text-muted-foreground mt-1">
-            Funis e etapas do SolarMarket são mapeados diretamente para os pipelines nativos.
-            Use o botão abaixo para reimportar a estrutura.
-          </p>
-        </div>
+    <div className="space-y-3">
+      <div className="flex justify-end">
         <Button variant="outline" size="sm" onClick={onReimport} disabled={disabled}>
-          <RefreshCw className="w-4 h-4 mr-2" /> Reimportar
+          <RefreshCw className="w-4 h-4 mr-2" /> Reimportar Funis
         </Button>
-      </CardContent>
-    </Card>
+      </div>
+      {isLoading ? (
+        <Skeleton className="h-48 w-full" />
+      ) : !data?.length ? (
+        <EmptyState icon={GitBranch} message="Nenhum funil encontrado." />
+      ) : (
+        <div className="rounded-lg border border-border overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Funil</TableHead>
+                <TableHead>Tipo</TableHead>
+                <TableHead className="text-center">Etapas</TableHead>
+                <TableHead>Ativo</TableHead>
+                <TableHead>Padrão</TableHead>
+                <TableHead>Criado em</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {data.map((p: any) => (
+                <TableRow key={p.id}>
+                  <TableCell className="font-medium text-foreground">{p.name}</TableCell>
+                  <TableCell className="text-xs">{p.kind ?? "—"}</TableCell>
+                  <TableCell className="text-center text-xs font-mono">{p.stages}</TableCell>
+                  <TableCell>
+                    {p.is_active ? (
+                      <Badge className="bg-success/10 text-success border-success/20">Sim</Badge>
+                    ) : (
+                      <Badge variant="outline" className="text-muted-foreground">Não</Badge>
+                    )}
+                  </TableCell>
+                  <TableCell className="text-xs">{p.is_default ? "★" : "—"}</TableCell>
+                  <TableCell className="text-xs">{fmtBR(p.created_at)}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      )}
+    </div>
   );
 }
 
-function CustomFieldsPlaceholder({ onReimport, disabled }: { onReimport: () => void; disabled: boolean }) {
+function ListaCustomFields({ onReimport, disabled, isImporting }: ExtraListProps) {
+  const { data, isLoading } = useQuery({
+    queryKey: ["sm-imported-custom-fields"],
+    staleTime: isImporting ? 0 : STALE,
+    refetchInterval: isImporting ? 3000 : false,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("deal_custom_fields")
+        .select("id,title,field_key,field_type,field_context,is_active,created_at")
+        .order("field_context", { ascending: true })
+        .order("ordem", { ascending: true });
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
   return (
-    <Card className="bg-muted/20 border-border shadow-sm">
-      <CardContent className="p-6 flex flex-col sm:flex-row items-start sm:items-center gap-4">
-        <Settings2 className="w-8 h-8 text-muted-foreground shrink-0" />
-        <div className="flex-1">
-          <p className="text-sm font-semibold text-foreground">Campos Customizados</p>
-          <p className="text-xs text-muted-foreground mt-1">
-            Campos customizados do SolarMarket são integrados ao catálogo nativo de campos.
-            Use o botão abaixo para reimportar.
-          </p>
-        </div>
+    <div className="space-y-3">
+      <div className="flex justify-end">
         <Button variant="outline" size="sm" onClick={onReimport} disabled={disabled}>
-          <RefreshCw className="w-4 h-4 mr-2" /> Reimportar
+          <RefreshCw className="w-4 h-4 mr-2" /> Reimportar Campos
         </Button>
-      </CardContent>
-    </Card>
+      </div>
+      {isLoading ? (
+        <Skeleton className="h-48 w-full" />
+      ) : !data?.length ? (
+        <EmptyState icon={Settings2} message="Nenhum campo customizado encontrado." />
+      ) : (
+        <div className="rounded-lg border border-border overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Título</TableHead>
+                <TableHead>Chave</TableHead>
+                <TableHead>Tipo</TableHead>
+                <TableHead>Contexto</TableHead>
+                <TableHead>Ativo</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {data.map((f: any) => (
+                <TableRow key={f.id}>
+                  <TableCell className="font-medium text-foreground">{f.title}</TableCell>
+                  <TableCell className="text-xs font-mono text-muted-foreground">{f.field_key}</TableCell>
+                  <TableCell className="text-xs">{f.field_type}</TableCell>
+                  <TableCell className="text-xs">{f.field_context ?? "—"}</TableCell>
+                  <TableCell>
+                    {f.is_active ? (
+                      <Badge className="bg-success/10 text-success border-success/20">Sim</Badge>
+                    ) : (
+                      <Badge variant="outline" className="text-muted-foreground">Não</Badge>
+                    )}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      )}
+    </div>
   );
 }
