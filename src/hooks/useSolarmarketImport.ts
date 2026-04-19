@@ -121,7 +121,6 @@ export function useSolarmarketImport() {
 
   const clearHistory = useMutation({
     mutationFn: async () => {
-      // Apaga jobs já finalizados (não toca em pending/running)
       const { error } = await (supabase as any)
         .from("solarmarket_import_jobs")
         .delete()
@@ -133,6 +132,25 @@ export function useSolarmarketImport() {
     },
   });
 
+  const cleanupImported = useMutation({
+    mutationFn: async () => {
+      const { data, error } = await supabase.functions.invoke(
+        "solarmarket-import",
+        { body: { action: "cleanup-imported" } }
+      );
+      if (error) throw error;
+      return data as {
+        ok: boolean;
+        removed: { propostas: number; projetos: number; clientes: number; logs: number; jobs: number };
+      };
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: JOBS_KEY });
+      queryClient.invalidateQueries({ queryKey: ["sm-imported-counts"] });
+      queryClient.invalidateQueries({ queryKey: ["sm-imported-list"] });
+    },
+  });
+
   return {
     jobs: jobsQuery.data ?? [],
     isLoading: jobsQuery.isLoading,
@@ -140,5 +158,6 @@ export function useSolarmarketImport() {
     importAll,
     cancelImport,
     clearHistory,
+    cleanupImported,
   };
 }

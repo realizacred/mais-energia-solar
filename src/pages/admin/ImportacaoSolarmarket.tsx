@@ -12,7 +12,12 @@ import { useSolarmarketConfig } from "@/hooks/useSolarmarketConfig";
 import { SolarmarketImportedTabs } from "@/components/admin/solarmarket/SolarmarketImportedTabs";
 import { toast } from "@/hooks/use-toast";
 import {
-  Cloud, CheckCircle2, XCircle, Loader2, Download, Plug, Settings, AlertTriangle, Ban, Trash2,
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import {
+  Cloud, CheckCircle2, XCircle, Loader2, Download, Plug, Settings, AlertTriangle, Ban, Trash2, Eraser,
 } from "lucide-react";
 
 const formatBR = (iso: string | null) =>
@@ -46,7 +51,7 @@ function statusBadge(status: string) {
 }
 
 export default function ImportacaoSolarmarket() {
-  const { jobs, isLoading, testConnection, importAll, cancelImport, clearHistory } = useSolarmarketImport();
+  const { jobs, isLoading, testConnection, importAll, cancelImport, clearHistory, cleanupImported } = useSolarmarketImport();
   const { config, isConfigured, isLoading: loadingCfg } = useSolarmarketConfig();
   const [testResult, setTestResult] = useState<{ ok: boolean; message: string } | null>(null);
   const [scope, setScope] = useState<ImportScope>({
@@ -120,6 +125,23 @@ export default function ImportacaoSolarmarket() {
     }
   };
 
+  const handleCleanup = async () => {
+    try {
+      const res = await cleanupImported.mutateAsync();
+      const r = res.removed;
+      toast({
+        title: "Dados importados removidos",
+        description: `Propostas: ${r.propostas} · Projetos: ${r.projetos} · Clientes: ${r.clientes} · Logs: ${r.logs} · Jobs: ${r.jobs}`,
+      });
+    } catch (e: any) {
+      toast({
+        title: "Falha ao limpar dados",
+        description: e?.message || "Tente novamente.",
+        variant: "destructive",
+      });
+    }
+  };
+
   if (isLoading || loadingCfg) return <LoadingState message="Carregando importações..." />;
 
   return (
@@ -137,11 +159,60 @@ export default function ImportacaoSolarmarket() {
             </p>
           </div>
         </div>
-        <Button asChild variant="outline" size="sm">
-          <Link to="/admin/configuracoes/integracoes/solarmarket">
-            <Settings className="w-4 h-4 mr-2" /> Configuração
-          </Link>
-        </Button>
+        <div className="flex items-center gap-2">
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button
+                variant="outline"
+                size="sm"
+                className="border-destructive text-destructive hover:bg-destructive/10"
+                disabled={cleanupImported.isPending || !!runningJob}
+              >
+                {cleanupImported.isPending ? (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                ) : (
+                  <Eraser className="w-4 h-4 mr-2" />
+                )}
+                Limpar dados importados
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle className="flex items-center gap-2 text-destructive">
+                  <AlertTriangle className="w-5 h-5" />
+                  Confirmar limpeza dos dados importados
+                </AlertDialogTitle>
+                <AlertDialogDescription asChild>
+                  <div className="space-y-2 text-sm">
+                    <p>Esta ação <strong>remove apenas os registros importados via SolarMarket</strong> deste tenant.</p>
+                    <ul className="list-disc list-inside text-muted-foreground space-y-0.5">
+                      <li>Propostas com <code>external_source='solarmarket'</code></li>
+                      <li>Projetos com <code>external_source='solarmarket'</code></li>
+                      <li>Clientes com <code>external_source='solarmarket'</code></li>
+                      <li>Logs e jobs finalizados de importação</li>
+                    </ul>
+                    <p className="text-success font-medium">Dados nativos do CRM permanecem intactos.</p>
+                    <p className="text-warning">Use esta ação em ambiente de teste — é irreversível.</p>
+                  </div>
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={handleCleanup}
+                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                >
+                  Sim, limpar tudo
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+          <Button asChild variant="outline" size="sm">
+            <Link to="/admin/configuracoes/integracoes/solarmarket">
+              <Settings className="w-4 h-4 mr-2" /> Configuração
+            </Link>
+          </Button>
+        </div>
       </div>
 
       {/* Bloqueio se não configurado */}

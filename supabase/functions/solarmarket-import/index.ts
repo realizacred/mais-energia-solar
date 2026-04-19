@@ -422,32 +422,17 @@ async function mapCliente(state: RequestState, item: any) {
     ativo: true,
   };
 
-  const { data: existing } = await state.supabase
+  // UPSERT idempotente via índice único parcial (tenant_id, external_source, external_id)
+  const { data: up, error } = await state.supabase
     .from("clientes")
-    .select("id")
-    .eq("tenant_id", state.tenantId)
-    .eq("external_source", EXTERNAL_SOURCE)
-    .eq("external_id", externalId)
-    .maybeSingle();
-
-  if (existing?.id) {
-    const { error } = await state.supabase
-      .from("clientes")
-      .update(payload)
-      .eq("id", existing.id);
-    if (error) throw new Error(error.message);
-    await logEntry(state, "cliente", "updated", externalId, existing.id);
-    return "updated" as const;
-  }
-
-  const { data: ins, error } = await state.supabase
-    .from("clientes")
-    .insert(payload)
+    .upsert(payload, { onConflict: "tenant_id,external_source,external_id", ignoreDuplicates: false })
     .select("id")
     .single();
   if (error) throw new Error(error.message);
-  await logEntry(state, "cliente", "created", externalId, ins.id);
-  return "created" as const;
+  // Detecta se foi created/updated checando created_at vs updated_at não é confiável aqui;
+  // usamos uma 2ª query leve apenas se quisermos diferenciar — para idempotência basta "created or updated".
+  await logEntry(state, "cliente", "updated", externalId, up.id);
+  return "updated" as const;
 }
 
 async function mapProjeto(state: RequestState, item: any) {
@@ -495,32 +480,14 @@ async function mapProjeto(state: RequestState, item: any) {
     cliente_id: cli.id,
   };
 
-  const { data: existing } = await state.supabase
+  const { data: up, error } = await state.supabase
     .from("projetos")
-    .select("id")
-    .eq("tenant_id", state.tenantId)
-    .eq("external_source", EXTERNAL_SOURCE)
-    .eq("external_id", externalId)
-    .maybeSingle();
-
-  if (existing?.id) {
-    const { error } = await state.supabase
-      .from("projetos")
-      .update(payload)
-      .eq("id", existing.id);
-    if (error) throw new Error(error.message);
-    await logEntry(state, "projeto", "updated", externalId, existing.id);
-    return "updated" as const;
-  }
-
-  const { data: ins, error } = await state.supabase
-    .from("projetos")
-    .insert(payload)
+    .upsert(payload, { onConflict: "tenant_id,external_source,external_id", ignoreDuplicates: false })
     .select("id")
     .single();
   if (error) throw new Error(error.message);
-  await logEntry(state, "projeto", "created", externalId, ins.id);
-  return "created" as const;
+  await logEntry(state, "projeto", "updated", externalId, up.id);
+  return "updated" as const;
 }
 
 async function mapProposta(state: RequestState, item: any) {
@@ -569,27 +536,14 @@ async function mapProposta(state: RequestState, item: any) {
     status: "rascunho",
   };
 
-  const { data: existing } = await state.supabase
+  const { data: up, error } = await state.supabase
     .from("propostas_nativas")
-    .select("id")
-    .eq("tenant_id", state.tenantId)
-    .eq("external_source", EXTERNAL_SOURCE)
-    .eq("external_id", externalId)
-    .maybeSingle();
-
-  if (existing?.id) {
-    await logEntry(state, "proposta", "skipped", externalId, existing.id);
-    return "skipped" as const;
-  }
-
-  const { data: ins, error } = await state.supabase
-    .from("propostas_nativas")
-    .insert(payload)
+    .upsert(payload, { onConflict: "tenant_id,external_source,external_id", ignoreDuplicates: false })
     .select("id")
     .single();
   if (error) throw new Error(error.message);
-  await logEntry(state, "proposta", "created", externalId, ins.id);
-  return "created" as const;
+  await logEntry(state, "proposta", "updated", externalId, up.id);
+  return "updated" as const;
 }
 
 // -------- Handler principal --------
@@ -893,6 +847,89 @@ Deno.serve(async (req) => {
           status: 200,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         },
+      );
+    }
+
+    // ---- cleanup-imported (apaga dados com external_source='solarmarket' do tenant) ----
+    if (action === "cleanup-imported") {
+      const { data: isAdmin } = await adminClient.rpc("has_role", {
+        _user_id: userId,
+        _role: "admin",
+      });
+      const { data: isSuper } = await adminClient.rpc("has_role", {
+        _user_id: userId,
+        _role: "super_admin",
+      });
+      if (!isAdmin && !isSuper) {
+        return new Response(
+          JSON.stringify({ error: "Apenas administradores podem limpar dados importados." }),
+          { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
+
+      const { data: activeJobs } = await adminClient
+        .from("solarmarket_import_jobs")
+        .select("id")
+        .eq("tenant_id", tenantId)
+        .in("status", ["pending", "running"]);
+      if (activeJobs && activeJobs.length > 0) {
+        return new Response(
+          JSON.stringify({
+            error: "Existe uma importação em andamento. Cancele-a antes de limpar os dados.",
+            active_jobs: activeJobs.length,
+          }),
+          { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
+
+      const result = { propostas: 0, projetos: 0, clientes: 0, logs: 0, jobs: 0 };
+
+      const delPropostas = await adminClient
+        .from("propostas_nativas")
+        .delete({ count: "exact" })
+        .eq("tenant_id", tenantId)
+        .eq("external_source", EXTERNAL_SOURCE);
+      if (delPropostas.error) throw new Error(`propostas: ${delPropostas.error.message}`);
+      result.propostas = delPropostas.count ?? 0;
+
+      const delProjetos = await adminClient
+        .from("projetos")
+        .delete({ count: "exact" })
+        .eq("tenant_id", tenantId)
+        .eq("external_source", EXTERNAL_SOURCE);
+      if (delProjetos.error) throw new Error(`projetos: ${delProjetos.error.message}`);
+      result.projetos = delProjetos.count ?? 0;
+
+      const delClientes = await adminClient
+        .from("clientes")
+        .delete({ count: "exact" })
+        .eq("tenant_id", tenantId)
+        .eq("external_source", EXTERNAL_SOURCE);
+      if (delClientes.error) throw new Error(`clientes: ${delClientes.error.message}`);
+      result.clientes = delClientes.count ?? 0;
+
+      const delLogs = await adminClient
+        .from("solarmarket_import_logs")
+        .delete({ count: "exact" })
+        .eq("tenant_id", tenantId);
+      if (delLogs.error) throw new Error(`logs: ${delLogs.error.message}`);
+      result.logs = delLogs.count ?? 0;
+
+      const delJobs = await adminClient
+        .from("solarmarket_import_jobs")
+        .delete({ count: "exact" })
+        .eq("tenant_id", tenantId)
+        .in("status", ["success", "error", "cancelled", "partial"]);
+      if (delJobs.error) throw new Error(`jobs: ${delJobs.error.message}`);
+      result.jobs = delJobs.count ?? 0;
+
+      console.error("[solarmarket-import] cleanup-imported", {
+        tenant: tenantId, by: userId, ...result,
+      });
+
+      return new Response(
+        JSON.stringify({ ok: true, removed: result }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
 
