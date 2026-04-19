@@ -242,8 +242,8 @@ function Pagination({ page, setPage, total }: { page: number; setPage: (n: numbe
   );
 }
 
-function ListaClientes({ search, page, setPage }: ListProps) {
-  const { data, isLoading } = useImportedList("clientes", page, search);
+function ListaClientes({ search, page, setPage, isImporting }: ListProps) {
+  const { data, isLoading } = useImportedList("clientes", page, search, isImporting);
   if (isLoading) return <Skeleton className="h-48 w-full" />;
   if (!data?.rows.length) return <EmptyState icon={Users} message="Nenhum cliente importado encontrado." />;
   return (
