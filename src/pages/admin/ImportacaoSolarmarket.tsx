@@ -9,6 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { LoadingState } from "@/components/ui-kit/LoadingState";
 import { useSolarmarketImport, type ImportScope } from "@/hooks/useSolarmarketImport";
 import { useSolarmarketConfig } from "@/hooks/useSolarmarketConfig";
+import { SolarmarketImportedTabs } from "@/components/admin/solarmarket/SolarmarketImportedTabs";
 import { toast } from "@/hooks/use-toast";
 import {
   Cloud, CheckCircle2, XCircle, Loader2, Download, Plug, Settings, AlertTriangle, Ban, Trash2,
