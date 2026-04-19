@@ -728,9 +728,16 @@ async function migrateClients(
 }
 
 // ============================================================
-// PROJETOS
+// PROJETOS (modo auxiliar — apenas órfãos sem proposta)
 // ============================================================
 
+/**
+ * migrateProjects (auxiliar/órfãos)
+ *
+ * No fluxo proposal-first, a maior parte dos projetos é criada por
+ * `migrateProposals` sob demanda. Esta função processa apenas projetos
+ * SM que NÃO têm proposta associada — para não deixá-los órfãos.
+ */
 async function migrateProjects(
   admin: SupabaseClient,
   tenant_id: string,
@@ -751,159 +758,66 @@ async function migrateProjects(
   for (const p of projects ?? []) {
     const sm_project_id = (p as any).sm_project_id as number;
     try {
-      // Classificação obrigatória
-      let { data: cls } = await admin
-        .from("sm_classification_v2")
-        .select("target_funil_id, target_etapa_id")
-        .eq("tenant_id", tenant_id)
-        .eq("sm_project_id", sm_project_id)
-        .maybeSingle();
-
-      if (!cls?.target_funil_id || !cls?.target_etapa_id) {
-        const { category, reason, confidence } = classifyByText(
-          (p as any).sm_funnel_name ?? null,
-          (p as any).sm_stage_name ?? null,
-        );
-
-        // Item 2 — Lead não migra
-        if (category === "lead_ignored") {
-          await admin
-            .from("sm_classification_v2")
-            .upsert(
-              {
-                tenant_id,
-                sm_project_id,
-                category,
-                target_funil_id: null,
-                target_etapa_id: null,
-                confidence_score: confidence,
-                classification_reason: `auto_from_migrate_projects:${reason}`,
-              },
-              { onConflict: "tenant_id,sm_project_id" },
-            );
-          await recordSkip(admin, job_id, tenant_id, "project", sm_project_id, "lead_nao_migra");
-          counters.ignored = (counters.ignored ?? 0) + 1;
-          continue;
-        }
-
-        const target = canonical[category];
-
-        // Item 2 — Comercial: etapa equivalente por nome
-        let target_etapa_id = target.etapa_id;
-        if (category === "comercial") {
-          const resolved = await resolveComercialEtapaByName(
-            admin,
-            tenant_id,
-            target.funil_id,
-            (p as any).sm_stage_name ?? null,
-          );
-          if (resolved) target_etapa_id = resolved;
-        }
-
-        const { error: classifyError } = await admin
-          .from("sm_classification_v2")
-          .upsert(
-            {
-              tenant_id,
-              sm_project_id,
-              category,
-              target_funil_id: target.funil_id,
-              target_etapa_id,
-              confidence_score: confidence,
-              classification_reason: `auto_from_migrate_projects:${reason}`,
-            },
-            { onConflict: "tenant_id,sm_project_id" },
-          );
-
-        if (classifyError) throw classifyError;
-
-        const { data: resolvedCls } = await admin
-          .from("sm_classification_v2")
-          .select("target_funil_id, target_etapa_id")
-          .eq("tenant_id", tenant_id)
-          .eq("sm_project_id", sm_project_id)
-          .maybeSingle();
-
-        cls = resolvedCls;
-      }
-
-      if (!cls?.target_funil_id || !cls?.target_etapa_id) {
-        await recordSkip(admin, job_id, tenant_id, "project", sm_project_id, "sem classificação resolvida (lead_ignored ou no_match)");
-        counters.skipped++;
-        continue;
-      }
-
-      // Cliente nativo via sm_client_id
-      const sm_client_id = (p as any).sm_client_id as number | null;
-      if (!sm_client_id) {
-        await recordSkip(admin, job_id, tenant_id, "project", sm_project_id, "sem sm_client_id");
-        counters.skipped++;
-        continue;
-      }
-      const { data: cliente } = await admin
-        .from("clientes")
-        .select("id")
-        .eq("tenant_id", tenant_id)
-        .eq("sm_client_id", sm_client_id)
-        .maybeSingle();
-      if (!cliente) {
-        await recordSkip(admin, job_id, tenant_id, "project", sm_project_id, "cliente nativo não encontrado");
-        counters.skipped++;
-        continue;
-      }
-
-      // Idempotência por sm_project_id
-      const { data: existing } = await admin
+      // Pula se já existe projeto nativo vinculado (criado por proposals ou run anterior)
+      const { data: existingByLink } = await admin
         .from("projetos")
         .select("id")
         .eq("tenant_id", tenant_id)
         .eq("sm_project_id", sm_project_id)
         .maybeSingle();
-
-      let nativeId: string | null = null;
-      if (existing) {
-        nativeId = (existing as any).id;
+      if (existingByLink) {
+        await recordSkip(admin, job_id, tenant_id, "project", sm_project_id, "ja_vinculado", (existingByLink as any).id);
         counters.skipped++;
-      } else {
-        const { data: inserted, error } = await admin
-          .from("projetos")
-          .insert({
-            tenant_id,
-            cliente_id: (cliente as any).id,
-            funil_id: cls.target_funil_id,
-            etapa_id: cls.target_etapa_id,
-            sm_project_id,
-            // `codigo` é NOT NULL sem default na tabela projetos — derivar do sm_project_id
-            codigo: `SM-${sm_project_id}`,
-            import_source: "solar_market",
-          })
-          .select("id")
-          .single();
-        if (error) {
-          const errAny = error as any;
-          const isDup = errAny?.code === "23505" || /duplicate key|unique constraint/i.test(String(errAny?.message ?? ""));
-          if (isDup) {
-            // Race em re-run: outro batch já criou. Re-busca por sm_project_id ou codigo.
-            const { data: dup } = await admin
-              .from("projetos")
-              .select("id")
-              .eq("tenant_id", tenant_id)
-              .or(`sm_project_id.eq.${sm_project_id},codigo.eq.SM-${sm_project_id}`)
-              .limit(1)
-              .maybeSingle();
-            if (!dup) throw error;
-            nativeId = (dup as any).id;
-            counters.skipped++;
-          } else {
-            throw error;
-          }
-        } else {
-          nativeId = (inserted as any).id;
-          counters.migrated++;
-        }
+        continue;
       }
 
+      // Pula se há proposta SM para este projeto — proposal-first cuida dele
+      const { count: hasProposal } = await admin
+        .from("solar_market_proposals")
+        .select("id", { count: "exact", head: true })
+        .eq("tenant_id", tenant_id)
+        .eq("sm_project_id", sm_project_id);
+      if ((hasProposal ?? 0) > 0) {
+        await recordSkip(admin, job_id, tenant_id, "project", sm_project_id, "tem_proposta_via_proposal_first");
+        counters.skipped++;
+        continue;
+      }
+
+      // Órfão real → resolve classificação + cliente + cria projeto
+      const cls = await ensureClassification(
+        admin, tenant_id, sm_project_id, canonical,
+        (p as any).sm_funnel_name ?? null, (p as any).sm_stage_name ?? null,
+      );
+      if (!cls) {
+        await recordSkip(admin, job_id, tenant_id, "project", sm_project_id, "lead_ignorado");
+        counters.ignored = (counters.ignored ?? 0) + 1;
+        continue;
+      }
+
+      const sm_client_id = (p as any).sm_client_id as number | null;
+      if (!sm_client_id) {
+        await recordSkip(admin, job_id, tenant_id, "project", sm_project_id, "orphan_sem_sm_client_id");
+        counters.skipped++;
+        continue;
+      }
+      const { data: cliente } = await admin
+        .from("clientes").select("id")
+        .eq("tenant_id", tenant_id).eq("sm_client_id", sm_client_id).maybeSingle();
+      if (!cliente) {
+        await recordSkip(admin, job_id, tenant_id, "project", sm_project_id, "orphan_cliente_nativo_nao_encontrado");
+        counters.skipped++;
+        continue;
+      }
+
+      const nativeId = await insertProjeto(admin, tenant_id, {
+        cliente_id: (cliente as any).id,
+        funil_id: cls.funil_id,
+        etapa_id: cls.etapa_id,
+        sm_project_id,
+        codigo: `SM-${sm_project_id}`,
+      });
       await recordOk(admin, job_id, tenant_id, "project", sm_project_id, nativeId);
+      counters.migrated++;
     } catch (e) {
       await recordFail(admin, job_id, tenant_id, "project", sm_project_id, (e as Error).message);
       counters.failed++;
@@ -914,7 +828,263 @@ async function migrateProjects(
 }
 
 // ============================================================
-// PROPOSTAS
+// HELPERS PROPOSAL-FIRST (compartilhados)
+// ============================================================
+
+/** Garante classificação para um sm_project_id; retorna null se for lead_ignored. */
+async function ensureClassification(
+  admin: SupabaseClient,
+  tenant_id: string,
+  sm_project_id: number,
+  canonical: Record<string, { funil_id: string; etapa_id: string }>,
+  funil_name: string | null,
+  stage_name: string | null,
+): Promise<{ funil_id: string; etapa_id: string } | null> {
+  const { data: existing } = await admin
+    .from("sm_classification_v2")
+    .select("category, target_funil_id, target_etapa_id")
+    .eq("tenant_id", tenant_id)
+    .eq("sm_project_id", sm_project_id)
+    .maybeSingle();
+
+  if (existing && (existing as any).category === "lead_ignored") return null;
+  if (existing?.target_funil_id && existing?.target_etapa_id) {
+    return { funil_id: (existing as any).target_funil_id, etapa_id: (existing as any).target_etapa_id };
+  }
+
+  const { category, reason, confidence } = classifyByText(funil_name, stage_name);
+  if (category === "lead_ignored") {
+    await admin.from("sm_classification_v2").upsert(
+      { tenant_id, sm_project_id, category, target_funil_id: null, target_etapa_id: null, confidence_score: confidence, classification_reason: `auto:${reason}` },
+      { onConflict: "tenant_id,sm_project_id" },
+    );
+    return null;
+  }
+
+  const target = canonical[category] ?? canonical["comercial"];
+  let target_etapa_id = target.etapa_id;
+  if (category === "comercial") {
+    const resolved = await resolveComercialEtapaByName(admin, tenant_id, target.funil_id, stage_name);
+    if (resolved) target_etapa_id = resolved;
+  }
+  await admin.from("sm_classification_v2").upsert(
+    { tenant_id, sm_project_id, category, target_funil_id: target.funil_id, target_etapa_id, confidence_score: confidence, classification_reason: `auto:${reason}` },
+    { onConflict: "tenant_id,sm_project_id" },
+  );
+  return { funil_id: target.funil_id, etapa_id: target_etapa_id };
+}
+
+/** Resolve cliente nativo para uma proposta SM. Cria se necessário. */
+async function resolveOrCreateClienteFromProposal(
+  admin: SupabaseClient,
+  tenant_id: string,
+  pr: any,
+): Promise<string> {
+  const sm_client_id = pr.sm_client_id as number | null;
+
+  // 1) por sm_client_id (vínculo canônico)
+  if (sm_client_id) {
+    const { data } = await admin
+      .from("clientes").select("id")
+      .eq("tenant_id", tenant_id).eq("sm_client_id", sm_client_id).maybeSingle();
+    if (data) return (data as any).id;
+  }
+
+  // 2) busca cliente em solar_market_clients para enriquecer
+  let smClient: any = null;
+  if (sm_client_id) {
+    const { data } = await admin
+      .from("solar_market_clients").select("*")
+      .eq("tenant_id", tenant_id).eq("sm_client_id", sm_client_id).maybeSingle();
+    smClient = data;
+  }
+
+  const nome = String(smClient?.name ?? pr.titulo ?? "").trim() || `Cliente SM ${sm_client_id ?? pr.sm_proposal_id ?? ""}`;
+  const cpfCnpj = smClient?.document ?? null;
+  const email = smClient?.email ?? null;
+  const telefone = String(smClient?.phone ?? "").trim() || "—";
+  const telDigits = telefone.replace(/\D/g, "");
+
+  // 3) matching por cpf → email → telefone
+  const tries: Array<[string, any]> = [
+    cpfCnpj ? ["cpf_cnpj", cpfCnpj] : null,
+    email ? ["email", email] : null,
+    telDigits.length >= 8 ? ["telefone_normalized", telDigits] : null,
+  ].filter(Boolean) as Array<[string, any]>;
+  for (const [col, val] of tries) {
+    const { data } = await admin
+      .from("clientes").select("id, sm_client_id")
+      .eq("tenant_id", tenant_id).eq(col, val).limit(1).maybeSingle();
+    if (data) {
+      if (sm_client_id && !(data as any).sm_client_id) {
+        await admin.from("clientes").update({ sm_client_id, import_source: "solar_market" }).eq("id", (data as any).id);
+      }
+      return (data as any).id;
+    }
+  }
+
+  // 4) cria
+  const cliente_code = sm_client_id ? `SM-${sm_client_id}` : `SM-PROP-${pr.sm_proposal_id ?? pr.id}`;
+  const addr = (smClient?.address ?? {}) as Record<string, any>;
+  const insertPayload: Record<string, any> = {
+    tenant_id, cliente_code, nome, telefone,
+    cpf_cnpj: cpfCnpj, email,
+    sm_client_id: sm_client_id ?? null,
+    import_source: "solar_market", ativo: true,
+    empresa: smClient?.company ?? null,
+    cep: smClient?.zip_code ?? addr.zip_code ?? addr.cep ?? null,
+    rua: addr.street ?? addr.rua ?? null,
+    numero: smClient?.number ?? addr.number ?? addr.numero ?? null,
+    bairro: smClient?.neighborhood ?? addr.neighborhood ?? addr.bairro ?? null,
+    cidade: smClient?.city ?? addr.city ?? addr.cidade ?? pr.cidade ?? null,
+    estado: smClient?.state ?? addr.state ?? addr.estado ?? pr.estado ?? null,
+  };
+
+  const { data: inserted, error } = await admin
+    .from("clientes").insert(insertPayload).select("id").single();
+  if (error) {
+    const errAny = error as any;
+    const isDup = errAny?.code === "23505" || /duplicate key|unique constraint/i.test(String(errAny?.message ?? ""));
+    if (isDup) {
+      for (const [col, val] of tries) {
+        const { data } = await admin.from("clientes").select("id")
+          .eq("tenant_id", tenant_id).eq(col, val).limit(1).maybeSingle();
+        if (data) return (data as any).id;
+      }
+      if (sm_client_id) {
+        const { data } = await admin.from("clientes").select("id")
+          .eq("tenant_id", tenant_id).eq("sm_client_id", sm_client_id).maybeSingle();
+        if (data) return (data as any).id;
+      }
+    }
+    throw error;
+  }
+  return (inserted as any).id;
+}
+
+/**
+ * Resolve projeto nativo para uma proposta SM. Cria se necessário.
+ *
+ * Ordem de matching (anti-duplicação):
+ *   (1) sm_project_id em projetos.sm_project_id
+ *   (2) migration_records com native_entity_id para o mesmo sm_project_id
+ *   (3) chave sintética estável em projetos.codigo
+ *   (4) cria novo
+ */
+async function resolveOrCreateProjetoFromProposal(
+  admin: SupabaseClient,
+  tenant_id: string,
+  pr: any,
+  cliente_id: string,
+  canonical: Record<string, { funil_id: string; etapa_id: string }>,
+): Promise<string> {
+  const sm_project_id = pr.sm_project_id as number | null;
+  const sm_proposal_id = pr.sm_proposal_id ?? null;
+  const stagingId = String(pr.id ?? "");
+
+  // (1) por sm_project_id
+  if (sm_project_id) {
+    const { data } = await admin
+      .from("projetos").select("id")
+      .eq("tenant_id", tenant_id).eq("sm_project_id", sm_project_id).maybeSingle();
+    if (data) return (data as any).id;
+  }
+
+  // (2) por migration_records (rerun seguro entre jobs)
+  if (sm_project_id) {
+    const { data } = await admin
+      .from("migration_records")
+      .select("native_entity_id")
+      .eq("tenant_id", tenant_id)
+      .eq("entity_type", "project")
+      .eq("sm_entity_id", sm_project_id)
+      .not("native_entity_id", "is", null)
+      .limit(1)
+      .maybeSingle();
+    if (data && (data as any).native_entity_id) {
+      const nativeId = (data as any).native_entity_id as string;
+      const { data: proj } = await admin
+        .from("projetos").select("id")
+        .eq("tenant_id", tenant_id).eq("id", nativeId).maybeSingle();
+      if (proj) return (proj as any).id;
+    }
+  }
+
+  // (3) chave sintética estável (rerun seguro mesmo sem sm_project_id)
+  const syntheticCode = sm_project_id
+    ? `SM-${sm_project_id}`
+    : `SM-PROP-${sm_proposal_id ?? stagingId}`;
+  const { data: bySyntheticCode } = await admin
+    .from("projetos").select("id")
+    .eq("tenant_id", tenant_id).eq("codigo", syntheticCode).maybeSingle();
+  if (bySyntheticCode) return (bySyntheticCode as any).id;
+
+  // (4) classificação + insert
+  let cls: { funil_id: string; etapa_id: string } | null = null;
+  if (sm_project_id) {
+    const { data: smProj } = await admin
+      .from("solar_market_projects")
+      .select("sm_funnel_name, sm_stage_name")
+      .eq("tenant_id", tenant_id).eq("sm_project_id", sm_project_id).maybeSingle();
+    cls = await ensureClassification(
+      admin, tenant_id, sm_project_id, canonical,
+      (smProj as any)?.sm_funnel_name ?? null,
+      (smProj as any)?.sm_stage_name ?? null,
+    );
+  }
+  // Sem sm_project_id ou lead_ignored → Comercial default
+  if (!cls) {
+    const target = canonical["comercial"];
+    cls = { funil_id: target.funil_id, etapa_id: target.etapa_id };
+  }
+
+  return await insertProjeto(admin, tenant_id, {
+    cliente_id,
+    funil_id: cls.funil_id,
+    etapa_id: cls.etapa_id,
+    sm_project_id: sm_project_id ?? null,
+    codigo: syntheticCode,
+  });
+}
+
+/** Insert defensivo de projeto com fallback de race em codigo/sm_project_id. */
+async function insertProjeto(
+  admin: SupabaseClient,
+  tenant_id: string,
+  payload: { cliente_id: string; funil_id: string; etapa_id: string; sm_project_id: number | null; codigo: string },
+): Promise<string> {
+  const { data: inserted, error } = await admin
+    .from("projetos")
+    .insert({
+      tenant_id,
+      cliente_id: payload.cliente_id,
+      funil_id: payload.funil_id,
+      etapa_id: payload.etapa_id,
+      sm_project_id: payload.sm_project_id,
+      codigo: payload.codigo,
+      import_source: "solar_market",
+    })
+    .select("id").single();
+  if (error) {
+    const errAny = error as any;
+    const isDup = errAny?.code === "23505" || /duplicate key|unique constraint/i.test(String(errAny?.message ?? ""));
+    if (isDup) {
+      const orParts: string[] = [`codigo.eq.${payload.codigo}`];
+      if (payload.sm_project_id) orParts.push(`sm_project_id.eq.${payload.sm_project_id}`);
+      const { data: dup } = await admin
+        .from("projetos").select("id")
+        .eq("tenant_id", tenant_id)
+        .or(orParts.join(","))
+        .limit(1).maybeSingle();
+      if (dup) return (dup as any).id;
+    }
+    throw error;
+  }
+  return (inserted as any).id;
+}
+
+// ============================================================
+// PROPOSTAS (proposal-first)
 // ============================================================
 
 async function migrateProposals(
