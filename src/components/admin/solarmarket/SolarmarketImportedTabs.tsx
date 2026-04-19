@@ -22,7 +22,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import {
   Users, FolderKanban, FileText, GitBranch, Settings2,
-  ExternalLink, RefreshCw, Loader2, Database, Search,
+  ExternalLink, Database, Search,
 } from "lucide-react";
 import { useSolarmarketImport, type ImportScope } from "@/hooks/useSolarmarketImport";
 
@@ -117,34 +117,13 @@ function useImportedList(
 // Componente principal
 // ─────────────────────────────────────────────────────────────────────────
 export function SolarmarketImportedTabs() {
-  const { importAll, jobs } = useSolarmarketImport();
+  const { jobs } = useSolarmarketImport();
   const runningJob = jobs.find((j) => j.status === "running" || j.status === "pending");
   const isImporting = !!runningJob;
   const counts = useImportedCounts(isImporting);
   const [activeTab, setActiveTab] = useState("clientes");
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(0);
-
-  const handleReimport = async (entity: keyof ImportScope) => {
-    const labels: Record<string, string> = {
-      clientes: "Clientes",
-      projetos: "Projetos",
-      propostas: "Propostas",
-      funis: "Funis e Etapas",
-      custom_fields: "Campos Customizados",
-    };
-    if (!confirm(`Reimportar ${labels[entity]} do SolarMarket? Será iniciada uma nova importação.`)) return;
-    try {
-      const scope: ImportScope = {
-        clientes: false, projetos: false, propostas: false, funis: false, custom_fields: false,
-        [entity]: true,
-      };
-      await importAll.mutateAsync(scope);
-      toast({ title: `Reimportação iniciada`, description: `${labels[entity]} sendo reimportados.` });
-    } catch (e: any) {
-      toast({ title: "Erro ao reimportar", description: e?.message, variant: "destructive" });
-    }
-  };
 
   return (
     <Card className="bg-card border-border shadow-sm">
@@ -204,18 +183,10 @@ export function SolarmarketImportedTabs() {
             <ListaPropostas search={search} page={page} setPage={setPage} isImporting={isImporting} />
           </TabsContent>
           <TabsContent value="funis" className="mt-4">
-            <ListaFunis
-              onReimport={() => handleReimport("funis")}
-              disabled={importAll.isPending || !!runningJob}
-              isImporting={isImporting}
-            />
+            <ListaFunis isImporting={isImporting} />
           </TabsContent>
           <TabsContent value="custom_fields" className="mt-4">
-            <ListaCustomFields
-              onReimport={() => handleReimport("custom_fields")}
-              disabled={importAll.isPending || !!runningJob}
-              isImporting={isImporting}
-            />
+            <ListaCustomFields isImporting={isImporting} />
           </TabsContent>
         </Tabs>
       </CardContent>
@@ -374,9 +345,9 @@ function ListaPropostas({ search, page, setPage, isImporting }: ListProps) {
 // Placeholders para Funis e Campos Customizados
 // (não há tabela de staging com external_source — exibimos card informativo)
 // ─────────────────────────────────────────────────────────────────────────
-type ExtraListProps = { onReimport: () => void; disabled: boolean; isImporting: boolean };
+type ExtraListProps = { isImporting: boolean };
 
-function ListaFunis({ onReimport, disabled, isImporting }: ExtraListProps) {
+function ListaFunis({ isImporting }: ExtraListProps) {
   const { data, isLoading } = useQuery({
     queryKey: ["sm-imported-funis"],
     staleTime: isImporting ? 0 : STALE,
@@ -400,11 +371,6 @@ function ListaFunis({ onReimport, disabled, isImporting }: ExtraListProps) {
 
   return (
     <div className="space-y-3">
-      <div className="flex justify-end">
-        <Button variant="outline" size="sm" onClick={onReimport} disabled={disabled}>
-          <RefreshCw className="w-4 h-4 mr-2" /> Reimportar Funis
-        </Button>
-      </div>
       {isLoading ? (
         <Skeleton className="h-48 w-full" />
       ) : !data?.length ? (
@@ -447,7 +413,7 @@ function ListaFunis({ onReimport, disabled, isImporting }: ExtraListProps) {
   );
 }
 
-function ListaCustomFields({ onReimport, disabled, isImporting }: ExtraListProps) {
+function ListaCustomFields({ isImporting }: ExtraListProps) {
   const { data, isLoading } = useQuery({
     queryKey: ["sm-imported-custom-fields"],
     staleTime: isImporting ? 0 : STALE,
@@ -465,11 +431,6 @@ function ListaCustomFields({ onReimport, disabled, isImporting }: ExtraListProps
 
   return (
     <div className="space-y-3">
-      <div className="flex justify-end">
-        <Button variant="outline" size="sm" onClick={onReimport} disabled={disabled}>
-          <RefreshCw className="w-4 h-4 mr-2" /> Reimportar Campos
-        </Button>
-      </div>
       {isLoading ? (
         <Skeleton className="h-48 w-full" />
       ) : !data?.length ? (
