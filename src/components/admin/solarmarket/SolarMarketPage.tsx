@@ -589,6 +589,7 @@ export default function SolarMarketPage() {
   const pendingMigrationTotal = ssotPendingProposals + pendingProjectsNoProposal.length;
 
   
+  const qcBackfill = useQueryClient();
   const [syncPipelinesRunning, setSyncPipelinesRunning] = useState(false);
   const [syncPipelinesResult, setSyncPipelinesResult] = useState<{
     pipelines: { created: number; existing: number };
