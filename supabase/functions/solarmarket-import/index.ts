@@ -274,12 +274,38 @@ async function tryPaths(
   return null;
 }
 
+/** Verifica se o job foi cancelado externamente (UI). */
+async function isJobCancelled(state: RequestState): Promise<boolean> {
+  if (!state.jobId) return false;
+  const { data } = await state.supabase
+    .from("solarmarket_import_jobs")
+    .select("status")
+    .eq("id", state.jobId)
+    .maybeSingle();
+  return (data as any)?.status === "cancelled";
+}
+
 async function importEntity(
   state: RequestState,
   entityKey: string,
   candidatePaths: string[],
   mapper: (item: any) => Promise<"created" | "updated" | "skipped" | "error">,
+  opts: {
+    counterField?: string; // ex: "total_clientes" — atualiza incrementalmente
+    progressStart?: number; // % no início
+    progressEnd?: number; // % ao final
+  } = {},
 ): Promise<{ count: number; errors: number; pathUsed: string | null }> {
+  const startedAt = new Date().toISOString();
+  await logEntry(
+    state,
+    entityKey,
+    "skipped",
+    null,
+    null,
+    `[start] Buscando endpoint para ${entityKey}. Candidatos: ${candidatePaths.join(", ")}`,
+  );
+
   const found = await tryPaths(state, candidatePaths);
   if (!found) {
     await logEntry(
@@ -293,12 +319,35 @@ async function importEntity(
     return { count: 0, errors: 1, pathUsed: null };
   }
 
+  await logEntry(
+    state,
+    entityKey,
+    "skipped",
+    null,
+    null,
+    `[endpoint] ${entityKey} usando "${found.path}" (started_at=${startedAt})`,
+  );
+
   let count = 0;
   let errors = 0;
   let page = 1;
   const limit = 100;
+  const pStart = opts.progressStart ?? 0;
+  const pEnd = opts.progressEnd ?? 0;
 
   while (true) {
+    if (await isJobCancelled(state)) {
+      await logEntry(
+        state,
+        entityKey,
+        "skipped",
+        null,
+        null,
+        `[cancelled] Importação interrompida em ${entityKey} (page=${page}, count=${count})`,
+      );
+      return { count, errors, pathUsed: found.path };
+    }
+
     const r = await smGet(state, found.path, { page, limit });
     if (!r.ok) {
       errors++;
@@ -323,10 +372,32 @@ async function importEntity(
         );
       }
     }
+
+    // Atualiza job incrementalmente (contador parcial + progress + updated_at vivo)
+    if (opts.counterField) {
+      const incrementalProgress = pEnd > pStart
+        ? Math.min(pEnd, pStart + Math.round((pEnd - pStart) * (page / Math.max(page, 5))))
+        : undefined;
+      await updateJob(state, {
+        [opts.counterField]: count,
+        ...(incrementalProgress !== undefined ? { progress_pct: incrementalProgress } : {}),
+        updated_at: new Date().toISOString(),
+      });
+    }
+
     if (items.length < limit) break;
     page++;
     if (page > 200) break; // hard stop
   }
+
+  await logEntry(
+    state,
+    entityKey,
+    "skipped",
+    null,
+    null,
+    `[end] ${entityKey} concluído: count=${count}, errors=${errors}, endpoint="${found.path}"`,
+  );
 
   return { count, errors, pathUsed: found.path };
 }
