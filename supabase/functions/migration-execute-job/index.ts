@@ -1179,7 +1179,7 @@ async function migrateProposals(
           origem: "imported",
           import_source: "solar_market",
           sm_id: stagingId,
-          sm_project_id: String(sm_project_id),
+          sm_project_id: sm_project_id ?? null,
           sm_raw_payload: (pr as any).raw_payload ?? pr,
           status: "gerada",
           metadata: {
