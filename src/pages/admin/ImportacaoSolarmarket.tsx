@@ -5,7 +5,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { LoadingState } from "@/components/shared/LoadingState";
+import { LoadingState } from "@/components/ui-kit/LoadingState";
 import { useSolarmarketImport, type ImportScope } from "@/hooks/useSolarmarketImport";
 import { toast } from "@/hooks/use-toast";
 import { Cloud, CheckCircle2, XCircle, Loader2, Download, Plug } from "lucide-react";
