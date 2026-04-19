@@ -82,6 +82,21 @@ export default function ImportacaoSolarmarket() {
   const toggle = (k: keyof ImportScope) =>
     setScope((s) => ({ ...s, [k]: !s[k] }));
 
+  const handleCancel = async () => {
+    if (!runningJob) return;
+    if (!confirm("Cancelar a importação em andamento?")) return;
+    try {
+      await cancelImport.mutateAsync(runningJob.id);
+      toast({ title: "Importação cancelada" });
+    } catch (e: any) {
+      toast({
+        title: "Erro ao cancelar",
+        description: e?.message || "Tente novamente.",
+        variant: "destructive",
+      });
+    }
+  };
+
   if (isLoading || loadingCfg) return <LoadingState message="Carregando importações..." />;
 
   return (
