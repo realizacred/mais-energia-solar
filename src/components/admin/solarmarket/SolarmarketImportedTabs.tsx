@@ -58,15 +58,21 @@ function useImportedCounts(isImporting: boolean) {
     staleTime: isImporting ? 0 : STALE,
     refetchInterval: isImporting ? 3000 : false,
     queryFn: async () => {
-      const [c, p, pr] = await Promise.all([
+      const [c, p, pr, pipes, stages, fields] = await Promise.all([
         supabase.from("clientes").select("id", { count: "exact", head: true }).eq("external_source", "solarmarket"),
         supabase.from("projetos").select("id", { count: "exact", head: true }).eq("external_source", "solarmarket"),
         supabase.from("propostas_nativas").select("id", { count: "exact", head: true }).eq("external_source", "solarmarket"),
+        supabase.from("pipelines").select("id", { count: "exact", head: true }).eq("is_active", true),
+        supabase.from("pipeline_stages").select("id", { count: "exact", head: true }),
+        supabase.from("deal_custom_fields").select("id", { count: "exact", head: true }).eq("is_active", true),
       ]);
       return {
         clientes: c.count ?? 0,
         projetos: p.count ?? 0,
         propostas: pr.count ?? 0,
+        pipelines: pipes.count ?? 0,
+        stages: stages.count ?? 0,
+        custom_fields: fields.count ?? 0,
       };
     },
   });
