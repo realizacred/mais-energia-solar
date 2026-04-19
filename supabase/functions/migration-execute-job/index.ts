@@ -280,33 +280,42 @@ async function migrateClients(
       const email = (c as any).email ?? null;
       const telefone = String((c as any).phone ?? "").trim() || "—";
 
-      // Idempotência: buscar por sm_client_id, CPF/CNPJ ou email
+      // Normaliza telefone (apenas dígitos) para casar com uq_clientes_tenant_telefone
+      const telDigits = telefone.replace(/\D/g, "");
+
+      // Idempotência: buscar por sm_client_id, CPF/CNPJ, email OU telefone
       let nativeId: string | null = null;
+      const orParts = [
+        `sm_client_id.eq.${sm_client_id}`,
+        cpfCnpj ? `cpf_cnpj.eq.${cpfCnpj}` : null,
+        email ? `email.eq.${email}` : null,
+        telDigits.length >= 8 ? `telefone_normalized.eq.${telDigits}` : null,
+      ].filter(Boolean) as string[];
+
       const { data: existing } = await admin
         .from("clientes")
-        .select("id")
+        .select("id, sm_client_id")
         .eq("tenant_id", tenant_id)
-        .or(
-          [
-            `sm_client_id.eq.${sm_client_id}`,
-            cpfCnpj ? `cpf_cnpj.eq.${cpfCnpj}` : null,
-            email ? `email.eq.${email}` : null,
-          ]
-            .filter(Boolean)
-            .join(","),
-        )
+        .or(orParts.join(","))
         .limit(1)
         .maybeSingle();
 
       if (existing) {
         nativeId = (existing as any).id;
+        // Se o existente ainda não tem sm_client_id, faz o vínculo (não-destrutivo)
+        if (!(existing as any).sm_client_id) {
+          await admin
+            .from("clientes")
+            .update({ sm_client_id, import_source: "solar_market" })
+            .eq("id", nativeId);
+        }
         await recordSkip(
           admin,
           job_id,
           tenant_id,
           "client",
           sm_client_id,
-          `cliente já existe no destino (id=${nativeId}; match por sm_client_id/CPF/email)`,
+          `cliente já existe no destino (id=${nativeId}; match por sm_client_id/CPF/email/telefone)`,
           nativeId,
         );
         counters.skipped++;
@@ -329,7 +338,36 @@ async function migrateClients(
         })
         .select("id")
         .single();
-      if (error) throw error;
+
+      if (error) {
+        // Fallback para corrida/duplicado por telefone (constraint uq_clientes_tenant_telefone)
+        if ((error as any).code === "23505" && telDigits.length >= 8) {
+          const { data: dup } = await admin
+            .from("clientes")
+            .select("id, sm_client_id")
+            .eq("tenant_id", tenant_id)
+            .eq("telefone_normalized", telDigits)
+            .limit(1)
+            .maybeSingle();
+          if (dup) {
+            nativeId = (dup as any).id;
+            if (!(dup as any).sm_client_id) {
+              await admin
+                .from("clientes")
+                .update({ sm_client_id, import_source: "solar_market" })
+                .eq("id", nativeId);
+            }
+            await recordSkip(
+              admin, job_id, tenant_id, "client", sm_client_id,
+              `cliente já existe no destino (id=${nativeId}; match por telefone após conflito)`,
+              nativeId,
+            );
+            counters.skipped++;
+            continue;
+          }
+        }
+        throw error;
+      }
       nativeId = (inserted as any).id;
 
       await recordOk(admin, job_id, tenant_id, "client", sm_client_id, nativeId);
