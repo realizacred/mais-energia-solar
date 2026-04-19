@@ -266,10 +266,23 @@ function pickArray(body: any): any[] {
 async function tryPaths(
   state: RequestState,
   candidates: string[],
+  entityKey?: string,
 ): Promise<{ path: string; body: any } | null> {
+  const attempts: string[] = [];
   for (const p of candidates) {
     const r = await smGet(state, p, { limit: 1 });
-    if (r.ok) return { path: p, body: r.body };
+    attempts.push(`${p}→${r.status}`);
+    if (r.ok) {
+      if (entityKey) {
+        await logEntry(state, entityKey, "skipped", null, null,
+          `[probe] Endpoints testados: ${attempts.join(", ")}. Selecionado: ${p}`);
+      }
+      return { path: p, body: r.body };
+    }
+  }
+  if (entityKey) {
+    await logEntry(state, entityKey, "error", null, null,
+      `[probe] Nenhum endpoint respondeu OK. Tentativas: ${attempts.join(", ")}`);
   }
   return null;
 }
@@ -884,44 +897,50 @@ Deno.serve(async (req) => {
 
       const result = { propostas: 0, projetos: 0, clientes: 0, logs: 0, jobs: 0 };
 
+      // RB-58: usar .select() para confirmar linhas afetadas (count em supabase-js v2 não funciona em DELETE direto)
       const delPropostas = await adminClient
         .from("propostas_nativas")
-        .delete({ count: "exact" })
+        .delete()
         .eq("tenant_id", tenantId)
-        .eq("external_source", EXTERNAL_SOURCE);
+        .eq("external_source", EXTERNAL_SOURCE)
+        .select("id");
       if (delPropostas.error) throw new Error(`propostas: ${delPropostas.error.message}`);
-      result.propostas = delPropostas.count ?? 0;
+      result.propostas = delPropostas.data?.length ?? 0;
 
       const delProjetos = await adminClient
         .from("projetos")
-        .delete({ count: "exact" })
+        .delete()
         .eq("tenant_id", tenantId)
-        .eq("external_source", EXTERNAL_SOURCE);
+        .eq("external_source", EXTERNAL_SOURCE)
+        .select("id");
       if (delProjetos.error) throw new Error(`projetos: ${delProjetos.error.message}`);
-      result.projetos = delProjetos.count ?? 0;
+      result.projetos = delProjetos.data?.length ?? 0;
 
       const delClientes = await adminClient
         .from("clientes")
-        .delete({ count: "exact" })
+        .delete()
         .eq("tenant_id", tenantId)
-        .eq("external_source", EXTERNAL_SOURCE);
+        .eq("external_source", EXTERNAL_SOURCE)
+        .select("id");
       if (delClientes.error) throw new Error(`clientes: ${delClientes.error.message}`);
-      result.clientes = delClientes.count ?? 0;
+      result.clientes = delClientes.data?.length ?? 0;
 
       const delLogs = await adminClient
         .from("solarmarket_import_logs")
-        .delete({ count: "exact" })
-        .eq("tenant_id", tenantId);
+        .delete()
+        .eq("tenant_id", tenantId)
+        .select("id");
       if (delLogs.error) throw new Error(`logs: ${delLogs.error.message}`);
-      result.logs = delLogs.count ?? 0;
+      result.logs = delLogs.data?.length ?? 0;
 
       const delJobs = await adminClient
         .from("solarmarket_import_jobs")
-        .delete({ count: "exact" })
+        .delete()
         .eq("tenant_id", tenantId)
-        .in("status", ["success", "error", "cancelled", "partial"]);
+        .in("status", ["success", "error", "cancelled", "partial"])
+        .select("id");
       if (delJobs.error) throw new Error(`jobs: ${delJobs.error.message}`);
-      result.jobs = delJobs.count ?? 0;
+      result.jobs = delJobs.data?.length ?? 0;
 
       console.error("[solarmarket-import] cleanup-imported", {
         tenant: tenantId, by: userId, ...result,
