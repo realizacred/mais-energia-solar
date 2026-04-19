@@ -200,13 +200,13 @@ export function SolarmarketImportedTabs() {
           )}
 
           <TabsContent value="clientes">
-            <ListaClientes search={search} page={page} setPage={setPage} />
+            <ListaClientes search={search} page={page} setPage={setPage} isImporting={isImporting} />
           </TabsContent>
           <TabsContent value="projetos">
-            <ListaProjetos search={search} page={page} setPage={setPage} />
+            <ListaProjetos search={search} page={page} setPage={setPage} isImporting={isImporting} />
           </TabsContent>
           <TabsContent value="propostas">
-            <ListaPropostas search={search} page={page} setPage={setPage} />
+            <ListaPropostas search={search} page={page} setPage={setPage} isImporting={isImporting} />
           </TabsContent>
           <TabsContent value="funis" className="mt-4">
             <FunisPlaceholder onReimport={() => handleReimport("funis")} disabled={importAll.isPending || !!runningJob} />
