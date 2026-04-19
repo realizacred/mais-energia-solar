@@ -38,7 +38,6 @@ const FEATURE_LABELS: Record<string, string> = {
   white_label: "White Label",
   api_access: "Acesso à API",
   multi_instance_wa: "Multi-instância WA",
-  solar_market: "Solar Market",
 };
 
 const LIMIT_LABELS: Record<string, string> = {

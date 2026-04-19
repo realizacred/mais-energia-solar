@@ -14,7 +14,6 @@ export const CRON_JOBS: CronJobDefinition[] = [
   { name: "process-sla-alerts", label: "Alertas SLA", intervalMinutes: 2, description: "Processa alertas de SLA de atendimento" },
   { name: "pipeline-automations", label: "Automações Pipeline", intervalMinutes: 5, description: "Executa automações do pipeline comercial" },
   { name: "meta-ads-sync", label: "Meta Ads Sync", intervalMinutes: 1440, description: "Sincroniza leads e campanhas do Meta Ads (diário 06:00 BRT)" },
-  { name: "solarmarket-sync", label: "SolarMarket Sync", intervalMinutes: 1440, description: "Sincroniza projetos do SolarMarket (diário)" },
   { name: "sync-tarifas-aneel", label: "Tarifas ANEEL", intervalMinutes: 1440, description: "Sincroniza tarifas da ANEEL (diário)" },
   { name: "integration-health-check", label: "Health Check Integrações", intervalMinutes: 15, description: "Verifica saúde das integrações externas" },
   { name: "monitoring-sync", label: "Monitoramento Sync", intervalMinutes: 15, description: "Sincroniza dados de monitoramento solar" },
