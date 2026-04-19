@@ -42,6 +42,8 @@ Deno.serve(async (req) => {
       .single();
     if (error || !job) return json({ error: "Job not found" }, 404);
 
+    const currentStage = resolveCurrentStage(job);
+
     // Contadores
     const counters: Record<string, number> = {
       pending: 0,
@@ -58,38 +60,11 @@ Deno.serve(async (req) => {
       const s = (r as any).status as string;
       if (counters[s] !== undefined) counters[s]++;
     }
-    const total = Object.values(counters).reduce((a, b) => a + b, 0);
+    const processed = counters.pending + counters.processing + counters.migrated + counters.skipped + counters.failed;
     const done = counters.migrated + counters.skipped + counters.failed;
-    const progress = total > 0 ? Math.round((done / total) * 100) : 0;
-
-    const shouldAutoComplete =
-      job.status === "running" &&
-      counters.pending === 0 &&
-      counters.processing === 0 &&
-      job?.metadata?.progress?.has_more === false;
-
-    if (shouldAutoComplete) {
-      const { data: healedJob, error: healError } = await admin
-        .from("migration_jobs")
-        .update({
-          status: "completed",
-          completed_at: job.completed_at ?? new Date().toISOString(),
-          metadata: {
-            ...(job.metadata ?? {}),
-            progress: {
-              ...(job.metadata?.progress ?? {}),
-              has_more: false,
-            },
-          },
-        })
-        .eq("id", job_id)
-        .select("*")
-        .single();
-
-      if (!healError && healedJob) {
-        job = healedJob;
-      }
-    }
+    const expectedTotal = await resolveExpectedTotal(admin, job.tenant_id as string, currentStage);
+    const total = expectedTotal > 0 ? expectedTotal : processed;
+    const progress = total > 0 ? Math.min(100, Math.round((done / total) * 100)) : 0;
 
     // Erros recentes
     const { data: errors } = await admin
@@ -110,7 +85,16 @@ Deno.serve(async (req) => {
       .limit(200);
 
     return json(
-      { job, counters, total, progress, errors: errors ?? [], skipped: skipped ?? [] },
+      {
+        job,
+        current_stage: currentStage,
+        counters,
+        processed,
+        total,
+        progress,
+        errors: errors ?? [],
+        skipped: skipped ?? [],
+      },
       200,
     );
   } catch (e) {
@@ -123,4 +107,46 @@ function json(body: unknown, status: number) {
     status,
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
+}
+
+function resolveCurrentStage(job: any): "classify_projects" | "migrate_clients" | "migrate_projects" | "migrate_proposals" {
+  if (job?.job_type === "full_migration") {
+    const stage = job?.metadata?.progress?.stage;
+    if (stage === "migrate_clients" || stage === "migrate_projects" || stage === "migrate_proposals") {
+      return stage;
+    }
+    return "classify_projects";
+  }
+
+  if (job?.job_type === "migrate_clients" || job?.job_type === "migrate_projects" || job?.job_type === "migrate_proposals") {
+    return job.job_type;
+  }
+
+  return "classify_projects";
+}
+
+async function resolveExpectedTotal(admin: ReturnType<typeof createClient>, tenantId: string, stage: string) {
+  if (!tenantId) return 0;
+
+  if (stage === "migrate_clients") {
+    const { count } = await admin
+      .from("solar_market_clients")
+      .select("*", { count: "exact", head: true })
+      .eq("tenant_id", tenantId);
+    return count ?? 0;
+  }
+
+  if (stage === "migrate_proposals") {
+    const { count } = await admin
+      .from("solar_market_proposals")
+      .select("*", { count: "exact", head: true })
+      .eq("tenant_id", tenantId);
+    return count ?? 0;
+  }
+
+  const { count } = await admin
+    .from("solar_market_projects")
+    .select("*", { count: "exact", head: true })
+    .eq("tenant_id", tenantId);
+  return count ?? 0;
 }
