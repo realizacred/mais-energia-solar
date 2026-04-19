@@ -122,7 +122,31 @@ Deno.serve(async (req) => {
       return json({ error: "Job already running" }, 409);
     }
 
-    if (offset === 0) {
+    // ---------- LOCK IDEMPOTENTE NO RESUME ----------
+    // Evita que watchdog (cron) + clique manual disparem 2x simultaneamente.
+    // Compare-and-swap: só permite o resume se o heartbeat atual ainda é o que lemos
+    // E está realmente travado (>STALL_THRESHOLD). Caso contrário, abortamos silenciosamente.
+    if (isResume && job.status === "running") {
+      const currentHb = (job.metadata as any)?.last_heartbeat_at ?? job.started_at ?? null;
+      const ageMs = currentHb ? Date.now() - new Date(currentHb).getTime() : Infinity;
+      if (ageMs < STALL_THRESHOLD_MS) {
+        return json({ status: "running", skipped: true, reason: "not_stalled" }, 200);
+      }
+      // Tenta adquirir o lock atualizando heartbeat APENAS se ainda for o mesmo valor lido.
+      const newHb = new Date().toISOString();
+      const lockQuery = admin
+        .from("migration_jobs")
+        .update({ metadata: { ...(job.metadata ?? {}), last_heartbeat_at: newHb } })
+        .eq("id", job_id);
+      const { data: locked, error: lockErr } = currentHb
+        ? await lockQuery.eq("metadata->>last_heartbeat_at", currentHb).select("id")
+        : await lockQuery.select("id");
+      if (lockErr || !locked || locked.length === 0) {
+        return json({ status: "running", skipped: true, reason: "lock_lost" }, 200);
+      }
+    }
+
+    if (offset === 0 && !isResume) {
       await admin
         .from("migration_jobs")
         .update({
