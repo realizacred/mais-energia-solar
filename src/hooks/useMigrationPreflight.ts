@@ -3,14 +3,17 @@
  * criar um job de migração SolarMarket.
  *
  * Calcula sem mutar nada:
- *   - Lead a ser ignorado
- *   - Vendedor → Comercial a ser convertido
+ *   - Projetos com funil "Vendedores" → consultor responsável (não vira funil)
+ *   - Projetos com sm_funnel_name NULL → tratados como pipeline Comercial
  *   - Etapas que podem precisar ser criadas (estimativa por nome distinto)
- *   - Se a classificação já foi rodada (sm_project_classification existe)
  *   - Bloqueios (sem tenant, sem staging)
  *
- * Heurística de leitura: usa o nome do funil em solar_market_projects
- * (campo `funnel_name` quando existir; senão tenta `funnel`).
+ * IMPORTANTE: as colunas reais no staging são `sm_funnel_name` e
+ * `sm_stage_name` (com prefixo). NUNCA usar `funnel_name`/`stage_name`.
+ *
+ * A dependência de `sm_project_classification` foi removida — essa tabela
+ * não existe mais no schema. A classificação é feita on-the-fly pela
+ * edge function `migration-execute-job`.
  */
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -23,18 +26,21 @@ export interface PreflightResult {
   totalProjects: number;
   totalClients: number;
   totalProposals: number;
-  leadIgnored: number;
-  comercialConverted: number;
+  /** Projetos cujo "funil" no SM é o nome de um vendedor (vira consultor) */
+  vendedorAsConsultor: number;
+  /** Projetos com sm_funnel_name NULL/vazio → fallback Comercial */
+  defaultedToComercial: number;
+  /** Demais projetos com funil nominal preservado */
   otherProjects: number;
   distinctSourceStages: number;
   missingStagesEstimate: number;
-  classificationDone: boolean;
   blocked: boolean;
   blockReason: string | null;
+  /** Diagnóstico não-fatal (colunas faltando, falhas parciais) */
+  diagnostics: string[];
 }
 
-const LEAD_RE = /^lead(s)?$/i;
-const COMERCIAL_RE = /comercial|venda|vendedor|consultor/i;
+const VENDEDOR_FUNNEL_RE = /vendedor(es)?/i;
 
 export function useMigrationPreflight(tenantId: string | null | undefined) {
   return useQuery({
@@ -46,7 +52,9 @@ export function useMigrationPreflight(tenantId: string | null | undefined) {
         return emptyResult({ blocked: true, blockReason: "Selecione um tenant" });
       }
 
-      // 1) Contagens base
+      const diagnostics: string[] = [];
+
+      // 1) Contagens base — falha aqui é bloqueante
       const [clientsRes, projectsRes, proposalsRes] = await Promise.all([
         (supabase as any)
           .from("solar_market_clients")
@@ -61,6 +69,10 @@ export function useMigrationPreflight(tenantId: string | null | undefined) {
           .select("id", { count: "exact", head: true })
           .eq("tenant_id", tenantId),
       ]);
+
+      if (clientsRes.error) diagnostics.push(`clients: ${clientsRes.error.message}`);
+      if (projectsRes.error) diagnostics.push(`projects: ${projectsRes.error.message}`);
+      if (proposalsRes.error) diagnostics.push(`proposals: ${proposalsRes.error.message}`);
 
       const totalClients = clientsRes.count ?? 0;
       const totalProjects = projectsRes.count ?? 0;
@@ -77,67 +89,66 @@ export function useMigrationPreflight(tenantId: string | null | undefined) {
           totalClients,
           totalProjects,
           totalProposals,
+          diagnostics,
         };
       }
 
-      // 2) Classificação por funil — leitura tolerante a colunas opcionais
-      let leadIgnored = 0;
-      let comercialConverted = 0;
+      // 2) Classificação por funil — colunas reais do staging
+      let vendedorAsConsultor = 0;
+      let defaultedToComercial = 0;
       let otherProjects = 0;
       const sourceStages = new Set<string>();
 
-      try {
-        const { data: projRows } = await (supabase as any)
-          .from("solar_market_projects")
-          .select("funnel_name, stage_name")
-          .eq("tenant_id", tenantId)
-          .limit(10000);
+      const { data: projRows, error: projErr } = await (supabase as any)
+        .from("solar_market_projects")
+        .select("sm_funnel_name, sm_stage_name")
+        .eq("tenant_id", tenantId)
+        .limit(10000);
 
+      if (projErr) {
+        diagnostics.push(`projects.sm_funnel_name: ${projErr.message}`);
+      } else {
         for (const r of projRows ?? []) {
-          const funil = String(r?.funnel_name ?? "").trim();
-          const etapa = String(r?.stage_name ?? "").trim();
-          if (etapa) sourceStages.add(etapa.toLowerCase());
+          const funil = String(r?.sm_funnel_name ?? "").trim();
+          const etapa = String(r?.sm_stage_name ?? "").trim();
 
           if (!funil) {
-            otherProjects++;
+            // Regra confirmada: NULL/vazio → Comercial
+            defaultedToComercial++;
+            // não conta sm_stage_name como etapa nesse caso (vai por status)
             continue;
           }
-          if (LEAD_RE.test(funil)) leadIgnored++;
-          else if (COMERCIAL_RE.test(funil)) comercialConverted++;
-          else otherProjects++;
+
+          if (VENDEDOR_FUNNEL_RE.test(funil)) {
+            // Semântica especial: sm_stage_name aqui é nome de vendedor,
+            // não de etapa — não entra em sourceStages.
+            vendedorAsConsultor++;
+            continue;
+          }
+
+          otherProjects++;
+          if (etapa) sourceStages.add(etapa.toLowerCase());
         }
-      } catch {
-        // Se as colunas não existirem nesse schema, deixa zerado e segue.
       }
 
-      // 3) Etapas faltando — comparamos os nomes distintos da origem
-      //    com os nomes presentes em pipeline_stages do tenant.
+      // 3) Etapas faltando — comparar com pipeline_stages (fonte da verdade)
       let missingStagesEstimate = 0;
-      try {
-        const { data: nativeStages } = await supabase
-          .from("pipeline_stages" as any)
-          .select("nome")
-          .eq("tenant_id", tenantId);
+      const { data: nativeStages, error: stagesErr } = await (supabase as any)
+        .from("pipeline_stages")
+        .select("nome")
+        .eq("tenant_id", tenantId);
+
+      if (stagesErr) {
+        diagnostics.push(`pipeline_stages: ${stagesErr.message}`);
+      } else {
         const nativeSet = new Set(
-          (nativeStages ?? []).map((s: any) => String(s.nome ?? "").trim().toLowerCase()),
+          (nativeStages ?? []).map((s: any) =>
+            String(s.nome ?? "").trim().toLowerCase(),
+          ),
         );
         for (const s of sourceStages) {
           if (!nativeSet.has(s)) missingStagesEstimate++;
         }
-      } catch {
-        missingStagesEstimate = 0;
-      }
-
-      // 4) Classificação já rodou? (existe ao menos 1 linha)
-      let classificationDone = false;
-      try {
-        const { count } = await (supabase as any)
-          .from("sm_project_classification")
-          .select("id", { count: "exact", head: true })
-          .eq("tenant_id", tenantId);
-        classificationDone = (count ?? 0) > 0;
-      } catch {
-        classificationDone = false;
       }
 
       return {
@@ -146,14 +157,14 @@ export function useMigrationPreflight(tenantId: string | null | undefined) {
         totalClients,
         totalProjects,
         totalProposals,
-        leadIgnored,
-        comercialConverted,
+        vendedorAsConsultor,
+        defaultedToComercial,
         otherProjects,
         distinctSourceStages: sourceStages.size,
         missingStagesEstimate,
-        classificationDone,
         blocked: false,
         blockReason: null,
+        diagnostics,
       };
     },
   });
@@ -166,14 +177,14 @@ function emptyResult(over: Partial<PreflightResult>): PreflightResult {
     totalProjects: 0,
     totalClients: 0,
     totalProposals: 0,
-    leadIgnored: 0,
-    comercialConverted: 0,
+    vendedorAsConsultor: 0,
+    defaultedToComercial: 0,
     otherProjects: 0,
     distinctSourceStages: 0,
     missingStagesEstimate: 0,
-    classificationDone: false,
     blocked: false,
     blockReason: null,
+    diagnostics: [],
     ...over,
   };
 }
