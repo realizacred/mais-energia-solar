@@ -24,6 +24,12 @@ export interface MigrationStatusResponse {
     error_message: string | null;
     validation_errors: any;
   }>;
+  skipped?: Array<{
+    entity_type: string;
+    sm_entity_id: number;
+    error_message: string | null;
+    native_entity_id?: string | null;
+  }>;
 }
 
 export function useMigrationJobStatus(jobId: string | null | undefined) {
