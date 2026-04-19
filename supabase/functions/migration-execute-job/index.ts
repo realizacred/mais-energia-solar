@@ -607,22 +607,33 @@ async function migrateClients(
         Object.entries(fullPayload).filter(([, v]) => v !== null && v !== undefined && v !== ""),
       );
 
-      // Idempotência: buscar por sm_client_id, CPF/CNPJ, email OU telefone
+      // Idempotência em ordem de força do identificador (RB-50, DA-40):
+      //   1) sm_client_id (vínculo canônico SM↔nativo)
+      //   2) cpf_cnpj      (identificador legal forte)
+      //   3) email         (identificador médio)
+      //   4) telefone      (último recurso — pode haver homônimos)
+      // Buscar separadamente evita merge incorreto via OR amplo.
       let nativeId: string | null = null;
-      const orParts = [
-        `sm_client_id.eq.${sm_client_id}`,
-        cpfCnpj ? `cpf_cnpj.eq.${cpfCnpj}` : null,
-        email ? `email.eq.${email}` : null,
-        telDigits.length >= 8 ? `telefone_normalized.eq.${telDigits}` : null,
-      ].filter(Boolean) as string[];
-
-      const { data: existing } = await admin
-        .from("clientes")
-        .select("id, sm_client_id")
-        .eq("tenant_id", tenant_id)
-        .or(orParts.join(","))
-        .limit(1)
-        .maybeSingle();
+      const findExisting = async () => {
+        const tries: Array<[string, any]> = [
+          ["sm_client_id", sm_client_id],
+          cpfCnpj ? ["cpf_cnpj", cpfCnpj] : null,
+          email ? ["email", email] : null,
+          telDigits.length >= 8 ? ["telefone_normalized", telDigits] : null,
+        ].filter(Boolean) as Array<[string, any]>;
+        for (const [col, val] of tries) {
+          const { data } = await admin
+            .from("clientes")
+            .select("id, sm_client_id")
+            .eq("tenant_id", tenant_id)
+            .eq(col, val)
+            .limit(1)
+            .maybeSingle();
+          if (data) return data;
+        }
+        return null;
+      };
+      const existing = await findExisting();
 
       if (existing) {
         nativeId = (existing as any).id;
@@ -672,40 +683,25 @@ async function migrateClients(
         const isDup =
           errAny?.code === "23505" ||
           /duplicate key|unique constraint/i.test(errMsg);
-        // Fallback para corrida/duplicado por telefone (uq_clientes_tenant_telefone) ou cpf/email
+        // Fallback de corrida: re-procura usando os mesmos identificadores em ordem.
         if (isDup) {
-          // tenta achar o registro conflitante por telefone, cpf ou email
-          const orParts2 = [
-            telDigits.length >= 8 ? `telefone_normalized.eq.${telDigits}` : null,
-            cpfCnpj ? `cpf_cnpj.eq.${cpfCnpj}` : null,
-            email ? `email.eq.${email}` : null,
-          ].filter(Boolean) as string[];
-          if (orParts2.length > 0) {
-            const { data: dup } = await admin
-              .from("clientes")
-              .select("id, sm_client_id")
-              .eq("tenant_id", tenant_id)
-              .or(orParts2.join(","))
-              .limit(1)
-              .maybeSingle();
-            if (dup) {
-              nativeId = (dup as any).id;
-              if (!(dup as any).sm_client_id) {
-                await admin
-                  .from("clientes")
-                  .update({ sm_client_id, import_source: "solar_market" })
-                  .eq("id", nativeId);
-              }
-              await recordSkip(
-                admin, job_id, tenant_id, "client", sm_client_id,
-                `cliente já existe no destino (id=${nativeId}; match após conflito)`,
-                nativeId,
-              );
-              counters.skipped++;
-              continue;
+          const dup = await findExisting();
+          if (dup) {
+            nativeId = (dup as any).id;
+            if (!(dup as any).sm_client_id) {
+              await admin
+                .from("clientes")
+                .update({ sm_client_id, import_source: "solar_market" })
+                .eq("id", nativeId);
             }
+            await recordSkip(
+              admin, job_id, tenant_id, "client", sm_client_id,
+              `cliente já existe no destino (id=${nativeId}; match após conflito)`,
+              nativeId,
+            );
+            counters.skipped++;
+            continue;
           }
-          // não achou o conflitante: registra como skipped com motivo claro
           await recordSkip(
             admin, job_id, tenant_id, "client", sm_client_id,
             `duplicado no destino mas sem match recuperável (telefone="${telefone}")`,
@@ -880,9 +876,28 @@ async function migrateProjects(
           })
           .select("id")
           .single();
-        if (error) throw error;
-        nativeId = (inserted as any).id;
-        counters.migrated++;
+        if (error) {
+          const errAny = error as any;
+          const isDup = errAny?.code === "23505" || /duplicate key|unique constraint/i.test(String(errAny?.message ?? ""));
+          if (isDup) {
+            // Race em re-run: outro batch já criou. Re-busca por sm_project_id ou codigo.
+            const { data: dup } = await admin
+              .from("projetos")
+              .select("id")
+              .eq("tenant_id", tenant_id)
+              .or(`sm_project_id.eq.${sm_project_id},codigo.eq.SM-${sm_project_id}`)
+              .limit(1)
+              .maybeSingle();
+            if (!dup) throw error;
+            nativeId = (dup as any).id;
+            counters.skipped++;
+          } else {
+            throw error;
+          }
+        } else {
+          nativeId = (inserted as any).id;
+          counters.migrated++;
+        }
       }
 
       await recordOk(admin, job_id, tenant_id, "project", sm_project_id, nativeId);
@@ -961,39 +976,69 @@ async function migrateProposals(
         );
         counters.skipped++;
       } else {
-        const proposalNumber = await nextProposalNumberForProject(admin, tenant_id, (projeto as any).id);
+        // Retry-loop pequeno para race em proposta_num
+        // (uq_propostas_tenant_projeto_proposta_num) e em codigo (uq_propostas_tenant_codigo).
         const titulo = String((pr as any).titulo ?? (pr as any).description ?? "").trim() || `Proposta Migrada SM #${sm_project_id}`;
-        const codigo = `SM-PROP-${sm_project_id}-${proposalNumber}`;
-        const { data: inserted, error } = await admin
-          .from("propostas_nativas")
-          .insert({
-            tenant_id,
-            projeto_id: (projeto as any).id,
-            cliente_id: (projeto as any).cliente_id,
-            titulo,
-            codigo,
-            proposta_num: proposalNumber,
-            origem: "imported",
-            import_source: "solar_market",
-            is_principal: proposalNumber === 1,
-            sm_id: stagingId,
-            sm_project_id: String(sm_project_id),
-            sm_raw_payload: (pr as any).raw_payload ?? pr,
-            status: "gerada",
-            metadata: {
-              source: "solar_market",
-              sm_proposal_id,
-              sm_project_id,
-              link_pdf: (pr as any).link_pdf ?? null,
-              valor_total: (pr as any).valor_total ?? null,
-              source_status: (pr as any).status ?? null,
-            },
-          })
-          .select("id")
-          .single();
-        if (error) throw error;
-        nativeId = (inserted as any).id;
-        counters.migrated++;
+        const baseInsert = {
+          tenant_id,
+          projeto_id: (projeto as any).id,
+          cliente_id: (projeto as any).cliente_id,
+          titulo,
+          origem: "imported",
+          import_source: "solar_market",
+          sm_id: stagingId,
+          sm_project_id: String(sm_project_id),
+          sm_raw_payload: (pr as any).raw_payload ?? pr,
+          status: "gerada",
+          metadata: {
+            source: "solar_market",
+            sm_proposal_id,
+            sm_project_id,
+            link_pdf: (pr as any).link_pdf ?? null,
+            valor_total: (pr as any).valor_total ?? null,
+            source_status: (pr as any).status ?? null,
+          },
+        } as Record<string, any>;
+
+        let inserted: { id: string } | null = null;
+        let lastError: any = null;
+        for (let attempt = 0; attempt < 3 && !inserted; attempt++) {
+          const proposalNumber = await nextProposalNumberForProject(admin, tenant_id, (projeto as any).id);
+          const codigo = `SM-PROP-${sm_project_id}-${proposalNumber}`;
+          const { data, error } = await admin
+            .from("propostas_nativas")
+            .insert({
+              ...baseInsert,
+              codigo,
+              proposta_num: proposalNumber,
+              is_principal: proposalNumber === 1,
+            })
+            .select("id")
+            .single();
+          if (!error) { inserted = data as any; break; }
+          lastError = error;
+          const isDup = (error as any)?.code === "23505" || /duplicate key|unique constraint/i.test(String((error as any)?.message ?? ""));
+          if (!isDup) throw error;
+          // Se duplicou em sm_id → outro batch já criou, recupera e sai
+          const { data: dupBySmId } = await admin
+            .from("propostas_nativas")
+            .select("id")
+            .eq("tenant_id", tenant_id)
+            .eq("sm_id", stagingId)
+            .maybeSingle();
+          if (dupBySmId) {
+            nativeId = (dupBySmId as any).id;
+            counters.skipped++;
+            break;
+          }
+          // Senão é colisão de proposta_num/codigo → retry com novo número
+        }
+        if (inserted) {
+          nativeId = inserted.id;
+          counters.migrated++;
+        } else if (!nativeId) {
+          throw lastError ?? new Error("Falha ao inserir proposta após retries");
+        }
       }
 
       if (nativeId) {
