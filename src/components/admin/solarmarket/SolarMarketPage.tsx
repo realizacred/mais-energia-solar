@@ -664,7 +664,6 @@ export default function SolarMarketPage() {
   }, [qcBackfill]);
 
   // Backfill: aloca projetos sem funil/etapa nas etapas corretas dos funis nativos
-  const qcBackfill = useQueryClient();
   const [backfillProjetosRunning, setBackfillProjetosRunning] = useState(false);
   const runBackfillProjetosFunil = useCallback(async () => {
     setBackfillProjetosRunning(true);
