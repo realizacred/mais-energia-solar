@@ -1100,16 +1100,22 @@ async function resolveOrCreateProjetoFromProposal(
   if (bySyntheticCode) return (bySyntheticCode as any).id;
 
   // (4) classificação + insert
-  let cls: { funil_id: string; etapa_id: string } | null = null;
+  // Lê dados do projeto SM para descobrir funil/vendedor de origem
+  let smFunnelName: string | null = null;
+  let smStageName: string | null = null;
   if (sm_project_id) {
     const { data: smProj } = await admin
       .from("solar_market_projects")
       .select("sm_funnel_name, sm_stage_name")
       .eq("tenant_id", tenant_id).eq("sm_project_id", sm_project_id).maybeSingle();
+    smFunnelName = (smProj as any)?.sm_funnel_name ?? null;
+    smStageName  = (smProj as any)?.sm_stage_name ?? null;
+  }
+
+  let cls: { funil_id: string; etapa_id: string } | null = null;
+  if (sm_project_id) {
     cls = await ensureClassification(
-      admin, tenant_id, sm_project_id, canonical,
-      (smProj as any)?.sm_funnel_name ?? null,
-      (smProj as any)?.sm_stage_name ?? null,
+      admin, tenant_id, sm_project_id, canonical, smFunnelName, smStageName,
     );
   }
   // Sem sm_project_id ou lead_ignored → Comercial default
@@ -1118,12 +1124,32 @@ async function resolveOrCreateProjetoFromProposal(
     cls = { funil_id: target.funil_id, etapa_id: target.etapa_id };
   }
 
+  // REGRA CANÔNICA: funil "Vendedores" no SM → pipeline Comercial nativo,
+  // etapa determinada pelo STATUS da proposta (não pelo nome do vendedor),
+  // e o "vendedor" (sm_stage_name) vira o consultor responsável.
+  let consultor_id: string | null = null;
+  const isVendedoresFunnel = /vended/i.test(String(smFunnelName ?? ""));
+  if (isVendedoresFunnel) {
+    const comercial = canonical["comercial"];
+    cls = { funil_id: comercial.funil_id, etapa_id: comercial.etapa_id };
+
+    const stageNameByStatus = comercialStageNameFromStatus(pr.status);
+    if (stageNameByStatus) {
+      const resolved = await resolveComercialEtapaByName(
+        admin, tenant_id, comercial.funil_id, stageNameByStatus,
+      );
+      if (resolved) cls.etapa_id = resolved;
+    }
+    consultor_id = await resolveConsultorIdFromSmStage(admin, tenant_id, smStageName);
+  }
+
   return await insertProjeto(admin, tenant_id, {
     cliente_id,
     funil_id: cls.funil_id,
     etapa_id: cls.etapa_id,
     sm_project_id: sm_project_id ?? null,
     codigo: syntheticCode,
+    consultor_id,
   });
 }
 
@@ -1131,19 +1157,22 @@ async function resolveOrCreateProjetoFromProposal(
 async function insertProjeto(
   admin: SupabaseClient,
   tenant_id: string,
-  payload: { cliente_id: string; funil_id: string; etapa_id: string; sm_project_id: number | null; codigo: string },
+  payload: { cliente_id: string; funil_id: string; etapa_id: string; sm_project_id: number | null; codigo: string; consultor_id?: string | null },
 ): Promise<string> {
+  const insertRow: Record<string, any> = {
+    tenant_id,
+    cliente_id: payload.cliente_id,
+    funil_id: payload.funil_id,
+    etapa_id: payload.etapa_id,
+    sm_project_id: payload.sm_project_id,
+    codigo: payload.codigo,
+    import_source: "solar_market",
+  };
+  if (payload.consultor_id) insertRow.consultor_id = payload.consultor_id;
+
   const { data: inserted, error } = await admin
     .from("projetos")
-    .insert({
-      tenant_id,
-      cliente_id: payload.cliente_id,
-      funil_id: payload.funil_id,
-      etapa_id: payload.etapa_id,
-      sm_project_id: payload.sm_project_id,
-      codigo: payload.codigo,
-      import_source: "solar_market",
-    })
+    .insert(insertRow)
     .select("id").single();
   if (error) {
     const errAny = error as any;
