@@ -1095,37 +1095,40 @@ async function migrateProposals(
   batchSize = DEFAULT_BATCH_SIZE,
 ): Promise<ProcessBatchResult> {
   const counters: Counters = { migrated: 0, skipped: 0, failed: 0 };
+  const canonical = await ensureCanonicalFunis(admin, tenant_id);
 
   const { data: proposals } = await admin
     .from("solar_market_proposals")
-    .select("id, sm_proposal_id, sm_project_id, titulo, description, raw_payload, valor_total, link_pdf, status")
+    .select("id, sm_proposal_id, sm_project_id, sm_client_id, titulo, description, raw_payload, valor_total, link_pdf, status, cidade, estado")
     .eq("tenant_id", tenant_id)
-    .order("sm_project_id", { ascending: true })
+    .order("id", { ascending: true })
     .range(offset, offset + batchSize - 1);
 
   for (const pr of proposals ?? []) {
     const stagingId = String((pr as any).id ?? "");
     const sm_proposal_id = (pr as any).sm_proposal_id ?? null;
     const sm_project_id = (pr as any).sm_project_id as number | null;
-    const trackingId = sm_project_id ?? (typeof sm_proposal_id === "number" ? sm_proposal_id : 0);
+    // tracking_id estável: prefere sm_proposal_id (chave da proposta), depois sm_project_id
+    const trackingId = (typeof sm_proposal_id === "number" ? sm_proposal_id : null)
+      ?? sm_project_id
+      ?? Math.abs(hashString(stagingId));
     try {
-      if (!sm_project_id) {
-        await recordSkip(admin, job_id, tenant_id, "proposal", trackingId, `sem sm_project_id (proposal_row=${stagingId})`);
+      // 1) Resolve/cria cliente (proposal-first)
+      const cliente_id = await resolveOrCreateClienteFromProposal(admin, tenant_id, pr);
+      if (!cliente_id) {
+        await recordSkip(admin, job_id, tenant_id, "proposal", trackingId, `cliente_nao_resolvido (proposal_row=${stagingId})`);
         counters.skipped++;
         continue;
       }
 
-      const { data: projeto } = await admin
-        .from("projetos")
-        .select("id, cliente_id")
-        .eq("tenant_id", tenant_id)
-        .eq("sm_project_id", sm_project_id)
-        .maybeSingle();
-      if (!projeto) {
-        await recordSkip(admin, job_id, tenant_id, "proposal", trackingId, "projeto nativo não encontrado");
+      // 2) Resolve/cria projeto (matching: sm_project_id → migration_records → codigo sintético → create)
+      const projeto_id = await resolveOrCreateProjetoFromProposal(admin, tenant_id, pr, cliente_id, canonical);
+      if (!projeto_id) {
+        await recordSkip(admin, job_id, tenant_id, "proposal", trackingId, `projeto_nao_resolvido (proposal_row=${stagingId})`);
         counters.skipped++;
         continue;
       }
+      const projeto = { id: projeto_id, cliente_id };
 
       // Idempotência pela linha canônica do staging (UUID em sm_id)
       const { data: existing } = await admin
