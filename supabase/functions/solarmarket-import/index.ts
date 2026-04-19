@@ -729,11 +729,46 @@ Deno.serve(async (req) => {
       };
 
       // 1) Funis e Etapas (primeiro — base para projetos)
+      let totalFunis = 0;
+      let totalEtapas = 0;
       if (sc.funis) {
         if (await checkCancel()) return new Response(JSON.stringify({ ok: false, cancelled: true }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
         await updateJob(state, { current_step: "funis", progress_pct: 5, updated_at: new Date().toISOString() });
-        await logEntry(state, "funil", "skipped", null, null, "[start] Funis e Etapas — endpoint não confirmado na doc pública. Etapa pulada para evitar hallucination.");
-        await updateJob(state, { progress_pct: 10, updated_at: new Date().toISOString() });
+
+        // Tenta endpoints comuns de pipelines/funnels
+        const funisFound = await tryPaths(state, ["/pipelines", "/funnels", "/funis"]);
+        if (!funisFound) {
+          await logEntry(state, "funil", "error", null, null,
+            "Nenhum endpoint de funis respondeu (testados: /pipelines, /funnels, /funis). Verifique a documentação da sua conta SolarMarket e atualize a função.");
+          totalErrors++;
+        } else {
+          const funis = pickArray(funisFound.body);
+          await logEntry(state, "funil", "skipped", null, null,
+            `[endpoint] Funis usando "${funisFound.path}" — ${funis.length} item(s) na primeira página`);
+
+          // Pagina e conta (não persiste em tabela própria — apenas registra para auditoria)
+          let page = 1;
+          while (true) {
+            const r = await smGet(state, funisFound.path, { page, limit: 100 });
+            if (!r.ok) break;
+            const items = pickArray(r.body);
+            if (items.length === 0) break;
+            for (const f of items) {
+              totalFunis++;
+              const stages = f?.stages || f?.etapas || f?.steps || [];
+              if (Array.isArray(stages)) totalEtapas += stages.length;
+              await logEntry(state, "funil", "skipped",
+                String(f?.id ?? ""), null,
+                `Funil "${f?.name ?? f?.nome ?? "?"}" — ${Array.isArray(stages) ? stages.length : 0} etapa(s)`);
+            }
+            if (items.length < 100) break;
+            page++;
+            if (page > 20) break;
+          }
+          await logEntry(state, "funil", "skipped", null, null,
+            `[end] Funis: ${totalFunis} funil(is), ${totalEtapas} etapa(s) lidas do SolarMarket`);
+        }
+        await updateJob(state, { progress_pct: 12, updated_at: new Date().toISOString() });
       }
 
       // 2) Clientes
@@ -782,13 +817,54 @@ Deno.serve(async (req) => {
       }
 
       // 5) Campos Customizados (último)
+      let totalCampos = 0;
       if (sc.custom_fields) {
         if (await checkCancel()) return new Response(JSON.stringify({ ok: false, cancelled: true }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
         await updateJob(state, { current_step: "custom_fields", progress_pct: 95, updated_at: new Date().toISOString() });
-        await logEntry(state, "custom_field", "skipped", null, null, "[start] Campos Customizados — endpoint não confirmado na doc pública. Etapa pulada.");
+
+        const cfFound = await tryPaths(state, ["/custom-fields", "/customFields", "/campos-customizados"]);
+        if (!cfFound) {
+          await logEntry(state, "custom_field", "error", null, null,
+            "Nenhum endpoint de campos customizados respondeu (testados: /custom-fields, /customFields, /campos-customizados).");
+          totalErrors++;
+        } else {
+          const items = pickArray(cfFound.body);
+          totalCampos = items.length;
+          await logEntry(state, "custom_field", "skipped", null, null,
+            `[endpoint] Campos customizados usando "${cfFound.path}" — ${totalCampos} item(s) lidos`);
+          for (const cf of items.slice(0, 20)) {
+            await logEntry(state, "custom_field", "skipped",
+              String(cf?.id ?? ""), null,
+              `Campo "${cf?.name ?? cf?.label ?? "?"}" tipo=${cf?.type ?? "?"}`);
+          }
+        }
       }
 
-      const finalStatus = totalErrors > 0 ? "partial" : "success";
+      // Status final: se TUDO foi 0, marcar como 'partial' para o usuário ver que algo está errado
+      const totalImportado =
+        (totalFunis || 0) + (totalCampos || 0) +
+        (await (async () => {
+          const { data } = await adminClient
+            .from("solarmarket_import_jobs")
+            .select("total_clientes,total_projetos,total_propostas")
+            .eq("id", state.jobId!)
+            .single();
+          return ((data as any)?.total_clientes ?? 0) +
+                 ((data as any)?.total_projetos ?? 0) +
+                 ((data as any)?.total_propostas ?? 0);
+        })());
+
+      const finalStatus = totalErrors > 0
+        ? "partial"
+        : totalImportado === 0
+          ? "partial"
+          : "success";
+
+      if (totalImportado === 0 && totalErrors === 0) {
+        await logEntry(state, "job", "skipped", null, null,
+          "[warning] Nenhum dado foi importado. Verifique se a integração está apontando para o ambiente correto e se há dados na conta SolarMarket.");
+      }
+
       await updateJob(state, {
         status: finalStatus,
         current_step: "done",
@@ -807,7 +883,12 @@ Deno.serve(async (req) => {
       }
 
       return new Response(
-        JSON.stringify({ ok: true, job_id: state.jobId, status: finalStatus }),
+        JSON.stringify({
+          ok: true,
+          job_id: state.jobId,
+          status: finalStatus,
+          summary: { funis: totalFunis, etapas: totalEtapas, custom_fields: totalCampos, errors: totalErrors },
+        }),
         {
           status: 200,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
