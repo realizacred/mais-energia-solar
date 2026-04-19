@@ -324,7 +324,7 @@ export default function ImportacaoSolarmarket() {
               ) : (
                 <Download className="w-4 h-4 mr-2" />
               )}
-              Importar tudo
+              Importar selecionados
             </Button>
           </div>
         </CardContent>
