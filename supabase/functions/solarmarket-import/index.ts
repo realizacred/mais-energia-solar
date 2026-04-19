@@ -719,67 +719,73 @@ Deno.serve(async (req) => {
 
       let totalErrors = 0;
 
+      // Helper: aborta se cancelado
+      const checkCancel = async (): Promise<boolean> => {
+        if (await isJobCancelled(state)) {
+          await logEntry(state, "job", "skipped", null, null, "[cancelled] Importação interrompida pelo usuário.");
+          return true;
+        }
+        return false;
+      };
+
+      // 1) Funis e Etapas (primeiro — base para projetos)
+      if (sc.funis) {
+        if (await checkCancel()) return new Response(JSON.stringify({ ok: false, cancelled: true }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        await updateJob(state, { current_step: "funis", progress_pct: 5, updated_at: new Date().toISOString() });
+        await logEntry(state, "funil", "skipped", null, null, "[start] Funis e Etapas — endpoint não confirmado na doc pública. Etapa pulada para evitar hallucination.");
+        await updateJob(state, { progress_pct: 10, updated_at: new Date().toISOString() });
+      }
+
+      // 2) Clientes
       if (sc.clientes) {
-        await updateJob(state, { current_step: "clientes", progress_pct: 10 });
+        if (await checkCancel()) return new Response(JSON.stringify({ ok: false, cancelled: true }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        await updateJob(state, { current_step: "clientes", progress_pct: 15, updated_at: new Date().toISOString() });
         const r = await importEntity(
           state,
           "cliente",
           ["/clients", "/customers", "/clientes"],
           (item) => mapCliente(state, item),
+          { counterField: "total_clientes", progressStart: 15, progressEnd: 40 },
         );
-        await updateJob(state, { total_clientes: r.count, progress_pct: 30 });
+        await updateJob(state, { total_clientes: r.count, progress_pct: 40, updated_at: new Date().toISOString() });
         totalErrors += r.errors;
       }
 
+      // 3) Projetos
       if (sc.projetos) {
-        await updateJob(state, { current_step: "projetos", progress_pct: 40 });
+        if (await checkCancel()) return new Response(JSON.stringify({ ok: false, cancelled: true }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        await updateJob(state, { current_step: "projetos", progress_pct: 45, updated_at: new Date().toISOString() });
         const r = await importEntity(
           state,
           "projeto",
           ["/projects", "/deals", "/projetos"],
           (item) => mapProjeto(state, item),
+          { counterField: "total_projetos", progressStart: 45, progressEnd: 70 },
         );
-        await updateJob(state, { total_projetos: r.count, progress_pct: 60 });
+        await updateJob(state, { total_projetos: r.count, progress_pct: 70, updated_at: new Date().toISOString() });
         totalErrors += r.errors;
       }
 
+      // 4) Propostas
       if (sc.propostas) {
-        await updateJob(state, { current_step: "propostas", progress_pct: 70 });
+        if (await checkCancel()) return new Response(JSON.stringify({ ok: false, cancelled: true }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        await updateJob(state, { current_step: "propostas", progress_pct: 75, updated_at: new Date().toISOString() });
         const r = await importEntity(
           state,
           "proposta",
           ["/proposals", "/quotes", "/propostas"],
           (item) => mapProposta(state, item),
+          { counterField: "total_propostas", progressStart: 75, progressEnd: 92 },
         );
-        await updateJob(state, { total_propostas: r.count, progress_pct: 85 });
+        await updateJob(state, { total_propostas: r.count, progress_pct: 92, updated_at: new Date().toISOString() });
         totalErrors += r.errors;
       }
 
-      if (sc.funis) {
-        await updateJob(state, { current_step: "funis", progress_pct: 90 });
-        await logEntry(
-          state,
-          "funil",
-          "skipped",
-          null,
-          null,
-          "Endpoint de funis/etapas não confirmado na doc pública. Importação ignorada para evitar hallucination.",
-        );
-      }
-
+      // 5) Campos Customizados (último)
       if (sc.custom_fields) {
-        await updateJob(state, {
-          current_step: "custom_fields",
-          progress_pct: 95,
-        });
-        await logEntry(
-          state,
-          "custom_field",
-          "skipped",
-          null,
-          null,
-          "Endpoint de campos customizados não confirmado na doc pública. Importação ignorada.",
-        );
+        if (await checkCancel()) return new Response(JSON.stringify({ ok: false, cancelled: true }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        await updateJob(state, { current_step: "custom_fields", progress_pct: 95, updated_at: new Date().toISOString() });
+        await logEntry(state, "custom_field", "skipped", null, null, "[start] Campos Customizados — endpoint não confirmado na doc pública. Etapa pulada.");
       }
 
       const finalStatus = totalErrors > 0 ? "partial" : "success";
@@ -789,6 +795,7 @@ Deno.serve(async (req) => {
         progress_pct: 100,
         total_errors: totalErrors,
         finished_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
       });
 
       // Atualiza last_sync_at na config
