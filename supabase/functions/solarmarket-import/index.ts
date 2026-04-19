@@ -850,6 +850,89 @@ Deno.serve(async (req) => {
       );
     }
 
+    // ---- cleanup-imported (apaga dados com external_source='solarmarket' do tenant) ----
+    if (action === "cleanup-imported") {
+      const { data: isAdmin } = await adminClient.rpc("has_role", {
+        _user_id: userId,
+        _role: "admin",
+      });
+      const { data: isSuper } = await adminClient.rpc("has_role", {
+        _user_id: userId,
+        _role: "super_admin",
+      });
+      if (!isAdmin && !isSuper) {
+        return new Response(
+          JSON.stringify({ error: "Apenas administradores podem limpar dados importados." }),
+          { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
+
+      const { data: activeJobs } = await adminClient
+        .from("solarmarket_import_jobs")
+        .select("id")
+        .eq("tenant_id", tenantId)
+        .in("status", ["pending", "running"]);
+      if (activeJobs && activeJobs.length > 0) {
+        return new Response(
+          JSON.stringify({
+            error: "Existe uma importação em andamento. Cancele-a antes de limpar os dados.",
+            active_jobs: activeJobs.length,
+          }),
+          { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
+
+      const result = { propostas: 0, projetos: 0, clientes: 0, logs: 0, jobs: 0 };
+
+      const delPropostas = await adminClient
+        .from("propostas_nativas")
+        .delete({ count: "exact" })
+        .eq("tenant_id", tenantId)
+        .eq("external_source", EXTERNAL_SOURCE);
+      if (delPropostas.error) throw new Error(`propostas: ${delPropostas.error.message}`);
+      result.propostas = delPropostas.count ?? 0;
+
+      const delProjetos = await adminClient
+        .from("projetos")
+        .delete({ count: "exact" })
+        .eq("tenant_id", tenantId)
+        .eq("external_source", EXTERNAL_SOURCE);
+      if (delProjetos.error) throw new Error(`projetos: ${delProjetos.error.message}`);
+      result.projetos = delProjetos.count ?? 0;
+
+      const delClientes = await adminClient
+        .from("clientes")
+        .delete({ count: "exact" })
+        .eq("tenant_id", tenantId)
+        .eq("external_source", EXTERNAL_SOURCE);
+      if (delClientes.error) throw new Error(`clientes: ${delClientes.error.message}`);
+      result.clientes = delClientes.count ?? 0;
+
+      const delLogs = await adminClient
+        .from("solarmarket_import_logs")
+        .delete({ count: "exact" })
+        .eq("tenant_id", tenantId);
+      if (delLogs.error) throw new Error(`logs: ${delLogs.error.message}`);
+      result.logs = delLogs.count ?? 0;
+
+      const delJobs = await adminClient
+        .from("solarmarket_import_jobs")
+        .delete({ count: "exact" })
+        .eq("tenant_id", tenantId)
+        .in("status", ["success", "error", "cancelled", "partial"]);
+      if (delJobs.error) throw new Error(`jobs: ${delJobs.error.message}`);
+      result.jobs = delJobs.count ?? 0;
+
+      console.error("[solarmarket-import] cleanup-imported", {
+        tenant: tenantId, by: userId, ...result,
+      });
+
+      return new Response(
+        JSON.stringify({ ok: true, removed: result }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
     return new Response(
       JSON.stringify({ error: `Ação desconhecida: ${action}` }),
       {
