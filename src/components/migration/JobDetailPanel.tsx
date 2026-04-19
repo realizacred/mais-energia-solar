@@ -1,12 +1,13 @@
 /**
  * JobDetailPanel — Detalhe de um job: progresso, contadores, erros, ações.
  */
-import { Loader2, RotateCcw, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { Loader2, RotateCcw, AlertTriangle, CheckCircle2, StopCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { SectionCard } from "@/components/ui-kit";
 import { useMigrationJobStatus } from "@/hooks/useMigrationJobStatus";
 import { useMigrationRollback } from "@/hooks/useMigrationRollback";
+import { useCancelMigrationJob } from "@/hooks/useCancelMigrationJob";
 import { JobStatusBadge } from "./JobStatusBadge";
 import { cn } from "@/lib/utils";
 import {
@@ -21,6 +22,7 @@ interface Props {
 export function JobDetailPanel({ jobId }: Props) {
   const { data, isLoading } = useMigrationJobStatus(jobId);
   const rollback = useMigrationRollback();
+  const cancel = useCancelMigrationJob();
 
   if (isLoading || !data) {
     return (
@@ -34,6 +36,7 @@ export function JobDetailPanel({ jobId }: Props) {
 
   const { job, counters, total, progress, errors } = data;
   const canRollback = job.status === "completed" || job.status === "failed";
+  const canCancel = job.status === "pending" || job.status === "running";
 
   return (
     <SectionCard
@@ -86,29 +89,55 @@ export function JobDetailPanel({ jobId }: Props) {
           </div>
         )}
 
-        {canRollback && (
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button variant="destructive" size="sm" disabled={rollback.isPending}>
-                {rollback.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <RotateCcw className="h-4 w-4 mr-2" />}
-                Reverter job
-              </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Reverter este job?</AlertDialogTitle>
-                <AlertDialogDescription>
-                  Todos os registros nativos criados por este job (clientes, projetos e propostas) serão deletados.
-                  Esta operação não pode ser desfeita.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                <AlertDialogAction onClick={() => rollback.mutate(jobId)}>Confirmar rollback</AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
-        )}
+        <div className="flex flex-wrap gap-2">
+          {canCancel && (
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="outline" size="sm" disabled={cancel.isPending}>
+                  {cancel.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <StopCircle className="h-4 w-4 mr-2" />}
+                  Parar job
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Parar este job?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    O job será marcado como falho e o executor interromperá no próximo ciclo (~30s).
+                    Os registros já migrados permanecem; use "Reverter" depois se quiser desfazer.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Voltar</AlertDialogCancel>
+                  <AlertDialogAction onClick={() => cancel.mutate(jobId)}>Confirmar</AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          )}
+
+          {canRollback && (
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="destructive" size="sm" disabled={rollback.isPending}>
+                  {rollback.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <RotateCcw className="h-4 w-4 mr-2" />}
+                  Reverter job
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Reverter este job?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Todos os registros nativos criados por este job (clientes, projetos e propostas) serão deletados.
+                    Esta operação não pode ser desfeita.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                  <AlertDialogAction onClick={() => rollback.mutate(jobId)}>Confirmar rollback</AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          )}
+        </div>
       </div>
     </SectionCard>
   );
