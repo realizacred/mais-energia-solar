@@ -102,6 +102,17 @@ export function JobDetailPanel({ jobId }: Props) {
         )}
 
         <div className="flex flex-wrap gap-2">
+          {canResume && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => resume.mutate(jobId)}
+              disabled={resume.isPending}
+            >
+              {resume.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <PlayCircle className="h-4 w-4 mr-2" />}
+              Retomar job
+            </Button>
+          )}
           {canCancel && (
             <AlertDialog>
               <AlertDialogTrigger asChild>
