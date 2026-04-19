@@ -1003,7 +1003,7 @@ async function resolveOrCreateClienteFromProposal(
   }
 
   // 4) cria
-  const cliente_code = sm_client_id ? `SM-${sm_client_id}` : `SM-PROP-${pr.sm_proposal_id ?? pr.id}`;
+  const cliente_code = sm_client_id ? `SM-${sm_client_id}` : `SM-PROP-${String(pr.id ?? pr.sm_proposal_id ?? "").slice(0, 8)}`;
   const addr = (smClient?.address ?? {}) as Record<string, any>;
   const insertPayload: Record<string, any> = {
     tenant_id, cliente_code, nome, telefone,
@@ -1233,9 +1233,7 @@ async function migrateProposals(
     const sm_proposal_id = (pr as any).sm_proposal_id ?? null;
     const sm_project_id = (pr as any).sm_project_id as number | null;
     // tracking_id estável: prefere sm_proposal_id (chave da proposta), depois sm_project_id
-    const trackingId = (typeof sm_proposal_id === "number" ? sm_proposal_id : null)
-      ?? sm_project_id
-      ?? Math.abs(hashString(stagingId));
+    const trackingId = Math.abs(hashString(stagingId));
     try {
       // 1) Resolve/cria cliente (proposal-first)
       const cliente_id = await resolveOrCreateClienteFromProposal(admin, tenant_id, pr);
