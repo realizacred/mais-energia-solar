@@ -47,6 +47,7 @@ function statusBadge(status: string) {
 export default function ImportacaoSolarmarket() {
   const { jobs, isLoading, testConnection, importAll, cancelImport } = useSolarmarketImport();
   const { config, isConfigured, isLoading: loadingCfg } = useSolarmarketConfig();
+  const [testResult, setTestResult] = useState<{ ok: boolean; message: string } | null>(null);
   const [scope, setScope] = useState<ImportScope>({
     clientes: true,
     projetos: true,
