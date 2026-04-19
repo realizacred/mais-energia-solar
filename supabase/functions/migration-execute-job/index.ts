@@ -283,6 +283,24 @@ async function migrateClients(
       // Normaliza telefone (apenas dígitos) para casar com uq_clientes_tenant_telefone
       const telDigits = telefone.replace(/\D/g, "");
 
+      // Endereço: prioriza colunas planas; cai no jsonb `address` se necessário
+      const addr = ((c as any).address ?? {}) as Record<string, any>;
+      const rua = (c as any).address && typeof addr === "object" ? (addr.street ?? addr.rua ?? null) : null;
+      const fullPayload: Record<string, any> = {
+        empresa: (c as any).company ?? null,
+        cep: (c as any).zip_code ?? addr.zip_code ?? addr.cep ?? null,
+        rua: rua,
+        numero: (c as any).number ?? addr.number ?? addr.numero ?? null,
+        complemento: (c as any).complement ?? addr.complement ?? addr.complemento ?? null,
+        bairro: (c as any).neighborhood ?? addr.neighborhood ?? addr.bairro ?? null,
+        cidade: (c as any).city ?? addr.city ?? addr.cidade ?? null,
+        estado: (c as any).state ?? addr.state ?? addr.estado ?? null,
+      };
+      // Remove chaves nulas para não sobrescrever dados existentes em UPDATE
+      const enrich = Object.fromEntries(
+        Object.entries(fullPayload).filter(([, v]) => v !== null && v !== undefined && v !== ""),
+      );
+
       // Idempotência: buscar por sm_client_id, CPF/CNPJ, email OU telefone
       let nativeId: string | null = null;
       const orParts = [
@@ -302,12 +320,14 @@ async function migrateClients(
 
       if (existing) {
         nativeId = (existing as any).id;
-        // Se o existente ainda não tem sm_client_id, faz o vínculo (não-destrutivo)
+        // Vínculo + enriquecimento não-destrutivo (só preenche campos vazios)
+        const updates: Record<string, any> = { ...enrich };
         if (!(existing as any).sm_client_id) {
-          await admin
-            .from("clientes")
-            .update({ sm_client_id, import_source: "solar_market" })
-            .eq("id", nativeId);
+          updates.sm_client_id = sm_client_id;
+          updates.import_source = "solar_market";
+        }
+        if (Object.keys(updates).length > 0) {
+          await admin.from("clientes").update(updates).eq("id", nativeId);
         }
         await recordSkip(
           admin,
@@ -315,7 +335,7 @@ async function migrateClients(
           tenant_id,
           "client",
           sm_client_id,
-          `cliente já existe no destino (id=${nativeId}; match por sm_client_id/CPF/email/telefone)`,
+          `cliente já existe no destino (id=${nativeId}; enriquecido com ${Object.keys(updates).length} campos)`,
           nativeId,
         );
         counters.skipped++;
@@ -335,6 +355,7 @@ async function migrateClients(
           sm_client_id,
           import_source: "solar_market",
           ativo: true,
+          ...enrich,
         })
         .select("id")
         .single();
