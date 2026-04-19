@@ -17,12 +17,18 @@ interface Props {
 export function JobsTable({ jobs, selectedId, onSelect }: Props) {
   if (jobs.length === 0) {
     return (
-      <div className="rounded-md border bg-card p-6 text-center text-sm text-muted-foreground">
-        Nenhum job criado ainda.
+      <div className="rounded-md border border-dashed bg-card/50 p-8 text-center space-y-1.5">
+        <p className="text-sm font-medium text-foreground">Nenhum job criado ainda</p>
+        <p className="text-xs text-muted-foreground max-w-md mx-auto">
+          Selecione o tenant correto, valide a pré-validação acima e clique em
+          <span className="font-medium text-foreground"> "Novo job" </span>
+          para começar sua primeira migração.
+        </p>
       </div>
     );
   }
   return (
+    <div className="rounded-md border border-border overflow-x-auto">
     <Table>
       <TableHeader>
         <TableRow>
@@ -52,5 +58,6 @@ export function JobsTable({ jobs, selectedId, onSelect }: Props) {
         ))}
       </TableBody>
     </Table>
+    </div>
   );
 }
