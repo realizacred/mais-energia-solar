@@ -33,24 +33,70 @@ const REQUEUE_BASE_URL = `${Deno.env.get("SUPABASE_URL")}/functions/v1`;
 type ProcessBatchResult = { counters: Counters; hasMore: boolean; nextOffset: number | null };
 type JobStage = "classify_projects" | "migrate_clients" | "migrate_projects" | "migrate_proposals";
 
+const STALL_THRESHOLD_MS = 2 * 60 * 1000; // 2 min sem heartbeat → travado
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   try {
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
     const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    const CRON_SECRET = Deno.env.get("CRON_SECRET");
     if (!SUPABASE_URL || !SERVICE_ROLE) return json({ error: "Server config error" }, 500);
 
-    const auth = req.headers.get("Authorization") ?? "";
-    if (!auth.startsWith("Bearer ")) return json({ error: "Unauthorized" }, 401);
-
     const admin = createClient(SUPABASE_URL, SERVICE_ROLE);
-    const { data: userData, error: userErr } = await admin.auth.getUser(
-      auth.replace("Bearer ", ""),
-    );
-    if (userErr || !userData?.user) return json({ error: "Invalid token" }, 401);
 
+    const auth = req.headers.get("Authorization") ?? "";
+    const cronHeader = req.headers.get("x-cron-secret") ?? "";
     const body = await req.json().catch(() => ({}));
+    const mode = String(body?.mode ?? "execute");
+
+    // ---------- WATCHDOG MODE ----------
+    // Autenticação: CRON_SECRET (header) OU bearer service_role
+    if (mode === "watchdog") {
+      const isCron = CRON_SECRET && cronHeader === CRON_SECRET;
+      const isService = auth === `Bearer ${SERVICE_ROLE}`;
+      if (!isCron && !isService) return json({ error: "Unauthorized (watchdog)" }, 401);
+
+      const cutoff = new Date(Date.now() - STALL_THRESHOLD_MS).toISOString();
+      const { data: stalled } = await admin
+        .from("migration_jobs")
+        .select("id, metadata, started_at")
+        .eq("status", "running")
+        .order("started_at", { ascending: true })
+        .limit(20);
+
+      const resumed: string[] = [];
+      for (const j of stalled ?? []) {
+        const hb = (j as any)?.metadata?.last_heartbeat_at as string | undefined;
+        const last = hb ?? (j as any)?.started_at ?? null;
+        if (!last || new Date(last).getTime() < new Date(cutoff).getTime()) {
+          // dispara retomada via service_role (bypassa Job already running pois passa offset/stage)
+          const prog = (j as any)?.metadata?.progress ?? {};
+          const off = Number(prog?.offset ?? 0);
+          const bs = Number(prog?.batch_size ?? DEFAULT_BATCH_SIZE);
+          const st = (prog?.stage ?? null) as JobStage | null;
+          runInBackground(
+            fetch(`${REQUEUE_BASE_URL}/migration-execute-job`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json", Authorization: `Bearer ${SERVICE_ROLE}` },
+              body: JSON.stringify({ job_id: (j as any).id, offset: off > 0 ? off : 0, batch_size: bs, stage: st, resume: true }),
+            }).then((r) => r.text()),
+          );
+          resumed.push((j as any).id);
+        }
+      }
+      return json({ ok: true, resumed_count: resumed.length, resumed }, 200);
+    }
+
+    // ---------- EXECUTE MODE ----------
+    if (!auth.startsWith("Bearer ")) return json({ error: "Unauthorized" }, 401);
+    const isService = auth === `Bearer ${SERVICE_ROLE}`;
+    if (!isService) {
+      const { data: userData, error: userErr } = await admin.auth.getUser(auth.replace("Bearer ", ""));
+      if (userErr || !userData?.user) return json({ error: "Invalid token" }, 401);
+    }
+
     const job_id = String(body?.job_id ?? "");
     const requestedOffset = Number(body?.offset ?? 0);
     const offset = Number.isFinite(requestedOffset) && requestedOffset > 0 ? Math.floor(requestedOffset) : 0;
@@ -59,6 +105,7 @@ Deno.serve(async (req) => {
       ? Math.min(Math.floor(requestedBatchSize), 500)
       : DEFAULT_BATCH_SIZE;
     const stageFromBody = String(body?.stage ?? jobStageFromMetadata(body?.metadata ?? null, null)) as JobStage | "";
+    const isResume = Boolean(body?.resume);
     if (!job_id) return json({ error: "job_id required" }, 400);
 
     const { data: job } = await admin
@@ -70,7 +117,8 @@ Deno.serve(async (req) => {
     if (offset > 0 && job.status !== "running") {
       return json({ status: job.status, skipped: true }, 200);
     }
-    if (job.status === "running" && offset === 0) {
+    // Permite retomada por watchdog/manual mesmo quando running
+    if (job.status === "running" && offset === 0 && !isResume) {
       return json({ error: "Job already running" }, 409);
     }
 
