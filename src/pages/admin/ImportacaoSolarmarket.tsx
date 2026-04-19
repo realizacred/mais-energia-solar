@@ -11,7 +11,7 @@ import { useSolarmarketImport, type ImportScope } from "@/hooks/useSolarmarketIm
 import { useSolarmarketConfig } from "@/hooks/useSolarmarketConfig";
 import { toast } from "@/hooks/use-toast";
 import {
-  Cloud, CheckCircle2, XCircle, Loader2, Download, Plug, Settings, AlertTriangle, Ban,
+  Cloud, CheckCircle2, XCircle, Loader2, Download, Plug, Settings, AlertTriangle, Ban, Trash2,
 } from "lucide-react";
 
 const formatBR = (iso: string | null) =>
@@ -45,7 +45,7 @@ function statusBadge(status: string) {
 }
 
 export default function ImportacaoSolarmarket() {
-  const { jobs, isLoading, testConnection, importAll, cancelImport } = useSolarmarketImport();
+  const { jobs, isLoading, testConnection, importAll, cancelImport, clearHistory } = useSolarmarketImport();
   const { config, isConfigured, isLoading: loadingCfg } = useSolarmarketConfig();
   const [testResult, setTestResult] = useState<{ ok: boolean; message: string } | null>(null);
   const [scope, setScope] = useState<ImportScope>({
@@ -106,6 +106,16 @@ export default function ImportacaoSolarmarket() {
         description: e?.message || "Tente novamente.",
         variant: "destructive",
       });
+    }
+  };
+
+  const handleClearHistory = async () => {
+    if (!confirm("Limpar histórico de importações finalizadas? Jobs em execução são preservados.")) return;
+    try {
+      await clearHistory.mutateAsync();
+      toast({ title: "Histórico limpo" });
+    } catch (e: any) {
+      toast({ title: "Erro ao limpar", description: e?.message, variant: "destructive" });
     }
   };
 
@@ -321,8 +331,24 @@ export default function ImportacaoSolarmarket() {
 
       {/* Histórico */}
       <Card className="bg-card border-border shadow-sm">
-        <CardHeader>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0">
           <CardTitle className="text-base font-semibold">Histórico</CardTitle>
+          {jobs.some((j) => j.status !== "running" && j.status !== "pending") && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleClearHistory}
+              disabled={clearHistory.isPending}
+              className="border-destructive text-destructive hover:bg-destructive/10"
+            >
+              {clearHistory.isPending ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <Trash2 className="w-4 h-4 mr-2" />
+              )}
+              Limpar histórico
+            </Button>
+          )}
         </CardHeader>
         <CardContent>
           {jobs.length === 0 ? (
