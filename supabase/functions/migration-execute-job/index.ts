@@ -24,6 +24,8 @@ const corsHeaders = {
 type Counters = { migrated: number; skipped: number; failed: number };
 const DEFAULT_BATCH_SIZE = 200;
 const REQUEUE_BASE_URL = `${Deno.env.get("SUPABASE_URL")}/functions/v1`;
+type ProcessBatchResult = { counters: Counters; hasMore: boolean; nextOffset: number | null };
+type JobStage = "classify_projects" | "migrate_clients" | "migrate_projects" | "migrate_proposals";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
@@ -50,6 +52,7 @@ Deno.serve(async (req) => {
     const batchSize = Number.isFinite(requestedBatchSize) && requestedBatchSize > 0
       ? Math.min(Math.floor(requestedBatchSize), 500)
       : DEFAULT_BATCH_SIZE;
+    const stageFromBody = String(body?.stage ?? jobStageFromMetadata(body?.metadata ?? null, null)) as JobStage | "";
     if (!job_id) return json({ error: "job_id required" }, 400);
 
     const { data: job } = await admin
@@ -79,9 +82,13 @@ Deno.serve(async (req) => {
     }
 
     const tenant_id = job.tenant_id as string;
+    const currentStage = job.job_type === "full_migration"
+      ? jobStageFromMetadata(job.metadata ?? null, stageFromBody || "classify_projects")
+      : null;
     const allCounters: Record<string, Counters> = {};
     let hasMore = false;
     let nextOffset: number | null = null;
+    let nextStage: JobStage | null = currentStage;
 
     try {
       switch (job.job_type) {
@@ -98,15 +105,18 @@ Deno.serve(async (req) => {
           ({ counters: allCounters.proposals, hasMore, nextOffset } = await migrateProposals(admin, tenant_id, job_id, offset, batchSize));
           break;
         case "full_migration":
-          ({ counters: allCounters.classify, hasMore, nextOffset } = await classifyProjects(admin, tenant_id, job_id, offset, batchSize));
-          if (!hasMore && nextOffset === null) {
-            ({ counters: allCounters.clients, hasMore, nextOffset } = await migrateClients(admin, tenant_id, job_id, 0, batchSize));
-          }
-          if (!hasMore && nextOffset === null) {
-            ({ counters: allCounters.projects, hasMore, nextOffset } = await migrateProjects(admin, tenant_id, job_id, 0, batchSize));
-          }
-          if (!hasMore && nextOffset === null) {
-            ({ counters: allCounters.proposals, hasMore, nextOffset } = await migrateProposals(admin, tenant_id, job_id, 0, batchSize));
+          if (currentStage === "classify_projects") {
+            ({ counters: allCounters.classify, hasMore, nextOffset } = await classifyProjects(admin, tenant_id, job_id, offset, batchSize));
+            nextStage = hasMore ? "classify_projects" : "migrate_clients";
+          } else if (currentStage === "migrate_clients") {
+            ({ counters: allCounters.clients, hasMore, nextOffset } = await migrateClients(admin, tenant_id, job_id, offset, batchSize));
+            nextStage = hasMore ? "migrate_clients" : "migrate_projects";
+          } else if (currentStage === "migrate_projects") {
+            ({ counters: allCounters.projects, hasMore, nextOffset } = await migrateProjects(admin, tenant_id, job_id, offset, batchSize));
+            nextStage = hasMore ? "migrate_projects" : "migrate_proposals";
+          } else {
+            ({ counters: allCounters.proposals, hasMore, nextOffset } = await migrateProposals(admin, tenant_id, job_id, offset, batchSize));
+            nextStage = hasMore ? "migrate_proposals" : null;
           }
           break;
         default:
@@ -120,13 +130,29 @@ Deno.serve(async (req) => {
             metadata: {
               ...(job.metadata ?? {}),
               counters: { ...(job.metadata?.counters ?? {}), ...allCounters },
-              progress: { offset: nextOffset, batch_size: batchSize, has_more: true },
+              progress: { offset: nextOffset, batch_size: batchSize, has_more: true, stage: nextStage },
             },
           })
           .eq("id", job_id);
 
-        EdgeRuntime.waitUntil(requeueJob(job_id, auth, nextOffset, batchSize));
+        EdgeRuntime.waitUntil(requeueJob(job_id, auth, nextOffset, batchSize, nextStage));
         return json({ status: "running", counters: allCounters, next_offset: nextOffset }, 202);
+      }
+
+      if (job.job_type === "full_migration" && nextStage) {
+        await admin
+          .from("migration_jobs")
+          .update({
+            metadata: {
+              ...(job.metadata ?? {}),
+              counters: { ...(job.metadata?.counters ?? {}), ...allCounters },
+              progress: { offset: 0, batch_size: batchSize, has_more: true, stage: nextStage },
+            },
+          })
+          .eq("id", job_id);
+
+        EdgeRuntime.waitUntil(requeueJob(job_id, auth, 0, batchSize, nextStage));
+        return json({ status: "running", counters: allCounters, next_stage: nextStage }, 202);
       }
 
       await admin
@@ -246,6 +272,30 @@ async function ensureCanonicalFunis(admin: SupabaseClient, tenant_id: string) {
 
 function capitalize(s: string) {
   return s.charAt(0).toUpperCase() + s.slice(1);
+}
+
+function jobStageFromMetadata(metadata: any, fallback: JobStage | null): JobStage | null {
+  const stage = metadata?.progress?.stage ?? fallback;
+  return stage === "classify_projects" || stage === "migrate_clients" || stage === "migrate_projects" || stage === "migrate_proposals"
+    ? stage
+    : fallback;
+}
+
+async function requeueJob(
+  job_id: string,
+  authHeader: string,
+  offset: number,
+  batch_size: number,
+  stage: JobStage | null,
+) {
+  await fetch(`${REQUEUE_BASE_URL}/migration-execute-job`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: authHeader,
+    },
+    body: JSON.stringify({ job_id, offset, batch_size, stage }),
+  });
 }
 
 async function classifyProjects(
