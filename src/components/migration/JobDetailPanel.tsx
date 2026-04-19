@@ -66,6 +66,20 @@ export function JobDetailPanel({ jobId }: Props) {
           <Counter label="Falhas" value={counters.failed} tone={counters.failed > 0 ? "text-destructive" : undefined} />
         </div>
 
+        {is_stalled && (
+          <div className="rounded-md border border-warning/40 bg-warning/5 p-3 text-xs text-warning flex items-start gap-2">
+            <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
+            <div className="flex-1 break-all">
+              <p className="font-medium">Job travado</p>
+              <p className="text-muted-foreground mt-0.5">
+                Sem heartbeat há mais de 2 minutos
+                {last_heartbeat_at ? ` (último: ${new Date(last_heartbeat_at).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })})` : ""}.
+                O watchdog tentará retomar automaticamente, ou clique em "Retomar job".
+              </p>
+            </div>
+          </div>
+        )}
+
         {job.error_message && (
           <div className="rounded-md border border-destructive/30 bg-destructive/5 p-3 text-xs text-destructive flex items-start gap-2">
             <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
