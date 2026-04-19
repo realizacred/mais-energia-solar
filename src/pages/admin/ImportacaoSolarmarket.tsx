@@ -125,6 +125,23 @@ export default function ImportacaoSolarmarket() {
     }
   };
 
+  const handleCleanup = async () => {
+    try {
+      const res = await cleanupImported.mutateAsync();
+      const r = res.removed;
+      toast({
+        title: "Dados importados removidos",
+        description: `Propostas: ${r.propostas} · Projetos: ${r.projetos} · Clientes: ${r.clientes} · Logs: ${r.logs} · Jobs: ${r.jobs}`,
+      });
+    } catch (e: any) {
+      toast({
+        title: "Falha ao limpar dados",
+        description: e?.message || "Tente novamente.",
+        variant: "destructive",
+      });
+    }
+  };
+
   if (isLoading || loadingCfg) return <LoadingState message="Carregando importações..." />;
 
   return (
