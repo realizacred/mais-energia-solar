@@ -27,7 +27,7 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
-type Counters = { migrated: number; skipped: number; failed: number };
+type Counters = { migrated: number; skipped: number; failed: number; ignored?: number };
 const DEFAULT_BATCH_SIZE = 200;
 const REQUEUE_BASE_URL = `${Deno.env.get("SUPABASE_URL")}/functions/v1`;
 type ProcessBatchResult = { counters: Counters; hasMore: boolean; nextOffset: number | null };
@@ -276,6 +276,12 @@ function classifyByText(funilName: string | null, stageName: string | null): {
   const f = (funilName ?? "").toLowerCase().trim();
   const s = (stageName ?? "").toLowerCase().trim();
 
+  // 0) LEAD → não migra (Item 2 — Regras Lead/Vendedor)
+  //    Funil "Lead"/"Leads" no SM é pré-comercial; não vira deal/projeto.
+  if (/^lead(s)?$/i.test(f)) {
+    return { category: "lead_ignored", reason: "funil_lead_nao_migra", confidence: 1 };
+  }
+
   // 1) Perda em qualquer funil → comercial/perdido
   if (/perdido|perda|cancelad/i.test(f) || /perdido|perda|cancelad/i.test(s)) {
     return { category: "comercial", reason: "lost_or_cancelled", confidence: 0.95 };
@@ -292,13 +298,15 @@ function classifyByText(funilName: string | null, stageName: string | null): {
   if (/equipamento|log[ií]stica|kit/i.test(f)) {
     return { category: "equipamento", reason: "funil_equipamento", confidence: 0.95 };
   }
-  // 5) Comercial / vendedor
-  if (/comercial|venda|lead|vendedor|consultor/i.test(f)) {
-    return { category: "comercial", reason: "funil_comercial_or_consultor", confidence: 0.9 };
+  // 5) Vendedor / Comercial → Pipeline Comercial padrão (Item 2)
+  //    Vendedor vira Consultor responsável; deal vai para Comercial na etapa
+  //    equivalente por nome (resolvida em resolveComercialEtapaByName).
+  if (/comercial|venda|vendedor|consultor/i.test(f)) {
+    return { category: "comercial", reason: "funil_vendedor_ou_comercial", confidence: 0.9 };
   }
-  // 6) Funil vazio/LEAD → comercial (governance: funnel-mapping-rules-v4)
-  if (!f || f === "lead") {
-    return { category: "comercial", reason: "lead_or_empty_default", confidence: 0.7 };
+  // 6) Funil vazio → comercial default (sem fallback silencioso: motivo registrado)
+  if (!f) {
+    return { category: "comercial", reason: "funil_vazio_default_comercial", confidence: 0.6 };
   }
   // 7) Default
   return { category: "verificar_dados", reason: "no_match", confidence: 0.3 };
@@ -347,6 +355,51 @@ async function ensureCanonicalFunis(admin: SupabaseClient, tenant_id: string) {
     map[cat] = { funil_id: funil!.id, etapa_id: etapa!.id };
   }
   return map;
+}
+
+/**
+ * Item 2 — Etapa equivalente por nome no pipeline Comercial.
+ * Procura etapa com mesmo nome (case-insensitive) dentro do funil Comercial.
+ * Se não existir, cria a etapa preservando o nome do SM (sem fallback silencioso).
+ * Retorna null se stageName for vazio (caller usa etapa default do canonical).
+ */
+async function resolveComercialEtapaByName(
+  admin: SupabaseClient,
+  tenant_id: string,
+  comercialFunilId: string,
+  stageName: string | null,
+): Promise<string | null> {
+  const nome = (stageName ?? "").trim();
+  if (!nome) return null;
+
+  const { data: existing } = await admin
+    .from("projeto_etapas")
+    .select("id")
+    .eq("tenant_id", tenant_id)
+    .eq("funil_id", comercialFunilId)
+    .ilike("nome", nome)
+    .maybeSingle();
+
+  if (existing) return (existing as any).id;
+
+  // Cria etapa equivalente — nunca silencioso, motivo registrado em classification_reason
+  const { data: maxOrdem } = await admin
+    .from("projeto_etapas")
+    .select("ordem")
+    .eq("tenant_id", tenant_id)
+    .eq("funil_id", comercialFunilId)
+    .order("ordem", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  const nextOrdem = ((maxOrdem as any)?.ordem ?? 0) + 1;
+
+  const { data: created, error } = await admin
+    .from("projeto_etapas")
+    .insert({ tenant_id, funil_id: comercialFunilId, nome, ordem: nextOrdem })
+    .select("id")
+    .single();
+  if (error) throw error;
+  return (created as any).id;
 }
 
 function capitalize(s: string) {
@@ -410,7 +463,42 @@ async function classifyProjects(
         (p as any).sm_funnel_name,
         (p as any).sm_stage_name,
       );
+
+      // Item 2 — Lead não migra: registra classificação especial e segue
+      if (category === "lead_ignored") {
+        const { error } = await admin
+          .from("sm_classification_v2")
+          .upsert(
+            {
+              tenant_id,
+              sm_project_id,
+              category,
+              target_funil_id: null,
+              target_etapa_id: null,
+              confidence_score: confidence,
+              classification_reason: reason,
+            },
+            { onConflict: "tenant_id,sm_project_id" },
+          );
+        if (error) throw error;
+        await recordSkip(admin, job_id, tenant_id, "project", sm_project_id, "lead_nao_migra");
+        counters.ignored = (counters.ignored ?? 0) + 1;
+        continue;
+      }
+
       const target = canonical[category];
+
+      // Item 2 — Comercial: usar etapa equivalente por nome do SM
+      let target_etapa_id = target.etapa_id;
+      if (category === "comercial") {
+        const resolved = await resolveComercialEtapaByName(
+          admin,
+          tenant_id,
+          target.funil_id,
+          (p as any).sm_stage_name ?? null,
+        );
+        if (resolved) target_etapa_id = resolved;
+      }
 
       const { error } = await admin
         .from("sm_classification_v2")
@@ -420,7 +508,7 @@ async function classifyProjects(
             sm_project_id,
             category,
             target_funil_id: target.funil_id,
-            target_etapa_id: target.etapa_id,
+            target_etapa_id,
             confidence_score: confidence,
             classification_reason: reason,
           },
@@ -653,7 +741,41 @@ async function migrateProjects(
           (p as any).sm_funnel_name ?? null,
           (p as any).sm_stage_name ?? null,
         );
+
+        // Item 2 — Lead não migra
+        if (category === "lead_ignored") {
+          await admin
+            .from("sm_classification_v2")
+            .upsert(
+              {
+                tenant_id,
+                sm_project_id,
+                category,
+                target_funil_id: null,
+                target_etapa_id: null,
+                confidence_score: confidence,
+                classification_reason: `auto_from_migrate_projects:${reason}`,
+              },
+              { onConflict: "tenant_id,sm_project_id" },
+            );
+          await recordSkip(admin, job_id, tenant_id, "project", sm_project_id, "lead_nao_migra");
+          counters.ignored = (counters.ignored ?? 0) + 1;
+          continue;
+        }
+
         const target = canonical[category];
+
+        // Item 2 — Comercial: etapa equivalente por nome
+        let target_etapa_id = target.etapa_id;
+        if (category === "comercial") {
+          const resolved = await resolveComercialEtapaByName(
+            admin,
+            tenant_id,
+            target.funil_id,
+            (p as any).sm_stage_name ?? null,
+          );
+          if (resolved) target_etapa_id = resolved;
+        }
 
         const { error: classifyError } = await admin
           .from("sm_classification_v2")
@@ -663,7 +785,7 @@ async function migrateProjects(
               sm_project_id,
               category,
               target_funil_id: target.funil_id,
-              target_etapa_id: target.etapa_id,
+              target_etapa_id,
               confidence_score: confidence,
               classification_reason: `auto_from_migrate_projects:${reason}`,
             },
@@ -683,7 +805,7 @@ async function migrateProjects(
       }
 
       if (!cls?.target_funil_id || !cls?.target_etapa_id) {
-        await recordSkip(admin, job_id, tenant_id, "project", sm_project_id, "sem classificação resolvida");
+        await recordSkip(admin, job_id, tenant_id, "project", sm_project_id, "sem classificação resolvida (lead_ignored ou no_match)");
         counters.skipped++;
         continue;
       }

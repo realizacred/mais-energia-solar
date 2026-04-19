@@ -58,13 +58,21 @@ export function JobDetailPanel({ jobId }: Props) {
           <Progress value={progress} className="h-2" />
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 text-center">
-          <Counter label="Pendentes" value={counters.pending} />
-          <Counter label="Processando" value={counters.processing} tone="text-primary" />
-          <Counter label="Migrados" value={counters.migrated} tone="text-success" />
-          <Counter label="Pulados" value={counters.skipped} tone="text-muted-foreground" />
-          <Counter label="Falhas" value={counters.failed} tone={counters.failed > 0 ? "text-destructive" : undefined} />
-        </div>
+        {(() => {
+          const ignoredLead = skipped.filter((s) =>
+            (s.error_message ?? "").toLowerCase().includes("lead_nao_migra"),
+          ).length;
+          return (
+            <div className="grid grid-cols-2 sm:grid-cols-6 gap-2 text-center">
+              <Counter label="Pendentes" value={counters.pending} />
+              <Counter label="Processando" value={counters.processing} tone="text-primary" />
+              <Counter label="Migrados" value={counters.migrated} tone="text-success" />
+              <Counter label="Pulados" value={counters.skipped} tone="text-muted-foreground" />
+              <Counter label="Lead ignorado" value={ignoredLead} tone="text-muted-foreground" />
+              <Counter label="Falhas" value={counters.failed} tone={counters.failed > 0 ? "text-destructive" : undefined} />
+            </div>
+          );
+        })()}
 
         {is_stalled && (
           <div className="rounded-md border border-warning/40 bg-warning/5 p-3 text-xs text-warning flex items-start gap-2">
