@@ -119,11 +119,26 @@ export function useSolarmarketImport() {
     },
   });
 
+  const clearHistory = useMutation({
+    mutationFn: async () => {
+      // Apaga jobs já finalizados (não toca em pending/running)
+      const { error } = await (supabase as any)
+        .from("solarmarket_import_jobs")
+        .delete()
+        .in("status", ["success", "error", "cancelled", "partial"]);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: JOBS_KEY });
+    },
+  });
+
   return {
     jobs: jobsQuery.data ?? [],
     isLoading: jobsQuery.isLoading,
     testConnection,
     importAll,
     cancelImport,
+    clearHistory,
   };
 }
