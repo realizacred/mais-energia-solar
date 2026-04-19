@@ -1,0 +1,104 @@
+/**
+ * useSolarmarketImport — Hook para disparar e acompanhar importação one-shot
+ * do SolarMarket via edge function `solarmarket-import`.
+ *
+ * RB-04: queries em hook. RB-05: staleTime obrigatório.
+ */
+import { useEffect } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+
+export interface ImportScope {
+  clientes: boolean;
+  projetos: boolean;
+  propostas: boolean;
+  funis: boolean;
+  custom_fields: boolean;
+}
+
+export interface SolarmarketImportJob {
+  id: string;
+  status: string;
+  scope: any;
+  current_step: string | null;
+  progress_pct: number | null;
+  total_clientes: number;
+  total_projetos: number;
+  total_propostas: number;
+  total_funis: number;
+  total_custom_fields: number;
+  total_errors: number;
+  error_message: string | null;
+  started_at: string | null;
+  finished_at: string | null;
+  created_at: string;
+}
+
+const JOBS_KEY = ["solarmarket-import-jobs"];
+
+export function useSolarmarketImport() {
+  const queryClient = useQueryClient();
+
+  const jobsQuery = useQuery({
+    queryKey: JOBS_KEY,
+    queryFn: async (): Promise<SolarmarketImportJob[]> => {
+      const { data, error } = await (supabase as any)
+        .from("solarmarket_import_jobs")
+        .select(
+          "id, status, scope, current_step, progress_pct, total_clientes, total_projetos, total_propostas, total_funis, total_custom_fields, total_errors, error_message, started_at, finished_at, created_at"
+        )
+        .order("created_at", { ascending: false })
+        .limit(20);
+      if (error) throw error;
+      return (data || []) as SolarmarketImportJob[];
+    },
+    staleTime: 1000 * 30,
+  });
+
+  // Realtime: refetch quando jobs mudam
+  useEffect(() => {
+    const ch = supabase
+      .channel("sm-import-jobs")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "solarmarket_import_jobs" },
+        () => queryClient.invalidateQueries({ queryKey: JOBS_KEY })
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(ch);
+    };
+  }, [queryClient]);
+
+  const testConnection = useMutation({
+    mutationFn: async () => {
+      const { data, error } = await supabase.functions.invoke(
+        "solarmarket-import",
+        { body: { action: "test-connection" } }
+      );
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const importAll = useMutation({
+    mutationFn: async (scope: ImportScope) => {
+      const { data, error } = await supabase.functions.invoke(
+        "solarmarket-import",
+        { body: { action: "import-all", scope } }
+      );
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: JOBS_KEY });
+    },
+  });
+
+  return {
+    jobs: jobsQuery.data ?? [],
+    isLoading: jobsQuery.isLoading,
+    testConnection,
+    importAll,
+  };
+}

@@ -1845,6 +1845,8 @@ export type Database = {
           email: string | null
           empresa: string | null
           estado: string | null
+          external_id: string | null
+          external_source: string | null
           id: string
           identidade_url: string | null
           identidade_urls: string[] | null
@@ -1887,6 +1889,8 @@ export type Database = {
           email?: string | null
           empresa?: string | null
           estado?: string | null
+          external_id?: string | null
+          external_source?: string | null
           id?: string
           identidade_url?: string | null
           identidade_urls?: string[] | null
@@ -1929,6 +1933,8 @@ export type Database = {
           email?: string | null
           empresa?: string | null
           estado?: string | null
+          external_id?: string | null
+          external_source?: string | null
           id?: string
           identidade_url?: string | null
           identidade_urls?: string[] | null
@@ -15631,6 +15637,8 @@ export type Database = {
           data_venda: string | null
           deal_id: string | null
           etapa_id: string | null
+          external_id: string | null
+          external_source: string | null
           forma_pagamento: string | null
           funil_id: string | null
           geracao_mensal_media_kwh: number | null
@@ -15685,6 +15693,8 @@ export type Database = {
           data_venda?: string | null
           deal_id?: string | null
           etapa_id?: string | null
+          external_id?: string | null
+          external_source?: string | null
           forma_pagamento?: string | null
           funil_id?: string | null
           geracao_mensal_media_kwh?: number | null
@@ -15739,6 +15749,8 @@ export type Database = {
           data_venda?: string | null
           deal_id?: string | null
           etapa_id?: string | null
+          external_id?: string | null
+          external_source?: string | null
           forma_pagamento?: string | null
           funil_id?: string | null
           geracao_mensal_media_kwh?: number | null
@@ -18469,6 +18481,8 @@ export type Database = {
           enviada_at: string | null
           enviada_por: string | null
           enviada_via: string | null
+          external_id: string | null
+          external_source: string | null
           fio_b_percent_aplicado: number | null
           id: string
           is_principal: boolean
@@ -18523,6 +18537,8 @@ export type Database = {
           enviada_at?: string | null
           enviada_por?: string | null
           enviada_via?: string | null
+          external_id?: string | null
+          external_source?: string | null
           fio_b_percent_aplicado?: number | null
           id?: string
           is_principal?: boolean
@@ -18577,6 +18593,8 @@ export type Database = {
           enviada_at?: string | null
           enviada_por?: string | null
           enviada_via?: string | null
+          external_id?: string | null
+          external_source?: string | null
           fio_b_percent_aplicado?: number | null
           id?: string
           is_principal?: boolean
@@ -20633,6 +20651,134 @@ export type Database = {
           },
           {
             foreignKeyName: "solar_plants_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      solarmarket_import_jobs: {
+        Row: {
+          created_at: string
+          current_step: string | null
+          error_message: string | null
+          finished_at: string | null
+          id: string
+          logs: Json
+          progress_pct: number | null
+          scope: Json
+          started_at: string | null
+          status: string
+          tenant_id: string
+          total_clientes: number
+          total_custom_fields: number
+          total_errors: number
+          total_funis: number
+          total_projetos: number
+          total_propostas: number
+          triggered_by: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          current_step?: string | null
+          error_message?: string | null
+          finished_at?: string | null
+          id?: string
+          logs?: Json
+          progress_pct?: number | null
+          scope?: Json
+          started_at?: string | null
+          status?: string
+          tenant_id: string
+          total_clientes?: number
+          total_custom_fields?: number
+          total_errors?: number
+          total_funis?: number
+          total_projetos?: number
+          total_propostas?: number
+          triggered_by?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          current_step?: string | null
+          error_message?: string | null
+          finished_at?: string | null
+          id?: string
+          logs?: Json
+          progress_pct?: number | null
+          scope?: Json
+          started_at?: string | null
+          status?: string
+          tenant_id?: string
+          total_clientes?: number
+          total_custom_fields?: number
+          total_errors?: number
+          total_funis?: number
+          total_projetos?: number
+          total_propostas?: number
+          triggered_by?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "solarmarket_import_jobs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      solarmarket_import_logs: {
+        Row: {
+          action: string
+          created_at: string
+          entity_type: string
+          error_message: string | null
+          external_id: string | null
+          id: string
+          internal_id: string | null
+          job_id: string
+          payload_snippet: Json | null
+          tenant_id: string
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          entity_type: string
+          error_message?: string | null
+          external_id?: string | null
+          id?: string
+          internal_id?: string | null
+          job_id: string
+          payload_snippet?: Json | null
+          tenant_id: string
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          entity_type?: string
+          error_message?: string | null
+          external_id?: string | null
+          id?: string
+          internal_id?: string | null
+          job_id?: string
+          payload_snippet?: Json | null
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "solarmarket_import_logs_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "solarmarket_import_jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "solarmarket_import_logs_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
