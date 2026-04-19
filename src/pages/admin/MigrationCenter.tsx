@@ -116,13 +116,7 @@ export default function MigrationCenter() {
             <Button
               onClick={() => setNewOpen(true)}
               disabled={!canCreateJob}
-              title={
-                !tenantId
-                  ? "Selecione um tenant"
-                  : (stagingCounts?.total ?? 0) === 0
-                  ? "Tenant sem dados de staging"
-                  : undefined
-              }
+              title={blockReason ?? undefined}
             >
               <Plus className="h-4 w-4 mr-2" />
               Novo job
