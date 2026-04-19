@@ -36,6 +36,7 @@ export function JobDetailPanel({ jobId }: Props) {
 
   const { job, counters, total, progress, errors } = data;
   const canRollback = job.status === "completed" || job.status === "failed";
+  const canCancel = job.status === "pending" || job.status === "running";
 
   return (
     <SectionCard
