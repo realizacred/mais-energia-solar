@@ -638,8 +638,13 @@ Deno.serve(async (req) => {
               totalFunis++;
               const stages = f?.stages || f?.etapas || f?.steps || [];
               if (Array.isArray(stages)) totalEtapas += stages.length;
+              const fExtId = String(f?.id ?? "");
+              if (fExtId) {
+                try { await upsertRaw(state, "sm_funis_raw", fExtId, f ?? {}); }
+                catch (e) { await logEntry(state, "funil", "error", fExtId, null, (e as Error).message); }
+              }
               await logEntry(state, "funil", "skipped",
-                String(f?.id ?? ""), null,
+                fExtId, null,
                 `Funil "${f?.name ?? f?.nome ?? "?"}" — ${Array.isArray(stages) ? stages.length : 0} etapa(s)`);
             }
             if (items.length < 100) break;
@@ -713,6 +718,13 @@ Deno.serve(async (req) => {
           totalCampos = items.length;
           await logEntry(state, "custom_field", "skipped", null, null,
             `[endpoint] Campos customizados usando "${cfFound.path}" — ${totalCampos} item(s) lidos`);
+          for (const cf of items) {
+            const cfExtId = String(cf?.id ?? "");
+            if (cfExtId) {
+              try { await upsertRaw(state, "sm_custom_fields_raw", cfExtId, cf ?? {}); }
+              catch (e) { await logEntry(state, "custom_field", "error", cfExtId, null, (e as Error).message); }
+            }
+          }
           for (const cf of items.slice(0, 20)) {
             await logEntry(state, "custom_field", "skipped",
               String(cf?.id ?? ""), null,
@@ -777,92 +789,22 @@ Deno.serve(async (req) => {
       );
     }
 
-    // ---- cleanup-imported (apaga dados com external_source='solarmarket' do tenant) ----
+    // ---- cleanup-imported (BLOQUEADO P0) ----
+    // Esta ação apagava dados nativos com external_source='solarmarket'.
+    // Bloqueada temporariamente: o domínio nativo não recebe mais SolarMarket
+    // (gravação foi redirecionada para sm_*_raw). A remediação dos 200 clientes
+    // contaminados pré-existentes acontecerá em fase posterior, deliberada.
     if (action === "cleanup-imported") {
-      const { data: isAdmin } = await adminClient.rpc("has_role", {
-        _user_id: userId,
-        _role: "admin",
-      });
-      const { data: isSuper } = await adminClient.rpc("has_role", {
-        _user_id: userId,
-        _role: "super_admin",
-      });
-      if (!isAdmin && !isSuper) {
-        return new Response(
-          JSON.stringify({ error: "Apenas administradores podem limpar dados importados." }),
-          { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-        );
-      }
-
-      const { data: activeJobs } = await adminClient
-        .from("solarmarket_import_jobs")
-        .select("id")
-        .eq("tenant_id", tenantId)
-        .in("status", ["pending", "running"]);
-      if (activeJobs && activeJobs.length > 0) {
-        return new Response(
-          JSON.stringify({
-            error: "Existe uma importação em andamento. Cancele-a antes de limpar os dados.",
-            active_jobs: activeJobs.length,
-          }),
-          { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-        );
-      }
-
-      const result = { propostas: 0, projetos: 0, clientes: 0, logs: 0, jobs: 0 };
-
-      // RB-58: usar .select() para confirmar linhas afetadas (count em supabase-js v2 não funciona em DELETE direto)
-      const delPropostas = await adminClient
-        .from("propostas_nativas")
-        .delete()
-        .eq("tenant_id", tenantId)
-        .eq("external_source", EXTERNAL_SOURCE)
-        .select("id");
-      if (delPropostas.error) throw new Error(`propostas: ${delPropostas.error.message}`);
-      result.propostas = delPropostas.data?.length ?? 0;
-
-      const delProjetos = await adminClient
-        .from("projetos")
-        .delete()
-        .eq("tenant_id", tenantId)
-        .eq("external_source", EXTERNAL_SOURCE)
-        .select("id");
-      if (delProjetos.error) throw new Error(`projetos: ${delProjetos.error.message}`);
-      result.projetos = delProjetos.data?.length ?? 0;
-
-      const delClientes = await adminClient
-        .from("clientes")
-        .delete()
-        .eq("tenant_id", tenantId)
-        .eq("external_source", EXTERNAL_SOURCE)
-        .select("id");
-      if (delClientes.error) throw new Error(`clientes: ${delClientes.error.message}`);
-      result.clientes = delClientes.data?.length ?? 0;
-
-      const delLogs = await adminClient
-        .from("solarmarket_import_logs")
-        .delete()
-        .eq("tenant_id", tenantId)
-        .select("id");
-      if (delLogs.error) throw new Error(`logs: ${delLogs.error.message}`);
-      result.logs = delLogs.data?.length ?? 0;
-
-      const delJobs = await adminClient
-        .from("solarmarket_import_jobs")
-        .delete()
-        .eq("tenant_id", tenantId)
-        .in("status", ["success", "error", "cancelled", "partial"])
-        .select("id");
-      if (delJobs.error) throw new Error(`jobs: ${delJobs.error.message}`);
-      result.jobs = delJobs.data?.length ?? 0;
-
-      console.error("[solarmarket-import] cleanup-imported", {
-        tenant: tenantId, by: userId, ...result,
-      });
-
+      console.error("[solarmarket-import] cleanup-imported BLOQUEADO P0 (contenção arquitetural)");
       return new Response(
-        JSON.stringify({ ok: true, removed: result }),
-        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        JSON.stringify({
+          error: "Ação desabilitada temporariamente (P0 — contenção arquitetural).",
+          code: "p0_blocked",
+          detail:
+            "A limpeza do domínio nativo está suspensa. O SolarMarket agora grava apenas em sm_*_raw. " +
+            "Os 200 clientes pré-existentes em public.clientes foram preservados (cópia em sm_clientes_raw) e serão tratados em fase posterior.",
+        }),
+        { status: 410, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
 
