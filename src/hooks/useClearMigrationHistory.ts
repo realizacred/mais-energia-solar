@@ -2,19 +2,25 @@
  * useClearMigrationHistory — Limpa o histórico de jobs de migração.
  */
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { invokeEdgeFunction } from "@/lib/edgeFunctionAuth";
+import { parseInvokeError } from "@/lib/supabaseFunctionError";
 import { toast } from "@/hooks/use-toast";
 
 export function useClearMigrationHistory() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (scope: "finished" | "all" = "finished") => {
-      const { data, error } = await supabase.functions.invoke("migration-clear-history", {
-        body: { scope },
-      });
-      if (error) throw new Error(error.message);
-      if (data?.error) throw new Error(data.error);
-      return data as { deleted_jobs: number; deleted_steps: number };
+      try {
+        const data = await invokeEdgeFunction<{ deleted_jobs: number; deleted_steps: number; error?: string }>(
+          "migration-clear-history",
+          { body: { scope } },
+        );
+        if (data?.error) throw new Error(data.error);
+        return data;
+      } catch (error) {
+        const parsed = await parseInvokeError(error);
+        throw new Error(parsed.message);
+      }
     },
     onSuccess: (data) => {
       toast({
