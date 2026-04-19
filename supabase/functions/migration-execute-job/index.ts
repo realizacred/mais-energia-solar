@@ -339,94 +339,158 @@ function classifyByText(funilName: string | null, stageName: string | null): {
   return { category: "verificar_dados", reason: "no_match", confidence: 0.3 };
 }
 
+/**
+ * Garante que existem os pipelines canônicos (Comercial, Engenharia, Equipamento,
+ * Compensação, Verificar Dados) na tabela NATIVA `pipelines` (name/kind=process)
+ * com pelo menos uma etapa em `pipeline_stages` (name/position/pipeline_id).
+ *
+ * Mantém o shape `{ funil_id, etapa_id }` para preservar todos os callers existentes.
+ * funil_id  = pipelines.id
+ * etapa_id  = pipeline_stages.id (primeira etapa por position)
+ */
 async function ensureCanonicalFunis(admin: SupabaseClient, tenant_id: string) {
   const cats = ["comercial", "engenharia", "equipamento", "compensacao", "verificar_dados"];
   const map: Record<string, { funil_id: string; etapa_id: string }> = {};
 
   for (const cat of cats) {
     const nome = cat === "verificar_dados" ? "Verificar Dados" : capitalize(cat);
-    let { data: funil } = await admin
-      .from("projeto_funis")
+
+    let { data: pipe } = await admin
+      .from("pipelines")
       .select("id")
       .eq("tenant_id", tenant_id)
-      .ilike("nome", nome)
+      .ilike("name", nome)
       .maybeSingle();
 
-    if (!funil) {
-      const { data: created } = await admin
-        .from("projeto_funis")
-        .insert({ tenant_id, nome, ativo: true })
+    if (!pipe) {
+      const { data: created, error } = await admin
+        .from("pipelines")
+        .insert({ tenant_id, name: nome, kind: "process", is_active: true })
         .select("id")
         .single();
-      funil = created;
+      if (error) throw error;
+      pipe = created;
     }
 
-    let { data: etapa } = await admin
-      .from("projeto_etapas")
+    let { data: stage } = await admin
+      .from("pipeline_stages")
       .select("id")
       .eq("tenant_id", tenant_id)
-      .eq("funil_id", funil!.id)
-      .order("ordem", { ascending: true })
+      .eq("pipeline_id", pipe!.id)
+      .order("position", { ascending: true })
       .limit(1)
       .maybeSingle();
 
-    if (!etapa) {
-      const { data: createdEtapa } = await admin
-        .from("projeto_etapas")
-        .insert({ tenant_id, funil_id: funil!.id, nome: "Novo", ordem: 1 })
+    if (!stage) {
+      const { data: createdStage, error } = await admin
+        .from("pipeline_stages")
+        .insert({ tenant_id, pipeline_id: pipe!.id, name: "Novo", position: 0 })
         .select("id")
         .single();
-      etapa = createdEtapa;
+      if (error) throw error;
+      stage = createdStage;
     }
 
-    map[cat] = { funil_id: funil!.id, etapa_id: etapa!.id };
+    map[cat] = { funil_id: pipe!.id, etapa_id: stage!.id };
   }
   return map;
 }
 
 /**
  * Item 2 — Etapa equivalente por nome no pipeline Comercial.
- * Procura etapa com mesmo nome (case-insensitive) dentro do funil Comercial.
- * Se não existir, cria a etapa preservando o nome do SM (sem fallback silencioso).
+ * Procura etapa com mesmo nome (case-insensitive) dentro do pipeline Comercial.
+ * Se não existir, cria preservando o nome do SM.
  * Retorna null se stageName for vazio (caller usa etapa default do canonical).
  */
 async function resolveComercialEtapaByName(
   admin: SupabaseClient,
   tenant_id: string,
-  comercialFunilId: string,
+  comercialPipelineId: string,
   stageName: string | null,
 ): Promise<string | null> {
   const nome = (stageName ?? "").trim();
   if (!nome) return null;
 
   const { data: existing } = await admin
-    .from("projeto_etapas")
+    .from("pipeline_stages")
     .select("id")
     .eq("tenant_id", tenant_id)
-    .eq("funil_id", comercialFunilId)
-    .ilike("nome", nome)
+    .eq("pipeline_id", comercialPipelineId)
+    .ilike("name", nome)
     .maybeSingle();
 
   if (existing) return (existing as any).id;
 
-  // Cria etapa equivalente — nunca silencioso, motivo registrado em classification_reason
-  const { data: maxOrdem } = await admin
-    .from("projeto_etapas")
-    .select("ordem")
+  // Cria etapa equivalente — preserva nome do SM
+  const { data: maxPos } = await admin
+    .from("pipeline_stages")
+    .select("position")
     .eq("tenant_id", tenant_id)
-    .eq("funil_id", comercialFunilId)
-    .order("ordem", { ascending: false })
+    .eq("pipeline_id", comercialPipelineId)
+    .order("position", { ascending: false })
     .limit(1)
     .maybeSingle();
-  const nextOrdem = ((maxOrdem as any)?.ordem ?? 0) + 1;
+  const nextPos = ((maxPos as any)?.position ?? -1) + 1;
 
   const { data: created, error } = await admin
-    .from("projeto_etapas")
-    .insert({ tenant_id, funil_id: comercialFunilId, nome, ordem: nextOrdem })
+    .from("pipeline_stages")
+    .insert({ tenant_id, pipeline_id: comercialPipelineId, name: nome, position: nextPos })
     .select("id")
     .single();
   if (error) throw error;
   return (created as any).id;
+}
+
+/**
+ * Mapa canônico SM proposal.status → nome da etapa no pipeline Comercial nativo.
+ * Os 5 status reais do SolarMarket; outros viram null (caller mantém etapa default).
+ */
+const STATUS_TO_COMERCIAL_STAGE: Record<string, string> = {
+  created:   "Recebido",
+  generated: "Enviar Proposta",
+  sent:      "Proposta enviada",
+  viewed:    "Negociação",
+  approved:  "Fechado",
+};
+
+function comercialStageNameFromStatus(status: string | null | undefined): string | null {
+  if (!status) return null;
+  return STATUS_TO_COMERCIAL_STAGE[String(status).trim().toLowerCase()] ?? null;
+}
+
+/**
+ * Resolve consultor_id nativo a partir do nome do "vendedor" no SM
+ * (sm_stage_name quando sm_funnel_name = "Vendedores").
+ *
+ * Lê de sm_consultor_mapping (tenant-scoped). Match case-insensitive por sm_name
+ * exato OU por prefixo (ex: "Bruno Bandeira" casa com sm_name="Bruno").
+ * Retorna null se não houver mapeamento — caller decide se grava ou deixa nulo.
+ */
+async function resolveConsultorIdFromSmStage(
+  admin: SupabaseClient,
+  tenant_id: string,
+  smStageName: string | null,
+): Promise<string | null> {
+  const raw = (smStageName ?? "").trim();
+  if (!raw) return null;
+
+  const { data: mappings } = await admin
+    .from("sm_consultor_mapping")
+    .select("sm_name, consultor_id")
+    .eq("tenant_id", tenant_id);
+
+  if (!mappings || mappings.length === 0) return null;
+
+  const lower = raw.toLowerCase();
+  // 1) match exato (case-insensitive)
+  const exact = (mappings as any[]).find((m) => String(m.sm_name).trim().toLowerCase() === lower);
+  if (exact?.consultor_id) return exact.consultor_id as string;
+  // 2) prefixo (sm_name é prefixo de smStageName ou vice-versa)
+  const prefix = (mappings as any[]).find((m) => {
+    const name = String(m.sm_name).trim().toLowerCase();
+    return lower.startsWith(name) || name.startsWith(lower);
+  });
+  return prefix?.consultor_id ?? null;
 }
 
 function capitalize(s: string) {
@@ -1036,16 +1100,22 @@ async function resolveOrCreateProjetoFromProposal(
   if (bySyntheticCode) return (bySyntheticCode as any).id;
 
   // (4) classificação + insert
-  let cls: { funil_id: string; etapa_id: string } | null = null;
+  // Lê dados do projeto SM para descobrir funil/vendedor de origem
+  let smFunnelName: string | null = null;
+  let smStageName: string | null = null;
   if (sm_project_id) {
     const { data: smProj } = await admin
       .from("solar_market_projects")
       .select("sm_funnel_name, sm_stage_name")
       .eq("tenant_id", tenant_id).eq("sm_project_id", sm_project_id).maybeSingle();
+    smFunnelName = (smProj as any)?.sm_funnel_name ?? null;
+    smStageName  = (smProj as any)?.sm_stage_name ?? null;
+  }
+
+  let cls: { funil_id: string; etapa_id: string } | null = null;
+  if (sm_project_id) {
     cls = await ensureClassification(
-      admin, tenant_id, sm_project_id, canonical,
-      (smProj as any)?.sm_funnel_name ?? null,
-      (smProj as any)?.sm_stage_name ?? null,
+      admin, tenant_id, sm_project_id, canonical, smFunnelName, smStageName,
     );
   }
   // Sem sm_project_id ou lead_ignored → Comercial default
@@ -1054,12 +1124,32 @@ async function resolveOrCreateProjetoFromProposal(
     cls = { funil_id: target.funil_id, etapa_id: target.etapa_id };
   }
 
+  // REGRA CANÔNICA: funil "Vendedores" no SM → pipeline Comercial nativo,
+  // etapa determinada pelo STATUS da proposta (não pelo nome do vendedor),
+  // e o "vendedor" (sm_stage_name) vira o consultor responsável.
+  let consultor_id: string | null = null;
+  const isVendedoresFunnel = /vended/i.test(String(smFunnelName ?? ""));
+  if (isVendedoresFunnel) {
+    const comercial = canonical["comercial"];
+    cls = { funil_id: comercial.funil_id, etapa_id: comercial.etapa_id };
+
+    const stageNameByStatus = comercialStageNameFromStatus(pr.status);
+    if (stageNameByStatus) {
+      const resolved = await resolveComercialEtapaByName(
+        admin, tenant_id, comercial.funil_id, stageNameByStatus,
+      );
+      if (resolved) cls.etapa_id = resolved;
+    }
+    consultor_id = await resolveConsultorIdFromSmStage(admin, tenant_id, smStageName);
+  }
+
   return await insertProjeto(admin, tenant_id, {
     cliente_id,
     funil_id: cls.funil_id,
     etapa_id: cls.etapa_id,
     sm_project_id: sm_project_id ?? null,
     codigo: syntheticCode,
+    consultor_id,
   });
 }
 
@@ -1067,19 +1157,22 @@ async function resolveOrCreateProjetoFromProposal(
 async function insertProjeto(
   admin: SupabaseClient,
   tenant_id: string,
-  payload: { cliente_id: string; funil_id: string; etapa_id: string; sm_project_id: number | null; codigo: string },
+  payload: { cliente_id: string; funil_id: string; etapa_id: string; sm_project_id: number | null; codigo: string; consultor_id?: string | null },
 ): Promise<string> {
+  const insertRow: Record<string, any> = {
+    tenant_id,
+    cliente_id: payload.cliente_id,
+    funil_id: payload.funil_id,
+    etapa_id: payload.etapa_id,
+    sm_project_id: payload.sm_project_id,
+    codigo: payload.codigo,
+    import_source: "solar_market",
+  };
+  if (payload.consultor_id) insertRow.consultor_id = payload.consultor_id;
+
   const { data: inserted, error } = await admin
     .from("projetos")
-    .insert({
-      tenant_id,
-      cliente_id: payload.cliente_id,
-      funil_id: payload.funil_id,
-      etapa_id: payload.etapa_id,
-      sm_project_id: payload.sm_project_id,
-      codigo: payload.codigo,
-      import_source: "solar_market",
-    })
+    .insert(insertRow)
     .select("id").single();
   if (error) {
     const errAny = error as any;
