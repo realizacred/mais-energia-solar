@@ -22,6 +22,8 @@ const corsHeaders = {
 };
 
 type Counters = { migrated: number; skipped: number; failed: number };
+const DEFAULT_BATCH_SIZE = 200;
+const REQUEUE_BASE_URL = `${Deno.env.get("SUPABASE_URL")}/functions/v1`;
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
@@ -42,6 +44,12 @@ Deno.serve(async (req) => {
 
     const body = await req.json().catch(() => ({}));
     const job_id = String(body?.job_id ?? "");
+    const requestedOffset = Number(body?.offset ?? 0);
+    const offset = Number.isFinite(requestedOffset) && requestedOffset > 0 ? Math.floor(requestedOffset) : 0;
+    const requestedBatchSize = Number(body?.batch_size ?? DEFAULT_BATCH_SIZE);
+    const batchSize = Number.isFinite(requestedBatchSize) && requestedBatchSize > 0
+      ? Math.min(Math.floor(requestedBatchSize), 500)
+      : DEFAULT_BATCH_SIZE;
     if (!job_id) return json({ error: "job_id required" }, 400);
 
     const { data: job } = await admin
@@ -50,40 +58,75 @@ Deno.serve(async (req) => {
       .eq("id", job_id)
       .single();
     if (!job) return json({ error: "Job not found" }, 404);
-    if (job.status === "running") {
+    if (job.status === "running" && offset === 0) {
       return json({ error: "Job already running" }, 409);
     }
 
-    await admin
-      .from("migration_jobs")
-      .update({ status: "running", started_at: new Date().toISOString() })
-      .eq("id", job_id);
+    if (offset === 0) {
+      await admin
+        .from("migration_jobs")
+        .update({
+          status: "running",
+          started_at: new Date().toISOString(),
+          completed_at: null,
+          error_message: null,
+          metadata: {
+            ...(job.metadata ?? {}),
+            progress: { offset: 0, batch_size: batchSize, has_more: false },
+          },
+        })
+        .eq("id", job_id);
+    }
 
     const tenant_id = job.tenant_id as string;
     const allCounters: Record<string, Counters> = {};
+    let hasMore = false;
+    let nextOffset: number | null = null;
 
     try {
       switch (job.job_type) {
         case "classify_projects":
-          allCounters.classify = await classifyProjects(admin, tenant_id, job_id);
+          ({ counters: allCounters.classify, hasMore, nextOffset } = await classifyProjects(admin, tenant_id, job_id, offset, batchSize));
           break;
         case "migrate_clients":
-          allCounters.clients = await migrateClients(admin, tenant_id, job_id);
+          ({ counters: allCounters.clients, hasMore, nextOffset } = await migrateClients(admin, tenant_id, job_id, offset, batchSize));
           break;
         case "migrate_projects":
-          allCounters.projects = await migrateProjects(admin, tenant_id, job_id);
+          ({ counters: allCounters.projects, hasMore, nextOffset } = await migrateProjects(admin, tenant_id, job_id, offset, batchSize));
           break;
         case "migrate_proposals":
-          allCounters.proposals = await migrateProposals(admin, tenant_id, job_id);
+          ({ counters: allCounters.proposals, hasMore, nextOffset } = await migrateProposals(admin, tenant_id, job_id, offset, batchSize));
           break;
         case "full_migration":
-          allCounters.classify = await classifyProjects(admin, tenant_id, job_id);
-          allCounters.clients = await migrateClients(admin, tenant_id, job_id);
-          allCounters.projects = await migrateProjects(admin, tenant_id, job_id);
-          allCounters.proposals = await migrateProposals(admin, tenant_id, job_id);
+          ({ counters: allCounters.classify, hasMore, nextOffset } = await classifyProjects(admin, tenant_id, job_id, offset, batchSize));
+          if (!hasMore && nextOffset === null) {
+            ({ counters: allCounters.clients, hasMore, nextOffset } = await migrateClients(admin, tenant_id, job_id, 0, batchSize));
+          }
+          if (!hasMore && nextOffset === null) {
+            ({ counters: allCounters.projects, hasMore, nextOffset } = await migrateProjects(admin, tenant_id, job_id, 0, batchSize));
+          }
+          if (!hasMore && nextOffset === null) {
+            ({ counters: allCounters.proposals, hasMore, nextOffset } = await migrateProposals(admin, tenant_id, job_id, 0, batchSize));
+          }
           break;
         default:
           throw new Error(`Unsupported job_type: ${job.job_type}`);
+      }
+
+      if (hasMore && nextOffset !== null) {
+        await admin
+          .from("migration_jobs")
+          .update({
+            metadata: {
+              ...(job.metadata ?? {}),
+              counters: { ...(job.metadata?.counters ?? {}), ...allCounters },
+              progress: { offset: nextOffset, batch_size: batchSize, has_more: true },
+            },
+          })
+          .eq("id", job_id);
+
+        EdgeRuntime.waitUntil(requeueJob(job_id, auth, nextOffset, batchSize));
+        return json({ status: "running", counters: allCounters, next_offset: nextOffset }, 202);
       }
 
       await admin
@@ -91,7 +134,11 @@ Deno.serve(async (req) => {
         .update({
           status: "completed",
           completed_at: new Date().toISOString(),
-          metadata: { ...(job.metadata ?? {}), counters: allCounters },
+          metadata: {
+            ...(job.metadata ?? {}),
+            counters: { ...(job.metadata?.counters ?? {}), ...allCounters },
+            progress: { offset: 0, batch_size: batchSize, has_more: false },
+          },
         })
         .eq("id", job_id);
 
