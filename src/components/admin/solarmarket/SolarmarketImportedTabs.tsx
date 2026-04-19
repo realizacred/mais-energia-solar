@@ -19,12 +19,11 @@ import {
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "@/hooks/use-toast";
 import {
   Users, FolderKanban, FileText, GitBranch, Settings2,
   ExternalLink, Database, Search,
 } from "lucide-react";
-import { useSolarmarketImport, type ImportScope } from "@/hooks/useSolarmarketImport";
+import { useSolarmarketImport } from "@/hooks/useSolarmarketImport";
 
 const PAGE_SIZE = 25;
 const STALE = 1000 * 60 * 5;
