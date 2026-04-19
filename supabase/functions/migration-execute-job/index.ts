@@ -355,7 +355,7 @@ async function migrateProjects(
 
   const { data: projects } = await admin
     .from("solar_market_projects")
-    .select("sm_project_id, sm_client_id, nome")
+    .select("sm_project_id, sm_client_id, name")
     .eq("tenant_id", tenant_id);
 
   for (const p of projects ?? []) {
@@ -415,7 +415,7 @@ async function migrateProjects(
             funil_id: cls.target_funil_id,
             etapa_id: cls.target_etapa_id,
             sm_project_id,
-            nome: (p as any).nome ?? `Projeto SM ${sm_project_id}`,
+            nome: (p as any).name ?? `Projeto SM ${sm_project_id}`,
             import_source: "solar_market",
           })
           .select("id")
