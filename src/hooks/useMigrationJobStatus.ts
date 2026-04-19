@@ -30,6 +30,8 @@ export interface MigrationStatusResponse {
     error_message: string | null;
     native_entity_id?: string | null;
   }>;
+  is_stalled?: boolean;
+  last_heartbeat_at?: string | null;
 }
 
 export function useMigrationJobStatus(jobId: string | null | undefined) {

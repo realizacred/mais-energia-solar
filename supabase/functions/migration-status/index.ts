@@ -84,6 +84,14 @@ Deno.serve(async (req) => {
       .order("created_at", { ascending: false })
       .limit(200);
 
+    // Stalled detection: running sem heartbeat há > 2 min
+    const STALL_MS = 2 * 60 * 1000;
+    const hb = (job as any)?.metadata?.last_heartbeat_at as string | undefined;
+    const lastBeat = hb ?? (job as any)?.started_at ?? null;
+    const isStalled = job.status === "running" && lastBeat
+      ? Date.now() - new Date(lastBeat).getTime() > STALL_MS
+      : false;
+
     return json(
       {
         job,
@@ -94,6 +102,8 @@ Deno.serve(async (req) => {
         progress,
         errors: errors ?? [],
         skipped: skipped ?? [],
+        is_stalled: isStalled,
+        last_heartbeat_at: lastBeat,
       },
       200,
     );
