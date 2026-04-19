@@ -876,9 +876,28 @@ async function migrateProjects(
           })
           .select("id")
           .single();
-        if (error) throw error;
-        nativeId = (inserted as any).id;
-        counters.migrated++;
+        if (error) {
+          const errAny = error as any;
+          const isDup = errAny?.code === "23505" || /duplicate key|unique constraint/i.test(String(errAny?.message ?? ""));
+          if (isDup) {
+            // Race em re-run: outro batch já criou. Re-busca por sm_project_id ou codigo.
+            const { data: dup } = await admin
+              .from("projetos")
+              .select("id")
+              .eq("tenant_id", tenant_id)
+              .or(`sm_project_id.eq.${sm_project_id},codigo.eq.SM-${sm_project_id}`)
+              .limit(1)
+              .maybeSingle();
+            if (!dup) throw error;
+            nativeId = (dup as any).id;
+            counters.skipped++;
+          } else {
+            throw error;
+          }
+        } else {
+          nativeId = (inserted as any).id;
+          counters.migrated++;
+        }
       }
 
       await recordOk(admin, job_id, tenant_id, "project", sm_project_id, nativeId);
