@@ -846,5 +846,5 @@ Adicionado: bug drag-and-drop (deal_id vs projetos.id) — documentado
 para evitar regressão futura.
 Adicionado: estado global mutável em Edge Functions — documentado.
 =============================================================================
-FIM DO AGENTS.md v3.13
+FIM DO AGENTS.md  v3.13
 ===================================
