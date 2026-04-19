@@ -132,7 +132,18 @@ Deno.serve(async (req) => {
           error_message: null,
           metadata: {
             ...(job.metadata ?? {}),
-            progress: { offset: 0, batch_size: batchSize, has_more: false },
+            last_heartbeat_at: new Date().toISOString(),
+            progress: { offset: 0, batch_size: batchSize, has_more: false, stage: stageFromBody || null },
+          },
+        })
+        .eq("id", job_id);
+    } else {
+      await admin
+        .from("migration_jobs")
+        .update({
+          metadata: {
+            ...(job.metadata ?? {}),
+            last_heartbeat_at: new Date().toISOString(),
           },
         })
         .eq("id", job_id);
@@ -180,19 +191,23 @@ Deno.serve(async (req) => {
           throw new Error(`Unsupported job_type: ${job.job_type}`);
       }
 
+      // Requeue interno usa service_role (não depende do JWT do usuário)
+      const requeueAuth = `Bearer ${SERVICE_ROLE}`;
+
       if (hasMore && nextOffset !== null) {
         await admin
           .from("migration_jobs")
           .update({
             metadata: {
               ...(job.metadata ?? {}),
+              last_heartbeat_at: new Date().toISOString(),
               counters: { ...(job.metadata?.counters ?? {}), ...allCounters },
               progress: { offset: nextOffset, batch_size: batchSize, has_more: true, stage: nextStage },
             },
           })
           .eq("id", job_id);
 
-        runInBackground(requeueJob(job_id, auth, nextOffset, batchSize, nextStage));
+        runInBackground(requeueJob(job_id, requeueAuth, nextOffset, batchSize, nextStage));
         return json({ status: "running", counters: allCounters, next_offset: nextOffset }, 202);
       }
 
@@ -202,13 +217,14 @@ Deno.serve(async (req) => {
           .update({
             metadata: {
               ...(job.metadata ?? {}),
+              last_heartbeat_at: new Date().toISOString(),
               counters: { ...(job.metadata?.counters ?? {}), ...allCounters },
               progress: { offset: 0, batch_size: batchSize, has_more: true, stage: nextStage },
             },
           })
           .eq("id", job_id);
 
-        runInBackground(requeueJob(job_id, auth, 0, batchSize, nextStage));
+        runInBackground(requeueJob(job_id, requeueAuth, 0, batchSize, nextStage));
         return json({ status: "running", counters: allCounters, next_stage: nextStage }, 202);
       }
 
@@ -219,6 +235,7 @@ Deno.serve(async (req) => {
           completed_at: new Date().toISOString(),
           metadata: {
             ...(job.metadata ?? {}),
+            last_heartbeat_at: new Date().toISOString(),
             counters: { ...(job.metadata?.counters ?? {}), ...allCounters },
             progress: { offset: 0, batch_size: batchSize, has_more: false },
           },
