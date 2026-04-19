@@ -144,7 +144,7 @@ Deno.serve(async (req) => {
           })
           .eq("id", job_id);
 
-        EdgeRuntime.waitUntil(requeueJob(job_id, auth, nextOffset, batchSize, nextStage));
+        runInBackground(requeueJob(job_id, auth, nextOffset, batchSize, nextStage));
         return json({ status: "running", counters: allCounters, next_offset: nextOffset }, 202);
       }
 
@@ -160,7 +160,7 @@ Deno.serve(async (req) => {
           })
           .eq("id", job_id);
 
-        EdgeRuntime.waitUntil(requeueJob(job_id, auth, 0, batchSize, nextStage));
+        runInBackground(requeueJob(job_id, auth, 0, batchSize, nextStage));
         return json({ status: "running", counters: allCounters, next_stage: nextStage }, 202);
       }
 
