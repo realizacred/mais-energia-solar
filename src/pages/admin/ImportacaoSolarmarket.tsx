@@ -11,7 +11,7 @@ import { useSolarmarketImport, type ImportScope } from "@/hooks/useSolarmarketIm
 import { useSolarmarketConfig } from "@/hooks/useSolarmarketConfig";
 import { toast } from "@/hooks/use-toast";
 import {
-  Cloud, CheckCircle2, XCircle, Loader2, Download, Plug, Settings, AlertTriangle,
+  Cloud, CheckCircle2, XCircle, Loader2, Download, Plug, Settings, AlertTriangle, Ban,
 } from "lucide-react";
 
 const formatBR = (iso: string | null) =>
