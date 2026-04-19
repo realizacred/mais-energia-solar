@@ -35,7 +35,7 @@ Deno.serve(async (req) => {
     const job_id = String(body?.job_id ?? "");
     if (!job_id) return json({ error: "job_id required" }, 400);
 
-    const { data: job, error } = await admin
+    let { data: job, error } = await admin
       .from("migration_jobs")
       .select("*")
       .eq("id", job_id)
@@ -61,6 +61,35 @@ Deno.serve(async (req) => {
     const total = Object.values(counters).reduce((a, b) => a + b, 0);
     const done = counters.migrated + counters.skipped + counters.failed;
     const progress = total > 0 ? Math.round((done / total) * 100) : 0;
+
+    const shouldAutoComplete =
+      job.status === "running" &&
+      counters.pending === 0 &&
+      counters.processing === 0 &&
+      job?.metadata?.progress?.has_more === false;
+
+    if (shouldAutoComplete) {
+      const { data: healedJob, error: healError } = await admin
+        .from("migration_jobs")
+        .update({
+          status: "completed",
+          completed_at: job.completed_at ?? new Date().toISOString(),
+          metadata: {
+            ...(job.metadata ?? {}),
+            progress: {
+              ...(job.metadata?.progress ?? {}),
+              has_more: false,
+            },
+          },
+        })
+        .eq("id", job_id)
+        .select("*")
+        .single();
+
+      if (!healError && healedJob) {
+        job = healedJob;
+      }
+    }
 
     // Erros recentes
     const { data: errors } = await admin
