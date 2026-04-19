@@ -20248,6 +20248,171 @@ export type Database = {
         }
         Relationships: []
       }
+      sm_clientes_raw: {
+        Row: {
+          created_at: string
+          external_id: string
+          id: string
+          import_job_id: string | null
+          imported_at: string
+          payload: Json
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          external_id: string
+          id?: string
+          import_job_id?: string | null
+          imported_at?: string
+          payload?: Json
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          external_id?: string
+          id?: string
+          import_job_id?: string | null
+          imported_at?: string
+          payload?: Json
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      sm_custom_fields_raw: {
+        Row: {
+          created_at: string
+          external_id: string
+          id: string
+          import_job_id: string | null
+          imported_at: string
+          payload: Json
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          external_id: string
+          id?: string
+          import_job_id?: string | null
+          imported_at?: string
+          payload?: Json
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          external_id?: string
+          id?: string
+          import_job_id?: string | null
+          imported_at?: string
+          payload?: Json
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      sm_funis_raw: {
+        Row: {
+          created_at: string
+          external_id: string
+          id: string
+          import_job_id: string | null
+          imported_at: string
+          payload: Json
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          external_id: string
+          id?: string
+          import_job_id?: string | null
+          imported_at?: string
+          payload?: Json
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          external_id?: string
+          id?: string
+          import_job_id?: string | null
+          imported_at?: string
+          payload?: Json
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      sm_projetos_raw: {
+        Row: {
+          created_at: string
+          external_id: string
+          id: string
+          import_job_id: string | null
+          imported_at: string
+          payload: Json
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          external_id: string
+          id?: string
+          import_job_id?: string | null
+          imported_at?: string
+          payload?: Json
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          external_id?: string
+          id?: string
+          import_job_id?: string | null
+          imported_at?: string
+          payload?: Json
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      sm_propostas_raw: {
+        Row: {
+          created_at: string
+          external_id: string
+          id: string
+          import_job_id: string | null
+          imported_at: string
+          payload: Json
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          external_id: string
+          id?: string
+          import_job_id?: string | null
+          imported_at?: string
+          payload?: Json
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          external_id?: string
+          id?: string
+          import_job_id?: string | null
+          imported_at?: string
+          payload?: Json
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       smtp_settings: {
         Row: {
           created_at: string
