@@ -266,10 +266,23 @@ function pickArray(body: any): any[] {
 async function tryPaths(
   state: RequestState,
   candidates: string[],
+  entityKey?: string,
 ): Promise<{ path: string; body: any } | null> {
+  const attempts: string[] = [];
   for (const p of candidates) {
     const r = await smGet(state, p, { limit: 1 });
-    if (r.ok) return { path: p, body: r.body };
+    attempts.push(`${p}→${r.status}`);
+    if (r.ok) {
+      if (entityKey) {
+        await logEntry(state, entityKey, "skipped", null, null,
+          `[probe] Endpoints testados: ${attempts.join(", ")}. Selecionado: ${p}`);
+      }
+      return { path: p, body: r.body };
+    }
+  }
+  if (entityKey) {
+    await logEntry(state, entityKey, "error", null, null,
+      `[probe] Nenhum endpoint respondeu OK. Tentativas: ${attempts.join(", ")}`);
   }
   return null;
 }
@@ -306,7 +319,7 @@ async function importEntity(
     `[start] Buscando endpoint para ${entityKey}. Candidatos: ${candidatePaths.join(", ")}`,
   );
 
-  const found = await tryPaths(state, candidatePaths);
+  const found = await tryPaths(state, candidatePaths, entityKey);
   if (!found) {
     await logEntry(
       state,
@@ -690,7 +703,7 @@ Deno.serve(async (req) => {
         await updateJob(state, { current_step: "funis", progress_pct: 5, updated_at: new Date().toISOString() });
 
         // Tenta endpoints comuns de pipelines/funnels
-        const funisFound = await tryPaths(state, ["/pipelines", "/funnels", "/funis"]);
+        const funisFound = await tryPaths(state, ["/pipelines", "/funnels", "/funis"], "funil");
         if (!funisFound) {
           await logEntry(state, "funil", "error", null, null,
             "Nenhum endpoint de funis respondeu (testados: /pipelines, /funnels, /funis). Verifique a documentação da sua conta SolarMarket e atualize a função.");
@@ -776,7 +789,7 @@ Deno.serve(async (req) => {
         if (await checkCancel()) return new Response(JSON.stringify({ ok: false, cancelled: true }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
         await updateJob(state, { current_step: "custom_fields", progress_pct: 95, updated_at: new Date().toISOString() });
 
-        const cfFound = await tryPaths(state, ["/custom-fields", "/customFields", "/campos-customizados"]);
+        const cfFound = await tryPaths(state, ["/custom-fields", "/customFields", "/campos-customizados"], "custom_field");
         if (!cfFound) {
           await logEntry(state, "custom_field", "error", null, null,
             "Nenhum endpoint de campos customizados respondeu (testados: /custom-fields, /customFields, /campos-customizados).");
@@ -884,44 +897,50 @@ Deno.serve(async (req) => {
 
       const result = { propostas: 0, projetos: 0, clientes: 0, logs: 0, jobs: 0 };
 
+      // RB-58: usar .select() para confirmar linhas afetadas (count em supabase-js v2 não funciona em DELETE direto)
       const delPropostas = await adminClient
         .from("propostas_nativas")
-        .delete({ count: "exact" })
+        .delete()
         .eq("tenant_id", tenantId)
-        .eq("external_source", EXTERNAL_SOURCE);
+        .eq("external_source", EXTERNAL_SOURCE)
+        .select("id");
       if (delPropostas.error) throw new Error(`propostas: ${delPropostas.error.message}`);
-      result.propostas = delPropostas.count ?? 0;
+      result.propostas = delPropostas.data?.length ?? 0;
 
       const delProjetos = await adminClient
         .from("projetos")
-        .delete({ count: "exact" })
+        .delete()
         .eq("tenant_id", tenantId)
-        .eq("external_source", EXTERNAL_SOURCE);
+        .eq("external_source", EXTERNAL_SOURCE)
+        .select("id");
       if (delProjetos.error) throw new Error(`projetos: ${delProjetos.error.message}`);
-      result.projetos = delProjetos.count ?? 0;
+      result.projetos = delProjetos.data?.length ?? 0;
 
       const delClientes = await adminClient
         .from("clientes")
-        .delete({ count: "exact" })
+        .delete()
         .eq("tenant_id", tenantId)
-        .eq("external_source", EXTERNAL_SOURCE);
+        .eq("external_source", EXTERNAL_SOURCE)
+        .select("id");
       if (delClientes.error) throw new Error(`clientes: ${delClientes.error.message}`);
-      result.clientes = delClientes.count ?? 0;
+      result.clientes = delClientes.data?.length ?? 0;
 
       const delLogs = await adminClient
         .from("solarmarket_import_logs")
-        .delete({ count: "exact" })
-        .eq("tenant_id", tenantId);
+        .delete()
+        .eq("tenant_id", tenantId)
+        .select("id");
       if (delLogs.error) throw new Error(`logs: ${delLogs.error.message}`);
-      result.logs = delLogs.count ?? 0;
+      result.logs = delLogs.data?.length ?? 0;
 
       const delJobs = await adminClient
         .from("solarmarket_import_jobs")
-        .delete({ count: "exact" })
+        .delete()
         .eq("tenant_id", tenantId)
-        .in("status", ["success", "error", "cancelled", "partial"]);
+        .in("status", ["success", "error", "cancelled", "partial"])
+        .select("id");
       if (delJobs.error) throw new Error(`jobs: ${delJobs.error.message}`);
-      result.jobs = delJobs.count ?? 0;
+      result.jobs = delJobs.data?.length ?? 0;
 
       console.error("[solarmarket-import] cleanup-imported", {
         tenant: tenantId, by: userId, ...result,
