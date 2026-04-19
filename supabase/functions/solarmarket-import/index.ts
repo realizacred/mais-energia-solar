@@ -747,25 +747,45 @@ Deno.serve(async (req) => {
                  ((data as any)?.total_propostas ?? 0);
         })());
 
-      const finalStatus = totalErrors > 0
-        ? "partial"
-        : totalImportado === 0
-          ? "partial"
-          : "success";
+      // RB-58: respeitar cancelamento externo — não sobrescrever para success
+      const wasCancelled = await isJobCancelled(state);
 
-      if (totalImportado === 0 && totalErrors === 0) {
+      const finalStatus = wasCancelled
+        ? "cancelled"
+        : totalErrors > 0
+          ? "partial"
+          : totalImportado === 0
+            ? "partial"
+            : "success";
+
+      if (!wasCancelled && totalImportado === 0 && totalErrors === 0) {
         await logEntry(state, "job", "skipped", null, null,
           "[warning] Nenhum dado foi importado. Verifique se a integração está apontando para o ambiente correto e se há dados na conta SolarMarket.");
       }
 
-      await updateJob(state, {
-        status: finalStatus,
-        current_step: "done",
-        progress_pct: 100,
-        total_errors: totalErrors,
-        finished_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      });
+      // RB-58: UPDATE condicional — só fecha jobs que ainda estão running
+      const { data: updRows } = await adminClient
+        .from("solarmarket_import_jobs")
+        .update({
+          status: finalStatus,
+          current_step: wasCancelled ? "cancelled" : "done",
+          ...(wasCancelled ? {} : { progress_pct: 100 }),
+          total_errors: totalErrors,
+          finished_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          ...(wasCancelled
+            ? { error_message: "Cancelado manualmente pelo usuário durante a importação." }
+            : {}),
+        })
+        .eq("id", state.jobId!)
+        .in("status", ["running", "pending"])
+        .select("id");
+
+      if (!updRows || updRows.length === 0) {
+        // Job já estava em estado terminal (cancelled pelo hook) — preservar
+        await logEntry(state, "job", "skipped", null, null,
+          `[finalize] Job já estava em estado terminal — status preservado. importado=${totalImportado}, errors=${totalErrors}`);
+      }
 
       // Atualiza last_sync_at na config
       if (state.configId) {
