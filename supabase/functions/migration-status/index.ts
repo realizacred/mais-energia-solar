@@ -100,7 +100,19 @@ Deno.serve(async (req) => {
       .order("created_at", { ascending: false })
       .limit(20);
 
-    return json({ job, counters, total, progress, errors: errors ?? [] }, 200);
+    // Pulados recentes (com motivo) — para a UI mostrar por que foi skipped
+    const { data: skipped } = await admin
+      .from("migration_records")
+      .select("entity_type, sm_entity_id, error_message, native_entity_id")
+      .eq("job_id", job_id)
+      .eq("status", "skipped")
+      .order("created_at", { ascending: false })
+      .limit(200);
+
+    return json(
+      { job, counters, total, progress, errors: errors ?? [], skipped: skipped ?? [] },
+      200,
+    );
   } catch (e) {
     return json({ error: (e as Error).message }, 500);
   }
