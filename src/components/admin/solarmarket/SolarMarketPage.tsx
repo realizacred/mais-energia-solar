@@ -589,6 +589,7 @@ export default function SolarMarketPage() {
   const pendingMigrationTotal = ssotPendingProposals + pendingProjectsNoProposal.length;
 
   
+  const qcBackfill = useQueryClient();
   const [syncPipelinesRunning, setSyncPipelinesRunning] = useState(false);
   const [syncPipelinesResult, setSyncPipelinesResult] = useState<{
     pipelines: { created: number; existing: number };
@@ -616,6 +617,7 @@ export default function SolarMarketPage() {
   const runSyncPipelines = useCallback(async () => {
     setSyncPipelinesRunning(true);
     setSyncPipelinesResult(null);
+    const tid = toast.loading("Sincronizando funis e etapas do SolarMarket...");
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.access_token) throw new Error("Sessão expirada");
@@ -643,14 +645,26 @@ export default function SolarMarketPage() {
       }
       const data = await response.json();
       if (data?.report) setSyncPipelinesResult(data.report);
+      const r = data?.report;
+      toast.success(
+        r
+          ? `Funis: ${r.pipelines?.created ?? 0} criados / ${r.pipelines?.existing ?? 0} existentes • Etapas: ${r.stages?.created ?? 0} criadas / ${r.stages?.existing ?? 0} existentes`
+          : "Funis e etapas sincronizados",
+        { id: tid }
+      );
+      qcBackfill.invalidateQueries({ queryKey: ["projeto-funis"] });
+      qcBackfill.invalidateQueries({ queryKey: ["sm-funnels"] });
+      qcBackfill.invalidateQueries({ queryKey: ["sm-funnel-stages"] });
       return data;
+    } catch (e: any) {
+      toast.error(`Falha ao sincronizar funis: ${e?.message || "erro desconhecido"}`, { id: tid });
+      throw e;
     } finally {
       setSyncPipelinesRunning(false);
     }
-  }, []);
+  }, [qcBackfill]);
 
   // Backfill: aloca projetos sem funil/etapa nas etapas corretas dos funis nativos
-  const qcBackfill = useQueryClient();
   const [backfillProjetosRunning, setBackfillProjetosRunning] = useState(false);
   const runBackfillProjetosFunil = useCallback(async () => {
     setBackfillProjetosRunning(true);
