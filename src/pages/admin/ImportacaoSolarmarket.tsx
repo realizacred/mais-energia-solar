@@ -165,22 +165,40 @@ export default function ImportacaoSolarmarket() {
             Conexão
           </CardTitle>
         </CardHeader>
-        <CardContent className="flex flex-wrap items-center gap-3">
-          <p className="text-sm text-muted-foreground flex-1 min-w-[200px]">
-            URL: <code className="text-xs bg-muted px-1 py-0.5 rounded">{config?.base_url || "—"}</code>
-          </p>
-          <Button
-            variant="outline"
-            onClick={handleTest}
-            disabled={!isConfigured || testConnection.isPending}
-          >
-            {testConnection.isPending ? (
-              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-            ) : (
-              <CheckCircle2 className="w-4 h-4 mr-2" />
-            )}
-            Testar conexão
-          </Button>
+        <CardContent className="space-y-3">
+          <div className="flex flex-wrap items-center gap-3">
+            <p className="text-sm text-muted-foreground flex-1 min-w-[200px]">
+              URL: <code className="text-xs bg-muted px-1 py-0.5 rounded">{config?.base_url || "—"}</code>
+            </p>
+            <Button
+              variant="outline"
+              onClick={handleTest}
+              disabled={!isConfigured || testConnection.isPending}
+            >
+              {testConnection.isPending ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <CheckCircle2 className="w-4 h-4 mr-2" />
+              )}
+              Testar conexão
+            </Button>
+          </div>
+          {testResult && (
+            <div
+              className={`flex items-start gap-2 p-3 rounded-md border text-sm ${
+                testResult.ok
+                  ? "bg-success/10 border-success/20 text-success"
+                  : "bg-destructive/10 border-destructive/20 text-destructive"
+              }`}
+            >
+              {testResult.ok ? (
+                <CheckCircle2 className="w-4 h-4 mt-0.5 shrink-0" />
+              ) : (
+                <XCircle className="w-4 h-4 mt-0.5 shrink-0" />
+              )}
+              <span>{testResult.message}</span>
+            </div>
+          )}
         </CardContent>
       </Card>
 
