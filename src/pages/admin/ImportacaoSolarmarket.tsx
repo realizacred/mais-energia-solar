@@ -94,11 +94,12 @@ export default function ImportacaoSolarmarket() {
   const toggle = (k: keyof ImportScope) =>
     setScope((s) => ({ ...s, [k]: !s[k] }));
 
-  const handleCancel = async () => {
-    if (!runningJob) return;
-    if (!confirm("Cancelar a importação em andamento?")) return;
+  const handleCancel = async (jobId?: string) => {
+    const id = jobId ?? runningJob?.id;
+    if (!id) return;
+    if (!confirm("Cancelar a importação em andamento? Isto marcará o job como cancelado.")) return;
     try {
-      await cancelImport.mutateAsync(runningJob.id);
+      await cancelImport.mutateAsync(id);
       toast({ title: "Importação cancelada" });
     } catch (e: any) {
       toast({
