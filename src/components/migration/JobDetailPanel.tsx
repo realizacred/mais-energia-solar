@@ -89,29 +89,55 @@ export function JobDetailPanel({ jobId }: Props) {
           </div>
         )}
 
-        {canRollback && (
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button variant="destructive" size="sm" disabled={rollback.isPending}>
-                {rollback.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <RotateCcw className="h-4 w-4 mr-2" />}
-                Reverter job
-              </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Reverter este job?</AlertDialogTitle>
-                <AlertDialogDescription>
-                  Todos os registros nativos criados por este job (clientes, projetos e propostas) serão deletados.
-                  Esta operação não pode ser desfeita.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                <AlertDialogAction onClick={() => rollback.mutate(jobId)}>Confirmar rollback</AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
-        )}
+        <div className="flex flex-wrap gap-2">
+          {canCancel && (
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="outline" size="sm" disabled={cancel.isPending}>
+                  {cancel.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <StopCircle className="h-4 w-4 mr-2" />}
+                  Parar job
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Parar este job?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    O job será marcado como falho e o executor interromperá no próximo ciclo (~30s).
+                    Os registros já migrados permanecem; use "Reverter" depois se quiser desfazer.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Voltar</AlertDialogCancel>
+                  <AlertDialogAction onClick={() => cancel.mutate(jobId)}>Confirmar</AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          )}
+
+          {canRollback && (
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="destructive" size="sm" disabled={rollback.isPending}>
+                  {rollback.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <RotateCcw className="h-4 w-4 mr-2" />}
+                  Reverter job
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Reverter este job?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Todos os registros nativos criados por este job (clientes, projetos e propostas) serão deletados.
+                    Esta operação não pode ser desfeita.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                  <AlertDialogAction onClick={() => rollback.mutate(jobId)}>Confirmar rollback</AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          )}
+        </div>
       </div>
     </SectionCard>
   );
