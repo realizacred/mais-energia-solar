@@ -211,15 +211,15 @@ async function classifyProjects(
 
   const { data: projects } = await admin
     .from("solar_market_projects")
-    .select("sm_project_id, funil_nome, stage_nome")
+    .select("sm_project_id, sm_funnel_name, sm_stage_name")
     .eq("tenant_id", tenant_id);
 
   for (const p of projects ?? []) {
     const sm_project_id = (p as any).sm_project_id as number;
     try {
       const { category, reason, confidence } = classifyByText(
-        (p as any).funil_nome,
-        (p as any).stage_nome,
+        (p as any).sm_funnel_name,
+        (p as any).sm_stage_name,
       );
       const target = canonical[category];
 
@@ -268,16 +268,17 @@ async function migrateClients(
   for (const c of clients ?? []) {
     const sm_client_id = (c as any).sm_client_id as number;
     try {
-      const nome = String((c as any).nome ?? "").trim();
+      // Mapeamento: solar_market_clients usa colunas em inglês (name/phone/document)
+      const nome = String((c as any).name ?? "").trim();
       if (nome.length < 3) {
-        await recordSkip(admin, job_id, tenant_id, "client", sm_client_id, "nome inválido");
+        await recordSkip(admin, job_id, tenant_id, "client", sm_client_id, `nome inválido (name="${(c as any).name ?? ""}")`);
         counters.skipped++;
         continue;
       }
 
-      const cpfCnpj = (c as any).cpf_cnpj ?? null;
+      const cpfCnpj = (c as any).document ?? null;
       const email = (c as any).email ?? null;
-      const telefone = String((c as any).telefone ?? "").trim() || "—";
+      const telefone = String((c as any).phone ?? "").trim() || "—";
 
       // Idempotência: buscar por sm_client_id, CPF/CNPJ ou email
       let nativeId: string | null = null;
@@ -354,7 +355,7 @@ async function migrateProjects(
 
   const { data: projects } = await admin
     .from("solar_market_projects")
-    .select("sm_project_id, sm_client_id, nome")
+    .select("sm_project_id, sm_client_id, name")
     .eq("tenant_id", tenant_id);
 
   for (const p of projects ?? []) {
@@ -414,7 +415,7 @@ async function migrateProjects(
             funil_id: cls.target_funil_id,
             etapa_id: cls.target_etapa_id,
             sm_project_id,
-            nome: (p as any).nome ?? `Projeto SM ${sm_project_id}`,
+            nome: (p as any).name ?? `Projeto SM ${sm_project_id}`,
             import_source: "solar_market",
           })
           .select("id")
