@@ -299,7 +299,15 @@ async function migrateClients(
 
       if (existing) {
         nativeId = (existing as any).id;
-        await recordOk(admin, job_id, tenant_id, "client", sm_client_id, nativeId);
+        await recordSkip(
+          admin,
+          job_id,
+          tenant_id,
+          "client",
+          sm_client_id,
+          `cliente já existe no destino (id=${nativeId}; match por sm_client_id/CPF/email)`,
+          nativeId,
+        );
         counters.skipped++;
         continue;
       }
