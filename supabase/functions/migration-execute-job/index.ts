@@ -27,7 +27,7 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
-type Counters = { migrated: number; skipped: number; failed: number };
+type Counters = { migrated: number; skipped: number; failed: number; ignored?: number };
 const DEFAULT_BATCH_SIZE = 200;
 const REQUEUE_BASE_URL = `${Deno.env.get("SUPABASE_URL")}/functions/v1`;
 type ProcessBatchResult = { counters: Counters; hasMore: boolean; nextOffset: number | null };
