@@ -19,6 +19,18 @@ const formatBR = (iso: string | null) =>
     ? new Date(iso).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })
     : "—";
 
+const STEP_LABELS: Record<string, string> = {
+  auth: "Autenticando",
+  funis: "Funis e Etapas",
+  clientes: "Clientes",
+  projetos: "Projetos",
+  propostas: "Propostas",
+  custom_fields: "Campos Customizados",
+  done: "Concluído",
+};
+const stepLabel = (s: string | null | undefined) =>
+  (s && STEP_LABELS[s]) || s || "Iniciando…";
+
 function statusBadge(status: string) {
   const map: Record<string, { cls: string; label: string }> = {
     pending: { cls: "bg-muted text-muted-foreground border-border", label: "Pendente" },
