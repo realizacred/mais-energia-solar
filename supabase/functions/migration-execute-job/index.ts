@@ -211,15 +211,15 @@ async function classifyProjects(
 
   const { data: projects } = await admin
     .from("solar_market_projects")
-    .select("sm_project_id, funil_nome, stage_nome")
+    .select("sm_project_id, sm_funnel_name, sm_stage_name")
     .eq("tenant_id", tenant_id);
 
   for (const p of projects ?? []) {
     const sm_project_id = (p as any).sm_project_id as number;
     try {
       const { category, reason, confidence } = classifyByText(
-        (p as any).funil_nome,
-        (p as any).stage_nome,
+        (p as any).sm_funnel_name,
+        (p as any).sm_stage_name,
       );
       const target = canonical[category];
 
