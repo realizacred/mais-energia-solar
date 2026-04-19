@@ -7,13 +7,18 @@
  * - Detalhe abre em drawer lateral (Sheet) — mais espaço e foco
  */
 import { useState, useMemo, useEffect } from "react";
-import { Database, Plus, Loader2 } from "lucide-react";
+import { Database, Plus, Loader2, Trash2 } from "lucide-react";
 import { PageHeader, SectionCard } from "@/components/ui-kit";
 import { Button } from "@/components/ui/button";
 import {
   Sheet, SheetContent, SheetHeader, SheetTitle,
 } from "@/components/ui/sheet";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { useMigrationJobs } from "@/hooks/useMigrationJobs";
+import { useClearMigrationHistory } from "@/hooks/useClearMigrationHistory";
 import { JobsTable } from "@/components/migration/JobsTable";
 import { JobDetailPanel } from "@/components/migration/JobDetailPanel";
 import { NewJobModal } from "@/components/migration/NewJobModal";
@@ -22,6 +27,7 @@ import { JobsToolbar, type JobsFilter } from "@/components/migration/JobsToolbar
 
 export default function MigrationCenter() {
   const { data: jobs = [], isLoading } = useMigrationJobs();
+  const clearHistory = useClearMigrationHistory();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [newOpen, setNewOpen] = useState(false);
@@ -65,10 +71,39 @@ export default function MigrationCenter() {
         title="Centro de Migração"
         description="Gerencie jobs de migração SolarMarket → sistema nativo (V2)."
         actions={
-          <Button onClick={() => setNewOpen(true)}>
-            <Plus className="h-4 w-4 mr-2" />
-            Novo job
-          </Button>
+          <div className="flex gap-2">
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="outline" disabled={clearHistory.isPending || jobs.length === 0}>
+                  {clearHistory.isPending ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <Trash2 className="h-4 w-4 mr-2" />
+                  )}
+                  Limpar histórico
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Limpar histórico de jobs?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Remove todos os jobs <strong>concluídos, falhos e revertidos</strong> deste tenant.
+                    Jobs em execução serão preservados. Os dados nativos (clientes, projetos, propostas) <strong>não</strong> são afetados — use "Reverter" antes se quiser desfazer uma migração.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                  <AlertDialogAction onClick={() => clearHistory.mutate("finished")}>
+                    Limpar finalizados
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+            <Button onClick={() => setNewOpen(true)}>
+              <Plus className="h-4 w-4 mr-2" />
+              Novo job
+            </Button>
+          </div>
         }
       />
 
