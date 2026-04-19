@@ -463,7 +463,42 @@ async function classifyProjects(
         (p as any).sm_funnel_name,
         (p as any).sm_stage_name,
       );
+
+      // Item 2 — Lead não migra: registra classificação especial e segue
+      if (category === "lead_ignored") {
+        const { error } = await admin
+          .from("sm_classification_v2")
+          .upsert(
+            {
+              tenant_id,
+              sm_project_id,
+              category,
+              target_funil_id: null,
+              target_etapa_id: null,
+              confidence_score: confidence,
+              classification_reason: reason,
+            },
+            { onConflict: "tenant_id,sm_project_id" },
+          );
+        if (error) throw error;
+        await recordSkip(admin, job_id, tenant_id, "project", sm_project_id, "lead_nao_migra");
+        counters.ignored = (counters.ignored ?? 0) + 1;
+        continue;
+      }
+
       const target = canonical[category];
+
+      // Item 2 — Comercial: usar etapa equivalente por nome do SM
+      let target_etapa_id = target.etapa_id;
+      if (category === "comercial") {
+        const resolved = await resolveComercialEtapaByName(
+          admin,
+          tenant_id,
+          target.funil_id,
+          (p as any).sm_stage_name ?? null,
+        );
+        if (resolved) target_etapa_id = resolved;
+      }
 
       const { error } = await admin
         .from("sm_classification_v2")
@@ -473,7 +508,7 @@ async function classifyProjects(
             sm_project_id,
             category,
             target_funil_id: target.funil_id,
-            target_etapa_id: target.etapa_id,
+            target_etapa_id,
             confidence_score: confidence,
             classification_reason: reason,
           },
