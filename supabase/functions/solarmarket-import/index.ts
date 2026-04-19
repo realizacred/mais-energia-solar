@@ -566,6 +566,9 @@ Deno.serve(async (req) => {
     return new Response("ok", { headers: corsHeaders });
   }
 
+  let adminClient: ReturnType<typeof createClient> | null = null;
+  let state: RequestState | null = null;
+
   try {
     const authHeader = req.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) {
@@ -589,7 +592,7 @@ Deno.serve(async (req) => {
     }
     const userId = userData.user.id;
 
-    const adminClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+    adminClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
     const { data: profile } = await adminClient
       .from("profiles")
       .select("tenant_id")
@@ -624,7 +627,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    const state = createInitialState(
+    state = createInitialState(
       tenantId,
       userId,
       cfg.baseUrl,
@@ -960,9 +963,28 @@ Deno.serve(async (req) => {
       },
     );
   } catch (e) {
-    console.error("[solarmarket-import] erro:", (e as Error).message);
+    const message = (e as Error).message || "Erro interno na importação SolarMarket";
+
+    if (state?.jobId) {
+      await Promise.allSettled([
+        logEntry(state, "job", "error", null, null, message),
+        state.supabase
+          .from("solarmarket_import_jobs")
+          .update({
+            status: "error",
+            error_message: message,
+            finished_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", state.jobId)
+          .in("status", ["pending", "running"])
+          .select("id"),
+      ]);
+    }
+
+    console.error("[solarmarket-import] erro:", message);
     return new Response(
-      JSON.stringify({ error: (e as Error).message }),
+      JSON.stringify({ error: message }),
       {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
