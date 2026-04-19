@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { SectionCard } from "@/components/ui-kit";
 import { useMigrationJobStatus } from "@/hooks/useMigrationJobStatus";
+import { GroupedErrorsList } from "./GroupedErrorsList";
 import { useMigrationRollback } from "@/hooks/useMigrationRollback";
 import { useCancelMigrationJob } from "@/hooks/useCancelMigrationJob";
 import { JobStatusBadge } from "./JobStatusBadge";
@@ -69,18 +70,7 @@ export function JobDetailPanel({ jobId }: Props) {
         )}
 
         {errors.length > 0 && (
-          <div className="rounded-md border bg-card p-3">
-            <p className="text-xs font-medium mb-2 text-destructive flex items-center gap-2">
-              <AlertTriangle className="h-3.5 w-3.5" /> Últimos {errors.length} erro(s)
-            </p>
-            <ul className="space-y-1 max-h-56 overflow-y-auto text-xs font-mono">
-              {errors.map((e, i) => (
-                <li key={i} className="truncate text-destructive/90">
-                  <span className="text-muted-foreground">[{e.entity_type}#{e.sm_entity_id}]</span> {e.error_message ?? "—"}
-                </li>
-              ))}
-            </ul>
-          </div>
+          <GroupedErrorsList errors={errors} jobId={jobId} />
         )}
 
         {job.status === "completed" && counters.failed === 0 && (
