@@ -132,9 +132,6 @@ const AneelIntegrationPage = lazy(() => import("@/components/admin/integrations/
 const AiConfigPage = lazy(() => import("@/pages/admin/AiConfigPage"));
 const OpenAIConfigPage = lazy(() => import("@/pages/admin/OpenAIConfigPage"));
 const GeminiConfigPage = lazy(() => import("@/pages/admin/GeminiConfigPage"));
-const SolarMarketConfigPage = lazy(() => import("@/pages/admin/SolarMarketConfigPage"));
-const SolarMarketPage = lazy(() => import("@/components/admin/solarmarket/SolarMarketPage"));
-const MigrationCenter = lazy(() => import("@/pages/admin/MigrationCenter"));
 const MetaFacebookConfigPage = lazy(() => import("@/pages/admin/MetaFacebookConfigPage"));
 const MetaDashboardPage = lazy(() => import("@/pages/admin/meta/MetaDashboardPage"));
 const MetaLeadsPage = lazy(() => import("@/pages/admin/meta/MetaLeadsPage"));
@@ -705,9 +702,6 @@ export default function Admin() {
                 <Route path="asaas-conversao" element={<AsaasConversionPage />} />
                 <Route path="openai-config" element={<OpenAIConfigPage />} />
                 <Route path="gemini-config" element={<GeminiConfigPage />} />
-                <Route path="solarmarket-config" element={<SolarMarketConfigPage />} />
-                <Route path="solarmarket" element={<SolarMarketPage />} />
-                <Route path="migration-center" element={<MigrationCenter />} />
                 <Route path="meta-facebook-config" element={<MetaFacebookConfigPage />} />
                 <Route path="meta-dashboard" element={<MetaDashboardPage />} />
                 <Route path="meta-leads" element={<MetaLeadsPage />} />
@@ -741,7 +735,6 @@ export default function Admin() {
                 <Route path="changelog" element={<ChangelogViewer />} />
                 <Route path="notificacoes-config" element={<NotificationConfigAdmin />} />
                 <Route path="menus" element={<MenuConfigPage />} />
-                {/* migracao-sm removed — migration now integrated in SolarMarket page */}
                 <Route path="dev" element={<DevToolsPage />} />
                 <Route path="system-health" element={<SystemHealthPage />} />
                 <Route path="cron-jobs" element={<CronJobsPage />} />
