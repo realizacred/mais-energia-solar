@@ -2,7 +2,8 @@
  * useMigrationJobs — Lista jobs de migração do tenant atual.
  * Polling leve para refletir status em tempo real.
  */
-import { useQuery } from "@tanstack/react-query";
+import { useEffect } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
 export interface MigrationJobRow {
@@ -19,7 +20,9 @@ export interface MigrationJobRow {
 }
 
 export function useMigrationJobs() {
-  return useQuery({
+  const queryClient = useQueryClient();
+
+  const query = useQuery({
     queryKey: ["migration-jobs"],
     queryFn: async (): Promise<MigrationJobRow[]> => {
       const { data, error } = await (supabase as any)
@@ -31,6 +34,29 @@ export function useMigrationJobs() {
       return (data ?? []) as MigrationJobRow[];
     },
     staleTime: 5_000,
-    refetchInterval: 8_000,
+    refetchInterval: (q) => {
+      const jobs = (q.state.data ?? []) as MigrationJobRow[];
+      return jobs.some((job) => job.status === "pending" || job.status === "running") ? 2_000 : 8_000;
+    },
   });
+
+  useEffect(() => {
+    const channel = supabase
+      .channel("migration-jobs-realtime")
+      .on("postgres_changes", { event: "*", schema: "public", table: "migration_jobs" }, () => {
+        queryClient.invalidateQueries({ queryKey: ["migration-jobs"] });
+        queryClient.invalidateQueries({ queryKey: ["migration-job-status"] });
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "migration_records" }, () => {
+        queryClient.invalidateQueries({ queryKey: ["migration-jobs"] });
+        queryClient.invalidateQueries({ queryKey: ["migration-job-status"] });
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [queryClient]);
+
+  return query;
 }
