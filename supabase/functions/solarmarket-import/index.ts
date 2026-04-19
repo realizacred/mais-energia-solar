@@ -305,7 +305,6 @@ async function importEntity(
   mapper: (item: any) => Promise<"created" | "updated" | "skipped" | "error">,
   opts: {
     counterField?: string; // ex: "total_clientes" — atualiza incrementalmente
-    errorBase?: number;
     progressStart?: number; // % no início
     progressEnd?: number; // % ao final
   } = {},
@@ -394,7 +393,6 @@ async function importEntity(
         : undefined;
       await updateJob(state, {
         [opts.counterField]: count,
-        total_errors: (opts.errorBase ?? 0) + errors,
         ...(incrementalProgress !== undefined ? { progress_pct: incrementalProgress } : {}),
         updated_at: new Date().toISOString(),
       });
@@ -417,169 +415,59 @@ async function importEntity(
   return { count, errors, pathUsed: found.path };
 }
 
-// Mappers — idempotência via busca por (tenant_id, external_source, external_id)
+// ─────────────────────────────────────────────────────────────────────
+// Mappers (P0 — contenção arquitetural):
+//   Gravação EXCLUSIVA em camada raw/staging (sm_*_raw).
+//   NÃO toca em clientes / projetos / propostas_nativas.
+//   Idempotência via UNIQUE (tenant_id, external_id).
+// ─────────────────────────────────────────────────────────────────────
 
-async function upsertImportedRecord(
+async function upsertRaw(
   state: RequestState,
-  table: "clientes" | "projetos" | "propostas_nativas",
+  table: "sm_clientes_raw" | "sm_projetos_raw" | "sm_propostas_raw" | "sm_funis_raw" | "sm_custom_fields_raw",
   externalId: string,
   payload: Record<string, unknown>,
-): Promise<{ id: string; action: "created" | "updated" }> {
-  const { data: existingRows, error: existingError } = await state.supabase
-    .from(table)
-    .select("id")
-    .eq("tenant_id", state.tenantId)
-    .eq("external_source", EXTERNAL_SOURCE)
-    .eq("external_id", externalId)
-    .limit(1);
-
-  if (existingError) throw new Error(existingError.message);
-
-  const existingId = existingRows?.[0]?.id;
-  if (existingId) {
-    const { data, error } = await state.supabase
-      .from(table)
-      .update(payload)
-      .eq("id", existingId)
-      .select("id")
-      .single();
-    if (error) throw new Error(error.message);
-    if (!data?.id) throw new Error(`Falha ao atualizar ${table} ${externalId}.`);
-    return { id: data.id, action: "updated" };
-  }
-
+) {
   const { data, error } = await state.supabase
     .from(table)
-    .insert(payload)
+    .upsert(
+      {
+        tenant_id: state.tenantId,
+        external_id: externalId,
+        payload,
+        imported_at: new Date().toISOString(),
+        import_job_id: state.jobId,
+      },
+      { onConflict: "tenant_id,external_id", ignoreDuplicates: false },
+    )
     .select("id")
     .single();
-  if (error) throw new Error(error.message);
-  if (!data?.id) throw new Error(`Falha ao criar ${table} ${externalId}.`);
-  return { id: data.id, action: "created" };
+  if (error) throw new Error(`${table}: ${error.message}`);
+  return data?.id as string | undefined;
 }
 
 async function mapCliente(state: RequestState, item: any) {
   const externalId = String(item?.id ?? item?.uuid ?? "");
   if (!externalId) return "skipped" as const;
-
-  const payload = {
-    tenant_id: state.tenantId,
-    external_source: EXTERNAL_SOURCE,
-    external_id: externalId,
-    nome: item?.name || item?.nome || item?.full_name || "Sem nome",
-    email: item?.email ?? null,
-    telefone: item?.phone || item?.telefone || item?.cellphone || "",
-    cpf_cnpj: item?.document || item?.cpf_cnpj || item?.cpf || item?.cnpj || null,
-    cidade: item?.city || item?.cidade || null,
-    estado: item?.state || item?.estado || null,
-    cliente_code: `SM-${externalId}`,
-    ativo: true,
-  };
-
-  const saved = await upsertImportedRecord(state, "clientes", externalId, payload);
-  await logEntry(state, "cliente", saved.action, externalId, saved.id);
-  return saved.action;
+  const rawId = await upsertRaw(state, "sm_clientes_raw", externalId, item ?? {});
+  await logEntry(state, "cliente", "updated", externalId, rawId ?? null);
+  return "updated" as const;
 }
 
 async function mapProjeto(state: RequestState, item: any) {
   const externalId = String(item?.id ?? "");
   if (!externalId) return "skipped" as const;
-
-  // Cliente é PRÉ-REQUISITO: se não conseguir resolver, skip com motivo
-  const smClienteId =
-    item?.client_id || item?.customer_id || item?.cliente_id || null;
-  if (!smClienteId) {
-    await logEntry(
-      state,
-      "projeto",
-      "skipped",
-      externalId,
-      null,
-      "Projeto sem client_id; importação ignorada (integridade).",
-    );
-    return "skipped" as const;
-  }
-  const { data: cli } = await state.supabase
-    .from("clientes")
-    .select("id")
-    .eq("tenant_id", state.tenantId)
-    .eq("external_source", EXTERNAL_SOURCE)
-    .eq("external_id", String(smClienteId))
-    .maybeSingle();
-  if (!cli?.id) {
-    await logEntry(
-      state,
-      "projeto",
-      "skipped",
-      externalId,
-      null,
-      `Cliente externo ${smClienteId} não importado ainda; rode 'Clientes' antes.`,
-    );
-    return "skipped" as const;
-  }
-
-  const payload: Record<string, unknown> = {
-    tenant_id: state.tenantId,
-    external_source: EXTERNAL_SOURCE,
-    external_id: externalId,
-    nome: item?.name || item?.nome || `Projeto SM-${externalId}`,
-    cliente_id: cli.id,
-  };
-
-  const saved = await upsertImportedRecord(state, "projetos", externalId, payload);
-  await logEntry(state, "projeto", saved.action, externalId, saved.id);
-  return saved.action;
+  const rawId = await upsertRaw(state, "sm_projetos_raw", externalId, item ?? {});
+  await logEntry(state, "projeto", "updated", externalId, rawId ?? null);
+  return "updated" as const;
 }
 
 async function mapProposta(state: RequestState, item: any) {
   const externalId = String(item?.id ?? "");
   if (!externalId) return "skipped" as const;
-
-  // Projeto é PRÉ-REQUISITO
-  const smProjetoId =
-    item?.project_id || item?.projeto_id || item?.deal_id || null;
-  if (!smProjetoId) {
-    await logEntry(
-      state,
-      "proposta",
-      "skipped",
-      externalId,
-      null,
-      "Proposta sem project_id; importação ignorada (integridade).",
-    );
-    return "skipped" as const;
-  }
-  const { data: p } = await state.supabase
-    .from("projetos")
-    .select("id")
-    .eq("tenant_id", state.tenantId)
-    .eq("external_source", EXTERNAL_SOURCE)
-    .eq("external_id", String(smProjetoId))
-    .maybeSingle();
-  if (!p?.id) {
-    await logEntry(
-      state,
-      "proposta",
-      "skipped",
-      externalId,
-      null,
-      `Projeto externo ${smProjetoId} não importado ainda; rode 'Projetos' antes.`,
-    );
-    return "skipped" as const;
-  }
-
-  const payload: Record<string, unknown> = {
-    tenant_id: state.tenantId,
-    external_source: EXTERNAL_SOURCE,
-    external_id: externalId,
-    projeto_id: p.id,
-    valor_total: Number(item?.total_value || item?.value || item?.valor || 0),
-    status: "rascunho",
-  };
-
-  const saved = await upsertImportedRecord(state, "propostas_nativas", externalId, payload);
-  await logEntry(state, "proposta", saved.action, externalId, saved.id);
-  return saved.action;
+  const rawId = await upsertRaw(state, "sm_propostas_raw", externalId, item ?? {});
+  await logEntry(state, "proposta", "updated", externalId, rawId ?? null);
+  return "updated" as const;
 }
 
 // -------- Handler principal --------
@@ -750,8 +638,13 @@ Deno.serve(async (req) => {
               totalFunis++;
               const stages = f?.stages || f?.etapas || f?.steps || [];
               if (Array.isArray(stages)) totalEtapas += stages.length;
+              const fExtId = String(f?.id ?? "");
+              if (fExtId) {
+                try { await upsertRaw(state, "sm_funis_raw", fExtId, f ?? {}); }
+                catch (e) { await logEntry(state, "funil", "error", fExtId, null, (e as Error).message); }
+              }
               await logEntry(state, "funil", "skipped",
-                String(f?.id ?? ""), null,
+                fExtId, null,
                 `Funil "${f?.name ?? f?.nome ?? "?"}" — ${Array.isArray(stages) ? stages.length : 0} etapa(s)`);
             }
             if (items.length < 100) break;
@@ -773,9 +666,9 @@ Deno.serve(async (req) => {
           "cliente",
           ["/clients", "/customers", "/clientes"],
           (item) => mapCliente(state, item),
-          { counterField: "total_clientes", errorBase: totalErrors, progressStart: 15, progressEnd: 40 },
+          { counterField: "total_clientes", progressStart: 15, progressEnd: 40 },
         );
-        await updateJob(state, { total_clientes: r.count, total_errors: totalErrors + r.errors, progress_pct: 40, updated_at: new Date().toISOString() });
+        await updateJob(state, { total_clientes: r.count, progress_pct: 40, updated_at: new Date().toISOString() });
         totalErrors += r.errors;
       }
 
@@ -788,9 +681,9 @@ Deno.serve(async (req) => {
           "projeto",
           ["/projects", "/deals", "/projetos"],
           (item) => mapProjeto(state, item),
-          { counterField: "total_projetos", errorBase: totalErrors, progressStart: 45, progressEnd: 70 },
+          { counterField: "total_projetos", progressStart: 45, progressEnd: 70 },
         );
-        await updateJob(state, { total_projetos: r.count, total_errors: totalErrors + r.errors, progress_pct: 70, updated_at: new Date().toISOString() });
+        await updateJob(state, { total_projetos: r.count, progress_pct: 70, updated_at: new Date().toISOString() });
         totalErrors += r.errors;
       }
 
@@ -803,9 +696,9 @@ Deno.serve(async (req) => {
           "proposta",
           ["/proposals", "/quotes", "/propostas"],
           (item) => mapProposta(state, item),
-          { counterField: "total_propostas", errorBase: totalErrors, progressStart: 75, progressEnd: 92 },
+          { counterField: "total_propostas", progressStart: 75, progressEnd: 92 },
         );
-        await updateJob(state, { total_propostas: r.count, total_errors: totalErrors + r.errors, progress_pct: 92, updated_at: new Date().toISOString() });
+        await updateJob(state, { total_propostas: r.count, progress_pct: 92, updated_at: new Date().toISOString() });
         totalErrors += r.errors;
       }
 
@@ -825,6 +718,13 @@ Deno.serve(async (req) => {
           totalCampos = items.length;
           await logEntry(state, "custom_field", "skipped", null, null,
             `[endpoint] Campos customizados usando "${cfFound.path}" — ${totalCampos} item(s) lidos`);
+          for (const cf of items) {
+            const cfExtId = String(cf?.id ?? "");
+            if (cfExtId) {
+              try { await upsertRaw(state, "sm_custom_fields_raw", cfExtId, cf ?? {}); }
+              catch (e) { await logEntry(state, "custom_field", "error", cfExtId, null, (e as Error).message); }
+            }
+          }
           for (const cf of items.slice(0, 20)) {
             await logEntry(state, "custom_field", "skipped",
               String(cf?.id ?? ""), null,
@@ -889,92 +789,22 @@ Deno.serve(async (req) => {
       );
     }
 
-    // ---- cleanup-imported (apaga dados com external_source='solarmarket' do tenant) ----
+    // ---- cleanup-imported (BLOQUEADO P0) ----
+    // Esta ação apagava dados nativos com external_source='solarmarket'.
+    // Bloqueada temporariamente: o domínio nativo não recebe mais SolarMarket
+    // (gravação foi redirecionada para sm_*_raw). A remediação dos 200 clientes
+    // contaminados pré-existentes acontecerá em fase posterior, deliberada.
     if (action === "cleanup-imported") {
-      const { data: isAdmin } = await adminClient.rpc("has_role", {
-        _user_id: userId,
-        _role: "admin",
-      });
-      const { data: isSuper } = await adminClient.rpc("has_role", {
-        _user_id: userId,
-        _role: "super_admin",
-      });
-      if (!isAdmin && !isSuper) {
-        return new Response(
-          JSON.stringify({ error: "Apenas administradores podem limpar dados importados." }),
-          { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-        );
-      }
-
-      const { data: activeJobs } = await adminClient
-        .from("solarmarket_import_jobs")
-        .select("id")
-        .eq("tenant_id", tenantId)
-        .in("status", ["pending", "running"]);
-      if (activeJobs && activeJobs.length > 0) {
-        return new Response(
-          JSON.stringify({
-            error: "Existe uma importação em andamento. Cancele-a antes de limpar os dados.",
-            active_jobs: activeJobs.length,
-          }),
-          { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-        );
-      }
-
-      const result = { propostas: 0, projetos: 0, clientes: 0, logs: 0, jobs: 0 };
-
-      // RB-58: usar .select() para confirmar linhas afetadas (count em supabase-js v2 não funciona em DELETE direto)
-      const delPropostas = await adminClient
-        .from("propostas_nativas")
-        .delete()
-        .eq("tenant_id", tenantId)
-        .eq("external_source", EXTERNAL_SOURCE)
-        .select("id");
-      if (delPropostas.error) throw new Error(`propostas: ${delPropostas.error.message}`);
-      result.propostas = delPropostas.data?.length ?? 0;
-
-      const delProjetos = await adminClient
-        .from("projetos")
-        .delete()
-        .eq("tenant_id", tenantId)
-        .eq("external_source", EXTERNAL_SOURCE)
-        .select("id");
-      if (delProjetos.error) throw new Error(`projetos: ${delProjetos.error.message}`);
-      result.projetos = delProjetos.data?.length ?? 0;
-
-      const delClientes = await adminClient
-        .from("clientes")
-        .delete()
-        .eq("tenant_id", tenantId)
-        .eq("external_source", EXTERNAL_SOURCE)
-        .select("id");
-      if (delClientes.error) throw new Error(`clientes: ${delClientes.error.message}`);
-      result.clientes = delClientes.data?.length ?? 0;
-
-      const delLogs = await adminClient
-        .from("solarmarket_import_logs")
-        .delete()
-        .eq("tenant_id", tenantId)
-        .select("id");
-      if (delLogs.error) throw new Error(`logs: ${delLogs.error.message}`);
-      result.logs = delLogs.data?.length ?? 0;
-
-      const delJobs = await adminClient
-        .from("solarmarket_import_jobs")
-        .delete()
-        .eq("tenant_id", tenantId)
-        .in("status", ["success", "error", "cancelled", "partial"])
-        .select("id");
-      if (delJobs.error) throw new Error(`jobs: ${delJobs.error.message}`);
-      result.jobs = delJobs.data?.length ?? 0;
-
-      console.error("[solarmarket-import] cleanup-imported", {
-        tenant: tenantId, by: userId, ...result,
-      });
-
+      console.error("[solarmarket-import] cleanup-imported BLOQUEADO P0 (contenção arquitetural)");
       return new Response(
-        JSON.stringify({ ok: true, removed: result }),
-        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        JSON.stringify({
+          error: "Ação desabilitada temporariamente (P0 — contenção arquitetural).",
+          code: "p0_blocked",
+          detail:
+            "A limpeza do domínio nativo está suspensa. O SolarMarket agora grava apenas em sm_*_raw. " +
+            "Os 200 clientes pré-existentes em public.clientes foram preservados (cópia em sm_clientes_raw) e serão tratados em fase posterior.",
+        }),
+        { status: 410, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
 

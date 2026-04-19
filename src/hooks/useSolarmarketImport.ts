@@ -93,11 +93,7 @@ export function useSolarmarketImport() {
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "solarmarket_import_jobs" },
-        () => {
-          queryClient.invalidateQueries({ queryKey: JOBS_KEY });
-          queryClient.invalidateQueries({ queryKey: ["sm-imported-counts"] });
-          queryClient.invalidateQueries({ queryKey: ["sm-imported-list"] });
-        }
+        () => queryClient.invalidateQueries({ queryKey: JOBS_KEY })
       )
       .subscribe();
     return () => {
