@@ -26,6 +26,7 @@ export function JobDetailPanel({ jobId }: Props) {
   const { data, isLoading } = useMigrationJobStatus(jobId);
   const rollback = useMigrationRollback();
   const cancel = useCancelMigrationJob();
+  const resume = useResumeMigrationJob();
 
   if (isLoading || !data) {
     return (
@@ -37,15 +38,16 @@ export function JobDetailPanel({ jobId }: Props) {
     );
   }
 
-  const { job, counters, total, progress, errors, skipped = [] } = data;
+  const { job, counters, total, progress, errors, skipped = [], is_stalled, last_heartbeat_at } = data;
   const canRollback = job.status === "completed" || job.status === "failed";
   const canCancel = job.status === "pending" || job.status === "running";
+  const canResume = is_stalled === true;
 
   return (
     <SectionCard
       title={`Job ${job.id.slice(0, 8)} · ${job.job_type}`}
       variant="neutral"
-      actions={<JobStatusBadge status={job.status} />}
+      actions={<JobStatusBadge status={job.status} stalled={is_stalled} />}
     >
       <div className="space-y-4">
         <div className="space-y-1.5">
