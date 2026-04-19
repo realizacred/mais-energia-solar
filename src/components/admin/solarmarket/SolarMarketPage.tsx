@@ -47,7 +47,7 @@ import { SmClientDetailDialog } from "@/components/admin/solarmarket/SmClientDet
 import { SmProjectDetailDialog } from "@/components/admin/solarmarket/SmProjectDetailDialog";
 import { SmProposalDetailDialog } from "@/components/admin/solarmarket/SmProposalDetailDialog";
 import { SmOperationStatusPanel } from "@/components/admin/solarmarket/SmOperationStatusPanel";
-import SmMigrationPanelV3 from "@/components/admin/solarmarket/migration-v3/SmMigrationPanelV3";
+import MigrationCenter from "@/pages/admin/MigrationCenter";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { TablePagination } from "@/components/ui-kit/TablePagination";
@@ -1112,9 +1112,9 @@ export default function SolarMarketPage() {
           </div>
         </div>
 
-        {/* ─── Migração Tab (v3) ───────────────────────────── */}
+        {/* ─── Migração Tab (V2 — novo motor job-based) ───── */}
         <TabsContent value="migracao" className="mt-3 space-y-3">
-          <SmMigrationPanelV3 />
+          <MigrationCenter />
         </TabsContent>
 
         {/* ─── Clientes Tab ───────────────────────────────── */}
