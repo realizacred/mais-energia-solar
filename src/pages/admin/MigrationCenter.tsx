@@ -127,6 +127,8 @@ export default function MigrationCenter() {
 
       <TenantSelector value={tenantId} onChange={setTenantId} />
 
+      <PreflightPanel tenantId={tenantId} />
+
       <MigrationKpiCards jobs={jobs} />
 
       <SectionCard
@@ -163,6 +165,8 @@ export default function MigrationCenter() {
         open={newOpen}
         onOpenChange={setNewOpen}
         tenantId={tenantId}
+        blocked={!canCreateJob}
+        blockReason={blockReason}
         onCreated={(id) => {
           setSelectedId(id);
           setDrawerOpen(true);
