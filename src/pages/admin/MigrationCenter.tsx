@@ -26,18 +26,26 @@ import { NewJobModal } from "@/components/migration/NewJobModal";
 import { MigrationKpiCards } from "@/components/migration/MigrationKpiCards";
 import { JobsToolbar, type JobsFilter } from "@/components/migration/JobsToolbar";
 import { TenantSelector } from "@/components/migration/TenantSelector";
+import { PreflightPanel } from "@/components/migration/PreflightPanel";
+import { useMigrationPreflight } from "@/hooks/useMigrationPreflight";
 
 export default function MigrationCenter() {
   const { data: jobs = [], isLoading } = useMigrationJobs();
   const clearHistory = useClearMigrationHistory();
   const [tenantId, setTenantId] = useState<string | null>(null);
   const { data: stagingCounts } = useStagingCounts(tenantId);
+  const { data: preflight } = useMigrationPreflight(tenantId);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [newOpen, setNewOpen] = useState(false);
   const [filter, setFilter] = useState<JobsFilter>({ q: "", status: "all", type: "all" });
 
-  const canCreateJob = !!tenantId && (stagingCounts?.total ?? 0) > 0;
+  const blockReason: string | null = !tenantId
+    ? "Selecione um tenant"
+    : (stagingCounts?.total ?? 0) === 0
+    ? "Tenant sem dados de staging"
+    : preflight?.blockReason ?? null;
+  const canCreateJob = !!tenantId && (stagingCounts?.total ?? 0) > 0 && !preflight?.blocked;
 
   // Auto-abre drawer quando o usuário clica em um job
   const handleSelect = (id: string) => {
