@@ -308,8 +308,9 @@ async function requeueJob(
 }
 
 function runInBackground(task: Promise<unknown>) {
-  if (typeof EdgeRuntime !== "undefined" && typeof EdgeRuntime.waitUntil === "function") {
-    EdgeRuntime.waitUntil(task);
+  const runtime = typeof EdgeRuntime !== "undefined" ? EdgeRuntime : undefined;
+  if (runtime?.waitUntil) {
+    runtime.waitUntil(task);
     return;
   }
   task.catch(console.error);
