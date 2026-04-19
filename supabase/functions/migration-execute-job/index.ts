@@ -607,22 +607,33 @@ async function migrateClients(
         Object.entries(fullPayload).filter(([, v]) => v !== null && v !== undefined && v !== ""),
       );
 
-      // Idempotência: buscar por sm_client_id, CPF/CNPJ, email OU telefone
+      // Idempotência em ordem de força do identificador (RB-50, DA-40):
+      //   1) sm_client_id (vínculo canônico SM↔nativo)
+      //   2) cpf_cnpj      (identificador legal forte)
+      //   3) email         (identificador médio)
+      //   4) telefone      (último recurso — pode haver homônimos)
+      // Buscar separadamente evita merge incorreto via OR amplo.
       let nativeId: string | null = null;
-      const orParts = [
-        `sm_client_id.eq.${sm_client_id}`,
-        cpfCnpj ? `cpf_cnpj.eq.${cpfCnpj}` : null,
-        email ? `email.eq.${email}` : null,
-        telDigits.length >= 8 ? `telefone_normalized.eq.${telDigits}` : null,
-      ].filter(Boolean) as string[];
-
-      const { data: existing } = await admin
-        .from("clientes")
-        .select("id, sm_client_id")
-        .eq("tenant_id", tenant_id)
-        .or(orParts.join(","))
-        .limit(1)
-        .maybeSingle();
+      const findExisting = async () => {
+        const tries: Array<[string, any]> = [
+          ["sm_client_id", sm_client_id],
+          cpfCnpj ? ["cpf_cnpj", cpfCnpj] : null,
+          email ? ["email", email] : null,
+          telDigits.length >= 8 ? ["telefone_normalized", telDigits] : null,
+        ].filter(Boolean) as Array<[string, any]>;
+        for (const [col, val] of tries) {
+          const { data } = await admin
+            .from("clientes")
+            .select("id, sm_client_id")
+            .eq("tenant_id", tenant_id)
+            .eq(col, val)
+            .limit(1)
+            .maybeSingle();
+          if (data) return data;
+        }
+        return null;
+      };
+      const existing = await findExisting();
 
       if (existing) {
         nativeId = (existing as any).id;
