@@ -114,16 +114,15 @@ export function PreflightPanel({ tenantId }: Props) {
           <Estimate label="Projetos (staging)" value={data.totalProjects} />
           <Estimate label="Propostas (staging)" value={data.totalProposals} />
           <Estimate
-            label="Lead ignorados"
-            value={data.leadIgnored}
-            tone={data.leadIgnored > 0 ? "warn" : undefined}
+            label="Vendedor → consultor"
+            value={data.vendedorAsConsultor}
+            tone={data.vendedorAsConsultor > 0 ? "warn" : undefined}
           />
         </div>
 
         <p className="text-[11px] text-muted-foreground">
-          Os números de Lead/Comercial/etapas faltantes são uma <strong>estimativa</strong>{" "}
-          baseada nos nomes de funil/etapa do staging — a contagem definitiva é apurada
-          durante a execução do job.
+          Projetos sem funil ({data.defaultedToComercial.toLocaleString("pt-BR")}) caem em <strong>Comercial</strong>.
+          Projetos do funil "Vendedores" ({data.vendedorAsConsultor.toLocaleString("pt-BR")}) viram <strong>consultor responsável</strong> e a etapa é derivada do status da proposta. A contagem definitiva é apurada durante a execução do job.
         </p>
       </div>
     </SectionCard>
