@@ -433,6 +433,13 @@ function capitalize(s: string) {
   return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
+/** Hash determinístico simples para tracking_id numérico estável a partir de UUID. */
+function hashString(s: string): number {
+  let h = 0;
+  for (let i = 0; i < s.length; i++) h = ((h << 5) - h + s.charCodeAt(i)) | 0;
+  return h;
+}
+
 function jobStageFromMetadata(metadata: any, fallback: JobStage | null): JobStage | null {
   const stage = metadata?.progress?.stage ?? fallback;
   return stage === "classify_projects" || stage === "migrate_clients" || stage === "migrate_projects" || stage === "migrate_proposals"
