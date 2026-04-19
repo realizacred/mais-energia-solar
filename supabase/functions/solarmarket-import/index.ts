@@ -415,147 +415,58 @@ async function importEntity(
   return { count, errors, pathUsed: found.path };
 }
 
-// Mappers — upsert idempotente via (tenant_id, external_source, external_id)
+// ─────────────────────────────────────────────────────────────────────
+// Mappers (P0 — contenção arquitetural):
+//   Gravação EXCLUSIVA em camada raw/staging (sm_*_raw).
+//   NÃO toca em clientes / projetos / propostas_nativas.
+//   Idempotência via UNIQUE (tenant_id, external_id).
+// ─────────────────────────────────────────────────────────────────────
+
+async function upsertRaw(
+  state: RequestState,
+  table: "sm_clientes_raw" | "sm_projetos_raw" | "sm_propostas_raw" | "sm_funis_raw" | "sm_custom_fields_raw",
+  externalId: string,
+  payload: Record<string, unknown>,
+) {
+  const { data, error } = await state.supabase
+    .from(table)
+    .upsert(
+      {
+        tenant_id: state.tenantId,
+        external_id: externalId,
+        payload,
+        imported_at: new Date().toISOString(),
+        import_job_id: state.jobId,
+      },
+      { onConflict: "tenant_id,external_id", ignoreDuplicates: false },
+    )
+    .select("id")
+    .single();
+  if (error) throw new Error(`${table}: ${error.message}`);
+  return data?.id as string | undefined;
+}
 
 async function mapCliente(state: RequestState, item: any) {
   const externalId = String(item?.id ?? item?.uuid ?? "");
   if (!externalId) return "skipped" as const;
-
-  const payload = {
-    tenant_id: state.tenantId,
-    external_source: EXTERNAL_SOURCE,
-    external_id: externalId,
-    nome: item?.name || item?.nome || item?.full_name || "Sem nome",
-    email: item?.email ?? null,
-    telefone: item?.phone || item?.telefone || item?.cellphone || "",
-    cpf_cnpj: item?.document || item?.cpf_cnpj || item?.cpf || item?.cnpj || null,
-    cidade: item?.city || item?.cidade || null,
-    estado: item?.state || item?.estado || null,
-    cliente_code: `SM-${externalId}`,
-    ativo: true,
-  };
-
-  // UPSERT idempotente via índice único parcial (tenant_id, external_source, external_id)
-  const { data: up, error } = await state.supabase
-    .from("clientes")
-    .upsert(payload, { onConflict: "tenant_id,external_source,external_id", ignoreDuplicates: false })
-    .select("id")
-    .single();
-  if (error) throw new Error(error.message);
-  // Detecta se foi created/updated checando created_at vs updated_at não é confiável aqui;
-  // usamos uma 2ª query leve apenas se quisermos diferenciar — para idempotência basta "created or updated".
-  await logEntry(state, "cliente", "updated", externalId, up.id);
+  const rawId = await upsertRaw(state, "sm_clientes_raw", externalId, item ?? {});
+  await logEntry(state, "cliente", "updated", externalId, rawId ?? null);
   return "updated" as const;
 }
 
 async function mapProjeto(state: RequestState, item: any) {
   const externalId = String(item?.id ?? "");
   if (!externalId) return "skipped" as const;
-
-  // Cliente é PRÉ-REQUISITO: se não conseguir resolver, skip com motivo
-  const smClienteId =
-    item?.client_id || item?.customer_id || item?.cliente_id || null;
-  if (!smClienteId) {
-    await logEntry(
-      state,
-      "projeto",
-      "skipped",
-      externalId,
-      null,
-      "Projeto sem client_id; importação ignorada (integridade).",
-    );
-    return "skipped" as const;
-  }
-  const { data: cli } = await state.supabase
-    .from("clientes")
-    .select("id")
-    .eq("tenant_id", state.tenantId)
-    .eq("external_source", EXTERNAL_SOURCE)
-    .eq("external_id", String(smClienteId))
-    .maybeSingle();
-  if (!cli?.id) {
-    await logEntry(
-      state,
-      "projeto",
-      "skipped",
-      externalId,
-      null,
-      `Cliente externo ${smClienteId} não importado ainda; rode 'Clientes' antes.`,
-    );
-    return "skipped" as const;
-  }
-
-  const payload: Record<string, unknown> = {
-    tenant_id: state.tenantId,
-    external_source: EXTERNAL_SOURCE,
-    external_id: externalId,
-    nome: item?.name || item?.nome || `Projeto SM-${externalId}`,
-    cliente_id: cli.id,
-  };
-
-  const { data: up, error } = await state.supabase
-    .from("projetos")
-    .upsert(payload, { onConflict: "tenant_id,external_source,external_id", ignoreDuplicates: false })
-    .select("id")
-    .single();
-  if (error) throw new Error(error.message);
-  await logEntry(state, "projeto", "updated", externalId, up.id);
+  const rawId = await upsertRaw(state, "sm_projetos_raw", externalId, item ?? {});
+  await logEntry(state, "projeto", "updated", externalId, rawId ?? null);
   return "updated" as const;
 }
 
 async function mapProposta(state: RequestState, item: any) {
   const externalId = String(item?.id ?? "");
   if (!externalId) return "skipped" as const;
-
-  // Projeto é PRÉ-REQUISITO
-  const smProjetoId =
-    item?.project_id || item?.projeto_id || item?.deal_id || null;
-  if (!smProjetoId) {
-    await logEntry(
-      state,
-      "proposta",
-      "skipped",
-      externalId,
-      null,
-      "Proposta sem project_id; importação ignorada (integridade).",
-    );
-    return "skipped" as const;
-  }
-  const { data: p } = await state.supabase
-    .from("projetos")
-    .select("id")
-    .eq("tenant_id", state.tenantId)
-    .eq("external_source", EXTERNAL_SOURCE)
-    .eq("external_id", String(smProjetoId))
-    .maybeSingle();
-  if (!p?.id) {
-    await logEntry(
-      state,
-      "proposta",
-      "skipped",
-      externalId,
-      null,
-      `Projeto externo ${smProjetoId} não importado ainda; rode 'Projetos' antes.`,
-    );
-    return "skipped" as const;
-  }
-
-  const payload: Record<string, unknown> = {
-    tenant_id: state.tenantId,
-    external_source: EXTERNAL_SOURCE,
-    external_id: externalId,
-    projeto_id: p.id,
-    valor_total: Number(item?.total_value || item?.value || item?.valor || 0),
-    status: "rascunho",
-  };
-
-  const { data: up, error } = await state.supabase
-    .from("propostas_nativas")
-    .upsert(payload, { onConflict: "tenant_id,external_source,external_id", ignoreDuplicates: false })
-    .select("id")
-    .single();
-  if (error) throw new Error(error.message);
-  await logEntry(state, "proposta", "updated", externalId, up.id);
+  const rawId = await upsertRaw(state, "sm_propostas_raw", externalId, item ?? {});
+  await logEntry(state, "proposta", "updated", externalId, rawId ?? null);
   return "updated" as const;
 }
 
