@@ -324,8 +324,8 @@ function ListaProjetos({ search, page, setPage, isImporting }: ListProps) {
   );
 }
 
-function ListaPropostas({ search, page, setPage }: ListProps) {
-  const { data, isLoading } = useImportedList("propostas_nativas", page, search);
+function ListaPropostas({ search, page, setPage, isImporting }: ListProps) {
+  const { data, isLoading } = useImportedList("propostas_nativas", page, search, isImporting);
   if (isLoading) return <Skeleton className="h-48 w-full" />;
   if (!data?.rows.length) return <EmptyState icon={FileText} message="Nenhuma proposta importada encontrada." />;
   return (
