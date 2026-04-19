@@ -42,6 +42,16 @@ export interface PreflightResult {
 
 const VENDEDOR_FUNNEL_RE = /vendedor(es)?/i;
 
+/** Normaliza nome de etapa: trim, lowercase, remove acentos e colapsa espaços. */
+function normalizeStageName(s: unknown): string {
+  return String(s ?? "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 export function useMigrationPreflight(tenantId: string | null | undefined) {
   return useQuery({
     queryKey: ["migration-preflight", tenantId],
