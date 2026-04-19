@@ -494,7 +494,8 @@ async function migrateProjects(
             funil_id: cls.target_funil_id,
             etapa_id: cls.target_etapa_id,
             sm_project_id,
-            nome: (p as any).name ?? `Projeto SM ${sm_project_id}`,
+            // `codigo` é NOT NULL sem default na tabela projetos — derivar do sm_project_id
+            codigo: `SM-${sm_project_id}`,
             import_source: "solar_market",
           })
           .select("id")
