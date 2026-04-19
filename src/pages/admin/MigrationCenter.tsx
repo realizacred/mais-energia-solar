@@ -79,7 +79,7 @@ export default function MigrationCenter() {
   }, [jobs, selectedId]);
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       <PageHeader
         icon={Database}
         title="Centro de Migração"
