@@ -223,12 +223,17 @@ export default function ImportacaoSolarmarket() {
         <Card className="border-l-[3px] border-l-info bg-card shadow-sm">
           <CardContent className="p-5 space-y-3">
             <div className="flex items-center justify-between gap-3">
-              <div>
+              <div className="flex-1 min-w-0">
                 <p className="text-sm font-semibold text-foreground">
                   Importação em andamento
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  Etapa atual: {runningJob.current_step ?? "—"}
+                  Etapa atual:{" "}
+                  <span className="font-medium text-foreground">
+                    {stepLabel(runningJob.current_step)}
+                  </span>
+                  {" · "}
+                  {Math.round(Number(runningJob.progress_pct ?? 0))}%
                 </p>
               </div>
               <div className="flex items-center gap-2">
@@ -250,6 +255,27 @@ export default function ImportacaoSolarmarket() {
               </div>
             </div>
             <Progress value={Number(runningJob.progress_pct ?? 0)} />
+            {/* Contadores parciais */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-2">
+              <div className="rounded-md border border-border bg-muted/30 p-2">
+                <p className="text-[10px] uppercase text-muted-foreground tracking-wide">Clientes</p>
+                <p className="text-sm font-mono font-semibold text-foreground">{runningJob.total_clientes ?? 0}</p>
+              </div>
+              <div className="rounded-md border border-border bg-muted/30 p-2">
+                <p className="text-[10px] uppercase text-muted-foreground tracking-wide">Projetos</p>
+                <p className="text-sm font-mono font-semibold text-foreground">{runningJob.total_projetos ?? 0}</p>
+              </div>
+              <div className="rounded-md border border-border bg-muted/30 p-2">
+                <p className="text-[10px] uppercase text-muted-foreground tracking-wide">Propostas</p>
+                <p className="text-sm font-mono font-semibold text-foreground">{runningJob.total_propostas ?? 0}</p>
+              </div>
+              <div className="rounded-md border border-border bg-muted/30 p-2">
+                <p className="text-[10px] uppercase text-muted-foreground tracking-wide">Erros</p>
+                <p className={`text-sm font-mono font-semibold ${(runningJob.total_errors ?? 0) > 0 ? "text-destructive" : "text-foreground"}`}>
+                  {runningJob.total_errors ?? 0}
+                </p>
+              </div>
+            </div>
           </CardContent>
         </Card>
       )}
