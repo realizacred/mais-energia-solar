@@ -305,6 +305,7 @@ async function importEntity(
   mapper: (item: any) => Promise<"created" | "updated" | "skipped" | "error">,
   opts: {
     counterField?: string; // ex: "total_clientes" — atualiza incrementalmente
+    errorBase?: number;
     progressStart?: number; // % no início
     progressEnd?: number; // % ao final
   } = {},
@@ -393,6 +394,7 @@ async function importEntity(
         : undefined;
       await updateJob(state, {
         [opts.counterField]: count,
+        total_errors: (opts.errorBase ?? 0) + errors,
         ...(incrementalProgress !== undefined ? { progress_pct: incrementalProgress } : {}),
         updated_at: new Date().toISOString(),
       });
@@ -771,9 +773,9 @@ Deno.serve(async (req) => {
           "cliente",
           ["/clients", "/customers", "/clientes"],
           (item) => mapCliente(state, item),
-          { counterField: "total_clientes", progressStart: 15, progressEnd: 40 },
+          { counterField: "total_clientes", errorBase: totalErrors, progressStart: 15, progressEnd: 40 },
         );
-        await updateJob(state, { total_clientes: r.count, progress_pct: 40, updated_at: new Date().toISOString() });
+        await updateJob(state, { total_clientes: r.count, total_errors: totalErrors + r.errors, progress_pct: 40, updated_at: new Date().toISOString() });
         totalErrors += r.errors;
       }
 
@@ -786,9 +788,9 @@ Deno.serve(async (req) => {
           "projeto",
           ["/projects", "/deals", "/projetos"],
           (item) => mapProjeto(state, item),
-          { counterField: "total_projetos", progressStart: 45, progressEnd: 70 },
+          { counterField: "total_projetos", errorBase: totalErrors, progressStart: 45, progressEnd: 70 },
         );
-        await updateJob(state, { total_projetos: r.count, progress_pct: 70, updated_at: new Date().toISOString() });
+        await updateJob(state, { total_projetos: r.count, total_errors: totalErrors + r.errors, progress_pct: 70, updated_at: new Date().toISOString() });
         totalErrors += r.errors;
       }
 
@@ -801,9 +803,9 @@ Deno.serve(async (req) => {
           "proposta",
           ["/proposals", "/quotes", "/propostas"],
           (item) => mapProposta(state, item),
-          { counterField: "total_propostas", progressStart: 75, progressEnd: 92 },
+          { counterField: "total_propostas", errorBase: totalErrors, progressStart: 75, progressEnd: 92 },
         );
-        await updateJob(state, { total_propostas: r.count, progress_pct: 92, updated_at: new Date().toISOString() });
+        await updateJob(state, { total_propostas: r.count, total_errors: totalErrors + r.errors, progress_pct: 92, updated_at: new Date().toISOString() });
         totalErrors += r.errors;
       }
 
