@@ -191,24 +191,27 @@ Deno.serve(async (req) => {
           ({ counters: allCounters.clients, hasMore, nextOffset } = await migrateClients(admin, tenant_id, job_id, offset, batchSize));
           break;
         case "migrate_projects":
+          // Auxiliar: migra apenas projetos SM sem proposta (órfãos).
           ({ counters: allCounters.projects, hasMore, nextOffset } = await migrateProjects(admin, tenant_id, job_id, offset, batchSize));
           break;
         case "migrate_proposals":
+          // Proposal-first: resolve/cria cliente e projeto on-demand a partir da proposta.
           ({ counters: allCounters.proposals, hasMore, nextOffset } = await migrateProposals(admin, tenant_id, job_id, offset, batchSize));
           break;
         case "full_migration":
+          // Novo fluxo: classify → clients → proposals (cria projetos on-demand) → projects (órfãos)
           if (currentStage === "classify_projects") {
             ({ counters: allCounters.classify, hasMore, nextOffset } = await classifyProjects(admin, tenant_id, job_id, offset, batchSize));
             nextStage = hasMore ? "classify_projects" : "migrate_clients";
           } else if (currentStage === "migrate_clients") {
             ({ counters: allCounters.clients, hasMore, nextOffset } = await migrateClients(admin, tenant_id, job_id, offset, batchSize));
-            nextStage = hasMore ? "migrate_clients" : "migrate_projects";
-          } else if (currentStage === "migrate_projects") {
-            ({ counters: allCounters.projects, hasMore, nextOffset } = await migrateProjects(admin, tenant_id, job_id, offset, batchSize));
-            nextStage = hasMore ? "migrate_projects" : "migrate_proposals";
-          } else {
+            nextStage = hasMore ? "migrate_clients" : "migrate_proposals";
+          } else if (currentStage === "migrate_proposals") {
             ({ counters: allCounters.proposals, hasMore, nextOffset } = await migrateProposals(admin, tenant_id, job_id, offset, batchSize));
-            nextStage = hasMore ? "migrate_proposals" : null;
+            nextStage = hasMore ? "migrate_proposals" : "migrate_projects";
+          } else {
+            ({ counters: allCounters.projects, hasMore, nextOffset } = await migrateProjects(admin, tenant_id, job_id, offset, batchSize));
+            nextStage = hasMore ? "migrate_projects" : null;
           }
           break;
         default:
