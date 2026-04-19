@@ -319,7 +319,7 @@ async function importEntity(
     `[start] Buscando endpoint para ${entityKey}. Candidatos: ${candidatePaths.join(", ")}`,
   );
 
-  const found = await tryPaths(state, candidatePaths);
+  const found = await tryPaths(state, candidatePaths, entityKey);
   if (!found) {
     await logEntry(
       state,
@@ -703,7 +703,7 @@ Deno.serve(async (req) => {
         await updateJob(state, { current_step: "funis", progress_pct: 5, updated_at: new Date().toISOString() });
 
         // Tenta endpoints comuns de pipelines/funnels
-        const funisFound = await tryPaths(state, ["/pipelines", "/funnels", "/funis"]);
+        const funisFound = await tryPaths(state, ["/pipelines", "/funnels", "/funis"], "funil");
         if (!funisFound) {
           await logEntry(state, "funil", "error", null, null,
             "Nenhum endpoint de funis respondeu (testados: /pipelines, /funnels, /funis). Verifique a documentação da sua conta SolarMarket e atualize a função.");
@@ -789,7 +789,7 @@ Deno.serve(async (req) => {
         if (await checkCancel()) return new Response(JSON.stringify({ ok: false, cancelled: true }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
         await updateJob(state, { current_step: "custom_fields", progress_pct: 95, updated_at: new Date().toISOString() });
 
-        const cfFound = await tryPaths(state, ["/custom-fields", "/customFields", "/campos-customizados"]);
+        const cfFound = await tryPaths(state, ["/custom-fields", "/customFields", "/campos-customizados"], "custom_field");
         if (!cfFound) {
           await logEntry(state, "custom_field", "error", null, null,
             "Nenhum endpoint de campos customizados respondeu (testados: /custom-fields, /customFields, /campos-customizados).");
