@@ -330,6 +330,9 @@ export default function ImportacaoSolarmarket() {
         </Card>
       )}
 
+      {/* Dados importados (abas) */}
+      <SolarmarketImportedTabs />
+
       {/* Histórico */}
       <Card className="bg-card border-border shadow-sm">
         <CardHeader className="flex flex-row items-center justify-between space-y-0">
