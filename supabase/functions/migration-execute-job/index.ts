@@ -14,6 +14,12 @@
  */
 import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
+declare const EdgeRuntime:
+  | {
+      waitUntil?: (promise: Promise<unknown>) => void;
+    }
+  | undefined;
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
@@ -22,6 +28,10 @@ const corsHeaders = {
 };
 
 type Counters = { migrated: number; skipped: number; failed: number };
+const DEFAULT_BATCH_SIZE = 200;
+const REQUEUE_BASE_URL = `${Deno.env.get("SUPABASE_URL")}/functions/v1`;
+type ProcessBatchResult = { counters: Counters; hasMore: boolean; nextOffset: number | null };
+type JobStage = "classify_projects" | "migrate_clients" | "migrate_projects" | "migrate_proposals";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
@@ -42,6 +52,13 @@ Deno.serve(async (req) => {
 
     const body = await req.json().catch(() => ({}));
     const job_id = String(body?.job_id ?? "");
+    const requestedOffset = Number(body?.offset ?? 0);
+    const offset = Number.isFinite(requestedOffset) && requestedOffset > 0 ? Math.floor(requestedOffset) : 0;
+    const requestedBatchSize = Number(body?.batch_size ?? DEFAULT_BATCH_SIZE);
+    const batchSize = Number.isFinite(requestedBatchSize) && requestedBatchSize > 0
+      ? Math.min(Math.floor(requestedBatchSize), 500)
+      : DEFAULT_BATCH_SIZE;
+    const stageFromBody = String(body?.stage ?? jobStageFromMetadata(body?.metadata ?? null, null)) as JobStage | "";
     if (!job_id) return json({ error: "job_id required" }, 400);
 
     const { data: job } = await admin
@@ -50,40 +67,101 @@ Deno.serve(async (req) => {
       .eq("id", job_id)
       .single();
     if (!job) return json({ error: "Job not found" }, 404);
-    if (job.status === "running") {
+    if (offset > 0 && job.status !== "running") {
+      return json({ status: job.status, skipped: true }, 200);
+    }
+    if (job.status === "running" && offset === 0) {
       return json({ error: "Job already running" }, 409);
     }
 
-    await admin
-      .from("migration_jobs")
-      .update({ status: "running", started_at: new Date().toISOString() })
-      .eq("id", job_id);
+    if (offset === 0) {
+      await admin
+        .from("migration_jobs")
+        .update({
+          status: "running",
+          started_at: new Date().toISOString(),
+          completed_at: null,
+          error_message: null,
+          metadata: {
+            ...(job.metadata ?? {}),
+            progress: { offset: 0, batch_size: batchSize, has_more: false },
+          },
+        })
+        .eq("id", job_id);
+    }
 
     const tenant_id = job.tenant_id as string;
+    const currentStage = job.job_type === "full_migration"
+      ? jobStageFromMetadata(job.metadata ?? null, stageFromBody || "classify_projects")
+      : null;
     const allCounters: Record<string, Counters> = {};
+    let hasMore = false;
+    let nextOffset: number | null = null;
+    let nextStage: JobStage | null = currentStage;
 
     try {
       switch (job.job_type) {
         case "classify_projects":
-          allCounters.classify = await classifyProjects(admin, tenant_id, job_id);
+          ({ counters: allCounters.classify, hasMore, nextOffset } = await classifyProjects(admin, tenant_id, job_id, offset, batchSize));
           break;
         case "migrate_clients":
-          allCounters.clients = await migrateClients(admin, tenant_id, job_id);
+          ({ counters: allCounters.clients, hasMore, nextOffset } = await migrateClients(admin, tenant_id, job_id, offset, batchSize));
           break;
         case "migrate_projects":
-          allCounters.projects = await migrateProjects(admin, tenant_id, job_id);
+          ({ counters: allCounters.projects, hasMore, nextOffset } = await migrateProjects(admin, tenant_id, job_id, offset, batchSize));
           break;
         case "migrate_proposals":
-          allCounters.proposals = await migrateProposals(admin, tenant_id, job_id);
+          ({ counters: allCounters.proposals, hasMore, nextOffset } = await migrateProposals(admin, tenant_id, job_id, offset, batchSize));
           break;
         case "full_migration":
-          allCounters.classify = await classifyProjects(admin, tenant_id, job_id);
-          allCounters.clients = await migrateClients(admin, tenant_id, job_id);
-          allCounters.projects = await migrateProjects(admin, tenant_id, job_id);
-          allCounters.proposals = await migrateProposals(admin, tenant_id, job_id);
+          if (currentStage === "classify_projects") {
+            ({ counters: allCounters.classify, hasMore, nextOffset } = await classifyProjects(admin, tenant_id, job_id, offset, batchSize));
+            nextStage = hasMore ? "classify_projects" : "migrate_clients";
+          } else if (currentStage === "migrate_clients") {
+            ({ counters: allCounters.clients, hasMore, nextOffset } = await migrateClients(admin, tenant_id, job_id, offset, batchSize));
+            nextStage = hasMore ? "migrate_clients" : "migrate_projects";
+          } else if (currentStage === "migrate_projects") {
+            ({ counters: allCounters.projects, hasMore, nextOffset } = await migrateProjects(admin, tenant_id, job_id, offset, batchSize));
+            nextStage = hasMore ? "migrate_projects" : "migrate_proposals";
+          } else {
+            ({ counters: allCounters.proposals, hasMore, nextOffset } = await migrateProposals(admin, tenant_id, job_id, offset, batchSize));
+            nextStage = hasMore ? "migrate_proposals" : null;
+          }
           break;
         default:
           throw new Error(`Unsupported job_type: ${job.job_type}`);
+      }
+
+      if (hasMore && nextOffset !== null) {
+        await admin
+          .from("migration_jobs")
+          .update({
+            metadata: {
+              ...(job.metadata ?? {}),
+              counters: { ...(job.metadata?.counters ?? {}), ...allCounters },
+              progress: { offset: nextOffset, batch_size: batchSize, has_more: true, stage: nextStage },
+            },
+          })
+          .eq("id", job_id);
+
+        runInBackground(requeueJob(job_id, auth, nextOffset, batchSize, nextStage));
+        return json({ status: "running", counters: allCounters, next_offset: nextOffset }, 202);
+      }
+
+      if (job.job_type === "full_migration" && nextStage) {
+        await admin
+          .from("migration_jobs")
+          .update({
+            metadata: {
+              ...(job.metadata ?? {}),
+              counters: { ...(job.metadata?.counters ?? {}), ...allCounters },
+              progress: { offset: 0, batch_size: batchSize, has_more: true, stage: nextStage },
+            },
+          })
+          .eq("id", job_id);
+
+        runInBackground(requeueJob(job_id, auth, 0, batchSize, nextStage));
+        return json({ status: "running", counters: allCounters, next_stage: nextStage }, 202);
       }
 
       await admin
@@ -91,7 +169,11 @@ Deno.serve(async (req) => {
         .update({
           status: "completed",
           completed_at: new Date().toISOString(),
-          metadata: { ...(job.metadata ?? {}), counters: allCounters },
+          metadata: {
+            ...(job.metadata ?? {}),
+            counters: { ...(job.metadata?.counters ?? {}), ...allCounters },
+            progress: { offset: 0, batch_size: batchSize, has_more: false },
+          },
         })
         .eq("id", job_id);
 
@@ -201,18 +283,55 @@ function capitalize(s: string) {
   return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
+function jobStageFromMetadata(metadata: any, fallback: JobStage | null): JobStage | null {
+  const stage = metadata?.progress?.stage ?? fallback;
+  return stage === "classify_projects" || stage === "migrate_clients" || stage === "migrate_projects" || stage === "migrate_proposals"
+    ? stage
+    : fallback;
+}
+
+async function requeueJob(
+  job_id: string,
+  authHeader: string,
+  offset: number,
+  batch_size: number,
+  stage: JobStage | null,
+) {
+  await fetch(`${REQUEUE_BASE_URL}/migration-execute-job`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: authHeader,
+    },
+    body: JSON.stringify({ job_id, offset, batch_size, stage }),
+  });
+}
+
+function runInBackground(task: Promise<unknown>) {
+  const runtime = typeof EdgeRuntime !== "undefined" ? EdgeRuntime : undefined;
+  if (runtime?.waitUntil) {
+    runtime.waitUntil(task);
+    return;
+  }
+  task.catch(console.error);
+}
+
 async function classifyProjects(
   admin: SupabaseClient,
   tenant_id: string,
   job_id: string,
-): Promise<Counters> {
+  offset = 0,
+  batchSize = DEFAULT_BATCH_SIZE,
+): Promise<ProcessBatchResult> {
   const counters: Counters = { migrated: 0, skipped: 0, failed: 0 };
   const canonical = await ensureCanonicalFunis(admin, tenant_id);
 
   const { data: projects } = await admin
     .from("solar_market_projects")
     .select("sm_project_id, sm_funnel_name, sm_stage_name")
-    .eq("tenant_id", tenant_id);
+    .eq("tenant_id", tenant_id)
+    .order("sm_project_id", { ascending: true })
+    .range(offset, offset + batchSize - 1);
 
   for (const p of projects ?? []) {
     const sm_project_id = (p as any).sm_project_id as number;
@@ -246,7 +365,8 @@ async function classifyProjects(
       counters.failed++;
     }
   }
-  return counters;
+  const hasMore = (projects?.length ?? 0) === batchSize;
+  return { counters, hasMore, nextOffset: hasMore ? offset + batchSize : null };
 }
 
 // ============================================================
@@ -257,13 +377,17 @@ async function migrateClients(
   admin: SupabaseClient,
   tenant_id: string,
   job_id: string,
-): Promise<Counters> {
+  offset = 0,
+  batchSize = DEFAULT_BATCH_SIZE,
+): Promise<ProcessBatchResult> {
   const counters: Counters = { migrated: 0, skipped: 0, failed: 0 };
 
   const { data: clients } = await admin
     .from("solar_market_clients")
     .select("*")
-    .eq("tenant_id", tenant_id);
+    .eq("tenant_id", tenant_id)
+    .order("sm_client_id", { ascending: true })
+    .range(offset, offset + batchSize - 1);
 
   for (const c of clients ?? []) {
     const sm_client_id = (c as any).sm_client_id as number;
@@ -418,7 +542,8 @@ async function migrateClients(
       counters.failed++;
     }
   }
-  return counters;
+  const hasMore = (clients?.length ?? 0) === batchSize;
+  return { counters, hasMore, nextOffset: hasMore ? offset + batchSize : null };
 }
 
 // ============================================================
@@ -429,13 +554,17 @@ async function migrateProjects(
   admin: SupabaseClient,
   tenant_id: string,
   job_id: string,
-): Promise<Counters> {
+  offset = 0,
+  batchSize = DEFAULT_BATCH_SIZE,
+): Promise<ProcessBatchResult> {
   const counters: Counters = { migrated: 0, skipped: 0, failed: 0 };
 
   const { data: projects } = await admin
     .from("solar_market_projects")
     .select("sm_project_id, sm_client_id, name")
-    .eq("tenant_id", tenant_id);
+    .eq("tenant_id", tenant_id)
+    .order("sm_project_id", { ascending: true })
+    .range(offset, offset + batchSize - 1);
 
   for (const p of projects ?? []) {
     const sm_project_id = (p as any).sm_project_id as number;
@@ -511,7 +640,8 @@ async function migrateProjects(
       counters.failed++;
     }
   }
-  return counters;
+  const hasMore = (projects?.length ?? 0) === batchSize;
+  return { counters, hasMore, nextOffset: hasMore ? offset + batchSize : null };
 }
 
 // ============================================================
@@ -522,13 +652,17 @@ async function migrateProposals(
   admin: SupabaseClient,
   tenant_id: string,
   job_id: string,
-): Promise<Counters> {
+  offset = 0,
+  batchSize = DEFAULT_BATCH_SIZE,
+): Promise<ProcessBatchResult> {
   const counters: Counters = { migrated: 0, skipped: 0, failed: 0 };
 
   const { data: proposals } = await admin
     .from("solar_market_proposals")
     .select("*")
-    .eq("tenant_id", tenant_id);
+    .eq("tenant_id", tenant_id)
+    .order("sm_proposal_id", { ascending: true })
+    .range(offset, offset + batchSize - 1);
 
   for (const pr of proposals ?? []) {
     const sm_proposal_id = (pr as any).sm_proposal_id ?? (pr as any).id;
@@ -589,7 +723,8 @@ async function migrateProposals(
       counters.failed++;
     }
   }
-  return counters;
+  const hasMore = (proposals?.length ?? 0) === batchSize;
+  return { counters, hasMore, nextOffset: hasMore ? offset + batchSize : null };
 }
 
 // ============================================================
