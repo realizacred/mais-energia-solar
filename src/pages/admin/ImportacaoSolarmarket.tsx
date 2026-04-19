@@ -55,12 +55,12 @@ export default function ImportacaoSolarmarket() {
     custom_fields: true,
   });
 
-  const runningJob = jobs.find((j) => {
-    if (j.status !== "running") return false;
-    // Considera "travado" se passou mais de 10 min sem finalizar
-    const startedMs = new Date(j.started_at ?? j.created_at).getTime();
-    return Date.now() - startedMs < 10 * 60 * 1000;
-  });
+  // Qualquer job em "running" é considerado ativo (e cancelável).
+  // Se passou de 10 min, marcamos como "stale" para o usuário ver e cancelar.
+  const runningJob = jobs.find((j) => j.status === "running");
+  const isStale = runningJob
+    ? Date.now() - new Date(runningJob.started_at ?? runningJob.created_at).getTime() > 10 * 60 * 1000
+    : false;
 
   const handleTest = async () => {
     try {
@@ -94,11 +94,12 @@ export default function ImportacaoSolarmarket() {
   const toggle = (k: keyof ImportScope) =>
     setScope((s) => ({ ...s, [k]: !s[k] }));
 
-  const handleCancel = async () => {
-    if (!runningJob) return;
-    if (!confirm("Cancelar a importação em andamento?")) return;
+  const handleCancel = async (jobId?: string) => {
+    const id = jobId ?? runningJob?.id;
+    if (!id) return;
+    if (!confirm("Cancelar a importação em andamento? Isto marcará o job como cancelado.")) return;
     try {
-      await cancelImport.mutateAsync(runningJob.id);
+      await cancelImport.mutateAsync(id);
       toast({ title: "Importação cancelada" });
     } catch (e: any) {
       toast({
@@ -253,7 +254,7 @@ export default function ImportacaoSolarmarket() {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={handleCancel}
+                  onClick={() => handleCancel()}
                   disabled={cancelImport.isPending}
                   className="border-destructive text-destructive hover:bg-destructive/10"
                 >
@@ -266,6 +267,15 @@ export default function ImportacaoSolarmarket() {
                 </Button>
               </div>
             </div>
+            {isStale && (
+              <div className="flex items-start gap-2 rounded-md border border-warning/30 bg-warning/5 p-2 text-xs text-warning">
+                <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
+                <span>
+                  Esta importação está em execução há mais de 10 minutos sem progresso.
+                  Provavelmente travou — clique em <strong>Cancelar</strong> para liberar e tentar novamente.
+                </span>
+              </div>
+            )}
             <Progress value={Number(runningJob.progress_pct ?? 0)} />
             {/* Contadores parciais */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-2">
@@ -315,6 +325,7 @@ export default function ImportacaoSolarmarket() {
                     <TableHead className="text-right">Propostas</TableHead>
                     <TableHead className="text-right">Erros</TableHead>
                     <TableHead>Fim</TableHead>
+                    <TableHead className="text-right">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -337,6 +348,22 @@ export default function ImportacaoSolarmarket() {
                         )}
                       </TableCell>
                       <TableCell className="text-xs">{formatBR(j.finished_at)}</TableCell>
+                      <TableCell className="text-right">
+                        {j.status === "running" || j.status === "pending" ? (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleCancel(j.id)}
+                            disabled={cancelImport.isPending}
+                            className="text-destructive hover:bg-destructive/10 h-7 px-2"
+                          >
+                            <Ban className="w-3.5 h-3.5 mr-1" />
+                            Cancelar
+                          </Button>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">—</span>
+                        )}
+                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
