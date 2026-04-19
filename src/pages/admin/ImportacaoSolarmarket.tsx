@@ -64,18 +64,16 @@ export default function ImportacaoSolarmarket() {
     : false;
 
   const handleTest = async () => {
+    setTestResult(null);
     try {
       const res: any = await testConnection.mutateAsync();
-      toast({
-        title: "Conexão OK",
-        description: res?.message || "Autenticado no SolarMarket.",
-      });
+      const msg = res?.message || "Autenticado no SolarMarket.";
+      setTestResult({ ok: true, message: msg });
+      toast({ title: "Conexão OK", description: msg });
     } catch (e: any) {
-      toast({
-        title: "Falha na conexão",
-        description: e?.message || "Verifique a configuração.",
-        variant: "destructive",
-      });
+      const msg = e?.message || "Verifique a configuração.";
+      setTestResult({ ok: false, message: msg });
+      toast({ title: "Falha na conexão", description: msg, variant: "destructive" });
     }
   };
 
