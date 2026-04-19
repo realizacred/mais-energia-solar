@@ -56,30 +56,28 @@ export function PreflightPanel({ tenantId }: Props) {
       : { tone: "err", label: "Sem dados de staging" },
   );
   if (data.stagingOk) {
-    checks.push(
-      data.classificationDone
-        ? { tone: "ok", label: "Classificação já executada" }
-        : {
-            tone: "info",
-            label: "Classificação ainda não executada — rode antes de migrar projetos/propostas",
-          },
-    );
-    if (data.leadIgnored > 0) {
-      checks.push({
-        tone: "warn",
-        label: `${data.leadIgnored.toLocaleString("pt-BR")} registros Lead serão ignorados`,
-      });
-    }
-    if (data.comercialConverted > 0) {
+    if (data.defaultedToComercial > 0) {
       checks.push({
         tone: "info",
-        label: `${data.comercialConverted.toLocaleString("pt-BR")} registros Vendedor → Comercial`,
+        label: `${data.defaultedToComercial.toLocaleString("pt-BR")} projetos sem funil → pipeline Comercial`,
+      });
+    }
+    if (data.vendedorAsConsultor > 0) {
+      checks.push({
+        tone: "info",
+        label: `${data.vendedorAsConsultor.toLocaleString("pt-BR")} projetos do funil "Vendedores" → consultor + status`,
       });
     }
     if (data.missingStagesEstimate > 0) {
       checks.push({
         tone: "warn",
         label: `${data.missingStagesEstimate} etapas serão criadas se não existirem`,
+      });
+    }
+    if (data.diagnostics.length > 0) {
+      checks.push({
+        tone: "warn",
+        label: `Diagnóstico: ${data.diagnostics.join("; ")}`,
       });
     }
   }
