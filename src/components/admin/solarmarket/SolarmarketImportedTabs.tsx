@@ -223,7 +223,7 @@ export function SolarmarketImportedTabs() {
 // ─────────────────────────────────────────────────────────────────────────
 // Sub-listas
 // ─────────────────────────────────────────────────────────────────────────
-type ListProps = { search: string; page: number; setPage: (n: number) => void };
+type ListProps = { search: string; page: number; setPage: (n: number) => void; isImporting: boolean };
 
 function Pagination({ page, setPage, total }: { page: number; setPage: (n: number) => void; total: number }) {
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
