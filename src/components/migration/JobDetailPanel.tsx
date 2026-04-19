@@ -7,6 +7,7 @@ import { Progress } from "@/components/ui/progress";
 import { SectionCard } from "@/components/ui-kit";
 import { useMigrationJobStatus } from "@/hooks/useMigrationJobStatus";
 import { GroupedErrorsList } from "./GroupedErrorsList";
+import { GroupedSkippedList } from "./GroupedSkippedList";
 import { useMigrationRollback } from "@/hooks/useMigrationRollback";
 import { useCancelMigrationJob } from "@/hooks/useCancelMigrationJob";
 import { JobStatusBadge } from "./JobStatusBadge";
@@ -35,7 +36,7 @@ export function JobDetailPanel({ jobId }: Props) {
     );
   }
 
-  const { job, counters, total, progress, errors } = data;
+  const { job, counters, total, progress, errors, skipped = [] } = data;
   const canRollback = job.status === "completed" || job.status === "failed";
   const canCancel = job.status === "pending" || job.status === "running";
 
@@ -71,6 +72,10 @@ export function JobDetailPanel({ jobId }: Props) {
 
         {errors.length > 0 && (
           <GroupedErrorsList errors={errors} jobId={jobId} />
+        )}
+
+        {skipped.length > 0 && (
+          <GroupedSkippedList skipped={skipped} jobId={jobId} />
         )}
 
         {job.status === "completed" && counters.failed === 0 && (
