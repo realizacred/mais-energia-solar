@@ -52,10 +52,11 @@ function EmptyState({ icon: Icon, message }: { icon: any; message: string }) {
 // ─────────────────────────────────────────────────────────────────────────
 // Hook: contadores totais (sempre carregados para os badges das abas)
 // ─────────────────────────────────────────────────────────────────────────
-function useImportedCounts() {
+function useImportedCounts(isImporting: boolean) {
   return useQuery({
     queryKey: ["sm-imported-counts"],
-    staleTime: STALE,
+    staleTime: isImporting ? 0 : STALE,
+    refetchInterval: isImporting ? 3000 : false,
     queryFn: async () => {
       const [c, p, pr] = await Promise.all([
         supabase.from("clientes").select("id", { count: "exact", head: true }).eq("external_source", "solarmarket"),
