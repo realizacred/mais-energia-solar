@@ -519,489 +519,6 @@ export type Database = {
         }
         Relationships: []
       }
-      backup_delete_clientes_teste: {
-        Row: {
-          assinatura_url: string | null
-          ativo: boolean | null
-          bairro: string | null
-          cep: string | null
-          cidade: string | null
-          cliente_code: string | null
-          complemento: string | null
-          comprovante_beneficiaria_urls: string[] | null
-          comprovante_endereco_url: string | null
-          comprovante_endereco_urls: string[] | null
-          cpf_cnpj: string | null
-          created_at: string | null
-          data_instalacao: string | null
-          data_nascimento: string | null
-          disjuntor_id: string | null
-          email: string | null
-          empresa: string | null
-          estado: string | null
-          id: string | null
-          identidade_url: string | null
-          identidade_urls: string[] | null
-          import_source: string | null
-          lead_id: string | null
-          localizacao: string | null
-          modelo_inversor: string | null
-          municipio_ibge_codigo: string | null
-          nome: string | null
-          numero: string | null
-          numero_placas: number | null
-          observacoes: string | null
-          origem: string | null
-          payment_composition: Json | null
-          potencia_kwp: number | null
-          rua: string | null
-          simulacao_aceita_id: string | null
-          sm_client_id: number | null
-          telefone: string | null
-          telefone_normalized: string | null
-          tenant_id: string | null
-          transformador_id: string | null
-          updated_at: string | null
-          valor_projeto: number | null
-        }
-        Insert: {
-          assinatura_url?: string | null
-          ativo?: boolean | null
-          bairro?: string | null
-          cep?: string | null
-          cidade?: string | null
-          cliente_code?: string | null
-          complemento?: string | null
-          comprovante_beneficiaria_urls?: string[] | null
-          comprovante_endereco_url?: string | null
-          comprovante_endereco_urls?: string[] | null
-          cpf_cnpj?: string | null
-          created_at?: string | null
-          data_instalacao?: string | null
-          data_nascimento?: string | null
-          disjuntor_id?: string | null
-          email?: string | null
-          empresa?: string | null
-          estado?: string | null
-          id?: string | null
-          identidade_url?: string | null
-          identidade_urls?: string[] | null
-          import_source?: string | null
-          lead_id?: string | null
-          localizacao?: string | null
-          modelo_inversor?: string | null
-          municipio_ibge_codigo?: string | null
-          nome?: string | null
-          numero?: string | null
-          numero_placas?: number | null
-          observacoes?: string | null
-          origem?: string | null
-          payment_composition?: Json | null
-          potencia_kwp?: number | null
-          rua?: string | null
-          simulacao_aceita_id?: string | null
-          sm_client_id?: number | null
-          telefone?: string | null
-          telefone_normalized?: string | null
-          tenant_id?: string | null
-          transformador_id?: string | null
-          updated_at?: string | null
-          valor_projeto?: number | null
-        }
-        Update: {
-          assinatura_url?: string | null
-          ativo?: boolean | null
-          bairro?: string | null
-          cep?: string | null
-          cidade?: string | null
-          cliente_code?: string | null
-          complemento?: string | null
-          comprovante_beneficiaria_urls?: string[] | null
-          comprovante_endereco_url?: string | null
-          comprovante_endereco_urls?: string[] | null
-          cpf_cnpj?: string | null
-          created_at?: string | null
-          data_instalacao?: string | null
-          data_nascimento?: string | null
-          disjuntor_id?: string | null
-          email?: string | null
-          empresa?: string | null
-          estado?: string | null
-          id?: string | null
-          identidade_url?: string | null
-          identidade_urls?: string[] | null
-          import_source?: string | null
-          lead_id?: string | null
-          localizacao?: string | null
-          modelo_inversor?: string | null
-          municipio_ibge_codigo?: string | null
-          nome?: string | null
-          numero?: string | null
-          numero_placas?: number | null
-          observacoes?: string | null
-          origem?: string | null
-          payment_composition?: Json | null
-          potencia_kwp?: number | null
-          rua?: string | null
-          simulacao_aceita_id?: string | null
-          sm_client_id?: number | null
-          telefone?: string | null
-          telefone_normalized?: string | null
-          tenant_id?: string | null
-          transformador_id?: string | null
-          updated_at?: string | null
-          valor_projeto?: number | null
-        }
-        Relationships: []
-      }
-      backup_delete_projetos_teste: {
-        Row: {
-          area_util_m2: number | null
-          bairro_instalacao: string | null
-          cep_instalacao: string | null
-          cidade_instalacao: string | null
-          cliente_id: string | null
-          codigo: string | null
-          complemento_instalacao: string | null
-          consultor_id: string | null
-          created_at: string | null
-          created_by: string | null
-          data_comissionamento: string | null
-          data_instalacao: string | null
-          data_previsao_instalacao: string | null
-          data_venda: string | null
-          deal_id: string | null
-          etapa_id: string | null
-          forma_pagamento: string | null
-          funil_id: string | null
-          geracao_mensal_media_kwh: number | null
-          id: string | null
-          import_source: string | null
-          instalador_id: string | null
-          is_principal: boolean | null
-          lat_instalacao: number | null
-          lead_id: string | null
-          lon_instalacao: number | null
-          modelo_inversor: string | null
-          modelo_modulos: string | null
-          motivo_perda_id: string | null
-          motivo_perda_obs: string | null
-          numero_instalacao: string | null
-          numero_inversores: number | null
-          numero_modulos: number | null
-          numero_parcelas: number | null
-          observacoes: string | null
-          origem: string | null
-          potencia_kwp: number | null
-          prazo_estimado_dias: number | null
-          prazo_vistoria_dias: number | null
-          projeto_num: number | null
-          proposta_id: string | null
-          rua_instalacao: string | null
-          sm_project_id: number | null
-          status: Database["public"]["Enums"]["projeto_status"] | null
-          tenant_id: string | null
-          tipo_instalacao: string | null
-          uf_instalacao: string | null
-          updated_at: string | null
-          valor_entrada: number | null
-          valor_equipamentos: number | null
-          valor_financiado: number | null
-          valor_mao_obra: number | null
-          valor_parcela: number | null
-          valor_total: number | null
-        }
-        Insert: {
-          area_util_m2?: number | null
-          bairro_instalacao?: string | null
-          cep_instalacao?: string | null
-          cidade_instalacao?: string | null
-          cliente_id?: string | null
-          codigo?: string | null
-          complemento_instalacao?: string | null
-          consultor_id?: string | null
-          created_at?: string | null
-          created_by?: string | null
-          data_comissionamento?: string | null
-          data_instalacao?: string | null
-          data_previsao_instalacao?: string | null
-          data_venda?: string | null
-          deal_id?: string | null
-          etapa_id?: string | null
-          forma_pagamento?: string | null
-          funil_id?: string | null
-          geracao_mensal_media_kwh?: number | null
-          id?: string | null
-          import_source?: string | null
-          instalador_id?: string | null
-          is_principal?: boolean | null
-          lat_instalacao?: number | null
-          lead_id?: string | null
-          lon_instalacao?: number | null
-          modelo_inversor?: string | null
-          modelo_modulos?: string | null
-          motivo_perda_id?: string | null
-          motivo_perda_obs?: string | null
-          numero_instalacao?: string | null
-          numero_inversores?: number | null
-          numero_modulos?: number | null
-          numero_parcelas?: number | null
-          observacoes?: string | null
-          origem?: string | null
-          potencia_kwp?: number | null
-          prazo_estimado_dias?: number | null
-          prazo_vistoria_dias?: number | null
-          projeto_num?: number | null
-          proposta_id?: string | null
-          rua_instalacao?: string | null
-          sm_project_id?: number | null
-          status?: Database["public"]["Enums"]["projeto_status"] | null
-          tenant_id?: string | null
-          tipo_instalacao?: string | null
-          uf_instalacao?: string | null
-          updated_at?: string | null
-          valor_entrada?: number | null
-          valor_equipamentos?: number | null
-          valor_financiado?: number | null
-          valor_mao_obra?: number | null
-          valor_parcela?: number | null
-          valor_total?: number | null
-        }
-        Update: {
-          area_util_m2?: number | null
-          bairro_instalacao?: string | null
-          cep_instalacao?: string | null
-          cidade_instalacao?: string | null
-          cliente_id?: string | null
-          codigo?: string | null
-          complemento_instalacao?: string | null
-          consultor_id?: string | null
-          created_at?: string | null
-          created_by?: string | null
-          data_comissionamento?: string | null
-          data_instalacao?: string | null
-          data_previsao_instalacao?: string | null
-          data_venda?: string | null
-          deal_id?: string | null
-          etapa_id?: string | null
-          forma_pagamento?: string | null
-          funil_id?: string | null
-          geracao_mensal_media_kwh?: number | null
-          id?: string | null
-          import_source?: string | null
-          instalador_id?: string | null
-          is_principal?: boolean | null
-          lat_instalacao?: number | null
-          lead_id?: string | null
-          lon_instalacao?: number | null
-          modelo_inversor?: string | null
-          modelo_modulos?: string | null
-          motivo_perda_id?: string | null
-          motivo_perda_obs?: string | null
-          numero_instalacao?: string | null
-          numero_inversores?: number | null
-          numero_modulos?: number | null
-          numero_parcelas?: number | null
-          observacoes?: string | null
-          origem?: string | null
-          potencia_kwp?: number | null
-          prazo_estimado_dias?: number | null
-          prazo_vistoria_dias?: number | null
-          projeto_num?: number | null
-          proposta_id?: string | null
-          rua_instalacao?: string | null
-          sm_project_id?: number | null
-          status?: Database["public"]["Enums"]["projeto_status"] | null
-          tenant_id?: string | null
-          tipo_instalacao?: string | null
-          uf_instalacao?: string | null
-          updated_at?: string | null
-          valor_entrada?: number | null
-          valor_equipamentos?: number | null
-          valor_financiado?: number | null
-          valor_mao_obra?: number | null
-          valor_parcela?: number | null
-          valor_total?: number | null
-        }
-        Relationships: []
-      }
-      backup_delete_propostas_teste: {
-        Row: {
-          aceita_at: string | null
-          aceite_estimativa: boolean | null
-          aceite_motivo: string | null
-          aneel_run_id: string | null
-          ano_gd: number | null
-          cliente_id: string | null
-          codigo: string | null
-          consultor_id: string | null
-          created_at: string | null
-          created_by: string | null
-          data_aceite_estimativa: string | null
-          deal_id: string | null
-          deleted_at: string | null
-          enviada_at: string | null
-          enviada_por: string | null
-          enviada_via: string | null
-          fio_b_percent_aplicado: number | null
-          id: string | null
-          import_source: string | null
-          is_principal: boolean | null
-          lead_id: string | null
-          metadata: Json | null
-          missing_variables: string[] | null
-          nome_kit: string | null
-          origem: string | null
-          origem_tarifa: string | null
-          precisao_calculo: string | null
-          precisao_motivo: string | null
-          primeiro_acesso_em: string | null
-          projeto_id: string | null
-          proposta_num: number | null
-          public_token: string | null
-          reaberta_em: string | null
-          reaberta_por: string | null
-          recusa_motivo: string | null
-          recusada_at: string | null
-          regra_gd: string | null
-          sm_id: string | null
-          sm_project_id: string | null
-          sm_raw_payload: Json | null
-          snapshot_hash: string | null
-          status: string | null
-          status_anterior:
-            | Database["public"]["Enums"]["proposta_nativa_status"]
-            | null
-          status_visualizacao: string | null
-          tariff_version_id: string | null
-          template_id: string | null
-          tenant_id: string | null
-          titulo: string | null
-          total_aberturas: number | null
-          ultimo_acesso_em: string | null
-          updated_at: string | null
-          validade_dias: number | null
-          versao_atual: number | null
-          vigencia_tarifa: string | null
-        }
-        Insert: {
-          aceita_at?: string | null
-          aceite_estimativa?: boolean | null
-          aceite_motivo?: string | null
-          aneel_run_id?: string | null
-          ano_gd?: number | null
-          cliente_id?: string | null
-          codigo?: string | null
-          consultor_id?: string | null
-          created_at?: string | null
-          created_by?: string | null
-          data_aceite_estimativa?: string | null
-          deal_id?: string | null
-          deleted_at?: string | null
-          enviada_at?: string | null
-          enviada_por?: string | null
-          enviada_via?: string | null
-          fio_b_percent_aplicado?: number | null
-          id?: string | null
-          import_source?: string | null
-          is_principal?: boolean | null
-          lead_id?: string | null
-          metadata?: Json | null
-          missing_variables?: string[] | null
-          nome_kit?: string | null
-          origem?: string | null
-          origem_tarifa?: string | null
-          precisao_calculo?: string | null
-          precisao_motivo?: string | null
-          primeiro_acesso_em?: string | null
-          projeto_id?: string | null
-          proposta_num?: number | null
-          public_token?: string | null
-          reaberta_em?: string | null
-          reaberta_por?: string | null
-          recusa_motivo?: string | null
-          recusada_at?: string | null
-          regra_gd?: string | null
-          sm_id?: string | null
-          sm_project_id?: string | null
-          sm_raw_payload?: Json | null
-          snapshot_hash?: string | null
-          status?: string | null
-          status_anterior?:
-            | Database["public"]["Enums"]["proposta_nativa_status"]
-            | null
-          status_visualizacao?: string | null
-          tariff_version_id?: string | null
-          template_id?: string | null
-          tenant_id?: string | null
-          titulo?: string | null
-          total_aberturas?: number | null
-          ultimo_acesso_em?: string | null
-          updated_at?: string | null
-          validade_dias?: number | null
-          versao_atual?: number | null
-          vigencia_tarifa?: string | null
-        }
-        Update: {
-          aceita_at?: string | null
-          aceite_estimativa?: boolean | null
-          aceite_motivo?: string | null
-          aneel_run_id?: string | null
-          ano_gd?: number | null
-          cliente_id?: string | null
-          codigo?: string | null
-          consultor_id?: string | null
-          created_at?: string | null
-          created_by?: string | null
-          data_aceite_estimativa?: string | null
-          deal_id?: string | null
-          deleted_at?: string | null
-          enviada_at?: string | null
-          enviada_por?: string | null
-          enviada_via?: string | null
-          fio_b_percent_aplicado?: number | null
-          id?: string | null
-          import_source?: string | null
-          is_principal?: boolean | null
-          lead_id?: string | null
-          metadata?: Json | null
-          missing_variables?: string[] | null
-          nome_kit?: string | null
-          origem?: string | null
-          origem_tarifa?: string | null
-          precisao_calculo?: string | null
-          precisao_motivo?: string | null
-          primeiro_acesso_em?: string | null
-          projeto_id?: string | null
-          proposta_num?: number | null
-          public_token?: string | null
-          reaberta_em?: string | null
-          reaberta_por?: string | null
-          recusa_motivo?: string | null
-          recusada_at?: string | null
-          regra_gd?: string | null
-          sm_id?: string | null
-          sm_project_id?: string | null
-          sm_raw_payload?: Json | null
-          snapshot_hash?: string | null
-          status?: string | null
-          status_anterior?:
-            | Database["public"]["Enums"]["proposta_nativa_status"]
-            | null
-          status_visualizacao?: string | null
-          tariff_version_id?: string | null
-          template_id?: string | null
-          tenant_id?: string | null
-          titulo?: string | null
-          total_aberturas?: number | null
-          ultimo_acesso_em?: string | null
-          updated_at?: string | null
-          validade_dias?: number | null
-          versao_atual?: number | null
-          vigencia_tarifa?: string | null
-        }
-        Relationships: []
-      }
       backup_logs: {
         Row: {
           backup_type: string
@@ -2331,7 +1848,6 @@ export type Database = {
           id: string
           identidade_url: string | null
           identidade_urls: string[] | null
-          import_source: string | null
           lead_id: string | null
           localizacao: string | null
           modelo_inversor: string | null
@@ -2345,7 +1861,6 @@ export type Database = {
           potencia_kwp: number | null
           rua: string | null
           simulacao_aceita_id: string | null
-          sm_client_id: number | null
           telefone: string
           telefone_normalized: string | null
           tenant_id: string
@@ -2375,7 +1890,6 @@ export type Database = {
           id?: string
           identidade_url?: string | null
           identidade_urls?: string[] | null
-          import_source?: string | null
           lead_id?: string | null
           localizacao?: string | null
           modelo_inversor?: string | null
@@ -2389,7 +1903,6 @@ export type Database = {
           potencia_kwp?: number | null
           rua?: string | null
           simulacao_aceita_id?: string | null
-          sm_client_id?: number | null
           telefone: string
           telefone_normalized?: string | null
           tenant_id?: string
@@ -2419,7 +1932,6 @@ export type Database = {
           id?: string
           identidade_url?: string | null
           identidade_urls?: string[] | null
-          import_source?: string | null
           lead_id?: string | null
           localizacao?: string | null
           modelo_inversor?: string | null
@@ -2433,7 +1945,6 @@ export type Database = {
           potencia_kwp?: number | null
           rua?: string | null
           simulacao_aceita_id?: string | null
-          sm_client_id?: number | null
           telefone?: string
           telefone_normalized?: string | null
           tenant_id?: string
@@ -3991,7 +3502,6 @@ export type Database = {
           etiqueta: string | null
           expected_close_date: string | null
           id: string
-          import_source: string | null
           kwp: number | null
           legacy_key: string | null
           motivo_perda_id: string | null
@@ -4016,7 +3526,6 @@ export type Database = {
           etiqueta?: string | null
           expected_close_date?: string | null
           id?: string
-          import_source?: string | null
           kwp?: number | null
           legacy_key?: string | null
           motivo_perda_id?: string | null
@@ -4041,7 +3550,6 @@ export type Database = {
           etiqueta?: string | null
           expected_close_date?: string | null
           id?: string
-          import_source?: string | null
           kwp?: number | null
           legacy_key?: string | null
           motivo_perda_id?: string | null
@@ -10400,8 +9908,6 @@ export type Database = {
           id: string
           lead_id: string
           link_reason: string
-          sm_client_id: number
-          sm_project_id: number | null
           tenant_id: string
         }
         Insert: {
@@ -10409,8 +9915,6 @@ export type Database = {
           id?: string
           lead_id: string
           link_reason?: string
-          sm_client_id: number
-          sm_project_id?: number | null
           tenant_id?: string
         }
         Update: {
@@ -10418,8 +9922,6 @@ export type Database = {
           id?: string
           lead_id?: string
           link_reason?: string
-          sm_client_id?: number
-          sm_project_id?: number | null
           tenant_id?: string
         }
         Relationships: [
@@ -11351,113 +10853,6 @@ export type Database = {
           },
           {
             foreignKeyName: "meter_status_latest_tenant_id_fkey"
-            columns: ["tenant_id"]
-            isOneToOne: false
-            referencedRelation: "tenants"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      migration_jobs: {
-        Row: {
-          completed_at: string | null
-          created_at: string
-          created_by: string | null
-          error_message: string | null
-          id: string
-          job_type: string
-          metadata: Json
-          started_at: string | null
-          status: string
-          tenant_id: string
-        }
-        Insert: {
-          completed_at?: string | null
-          created_at?: string
-          created_by?: string | null
-          error_message?: string | null
-          id?: string
-          job_type: string
-          metadata?: Json
-          started_at?: string | null
-          status?: string
-          tenant_id: string
-        }
-        Update: {
-          completed_at?: string | null
-          created_at?: string
-          created_by?: string | null
-          error_message?: string | null
-          id?: string
-          job_type?: string
-          metadata?: Json
-          started_at?: string | null
-          status?: string
-          tenant_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "migration_jobs_tenant_id_fkey"
-            columns: ["tenant_id"]
-            isOneToOne: false
-            referencedRelation: "tenants"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      migration_records: {
-        Row: {
-          created_at: string
-          entity_type: string
-          error_message: string | null
-          id: string
-          job_id: string
-          migrated_at: string | null
-          native_entity_id: string | null
-          sm_entity_id: number
-          source_data: Json | null
-          status: string
-          tenant_id: string
-          validation_errors: Json | null
-        }
-        Insert: {
-          created_at?: string
-          entity_type: string
-          error_message?: string | null
-          id?: string
-          job_id: string
-          migrated_at?: string | null
-          native_entity_id?: string | null
-          sm_entity_id: number
-          source_data?: Json | null
-          status: string
-          tenant_id: string
-          validation_errors?: Json | null
-        }
-        Update: {
-          created_at?: string
-          entity_type?: string
-          error_message?: string | null
-          id?: string
-          job_id?: string
-          migrated_at?: string | null
-          native_entity_id?: string | null
-          sm_entity_id?: number
-          source_data?: Json | null
-          status?: string
-          tenant_id?: string
-          validation_errors?: Json | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "migration_records_job_id_fkey"
-            columns: ["job_id"]
-            isOneToOne: false
-            referencedRelation: "migration_jobs"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "migration_records_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
@@ -16240,7 +15635,6 @@ export type Database = {
           funil_id: string | null
           geracao_mensal_media_kwh: number | null
           id: string
-          import_source: string | null
           instalador_id: string | null
           is_principal: boolean
           lat_instalacao: number | null
@@ -16262,7 +15656,6 @@ export type Database = {
           projeto_num: number
           proposta_id: string | null
           rua_instalacao: string | null
-          sm_project_id: number | null
           status: Database["public"]["Enums"]["projeto_status"]
           tenant_id: string
           tipo_instalacao: string | null
@@ -16296,7 +15689,6 @@ export type Database = {
           funil_id?: string | null
           geracao_mensal_media_kwh?: number | null
           id?: string
-          import_source?: string | null
           instalador_id?: string | null
           is_principal?: boolean
           lat_instalacao?: number | null
@@ -16318,7 +15710,6 @@ export type Database = {
           projeto_num?: number
           proposta_id?: string | null
           rua_instalacao?: string | null
-          sm_project_id?: number | null
           status?: Database["public"]["Enums"]["projeto_status"]
           tenant_id?: string
           tipo_instalacao?: string | null
@@ -16352,7 +15743,6 @@ export type Database = {
           funil_id?: string | null
           geracao_mensal_media_kwh?: number | null
           id?: string
-          import_source?: string | null
           instalador_id?: string | null
           is_principal?: boolean
           lat_instalacao?: number | null
@@ -16374,7 +15764,6 @@ export type Database = {
           projeto_num?: number
           proposta_id?: string | null
           rua_instalacao?: string | null
-          sm_project_id?: number | null
           status?: Database["public"]["Enums"]["projeto_status"]
           tenant_id?: string
           tipo_instalacao?: string | null
@@ -16813,13 +16202,6 @@ export type Database = {
             columns: ["lead_id"]
             isOneToOne: false
             referencedRelation: "leads"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "proposal_variables_proposta_id_fkey"
-            columns: ["proposta_id"]
-            isOneToOne: false
-            referencedRelation: "propostas_sm_legado"
             referencedColumns: ["id"]
           },
           {
@@ -18344,13 +17726,6 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "proposta_variaveis_proposta_id_fkey"
-            columns: ["proposta_id"]
-            isOneToOne: false
-            referencedRelation: "propostas_sm_legado"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "proposta_variaveis_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
@@ -19096,7 +18471,6 @@ export type Database = {
           enviada_via: string | null
           fio_b_percent_aplicado: number | null
           id: string
-          import_source: string | null
           is_principal: boolean
           lead_id: string | null
           metadata: Json | null
@@ -19115,9 +18489,6 @@ export type Database = {
           recusa_motivo: string | null
           recusada_at: string | null
           regra_gd: string | null
-          sm_id: string | null
-          sm_project_id: number | null
-          sm_raw_payload: Json | null
           snapshot_hash: string | null
           status: string
           status_anterior:
@@ -19154,7 +18525,6 @@ export type Database = {
           enviada_via?: string | null
           fio_b_percent_aplicado?: number | null
           id?: string
-          import_source?: string | null
           is_principal?: boolean
           lead_id?: string | null
           metadata?: Json | null
@@ -19173,9 +18543,6 @@ export type Database = {
           recusa_motivo?: string | null
           recusada_at?: string | null
           regra_gd?: string | null
-          sm_id?: string | null
-          sm_project_id?: number | null
-          sm_raw_payload?: Json | null
           snapshot_hash?: string | null
           status?: string
           status_anterior?:
@@ -19212,7 +18579,6 @@ export type Database = {
           enviada_via?: string | null
           fio_b_percent_aplicado?: number | null
           id?: string
-          import_source?: string | null
           is_principal?: boolean
           lead_id?: string | null
           metadata?: Json | null
@@ -19231,9 +18597,6 @@ export type Database = {
           recusa_motivo?: string | null
           recusada_at?: string | null
           regra_gd?: string | null
-          sm_id?: string | null
-          sm_project_id?: number | null
-          sm_raw_payload?: Json | null
           snapshot_hash?: string | null
           status?: string
           status_anterior?:
@@ -19313,135 +18676,6 @@ export type Database = {
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      propostas_sm_legado: {
-        Row: {
-          area_necessaria: number | null
-          cliente_celular: string | null
-          cliente_cep: string | null
-          cliente_cidade: string | null
-          cliente_email: string | null
-          cliente_endereco: string | null
-          cliente_estado: string | null
-          cliente_nome: string | null
-          consultor_id: string | null
-          created_at: string
-          created_at_sm: string | null
-          distribuidora: string | null
-          economia_mensal: number | null
-          expiration_date: string | null
-          generated_at: string | null
-          geracao_mensal_kwh: number | null
-          id: string
-          link_pdf: string | null
-          modelo_inversor: string | null
-          modelo_modulo: string | null
-          nome: string
-          numero_modulos: number | null
-          payback_anos: number | null
-          potencia_kwp: number | null
-          preco_total: number | null
-          raw_payload: Json | null
-          serie_consumo_mensal: number[] | null
-          serie_economia_anual: number[] | null
-          serie_geracao_mensal: number[] | null
-          sm_id: string | null
-          sm_project_id: string | null
-          sm_project_name: string | null
-          status: string
-          tenant_id: string
-          updated_at: string
-        }
-        Insert: {
-          area_necessaria?: number | null
-          cliente_celular?: string | null
-          cliente_cep?: string | null
-          cliente_cidade?: string | null
-          cliente_email?: string | null
-          cliente_endereco?: string | null
-          cliente_estado?: string | null
-          cliente_nome?: string | null
-          consultor_id?: string | null
-          created_at?: string
-          created_at_sm?: string | null
-          distribuidora?: string | null
-          economia_mensal?: number | null
-          expiration_date?: string | null
-          generated_at?: string | null
-          geracao_mensal_kwh?: number | null
-          id?: string
-          link_pdf?: string | null
-          modelo_inversor?: string | null
-          modelo_modulo?: string | null
-          nome: string
-          numero_modulos?: number | null
-          payback_anos?: number | null
-          potencia_kwp?: number | null
-          preco_total?: number | null
-          raw_payload?: Json | null
-          serie_consumo_mensal?: number[] | null
-          serie_economia_anual?: number[] | null
-          serie_geracao_mensal?: number[] | null
-          sm_id?: string | null
-          sm_project_id?: string | null
-          sm_project_name?: string | null
-          status?: string
-          tenant_id?: string
-          updated_at?: string
-        }
-        Update: {
-          area_necessaria?: number | null
-          cliente_celular?: string | null
-          cliente_cep?: string | null
-          cliente_cidade?: string | null
-          cliente_email?: string | null
-          cliente_endereco?: string | null
-          cliente_estado?: string | null
-          cliente_nome?: string | null
-          consultor_id?: string | null
-          created_at?: string
-          created_at_sm?: string | null
-          distribuidora?: string | null
-          economia_mensal?: number | null
-          expiration_date?: string | null
-          generated_at?: string | null
-          geracao_mensal_kwh?: number | null
-          id?: string
-          link_pdf?: string | null
-          modelo_inversor?: string | null
-          modelo_modulo?: string | null
-          nome?: string
-          numero_modulos?: number | null
-          payback_anos?: number | null
-          potencia_kwp?: number | null
-          preco_total?: number | null
-          raw_payload?: Json | null
-          serie_consumo_mensal?: number[] | null
-          serie_economia_anual?: number[] | null
-          serie_geracao_mensal?: number[] | null
-          sm_id?: string | null
-          sm_project_id?: string | null
-          sm_project_name?: string | null
-          status?: string
-          tenant_id?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "propostas_tenant_id_fkey"
-            columns: ["tenant_id"]
-            isOneToOne: false
-            referencedRelation: "tenants"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "propostas_vendedor_id_fkey"
-            columns: ["consultor_id"]
-            isOneToOne: false
-            referencedRelation: "consultores"
             referencedColumns: ["id"]
           },
         ]
@@ -20996,405 +20230,6 @@ export type Database = {
         }
         Relationships: []
       }
-      sm_classification_v2: {
-        Row: {
-          category: string
-          classification_reason: string | null
-          classified_at: string
-          confidence_score: number | null
-          id: string
-          override_by: string | null
-          override_reason: string | null
-          sm_project_id: number
-          target_etapa_id: string | null
-          target_funil_id: string | null
-          tenant_id: string
-          updated_at: string
-        }
-        Insert: {
-          category: string
-          classification_reason?: string | null
-          classified_at?: string
-          confidence_score?: number | null
-          id?: string
-          override_by?: string | null
-          override_reason?: string | null
-          sm_project_id: number
-          target_etapa_id?: string | null
-          target_funil_id?: string | null
-          tenant_id: string
-          updated_at?: string
-        }
-        Update: {
-          category?: string
-          classification_reason?: string | null
-          classified_at?: string
-          confidence_score?: number | null
-          id?: string
-          override_by?: string | null
-          override_reason?: string | null
-          sm_project_id?: number
-          target_etapa_id?: string | null
-          target_funil_id?: string | null
-          tenant_id?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "sm_classification_v2_target_etapa_id_fkey"
-            columns: ["target_etapa_id"]
-            isOneToOne: false
-            referencedRelation: "projeto_etapas"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "sm_classification_v2_target_funil_id_fkey"
-            columns: ["target_funil_id"]
-            isOneToOne: false
-            referencedRelation: "projeto_funis"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "sm_classification_v2_tenant_id_fkey"
-            columns: ["tenant_id"]
-            isOneToOne: false
-            referencedRelation: "tenants"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      sm_consultor_mapping: {
-        Row: {
-          canonical_name: string
-          consultor_id: string | null
-          created_at: string
-          id: string
-          is_ex_funcionario: boolean
-          sm_name: string
-          tenant_id: string
-          updated_at: string
-        }
-        Insert: {
-          canonical_name: string
-          consultor_id?: string | null
-          created_at?: string
-          id?: string
-          is_ex_funcionario?: boolean
-          sm_name: string
-          tenant_id: string
-          updated_at?: string
-        }
-        Update: {
-          canonical_name?: string
-          consultor_id?: string | null
-          created_at?: string
-          id?: string
-          is_ex_funcionario?: boolean
-          sm_name?: string
-          tenant_id?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "sm_consultor_mapping_consultor_id_fkey"
-            columns: ["consultor_id"]
-            isOneToOne: false
-            referencedRelation: "consultores"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "sm_consultor_mapping_tenant_id_fkey"
-            columns: ["tenant_id"]
-            isOneToOne: false
-            referencedRelation: "tenants"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      sm_migration_log: {
-        Row: {
-          created_at: string
-          id: string
-          is_dry_run: boolean | null
-          payload: Json | null
-          sm_client_name: string | null
-          sm_proposal_id: number
-          status: string
-          tenant_id: string
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          is_dry_run?: boolean | null
-          payload?: Json | null
-          sm_client_name?: string | null
-          sm_proposal_id: number
-          status: string
-          tenant_id: string
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          is_dry_run?: boolean | null
-          payload?: Json | null
-          sm_client_name?: string | null
-          sm_proposal_id?: number
-          status?: string
-          tenant_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "sm_migration_log_tenant_id_fkey"
-            columns: ["tenant_id"]
-            isOneToOne: false
-            referencedRelation: "tenants"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      sm_migration_settings: {
-        Row: {
-          auto_resolve_owner: boolean
-          batch_size: number
-          created_at: string
-          enabled: boolean
-          id: string
-          owner_id: string | null
-          pipeline_id: string
-          stage_id: string | null
-          tenant_id: string
-          updated_at: string
-        }
-        Insert: {
-          auto_resolve_owner?: boolean
-          batch_size?: number
-          created_at?: string
-          enabled?: boolean
-          id?: string
-          owner_id?: string | null
-          pipeline_id: string
-          stage_id?: string | null
-          tenant_id: string
-          updated_at?: string
-        }
-        Update: {
-          auto_resolve_owner?: boolean
-          batch_size?: number
-          created_at?: string
-          enabled?: boolean
-          id?: string
-          owner_id?: string | null
-          pipeline_id?: string
-          stage_id?: string | null
-          tenant_id?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "sm_migration_settings_tenant_id_fkey"
-            columns: ["tenant_id"]
-            isOneToOne: true
-            referencedRelation: "tenants"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      sm_operation_runs: {
-        Row: {
-          checkpoint_json: Json | null
-          context_json: Json | null
-          created_at: string
-          created_by: string | null
-          error_items: number | null
-          error_summary: string | null
-          finished_at: string | null
-          heartbeat_at: string | null
-          id: string
-          operation_type: string
-          processed_items: number | null
-          skipped_items: number | null
-          source: string
-          started_at: string | null
-          status: string
-          success_items: number | null
-          tenant_id: string
-          total_items: number | null
-          updated_at: string
-        }
-        Insert: {
-          checkpoint_json?: Json | null
-          context_json?: Json | null
-          created_at?: string
-          created_by?: string | null
-          error_items?: number | null
-          error_summary?: string | null
-          finished_at?: string | null
-          heartbeat_at?: string | null
-          id?: string
-          operation_type: string
-          processed_items?: number | null
-          skipped_items?: number | null
-          source?: string
-          started_at?: string | null
-          status?: string
-          success_items?: number | null
-          tenant_id: string
-          total_items?: number | null
-          updated_at?: string
-        }
-        Update: {
-          checkpoint_json?: Json | null
-          context_json?: Json | null
-          created_at?: string
-          created_by?: string | null
-          error_items?: number | null
-          error_summary?: string | null
-          finished_at?: string | null
-          heartbeat_at?: string | null
-          id?: string
-          operation_type?: string
-          processed_items?: number | null
-          skipped_items?: number | null
-          source?: string
-          started_at?: string | null
-          status?: string
-          success_items?: number | null
-          tenant_id?: string
-          total_items?: number | null
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "sm_operation_runs_tenant_id_fkey"
-            columns: ["tenant_id"]
-            isOneToOne: false
-            referencedRelation: "tenants"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      sm_project_classification_old_backup: {
-        Row: {
-          classification_version: number
-          created_at: string
-          etapa_destino_id: string | null
-          funil_destino_id: string | null
-          id: string
-          motivo: string | null
-          overridden_at: string | null
-          override_by: string | null
-          override_reason: string | null
-          pipeline_kind: Database["public"]["Enums"]["sm_pipeline_kind"]
-          resolution_error: string | null
-          resolution_status: string
-          resolved_at: string | null
-          resolved_etapa_id: string | null
-          resolved_funil_id: string | null
-          sm_project_id: string
-          target_funnel_name: string | null
-          target_stage_name: string | null
-          telefone_valido: boolean
-          tenant_id: string
-          updated_at: string
-        }
-        Insert: {
-          classification_version?: number
-          created_at?: string
-          etapa_destino_id?: string | null
-          funil_destino_id?: string | null
-          id?: string
-          motivo?: string | null
-          overridden_at?: string | null
-          override_by?: string | null
-          override_reason?: string | null
-          pipeline_kind?: Database["public"]["Enums"]["sm_pipeline_kind"]
-          resolution_error?: string | null
-          resolution_status?: string
-          resolved_at?: string | null
-          resolved_etapa_id?: string | null
-          resolved_funil_id?: string | null
-          sm_project_id: string
-          target_funnel_name?: string | null
-          target_stage_name?: string | null
-          telefone_valido?: boolean
-          tenant_id: string
-          updated_at?: string
-        }
-        Update: {
-          classification_version?: number
-          created_at?: string
-          etapa_destino_id?: string | null
-          funil_destino_id?: string | null
-          id?: string
-          motivo?: string | null
-          overridden_at?: string | null
-          override_by?: string | null
-          override_reason?: string | null
-          pipeline_kind?: Database["public"]["Enums"]["sm_pipeline_kind"]
-          resolution_error?: string | null
-          resolution_status?: string
-          resolved_at?: string | null
-          resolved_etapa_id?: string | null
-          resolved_funil_id?: string | null
-          sm_project_id?: string
-          target_funnel_name?: string | null
-          target_stage_name?: string | null
-          telefone_valido?: boolean
-          tenant_id?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "sm_project_classification_etapa_destino_id_fkey"
-            columns: ["etapa_destino_id"]
-            isOneToOne: false
-            referencedRelation: "projeto_etapas"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "sm_project_classification_funil_destino_id_fkey"
-            columns: ["funil_destino_id"]
-            isOneToOne: false
-            referencedRelation: "projeto_funis"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "sm_project_classification_resolved_etapa_id_fkey"
-            columns: ["resolved_etapa_id"]
-            isOneToOne: false
-            referencedRelation: "projeto_etapas"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "sm_project_classification_resolved_funil_id_fkey"
-            columns: ["resolved_funil_id"]
-            isOneToOne: false
-            referencedRelation: "projeto_funis"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "sm_project_classification_sm_project_id_fkey"
-            columns: ["sm_project_id"]
-            isOneToOne: true
-            referencedRelation: "sm_analytics_view"
-            referencedColumns: ["project_id"]
-          },
-          {
-            foreignKeyName: "sm_project_classification_sm_project_id_fkey"
-            columns: ["sm_project_id"]
-            isOneToOne: true
-            referencedRelation: "solar_market_projects"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "sm_project_classification_tenant_id_fkey"
-            columns: ["tenant_id"]
-            isOneToOne: false
-            referencedRelation: "tenants"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       smtp_settings: {
         Row: {
           created_at: string
@@ -21723,788 +20558,6 @@ export type Database = {
           },
           {
             foreignKeyName: "solar_kit_catalog_items_tenant_id_fkey"
-            columns: ["tenant_id"]
-            isOneToOne: false
-            referencedRelation: "tenants"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      solar_market_clients: {
-        Row: {
-          address: Json | null
-          city: string | null
-          company: string | null
-          complement: string | null
-          created_at: string
-          document: string | null
-          document_formatted: string | null
-          email: string | null
-          email_normalized: string | null
-          id: string
-          lead_id: string | null
-          name: string | null
-          neighborhood: string | null
-          number: string | null
-          phone: string | null
-          phone_formatted: string | null
-          phone_normalized: string | null
-          raw_payload: Json | null
-          representative: Json | null
-          responsible: Json | null
-          secondary_phone: string | null
-          sm_client_id: number
-          sm_created_at: string | null
-          state: string | null
-          synced_at: string
-          tenant_id: string
-          zip_code: string | null
-          zip_code_formatted: string | null
-        }
-        Insert: {
-          address?: Json | null
-          city?: string | null
-          company?: string | null
-          complement?: string | null
-          created_at?: string
-          document?: string | null
-          document_formatted?: string | null
-          email?: string | null
-          email_normalized?: string | null
-          id?: string
-          lead_id?: string | null
-          name?: string | null
-          neighborhood?: string | null
-          number?: string | null
-          phone?: string | null
-          phone_formatted?: string | null
-          phone_normalized?: string | null
-          raw_payload?: Json | null
-          representative?: Json | null
-          responsible?: Json | null
-          secondary_phone?: string | null
-          sm_client_id: number
-          sm_created_at?: string | null
-          state?: string | null
-          synced_at?: string
-          tenant_id: string
-          zip_code?: string | null
-          zip_code_formatted?: string | null
-        }
-        Update: {
-          address?: Json | null
-          city?: string | null
-          company?: string | null
-          complement?: string | null
-          created_at?: string
-          document?: string | null
-          document_formatted?: string | null
-          email?: string | null
-          email_normalized?: string | null
-          id?: string
-          lead_id?: string | null
-          name?: string | null
-          neighborhood?: string | null
-          number?: string | null
-          phone?: string | null
-          phone_formatted?: string | null
-          phone_normalized?: string | null
-          raw_payload?: Json | null
-          representative?: Json | null
-          responsible?: Json | null
-          secondary_phone?: string | null
-          sm_client_id?: number
-          sm_created_at?: string | null
-          state?: string | null
-          synced_at?: string
-          tenant_id?: string
-          zip_code?: string | null
-          zip_code_formatted?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "solar_market_clients_lead_id_fkey"
-            columns: ["lead_id"]
-            isOneToOne: false
-            referencedRelation: "leads"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "solar_market_clients_tenant_id_fkey"
-            columns: ["tenant_id"]
-            isOneToOne: false
-            referencedRelation: "tenants"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      solar_market_config: {
-        Row: {
-          api_token: string | null
-          base_url: string
-          created_at: string
-          enabled: boolean
-          id: string
-          last_sync_at: string | null
-          migration_blocked: boolean
-          tenant_id: string
-          updated_at: string
-        }
-        Insert: {
-          api_token?: string | null
-          base_url?: string
-          created_at?: string
-          enabled?: boolean
-          id?: string
-          last_sync_at?: string | null
-          migration_blocked?: boolean
-          tenant_id: string
-          updated_at?: string
-        }
-        Update: {
-          api_token?: string | null
-          base_url?: string
-          created_at?: string
-          enabled?: boolean
-          id?: string
-          last_sync_at?: string | null
-          migration_blocked?: boolean
-          tenant_id?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "solar_market_config_tenant_id_fkey"
-            columns: ["tenant_id"]
-            isOneToOne: true
-            referencedRelation: "tenants"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      solar_market_custom_field_values: {
-        Row: {
-          field_key: string | null
-          field_value: string | null
-          id: string
-          raw_payload: Json | null
-          sm_client_id: number | null
-          sm_custom_field_id: number
-          sm_project_id: number | null
-          synced_at: string
-          tenant_id: string
-        }
-        Insert: {
-          field_key?: string | null
-          field_value?: string | null
-          id?: string
-          raw_payload?: Json | null
-          sm_client_id?: number | null
-          sm_custom_field_id: number
-          sm_project_id?: number | null
-          synced_at?: string
-          tenant_id: string
-        }
-        Update: {
-          field_key?: string | null
-          field_value?: string | null
-          id?: string
-          raw_payload?: Json | null
-          sm_client_id?: number | null
-          sm_custom_field_id?: number
-          sm_project_id?: number | null
-          synced_at?: string
-          tenant_id?: string
-        }
-        Relationships: []
-      }
-      solar_market_custom_fields: {
-        Row: {
-          field_type: string | null
-          id: string
-          is_active: boolean
-          key: string | null
-          name: string | null
-          options: Json | null
-          raw_payload: Json | null
-          sm_custom_field_id: number
-          source: string
-          synced_at: string
-          tenant_id: string
-          version_hash: string | null
-        }
-        Insert: {
-          field_type?: string | null
-          id?: string
-          is_active?: boolean
-          key?: string | null
-          name?: string | null
-          options?: Json | null
-          raw_payload?: Json | null
-          sm_custom_field_id: number
-          source?: string
-          synced_at?: string
-          tenant_id: string
-          version_hash?: string | null
-        }
-        Update: {
-          field_type?: string | null
-          id?: string
-          is_active?: boolean
-          key?: string | null
-          name?: string | null
-          options?: Json | null
-          raw_payload?: Json | null
-          sm_custom_field_id?: number
-          source?: string
-          synced_at?: string
-          tenant_id?: string
-          version_hash?: string | null
-        }
-        Relationships: []
-      }
-      solar_market_custom_fields_snapshots: {
-        Row: {
-          fetched_at: string
-          id: string
-          raw: Json
-          snapshot_hash: string
-          source: string
-          tenant_id: string
-        }
-        Insert: {
-          fetched_at?: string
-          id?: string
-          raw: Json
-          snapshot_hash: string
-          source?: string
-          tenant_id: string
-        }
-        Update: {
-          fetched_at?: string
-          id?: string
-          raw?: Json
-          snapshot_hash?: string
-          source?: string
-          tenant_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "solar_market_custom_fields_snapshots_tenant_id_fkey"
-            columns: ["tenant_id"]
-            isOneToOne: false
-            referencedRelation: "tenants"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      solar_market_funnel_stages: {
-        Row: {
-          funnel_name: string | null
-          id: string
-          raw_payload: Json | null
-          sm_funnel_id: number
-          sm_stage_id: number
-          stage_name: string | null
-          stage_order: number | null
-          synced_at: string
-          tenant_id: string
-        }
-        Insert: {
-          funnel_name?: string | null
-          id?: string
-          raw_payload?: Json | null
-          sm_funnel_id: number
-          sm_stage_id: number
-          stage_name?: string | null
-          stage_order?: number | null
-          synced_at?: string
-          tenant_id: string
-        }
-        Update: {
-          funnel_name?: string | null
-          id?: string
-          raw_payload?: Json | null
-          sm_funnel_id?: number
-          sm_stage_id?: number
-          stage_name?: string | null
-          stage_order?: number | null
-          synced_at?: string
-          tenant_id?: string
-        }
-        Relationships: []
-      }
-      solar_market_funnels: {
-        Row: {
-          id: string
-          name: string | null
-          raw_payload: Json | null
-          sm_funnel_id: number
-          stages: Json | null
-          synced_at: string
-          tenant_id: string
-        }
-        Insert: {
-          id?: string
-          name?: string | null
-          raw_payload?: Json | null
-          sm_funnel_id: number
-          stages?: Json | null
-          synced_at?: string
-          tenant_id: string
-        }
-        Update: {
-          id?: string
-          name?: string | null
-          raw_payload?: Json | null
-          sm_funnel_id?: number
-          stages?: Json | null
-          synced_at?: string
-          tenant_id?: string
-        }
-        Relationships: []
-      }
-      solar_market_projects: {
-        Row: {
-          address: string | null
-          all_funnels: Json | null
-          city: string | null
-          complement: string | null
-          created_at: string
-          custom_fields: Json | null
-          description: string | null
-          energy_consumption: number | null
-          has_active_proposal: boolean | null
-          id: string
-          installation_type: string | null
-          lead_id: string | null
-          migrado_em: string | null
-          name: string | null
-          neighborhood: string | null
-          number: string | null
-          phase_type: string | null
-          potencia_kwp: number | null
-          proposals_synced_at: string | null
-          raw_payload: Json | null
-          representative: Json | null
-          responsible: Json | null
-          sm_client_id: number | null
-          sm_created_at: string | null
-          sm_funnel_id: number | null
-          sm_funnel_name: string | null
-          sm_project_id: number
-          sm_stage_id: number | null
-          sm_stage_name: string | null
-          sm_updated_at: string | null
-          state: string | null
-          status: string | null
-          synced_at: string
-          tenant_id: string
-          valor: number | null
-          voltage: string | null
-          zip_code: string | null
-          zip_code_formatted: string | null
-        }
-        Insert: {
-          address?: string | null
-          all_funnels?: Json | null
-          city?: string | null
-          complement?: string | null
-          created_at?: string
-          custom_fields?: Json | null
-          description?: string | null
-          energy_consumption?: number | null
-          has_active_proposal?: boolean | null
-          id?: string
-          installation_type?: string | null
-          lead_id?: string | null
-          migrado_em?: string | null
-          name?: string | null
-          neighborhood?: string | null
-          number?: string | null
-          phase_type?: string | null
-          potencia_kwp?: number | null
-          proposals_synced_at?: string | null
-          raw_payload?: Json | null
-          representative?: Json | null
-          responsible?: Json | null
-          sm_client_id?: number | null
-          sm_created_at?: string | null
-          sm_funnel_id?: number | null
-          sm_funnel_name?: string | null
-          sm_project_id: number
-          sm_stage_id?: number | null
-          sm_stage_name?: string | null
-          sm_updated_at?: string | null
-          state?: string | null
-          status?: string | null
-          synced_at?: string
-          tenant_id: string
-          valor?: number | null
-          voltage?: string | null
-          zip_code?: string | null
-          zip_code_formatted?: string | null
-        }
-        Update: {
-          address?: string | null
-          all_funnels?: Json | null
-          city?: string | null
-          complement?: string | null
-          created_at?: string
-          custom_fields?: Json | null
-          description?: string | null
-          energy_consumption?: number | null
-          has_active_proposal?: boolean | null
-          id?: string
-          installation_type?: string | null
-          lead_id?: string | null
-          migrado_em?: string | null
-          name?: string | null
-          neighborhood?: string | null
-          number?: string | null
-          phase_type?: string | null
-          potencia_kwp?: number | null
-          proposals_synced_at?: string | null
-          raw_payload?: Json | null
-          representative?: Json | null
-          responsible?: Json | null
-          sm_client_id?: number | null
-          sm_created_at?: string | null
-          sm_funnel_id?: number | null
-          sm_funnel_name?: string | null
-          sm_project_id?: number
-          sm_stage_id?: number | null
-          sm_stage_name?: string | null
-          sm_updated_at?: string | null
-          state?: string | null
-          status?: string | null
-          synced_at?: string
-          tenant_id?: string
-          valor?: number | null
-          voltage?: string | null
-          zip_code?: string | null
-          zip_code_formatted?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "solar_market_projects_lead_id_fkey"
-            columns: ["lead_id"]
-            isOneToOne: false
-            referencedRelation: "leads"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "solar_market_projects_tenant_id_fkey"
-            columns: ["tenant_id"]
-            isOneToOne: false
-            referencedRelation: "tenants"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      solar_market_proposals: {
-        Row: {
-          acceptance_date: string | null
-          area_util: number | null
-          cidade: string | null
-          consumo_mensal: number | null
-          created_at: string
-          custo_disponibilidade: number | null
-          custom_fields_raw: Json | null
-          demanda_adicional: number | null
-          demanda_contratada: number | null
-          demanda_preco: number | null
-          description: string | null
-          desvio_azimutal: number | null
-          dis_energia: string | null
-          discount: number | null
-          economia_anual_serie: Json | null
-          economia_mensal: number | null
-          economia_mensal_percent: number | null
-          energy_generation: number | null
-          equipment_cost: number | null
-          estado: string | null
-          fase: string | null
-          fator_geracao: number | null
-          fluxo_caixa_acumulado: Json | null
-          generated_at: string | null
-          geracao_anual: number | null
-          geracao_mensal_serie: Json | null
-          id: string
-          inclinacao: number | null
-          inflacao_energetica: number | null
-          installation_cost: number | null
-          inversor_fabricante: string | null
-          inversor_potencia_w: number | null
-          inversores: string | null
-          inverter_model: string | null
-          inverter_quantity: number | null
-          irradiacao_mensal_serie: Json | null
-          link_pdf: string | null
-          migrado_em: string | null
-          migrar_para_canonico: boolean
-          migrar_requested_at: string | null
-          migrar_requested_by: string | null
-          modulo_fabricante: string | null
-          modulo_potencia_w: number | null
-          modulos: string | null
-          outros_encargos: number | null
-          panel_model: string | null
-          panel_quantity: number | null
-          payback: string | null
-          payment_conditions: string | null
-          perda_eficiencia_anual: number | null
-          potencia_kwp: number | null
-          preco_total: number | null
-          raw_payload: Json | null
-          regra_compensacao: string | null
-          rejection_date: string | null
-          roof_type: string | null
-          send_at: string | null
-          sm_client_id: number | null
-          sm_created_at: string | null
-          sm_project_id: number | null
-          sm_proposal_id: number
-          sm_updated_at: string | null
-          sobredimensionamento: number | null
-          status: string | null
-          structure_type: string | null
-          subgrupo_tarifario: string | null
-          synced_at: string
-          tarifa_distribuidora: number | null
-          taxa_desempenho: number | null
-          tenant_id: string
-          tensao_rede: string | null
-          tipo_dimensionamento: string | null
-          tir: number | null
-          titulo: string | null
-          topologia: string | null
-          valid_until: string | null
-          valor_total: number | null
-          viewed_at: string | null
-          vpl: number | null
-          warnings: string[] | null
-          warranty: string | null
-        }
-        Insert: {
-          acceptance_date?: string | null
-          area_util?: number | null
-          cidade?: string | null
-          consumo_mensal?: number | null
-          created_at?: string
-          custo_disponibilidade?: number | null
-          custom_fields_raw?: Json | null
-          demanda_adicional?: number | null
-          demanda_contratada?: number | null
-          demanda_preco?: number | null
-          description?: string | null
-          desvio_azimutal?: number | null
-          dis_energia?: string | null
-          discount?: number | null
-          economia_anual_serie?: Json | null
-          economia_mensal?: number | null
-          economia_mensal_percent?: number | null
-          energy_generation?: number | null
-          equipment_cost?: number | null
-          estado?: string | null
-          fase?: string | null
-          fator_geracao?: number | null
-          fluxo_caixa_acumulado?: Json | null
-          generated_at?: string | null
-          geracao_anual?: number | null
-          geracao_mensal_serie?: Json | null
-          id?: string
-          inclinacao?: number | null
-          inflacao_energetica?: number | null
-          installation_cost?: number | null
-          inversor_fabricante?: string | null
-          inversor_potencia_w?: number | null
-          inversores?: string | null
-          inverter_model?: string | null
-          inverter_quantity?: number | null
-          irradiacao_mensal_serie?: Json | null
-          link_pdf?: string | null
-          migrado_em?: string | null
-          migrar_para_canonico?: boolean
-          migrar_requested_at?: string | null
-          migrar_requested_by?: string | null
-          modulo_fabricante?: string | null
-          modulo_potencia_w?: number | null
-          modulos?: string | null
-          outros_encargos?: number | null
-          panel_model?: string | null
-          panel_quantity?: number | null
-          payback?: string | null
-          payment_conditions?: string | null
-          perda_eficiencia_anual?: number | null
-          potencia_kwp?: number | null
-          preco_total?: number | null
-          raw_payload?: Json | null
-          regra_compensacao?: string | null
-          rejection_date?: string | null
-          roof_type?: string | null
-          send_at?: string | null
-          sm_client_id?: number | null
-          sm_created_at?: string | null
-          sm_project_id?: number | null
-          sm_proposal_id: number
-          sm_updated_at?: string | null
-          sobredimensionamento?: number | null
-          status?: string | null
-          structure_type?: string | null
-          subgrupo_tarifario?: string | null
-          synced_at?: string
-          tarifa_distribuidora?: number | null
-          taxa_desempenho?: number | null
-          tenant_id: string
-          tensao_rede?: string | null
-          tipo_dimensionamento?: string | null
-          tir?: number | null
-          titulo?: string | null
-          topologia?: string | null
-          valid_until?: string | null
-          valor_total?: number | null
-          viewed_at?: string | null
-          vpl?: number | null
-          warnings?: string[] | null
-          warranty?: string | null
-        }
-        Update: {
-          acceptance_date?: string | null
-          area_util?: number | null
-          cidade?: string | null
-          consumo_mensal?: number | null
-          created_at?: string
-          custo_disponibilidade?: number | null
-          custom_fields_raw?: Json | null
-          demanda_adicional?: number | null
-          demanda_contratada?: number | null
-          demanda_preco?: number | null
-          description?: string | null
-          desvio_azimutal?: number | null
-          dis_energia?: string | null
-          discount?: number | null
-          economia_anual_serie?: Json | null
-          economia_mensal?: number | null
-          economia_mensal_percent?: number | null
-          energy_generation?: number | null
-          equipment_cost?: number | null
-          estado?: string | null
-          fase?: string | null
-          fator_geracao?: number | null
-          fluxo_caixa_acumulado?: Json | null
-          generated_at?: string | null
-          geracao_anual?: number | null
-          geracao_mensal_serie?: Json | null
-          id?: string
-          inclinacao?: number | null
-          inflacao_energetica?: number | null
-          installation_cost?: number | null
-          inversor_fabricante?: string | null
-          inversor_potencia_w?: number | null
-          inversores?: string | null
-          inverter_model?: string | null
-          inverter_quantity?: number | null
-          irradiacao_mensal_serie?: Json | null
-          link_pdf?: string | null
-          migrado_em?: string | null
-          migrar_para_canonico?: boolean
-          migrar_requested_at?: string | null
-          migrar_requested_by?: string | null
-          modulo_fabricante?: string | null
-          modulo_potencia_w?: number | null
-          modulos?: string | null
-          outros_encargos?: number | null
-          panel_model?: string | null
-          panel_quantity?: number | null
-          payback?: string | null
-          payment_conditions?: string | null
-          perda_eficiencia_anual?: number | null
-          potencia_kwp?: number | null
-          preco_total?: number | null
-          raw_payload?: Json | null
-          regra_compensacao?: string | null
-          rejection_date?: string | null
-          roof_type?: string | null
-          send_at?: string | null
-          sm_client_id?: number | null
-          sm_created_at?: string | null
-          sm_project_id?: number | null
-          sm_proposal_id?: number
-          sm_updated_at?: string | null
-          sobredimensionamento?: number | null
-          status?: string | null
-          structure_type?: string | null
-          subgrupo_tarifario?: string | null
-          synced_at?: string
-          tarifa_distribuidora?: number | null
-          taxa_desempenho?: number | null
-          tenant_id?: string
-          tensao_rede?: string | null
-          tipo_dimensionamento?: string | null
-          tir?: number | null
-          titulo?: string | null
-          topologia?: string | null
-          valid_until?: string | null
-          valor_total?: number | null
-          viewed_at?: string | null
-          vpl?: number | null
-          warnings?: string[] | null
-          warranty?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "solar_market_proposals_tenant_id_fkey"
-            columns: ["tenant_id"]
-            isOneToOne: false
-            referencedRelation: "tenants"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      solar_market_sync_logs: {
-        Row: {
-          created_at: string
-          error_message: string | null
-          finished_at: string | null
-          id: string
-          started_at: string
-          status: string
-          sync_type: string
-          tenant_id: string
-          total_errors: number | null
-          total_fetched: number | null
-          total_upserted: number | null
-        }
-        Insert: {
-          created_at?: string
-          error_message?: string | null
-          finished_at?: string | null
-          id?: string
-          started_at?: string
-          status?: string
-          sync_type: string
-          tenant_id: string
-          total_errors?: number | null
-          total_fetched?: number | null
-          total_upserted?: number | null
-        }
-        Update: {
-          created_at?: string
-          error_message?: string | null
-          finished_at?: string | null
-          id?: string
-          started_at?: string
-          status?: string
-          sync_type?: string
-          tenant_id?: string
-          total_errors?: number | null
-          total_fetched?: number | null
-          total_upserted?: number | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "solar_market_sync_logs_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
@@ -27764,100 +25817,6 @@ export type Database = {
           },
         ]
       }
-      sm_analytics_view: {
-        Row: {
-          acceptance_date: string | null
-          client_city: string | null
-          client_created_at: string | null
-          client_id: string | null
-          client_lead_id: string | null
-          client_name: string | null
-          client_state: string | null
-          company: string | null
-          consultor_sm: string | null
-          consumo_mensal: number | null
-          document: string | null
-          document_formatted: string | null
-          economia_mensal: number | null
-          email: string | null
-          email_normalized: string | null
-          energy_consumption: number | null
-          has_lead_link: boolean | null
-          has_project: boolean | null
-          has_proposal: boolean | null
-          installation_type: string | null
-          inversores: string | null
-          inverter_model: string | null
-          inverter_quantity: number | null
-          lead_code: string | null
-          lead_consultor_id: string | null
-          lead_nome: string | null
-          lead_status_id: string | null
-          lifecycle_stage: string | null
-          link_pdf: string | null
-          modulos: string | null
-          panel_model: string | null
-          panel_quantity: number | null
-          payback: string | null
-          phase_type: string | null
-          phone: string | null
-          phone_formatted: string | null
-          phone_normalized: string | null
-          project_city: string | null
-          project_id: string | null
-          project_name: string | null
-          project_potencia_kwp: number | null
-          project_state: string | null
-          project_status: string | null
-          project_valor: number | null
-          proposal_created_at: string | null
-          proposal_id: string | null
-          proposal_potencia_kwp: number | null
-          proposal_status: string | null
-          proposal_titulo: string | null
-          proposal_valor_total: number | null
-          rejection_date: string | null
-          sm_client_id: number | null
-          sm_funnel_name: string | null
-          sm_project_id: number | null
-          sm_proposal_id: number | null
-          sm_stage_name: string | null
-          tenant_id: string | null
-          voltage: string | null
-          zip_code: string | null
-          zip_code_formatted: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "leads_status_id_fkey"
-            columns: ["lead_status_id"]
-            isOneToOne: false
-            referencedRelation: "lead_status"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "leads_vendedor_id_fkey"
-            columns: ["lead_consultor_id"]
-            isOneToOne: false
-            referencedRelation: "consultores"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "solar_market_clients_lead_id_fkey"
-            columns: ["client_lead_id"]
-            isOneToOne: false
-            referencedRelation: "leads"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "solar_market_clients_tenant_id_fkey"
-            columns: ["tenant_id"]
-            isOneToOne: false
-            referencedRelation: "tenants"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       unit_billing_email_settings_safe: {
         Row: {
           billing_capture_email: string | null
@@ -27933,15 +25892,6 @@ export type Database = {
       acquire_conversation_lock: {
         Args: { _conversation_id: string }
         Returns: boolean
-      }
-      acquire_sm_operation_lock: {
-        Args: {
-          p_context?: Json
-          p_created_by?: string
-          p_operation_type: string
-          p_tenant_id: string
-        }
-        Returns: Json
       }
       activate_irradiance_version: {
         Args: { _version_id: string }
@@ -28136,7 +26086,6 @@ export type Database = {
       delete_seed_data: { Args: never; Returns: Json }
       delete_uc_permanently: { Args: { p_unit_id: string }; Returns: Json }
       detect_proposal_followups: { Args: never; Returns: Json }
-      dry_run_sm_migration: { Args: { _tenant_id: string }; Returns: Json }
       encrypt_secret: {
         Args: { plain: string; secret: string }
         Returns: string
@@ -28233,14 +26182,6 @@ export type Database = {
         Returns: string
       }
       expire_proposals: { Args: never; Returns: undefined }
-      expire_stale_sm_operations: {
-        Args: { p_tenant_id: string }
-        Returns: Json
-      }
-      fail_stalled_migration_jobs: {
-        Args: { p_stall_minutes?: number }
-        Returns: number
-      }
       finalize_proposta_versao: {
         Args: { p_final_snapshot?: Json; p_versao_id: string }
         Returns: Json
@@ -28684,10 +26625,6 @@ export type Database = {
           isSetofReturn: true
         }
       }
-      has_active_sm_operation: {
-        Args: { p_operation_types?: string[]; p_tenant_id: string }
-        Returns: boolean
-      }
       has_feature_permission: {
         Args: { _feature: string; _user_id: string }
         Returns: boolean
@@ -28909,20 +26846,6 @@ export type Database = {
             Args: { p_instance_id?: string; p_tenant_id?: string }
             Returns: undefined
           }
-      release_sm_operation_lock: {
-        Args: {
-          p_checkpoint?: Json
-          p_error_items?: number
-          p_error_summary?: string
-          p_processed_items?: number
-          p_run_id: string
-          p_skipped_items?: number
-          p_status?: string
-          p_success_items?: number
-          p_total_items?: number
-        }
-        Returns: undefined
-      }
       release_webhook_lock: { Args: never; Returns: undefined }
       reorder_pipeline_stages: {
         Args: { _ordered_ids: string[]; _pipeline_id: string }
@@ -29056,24 +26979,6 @@ export type Database = {
             }
             Returns: Json
           }
-      sm_ensure_canonical_pipelines: {
-        Args: { p_tenant_id: string }
-        Returns: Json
-      }
-      sm_match_clients_to_leads: {
-        Args: { p_tenant_id: string }
-        Returns: number
-      }
-      sm_migration_apply: {
-        Args: { p_dry_run?: boolean; p_tenant_id: string }
-        Returns: Json
-      }
-      sm_migration_dry_run: { Args: { p_tenant_id: string }; Returns: Json }
-      sm_phone_is_valid: { Args: { p_phone: string }; Returns: boolean }
-      sm_resolve_or_create_cliente: {
-        Args: { p_dry_run?: boolean; p_raw_payload: Json; p_tenant_id: string }
-        Returns: string
-      }
       start_conversation_by_phone:
         | {
             Args: {
@@ -29118,16 +27023,6 @@ export type Database = {
       try_webhook_lock: { Args: never; Returns: boolean }
       unaccent: { Args: { "": string }; Returns: string }
       update_parcelas_atrasadas: { Args: never; Returns: undefined }
-      update_sm_operation_heartbeat: {
-        Args: {
-          p_checkpoint?: Json
-          p_error_items?: number
-          p_processed_items?: number
-          p_run_id: string
-          p_success_items?: number
-        }
-        Returns: undefined
-      }
       user_belongs_to_tenant: { Args: { _tenant_id: string }; Returns: boolean }
       user_is_active: { Args: { _user_id?: string }; Returns: boolean }
       user_sent_in_conversation: {
@@ -29142,10 +27037,6 @@ export type Database = {
         }[]
       }
       validate_phone_quality: { Args: { _phone: string }; Returns: boolean }
-      validate_sm_migration_integrity: {
-        Args: { p_tenant_id: string }
-        Returns: Json
-      }
     }
     Enums: {
       achievement_type:
