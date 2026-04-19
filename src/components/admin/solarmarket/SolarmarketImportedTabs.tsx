@@ -285,8 +285,8 @@ function ListaClientes({ search, page, setPage, isImporting }: ListProps) {
   );
 }
 
-function ListaProjetos({ search, page, setPage }: ListProps) {
-  const { data, isLoading } = useImportedList("projetos", page, search);
+function ListaProjetos({ search, page, setPage, isImporting }: ListProps) {
+  const { data, isLoading } = useImportedList("projetos", page, search, isImporting);
   if (isLoading) return <Skeleton className="h-48 w-full" />;
   if (!data?.rows.length) return <EmptyState icon={FolderKanban} message="Nenhum projeto importado encontrado." />;
   return (
