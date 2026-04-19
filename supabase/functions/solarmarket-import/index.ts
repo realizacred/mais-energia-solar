@@ -1,11 +1,11 @@
 // solarmarket-import — Importação one-shot do SolarMarket
 // Doc oficial: https://solarmarket.readme.io/
-// Auth: POST {SOLARMARKET_API_URL}/auth/signin com { token } -> retorna access_token JWT
+// Auth: POST {base_url}/auth/signin com { token } -> retorna access_token JWT (6h)
+// Rate limits oficiais: 60 req/min, 1.800 req/h
 //
 // IMPORTANTE (RB-57): Sem `let` em escopo de módulo. Estado por request.
-// IMPORTANTE: Endpoints exatos de listagem (clientes/projetos/propostas/funis/custom-fields)
-// não estão explicitamente publicados na doc auditada. Esta função tenta paths comuns
-// e registra explicitamente quais não foram encontrados — sem inventar estrutura.
+// IMPORTANTE: Configuração lida de `integrations_api_configs` (provider='solarmarket').
+// Fallback aos secrets SOLARMARKET_API_URL / SOLARMARKET_API_TOKEN para retrocompat.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
@@ -18,9 +18,13 @@ const corsHeaders = {
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
-const SM_URL_RAW = Deno.env.get("SOLARMARKET_API_URL");
-const SM_TOKEN = Deno.env.get("SOLARMARKET_API_TOKEN");
+const SM_URL_FALLBACK = Deno.env.get("SOLARMARKET_API_URL");
+const SM_TOKEN_FALLBACK = Deno.env.get("SOLARMARKET_API_TOKEN");
 const EXTERNAL_SOURCE = "solarmarket";
+
+// Throttle: ~55 req/min = 1100ms entre chamadas (margem de segurança contra 60/min)
+const MIN_INTERVAL_MS = 1100;
+const MAX_RETRIES_429 = 4;
 
 function normalizeBaseUrl(u: string | undefined | null): string {
   if (!u) return "";
@@ -29,8 +33,12 @@ function normalizeBaseUrl(u: string | undefined | null): string {
 
 interface RequestState {
   smBaseUrl: string;
-  smAccessToken: string | null;
+  smApiToken: string; // token estático da API (não logar)
+  smAccessToken: string | null; // JWT temporário em memória (escopo do request)
+  smAccessTokenExpiresAt: number; // epoch ms
+  lastCallAt: number;
   jobId: string | null;
+  configId: string | null;
   tenantId: string;
   userId: string;
   supabase: ReturnType<typeof createClient>;
@@ -38,35 +46,78 @@ interface RequestState {
 
 function createInitialState(
   tenantId: string,
-  userId: string
+  userId: string,
+  baseUrl: string,
+  token: string,
+  configId: string | null,
 ): RequestState {
   return {
-    smBaseUrl: normalizeBaseUrl(SM_URL_RAW),
+    smBaseUrl: normalizeBaseUrl(baseUrl),
+    smApiToken: token,
     smAccessToken: null,
+    smAccessTokenExpiresAt: 0,
+    lastCallAt: 0,
     jobId: null,
+    configId,
     tenantId,
     userId,
     supabase: createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY),
   };
 }
 
+/** Carrega config ativa do tenant; fallback aos secrets se não houver. */
+async function loadTenantConfig(
+  admin: ReturnType<typeof createClient>,
+  tenantId: string,
+): Promise<{ baseUrl: string; token: string; configId: string | null }> {
+  const { data } = await admin
+    .from("integrations_api_configs")
+    .select("id, base_url, credentials, is_active")
+    .eq("tenant_id", tenantId)
+    .eq("provider", "solarmarket")
+    .eq("is_active", true)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  const dbBase = (data as any)?.base_url as string | null | undefined;
+  const dbToken = ((data as any)?.credentials as any)?.api_token as
+    | string
+    | undefined;
+
+  const baseUrl = normalizeBaseUrl(dbBase || SM_URL_FALLBACK || "");
+  const token = (dbToken || SM_TOKEN_FALLBACK || "").trim();
+  const configId = (data as any)?.id ?? null;
+
+  return { baseUrl, token, configId };
+}
+
+/** Throttle entre chamadas para respeitar 60 req/min. */
+async function throttle(state: RequestState) {
+  const now = Date.now();
+  const wait = state.lastCallAt + MIN_INTERVAL_MS - now;
+  if (wait > 0) await new Promise((r) => setTimeout(r, wait));
+  state.lastCallAt = Date.now();
+}
+
 async function smSignIn(state: RequestState): Promise<void> {
-  if (!state.smBaseUrl || !SM_TOKEN) {
+  if (!state.smBaseUrl || !state.smApiToken) {
     throw new Error(
-      "Configuração ausente: defina SOLARMARKET_API_URL e SOLARMARKET_API_TOKEN nos secrets."
+      "Integração SolarMarket não configurada para este tenant. Acesse /admin/configuracoes/integracoes/solarmarket.",
     );
   }
+  await throttle(state);
   const res = await fetch(`${state.smBaseUrl}/auth/signin`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ token: SM_TOKEN }),
+    body: JSON.stringify({ token: state.smApiToken }),
   });
   const body = await res.json().catch(() => ({}));
   if (!res.ok) {
     throw new Error(
       `Falha no signin SolarMarket (${res.status}): ${
         (body as any)?.message || JSON.stringify(body).slice(0, 200)
-      }`
+      }`,
     );
   }
   const access =
@@ -75,32 +126,78 @@ async function smSignIn(state: RequestState): Promise<void> {
     (body as any)?.data?.access_token;
   if (!access) {
     throw new Error(
-      "Resposta de signin sem access_token reconhecível. Verifique SOLARMARKET_API_URL."
+      "Resposta de signin sem access_token reconhecível. Verifique a URL base.",
     );
   }
   state.smAccessToken = access;
+  // 6h de validade — usar 5h50min para margem
+  state.smAccessTokenExpiresAt = Date.now() + 350 * 60 * 1000;
+}
+
+async function ensureAccessToken(state: RequestState) {
+  if (
+    !state.smAccessToken ||
+    Date.now() >= state.smAccessTokenExpiresAt - 60_000
+  ) {
+    await smSignIn(state);
+  }
 }
 
 async function smGet(
   state: RequestState,
   path: string,
-  query?: Record<string, string | number>
+  query?: Record<string, string | number>,
 ): Promise<{ ok: boolean; status: number; body: any }> {
-  if (!state.smAccessToken) await smSignIn(state);
+  await ensureAccessToken(state);
   const url = new URL(`${state.smBaseUrl}${path}`);
   if (query) {
     for (const [k, v] of Object.entries(query)) {
       url.searchParams.set(k, String(v));
     }
   }
-  const res = await fetch(url.toString(), {
-    headers: {
-      Authorization: `Bearer ${state.smAccessToken}`,
-      Accept: "application/json",
-    },
-  });
-  const body = await res.json().catch(() => ({}));
-  return { ok: res.ok, status: res.status, body };
+
+  let attempt = 0;
+  while (true) {
+    await throttle(state);
+    const res = await fetch(url.toString(), {
+      headers: {
+        Authorization: `Bearer ${state.smAccessToken}`,
+        Accept: "application/json",
+      },
+    });
+
+    // 401 → reauth e tenta uma vez
+    if (res.status === 401 && attempt === 0) {
+      attempt++;
+      await smSignIn(state);
+      continue;
+    }
+
+    // 429 → backoff exponencial
+    if (res.status === 429 && attempt < MAX_RETRIES_429) {
+      const retryAfter = Number(res.headers.get("retry-after")) || 0;
+      const wait = retryAfter > 0
+        ? retryAfter * 1000
+        : Math.min(30_000, 2 ** attempt * 1000);
+      console.error(
+        `[solarmarket-import] 429 rate limit em ${path}, aguardando ${wait}ms (tentativa ${attempt + 1})`,
+      );
+      await new Promise((r) => setTimeout(r, wait));
+      attempt++;
+      continue;
+    }
+
+    // 5xx → backoff exponencial
+    if (res.status >= 500 && attempt < MAX_RETRIES_429) {
+      const wait = Math.min(15_000, 2 ** attempt * 500);
+      await new Promise((r) => setTimeout(r, wait));
+      attempt++;
+      continue;
+    }
+
+    const body = await res.json().catch(() => ({}));
+    return { ok: res.ok, status: res.status, body };
+  }
 }
 
 async function logEntry(
@@ -110,7 +207,7 @@ async function logEntry(
   externalId: string | null,
   internalId: string | null,
   error?: string,
-  payloadSnippet?: any
+  payloadSnippet?: any,
 ) {
   if (!state.jobId) return;
   await state.supabase.from("solarmarket_import_logs").insert({
@@ -127,7 +224,7 @@ async function logEntry(
 
 async function updateJob(
   state: RequestState,
-  patch: Record<string, unknown>
+  patch: Record<string, unknown>,
 ) {
   if (!state.jobId) return;
   await state.supabase
@@ -136,7 +233,24 @@ async function updateJob(
     .eq("id", state.jobId);
 }
 
-// -------- Importadores (best-effort, paths comuns; declara não-documentados) --------
+async function markConfigTest(
+  state: RequestState,
+  success: boolean,
+  message?: string,
+) {
+  if (!state.configId) return;
+  await state.supabase
+    .from("integrations_api_configs")
+    .update({
+      last_tested_at: new Date().toISOString(),
+      status: success ? "connected" : "error",
+      ...(message ? { settings: { last_test_message: message } } : {}),
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", state.configId);
+}
+
+// -------- Importadores (best-effort, paths comuns) --------
 
 function pickArray(body: any): any[] {
   if (Array.isArray(body)) return body;
@@ -148,7 +262,7 @@ function pickArray(body: any): any[] {
 
 async function tryPaths(
   state: RequestState,
-  candidates: string[]
+  candidates: string[],
 ): Promise<{ path: string; body: any } | null> {
   for (const p of candidates) {
     const r = await smGet(state, p, { limit: 1 });
@@ -161,7 +275,7 @@ async function importEntity(
   state: RequestState,
   entityKey: string,
   candidatePaths: string[],
-  mapper: (item: any) => Promise<"created" | "updated" | "skipped" | "error">
+  mapper: (item: any) => Promise<"created" | "updated" | "skipped" | "error">,
 ): Promise<{ count: number; errors: number; pathUsed: string | null }> {
   const found = await tryPaths(state, candidatePaths);
   if (!found) {
@@ -171,7 +285,7 @@ async function importEntity(
       "error",
       null,
       null,
-      `Nenhum endpoint funcionou. Tentados: ${candidatePaths.join(", ")}. Verifique a doc oficial.`
+      `Nenhum endpoint funcionou. Tentados: ${candidatePaths.join(", ")}.`,
     );
     return { count: 0, errors: 1, pathUsed: null };
   }
@@ -202,7 +316,7 @@ async function importEntity(
           "error",
           String(item?.id ?? ""),
           null,
-          (e as Error).message
+          (e as Error).message,
         );
       }
     }
@@ -214,7 +328,7 @@ async function importEntity(
   return { count, errors, pathUsed: found.path };
 }
 
-// Mappers — convertem item externo em upsert idempotente via (tenant_id, external_source, external_id)
+// Mappers — upsert idempotente via (tenant_id, external_source, external_id)
 
 async function mapCliente(state: RequestState, item: any) {
   const externalId = String(item?.id ?? item?.uuid ?? "");
@@ -266,19 +380,37 @@ async function mapProjeto(state: RequestState, item: any) {
   const externalId = String(item?.id ?? "");
   if (!externalId) return "skipped" as const;
 
-  // Resolver cliente importado pelo external_id do cliente do SM
+  // Cliente é PRÉ-REQUISITO: se não conseguir resolver, skip com motivo
   const smClienteId =
     item?.client_id || item?.customer_id || item?.cliente_id || null;
-  let clienteId: string | null = null;
-  if (smClienteId) {
-    const { data: cli } = await state.supabase
-      .from("clientes")
-      .select("id")
-      .eq("tenant_id", state.tenantId)
-      .eq("external_source", EXTERNAL_SOURCE)
-      .eq("external_id", String(smClienteId))
-      .maybeSingle();
-    clienteId = cli?.id ?? null;
+  if (!smClienteId) {
+    await logEntry(
+      state,
+      "projeto",
+      "skipped",
+      externalId,
+      null,
+      "Projeto sem client_id; importação ignorada (integridade).",
+    );
+    return "skipped" as const;
+  }
+  const { data: cli } = await state.supabase
+    .from("clientes")
+    .select("id")
+    .eq("tenant_id", state.tenantId)
+    .eq("external_source", EXTERNAL_SOURCE)
+    .eq("external_id", String(smClienteId))
+    .maybeSingle();
+  if (!cli?.id) {
+    await logEntry(
+      state,
+      "projeto",
+      "skipped",
+      externalId,
+      null,
+      `Cliente externo ${smClienteId} não importado ainda; rode 'Clientes' antes.`,
+    );
+    return "skipped" as const;
   }
 
   const payload: Record<string, unknown> = {
@@ -286,7 +418,7 @@ async function mapProjeto(state: RequestState, item: any) {
     external_source: EXTERNAL_SOURCE,
     external_id: externalId,
     nome: item?.name || item?.nome || `Projeto SM-${externalId}`,
-    cliente_id: clienteId,
+    cliente_id: cli.id,
   };
 
   const { data: existing } = await state.supabase
@@ -321,25 +453,44 @@ async function mapProposta(state: RequestState, item: any) {
   const externalId = String(item?.id ?? "");
   if (!externalId) return "skipped" as const;
 
+  // Projeto é PRÉ-REQUISITO
   const smProjetoId =
     item?.project_id || item?.projeto_id || item?.deal_id || null;
-  let projetoId: string | null = null;
-  if (smProjetoId) {
-    const { data: p } = await state.supabase
-      .from("projetos")
-      .select("id")
-      .eq("tenant_id", state.tenantId)
-      .eq("external_source", EXTERNAL_SOURCE)
-      .eq("external_id", String(smProjetoId))
-      .maybeSingle();
-    projetoId = p?.id ?? null;
+  if (!smProjetoId) {
+    await logEntry(
+      state,
+      "proposta",
+      "skipped",
+      externalId,
+      null,
+      "Proposta sem project_id; importação ignorada (integridade).",
+    );
+    return "skipped" as const;
+  }
+  const { data: p } = await state.supabase
+    .from("projetos")
+    .select("id")
+    .eq("tenant_id", state.tenantId)
+    .eq("external_source", EXTERNAL_SOURCE)
+    .eq("external_id", String(smProjetoId))
+    .maybeSingle();
+  if (!p?.id) {
+    await logEntry(
+      state,
+      "proposta",
+      "skipped",
+      externalId,
+      null,
+      `Projeto externo ${smProjetoId} não importado ainda; rode 'Projetos' antes.`,
+    );
+    return "skipped" as const;
   }
 
   const payload: Record<string, unknown> = {
     tenant_id: state.tenantId,
     external_source: EXTERNAL_SOURCE,
     external_id: externalId,
-    projeto_id: projetoId,
+    projeto_id: p.id,
     valor_total: Number(item?.total_value || item?.value || item?.valor || 0),
     status: "rascunho",
   };
@@ -410,41 +561,58 @@ Deno.serve(async (req) => {
         {
           status: 403,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
+        },
       );
     }
 
-    const state = createInitialState(profile.tenant_id, userId);
+    // Carrega config tenant-safe
+    const tenantId = profile.tenant_id as string;
+    const cfg = await loadTenantConfig(adminClient, tenantId);
 
-    const { action, scope } = await req.json().catch(() => ({}));
-
-    if (!SM_URL_RAW || !SM_TOKEN) {
+    if (!cfg.baseUrl || !cfg.token) {
       return new Response(
         JSON.stringify({
           error:
-            "Secrets ausentes: configure SOLARMARKET_API_URL e SOLARMARKET_API_TOKEN.",
+            "Integração SolarMarket não configurada. Acesse Admin → Configurações → Integrações → SolarMarket para cadastrar URL base e token.",
+          code: "not_configured",
         }),
         {
-          status: 500,
+          status: 412,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
+        },
       );
     }
 
+    const state = createInitialState(
+      tenantId,
+      userId,
+      cfg.baseUrl,
+      cfg.token,
+      cfg.configId,
+    );
+
+    const { action, scope } = await req.json().catch(() => ({}));
+
     // ---- test-connection ----
     if (action === "test-connection") {
-      await smSignIn(state);
-      return new Response(
-        JSON.stringify({
-          ok: true,
-          message: "Conexão estabelecida com sucesso.",
-          base_url: state.smBaseUrl,
-        }),
-        {
-          status: 200,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
-      );
+      try {
+        await smSignIn(state);
+        await markConfigTest(state, true);
+        return new Response(
+          JSON.stringify({
+            ok: true,
+            message: "Conexão estabelecida com sucesso.",
+            base_url: state.smBaseUrl,
+          }),
+          {
+            status: 200,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          },
+        );
+      } catch (e) {
+        await markConfigTest(state, false, (e as Error).message);
+        throw e;
+      }
     }
 
     // ---- import-all (com escopo) ----
@@ -457,7 +625,6 @@ Deno.serve(async (req) => {
         custom_fields: true,
       };
 
-      // Cria job
       const { data: job, error: jobErr } = await adminClient
         .from("solarmarket_import_jobs")
         .insert({
@@ -474,6 +641,7 @@ Deno.serve(async (req) => {
       state.jobId = job.id;
 
       await smSignIn(state);
+      await markConfigTest(state, true);
 
       let totalErrors = 0;
 
@@ -483,7 +651,7 @@ Deno.serve(async (req) => {
           state,
           "cliente",
           ["/clients", "/customers", "/clientes"],
-          (item) => mapCliente(state, item)
+          (item) => mapCliente(state, item),
         );
         await updateJob(state, { total_clientes: r.count, progress_pct: 30 });
         totalErrors += r.errors;
@@ -495,7 +663,7 @@ Deno.serve(async (req) => {
           state,
           "projeto",
           ["/projects", "/deals", "/projetos"],
-          (item) => mapProjeto(state, item)
+          (item) => mapProjeto(state, item),
         );
         await updateJob(state, { total_projetos: r.count, progress_pct: 60 });
         totalErrors += r.errors;
@@ -507,7 +675,7 @@ Deno.serve(async (req) => {
           state,
           "proposta",
           ["/proposals", "/quotes", "/propostas"],
-          (item) => mapProposta(state, item)
+          (item) => mapProposta(state, item),
         );
         await updateJob(state, { total_propostas: r.count, progress_pct: 85 });
         totalErrors += r.errors;
@@ -515,14 +683,13 @@ Deno.serve(async (req) => {
 
       if (sc.funis) {
         await updateJob(state, { current_step: "funis", progress_pct: 90 });
-        // Funis: endpoint não confirmado na doc pública. Registrar como não documentado.
         await logEntry(
           state,
           "funil",
           "skipped",
           null,
           null,
-          "Endpoint de funis/etapas não confirmado na doc pública (https://solarmarket.readme.io/). Importação ignorada para evitar hallucination."
+          "Endpoint de funis/etapas não confirmado na doc pública. Importação ignorada para evitar hallucination.",
         );
       }
 
@@ -537,7 +704,7 @@ Deno.serve(async (req) => {
           "skipped",
           null,
           null,
-          "Endpoint de campos customizados não confirmado na doc pública. Importação ignorada."
+          "Endpoint de campos customizados não confirmado na doc pública. Importação ignorada.",
         );
       }
 
@@ -550,12 +717,20 @@ Deno.serve(async (req) => {
         finished_at: new Date().toISOString(),
       });
 
+      // Atualiza last_sync_at na config
+      if (state.configId) {
+        await adminClient
+          .from("integrations_api_configs")
+          .update({ last_sync_at: new Date().toISOString() })
+          .eq("id", state.configId);
+      }
+
       return new Response(
         JSON.stringify({ ok: true, job_id: state.jobId, status: finalStatus }),
         {
           status: 200,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
+        },
       );
     }
 
@@ -564,7 +739,7 @@ Deno.serve(async (req) => {
       {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
-      }
+      },
     );
   } catch (e) {
     console.error("[solarmarket-import] erro:", (e as Error).message);
@@ -573,7 +748,7 @@ Deno.serve(async (req) => {
       {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
-      }
+      },
     );
   }
 });
