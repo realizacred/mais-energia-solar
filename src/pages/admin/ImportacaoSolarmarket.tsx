@@ -47,6 +47,7 @@ function statusBadge(status: string) {
 export default function ImportacaoSolarmarket() {
   const { jobs, isLoading, testConnection, importAll, cancelImport } = useSolarmarketImport();
   const { config, isConfigured, isLoading: loadingCfg } = useSolarmarketConfig();
+  const [testResult, setTestResult] = useState<{ ok: boolean; message: string } | null>(null);
   const [scope, setScope] = useState<ImportScope>({
     clientes: true,
     projetos: true,
@@ -63,18 +64,16 @@ export default function ImportacaoSolarmarket() {
     : false;
 
   const handleTest = async () => {
+    setTestResult(null);
     try {
       const res: any = await testConnection.mutateAsync();
-      toast({
-        title: "Conexão OK",
-        description: res?.message || "Autenticado no SolarMarket.",
-      });
+      const msg = res?.message || "Autenticado no SolarMarket.";
+      setTestResult({ ok: true, message: msg });
+      toast({ title: "Conexão OK", description: msg });
     } catch (e: any) {
-      toast({
-        title: "Falha na conexão",
-        description: e?.message || "Verifique a configuração.",
-        variant: "destructive",
-      });
+      const msg = e?.message || "Verifique a configuração.";
+      setTestResult({ ok: false, message: msg });
+      toast({ title: "Falha na conexão", description: msg, variant: "destructive" });
     }
   };
 
@@ -166,22 +165,40 @@ export default function ImportacaoSolarmarket() {
             Conexão
           </CardTitle>
         </CardHeader>
-        <CardContent className="flex flex-wrap items-center gap-3">
-          <p className="text-sm text-muted-foreground flex-1 min-w-[200px]">
-            URL: <code className="text-xs bg-muted px-1 py-0.5 rounded">{config?.base_url || "—"}</code>
-          </p>
-          <Button
-            variant="outline"
-            onClick={handleTest}
-            disabled={!isConfigured || testConnection.isPending}
-          >
-            {testConnection.isPending ? (
-              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-            ) : (
-              <CheckCircle2 className="w-4 h-4 mr-2" />
-            )}
-            Testar conexão
-          </Button>
+        <CardContent className="space-y-3">
+          <div className="flex flex-wrap items-center gap-3">
+            <p className="text-sm text-muted-foreground flex-1 min-w-[200px]">
+              URL: <code className="text-xs bg-muted px-1 py-0.5 rounded">{config?.base_url || "—"}</code>
+            </p>
+            <Button
+              variant="outline"
+              onClick={handleTest}
+              disabled={!isConfigured || testConnection.isPending}
+            >
+              {testConnection.isPending ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <CheckCircle2 className="w-4 h-4 mr-2" />
+              )}
+              Testar conexão
+            </Button>
+          </div>
+          {testResult && (
+            <div
+              className={`flex items-start gap-2 p-3 rounded-md border text-sm ${
+                testResult.ok
+                  ? "bg-success/10 border-success/20 text-success"
+                  : "bg-destructive/10 border-destructive/20 text-destructive"
+              }`}
+            >
+              {testResult.ok ? (
+                <CheckCircle2 className="w-4 h-4 mt-0.5 shrink-0" />
+              ) : (
+                <XCircle className="w-4 h-4 mt-0.5 shrink-0" />
+              )}
+              <span>{testResult.message}</span>
+            </div>
+          )}
         </CardContent>
       </Card>
 
