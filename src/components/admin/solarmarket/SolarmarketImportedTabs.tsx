@@ -78,11 +78,13 @@ function useImportedCounts(isImporting: boolean) {
 function useImportedList(
   table: "clientes" | "projetos" | "propostas_nativas",
   page: number,
-  search: string
+  search: string,
+  isImporting: boolean
 ) {
   return useQuery({
     queryKey: ["sm-imported-list", table, page, search],
-    staleTime: STALE,
+    staleTime: isImporting ? 0 : STALE,
+    refetchInterval: isImporting ? 3000 : false,
     queryFn: async () => {
       const from = page * PAGE_SIZE;
       const to = from + PAGE_SIZE - 1;
@@ -109,13 +111,13 @@ function useImportedList(
 // Componente principal
 // ─────────────────────────────────────────────────────────────────────────
 export function SolarmarketImportedTabs() {
-  const counts = useImportedCounts();
   const { importAll, jobs } = useSolarmarketImport();
+  const runningJob = jobs.find((j) => j.status === "running" || j.status === "pending");
+  const isImporting = !!runningJob;
+  const counts = useImportedCounts(isImporting);
   const [activeTab, setActiveTab] = useState("clientes");
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(0);
-
-  const runningJob = jobs.find((j) => j.status === "running");
 
   const handleReimport = async (entity: keyof ImportScope) => {
     const labels: Record<string, string> = {
