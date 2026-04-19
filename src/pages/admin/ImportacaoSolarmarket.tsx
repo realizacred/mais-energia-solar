@@ -325,6 +325,7 @@ export default function ImportacaoSolarmarket() {
                     <TableHead className="text-right">Propostas</TableHead>
                     <TableHead className="text-right">Erros</TableHead>
                     <TableHead>Fim</TableHead>
+                    <TableHead className="text-right">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -347,6 +348,22 @@ export default function ImportacaoSolarmarket() {
                         )}
                       </TableCell>
                       <TableCell className="text-xs">{formatBR(j.finished_at)}</TableCell>
+                      <TableCell className="text-right">
+                        {j.status === "running" || j.status === "pending" ? (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleCancel(j.id)}
+                            disabled={cancelImport.isPending}
+                            className="text-destructive hover:bg-destructive/10 h-7 px-2"
+                          >
+                            <Ban className="w-3.5 h-3.5 mr-1" />
+                            Cancelar
+                          </Button>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">—</span>
+                        )}
+                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
