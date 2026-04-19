@@ -33,7 +33,7 @@ function statusBadge(status: string) {
 }
 
 export default function ImportacaoSolarmarket() {
-  const { jobs, isLoading, testConnection, importAll } = useSolarmarketImport();
+  const { jobs, isLoading, testConnection, importAll, cancelImport } = useSolarmarketImport();
   const { config, isConfigured, isLoading: loadingCfg } = useSolarmarketConfig();
   const [scope, setScope] = useState<ImportScope>({
     clientes: true,
