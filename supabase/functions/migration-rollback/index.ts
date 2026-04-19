@@ -96,12 +96,22 @@ Deno.serve(async (req) => {
       counts.clients = count ?? 0;
     }
 
+    // CR#2: limpa migration_records do job (evita ledger órfão após rollback)
+    let deleted_records = 0;
+    {
+      const { count } = await admin
+        .from("migration_records")
+        .delete({ count: "exact" })
+        .eq("job_id", job_id);
+      deleted_records = count ?? 0;
+    }
+
     await admin
       .from("migration_jobs")
       .update({ status: "rolled_back", completed_at: new Date().toISOString() })
       .eq("id", job_id);
 
-    return json({ success: true, counts }, 200);
+    return json({ success: true, counts, deleted_records }, 200);
   } catch (e) {
     return json({ error: (e as Error).message }, 500);
   }

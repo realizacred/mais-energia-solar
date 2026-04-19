@@ -19116,7 +19116,7 @@ export type Database = {
           recusada_at: string | null
           regra_gd: string | null
           sm_id: string | null
-          sm_project_id: string | null
+          sm_project_id: number | null
           sm_raw_payload: Json | null
           snapshot_hash: string | null
           status: string
@@ -19174,7 +19174,7 @@ export type Database = {
           recusada_at?: string | null
           regra_gd?: string | null
           sm_id?: string | null
-          sm_project_id?: string | null
+          sm_project_id?: number | null
           sm_raw_payload?: Json | null
           snapshot_hash?: string | null
           status?: string
@@ -19232,7 +19232,7 @@ export type Database = {
           recusada_at?: string | null
           regra_gd?: string | null
           sm_id?: string | null
-          sm_project_id?: string | null
+          sm_project_id?: number | null
           sm_raw_payload?: Json | null
           snapshot_hash?: string | null
           status?: string
@@ -28236,6 +28236,10 @@ export type Database = {
       expire_stale_sm_operations: {
         Args: { p_tenant_id: string }
         Returns: Json
+      }
+      fail_stalled_migration_jobs: {
+        Args: { p_stall_minutes?: number }
+        Returns: number
       }
       finalize_proposta_versao: {
         Args: { p_final_snapshot?: Json; p_versao_id: string }

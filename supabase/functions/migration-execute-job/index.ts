@@ -947,26 +947,35 @@ async function resolveOrCreateClienteFromProposal(
     estado: smClient?.state ?? addr.state ?? addr.estado ?? pr.estado ?? null,
   };
 
-  const { data: inserted, error } = await admin
-    .from("clientes").insert(insertPayload).select("id").single();
-  if (error) {
+  // CR#1: retry-loop defensivo contra race em next_tenant_number / uq_clientes_tenant_cliente_code
+  let inserted: { id: string } | null = null;
+  let lastError: any = null;
+  for (let attempt = 0; attempt < 4 && !inserted; attempt++) {
+    const payloadAttempt = attempt === 0
+      ? insertPayload
+      : { ...insertPayload, cliente_code: `${insertPayload.cliente_code}-R${attempt}` };
+    const { data, error } = await admin
+      .from("clientes").insert(payloadAttempt).select("id").single();
+    if (!error && data) { inserted = data as { id: string }; break; }
+    lastError = error;
     const errAny = error as any;
     const isDup = errAny?.code === "23505" || /duplicate key|unique constraint/i.test(String(errAny?.message ?? ""));
-    if (isDup) {
-      for (const [col, val] of tries) {
-        const { data } = await admin.from("clientes").select("id")
-          .eq("tenant_id", tenant_id).eq(col, val).limit(1).maybeSingle();
-        if (data) return (data as any).id;
-      }
-      if (sm_client_id) {
-        const { data } = await admin.from("clientes").select("id")
-          .eq("tenant_id", tenant_id).eq("sm_client_id", sm_client_id).maybeSingle();
-        if (data) return (data as any).id;
-      }
+    if (!isDup) break;
+    // Procura registro já existente antes de tentar de novo
+    for (const [col, val] of tries) {
+      const { data: found } = await admin.from("clientes").select("id")
+        .eq("tenant_id", tenant_id).eq(col, val).limit(1).maybeSingle();
+      if (found) return (found as any).id;
     }
-    throw error;
+    if (sm_client_id) {
+      const { data: found } = await admin.from("clientes").select("id")
+        .eq("tenant_id", tenant_id).eq("sm_client_id", sm_client_id).maybeSingle();
+      if (found) return (found as any).id;
+    }
+    // Se a duplicata foi em cliente_code (race do next_tenant_number), próxima iteração regera com sufixo
   }
-  return (inserted as any).id;
+  if (!inserted) throw lastError ?? new Error("Falha ao criar cliente");
+  return inserted.id;
 }
 
 /**
@@ -1170,7 +1179,7 @@ async function migrateProposals(
           origem: "imported",
           import_source: "solar_market",
           sm_id: stagingId,
-          sm_project_id: String(sm_project_id),
+          sm_project_id: sm_project_id ?? null,
           sm_raw_payload: (pr as any).raw_payload ?? pr,
           status: "gerada",
           metadata: {
