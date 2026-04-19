@@ -102,7 +102,7 @@ const SYSTEM_COLUMNS = new Set([
   "visto", "visto_admin", "distribuido_em", "synced",
   "ultimo_contato", "proxima_acao", "data_proxima_acao",
   "consultor", "area",
-  "sm_id", "sm_project_id", "sm_raw_payload", "origem",
+  "origem",
   "calc_hash", "idempotency_key", "snapshot", "snapshot_locked",
   "irradiance_source_point",
   "gerado_por", "engine_version", "grupo",

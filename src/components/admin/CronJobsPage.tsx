@@ -94,7 +94,7 @@ export default function CronJobsPage() {
             <p className="text-sm font-medium text-foreground">O que são Tarefas Agendadas?</p>
             <p className="text-sm text-muted-foreground">
               São processos automáticos que rodam periodicamente sem intervenção manual. Eles sincronizam dados externos 
-              (WhatsApp, SolarMarket, ANEEL, Meta Ads), processam filas de mensagens, verificam a saúde das integrações 
+              (WhatsApp, ANEEL, Meta Ads), processam filas de mensagens, verificam a saúde das integrações 
               e executam automações do pipeline comercial. Esta página é apenas de <strong>monitoramento</strong> — 
               as tarefas são gerenciadas pelo sistema e não precisam de configuração manual.
             </p>

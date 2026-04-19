@@ -27,7 +27,6 @@ const INTEGRATION_LABELS: Record<string, string> = {
   google_gemini: "Google Gemini",
   google_calendar: "Google Agenda",
   google_maps: "Google Maps",
-  solarmarket: "SolarMarket",
   meta_facebook: "Meta Facebook",
   instagram: "Instagram",
   webhooks: "Webhooks",
@@ -69,11 +68,6 @@ const INTEGRATION_GUIDANCE: Record<string, { description: string; whenDown: stri
   google_maps: {
     description: "Geocodificação e mapas para endereços de clientes.",
     whenDown: "Verifique a chave API do Google Maps. Confirme se a API Geocoding está habilitada no console do Google.",
-  },
-  solarmarket: {
-    description: "Importação de clientes e projetos do SolarMarket.",
-    whenDown: "Verifique as credenciais de acesso ao SolarMarket nas configurações.",
-    configPath: "/admin/catalogo-integracoes",
   },
   meta_facebook: {
     description: "Campanhas e leads do Meta/Facebook Ads.",
