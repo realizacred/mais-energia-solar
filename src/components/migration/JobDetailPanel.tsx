@@ -1,12 +1,13 @@
 /**
  * JobDetailPanel — Detalhe de um job: progresso, contadores, erros, ações.
  */
-import { Loader2, RotateCcw, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { Loader2, RotateCcw, AlertTriangle, CheckCircle2, StopCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { SectionCard } from "@/components/ui-kit";
 import { useMigrationJobStatus } from "@/hooks/useMigrationJobStatus";
 import { useMigrationRollback } from "@/hooks/useMigrationRollback";
+import { useCancelMigrationJob } from "@/hooks/useCancelMigrationJob";
 import { JobStatusBadge } from "./JobStatusBadge";
 import { cn } from "@/lib/utils";
 import {
