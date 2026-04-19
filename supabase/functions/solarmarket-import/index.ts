@@ -422,32 +422,17 @@ async function mapCliente(state: RequestState, item: any) {
     ativo: true,
   };
 
-  const { data: existing } = await state.supabase
+  // UPSERT idempotente via índice único parcial (tenant_id, external_source, external_id)
+  const { data: up, error } = await state.supabase
     .from("clientes")
-    .select("id")
-    .eq("tenant_id", state.tenantId)
-    .eq("external_source", EXTERNAL_SOURCE)
-    .eq("external_id", externalId)
-    .maybeSingle();
-
-  if (existing?.id) {
-    const { error } = await state.supabase
-      .from("clientes")
-      .update(payload)
-      .eq("id", existing.id);
-    if (error) throw new Error(error.message);
-    await logEntry(state, "cliente", "updated", externalId, existing.id);
-    return "updated" as const;
-  }
-
-  const { data: ins, error } = await state.supabase
-    .from("clientes")
-    .insert(payload)
+    .upsert(payload, { onConflict: "tenant_id,external_source,external_id", ignoreDuplicates: false })
     .select("id")
     .single();
   if (error) throw new Error(error.message);
-  await logEntry(state, "cliente", "created", externalId, ins.id);
-  return "created" as const;
+  // Detecta se foi created/updated checando created_at vs updated_at não é confiável aqui;
+  // usamos uma 2ª query leve apenas se quisermos diferenciar — para idempotência basta "created or updated".
+  await logEntry(state, "cliente", "updated", externalId, up.id);
+  return "updated" as const;
 }
 
 async function mapProjeto(state: RequestState, item: any) {
@@ -495,32 +480,14 @@ async function mapProjeto(state: RequestState, item: any) {
     cliente_id: cli.id,
   };
 
-  const { data: existing } = await state.supabase
+  const { data: up, error } = await state.supabase
     .from("projetos")
-    .select("id")
-    .eq("tenant_id", state.tenantId)
-    .eq("external_source", EXTERNAL_SOURCE)
-    .eq("external_id", externalId)
-    .maybeSingle();
-
-  if (existing?.id) {
-    const { error } = await state.supabase
-      .from("projetos")
-      .update(payload)
-      .eq("id", existing.id);
-    if (error) throw new Error(error.message);
-    await logEntry(state, "projeto", "updated", externalId, existing.id);
-    return "updated" as const;
-  }
-
-  const { data: ins, error } = await state.supabase
-    .from("projetos")
-    .insert(payload)
+    .upsert(payload, { onConflict: "tenant_id,external_source,external_id", ignoreDuplicates: false })
     .select("id")
     .single();
   if (error) throw new Error(error.message);
-  await logEntry(state, "projeto", "created", externalId, ins.id);
-  return "created" as const;
+  await logEntry(state, "projeto", "updated", externalId, up.id);
+  return "updated" as const;
 }
 
 async function mapProposta(state: RequestState, item: any) {
@@ -569,27 +536,14 @@ async function mapProposta(state: RequestState, item: any) {
     status: "rascunho",
   };
 
-  const { data: existing } = await state.supabase
+  const { data: up, error } = await state.supabase
     .from("propostas_nativas")
-    .select("id")
-    .eq("tenant_id", state.tenantId)
-    .eq("external_source", EXTERNAL_SOURCE)
-    .eq("external_id", externalId)
-    .maybeSingle();
-
-  if (existing?.id) {
-    await logEntry(state, "proposta", "skipped", externalId, existing.id);
-    return "skipped" as const;
-  }
-
-  const { data: ins, error } = await state.supabase
-    .from("propostas_nativas")
-    .insert(payload)
+    .upsert(payload, { onConflict: "tenant_id,external_source,external_id", ignoreDuplicates: false })
     .select("id")
     .single();
   if (error) throw new Error(error.message);
-  await logEntry(state, "proposta", "created", externalId, ins.id);
-  return "created" as const;
+  await logEntry(state, "proposta", "updated", externalId, up.id);
+  return "updated" as const;
 }
 
 // -------- Handler principal --------
