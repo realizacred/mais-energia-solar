@@ -567,6 +567,114 @@ async function importEntity(
   };
 }
 
+async function importProjectScopedProposals(
+  state: RequestState,
+  opts: {
+    counterBase?: number;
+    progressStart?: number;
+    progressEnd?: number;
+    startPage?: number;
+    projectBatchSize?: number;
+  } = {},
+): Promise<{ count: number; errors: number; pathUsed: string; nextPage: number | null; done: boolean }> {
+  const pathUsed = "/projects/:id/proposals";
+  const batchPage = Math.max(1, opts.startPage ?? 1);
+  const batchSize = opts.projectBatchSize ?? 20;
+  const from = (batchPage - 1) * batchSize;
+  const to = from + batchSize - 1;
+  const counterBase = opts.counterBase ?? 0;
+  const pStart = opts.progressStart ?? 0;
+  const pEnd = opts.progressEnd ?? 0;
+
+  const { data: projects, count: totalProjects, error } = await state.supabase
+    .from("sm_projetos_raw")
+    .select("external_id", { count: "exact" })
+    .order("external_id", { ascending: true })
+    .range(from, to);
+
+  if (error) {
+    await logEntry(state, "proposta", "error", null, null, `[fallback] Falha ao listar projetos para propostas: ${error.message}`);
+    return { count: 0, errors: 1, pathUsed, nextPage: null, done: true };
+  }
+
+  if (!projects || projects.length === 0) {
+    await logEntry(state, "proposta", "skipped", null, null, `[fallback] Nenhum projeto disponível para buscar propostas em ${pathUsed}`);
+    return { count: 0, errors: 0, pathUsed, nextPage: null, done: true };
+  }
+
+  let count = 0;
+  let errors = 0;
+
+  for (let index = 0; index < projects.length; index++) {
+    if (await isJobCancelled(state)) {
+      await logEntry(state, "proposta", "skipped", null, null, `[cancelled] Importação interrompida no fallback ${pathUsed} (batch=${batchPage}, count=${count})`);
+      return { count, errors, pathUsed, nextPage: batchPage, done: false };
+    }
+
+    const projectId = String((projects[index] as any)?.external_id ?? "").trim();
+    if (!projectId) continue;
+
+    const response = await smGet(state, `/projects/${projectId}/proposals`);
+    if (!response.ok) {
+      errors++;
+      await logEntry(state, "proposta", "error", projectId, null, `[fallback] Projeto ${projectId}: HTTP ${response.status}`);
+      continue;
+    }
+
+    const items = pickArray(response.body);
+    for (const item of items) {
+      try {
+        await mapProposta(state, item);
+        count++;
+      } catch (e) {
+        errors++;
+        await logEntry(
+          state,
+          "proposta",
+          "error",
+          String(item?.id ?? projectId),
+          null,
+          (e as Error).message,
+        );
+      }
+    }
+
+    const processedProjects = from + index + 1;
+    const incrementalProgress = totalProjects && pEnd > pStart
+      ? Math.min(pEnd, pStart + Math.round((pEnd - pStart) * (processedProjects / Math.max(totalProjects, 1))))
+      : undefined;
+
+    await updateJob(state, {
+      total_propostas: counterBase + count,
+      ...(incrementalProgress !== undefined ? { progress_pct: incrementalProgress } : {}),
+      updated_at: new Date().toISOString(),
+    });
+  }
+
+  const done = typeof totalProjects === "number"
+    ? to + 1 >= totalProjects
+    : projects.length < batchSize;
+
+  await logEntry(
+    state,
+    "proposta",
+    "skipped",
+    null,
+    null,
+    done
+      ? `[end] proposta concluída via fallback ${pathUsed}: count=${count}, errors=${errors}`
+      : `[yield] proposta pausada via fallback ${pathUsed}: count=${count}, errors=${errors}, next_batch=${batchPage + 1}`,
+  );
+
+  return {
+    count,
+    errors,
+    pathUsed,
+    nextPage: done ? null : batchPage + 1,
+    done,
+  };
+}
+
 // ─────────────────────────────────────────────────────────────────────
 // Mappers (P0 — contenção arquitetural):
 //   Gravação EXCLUSIVA em camada raw/staging (sm_*_raw).
