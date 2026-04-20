@@ -418,6 +418,7 @@ async function importEntity(
   mapper: (item: any) => Promise<"created" | "updated" | "skipped" | "error">,
   opts: {
     counterField?: string; // ex: "total_clientes" — atualiza incrementalmente
+    counterBase?: number;
     progressStart?: number; // % no início
     progressEnd?: number; // % ao final
     startPage?: number;
@@ -467,6 +468,7 @@ async function importEntity(
   let errors = 0;
   let page = Math.max(1, opts.startPage ?? 1);
   const limit = 100;
+  const counterBase = opts.counterBase ?? 0;
   const pStart = opts.progressStart ?? 0;
   const pEnd = opts.progressEnd ?? 0;
   let pagesProcessed = 0;
@@ -520,7 +522,7 @@ async function importEntity(
         ? Math.min(pEnd, pStart + Math.round((pEnd - pStart) * (page / Math.max(page, 5))))
         : undefined;
       await updateJob(state, {
-        [opts.counterField]: count,
+        [opts.counterField]: counterBase + count,
         ...(incrementalProgress !== undefined ? { progress_pct: incrementalProgress } : {}),
         updated_at: new Date().toISOString(),
       });
