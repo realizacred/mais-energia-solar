@@ -575,11 +575,27 @@ async function mapProjeto(state: RequestState, item: any) {
   return "updated" as const;
 }
 
+async function mapFunil(state: RequestState, item: any) {
+  const externalId = String(item?.id ?? item?.uuid ?? "");
+  if (!externalId) return "skipped" as const;
+  const rawId = await upsertRaw(state, "sm_funis_raw", externalId, item ?? {});
+  await logEntry(state, "funil", "updated", externalId, rawId ?? null);
+  return "updated" as const;
+}
+
 async function mapProposta(state: RequestState, item: any) {
   const externalId = String(item?.id ?? "");
   if (!externalId) return "skipped" as const;
   const rawId = await upsertRaw(state, "sm_propostas_raw", externalId, item ?? {});
   await logEntry(state, "proposta", "updated", externalId, rawId ?? null);
+  return "updated" as const;
+}
+
+async function mapCustomField(state: RequestState, item: any) {
+  const externalId = String(item?.id ?? item?.uuid ?? "");
+  if (!externalId) return "skipped" as const;
+  const rawId = await upsertRaw(state, "sm_custom_fields_raw", externalId, item ?? {});
+  await logEntry(state, "custom_field", "updated", externalId, rawId ?? null);
   return "updated" as const;
 }
 
