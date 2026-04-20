@@ -786,6 +786,11 @@ async function runImportJob(
   const runtime = getJobRuntime(rawScope);
   const mergedScope = mergeScopeWithRuntime(rawScope, runtime);
 
+  if (await isJobCancelled(state)) {
+    await logEntry(state, "job", "skipped", null, null, "[cancelled] Lote ignorado porque o job já foi cancelado antes de reiniciar.");
+    return { ok: false, job_id: state.jobId, status: "cancelled", cancelled: true };
+  }
+
   await updateJob(state, {
     status: "running",
     current_step: getNextPendingStep(scope, runtime) ?? "auth",
