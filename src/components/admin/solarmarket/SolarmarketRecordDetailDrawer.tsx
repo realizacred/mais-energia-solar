@@ -6,6 +6,9 @@
  * um layout dedicado com formatação inteligente dos campos conhecidos
  * + seção "Payload bruto" recolhível para auditoria completa.
  *
+ * Toda extração de dados delegada aos parsers centralizados em
+ * @/lib/solarmarket/parsers (RB-04/AP-01: nada de pick espalhado aqui).
+ *
  * Reutiliza formatadores canônicos de @/lib/formatters/index.
  * RB-01/RB-02/RB-21/RB-08 mantidos.
  */
@@ -24,8 +27,12 @@ import {
 } from "lucide-react";
 import {
   formatPhoneBR, formatDocument, formatCEP, formatDate, formatDateTime,
-  formatBRL, formatUF, sanitizeText,
+  formatBRL, formatUF, sanitizeText, formatInteger,
 } from "@/lib/formatters/index";
+import {
+  parseSmCliente, parseSmProjeto, parseSmProposta, parseSmFunil, parseSmCustomField,
+  type ExternalRef,
+} from "@/lib/solarmarket/parsers";
 
 export type RawEntityKind =
   | "clientes"
@@ -50,16 +57,7 @@ interface Props {
   onNavigate?: (kind: RawEntityKind, search: string) => void;
 }
 
-// ─── helpers ────────────────────────────────────────────────────────────
-
-function pick(payload: any, ...keys: string[]): any {
-  if (!payload) return null;
-  for (const k of keys) {
-    const v = payload[k];
-    if (v !== undefined && v !== null && v !== "") return v;
-  }
-  return null;
-}
+// ─── helpers de exibição ────────────────────────────────────────────────
 
 function fmtTextOrDash(v: any): string {
   if (v === null || v === undefined || v === "") return "—";
@@ -68,15 +66,28 @@ function fmtTextOrDash(v: any): string {
 }
 
 function fmtBoolean(v: any): string {
-  if (v === true || v === "true" || v === 1) return "Sim";
-  if (v === false || v === "false" || v === 0) return "Não";
+  if (v === true) return "Sim";
+  if (v === false) return "Não";
   return "—";
 }
 
-function asArray(v: any): any[] {
-  if (Array.isArray(v)) return v;
-  if (v == null) return [];
-  return [v];
+function fmtNumberOrDash(v: number | null | undefined): string {
+  if (v == null) return "—";
+  return formatInteger(v);
+}
+
+function RefDisplay({ ref }: { ref: ExternalRef | null }) {
+  if (!ref) return <span className="text-muted-foreground">—</span>;
+  return (
+    <span className="inline-flex items-center gap-2">
+      <span className="text-foreground">{ref.label ?? ref.id ?? "—"}</span>
+      {ref.id && ref.label && ref.label !== ref.id && (
+        <code className="text-[10px] text-muted-foreground bg-muted/50 px-1 rounded">
+          #{ref.id}
+        </code>
+      )}
+    </span>
+  );
 }
 
 // ─── primitives ─────────────────────────────────────────────────────────
@@ -100,13 +111,13 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
   );
 }
 
-function ChipList({ items }: { items: any[] }) {
+function ChipList({ items }: { items: string[] }) {
   if (!items.length) return <span className="text-muted-foreground">—</span>;
   return (
     <div className="flex flex-wrap gap-1">
       {items.map((it, i) => (
         <Badge key={i} variant="outline" className="text-xs">
-          {typeof it === "object" ? (it.label ?? it.name ?? it.value ?? JSON.stringify(it)) : String(it)}
+          {it}
         </Badge>
       ))}
     </div>
@@ -161,63 +172,40 @@ const KIND_META: Record<RawEntityKind, { icon: any; title: string; subtitle: str
 // ─── views por entidade ─────────────────────────────────────────────────
 
 function ClienteView({ record, onNavigate }: { record: RawRecord; onNavigate?: Props["onNavigate"] }) {
-  const p = record.payload ?? {};
-  const nome = pick(p, "name", "nome", "razao_social", "fantasia", "company");
-  const tel = pick(p, "primaryPhone", "phone", "telefone", "celular", "mobile", "phone_number", "secondaryPhone");
-  const email = pick(p, "email");
-  const doc = pick(p, "cnpjCpf", "cpf_cnpj", "document", "documento", "cpf", "cnpj");
-  const nascimento = pick(p, "birth_date", "data_nascimento", "birthday", "birthDate");
-  // SolarMarket: campos de endereço estão no nível raiz do payload (não aninhados)
-  const endereco = (typeof p.address === "object" && p.address !== null) ? p.address : p;
-  const cep = pick(endereco, "zipCode", "zip", "zip_code", "cep", "postal_code");
-  const rua = pick(endereco, "street", "rua", "logradouro", "address_line", "address");
-  const numero = pick(endereco, "number", "numero");
-  const complemento = pick(endereco, "complement", "complemento");
-  const bairro = pick(endereco, "neighborhood", "bairro", "district");
-  const cidade = pick(endereco, "city", "cidade", "municipio");
-  const estado = pick(endereco, "state", "estado", "uf");
-  const obs = pick(p, "notes", "observations", "observacoes", "obs");
-  const leadExterno = pick(p, "lead_id", "external_lead_id", "lead", "responsible");
+  const c = parseSmCliente(record.payload);
 
   return (
     <div className="space-y-6">
       <div>
         <SectionTitle>Identificação</SectionTitle>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <Field label="Nome">{fmtTextOrDash(nome)}</Field>
-          <Field label="CPF/CNPJ">{doc ? formatDocument(String(doc)) : "—"}</Field>
-          <Field label="Telefone">{formatPhoneBR(tel)}</Field>
-          <Field label="E-mail">{fmtTextOrDash(email)}</Field>
-          <Field label="Data de Nascimento">{nascimento ? formatDate(nascimento) : "—"}</Field>
-          {leadExterno && (
-            <Field label="Responsável / Lead externo">
-              <code className="text-xs">
-                {typeof leadExterno === "object"
-                  ? (leadExterno.name ?? leadExterno.email ?? JSON.stringify(leadExterno))
-                  : String(leadExterno)}
-              </code>
-            </Field>
-          )}
+          <Field label="Nome">{fmtTextOrDash(c.nome)}</Field>
+          <Field label="CPF/CNPJ">{c.documento ? formatDocument(String(c.documento)) : "—"}</Field>
+          <Field label="Telefone">{formatPhoneBR(c.telefone)}</Field>
+          <Field label="Telefone secundário">{formatPhoneBR(c.telefoneSecundario)}</Field>
+          <Field label="E-mail">{fmtTextOrDash(c.email)}</Field>
+          <Field label="Data de Nascimento">{c.dataNascimento ? formatDate(c.dataNascimento) : "—"}</Field>
+          <Field label="Responsável"><RefDisplay ref={c.responsavel} /></Field>
         </div>
       </div>
 
       <div>
         <SectionTitle>Endereço</SectionTitle>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <Field label="CEP">{cep ? formatCEP(String(cep)) : "—"}</Field>
-          <Field label="Logradouro">{fmtTextOrDash(rua)}</Field>
-          <Field label="Número">{fmtTextOrDash(numero)}</Field>
-          <Field label="Complemento">{fmtTextOrDash(complemento)}</Field>
-          <Field label="Bairro">{fmtTextOrDash(bairro)}</Field>
-          <Field label="Cidade">{fmtTextOrDash(cidade)}</Field>
-          <Field label="Estado (UF)">{estado ? formatUF(String(estado)) : "—"}</Field>
+          <Field label="CEP">{c.cep ? formatCEP(String(c.cep)) : "—"}</Field>
+          <Field label="Logradouro">{fmtTextOrDash(c.rua)}</Field>
+          <Field label="Número">{fmtTextOrDash(c.numero)}</Field>
+          <Field label="Complemento">{fmtTextOrDash(c.complemento)}</Field>
+          <Field label="Bairro">{fmtTextOrDash(c.bairro)}</Field>
+          <Field label="Cidade">{fmtTextOrDash(c.cidade)}</Field>
+          <Field label="Estado (UF)">{c.uf ? formatUF(String(c.uf)) : "—"}</Field>
         </div>
       </div>
 
-      {obs && (
+      {c.observacoes && (
         <div>
           <SectionTitle>Observações</SectionTitle>
-          <p className="text-sm text-foreground whitespace-pre-wrap">{fmtTextOrDash(obs)}</p>
+          <p className="text-sm text-foreground whitespace-pre-wrap">{fmtTextOrDash(c.observacoes)}</p>
         </div>
       )}
 
@@ -244,55 +232,94 @@ function ClienteView({ record, onNavigate }: { record: RawRecord; onNavigate?: P
 }
 
 function ProjetoView({ record, onNavigate }: { record: RawRecord; onNavigate?: Props["onNavigate"] }) {
-  const p = record.payload ?? {};
-  const titulo = pick(p, "name", "nome", "title", "titulo");
-  const status = pick(p, "status", "stage_status", "situacao");
-  const clienteExt = pick(p, "client_id", "cliente_id", "customer_id", "client");
-  const funilExt = pick(p, "funnel_id", "funil_id", "pipeline_id", "funnel");
-  const etapaExt = pick(p, "stage_id", "etapa_id", "step_id", "stage");
-  const cidade = pick(p, "city", "cidade");
-  const uf = pick(p, "state", "estado", "uf");
-  const valor = pick(p, "value", "valor", "budget", "orcamento", "amount");
-  const criadoEm = pick(p, "created_at", "createdAt", "criado_em");
-  const atualizadoEm = pick(p, "updated_at", "updatedAt", "atualizado_em");
+  const pr = parseSmProjeto(record.payload);
 
   return (
     <div className="space-y-6">
       <div>
         <SectionTitle>Identificação</SectionTitle>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <Field label="Título">{fmtTextOrDash(titulo)}</Field>
+          <Field label="Nome">{fmtTextOrDash(pr.nome)}</Field>
           <Field label="Status">
-            {status ? <Badge variant="outline">{String(status)}</Badge> : "—"}
+            {pr.status ? <Badge variant="outline">{String(pr.status)}</Badge> : "—"}
           </Field>
-          <Field label="Cliente externo">
-            {clienteExt ? <code className="text-xs">{String(clienteExt)}</code> : "—"}
-          </Field>
+          <Field label="Cliente externo"><RefDisplay ref={pr.cliente} /></Field>
           <Field label="Valor / Orçamento">
-            {typeof valor === "number" ? formatBRL(valor) : valor ? formatBRL(Number(valor)) : "—"}
+            {pr.valor != null ? formatBRL(pr.valor) : "—"}
           </Field>
         </div>
       </div>
 
+      {pr.descricao && (
+        <div>
+          <SectionTitle>Descrição</SectionTitle>
+          <p className="text-sm text-foreground whitespace-pre-wrap">{fmtTextOrDash(pr.descricao)}</p>
+        </div>
+      )}
+
       <div>
         <SectionTitle>Pipeline</SectionTitle>
+        {pr.funis.length > 0 ? (
+          <div className="space-y-2">
+            {pr.funis.map((f, i) => (
+              <div key={i} className="grid grid-cols-1 sm:grid-cols-3 gap-3 p-2 rounded-md border border-border bg-muted/30">
+                <Field label="Funil"><RefDisplay ref={f.funil} /></Field>
+                <Field label="Etapa"><RefDisplay ref={f.etapa} /></Field>
+                <Field label="Status">
+                  {f.status ? <Badge variant="outline" className="text-xs">{f.status}</Badge> : "—"}
+                </Field>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <Field label="Funil"><RefDisplay ref={pr.funil} /></Field>
+            <Field label="Etapa"><RefDisplay ref={pr.etapa} /></Field>
+          </div>
+        )}
+      </div>
+
+      <div>
+        <SectionTitle>Pessoas</SectionTitle>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <Field label="Funil externo">
-            {funilExt ? <code className="text-xs">{String(funilExt)}</code> : "—"}
-          </Field>
-          <Field label="Etapa externa">
-            {etapaExt ? <code className="text-xs">{String(etapaExt)}</code> : "—"}
-          </Field>
+          <Field label="Responsável"><RefDisplay ref={pr.responsavel} /></Field>
+          <Field label="Representante"><RefDisplay ref={pr.representante} /></Field>
+        </div>
+      </div>
+
+      <div>
+        <SectionTitle>Métricas</SectionTitle>
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+          <Field label="Propostas">{fmtNumberOrDash(pr.qtdPropostas)}</Field>
+          <Field label="Solicitações">{fmtNumberOrDash(pr.qtdSolicitacoes)}</Field>
+          <Field label="Atividades (total)">{fmtNumberOrDash(pr.qtdAtividades)}</Field>
+          <Field label="Atividades concluídas">{fmtNumberOrDash(pr.qtdAtividadesConcluidas)}</Field>
+          <Field label="Atividades a fazer">{fmtNumberOrDash(pr.qtdAtividadesAFazer)}</Field>
+          <Field label="Atividades vencidas">{fmtNumberOrDash(pr.qtdAtividadesVencidas)}</Field>
+        </div>
+      </div>
+
+      <div>
+        <SectionTitle>Etiquetas e Perda</SectionTitle>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <Field label="Etiquetas"><ChipList items={pr.etiquetas} /></Field>
+          <Field label="Motivo de perda">{fmtTextOrDash(pr.motivoPerda)}</Field>
         </div>
       </div>
 
       <div>
         <SectionTitle>Localização e datas</SectionTitle>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <Field label="Cidade">{fmtTextOrDash(cidade)}</Field>
-          <Field label="UF">{uf ? formatUF(String(uf)) : "—"}</Field>
-          <Field label="Criado em">{criadoEm ? formatDateTime(criadoEm) : "—"}</Field>
-          <Field label="Atualizado em">{atualizadoEm ? formatDateTime(atualizadoEm) : "—"}</Field>
+          <Field label="Cidade">{fmtTextOrDash(pr.cidade)}</Field>
+          <Field label="UF">{pr.uf ? formatUF(String(pr.uf)) : "—"}</Field>
+          <Field label="Próxima atividade em">
+            {pr.proximaAtividadeEm ? formatDateTime(pr.proximaAtividadeEm) : "—"}
+          </Field>
+          <Field label="Última atividade concluída em">
+            {pr.ultimaAtividadeConcluidaEm ? formatDateTime(pr.ultimaAtividadeConcluidaEm) : "—"}
+          </Field>
+          <Field label="Data de inclusão">{pr.criadoEm ? formatDateTime(pr.criadoEm) : "—"}</Field>
+          <Field label="Atualizado em">{pr.atualizadoEm ? formatDateTime(pr.atualizadoEm) : "—"}</Field>
         </div>
       </div>
 
@@ -300,11 +327,11 @@ function ProjetoView({ record, onNavigate }: { record: RawRecord; onNavigate?: P
         <div>
           <SectionTitle>Navegação relacional</SectionTitle>
           <div className="flex flex-wrap gap-2">
-            {clienteExt && (
+            {pr.cliente?.id && (
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => onNavigate("clientes", String(clienteExt))}
+                onClick={() => onNavigate("clientes", pr.cliente!.id!)}
               >
                 <ExternalLink className="w-3.5 h-3.5 mr-1.5" />
                 Ver cliente externo
@@ -331,36 +358,26 @@ function ProjetoView({ record, onNavigate }: { record: RawRecord; onNavigate?: P
 }
 
 function PropostaView({ record, onNavigate }: { record: RawRecord; onNavigate?: Props["onNavigate"] }) {
-  const p = record.payload ?? {};
-  const titulo = pick(p, "title", "name", "nome", "titulo", "description", "descricao");
-  const status = pick(p, "status", "situacao");
-  const projetoExt = pick(p, "project_id", "projeto_id", "deal_id");
-  const clienteExt = pick(p, "client_id", "cliente_id", "customer_id");
-  const valorTotal = pick(p, "total_value", "valor_total", "total", "amount", "value");
-  const desc = pick(p, "description", "descricao", "notes", "observacoes");
-  const link = pick(p, "pdf_url", "url", "link", "file_url");
+  const pp = parseSmProposta(record.payload);
+  const link = pp.pdfUrl ?? pp.link;
 
   return (
     <div className="space-y-6">
       <div>
         <SectionTitle>Identificação</SectionTitle>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <Field label="Título">{fmtTextOrDash(titulo)}</Field>
+          <Field label="Título">{fmtTextOrDash(pp.titulo)}</Field>
           <Field label="Status">
-            {status ? <Badge variant="outline">{String(status)}</Badge> : "—"}
+            {pp.status ? <Badge variant="outline">{String(pp.status)}</Badge> : "—"}
           </Field>
-          <Field label="Projeto externo">
-            {projetoExt ? <code className="text-xs">{String(projetoExt)}</code> : "—"}
-          </Field>
-          <Field label="Cliente externo">
-            {clienteExt ? <code className="text-xs">{String(clienteExt)}</code> : "—"}
-          </Field>
+          <Field label="Projeto externo"><RefDisplay ref={pp.projeto} /></Field>
+          <Field label="Cliente externo"><RefDisplay ref={pp.cliente} /></Field>
+          <Field label="Responsável"><RefDisplay ref={pp.responsavel} /></Field>
           <Field label="Valor total">
-            {typeof valorTotal === "number"
-              ? formatBRL(valorTotal)
-              : valorTotal
-                ? formatBRL(Number(valorTotal))
-                : "—"}
+            {pp.valorTotal != null ? formatBRL(pp.valorTotal) : "—"}
+          </Field>
+          <Field label="Validade">
+            {pp.validadeAte ? formatDate(pp.validadeAte) : "—"}
           </Field>
           <Field label="Link / PDF">
             {link ? (
@@ -372,39 +389,45 @@ function PropostaView({ record, onNavigate }: { record: RawRecord; onNavigate?: 
               >
                 Abrir <ExternalLink className="w-3 h-3" />
               </a>
-            ) : (
-              "—"
-            )}
+            ) : "—"}
           </Field>
         </div>
       </div>
 
-      {desc && (
+      {pp.descricao && (
         <div>
           <SectionTitle>Descrição</SectionTitle>
-          <p className="text-sm text-foreground whitespace-pre-wrap">{fmtTextOrDash(desc)}</p>
+          <p className="text-sm text-foreground whitespace-pre-wrap">{fmtTextOrDash(pp.descricao)}</p>
         </div>
       )}
+
+      <div>
+        <SectionTitle>Datas</SectionTitle>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <Field label="Data de inclusão">{pp.criadoEm ? formatDateTime(pp.criadoEm) : "—"}</Field>
+          <Field label="Atualizado em">{pp.atualizadoEm ? formatDateTime(pp.atualizadoEm) : "—"}</Field>
+        </div>
+      </div>
 
       {onNavigate && (
         <div>
           <SectionTitle>Navegação relacional</SectionTitle>
           <div className="flex flex-wrap gap-2">
-            {projetoExt && (
+            {pp.projeto?.id && (
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => onNavigate("projetos", String(projetoExt))}
+                onClick={() => onNavigate("projetos", pp.projeto!.id!)}
               >
                 <ExternalLink className="w-3.5 h-3.5 mr-1.5" />
                 Ver projeto externo
               </Button>
             )}
-            {clienteExt && (
+            {pp.cliente?.id && (
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => onNavigate("clientes", String(clienteExt))}
+                onClick={() => onNavigate("clientes", pp.cliente!.id!)}
               >
                 <ExternalLink className="w-3.5 h-3.5 mr-1.5" />
                 Ver cliente externo
@@ -421,42 +444,49 @@ function PropostaView({ record, onNavigate }: { record: RawRecord; onNavigate?: 
 }
 
 function FunilView({ record }: { record: RawRecord }) {
-  const p = record.payload ?? {};
-  const nome = pick(p, "name", "nome", "title");
-  const ordem = pick(p, "order", "ordem", "position", "sort");
-  const stages = asArray(pick(p, "stages", "etapas", "steps"));
+  const f = parseSmFunil(record.payload);
 
   return (
     <div className="space-y-6">
       <div>
         <SectionTitle>Identificação</SectionTitle>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <Field label="Nome">{fmtTextOrDash(nome)}</Field>
-          <Field label="Ordem">{ordem != null ? String(ordem) : "—"}</Field>
+          <Field label="Nome">{fmtTextOrDash(f.nome)}</Field>
+          <Field label="Ordem">{f.ordem != null ? String(f.ordem) : "—"}</Field>
+          <Field label="Total de etapas">{f.etapas.length}</Field>
+          <Field label="Criado em">{f.criadoEm ? formatDateTime(f.criadoEm) : "—"}</Field>
         </div>
       </div>
 
+      {f.descricao && (
+        <div>
+          <SectionTitle>Descrição</SectionTitle>
+          <p className="text-sm text-foreground whitespace-pre-wrap">{fmtTextOrDash(f.descricao)}</p>
+        </div>
+      )}
+
       <div>
-        <SectionTitle>Etapas detectadas ({stages.length})</SectionTitle>
-        {stages.length === 0 ? (
+        <SectionTitle>Etapas detectadas ({f.etapas.length})</SectionTitle>
+        {f.etapas.length === 0 ? (
           <p className="text-sm text-muted-foreground">
             Nenhuma etapa encontrada no payload.
           </p>
         ) : (
           <div className="space-y-1.5">
-            {stages.map((s: any, i: number) => (
+            {f.etapas.map((s, i) => (
               <div
                 key={i}
                 className="flex items-center gap-2 p-2 rounded-md border border-border bg-muted/30"
               >
-                <Badge variant="outline" className="text-xs">{i + 1}</Badge>
+                <Badge variant="outline" className="text-xs">{s.ordem ?? i + 1}</Badge>
                 <span className="text-sm text-foreground flex-1">
-                  {typeof s === "object"
-                    ? (s.name ?? s.nome ?? s.title ?? JSON.stringify(s))
-                    : String(s)}
+                  {fmtTextOrDash(s.nome)}
                 </span>
-                {typeof s === "object" && s.id && (
-                  <code className="text-[10px] text-muted-foreground">{String(s.id)}</code>
+                {s.status && (
+                  <Badge variant="outline" className="text-[10px]">{s.status}</Badge>
+                )}
+                {s.id && (
+                  <code className="text-[10px] text-muted-foreground">#{s.id}</code>
                 )}
               </div>
             ))}
@@ -471,30 +501,35 @@ function FunilView({ record }: { record: RawRecord }) {
 }
 
 function CustomFieldView({ record }: { record: RawRecord }) {
-  const p = record.payload ?? {};
-  const nome = pick(p, "name", "nome", "label", "title");
-  const tipo = pick(p, "type", "tipo", "field_type");
-  const obrigatorio = pick(p, "required", "obrigatorio", "is_required");
-  const opcoes = asArray(pick(p, "options", "opcoes", "values", "choices"));
+  const cf = parseSmCustomField(record.payload);
 
   return (
     <div className="space-y-6">
       <div>
         <SectionTitle>Identificação</SectionTitle>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <Field label="Nome">{fmtTextOrDash(nome)}</Field>
+          <Field label="Nome">{fmtTextOrDash(cf.nome)}</Field>
           <Field label="Tipo">
-            {tipo ? <Badge variant="outline">{String(tipo)}</Badge> : "—"}
+            {cf.tipo ? <Badge variant="outline">{String(cf.tipo)}</Badge> : "—"}
           </Field>
-          <Field label="Obrigatório">{fmtBoolean(obrigatorio)}</Field>
-          <Field label="Total de opções">{opcoes.length}</Field>
+          <Field label="Obrigatório">{fmtBoolean(cf.obrigatorio)}</Field>
+          <Field label="Total de opções">{cf.opcoes.length}</Field>
+          <Field label="Grupo">{fmtTextOrDash(cf.grupo)}</Field>
+          <Field label="Aplica-se a">{fmtTextOrDash(cf.entidade)}</Field>
+          <Field label="Valor padrão">
+            {cf.valorPadrao == null
+              ? "—"
+              : typeof cf.valorPadrao === "object"
+                ? <code className="text-xs">{JSON.stringify(cf.valorPadrao)}</code>
+                : String(cf.valorPadrao)}
+          </Field>
         </div>
       </div>
 
-      {opcoes.length > 0 && (
+      {cf.opcoes.length > 0 && (
         <div>
           <SectionTitle>Opções / Enumerações</SectionTitle>
-          <ChipList items={opcoes} />
+          <ChipList items={cf.opcoes} />
         </div>
       )}
 

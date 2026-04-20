@@ -34,8 +34,11 @@ import {
   type RawRecord,
 } from "./SolarmarketRecordDetailDrawer";
 import {
-  formatPhoneBR, formatDocument, formatDateTime, formatBRL, formatUF, sanitizeText,
+  formatPhoneBR, formatDocument, formatDateTime, formatBRL, formatUF, sanitizeText, formatInteger,
 } from "@/lib/formatters/index";
+import {
+  parseSmCliente, parseSmProjeto, parseSmProposta, parseSmFunil, parseSmCustomField,
+} from "@/lib/solarmarket/parsers";
 
 const PAGE_SIZE = 25;
 const STALE = 1000 * 60 * 5;
@@ -402,55 +405,47 @@ function ListaRaw({
       );
     }
     if (kind === "projetos") {
-      const titulo = pickPayload(p, "name", "nome", "title");
-      const clienteExt = pickPayload(p, "client_id", "cliente_id", "customer_id");
-      const status = pickPayload(p, "status", "situacao");
-      const funil = pickPayload(p, "funnel_id", "funil_id", "pipeline_id");
-      const etapa = pickPayload(p, "stage_id", "etapa_id", "step_id");
+      const pr = parseSmProjeto(p);
       return (
         <TableRow key={r.id}>
-          <TableCell className="font-medium text-foreground">{sanitizeText(titulo) || "—"}</TableCell>
-          <TableCell><code className="text-xs">{clienteExt ?? "—"}</code></TableCell>
-          <TableCell>{status ? <Badge variant="outline" className="text-xs">{String(status)}</Badge> : "—"}</TableCell>
+          <TableCell className="font-medium text-foreground">{sanitizeText(pr.nome ?? "") || "—"}</TableCell>
+          <TableCell className="text-sm">{pr.cliente?.label ?? "—"}</TableCell>
+          <TableCell className="text-sm">{pr.responsavel?.label ?? "—"}</TableCell>
           <TableCell className="text-xs text-muted-foreground">
-            {funil ?? "—"}{etapa ? ` / ${etapa}` : ""}
+            {pr.funil?.label ?? "—"}{pr.etapa?.label ? ` / ${pr.etapa.label}` : ""}
           </TableCell>
+          <TableCell className="text-sm text-center">{pr.qtdPropostas != null ? formatInteger(pr.qtdPropostas) : "—"}</TableCell>
+          <TableCell className="text-sm text-center">{pr.qtdAtividades != null ? formatInteger(pr.qtdAtividades) : "—"}</TableCell>
           <TableCell>{importedAt}</TableCell>
           <TableCell className="text-right">{action}</TableCell>
         </TableRow>
       );
     }
     if (kind === "propostas") {
-      const titulo = pickPayload(p, "title", "name", "description", "descricao");
-      const clienteExt = pickPayload(p, "client_id", "cliente_id");
-      const projetoExt = pickPayload(p, "project_id", "projeto_id", "deal_id");
-      const valor = pickPayload(p, "total_value", "valor_total", "total", "value", "amount");
-      const status = pickPayload(p, "status", "situacao");
+      const pp = parseSmProposta(p);
       return (
         <TableRow key={r.id}>
           <TableCell className="font-medium text-foreground max-w-xs truncate">
-            {sanitizeText(String(titulo ?? "")) || "—"}
+            {sanitizeText(pp.titulo ?? "") || "—"}
           </TableCell>
-          <TableCell><code className="text-xs">{clienteExt ?? "—"}</code></TableCell>
-          <TableCell><code className="text-xs">{projetoExt ?? "—"}</code></TableCell>
+          <TableCell className="text-sm">{pp.cliente?.label ?? "—"}</TableCell>
+          <TableCell className="text-sm">{pp.projeto?.label ?? "—"}</TableCell>
           <TableCell className="text-sm font-mono">
-            {valor != null ? formatBRL(Number(valor)) : "—"}
+            {pp.valorTotal != null ? formatBRL(pp.valorTotal) : "—"}
           </TableCell>
-          <TableCell>{status ? <Badge variant="outline" className="text-xs">{String(status)}</Badge> : "—"}</TableCell>
+          <TableCell>{pp.status ? <Badge variant="outline" className="text-xs">{String(pp.status)}</Badge> : "—"}</TableCell>
           <TableCell>{importedAt}</TableCell>
           <TableCell className="text-right">{action}</TableCell>
         </TableRow>
       );
     }
     if (kind === "funis") {
-      const nome = pickPayload(p, "name", "nome", "title");
-      const stages = p?.stages ?? p?.etapas ?? p?.steps ?? [];
-      const qtd = Array.isArray(stages) ? stages.length : 0;
+      const f = parseSmFunil(p);
       return (
         <TableRow key={r.id}>
-          <TableCell className="font-medium text-foreground">{sanitizeText(nome) || "—"}</TableCell>
+          <TableCell className="font-medium text-foreground">{sanitizeText(f.nome ?? "") || "—"}</TableCell>
           <TableCell>
-            <Badge variant="outline" className="text-xs">{qtd} etapa(s)</Badge>
+            <Badge variant="outline" className="text-xs">{f.etapas.length} etapa(s)</Badge>
           </TableCell>
           <TableCell>{extId}</TableCell>
           <TableCell>{importedAt}</TableCell>
@@ -459,14 +454,12 @@ function ListaRaw({
       );
     }
     // custom_fields
-    const cfNome = pickPayload(p, "name", "nome", "label");
-    const cfTipo = pickPayload(p, "type", "tipo", "field_type");
-    const cfReq = pickPayload(p, "required", "obrigatorio", "is_required");
+    const cf = parseSmCustomField(p);
     return (
       <TableRow key={r.id}>
-        <TableCell className="font-medium text-foreground">{sanitizeText(cfNome) || "—"}</TableCell>
-        <TableCell>{cfTipo ? <Badge variant="outline" className="text-xs">{String(cfTipo)}</Badge> : "—"}</TableCell>
-        <TableCell className="text-sm">{cfReq === true || cfReq === "true" ? "Sim" : "Não"}</TableCell>
+        <TableCell className="font-medium text-foreground">{sanitizeText(cf.nome ?? "") || "—"}</TableCell>
+        <TableCell>{cf.tipo ? <Badge variant="outline" className="text-xs">{String(cf.tipo)}</Badge> : "—"}</TableCell>
+        <TableCell className="text-sm">{cf.obrigatorio === true ? "Sim" : cf.obrigatorio === false ? "Não" : "—"}</TableCell>
         <TableCell>{importedAt}</TableCell>
         <TableCell className="text-right">{action}</TableCell>
       </TableRow>
@@ -475,7 +468,7 @@ function ListaRaw({
 
   const headers: Record<RawEntityKind, string[]> = {
     clientes: ["Nome", "Telefone", "CPF/CNPJ", "Cidade/UF", "Importado em", ""],
-    projetos: ["Título", "Cliente ext.", "Status", "Funil/Etapa", "Importado em", ""],
+    projetos: ["Nome", "Cliente ext.", "Responsável", "Funil/Etapa", "Propostas", "Atividades", "Importado em", ""],
     propostas: ["Título", "Cliente ext.", "Projeto ext.", "Valor", "Status", "Importado em", ""],
     funis: ["Nome", "Etapas", "ID Externo", "Importado em", ""],
     custom_fields: ["Nome", "Tipo", "Obrigatório", "Importado em", ""],
