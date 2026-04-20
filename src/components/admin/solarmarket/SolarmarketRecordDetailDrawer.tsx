@@ -190,8 +190,12 @@ function ClienteView({ record, onNavigate }: { record: RawRecord; onNavigate?: P
           <Field label="E-mail">{fmtTextOrDash(email)}</Field>
           <Field label="Data de Nascimento">{nascimento ? formatDate(nascimento) : "—"}</Field>
           {leadExterno && (
-            <Field label="Lead externo">
-              <code className="text-xs">{String(leadExterno)}</code>
+            <Field label="Responsável / Lead externo">
+              <code className="text-xs">
+                {typeof leadExterno === "object"
+                  ? (leadExterno.name ?? leadExterno.email ?? JSON.stringify(leadExterno))
+                  : String(leadExterno)}
+              </code>
             </Field>
           )}
         </div>
