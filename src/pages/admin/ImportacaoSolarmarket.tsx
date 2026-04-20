@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -37,6 +37,35 @@ const STEP_LABELS: Record<string, string> = {
 const stepLabel = (s: string | null | undefined) =>
   (s && STEP_LABELS[s]) || s || "Iniciando…";
 
+const STEP_ORDER = ["funis", "clientes", "projetos", "propostas", "custom_fields"] as const;
+const BATCH_EXPECTED_MS = 125 * 1000;
+
+function getRuntimeStep(scope: any, step: typeof STEP_ORDER[number]) {
+  return scope?._runtime?.steps?.[step] ?? null;
+}
+
+function getEntityCount(job: any, step: typeof STEP_ORDER[number]) {
+  switch (step) {
+    case "funis":
+      return job.total_funis ?? 0;
+    case "clientes":
+      return job.total_clientes ?? 0;
+    case "projetos":
+      return job.total_projetos ?? 0;
+    case "propostas":
+      return job.total_propostas ?? 0;
+    case "custom_fields":
+      return job.total_custom_fields ?? 0;
+  }
+}
+
+function formatRemaining(ms: number) {
+  const totalSeconds = Math.max(0, Math.ceil(ms / 1000));
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  return minutes > 0 ? `${minutes}m ${String(seconds).padStart(2, "0")}s` : `${seconds}s`;
+}
+
 function statusBadge(status: string) {
   const map: Record<string, { cls: string; label: string }> = {
     pending: { cls: "bg-muted text-muted-foreground border-border", label: "Pendente" },
@@ -54,6 +83,7 @@ export default function ImportacaoSolarmarket() {
   const { jobs, isLoading, testConnection, importAll, cancelImport, clearHistory, clearStaging } = useSolarmarketImport();
   const { config, isConfigured, isLoading: loadingCfg } = useSolarmarketConfig();
   const [testResult, setTestResult] = useState<{ ok: boolean; message: string } | null>(null);
+  const [now, setNow] = useState(() => Date.now());
   const [scope, setScope] = useState<ImportScope>({
     clientes: true,
     projetos: true,
@@ -68,6 +98,37 @@ export default function ImportacaoSolarmarket() {
   const isStale = runningJob
     ? Date.now() - new Date(runningJob.started_at ?? runningJob.created_at).getTime() > 10 * 60 * 1000
     : false;
+
+  useEffect(() => {
+    if (!runningJob) return;
+    const id = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(id);
+  }, [runningJob?.id]);
+
+  const lastHeartbeatMs = runningJob ? new Date(runningJob.updated_at ?? runningJob.started_at ?? runningJob.created_at).getTime() : 0;
+  const elapsedSinceHeartbeat = runningJob ? Math.max(0, now - lastHeartbeatMs) : 0;
+  const etaText = runningJob
+    ? elapsedSinceHeartbeat >= BATCH_EXPECTED_MS
+      ? "retomando agora"
+      : `próximo lote em ~${formatRemaining(BATCH_EXPECTED_MS - elapsedSinceHeartbeat)}`
+    : null;
+  const entityCards = runningJob
+    ? STEP_ORDER.map((step) => {
+        const runtime = getRuntimeStep((runningJob as any).scope, step);
+        const enabled = (runningJob as any).scope?.[step] !== false;
+        const done = !!runtime?.done;
+        const active = runningJob.current_step === step;
+        return {
+          step,
+          label: stepLabel(step),
+          enabled,
+          done,
+          active,
+          page: runtime?.page ?? 1,
+          count: getEntityCount(runningJob, step),
+        };
+      })
+    : [];
 
   const handleTest = async () => {
     setTestResult(null);
