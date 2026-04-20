@@ -233,6 +233,11 @@ function ClienteView({ record, onNavigate }: { record: RawRecord; onNavigate?: P
 
 function ProjetoView({ record, onNavigate }: { record: RawRecord; onNavigate?: Props["onNavigate"] }) {
   const pr = parseSmProjeto(record.payload);
+  // Cliente vem aninhado no payload do projeto — extrai dados úteis (telefone, doc, endereço)
+  const clientePayload = record.payload?.client && typeof record.payload.client === "object"
+    ? parseSmCliente(record.payload.client)
+    : null;
+  const isExcluido = !!record.payload?.deletedAt;
 
   return (
     <div className="space-y-6">
@@ -241,7 +246,13 @@ function ProjetoView({ record, onNavigate }: { record: RawRecord; onNavigate?: P
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <Field label="Nome">{fmtTextOrDash(pr.nome)}</Field>
           <Field label="Status">
-            {pr.status ? <Badge variant="outline">{String(pr.status)}</Badge> : "—"}
+            {isExcluido ? (
+              <Badge variant="outline" className="border-destructive text-destructive">Excluído na origem</Badge>
+            ) : pr.status ? (
+              <Badge variant="outline">{String(pr.status)}</Badge>
+            ) : (
+              <Badge variant="outline" className="text-muted-foreground">Ativo (sem status na API)</Badge>
+            )}
           </Field>
           <Field label="Cliente externo"><RefDisplay ref={pr.cliente} /></Field>
           <Field label="Valor / Orçamento">
@@ -249,6 +260,25 @@ function ProjetoView({ record, onNavigate }: { record: RawRecord; onNavigate?: P
           </Field>
         </div>
       </div>
+
+      {clientePayload && (
+        <div>
+          <SectionTitle>Dados do cliente (aninhado no projeto)</SectionTitle>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <Field label="Nome">{fmtTextOrDash(clientePayload.nome)}</Field>
+            <Field label="CPF/CNPJ">{clientePayload.documento ? formatDocument(String(clientePayload.documento)) : "—"}</Field>
+            <Field label="Telefone">{formatPhoneBR(clientePayload.telefone)}</Field>
+            <Field label="Telefone secundário">{formatPhoneBR(clientePayload.telefoneSecundario)}</Field>
+            <Field label="E-mail">{fmtTextOrDash(clientePayload.email)}</Field>
+            <Field label="CEP">{clientePayload.cep ? formatCEP(String(clientePayload.cep)) : "—"}</Field>
+            <Field label="Logradouro">{fmtTextOrDash(clientePayload.rua)}</Field>
+            <Field label="Número">{fmtTextOrDash(clientePayload.numero)}</Field>
+            <Field label="Bairro">{fmtTextOrDash(clientePayload.bairro)}</Field>
+            <Field label="Cidade">{fmtTextOrDash(clientePayload.cidade)}</Field>
+            <Field label="UF">{clientePayload.uf ? formatUF(String(clientePayload.uf)) : "—"}</Field>
+          </div>
+        </div>
+      )}
 
       {pr.descricao && (
         <div>
@@ -288,7 +318,13 @@ function ProjetoView({ record, onNavigate }: { record: RawRecord; onNavigate?: P
       </div>
 
       <div>
-        <SectionTitle>Métricas</SectionTitle>
+        <SectionTitle>Métricas e pipeline (não inclusos no endpoint /projects)</SectionTitle>
+        <p className="text-xs text-muted-foreground mb-3">
+          A API SolarMarket não retorna estes dados na rota de projetos. São agregados a partir de
+          <code className="mx-1 px-1 bg-muted/50 rounded text-[10px]">/proposals</code>,
+          <code className="mx-1 px-1 bg-muted/50 rounded text-[10px]">/activities</code> e
+          <code className="mx-1 px-1 bg-muted/50 rounded text-[10px]">/funnels</code> durante a migração.
+        </p>
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
           <Field label="Propostas">{fmtNumberOrDash(pr.qtdPropostas)}</Field>
           <Field label="Solicitações">{fmtNumberOrDash(pr.qtdSolicitacoes)}</Field>
@@ -296,12 +332,6 @@ function ProjetoView({ record, onNavigate }: { record: RawRecord; onNavigate?: P
           <Field label="Atividades concluídas">{fmtNumberOrDash(pr.qtdAtividadesConcluidas)}</Field>
           <Field label="Atividades a fazer">{fmtNumberOrDash(pr.qtdAtividadesAFazer)}</Field>
           <Field label="Atividades vencidas">{fmtNumberOrDash(pr.qtdAtividadesVencidas)}</Field>
-        </div>
-      </div>
-
-      <div>
-        <SectionTitle>Etiquetas e Perda</SectionTitle>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <Field label="Etiquetas"><ChipList items={pr.etiquetas} /></Field>
           <Field label="Motivo de perda">{fmtTextOrDash(pr.motivoPerda)}</Field>
         </div>
