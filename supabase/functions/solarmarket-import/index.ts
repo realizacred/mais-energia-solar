@@ -811,218 +811,54 @@ Deno.serve(async (req) => {
       if (jobErr) throw new Error(jobErr.message);
       state.jobId = job.id;
 
-      await smSignIn(state);
-      await markConfigTest(state, true);
-
-      let totalErrors = 0;
-
-      // Helper: aborta se cancelado
-      const checkCancel = async (): Promise<boolean> => {
-        if (await isJobCancelled(state)) {
-          await logEntry(state, "job", "skipped", null, null, "[cancelled] Importação interrompida pelo usuário.");
-          return true;
-        }
-        return false;
-      };
-
-      // 1) Funis e Etapas (primeiro — base para projetos)
-      let totalFunis = 0;
-      let totalEtapas = 0;
-      if (sc.funis) {
-        if (await checkCancel()) return new Response(JSON.stringify({ ok: false, cancelled: true }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-        await updateJob(state, { current_step: "funis", progress_pct: 5, updated_at: new Date().toISOString() });
-
-        // Tenta endpoints comuns de pipelines/funnels
-        const funisFound = await tryPaths(state, ["/pipelines", "/funnels", "/funis"], "funil");
-        if (!funisFound) {
-          await logEntry(state, "funil", "error", null, null,
-            "Nenhum endpoint de funis respondeu (testados: /pipelines, /funnels, /funis). Verifique a documentação da sua conta SolarMarket e atualize a função.");
-          totalErrors++;
-        } else {
-          const funis = pickArray(funisFound.body);
-          await logEntry(state, "funil", "skipped", null, null,
-            `[endpoint] Funis usando "${funisFound.path}" — ${funis.length} item(s) na primeira página`);
-
-          // Pagina e conta (não persiste em tabela própria — apenas registra para auditoria)
-          let page = 1;
-          while (true) {
-            const r = await smGet(state, funisFound.path, { page, limit: 100 });
-            if (!r.ok) break;
-            const items = pickArray(r.body);
-            if (items.length === 0) break;
-            for (const f of items) {
-              totalFunis++;
-              const stages = f?.stages || f?.etapas || f?.steps || [];
-              if (Array.isArray(stages)) totalEtapas += stages.length;
-              const fExtId = String(f?.id ?? "");
-              if (fExtId) {
-                try { await upsertRaw(state, "sm_funis_raw", fExtId, f ?? {}); }
-                catch (e) { await logEntry(state, "funil", "error", fExtId, null, (e as Error).message); }
-              }
-              await logEntry(state, "funil", "skipped",
-                fExtId, null,
-                `Funil "${f?.name ?? f?.nome ?? "?"}" — ${Array.isArray(stages) ? stages.length : 0} etapa(s)`);
-            }
-            if (items.length < 100) break;
-            page++;
-            if (page > 20) break;
-          }
-          await logEntry(state, "funil", "skipped", null, null,
-            `[end] Funis: ${totalFunis} funil(is), ${totalEtapas} etapa(s) lidas do SolarMarket`);
-        }
-        await updateJob(state, { progress_pct: 12, updated_at: new Date().toISOString() });
-      }
-
-      // 2) Clientes
-      if (sc.clientes) {
-        if (await checkCancel()) return new Response(JSON.stringify({ ok: false, cancelled: true }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-        await updateJob(state, { current_step: "clientes", progress_pct: 15, updated_at: new Date().toISOString() });
-        const r = await importEntity(
-          state,
-          "cliente",
-          ["/clients", "/customers", "/clientes"],
-          (item) => mapCliente(state, item),
-          { counterField: "total_clientes", progressStart: 15, progressEnd: 40 },
-        );
-        await updateJob(state, { total_clientes: r.count, progress_pct: 40, updated_at: new Date().toISOString() });
-        totalErrors += r.errors;
-      }
-
-      // 3) Projetos
-      if (sc.projetos) {
-        if (await checkCancel()) return new Response(JSON.stringify({ ok: false, cancelled: true }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-        await updateJob(state, { current_step: "projetos", progress_pct: 45, updated_at: new Date().toISOString() });
-        const r = await importEntity(
-          state,
-          "projeto",
-          ["/projects", "/deals", "/projetos"],
-          (item) => mapProjeto(state, item),
-          { counterField: "total_projetos", progressStart: 45, progressEnd: 70 },
-        );
-        await updateJob(state, { total_projetos: r.count, progress_pct: 70, updated_at: new Date().toISOString() });
-        totalErrors += r.errors;
-      }
-
-      // 4) Propostas
-      if (sc.propostas) {
-        if (await checkCancel()) return new Response(JSON.stringify({ ok: false, cancelled: true }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-        await updateJob(state, { current_step: "propostas", progress_pct: 75, updated_at: new Date().toISOString() });
-        const r = await importEntity(
-          state,
-          "proposta",
-          ["/proposals", "/quotes", "/propostas"],
-          (item) => mapProposta(state, item),
-          { counterField: "total_propostas", progressStart: 75, progressEnd: 92 },
-        );
-        await updateJob(state, { total_propostas: r.count, progress_pct: 92, updated_at: new Date().toISOString() });
-        totalErrors += r.errors;
-      }
-
-      // 5) Campos Customizados (último)
-      let totalCampos = 0;
-      if (sc.custom_fields) {
-        if (await checkCancel()) return new Response(JSON.stringify({ ok: false, cancelled: true }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-        await updateJob(state, { current_step: "custom_fields", progress_pct: 95, updated_at: new Date().toISOString() });
-
-        const cfFound = await tryPaths(state, ["/custom-fields", "/customFields", "/campos-customizados"], "custom_field");
-        if (!cfFound) {
-          await logEntry(state, "custom_field", "error", null, null,
-            "Nenhum endpoint de campos customizados respondeu (testados: /custom-fields, /customFields, /campos-customizados).");
-          totalErrors++;
-        } else {
-          const items = pickArray(cfFound.body);
-          totalCampos = items.length;
-          await logEntry(state, "custom_field", "skipped", null, null,
-            `[endpoint] Campos customizados usando "${cfFound.path}" — ${totalCampos} item(s) lidos`);
-          for (const cf of items) {
-            const cfExtId = String(cf?.id ?? "");
-            if (cfExtId) {
-              try { await upsertRaw(state, "sm_custom_fields_raw", cfExtId, cf ?? {}); }
-              catch (e) { await logEntry(state, "custom_field", "error", cfExtId, null, (e as Error).message); }
-            }
-          }
-          for (const cf of items.slice(0, 20)) {
-            await logEntry(state, "custom_field", "skipped",
-              String(cf?.id ?? ""), null,
-              `Campo "${cf?.name ?? cf?.label ?? "?"}" tipo=${cf?.type ?? "?"}`);
-          }
-        }
-      }
-
-      // Status final: se TUDO foi 0, marcar como 'partial' para o usuário ver que algo está errado
-      const totalImportado =
-        (totalFunis || 0) + (totalCampos || 0) +
-        (await (async () => {
-          const { data } = await adminClient
-            .from("solarmarket_import_jobs")
-            .select("total_clientes,total_projetos,total_propostas")
-            .eq("id", state.jobId!)
-            .single();
-          return ((data as any)?.total_clientes ?? 0) +
-                 ((data as any)?.total_projetos ?? 0) +
-                 ((data as any)?.total_propostas ?? 0);
-        })());
-
-      // RB-58: respeitar cancelamento externo — não sobrescrever para success
-      const wasCancelled = await isJobCancelled(state);
-
-      const finalStatus = wasCancelled
-        ? "cancelled"
-        : totalErrors > 0
-          ? "partial"
-          : totalImportado === 0
-            ? "partial"
-            : "success";
-
-      if (!wasCancelled && totalImportado === 0 && totalErrors === 0) {
-        await logEntry(state, "job", "skipped", null, null,
-          "[warning] Nenhum dado foi importado. Verifique se a integração está apontando para o ambiente correto e se há dados na conta SolarMarket.");
-      }
-
-      // RB-58: UPDATE condicional — só fecha jobs que ainda estão running
-      const { data: updRows } = await adminClient
-        .from("solarmarket_import_jobs")
-        .update({
-          status: finalStatus,
-          current_step: wasCancelled ? "cancelled" : "done",
-          ...(wasCancelled ? {} : { progress_pct: 100 }),
-          total_errors: totalErrors,
-          finished_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-          ...(wasCancelled
-            ? { error_message: "Cancelado manualmente pelo usuário durante a importação." }
-            : {}),
-        })
-        .eq("id", state.jobId!)
-        .in("status", ["running", "pending"])
-        .select("id");
-
-      if (!updRows || updRows.length === 0) {
-        // Job já estava em estado terminal (cancelled pelo hook) — preservar
-        await logEntry(state, "job", "skipped", null, null,
-          `[finalize] Job já estava em estado terminal — status preservado. importado=${totalImportado}, errors=${totalErrors}`);
-      }
-
-      // Atualiza last_sync_at na config
-      if (state.configId) {
-        await adminClient
-          .from("integrations_api_configs")
-          .update({ last_sync_at: new Date().toISOString() })
-          .eq("id", state.configId);
-      }
+      fetch(`${SUPABASE_URL}/functions/v1/solarmarket-import`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+        },
+        body: JSON.stringify({
+          action: "process-job",
+          job_id: state.jobId,
+          scope: sc,
+          tenant_id: state.tenantId,
+          triggered_by: userId,
+        }),
+      }).catch((e) => console.error("[solarmarket-import] fire-and-forget error:", e?.message ?? String(e)));
 
       return new Response(
         JSON.stringify({
           ok: true,
           job_id: state.jobId,
-          status: finalStatus,
-          summary: { funis: totalFunis, etapas: totalEtapas, custom_fields: totalCampos, errors: totalErrors },
+          status: "pending",
+          queued: true,
         }),
         {
-          status: 200,
+          status: 202,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         },
       );
+    }
+
+    if (action === "process-job") {
+      const bodyJobId = typeof (scope as any)?.job_id === "string" ? (scope as any).job_id : undefined;
+      const rawBody = await req.clone().json().catch(() => ({}));
+      const jobId = rawBody.job_id ?? bodyJobId;
+      const scoped = rawBody.scope ?? scope;
+
+      if (!jobId) {
+        return new Response(JSON.stringify({ error: "job_id is required" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      state.jobId = jobId;
+      const result = await runImportJob(state, adminClient, scoped || {});
+      return new Response(JSON.stringify(result), {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     // ---- clear-history ----
