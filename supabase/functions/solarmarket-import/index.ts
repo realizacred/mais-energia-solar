@@ -697,6 +697,8 @@ Deno.serve(async (req) => {
   let state: RequestState | null = null;
 
   try {
+    const body = await req.json().catch(() => ({}));
+    const { action, scope } = body;
     const authHeader = req.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
@@ -705,39 +707,56 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Auth: descobrir user e tenant
-    const supabaseAuth = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-      global: { headers: { Authorization: authHeader } },
-    });
     const token = authHeader.replace("Bearer ", "");
-    const { data: userData, error: cErr } = await supabaseAuth.auth.getUser(token);
-    if (cErr || !userData?.user?.id) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+    const isInternalJobDispatch = action === "process-job" && token === SUPABASE_SERVICE_ROLE_KEY;
+
+    let userId = "";
+    let tenantId = "";
+
+    if (isInternalJobDispatch) {
+      userId = String(body.triggered_by ?? "");
+      tenantId = String(body.tenant_id ?? "");
+      if (!userId || !tenantId) {
+        return new Response(JSON.stringify({ error: "tenant_id e triggered_by são obrigatórios" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    } else {
+      const supabaseAuth = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+        global: { headers: { Authorization: authHeader } },
       });
+      const { data: userData, error: cErr } = await supabaseAuth.auth.getUser(token);
+      if (cErr || !userData?.user?.id) {
+        return new Response(JSON.stringify({ error: "Unauthorized" }), {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      userId = userData.user.id;
     }
-    const userId = userData.user.id;
 
     adminClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
-    const { data: profile } = await adminClient
-      .from("profiles")
-      .select("tenant_id")
-      .eq("user_id", userId)
-      .maybeSingle();
+    if (!isInternalJobDispatch) {
+      const { data: profile } = await adminClient
+        .from("profiles")
+        .select("tenant_id")
+        .eq("user_id", userId)
+        .maybeSingle();
 
-    if (!profile?.tenant_id) {
-      return new Response(
-        JSON.stringify({ error: "Usuário sem tenant vinculado" }),
-        {
-          status: 403,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        },
-      );
+      if (!profile?.tenant_id) {
+        return new Response(
+          JSON.stringify({ error: "Usuário sem tenant vinculado" }),
+          {
+            status: 403,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          },
+        );
+      }
+      tenantId = profile.tenant_id as string;
     }
 
     // Carrega config tenant-safe
-    const tenantId = profile.tenant_id as string;
     const cfg = await loadTenantConfig(adminClient, tenantId);
 
     if (!cfg.baseUrl || !cfg.token) {
@@ -761,8 +780,6 @@ Deno.serve(async (req) => {
       cfg.token,
       cfg.configId,
     );
-
-    const { action, scope } = await req.json().catch(() => ({}));
 
     // ---- test-connection ----
     if (action === "test-connection") {
@@ -802,7 +819,7 @@ Deno.serve(async (req) => {
           tenant_id: state.tenantId,
           triggered_by: userId,
           scope: sc,
-          status: "running",
+          status: "pending",
           started_at: new Date().toISOString(),
           current_step: "auth",
         })
@@ -841,10 +858,9 @@ Deno.serve(async (req) => {
     }
 
     if (action === "process-job") {
-      const bodyJobId = typeof (scope as any)?.job_id === "string" ? (scope as any).job_id : undefined;
-      const rawBody = await req.clone().json().catch(() => ({}));
-      const jobId = rawBody.job_id ?? bodyJobId;
-      const scoped = rawBody.scope ?? scope;
+      const bodyJobId = typeof body.job_id === "string" ? body.job_id : undefined;
+      const jobId = bodyJobId;
+      const scoped = body.scope ?? scope;
 
       if (!jobId) {
         return new Response(JSON.stringify({ error: "job_id is required" }), {
