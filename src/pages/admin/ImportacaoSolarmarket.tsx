@@ -468,19 +468,19 @@ export default function ImportacaoSolarmarket() {
               </div>
             )}
             <Progress value={Number(runningJob.progress_pct ?? 0)} />
-            {/* Contadores parciais */}
+            {/* Contadores reais (staging) — única fonte de verdade */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-2">
               <div className="rounded-md border border-border bg-muted/30 p-2">
                 <p className="text-[10px] uppercase text-muted-foreground tracking-wide">Clientes</p>
-                <p className="text-sm font-mono font-semibold text-foreground">{runningJob.total_clientes ?? 0}</p>
+                <p className="text-sm font-mono font-semibold text-foreground">{liveCounts.data?.clientes ?? runningJob.total_clientes ?? 0}</p>
               </div>
               <div className="rounded-md border border-border bg-muted/30 p-2">
                 <p className="text-[10px] uppercase text-muted-foreground tracking-wide">Projetos</p>
-                <p className="text-sm font-mono font-semibold text-foreground">{runningJob.total_projetos ?? 0}</p>
+                <p className="text-sm font-mono font-semibold text-foreground">{liveCounts.data?.projetos ?? runningJob.total_projetos ?? 0}</p>
               </div>
               <div className="rounded-md border border-border bg-muted/30 p-2">
                 <p className="text-[10px] uppercase text-muted-foreground tracking-wide">Propostas</p>
-                <p className="text-sm font-mono font-semibold text-foreground">{runningJob.total_propostas ?? 0}</p>
+                <p className="text-sm font-mono font-semibold text-foreground">{liveCounts.data?.propostas ?? runningJob.total_propostas ?? 0}</p>
               </div>
               <div className="rounded-md border border-border bg-muted/30 p-2">
                 <p className="text-[10px] uppercase text-muted-foreground tracking-wide">Erros</p>
