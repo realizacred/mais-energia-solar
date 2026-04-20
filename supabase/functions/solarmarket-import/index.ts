@@ -826,7 +826,8 @@ Deno.serve(async (req) => {
         .select("id")
         .single();
       if (jobErr) throw new Error(jobErr.message);
-      state.jobId = job.id;
+      state.jobId = String((job as any)?.id ?? "");
+      if (!state.jobId) throw new Error("Falha ao criar job de importação.");
 
       fetch(`${SUPABASE_URL}/functions/v1/solarmarket-import`, {
         method: "POST",
