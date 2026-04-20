@@ -83,6 +83,7 @@ export default function ImportacaoSolarmarket() {
   const { jobs, isLoading, testConnection, importAll, cancelImport, clearHistory, clearStaging } = useSolarmarketImport();
   const { config, isConfigured, isLoading: loadingCfg } = useSolarmarketConfig();
   const [testResult, setTestResult] = useState<{ ok: boolean; message: string } | null>(null);
+  const [now, setNow] = useState(() => Date.now());
   const [scope, setScope] = useState<ImportScope>({
     clientes: true,
     projetos: true,
@@ -97,6 +98,37 @@ export default function ImportacaoSolarmarket() {
   const isStale = runningJob
     ? Date.now() - new Date(runningJob.started_at ?? runningJob.created_at).getTime() > 10 * 60 * 1000
     : false;
+
+  useEffect(() => {
+    if (!runningJob) return;
+    const id = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(id);
+  }, [runningJob?.id]);
+
+  const lastHeartbeatMs = runningJob ? new Date(runningJob.updated_at ?? runningJob.started_at ?? runningJob.created_at).getTime() : 0;
+  const elapsedSinceHeartbeat = runningJob ? Math.max(0, now - lastHeartbeatMs) : 0;
+  const etaText = runningJob
+    ? elapsedSinceHeartbeat >= BATCH_EXPECTED_MS
+      ? "retomando agora"
+      : `próximo lote em ~${formatRemaining(BATCH_EXPECTED_MS - elapsedSinceHeartbeat)}`
+    : null;
+  const entityCards = runningJob
+    ? STEP_ORDER.map((step) => {
+        const runtime = getRuntimeStep((runningJob as any).scope, step);
+        const enabled = (runningJob as any).scope?.[step] !== false;
+        const done = !!runtime?.done;
+        const active = runningJob.current_step === step;
+        return {
+          step,
+          label: stepLabel(step),
+          enabled,
+          done,
+          active,
+          page: runtime?.page ?? 1,
+          count: getEntityCount(runningJob, step),
+        };
+      })
+    : [];
 
   const handleTest = async () => {
     setTestResult(null);
