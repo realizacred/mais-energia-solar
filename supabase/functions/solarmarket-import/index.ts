@@ -751,6 +751,19 @@ async function mapProposta(state: RequestState, item: any) {
   return "updated" as const;
 }
 
+// Variante usada pelo fallback project-scoped, onde o `id` da proposta é
+// local ao projeto e precisa ser composto para garantir unicidade global.
+async function mapPropostaWithExternalId(
+  state: RequestState,
+  item: any,
+  externalId: string,
+) {
+  if (!externalId || externalId.endsWith(":")) return "skipped" as const;
+  const rawId = await upsertRaw(state, "sm_propostas_raw", externalId, item ?? {});
+  await logEntry(state, "proposta", "updated", externalId, rawId ?? null);
+  return "updated" as const;
+}
+
 async function mapCustomField(state: RequestState, item: any) {
   const externalId = String(item?.id ?? item?.uuid ?? "");
   if (!externalId) return "skipped" as const;
