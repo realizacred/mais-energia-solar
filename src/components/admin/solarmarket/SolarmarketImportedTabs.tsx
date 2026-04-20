@@ -27,6 +27,7 @@ import {
   Users, FolderKanban, FileText, GitBranch, Settings2,
   RefreshCw, Database, Search, AlertTriangle, Eye,
 } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useSolarmarketImport, type ImportScope } from "@/hooks/useSolarmarketImport";
 import {
   SolarmarketRecordDetailDrawer,
