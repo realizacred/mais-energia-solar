@@ -33,6 +33,7 @@ export interface SolarmarketImportJob {
   started_at: string | null;
   finished_at: string | null;
   created_at: string;
+  updated_at?: string | null;
 }
 
 const JOBS_KEY = ["solarmarket-import-jobs"];
