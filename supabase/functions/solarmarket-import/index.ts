@@ -641,14 +641,19 @@ async function mapCustomField(state: RequestState, item: any) {
 async function runImportJob(
   state: RequestState,
   adminClient: ReturnType<typeof createClient>,
-  sc: Record<string, boolean>,
+  rawScope: Record<string, unknown>,
 ) {
+  const scope = getEnabledScope(rawScope);
+  const runtime = getJobRuntime(rawScope);
+  const mergedScope = mergeScopeWithRuntime(rawScope, runtime);
+
   await updateJob(state, {
     status: "running",
-    current_step: "auth",
+    current_step: getNextPendingStep(scope, runtime) ?? "auth",
     started_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
     error_message: null,
+    scope: mergedScope,
   });
 
   await smSignIn(state);
@@ -664,56 +669,51 @@ async function runImportJob(
     return false;
   };
 
-  let totalFunis = 0;
+  const { data: existingJob } = await adminClient
+    .from("solarmarket_import_jobs")
+    .select("total_clientes,total_projetos,total_propostas,total_funis,total_custom_fields,total_errors")
+    .eq("id", state.jobId!)
+    .maybeSingle();
+
+  let totalFunis = Number((existingJob as any)?.total_funis ?? 0);
   let totalEtapas = 0;
-  if (sc.funis) {
+  if (scope.funis && !runtime.steps.funis.done) {
     if (await checkCancel()) return { ok: false, job_id: state.jobId, status: "cancelled", cancelled: true };
     await updateJob(state, { current_step: "funis", progress_pct: 5, updated_at: new Date().toISOString() });
-
-    const funisFound = await tryPaths(state, ["/pipelines", "/funnels", "/funis"], "funil");
-    if (!funisFound) {
-      await logEntry(state, "funil", "error", null, null,
-        "Nenhum endpoint de funis respondeu (testados: /pipelines, /funnels, /funis). Verifique a documentação da sua conta SolarMarket e atualize a função.");
-      totalErrors++;
-    } else {
-      const funis = pickArray(funisFound.body);
-      await logEntry(state, "funil", "skipped", null, null,
-        `[endpoint] Funis usando "${funisFound.path}" — ${funis.length} item(s) na primeira página`);
-
-      let page = 1;
-      while (true) {
-        const r = await smGet(state, funisFound.path, { page, limit: 100 });
-        if (!r.ok) break;
-        const items = pickArray(r.body);
-        if (items.length === 0) break;
-        for (const f of items) {
-          totalFunis++;
-          const stages = f?.stages || f?.etapas || f?.steps || [];
-          if (Array.isArray(stages)) totalEtapas += stages.length;
-          const fExtId = String(f?.id ?? "");
-          if (fExtId) {
-            try { await upsertRaw(state, "sm_funis_raw", fExtId, f ?? {}); }
-            catch (e) { await logEntry(state, "funil", "error", fExtId, null, (e as Error).message); }
-          }
-          await logEntry(state, "funil", "skipped",
-            fExtId, null,
-            `Funil "${f?.name ?? f?.nome ?? "?"}" — ${Array.isArray(stages) ? stages.length : 0} etapa(s)`);
-        }
-        if (items.length < 100) break;
-        page++;
-        if (page > 20) break;
-      }
-      await logEntry(state, "funil", "skipped", null, null,
-        `[end] Funis: ${totalFunis} funil(is), ${totalEtapas} etapa(s) lidas do SolarMarket`);
-    }
+    const r = await importEntity(
+      state,
+      "funil",
+      ["/pipelines", "/funnels", "/funis"],
+      (item) => mapFunil(state, item),
+      {
+        counterField: "total_funis",
+        counterBase: Number((existingJob as any)?.total_funis ?? 0),
+        progressStart: 5,
+        progressEnd: 12,
+        startPage: runtime.steps.funis.page,
+        pathUsed: runtime.steps.funis.pathUsed,
+      },
+    );
+    totalFunis = Number((existingJob as any)?.total_funis ?? 0) + r.count;
+    runtime.steps.funis = {
+      page: r.nextPage ?? runtime.steps.funis.page,
+      pathUsed: r.pathUsed,
+      done: r.done,
+    };
     await updateJob(state, {
       total_funis: totalFunis,
-      progress_pct: 12,
+      progress_pct: r.done ? 12 : 9,
       updated_at: new Date().toISOString(),
+      scope: mergeScopeWithRuntime(rawScope, runtime),
     });
+    totalErrors += r.errors;
+    if (!r.done) {
+      dispatchProcessJob(state, mergeScopeWithRuntime(rawScope, runtime));
+      return { ok: true, job_id: state.jobId, status: "running", resumed: true };
+    }
   }
 
-  if (sc.clientes) {
+  if (scope.clientes && !runtime.steps.clientes.done) {
     if (await checkCancel()) return { ok: false, job_id: state.jobId, status: "cancelled", cancelled: true };
     await updateJob(state, { current_step: "clientes", progress_pct: 15, updated_at: new Date().toISOString() });
     const r = await importEntity(
@@ -721,10 +721,31 @@ async function runImportJob(
       "cliente",
       ["/clients", "/customers", "/clientes"],
       (item) => mapCliente(state, item),
-      { counterField: "total_clientes", progressStart: 15, progressEnd: 40 },
+      {
+        counterField: "total_clientes",
+        counterBase: Number((existingJob as any)?.total_clientes ?? 0),
+        progressStart: 15,
+        progressEnd: 40,
+        startPage: runtime.steps.clientes.page,
+        pathUsed: runtime.steps.clientes.pathUsed,
+      },
     );
-    await updateJob(state, { total_clientes: r.count, progress_pct: 40, updated_at: new Date().toISOString() });
+    runtime.steps.clientes = {
+      page: r.nextPage ?? runtime.steps.clientes.page,
+      pathUsed: r.pathUsed,
+      done: r.done,
+    };
+    await updateJob(state, {
+      total_clientes: Number((existingJob as any)?.total_clientes ?? 0) + r.count,
+      progress_pct: r.done ? 40 : Math.max(18, Number((existingJob as any)?.total_clientes ?? 0) > 0 ? Number((existingJob as any)?.total_clientes ?? 0) / 25 : 20),
+      updated_at: new Date().toISOString(),
+      scope: mergeScopeWithRuntime(rawScope, runtime),
+    });
     totalErrors += r.errors;
+    if (!r.done) {
+      dispatchProcessJob(state, mergeScopeWithRuntime(rawScope, runtime));
+      return { ok: true, job_id: state.jobId, status: "running", resumed: true };
+    }
   }
 
   if (sc.projetos) {
