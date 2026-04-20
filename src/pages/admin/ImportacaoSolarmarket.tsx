@@ -160,53 +160,16 @@ export default function ImportacaoSolarmarket() {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button
-                variant="outline"
-                size="sm"
-                className="border-destructive text-destructive hover:bg-destructive/10"
-                disabled={cleanupImported.isPending || !!runningJob}
-              >
-                {cleanupImported.isPending ? (
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                ) : (
-                  <Eraser className="w-4 h-4 mr-2" />
-                )}
-                Limpar dados importados
-              </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle className="flex items-center gap-2 text-destructive">
-                  <AlertTriangle className="w-5 h-5" />
-                  Confirmar limpeza dos dados importados
-                </AlertDialogTitle>
-                <AlertDialogDescription asChild>
-                  <div className="space-y-2 text-sm">
-                    <p>Esta ação <strong>remove apenas os registros importados via SolarMarket</strong> deste tenant.</p>
-                    <ul className="list-disc list-inside text-muted-foreground space-y-0.5">
-                      <li>Propostas com <code>external_source='solarmarket'</code></li>
-                      <li>Projetos com <code>external_source='solarmarket'</code></li>
-                      <li>Clientes com <code>external_source='solarmarket'</code></li>
-                      <li>Logs e jobs finalizados de importação</li>
-                    </ul>
-                    <p className="text-success font-medium">Dados nativos do CRM permanecem intactos.</p>
-                    <p className="text-warning">Use esta ação em ambiente de teste — é irreversível.</p>
-                  </div>
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                <AlertDialogAction
-                  onClick={handleCleanup}
-                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                >
-                  Sim, limpar tudo
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
+          <Button
+            variant="outline"
+            size="sm"
+            disabled
+            title="Ação desabilitada temporariamente (P0 — contenção arquitetural). Limpeza do domínio nativo será reabilitada após a fase de promoção deliberada."
+            className="border-muted text-muted-foreground cursor-not-allowed"
+          >
+            <Eraser className="w-4 h-4 mr-2" />
+            Limpar dados importados (P0)
+          </Button>
           <Button asChild variant="outline" size="sm">
             <Link to="/admin/configuracoes/integracoes/solarmarket">
               <Settings className="w-4 h-4 mr-2" /> Configuração
