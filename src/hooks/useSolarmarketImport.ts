@@ -84,7 +84,17 @@ export function useSolarmarketImport() {
       if (error) throw error;
       return (data || []) as SolarmarketImportJob[];
     },
-    staleTime: 1000 * 30,
+    // RB-05: enquanto houver job ativo, força refetch frequente p/ atualizar
+    // progresso/etapa/contagens do card sem precisar de F5. Realtime cobre o
+    // resto, mas algumas mudanças de progress_pct vêm de UPDATE consecutivo
+    // que pode ser coalescido pelo client — polling garante UI atualizada.
+    staleTime: 1000 * 5,
+    refetchInterval: (query) => {
+      const data = query.state.data as SolarmarketImportJob[] | undefined;
+      const hasActive = data?.some((j) => j.status === "pending" || j.status === "running");
+      return hasActive ? 3000 : false;
+    },
+    refetchIntervalInBackground: false,
   });
 
   // Realtime: refetch quando jobs mudam
