@@ -661,15 +661,9 @@ async function importProjectScopedProposals(
 
     // BUG FIX: persistir total_errors também (404s de projetos sem proposta
     // estavam sendo contados localmente mas nunca refletidos no job).
-    const { data: currentJob } = await state.supabase
-      .from("solarmarket_import_jobs")
-      .select("total_errors")
-      .eq("id", state.jobId)
-      .maybeSingle();
-    const baseErrors = Number((currentJob as any)?.total_errors ?? 0);
     await updateJob(state, {
       total_propostas: counterBase + count,
-      total_errors: baseErrors + (errors > 0 ? 1 : 0) * 0 + errors,
+      total_errors: errorsBase + errors,
       ...(incrementalProgress !== undefined ? { progress_pct: incrementalProgress } : {}),
       updated_at: new Date().toISOString(),
     });
