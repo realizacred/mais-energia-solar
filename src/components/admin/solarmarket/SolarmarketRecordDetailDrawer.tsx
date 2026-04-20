@@ -318,7 +318,13 @@ function ProjetoView({ record, onNavigate }: { record: RawRecord; onNavigate?: P
       </div>
 
       <div>
-        <SectionTitle>Métricas</SectionTitle>
+        <SectionTitle>Métricas e pipeline (não inclusos no endpoint /projects)</SectionTitle>
+        <p className="text-xs text-muted-foreground mb-3">
+          A API SolarMarket não retorna estes dados na rota de projetos. São agregados a partir de
+          <code className="mx-1 px-1 bg-muted/50 rounded text-[10px]">/proposals</code>,
+          <code className="mx-1 px-1 bg-muted/50 rounded text-[10px]">/activities</code> e
+          <code className="mx-1 px-1 bg-muted/50 rounded text-[10px]">/funnels</code> durante a migração.
+        </p>
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
           <Field label="Propostas">{fmtNumberOrDash(pr.qtdPropostas)}</Field>
           <Field label="Solicitações">{fmtNumberOrDash(pr.qtdSolicitacoes)}</Field>
@@ -326,12 +332,6 @@ function ProjetoView({ record, onNavigate }: { record: RawRecord; onNavigate?: P
           <Field label="Atividades concluídas">{fmtNumberOrDash(pr.qtdAtividadesConcluidas)}</Field>
           <Field label="Atividades a fazer">{fmtNumberOrDash(pr.qtdAtividadesAFazer)}</Field>
           <Field label="Atividades vencidas">{fmtNumberOrDash(pr.qtdAtividadesVencidas)}</Field>
-        </div>
-      </div>
-
-      <div>
-        <SectionTitle>Etiquetas e Perda</SectionTitle>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <Field label="Etiquetas"><ChipList items={pr.etiquetas} /></Field>
           <Field label="Motivo de perda">{fmtTextOrDash(pr.motivoPerda)}</Field>
         </div>
