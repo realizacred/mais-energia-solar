@@ -571,6 +571,7 @@ async function importProjectScopedProposals(
   state: RequestState,
   opts: {
     counterBase?: number;
+    errorsBase?: number;
     progressStart?: number;
     progressEnd?: number;
     startPage?: number;
@@ -583,6 +584,7 @@ async function importProjectScopedProposals(
   const from = (batchPage - 1) * batchSize;
   const to = from + batchSize - 1;
   const counterBase = opts.counterBase ?? 0;
+  const errorsBase = opts.errorsBase ?? 0;
   const pStart = opts.progressStart ?? 0;
   const pEnd = opts.progressEnd ?? 0;
 
@@ -624,7 +626,20 @@ async function importProjectScopedProposals(
     const items = pickArray(response.body);
     for (const item of items) {
       try {
-        await mapProposta(state, item);
+        // BUG FIX: a API SolarMarket em /projects/:id/proposals retorna
+        // propostas com `id` LOCAL ao projeto (1,2,3...). Sem prefixar com
+        // o projectId, todas as propostas "id=1" de projetos diferentes
+        // colidem no UNIQUE (tenant_id, external_id) e sobrescrevem umas
+        // às outras na sm_propostas_raw — perdendo dados silenciosamente.
+        // Mantemos o id original em payload._sm_proposal_id e injetamos o
+        // projectId em payload._sm_project_id para a fase de promoção.
+        const enrichedItem = {
+          ...(item ?? {}),
+          _sm_project_id: projectId,
+          _sm_proposal_id: item?.id ?? null,
+        };
+        const composedExternalId = `${projectId}:${String(item?.id ?? "")}`;
+        await mapPropostaWithExternalId(state, enrichedItem, composedExternalId);
         count++;
       } catch (e) {
         errors++;
@@ -644,8 +659,11 @@ async function importProjectScopedProposals(
       ? Math.min(pEnd, pStart + Math.round((pEnd - pStart) * (processedProjects / Math.max(totalProjects, 1))))
       : undefined;
 
+    // BUG FIX: persistir total_errors também (404s de projetos sem proposta
+    // estavam sendo contados localmente mas nunca refletidos no job).
     await updateJob(state, {
       total_propostas: counterBase + count,
+      total_errors: errorsBase + errors,
       ...(incrementalProgress !== undefined ? { progress_pct: incrementalProgress } : {}),
       updated_at: new Date().toISOString(),
     });
@@ -733,6 +751,19 @@ async function mapFunil(state: RequestState, item: any) {
 async function mapProposta(state: RequestState, item: any) {
   const externalId = String(item?.id ?? "");
   if (!externalId) return "skipped" as const;
+  const rawId = await upsertRaw(state, "sm_propostas_raw", externalId, item ?? {});
+  await logEntry(state, "proposta", "updated", externalId, rawId ?? null);
+  return "updated" as const;
+}
+
+// Variante usada pelo fallback project-scoped, onde o `id` da proposta é
+// local ao projeto e precisa ser composto para garantir unicidade global.
+async function mapPropostaWithExternalId(
+  state: RequestState,
+  item: any,
+  externalId: string,
+) {
+  if (!externalId || externalId.endsWith(":")) return "skipped" as const;
   const rawId = await upsertRaw(state, "sm_propostas_raw", externalId, item ?? {});
   await logEntry(state, "proposta", "updated", externalId, rawId ?? null);
   return "updated" as const;
@@ -899,6 +930,7 @@ async function runImportJob(
     const r = shouldUseProjectScopedFallback
       ? await importProjectScopedProposals(state, {
           counterBase: Number((existingJob as any)?.total_propostas ?? 0),
+          errorsBase: Number((existingJob as any)?.total_errors ?? 0),
           progressStart: 75,
           progressEnd: 92,
           startPage: runtime.steps.propostas.page,
@@ -920,6 +952,7 @@ async function runImportJob(
     const proposalResult = (!shouldUseProjectScopedFallback && !r.pathUsed && r.count === 0)
       ? await importProjectScopedProposals(state, {
           counterBase: Number((existingJob as any)?.total_propostas ?? 0),
+          errorsBase: Number((existingJob as any)?.total_errors ?? 0),
           progressStart: 75,
           progressEnd: 92,
           startPage: runtime.steps.propostas.page,
