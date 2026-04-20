@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -36,6 +36,35 @@ const STEP_LABELS: Record<string, string> = {
 };
 const stepLabel = (s: string | null | undefined) =>
   (s && STEP_LABELS[s]) || s || "Iniciando…";
+
+const STEP_ORDER = ["funis", "clientes", "projetos", "propostas", "custom_fields"] as const;
+const BATCH_EXPECTED_MS = 125 * 1000;
+
+function getRuntimeStep(scope: any, step: typeof STEP_ORDER[number]) {
+  return scope?._runtime?.steps?.[step] ?? null;
+}
+
+function getEntityCount(job: any, step: typeof STEP_ORDER[number]) {
+  switch (step) {
+    case "funis":
+      return job.total_funis ?? 0;
+    case "clientes":
+      return job.total_clientes ?? 0;
+    case "projetos":
+      return job.total_projetos ?? 0;
+    case "propostas":
+      return job.total_propostas ?? 0;
+    case "custom_fields":
+      return job.total_custom_fields ?? 0;
+  }
+}
+
+function formatRemaining(ms: number) {
+  const totalSeconds = Math.max(0, Math.ceil(ms / 1000));
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  return minutes > 0 ? `${minutes}m ${String(seconds).padStart(2, "0")}s` : `${seconds}s`;
+}
 
 function statusBadge(status: string) {
   const map: Record<string, { cls: string; label: string }> = {
