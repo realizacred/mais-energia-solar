@@ -165,17 +165,46 @@ export default function ImportacaoSolarmarket() {
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            disabled
-            title="Ação desabilitada temporariamente (P0 — contenção arquitetural). Limpeza do domínio nativo será reabilitada após a fase de promoção deliberada."
-            className="border-muted text-muted-foreground cursor-not-allowed"
-          >
-            <Eraser className="w-4 h-4 mr-2" />
-            Limpar dados importados (P0)
-          </Button>
+        <div className="flex items-center gap-2 flex-wrap">
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={clearStaging.isPending || !!runningJob}
+                className="border-destructive text-destructive hover:bg-destructive/10"
+                title={runningJob ? "Há uma importação em execução. Cancele antes de limpar o staging." : undefined}
+              >
+                {clearStaging.isPending ? (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                ) : (
+                  <Eraser className="w-4 h-4 mr-2" />
+                )}
+                Limpar dados importados
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent className="w-[90vw] max-w-md">
+              <AlertDialogHeader>
+                <AlertDialogTitle>Limpar dados importados (staging)</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Isso apagará apenas os dados brutos importados do SolarMarket
+                  (<code>sm_clientes_raw</code>, <code>sm_projetos_raw</code>, <code>sm_propostas_raw</code>,
+                  {" "}<code>sm_funis_raw</code>, <code>sm_custom_fields_raw</code>).
+                  <br /><br />
+                  <strong>Não afeta</strong> Clientes, Projetos ou Propostas do CRM.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={handleClearStaging}
+                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                >
+                  Limpar staging
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
           <Button asChild variant="outline" size="sm">
             <Link to="/admin/configuracoes/integracoes/solarmarket">
               <Settings className="w-4 h-4 mr-2" /> Configuração
