@@ -571,6 +571,7 @@ async function importProjectScopedProposals(
   state: RequestState,
   opts: {
     counterBase?: number;
+    errorsBase?: number;
     progressStart?: number;
     progressEnd?: number;
     startPage?: number;
@@ -583,6 +584,7 @@ async function importProjectScopedProposals(
   const from = (batchPage - 1) * batchSize;
   const to = from + batchSize - 1;
   const counterBase = opts.counterBase ?? 0;
+  const errorsBase = opts.errorsBase ?? 0;
   const pStart = opts.progressStart ?? 0;
   const pEnd = opts.progressEnd ?? 0;
 
