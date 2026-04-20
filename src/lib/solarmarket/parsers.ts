@@ -350,15 +350,17 @@ export function parseSmFunil(payload: any): ParsedSmFunil {
     nome: pick(p, "name", "nome", "title"),
     descricao: pick(p, "description", "descricao"),
     ordem: toNumber(pick(p, "order", "ordem", "position", "sort")),
-    etapas: stages.map((s: any, idx: number) => ({
-      id: s && typeof s === "object" ? (s.id != null ? String(s.id) : null) : null,
-      nome: typeof s === "object"
-        ? (pick(s, "name", "nome", "title", "label") ?? null)
-        : String(s),
-      ordem: typeof s === "object" ? toNumber(pick(s, "order", "ordem", "position", "sort")) ?? idx + 1 : idx + 1,
-      status: typeof s === "object" ? pick(s, "status", "situacao", "type") : null,
-      raw: s,
-    })),
+    etapas: stages
+      .map((s: any, idx: number) => ({
+        id: s && typeof s === "object" ? (s.id != null ? String(s.id) : null) : null,
+        nome: typeof s === "object"
+          ? (pick(s, "name", "nome", "title", "label") ?? null)
+          : String(s),
+        ordem: typeof s === "object" ? toNumber(pick(s, "order", "ordem", "position", "sort")) ?? idx : idx,
+        status: typeof s === "object" ? pick(s, "status", "situacao", "type") : null,
+        raw: s,
+      }))
+      .sort((a, b) => (a.ordem ?? 0) - (b.ordem ?? 0)),
     criadoEm: pickDate(p, "created_at", "createdAt"),
     atualizadoEm: pickDate(p, "updated_at", "updatedAt"),
   };
