@@ -420,19 +420,26 @@ async function importEntity(
     counterField?: string; // ex: "total_clientes" — atualiza incrementalmente
     progressStart?: number; // % no início
     progressEnd?: number; // % ao final
+    startPage?: number;
+    pathUsed?: string | null;
+    maxPages?: number;
   } = {},
-): Promise<{ count: number; errors: number; pathUsed: string | null }> {
+): Promise<{ count: number; errors: number; pathUsed: string | null; nextPage: number | null; done: boolean }> {
   const startedAt = new Date().toISOString();
-  await logEntry(
-    state,
-    entityKey,
-    "skipped",
-    null,
-    null,
-    `[start] Buscando endpoint para ${entityKey}. Candidatos: ${candidatePaths.join(", ")}`,
-  );
+  if (!opts.pathUsed) {
+    await logEntry(
+      state,
+      entityKey,
+      "skipped",
+      null,
+      null,
+      `[start] Buscando endpoint para ${entityKey}. Candidatos: ${candidatePaths.join(", ")}`,
+    );
+  }
 
-  const found = await tryPaths(state, candidatePaths, entityKey);
+  const found = opts.pathUsed
+    ? { path: opts.pathUsed, body: null }
+    : await tryPaths(state, candidatePaths, entityKey);
   if (!found) {
     await logEntry(
       state,
@@ -442,24 +449,29 @@ async function importEntity(
       null,
       `Nenhum endpoint funcionou. Tentados: ${candidatePaths.join(", ")}.`,
     );
-    return { count: 0, errors: 1, pathUsed: null };
+    return { count: 0, errors: 1, pathUsed: null, nextPage: null, done: true };
   }
 
-  await logEntry(
-    state,
-    entityKey,
-    "skipped",
-    null,
-    null,
-    `[endpoint] ${entityKey} usando "${found.path}" (started_at=${startedAt})`,
-  );
+  if (!opts.pathUsed) {
+    await logEntry(
+      state,
+      entityKey,
+      "skipped",
+      null,
+      null,
+      `[endpoint] ${entityKey} usando "${found.path}" (started_at=${startedAt})`,
+    );
+  }
 
   let count = 0;
   let errors = 0;
-  let page = 1;
+  let page = Math.max(1, opts.startPage ?? 1);
   const limit = 100;
   const pStart = opts.progressStart ?? 0;
   const pEnd = opts.progressEnd ?? 0;
+  let pagesProcessed = 0;
+  let done = false;
+  const batchStartedAt = Date.now();
 
   while (true) {
     if (await isJobCancelled(state)) {
@@ -471,7 +483,7 @@ async function importEntity(
         null,
         `[cancelled] Importação interrompida em ${entityKey} (page=${page}, count=${count})`,
       );
-      return { count, errors, pathUsed: found.path };
+      return { count, errors, pathUsed: found.path, nextPage: page, done: false };
     }
 
     const r = await smGet(state, found.path, { page, limit });
@@ -481,7 +493,10 @@ async function importEntity(
       break;
     }
     const items = pickArray(r.body);
-    if (items.length === 0) break;
+    if (items.length === 0) {
+      done = true;
+      break;
+    }
     for (const item of items) {
       try {
         await mapper(item);
@@ -511,9 +526,22 @@ async function importEntity(
       });
     }
 
-    if (items.length < limit) break;
+    pagesProcessed++;
+    if (items.length < limit) {
+      done = true;
+      break;
+    }
+    if (
+      pagesProcessed >= (opts.maxPages ?? MAX_PAGES_PER_INVOCATION) ||
+      shouldYieldBatch(batchStartedAt, pagesProcessed)
+    ) {
+      break;
+    }
     page++;
-    if (page > 200) break; // hard stop
+    if (page > 200) {
+      done = true;
+      break;
+    }
   }
 
   await logEntry(
@@ -525,7 +553,13 @@ async function importEntity(
     `[end] ${entityKey} concluído: count=${count}, errors=${errors}, endpoint="${found.path}"`,
   );
 
-  return { count, errors, pathUsed: found.path };
+  return {
+    count,
+    errors,
+    pathUsed: found.path,
+    nextPage: done ? null : page + 1,
+    done,
+  };
 }
 
 // ─────────────────────────────────────────────────────────────────────
