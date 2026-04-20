@@ -624,7 +624,20 @@ async function importProjectScopedProposals(
     const items = pickArray(response.body);
     for (const item of items) {
       try {
-        await mapProposta(state, item);
+        // BUG FIX: a API SolarMarket em /projects/:id/proposals retorna
+        // propostas com `id` LOCAL ao projeto (1,2,3...). Sem prefixar com
+        // o projectId, todas as propostas "id=1" de projetos diferentes
+        // colidem no UNIQUE (tenant_id, external_id) e sobrescrevem umas
+        // às outras na sm_propostas_raw — perdendo dados silenciosamente.
+        // Mantemos o id original em payload._sm_proposal_id e injetamos o
+        // projectId em payload._sm_project_id para a fase de promoção.
+        const enrichedItem = {
+          ...(item ?? {}),
+          _sm_project_id: projectId,
+          _sm_proposal_id: item?.id ?? null,
+        };
+        const composedExternalId = `${projectId}:${String(item?.id ?? "")}`;
+        await mapPropostaWithExternalId(state, enrichedItem, composedExternalId);
         count++;
       } catch (e) {
         errors++;
