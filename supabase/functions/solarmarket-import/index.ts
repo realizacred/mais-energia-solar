@@ -930,6 +930,7 @@ async function runImportJob(
     const r = shouldUseProjectScopedFallback
       ? await importProjectScopedProposals(state, {
           counterBase: Number((existingJob as any)?.total_propostas ?? 0),
+          errorsBase: Number((existingJob as any)?.total_errors ?? 0),
           progressStart: 75,
           progressEnd: 92,
           startPage: runtime.steps.propostas.page,
@@ -951,6 +952,7 @@ async function runImportJob(
     const proposalResult = (!shouldUseProjectScopedFallback && !r.pathUsed && r.count === 0)
       ? await importProjectScopedProposals(state, {
           counterBase: Number((existingJob as any)?.total_propostas ?? 0),
+          errorsBase: Number((existingJob as any)?.total_errors ?? 0),
           progressStart: 75,
           progressEnd: 92,
           startPage: runtime.steps.propostas.page,
