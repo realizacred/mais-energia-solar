@@ -25,6 +25,106 @@ const EXTERNAL_SOURCE = "solarmarket";
 // Throttle: ~55 req/min = 1100ms entre chamadas (margem de segurança contra 60/min)
 const MIN_INTERVAL_MS = 1100;
 const MAX_RETRIES_429 = 4;
+const REQUEST_TIME_BUDGET_MS = 75_000;
+const MAX_PAGES_PER_INVOCATION = 1;
+const JOB_RUNTIME_KEY = "_runtime";
+
+type ImportStepKey =
+  | "funis"
+  | "clientes"
+  | "projetos"
+  | "propostas"
+  | "custom_fields";
+
+interface StepRuntimeState {
+  page: number;
+  pathUsed: string | null;
+  done: boolean;
+}
+
+interface JobRuntimeState {
+  steps: Record<ImportStepKey, StepRuntimeState>;
+}
+
+const STEP_SEQUENCE: ImportStepKey[] = [
+  "funis",
+  "clientes",
+  "projetos",
+  "propostas",
+  "custom_fields",
+];
+
+function createStepRuntime(): StepRuntimeState {
+  return { page: 1, pathUsed: null, done: false };
+}
+
+function getEnabledScope(rawScope: any): Record<ImportStepKey, boolean> {
+  return {
+    funis: rawScope?.funis !== false,
+    clientes: rawScope?.clientes !== false,
+    projetos: rawScope?.projetos !== false,
+    propostas: rawScope?.propostas !== false,
+    custom_fields: rawScope?.custom_fields !== false,
+  };
+}
+
+function getJobRuntime(rawScope: any): JobRuntimeState {
+  const runtime = rawScope?.[JOB_RUNTIME_KEY] ?? {};
+  const steps = runtime?.steps ?? {};
+
+  return {
+    steps: {
+      funis: { ...createStepRuntime(), ...(steps?.funis ?? {}) },
+      clientes: { ...createStepRuntime(), ...(steps?.clientes ?? {}) },
+      projetos: { ...createStepRuntime(), ...(steps?.projetos ?? {}) },
+      propostas: { ...createStepRuntime(), ...(steps?.propostas ?? {}) },
+      custom_fields: { ...createStepRuntime(), ...(steps?.custom_fields ?? {}) },
+    },
+  };
+}
+
+function mergeScopeWithRuntime(rawScope: any, runtime: JobRuntimeState) {
+  return {
+    ...getEnabledScope(rawScope),
+    [JOB_RUNTIME_KEY]: runtime,
+  };
+}
+
+function getNextPendingStep(
+  scope: Record<ImportStepKey, boolean>,
+  runtime: JobRuntimeState,
+): ImportStepKey | null {
+  for (const step of STEP_SEQUENCE) {
+    if (scope[step] && !runtime.steps[step].done) return step;
+  }
+  return null;
+}
+
+function shouldYieldBatch(batchStartedAt: number, pagesProcessed: number) {
+  return pagesProcessed >= MAX_PAGES_PER_INVOCATION ||
+    Date.now() - batchStartedAt >= REQUEST_TIME_BUDGET_MS;
+}
+
+function dispatchProcessJob(state: RequestState, scope: Record<string, unknown>) {
+  if (!state.jobId) return;
+
+  const promise = fetch(`${SUPABASE_URL}/functions/v1/solarmarket-import`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+    },
+    body: JSON.stringify({
+      action: "process-job",
+      job_id: state.jobId,
+      scope,
+      tenant_id: state.tenantId,
+      triggered_by: state.userId,
+    }),
+  }).catch((e) => console.error("[solarmarket-import] re-dispatch error:", e?.message ?? String(e)));
+
+  (globalThis as any).EdgeRuntime?.waitUntil?.(promise);
+}
 
 function normalizeBaseUrl(u: string | undefined | null): string {
   if (!u) return "";
