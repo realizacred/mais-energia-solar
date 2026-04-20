@@ -234,11 +234,21 @@ export default function ImportacaoSolarmarket() {
         description: summary || "Nenhum registro encontrado.",
       });
     } catch (e: any) {
+      const msg = e?.message || "Tente novamente.";
+      const isRunningBlock = /em execução|em andamento|importação em/i.test(msg);
       toast({
         title: "Falha ao limpar staging",
-        description: e?.message || "Tente novamente.",
+        description: isRunningBlock
+          ? `${msg} Use o botão "Cancelar" no card da importação ativa abaixo, ou aguarde a conclusão.`
+          : msg,
         variant: "destructive",
       });
+      // Auto-scroll até o card do job ativo para o usuário enxergar o botão Cancelar
+      if (isRunningBlock && runningJob) {
+        setTimeout(() => {
+          document.getElementById(`sm-job-${runningJob.id}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+        }, 100);
+      }
     }
   };
 
