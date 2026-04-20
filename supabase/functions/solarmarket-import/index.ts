@@ -491,6 +491,7 @@ async function importEntity(
     const r = await smGet(state, found.path, { page, limit });
     if (!r.ok) {
       errors++;
+      done = true;
       await logEntry(state, entityKey, "error", null, null, `HTTP ${r.status}`);
       break;
     }
@@ -552,7 +553,9 @@ async function importEntity(
     "skipped",
     null,
     null,
-    `[end] ${entityKey} concluído: count=${count}, errors=${errors}, endpoint="${found.path}"`,
+    done
+      ? `[end] ${entityKey} concluído: count=${count}, errors=${errors}, endpoint="${found.path}"`
+      : `[yield] ${entityKey} pausado para retomada automática: count=${count}, errors=${errors}, endpoint="${found.path}", next_page=${page + 1}`,
   );
 
   return {
