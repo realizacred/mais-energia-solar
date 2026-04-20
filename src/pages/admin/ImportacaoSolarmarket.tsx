@@ -95,6 +95,37 @@ export default function ImportacaoSolarmarket() {
   });
 
   // Qualquer job em "pending"/"running" é considerado ativo (e cancelável).
+  const isImporting = jobs.some((j) => j.status === "pending" || j.status === "running");
+
+  // Contadores reais do staging (única fonte de verdade durante a importação).
+  const liveCounts = useQuery({
+    queryKey: ["sm-imported-counts"],
+    staleTime: isImporting ? 0 : 1000 * 30,
+    refetchInterval: isImporting ? 3000 : false,
+    queryFn: async () => {
+      const tables = [
+        "sm_clientes_raw",
+        "sm_projetos_raw",
+        "sm_propostas_raw",
+        "sm_funis_raw",
+        "sm_custom_fields_raw",
+      ] as const;
+      const results = await Promise.all(
+        tables.map((t) =>
+          (supabase as any).from(t).select("id", { count: "exact", head: true }),
+        ),
+      );
+      return {
+        clientes: results[0].count ?? 0,
+        projetos: results[1].count ?? 0,
+        propostas: results[2].count ?? 0,
+        funis: results[3].count ?? 0,
+        custom_fields: results[4].count ?? 0,
+      };
+    },
+  });
+
+  // Qualquer job em "pending"/"running" é considerado ativo (e cancelável).
   // Se passou de 10 min, marcamos como "stale" para o usuário ver e cancelar.
   const runningJob = jobs.find((j) => j.status === "pending" || j.status === "running");
   const isStale = runningJob
