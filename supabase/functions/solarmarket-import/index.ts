@@ -25,6 +25,106 @@ const EXTERNAL_SOURCE = "solarmarket";
 // Throttle: ~55 req/min = 1100ms entre chamadas (margem de segurança contra 60/min)
 const MIN_INTERVAL_MS = 1100;
 const MAX_RETRIES_429 = 4;
+const REQUEST_TIME_BUDGET_MS = 75_000;
+const MAX_PAGES_PER_INVOCATION = 1;
+const JOB_RUNTIME_KEY = "_runtime";
+
+type ImportStepKey =
+  | "funis"
+  | "clientes"
+  | "projetos"
+  | "propostas"
+  | "custom_fields";
+
+interface StepRuntimeState {
+  page: number;
+  pathUsed: string | null;
+  done: boolean;
+}
+
+interface JobRuntimeState {
+  steps: Record<ImportStepKey, StepRuntimeState>;
+}
+
+const STEP_SEQUENCE: ImportStepKey[] = [
+  "funis",
+  "clientes",
+  "projetos",
+  "propostas",
+  "custom_fields",
+];
+
+function createStepRuntime(): StepRuntimeState {
+  return { page: 1, pathUsed: null, done: false };
+}
+
+function getEnabledScope(rawScope: any): Record<ImportStepKey, boolean> {
+  return {
+    funis: rawScope?.funis !== false,
+    clientes: rawScope?.clientes !== false,
+    projetos: rawScope?.projetos !== false,
+    propostas: rawScope?.propostas !== false,
+    custom_fields: rawScope?.custom_fields !== false,
+  };
+}
+
+function getJobRuntime(rawScope: any): JobRuntimeState {
+  const runtime = rawScope?.[JOB_RUNTIME_KEY] ?? {};
+  const steps = runtime?.steps ?? {};
+
+  return {
+    steps: {
+      funis: { ...createStepRuntime(), ...(steps?.funis ?? {}) },
+      clientes: { ...createStepRuntime(), ...(steps?.clientes ?? {}) },
+      projetos: { ...createStepRuntime(), ...(steps?.projetos ?? {}) },
+      propostas: { ...createStepRuntime(), ...(steps?.propostas ?? {}) },
+      custom_fields: { ...createStepRuntime(), ...(steps?.custom_fields ?? {}) },
+    },
+  };
+}
+
+function mergeScopeWithRuntime(rawScope: any, runtime: JobRuntimeState) {
+  return {
+    ...getEnabledScope(rawScope),
+    [JOB_RUNTIME_KEY]: runtime,
+  };
+}
+
+function getNextPendingStep(
+  scope: Record<ImportStepKey, boolean>,
+  runtime: JobRuntimeState,
+): ImportStepKey | null {
+  for (const step of STEP_SEQUENCE) {
+    if (scope[step] && !runtime.steps[step].done) return step;
+  }
+  return null;
+}
+
+function shouldYieldBatch(batchStartedAt: number, pagesProcessed: number) {
+  return pagesProcessed >= MAX_PAGES_PER_INVOCATION ||
+    Date.now() - batchStartedAt >= REQUEST_TIME_BUDGET_MS;
+}
+
+function dispatchProcessJob(state: RequestState, scope: Record<string, unknown>) {
+  if (!state.jobId) return;
+
+  const promise = fetch(`${SUPABASE_URL}/functions/v1/solarmarket-import`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+    },
+    body: JSON.stringify({
+      action: "process-job",
+      job_id: state.jobId,
+      scope,
+      tenant_id: state.tenantId,
+      triggered_by: state.userId,
+    }),
+  }).catch((e) => console.error("[solarmarket-import] re-dispatch error:", e?.message ?? String(e)));
+
+  (globalThis as any).EdgeRuntime?.waitUntil?.(promise);
+}
 
 function normalizeBaseUrl(u: string | undefined | null): string {
   if (!u) return "";
@@ -318,21 +418,29 @@ async function importEntity(
   mapper: (item: any) => Promise<"created" | "updated" | "skipped" | "error">,
   opts: {
     counterField?: string; // ex: "total_clientes" — atualiza incrementalmente
+    counterBase?: number;
     progressStart?: number; // % no início
     progressEnd?: number; // % ao final
+    startPage?: number;
+    pathUsed?: string | null;
+    maxPages?: number;
   } = {},
-): Promise<{ count: number; errors: number; pathUsed: string | null }> {
+): Promise<{ count: number; errors: number; pathUsed: string | null; nextPage: number | null; done: boolean }> {
   const startedAt = new Date().toISOString();
-  await logEntry(
-    state,
-    entityKey,
-    "skipped",
-    null,
-    null,
-    `[start] Buscando endpoint para ${entityKey}. Candidatos: ${candidatePaths.join(", ")}`,
-  );
+  if (!opts.pathUsed) {
+    await logEntry(
+      state,
+      entityKey,
+      "skipped",
+      null,
+      null,
+      `[start] Buscando endpoint para ${entityKey}. Candidatos: ${candidatePaths.join(", ")}`,
+    );
+  }
 
-  const found = await tryPaths(state, candidatePaths, entityKey);
+  const found = opts.pathUsed
+    ? { path: opts.pathUsed, body: null }
+    : await tryPaths(state, candidatePaths, entityKey);
   if (!found) {
     await logEntry(
       state,
@@ -342,24 +450,30 @@ async function importEntity(
       null,
       `Nenhum endpoint funcionou. Tentados: ${candidatePaths.join(", ")}.`,
     );
-    return { count: 0, errors: 1, pathUsed: null };
+    return { count: 0, errors: 1, pathUsed: null, nextPage: null, done: true };
   }
 
-  await logEntry(
-    state,
-    entityKey,
-    "skipped",
-    null,
-    null,
-    `[endpoint] ${entityKey} usando "${found.path}" (started_at=${startedAt})`,
-  );
+  if (!opts.pathUsed) {
+    await logEntry(
+      state,
+      entityKey,
+      "skipped",
+      null,
+      null,
+      `[endpoint] ${entityKey} usando "${found.path}" (started_at=${startedAt})`,
+    );
+  }
 
   let count = 0;
   let errors = 0;
-  let page = 1;
+  let page = Math.max(1, opts.startPage ?? 1);
   const limit = 100;
+  const counterBase = opts.counterBase ?? 0;
   const pStart = opts.progressStart ?? 0;
   const pEnd = opts.progressEnd ?? 0;
+  let pagesProcessed = 0;
+  let done = false;
+  const batchStartedAt = Date.now();
 
   while (true) {
     if (await isJobCancelled(state)) {
@@ -371,7 +485,7 @@ async function importEntity(
         null,
         `[cancelled] Importação interrompida em ${entityKey} (page=${page}, count=${count})`,
       );
-      return { count, errors, pathUsed: found.path };
+      return { count, errors, pathUsed: found.path, nextPage: page, done: false };
     }
 
     const r = await smGet(state, found.path, { page, limit });
@@ -381,7 +495,10 @@ async function importEntity(
       break;
     }
     const items = pickArray(r.body);
-    if (items.length === 0) break;
+    if (items.length === 0) {
+      done = true;
+      break;
+    }
     for (const item of items) {
       try {
         await mapper(item);
@@ -405,15 +522,28 @@ async function importEntity(
         ? Math.min(pEnd, pStart + Math.round((pEnd - pStart) * (page / Math.max(page, 5))))
         : undefined;
       await updateJob(state, {
-        [opts.counterField]: count,
+        [opts.counterField]: counterBase + count,
         ...(incrementalProgress !== undefined ? { progress_pct: incrementalProgress } : {}),
         updated_at: new Date().toISOString(),
       });
     }
 
-    if (items.length < limit) break;
+    pagesProcessed++;
+    if (items.length < limit) {
+      done = true;
+      break;
+    }
+    if (
+      pagesProcessed >= (opts.maxPages ?? MAX_PAGES_PER_INVOCATION) ||
+      shouldYieldBatch(batchStartedAt, pagesProcessed)
+    ) {
+      break;
+    }
     page++;
-    if (page > 200) break; // hard stop
+    if (page > 200) {
+      done = true;
+      break;
+    }
   }
 
   await logEntry(
@@ -425,7 +555,13 @@ async function importEntity(
     `[end] ${entityKey} concluído: count=${count}, errors=${errors}, endpoint="${found.path}"`,
   );
 
-  return { count, errors, pathUsed: found.path };
+  return {
+    count,
+    errors,
+    pathUsed: found.path,
+    nextPage: done ? null : page + 1,
+    done,
+  };
 }
 
 // ─────────────────────────────────────────────────────────────────────
@@ -475,11 +611,27 @@ async function mapProjeto(state: RequestState, item: any) {
   return "updated" as const;
 }
 
+async function mapFunil(state: RequestState, item: any) {
+  const externalId = String(item?.id ?? item?.uuid ?? "");
+  if (!externalId) return "skipped" as const;
+  const rawId = await upsertRaw(state, "sm_funis_raw", externalId, item ?? {});
+  await logEntry(state, "funil", "updated", externalId, rawId ?? null);
+  return "updated" as const;
+}
+
 async function mapProposta(state: RequestState, item: any) {
   const externalId = String(item?.id ?? "");
   if (!externalId) return "skipped" as const;
   const rawId = await upsertRaw(state, "sm_propostas_raw", externalId, item ?? {});
   await logEntry(state, "proposta", "updated", externalId, rawId ?? null);
+  return "updated" as const;
+}
+
+async function mapCustomField(state: RequestState, item: any) {
+  const externalId = String(item?.id ?? item?.uuid ?? "");
+  if (!externalId) return "skipped" as const;
+  const rawId = await upsertRaw(state, "sm_custom_fields_raw", externalId, item ?? {});
+  await logEntry(state, "custom_field", "updated", externalId, rawId ?? null);
   return "updated" as const;
 }
 
