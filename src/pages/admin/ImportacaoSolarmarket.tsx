@@ -434,7 +434,7 @@ export default function ImportacaoSolarmarket() {
 
       {/* Progresso ao vivo */}
       {runningJob && (
-        <Card className="border-l-[3px] border-l-info bg-card shadow-sm">
+        <Card id={`sm-job-${runningJob.id}`} className="border-l-[3px] border-l-info bg-card shadow-sm scroll-mt-6">
           <CardContent className="p-5 space-y-3">
             <div className="flex items-center justify-between gap-3">
               <div className="flex-1 min-w-0">
