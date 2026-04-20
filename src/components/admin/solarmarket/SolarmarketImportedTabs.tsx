@@ -467,7 +467,7 @@ function ListaRaw({
 
   const headers: Record<RawEntityKind, string[]> = {
     clientes: ["Nome", "Telefone", "CPF/CNPJ", "Cidade/UF", "Importado em", ""],
-    projetos: ["Nome", "Cliente ext.", "Responsável", "Funil/Etapa", "Propostas", "Atividades", "Importado em", ""],
+    projetos: ["Nome", "Cliente", "Responsável", "Cidade/UF", "Data de inclusão", ""],
     propostas: ["Título", "Cliente ext.", "Projeto ext.", "Valor", "Status", "Importado em", ""],
     funis: ["Nome", "Etapas", "ID Externo", "Importado em", ""],
     custom_fields: ["Nome", "Tipo", "Obrigatório", "Importado em", ""],
