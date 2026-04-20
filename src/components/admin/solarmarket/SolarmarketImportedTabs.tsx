@@ -406,17 +406,16 @@ function ListaRaw({
     }
     if (kind === "projetos") {
       const pr = parseSmProjeto(p);
+      const cidadeUf = pr.cliente?.cidade
+        ? `${sanitizeText(String(pr.cliente.cidade))}${pr.cliente.uf ? "/" + formatUF(String(pr.cliente.uf)) : ""}`
+        : "—";
       return (
         <TableRow key={r.id}>
           <TableCell className="font-medium text-foreground">{sanitizeText(pr.nome ?? "") || "—"}</TableCell>
-          <TableCell className="text-sm">{pr.cliente?.label ?? "—"}</TableCell>
+          <TableCell className="text-sm">{pr.cliente?.nome ?? pr.clienteRef?.label ?? "—"}</TableCell>
           <TableCell className="text-sm">{pr.responsavel?.label ?? "—"}</TableCell>
-          <TableCell className="text-xs text-muted-foreground">
-            {pr.funil?.label ?? "—"}{pr.etapa?.label ? ` / ${pr.etapa.label}` : ""}
-          </TableCell>
-          <TableCell className="text-sm text-center">{pr.qtdPropostas != null ? formatInteger(pr.qtdPropostas) : "—"}</TableCell>
-          <TableCell className="text-sm text-center">{pr.qtdAtividades != null ? formatInteger(pr.qtdAtividades) : "—"}</TableCell>
-          <TableCell>{importedAt}</TableCell>
+          <TableCell className="text-sm">{cidadeUf}</TableCell>
+          <TableCell>{pr.criadoEm ? formatDateTime(pr.criadoEm) : importedAt}</TableCell>
           <TableCell className="text-right">{action}</TableCell>
         </TableRow>
       );
@@ -468,7 +467,7 @@ function ListaRaw({
 
   const headers: Record<RawEntityKind, string[]> = {
     clientes: ["Nome", "Telefone", "CPF/CNPJ", "Cidade/UF", "Importado em", ""],
-    projetos: ["Nome", "Cliente ext.", "Responsável", "Funil/Etapa", "Propostas", "Atividades", "Importado em", ""],
+    projetos: ["Nome", "Cliente", "Responsável", "Cidade/UF", "Data de inclusão", ""],
     propostas: ["Título", "Cliente ext.", "Projeto ext.", "Valor", "Status", "Importado em", ""],
     funis: ["Nome", "Etapas", "ID Externo", "Importado em", ""],
     custom_fields: ["Nome", "Tipo", "Obrigatório", "Importado em", ""],

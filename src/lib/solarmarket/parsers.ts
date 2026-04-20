@@ -145,116 +145,75 @@ export function parseSmCliente(payload: any): ParsedSmCliente {
 }
 
 // ─────────────────────────────────────────────────────────────────────────
-// PROJETO
+// PROJETO — shape real do endpoint /projects do SolarMarket:
+// { id, name, description, client{...}, responsible{id,name,email},
+//   representative{id,name,email}, createdAt, deletedAt }
+// Campos como status/valor/funil/etapa/atividades/etiquetas NÃO existem
+// nesta rota — vêm de /proposals, /activities, /funnels.
 // ─────────────────────────────────────────────────────────────────────────
 
-export interface ParsedSmProjeto {
+export interface ParsedSmProjetoCliente {
+  id: string | null;
   nome: string | null;
-  descricao: string | null;
-  status: string | null;
-  motivoPerda: string | null;
-  cliente: ExternalRef | null;
-  responsavel: ExternalRef | null;
-  representante: ExternalRef | null;
-  funil: ExternalRef | null;
-  etapa: ExternalRef | null;
-  funis: Array<{ funil: ExternalRef | null; etapa: ExternalRef | null; status: string | null }>;
-  etiquetas: string[];
+  empresa: string | null;
+  documento: string | null;
+  email: string | null;
+  telefone: string | null;
+  telefoneSecundario: string | null;
+  cep: string | null;
+  endereco: string | null;
+  numero: string | null;
+  complemento: string | null;
+  bairro: string | null;
   cidade: string | null;
   uf: string | null;
-  valor: number | null;
-  qtdPropostas: number | null;
-  qtdSolicitacoes: number | null;
-  qtdAtividades: number | null;
-  qtdAtividadesConcluidas: number | null;
-  qtdAtividadesAFazer: number | null;
-  qtdAtividadesVencidas: number | null;
-  proximaAtividadeEm: string | null;
-  ultimaAtividadeConcluidaEm: string | null;
+}
+
+export interface ParsedSmProjeto {
+  id: string | null;
+  nome: string | null;
+  descricao: string | null;
+  cliente: ParsedSmProjetoCliente | null;
+  clienteRef: ExternalRef | null;
+  responsavel: ExternalRef | null;
+  representante: ExternalRef | null;
   criadoEm: string | null;
-  atualizadoEm: string | null;
+  excluidoEm: string | null;
 }
 
-function parseEtiquetas(value: any): string[] {
-  const arr = asArray(value);
-  return arr
-    .map((t: any) => {
-      if (typeof t === "string") return t;
-      if (t && typeof t === "object") return pick(t, "name", "nome", "label", "title", "value") ?? null;
-      return null;
-    })
-    .filter((x): x is string => !!x && x !== "");
-}
-
-function parseFunisProjeto(p: any) {
-  // SolarMarket pode mandar funnels[] (multi-pipeline) ou funnel + stage soltos
-  const list = asArray(pick(p, "funnels", "funis", "pipelines"));
-  if (list.length > 0) {
-    return list.map((f: any) => ({
-      funil: parseExternalRef(pick(f, "funnel", "pipeline") ?? f),
-      etapa: parseExternalRef(pick(f, "stage", "step", "etapa")),
-      status: pick(f, "status", "situacao") ?? null,
-    }));
-  }
-  return [];
+function parseProjetoCliente(c: any): ParsedSmProjetoCliente | null {
+  if (!c || typeof c !== "object") return null;
+  return {
+    id: c.id != null ? String(c.id) : null,
+    nome: pick(c, "name", "nome"),
+    empresa: pick(c, "company", "empresa"),
+    documento: pick(c, "cnpjCpf", "cpf_cnpj", "document", "documento"),
+    email: pick(c, "email"),
+    telefone: pick(c, "primaryPhone", "phone", "telefone", "celular"),
+    telefoneSecundario: pick(c, "secondaryPhone", "phone2", "telefone2"),
+    cep: pick(c, "zipCode", "zip", "cep"),
+    endereco: pick(c, "address", "street", "rua", "logradouro"),
+    numero: pick(c, "number", "numero"),
+    complemento: pick(c, "complement", "complemento"),
+    bairro: pick(c, "neighborhood", "bairro"),
+    cidade: pick(c, "city", "cidade"),
+    uf: pick(c, "state", "estado", "uf"),
+  };
 }
 
 export function parseSmProjeto(payload: any): ParsedSmProjeto {
   const p = payload ?? {};
-  const funisDetalhe = parseFunisProjeto(p);
-
-  // Cliente: pode vir como objeto `client` ou ID `client_id`
-  const clienteRef =
-    parseExternalRef(pick(p, "client", "customer", "cliente")) ??
-    parseExternalRef(pick(p, "client_id", "cliente_id", "customer_id"));
-
+  const cliente = parseProjetoCliente(p.client ?? p.customer ?? p.cliente);
   return {
-    nome: pick(p, "name", "nome", "title", "titulo"),
-    descricao: pick(p, "description", "descricao", "notes", "observations"),
-    status: pick(p, "status", "situacao", "stage_status"),
-    motivoPerda: pick(p, "loss_reason", "lossReason", "motivo_perda", "reason_lost"),
-    cliente: clienteRef,
-    responsavel: parseExternalRef(pick(p, "responsible", "owner", "responsavel", "user", "consultant")),
+    id: p.id != null ? String(p.id) : null,
+    nome: pick(p, "name", "nome", "title"),
+    descricao: pick(p, "description", "descricao"),
+    cliente,
+    clienteRef: parseExternalRef(p.client ?? p.customer ?? p.cliente),
+    responsavel: parseExternalRef(pick(p, "responsible", "owner", "responsavel")),
     representante: parseExternalRef(pick(p, "representative", "representante", "agent")),
-    funil:
-      funisDetalhe[0]?.funil ??
-      parseExternalRef(pick(p, "funnel", "pipeline") ?? pick(p, "funnel_id", "funil_id", "pipeline_id")),
-    etapa:
-      funisDetalhe[0]?.etapa ??
-      parseExternalRef(pick(p, "stage", "step") ?? pick(p, "stage_id", "etapa_id", "step_id")),
-    funis: funisDetalhe,
-    etiquetas: parseEtiquetas(pick(p, "tags", "etiquetas", "labels")),
-    cidade: pick(p, "city", "cidade") ?? pick(p.address ?? {}, "city", "cidade"),
-    uf: pick(p, "state", "estado", "uf") ?? pick(p.address ?? {}, "state", "estado", "uf"),
-    valor: toNumber(pick(p, "value", "valor", "budget", "orcamento", "amount", "total_value")),
-    qtdPropostas: toNumber(pick(p, "proposals_count", "proposalsCount", "qtd_propostas", "total_proposals")),
-    qtdSolicitacoes: toNumber(pick(p, "requests_count", "requestsCount", "qtd_solicitacoes", "total_requests")),
-    qtdAtividades: toNumber(pick(p, "activities_count", "activitiesCount", "qtd_atividades", "total_activities")),
-    qtdAtividadesConcluidas: toNumber(
-      pick(p, "activities_done_count", "activitiesDoneCount", "qtd_atividades_concluidas", "completed_activities"),
-    ),
-    qtdAtividadesAFazer: toNumber(
-      pick(p, "activities_todo_count", "activitiesTodoCount", "qtd_atividades_a_fazer", "pending_activities"),
-    ),
-    qtdAtividadesVencidas: toNumber(
-      pick(p, "activities_overdue_count", "activitiesOverdueCount", "qtd_atividades_vencidas", "overdue_activities"),
-    ),
-    proximaAtividadeEm: pickDate(
-      p,
-      "next_activity_due_at",
-      "nextActivityDueAt",
-      "next_activity_at",
-      "proxima_atividade_em",
-      "next_activity",
-    ),
-    ultimaAtividadeConcluidaEm: pickDate(
-      p,
-      "last_activity_done_at",
-      "lastActivityDoneAt",
-      "ultima_atividade_concluida_em",
-    ),
-    criadoEm: pickDate(p, "created_at", "createdAt", "criado_em"),
-    atualizadoEm: pickDate(p, "updated_at", "updatedAt", "atualizado_em"),
+    criadoEm: pickDate(p, "createdAt", "created_at", "criado_em"),
+    excluidoEm: pickDate(p, "deletedAt", "deleted_at", "excluido_em"),
   };
 }
 
