@@ -260,6 +260,19 @@ function pickArray(body: any): any[] {
   if (Array.isArray(body?.data)) return body.data;
   if (Array.isArray(body?.results)) return body.results;
   if (Array.isArray(body?.items)) return body.items;
+  // Alguns endpoints do SolarMarket (ex.: /proposals em algumas contas)
+  // retornam um único objeto em `data` ao invés de uma lista. Tratamos
+  // como lista de 1 item para preservar o payload completo (incluindo
+  // pricingTable, variables e project aninhado).
+  if (body?.data && typeof body.data === "object" && !Array.isArray(body.data)) {
+    // Heurística: precisa parecer um recurso (ter id/uuid/name) para evitar
+    // confundir com envelopes de paginação puros.
+    const d = body.data as Record<string, unknown>;
+    if ("id" in d || "uuid" in d || "name" in d) return [d];
+  }
+  if (body && typeof body === "object" && ("id" in body || "uuid" in body) && !("data" in body)) {
+    return [body as Record<string, unknown>];
+  }
   return [];
 }
 
