@@ -339,82 +339,197 @@ function ProjetoView({ record, onNavigate }: { record: RawRecord; onNavigate?: P
   );
 }
 
+function PricingTable({ items }: { items: ReturnType<typeof parseSmProposta>["pricingTable"] }) {
+  if (!items.length) {
+    return <p className="text-sm text-muted-foreground">Sem itens de precificação no payload.</p>;
+  }
+  return (
+    <div className="rounded-lg border border-border overflow-x-auto">
+      <table className="w-full text-xs">
+        <thead className="bg-muted/40">
+          <tr className="text-left">
+            <th className="px-2 py-2 font-medium text-muted-foreground">Categoria</th>
+            <th className="px-2 py-2 font-medium text-muted-foreground">Item</th>
+            <th className="px-2 py-2 font-medium text-muted-foreground text-right">Qtd</th>
+            <th className="px-2 py-2 font-medium text-muted-foreground text-right">Custo unit.</th>
+            <th className="px-2 py-2 font-medium text-muted-foreground text-right">Custo total</th>
+            <th className="px-2 py-2 font-medium text-muted-foreground text-right">Imposto</th>
+            <th className="px-2 py-2 font-medium text-muted-foreground text-right">Lucro</th>
+            <th className="px-2 py-2 font-medium text-muted-foreground text-right">Venda</th>
+          </tr>
+        </thead>
+        <tbody>
+          {items.map((it, i) => (
+            <tr key={i} className="border-t border-border">
+              <td className="px-2 py-1.5 text-foreground">{fmtTextOrDash(it.categoria)}</td>
+              <td className="px-2 py-1.5 text-foreground">{fmtTextOrDash(it.item)}</td>
+              <td className="px-2 py-1.5 text-right font-mono">{fmtNumberOrDash(it.quantidade)}</td>
+              <td className="px-2 py-1.5 text-right font-mono">{it.custoUnitario != null ? formatBRL(it.custoUnitario) : "—"}</td>
+              <td className="px-2 py-1.5 text-right font-mono">{it.custoTotal != null ? formatBRL(it.custoTotal) : "—"}</td>
+              <td className="px-2 py-1.5 text-right font-mono">{it.imposto != null ? formatBRL(it.imposto) : "—"}</td>
+              <td className="px-2 py-1.5 text-right font-mono">{it.lucro != null ? formatBRL(it.lucro) : "—"}</td>
+              <td className="px-2 py-1.5 text-right font-mono text-foreground font-semibold">
+                {it.valorVenda != null ? formatBRL(it.valorVenda) : "—"}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function VariablesGrouped({ vars }: { vars: ReturnType<typeof parseSmProposta>["variables"] }) {
+  const [showEmpty, setShowEmpty] = useState(false);
+  if (!vars.length) {
+    return <p className="text-sm text-muted-foreground">Sem variáveis no payload.</p>;
+  }
+
+  const grupos = new Map<string, typeof vars>();
+  for (const v of vars) {
+    const key = v.topic ?? "Sem tópico";
+    const arr = grupos.get(key) ?? [];
+    arr.push(v);
+    grupos.set(key, arr);
+  }
+
+  const isEmpty = (v: typeof vars[number]) =>
+    (v.value == null || v.value === "") && (v.formattedValue == null || v.formattedValue === "");
+
+  return (
+    <div className="space-y-4">
+      <div className="flex justify-end">
+        <Button variant="ghost" size="sm" onClick={() => setShowEmpty((s) => !s)}>
+          {showEmpty ? "Ocultar variáveis vazias" : "Mostrar variáveis vazias"}
+        </Button>
+      </div>
+      {[...grupos.entries()].map(([topic, items]) => {
+        const visibleItems = showEmpty ? items : items.filter((v) => !isEmpty(v));
+        if (!visibleItems.length) return null;
+        return (
+          <div key={topic} className="rounded-lg border border-border bg-muted/20">
+            <div className="px-3 py-2 border-b border-border bg-muted/30">
+              <p className="text-xs font-semibold text-foreground">{topic}</p>
+              <p className="text-[10px] text-muted-foreground">
+                {visibleItems.length} de {items.length} variável(is)
+              </p>
+            </div>
+            <div className="divide-y divide-border">
+              {visibleItems.map((v, i) => (
+                <div key={i} className="grid grid-cols-1 sm:grid-cols-[1fr_1fr] gap-2 px-3 py-1.5 text-xs">
+                  <span className="text-muted-foreground break-words">{v.item ?? "—"}</span>
+                  <span className="text-foreground font-mono break-words">
+                    {v.formattedValue ?? (v.value != null ? String(v.value) : <span className="text-muted-foreground">—</span>)}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 function PropostaView({ record, onNavigate }: { record: RawRecord; onNavigate?: Props["onNavigate"] }) {
   const pp = parseSmProposta(record.payload);
-  const link = pp.pdfUrl ?? pp.link;
+
+  const statusVariant = (() => {
+    const s = (pp.status ?? "").toLowerCase();
+    if (s.includes("aceit") || s.includes("accept") || s.includes("aprov")) return "border-success/40 text-success";
+    if (s.includes("recus") || s.includes("reject") || s.includes("perd")) return "border-destructive/40 text-destructive";
+    if (s.includes("envi") || s.includes("sent") || s.includes("view")) return "border-info/40 text-info";
+    return "";
+  })();
 
   return (
     <div className="space-y-6">
       <div>
         <SectionTitle>Identificação</SectionTitle>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <Field label="Título">{fmtTextOrDash(pp.titulo)}</Field>
+          <Field label="Identificador">
+            <code className="text-xs">{pp.id ?? "—"}</code>
+          </Field>
           <Field label="Status">
-            {pp.status ? <Badge variant="outline">{String(pp.status)}</Badge> : "—"}
+            {pp.status ? <Badge variant="outline" className={statusVariant}>{String(pp.status)}</Badge> : "—"}
           </Field>
-          <Field label="Projeto externo"><RefDisplay ref={pp.projeto} /></Field>
-          <Field label="Cliente externo"><RefDisplay ref={pp.cliente} /></Field>
-          <Field label="Responsável"><RefDisplay ref={pp.responsavel} /></Field>
-          <Field label="Valor total">
-            {pp.valorTotal != null ? formatBRL(pp.valorTotal) : "—"}
-          </Field>
-          <Field label="Validade">
-            {pp.validadeAte ? formatDate(pp.validadeAte) : "—"}
-          </Field>
-          <Field label="Link / PDF">
-            {link ? (
+          <Field label="Nome">{fmtTextOrDash(pp.nome)}</Field>
+          <Field label="Link PDF">
+            {pp.linkPdf ? (
               <a
-                href={String(link)}
+                href={String(pp.linkPdf)}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-primary hover:underline inline-flex items-center gap-1 text-sm"
               >
-                Abrir <ExternalLink className="w-3 h-3" />
+                Abrir PDF <ExternalLink className="w-3 h-3" />
               </a>
             ) : "—"}
           </Field>
         </div>
+        {pp.descricao && (
+          <div className="mt-3">
+            <p className="text-[11px] uppercase tracking-wide text-muted-foreground font-medium mb-1">Descrição</p>
+            <p className="text-sm text-foreground whitespace-pre-wrap">{fmtTextOrDash(pp.descricao)}</p>
+          </div>
+        )}
       </div>
-
-      {pp.descricao && (
-        <div>
-          <SectionTitle>Descrição</SectionTitle>
-          <p className="text-sm text-foreground whitespace-pre-wrap">{fmtTextOrDash(pp.descricao)}</p>
-        </div>
-      )}
 
       <div>
         <SectionTitle>Datas</SectionTitle>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <Field label="Data de inclusão">{pp.criadoEm ? formatDateTime(pp.criadoEm) : "—"}</Field>
-          <Field label="Atualizado em">{pp.atualizadoEm ? formatDateTime(pp.atualizadoEm) : "—"}</Field>
+          <Field label="Data de geração">{pp.geradoEm ? formatDateTime(pp.geradoEm) : "—"}</Field>
+          <Field label="Data de envio">{pp.enviadoEm ? formatDateTime(pp.enviadoEm) : "—"}</Field>
+          <Field label="Data de visualização">{pp.visualizadoEm ? formatDateTime(pp.visualizadoEm) : "—"}</Field>
+          <Field label="Data de aceite">{pp.aceitoEm ? formatDateTime(pp.aceitoEm) : "—"}</Field>
+          <Field label="Data de recusa">{pp.recusadoEm ? formatDateTime(pp.recusadoEm) : "—"}</Field>
+          <Field label="Data de expiração">{pp.expiraEm ? formatDateTime(pp.expiraEm) : "—"}</Field>
         </div>
       </div>
 
-      {onNavigate && (
+      {pp.projeto && (
+        <div>
+          <SectionTitle>Projeto relacionado</SectionTitle>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <Field label="ID do projeto">
+              <code className="text-xs">{pp.projeto.id ?? "—"}</code>
+            </Field>
+            <Field label="Nome do projeto">{fmtTextOrDash(pp.projeto.label)}</Field>
+          </div>
+        </div>
+      )}
+
+      <div>
+        <SectionTitle>Tabela de precificação ({pp.pricingTable.length} item(ns))</SectionTitle>
+        <PricingTable items={pp.pricingTable} />
+        {pp.valorTotalEstimado != null && (
+          <div className="mt-2 flex justify-end">
+            <p className="text-sm text-foreground">
+              Valor total estimado:{" "}
+              <span className="font-semibold font-mono">{formatBRL(pp.valorTotalEstimado)}</span>
+            </p>
+          </div>
+        )}
+      </div>
+
+      <div>
+        <SectionTitle>Variáveis ({pp.variables.length})</SectionTitle>
+        <VariablesGrouped vars={pp.variables} />
+      </div>
+
+      {onNavigate && pp.projeto?.id && (
         <div>
           <SectionTitle>Navegação relacional</SectionTitle>
           <div className="flex flex-wrap gap-2">
-            {pp.projeto?.id && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => onNavigate("projetos", pp.projeto!.id!)}
-              >
-                <ExternalLink className="w-3.5 h-3.5 mr-1.5" />
-                Ver projeto externo
-              </Button>
-            )}
-            {pp.cliente?.id && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => onNavigate("clientes", pp.cliente!.id!)}
-              >
-                <ExternalLink className="w-3.5 h-3.5 mr-1.5" />
-                Ver cliente externo
-              </Button>
-            )}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => onNavigate("projetos", pp.projeto!.id!)}
+            >
+              <ExternalLink className="w-3.5 h-3.5 mr-1.5" />
+              Ver projeto externo relacionado
+            </Button>
           </div>
         </div>
       )}
