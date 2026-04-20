@@ -33,6 +33,7 @@ export interface SolarmarketImportJob {
   started_at: string | null;
   finished_at: string | null;
   created_at: string;
+  updated_at?: string | null;
 }
 
 const JOBS_KEY = ["solarmarket-import-jobs"];
@@ -51,7 +52,7 @@ async function findRecentActiveImportJob(): Promise<SolarmarketImportJob | null>
   const { data, error } = await (supabase as any)
     .from("solarmarket_import_jobs")
     .select(
-      "id, status, scope, current_step, progress_pct, total_clientes, total_projetos, total_propostas, total_funis, total_custom_fields, total_errors, error_message, started_at, finished_at, created_at"
+      "id, status, scope, current_step, progress_pct, total_clientes, total_projetos, total_propostas, total_funis, total_custom_fields, total_errors, error_message, started_at, finished_at, created_at, updated_at"
     )
     .in("status", ["pending", "running"])
     .order("created_at", { ascending: false })
@@ -76,7 +77,7 @@ export function useSolarmarketImport() {
       const { data, error } = await (supabase as any)
         .from("solarmarket_import_jobs")
         .select(
-          "id, status, scope, current_step, progress_pct, total_clientes, total_projetos, total_propostas, total_funis, total_custom_fields, total_errors, error_message, started_at, finished_at, created_at"
+          "id, status, scope, current_step, progress_pct, total_clientes, total_projetos, total_propostas, total_funis, total_custom_fields, total_errors, error_message, started_at, finished_at, created_at, updated_at"
         )
         .order("created_at", { ascending: false })
         .limit(20);
