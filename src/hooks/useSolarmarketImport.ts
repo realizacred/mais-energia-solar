@@ -173,22 +173,26 @@ export function useSolarmarketImport() {
 
   const clearHistory = useMutation({
     mutationFn: async () => {
-      const { error } = await (supabase as any)
-        .from("solarmarket_import_jobs")
-        .delete()
-        .in("status", ["success", "error", "cancelled", "partial"]);
-      if (error) throw error;
+      const { data, error } = await supabase.functions.invoke(
+        "solarmarket-import",
+        { body: { action: "clear-history" } }
+      );
+      if (error) {
+        const parsed = await parseInvokeError(error);
+        throw new Error(parsed.message || "Erro ao limpar histórico.");
+      }
+      return data as { ok: boolean; removed: { jobs: number; logs: number } };
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: JOBS_KEY });
     },
   });
 
-  const cleanupImported = useMutation({
+  const clearStaging = useMutation({
     mutationFn: async () => {
       const { data, error } = await supabase.functions.invoke(
         "solarmarket-import",
-        { body: { action: "cleanup-imported" } }
+        { body: { action: "clear-staging" } }
       );
       if (error) {
         const parsed = await parseInvokeError(error);
@@ -196,7 +200,7 @@ export function useSolarmarketImport() {
       }
       return data as {
         ok: boolean;
-        removed: { propostas: number; projetos: number; clientes: number; logs: number; jobs: number };
+        removed: Record<string, number>;
       };
     },
     onSuccess: () => {
@@ -213,6 +217,6 @@ export function useSolarmarketImport() {
     importAll,
     cancelImport,
     clearHistory,
-    cleanupImported,
+    clearStaging,
   };
 }

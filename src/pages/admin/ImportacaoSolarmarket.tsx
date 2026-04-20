@@ -51,7 +51,7 @@ function statusBadge(status: string) {
 }
 
 export default function ImportacaoSolarmarket() {
-  const { jobs, isLoading, testConnection, importAll, cancelImport, clearHistory, cleanupImported } = useSolarmarketImport();
+  const { jobs, isLoading, testConnection, importAll, cancelImport, clearHistory, clearStaging } = useSolarmarketImport();
   const { config, isConfigured, isLoading: loadingCfg } = useSolarmarketConfig();
   const [testResult, setTestResult] = useState<{ ok: boolean; message: string } | null>(null);
   const [scope, setScope] = useState<ImportScope>({
@@ -116,26 +116,32 @@ export default function ImportacaoSolarmarket() {
   };
 
   const handleClearHistory = async () => {
-    if (!confirm("Limpar histórico de importações finalizadas? Jobs em execução são preservados.")) return;
     try {
-      await clearHistory.mutateAsync();
-      toast({ title: "Histórico limpo" });
+      const res = await clearHistory.mutateAsync();
+      const r = res?.removed ?? { jobs: 0, logs: 0 };
+      toast({
+        title: "Histórico limpo",
+        description: `Jobs removidos: ${r.jobs} · Logs removidos: ${r.logs}`,
+      });
     } catch (e: any) {
-      toast({ title: "Erro ao limpar", description: e?.message, variant: "destructive" });
+      toast({ title: "Erro ao limpar histórico", description: e?.message, variant: "destructive" });
     }
   };
 
-  const handleCleanup = async () => {
+  const handleClearStaging = async () => {
     try {
-      const res = await cleanupImported.mutateAsync();
-      const r = res.removed;
+      const res = await clearStaging.mutateAsync();
+      const r = res?.removed ?? {};
+      const summary = Object.entries(r)
+        .map(([k, v]) => `${k.replace("sm_", "").replace("_raw", "")}: ${v}`)
+        .join(" · ");
       toast({
-        title: "Dados importados removidos",
-        description: `Propostas: ${r.propostas} · Projetos: ${r.projetos} · Clientes: ${r.clientes} · Logs: ${r.logs} · Jobs: ${r.jobs}`,
+        title: "Dados de staging removidos",
+        description: summary || "Nenhum registro encontrado.",
       });
     } catch (e: any) {
       toast({
-        title: "Falha ao limpar dados",
+        title: "Falha ao limpar staging",
         description: e?.message || "Tente novamente.",
         variant: "destructive",
       });
@@ -159,17 +165,46 @@ export default function ImportacaoSolarmarket() {
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            disabled
-            title="Ação desabilitada temporariamente (P0 — contenção arquitetural). Limpeza do domínio nativo será reabilitada após a fase de promoção deliberada."
-            className="border-muted text-muted-foreground cursor-not-allowed"
-          >
-            <Eraser className="w-4 h-4 mr-2" />
-            Limpar dados importados (P0)
-          </Button>
+        <div className="flex items-center gap-2 flex-wrap">
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={clearStaging.isPending || !!runningJob}
+                className="border-destructive text-destructive hover:bg-destructive/10"
+                title={runningJob ? "Há uma importação em execução. Cancele antes de limpar o staging." : undefined}
+              >
+                {clearStaging.isPending ? (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                ) : (
+                  <Eraser className="w-4 h-4 mr-2" />
+                )}
+                Limpar dados importados
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent className="w-[90vw] max-w-md">
+              <AlertDialogHeader>
+                <AlertDialogTitle>Limpar dados importados (staging)</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Isso apagará apenas os dados brutos importados do SolarMarket
+                  (<code>sm_clientes_raw</code>, <code>sm_projetos_raw</code>, <code>sm_propostas_raw</code>,
+                  {" "}<code>sm_funis_raw</code>, <code>sm_custom_fields_raw</code>).
+                  <br /><br />
+                  <strong>Não afeta</strong> Clientes, Projetos ou Propostas do CRM.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={handleClearStaging}
+                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                >
+                  Limpar staging
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
           <Button asChild variant="outline" size="sm">
             <Link to="/admin/configuracoes/integracoes/solarmarket">
               <Settings className="w-4 h-4 mr-2" /> Configuração
@@ -372,20 +407,44 @@ export default function ImportacaoSolarmarket() {
         <CardHeader className="flex flex-row items-center justify-between space-y-0">
           <CardTitle className="text-base font-semibold">Histórico</CardTitle>
           {jobs.some((j) => j.status !== "running" && j.status !== "pending") && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleClearHistory}
-              disabled={clearHistory.isPending}
-              className="border-destructive text-destructive hover:bg-destructive/10"
-            >
-              {clearHistory.isPending ? (
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              ) : (
-                <Trash2 className="w-4 h-4 mr-2" />
-              )}
-              Limpar histórico
-            </Button>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={clearHistory.isPending}
+                  className="border-destructive text-destructive hover:bg-destructive/10"
+                >
+                  {clearHistory.isPending ? (
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  ) : (
+                    <Trash2 className="w-4 h-4 mr-2" />
+                  )}
+                  Limpar histórico
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent className="w-[90vw] max-w-md">
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Limpar histórico de importações</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Isso apagará apenas o histórico de importações finalizadas
+                    (sucesso, parcial, erro, cancelado) e seus logs.
+                    <br /><br />
+                    Os dados importados em <strong>staging</strong> serão preservados.
+                    Jobs em execução não são afetados.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={handleClearHistory}
+                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  >
+                    Limpar histórico
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           )}
         </CardHeader>
         <CardContent>
