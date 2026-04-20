@@ -162,13 +162,14 @@ const KIND_META: Record<RawEntityKind, { icon: any; title: string; subtitle: str
 
 function ClienteView({ record, onNavigate }: { record: RawRecord; onNavigate?: Props["onNavigate"] }) {
   const p = record.payload ?? {};
-  const nome = pick(p, "name", "nome", "razao_social", "fantasia");
-  const tel = pick(p, "phone", "telefone", "celular", "mobile", "phone_number");
+  const nome = pick(p, "name", "nome", "razao_social", "fantasia", "company");
+  const tel = pick(p, "primaryPhone", "phone", "telefone", "celular", "mobile", "phone_number", "secondaryPhone");
   const email = pick(p, "email");
-  const doc = pick(p, "cpf_cnpj", "document", "documento", "cpf", "cnpj");
-  const nascimento = pick(p, "birth_date", "data_nascimento", "birthday");
-  const endereco = pick(p, "address", "endereco") ?? p;
-  const cep = pick(endereco, "zip", "zip_code", "cep", "postal_code");
+  const doc = pick(p, "cnpjCpf", "cpf_cnpj", "document", "documento", "cpf", "cnpj");
+  const nascimento = pick(p, "birth_date", "data_nascimento", "birthday", "birthDate");
+  // SolarMarket: campos de endereço estão no nível raiz do payload (não aninhados)
+  const endereco = (typeof p.address === "object" && p.address !== null) ? p.address : p;
+  const cep = pick(endereco, "zipCode", "zip", "zip_code", "cep", "postal_code");
   const rua = pick(endereco, "street", "rua", "logradouro", "address_line", "address");
   const numero = pick(endereco, "number", "numero");
   const complemento = pick(endereco, "complement", "complemento");
@@ -176,7 +177,7 @@ function ClienteView({ record, onNavigate }: { record: RawRecord; onNavigate?: P
   const cidade = pick(endereco, "city", "cidade", "municipio");
   const estado = pick(endereco, "state", "estado", "uf");
   const obs = pick(p, "notes", "observations", "observacoes", "obs");
-  const leadExterno = pick(p, "lead_id", "external_lead_id", "lead");
+  const leadExterno = pick(p, "lead_id", "external_lead_id", "lead", "responsible");
 
   return (
     <div className="space-y-6">
