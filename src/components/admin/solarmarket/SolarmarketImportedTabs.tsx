@@ -365,9 +365,43 @@ function Pagination({ page, setPage, total }: { page: number; setPage: (n: numbe
   );
 }
 
+function RelatedNav({
+  items,
+  onNavigate,
+}: {
+  items: Array<{ kind: RawEntityKind; search: string; icon: any; tooltip: string }>;
+  onNavigate: (kind: RawEntityKind, search: string) => void;
+}) {
+  if (!items.length) return <span className="text-muted-foreground text-xs">—</span>;
+  return (
+    <TooltipProvider delayDuration={150}>
+      <div className="flex items-center gap-1">
+        {items.map((it, i) => {
+          const Icon = it.icon;
+          return (
+            <Tooltip key={i}>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7 text-muted-foreground hover:text-primary hover:bg-primary/10"
+                  onClick={() => onNavigate(it.kind, it.search)}
+                >
+                  <Icon className="w-3.5 h-3.5" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="top" className="text-xs">{it.tooltip}</TooltipContent>
+            </Tooltip>
+          );
+        })}
+      </div>
+    </TooltipProvider>
+  );
+}
+
 function ListaRaw({
-  table, kind, labels, search, page, setPage, isImporting, onOpenDetail,
-}: ListaRawProps) {
+  table, kind, labels, search, page, setPage, isImporting, onOpenDetail, onNavigate,
+}: ListaRawProps & { onNavigate: (kind: RawEntityKind, search: string) => void }) {
   const { data, isLoading } = useRawList(table, page, search, isImporting);
   if (isLoading) return <Skeleton className="h-48 w-full" />;
   if (!data?.rows.length) return <EmptyState icon={labels.icon} message={labels.empty} />;
@@ -392,6 +426,7 @@ function ListaRaw({
       const doc = pickPayload(p, "cpf_cnpj", "document", "documento", "cpf", "cnpj");
       const cidade = pickPayload(p, "city", "cidade") ?? pickPayload(p.address ?? {}, "city", "cidade");
       const uf = pickPayload(p, "state", "estado", "uf") ?? pickPayload(p.address ?? {}, "state", "estado", "uf");
+      const clienteExtId = r.external_id ?? (p.id != null ? String(p.id) : null);
       return (
         <TableRow key={r.id}>
           <TableCell className="font-medium text-foreground">{sanitizeText(nome) || "—"}</TableCell>
@@ -399,6 +434,19 @@ function ListaRaw({
           <TableCell className="text-sm">{doc ? formatDocument(String(doc)) : "—"}</TableCell>
           <TableCell className="text-sm">
             {cidade ? `${sanitizeText(String(cidade))}${uf ? "/" + formatUF(String(uf)) : ""}` : "—"}
+          </TableCell>
+          <TableCell>
+            <RelatedNav
+              onNavigate={onNavigate}
+              items={
+                clienteExtId
+                  ? [
+                      { kind: "projetos", search: clienteExtId, icon: FolderKanban, tooltip: "Ver projetos deste cliente" },
+                      { kind: "propostas", search: clienteExtId, icon: FileText, tooltip: "Ver propostas deste cliente" },
+                    ]
+                  : []
+              }
+            />
           </TableCell>
           <TableCell>{importedAt}</TableCell>
           <TableCell className="text-right">{action}</TableCell>
@@ -410,12 +458,18 @@ function ListaRaw({
       const cidadeUf = pr.cliente?.cidade
         ? `${sanitizeText(String(pr.cliente.cidade))}${pr.cliente.uf ? "/" + formatUF(String(pr.cliente.uf)) : ""}`
         : "—";
+      const projetoExtId = r.external_id ?? pr.id;
+      const clienteExtId = pr.cliente?.id ?? pr.clienteRef?.id ?? null;
+      const related: Array<{ kind: RawEntityKind; search: string; icon: any; tooltip: string }> = [];
+      if (clienteExtId) related.push({ kind: "clientes", search: clienteExtId, icon: Users, tooltip: "Ver cliente deste projeto" });
+      if (projetoExtId) related.push({ kind: "propostas", search: projetoExtId, icon: FileText, tooltip: "Ver propostas deste projeto" });
       return (
         <TableRow key={r.id}>
           <TableCell className="font-medium text-foreground">{sanitizeText(pr.nome ?? "") || "—"}</TableCell>
           <TableCell className="text-sm">{pr.cliente?.nome ?? pr.clienteRef?.label ?? "—"}</TableCell>
           <TableCell className="text-sm">{pr.responsavel?.label ?? "—"}</TableCell>
           <TableCell className="text-sm">{cidadeUf}</TableCell>
+          <TableCell><RelatedNav onNavigate={onNavigate} items={related} /></TableCell>
           <TableCell>{pr.criadoEm ? formatDateTime(pr.criadoEm) : importedAt}</TableCell>
           <TableCell className="text-right">{action}</TableCell>
         </TableRow>
@@ -423,6 +477,14 @@ function ListaRaw({
     }
     if (kind === "propostas") {
       const pp = parseSmProposta(p);
+      const projetoExtId = pp.projeto?.id ?? null;
+      const related: Array<{ kind: RawEntityKind; search: string; icon: any; tooltip: string }> = [];
+      if (projetoExtId) related.push({ kind: "projetos", search: projetoExtId, icon: FolderKanban, tooltip: "Ver projeto desta proposta" });
+      // tentamos resolver cliente via projeto (se carregou) — fallback pelo label
+      const clienteFromProject = (p?.project?.client?.id ?? p?.project?.customer?.id ?? null);
+      if (clienteFromProject) {
+        related.push({ kind: "clientes", search: String(clienteFromProject), icon: Users, tooltip: "Ver cliente desta proposta" });
+      }
       return (
         <TableRow key={r.id}>
           <TableCell className="font-medium text-foreground max-w-xs truncate">
@@ -433,6 +495,7 @@ function ListaRaw({
           <TableCell className="text-sm font-mono">
             {pp.valorTotalEstimado != null ? formatBRL(pp.valorTotalEstimado) : "—"}
           </TableCell>
+          <TableCell><RelatedNav onNavigate={onNavigate} items={related} /></TableCell>
           <TableCell>{pp.criadoEm ? formatDateTime(pp.criadoEm) : importedAt}</TableCell>
           <TableCell className="text-right">{action}</TableCell>
         </TableRow>
@@ -466,9 +529,9 @@ function ListaRaw({
   };
 
   const headers: Record<RawEntityKind, string[]> = {
-    clientes: ["Nome", "Telefone", "CPF/CNPJ", "Cidade/UF", "Importado em", ""],
-    projetos: ["Nome", "Cliente", "Responsável", "Cidade/UF", "Data de inclusão", ""],
-    propostas: ["Nome", "Projeto", "Status", "Valor total estimado", "Data de inclusão", ""],
+    clientes: ["Nome", "Telefone", "CPF/CNPJ", "Cidade/UF", "Relacionados", "Importado em", ""],
+    projetos: ["Nome", "Cliente", "Responsável", "Cidade/UF", "Relacionados", "Data de inclusão", ""],
+    propostas: ["Nome", "Projeto", "Status", "Valor total estimado", "Relacionados", "Data de inclusão", ""],
     funis: ["Nome", "Etapas", "ID Externo", "Importado em", ""],
     custom_fields: ["Nome", "Tipo", "Obrigatório", "Importado em", ""],
   };
