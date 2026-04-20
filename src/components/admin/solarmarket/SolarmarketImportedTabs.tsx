@@ -34,8 +34,11 @@ import {
   type RawRecord,
 } from "./SolarmarketRecordDetailDrawer";
 import {
-  formatPhoneBR, formatDocument, formatDateTime, formatBRL, formatUF, sanitizeText,
+  formatPhoneBR, formatDocument, formatDateTime, formatBRL, formatUF, sanitizeText, formatInteger,
 } from "@/lib/formatters/index";
+import {
+  parseSmCliente, parseSmProjeto, parseSmProposta, parseSmFunil, parseSmCustomField,
+} from "@/lib/solarmarket/parsers";
 
 const PAGE_SIZE = 25;
 const STALE = 1000 * 60 * 5;
