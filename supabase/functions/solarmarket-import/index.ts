@@ -809,22 +809,115 @@ Deno.serve(async (req) => {
       );
     }
 
-    // ---- cleanup-imported (BLOQUEADO P0) ----
-    // Esta ação apagava dados nativos com external_source='solarmarket'.
-    // Bloqueada temporariamente: o domínio nativo não recebe mais SolarMarket
-    // (gravação foi redirecionada para sm_*_raw). A remediação dos 200 clientes
-    // contaminados pré-existentes acontecerá em fase posterior, deliberada.
-    if (action === "cleanup-imported") {
-      console.error("[solarmarket-import] cleanup-imported BLOQUEADO P0 (contenção arquitetural)");
+    // ---- clear-history ----
+    // Apaga apenas histórico finalizado: solarmarket_import_jobs (success/partial/error/cancelled)
+    // e seus solarmarket_import_logs relacionados. Jobs running/pending são preservados.
+    // NÃO toca em sm_*_raw nem em tabelas nativas (clientes/projetos/propostas_nativas).
+    if (action === "clear-history") {
+      const { data: finishedJobs, error: jobsErr } = await state.supabase
+        .from("solarmarket_import_jobs")
+        .select("id")
+        .eq("tenant_id", state.tenantId)
+        .in("status", ["success", "partial", "error", "cancelled"]);
+
+      if (jobsErr) {
+        return new Response(
+          JSON.stringify({ error: `Falha ao listar jobs: ${jobsErr.message}` }),
+          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
+
+      const jobIds = (finishedJobs ?? []).map((j: any) => j.id);
+      let removedLogs = 0;
+      let removedJobs = 0;
+
+      if (jobIds.length > 0) {
+        const { count: lc, error: lErr } = await state.supabase
+          .from("solarmarket_import_logs")
+          .delete({ count: "exact" })
+          .eq("tenant_id", state.tenantId)
+          .in("job_id", jobIds);
+        if (lErr) {
+          return new Response(
+            JSON.stringify({ error: `Falha ao apagar logs: ${lErr.message}` }),
+            { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+          );
+        }
+        removedLogs = lc ?? 0;
+
+        const { count: jc, error: jErr } = await state.supabase
+          .from("solarmarket_import_jobs")
+          .delete({ count: "exact" })
+          .eq("tenant_id", state.tenantId)
+          .in("id", jobIds);
+        if (jErr) {
+          return new Response(
+            JSON.stringify({ error: `Falha ao apagar jobs: ${jErr.message}` }),
+            { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+          );
+        }
+        removedJobs = jc ?? 0;
+      }
+
       return new Response(
-        JSON.stringify({
-          error: "Ação desabilitada temporariamente (P0 — contenção arquitetural).",
-          code: "p0_blocked",
-          detail:
-            "A limpeza do domínio nativo está suspensa. O SolarMarket agora grava apenas em sm_*_raw. " +
-            "Os 200 clientes pré-existentes em public.clientes foram preservados (cópia em sm_clientes_raw) e serão tratados em fase posterior.",
-        }),
-        { status: 410, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        JSON.stringify({ ok: true, removed: { jobs: removedJobs, logs: removedLogs } }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
+    // ---- clear-staging ----
+    // Apaga apenas dados brutos do staging (sm_*_raw) do tenant atual.
+    // Bloqueado se houver job pending/running. NÃO toca em domínio nativo.
+    if (action === "clear-staging") {
+      const { data: activeJob, error: actErr } = await state.supabase
+        .from("solarmarket_import_jobs")
+        .select("id")
+        .eq("tenant_id", state.tenantId)
+        .in("status", ["pending", "running"])
+        .limit(1)
+        .maybeSingle();
+      if (actErr) {
+        return new Response(
+          JSON.stringify({ error: `Falha ao verificar jobs ativos: ${actErr.message}` }),
+          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
+      if (activeJob) {
+        return new Response(
+          JSON.stringify({
+            error: "Existe uma importação em execução. Cancele-a antes de limpar o staging.",
+            code: "active_job",
+          }),
+          { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
+
+      const tables = [
+        "sm_propostas_raw",
+        "sm_projetos_raw",
+        "sm_clientes_raw",
+        "sm_funis_raw",
+        "sm_custom_fields_raw",
+      ] as const;
+
+      const removed: Record<string, number> = {};
+      for (const tbl of tables) {
+        const { count, error } = await state.supabase
+          .from(tbl)
+          .delete({ count: "exact" })
+          .eq("tenant_id", state.tenantId);
+        if (error) {
+          return new Response(
+            JSON.stringify({ error: `Falha ao apagar ${tbl}: ${error.message}` }),
+            { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+          );
+        }
+        removed[tbl] = count ?? 0;
+      }
+
+      return new Response(
+        JSON.stringify({ ok: true, removed }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
 
