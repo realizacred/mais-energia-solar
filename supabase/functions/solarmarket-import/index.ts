@@ -895,33 +895,49 @@ async function runImportJob(
   if (scope.propostas && !runtime.steps.propostas.done) {
     if (await checkCancel()) return { ok: false, job_id: state.jobId, status: "cancelled", cancelled: true };
     await updateJob(state, { current_step: "propostas", progress_pct: 75, updated_at: new Date().toISOString() });
-    const r = await importEntity(
-      state,
-      "proposta",
-      ["/proposals", "/quotes", "/propostas"],
-      (item) => mapProposta(state, item),
-      {
-        counterField: "total_propostas",
-        counterBase: Number((existingJob as any)?.total_propostas ?? 0),
-        progressStart: 75,
-        progressEnd: 92,
-        startPage: runtime.steps.propostas.page,
-        pathUsed: runtime.steps.propostas.pathUsed,
-      },
-    );
+    const shouldUseProjectScopedFallback = runtime.steps.propostas.pathUsed === "/projects/:id/proposals";
+    const r = shouldUseProjectScopedFallback
+      ? await importProjectScopedProposals(state, {
+          counterBase: Number((existingJob as any)?.total_propostas ?? 0),
+          progressStart: 75,
+          progressEnd: 92,
+          startPage: runtime.steps.propostas.page,
+        })
+      : await importEntity(
+          state,
+          "proposta",
+          ["/proposals", "/quotes", "/propostas"],
+          (item) => mapProposta(state, item),
+          {
+            counterField: "total_propostas",
+            counterBase: Number((existingJob as any)?.total_propostas ?? 0),
+            progressStart: 75,
+            progressEnd: 92,
+            startPage: runtime.steps.propostas.page,
+            pathUsed: runtime.steps.propostas.pathUsed,
+          },
+        );
+    const proposalResult = (!shouldUseProjectScopedFallback && !r.pathUsed && r.count === 0)
+      ? await importProjectScopedProposals(state, {
+          counterBase: Number((existingJob as any)?.total_propostas ?? 0),
+          progressStart: 75,
+          progressEnd: 92,
+          startPage: runtime.steps.propostas.page,
+        })
+      : r;
     runtime.steps.propostas = {
-      page: r.nextPage ?? runtime.steps.propostas.page,
-      pathUsed: r.pathUsed,
-      done: r.done,
+      page: proposalResult.nextPage ?? runtime.steps.propostas.page,
+      pathUsed: proposalResult.pathUsed,
+      done: proposalResult.done,
     };
     await updateJob(state, {
-      total_propostas: Number((existingJob as any)?.total_propostas ?? 0) + r.count,
-      progress_pct: r.done ? 92 : 84,
+      total_propostas: Number((existingJob as any)?.total_propostas ?? 0) + proposalResult.count,
+      progress_pct: proposalResult.done ? 92 : 84,
       updated_at: new Date().toISOString(),
       scope: mergeScopeWithRuntime(rawScope, runtime),
     });
-    totalErrors += r.errors;
-    if (!r.done) {
+    totalErrors += proposalResult.errors;
+    if (!proposalResult.done) {
       dispatchProcessJob(state, mergeScopeWithRuntime(rawScope, runtime));
       return { ok: true, job_id: state.jobId, status: "running", resumed: true };
     }
