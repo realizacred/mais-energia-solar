@@ -233,140 +233,92 @@ function ClienteView({ record, onNavigate }: { record: RawRecord; onNavigate?: P
 
 function ProjetoView({ record, onNavigate }: { record: RawRecord; onNavigate?: Props["onNavigate"] }) {
   const pr = parseSmProjeto(record.payload);
-  // Cliente vem aninhado no payload do projeto — extrai dados úteis (telefone, doc, endereço)
-  const clientePayload = record.payload?.client && typeof record.payload.client === "object"
-    ? parseSmCliente(record.payload.client)
-    : null;
-  const isExcluido = !!record.payload?.deletedAt;
+  const c = pr.cliente;
+  const isExcluido = !!pr.excluidoEm;
 
   return (
     <div className="space-y-6">
       <div>
         <SectionTitle>Identificação</SectionTitle>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <Field label="Nome">{fmtTextOrDash(pr.nome)}</Field>
+          <Field label="Identificador">
+            <code className="text-xs">{pr.id ?? "—"}</code>
+          </Field>
           <Field label="Status">
             {isExcluido ? (
               <Badge variant="outline" className="border-destructive text-destructive">Excluído na origem</Badge>
-            ) : pr.status ? (
-              <Badge variant="outline">{String(pr.status)}</Badge>
             ) : (
-              <Badge variant="outline" className="text-muted-foreground">Ativo (sem status na API)</Badge>
+              <Badge variant="outline" className="border-success/40 text-success">Ativo</Badge>
             )}
           </Field>
-          <Field label="Cliente externo"><RefDisplay ref={pr.cliente} /></Field>
-          <Field label="Valor / Orçamento">
-            {pr.valor != null ? formatBRL(pr.valor) : "—"}
-          </Field>
+          <Field label="Nome">{fmtTextOrDash(pr.nome)}</Field>
+          <Field label="Data de inclusão">{pr.criadoEm ? formatDateTime(pr.criadoEm) : "—"}</Field>
+          {isExcluido && (
+            <Field label="Data de exclusão">{formatDateTime(pr.excluidoEm)}</Field>
+          )}
         </div>
-      </div>
-
-      {clientePayload && (
-        <div>
-          <SectionTitle>Dados do cliente (aninhado no projeto)</SectionTitle>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <Field label="Nome">{fmtTextOrDash(clientePayload.nome)}</Field>
-            <Field label="CPF/CNPJ">{clientePayload.documento ? formatDocument(String(clientePayload.documento)) : "—"}</Field>
-            <Field label="Telefone">{formatPhoneBR(clientePayload.telefone)}</Field>
-            <Field label="Telefone secundário">{formatPhoneBR(clientePayload.telefoneSecundario)}</Field>
-            <Field label="E-mail">{fmtTextOrDash(clientePayload.email)}</Field>
-            <Field label="CEP">{clientePayload.cep ? formatCEP(String(clientePayload.cep)) : "—"}</Field>
-            <Field label="Logradouro">{fmtTextOrDash(clientePayload.rua)}</Field>
-            <Field label="Número">{fmtTextOrDash(clientePayload.numero)}</Field>
-            <Field label="Bairro">{fmtTextOrDash(clientePayload.bairro)}</Field>
-            <Field label="Cidade">{fmtTextOrDash(clientePayload.cidade)}</Field>
-            <Field label="UF">{clientePayload.uf ? formatUF(String(clientePayload.uf)) : "—"}</Field>
-          </div>
-        </div>
-      )}
-
-      {pr.descricao && (
-        <div>
-          <SectionTitle>Descrição</SectionTitle>
-          <p className="text-sm text-foreground whitespace-pre-wrap">{fmtTextOrDash(pr.descricao)}</p>
-        </div>
-      )}
-
-      <div>
-        <SectionTitle>Pipeline</SectionTitle>
-        {pr.funis.length > 0 ? (
-          <div className="space-y-2">
-            {pr.funis.map((f, i) => (
-              <div key={i} className="grid grid-cols-1 sm:grid-cols-3 gap-3 p-2 rounded-md border border-border bg-muted/30">
-                <Field label="Funil"><RefDisplay ref={f.funil} /></Field>
-                <Field label="Etapa"><RefDisplay ref={f.etapa} /></Field>
-                <Field label="Status">
-                  {f.status ? <Badge variant="outline" className="text-xs">{f.status}</Badge> : "—"}
-                </Field>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <Field label="Funil"><RefDisplay ref={pr.funil} /></Field>
-            <Field label="Etapa"><RefDisplay ref={pr.etapa} /></Field>
+        {pr.descricao && (
+          <div className="mt-3">
+            <p className="text-[11px] uppercase tracking-wide text-muted-foreground font-medium mb-1">Descrição</p>
+            <p className="text-sm text-foreground whitespace-pre-wrap">{fmtTextOrDash(pr.descricao)}</p>
           </div>
         )}
       </div>
+
+      {c && (
+        <div>
+          <SectionTitle>Cliente relacionado</SectionTitle>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <Field label="Nome">{fmtTextOrDash(c.nome)}</Field>
+            <Field label="Empresa">{fmtTextOrDash(c.empresa)}</Field>
+            <Field label="CPF/CNPJ">{c.documento ? formatDocument(String(c.documento)) : "—"}</Field>
+            <Field label="E-mail">{fmtTextOrDash(c.email)}</Field>
+            <Field label="Celular">{formatPhoneBR(c.telefone)}</Field>
+            <Field label="Telefone secundário">{formatPhoneBR(c.telefoneSecundario)}</Field>
+            <Field label="CEP">{c.cep ? formatCEP(String(c.cep)) : "—"}</Field>
+            <Field label="Endereço">{fmtTextOrDash(c.endereco)}</Field>
+            <Field label="Número">{fmtTextOrDash(c.numero)}</Field>
+            <Field label="Complemento">{fmtTextOrDash(c.complemento)}</Field>
+            <Field label="Bairro">{fmtTextOrDash(c.bairro)}</Field>
+            <Field label="Cidade">{fmtTextOrDash(c.cidade)}</Field>
+            <Field label="Estado">{c.uf ? formatUF(String(c.uf)) : "—"}</Field>
+          </div>
+        </div>
+      )}
 
       <div>
         <SectionTitle>Pessoas</SectionTitle>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <Field label="Responsável"><RefDisplay ref={pr.responsavel} /></Field>
+          <Field label="E-mail do responsável">{fmtTextOrDash(pr.responsavel?.email)}</Field>
           <Field label="Representante"><RefDisplay ref={pr.representante} /></Field>
+          <Field label="E-mail do representante">{fmtTextOrDash(pr.representante?.email)}</Field>
         </div>
       </div>
 
-      <div>
-        <SectionTitle>Métricas e pipeline (não inclusos no endpoint /projects)</SectionTitle>
-        <p className="text-xs text-muted-foreground mb-3">
-          A API SolarMarket não retorna estes dados na rota de projetos. São agregados a partir de
-          <code className="mx-1 px-1 bg-muted/50 rounded text-[10px]">/proposals</code>,
-          <code className="mx-1 px-1 bg-muted/50 rounded text-[10px]">/activities</code> e
-          <code className="mx-1 px-1 bg-muted/50 rounded text-[10px]">/funnels</code> durante a migração.
+      <div className="rounded-md border border-dashed border-border bg-muted/20 p-3">
+        <p className="text-xs font-medium text-muted-foreground mb-1">
+          Campos não disponíveis neste endpoint de projeto
         </p>
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-          <Field label="Propostas">{fmtNumberOrDash(pr.qtdPropostas)}</Field>
-          <Field label="Solicitações">{fmtNumberOrDash(pr.qtdSolicitacoes)}</Field>
-          <Field label="Atividades (total)">{fmtNumberOrDash(pr.qtdAtividades)}</Field>
-          <Field label="Atividades concluídas">{fmtNumberOrDash(pr.qtdAtividadesConcluidas)}</Field>
-          <Field label="Atividades a fazer">{fmtNumberOrDash(pr.qtdAtividadesAFazer)}</Field>
-          <Field label="Atividades vencidas">{fmtNumberOrDash(pr.qtdAtividadesVencidas)}</Field>
-          <Field label="Etiquetas"><ChipList items={pr.etiquetas} /></Field>
-          <Field label="Motivo de perda">{fmtTextOrDash(pr.motivoPerda)}</Field>
-        </div>
+        <p className="text-[11px] text-muted-foreground">
+          A rota <code className="bg-muted/60 px-1 rounded">/projects</code> da API SolarMarket não retorna:
+          status, valor/orçamento, funis, etapas, propostas, solicitações, etiquetas, motivo de perda
+          e métricas de atividades. Esses dados são agregados durante a migração a partir de outros endpoints.
+        </p>
       </div>
 
-      <div>
-        <SectionTitle>Localização e datas</SectionTitle>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <Field label="Cidade">{fmtTextOrDash(pr.cidade)}</Field>
-          <Field label="UF">{pr.uf ? formatUF(String(pr.uf)) : "—"}</Field>
-          <Field label="Próxima atividade em">
-            {pr.proximaAtividadeEm ? formatDateTime(pr.proximaAtividadeEm) : "—"}
-          </Field>
-          <Field label="Última atividade concluída em">
-            {pr.ultimaAtividadeConcluidaEm ? formatDateTime(pr.ultimaAtividadeConcluidaEm) : "—"}
-          </Field>
-          <Field label="Data de inclusão">{pr.criadoEm ? formatDateTime(pr.criadoEm) : "—"}</Field>
-          <Field label="Atualizado em">{pr.atualizadoEm ? formatDateTime(pr.atualizadoEm) : "—"}</Field>
-        </div>
-      </div>
-
-      {onNavigate && (
+      {onNavigate && c?.id && (
         <div>
           <SectionTitle>Navegação relacional</SectionTitle>
           <div className="flex flex-wrap gap-2">
-            {pr.cliente?.id && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => onNavigate("clientes", pr.cliente!.id!)}
-              >
-                <ExternalLink className="w-3.5 h-3.5 mr-1.5" />
-                Ver cliente externo
-              </Button>
-            )}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => onNavigate("clientes", c.id!)}
+            >
+              <ExternalLink className="w-3.5 h-3.5 mr-1.5" />
+              Ver cliente externo
+            </Button>
             {record.external_id && (
               <Button
                 variant="outline"
