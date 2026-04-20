@@ -116,26 +116,32 @@ export default function ImportacaoSolarmarket() {
   };
 
   const handleClearHistory = async () => {
-    if (!confirm("Limpar histórico de importações finalizadas? Jobs em execução são preservados.")) return;
     try {
-      await clearHistory.mutateAsync();
-      toast({ title: "Histórico limpo" });
+      const res = await clearHistory.mutateAsync();
+      const r = res?.removed ?? { jobs: 0, logs: 0 };
+      toast({
+        title: "Histórico limpo",
+        description: `Jobs removidos: ${r.jobs} · Logs removidos: ${r.logs}`,
+      });
     } catch (e: any) {
-      toast({ title: "Erro ao limpar", description: e?.message, variant: "destructive" });
+      toast({ title: "Erro ao limpar histórico", description: e?.message, variant: "destructive" });
     }
   };
 
-  const handleCleanup = async () => {
+  const handleClearStaging = async () => {
     try {
-      const res = await cleanupImported.mutateAsync();
-      const r = res.removed;
+      const res = await clearStaging.mutateAsync();
+      const r = res?.removed ?? {};
+      const summary = Object.entries(r)
+        .map(([k, v]) => `${k.replace("sm_", "").replace("_raw", "")}: ${v}`)
+        .join(" · ");
       toast({
-        title: "Dados importados removidos",
-        description: `Propostas: ${r.propostas} · Projetos: ${r.projetos} · Clientes: ${r.clientes} · Logs: ${r.logs} · Jobs: ${r.jobs}`,
+        title: "Dados de staging removidos",
+        description: summary || "Nenhum registro encontrado.",
       });
     } catch (e: any) {
       toast({
-        title: "Falha ao limpar dados",
+        title: "Falha ao limpar staging",
         description: e?.message || "Tente novamente.",
         variant: "destructive",
       });
