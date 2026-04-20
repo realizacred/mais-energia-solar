@@ -218,43 +218,107 @@ export function parseSmProjeto(payload: any): ParsedSmProjeto {
 }
 
 // ─────────────────────────────────────────────────────────────────────────
-// PROPOSTA
+// PROPOSTA — shape real do endpoint /proposals do SolarMarket:
+// { id, name, description, status, linkPdf, createdAt, generatedAt, sendAt,
+//   viewedAt, acceptanceDate, rejectionDate, expirationDate,
+//   project{id,name}, pricingTable[], variables[] }
 // ─────────────────────────────────────────────────────────────────────────
 
+export interface ParsedSmPricingItem {
+  categoria: string | null;
+  item: string | null;
+  quantidade: number | null;
+  custoUnitario: number | null;
+  custoTotal: number | null;
+  imposto: number | null;
+  lucro: number | null;
+  valorVenda: number | null;
+  raw: any;
+}
+
+export interface ParsedSmVariable {
+  topic: string | null;
+  item: string | null;
+  value: any;
+  formattedValue: string | null;
+  raw: any;
+}
+
 export interface ParsedSmProposta {
-  titulo: string | null;
+  id: string | null;
+  nome: string | null;
   descricao: string | null;
   status: string | null;
-  cliente: ExternalRef | null;
+  linkPdf: string | null;
   projeto: ExternalRef | null;
-  responsavel: ExternalRef | null;
-  valorTotal: number | null;
-  link: string | null;
-  pdfUrl: string | null;
+  pricingTable: ParsedSmPricingItem[];
+  variables: ParsedSmVariable[];
+  valorTotalEstimado: number | null;
   criadoEm: string | null;
-  atualizadoEm: string | null;
-  validadeAte: string | null;
+  geradoEm: string | null;
+  enviadoEm: string | null;
+  visualizadoEm: string | null;
+  aceitoEm: string | null;
+  recusadoEm: string | null;
+  expiraEm: string | null;
+}
+
+function parsePricingItem(it: any): ParsedSmPricingItem {
+  const i = it ?? {};
+  return {
+    categoria: pick(i, "category", "categoria", "group", "groupName", "type"),
+    item: pick(i, "item", "name", "nome", "description", "descricao", "title"),
+    quantidade: toNumber(pick(i, "quantity", "qtd", "quantidade", "qty")),
+    custoUnitario: toNumber(pick(i, "unitCost", "unit_cost", "custo_unitario", "costUnit")),
+    custoTotal: toNumber(pick(i, "totalCost", "total_cost", "custo_total", "cost")),
+    imposto: toNumber(pick(i, "tax", "imposto", "taxValue", "tax_value")),
+    lucro: toNumber(pick(i, "profit", "lucro", "margin", "margem")),
+    valorVenda: toNumber(pick(i, "salesValue", "sales_value", "valor_venda", "saleValue", "price", "totalPrice")),
+    raw: it,
+  };
+}
+
+function parseVariable(v: any): ParsedSmVariable {
+  const x = v ?? {};
+  return {
+    topic: pick(x, "topic", "group", "category", "categoria", "grupo"),
+    item: pick(x, "item", "name", "label", "key", "nome"),
+    value: x.value ?? x.valor ?? null,
+    formattedValue: pick(x, "formattedValue", "formatted_value", "formatted", "displayValue"),
+    raw: v,
+  };
 }
 
 export function parseSmProposta(payload: any): ParsedSmProposta {
   const p = payload ?? {};
+  const pricingRaw = asArray(pick(p, "pricingTable", "pricing_table", "pricing", "items"));
+  const variablesRaw = asArray(pick(p, "variables", "vars"));
+  const pricingTable = pricingRaw.map(parsePricingItem);
+
+  // Soma valorVenda (salesValue) como valor total estimado, se houver itens
+  const valorTotalEstimado = pricingTable.length
+    ? pricingTable.reduce((acc, it) => acc + (it.valorVenda ?? 0), 0) || null
+    : null;
+
   return {
-    titulo: pick(p, "title", "name", "nome", "titulo"),
+    id: p.id != null ? String(p.id) : null,
+    nome: pick(p, "name", "title", "nome", "titulo"),
     descricao: pick(p, "description", "descricao", "notes", "observacoes"),
     status: pick(p, "status", "situacao"),
-    cliente:
-      parseExternalRef(pick(p, "client", "customer", "cliente")) ??
-      parseExternalRef(pick(p, "client_id", "cliente_id", "customer_id")),
+    linkPdf: pick(p, "linkPdf", "link_pdf", "pdfUrl", "pdf_url", "url", "link"),
     projeto:
       parseExternalRef(pick(p, "project", "deal", "projeto")) ??
       parseExternalRef(pick(p, "project_id", "projeto_id", "deal_id")),
-    responsavel: parseExternalRef(pick(p, "responsible", "owner", "responsavel", "user")),
-    valorTotal: toNumber(pick(p, "total_value", "valor_total", "total", "amount", "value", "price")),
-    link: pick(p, "url", "link", "public_url", "share_url"),
-    pdfUrl: pick(p, "pdf_url", "pdfUrl", "file_url", "document_url"),
-    criadoEm: pickDate(p, "created_at", "createdAt", "criado_em"),
-    atualizadoEm: pickDate(p, "updated_at", "updatedAt", "atualizado_em"),
-    validadeAte: pickDate(p, "valid_until", "validUntil", "expires_at", "validade_ate"),
+    pricingTable,
+    variables: variablesRaw.map(parseVariable),
+    valorTotalEstimado,
+    criadoEm: pickDate(p, "createdAt", "created_at", "criado_em"),
+    geradoEm: pickDate(p, "generatedAt", "generated_at", "gerado_em"),
+    enviadoEm: pickDate(p, "sendAt", "sentAt", "send_at", "sent_at", "enviado_em"),
+    visualizadoEm: pickDate(p, "viewedAt", "viewed_at", "visualizado_em"),
+    aceitoEm: pickDate(p, "acceptanceDate", "acceptance_date", "acceptedAt", "accepted_at", "aceito_em"),
+    recusadoEm: pickDate(p, "rejectionDate", "rejection_date", "rejectedAt", "rejected_at", "recusado_em"),
+    expiraEm: pickDate(p, "expirationDate", "expiration_date", "expiresAt", "expires_at", "validade_ate"),
   };
 }
 

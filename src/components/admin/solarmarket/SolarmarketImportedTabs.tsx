@@ -425,15 +425,14 @@ function ListaRaw({
       return (
         <TableRow key={r.id}>
           <TableCell className="font-medium text-foreground max-w-xs truncate">
-            {sanitizeText(pp.titulo ?? "") || "—"}
+            {sanitizeText(pp.nome ?? "") || "—"}
           </TableCell>
-          <TableCell className="text-sm">{pp.cliente?.label ?? "—"}</TableCell>
           <TableCell className="text-sm">{pp.projeto?.label ?? "—"}</TableCell>
-          <TableCell className="text-sm font-mono">
-            {pp.valorTotal != null ? formatBRL(pp.valorTotal) : "—"}
-          </TableCell>
           <TableCell>{pp.status ? <Badge variant="outline" className="text-xs">{String(pp.status)}</Badge> : "—"}</TableCell>
-          <TableCell>{importedAt}</TableCell>
+          <TableCell className="text-sm font-mono">
+            {pp.valorTotalEstimado != null ? formatBRL(pp.valorTotalEstimado) : "—"}
+          </TableCell>
+          <TableCell>{pp.criadoEm ? formatDateTime(pp.criadoEm) : importedAt}</TableCell>
           <TableCell className="text-right">{action}</TableCell>
         </TableRow>
       );
@@ -468,7 +467,7 @@ function ListaRaw({
   const headers: Record<RawEntityKind, string[]> = {
     clientes: ["Nome", "Telefone", "CPF/CNPJ", "Cidade/UF", "Importado em", ""],
     projetos: ["Nome", "Cliente", "Responsável", "Cidade/UF", "Data de inclusão", ""],
-    propostas: ["Título", "Cliente ext.", "Projeto ext.", "Valor", "Status", "Importado em", ""],
+    propostas: ["Nome", "Projeto", "Status", "Valor total estimado", "Data de inclusão", ""],
     funis: ["Nome", "Etapas", "ID Externo", "Importado em", ""],
     custom_fields: ["Nome", "Tipo", "Obrigatório", "Importado em", ""],
   };
