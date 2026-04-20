@@ -407,20 +407,44 @@ export default function ImportacaoSolarmarket() {
         <CardHeader className="flex flex-row items-center justify-between space-y-0">
           <CardTitle className="text-base font-semibold">Histórico</CardTitle>
           {jobs.some((j) => j.status !== "running" && j.status !== "pending") && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleClearHistory}
-              disabled={clearHistory.isPending}
-              className="border-destructive text-destructive hover:bg-destructive/10"
-            >
-              {clearHistory.isPending ? (
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              ) : (
-                <Trash2 className="w-4 h-4 mr-2" />
-              )}
-              Limpar histórico
-            </Button>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={clearHistory.isPending}
+                  className="border-destructive text-destructive hover:bg-destructive/10"
+                >
+                  {clearHistory.isPending ? (
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  ) : (
+                    <Trash2 className="w-4 h-4 mr-2" />
+                  )}
+                  Limpar histórico
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent className="w-[90vw] max-w-md">
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Limpar histórico de importações</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Isso apagará apenas o histórico de importações finalizadas
+                    (sucesso, parcial, erro, cancelado) e seus logs.
+                    <br /><br />
+                    Os dados importados em <strong>staging</strong> serão preservados.
+                    Jobs em execução não são afetados.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={handleClearHistory}
+                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  >
+                    Limpar histórico
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           )}
         </CardHeader>
         <CardContent>
