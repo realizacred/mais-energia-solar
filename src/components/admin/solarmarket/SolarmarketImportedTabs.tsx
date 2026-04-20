@@ -285,7 +285,7 @@ export function SolarmarketImportedTabs() {
               table="sm_clientes_raw" kind="clientes"
               labels={{ icon: Users, empty: "Nenhum cliente em staging." }}
               search={search} page={page} setPage={setPage} isImporting={isImporting}
-              onOpenDetail={openDetail}
+              onOpenDetail={openDetail} onNavigate={handleNavigate}
             />
           </TabsContent>
           <TabsContent value="projetos">
@@ -293,7 +293,7 @@ export function SolarmarketImportedTabs() {
               table="sm_projetos_raw" kind="projetos"
               labels={{ icon: FolderKanban, empty: "Nenhum projeto em staging." }}
               search={search} page={page} setPage={setPage} isImporting={isImporting}
-              onOpenDetail={openDetail}
+              onOpenDetail={openDetail} onNavigate={handleNavigate}
             />
           </TabsContent>
           <TabsContent value="propostas">
@@ -301,7 +301,7 @@ export function SolarmarketImportedTabs() {
               table="sm_propostas_raw" kind="propostas"
               labels={{ icon: FileText, empty: "Nenhuma proposta em staging." }}
               search={search} page={page} setPage={setPage} isImporting={isImporting}
-              onOpenDetail={openDetail}
+              onOpenDetail={openDetail} onNavigate={handleNavigate}
             />
           </TabsContent>
           <TabsContent value="funis">
@@ -309,7 +309,7 @@ export function SolarmarketImportedTabs() {
               table="sm_funis_raw" kind="funis"
               labels={{ icon: GitBranch, empty: "Nenhum funil em staging." }}
               search={search} page={page} setPage={setPage} isImporting={isImporting}
-              onOpenDetail={openDetail}
+              onOpenDetail={openDetail} onNavigate={handleNavigate}
             />
           </TabsContent>
           <TabsContent value="custom_fields">
@@ -317,7 +317,7 @@ export function SolarmarketImportedTabs() {
               table="sm_custom_fields_raw" kind="custom_fields"
               labels={{ icon: Settings2, empty: "Nenhum campo custom em staging." }}
               search={search} page={page} setPage={setPage} isImporting={isImporting}
-              onOpenDetail={openDetail}
+              onOpenDetail={openDetail} onNavigate={handleNavigate}
             />
           </TabsContent>
         </Tabs>
