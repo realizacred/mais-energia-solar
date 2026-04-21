@@ -500,35 +500,12 @@ export default function ImportacaoSolarmarket() {
                 </p>
               </div>
             </div>
-            {/* [P0] Banner de divergência: job reportou X mas staging tem Y */}
-            {(() => {
-              if (!liveCounts.data) return null;
-              const pairs: Array<[string, number, number]> = [
-                ["Clientes", runningJob.total_clientes ?? 0, liveCounts.data.clientes],
-                ["Projetos", runningJob.total_projetos ?? 0, liveCounts.data.projetos],
-                ["Propostas", runningJob.total_propostas ?? 0, liveCounts.data.propostas],
-              ];
-              const diffs = pairs.filter(([, j, r]) => Math.abs(j - r) > 5);
-              if (diffs.length === 0) return null;
-              return (
-                <div className="flex items-start gap-2 rounded-md border border-warning/30 bg-warning/5 p-2 text-xs text-warning">
-                  <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
-                  <div className="flex-1">
-                    <p className="font-medium">Divergência entre o reportado pelo job e o que está no staging:</p>
-                    <ul className="mt-1 space-y-0.5">
-                      {diffs.map(([label, j, r]) => (
-                        <li key={label} className="font-mono">
-                          {label}: job={j} · real={r} (Δ={r - j})
-                        </li>
-                      ))}
-                    </ul>
-                    <p className="mt-1 text-[11px] opacity-80">
-                      Os valores reais (staging) prevalecem nos cards acima. O job será reconciliado ao finalizar.
-                    </p>
-                  </div>
-                </div>
-              );
-            })()}
+            {/* Durante a execução, contadores do job ficam defasados em relação ao staging
+                (que cresce em tempo real). Isso é esperado — não exibimos banner de divergência
+                durante `running` para evitar ruído visual. O job é reconciliado ao finalizar. */}
+            <p className="text-[11px] text-muted-foreground pt-1">
+              Os números acima refletem o staging em tempo real. O job consolida os totais ao finalizar.
+            </p>
           </CardContent>
         </Card>
       )}
