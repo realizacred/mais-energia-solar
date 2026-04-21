@@ -1017,18 +1017,35 @@ async function runImportJob(
     }
   }
 
+  // [P0] Reconciliação final: ler COUNT real de cada tabela de staging.
+  // Garante que totais persistidos no job batem com o que está no banco
+  // (elimina divergências entre o "reportado" pelo loop e o "real").
+  const stagingTables = [
+    { table: "sm_clientes_raw", field: "total_clientes" },
+    { table: "sm_projetos_raw", field: "total_projetos" },
+    { table: "sm_propostas_raw", field: "total_propostas" },
+    { table: "sm_funis_raw", field: "total_funis" },
+    { table: "sm_custom_fields_raw", field: "total_custom_fields" },
+  ] as const;
+
+  const realCounts: Record<string, number> = {};
+  for (const { table, field } of stagingTables) {
+    try {
+      const { count } = await adminClient
+        .from(table)
+        .select("id", { count: "exact", head: true });
+      realCounts[field] = count ?? 0;
+    } catch {
+      realCounts[field] = 0;
+    }
+  }
+
   const totalImportado =
-    (totalFunis || 0) + (totalCampos || 0) +
-    (await (async () => {
-      const { data } = await adminClient
-        .from("solarmarket_import_jobs")
-        .select("total_clientes,total_projetos,total_propostas")
-        .eq("id", state.jobId!)
-        .single();
-      return ((data as any)?.total_clientes ?? 0) +
-             ((data as any)?.total_projetos ?? 0) +
-             ((data as any)?.total_propostas ?? 0);
-    })());
+    (realCounts.total_funis ?? 0) +
+    (realCounts.total_custom_fields ?? 0) +
+    (realCounts.total_clientes ?? 0) +
+    (realCounts.total_projetos ?? 0) +
+    (realCounts.total_propostas ?? 0);
 
   const wasCancelled = await isJobCancelled(state);
 
@@ -1051,6 +1068,12 @@ async function runImportJob(
       status: finalStatus,
       current_step: wasCancelled ? "cancelled" : "done",
       ...(wasCancelled ? {} : { progress_pct: 100 }),
+      // [P0] persistir contagens REAIS do staging (não o que o loop reportou)
+      total_clientes: realCounts.total_clientes ?? 0,
+      total_projetos: realCounts.total_projetos ?? 0,
+      total_propostas: realCounts.total_propostas ?? 0,
+      total_funis: realCounts.total_funis ?? 0,
+      total_custom_fields: realCounts.total_custom_fields ?? 0,
       total_errors: totalErrors,
       finished_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
