@@ -695,13 +695,21 @@ async function actionPromoteAll(
     message: `promote-all iniciado (batch_limit=${batchLimit}, dry_run=${dryRun})`,
   });
 
-  // Backlog: propostas raw que ainda não têm link canônico
-  const { data: rows, error: fetchErr } = await admin
+  // Backlog: propostas raw que ainda não têm link canônico em external_entity_links.
+  // Filtro obrigatório (escala): nunca reprocessar staging já promovido.
+  const promotedIds = await fetchPromotedSourceIds(admin, tenantId, "proposta");
+  let fetchQuery = admin
     .from("sm_propostas_raw")
     .select("id, external_id, payload")
     .eq("tenant_id", tenantId)
     .order("imported_at", { ascending: true })
     .limit(batchLimit);
+  if (promotedIds.length > 0) {
+    // PostgREST aceita lista em .not("col", "in", "(a,b,c)")
+    const inList = `(${promotedIds.map((s) => `"${s.replace(/"/g, '\\"')}"`).join(",")})`;
+    fetchQuery = fetchQuery.not("external_id", "in", inList);
+  }
+  const { data: rows, error: fetchErr } = await fetchQuery;
   if (fetchErr) {
     await patchJob(admin, jobId, {
       status: "failed", finished_at: new Date().toISOString(),
