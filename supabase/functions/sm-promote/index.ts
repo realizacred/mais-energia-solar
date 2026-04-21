@@ -938,15 +938,41 @@ async function promoteOneProposalRow(
       });
     }
 
-    // 3) Projeto
-    const proj = await promoteProjeto(admin, tenantId, jobId, rawProjeto, cli.id, pipeline, consultorRes.id);
+    // 2.7) Mapear status SM → status nativo (precisa vir antes do projeto p/ resolver stage)
+    const propNorm = normalizeSmProposal(propostaPayload);
+    const statusInfo = mapSmStatus(propNorm.status_source, propNorm.accepted_at);
+    if (!statusInfo.recognized && statusInfo.raw) {
+      state.counters.warnings++;
+      await logEvent(admin, {
+        jobId, tenantId, severity: "warning", step: "map.status", status: "unrecognized",
+        message: `Status SM "${statusInfo.raw}" não reconhecido — usando "rascunho".`,
+        sourceEntityType: "proposta", sourceEntityId: propExtId,
+        errorCode: "STATUS_UNRECOGNIZED", errorOrigin: MODULE,
+        details: { raw_status: statusInfo.raw },
+      });
+    }
+    if (statusInfo.inconsistent) {
+      state.counters.warnings++;
+      await logEvent(admin, {
+        jobId, tenantId, severity: "warning", step: "map.status", status: "inconsistent",
+        message: `Status SM "${statusInfo.raw}" + acceptanceDate presente — forçado para "aceita".`,
+        sourceEntityType: "proposta", sourceEntityId: propExtId,
+        errorCode: "STATUS_INCONSISTENT_WITH_ACCEPTANCE", errorOrigin: MODULE,
+        details: { raw_status: statusInfo.raw, accepted_at: propNorm.accepted_at },
+      });
+    }
+
+    // 3) Projeto (etapa resolvida pelo status canônico mapeado)
+    const proj = await promoteProjeto(
+      admin, tenantId, jobId, rawProjeto, cli.id, pipeline, consultorRes.id, statusInfo.status,
+    );
     await logEvent(admin, {
       jobId, tenantId, severity: "info", step: "promote.projeto",
       status: proj.created ? "created" : "linked",
       message: proj.created ? "Projeto criado." : "Projeto já existia (link reutilizado).",
       sourceEntityType: "projeto", sourceEntityId: projectExtId,
       canonicalEntityType: "projeto", canonicalEntityId: proj.id,
-      details: { consultor_id: consultorRes.id, consultor_match: consultorRes.matched },
+      details: { consultor_id: consultorRes.id, consultor_match: consultorRes.matched, status_mapped: statusInfo.status },
     });
 
     // 4) Snapshot canônico
@@ -958,20 +984,6 @@ async function promoteOneProposalRow(
       rawProject: rawProjeto,
       rawProposal: propostaPayload,
     });
-
-    // 4.5) Mapear status SM → status nativo (log se não-reconhecido)
-    const propNorm = normalizeSmProposal(propostaPayload);
-    const statusInfo = mapSmStatus(propNorm.status_source);
-    if (!statusInfo.recognized && statusInfo.raw) {
-      state.counters.warnings++;
-      await logEvent(admin, {
-        jobId, tenantId, severity: "warning", step: "map.status", status: "unrecognized",
-        message: `Status SM "${statusInfo.raw}" não reconhecido — usando "rascunho".`,
-        sourceEntityType: "proposta", sourceEntityId: propExtId,
-        errorCode: "STATUS_UNRECOGNIZED", errorOrigin: MODULE,
-        details: { raw_status: statusInfo.raw },
-      });
-    }
 
     // 5) Proposta + versão
     const prop = await promoteProposta(admin, tenantId, jobId, propostaPayload, {
