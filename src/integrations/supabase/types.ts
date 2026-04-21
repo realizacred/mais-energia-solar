@@ -4189,6 +4189,44 @@ export type Database = {
           },
         ]
       }
+      entity_files: {
+        Row: {
+          category: string | null
+          created_at: string
+          entity_id: string
+          entity_type: string
+          file_id: string
+          id: string
+          tenant_id: string
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string
+          entity_id: string
+          entity_type: string
+          file_id: string
+          id?: string
+          tenant_id: string
+        }
+        Update: {
+          category?: string | null
+          created_at?: string
+          entity_id?: string
+          entity_type?: string
+          file_id?: string
+          id?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "entity_files_file_id_fkey"
+            columns: ["file_id"]
+            isOneToOne: false
+            referencedRelation: "imported_files"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       estoque_categorias: {
         Row: {
           ativo: boolean | null
@@ -6629,6 +6667,60 @@ export type Database = {
           titulo?: string
           updated_at?: string | null
           video_url?: string | null
+        }
+        Relationships: []
+      }
+      imported_files: {
+        Row: {
+          created_at: string
+          error_message: string | null
+          file_hash: string | null
+          file_size: number | null
+          id: string
+          imported_at: string
+          mime_type: string | null
+          original_file_name: string | null
+          source_record_id: string | null
+          source_system: string
+          source_url: string | null
+          status: string
+          storage_path: string | null
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          error_message?: string | null
+          file_hash?: string | null
+          file_size?: number | null
+          id?: string
+          imported_at?: string
+          mime_type?: string | null
+          original_file_name?: string | null
+          source_record_id?: string | null
+          source_system: string
+          source_url?: string | null
+          status?: string
+          storage_path?: string | null
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          error_message?: string | null
+          file_hash?: string | null
+          file_size?: number | null
+          id?: string
+          imported_at?: string
+          mime_type?: string | null
+          original_file_name?: string | null
+          source_record_id?: string | null
+          source_system?: string
+          source_url?: string | null
+          status?: string
+          storage_path?: string | null
+          tenant_id?: string
+          updated_at?: string
         }
         Relationships: []
       }
