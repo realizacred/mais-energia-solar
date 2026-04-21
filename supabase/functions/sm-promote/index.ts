@@ -984,9 +984,10 @@ async function actionPromoteAll(
   // Resolve pipeline ANTES dos candidatos — falha rápido se o tenant tiver
   // pipeline configurado mas inconsistente (sem etapa).
   const pipeline = await resolveDefaultPipeline(admin, tenantId);
+  const consultorFallback = await resolveConsultorFallback(admin, tenantId);
   await logEvent(admin, {
     jobId, tenantId, severity: "info", step: "init", status: "started",
-    message: `promote-all iniciado (batch_limit=${batchLimit}, dry_run=${dryRun}); pipeline=${pipeline.funilId ?? "—"} etapa=${pipeline.etapaId ?? "—"} configured=${pipeline.hasPipelineConfigured}`,
+    message: `promote-all iniciado (batch_limit=${batchLimit}, dry_run=${dryRun}); pipeline=${pipeline.funilId ?? "—"} etapa=${pipeline.etapaId ?? "—"} configured=${pipeline.hasPipelineConfigured}; consultor_fallback=${consultorFallback.fallbackNome ?? "—"}`,
   });
 
   // Backlog: propostas raw que ainda não têm link canônico em external_entity_links.
