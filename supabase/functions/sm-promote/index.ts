@@ -7,7 +7,7 @@
 // - RB-58: UPDATEs críticos validam afetação com .select().
 // - RB-23: sem console.log ativo (apenas console.error com prefixo do módulo).
 // - DA-40: sem hardcode de pipeline/consultor — resolução por DB ou metadata.
-// - SSOT idempotência: external_entity_links (source=solar_market).
+// - SSOT idempotência: external_entity_links (source=solarmarket).
 // - Apenas grava em domínio canônico via service-role; tenant_id sempre explícito.
 
 import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.45.4";
@@ -25,7 +25,8 @@ const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-const SOURCE = "solar_market";
+const SOURCE = "solarmarket";
+const SOURCE_ALIASES = [SOURCE, "solar_market"] as const;
 const DEFAULT_BATCH_LIMIT = 50;
 const MAX_BATCH_LIMIT = 200;
 
@@ -151,13 +152,13 @@ async function logEvent(
     step: p.step,
     status: p.status,
     message: p.message,
-    source_entity_type: p.sourceEntityType ?? null,
-    source_entity_id: p.sourceEntityId ?? null,
+    source_entity_type: p.sourceEntityType ?? "job",
+    source_entity_id: p.sourceEntityId ?? p.jobId,
     canonical_entity_type: p.canonicalEntityType ?? null,
     canonical_entity_id: p.canonicalEntityId ?? null,
     error_code: p.errorCode ?? null,
     error_origin: p.errorOrigin ?? null,
-    details: p.details ?? null,
+    details: p.details ?? {},
   });
   if (error) console.error(`[${MODULE}] log fail:`, error.message);
 }
