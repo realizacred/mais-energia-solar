@@ -418,6 +418,17 @@ async function promoteCliente(
   }
 
   const cliente_code = `SM-${norm.external_id}`.slice(0, 32);
+  const { data: byCode } = await admin
+    .from("clientes")
+    .select("id")
+    .eq("tenant_id", tenantId)
+    .eq("cliente_code", cliente_code)
+    .maybeSingle();
+  if (byCode?.id) {
+    await upsertLink(admin, tenantId, jobId, "cliente", byCode.id as string, "cliente", norm.external_id, { matched_by: "cliente_code" });
+    return { id: byCode.id as string, created: false };
+  }
+
   const { data, error } = await admin
     .from("clientes")
     .insert({
@@ -442,7 +453,19 @@ async function promoteCliente(
     })
     .select("id")
     .single();
-  if (error || !data?.id) throw new Error(`insert cliente: ${error?.message}`);
+  if (error || !data?.id) {
+    const { data: duplicateByCode } = await admin
+      .from("clientes")
+      .select("id")
+      .eq("tenant_id", tenantId)
+      .eq("cliente_code", cliente_code)
+      .maybeSingle();
+    if (duplicateByCode?.id) {
+      await upsertLink(admin, tenantId, jobId, "cliente", duplicateByCode.id as string, "cliente", norm.external_id, { matched_by: "cliente_code_duplicate" });
+      return { id: duplicateByCode.id as string, created: false };
+    }
+    throw new Error(`insert cliente: ${error?.message}`);
+  }
 
   await upsertLink(admin, tenantId, jobId, "cliente", data.id as string, "cliente", norm.external_id);
   return { id: data.id as string, created: true };
@@ -465,6 +488,29 @@ async function promoteProjeto(
   if (existing) return { id: existing, created: false };
 
   const codigo = `SM-PROJ-${norm.external_id}`.slice(0, 32);
+  const { data: byExt } = await admin
+    .from("projetos")
+    .select("id")
+    .eq("tenant_id", tenantId)
+    .in("external_source", [...SOURCE_ALIASES])
+    .eq("external_id", norm.external_id)
+    .maybeSingle();
+  if (byExt?.id) {
+    await upsertLink(admin, tenantId, jobId, "projeto", byExt.id as string, "projeto", norm.external_id, { matched_by: "external_id" });
+    return { id: byExt.id as string, created: false };
+  }
+
+  const { data: byCode } = await admin
+    .from("projetos")
+    .select("id")
+    .eq("tenant_id", tenantId)
+    .eq("codigo", codigo)
+    .maybeSingle();
+  if (byCode?.id) {
+    await upsertLink(admin, tenantId, jobId, "projeto", byCode.id as string, "projeto", norm.external_id, { matched_by: "codigo" });
+    return { id: byCode.id as string, created: false };
+  }
+
   const stageId = resolveStageForStatus(pipeline, canonicalStatus);
   const insertPayload: AnyObj = {
     tenant_id: tenantId,
@@ -482,7 +528,19 @@ async function promoteProjeto(
     .insert(insertPayload)
     .select("id")
     .single();
-  if (error || !data?.id) throw new Error(`insert projeto: ${error?.message}`);
+  if (error || !data?.id) {
+    const { data: duplicateByCode } = await admin
+      .from("projetos")
+      .select("id")
+      .eq("tenant_id", tenantId)
+      .eq("codigo", codigo)
+      .maybeSingle();
+    if (duplicateByCode?.id) {
+      await upsertLink(admin, tenantId, jobId, "projeto", duplicateByCode.id as string, "projeto", norm.external_id, { matched_by: "codigo_duplicate" });
+      return { id: duplicateByCode.id as string, created: false };
+    }
+    throw new Error(`insert projeto: ${error?.message}`);
+  }
 
   await upsertLink(admin, tenantId, jobId, "projeto", data.id as string, "projeto", norm.external_id);
   return { id: data.id as string, created: true };
