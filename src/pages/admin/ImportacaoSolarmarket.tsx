@@ -102,6 +102,7 @@ export default function ImportacaoSolarmarket() {
   const { config, isConfigured, isLoading: loadingCfg } = useSolarmarketConfig();
   const [testResult, setTestResult] = useState<{ ok: boolean; message: string } | null>(null);
   const [now, setNow] = useState(() => Date.now());
+  const [errorsJobId, setErrorsJobId] = useState<string | null>(null);
   const [scope, setScope] = useState<ImportScope>({
     clientes: true,
     projetos: true,
