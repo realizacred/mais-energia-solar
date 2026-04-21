@@ -744,10 +744,15 @@ export default function ImportacaoSolarmarket() {
                           <TableCell className="text-right font-mono text-sm tabular-nums">{j.total_propostas}</TableCell>
                           <TableCell className="text-right font-mono text-sm tabular-nums">
                             {j.total_errors > 0 ? (
-                              <span className="text-destructive inline-flex items-center justify-end gap-1">
+                              <button
+                                type="button"
+                                onClick={() => setErrorsJobId(j.id)}
+                                className="text-destructive inline-flex items-center justify-end gap-1 hover:underline focus:outline-none focus:ring-2 focus:ring-destructive/40 rounded px-1"
+                                title="Ver detalhes dos erros"
+                              >
                                 <XCircle className="w-3 h-3" />
                                 {j.total_errors}
-                              </span>
+                              </button>
                             ) : (
                               <span className="text-muted-foreground">0</span>
                             )}
