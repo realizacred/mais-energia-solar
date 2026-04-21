@@ -269,86 +269,73 @@ export default function ImportacaoSolarmarket() {
   return (
     <div className="container mx-auto p-6 space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 pb-2">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-            <Cloud className="w-5 h-5 text-primary" />
-          </div>
-          <div className="space-y-1">
-            <h1 className="text-2xl font-display font-bold tracking-tight text-foreground">
-              Importação SolarMarket
-            </h1>
-            <p className="text-sm text-muted-foreground leading-relaxed">
-              Importação one-shot de Clientes, Projetos, Propostas, Funis e Campos Customizados.
-            </p>
-          </div>
-        </div>
-        <div className="flex items-center gap-2 flex-wrap shrink-0">
-          {/* Operacionais */}
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleTest}
-            disabled={!isConfigured || testConnection.isPending}
-          >
-            {testConnection.isPending ? (
-              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-            ) : (
-              <CheckCircle2 className="w-4 h-4 mr-2" />
-            )}
-            Testar conexão
-          </Button>
-          <Button asChild variant="outline" size="sm">
-            <Link to="/admin/configuracoes/integracoes/solarmarket">
-              <Settings className="w-4 h-4 mr-2" /> Configuração
-            </Link>
-          </Button>
-
-          {/* Separador visual */}
-          <span className="hidden sm:inline-block h-6 w-px bg-border mx-1" aria-hidden />
-
-          {/* Destrutivo */}
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={clearStaging.isPending || !!runningJob}
-                className="border-destructive text-destructive hover:bg-destructive/10"
-                title={runningJob ? "Há uma importação em execução. Cancele antes de limpar o staging." : undefined}
-              >
-                {clearStaging.isPending ? (
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                ) : (
-                  <Eraser className="w-4 h-4 mr-2" />
-                )}
-                Limpar dados importados
-              </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent className="w-[90vw] max-w-md">
-              <AlertDialogHeader>
-                <AlertDialogTitle>Limpar dados importados (staging)</AlertDialogTitle>
-                <AlertDialogDescription>
-                  Isso apagará apenas os dados brutos importados do SolarMarket
-                  (<code>sm_clientes_raw</code>, <code>sm_projetos_raw</code>, <code>sm_propostas_raw</code>,
-                  {" "}<code>sm_funis_raw</code>, <code>sm_custom_fields_raw</code>).
-                  <br /><br />
-                  <strong>Não afeta</strong> Clientes, Projetos ou Propostas do CRM.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                <AlertDialogAction
-                  onClick={handleClearStaging}
-                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+      <PageHeader
+        icon={Cloud}
+        title="Importação SolarMarket"
+        description="Migre e audite clientes, projetos, propostas, funis e campos customizados antes da promoção definitiva ao CRM."
+        actions={
+          <div className="flex items-center gap-2 flex-wrap">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleTest}
+              disabled={!isConfigured || testConnection.isPending}
+            >
+              {testConnection.isPending ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <CheckCircle2 className="w-4 h-4 mr-2" />
+              )}
+              Testar conexão
+            </Button>
+            <Button asChild variant="outline" size="sm">
+              <Link to="/admin/configuracoes/integracoes/solarmarket">
+                <Settings className="w-4 h-4 mr-2" /> Configuração
+              </Link>
+            </Button>
+            <span className="hidden sm:inline-block h-6 w-px bg-border mx-1" aria-hidden />
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={clearStaging.isPending || !!runningJob}
+                  className="border-destructive/40 text-destructive hover:bg-destructive/10 hover:border-destructive"
+                  title={runningJob ? "Há uma importação em execução. Cancele antes de limpar o staging." : undefined}
                 >
-                  Limpar staging
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
-        </div>
-      </div>
+                  {clearStaging.isPending ? (
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  ) : (
+                    <Eraser className="w-4 h-4 mr-2" />
+                  )}
+                  Limpar dados importados
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent className="w-[90vw] max-w-md">
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Limpar dados importados (staging)</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Isso apagará apenas os dados brutos importados do SolarMarket
+                    (<code>sm_clientes_raw</code>, <code>sm_projetos_raw</code>, <code>sm_propostas_raw</code>,
+                    {" "}<code>sm_funis_raw</code>, <code>sm_custom_fields_raw</code>).
+                    <br /><br />
+                    <strong>Não afeta</strong> Clientes, Projetos ou Propostas do CRM.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={handleClearStaging}
+                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  >
+                    Limpar staging
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </div>
+        }
+      />
 
       {/* Bloqueio se não configurado */}
       {!isConfigured && (
