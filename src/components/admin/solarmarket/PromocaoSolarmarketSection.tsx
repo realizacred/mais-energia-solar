@@ -284,7 +284,8 @@ export function PromocaoSolarmarketSection() {
               <Button
                 variant="outline"
                 onClick={() => handleRun(true)}
-                disabled={!!runningJob || promoteAll.isPending}
+                disabled={!!runningJob || promoteAll.isPending || pipelineBlocked}
+                title={pipelineBlocked ? "Configure um pipeline padrão antes de executar" : undefined}
               >
                 {promoteAll.isPending && promoteAll.variables?.dry_run ? (
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -295,7 +296,8 @@ export function PromocaoSolarmarketSection() {
               </Button>
               <Button
                 onClick={() => handleRun(false)}
-                disabled={!!runningJob || promoteAll.isPending}
+                disabled={!!runningJob || promoteAll.isPending || pipelineBlocked}
+                title={pipelineBlocked ? "Configure um pipeline padrão antes de executar" : undefined}
               >
                 {promoteAll.isPending && !promoteAll.variables?.dry_run ? (
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
