@@ -7,7 +7,7 @@
 // - RB-58: UPDATEs críticos validam afetação com .select().
 // - RB-23: sem console.log ativo (apenas console.error com prefixo do módulo).
 // - DA-40: sem hardcode de pipeline/consultor — resolução por DB ou metadata.
-// - SSOT idempotência: external_entity_links (source=solarmarket).
+// - SSOT idempotência: external_entity_links (source=solar_market).
 // - Apenas grava em domínio canônico via service-role; tenant_id sempre explícito.
 
 import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.45.4";
@@ -25,8 +25,7 @@ const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-const SOURCE = "solarmarket";
-const SOURCE_ALIASES = [SOURCE, "solar_market"] as const;
+const SOURCE = "solar_market";
 const DEFAULT_BATCH_LIMIT = 50;
 const MAX_BATCH_LIMIT = 200;
 
@@ -152,13 +151,13 @@ async function logEvent(
     step: p.step,
     status: p.status,
     message: p.message,
-    source_entity_type: p.sourceEntityType ?? "job",
-    source_entity_id: p.sourceEntityId ?? p.jobId,
+    source_entity_type: p.sourceEntityType ?? null,
+    source_entity_id: p.sourceEntityId ?? null,
     canonical_entity_type: p.canonicalEntityType ?? null,
     canonical_entity_id: p.canonicalEntityId ?? null,
     error_code: p.errorCode ?? null,
     error_origin: p.errorOrigin ?? null,
-    details: p.details ?? {},
+    details: p.details ?? null,
   });
   if (error) console.error(`[${MODULE}] log fail:`, error.message);
 }
@@ -174,12 +173,12 @@ async function findLink(
     .from("external_entity_links")
     .select("entity_id")
     .eq("tenant_id", tenantId)
-    .in("source", [...SOURCE_ALIASES])
+    .eq("source", SOURCE)
     .eq("source_entity_type", sourceEntityType)
     .eq("source_entity_id", sourceEntityId)
     .maybeSingle();
   if (error) throw new Error(`findLink: ${error.message}`);
-  return typeof data?.entity_id === "string" ? data.entity_id : null;
+  return (data as { entity_id?: string } | null)?.entity_id ?? null;
 }
 
 // Lista os source_entity_id já promovidos para um tipo canônico no tenant.
@@ -196,7 +195,7 @@ async function fetchPromotedSourceIds(
       .from("external_entity_links")
       .select("source_entity_id")
       .eq("tenant_id", tenantId)
-      .in("source", [...SOURCE_ALIASES])
+      .eq("source", SOURCE)
       .eq("source_entity_type", sourceEntityType)
       .range(from, from + pageSize - 1);
     if (error) throw new Error(`fetchPromotedSourceIds: ${error.message}`);
@@ -397,38 +396,77 @@ async function promoteCliente(
   tenantId: string,
   jobId: string,
   rawCliente: AnyObj,
-): Promise<{ id: string; created: boolean }> {
+): Promise<{ id: string; created: boolean; matchedBy?: string }> {
   const norm = normalizeSmClient(rawCliente);
   if (!norm.external_id) throw new Error("Cliente SM sem id");
 
+  // 1) Link existente (idempotência canônica)
   const existing = await findLink(admin, tenantId, "cliente", norm.external_id);
-  if (existing) return { id: existing, created: false };
+  if (existing) return { id: existing, created: false, matchedBy: "link" };
 
-  // Match secundário por external_source/external_id direto na tabela
+  // 2) Reconciliação por external_source + external_id (mesma origem, sem link ainda)
   const { data: byExt } = await admin
     .from("clientes")
     .select("id")
     .eq("tenant_id", tenantId)
-    .in("external_source", [...SOURCE_ALIASES])
+    .eq("external_source", SOURCE)
     .eq("external_id", norm.external_id)
     .maybeSingle();
   if (byExt?.id) {
     await upsertLink(admin, tenantId, jobId, "cliente", byExt.id as string, "cliente", norm.external_id, { matched_by: "external_id" });
-    return { id: byExt.id as string, created: false };
+    return { id: byExt.id as string, created: false, matchedBy: "external_id" };
   }
 
+  // 3) Reconciliação por CPF/CNPJ
+  if (norm.cpf_cnpj) {
+    const { data: byDoc } = await admin
+      .from("clientes")
+      .select("id")
+      .eq("tenant_id", tenantId)
+      .eq("cpf_cnpj", norm.cpf_cnpj)
+      .order("created_at", { ascending: true })
+      .limit(1)
+      .maybeSingle();
+    if (byDoc?.id) {
+      await upsertLink(admin, tenantId, jobId, "cliente", byDoc.id as string, "cliente", norm.external_id, { matched_by: "cpf_cnpj" });
+      return { id: byDoc.id as string, created: false, matchedBy: "cpf_cnpj" };
+    }
+  }
+
+  // 4) Reconciliação por telefone (evita uq_clientes_tenant_telefone)
+  if (norm.telefone) {
+    const { data: byPhone } = await admin
+      .from("clientes")
+      .select("id")
+      .eq("tenant_id", tenantId)
+      .eq("telefone_normalized", norm.telefone)
+      .order("created_at", { ascending: true })
+      .limit(1)
+      .maybeSingle();
+    if (byPhone?.id) {
+      await upsertLink(admin, tenantId, jobId, "cliente", byPhone.id as string, "cliente", norm.external_id, { matched_by: "telefone" });
+      return { id: byPhone.id as string, created: false, matchedBy: "telefone" };
+    }
+  }
+
+  // 5) Reconciliação por email
+  if (norm.email) {
+    const { data: byEmail } = await admin
+      .from("clientes")
+      .select("id")
+      .eq("tenant_id", tenantId)
+      .ilike("email", norm.email)
+      .order("created_at", { ascending: true })
+      .limit(1)
+      .maybeSingle();
+    if (byEmail?.id) {
+      await upsertLink(admin, tenantId, jobId, "cliente", byEmail.id as string, "cliente", norm.external_id, { matched_by: "email" });
+      return { id: byEmail.id as string, created: false, matchedBy: "email" };
+    }
+  }
+
+  // 6) Não existe — inserir novo
   const cliente_code = `SM-${norm.external_id}`.slice(0, 32);
-  const { data: byCode } = await admin
-    .from("clientes")
-    .select("id")
-    .eq("tenant_id", tenantId)
-    .eq("cliente_code", cliente_code)
-    .maybeSingle();
-  if (byCode?.id) {
-    await upsertLink(admin, tenantId, jobId, "cliente", byCode.id as string, "cliente", norm.external_id, { matched_by: "cliente_code" });
-    return { id: byCode.id as string, created: false };
-  }
-
   const { data, error } = await admin
     .from("clientes")
     .insert({
@@ -453,22 +491,32 @@ async function promoteCliente(
     })
     .select("id")
     .single();
-  if (error || !data?.id) {
-    const { data: duplicateByCode } = await admin
-      .from("clientes")
-      .select("id")
-      .eq("tenant_id", tenantId)
-      .eq("cliente_code", cliente_code)
-      .maybeSingle();
-    if (duplicateByCode?.id) {
-      await upsertLink(admin, tenantId, jobId, "cliente", duplicateByCode.id as string, "cliente", norm.external_id, { matched_by: "cliente_code_duplicate" });
-      return { id: duplicateByCode.id as string, created: false };
-    }
-    throw new Error(`insert cliente: ${error?.message}`);
-  }
+  if (error || !data?.id) throw new Error(`insert cliente: ${error?.message}`);
 
   await upsertLink(admin, tenantId, jobId, "cliente", data.id as string, "cliente", norm.external_id);
-  return { id: data.id as string, created: true };
+  return { id: data.id as string, created: true, matchedBy: "insert" };
+}
+
+/**
+ * Mapeia status canônico da PROPOSTA → status válido do enum `projeto_status`.
+ * Enum real (auditado em 2026-04): criado, aguardando_documentacao, em_analise,
+ * aprovado, em_instalacao, instalado, comissionado, concluido, cancelado.
+ * NÃO existe "lead" — usar "criado" como fallback seguro.
+ */
+function mapProjetoStatusFromPromotion(canonicalPropostaStatus: string): string {
+  switch (canonicalPropostaStatus) {
+    case "aceita":
+      return "aprovado";
+    case "recusada":
+    case "expirada":
+    case "cancelada":
+      return "cancelado";
+    case "rascunho":
+    case "gerada":
+    case "enviada":
+    default:
+      return "criado";
+  }
 }
 
 async function promoteProjeto(
@@ -488,35 +536,12 @@ async function promoteProjeto(
   if (existing) return { id: existing, created: false };
 
   const codigo = `SM-PROJ-${norm.external_id}`.slice(0, 32);
-  const { data: byExt } = await admin
-    .from("projetos")
-    .select("id")
-    .eq("tenant_id", tenantId)
-    .in("external_source", [...SOURCE_ALIASES])
-    .eq("external_id", norm.external_id)
-    .maybeSingle();
-  if (byExt?.id) {
-    await upsertLink(admin, tenantId, jobId, "projeto", byExt.id as string, "projeto", norm.external_id, { matched_by: "external_id" });
-    return { id: byExt.id as string, created: false };
-  }
-
-  const { data: byCode } = await admin
-    .from("projetos")
-    .select("id")
-    .eq("tenant_id", tenantId)
-    .eq("codigo", codigo)
-    .maybeSingle();
-  if (byCode?.id) {
-    await upsertLink(admin, tenantId, jobId, "projeto", byCode.id as string, "projeto", norm.external_id, { matched_by: "codigo" });
-    return { id: byCode.id as string, created: false };
-  }
-
   const stageId = resolveStageForStatus(pipeline, canonicalStatus);
   const insertPayload: AnyObj = {
     tenant_id: tenantId,
     cliente_id: clienteId,
     codigo,
-    status: "lead",
+    status: mapProjetoStatusFromPromotion(canonicalStatus),
     observacoes: norm.descricao,
   };
   if (pipeline.funilId) insertPayload.funil_id = pipeline.funilId;
@@ -528,19 +553,7 @@ async function promoteProjeto(
     .insert(insertPayload)
     .select("id")
     .single();
-  if (error || !data?.id) {
-    const { data: duplicateByCode } = await admin
-      .from("projetos")
-      .select("id")
-      .eq("tenant_id", tenantId)
-      .eq("codigo", codigo)
-      .maybeSingle();
-    if (duplicateByCode?.id) {
-      await upsertLink(admin, tenantId, jobId, "projeto", duplicateByCode.id as string, "projeto", norm.external_id, { matched_by: "codigo_duplicate" });
-      return { id: duplicateByCode.id as string, created: false };
-    }
-    throw new Error(`insert projeto: ${error?.message}`);
-  }
+  if (error || !data?.id) throw new Error(`insert projeto: ${error?.message}`);
 
   await upsertLink(admin, tenantId, jobId, "projeto", data.id as string, "projeto", norm.external_id);
   return { id: data.id as string, created: true };
