@@ -117,11 +117,12 @@ export function PromocaoSolarmarketSection() {
       (acc, j) => {
         acc.processed  += j.items_processed ?? 0;
         acc.promoted   += j.items_promoted ?? 0;
+        acc.blocked    += j.items_blocked ?? 0;
         acc.warnings   += j.items_with_warnings ?? 0;
         acc.errors     += j.items_with_errors ?? 0;
         return acc;
       },
-      { processed: 0, promoted: 0, warnings: 0, errors: 0 },
+      { processed: 0, promoted: 0, blocked: 0, warnings: 0, errors: 0 },
     );
   }, [jobs]);
 
