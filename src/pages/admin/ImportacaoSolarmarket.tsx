@@ -257,19 +257,45 @@ export default function ImportacaoSolarmarket() {
   return (
     <div className="container mx-auto p-6 space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 pb-2">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+          <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
             <Cloud className="w-5 h-5 text-primary" />
           </div>
-          <div>
-            <h1 className="text-xl font-bold text-foreground">Importação SolarMarket</h1>
-            <p className="text-sm text-muted-foreground">
+          <div className="space-y-1">
+            <h1 className="text-2xl font-display font-bold tracking-tight text-foreground">
+              Importação SolarMarket
+            </h1>
+            <p className="text-sm text-muted-foreground leading-relaxed">
               Importação one-shot de Clientes, Projetos, Propostas, Funis e Campos Customizados.
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-2 flex-wrap">
+        <div className="flex items-center gap-2 flex-wrap shrink-0">
+          {/* Operacionais */}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleTest}
+            disabled={!isConfigured || testConnection.isPending}
+          >
+            {testConnection.isPending ? (
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+            ) : (
+              <CheckCircle2 className="w-4 h-4 mr-2" />
+            )}
+            Testar conexão
+          </Button>
+          <Button asChild variant="outline" size="sm">
+            <Link to="/admin/configuracoes/integracoes/solarmarket">
+              <Settings className="w-4 h-4 mr-2" /> Configuração
+            </Link>
+          </Button>
+
+          {/* Separador visual */}
+          <span className="hidden sm:inline-block h-6 w-px bg-border mx-1" aria-hidden />
+
+          {/* Destrutivo */}
           <AlertDialog>
             <AlertDialogTrigger asChild>
               <Button
@@ -309,11 +335,6 @@ export default function ImportacaoSolarmarket() {
               </AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>
-          <Button asChild variant="outline" size="sm">
-            <Link to="/admin/configuracoes/integracoes/solarmarket">
-              <Settings className="w-4 h-4 mr-2" /> Configuração
-            </Link>
-          </Button>
         </div>
       </div>
 
