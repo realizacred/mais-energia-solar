@@ -191,12 +191,28 @@ export function PromocaoSolarmarketSection() {
       </Card>
 
       {/* KPIs agregados */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         <KpiCard icon={Layers}        label="Itens processados" value={totals.processed} tone="primary" />
         <KpiCard icon={CheckCircle2}  label="Promovidos"        value={totals.promoted}  tone="success" />
+        <KpiCard icon={ShieldAlert}   label="Bloqueados"        value={totals.blocked}   tone="destructive" />
         <KpiCard icon={AlertTriangle} label="Com avisos"        value={totals.warnings}  tone="warning" />
         <KpiCard icon={XCircle}       label="Com erros"         value={totals.errors}    tone="destructive" />
       </div>
+
+      {totals.blocked > 0 && (
+        <div className="flex items-start gap-3 p-3 rounded-lg border border-destructive/30 bg-destructive/5">
+          <ShieldAlert className="w-4 h-4 text-destructive shrink-0 mt-0.5" />
+          <div className="text-sm">
+            <p className="font-medium text-foreground">
+              {totals.blocked.toLocaleString("pt-BR")} item(ns) bloqueado(s) pelo gate de elegibilidade
+            </p>
+            <p className="text-xs text-muted-foreground">
+              Registros com cliente/projeto/proposta incompletos, snapshot vazio ou pipeline não resolvido
+              não foram promovidos. Abra o detalhe do job para ver o motivo (error_code).
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Controles */}
       <Card className="bg-card border-border shadow-sm">
@@ -309,6 +325,7 @@ export function PromocaoSolarmarketSection() {
                     <TableHead>Status</TableHead>
                     <TableHead className="text-right">Total</TableHead>
                     <TableHead className="text-right">Promovidos</TableHead>
+                    <TableHead className="text-right">Bloqueados</TableHead>
                     <TableHead className="text-right">Avisos</TableHead>
                     <TableHead className="text-right">Erros</TableHead>
                     <TableHead>Iniciado</TableHead>
@@ -324,6 +341,7 @@ export function PromocaoSolarmarketSection() {
                         <TableCell>{statusBadge(j.status)}</TableCell>
                         <TableCell className="text-right font-mono text-sm">{j.total_items ?? 0}</TableCell>
                         <TableCell className="text-right font-mono text-sm text-success">{j.items_promoted ?? 0}</TableCell>
+                        <TableCell className="text-right font-mono text-sm text-destructive">{j.items_blocked ?? 0}</TableCell>
                         <TableCell className="text-right font-mono text-sm text-warning">{j.items_with_warnings ?? 0}</TableCell>
                         <TableCell className="text-right font-mono text-sm text-destructive">{j.items_with_errors ?? 0}</TableCell>
                         <TableCell className="text-xs text-muted-foreground">{formatBR(j.started_at ?? j.created_at)}</TableCell>
