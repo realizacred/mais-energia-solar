@@ -198,12 +198,15 @@ export default function ImportacaoSolarmarket() {
     }
   };
 
-  const handleClearStaging = async () => {
+  type StagingEntity = "clientes" | "projetos" | "propostas" | "funis" | "custom_fields";
+
+  const handleClearStaging = async (entities?: StagingEntity[]) => {
     try {
-      const res = await clearStaging.mutateAsync();
+      const res = await clearStaging.mutateAsync(entities);
       const r = res?.removed ?? {};
       const summary = Object.entries(r).map(([k, v]) => `${k.replace("sm_", "").replace("_raw", "")}: ${v}`).join(" · ");
-      toast({ title: "Dados de staging removidos", description: summary || "Nenhum registro encontrado." });
+      const scopeLabel = entities && entities.length === 1 ? ` (${entities[0]})` : "";
+      toast({ title: `Staging limpo${scopeLabel}`, description: summary || "Nenhum registro encontrado." });
     } catch (e: any) {
       const msg = e?.message || "Tente novamente.";
       const isRunningBlock = /em execução|em andamento|importação em/i.test(msg);
