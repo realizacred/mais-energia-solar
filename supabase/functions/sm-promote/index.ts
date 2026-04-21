@@ -1098,16 +1098,56 @@ async function promoteOneProposalRow(
     }
 
     // 3) Projeto (etapa resolvida pelo status canônico mapeado)
-    const proj = await promoteProjeto(
-      admin, tenantId, jobId, rawProjeto, cli.id, pipeline, consultorRes.id, statusInfo.status,
-    );
+    // LOG OBRIGATÓRIO antes de promoteProjeto — prova que o fluxo não para no cliente
+    const stageIdResolved = resolveStageForStatus(pipeline, statusInfo.status);
     await logEvent(admin, {
-      jobId, tenantId, severity: "info", step: "promote.projeto",
+      jobId, tenantId, severity: "info", step: "promote_projeto_start", status: "started",
+      message: "Iniciando promoção do projeto.",
+      sourceEntityType: "projeto", sourceEntityId: projectExtId,
+      details: {
+        cliente_id: cli.id,
+        consultor_id: consultorRes.id,
+        funil_id: pipeline.funilId,
+        etapa_id: stageIdResolved ?? pipeline.etapaId,
+        canonical_status: statusInfo.status,
+      },
+    });
+
+    let proj: { id: string; created: boolean };
+    try {
+      proj = await promoteProjeto(
+        admin, tenantId, jobId, rawProjeto, cli.id, pipeline, consultorRes.id, statusInfo.status,
+      );
+    } catch (projErr) {
+      const projMsg = projErr instanceof Error ? projErr.message : String(projErr);
+      await logEvent(admin, {
+        jobId, tenantId, severity: "error", step: "promote_projeto_error", status: "error",
+        message: projMsg,
+        sourceEntityType: "projeto", sourceEntityId: projectExtId,
+        errorCode: "PROJECT_PROMOTION_FAILED", errorOrigin: MODULE,
+        details: {
+          cliente_id: cli.id,
+          consultor_id: consultorRes.id,
+          funil_id: pipeline.funilId,
+          etapa_id: stageIdResolved ?? pipeline.etapaId,
+          canonical_status: statusInfo.status,
+        },
+      });
+      throw projErr; // re-throw para o catch externo contabilizar como PROMOTE_FAILED
+    }
+
+    await logEvent(admin, {
+      jobId, tenantId, severity: "info", step: "promote_projeto_success",
       status: proj.created ? "created" : "linked",
       message: proj.created ? "Projeto criado." : "Projeto já existia (link reutilizado).",
       sourceEntityType: "projeto", sourceEntityId: projectExtId,
       canonicalEntityType: "projeto", canonicalEntityId: proj.id,
-      details: { consultor_id: consultorRes.id, consultor_match: consultorRes.matched, status_mapped: statusInfo.status },
+      details: {
+        projeto_id: proj.id,
+        consultor_id: consultorRes.id,
+        consultor_match: consultorRes.matched,
+        status_mapped: statusInfo.status,
+      },
     });
 
     // 4) Snapshot canônico
