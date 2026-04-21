@@ -862,14 +862,40 @@ async function promoteOneProposalRow(
       canonicalEntityType: "cliente", canonicalEntityId: cli.id,
     });
 
+    // 2.5) Resolver consultor a partir do responsável SM (com fallback "Escritório")
+    const responsibleName = pickStr(rawProjeto?.responsible?.name);
+    const responsibleEmail = pickStr(rawProjeto?.responsible?.email);
+    const consultorRes = await resolveConsultorFromResponsible(
+      admin, tenantId, responsibleName, responsibleEmail, consultorFallback,
+    );
+    if (consultorRes.matched === "fallback") {
+      state.counters.warnings++;
+      await logEvent(admin, {
+        jobId, tenantId, severity: "warning", step: "resolve.consultor", status: "fallback",
+        message: `Responsável SM "${responsibleName ?? responsibleEmail ?? "—"}" não encontrado; usando fallback "${consultorRes.matchedNome ?? "Escritório"}".`,
+        sourceEntityType: "projeto", sourceEntityId: projectExtId,
+        errorCode: "CONSULTOR_FALLBACK", errorOrigin: MODULE,
+        details: { responsible_name: responsibleName, responsible_email: responsibleEmail, fallback_id: consultorRes.id },
+      });
+    } else if (consultorRes.matched === "none") {
+      state.counters.warnings++;
+      await logEvent(admin, {
+        jobId, tenantId, severity: "warning", step: "resolve.consultor", status: "unresolved",
+        message: "Nenhum consultor resolvido e nenhum fallback configurado para o tenant — projeto será criado sem consultor_id.",
+        sourceEntityType: "projeto", sourceEntityId: projectExtId,
+        errorCode: "CONSULTOR_UNRESOLVED", errorOrigin: MODULE,
+      });
+    }
+
     // 3) Projeto
-    const proj = await promoteProjeto(admin, tenantId, jobId, rawProjeto, cli.id, pipeline);
+    const proj = await promoteProjeto(admin, tenantId, jobId, rawProjeto, cli.id, pipeline, consultorRes.id);
     await logEvent(admin, {
       jobId, tenantId, severity: "info", step: "promote.projeto",
       status: proj.created ? "created" : "linked",
       message: proj.created ? "Projeto criado." : "Projeto já existia (link reutilizado).",
       sourceEntityType: "projeto", sourceEntityId: projectExtId,
       canonicalEntityType: "projeto", canonicalEntityId: proj.id,
+      details: { consultor_id: consultorRes.id, consultor_match: consultorRes.matched },
     });
 
     // 4) Snapshot canônico
@@ -882,12 +908,27 @@ async function promoteOneProposalRow(
       rawProposal: propostaPayload,
     });
 
+    // 4.5) Mapear status SM → status nativo (log se não-reconhecido)
+    const propNorm = normalizeSmProposal(propostaPayload);
+    const statusInfo = mapSmStatus(propNorm.status_source);
+    if (!statusInfo.recognized && statusInfo.raw) {
+      state.counters.warnings++;
+      await logEvent(admin, {
+        jobId, tenantId, severity: "warning", step: "map.status", status: "unrecognized",
+        message: `Status SM "${statusInfo.raw}" não reconhecido — usando "rascunho".`,
+        sourceEntityType: "proposta", sourceEntityId: propExtId,
+        errorCode: "STATUS_UNRECOGNIZED", errorOrigin: MODULE,
+        details: { raw_status: statusInfo.raw },
+      });
+    }
+
     // 5) Proposta + versão
     const prop = await promoteProposta(admin, tenantId, jobId, propostaPayload, {
       clienteId: cli.id,
       projetoId: proj.id,
       snapshot,
       userId: state.userId,
+      consultorId: consultorRes.id,
     });
     await logEvent(admin, {
       jobId, tenantId, severity: "info", step: "promote.proposta",
@@ -895,7 +936,7 @@ async function promoteOneProposalRow(
       message: prop.created ? "Proposta + versão criadas." : "Proposta já existia (versão garantida).",
       sourceEntityType: "proposta", sourceEntityId: propExtId,
       canonicalEntityType: "proposta", canonicalEntityId: prop.propostaId,
-      details: { versao_id: prop.versaoId },
+      details: { versao_id: prop.versaoId, status_mapped: statusInfo.status, status_source: statusInfo.raw },
     });
 
     state.counters.promoted++;
