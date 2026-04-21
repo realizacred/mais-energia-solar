@@ -734,6 +734,21 @@ async function promoteOneProposalRow(
     return "skipped";
   }
 
+  // 2) GATE DE ELEGIBILIDADE — bloqueia antes de qualquer write canônico
+  const elig = validateEligibility({ rawCliente, rawProjeto, rawProposta: propostaPayload, pipeline });
+  if (elig.status === "blocked") {
+    state.counters.blocked++;
+    await logEvent(admin, {
+      jobId, tenantId, severity: "error", step: "eligibility", status: "blocked",
+      message: `Promoção bloqueada (${elig.issues.length} motivo(s)): ${elig.issues.map((i) => i.code).join(", ")}`,
+      sourceEntityType: "proposta", sourceEntityId: propExtId,
+      errorCode: elig.issues[0]?.code ?? "BLOCKED",
+      errorOrigin: MODULE,
+      details: { issues: elig.issues },
+    });
+    return "blocked";
+  }
+
   try {
     // 2) Cliente
     const cli = await promoteCliente(admin, tenantId, jobId, rawCliente);
@@ -746,7 +761,7 @@ async function promoteOneProposalRow(
     });
 
     // 3) Projeto
-    const proj = await promoteProjeto(admin, tenantId, jobId, rawProjeto, cli.id);
+    const proj = await promoteProjeto(admin, tenantId, jobId, rawProjeto, cli.id, pipeline);
     await logEvent(admin, {
       jobId, tenantId, severity: "info", step: "promote.projeto",
       status: proj.created ? "created" : "linked",
