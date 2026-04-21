@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { LoadingState } from "@/components/ui-kit/LoadingState";
+import { PageHeader } from "@/components/ui-kit/PageHeader";
 import { useSolarmarketImport, type ImportScope } from "@/hooks/useSolarmarketImport";
 import { useSolarmarketConfig } from "@/hooks/useSolarmarketConfig";
 import { SolarmarketImportedTabs } from "@/components/admin/solarmarket/SolarmarketImportedTabs";
@@ -20,7 +21,16 @@ import {
 } from "@/components/ui/alert-dialog";
 import {
   Cloud, CheckCircle2, XCircle, Loader2, Download, Settings, AlertTriangle, Ban, Trash2, Eraser,
+  Users, FolderKanban, FileText, GitBranch, Sliders, Activity, Database,
 } from "lucide-react";
+
+const SCOPE_ITEMS: { k: keyof ImportScope; label: string; description: string; icon: typeof Users }[] = [
+  { k: "clientes", label: "Clientes", description: "Cadastros e contatos", icon: Users },
+  { k: "projetos", label: "Projetos", description: "Oportunidades e deals", icon: FolderKanban },
+  { k: "propostas", label: "Propostas", description: "Orçamentos comerciais", icon: FileText },
+  { k: "funis", label: "Funis e Etapas", description: "Pipelines do CRM", icon: GitBranch },
+  { k: "custom_fields", label: "Campos Customizados", description: "Atributos extras", icon: Sliders },
+];
 
 const formatBR = (iso: string | null) =>
   iso
@@ -259,86 +269,73 @@ export default function ImportacaoSolarmarket() {
   return (
     <div className="container mx-auto p-6 space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 pb-2">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-            <Cloud className="w-5 h-5 text-primary" />
-          </div>
-          <div className="space-y-1">
-            <h1 className="text-2xl font-display font-bold tracking-tight text-foreground">
-              Importação SolarMarket
-            </h1>
-            <p className="text-sm text-muted-foreground leading-relaxed">
-              Importação one-shot de Clientes, Projetos, Propostas, Funis e Campos Customizados.
-            </p>
-          </div>
-        </div>
-        <div className="flex items-center gap-2 flex-wrap shrink-0">
-          {/* Operacionais */}
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleTest}
-            disabled={!isConfigured || testConnection.isPending}
-          >
-            {testConnection.isPending ? (
-              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-            ) : (
-              <CheckCircle2 className="w-4 h-4 mr-2" />
-            )}
-            Testar conexão
-          </Button>
-          <Button asChild variant="outline" size="sm">
-            <Link to="/admin/configuracoes/integracoes/solarmarket">
-              <Settings className="w-4 h-4 mr-2" /> Configuração
-            </Link>
-          </Button>
-
-          {/* Separador visual */}
-          <span className="hidden sm:inline-block h-6 w-px bg-border mx-1" aria-hidden />
-
-          {/* Destrutivo */}
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={clearStaging.isPending || !!runningJob}
-                className="border-destructive text-destructive hover:bg-destructive/10"
-                title={runningJob ? "Há uma importação em execução. Cancele antes de limpar o staging." : undefined}
-              >
-                {clearStaging.isPending ? (
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                ) : (
-                  <Eraser className="w-4 h-4 mr-2" />
-                )}
-                Limpar dados importados
-              </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent className="w-[90vw] max-w-md">
-              <AlertDialogHeader>
-                <AlertDialogTitle>Limpar dados importados (staging)</AlertDialogTitle>
-                <AlertDialogDescription>
-                  Isso apagará apenas os dados brutos importados do SolarMarket
-                  (<code>sm_clientes_raw</code>, <code>sm_projetos_raw</code>, <code>sm_propostas_raw</code>,
-                  {" "}<code>sm_funis_raw</code>, <code>sm_custom_fields_raw</code>).
-                  <br /><br />
-                  <strong>Não afeta</strong> Clientes, Projetos ou Propostas do CRM.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                <AlertDialogAction
-                  onClick={handleClearStaging}
-                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+      <PageHeader
+        icon={Cloud}
+        title="Importação SolarMarket"
+        description="Migre e audite clientes, projetos, propostas, funis e campos customizados antes da promoção definitiva ao CRM."
+        actions={
+          <div className="flex items-center gap-2 flex-wrap">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleTest}
+              disabled={!isConfigured || testConnection.isPending}
+            >
+              {testConnection.isPending ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <CheckCircle2 className="w-4 h-4 mr-2" />
+              )}
+              Testar conexão
+            </Button>
+            <Button asChild variant="outline" size="sm">
+              <Link to="/admin/configuracoes/integracoes/solarmarket">
+                <Settings className="w-4 h-4 mr-2" /> Configuração
+              </Link>
+            </Button>
+            <span className="hidden sm:inline-block h-6 w-px bg-border mx-1" aria-hidden />
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={clearStaging.isPending || !!runningJob}
+                  className="border-destructive/40 text-destructive hover:bg-destructive/10 hover:border-destructive"
+                  title={runningJob ? "Há uma importação em execução. Cancele antes de limpar o staging." : undefined}
                 >
-                  Limpar staging
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
-        </div>
-      </div>
+                  {clearStaging.isPending ? (
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  ) : (
+                    <Eraser className="w-4 h-4 mr-2" />
+                  )}
+                  Limpar dados importados
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent className="w-[90vw] max-w-md">
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Limpar dados importados (staging)</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Isso apagará apenas os dados brutos importados do SolarMarket
+                    (<code>sm_clientes_raw</code>, <code>sm_projetos_raw</code>, <code>sm_propostas_raw</code>,
+                    {" "}<code>sm_funis_raw</code>, <code>sm_custom_fields_raw</code>).
+                    <br /><br />
+                    <strong>Não afeta</strong> Clientes, Projetos ou Propostas do CRM.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={handleClearStaging}
+                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  >
+                    Limpar staging
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </div>
+        }
+      />
 
       {/* Bloqueio se não configurado */}
       {!isConfigured && (
@@ -391,38 +388,55 @@ export default function ImportacaoSolarmarket() {
 
       {/* Escopo + Disparo */}
       <Card className="bg-card border-border shadow-sm">
-        <CardHeader>
-          <CardTitle className="text-base font-semibold">Escopo da importação</CardTitle>
+        <CardHeader className="pb-4">
+          <CardTitle className="text-base font-semibold flex items-center gap-2">
+            <Download className="w-4 h-4 text-muted-foreground" />
+            Escopo da importação
+          </CardTitle>
+          <p className="text-xs text-muted-foreground mt-1">
+            Selecione quais entidades deseja trazer do SolarMarket. Os dados ficam em staging para auditoria antes da promoção ao CRM.
+          </p>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-5">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            {(
-              [
-                { k: "clientes", label: "Clientes" },
-                { k: "projetos", label: "Projetos" },
-                { k: "propostas", label: "Propostas" },
-                { k: "funis", label: "Funis e Etapas" },
-                { k: "custom_fields", label: "Campos Customizados" },
-              ] as { k: keyof ImportScope; label: string }[]
-            ).map(({ k, label }) => (
-              <label
-                key={k}
-                className="flex items-center gap-3 p-3 rounded-lg border border-border bg-background hover:bg-muted/50 cursor-pointer transition-colors"
-              >
-                <Checkbox checked={scope[k]} onCheckedChange={() => toggle(k)} />
-                <span className="text-sm font-medium text-foreground">{label}</span>
-              </label>
-            ))}
+            {SCOPE_ITEMS.map(({ k, label, description, icon: Icon }) => {
+              const selected = scope[k];
+              return (
+                <label
+                  key={k}
+                  className={`group flex items-start gap-3 p-4 rounded-lg border cursor-pointer transition-all ${
+                    selected
+                      ? "border-primary/40 bg-primary/5 shadow-sm"
+                      : "border-border bg-background hover:bg-muted/40 hover:border-border"
+                  }`}
+                >
+                  <div className={`h-9 w-9 rounded-lg flex items-center justify-center shrink-0 transition-colors ${
+                    selected ? "bg-primary/15 text-primary" : "bg-muted text-muted-foreground group-hover:bg-muted/80"
+                  }`}>
+                    <Icon className="w-4 h-4" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-sm font-semibold text-foreground">{label}</span>
+                      <Checkbox checked={selected} onCheckedChange={() => toggle(k)} />
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-0.5">{description}</p>
+                  </div>
+                </label>
+              );
+            })}
           </div>
 
-          <div className="flex items-center justify-between pt-2 border-t border-border">
-            <p className="text-xs text-muted-foreground">
-              Importação idempotente via <code>external_source</code> + <code>external_id</code>.
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-4 border-t border-border">
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              Importação idempotente via <code className="font-mono text-[11px]">external_source</code> + <code className="font-mono text-[11px]">external_id</code>.
               Throttle de 60 req/min com backoff em 429.
             </p>
             <Button
+              size="lg"
               onClick={handleImport}
               disabled={!isConfigured || importAll.isPending || !!runningJob}
+              className="shrink-0"
             >
               {importAll.isPending || runningJob ? (
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -435,32 +449,45 @@ export default function ImportacaoSolarmarket() {
         </CardContent>
       </Card>
 
-      {/* Progresso ao vivo */}
+      {/* Hero card de progresso */}
       {runningJob && (
-        <Card id={`sm-job-${runningJob.id}`} className="border-l-[3px] border-l-info bg-card shadow-sm scroll-mt-6">
-          <CardContent className="p-5 space-y-3">
-            <div className="flex items-center justify-between gap-3">
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-foreground">
-                  Importação em andamento
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  Etapa atual:{" "}
-                  <span className="font-medium text-foreground">
-                    {stepLabel(runningJob.current_step)}
-                  </span>
-                  {" · "}
-                  {Math.round(Number(runningJob.progress_pct ?? 0))}%
-                </p>
+        <Card
+          id={`sm-job-${runningJob.id}`}
+          className="border-l-[3px] border-l-info bg-card shadow-sm scroll-mt-6 overflow-hidden"
+        >
+          <CardContent className="p-5 sm:p-6 space-y-5">
+            {/* Topo: título + status + ações */}
+            <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+              <div className="flex items-start gap-3 min-w-0 flex-1">
+                <div className="h-10 w-10 rounded-lg bg-info/10 flex items-center justify-center shrink-0">
+                  <Activity className="w-5 h-5 text-info" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h2 className="text-base font-semibold text-foreground">
+                      Importação em andamento
+                    </h2>
+                    <Badge variant="outline" className="bg-info/10 text-info border-info/20 gap-1.5">
+                      <span className="relative flex h-1.5 w-1.5">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-info opacity-75" />
+                        <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-info" />
+                      </span>
+                      {stepLabel(runningJob.current_step)}
+                    </Badge>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Iniciada em {formatBR(runningJob.started_at ?? runningJob.created_at)}
+                    {etaText ? ` · ${etaText}` : ""}
+                  </p>
+                </div>
               </div>
-              <div className="flex items-center gap-2">
-                <Loader2 className="w-5 h-5 animate-spin text-info" />
+              <div className="flex items-center gap-2 shrink-0">
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => handleCancel()}
                   disabled={cancelImport.isPending}
-                  className="border-destructive text-destructive hover:bg-destructive/10"
+                  className="border-destructive/40 text-destructive hover:bg-destructive/10 hover:border-destructive"
                 >
                   {cancelImport.isPending ? (
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -471,36 +498,74 @@ export default function ImportacaoSolarmarket() {
                 </Button>
               </div>
             </div>
-            {isStale && (
-              <div className="flex items-start gap-2 rounded-md border border-warning/30 bg-warning/5 p-2 text-xs text-warning">
-                <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
-                <span>
-                  Sem progresso há mais de 10 minutos. A importação pode ter travado —
-                  se os contadores não estiverem subindo, clique em <strong>Cancelar</strong> para liberar e tentar novamente.
+
+            {/* Barra de progresso premium */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                  Progresso geral
+                </span>
+                <span className="text-sm font-bold tabular-nums text-foreground">
+                  {Math.round(Number(runningJob.progress_pct ?? 0))}%
                 </span>
               </div>
+              <Progress value={Number(runningJob.progress_pct ?? 0)} className="h-2.5" />
+            </div>
+
+            {/* Alerta de travamento */}
+            {isStale && (
+              <div className="flex items-start gap-3 rounded-lg border border-warning/30 bg-warning/10 p-3">
+                <div className="h-8 w-8 rounded-md bg-warning/20 flex items-center justify-center shrink-0">
+                  <AlertTriangle className="w-4 h-4 text-warning" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-foreground">
+                    Sem progresso há mais de 10 minutos
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Se os contadores não estiverem subindo, a importação pode ter travado. Clique em <strong className="text-foreground">Cancelar</strong> para liberar e tentar novamente.
+                  </p>
+                </div>
+              </div>
             )}
-            <Progress value={Number(runningJob.progress_pct ?? 0)} />
-            {/* Contadores reais (staging) — única fonte de verdade */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-2">
-              <div className="rounded-md border border-border bg-muted/30 p-2">
-                <p className="text-[10px] uppercase text-muted-foreground tracking-wide">Clientes</p>
-                <p className="text-sm font-mono font-semibold text-foreground">{liveCounts.data?.clientes ?? runningJob.total_clientes ?? 0}</p>
-              </div>
-              <div className="rounded-md border border-border bg-muted/30 p-2">
-                <p className="text-[10px] uppercase text-muted-foreground tracking-wide">Projetos</p>
-                <p className="text-sm font-mono font-semibold text-foreground">{liveCounts.data?.projetos ?? runningJob.total_projetos ?? 0}</p>
-              </div>
-              <div className="rounded-md border border-border bg-muted/30 p-2">
-                <p className="text-[10px] uppercase text-muted-foreground tracking-wide">Propostas</p>
-                <p className="text-sm font-mono font-semibold text-foreground">{liveCounts.data?.propostas ?? runningJob.total_propostas ?? 0}</p>
-              </div>
-              <div className="rounded-md border border-border bg-muted/30 p-2">
-                <p className="text-[10px] uppercase text-muted-foreground tracking-wide">Erros</p>
-                <p className={`text-sm font-mono font-semibold ${(runningJob.total_errors ?? 0) > 0 ? "text-destructive" : "text-foreground"}`}>
-                  {runningJob.total_errors ?? 0}
-                </p>
-              </div>
+
+            {/* KPIs em tempo real */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              {[
+                { label: "Clientes", value: liveCounts.data?.clientes ?? runningJob.total_clientes ?? 0, icon: Users, tone: "primary" as const },
+                { label: "Projetos", value: liveCounts.data?.projetos ?? runningJob.total_projetos ?? 0, icon: FolderKanban, tone: "info" as const },
+                { label: "Propostas", value: liveCounts.data?.propostas ?? runningJob.total_propostas ?? 0, icon: FileText, tone: "secondary" as const },
+                {
+                  label: "Erros",
+                  value: runningJob.total_errors ?? 0,
+                  icon: XCircle,
+                  tone: ((runningJob.total_errors ?? 0) > 0 ? "destructive" : "muted") as "destructive" | "muted",
+                },
+              ].map(({ label, value, icon: Icon, tone }) => {
+                const toneMap = {
+                  primary: { border: "border-l-primary", bg: "bg-primary/10", text: "text-primary" },
+                  info: { border: "border-l-info", bg: "bg-info/10", text: "text-info" },
+                  secondary: { border: "border-l-secondary", bg: "bg-secondary/10", text: "text-secondary" },
+                  destructive: { border: "border-l-destructive", bg: "bg-destructive/10", text: "text-destructive" },
+                  muted: { border: "border-l-muted-foreground/30", bg: "bg-muted", text: "text-muted-foreground" },
+                }[tone];
+                return (
+                  <div
+                    key={label}
+                    className={`border-l-[3px] ${toneMap.border} bg-background border border-border rounded-lg p-3 flex items-center gap-3`}
+                  >
+                    <div className={`h-9 w-9 rounded-lg flex items-center justify-center shrink-0 ${toneMap.bg}`}>
+                      <Icon className={`w-4 h-4 ${toneMap.text}`} />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-lg font-bold tracking-tight text-foreground leading-none tabular-nums">
+                        {value.toLocaleString("pt-BR")}
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-1 truncate">{label}</p>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </CardContent>
         </Card>
@@ -512,7 +577,10 @@ export default function ImportacaoSolarmarket() {
       {/* Histórico */}
       <Card className="bg-card border-border shadow-sm">
         <CardHeader className="flex flex-row items-center justify-between space-y-0">
-          <CardTitle className="text-base font-semibold">Histórico</CardTitle>
+          <CardTitle className="text-base font-semibold flex items-center gap-2">
+            <Database className="w-4 h-4 text-muted-foreground" />
+            Histórico de importações
+          </CardTitle>
           {jobs.some((j) => j.status !== "running" && j.status !== "pending") && (
             <AlertDialog>
               <AlertDialogTrigger asChild>
