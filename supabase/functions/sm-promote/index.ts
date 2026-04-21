@@ -7,7 +7,7 @@
 // - RB-58: UPDATEs críticos validam afetação com .select().
 // - RB-23: sem console.log ativo (apenas console.error com prefixo do módulo).
 // - DA-40: sem hardcode de pipeline/consultor — resolução por DB ou metadata.
-// - SSOT idempotência: external_entity_links (source=solar_market).
+// - SSOT idempotência: external_entity_links (source=solarmarket).
 // - Apenas grava em domínio canônico via service-role; tenant_id sempre explícito.
 
 import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.45.4";
@@ -25,7 +25,8 @@ const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-const SOURCE = "solar_market";
+const SOURCE = "solarmarket";
+const SOURCE_ALIASES = [SOURCE, "solar_market"] as const;
 const DEFAULT_BATCH_LIMIT = 50;
 const MAX_BATCH_LIMIT = 200;
 
@@ -151,13 +152,13 @@ async function logEvent(
     step: p.step,
     status: p.status,
     message: p.message,
-    source_entity_type: p.sourceEntityType ?? null,
-    source_entity_id: p.sourceEntityId ?? null,
+    source_entity_type: p.sourceEntityType ?? "job",
+    source_entity_id: p.sourceEntityId ?? p.jobId,
     canonical_entity_type: p.canonicalEntityType ?? null,
     canonical_entity_id: p.canonicalEntityId ?? null,
     error_code: p.errorCode ?? null,
     error_origin: p.errorOrigin ?? null,
-    details: p.details ?? null,
+    details: p.details ?? {},
   });
   if (error) console.error(`[${MODULE}] log fail:`, error.message);
 }
@@ -173,11 +174,12 @@ async function findLink(
     .from("external_entity_links")
     .select("entity_id")
     .eq("tenant_id", tenantId)
-    .eq("source", SOURCE)
+    .in("source", [...SOURCE_ALIASES])
     .eq("source_entity_type", sourceEntityType)
     .eq("source_entity_id", sourceEntityId)
     .maybeSingle();
   if (error) throw new Error(`findLink: ${error.message}`);
+  return typeof data?.entity_id === "string" ? data.entity_id : null;
 }
 
 // Lista os source_entity_id já promovidos para um tipo canônico no tenant.
@@ -194,7 +196,7 @@ async function fetchPromotedSourceIds(
       .from("external_entity_links")
       .select("source_entity_id")
       .eq("tenant_id", tenantId)
-      .eq("source", SOURCE)
+      .in("source", [...SOURCE_ALIASES])
       .eq("source_entity_type", sourceEntityType)
       .range(from, from + pageSize - 1);
     if (error) throw new Error(`fetchPromotedSourceIds: ${error.message}`);
@@ -407,7 +409,7 @@ async function promoteCliente(
     .from("clientes")
     .select("id")
     .eq("tenant_id", tenantId)
-    .eq("external_source", SOURCE)
+    .in("external_source", [...SOURCE_ALIASES])
     .eq("external_id", norm.external_id)
     .maybeSingle();
   if (byExt?.id) {
@@ -416,6 +418,17 @@ async function promoteCliente(
   }
 
   const cliente_code = `SM-${norm.external_id}`.slice(0, 32);
+  const { data: byCode } = await admin
+    .from("clientes")
+    .select("id")
+    .eq("tenant_id", tenantId)
+    .eq("cliente_code", cliente_code)
+    .maybeSingle();
+  if (byCode?.id) {
+    await upsertLink(admin, tenantId, jobId, "cliente", byCode.id as string, "cliente", norm.external_id, { matched_by: "cliente_code" });
+    return { id: byCode.id as string, created: false };
+  }
+
   const { data, error } = await admin
     .from("clientes")
     .insert({
@@ -440,7 +453,19 @@ async function promoteCliente(
     })
     .select("id")
     .single();
-  if (error || !data?.id) throw new Error(`insert cliente: ${error?.message}`);
+  if (error || !data?.id) {
+    const { data: duplicateByCode } = await admin
+      .from("clientes")
+      .select("id")
+      .eq("tenant_id", tenantId)
+      .eq("cliente_code", cliente_code)
+      .maybeSingle();
+    if (duplicateByCode?.id) {
+      await upsertLink(admin, tenantId, jobId, "cliente", duplicateByCode.id as string, "cliente", norm.external_id, { matched_by: "cliente_code_duplicate" });
+      return { id: duplicateByCode.id as string, created: false };
+    }
+    throw new Error(`insert cliente: ${error?.message}`);
+  }
 
   await upsertLink(admin, tenantId, jobId, "cliente", data.id as string, "cliente", norm.external_id);
   return { id: data.id as string, created: true };
@@ -463,6 +488,29 @@ async function promoteProjeto(
   if (existing) return { id: existing, created: false };
 
   const codigo = `SM-PROJ-${norm.external_id}`.slice(0, 32);
+  const { data: byExt } = await admin
+    .from("projetos")
+    .select("id")
+    .eq("tenant_id", tenantId)
+    .in("external_source", [...SOURCE_ALIASES])
+    .eq("external_id", norm.external_id)
+    .maybeSingle();
+  if (byExt?.id) {
+    await upsertLink(admin, tenantId, jobId, "projeto", byExt.id as string, "projeto", norm.external_id, { matched_by: "external_id" });
+    return { id: byExt.id as string, created: false };
+  }
+
+  const { data: byCode } = await admin
+    .from("projetos")
+    .select("id")
+    .eq("tenant_id", tenantId)
+    .eq("codigo", codigo)
+    .maybeSingle();
+  if (byCode?.id) {
+    await upsertLink(admin, tenantId, jobId, "projeto", byCode.id as string, "projeto", norm.external_id, { matched_by: "codigo" });
+    return { id: byCode.id as string, created: false };
+  }
+
   const stageId = resolveStageForStatus(pipeline, canonicalStatus);
   const insertPayload: AnyObj = {
     tenant_id: tenantId,
@@ -480,7 +528,19 @@ async function promoteProjeto(
     .insert(insertPayload)
     .select("id")
     .single();
-  if (error || !data?.id) throw new Error(`insert projeto: ${error?.message}`);
+  if (error || !data?.id) {
+    const { data: duplicateByCode } = await admin
+      .from("projetos")
+      .select("id")
+      .eq("tenant_id", tenantId)
+      .eq("codigo", codigo)
+      .maybeSingle();
+    if (duplicateByCode?.id) {
+      await upsertLink(admin, tenantId, jobId, "projeto", duplicateByCode.id as string, "projeto", norm.external_id, { matched_by: "codigo_duplicate" });
+      return { id: duplicateByCode.id as string, created: false };
+    }
+    throw new Error(`insert projeto: ${error?.message}`);
+  }
 
   await upsertLink(admin, tenantId, jobId, "projeto", data.id as string, "projeto", norm.external_id);
   return { id: data.id as string, created: true };
