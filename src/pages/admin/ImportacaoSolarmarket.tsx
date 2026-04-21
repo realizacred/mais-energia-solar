@@ -126,10 +126,12 @@ export default function ImportacaoSolarmarket() {
   });
 
   // Qualquer job em "pending"/"running" é considerado ativo (e cancelável).
-  // Se passou de 10 min, marcamos como "stale" para o usuário ver e cancelar.
+  // "Stale" = sem progresso real há mais de 10 min (usa updated_at do job, que é
+  // tocado a cada batch). Não usar started_at: importações grandes levam horas
+  // e continuam saudáveis enquanto os contadores sobem.
   const runningJob = jobs.find((j) => j.status === "pending" || j.status === "running");
   const isStale = runningJob
-    ? Date.now() - new Date(runningJob.started_at ?? runningJob.created_at).getTime() > 10 * 60 * 1000
+    ? Date.now() - new Date(runningJob.updated_at ?? runningJob.started_at ?? runningJob.created_at).getTime() > 10 * 60 * 1000
     : false;
 
   useEffect(() => {
@@ -473,8 +475,8 @@ export default function ImportacaoSolarmarket() {
               <div className="flex items-start gap-2 rounded-md border border-warning/30 bg-warning/5 p-2 text-xs text-warning">
                 <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
                 <span>
-                  Esta importação está em execução há mais de 10 minutos sem progresso.
-                  Provavelmente travou — clique em <strong>Cancelar</strong> para liberar e tentar novamente.
+                  Sem progresso há mais de 10 minutos. A importação pode ter travado —
+                  se os contadores não estiverem subindo, clique em <strong>Cancelar</strong> para liberar e tentar novamente.
                 </span>
               </div>
             )}
