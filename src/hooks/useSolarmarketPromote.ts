@@ -29,6 +29,7 @@ export type PromotionJob = {
   items_skipped: number;
   items_with_warnings: number;
   items_with_errors: number;
+  items_blocked: number;
   error_summary: unknown;
   started_at: string | null;
   finished_at: string | null;
