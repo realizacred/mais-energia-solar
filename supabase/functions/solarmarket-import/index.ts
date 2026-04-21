@@ -8,6 +8,7 @@
 // Fallback aos secrets SOLARMARKET_API_URL / SOLARMARKET_API_TOKEN para retrocompat.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { extractFileUrls } from "../_shared/extractFileUrls.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
