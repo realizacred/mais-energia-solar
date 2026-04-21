@@ -570,8 +570,27 @@ async function insertVersao(
 // ─── Resolver de pipeline / etapa (DA-40: sem hardcode) ─────────────────────
 interface PipelineResolution {
   funilId: string | null;
-  etapaId: string | null;
+  etapaId: string | null;                 // etapa default (fallback quando status não casa)
   hasPipelineConfigured: boolean;
+  /** Mapa status canônico → stage_id (mapeamento por nome de stage). */
+  stageByStatus: Record<string, string>;
+}
+
+/**
+ * Mapeamento status canônico → nome do stage no pipeline Comercial.
+ * Match case-insensitive, normalizado (sem acento).
+ */
+const STATUS_STAGE_NAME: Record<string, string[]> = {
+  rascunho: ["novo lead", "recebido", "lead", "novo"],
+  gerada:   ["proposta criada", "enviar proposta", "proposta gerada"],
+  enviada:  ["proposta enviada", "enviada", "negociacao", "negociação", "qualificado"],
+  aceita:   ["fechado", "ganho", "venda fechada", "aceita"],
+  recusada: ["perdido", "recusado", "perdida"],
+  expirada: ["expirado", "expirada"],
+};
+
+function norm(s: string): string {
+  return s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
 }
 
 async function resolveDefaultPipeline(
@@ -582,12 +601,12 @@ async function resolveDefaultPipeline(
     .from("pipelines").select("id").eq("tenant_id", tenantId).limit(1);
   const hasPipelineConfigured = (anyPipe?.length ?? 0) > 0;
   if (!hasPipelineConfigured) {
-    return { funilId: null, etapaId: null, hasPipelineConfigured: false };
+    return { funilId: null, etapaId: null, hasPipelineConfigured: false, stageByStatus: {} };
   }
 
   const { data: pComercial } = await admin
-    .from("pipelines").select("id, nome")
-    .eq("tenant_id", tenantId).ilike("nome", "comercial").limit(1).maybeSingle();
+    .from("pipelines").select("id, name")
+    .eq("tenant_id", tenantId).ilike("name", "comercial").limit(1).maybeSingle();
   let funilId = (pComercial?.id as string | undefined);
   if (!funilId) {
     const { data: pFirst } = await admin
@@ -595,18 +614,30 @@ async function resolveDefaultPipeline(
       .order("created_at", { ascending: true }).limit(1).maybeSingle();
     funilId = pFirst?.id as string | undefined;
   }
-  if (!funilId) return { funilId: null, etapaId: null, hasPipelineConfigured: true };
+  if (!funilId) return { funilId: null, etapaId: null, hasPipelineConfigured: true, stageByStatus: {} };
 
-  const { data: etapa } = await admin
-    .from("pipeline_stages").select("id")
+  const { data: stages } = await admin
+    .from("pipeline_stages").select("id, name, position")
     .eq("tenant_id", tenantId).eq("pipeline_id", funilId)
-    .order("ordem", { ascending: true }).limit(1).maybeSingle();
+    .order("position", { ascending: true });
 
-  return {
-    funilId,
-    etapaId: (etapa?.id as string | undefined) ?? null,
-    hasPipelineConfigured: true,
-  };
+  const list = (stages ?? []) as Array<{ id: string; name: string; position: number }>;
+  const etapaId = list[0]?.id ?? null;
+
+  // Construir mapa status → stage_id por match de nome (primeiro alias que casar).
+  const stageByStatus: Record<string, string> = {};
+  for (const [status, aliases] of Object.entries(STATUS_STAGE_NAME)) {
+    const aliasesNorm = aliases.map(norm);
+    const found = list.find((s) => aliasesNorm.includes(norm(s.name)));
+    if (found) stageByStatus[status] = found.id;
+  }
+
+  return { funilId, etapaId, hasPipelineConfigured: true, stageByStatus };
+}
+
+/** Resolve etapa para um status canônico, com fallback para etapa default. */
+function resolveStageForStatus(pipeline: PipelineResolution, status: string): string | null {
+  return pipeline.stageByStatus[status] ?? pipeline.etapaId;
 }
 
 // ─── Resolver de consultor (DA-40: sem hardcode; fallback "Escritório") ─────
