@@ -178,8 +178,34 @@ async function findLink(
     .eq("source_entity_id", sourceEntityId)
     .maybeSingle();
   if (error) throw new Error(`findLink: ${error.message}`);
-  return (data?.entity_id as string) ?? null;
 }
+
+// Lista os source_entity_id já promovidos para um tipo canônico no tenant.
+// Usado para excluir staging já processado do batch de candidatos (escala).
+async function fetchPromotedSourceIds(
+  admin: SupabaseClient,
+  tenantId: string,
+  sourceEntityType: string,
+): Promise<string[]> {
+  const pageSize = 1000;
+  const out: string[] = [];
+  for (let from = 0; ; from += pageSize) {
+    const { data, error } = await admin
+      .from("external_entity_links")
+      .select("source_entity_id")
+      .eq("tenant_id", tenantId)
+      .eq("source", SOURCE)
+      .eq("source_entity_type", sourceEntityType)
+      .range(from, from + pageSize - 1);
+    if (error) throw new Error(`fetchPromotedSourceIds: ${error.message}`);
+    if (!data || data.length === 0) break;
+    for (const r of data) {
+      const v = (r as AnyObj).source_entity_id;
+      if (typeof v === "string" && v.length) out.push(v);
+    }
+    if (data.length < pageSize) break;
+  }
+  return out;
 
 async function upsertLink(
   admin: SupabaseClient,
