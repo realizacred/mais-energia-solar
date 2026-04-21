@@ -668,7 +668,8 @@ async function promoteProposta(
       titulo: norm.nome,
       codigo,
       versao_atual: 1,
-      origem: SOURCE,
+      // chk_origem aceita apenas 'native' | 'imported'. Rastro do SM fica em external_source/external_id.
+      origem: "imported",
       status,
       enviada_at: norm.sent_at,
       aceita_at: norm.accepted_at,
