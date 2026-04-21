@@ -784,6 +784,11 @@ export default function ImportacaoSolarmarket() {
           </Card>
         </section>
       </div>
+      <ImportErrorsDialog
+        jobId={errorsJobId}
+        open={!!errorsJobId}
+        onOpenChange={(o) => !o && setErrorsJobId(null)}
+      />
     </div>
   );
 }
