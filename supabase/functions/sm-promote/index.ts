@@ -32,11 +32,10 @@ const MAX_BATCH_LIMIT = 200;
 type CanonicalEntity = "cliente" | "projeto" | "proposta" | "versao";
 type Severity = "info" | "warning" | "error";
 type JobStatus =
-  | "queued"
+  | "pending"
   | "running"
   | "completed"
   | "completed_with_warnings"
-  | "completed_with_errors"
   | "failed"
   | "cancelled";
 
@@ -100,7 +99,7 @@ async function createJob(
       triggered_by: userId,
       trigger_source: "ui",
       job_type: jobType,
-      status: "queued" satisfies JobStatus,
+      status: "pending" satisfies JobStatus,
       filters,
       metadata: {},
     })
@@ -769,11 +768,9 @@ async function actionPromoteAll(
     await promoteOneProposalRow(admin, state, jobId, tenantId, row);
   }
 
-  const finalStatus: JobStatus = state.counters.errors > 0
-    ? "completed_with_errors"
-    : state.counters.warnings > 0 || state.counters.skipped > 0
-      ? "completed_with_warnings"
-      : "completed";
+  const finalStatus: JobStatus = state.counters.errors > 0 || state.counters.warnings > 0 || state.counters.skipped > 0
+    ? "completed_with_warnings"
+    : "completed";
 
   await patchJob(admin, jobId, {
     status: finalStatus,
@@ -812,7 +809,7 @@ async function actionCancelJob(
       error_summary: { cancel_reason: reason },
     })
     .eq("id", jobId).eq("tenant_id", tenantId)
-    .in("status", ["queued", "running"])
+    .in("status", ["pending", "running"])
     .select("id");
   if (error) return jsonResponse({ ok: false, error: error.message }, 500);
   if (!data || data.length === 0) {
