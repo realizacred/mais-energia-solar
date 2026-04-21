@@ -680,7 +680,8 @@ async function promoteOneProposalRow(
   jobId: string,
   tenantId: string,
   rawProposalRow: AnyObj,
-): Promise<"promoted" | "skipped" | "error"> {
+  pipeline: PipelineResolution,
+): Promise<"promoted" | "skipped" | "blocked" | "error"> {
   const propostaPayload: AnyObj = rawProposalRow.payload ?? {};
   const propExtId = pickStr(propostaPayload.id) ?? rawProposalRow.external_id;
   if (!propExtId) {
