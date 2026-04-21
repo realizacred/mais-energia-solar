@@ -39,6 +39,8 @@ type JobStatus =
   | "failed"
   | "cancelled";
 
+type PromotionLogStatus = "ok" | "skipped" | "warning" | "error";
+
 interface RequestState {
   startedAt: number;
   jobId: string | null;
@@ -52,6 +54,15 @@ interface RequestState {
     errors: number;
     processed: number;
   };
+}
+
+function normalizePromotionLogStatus(status: string, severity: Severity): PromotionLogStatus {
+  if (status === "ok" || status === "skipped" || status === "warning" || status === "error") {
+    return status;
+  }
+  if (status === "blocked") return "error";
+  if (status === "cancelled") return "warning";
+  return severity === "info" ? "ok" : severity;
 }
 
 function createInitialState(): RequestState {
