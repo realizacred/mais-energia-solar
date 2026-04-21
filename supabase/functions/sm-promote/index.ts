@@ -29,7 +29,157 @@ const SOURCE = "solarmarket";
 const LEGACY_SM_SOURCES = [SOURCE, "solar_market"] as const;
 const DEFAULT_BATCH_LIMIT = 50;
 const MAX_BATCH_LIMIT = 200;
-...
+
+type CanonicalEntity = "cliente" | "projeto" | "proposta" | "versao";
+type Severity = "info" | "warning" | "error";
+type JobStatus =
+  | "pending"
+  | "running"
+  | "completed"
+  | "completed_with_warnings"
+  | "failed"
+  | "cancelled";
+
+type PromotionLogStatus = "ok" | "skipped" | "warning" | "error";
+
+interface RequestState {
+  startedAt: number;
+  jobId: string | null;
+  tenantId: string | null;
+  userId: string | null;
+  counters: {
+    promoted: number;
+    skipped: number;
+    blocked: number;
+    warnings: number;
+    errors: number;
+    processed: number;
+  };
+}
+
+function normalizePromotionLogStatus(status: string, severity: Severity): PromotionLogStatus {
+  if (status === "ok" || status === "skipped" || status === "warning" || status === "error") {
+    return status;
+  }
+  if (status === "blocked") return "error";
+  if (status === "cancelled") return "warning";
+  return severity === "info" ? "ok" : severity;
+}
+
+function createInitialState(): RequestState {
+  return {
+    startedAt: Date.now(),
+    jobId: null,
+    tenantId: null,
+    userId: null,
+    counters: { promoted: 0, skipped: 0, blocked: 0, warnings: 0, errors: 0, processed: 0 },
+  };
+}
+
+function jsonResponse(body: unknown, status = 200): Response {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+}
+
+// ─── Auth ────────────────────────────────────────────────────────────────────
+async function resolveUserContext(authHeader: string | null) {
+  if (!authHeader) return null;
+  const userClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    global: { headers: { Authorization: authHeader } },
+    auth: { persistSession: false },
+  });
+  const { data: u, error: ue } = await userClient.auth.getUser();
+  if (ue || !u?.user) return null;
+  const { data: tenantId, error: te } = await userClient.rpc("get_user_tenant_id");
+  if (te || !tenantId) return null;
+  return { userId: u.user.id, tenantId: tenantId as string };
+}
+
+// ─── Jobs / logs ─────────────────────────────────────────────────────────────
+async function createJob(
+  admin: SupabaseClient,
+  tenantId: string,
+  userId: string,
+  jobType: string,
+  filters: Record<string, unknown>,
+): Promise<string> {
+  const { data, error } = await admin
+    .from("solarmarket_promotion_jobs")
+    .insert({
+      tenant_id: tenantId,
+      triggered_by: userId,
+      trigger_source: "manual",
+      job_type: jobType,
+      status: "pending" satisfies JobStatus,
+      filters,
+      metadata: {},
+    })
+    .select("id")
+    .single();
+  if (error || !data?.id) {
+    throw new Error(`Falha ao criar job: ${error?.message ?? "sem id"}`);
+  }
+  return data.id as string;
+}
+
+async function patchJob(
+  admin: SupabaseClient,
+  jobId: string,
+  patch: Record<string, unknown>,
+): Promise<void> {
+  const { data, error } = await admin
+    .from("solarmarket_promotion_jobs")
+    .update(patch).eq("id", jobId).select("id");
+  if (error) throw new Error(`patchJob ${jobId}: ${error.message}`);
+  if (!data || data.length === 0) {
+    throw new Error(`patchJob ${jobId}: 0 linhas afetadas`);
+  }
+}
+
+async function logEvent(
+  admin: SupabaseClient,
+  p: {
+    jobId: string;
+    tenantId: string;
+    severity: Severity;
+    step: string;
+    status: string;
+    message: string;
+    sourceEntityType?: string | null;
+    sourceEntityId?: string | null;
+    canonicalEntityType?: CanonicalEntity | null;
+    canonicalEntityId?: string | null;
+    errorCode?: string | null;
+    errorOrigin?: string | null;
+    details?: Record<string, unknown> | null;
+  },
+): Promise<void> {
+  const normalizedStatus = normalizePromotionLogStatus(p.status, p.severity);
+  const normalizedSourceEntityId = p.sourceEntityId ?? p.canonicalEntityId ?? p.jobId;
+  const { error } = await admin.from("solarmarket_promotion_logs").insert({
+    job_id: p.jobId,
+    tenant_id: p.tenantId,
+    severity: p.severity,
+    step: p.step,
+    status: normalizedStatus,
+    message: p.message,
+    source_entity_type: p.sourceEntityType ?? null,
+    source_entity_id: normalizedSourceEntityId,
+    canonical_entity_type: p.canonicalEntityType ?? null,
+    canonical_entity_id: p.canonicalEntityId ?? null,
+    error_code: p.errorCode ?? null,
+    error_origin: p.errorOrigin ?? null,
+    details: {
+      raw_status: p.status,
+      ...(p.details ?? {}),
+    },
+  });
+  if (error) console.error(`[${MODULE}] log fail:`, error.message);
+}
+
+// ─── Idempotência: external_entity_links (SSOT) ──────────────────────────────
 async function findLink(
   admin: SupabaseClient,
   tenantId: string,
@@ -47,7 +197,9 @@ async function findLink(
   if (error) throw new Error(`findLink: ${error.message}`);
   return (data as { entity_id?: string } | null)?.entity_id ?? null;
 }
-...
+
+// Lista os source_entity_id já promovidos para um tipo canônico no tenant.
+// Usado para excluir staging já processado do batch de candidatos (escala).
 async function fetchPromotedSourceIds(
   admin: SupabaseClient,
   tenantId: string,
@@ -100,13 +252,162 @@ async function upsertLink(
   );
   if (error) throw new Error(`upsertLink ${entityType}/${sourceEntityId}: ${error.message}`);
 }
-...
+
+// ─── Normalizadores SM → canônico ────────────────────────────────────────────
+type AnyObj = Record<string, any>;
+
+function pickStr(v: unknown): string | null {
+  if (v === null || v === undefined) return null;
+  const s = String(v).trim();
+  return s.length ? s : null;
+}
+function pickNum(v: unknown): number | null {
+  if (v === null || v === undefined || v === "") return null;
+  const n = typeof v === "number" ? v : Number(String(v).replace(",", "."));
+  return Number.isFinite(n) ? n : null;
+}
+function onlyDigits(v: unknown): string | null {
+  const s = pickStr(v);
+  return s ? s.replace(/\D+/g, "") || null : null;
+}
+
+function normalizeSmClient(raw: AnyObj) {
+  const c = raw?.client ?? raw ?? {};
+  return {
+    external_id: pickStr(c.id ?? raw.id),
+    nome: pickStr(c.name ?? c.nome) ?? "Cliente sem nome",
+    email: pickStr(c.email),
+    telefone: onlyDigits(c.primaryPhone ?? c.phone ?? c.telefone) ?? "",
+    cpf_cnpj: onlyDigits(c.cnpjCpf ?? c.cpfCnpj ?? c.cpf_cnpj),
+    cep: onlyDigits(c.zipCode ?? c.cep),
+    estado: pickStr(c.state ?? c.estado),
+    cidade: pickStr(c.city ?? c.cidade),
+    bairro: pickStr(c.neighborhood ?? c.bairro),
+    rua: pickStr(c.street ?? c.address ?? c.rua),
+    numero: pickStr(c.number ?? c.numero),
+    complemento: pickStr(c.complement ?? c.complemento),
+    empresa: pickStr(c.company),
+  };
+}
+
+function normalizeSmProject(raw: AnyObj) {
+  return {
+    external_id: pickStr(raw.id),
+    nome: pickStr(raw.name) ?? "Projeto SolarMarket",
+    descricao: pickStr(raw.description),
+    client_external_id: pickStr(raw.client?.id),
+    client: raw.client ?? null,
+    responsible_email: pickStr(raw.responsible?.email),
+    responsible_name: pickStr(raw.responsible?.name),
+    created_at_source: pickStr(raw.createdAt),
+  };
+}
+
+function normalizeSmProposal(raw: AnyObj) {
+  const pricing = Array.isArray(raw.pricingTable) ? raw.pricingTable : [];
+  const variables = Array.isArray(raw.variables) ? raw.variables : [];
+  const valor_total = pricing.reduce(
+    (acc: number, it: AnyObj) => acc + (pickNum(it.salesValue ?? it.totalValue) ?? 0),
+    0,
+  );
+  return {
+    external_id: pickStr(raw.id),
+    nome: pickStr(raw.name) ?? "Proposta SolarMarket",
+    descricao: pickStr(raw.description),
+    status_source: pickStr(raw.status),
+    link_pdf: pickStr(raw.linkPdf),
+    project_external_id: pickStr(raw.project?.id),
+    project_name: pickStr(raw.project?.name),
+    created_at_source: pickStr(raw.createdAt),
+    generated_at: pickStr(raw.generatedAt),
+    sent_at: pickStr(raw.sendAt),
+    viewed_at: pickStr(raw.viewedAt),
+    accepted_at: pickStr(raw.acceptanceDate),
+    rejected_at: pickStr(raw.rejectionDate),
+    expires_at: pickStr(raw.expirationDate),
+    valor_total: valor_total > 0 ? valor_total : null,
+    pricing_table: pricing,
+    variables,
+  };
+}
+
+// Builder de snapshot canônico mínimo (compatível com resolveAllVariables).
+// Mantém raw_sm para auditoria. Estrutura plana com chaves canônicas.
+function buildCanonicalSnapshot(args: {
+  cliente: ReturnType<typeof normalizeSmClient>;
+  projeto: ReturnType<typeof normalizeSmProject>;
+  proposta: ReturnType<typeof normalizeSmProposal>;
+  rawClient: AnyObj;
+  rawProject: AnyObj;
+  rawProposal: AnyObj;
+}): AnyObj {
+  const { cliente, projeto, proposta } = args;
+
+  // Variáveis SM viram um dicionário item→value para facilitar lookup
+  const smVars: Record<string, unknown> = {};
+  for (const v of proposta.variables as AnyObj[]) {
+    const k = pickStr(v?.item);
+    if (k) smVars[k] = v?.value ?? v?.formattedValue ?? null;
+  }
+
   return {
     source: SOURCE,
     source_version: "v3",
     cliente: {
       nome: cliente.nome,
-...
+      email: cliente.email,
+      telefone: cliente.telefone,
+      cpf_cnpj: cliente.cpf_cnpj,
+      endereco: {
+        cep: cliente.cep,
+        rua: cliente.rua,
+        numero: cliente.numero,
+        complemento: cliente.complemento,
+        bairro: cliente.bairro,
+        cidade: cliente.cidade,
+        estado: cliente.estado,
+      },
+    },
+    projeto: {
+      nome: projeto.nome,
+      descricao: projeto.descricao,
+    },
+    financeiro: {
+      valor_total: proposta.valor_total,
+      pricing_table: proposta.pricing_table,
+    },
+    geracao: {
+      potencia_kwp: pickNum(smVars["Potência do Sistema (kWp)"] ?? smVars["potencia_kwp"]),
+      geracao_mensal: pickNum(smVars["Geração Mensal (kWh)"]),
+      geracao_anual: pickNum(smVars["Geração Anual (kWh)"]),
+    },
+    kit: {
+      nome: pickStr(smVars["Nome do Kit"]) ?? proposta.nome,
+      itens: proposta.pricing_table,
+    },
+    pagamento: {
+      condicao: pickStr(smVars["Condição de Pagamento"]),
+      valor_total: proposta.valor_total,
+    },
+    proposta: {
+      titulo: proposta.nome,
+      status_source: proposta.status_source,
+      link_pdf: proposta.link_pdf,
+      generated_at: proposta.generated_at,
+      sent_at: proposta.sent_at,
+      accepted_at: proposta.accepted_at,
+      expires_at: proposta.expires_at,
+    },
+    sm_variables: smVars,
+    raw_sm: {
+      client: args.rawClient,
+      project: args.rawProject,
+      proposal: args.rawProposal,
+    },
+  };
+}
+
+// ─── Promotores canônicos ────────────────────────────────────────────────────
 async function promoteCliente(
   admin: SupabaseClient,
   tenantId: string,
@@ -135,20 +436,6 @@ async function promoteCliente(
   if (byExt?.id) {
     await upsertLink(admin, tenantId, jobId, "cliente", byExt.id as string, "cliente", norm.external_id, { matched_by: "external_id" });
     return { id: byExt.id as string, created: false, matchedBy: "external_id" };
-  }
-
-  // 2.1) Reconciliação por cliente_code (protege reprocessamento após falha no link)
-  const { data: byCode } = await admin
-    .from("clientes")
-    .select("id")
-    .eq("tenant_id", tenantId)
-    .eq("cliente_code", clienteCode)
-    .order("created_at", { ascending: true })
-    .limit(1)
-    .maybeSingle();
-  if (byCode?.id) {
-    await upsertLink(admin, tenantId, jobId, "cliente", byCode.id as string, "cliente", norm.external_id, { matched_by: "cliente_code" });
-    return { id: byCode.id as string, created: false, matchedBy: "cliente_code" };
   }
 
   // 2.1) Reconciliação por cliente_code (protege reprocessamento após falha no link)
@@ -238,7 +525,6 @@ async function promoteCliente(
     })
     .select("id")
     .single();
-
   if (error || !data?.id) {
     const message = error?.message ?? "sem id";
     if (/uq_clientes_tenant_cliente_code|duplicate key value/i.test(message)) {
