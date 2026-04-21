@@ -452,6 +452,7 @@ async function promoteProjeto(
   jobId: string,
   rawProjeto: AnyObj,
   clienteId: string,
+  pipeline: PipelineResolution,
 ): Promise<{ id: string; created: boolean }> {
   const norm = normalizeSmProject(rawProjeto);
   if (!norm.external_id) throw new Error("Projeto SM sem id");
@@ -459,17 +460,20 @@ async function promoteProjeto(
   const existing = await findLink(admin, tenantId, "projeto", norm.external_id);
   if (existing) return { id: existing, created: false };
 
-  // codigo único: SM-PROJ-<extId>
   const codigo = `SM-PROJ-${norm.external_id}`.slice(0, 32);
+  const insertPayload: AnyObj = {
+    tenant_id: tenantId,
+    cliente_id: clienteId,
+    codigo,
+    status: "lead",
+    observacoes: norm.descricao,
+  };
+  if (pipeline.funilId) insertPayload.funil_id = pipeline.funilId;
+  if (pipeline.etapaId) insertPayload.etapa_id = pipeline.etapaId;
+
   const { data, error } = await admin
     .from("projetos")
-    .insert({
-      tenant_id: tenantId,
-      cliente_id: clienteId,
-      codigo,
-      status: "lead", // status canônico inicial; reclassificação fica para PR posterior
-      observacoes: norm.descricao,
-    })
+    .insert(insertPayload)
     .select("id")
     .single();
   if (error || !data?.id) throw new Error(`insert projeto: ${error?.message}`);
