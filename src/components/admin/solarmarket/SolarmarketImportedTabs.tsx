@@ -490,7 +490,7 @@ function ListaRaw({
             {sanitizeText(pp.nome ?? "") || "—"}
           </TableCell>
           <TableCell className="text-sm">{pp.projeto?.label ?? "—"}</TableCell>
-          <TableCell>{pp.status ? <Badge variant="outline" className="text-xs">{String(pp.status)}</Badge> : "—"}</TableCell>
+          <TableCell>{proposalStatusBadge(pp.status)}</TableCell>
           <TableCell className="text-sm font-mono">
             {pp.valorTotalEstimado != null ? formatBRL(pp.valorTotalEstimado) : "—"}
           </TableCell>
