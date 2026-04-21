@@ -21115,6 +21115,7 @@ export type Database = {
           filters: Json
           finished_at: string | null
           id: string
+          items_blocked: number
           items_processed: number
           items_promoted: number
           items_skipped: number
@@ -21138,6 +21139,7 @@ export type Database = {
           filters?: Json
           finished_at?: string | null
           id?: string
+          items_blocked?: number
           items_processed?: number
           items_promoted?: number
           items_skipped?: number
@@ -21161,6 +21163,7 @@ export type Database = {
           filters?: Json
           finished_at?: string | null
           id?: string
+          items_blocked?: number
           items_processed?: number
           items_promoted?: number
           items_skipped?: number
