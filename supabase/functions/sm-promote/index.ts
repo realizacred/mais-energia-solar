@@ -838,9 +838,12 @@ async function actionPromoteAll(
     started_at: new Date().toISOString(),
   });
 
+  // Resolve pipeline ANTES dos candidatos — falha rápido se o tenant tiver
+  // pipeline configurado mas inconsistente (sem etapa).
+  const pipeline = await resolveDefaultPipeline(admin, tenantId);
   await logEvent(admin, {
     jobId, tenantId, severity: "info", step: "init", status: "started",
-    message: `promote-all iniciado (batch_limit=${batchLimit}, dry_run=${dryRun})`,
+    message: `promote-all iniciado (batch_limit=${batchLimit}, dry_run=${dryRun}); pipeline=${pipeline.funilId ?? "—"} etapa=${pipeline.etapaId ?? "—"} configured=${pipeline.hasPipelineConfigured}`,
   });
 
   // Backlog: propostas raw que ainda não têm link canônico em external_entity_links.
@@ -878,7 +881,7 @@ async function actionPromoteAll(
       status: "completed" satisfies JobStatus,
       finished_at: new Date().toISOString(),
       items_processed: 0, items_promoted: 0, items_skipped: candidates.length,
-      items_with_warnings: 0, items_with_errors: 0,
+      items_with_warnings: 0, items_with_errors: 0, items_blocked: 0,
     });
     return jsonResponse({
       ok: true, job_id: jobId, status: "completed",
@@ -887,12 +890,25 @@ async function actionPromoteAll(
   }
 
   for (const row of candidates) {
-    await promoteOneProposalRow(admin, state, jobId, tenantId, row);
+    await promoteOneProposalRow(admin, state, jobId, tenantId, row, pipeline);
   }
 
-  const finalStatus: JobStatus = state.counters.errors > 0 || state.counters.warnings > 0 || state.counters.skipped > 0
-    ? "completed_with_warnings"
-    : "completed";
+  // Status final:
+  // - errors>0  → failed
+  // - blocked>0 sem nenhum promoted → failed (nada entrou íntegro)
+  // - blocked>0 com promoted → completed_with_warnings
+  // - warnings/skipped → completed_with_warnings
+  // - tudo limpo → completed
+  let finalStatus: JobStatus;
+  if (state.counters.errors > 0) {
+    finalStatus = "failed";
+  } else if (state.counters.blocked > 0 && state.counters.promoted === 0) {
+    finalStatus = "failed";
+  } else if (state.counters.blocked > 0 || state.counters.warnings > 0 || state.counters.skipped > 0) {
+    finalStatus = "completed_with_warnings";
+  } else {
+    finalStatus = "completed";
+  }
 
   await patchJob(admin, jobId, {
     status: finalStatus,
@@ -902,6 +918,7 @@ async function actionPromoteAll(
     items_skipped: state.counters.skipped,
     items_with_warnings: state.counters.warnings,
     items_with_errors: state.counters.errors,
+    items_blocked: state.counters.blocked,
   });
 
   return jsonResponse({
