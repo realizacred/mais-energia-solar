@@ -12,6 +12,7 @@ import { LoadingState } from "@/components/ui-kit/LoadingState";
 import { useSolarmarketImport, type ImportScope } from "@/hooks/useSolarmarketImport";
 import { useSolarmarketConfig } from "@/hooks/useSolarmarketConfig";
 import { SolarmarketImportedTabs } from "@/components/admin/solarmarket/SolarmarketImportedTabs";
+import { ImportErrorsDialog } from "@/components/admin/solarmarket/ImportErrorsDialog";
 import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import {
@@ -101,6 +102,7 @@ export default function ImportacaoSolarmarket() {
   const { config, isConfigured, isLoading: loadingCfg } = useSolarmarketConfig();
   const [testResult, setTestResult] = useState<{ ok: boolean; message: string } | null>(null);
   const [now, setNow] = useState(() => Date.now());
+  const [errorsJobId, setErrorsJobId] = useState<string | null>(null);
   const [scope, setScope] = useState<ImportScope>({
     clientes: true,
     projetos: true,
@@ -742,10 +744,15 @@ export default function ImportacaoSolarmarket() {
                           <TableCell className="text-right font-mono text-sm tabular-nums">{j.total_propostas}</TableCell>
                           <TableCell className="text-right font-mono text-sm tabular-nums">
                             {j.total_errors > 0 ? (
-                              <span className="text-destructive inline-flex items-center justify-end gap-1">
+                              <button
+                                type="button"
+                                onClick={() => setErrorsJobId(j.id)}
+                                className="text-destructive inline-flex items-center justify-end gap-1 hover:underline focus:outline-none focus:ring-2 focus:ring-destructive/40 rounded px-1"
+                                title="Ver detalhes dos erros"
+                              >
                                 <XCircle className="w-3 h-3" />
                                 {j.total_errors}
-                              </span>
+                              </button>
                             ) : (
                               <span className="text-muted-foreground">0</span>
                             )}
@@ -777,6 +784,11 @@ export default function ImportacaoSolarmarket() {
           </Card>
         </section>
       </div>
+      <ImportErrorsDialog
+        jobId={errorsJobId}
+        open={!!errorsJobId}
+        onOpenChange={(o) => !o && setErrorsJobId(null)}
+      />
     </div>
   );
 }
