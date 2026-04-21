@@ -284,6 +284,7 @@ export function SolarmarketImportedTabs() {
             />
           </TabsContent>
         </Tabs>
+        )}
 
         <SolarmarketRecordDetailDrawer
           open={drawerOpen}
