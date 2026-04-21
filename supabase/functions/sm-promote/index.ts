@@ -782,6 +782,7 @@ async function promoteOneProposalRow(
   tenantId: string,
   rawProposalRow: AnyObj,
   pipeline: PipelineResolution,
+  consultorFallback: ConsultorResolution,
 ): Promise<"promoted" | "skipped" | "blocked" | "error"> {
   const propostaPayload: AnyObj = rawProposalRow.payload ?? {};
   const propExtId = pickStr(propostaPayload.id) ?? rawProposalRow.external_id;
