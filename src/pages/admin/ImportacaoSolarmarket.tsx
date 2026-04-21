@@ -500,12 +500,6 @@ export default function ImportacaoSolarmarket() {
                 </p>
               </div>
             </div>
-            {/* Durante a execução, contadores do job ficam defasados em relação ao staging
-                (que cresce em tempo real). Isso é esperado — não exibimos banner de divergência
-                durante `running` para evitar ruído visual. O job é reconciliado ao finalizar. */}
-            <p className="text-[11px] text-muted-foreground pt-1">
-              Os números acima refletem o staging em tempo real. O job consolida os totais ao finalizar.
-            </p>
           </CardContent>
         </Card>
       )}
