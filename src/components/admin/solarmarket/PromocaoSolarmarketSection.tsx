@@ -312,15 +312,37 @@ export function PromocaoSolarmarketSection() {
           </div>
 
           {runningJob && (
-            <div className="flex items-start gap-3 p-3 rounded-lg border border-info/30 bg-info/5">
-              <Loader2 className="w-4 h-4 text-info animate-spin shrink-0 mt-0.5" />
-              <div className="text-sm flex-1">
-                <p className="font-medium text-foreground">
-                  Job {runningJob.id.slice(0, 8)} em andamento
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  Iniciado em {formatBR(runningJob.started_at ?? runningJob.created_at)}.
-                </p>
+            <div className="space-y-2 p-3 rounded-lg border border-info/30 bg-info/5">
+              <div className="flex items-start gap-3">
+                <Loader2 className="w-4 h-4 text-info animate-spin shrink-0 mt-0.5" />
+                <div className="text-sm flex-1 min-w-0">
+                  <p className="font-medium text-foreground">
+                    Job {runningJob.id.slice(0, 8)} em andamento
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Processando {runningJob.items_processed ?? 0} de {runningJob.total_items ?? 0} itens
+                    {" · "}Iniciado em {formatBR(runningJob.started_at ?? runningJob.created_at)}.
+                  </p>
+                </div>
+                <span className="text-xs font-mono text-info shrink-0">
+                  {runningJob.total_items
+                    ? `${Math.round(((runningJob.items_processed ?? 0) / runningJob.total_items) * 100)}%`
+                    : "—"}
+                </span>
+              </div>
+              <Progress
+                value={
+                  runningJob.total_items
+                    ? ((runningJob.items_processed ?? 0) / runningJob.total_items) * 100
+                    : 0
+                }
+                className="h-2"
+              />
+              <div className="flex flex-wrap gap-2 text-xs">
+                <span className="text-success">✓ {runningJob.items_promoted ?? 0} promovidos</span>
+                <span className="text-warning">⚠ {runningJob.items_with_warnings ?? 0} avisos</span>
+                <span className="text-destructive">✗ {runningJob.items_with_errors ?? 0} erros</span>
+                <span className="text-muted-foreground">⊘ {runningJob.items_blocked ?? 0} bloqueados</span>
               </div>
             </div>
           )}
