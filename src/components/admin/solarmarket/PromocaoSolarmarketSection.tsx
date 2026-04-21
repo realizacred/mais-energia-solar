@@ -46,6 +46,7 @@ import {
   Rocket, FlaskConical, Ban, Loader2, Eye, ListChecks,
   CheckCircle2, AlertTriangle, XCircle, Users, FolderKanban, FileText,
   Layers, Activity, Info, ArrowRightLeft, ShieldAlert, Star,
+  Trash2, RefreshCw,
 } from "lucide-react";
 
 const formatBR = (iso: string | null | undefined) =>
@@ -111,10 +112,28 @@ function KpiCard({ icon: Icon, label, value, tone }: KpiCardProps) {
 }
 
 export function PromocaoSolarmarketSection() {
-  const { jobs, isLoading, promoteAll, cancelJob } = useSolarmarketPromote();
+  const { jobs, isLoading, promoteAll, cancelJob, clearFailedJobs, refetchJobs } = useSolarmarketPromote();
   const { data: defaultPipeline, isLoading: isLoadingPipeline } = useDefaultPipeline();
   const [batchLimit, setBatchLimit] = useState(50);
   const [auditJobId, setAuditJobId] = useState<string | null>(null);
+
+  const failedJobsCount = useMemo(
+    () => jobs.filter((j) => ["failed", "cancelled", "completed_with_errors"].includes(j.status)).length,
+    [jobs],
+  );
+
+  const handleClearFailed = async () => {
+    try {
+      const res = await clearFailedJobs.mutateAsync();
+      toast({
+        title: "Histórico limpo",
+        description: `${res.deleted} job(s) com falha removido(s).`,
+      });
+    } catch (e) {
+      const message = e instanceof Error ? e.message : String(e);
+      toast({ title: "Falha ao limpar", description: message, variant: "destructive" });
+    }
+  };
 
   const hasDefaultPipeline = !!defaultPipeline && defaultPipeline.stagesCount > 0;
   const pipelineBlocked = !isLoadingPipeline && !hasDefaultPipeline;
@@ -352,13 +371,70 @@ export function PromocaoSolarmarketSection() {
       {/* Histórico de jobs */}
       <Card className="bg-card border-border shadow-sm">
         <CardHeader>
-          <CardTitle className="text-base font-semibold flex items-center gap-2">
-            <ListChecks className="w-4 h-4 text-primary" />
-            Histórico de promoções
-          </CardTitle>
-          <CardDescription>
-            {jobs.length} execu{jobs.length === 1 ? "ção" : "ções"} registradas (mais recentes primeiro).
-          </CardDescription>
+          <div className="flex items-start justify-between gap-2 flex-wrap">
+            <div className="min-w-0">
+              <CardTitle className="text-base font-semibold flex items-center gap-2">
+                <ListChecks className="w-4 h-4 text-primary" />
+                Histórico de promoções
+              </CardTitle>
+              <CardDescription>
+                {jobs.length} execu{jobs.length === 1 ? "ção" : "ções"} registradas (mais recentes primeiro).
+              </CardDescription>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => refetchJobs()}
+                disabled={isLoading}
+                title="Recarregar histórico"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? "animate-spin" : ""}`} />
+                <span className="hidden sm:inline ml-1.5">Atualizar</span>
+              </Button>
+              {failedJobsCount > 0 && (
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="border-destructive/40 text-destructive hover:bg-destructive/10"
+                      disabled={clearFailedJobs.isPending}
+                    >
+                      {clearFailedJobs.isPending ? (
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      ) : (
+                        <Trash2 className="w-3.5 h-3.5" />
+                      )}
+                      <span className="hidden sm:inline ml-1.5">
+                        Limpar com falha ({failedJobsCount})
+                      </span>
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent className="w-[90vw] max-w-md">
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Limpar jobs com falha?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Serão removidos <strong>{failedJobsCount}</strong> job(s) com status{" "}
+                        <em>failed</em>, <em>cancelled</em> ou <em>completed_with_errors</em>,{" "}
+                        junto com seus logs de auditoria. Jobs em execução e concluídos com sucesso
+                        permanecem intactos. Esta ação não desfaz registros já promovidos no CRM.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Voltar</AlertDialogCancel>
+                      <AlertDialogAction
+                        onClick={handleClearFailed}
+                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                      >
+                        Limpar histórico
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              )}
+            </div>
+          </div>
         </CardHeader>
         <CardContent>
           {isLoading ? (

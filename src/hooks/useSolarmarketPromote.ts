@@ -124,6 +124,41 @@ export function useSolarmarketPromote() {
     },
   });
 
+  /**
+   * Limpa histórico de jobs finalizados (failed, cancelled, completed_with_errors).
+   * Apaga também os logs associados via FK ON DELETE CASCADE no banco.
+   * Não toca em jobs em execução nem em jobs concluídos com sucesso.
+   */
+  const clearFailedJobs = useMutation({
+    mutationFn: async () => {
+      const failedStatuses = ["failed", "cancelled", "completed_with_errors"];
+      // Apaga logs primeiro (caso não haja CASCADE configurado)
+      const { data: jobsToDelete, error: fetchErr } = await supabase
+        .from("solarmarket_promotion_jobs")
+        .select("id")
+        .in("status", failedStatuses);
+      if (fetchErr) throw new Error(fetchErr.message);
+      const ids = (jobsToDelete ?? []).map((j) => j.id);
+      if (ids.length === 0) return { deleted: 0 };
+
+      const { error: logsErr } = await supabase
+        .from("solarmarket_promotion_logs")
+        .delete()
+        .in("job_id", ids);
+      if (logsErr) throw new Error(logsErr.message);
+
+      const { error: jobsErr } = await supabase
+        .from("solarmarket_promotion_jobs")
+        .delete()
+        .in("id", ids);
+      if (jobsErr) throw new Error(jobsErr.message);
+      return { deleted: ids.length };
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: JOBS_KEY });
+    },
+  });
+
   return {
     jobs: jobsQuery.data ?? [],
     isLoading: jobsQuery.isLoading,
@@ -131,6 +166,7 @@ export function useSolarmarketPromote() {
     refetchJobs: jobsQuery.refetch,
     promoteAll,
     cancelJob,
+    clearFailedJobs,
   };
 }
 
