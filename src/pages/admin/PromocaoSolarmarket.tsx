@@ -1,0 +1,495 @@
+/**
+ * PromocaoSolarmarket — Fase 2 da migração SolarMarket: Staging → CRM.
+ *
+ * Esta tela é INDEPENDENTE da Fase 1 (Importação → staging). O fluxo é:
+ *   1. Importação → preenche tabelas sm_*_raw
+ *   2. Promoção  → cria registros canônicos (clientes/projetos/propostas) via edge `sm-promote`
+ *
+ * Governança aplicada (AGENTS.md):
+ *   - RB-04/RB-05: queries em hook dedicado com staleTime
+ *   - RB-06: LoadingState/Skeleton em estados de carregamento
+ *   - RB-11: header (ícone + título + subtítulo) antes do conteúdo
+ *   - RB-18: tabela em container com overflow-x-auto
+ *   - RB-21: shadow-sm em cards
+ *   - DA-39: invalidação via queryClient (sem reload)
+ *   - DS-02: KPI cards com border-l semântico
+ */
+import { useMemo, useState } from "react";
+import { Link } from "react-router-dom";
+import {
+  Card, CardContent, CardHeader, CardTitle, CardDescription,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
+} from "@/components/ui/table";
+import {
+  Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription,
+} from "@/components/ui/sheet";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader,
+  AlertDialogTitle, AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { PageHeader } from "@/components/ui-kit/PageHeader";
+import { toast } from "@/hooks/use-toast";
+import {
+  useSolarmarketPromote,
+  useSolarmarketPromoteLogs,
+  type PromotionJob,
+} from "@/hooks/useSolarmarketPromote";
+import {
+  Rocket, FlaskConical, Ban, Loader2, Eye, ListChecks,
+  CheckCircle2, AlertTriangle, XCircle, Users, FolderKanban, FileText,
+  Layers, Activity, Info, ArrowLeft,
+} from "lucide-react";
+
+const formatBR = (iso: string | null | undefined) =>
+  iso ? new Date(iso).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" }) : "—";
+
+function statusBadge(status: string) {
+  const map: Record<string, { cls: string; label: string }> = {
+    queued:                   { cls: "bg-muted text-muted-foreground border-border",      label: "Em fila" },
+    running:                  { cls: "bg-info/10 text-info border-info/20",                label: "Em execução" },
+    completed:                { cls: "bg-success/10 text-success border-success/20",       label: "Concluído" },
+    completed_with_warnings:  { cls: "bg-warning/10 text-warning border-warning/20",       label: "Com avisos" },
+    completed_with_errors:    { cls: "bg-destructive/10 text-destructive border-destructive/20", label: "Com erros" },
+    failed:                   { cls: "bg-destructive/10 text-destructive border-destructive/20", label: "Falhou" },
+    cancelled:                { cls: "bg-muted text-muted-foreground border-border",       label: "Cancelado" },
+  };
+  const m = map[status] ?? { cls: "bg-muted text-muted-foreground border-border", label: status };
+  return <Badge variant="outline" className={m.cls}>{m.label}</Badge>;
+}
+
+function severityBadge(sev: string) {
+  const map: Record<string, string> = {
+    info:    "bg-info/10 text-info border-info/20",
+    warning: "bg-warning/10 text-warning border-warning/20",
+    error:   "bg-destructive/10 text-destructive border-destructive/20",
+  };
+  return (
+    <Badge variant="outline" className={map[sev] ?? "bg-muted text-muted-foreground border-border"}>
+      {sev}
+    </Badge>
+  );
+}
+
+interface KpiCardProps {
+  icon: typeof Rocket;
+  label: string;
+  value: number;
+  tone: "primary" | "success" | "warning" | "destructive";
+}
+
+function KpiCard({ icon: Icon, label, value, tone }: KpiCardProps) {
+  const tones: Record<KpiCardProps["tone"], { border: string; bg: string; text: string }> = {
+    primary:     { border: "border-l-primary",     bg: "bg-primary/10",     text: "text-primary" },
+    success:     { border: "border-l-success",     bg: "bg-success/10",     text: "text-success" },
+    warning:     { border: "border-l-warning",     bg: "bg-warning/10",     text: "text-warning" },
+    destructive: { border: "border-l-destructive", bg: "bg-destructive/10", text: "text-destructive" },
+  };
+  const t = tones[tone];
+  return (
+    <Card className={`border-l-[3px] ${t.border} bg-card shadow-sm`}>
+      <CardContent className="flex items-center gap-4 p-5">
+        <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${t.bg} shrink-0`}>
+          <Icon className={`w-5 h-5 ${t.text}`} />
+        </div>
+        <div className="min-w-0">
+          <p className="text-2xl font-bold tracking-tight text-foreground leading-none">
+            {value.toLocaleString("pt-BR")}
+          </p>
+          <p className="text-sm text-muted-foreground mt-1 truncate">{label}</p>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+export default function PromocaoSolarmarket() {
+  const { jobs, isLoading, promoteAll, cancelJob } = useSolarmarketPromote();
+  const [batchLimit, setBatchLimit] = useState(50);
+  const [auditJobId, setAuditJobId] = useState<string | null>(null);
+
+  const totals = useMemo(() => {
+    return jobs.reduce(
+      (acc, j) => {
+        acc.processed  += j.items_processed ?? 0;
+        acc.promoted   += j.items_promoted ?? 0;
+        acc.warnings   += j.items_with_warnings ?? 0;
+        acc.errors     += j.items_with_errors ?? 0;
+        return acc;
+      },
+      { processed: 0, promoted: 0, warnings: 0, errors: 0 },
+    );
+  }, [jobs]);
+
+  const runningJob = jobs.find((j) => j.status === "running" || j.status === "queued") ?? null;
+
+  const handleRun = async (dry_run: boolean) => {
+    const limit = Math.min(Math.max(1, Number(batchLimit) || 1), 200);
+    try {
+      const res = await promoteAll.mutateAsync({ batch_limit: limit, dry_run });
+      toast({
+        title: dry_run ? "Dry run executado" : "Promoção iniciada",
+        description: dry_run
+          ? `Job ${res.job_id.slice(0, 8)} — ${res.candidates ?? 0} candidatos identificados.`
+          : `Job ${res.job_id.slice(0, 8)} concluído (${res.status}).`,
+      });
+    } catch (e) {
+      const message = e instanceof Error ? e.message : String(e);
+      toast({ title: "Falha ao executar", description: message, variant: "destructive" });
+    }
+  };
+
+  const handleCancel = async (job: PromotionJob) => {
+    try {
+      await cancelJob.mutateAsync({ job_id: job.id, reason: "Cancelado pelo usuário" });
+      toast({ title: "Job cancelado" });
+    } catch (e) {
+      const message = e instanceof Error ? e.message : String(e);
+      toast({ title: "Falha ao cancelar", description: message, variant: "destructive" });
+    }
+  };
+
+  return (
+    <div className="container mx-auto p-4 md:p-6 space-y-6">
+      <PageHeader
+        icon={Rocket}
+        title="Promoção SolarMarket → CRM"
+        description="Fase 2 — promove registros já importados em staging para o domínio canônico (clientes, projetos, propostas e versões). Não importa nada novo da SolarMarket."
+        actions={
+          <Button asChild variant="outline" size="sm">
+            <Link to="/admin/importacao-solarmarket">
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Importação (Fase 1)
+            </Link>
+          </Button>
+        }
+      />
+
+      {/* Banner explicativo do fluxo (separação visual entre Fase 1 e Fase 2) */}
+      <Card className="bg-info/5 border-info/30 shadow-sm">
+        <CardContent className="flex items-start gap-3 p-4">
+          <Info className="w-5 h-5 text-info shrink-0 mt-0.5" />
+          <div className="text-sm text-foreground">
+            <p>
+              <strong>1. Importação</strong> traz dados da SolarMarket para o <em>staging</em> (tabelas <code className="bg-muted px-1 rounded text-xs">sm_*_raw</code>).{" "}
+              <strong>2. Promoção</strong> (esta tela) cria os registros oficiais no CRM e mantém rastreabilidade via{" "}
+              <code className="bg-muted px-1 rounded text-xs">external_entity_links</code>. Registros já promovidos não são reprocessados.
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* KPIs agregados */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <KpiCard icon={Layers}    label="Itens processados"  value={totals.processed}  tone="primary" />
+        <KpiCard icon={CheckCircle2} label="Promovidos"      value={totals.promoted}   tone="success" />
+        <KpiCard icon={AlertTriangle} label="Com avisos"     value={totals.warnings}   tone="warning" />
+        <KpiCard icon={XCircle}   label="Com erros"          value={totals.errors}     tone="destructive" />
+      </div>
+
+      {/* Controles */}
+      <Card className="bg-card border-border shadow-sm">
+        <CardHeader>
+          <CardTitle className="text-base font-semibold flex items-center gap-2">
+            <Activity className="w-4 h-4 text-primary" />
+            Executar promoção
+          </CardTitle>
+          <CardDescription>
+            O motor canônico processa propostas pendentes em staging em lotes. Use{" "}
+            <strong>Dry run</strong> para apenas contar candidatos.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="space-y-1.5">
+              <Label htmlFor="batch_limit" className="text-xs">Batch limit (1–200)</Label>
+              <Input
+                id="batch_limit"
+                type="number"
+                min={1}
+                max={200}
+                value={batchLimit}
+                onChange={(e) => setBatchLimit(Number(e.target.value))}
+                disabled={!!runningJob || promoteAll.isPending}
+                className="font-mono"
+              />
+              <p className="text-xs text-muted-foreground">
+                Quantidade máxima de propostas por execução.
+              </p>
+            </div>
+            <div className="sm:col-span-2 flex flex-wrap items-end gap-2 justify-end">
+              <Button
+                variant="outline"
+                onClick={() => handleRun(true)}
+                disabled={!!runningJob || promoteAll.isPending}
+              >
+                {promoteAll.isPending && promoteAll.variables?.dry_run ? (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                ) : (
+                  <FlaskConical className="w-4 h-4 mr-2" />
+                )}
+                Dry run
+              </Button>
+              <Button
+                onClick={() => handleRun(false)}
+                disabled={!!runningJob || promoteAll.isPending}
+              >
+                {promoteAll.isPending && !promoteAll.variables?.dry_run ? (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                ) : (
+                  <Rocket className="w-4 h-4 mr-2" />
+                )}
+                Promover agora
+              </Button>
+            </div>
+          </div>
+
+          {runningJob && (
+            <div className="flex items-start gap-3 p-3 rounded-lg border border-info/30 bg-info/5">
+              <Loader2 className="w-4 h-4 text-info animate-spin shrink-0 mt-0.5" />
+              <div className="text-sm flex-1">
+                <p className="font-medium text-foreground">
+                  Job {runningJob.id.slice(0, 8)} em andamento
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Iniciado em {formatBR(runningJob.started_at ?? runningJob.created_at)}.
+                </p>
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Histórico de jobs */}
+      <Card className="bg-card border-border shadow-sm">
+        <CardHeader>
+          <CardTitle className="text-base font-semibold flex items-center gap-2">
+            <ListChecks className="w-4 h-4 text-primary" />
+            Histórico de promoções
+          </CardTitle>
+          <CardDescription>
+            {jobs.length} execu{jobs.length === 1 ? "ção" : "ções"} registradas (mais recentes primeiro).
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {isLoading ? (
+            <div className="space-y-2">
+              {[0, 1, 2].map((i) => (
+                <Skeleton key={i} className="h-12 w-full" />
+              ))}
+            </div>
+          ) : jobs.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-12 text-center">
+              <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center mb-3">
+                <Rocket className="w-6 h-6 text-muted-foreground" />
+              </div>
+              <p className="text-sm font-medium text-foreground">Nenhuma promoção executada ainda</p>
+              <p className="text-xs text-muted-foreground mt-1 max-w-md">
+                Quando houver propostas em staging, clique em <strong>Promover agora</strong> ou faça um <strong>Dry run</strong> para ver os candidatos.
+              </p>
+            </div>
+          ) : (
+            <div className="rounded-lg border border-border overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Job</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="text-right">Total</TableHead>
+                    <TableHead className="text-right">Promovidos</TableHead>
+                    <TableHead className="text-right">Avisos</TableHead>
+                    <TableHead className="text-right">Erros</TableHead>
+                    <TableHead>Iniciado</TableHead>
+                    <TableHead className="text-right">Ações</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {jobs.map((j) => {
+                    const cancellable = j.status === "queued" || j.status === "running";
+                    return (
+                      <TableRow key={j.id}>
+                        <TableCell className="font-mono text-xs">{j.id.slice(0, 8)}</TableCell>
+                        <TableCell>{statusBadge(j.status)}</TableCell>
+                        <TableCell className="text-right font-mono text-sm">{j.total_items ?? 0}</TableCell>
+                        <TableCell className="text-right font-mono text-sm text-success">{j.items_promoted ?? 0}</TableCell>
+                        <TableCell className="text-right font-mono text-sm text-warning">{j.items_with_warnings ?? 0}</TableCell>
+                        <TableCell className="text-right font-mono text-sm text-destructive">{j.items_with_errors ?? 0}</TableCell>
+                        <TableCell className="text-xs text-muted-foreground">{formatBR(j.started_at ?? j.created_at)}</TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex flex-wrap gap-1 justify-end">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setAuditJobId(j.id)}
+                              title="Ver auditoria"
+                            >
+                              <Eye className="w-4 h-4" />
+                            </Button>
+                            {cancellable && (
+                              <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="border-destructive/40 text-destructive hover:bg-destructive/10"
+                                    disabled={cancelJob.isPending}
+                                  >
+                                    <Ban className="w-3.5 h-3.5" />
+                                  </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent className="w-[90vw] max-w-md">
+                                  <AlertDialogHeader>
+                                    <AlertDialogTitle>Cancelar job de promoção?</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                      O job <code className="bg-muted px-1 rounded text-xs">{j.id.slice(0, 8)}</code> será marcado como cancelado.
+                                      Itens já promovidos permanecem no CRM.
+                                    </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                    <AlertDialogCancel>Voltar</AlertDialogCancel>
+                                    <AlertDialogAction
+                                      onClick={() => handleCancel(j)}
+                                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                    >
+                                      Cancelar job
+                                    </AlertDialogAction>
+                                  </AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog>
+                            )}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <AuditDrawer jobId={auditJobId} onClose={() => setAuditJobId(null)} />
+    </div>
+  );
+}
+
+/* ─── Drawer de auditoria por job ───────────────────────────────────────────── */
+function AuditDrawer({ jobId, onClose }: { jobId: string | null; onClose: () => void }) {
+  const { data: logs, isLoading } = useSolarmarketPromoteLogs(jobId);
+
+  const counts = useMemo(() => {
+    const list = logs ?? [];
+    return {
+      total: list.length,
+      info: list.filter((l) => l.severity === "info").length,
+      warning: list.filter((l) => l.severity === "warning").length,
+      error: list.filter((l) => l.severity === "error").length,
+    };
+  }, [logs]);
+
+  const entityIcon = (t: string | null) => {
+    if (t === "cliente") return <Users className="w-3.5 h-3.5" />;
+    if (t === "projeto") return <FolderKanban className="w-3.5 h-3.5" />;
+    if (t === "proposta") return <FileText className="w-3.5 h-3.5" />;
+    return <Layers className="w-3.5 h-3.5" />;
+  };
+
+  return (
+    <Sheet open={!!jobId} onOpenChange={(open) => !open && onClose()}>
+      <SheetContent className="w-[90vw] sm:max-w-2xl flex flex-col p-0">
+        <SheetHeader className="p-6 pb-4 border-b border-border">
+          <SheetTitle className="flex items-center gap-2">
+            <ListChecks className="w-5 h-5 text-primary" />
+            Auditoria do job
+          </SheetTitle>
+          <SheetDescription className="font-mono text-xs">
+            {jobId}
+          </SheetDescription>
+          <div className="flex flex-wrap gap-2 pt-2">
+            <Badge variant="outline" className="bg-muted text-muted-foreground border-border">
+              {counts.total} eventos
+            </Badge>
+            <Badge variant="outline" className="bg-info/10 text-info border-info/20">
+              {counts.info} info
+            </Badge>
+            <Badge variant="outline" className="bg-warning/10 text-warning border-warning/20">
+              {counts.warning} avisos
+            </Badge>
+            <Badge variant="outline" className="bg-destructive/10 text-destructive border-destructive/20">
+              {counts.error} erros
+            </Badge>
+          </div>
+        </SheetHeader>
+
+        <div className="flex-1 min-h-0 overflow-y-auto p-6 space-y-2">
+          {isLoading ? (
+            <div className="space-y-2">
+              {[0, 1, 2, 3].map((i) => <Skeleton key={i} className="h-16 w-full" />)}
+            </div>
+          ) : !logs || logs.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-12 text-center">
+              <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center mb-3">
+                <ListChecks className="w-6 h-6 text-muted-foreground" />
+              </div>
+              <p className="text-sm font-medium text-foreground">Sem eventos para este job</p>
+              <p className="text-xs text-muted-foreground mt-1">
+                Os logs aparecem conforme o job processa cada item.
+              </p>
+            </div>
+          ) : (
+            logs.map((l) => (
+              <div
+                key={l.id}
+                className="rounded-lg border border-border bg-background p-3 space-y-1.5"
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex items-center gap-2 min-w-0">
+                    {severityBadge(l.severity)}
+                    <code className="text-xs text-muted-foreground truncate">{l.step}</code>
+                    <Badge variant="outline" className="bg-muted text-muted-foreground border-border">
+                      {l.status}
+                    </Badge>
+                  </div>
+                  <span className="text-xs text-muted-foreground shrink-0 font-mono">
+                    {formatBR(l.created_at)}
+                  </span>
+                </div>
+                {l.message && (
+                  <p className="text-sm text-foreground break-words">{l.message}</p>
+                )}
+                {(l.source_entity_type || l.canonical_entity_id) && (
+                  <div className="flex flex-wrap gap-2 text-xs text-muted-foreground pt-1">
+                    {l.source_entity_type && (
+                      <span className="inline-flex items-center gap-1">
+                        {entityIcon(l.source_entity_type)}
+                        SM: <code className="font-mono">{l.source_entity_id ?? "—"}</code>
+                      </span>
+                    )}
+                    {l.canonical_entity_id && (
+                      <span className="inline-flex items-center gap-1">
+                        → CRM: <code className="font-mono">{l.canonical_entity_id.slice(0, 8)}</code>
+                      </span>
+                    )}
+                    {l.error_code && (
+                      <Badge variant="outline" className="bg-destructive/10 text-destructive border-destructive/20">
+                        {l.error_code}
+                      </Badge>
+                    )}
+                  </div>
+                )}
+              </div>
+            ))
+          )}
+        </div>
+      </SheetContent>
+    </Sheet>
+  );
+}
