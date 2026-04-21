@@ -94,7 +94,7 @@ export function ImportErrorsDialog({ jobId, open, onOpenChange }: ImportErrorsDi
   const grouped = useMemo(() => {
     const map = new Map<string, { code: string; origin: string; count: number; sample: string; entities: Set<string> }>();
     (logs ?? []).forEach((l) => {
-      const { code, origin } = classifyError(l.error_message, l.entity_type);
+      const { code, origin } = classifyError(l);
       const key = `${code}|${l.entity_type}`;
       const cur = map.get(key);
       if (cur) {
@@ -155,7 +155,7 @@ export function ImportErrorsDialog({ jobId, open, onOpenChange }: ImportErrorsDi
                     <TableRow key={g.key} className="hover:bg-muted/30">
                       <TableCell className="font-mono text-xs">{g.code}</TableCell>
                       <TableCell className="text-sm capitalize">{
-                        (logs ?? []).find((l) => classifyError(l.error_message, l.entity_type).code === g.code)?.entity_type ?? "—"
+                        (logs ?? []).find((l) => classifyError(l).code === g.code)?.entity_type ?? "—"
                       }</TableCell>
                       <TableCell>
                         <Badge variant="outline" className={ORIGIN_STYLES[g.origin]}>
