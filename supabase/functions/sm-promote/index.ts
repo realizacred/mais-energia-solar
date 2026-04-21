@@ -178,6 +178,7 @@ async function findLink(
     .eq("source_entity_id", sourceEntityId)
     .maybeSingle();
   if (error) throw new Error(`findLink: ${error.message}`);
+  return (data as { entity_id?: string } | null)?.entity_id ?? null;
 }
 
 // Lista os source_entity_id já promovidos para um tipo canônico no tenant.
