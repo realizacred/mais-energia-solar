@@ -174,11 +174,12 @@ async function findLink(
     .from("external_entity_links")
     .select("entity_id")
     .eq("tenant_id", tenantId)
-    .eq("source", SOURCE)
+    .in("source", [...SOURCE_ALIASES])
     .eq("source_entity_type", sourceEntityType)
     .eq("source_entity_id", sourceEntityId)
     .maybeSingle();
   if (error) throw new Error(`findLink: ${error.message}`);
+  return typeof data?.entity_id === "string" ? data.entity_id : null;
 }
 
 // Lista os source_entity_id já promovidos para um tipo canônico no tenant.
@@ -195,7 +196,7 @@ async function fetchPromotedSourceIds(
       .from("external_entity_links")
       .select("source_entity_id")
       .eq("tenant_id", tenantId)
-      .eq("source", SOURCE)
+      .in("source", [...SOURCE_ALIASES])
       .eq("source_entity_type", sourceEntityType)
       .range(from, from + pageSize - 1);
     if (error) throw new Error(`fetchPromotedSourceIds: ${error.message}`);
@@ -408,7 +409,7 @@ async function promoteCliente(
     .from("clientes")
     .select("id")
     .eq("tenant_id", tenantId)
-    .eq("external_source", SOURCE)
+    .in("external_source", [...SOURCE_ALIASES])
     .eq("external_id", norm.external_id)
     .maybeSingle();
   if (byExt?.id) {
