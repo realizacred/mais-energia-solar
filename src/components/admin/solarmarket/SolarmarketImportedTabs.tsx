@@ -13,22 +13,20 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
-import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "@/hooks/use-toast";
 import {
   Users, FolderKanban, FileText, GitBranch, Settings2,
-  RefreshCw, Database, Search, AlertTriangle, Eye,
+  Database, Eye, Inbox,
 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { useSolarmarketImport, type ImportScope } from "@/hooks/useSolarmarketImport";
+import { useSolarmarketImport } from "@/hooks/useSolarmarketImport";
 import {
   SolarmarketRecordDetailDrawer,
   type RawEntityKind,
