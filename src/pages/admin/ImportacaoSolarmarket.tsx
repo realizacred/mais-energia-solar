@@ -475,8 +475,8 @@ export default function ImportacaoSolarmarket() {
               <div className="flex items-start gap-2 rounded-md border border-warning/30 bg-warning/5 p-2 text-xs text-warning">
                 <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
                 <span>
-                  Esta importação está em execução há mais de 10 minutos sem progresso.
-                  Provavelmente travou — clique em <strong>Cancelar</strong> para liberar e tentar novamente.
+                  Sem progresso há mais de 10 minutos. A importação pode ter travado —
+                  se os contadores não estiverem subindo, clique em <strong>Cancelar</strong> para liberar e tentar novamente.
                 </span>
               </div>
             )}
