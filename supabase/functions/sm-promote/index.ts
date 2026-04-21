@@ -47,6 +47,7 @@ interface RequestState {
   counters: {
     promoted: number;
     skipped: number;
+    blocked: number;
     warnings: number;
     errors: number;
     processed: number;
@@ -59,7 +60,7 @@ function createInitialState(): RequestState {
     jobId: null,
     tenantId: null,
     userId: null,
-    counters: { promoted: 0, skipped: 0, warnings: 0, errors: 0, processed: 0 },
+    counters: { promoted: 0, skipped: 0, blocked: 0, warnings: 0, errors: 0, processed: 0 },
   };
 }
 
@@ -451,6 +452,7 @@ async function promoteProjeto(
   jobId: string,
   rawProjeto: AnyObj,
   clienteId: string,
+  pipeline: PipelineResolution,
 ): Promise<{ id: string; created: boolean }> {
   const norm = normalizeSmProject(rawProjeto);
   if (!norm.external_id) throw new Error("Projeto SM sem id");
@@ -458,17 +460,20 @@ async function promoteProjeto(
   const existing = await findLink(admin, tenantId, "projeto", norm.external_id);
   if (existing) return { id: existing, created: false };
 
-  // codigo único: SM-PROJ-<extId>
   const codigo = `SM-PROJ-${norm.external_id}`.slice(0, 32);
+  const insertPayload: AnyObj = {
+    tenant_id: tenantId,
+    cliente_id: clienteId,
+    codigo,
+    status: "lead",
+    observacoes: norm.descricao,
+  };
+  if (pipeline.funilId) insertPayload.funil_id = pipeline.funilId;
+  if (pipeline.etapaId) insertPayload.etapa_id = pipeline.etapaId;
+
   const { data, error } = await admin
     .from("projetos")
-    .insert({
-      tenant_id: tenantId,
-      cliente_id: clienteId,
-      codigo,
-      status: "lead", // status canônico inicial; reclassificação fica para PR posterior
-      observacoes: norm.descricao,
-    })
+    .insert(insertPayload)
     .select("id")
     .single();
   if (error || !data?.id) throw new Error(`insert projeto: ${error?.message}`);
@@ -567,6 +572,107 @@ async function insertVersao(
   return data.id as string;
 }
 
+// ─── Resolver de pipeline / etapa (DA-40: sem hardcode) ─────────────────────
+interface PipelineResolution {
+  funilId: string | null;
+  etapaId: string | null;
+  hasPipelineConfigured: boolean;
+}
+
+async function resolveDefaultPipeline(
+  admin: SupabaseClient,
+  tenantId: string,
+): Promise<PipelineResolution> {
+  const { data: anyPipe } = await admin
+    .from("pipelines").select("id").eq("tenant_id", tenantId).limit(1);
+  const hasPipelineConfigured = (anyPipe?.length ?? 0) > 0;
+  if (!hasPipelineConfigured) {
+    return { funilId: null, etapaId: null, hasPipelineConfigured: false };
+  }
+
+  const { data: pComercial } = await admin
+    .from("pipelines").select("id, nome")
+    .eq("tenant_id", tenantId).ilike("nome", "comercial").limit(1).maybeSingle();
+  let funilId = (pComercial?.id as string | undefined);
+  if (!funilId) {
+    const { data: pFirst } = await admin
+      .from("pipelines").select("id").eq("tenant_id", tenantId)
+      .order("created_at", { ascending: true }).limit(1).maybeSingle();
+    funilId = pFirst?.id as string | undefined;
+  }
+  if (!funilId) return { funilId: null, etapaId: null, hasPipelineConfigured: true };
+
+  const { data: etapa } = await admin
+    .from("pipeline_stages").select("id")
+    .eq("tenant_id", tenantId).eq("pipeline_id", funilId)
+    .order("ordem", { ascending: true }).limit(1).maybeSingle();
+
+  return {
+    funilId,
+    etapaId: (etapa?.id as string | undefined) ?? null,
+    hasPipelineConfigured: true,
+  };
+}
+
+// ─── Gate de elegibilidade ──────────────────────────────────────────────────
+type EligibilityIssue = { code: string; message: string };
+type EligibilityResult =
+  | { status: "eligible"; issues: EligibilityIssue[] }
+  | { status: "blocked"; issues: EligibilityIssue[] };
+
+function validateEligibility(args: {
+  rawCliente: AnyObj | null;
+  rawProjeto: AnyObj;
+  rawProposta: AnyObj;
+  pipeline: PipelineResolution;
+}): EligibilityResult {
+  const issues: EligibilityIssue[] = [];
+  const { rawCliente, rawProjeto, rawProposta, pipeline } = args;
+
+  if (!rawCliente) {
+    issues.push({ code: "CLIENT_MISSING", message: "Cliente não resolvido no staging." });
+  } else {
+    const norm = normalizeSmClient(rawCliente);
+    if (!norm.external_id) issues.push({ code: "CLIENT_NO_EXTERNAL_ID", message: "Cliente sem id externo." });
+    if (!norm.nome) issues.push({ code: "CLIENT_NO_NAME", message: "Cliente sem nome." });
+    if (!norm.telefone && !norm.cpf_cnpj && !norm.email) {
+      issues.push({ code: "CLIENT_NO_CONTACT", message: "Cliente sem telefone, e-mail ou CPF/CNPJ." });
+    }
+  }
+
+  const projN = normalizeSmProject(rawProjeto);
+  if (!projN.external_id) {
+    issues.push({ code: "PROJECT_NO_EXTERNAL_ID", message: "Projeto sem id externo." });
+  }
+
+  const propN = normalizeSmProposal(rawProposta);
+  if (!propN.external_id) {
+    issues.push({ code: "PROPOSAL_NO_EXTERNAL_ID", message: "Proposta sem id externo." });
+  }
+  if (propN.valor_total == null || !(propN.valor_total > 0)) {
+    issues.push({ code: "PROPOSAL_INVALID_TOTAL", message: "Proposta sem valor_total válido." });
+  }
+
+  const hasVariables = Array.isArray(propN.variables) && propN.variables.length > 0;
+  const hasPricing = Array.isArray(propN.pricing_table) && propN.pricing_table.length > 0;
+  if (!hasVariables && !hasPricing) {
+    issues.push({ code: "SNAPSHOT_EMPTY", message: "Proposta sem variáveis nem pricing_table — snapshot inválido." });
+  }
+
+  if (pipeline.hasPipelineConfigured) {
+    if (!pipeline.funilId) {
+      issues.push({ code: "PIPELINE_UNRESOLVED", message: "Tenant tem pipelines mas o funil padrão não foi resolvido." });
+    }
+    if (!pipeline.etapaId) {
+      issues.push({ code: "STAGE_UNRESOLVED", message: "Funil sem etapa inicial configurada (pipeline_stages)." });
+    }
+  }
+
+  return issues.length > 0
+    ? { status: "blocked", issues }
+    : { status: "eligible", issues: [] };
+}
+
 // ─── Pipeline orquestrado por proposta ───────────────────────────────────────
 async function promoteOneProposalRow(
   admin: SupabaseClient,
@@ -574,7 +680,8 @@ async function promoteOneProposalRow(
   jobId: string,
   tenantId: string,
   rawProposalRow: AnyObj,
-): Promise<"promoted" | "skipped" | "error"> {
+  pipeline: PipelineResolution,
+): Promise<"promoted" | "skipped" | "blocked" | "error"> {
   const propostaPayload: AnyObj = rawProposalRow.payload ?? {};
   const propExtId = pickStr(propostaPayload.id) ?? rawProposalRow.external_id;
   if (!propExtId) {
@@ -627,6 +734,21 @@ async function promoteOneProposalRow(
     return "skipped";
   }
 
+  // 2) GATE DE ELEGIBILIDADE — bloqueia antes de qualquer write canônico
+  const elig = validateEligibility({ rawCliente, rawProjeto, rawProposta: propostaPayload, pipeline });
+  if (elig.status === "blocked") {
+    state.counters.blocked++;
+    await logEvent(admin, {
+      jobId, tenantId, severity: "error", step: "eligibility", status: "blocked",
+      message: `Promoção bloqueada (${elig.issues.length} motivo(s)): ${elig.issues.map((i) => i.code).join(", ")}`,
+      sourceEntityType: "proposta", sourceEntityId: propExtId,
+      errorCode: elig.issues[0]?.code ?? "BLOCKED",
+      errorOrigin: MODULE,
+      details: { issues: elig.issues },
+    });
+    return "blocked";
+  }
+
   try {
     // 2) Cliente
     const cli = await promoteCliente(admin, tenantId, jobId, rawCliente);
@@ -639,7 +761,7 @@ async function promoteOneProposalRow(
     });
 
     // 3) Projeto
-    const proj = await promoteProjeto(admin, tenantId, jobId, rawProjeto, cli.id);
+    const proj = await promoteProjeto(admin, tenantId, jobId, rawProjeto, cli.id, pipeline);
     await logEvent(admin, {
       jobId, tenantId, severity: "info", step: "promote.projeto",
       status: proj.created ? "created" : "linked",
@@ -716,9 +838,12 @@ async function actionPromoteAll(
     started_at: new Date().toISOString(),
   });
 
+  // Resolve pipeline ANTES dos candidatos — falha rápido se o tenant tiver
+  // pipeline configurado mas inconsistente (sem etapa).
+  const pipeline = await resolveDefaultPipeline(admin, tenantId);
   await logEvent(admin, {
     jobId, tenantId, severity: "info", step: "init", status: "started",
-    message: `promote-all iniciado (batch_limit=${batchLimit}, dry_run=${dryRun})`,
+    message: `promote-all iniciado (batch_limit=${batchLimit}, dry_run=${dryRun}); pipeline=${pipeline.funilId ?? "—"} etapa=${pipeline.etapaId ?? "—"} configured=${pipeline.hasPipelineConfigured}`,
   });
 
   // Backlog: propostas raw que ainda não têm link canônico em external_entity_links.
@@ -756,7 +881,7 @@ async function actionPromoteAll(
       status: "completed" satisfies JobStatus,
       finished_at: new Date().toISOString(),
       items_processed: 0, items_promoted: 0, items_skipped: candidates.length,
-      items_with_warnings: 0, items_with_errors: 0,
+      items_with_warnings: 0, items_with_errors: 0, items_blocked: 0,
     });
     return jsonResponse({
       ok: true, job_id: jobId, status: "completed",
@@ -765,12 +890,25 @@ async function actionPromoteAll(
   }
 
   for (const row of candidates) {
-    await promoteOneProposalRow(admin, state, jobId, tenantId, row);
+    await promoteOneProposalRow(admin, state, jobId, tenantId, row, pipeline);
   }
 
-  const finalStatus: JobStatus = state.counters.errors > 0 || state.counters.warnings > 0 || state.counters.skipped > 0
-    ? "completed_with_warnings"
-    : "completed";
+  // Status final:
+  // - errors>0  → failed
+  // - blocked>0 sem nenhum promoted → failed (nada entrou íntegro)
+  // - blocked>0 com promoted → completed_with_warnings
+  // - warnings/skipped → completed_with_warnings
+  // - tudo limpo → completed
+  let finalStatus: JobStatus;
+  if (state.counters.errors > 0) {
+    finalStatus = "failed";
+  } else if (state.counters.blocked > 0 && state.counters.promoted === 0) {
+    finalStatus = "failed";
+  } else if (state.counters.blocked > 0 || state.counters.warnings > 0 || state.counters.skipped > 0) {
+    finalStatus = "completed_with_warnings";
+  } else {
+    finalStatus = "completed";
+  }
 
   await patchJob(admin, jobId, {
     status: finalStatus,
@@ -780,6 +918,7 @@ async function actionPromoteAll(
     items_skipped: state.counters.skipped,
     items_with_warnings: state.counters.warnings,
     items_with_errors: state.counters.errors,
+    items_blocked: state.counters.blocked,
   });
 
   return jsonResponse({
