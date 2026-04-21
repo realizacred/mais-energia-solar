@@ -597,6 +597,64 @@ export default function ImportacaoSolarmarket() {
           <p className="text-sm text-muted-foreground -mt-2">
             Audite os registros antes de promovê-los ao CRM. Nada aqui impacta dados de produção.
           </p>
+
+          {/* Ações de limpeza por entidade (independentes) */}
+          <Card className="bg-card border-border shadow-sm">
+            <CardContent className="p-4 flex flex-col sm:flex-row sm:items-center gap-3">
+              <div className="flex items-start gap-2 flex-1 min-w-0">
+                <Eraser className="w-4 h-4 text-muted-foreground mt-0.5 shrink-0" />
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-foreground">Limpar staging por entidade</p>
+                  <p className="text-xs text-muted-foreground">
+                    Remove apenas os dados brutos da entidade escolhida. Não afeta o CRM.
+                  </p>
+                </div>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {([
+                  { k: "clientes", label: "Clientes", Icon: Users },
+                  { k: "projetos", label: "Projetos", Icon: FolderKanban },
+                  { k: "propostas", label: "Propostas", Icon: FileText },
+                  { k: "funis", label: "Funis", Icon: GitBranch },
+                  { k: "custom_fields", label: "Campos Custom", Icon: Sliders },
+                ] as { k: StagingEntity; label: string; Icon: typeof Users }[]).map(({ k, label, Icon }) => (
+                  <AlertDialog key={k}>
+                    <AlertDialogTrigger asChild>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={clearStaging.isPending || !!runningJob}
+                        className="border-destructive/30 text-destructive hover:bg-destructive/10 hover:border-destructive"
+                        title={runningJob ? "Há uma importação em execução." : `Limpar apenas ${label}`}
+                      >
+                        <Icon className="w-3.5 h-3.5" />
+                        {label}
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent className="w-[90vw] max-w-md">
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Limpar staging — {label}</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Isso apagará apenas os registros brutos de <strong>{label}</strong> em staging.
+                          As demais entidades permanecem intactas, assim como os dados do CRM.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                        <AlertDialogAction
+                          onClick={() => handleClearStaging([k])}
+                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                        >
+                          Limpar {label}
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+
           <SolarmarketImportedTabs />
         </section>
 
