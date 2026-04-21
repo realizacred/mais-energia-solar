@@ -26731,6 +26731,10 @@ export type Database = {
         }
         Returns: string
       }
+      ensure_tenant_default_pipeline: {
+        Args: { _tenant_id: string }
+        Returns: undefined
+      }
       estoque_cancelar_reserva: {
         Args: { p_reserva_id: string; p_user_id?: string }
         Returns: string
