@@ -841,6 +841,7 @@ async function runImportJob(
   await markConfigTest(state, true);
 
   let totalErrors = 0;
+  let totalWarnings = 0;
 
   const checkCancel = async (): Promise<boolean> => {
     if (await isJobCancelled(state)) {
@@ -852,11 +853,12 @@ async function runImportJob(
 
   const { data: existingJob } = await adminClient
     .from("solarmarket_import_jobs")
-    .select("total_clientes,total_projetos,total_propostas,total_funis,total_custom_fields,total_errors")
+    .select("total_clientes,total_projetos,total_propostas,total_funis,total_custom_fields,total_errors,total_warnings")
     .eq("id", state.jobId!)
     .maybeSingle();
 
   totalErrors = Number((existingJob as any)?.total_errors ?? 0);
+  totalWarnings = Number((existingJob as any)?.total_warnings ?? 0);
 
   let totalFunis = Number((existingJob as any)?.total_funis ?? 0);
   let totalEtapas = 0;
