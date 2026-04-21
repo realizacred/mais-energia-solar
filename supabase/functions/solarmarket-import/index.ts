@@ -311,8 +311,16 @@ async function logEntry(
   internalId: string | null,
   error?: string,
   payloadSnippet?: any,
+  classification?: {
+    severity?: "error" | "warning" | "info";
+    error_code?: string;
+    error_origin?: "api" | "source_data" | "system" | "unknown";
+  },
 ) {
   if (!state.jobId) return;
+  // Severidade default: 'error' se action='error', senão 'info'
+  const severity =
+    classification?.severity ?? (action === "error" ? "error" : "info");
   await state.supabase.from("solarmarket_import_logs").insert({
     job_id: state.jobId,
     tenant_id: state.tenantId,
@@ -322,6 +330,9 @@ async function logEntry(
     action,
     error_message: error ?? null,
     payload_snippet: payloadSnippet ?? null,
+    severity,
+    error_code: classification?.error_code ?? null,
+    error_origin: classification?.error_origin ?? null,
   });
 }
 
