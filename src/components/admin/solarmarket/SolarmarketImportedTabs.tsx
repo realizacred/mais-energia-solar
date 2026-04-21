@@ -69,10 +69,30 @@ function pickPayload(payload: any, ...keys: string[]): any {
 function CountBadge({ value, loading }: { value: number; loading: boolean }) {
   if (loading) return <Skeleton className="h-5 w-8 inline-block" />;
   return (
-    <Badge variant="outline" className="ml-2 bg-primary/10 text-primary border-primary/20">
-      {value}
+    <Badge
+      variant="outline"
+      className="ml-1.5 h-5 px-1.5 text-[11px] font-semibold tabular-nums bg-muted text-muted-foreground border-border group-data-[state=active]:bg-primary/15 group-data-[state=active]:text-primary group-data-[state=active]:border-primary/20"
+    >
+      {value.toLocaleString("pt-BR")}
     </Badge>
   );
+}
+
+// Mapeia status de proposta SolarMarket para variantes semânticas do design system (DS-05).
+function proposalStatusBadge(status: unknown) {
+  if (status == null || status === "") return <span className="text-muted-foreground text-xs">—</span>;
+  const raw = String(status).toLowerCase();
+  let cls = "bg-muted text-muted-foreground border-border";
+  if (/(approved|aceit|ganha|won|aprov|success|conclu)/.test(raw)) {
+    cls = "bg-success/10 text-success border-success/20";
+  } else if (/(pend|progress|andament|wait|open|enviad|sent)/.test(raw)) {
+    cls = "bg-warning/10 text-warning border-warning/20";
+  } else if (/(refus|recus|reject|cancel|lost|perd|erro|error|fail)/.test(raw)) {
+    cls = "bg-destructive/10 text-destructive border-destructive/20";
+  } else if (/(draft|rascunho|novo|new)/.test(raw)) {
+    cls = "bg-info/10 text-info border-info/20";
+  }
+  return <Badge variant="outline" className={`text-xs font-medium ${cls}`}>{String(status)}</Badge>;
 }
 
 function EmptyState({ icon: Icon, message }: { icon: any; message: string }) {
@@ -218,24 +238,39 @@ export function SolarmarketImportedTabs() {
           onValueChange={(v) => { setActiveTab(v as RawEntityKind); setSearch(""); setPage(0); }}
           className="mt-1"
         >
-          <TabsList className="overflow-x-auto flex-wrap h-auto">
-            <TabsTrigger value="clientes" className="gap-1">
+          <TabsList className="w-full justify-start overflow-x-auto flex-wrap h-auto gap-1 bg-muted/40 p-1 rounded-lg">
+            <TabsTrigger
+              value="clientes"
+              className="group gap-1.5 data-[state=active]:bg-card data-[state=active]:text-primary data-[state=active]:shadow-sm data-[state=active]:border data-[state=active]:border-primary/20"
+            >
               <Users className="w-3.5 h-3.5" /> Clientes
               <CountBadge value={counts.data?.clientes ?? 0} loading={counts.isLoading} />
             </TabsTrigger>
-            <TabsTrigger value="projetos" className="gap-1">
+            <TabsTrigger
+              value="projetos"
+              className="group gap-1.5 data-[state=active]:bg-card data-[state=active]:text-primary data-[state=active]:shadow-sm data-[state=active]:border data-[state=active]:border-primary/20"
+            >
               <FolderKanban className="w-3.5 h-3.5" /> Projetos
               <CountBadge value={counts.data?.projetos ?? 0} loading={counts.isLoading} />
             </TabsTrigger>
-            <TabsTrigger value="propostas" className="gap-1">
+            <TabsTrigger
+              value="propostas"
+              className="group gap-1.5 data-[state=active]:bg-card data-[state=active]:text-primary data-[state=active]:shadow-sm data-[state=active]:border data-[state=active]:border-primary/20"
+            >
               <FileText className="w-3.5 h-3.5" /> Propostas
               <CountBadge value={counts.data?.propostas ?? 0} loading={counts.isLoading} />
             </TabsTrigger>
-            <TabsTrigger value="funis" className="gap-1">
+            <TabsTrigger
+              value="funis"
+              className="group gap-1.5 data-[state=active]:bg-card data-[state=active]:text-primary data-[state=active]:shadow-sm data-[state=active]:border data-[state=active]:border-primary/20"
+            >
               <GitBranch className="w-3.5 h-3.5" /> Funis
               <CountBadge value={counts.data?.funis ?? 0} loading={counts.isLoading} />
             </TabsTrigger>
-            <TabsTrigger value="custom_fields" className="gap-1">
+            <TabsTrigger
+              value="custom_fields"
+              className="group gap-1.5 data-[state=active]:bg-card data-[state=active]:text-primary data-[state=active]:shadow-sm data-[state=active]:border data-[state=active]:border-primary/20"
+            >
               <Settings2 className="w-3.5 h-3.5" /> Campos Custom
               <CountBadge value={counts.data?.custom_fields ?? 0} loading={counts.isLoading} />
             </TabsTrigger>
@@ -455,7 +490,7 @@ function ListaRaw({
             {sanitizeText(pp.nome ?? "") || "—"}
           </TableCell>
           <TableCell className="text-sm">{pp.projeto?.label ?? "—"}</TableCell>
-          <TableCell>{pp.status ? <Badge variant="outline" className="text-xs">{String(pp.status)}</Badge> : "—"}</TableCell>
+          <TableCell>{proposalStatusBadge(pp.status)}</TableCell>
           <TableCell className="text-sm font-mono">
             {pp.valorTotalEstimado != null ? formatBRL(pp.valorTotalEstimado) : "—"}
           </TableCell>
@@ -471,7 +506,7 @@ function ListaRaw({
         <TableRow key={r.id}>
           <TableCell className="font-medium text-foreground">{sanitizeText(f.nome ?? "") || "—"}</TableCell>
           <TableCell>
-            <Badge variant="outline" className="text-xs">{f.etapas.length} etapa(s)</Badge>
+            <Badge variant="outline" className="text-xs bg-primary/10 text-primary border-primary/20">{f.etapas.length} etapa(s)</Badge>
           </TableCell>
           <TableCell>{extId}</TableCell>
           <TableCell>{importedAt}</TableCell>
@@ -484,7 +519,7 @@ function ListaRaw({
     return (
       <TableRow key={r.id}>
         <TableCell className="font-medium text-foreground">{sanitizeText(cf.nome ?? "") || "—"}</TableCell>
-        <TableCell>{cf.tipo ? <Badge variant="outline" className="text-xs">{String(cf.tipo)}</Badge> : "—"}</TableCell>
+        <TableCell>{cf.tipo ? <Badge variant="outline" className="text-xs bg-info/10 text-info border-info/20">{String(cf.tipo)}</Badge> : "—"}</TableCell>
         <TableCell className="text-sm">{cf.obrigatorio === true ? "Sim" : cf.obrigatorio === false ? "Não" : "—"}</TableCell>
         <TableCell>{importedAt}</TableCell>
         <TableCell className="text-right">{action}</TableCell>
