@@ -238,24 +238,39 @@ export function SolarmarketImportedTabs() {
           onValueChange={(v) => { setActiveTab(v as RawEntityKind); setSearch(""); setPage(0); }}
           className="mt-1"
         >
-          <TabsList className="overflow-x-auto flex-wrap h-auto">
-            <TabsTrigger value="clientes" className="gap-1">
+          <TabsList className="w-full justify-start overflow-x-auto flex-wrap h-auto gap-1 bg-muted/40 p-1 rounded-lg">
+            <TabsTrigger
+              value="clientes"
+              className="group gap-1.5 data-[state=active]:bg-card data-[state=active]:text-primary data-[state=active]:shadow-sm data-[state=active]:border data-[state=active]:border-primary/20"
+            >
               <Users className="w-3.5 h-3.5" /> Clientes
               <CountBadge value={counts.data?.clientes ?? 0} loading={counts.isLoading} />
             </TabsTrigger>
-            <TabsTrigger value="projetos" className="gap-1">
+            <TabsTrigger
+              value="projetos"
+              className="group gap-1.5 data-[state=active]:bg-card data-[state=active]:text-primary data-[state=active]:shadow-sm data-[state=active]:border data-[state=active]:border-primary/20"
+            >
               <FolderKanban className="w-3.5 h-3.5" /> Projetos
               <CountBadge value={counts.data?.projetos ?? 0} loading={counts.isLoading} />
             </TabsTrigger>
-            <TabsTrigger value="propostas" className="gap-1">
+            <TabsTrigger
+              value="propostas"
+              className="group gap-1.5 data-[state=active]:bg-card data-[state=active]:text-primary data-[state=active]:shadow-sm data-[state=active]:border data-[state=active]:border-primary/20"
+            >
               <FileText className="w-3.5 h-3.5" /> Propostas
               <CountBadge value={counts.data?.propostas ?? 0} loading={counts.isLoading} />
             </TabsTrigger>
-            <TabsTrigger value="funis" className="gap-1">
+            <TabsTrigger
+              value="funis"
+              className="group gap-1.5 data-[state=active]:bg-card data-[state=active]:text-primary data-[state=active]:shadow-sm data-[state=active]:border data-[state=active]:border-primary/20"
+            >
               <GitBranch className="w-3.5 h-3.5" /> Funis
               <CountBadge value={counts.data?.funis ?? 0} loading={counts.isLoading} />
             </TabsTrigger>
-            <TabsTrigger value="custom_fields" className="gap-1">
+            <TabsTrigger
+              value="custom_fields"
+              className="group gap-1.5 data-[state=active]:bg-card data-[state=active]:text-primary data-[state=active]:shadow-sm data-[state=active]:border data-[state=active]:border-primary/20"
+            >
               <Settings2 className="w-3.5 h-3.5" /> Campos Custom
               <CountBadge value={counts.data?.custom_fields ?? 0} loading={counts.isLoading} />
             </TabsTrigger>
