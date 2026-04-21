@@ -746,6 +746,7 @@ export default function Admin() {
                 <Route path="dev/rls-test" element={<RlsTestPage />} />
                 <Route path="importacao-solarmarket" element={<ImportacaoSolarmarket />} />
                 <Route path="configuracoes/integracoes/solarmarket" element={<SolarmarketConfigPage />} />
+                <Route path="promocao-solarmarket" element={<PromocaoSolarmarket />} />
                 
                 {/* Catch-all */}
                 <Route path="*" element={<Navigate to="leads" replace />} />
