@@ -568,6 +568,107 @@ async function insertVersao(
   return data.id as string;
 }
 
+// ─── Resolver de pipeline / etapa (DA-40: sem hardcode) ─────────────────────
+interface PipelineResolution {
+  funilId: string | null;
+  etapaId: string | null;
+  hasPipelineConfigured: boolean;
+}
+
+async function resolveDefaultPipeline(
+  admin: SupabaseClient,
+  tenantId: string,
+): Promise<PipelineResolution> {
+  const { data: anyPipe } = await admin
+    .from("pipelines").select("id").eq("tenant_id", tenantId).limit(1);
+  const hasPipelineConfigured = (anyPipe?.length ?? 0) > 0;
+  if (!hasPipelineConfigured) {
+    return { funilId: null, etapaId: null, hasPipelineConfigured: false };
+  }
+
+  const { data: pComercial } = await admin
+    .from("pipelines").select("id, nome")
+    .eq("tenant_id", tenantId).ilike("nome", "comercial").limit(1).maybeSingle();
+  let funilId = (pComercial?.id as string | undefined);
+  if (!funilId) {
+    const { data: pFirst } = await admin
+      .from("pipelines").select("id").eq("tenant_id", tenantId)
+      .order("created_at", { ascending: true }).limit(1).maybeSingle();
+    funilId = pFirst?.id as string | undefined;
+  }
+  if (!funilId) return { funilId: null, etapaId: null, hasPipelineConfigured: true };
+
+  const { data: etapa } = await admin
+    .from("pipeline_stages").select("id")
+    .eq("tenant_id", tenantId).eq("pipeline_id", funilId)
+    .order("ordem", { ascending: true }).limit(1).maybeSingle();
+
+  return {
+    funilId,
+    etapaId: (etapa?.id as string | undefined) ?? null,
+    hasPipelineConfigured: true,
+  };
+}
+
+// ─── Gate de elegibilidade ──────────────────────────────────────────────────
+type EligibilityIssue = { code: string; message: string };
+type EligibilityResult =
+  | { status: "eligible"; issues: EligibilityIssue[] }
+  | { status: "blocked"; issues: EligibilityIssue[] };
+
+function validateEligibility(args: {
+  rawCliente: AnyObj | null;
+  rawProjeto: AnyObj;
+  rawProposta: AnyObj;
+  pipeline: PipelineResolution;
+}): EligibilityResult {
+  const issues: EligibilityIssue[] = [];
+  const { rawCliente, rawProjeto, rawProposta, pipeline } = args;
+
+  if (!rawCliente) {
+    issues.push({ code: "CLIENT_MISSING", message: "Cliente não resolvido no staging." });
+  } else {
+    const norm = normalizeSmClient(rawCliente);
+    if (!norm.external_id) issues.push({ code: "CLIENT_NO_EXTERNAL_ID", message: "Cliente sem id externo." });
+    if (!norm.nome) issues.push({ code: "CLIENT_NO_NAME", message: "Cliente sem nome." });
+    if (!norm.telefone && !norm.cpf_cnpj && !norm.email) {
+      issues.push({ code: "CLIENT_NO_CONTACT", message: "Cliente sem telefone, e-mail ou CPF/CNPJ." });
+    }
+  }
+
+  const projN = normalizeSmProject(rawProjeto);
+  if (!projN.external_id) {
+    issues.push({ code: "PROJECT_NO_EXTERNAL_ID", message: "Projeto sem id externo." });
+  }
+
+  const propN = normalizeSmProposal(rawProposta);
+  if (!propN.external_id) {
+    issues.push({ code: "PROPOSAL_NO_EXTERNAL_ID", message: "Proposta sem id externo." });
+  }
+  if (propN.valor_total == null || !(propN.valor_total > 0)) {
+    issues.push({ code: "PROPOSAL_INVALID_TOTAL", message: "Proposta sem valor_total válido." });
+  }
+
+  const hasVariables = Array.isArray(propN.variables) && propN.variables.length > 0;
+  const hasPricing = Array.isArray(propN.pricing_table) && propN.pricing_table.length > 0;
+  if (!hasVariables && !hasPricing) {
+    issues.push({ code: "SNAPSHOT_EMPTY", message: "Proposta sem variáveis nem pricing_table — snapshot inválido." });
+  }
+
+  if (pipeline.hasPipelineConfigured) {
+    if (!pipeline.funilId) {
+      issues.push({ code: "PIPELINE_UNRESOLVED", message: "Tenant tem pipelines mas o funil padrão não foi resolvido." });
+    }
+    if (!pipeline.etapaId) {
+      issues.push({ code: "STAGE_UNRESOLVED", message: "Funil sem etapa inicial configurada (pipeline_stages)." });
+    }
+  }
+
+  return issues.length > 0
+    ? { status: "blocked", issues }
+    : { status: "eligible", issues: [] };
+}
+
 // ─── Pipeline orquestrado por proposta ───────────────────────────────────────
 async function promoteOneProposalRow(
   admin: SupabaseClient,
