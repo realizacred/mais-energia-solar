@@ -449,32 +449,45 @@ export default function ImportacaoSolarmarket() {
         </CardContent>
       </Card>
 
-      {/* Progresso ao vivo */}
+      {/* Hero card de progresso */}
       {runningJob && (
-        <Card id={`sm-job-${runningJob.id}`} className="border-l-[3px] border-l-info bg-card shadow-sm scroll-mt-6">
-          <CardContent className="p-5 space-y-3">
-            <div className="flex items-center justify-between gap-3">
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-foreground">
-                  Importação em andamento
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  Etapa atual:{" "}
-                  <span className="font-medium text-foreground">
-                    {stepLabel(runningJob.current_step)}
-                  </span>
-                  {" · "}
-                  {Math.round(Number(runningJob.progress_pct ?? 0))}%
-                </p>
+        <Card
+          id={`sm-job-${runningJob.id}`}
+          className="border-l-[3px] border-l-info bg-card shadow-sm scroll-mt-6 overflow-hidden"
+        >
+          <CardContent className="p-5 sm:p-6 space-y-5">
+            {/* Topo: título + status + ações */}
+            <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+              <div className="flex items-start gap-3 min-w-0 flex-1">
+                <div className="h-10 w-10 rounded-lg bg-info/10 flex items-center justify-center shrink-0">
+                  <Activity className="w-5 h-5 text-info" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h2 className="text-base font-semibold text-foreground">
+                      Importação em andamento
+                    </h2>
+                    <Badge variant="outline" className="bg-info/10 text-info border-info/20 gap-1.5">
+                      <span className="relative flex h-1.5 w-1.5">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-info opacity-75" />
+                        <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-info" />
+                      </span>
+                      {stepLabel(runningJob.current_step)}
+                    </Badge>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Iniciada em {formatBR(runningJob.started_at ?? runningJob.created_at)}
+                    {etaText ? ` · ${etaText}` : ""}
+                  </p>
+                </div>
               </div>
-              <div className="flex items-center gap-2">
-                <Loader2 className="w-5 h-5 animate-spin text-info" />
+              <div className="flex items-center gap-2 shrink-0">
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => handleCancel()}
                   disabled={cancelImport.isPending}
-                  className="border-destructive text-destructive hover:bg-destructive/10"
+                  className="border-destructive/40 text-destructive hover:bg-destructive/10 hover:border-destructive"
                 >
                   {cancelImport.isPending ? (
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -485,36 +498,74 @@ export default function ImportacaoSolarmarket() {
                 </Button>
               </div>
             </div>
-            {isStale && (
-              <div className="flex items-start gap-2 rounded-md border border-warning/30 bg-warning/5 p-2 text-xs text-warning">
-                <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
-                <span>
-                  Sem progresso há mais de 10 minutos. A importação pode ter travado —
-                  se os contadores não estiverem subindo, clique em <strong>Cancelar</strong> para liberar e tentar novamente.
+
+            {/* Barra de progresso premium */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                  Progresso geral
+                </span>
+                <span className="text-sm font-bold tabular-nums text-foreground">
+                  {Math.round(Number(runningJob.progress_pct ?? 0))}%
                 </span>
               </div>
+              <Progress value={Number(runningJob.progress_pct ?? 0)} className="h-2.5" />
+            </div>
+
+            {/* Alerta de travamento */}
+            {isStale && (
+              <div className="flex items-start gap-3 rounded-lg border border-warning/30 bg-warning/10 p-3">
+                <div className="h-8 w-8 rounded-md bg-warning/20 flex items-center justify-center shrink-0">
+                  <AlertTriangle className="w-4 h-4 text-warning" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-foreground">
+                    Sem progresso há mais de 10 minutos
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Se os contadores não estiverem subindo, a importação pode ter travado. Clique em <strong className="text-foreground">Cancelar</strong> para liberar e tentar novamente.
+                  </p>
+                </div>
+              </div>
             )}
-            <Progress value={Number(runningJob.progress_pct ?? 0)} />
-            {/* Contadores reais (staging) — única fonte de verdade */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-2">
-              <div className="rounded-md border border-border bg-muted/30 p-2">
-                <p className="text-[10px] uppercase text-muted-foreground tracking-wide">Clientes</p>
-                <p className="text-sm font-mono font-semibold text-foreground">{liveCounts.data?.clientes ?? runningJob.total_clientes ?? 0}</p>
-              </div>
-              <div className="rounded-md border border-border bg-muted/30 p-2">
-                <p className="text-[10px] uppercase text-muted-foreground tracking-wide">Projetos</p>
-                <p className="text-sm font-mono font-semibold text-foreground">{liveCounts.data?.projetos ?? runningJob.total_projetos ?? 0}</p>
-              </div>
-              <div className="rounded-md border border-border bg-muted/30 p-2">
-                <p className="text-[10px] uppercase text-muted-foreground tracking-wide">Propostas</p>
-                <p className="text-sm font-mono font-semibold text-foreground">{liveCounts.data?.propostas ?? runningJob.total_propostas ?? 0}</p>
-              </div>
-              <div className="rounded-md border border-border bg-muted/30 p-2">
-                <p className="text-[10px] uppercase text-muted-foreground tracking-wide">Erros</p>
-                <p className={`text-sm font-mono font-semibold ${(runningJob.total_errors ?? 0) > 0 ? "text-destructive" : "text-foreground"}`}>
-                  {runningJob.total_errors ?? 0}
-                </p>
-              </div>
+
+            {/* KPIs em tempo real */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              {[
+                { label: "Clientes", value: liveCounts.data?.clientes ?? runningJob.total_clientes ?? 0, icon: Users, tone: "primary" as const },
+                { label: "Projetos", value: liveCounts.data?.projetos ?? runningJob.total_projetos ?? 0, icon: FolderKanban, tone: "info" as const },
+                { label: "Propostas", value: liveCounts.data?.propostas ?? runningJob.total_propostas ?? 0, icon: FileText, tone: "secondary" as const },
+                {
+                  label: "Erros",
+                  value: runningJob.total_errors ?? 0,
+                  icon: XCircle,
+                  tone: ((runningJob.total_errors ?? 0) > 0 ? "destructive" : "muted") as "destructive" | "muted",
+                },
+              ].map(({ label, value, icon: Icon, tone }) => {
+                const toneMap = {
+                  primary: { border: "border-l-primary", bg: "bg-primary/10", text: "text-primary" },
+                  info: { border: "border-l-info", bg: "bg-info/10", text: "text-info" },
+                  secondary: { border: "border-l-secondary", bg: "bg-secondary/10", text: "text-secondary" },
+                  destructive: { border: "border-l-destructive", bg: "bg-destructive/10", text: "text-destructive" },
+                  muted: { border: "border-l-muted-foreground/30", bg: "bg-muted", text: "text-muted-foreground" },
+                }[tone];
+                return (
+                  <div
+                    key={label}
+                    className={`border-l-[3px] ${toneMap.border} bg-background border border-border rounded-lg p-3 flex items-center gap-3`}
+                  >
+                    <div className={`h-9 w-9 rounded-lg flex items-center justify-center shrink-0 ${toneMap.bg}`}>
+                      <Icon className={`w-4 h-4 ${toneMap.text}`} />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-lg font-bold tracking-tight text-foreground leading-none tabular-nums">
+                        {value.toLocaleString("pt-BR")}
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-1 truncate">{label}</p>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </CardContent>
         </Card>
