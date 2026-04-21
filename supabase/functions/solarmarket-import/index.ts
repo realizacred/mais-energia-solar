@@ -8,6 +8,7 @@
 // Fallback aos secrets SOLARMARKET_API_URL / SOLARMARKET_API_TOKEN para retrocompat.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { extractFileUrls } from "../_shared/extractFileUrls.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -759,7 +760,76 @@ async function upsertRaw(
     .select("id")
     .single();
   if (error) throw new Error(`${table}: ${error.message}`);
+
+  // Fire-and-forget: ingerir anexos detectados no payload (RB-25 pattern).
+  // Não bloqueia o fluxo de importação. Falha em arquivo individual é logada
+  // dentro de `import-file-from-url` (registra em imported_files com status=error).
+  enqueueFileIngestion(state, table, externalId, payload).catch(() => {});
+
   return data?.id as string | undefined;
+}
+
+// Mapa staging table → entity_type canônico para entity_files.
+const RAW_TABLE_TO_ENTITY: Record<string, string> = {
+  sm_clientes_raw: "sm_cliente",
+  sm_projetos_raw: "sm_projeto",
+  sm_propostas_raw: "sm_proposta",
+  sm_funis_raw: "sm_funil",
+  sm_custom_fields_raw: "sm_custom_field",
+};
+
+async function enqueueFileIngestion(
+  state: RequestState,
+  table: string,
+  externalId: string,
+  payload: Record<string, unknown>,
+) {
+  const urls = extractFileUrls(payload);
+  if (urls.length === 0) return;
+
+  const entityType = RAW_TABLE_TO_ENTITY[table] ?? table;
+  const endpoint = `${SUPABASE_URL}/functions/v1/import-file-from-url`;
+
+  // Limite defensivo: até 25 anexos por registro para evitar fan-out abusivo.
+  const slice = urls.slice(0, 25);
+
+  const dispatch = Promise.allSettled(
+    slice.map((u) =>
+      fetch(endpoint, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+        },
+        body: JSON.stringify({
+          tenant_id: state.tenantId,
+          source_system: EXTERNAL_SOURCE,
+          source_url: u.url,
+          source_record_id: externalId,
+          entity_type: entityType,
+          // Sem entity_id canônico nesta fase — só vinculamos a entidade
+          // canônica na Fase 2 (promoção). Aqui registramos a origem em
+          // `imported_files.source_record_id` para reconciliação futura.
+          category: u.key || null,
+          original_file_name: u.url.split("/").pop()?.split("?")[0] ?? null,
+        }),
+      }).catch(() => null),
+    ),
+  );
+
+  // Tenta usar EdgeRuntime.waitUntil para garantir execução além do response.
+  // Fallback: aguarda inline (sem await externo, fire-and-forget via .catch).
+  try {
+    // @ts-ignore — EdgeRuntime existe no runtime Deno Deploy do Supabase
+    if (typeof EdgeRuntime !== "undefined" && EdgeRuntime?.waitUntil) {
+      // @ts-ignore
+      EdgeRuntime.waitUntil(dispatch);
+      return;
+    }
+  } catch {
+    // ignore
+  }
+  await dispatch;
 }
 
 async function mapCliente(state: RequestState, item: any) {
