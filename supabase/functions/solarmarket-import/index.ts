@@ -597,6 +597,7 @@ async function importProjectScopedProposals(
   const to = from + batchSize - 1;
   const counterBase = opts.counterBase ?? 0;
   const errorsBase = opts.errorsBase ?? 0;
+  const warningsBase = opts.warningsBase ?? 0;
   const pStart = opts.progressStart ?? 0;
   const pEnd = opts.progressEnd ?? 0;
 
@@ -607,22 +608,28 @@ async function importProjectScopedProposals(
     .range(from, to);
 
   if (error) {
-    await logEntry(state, "proposta", "error", null, null, `[fallback] Falha ao listar projetos para propostas: ${error.message}`);
-    return { count: 0, errors: 1, pathUsed, nextPage: null, done: true };
+    await logEntry(
+      state, "proposta", "error", null, null,
+      `[fallback] Falha ao listar projetos para propostas: ${error.message}`,
+      undefined,
+      { severity: "error", error_code: "SYSTEM_QUERY_FAILED", error_origin: "system" },
+    );
+    return { count: 0, errors: 1, warnings: 0, pathUsed, nextPage: null, done: true };
   }
 
   if (!projects || projects.length === 0) {
     await logEntry(state, "proposta", "skipped", null, null, `[fallback] Nenhum projeto disponível para buscar propostas em ${pathUsed}`);
-    return { count: 0, errors: 0, pathUsed, nextPage: null, done: true };
+    return { count: 0, errors: 0, warnings: 0, pathUsed, nextPage: null, done: true };
   }
 
   let count = 0;
   let errors = 0;
+  let warnings = 0;
 
   for (let index = 0; index < projects.length; index++) {
     if (await isJobCancelled(state)) {
       await logEntry(state, "proposta", "skipped", null, null, `[cancelled] Importação interrompida no fallback ${pathUsed} (batch=${batchPage}, count=${count})`);
-      return { count, errors, pathUsed, nextPage: batchPage, done: false };
+      return { count, errors, warnings, pathUsed, nextPage: batchPage, done: false };
     }
 
     const projectId = String((projects[index] as any)?.external_id ?? "").trim();
@@ -630,21 +637,45 @@ async function importProjectScopedProposals(
 
     const response = await smGet(state, `/projects/${projectId}/proposals`);
     if (!response.ok) {
-      errors++;
-      await logEntry(state, "proposta", "error", projectId, null, `[fallback] Projeto ${projectId}: HTTP ${response.status}`);
+      // SEMÂNTICA: 404 em /projects/:id/proposals significa "projeto sem proposta"
+      // — caso VÁLIDO no domínio (não é erro técnico). Registrar como warning.
+      if (response.status === 404) {
+        warnings++;
+        await logEntry(
+          state, "proposta", "skipped", projectId, null,
+          `[info] Projeto ${projectId} sem propostas na origem (HTTP 404)`,
+          undefined,
+          { severity: "warning", error_code: "PROJECT_WITHOUT_PROPOSALS", error_origin: "source_data" },
+        );
+      } else {
+        errors++;
+        const code = response.status === 401 || response.status === 403 ? "AUTH_FAILED"
+          : response.status === 429 ? "RATE_LIMITED"
+          : response.status >= 500 ? "UPSTREAM_5XX"
+          : "UNKNOWN";
+        await logEntry(
+          state, "proposta", "error", projectId, null,
+          `[fallback] Projeto ${projectId}: HTTP ${response.status}`,
+          undefined,
+          { severity: "error", error_code: code, error_origin: "api" },
+        );
+      }
       continue;
     }
 
     const items = pickArray(response.body);
+    // SEMÂNTICA: resposta 200 com lista vazia também é "projeto sem proposta"
+    if (items.length === 0) {
+      warnings++;
+      await logEntry(
+        state, "proposta", "skipped", projectId, null,
+        `[info] Projeto ${projectId} retornou 0 propostas`,
+        undefined,
+        { severity: "warning", error_code: "PROJECT_WITHOUT_PROPOSALS", error_origin: "source_data" },
+      );
+    }
     for (const item of items) {
       try {
-        // BUG FIX: a API SolarMarket em /projects/:id/proposals retorna
-        // propostas com `id` LOCAL ao projeto (1,2,3...). Sem prefixar com
-        // o projectId, todas as propostas "id=1" de projetos diferentes
-        // colidem no UNIQUE (tenant_id, external_id) e sobrescrevem umas
-        // às outras na sm_propostas_raw — perdendo dados silenciosamente.
-        // Mantemos o id original em payload._sm_proposal_id e injetamos o
-        // projectId em payload._sm_project_id para a fase de promoção.
         const enrichedItem = {
           ...(item ?? {}),
           _sm_project_id: projectId,
@@ -656,12 +687,11 @@ async function importProjectScopedProposals(
       } catch (e) {
         errors++;
         await logEntry(
-          state,
-          "proposta",
-          "error",
-          String(item?.id ?? projectId),
-          null,
+          state, "proposta", "error",
+          String(item?.id ?? projectId), null,
           (e as Error).message,
+          undefined,
+          { severity: "error", error_code: "PROPOSAL_INSERT_FAILED", error_origin: "system" },
         );
       }
     }
@@ -671,11 +701,10 @@ async function importProjectScopedProposals(
       ? Math.min(pEnd, pStart + Math.round((pEnd - pStart) * (processedProjects / Math.max(totalProjects, 1))))
       : undefined;
 
-    // BUG FIX: persistir total_errors também (404s de projetos sem proposta
-    // estavam sendo contados localmente mas nunca refletidos no job).
     await updateJob(state, {
       total_propostas: counterBase + count,
       total_errors: errorsBase + errors,
+      total_warnings: warningsBase + warnings,
       ...(incrementalProgress !== undefined ? { progress_pct: incrementalProgress } : {}),
       updated_at: new Date().toISOString(),
     });
@@ -686,19 +715,16 @@ async function importProjectScopedProposals(
     : projects.length < batchSize;
 
   await logEntry(
-    state,
-    "proposta",
-    "skipped",
-    null,
-    null,
+    state, "proposta", "skipped", null, null,
     done
-      ? `[end] proposta concluída via fallback ${pathUsed}: count=${count}, errors=${errors}`
-      : `[yield] proposta pausada via fallback ${pathUsed}: count=${count}, errors=${errors}, next_batch=${batchPage + 1}`,
+      ? `[end] proposta concluída via fallback ${pathUsed}: count=${count}, errors=${errors}, warnings=${warnings}`
+      : `[yield] proposta pausada via fallback ${pathUsed}: count=${count}, errors=${errors}, warnings=${warnings}, next_batch=${batchPage + 1}`,
   );
 
   return {
     count,
     errors,
+    warnings,
     pathUsed,
     nextPage: done ? null : batchPage + 1,
     done,
