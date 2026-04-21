@@ -28,6 +28,8 @@ import {
 import {
   Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription,
 } from "@/components/ui/sheet";
+import { Progress } from "@/components/ui/progress";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader,
@@ -310,15 +312,37 @@ export function PromocaoSolarmarketSection() {
           </div>
 
           {runningJob && (
-            <div className="flex items-start gap-3 p-3 rounded-lg border border-info/30 bg-info/5">
-              <Loader2 className="w-4 h-4 text-info animate-spin shrink-0 mt-0.5" />
-              <div className="text-sm flex-1">
-                <p className="font-medium text-foreground">
-                  Job {runningJob.id.slice(0, 8)} em andamento
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  Iniciado em {formatBR(runningJob.started_at ?? runningJob.created_at)}.
-                </p>
+            <div className="space-y-2 p-3 rounded-lg border border-info/30 bg-info/5">
+              <div className="flex items-start gap-3">
+                <Loader2 className="w-4 h-4 text-info animate-spin shrink-0 mt-0.5" />
+                <div className="text-sm flex-1 min-w-0">
+                  <p className="font-medium text-foreground">
+                    Job {runningJob.id.slice(0, 8)} em andamento
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Processando {runningJob.items_processed ?? 0} de {runningJob.total_items ?? 0} itens
+                    {" · "}Iniciado em {formatBR(runningJob.started_at ?? runningJob.created_at)}.
+                  </p>
+                </div>
+                <span className="text-xs font-mono text-info shrink-0">
+                  {runningJob.total_items
+                    ? `${Math.round(((runningJob.items_processed ?? 0) / runningJob.total_items) * 100)}%`
+                    : "—"}
+                </span>
+              </div>
+              <Progress
+                value={
+                  runningJob.total_items
+                    ? ((runningJob.items_processed ?? 0) / runningJob.total_items) * 100
+                    : 0
+                }
+                className="h-2"
+              />
+              <div className="flex flex-wrap gap-2 text-xs">
+                <span className="text-success">✓ {runningJob.items_promoted ?? 0} promovidos</span>
+                <span className="text-warning">⚠ {runningJob.items_with_warnings ?? 0} avisos</span>
+                <span className="text-destructive">✗ {runningJob.items_with_errors ?? 0} erros</span>
+                <span className="text-muted-foreground">⊘ {runningJob.items_blocked ?? 0} bloqueados</span>
               </div>
             </div>
           )}
@@ -445,16 +469,36 @@ export function PromocaoSolarmarketSection() {
 /* ─── Drawer de auditoria por job ───────────────────────────────────────────── */
 function AuditDrawer({ jobId, onClose }: { jobId: string | null; onClose: () => void }) {
   const { data: logs, isLoading } = useSolarmarketPromoteLogs(jobId);
+  const [tab, setTab] = useState<"errors" | "warnings" | "success" | "all">("errors");
 
-  const counts = useMemo(() => {
-    const list = logs ?? [];
-    return {
-      total: list.length,
-      info: list.filter((l) => l.severity === "info").length,
-      warning: list.filter((l) => l.severity === "warning").length,
-      error: list.filter((l) => l.severity === "error").length,
-    };
-  }, [logs]);
+  const list = logs ?? [];
+
+  const counts = useMemo(() => ({
+    total: list.length,
+    info: list.filter((l) => l.severity === "info").length,
+    warning: list.filter((l) => l.severity === "warning").length,
+    error: list.filter((l) => l.severity === "error").length,
+  }), [list]);
+
+  // Top 3 erros mais comuns (agrupado por error_code ou message)
+  const topErrors = useMemo(() => {
+    const errs = list.filter((l) => l.severity === "error");
+    const map = new Map<string, { key: string; count: number; sample: string }>();
+    for (const e of errs) {
+      const key = e.error_code || (e.message ?? "Erro desconhecido").slice(0, 80);
+      const cur = map.get(key);
+      if (cur) cur.count++;
+      else map.set(key, { key, count: 1, sample: e.message ?? key });
+    }
+    return Array.from(map.values()).sort((a, b) => b.count - a.count).slice(0, 3);
+  }, [list]);
+
+  const filtered = useMemo(() => {
+    if (tab === "all") return list;
+    if (tab === "errors") return list.filter((l) => l.severity === "error");
+    if (tab === "warnings") return list.filter((l) => l.severity === "warning");
+    return list.filter((l) => l.severity === "info");
+  }, [list, tab]);
 
   const entityIcon = (t: string | null) => {
     if (t === "cliente") return <Users className="w-3.5 h-3.5" />;
@@ -490,65 +534,117 @@ function AuditDrawer({ jobId, onClose }: { jobId: string | null; onClose: () => 
           </div>
         </SheetHeader>
 
-        <div className="flex-1 min-h-0 overflow-y-auto p-6 space-y-2">
-          {isLoading ? (
-            <div className="space-y-2">
-              {[0, 1, 2, 3].map((i) => <Skeleton key={i} className="h-16 w-full" />)}
-            </div>
-          ) : !logs || logs.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-12 text-center">
-              <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center mb-3">
-                <ListChecks className="w-6 h-6 text-muted-foreground" />
+        <div className="flex-1 min-h-0 overflow-y-auto p-6 space-y-4">
+          {/* Top 3 erros mais comuns */}
+          {topErrors.length > 0 && (
+            <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 space-y-2">
+              <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+                <AlertTriangle className="w-4 h-4 text-destructive" />
+                Top {topErrors.length} erro{topErrors.length === 1 ? "" : "s"} mais frequente{topErrors.length === 1 ? "" : "s"}
               </div>
-              <p className="text-sm font-medium text-foreground">Sem eventos para este job</p>
-              <p className="text-xs text-muted-foreground mt-1">
-                Os logs aparecem conforme o job processa cada item.
-              </p>
-            </div>
-          ) : (
-            logs.map((l) => (
-              <div
-                key={l.id}
-                className="rounded-lg border border-border bg-background p-3 space-y-1.5"
-              >
-                <div className="flex items-start justify-between gap-2">
-                  <div className="flex items-center gap-2 min-w-0">
-                    {severityBadge(l.severity)}
-                    <code className="text-xs text-muted-foreground truncate">{l.step}</code>
-                    <Badge variant="outline" className="bg-muted text-muted-foreground border-border">
-                      {l.status}
+              <ol className="space-y-1.5">
+                {topErrors.map((e, i) => (
+                  <li key={e.key} className="flex items-start gap-2 text-xs">
+                    <Badge variant="outline" className="bg-destructive/10 text-destructive border-destructive/20 shrink-0 font-mono">
+                      {e.count}×
                     </Badge>
-                  </div>
-                  <span className="text-xs text-muted-foreground shrink-0 font-mono">
-                    {formatBR(l.created_at)}
-                  </span>
-                </div>
-                {l.message && (
-                  <p className="text-sm text-foreground break-words">{l.message}</p>
-                )}
-                {(l.source_entity_type || l.canonical_entity_id) && (
-                  <div className="flex flex-wrap gap-2 text-xs text-muted-foreground pt-1">
-                    {l.source_entity_type && (
-                      <span className="inline-flex items-center gap-1">
-                        {entityIcon(l.source_entity_type)}
-                        SM: <code className="font-mono">{l.source_entity_id ?? "—"}</code>
-                      </span>
-                    )}
-                    {l.canonical_entity_id && (
-                      <span className="inline-flex items-center gap-1">
-                        → CRM: <code className="font-mono">{l.canonical_entity_id.slice(0, 8)}</code>
-                      </span>
-                    )}
-                    {l.error_code && (
-                      <Badge variant="outline" className="bg-destructive/10 text-destructive border-destructive/20">
-                        {l.error_code}
-                      </Badge>
-                    )}
-                  </div>
-                )}
-              </div>
-            ))
+                    <div className="min-w-0 flex-1">
+                      <code className="text-destructive font-mono text-[11px]">{e.key}</code>
+                      {e.sample !== e.key && (
+                        <p className="text-muted-foreground mt-0.5 break-words">{e.sample}</p>
+                      )}
+                    </div>
+                  </li>
+                ))}
+              </ol>
+            </div>
           )}
+
+          {/* Filtros por severidade */}
+          <Tabs value={tab} onValueChange={(v) => setTab(v as typeof tab)}>
+            <TabsList className="grid grid-cols-4 w-full">
+              <TabsTrigger value="errors" className="text-xs">
+                <XCircle className="w-3.5 h-3.5 mr-1 text-destructive" />
+                Erros ({counts.error})
+              </TabsTrigger>
+              <TabsTrigger value="warnings" className="text-xs">
+                <AlertTriangle className="w-3.5 h-3.5 mr-1 text-warning" />
+                Avisos ({counts.warning})
+              </TabsTrigger>
+              <TabsTrigger value="success" className="text-xs">
+                <CheckCircle2 className="w-3.5 h-3.5 mr-1 text-success" />
+                Sucessos ({counts.info})
+              </TabsTrigger>
+              <TabsTrigger value="all" className="text-xs">
+                Todos ({counts.total})
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value={tab} className="mt-4 space-y-2">
+              {isLoading ? (
+                <div className="space-y-2">
+                  {[0, 1, 2, 3].map((i) => <Skeleton key={i} className="h-16 w-full" />)}
+                </div>
+              ) : filtered.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-12 text-center">
+                  <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center mb-3">
+                    <ListChecks className="w-6 h-6 text-muted-foreground" />
+                  </div>
+                  <p className="text-sm font-medium text-foreground">
+                    {list.length === 0 ? "Sem eventos para este job" : "Nenhum evento neste filtro"}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {list.length === 0
+                      ? "Os logs aparecem conforme o job processa cada item."
+                      : "Tente outro filtro acima."}
+                  </p>
+                </div>
+              ) : (
+                filtered.map((l) => (
+                  <div
+                    key={l.id}
+                    className="rounded-lg border border-border bg-background p-3 space-y-1.5"
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex items-center gap-2 min-w-0">
+                        {severityBadge(l.severity)}
+                        <code className="text-xs text-muted-foreground truncate">{l.step}</code>
+                        <Badge variant="outline" className="bg-muted text-muted-foreground border-border">
+                          {l.status}
+                        </Badge>
+                      </div>
+                      <span className="text-xs text-muted-foreground shrink-0 font-mono">
+                        {formatBR(l.created_at)}
+                      </span>
+                    </div>
+                    {l.message && (
+                      <p className="text-sm text-foreground break-words">{l.message}</p>
+                    )}
+                    {(l.source_entity_type || l.canonical_entity_id || l.error_code) && (
+                      <div className="flex flex-wrap gap-2 text-xs text-muted-foreground pt-1">
+                        {l.source_entity_type && (
+                          <span className="inline-flex items-center gap-1">
+                            {entityIcon(l.source_entity_type)}
+                            SM: <code className="font-mono">{l.source_entity_id ?? "—"}</code>
+                          </span>
+                        )}
+                        {l.canonical_entity_id && (
+                          <span className="inline-flex items-center gap-1">
+                            → CRM: <code className="font-mono">{l.canonical_entity_id.slice(0, 8)}</code>
+                          </span>
+                        )}
+                        {l.error_code && (
+                          <Badge variant="outline" className="bg-destructive/10 text-destructive border-destructive/20">
+                            {l.error_code}
+                          </Badge>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                ))
+              )}
+            </TabsContent>
+          </Tabs>
         </div>
       </SheetContent>
     </Sheet>
