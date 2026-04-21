@@ -362,50 +362,30 @@ export default function ImportacaoSolarmarket() {
         </Card>
       )}
 
-      {/* Conexão */}
-      <Card className="bg-card border-border shadow-sm">
-        <CardHeader>
-          <CardTitle className="text-base font-semibold flex items-center gap-2">
-            <Plug className="w-4 h-4 text-primary" />
-            Conexão
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <div className="flex flex-wrap items-center gap-3">
-            <p className="text-sm text-muted-foreground flex-1 min-w-[200px]">
-              URL: <code className="text-xs bg-muted px-1 py-0.5 rounded">{config?.base_url || "—"}</code>
-            </p>
-            <Button
-              variant="outline"
-              onClick={handleTest}
-              disabled={!isConfigured || testConnection.isPending}
-            >
-              {testConnection.isPending ? (
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              ) : (
-                <CheckCircle2 className="w-4 h-4 mr-2" />
-              )}
-              Testar conexão
-            </Button>
-          </div>
-          {testResult && (
-            <div
-              className={`flex items-start gap-2 p-3 rounded-md border text-sm ${
-                testResult.ok
-                  ? "bg-success/10 border-success/20 text-success"
-                  : "bg-destructive/10 border-destructive/20 text-destructive"
-              }`}
-            >
-              {testResult.ok ? (
-                <CheckCircle2 className="w-4 h-4 mt-0.5 shrink-0" />
-              ) : (
-                <XCircle className="w-4 h-4 mt-0.5 shrink-0" />
-              )}
-              <span>{testResult.message}</span>
-            </div>
+      {/* Resultado do teste de conexão (inline, discreto) */}
+      {testResult && (
+        <div
+          className={`flex items-start gap-2 p-3 rounded-md border text-sm ${
+            testResult.ok
+              ? "bg-success/10 border-success/20 text-success"
+              : "bg-destructive/10 border-destructive/20 text-destructive"
+          }`}
+        >
+          {testResult.ok ? (
+            <CheckCircle2 className="w-4 h-4 mt-0.5 shrink-0" />
+          ) : (
+            <XCircle className="w-4 h-4 mt-0.5 shrink-0" />
           )}
-        </CardContent>
-      </Card>
+          <div className="flex-1 min-w-0">
+            <p>{testResult.message}</p>
+            {config?.base_url && (
+              <p className="text-xs opacity-80 mt-0.5">
+                URL: <code className="font-mono">{config.base_url}</code>
+              </p>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Escopo + Disparo */}
       <Card className="bg-card border-border shadow-sm">
