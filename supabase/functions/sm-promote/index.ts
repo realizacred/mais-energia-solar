@@ -47,6 +47,7 @@ interface RequestState {
   counters: {
     promoted: number;
     skipped: number;
+    blocked: number;
     warnings: number;
     errors: number;
     processed: number;
@@ -59,7 +60,7 @@ function createInitialState(): RequestState {
     jobId: null,
     tenantId: null,
     userId: null,
-    counters: { promoted: 0, skipped: 0, warnings: 0, errors: 0, processed: 0 },
+    counters: { promoted: 0, skipped: 0, blocked: 0, warnings: 0, errors: 0, processed: 0 },
   };
 }
 
