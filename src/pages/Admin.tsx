@@ -39,6 +39,7 @@ const FormasPagamentoPage = lazy(() => import("@/components/admin/FormasPagament
 const WebhookManager = lazy(() => import("@/components/admin/WebhookManager"));
 const ImportacaoSolarmarket = lazy(() => import("@/pages/admin/ImportacaoSolarmarket"));
 const SolarmarketConfigPage = lazy(() => import("@/pages/admin/SolarmarketConfigPage"));
+const PromocaoSolarmarket = lazy(() => import("@/pages/admin/PromocaoSolarmarket"));
 const ClientesManager = lazy(() => import("@/components/admin/ClientesManager").then(m => ({ default: m.ClientesManager })));
 const RecebimentosManager = lazy(() => import("@/components/admin/RecebimentosManager").then(m => ({ default: m.RecebimentosManager })));
 const FinanceiroDashboard = lazy(() => import("@/components/admin/FinanceiroDashboard").then(m => ({ default: m.FinanceiroDashboard })));
