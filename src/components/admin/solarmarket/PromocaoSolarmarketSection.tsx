@@ -50,7 +50,7 @@ const formatBR = (iso: string | null | undefined) =>
 
 function statusBadge(status: string) {
   const map: Record<string, { cls: string; label: string }> = {
-    queued:                   { cls: "bg-muted text-muted-foreground border-border",      label: "Em fila" },
+    pending:                  { cls: "bg-muted text-muted-foreground border-border",      label: "Em fila" },
     running:                  { cls: "bg-info/10 text-info border-info/20",                label: "Em execução" },
     completed:                { cls: "bg-success/10 text-success border-success/20",       label: "Concluído" },
     completed_with_warnings:  { cls: "bg-warning/10 text-warning border-warning/20",       label: "Com avisos" },
@@ -125,7 +125,7 @@ export function PromocaoSolarmarketSection() {
     );
   }, [jobs]);
 
-  const runningJob = jobs.find((j) => j.status === "running" || j.status === "queued") ?? null;
+  const runningJob = jobs.find((j) => j.status === "running" || j.status === "pending") ?? null;
 
   const handleRun = async (dry_run: boolean) => {
     const limit = Math.min(Math.max(1, Number(batchLimit) || 1), 200);
@@ -316,7 +316,7 @@ export function PromocaoSolarmarketSection() {
                 </TableHeader>
                 <TableBody>
                   {jobs.map((j) => {
-                    const cancellable = j.status === "queued" || j.status === "running";
+                    const cancellable = j.status === "pending" || j.status === "running";
                     return (
                       <TableRow key={j.id}>
                         <TableCell className="font-mono text-xs">{j.id.slice(0, 8)}</TableCell>

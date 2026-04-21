@@ -84,7 +84,7 @@ export function useSolarmarketPromote() {
     },
     refetchInterval: (query) => {
       const list = (query.state.data as PromotionJob[] | undefined) ?? [];
-      return list.some((j) => j.status === "queued" || j.status === "running") ? 4000 : false;
+      return list.some((j) => j.status === "pending" || j.status === "running") ? 4000 : false;
     },
   });
 
