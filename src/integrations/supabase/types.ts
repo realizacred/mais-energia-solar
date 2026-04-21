@@ -20934,6 +20934,7 @@ export type Database = {
           total_funis: number
           total_projetos: number
           total_propostas: number
+          total_warnings: number
           triggered_by: string | null
           updated_at: string
         }
@@ -20955,6 +20956,7 @@ export type Database = {
           total_funis?: number
           total_projetos?: number
           total_propostas?: number
+          total_warnings?: number
           triggered_by?: string | null
           updated_at?: string
         }
@@ -20976,6 +20978,7 @@ export type Database = {
           total_funis?: number
           total_projetos?: number
           total_propostas?: number
+          total_warnings?: number
           triggered_by?: string | null
           updated_at?: string
         }
@@ -21002,6 +21005,7 @@ export type Database = {
           internal_id: string | null
           job_id: string
           payload_snippet: Json | null
+          severity: string
           tenant_id: string
         }
         Insert: {
@@ -21016,6 +21020,7 @@ export type Database = {
           internal_id?: string | null
           job_id: string
           payload_snippet?: Json | null
+          severity?: string
           tenant_id: string
         }
         Update: {
@@ -21030,6 +21035,7 @@ export type Database = {
           internal_id?: string | null
           job_id?: string
           payload_snippet?: Json | null
+          severity?: string
           tenant_id?: string
         }
         Relationships: [
