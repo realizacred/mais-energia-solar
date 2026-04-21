@@ -700,7 +700,7 @@ const SM_STATUS_MAP: Record<string, string> = {
   created: "rascunho",
   generated: "gerada",
   sent: "enviada",
-  viewed: "vista",        // SM "viewed" → nativo "vista" (state machine SSOT)
+  viewed: "enviada",      // regra de negócio: viewed conta como enviada (estágio "Proposta Enviada")
   accepted: "aceita",
   approved: "aceita",
   rejected: "recusada",
@@ -709,12 +709,28 @@ const SM_STATUS_MAP: Record<string, string> = {
   canceled: "cancelada",
 };
 
-function mapSmStatus(rawStatus: string | null | undefined): { status: string; recognized: boolean; raw: string | null } {
+/**
+ * Mapeia status SM → status canônico nativo.
+ * REGRA: se acceptanceDate existe no payload, força "aceita" (prioridade máxima),
+ * mesmo que status venha como "generated" — registra inconsistência para log.
+ */
+function mapSmStatus(
+  rawStatus: string | null | undefined,
+  acceptanceDate?: string | null,
+): { status: string; recognized: boolean; raw: string | null; inconsistent: boolean } {
   const raw = (rawStatus ?? "").trim();
-  if (!raw) return { status: "rascunho", recognized: false, raw: null };
+  const hasAcceptance = !!(acceptanceDate && String(acceptanceDate).trim());
+
+  if (hasAcceptance) {
+    const mapped = raw ? SM_STATUS_MAP[raw.toLowerCase()] : undefined;
+    const inconsistent = !!raw && mapped !== "aceita";
+    return { status: "aceita", recognized: true, raw: raw || null, inconsistent };
+  }
+
+  if (!raw) return { status: "rascunho", recognized: false, raw: null, inconsistent: false };
   const mapped = SM_STATUS_MAP[raw.toLowerCase()];
-  if (mapped) return { status: mapped, recognized: true, raw };
-  return { status: "rascunho", recognized: false, raw };
+  if (mapped) return { status: mapped, recognized: true, raw, inconsistent: false };
+  return { status: "rascunho", recognized: false, raw, inconsistent: false };
 }
 
 // ─── Gate de elegibilidade ──────────────────────────────────────────────────
