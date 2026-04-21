@@ -454,6 +454,7 @@ async function promoteProjeto(
   clienteId: string,
   pipeline: PipelineResolution,
   consultorId: string | null,
+  canonicalStatus: string,
 ): Promise<{ id: string; created: boolean }> {
   const norm = normalizeSmProject(rawProjeto);
   if (!norm.external_id) throw new Error("Projeto SM sem id");
@@ -462,6 +463,7 @@ async function promoteProjeto(
   if (existing) return { id: existing, created: false };
 
   const codigo = `SM-PROJ-${norm.external_id}`.slice(0, 32);
+  const stageId = resolveStageForStatus(pipeline, canonicalStatus);
   const insertPayload: AnyObj = {
     tenant_id: tenantId,
     cliente_id: clienteId,
@@ -470,7 +472,7 @@ async function promoteProjeto(
     observacoes: norm.descricao,
   };
   if (pipeline.funilId) insertPayload.funil_id = pipeline.funilId;
-  if (pipeline.etapaId) insertPayload.etapa_id = pipeline.etapaId;
+  if (stageId) insertPayload.etapa_id = stageId;
   if (consultorId) insertPayload.consultor_id = consultorId;
 
   const { data, error } = await admin
