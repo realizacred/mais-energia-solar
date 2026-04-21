@@ -21196,7 +21196,7 @@ export type Database = {
           canonical_entity_id: string | null
           canonical_entity_type: string | null
           created_at: string
-          details: Json
+          details: Json | null
           error_code: string | null
           error_origin: string | null
           id: string
@@ -21204,7 +21204,7 @@ export type Database = {
           message: string | null
           severity: string
           source_entity_id: string
-          source_entity_type: string
+          source_entity_type: string | null
           status: string
           step: string
           tenant_id: string
@@ -21213,7 +21213,7 @@ export type Database = {
           canonical_entity_id?: string | null
           canonical_entity_type?: string | null
           created_at?: string
-          details?: Json
+          details?: Json | null
           error_code?: string | null
           error_origin?: string | null
           id?: string
@@ -21221,7 +21221,7 @@ export type Database = {
           message?: string | null
           severity?: string
           source_entity_id: string
-          source_entity_type: string
+          source_entity_type?: string | null
           status: string
           step: string
           tenant_id: string
@@ -21230,7 +21230,7 @@ export type Database = {
           canonical_entity_id?: string | null
           canonical_entity_type?: string | null
           created_at?: string
-          details?: Json
+          details?: Json | null
           error_code?: string | null
           error_origin?: string | null
           id?: string
@@ -21238,7 +21238,7 @@ export type Database = {
           message?: string | null
           severity?: string
           source_entity_id?: string
-          source_entity_type?: string
+          source_entity_type?: string | null
           status?: string
           step?: string
           tenant_id?: string
