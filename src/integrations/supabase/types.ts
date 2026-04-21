@@ -20994,7 +20994,9 @@ export type Database = {
           action: string
           created_at: string
           entity_type: string
+          error_code: string | null
           error_message: string | null
+          error_origin: string | null
           external_id: string | null
           id: string
           internal_id: string | null
@@ -21006,7 +21008,9 @@ export type Database = {
           action: string
           created_at?: string
           entity_type: string
+          error_code?: string | null
           error_message?: string | null
+          error_origin?: string | null
           external_id?: string | null
           id?: string
           internal_id?: string | null
@@ -21018,7 +21022,9 @@ export type Database = {
           action?: string
           created_at?: string
           entity_type?: string
+          error_code?: string | null
           error_message?: string | null
+          error_origin?: string | null
           external_id?: string | null
           id?: string
           internal_id?: string | null
