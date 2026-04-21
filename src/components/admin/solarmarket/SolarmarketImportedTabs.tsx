@@ -162,7 +162,7 @@ function useRawList(
 // Componente principal
 // ─────────────────────────────────────────────────────────────────────────
 export function SolarmarketImportedTabs() {
-  const { importAll, jobs } = useSolarmarketImport();
+  const { jobs } = useSolarmarketImport();
   const runningJob = jobs.find((j) => j.status === "running" || j.status === "pending");
   const isImporting = !!runningJob;
   const counts = useImportedCounts(isImporting);
@@ -188,40 +188,35 @@ export function SolarmarketImportedTabs() {
     setPage(0);
   };
 
-  const handleReimport = async (entity: keyof ImportScope) => {
-    const labels: Record<string, string> = {
-      clientes: "Clientes",
-      projetos: "Projetos",
-      propostas: "Propostas",
-      funis: "Funis e Etapas",
-      custom_fields: "Campos Customizados",
-    };
-    if (!confirm(`Reimportar ${labels[entity]} do SolarMarket? Será iniciada uma nova importação (apenas em staging).`)) return;
-    try {
-      const scope: ImportScope = {
-        clientes: false, projetos: false, propostas: false, funis: false, custom_fields: false,
-        [entity]: true,
-      };
-      await importAll.mutateAsync(scope);
-      toast({ title: `Reimportação iniciada`, description: `${labels[entity]} sendo gravados em staging.` });
-    } catch (e: any) {
-      toast({ title: "Erro ao reimportar", description: e?.message, variant: "destructive" });
-    }
-  };
+  const totalRecords =
+    (counts.data?.clientes ?? 0) +
+    (counts.data?.projetos ?? 0) +
+    (counts.data?.propostas ?? 0) +
+    (counts.data?.funis ?? 0) +
+    (counts.data?.custom_fields ?? 0);
 
   return (
     <Card className="bg-card border-border shadow-sm">
-      <CardHeader>
+      <CardHeader className="space-y-1.5">
         <CardTitle className="text-base font-semibold flex items-center gap-2">
           <Database className="w-4 h-4 text-primary" />
           Dados Brutos Importados (Staging)
         </CardTitle>
+        <CardDescription className="text-xs">
+          Inspeção e auditoria do que veio da API SolarMarket. Ainda não promovido ao CRM.
+        </CardDescription>
       </CardHeader>
       <CardContent>
-        <StagingNotice />
+        {!counts.isLoading && totalRecords === 0 ? (
+          <EmptyState
+            icon={Inbox}
+            message="Execute uma importação acima para visualizar os dados brutos por entidade."
+          />
+        ) : (
         <Tabs
           value={activeTab}
           onValueChange={(v) => { setActiveTab(v as RawEntityKind); setSearch(""); setPage(0); }}
+          className="mt-1"
         >
           <TabsList className="overflow-x-auto flex-wrap h-auto">
             <TabsTrigger value="clientes" className="gap-1">
@@ -246,25 +241,7 @@ export function SolarmarketImportedTabs() {
             </TabsTrigger>
           </TabsList>
 
-          <div className="flex flex-col sm:flex-row gap-2 mt-4 mb-3">
-            <div className="relative flex-1 min-w-0">
-              <Search className="w-4 h-4 absolute left-2.5 top-2.5 text-muted-foreground" />
-              <Input
-                placeholder="Buscar por nome ou ID externo…"
-                className="pl-8"
-                value={search}
-                onChange={(e) => { setSearch(e.target.value); setPage(0); }}
-              />
-            </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => handleReimport(activeTab as keyof ImportScope)}
-              disabled={importAll.isPending || !!runningJob}
-            >
-              <RefreshCw className="w-4 h-4 mr-2" /> Reimportar
-            </Button>
-          </div>
+          <div className="mt-4" />
 
           <TabsContent value="clientes">
             <ListaRaw
