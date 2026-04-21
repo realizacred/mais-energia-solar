@@ -23,22 +23,32 @@ interface LogRow {
   external_id: string | null;
   action: string;
   error_message: string | null;
+  error_code: string | null;
+  error_origin: string | null;
   created_at: string;
 }
 
 /**
- * Taxonomia de erros de migração/importação SolarMarket.
- * Classifica a mensagem bruta em um error_code estável.
+ * Taxonomia de erros de importação SolarMarket (Fase 1).
+ * SSOT: usa error_code/error_origin gravados pela edge function.
+ * Fallback heurístico para registros legados sem classificação.
  */
-function classifyError(msg: string | null, entity: string): {
+function classifyError(row: Pick<LogRow, "error_message" | "error_code" | "error_origin" | "entity_type">): {
   code: string;
   origin: "system" | "source_data" | "mapping" | "schema" | "api" | "unknown";
 } {
-  const m = (msg || "").toLowerCase();
+  if (row.error_code) {
+    return {
+      code: row.error_code,
+      origin: ((row.error_origin as any) ?? "unknown"),
+    };
+  }
+  const m = (row.error_message || "").toLowerCase();
+  const entity = row.entity_type;
   if (!m) return { code: "UNKNOWN", origin: "unknown" };
-  if (m.includes("http 404")) return { code: "SOURCE_NOT_FOUND_404", origin: "api" };
+  if (m.includes("http 404") || m.includes("404")) return { code: "SOURCE_NOT_FOUND_404", origin: "api" };
   if (m.includes("http 401") || m.includes("http 403")) return { code: "AUTH_FAILED", origin: "api" };
-  if (m.includes("http 429")) return { code: "RATE_LIMITED", origin: "api" };
+  if (m.includes("http 429") || m.includes("rate")) return { code: "RATE_LIMITED", origin: "api" };
   if (m.includes("http 5")) return { code: "UPSTREAM_5XX", origin: "api" };
   if (m.includes("nenhum endpoint funcionou")) return { code: "ENDPOINT_DISCOVERY_FAILED", origin: "api" };
   if (m.includes("timeout")) return { code: "TIMEOUT", origin: "system" };
@@ -71,7 +81,7 @@ export function ImportErrorsDialog({ jobId, open, onOpenChange }: ImportErrorsDi
     queryFn: async (): Promise<LogRow[]> => {
       const { data, error } = await (supabase as any)
         .from("solarmarket_import_logs")
-        .select("id, entity_type, external_id, action, error_message, created_at")
+        .select("id, entity_type, external_id, action, error_message, error_code, error_origin, created_at")
         .eq("job_id", jobId)
         .eq("action", "error")
         .order("created_at", { ascending: true })
