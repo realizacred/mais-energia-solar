@@ -110,8 +110,12 @@ function KpiCard({ icon: Icon, label, value, tone }: KpiCardProps) {
 
 export function PromocaoSolarmarketSection() {
   const { jobs, isLoading, promoteAll, cancelJob } = useSolarmarketPromote();
+  const { data: defaultPipeline, isLoading: isLoadingPipeline } = useDefaultPipeline();
   const [batchLimit, setBatchLimit] = useState(50);
   const [auditJobId, setAuditJobId] = useState<string | null>(null);
+
+  const hasDefaultPipeline = !!defaultPipeline && defaultPipeline.stagesCount > 0;
+  const pipelineBlocked = !isLoadingPipeline && !hasDefaultPipeline;
 
   const totals = useMemo(() => {
     return jobs.reduce(
