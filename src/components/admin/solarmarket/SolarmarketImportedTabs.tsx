@@ -519,7 +519,7 @@ function ListaRaw({
     return (
       <TableRow key={r.id}>
         <TableCell className="font-medium text-foreground">{sanitizeText(cf.nome ?? "") || "—"}</TableCell>
-        <TableCell>{cf.tipo ? <Badge variant="outline" className="text-xs">{String(cf.tipo)}</Badge> : "—"}</TableCell>
+        <TableCell>{cf.tipo ? <Badge variant="outline" className="text-xs bg-info/10 text-info border-info/20">{String(cf.tipo)}</Badge> : "—"}</TableCell>
         <TableCell className="text-sm">{cf.obrigatorio === true ? "Sim" : cf.obrigatorio === false ? "Não" : "—"}</TableCell>
         <TableCell>{importedAt}</TableCell>
         <TableCell className="text-right">{action}</TableCell>
