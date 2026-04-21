@@ -454,6 +454,7 @@ async function promoteProjeto(
   clienteId: string,
   pipeline: PipelineResolution,
   consultorId: string | null,
+  canonicalStatus: string,
 ): Promise<{ id: string; created: boolean }> {
   const norm = normalizeSmProject(rawProjeto);
   if (!norm.external_id) throw new Error("Projeto SM sem id");
@@ -462,6 +463,7 @@ async function promoteProjeto(
   if (existing) return { id: existing, created: false };
 
   const codigo = `SM-PROJ-${norm.external_id}`.slice(0, 32);
+  const stageId = resolveStageForStatus(pipeline, canonicalStatus);
   const insertPayload: AnyObj = {
     tenant_id: tenantId,
     cliente_id: clienteId,
@@ -470,7 +472,7 @@ async function promoteProjeto(
     observacoes: norm.descricao,
   };
   if (pipeline.funilId) insertPayload.funil_id = pipeline.funilId;
-  if (pipeline.etapaId) insertPayload.etapa_id = pipeline.etapaId;
+  if (stageId) insertPayload.etapa_id = stageId;
   if (consultorId) insertPayload.consultor_id = consultorId;
 
   const { data, error } = await admin
@@ -506,7 +508,7 @@ async function promoteProposta(
   }
 
   const codigo = `SM-PROP-${norm.external_id}`.slice(0, 32);
-  const { status } = mapSmStatus(norm.status_source);
+  const { status } = mapSmStatus(norm.status_source, norm.accepted_at);
 
   const { data: pn, error: pnErr } = await admin
     .from("propostas_nativas")
@@ -570,8 +572,27 @@ async function insertVersao(
 // ─── Resolver de pipeline / etapa (DA-40: sem hardcode) ─────────────────────
 interface PipelineResolution {
   funilId: string | null;
-  etapaId: string | null;
+  etapaId: string | null;                 // etapa default (fallback quando status não casa)
   hasPipelineConfigured: boolean;
+  /** Mapa status canônico → stage_id (mapeamento por nome de stage). */
+  stageByStatus: Record<string, string>;
+}
+
+/**
+ * Mapeamento status canônico → nome do stage no pipeline Comercial.
+ * Match case-insensitive, normalizado (sem acento).
+ */
+const STATUS_STAGE_NAME: Record<string, string[]> = {
+  rascunho: ["novo lead", "recebido", "lead", "novo"],
+  gerada:   ["proposta criada", "enviar proposta", "proposta gerada"],
+  enviada:  ["proposta enviada", "enviada", "negociacao", "negociação", "qualificado"],
+  aceita:   ["fechado", "ganho", "venda fechada", "aceita"],
+  recusada: ["perdido", "recusado", "perdida"],
+  expirada: ["expirado", "expirada"],
+};
+
+function norm(s: string): string {
+  return s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
 }
 
 async function resolveDefaultPipeline(
@@ -582,12 +603,12 @@ async function resolveDefaultPipeline(
     .from("pipelines").select("id").eq("tenant_id", tenantId).limit(1);
   const hasPipelineConfigured = (anyPipe?.length ?? 0) > 0;
   if (!hasPipelineConfigured) {
-    return { funilId: null, etapaId: null, hasPipelineConfigured: false };
+    return { funilId: null, etapaId: null, hasPipelineConfigured: false, stageByStatus: {} };
   }
 
   const { data: pComercial } = await admin
-    .from("pipelines").select("id, nome")
-    .eq("tenant_id", tenantId).ilike("nome", "comercial").limit(1).maybeSingle();
+    .from("pipelines").select("id, name")
+    .eq("tenant_id", tenantId).ilike("name", "comercial").limit(1).maybeSingle();
   let funilId = (pComercial?.id as string | undefined);
   if (!funilId) {
     const { data: pFirst } = await admin
@@ -595,18 +616,30 @@ async function resolveDefaultPipeline(
       .order("created_at", { ascending: true }).limit(1).maybeSingle();
     funilId = pFirst?.id as string | undefined;
   }
-  if (!funilId) return { funilId: null, etapaId: null, hasPipelineConfigured: true };
+  if (!funilId) return { funilId: null, etapaId: null, hasPipelineConfigured: true, stageByStatus: {} };
 
-  const { data: etapa } = await admin
-    .from("pipeline_stages").select("id")
+  const { data: stages } = await admin
+    .from("pipeline_stages").select("id, name, position")
     .eq("tenant_id", tenantId).eq("pipeline_id", funilId)
-    .order("ordem", { ascending: true }).limit(1).maybeSingle();
+    .order("position", { ascending: true });
 
-  return {
-    funilId,
-    etapaId: (etapa?.id as string | undefined) ?? null,
-    hasPipelineConfigured: true,
-  };
+  const list = (stages ?? []) as Array<{ id: string; name: string; position: number }>;
+  const etapaId = list[0]?.id ?? null;
+
+  // Construir mapa status → stage_id por match de nome (primeiro alias que casar).
+  const stageByStatus: Record<string, string> = {};
+  for (const [status, aliases] of Object.entries(STATUS_STAGE_NAME)) {
+    const aliasesNorm = aliases.map(norm);
+    const found = list.find((s) => aliasesNorm.includes(norm(s.name)));
+    if (found) stageByStatus[status] = found.id;
+  }
+
+  return { funilId, etapaId, hasPipelineConfigured: true, stageByStatus };
+}
+
+/** Resolve etapa para um status canônico, com fallback para etapa default. */
+function resolveStageForStatus(pipeline: PipelineResolution, status: string): string | null {
+  return pipeline.stageByStatus[status] ?? pipeline.etapaId;
 }
 
 // ─── Resolver de consultor (DA-40: sem hardcode; fallback "Escritório") ─────
@@ -694,11 +727,13 @@ async function resolveConsultorFromResponsible(
 
 // ─── Mapa canônico de status SM → status nativo (SSOT proposalState.ts) ─────
 // Valores nativos válidos: rascunho | gerada | enviada | vista | aceita | recusada | expirada | cancelada
+// Regra de negócio: acceptanceDate sempre tem prioridade máxima → "aceita".
 const SM_STATUS_MAP: Record<string, string> = {
   draft: "rascunho",
+  created: "rascunho",
   generated: "gerada",
   sent: "enviada",
-  viewed: "vista",        // SM "viewed" → nativo "vista" (state machine SSOT)
+  viewed: "enviada",      // regra de negócio: viewed conta como enviada (estágio "Proposta Enviada")
   accepted: "aceita",
   approved: "aceita",
   rejected: "recusada",
@@ -707,12 +742,28 @@ const SM_STATUS_MAP: Record<string, string> = {
   canceled: "cancelada",
 };
 
-function mapSmStatus(rawStatus: string | null | undefined): { status: string; recognized: boolean; raw: string | null } {
+/**
+ * Mapeia status SM → status canônico nativo.
+ * REGRA: se acceptanceDate existe no payload, força "aceita" (prioridade máxima),
+ * mesmo que status venha como "generated" — registra inconsistência para log.
+ */
+function mapSmStatus(
+  rawStatus: string | null | undefined,
+  acceptanceDate?: string | null,
+): { status: string; recognized: boolean; raw: string | null; inconsistent: boolean } {
   const raw = (rawStatus ?? "").trim();
-  if (!raw) return { status: "rascunho", recognized: false, raw: null };
+  const hasAcceptance = !!(acceptanceDate && String(acceptanceDate).trim());
+
+  if (hasAcceptance) {
+    const mapped = raw ? SM_STATUS_MAP[raw.toLowerCase()] : undefined;
+    const inconsistent = !!raw && mapped !== "aceita";
+    return { status: "aceita", recognized: true, raw: raw || null, inconsistent };
+  }
+
+  if (!raw) return { status: "rascunho", recognized: false, raw: null, inconsistent: false };
   const mapped = SM_STATUS_MAP[raw.toLowerCase()];
-  if (mapped) return { status: mapped, recognized: true, raw };
-  return { status: "rascunho", recognized: false, raw };
+  if (mapped) return { status: mapped, recognized: true, raw, inconsistent: false };
+  return { status: "rascunho", recognized: false, raw, inconsistent: false };
 }
 
 // ─── Gate de elegibilidade ──────────────────────────────────────────────────
@@ -887,15 +938,41 @@ async function promoteOneProposalRow(
       });
     }
 
-    // 3) Projeto
-    const proj = await promoteProjeto(admin, tenantId, jobId, rawProjeto, cli.id, pipeline, consultorRes.id);
+    // 2.7) Mapear status SM → status nativo (precisa vir antes do projeto p/ resolver stage)
+    const propNorm = normalizeSmProposal(propostaPayload);
+    const statusInfo = mapSmStatus(propNorm.status_source, propNorm.accepted_at);
+    if (!statusInfo.recognized && statusInfo.raw) {
+      state.counters.warnings++;
+      await logEvent(admin, {
+        jobId, tenantId, severity: "warning", step: "map.status", status: "unrecognized",
+        message: `Status SM "${statusInfo.raw}" não reconhecido — usando "rascunho".`,
+        sourceEntityType: "proposta", sourceEntityId: propExtId,
+        errorCode: "STATUS_UNRECOGNIZED", errorOrigin: MODULE,
+        details: { raw_status: statusInfo.raw },
+      });
+    }
+    if (statusInfo.inconsistent) {
+      state.counters.warnings++;
+      await logEvent(admin, {
+        jobId, tenantId, severity: "warning", step: "map.status", status: "inconsistent",
+        message: `Status SM "${statusInfo.raw}" + acceptanceDate presente — forçado para "aceita".`,
+        sourceEntityType: "proposta", sourceEntityId: propExtId,
+        errorCode: "STATUS_INCONSISTENT_WITH_ACCEPTANCE", errorOrigin: MODULE,
+        details: { raw_status: statusInfo.raw, accepted_at: propNorm.accepted_at },
+      });
+    }
+
+    // 3) Projeto (etapa resolvida pelo status canônico mapeado)
+    const proj = await promoteProjeto(
+      admin, tenantId, jobId, rawProjeto, cli.id, pipeline, consultorRes.id, statusInfo.status,
+    );
     await logEvent(admin, {
       jobId, tenantId, severity: "info", step: "promote.projeto",
       status: proj.created ? "created" : "linked",
       message: proj.created ? "Projeto criado." : "Projeto já existia (link reutilizado).",
       sourceEntityType: "projeto", sourceEntityId: projectExtId,
       canonicalEntityType: "projeto", canonicalEntityId: proj.id,
-      details: { consultor_id: consultorRes.id, consultor_match: consultorRes.matched },
+      details: { consultor_id: consultorRes.id, consultor_match: consultorRes.matched, status_mapped: statusInfo.status },
     });
 
     // 4) Snapshot canônico
@@ -907,20 +984,6 @@ async function promoteOneProposalRow(
       rawProject: rawProjeto,
       rawProposal: propostaPayload,
     });
-
-    // 4.5) Mapear status SM → status nativo (log se não-reconhecido)
-    const propNorm = normalizeSmProposal(propostaPayload);
-    const statusInfo = mapSmStatus(propNorm.status_source);
-    if (!statusInfo.recognized && statusInfo.raw) {
-      state.counters.warnings++;
-      await logEvent(admin, {
-        jobId, tenantId, severity: "warning", step: "map.status", status: "unrecognized",
-        message: `Status SM "${statusInfo.raw}" não reconhecido — usando "rascunho".`,
-        sourceEntityType: "proposta", sourceEntityId: propExtId,
-        errorCode: "STATUS_UNRECOGNIZED", errorOrigin: MODULE,
-        details: { raw_status: statusInfo.raw },
-      });
-    }
 
     // 5) Proposta + versão
     const prop = await promoteProposta(admin, tenantId, jobId, propostaPayload, {
