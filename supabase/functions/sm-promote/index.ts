@@ -98,7 +98,7 @@ async function createJob(
     .insert({
       tenant_id: tenantId,
       triggered_by: userId,
-      trigger_source: "ui",
+      trigger_source: "manual",
       job_type: jobType,
       status: "pending" satisfies JobStatus,
       filters,
