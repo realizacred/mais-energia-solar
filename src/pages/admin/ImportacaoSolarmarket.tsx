@@ -577,7 +577,10 @@ export default function ImportacaoSolarmarket() {
       {/* Histórico */}
       <Card className="bg-card border-border shadow-sm">
         <CardHeader className="flex flex-row items-center justify-between space-y-0">
-          <CardTitle className="text-base font-semibold">Histórico</CardTitle>
+          <CardTitle className="text-base font-semibold flex items-center gap-2">
+            <Database className="w-4 h-4 text-muted-foreground" />
+            Histórico de importações
+          </CardTitle>
           {jobs.some((j) => j.status !== "running" && j.status !== "pending") && (
             <AlertDialog>
               <AlertDialogTrigger asChild>
