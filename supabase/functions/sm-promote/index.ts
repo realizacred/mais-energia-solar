@@ -453,6 +453,7 @@ async function promoteProjeto(
   rawProjeto: AnyObj,
   clienteId: string,
   pipeline: PipelineResolution,
+  consultorId: string | null,
 ): Promise<{ id: string; created: boolean }> {
   const norm = normalizeSmProject(rawProjeto);
   if (!norm.external_id) throw new Error("Projeto SM sem id");
@@ -470,6 +471,7 @@ async function promoteProjeto(
   };
   if (pipeline.funilId) insertPayload.funil_id = pipeline.funilId;
   if (pipeline.etapaId) insertPayload.etapa_id = pipeline.etapaId;
+  if (consultorId) insertPayload.consultor_id = consultorId;
 
   const { data, error } = await admin
     .from("projetos")
@@ -487,7 +489,7 @@ async function promoteProposta(
   tenantId: string,
   jobId: string,
   rawProposta: AnyObj,
-  ctx: { clienteId: string; projetoId: string; snapshot: AnyObj; userId: string | null },
+  ctx: { clienteId: string; projetoId: string; snapshot: AnyObj; userId: string | null; consultorId: string | null },
 ): Promise<{ propostaId: string; versaoId: string; created: boolean }> {
   const norm = normalizeSmProposal(rawProposta);
   if (!norm.external_id) throw new Error("Proposta SM sem id");
@@ -504,15 +506,7 @@ async function promoteProposta(
   }
 
   const codigo = `SM-PROP-${norm.external_id}`.slice(0, 32);
-  const statusMap: Record<string, string> = {
-    approved: "aceita",
-    accepted: "aceita",
-    rejected: "recusada",
-    sent: "enviada",
-    draft: "rascunho",
-    expired: "expirada",
-  };
-  const status = statusMap[(norm.status_source ?? "").toLowerCase()] ?? "rascunho";
+  const { status } = mapSmStatus(norm.status_source);
 
   const { data: pn, error: pnErr } = await admin
     .from("propostas_nativas")
@@ -520,6 +514,7 @@ async function promoteProposta(
       tenant_id: tenantId,
       cliente_id: ctx.clienteId,
       projeto_id: ctx.projetoId,
+      consultor_id: ctx.consultorId,
       titulo: norm.nome,
       codigo,
       versao_atual: 1,
@@ -614,6 +609,112 @@ async function resolveDefaultPipeline(
   };
 }
 
+// ─── Resolver de consultor (DA-40: sem hardcode; fallback "Escritório") ─────
+interface ConsultorResolution {
+  fallbackId: string | null; // "Consultor Escritório" do tenant (ou primeiro ativo)
+  fallbackNome: string | null;
+}
+
+async function resolveConsultorFallback(
+  admin: SupabaseClient,
+  tenantId: string,
+): Promise<ConsultorResolution> {
+  // 1) Buscar "Escritório" (case-insensitive, qualquer variação: "Escritorio", "Consultor Escritório")
+  const { data: escritorio } = await admin
+    .from("consultores")
+    .select("id, nome")
+    .eq("tenant_id", tenantId)
+    .eq("ativo", true)
+    .ilike("nome", "%escrit%rio%")
+    .order("created_at", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+  if (escritorio?.id) {
+    return { fallbackId: escritorio.id as string, fallbackNome: (escritorio.nome as string) ?? null };
+  }
+  // 2) Fallback do fallback: primeiro consultor ativo do tenant
+  const { data: anyConsultor } = await admin
+    .from("consultores")
+    .select("id, nome")
+    .eq("tenant_id", tenantId)
+    .eq("ativo", true)
+    .order("created_at", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+  return {
+    fallbackId: (anyConsultor?.id as string | undefined) ?? null,
+    fallbackNome: (anyConsultor?.nome as string | undefined) ?? null,
+  };
+}
+
+/**
+ * Resolve consultor canônico a partir do responsável SM (nome/email).
+ * Prioridade:
+ *   1) match exato por email (consultores.email)
+ *   2) match por nome normalizado (case/espaços-insensitive)
+ *   3) fallback "Escritório" (ou primeiro ativo)
+ * Nunca retorna null se houver fallback configurado.
+ */
+async function resolveConsultorFromResponsible(
+  admin: SupabaseClient,
+  tenantId: string,
+  responsibleName: string | null | undefined,
+  responsibleEmail: string | null | undefined,
+  fallback: ConsultorResolution,
+): Promise<{ id: string | null; matched: "email" | "name" | "fallback" | "none"; matchedNome: string | null }> {
+  const email = (responsibleEmail ?? "").trim().toLowerCase();
+  if (email) {
+    const { data } = await admin
+      .from("consultores")
+      .select("id, nome")
+      .eq("tenant_id", tenantId)
+      .eq("ativo", true)
+      .ilike("email", email)
+      .limit(1)
+      .maybeSingle();
+    if (data?.id) return { id: data.id as string, matched: "email", matchedNome: (data.nome as string) ?? null };
+  }
+  const name = (responsibleName ?? "").trim();
+  if (name) {
+    const { data } = await admin
+      .from("consultores")
+      .select("id, nome")
+      .eq("tenant_id", tenantId)
+      .eq("ativo", true)
+      .ilike("nome", name)
+      .limit(1)
+      .maybeSingle();
+    if (data?.id) return { id: data.id as string, matched: "name", matchedNome: (data.nome as string) ?? null };
+  }
+  if (fallback.fallbackId) {
+    return { id: fallback.fallbackId, matched: "fallback", matchedNome: fallback.fallbackNome };
+  }
+  return { id: null, matched: "none", matchedNome: null };
+}
+
+// ─── Mapa canônico de status SM → status nativo (SSOT proposalState.ts) ─────
+// Valores nativos válidos: rascunho | gerada | enviada | vista | aceita | recusada | expirada | cancelada
+const SM_STATUS_MAP: Record<string, string> = {
+  draft: "rascunho",
+  generated: "gerada",
+  sent: "enviada",
+  viewed: "vista",        // SM "viewed" → nativo "vista" (state machine SSOT)
+  accepted: "aceita",
+  approved: "aceita",
+  rejected: "recusada",
+  expired: "expirada",
+  cancelled: "cancelada",
+  canceled: "cancelada",
+};
+
+function mapSmStatus(rawStatus: string | null | undefined): { status: string; recognized: boolean; raw: string | null } {
+  const raw = (rawStatus ?? "").trim();
+  if (!raw) return { status: "rascunho", recognized: false, raw: null };
+  const mapped = SM_STATUS_MAP[raw.toLowerCase()];
+  if (mapped) return { status: mapped, recognized: true, raw };
+  return { status: "rascunho", recognized: false, raw };
+}
+
 // ─── Gate de elegibilidade ──────────────────────────────────────────────────
 type EligibilityIssue = { code: string; message: string };
 type EligibilityResult =
@@ -681,6 +782,7 @@ async function promoteOneProposalRow(
   tenantId: string,
   rawProposalRow: AnyObj,
   pipeline: PipelineResolution,
+  consultorFallback: ConsultorResolution,
 ): Promise<"promoted" | "skipped" | "blocked" | "error"> {
   const propostaPayload: AnyObj = rawProposalRow.payload ?? {};
   const propExtId = pickStr(propostaPayload.id) ?? rawProposalRow.external_id;
@@ -760,14 +862,40 @@ async function promoteOneProposalRow(
       canonicalEntityType: "cliente", canonicalEntityId: cli.id,
     });
 
+    // 2.5) Resolver consultor a partir do responsável SM (com fallback "Escritório")
+    const responsibleName = pickStr(rawProjeto?.responsible?.name);
+    const responsibleEmail = pickStr(rawProjeto?.responsible?.email);
+    const consultorRes = await resolveConsultorFromResponsible(
+      admin, tenantId, responsibleName, responsibleEmail, consultorFallback,
+    );
+    if (consultorRes.matched === "fallback") {
+      state.counters.warnings++;
+      await logEvent(admin, {
+        jobId, tenantId, severity: "warning", step: "resolve.consultor", status: "fallback",
+        message: `Responsável SM "${responsibleName ?? responsibleEmail ?? "—"}" não encontrado; usando fallback "${consultorRes.matchedNome ?? "Escritório"}".`,
+        sourceEntityType: "projeto", sourceEntityId: projectExtId,
+        errorCode: "CONSULTOR_FALLBACK", errorOrigin: MODULE,
+        details: { responsible_name: responsibleName, responsible_email: responsibleEmail, fallback_id: consultorRes.id },
+      });
+    } else if (consultorRes.matched === "none") {
+      state.counters.warnings++;
+      await logEvent(admin, {
+        jobId, tenantId, severity: "warning", step: "resolve.consultor", status: "unresolved",
+        message: "Nenhum consultor resolvido e nenhum fallback configurado para o tenant — projeto será criado sem consultor_id.",
+        sourceEntityType: "projeto", sourceEntityId: projectExtId,
+        errorCode: "CONSULTOR_UNRESOLVED", errorOrigin: MODULE,
+      });
+    }
+
     // 3) Projeto
-    const proj = await promoteProjeto(admin, tenantId, jobId, rawProjeto, cli.id, pipeline);
+    const proj = await promoteProjeto(admin, tenantId, jobId, rawProjeto, cli.id, pipeline, consultorRes.id);
     await logEvent(admin, {
       jobId, tenantId, severity: "info", step: "promote.projeto",
       status: proj.created ? "created" : "linked",
       message: proj.created ? "Projeto criado." : "Projeto já existia (link reutilizado).",
       sourceEntityType: "projeto", sourceEntityId: projectExtId,
       canonicalEntityType: "projeto", canonicalEntityId: proj.id,
+      details: { consultor_id: consultorRes.id, consultor_match: consultorRes.matched },
     });
 
     // 4) Snapshot canônico
@@ -780,12 +908,27 @@ async function promoteOneProposalRow(
       rawProposal: propostaPayload,
     });
 
+    // 4.5) Mapear status SM → status nativo (log se não-reconhecido)
+    const propNorm = normalizeSmProposal(propostaPayload);
+    const statusInfo = mapSmStatus(propNorm.status_source);
+    if (!statusInfo.recognized && statusInfo.raw) {
+      state.counters.warnings++;
+      await logEvent(admin, {
+        jobId, tenantId, severity: "warning", step: "map.status", status: "unrecognized",
+        message: `Status SM "${statusInfo.raw}" não reconhecido — usando "rascunho".`,
+        sourceEntityType: "proposta", sourceEntityId: propExtId,
+        errorCode: "STATUS_UNRECOGNIZED", errorOrigin: MODULE,
+        details: { raw_status: statusInfo.raw },
+      });
+    }
+
     // 5) Proposta + versão
     const prop = await promoteProposta(admin, tenantId, jobId, propostaPayload, {
       clienteId: cli.id,
       projetoId: proj.id,
       snapshot,
       userId: state.userId,
+      consultorId: consultorRes.id,
     });
     await logEvent(admin, {
       jobId, tenantId, severity: "info", step: "promote.proposta",
@@ -793,7 +936,7 @@ async function promoteOneProposalRow(
       message: prop.created ? "Proposta + versão criadas." : "Proposta já existia (versão garantida).",
       sourceEntityType: "proposta", sourceEntityId: propExtId,
       canonicalEntityType: "proposta", canonicalEntityId: prop.propostaId,
-      details: { versao_id: prop.versaoId },
+      details: { versao_id: prop.versaoId, status_mapped: statusInfo.status, status_source: statusInfo.raw },
     });
 
     state.counters.promoted++;
@@ -841,9 +984,10 @@ async function actionPromoteAll(
   // Resolve pipeline ANTES dos candidatos — falha rápido se o tenant tiver
   // pipeline configurado mas inconsistente (sem etapa).
   const pipeline = await resolveDefaultPipeline(admin, tenantId);
+  const consultorFallback = await resolveConsultorFallback(admin, tenantId);
   await logEvent(admin, {
     jobId, tenantId, severity: "info", step: "init", status: "started",
-    message: `promote-all iniciado (batch_limit=${batchLimit}, dry_run=${dryRun}); pipeline=${pipeline.funilId ?? "—"} etapa=${pipeline.etapaId ?? "—"} configured=${pipeline.hasPipelineConfigured}`,
+    message: `promote-all iniciado (batch_limit=${batchLimit}, dry_run=${dryRun}); pipeline=${pipeline.funilId ?? "—"} etapa=${pipeline.etapaId ?? "—"} configured=${pipeline.hasPipelineConfigured}; consultor_fallback=${consultorFallback.fallbackNome ?? "—"}`,
   });
 
   // Backlog: propostas raw que ainda não têm link canônico em external_entity_links.
@@ -890,7 +1034,7 @@ async function actionPromoteAll(
   }
 
   for (const row of candidates) {
-    await promoteOneProposalRow(admin, state, jobId, tenantId, row, pipeline);
+    await promoteOneProposalRow(admin, state, jobId, tenantId, row, pipeline, consultorFallback);
   }
 
   // Status final:
