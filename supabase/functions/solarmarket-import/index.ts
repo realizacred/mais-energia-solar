@@ -976,6 +976,7 @@ async function runImportJob(
       ? await importProjectScopedProposals(state, {
           counterBase: Number((existingJob as any)?.total_propostas ?? 0),
           errorsBase: Number((existingJob as any)?.total_errors ?? 0),
+          warningsBase: Number((existingJob as any)?.total_warnings ?? 0),
           progressStart: 75,
           progressEnd: 92,
           startPage: runtime.steps.propostas.page,
@@ -998,6 +999,7 @@ async function runImportJob(
       ? await importProjectScopedProposals(state, {
           counterBase: Number((existingJob as any)?.total_propostas ?? 0),
           errorsBase: Number((existingJob as any)?.total_errors ?? 0),
+          warningsBase: Number((existingJob as any)?.total_warnings ?? 0),
           progressStart: 75,
           progressEnd: 92,
           startPage: runtime.steps.propostas.page,
@@ -1015,6 +1017,7 @@ async function runImportJob(
       scope: mergeScopeWithRuntime(rawScope, runtime),
     });
     totalErrors += proposalResult.errors;
+    totalWarnings += (proposalResult as any).warnings ?? 0;
     if (!proposalResult.done) {
       dispatchProcessJob(state, mergeScopeWithRuntime(rawScope, runtime));
       return { ok: true, job_id: state.jobId, status: "running", resumed: true };
