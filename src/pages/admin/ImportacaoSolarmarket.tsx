@@ -293,6 +293,11 @@ export default function ImportacaoSolarmarket() {
               Testar conexão
             </Button>
             <Button asChild variant="outline" size="sm">
+              <Link to="/admin/promocao-solarmarket">
+                <Sparkles className="w-4 h-4" /> Promoção (Fase 2)
+              </Link>
+            </Button>
+            <Button asChild variant="outline" size="sm">
               <Link to="/admin/configuracoes/integracoes/solarmarket">
                 <Settings className="w-4 h-4" /> Configuração
               </Link>
