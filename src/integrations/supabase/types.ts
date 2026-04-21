@@ -4538,6 +4538,59 @@ export type Database = {
           },
         ]
       }
+      external_entity_links: {
+        Row: {
+          created_at: string
+          entity_id: string
+          entity_type: string
+          id: string
+          metadata: Json
+          promoted_at: string
+          promotion_job_id: string | null
+          source: string
+          source_entity_id: string
+          source_entity_type: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          entity_id: string
+          entity_type: string
+          id?: string
+          metadata?: Json
+          promoted_at?: string
+          promotion_job_id?: string | null
+          source: string
+          source_entity_id: string
+          source_entity_type: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          entity_id?: string
+          entity_type?: string
+          id?: string
+          metadata?: Json
+          promoted_at?: string
+          promotion_job_id?: string | null
+          source?: string
+          source_entity_id?: string
+          source_entity_type?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "external_entity_links_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       facebook_ad_metrics: {
         Row: {
           ad_id: string | null
@@ -21048,6 +21101,155 @@ export type Database = {
           },
           {
             foreignKeyName: "solarmarket_import_logs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      solarmarket_promotion_jobs: {
+        Row: {
+          created_at: string
+          error_summary: string | null
+          filters: Json
+          finished_at: string | null
+          id: string
+          items_processed: number
+          items_promoted: number
+          items_skipped: number
+          items_with_errors: number
+          items_with_warnings: number
+          job_type: string
+          metadata: Json
+          started_at: string | null
+          status: string
+          target_entity_ids: string[] | null
+          target_entity_type: string | null
+          tenant_id: string
+          total_items: number
+          trigger_source: string
+          triggered_by: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          error_summary?: string | null
+          filters?: Json
+          finished_at?: string | null
+          id?: string
+          items_processed?: number
+          items_promoted?: number
+          items_skipped?: number
+          items_with_errors?: number
+          items_with_warnings?: number
+          job_type: string
+          metadata?: Json
+          started_at?: string | null
+          status?: string
+          target_entity_ids?: string[] | null
+          target_entity_type?: string | null
+          tenant_id: string
+          total_items?: number
+          trigger_source?: string
+          triggered_by?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          error_summary?: string | null
+          filters?: Json
+          finished_at?: string | null
+          id?: string
+          items_processed?: number
+          items_promoted?: number
+          items_skipped?: number
+          items_with_errors?: number
+          items_with_warnings?: number
+          job_type?: string
+          metadata?: Json
+          started_at?: string | null
+          status?: string
+          target_entity_ids?: string[] | null
+          target_entity_type?: string | null
+          tenant_id?: string
+          total_items?: number
+          trigger_source?: string
+          triggered_by?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "solarmarket_promotion_jobs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      solarmarket_promotion_logs: {
+        Row: {
+          canonical_entity_id: string | null
+          canonical_entity_type: string | null
+          created_at: string
+          details: Json
+          error_code: string | null
+          error_origin: string | null
+          id: string
+          job_id: string
+          message: string | null
+          severity: string
+          source_entity_id: string
+          source_entity_type: string
+          status: string
+          step: string
+          tenant_id: string
+        }
+        Insert: {
+          canonical_entity_id?: string | null
+          canonical_entity_type?: string | null
+          created_at?: string
+          details?: Json
+          error_code?: string | null
+          error_origin?: string | null
+          id?: string
+          job_id: string
+          message?: string | null
+          severity?: string
+          source_entity_id: string
+          source_entity_type: string
+          status: string
+          step: string
+          tenant_id: string
+        }
+        Update: {
+          canonical_entity_id?: string | null
+          canonical_entity_type?: string | null
+          created_at?: string
+          details?: Json
+          error_code?: string | null
+          error_origin?: string | null
+          id?: string
+          job_id?: string
+          message?: string | null
+          severity?: string
+          source_entity_id?: string
+          source_entity_type?: string
+          status?: string
+          step?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "solarmarket_promotion_logs_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "solarmarket_promotion_jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "solarmarket_promotion_logs_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
