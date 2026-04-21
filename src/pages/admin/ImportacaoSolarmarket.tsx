@@ -388,38 +388,55 @@ export default function ImportacaoSolarmarket() {
 
       {/* Escopo + Disparo */}
       <Card className="bg-card border-border shadow-sm">
-        <CardHeader>
-          <CardTitle className="text-base font-semibold">Escopo da importação</CardTitle>
+        <CardHeader className="pb-4">
+          <CardTitle className="text-base font-semibold flex items-center gap-2">
+            <Download className="w-4 h-4 text-muted-foreground" />
+            Escopo da importação
+          </CardTitle>
+          <p className="text-xs text-muted-foreground mt-1">
+            Selecione quais entidades deseja trazer do SolarMarket. Os dados ficam em staging para auditoria antes da promoção ao CRM.
+          </p>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-5">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            {(
-              [
-                { k: "clientes", label: "Clientes" },
-                { k: "projetos", label: "Projetos" },
-                { k: "propostas", label: "Propostas" },
-                { k: "funis", label: "Funis e Etapas" },
-                { k: "custom_fields", label: "Campos Customizados" },
-              ] as { k: keyof ImportScope; label: string }[]
-            ).map(({ k, label }) => (
-              <label
-                key={k}
-                className="flex items-center gap-3 p-3 rounded-lg border border-border bg-background hover:bg-muted/50 cursor-pointer transition-colors"
-              >
-                <Checkbox checked={scope[k]} onCheckedChange={() => toggle(k)} />
-                <span className="text-sm font-medium text-foreground">{label}</span>
-              </label>
-            ))}
+            {SCOPE_ITEMS.map(({ k, label, description, icon: Icon }) => {
+              const selected = scope[k];
+              return (
+                <label
+                  key={k}
+                  className={`group flex items-start gap-3 p-4 rounded-lg border cursor-pointer transition-all ${
+                    selected
+                      ? "border-primary/40 bg-primary/5 shadow-sm"
+                      : "border-border bg-background hover:bg-muted/40 hover:border-border"
+                  }`}
+                >
+                  <div className={`h-9 w-9 rounded-lg flex items-center justify-center shrink-0 transition-colors ${
+                    selected ? "bg-primary/15 text-primary" : "bg-muted text-muted-foreground group-hover:bg-muted/80"
+                  }`}>
+                    <Icon className="w-4 h-4" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-sm font-semibold text-foreground">{label}</span>
+                      <Checkbox checked={selected} onCheckedChange={() => toggle(k)} />
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-0.5">{description}</p>
+                  </div>
+                </label>
+              );
+            })}
           </div>
 
-          <div className="flex items-center justify-between pt-2 border-t border-border">
-            <p className="text-xs text-muted-foreground">
-              Importação idempotente via <code>external_source</code> + <code>external_id</code>.
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-4 border-t border-border">
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              Importação idempotente via <code className="font-mono text-[11px]">external_source</code> + <code className="font-mono text-[11px]">external_id</code>.
               Throttle de 60 req/min com backoff em 429.
             </p>
             <Button
+              size="lg"
               onClick={handleImport}
               disabled={!isConfigured || importAll.isPending || !!runningJob}
+              className="shrink-0"
             >
               {importAll.isPending || runningJob ? (
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
