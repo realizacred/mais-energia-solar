@@ -487,7 +487,7 @@ async function promoteProposta(
   tenantId: string,
   jobId: string,
   rawProposta: AnyObj,
-  ctx: { clienteId: string; projetoId: string; snapshot: AnyObj; userId: string | null },
+  ctx: { clienteId: string; projetoId: string; snapshot: AnyObj; userId: string | null; consultorId: string | null },
 ): Promise<{ propostaId: string; versaoId: string; created: boolean }> {
   const norm = normalizeSmProposal(rawProposta);
   if (!norm.external_id) throw new Error("Proposta SM sem id");
@@ -504,15 +504,7 @@ async function promoteProposta(
   }
 
   const codigo = `SM-PROP-${norm.external_id}`.slice(0, 32);
-  const statusMap: Record<string, string> = {
-    approved: "aceita",
-    accepted: "aceita",
-    rejected: "recusada",
-    sent: "enviada",
-    draft: "rascunho",
-    expired: "expirada",
-  };
-  const status = statusMap[(norm.status_source ?? "").toLowerCase()] ?? "rascunho";
+  const { status } = mapSmStatus(norm.status_source);
 
   const { data: pn, error: pnErr } = await admin
     .from("propostas_nativas")
@@ -520,6 +512,7 @@ async function promoteProposta(
       tenant_id: tenantId,
       cliente_id: ctx.clienteId,
       projeto_id: ctx.projetoId,
+      consultor_id: ctx.consultorId,
       titulo: norm.nome,
       codigo,
       versao_atual: 1,
