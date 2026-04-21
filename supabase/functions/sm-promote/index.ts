@@ -704,7 +704,9 @@ async function insertVersao(
       tenant_id: tenantId,
       proposta_id: propostaId,
       versao_numero: 1,
-      status: "ativa",
+      // Enum proposta_nativa_status: draft|generated|sent|accepted|rejected|expired|excluida|arquivada
+      // Versão promovida do SolarMarket entra como "generated" (já existe materializada, não é rascunho).
+      status: "generated",
       valor_total: norm.valor_total,
       potencia_kwp: pickNum((snapshot as AnyObj).geracao?.potencia_kwp),
       snapshot,
