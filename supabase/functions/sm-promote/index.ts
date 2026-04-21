@@ -606,10 +606,21 @@ async function resolveDefaultPipeline(
     return { funilId: null, etapaId: null, hasPipelineConfigured: false, stageByStatus: {} };
   }
 
-  const { data: pComercial } = await admin
-    .from("pipelines").select("id, name")
-    .eq("tenant_id", tenantId).ilike("name", "comercial").limit(1).maybeSingle();
-  let funilId = (pComercial?.id as string | undefined);
+  // Prioridade 1: pipeline marcado como is_default (gerido por trigger no banco)
+  const { data: pDefault } = await admin
+    .from("pipelines").select("id")
+    .eq("tenant_id", tenantId).eq("is_default", true).limit(1).maybeSingle();
+  let funilId = (pDefault?.id as string | undefined);
+
+  // Fallback 1: pipeline chamado "Comercial"
+  if (!funilId) {
+    const { data: pComercial } = await admin
+      .from("pipelines").select("id, name")
+      .eq("tenant_id", tenantId).ilike("name", "comercial").limit(1).maybeSingle();
+    funilId = pComercial?.id as string | undefined;
+  }
+
+  // Fallback 2: primeiro pipeline criado
   if (!funilId) {
     const { data: pFirst } = await admin
       .from("pipelines").select("id").eq("tenant_id", tenantId)
