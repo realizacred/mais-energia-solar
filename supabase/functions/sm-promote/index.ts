@@ -206,6 +206,7 @@ async function fetchPromotedSourceIds(
     if (data.length < pageSize) break;
   }
   return out;
+}
 
 async function upsertLink(
   admin: SupabaseClient,
