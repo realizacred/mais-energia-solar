@@ -612,6 +612,11 @@ function AuditDrawer({ jobId, onClose }: { jobId: string | null; onClose: () => 
                         <Badge variant="outline" className="bg-muted text-muted-foreground border-border">
                           {l.status}
                         </Badge>
+                        {l.raw_status && l.raw_status !== l.status && (
+                          <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">
+                            {l.raw_status}
+                          </Badge>
+                        )}
                       </div>
                       <span className="text-xs text-muted-foreground shrink-0 font-mono">
                         {formatBR(l.created_at)}

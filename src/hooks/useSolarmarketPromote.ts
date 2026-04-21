@@ -52,6 +52,7 @@ export type PromotionLog = {
   error_code: string | null;
   error_origin: string | null;
   details: Record<string, unknown> | null;
+  raw_status?: string | null;
   created_at: string;
 };
 
@@ -148,7 +149,10 @@ export function useSolarmarketPromoteLogs(jobId: string | null) {
         .order("created_at", { ascending: true })
         .limit(1000);
       if (error) throw new Error(error.message);
-      return (data ?? []) as unknown as PromotionLog[];
+      return ((data ?? []) as unknown as PromotionLog[]).map((log) => ({
+        ...log,
+        raw_status: typeof log.details?.raw_status === "string" ? log.details.raw_status : null,
+      }));
     },
   });
 }
