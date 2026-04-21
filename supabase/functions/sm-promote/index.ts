@@ -497,6 +497,28 @@ async function promoteCliente(
   return { id: data.id as string, created: true, matchedBy: "insert" };
 }
 
+/**
+ * Mapeia status canônico da PROPOSTA → status válido do enum `projeto_status`.
+ * Enum real (auditado em 2026-04): criado, aguardando_documentacao, em_analise,
+ * aprovado, em_instalacao, instalado, comissionado, concluido, cancelado.
+ * NÃO existe "lead" — usar "criado" como fallback seguro.
+ */
+function mapProjetoStatusFromPromotion(canonicalPropostaStatus: string): string {
+  switch (canonicalPropostaStatus) {
+    case "aceita":
+      return "aprovado";
+    case "recusada":
+    case "expirada":
+    case "cancelada":
+      return "cancelado";
+    case "rascunho":
+    case "gerada":
+    case "enviada":
+    default:
+      return "criado";
+  }
+}
+
 async function promoteProjeto(
   admin: SupabaseClient,
   tenantId: string,
@@ -519,7 +541,7 @@ async function promoteProjeto(
     tenant_id: tenantId,
     cliente_id: clienteId,
     codigo,
-    status: "lead",
+    status: mapProjetoStatusFromPromotion(canonicalStatus),
     observacoes: norm.descricao,
   };
   if (pipeline.funilId) insertPayload.funil_id = pipeline.funilId;
