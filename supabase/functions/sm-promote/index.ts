@@ -508,7 +508,7 @@ async function promoteProposta(
   }
 
   const codigo = `SM-PROP-${norm.external_id}`.slice(0, 32);
-  const { status } = mapSmStatus(norm.status_source);
+  const { status } = mapSmStatus(norm.status_source, norm.accepted_at);
 
   const { data: pn, error: pnErr } = await admin
     .from("propostas_nativas")
