@@ -588,7 +588,30 @@ async function promoteProjeto(
   if (existing) return { id: existing, created: false };
 
   const codigo = `SM-PROJ-${norm.external_id}`.slice(0, 32);
-  const stageId = resolveStageForStatus(pipeline, canonicalStatus);
+  let stageId = resolveStageForStatus(pipeline, canonicalStatus);
+
+  // Hardening: revalida etapa_id contra projeto_etapas (FK projetos_etapa_id_fkey).
+  // Se o id resolvido não existir (ex.: cache stale, funil trocado), busca a 1ª etapa do funil.
+  if (pipeline.funilId) {
+    if (stageId) {
+      const { data: ck } = await admin
+        .from("projeto_etapas").select("id")
+        .eq("tenant_id", tenantId).eq("funil_id", pipeline.funilId).eq("id", stageId)
+        .maybeSingle();
+      if (!ck?.id) stageId = null;
+    }
+    if (!stageId) {
+      const { data: first } = await admin
+        .from("projeto_etapas").select("id")
+        .eq("tenant_id", tenantId).eq("funil_id", pipeline.funilId)
+        .order("ordem", { ascending: true }).limit(1).maybeSingle();
+      stageId = (first?.id as string | undefined) ?? null;
+    }
+    if (!stageId) {
+      throw new Error(`promoteProjeto: nenhuma etapa válida em projeto_etapas para funil_id=${pipeline.funilId}`);
+    }
+  }
+
   const insertPayload: AnyObj = {
     tenant_id: tenantId,
     cliente_id: clienteId,
