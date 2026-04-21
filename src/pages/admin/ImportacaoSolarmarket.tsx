@@ -12,6 +12,7 @@ import { LoadingState } from "@/components/ui-kit/LoadingState";
 import { useSolarmarketImport, type ImportScope } from "@/hooks/useSolarmarketImport";
 import { useSolarmarketConfig } from "@/hooks/useSolarmarketConfig";
 import { SolarmarketImportedTabs } from "@/components/admin/solarmarket/SolarmarketImportedTabs";
+import { ImportErrorsDialog } from "@/components/admin/solarmarket/ImportErrorsDialog";
 import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import {
