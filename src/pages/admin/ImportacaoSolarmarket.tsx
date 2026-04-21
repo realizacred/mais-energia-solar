@@ -126,10 +126,12 @@ export default function ImportacaoSolarmarket() {
   });
 
   // Qualquer job em "pending"/"running" é considerado ativo (e cancelável).
-  // Se passou de 10 min, marcamos como "stale" para o usuário ver e cancelar.
+  // "Stale" = sem progresso real há mais de 10 min (usa updated_at do job, que é
+  // tocado a cada batch). Não usar started_at: importações grandes levam horas
+  // e continuam saudáveis enquanto os contadores sobem.
   const runningJob = jobs.find((j) => j.status === "pending" || j.status === "running");
   const isStale = runningJob
-    ? Date.now() - new Date(runningJob.started_at ?? runningJob.created_at).getTime() > 10 * 60 * 1000
+    ? Date.now() - new Date(runningJob.updated_at ?? runningJob.started_at ?? runningJob.created_at).getTime() > 10 * 60 * 1000
     : false;
 
   useEffect(() => {
