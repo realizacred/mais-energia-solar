@@ -453,6 +453,7 @@ async function promoteProjeto(
   rawProjeto: AnyObj,
   clienteId: string,
   pipeline: PipelineResolution,
+  consultorId: string | null,
 ): Promise<{ id: string; created: boolean }> {
   const norm = normalizeSmProject(rawProjeto);
   if (!norm.external_id) throw new Error("Projeto SM sem id");
@@ -470,6 +471,7 @@ async function promoteProjeto(
   };
   if (pipeline.funilId) insertPayload.funil_id = pipeline.funilId;
   if (pipeline.etapaId) insertPayload.etapa_id = pipeline.etapaId;
+  if (consultorId) insertPayload.consultor_id = consultorId;
 
   const { data, error } = await admin
     .from("projetos")
