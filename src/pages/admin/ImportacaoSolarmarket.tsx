@@ -13,6 +13,7 @@ import { useSolarmarketImport, type ImportScope } from "@/hooks/useSolarmarketIm
 import { useSolarmarketConfig } from "@/hooks/useSolarmarketConfig";
 import { SolarmarketImportedTabs } from "@/components/admin/solarmarket/SolarmarketImportedTabs";
 import { ImportErrorsDialog } from "@/components/admin/solarmarket/ImportErrorsDialog";
+import { PromocaoSolarmarketSection } from "@/components/admin/solarmarket/PromocaoSolarmarketSection";
 import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import {
@@ -788,6 +789,11 @@ export default function ImportacaoSolarmarket() {
             </CardContent>
           </Card>
         </section>
+
+        {/* ============= SEÇÃO: PROMOÇÃO PARA CRM (FASE 2) ============= */}
+        <div className="border-t border-border pt-8">
+          <PromocaoSolarmarketSection />
+        </div>
       </div>
       <ImportErrorsDialog
         jobId={errorsJobId}
