@@ -162,34 +162,12 @@ export function usePropostaRapidaLead() {
         etapaId = primeiraEtapa?.id || null;
       }
 
-      // 5. Criar deal (apenas se pipeline comercial existir)
-      let newDealId: string | null = null;
-      if (pipeline && dealStageId) {
-        const { data: newDeal, error: dealError } = await supabase
-          .from("deals")
-          .insert({
-            pipeline_id: pipeline.id,
-            stage_id: dealStageId,
-            owner_id: lead.consultor_id || null,
-            customer_id: clienteId!,
-            value: lead.valor_estimado || 0,
-            title: lead.nome,
-            tenant_id: tenantId,
-          } as any)
-          .select("id")
-          .single();
-
-        if (dealError) throw dealError;
-        newDealId = newDeal.id;
-      }
-
-      // 6. Criar projeto com funil_id e etapa_id para visibilidade no Kanban
+      // 5. Criar projeto PRIMEIRO (deals.projeto_id é NOT NULL)
       const { data: newProjeto, error: projetoError } = await supabase
         .from("projetos")
         .insert({
           cliente_id: clienteId!,
           consultor_id: lead.consultor_id || null,
-          deal_id: newDealId,
           funil_id: funilId,
           etapa_id: etapaId,
           status: "criado",
@@ -200,12 +178,32 @@ export function usePropostaRapidaLead() {
 
       if (projetoError) throw projetoError;
 
-      // 7. Vincular projeto ao deal (se deal foi criado)
-      if (newDealId) {
-        await supabase
+      // 6. Criar deal vinculado ao projeto (apenas se pipeline comercial existir)
+      let newDealId: string | null = null;
+      if (pipeline && dealStageId) {
+        const { data: newDeal, error: dealError } = await supabase
           .from("deals")
-          .update({ projeto_id: newProjeto.id } as any)
-          .eq("id", newDealId);
+          .insert({
+            pipeline_id: pipeline.id,
+            stage_id: dealStageId,
+            owner_id: lead.consultor_id || null,
+            customer_id: clienteId!,
+            projeto_id: newProjeto.id,
+            value: lead.valor_estimado || 0,
+            title: lead.nome,
+            tenant_id: tenantId,
+          } as any)
+          .select("id")
+          .single();
+
+        if (dealError) throw dealError;
+        newDealId = newDeal.id;
+
+        // 7. Vincular deal_id de volta ao projeto
+        await supabase
+          .from("projetos")
+          .update({ deal_id: newDealId } as any)
+          .eq("id", newProjeto.id);
       }
 
       await markLeadAsViewed(lead.id, tenantId);
