@@ -200,10 +200,10 @@ export function useSolarmarketImport() {
   });
 
   const clearStaging = useMutation({
-    mutationFn: async () => {
+    mutationFn: async (entities?: Array<"clientes" | "projetos" | "propostas" | "funis" | "custom_fields">) => {
       const { data, error } = await supabase.functions.invoke(
         "solarmarket-import",
-        { body: { action: "clear-staging" } }
+        { body: { action: "clear-staging", ...(entities && entities.length ? { entities } : {}) } }
       );
       if (error) {
         const parsed = await parseInvokeError(error);

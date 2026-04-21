@@ -1380,13 +1380,31 @@ Deno.serve(async (req) => {
         );
       }
 
-      const tables = [
+      const ALL_TABLES = [
         "sm_propostas_raw",
         "sm_projetos_raw",
         "sm_clientes_raw",
         "sm_funis_raw",
         "sm_custom_fields_raw",
       ] as const;
+
+      // Scope opcional: permite limpar apenas entidades específicas.
+      // body.entities: string[] com chaves curtas: clientes|projetos|propostas|funis|custom_fields
+      const ENTITY_TO_TABLE: Record<string, typeof ALL_TABLES[number]> = {
+        clientes: "sm_clientes_raw",
+        projetos: "sm_projetos_raw",
+        propostas: "sm_propostas_raw",
+        funis: "sm_funis_raw",
+        custom_fields: "sm_custom_fields_raw",
+      };
+      const requested = Array.isArray((body as any).entities)
+        ? ((body as any).entities as string[])
+        : null;
+      const tables = requested && requested.length > 0
+        ? (requested
+            .map((e) => ENTITY_TO_TABLE[e])
+            .filter((t): t is typeof ALL_TABLES[number] => !!t))
+        : ALL_TABLES;
 
       const removed: Record<string, number> = {};
       for (const tbl of tables) {
