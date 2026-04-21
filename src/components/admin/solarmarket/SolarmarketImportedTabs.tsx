@@ -506,7 +506,7 @@ function ListaRaw({
         <TableRow key={r.id}>
           <TableCell className="font-medium text-foreground">{sanitizeText(f.nome ?? "") || "—"}</TableCell>
           <TableCell>
-            <Badge variant="outline" className="text-xs">{f.etapas.length} etapa(s)</Badge>
+            <Badge variant="outline" className="text-xs bg-primary/10 text-primary border-primary/20">{f.etapas.length} etapa(s)</Badge>
           </TableCell>
           <TableCell>{extId}</TableCell>
           <TableCell>{importedAt}</TableCell>
