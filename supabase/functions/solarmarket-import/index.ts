@@ -583,12 +583,13 @@ async function importProjectScopedProposals(
   opts: {
     counterBase?: number;
     errorsBase?: number;
+    warningsBase?: number;
     progressStart?: number;
     progressEnd?: number;
     startPage?: number;
     projectBatchSize?: number;
   } = {},
-): Promise<{ count: number; errors: number; pathUsed: string; nextPage: number | null; done: boolean }> {
+): Promise<{ count: number; errors: number; warnings: number; pathUsed: string; nextPage: number | null; done: boolean }> {
   const pathUsed = "/projects/:id/proposals";
   const batchPage = Math.max(1, opts.startPage ?? 1);
   const batchSize = opts.projectBatchSize ?? 20;
