@@ -46,6 +46,7 @@ import {
   Rocket, FlaskConical, Ban, Loader2, Eye, ListChecks,
   CheckCircle2, AlertTriangle, XCircle, Users, FolderKanban, FileText,
   Layers, Activity, Info, ArrowRightLeft, ShieldAlert, Star,
+  Trash2, RefreshCw,
 } from "lucide-react";
 
 const formatBR = (iso: string | null | undefined) =>
