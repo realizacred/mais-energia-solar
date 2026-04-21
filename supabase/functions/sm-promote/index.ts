@@ -694,8 +694,10 @@ async function resolveConsultorFromResponsible(
 
 // ─── Mapa canônico de status SM → status nativo (SSOT proposalState.ts) ─────
 // Valores nativos válidos: rascunho | gerada | enviada | vista | aceita | recusada | expirada | cancelada
+// Regra de negócio: acceptanceDate sempre tem prioridade máxima → "aceita".
 const SM_STATUS_MAP: Record<string, string> = {
   draft: "rascunho",
+  created: "rascunho",
   generated: "gerada",
   sent: "enviada",
   viewed: "vista",        // SM "viewed" → nativo "vista" (state machine SSOT)
