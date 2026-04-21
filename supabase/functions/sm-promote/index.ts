@@ -396,14 +396,15 @@ async function promoteCliente(
   tenantId: string,
   jobId: string,
   rawCliente: AnyObj,
-): Promise<{ id: string; created: boolean }> {
+): Promise<{ id: string; created: boolean; matchedBy?: string }> {
   const norm = normalizeSmClient(rawCliente);
   if (!norm.external_id) throw new Error("Cliente SM sem id");
 
+  // 1) Link existente (idempotência canônica)
   const existing = await findLink(admin, tenantId, "cliente", norm.external_id);
-  if (existing) return { id: existing, created: false };
+  if (existing) return { id: existing, created: false, matchedBy: "link" };
 
-  // Match secundário por external_source/external_id direto na tabela
+  // 2) Reconciliação por external_source + external_id (mesma origem, sem link ainda)
   const { data: byExt } = await admin
     .from("clientes")
     .select("id")
@@ -413,9 +414,58 @@ async function promoteCliente(
     .maybeSingle();
   if (byExt?.id) {
     await upsertLink(admin, tenantId, jobId, "cliente", byExt.id as string, "cliente", norm.external_id, { matched_by: "external_id" });
-    return { id: byExt.id as string, created: false };
+    return { id: byExt.id as string, created: false, matchedBy: "external_id" };
   }
 
+  // 3) Reconciliação por CPF/CNPJ
+  if (norm.cpf_cnpj) {
+    const { data: byDoc } = await admin
+      .from("clientes")
+      .select("id")
+      .eq("tenant_id", tenantId)
+      .eq("cpf_cnpj", norm.cpf_cnpj)
+      .order("created_at", { ascending: true })
+      .limit(1)
+      .maybeSingle();
+    if (byDoc?.id) {
+      await upsertLink(admin, tenantId, jobId, "cliente", byDoc.id as string, "cliente", norm.external_id, { matched_by: "cpf_cnpj" });
+      return { id: byDoc.id as string, created: false, matchedBy: "cpf_cnpj" };
+    }
+  }
+
+  // 4) Reconciliação por telefone (evita uq_clientes_tenant_telefone)
+  if (norm.telefone) {
+    const { data: byPhone } = await admin
+      .from("clientes")
+      .select("id")
+      .eq("tenant_id", tenantId)
+      .eq("telefone_normalized", norm.telefone)
+      .order("created_at", { ascending: true })
+      .limit(1)
+      .maybeSingle();
+    if (byPhone?.id) {
+      await upsertLink(admin, tenantId, jobId, "cliente", byPhone.id as string, "cliente", norm.external_id, { matched_by: "telefone" });
+      return { id: byPhone.id as string, created: false, matchedBy: "telefone" };
+    }
+  }
+
+  // 5) Reconciliação por email
+  if (norm.email) {
+    const { data: byEmail } = await admin
+      .from("clientes")
+      .select("id")
+      .eq("tenant_id", tenantId)
+      .ilike("email", norm.email)
+      .order("created_at", { ascending: true })
+      .limit(1)
+      .maybeSingle();
+    if (byEmail?.id) {
+      await upsertLink(admin, tenantId, jobId, "cliente", byEmail.id as string, "cliente", norm.external_id, { matched_by: "email" });
+      return { id: byEmail.id as string, created: false, matchedBy: "email" };
+    }
+  }
+
+  // 6) Não existe — inserir novo
   const cliente_code = `SM-${norm.external_id}`.slice(0, 32);
   const { data, error } = await admin
     .from("clientes")
@@ -444,7 +494,7 @@ async function promoteCliente(
   if (error || !data?.id) throw new Error(`insert cliente: ${error?.message}`);
 
   await upsertLink(admin, tenantId, jobId, "cliente", data.id as string, "cliente", norm.external_id);
-  return { id: data.id as string, created: true };
+  return { id: data.id as string, created: true, matchedBy: "insert" };
 }
 
 async function promoteProjeto(
