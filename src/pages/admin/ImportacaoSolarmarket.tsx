@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { LoadingState } from "@/components/ui-kit/LoadingState";
+import { PageHeader } from "@/components/ui-kit/PageHeader";
 import { useSolarmarketImport, type ImportScope } from "@/hooks/useSolarmarketImport";
 import { useSolarmarketConfig } from "@/hooks/useSolarmarketConfig";
 import { SolarmarketImportedTabs } from "@/components/admin/solarmarket/SolarmarketImportedTabs";
@@ -20,7 +21,16 @@ import {
 } from "@/components/ui/alert-dialog";
 import {
   Cloud, CheckCircle2, XCircle, Loader2, Download, Settings, AlertTriangle, Ban, Trash2, Eraser,
+  Users, FolderKanban, FileText, GitBranch, Sliders, Activity, Database,
 } from "lucide-react";
+
+const SCOPE_ITEMS: { k: keyof ImportScope; label: string; description: string; icon: typeof Users }[] = [
+  { k: "clientes", label: "Clientes", description: "Cadastros e contatos", icon: Users },
+  { k: "projetos", label: "Projetos", description: "Oportunidades e deals", icon: FolderKanban },
+  { k: "propostas", label: "Propostas", description: "Orçamentos comerciais", icon: FileText },
+  { k: "funis", label: "Funis e Etapas", description: "Pipelines do CRM", icon: GitBranch },
+  { k: "custom_fields", label: "Campos Customizados", description: "Atributos extras", icon: Sliders },
+];
 
 const formatBR = (iso: string | null) =>
   iso
