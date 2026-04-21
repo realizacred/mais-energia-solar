@@ -155,20 +155,25 @@ async function logEvent(
     details?: Record<string, unknown> | null;
   },
 ): Promise<void> {
+  const normalizedStatus = normalizePromotionLogStatus(p.status, p.severity);
+  const normalizedSourceEntityId = p.sourceEntityId ?? p.canonicalEntityId ?? p.jobId;
   const { error } = await admin.from("solarmarket_promotion_logs").insert({
     job_id: p.jobId,
     tenant_id: p.tenantId,
     severity: p.severity,
     step: p.step,
-    status: p.status,
+    status: normalizedStatus,
     message: p.message,
     source_entity_type: p.sourceEntityType ?? null,
-    source_entity_id: p.sourceEntityId ?? null,
+    source_entity_id: normalizedSourceEntityId,
     canonical_entity_type: p.canonicalEntityType ?? null,
     canonical_entity_id: p.canonicalEntityId ?? null,
     error_code: p.errorCode ?? null,
     error_origin: p.errorOrigin ?? null,
-    details: p.details ?? null,
+    details: {
+      raw_status: p.status,
+      ...(p.details ?? {}),
+    },
   });
   if (error) console.error(`[${MODULE}] log fail:`, error.message);
 }
