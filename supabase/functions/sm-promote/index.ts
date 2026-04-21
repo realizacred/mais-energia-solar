@@ -698,7 +698,7 @@ interface PipelineResolution {
   funilId: string | null;
   etapaId: string | null;                 // etapa default (fallback quando status não casa)
   hasPipelineConfigured: boolean;
-  /** Mapa status canônico → stage_id (mapeamento por nome de stage). */
+  /** Mapa status canônico → etapa_id nativa de projeto. */
   stageByStatus: Record<string, string>;
 }
 
@@ -723,49 +723,40 @@ async function resolveDefaultPipeline(
   admin: SupabaseClient,
   tenantId: string,
 ): Promise<PipelineResolution> {
-  const { data: anyPipe } = await admin
-    .from("pipelines").select("id").eq("tenant_id", tenantId).limit(1);
-  const hasPipelineConfigured = (anyPipe?.length ?? 0) > 0;
+  const { data: anyFunil } = await admin
+    .from("projeto_funis").select("id").eq("tenant_id", tenantId).eq("ativo", true).limit(1);
+  const hasPipelineConfigured = (anyFunil?.length ?? 0) > 0;
   if (!hasPipelineConfigured) {
     return { funilId: null, etapaId: null, hasPipelineConfigured: false, stageByStatus: {} };
   }
 
-  // Prioridade 1: pipeline marcado como is_default (gerido por trigger no banco)
-  const { data: pDefault } = await admin
-    .from("pipelines").select("id")
-    .eq("tenant_id", tenantId).eq("is_default", true).limit(1).maybeSingle();
-  let funilId = (pDefault?.id as string | undefined);
+  let funilId: string | undefined;
 
-  // Fallback 1: pipeline chamado "Comercial"
-  if (!funilId) {
-    const { data: pComercial } = await admin
-      .from("pipelines").select("id, name")
-      .eq("tenant_id", tenantId).ilike("name", "comercial").limit(1).maybeSingle();
-    funilId = pComercial?.id as string | undefined;
-  }
+  const { data: fComercial } = await admin
+    .from("projeto_funis").select("id")
+    .eq("tenant_id", tenantId).eq("ativo", true).ilike("nome", "comercial").limit(1).maybeSingle();
+  funilId = fComercial?.id as string | undefined;
 
-  // Fallback 2: primeiro pipeline criado
   if (!funilId) {
-    const { data: pFirst } = await admin
-      .from("pipelines").select("id").eq("tenant_id", tenantId)
-      .order("created_at", { ascending: true }).limit(1).maybeSingle();
-    funilId = pFirst?.id as string | undefined;
+    const { data: fFirst } = await admin
+      .from("projeto_funis").select("id").eq("tenant_id", tenantId).eq("ativo", true)
+      .order("ordem", { ascending: true }).limit(1).maybeSingle();
+    funilId = fFirst?.id as string | undefined;
   }
   if (!funilId) return { funilId: null, etapaId: null, hasPipelineConfigured: true, stageByStatus: {} };
 
   const { data: stages } = await admin
-    .from("pipeline_stages").select("id, name, position")
-    .eq("tenant_id", tenantId).eq("pipeline_id", funilId)
-    .order("position", { ascending: true });
+    .from("projeto_etapas").select("id, nome, ordem")
+    .eq("tenant_id", tenantId).eq("funil_id", funilId)
+    .order("ordem", { ascending: true });
 
-  const list = (stages ?? []) as Array<{ id: string; name: string; position: number }>;
+  const list = (stages ?? []) as Array<{ id: string; nome: string; ordem: number }>;
   const etapaId = list[0]?.id ?? null;
 
-  // Construir mapa status → stage_id por match de nome (primeiro alias que casar).
   const stageByStatus: Record<string, string> = {};
   for (const [status, aliases] of Object.entries(STATUS_STAGE_NAME)) {
     const aliasesNorm = aliases.map(norm);
-    const found = list.find((s) => aliasesNorm.includes(norm(s.name)));
+    const found = list.find((s) => aliasesNorm.includes(norm(s.nome)));
     if (found) stageByStatus[status] = found.id;
   }
 
