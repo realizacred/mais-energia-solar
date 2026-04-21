@@ -77,24 +77,12 @@ function CountBadge({ value, loading }: { value: number; loading: boolean }) {
 
 function EmptyState({ icon: Icon, message }: { icon: any; message: string }) {
   return (
-    <div className="flex flex-col items-center justify-center py-12 text-center">
-      <Icon className="w-10 h-10 text-muted-foreground/50 mb-3" />
-      <p className="text-sm text-muted-foreground">{message}</p>
-    </div>
-  );
-}
-
-function StagingNotice() {
-  return (
-    <div className="flex items-start gap-3 rounded-lg border border-warning/30 bg-warning/10 p-3 mb-4">
-      <AlertTriangle className="w-4 h-4 text-warning mt-0.5 shrink-0" />
-      <div className="text-xs text-foreground space-y-1">
-        <p className="font-medium">Dados brutos importados — ainda não incorporados ao CRM.</p>
-        <p className="text-muted-foreground">
-          Esta camada é apenas inspeção/auditoria do que veio da API SolarMarket.
-          Nada aqui aparece em Clientes/Projetos/Propostas do sistema até a fase de promoção deliberada.
-        </p>
+    <div className="flex flex-col items-center justify-center py-16 px-4 text-center">
+      <div className="h-14 w-14 rounded-xl bg-muted flex items-center justify-center mb-4">
+        <Icon className="h-7 w-7 text-muted-foreground/50" />
       </div>
+      <h3 className="text-base font-semibold text-foreground mb-1">Sem dados em staging</h3>
+      <p className="text-sm text-muted-foreground max-w-sm">{message}</p>
     </div>
   );
 }
