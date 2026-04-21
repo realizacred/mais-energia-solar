@@ -614,6 +614,112 @@ async function resolveDefaultPipeline(
   };
 }
 
+// ─── Resolver de consultor (DA-40: sem hardcode; fallback "Escritório") ─────
+interface ConsultorResolution {
+  fallbackId: string | null; // "Consultor Escritório" do tenant (ou primeiro ativo)
+  fallbackNome: string | null;
+}
+
+async function resolveConsultorFallback(
+  admin: SupabaseClient,
+  tenantId: string,
+): Promise<ConsultorResolution> {
+  // 1) Buscar "Escritório" (case-insensitive, qualquer variação: "Escritorio", "Consultor Escritório")
+  const { data: escritorio } = await admin
+    .from("consultores")
+    .select("id, nome")
+    .eq("tenant_id", tenantId)
+    .eq("ativo", true)
+    .ilike("nome", "%escrit%rio%")
+    .order("created_at", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+  if (escritorio?.id) {
+    return { fallbackId: escritorio.id as string, fallbackNome: (escritorio.nome as string) ?? null };
+  }
+  // 2) Fallback do fallback: primeiro consultor ativo do tenant
+  const { data: anyConsultor } = await admin
+    .from("consultores")
+    .select("id, nome")
+    .eq("tenant_id", tenantId)
+    .eq("ativo", true)
+    .order("created_at", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+  return {
+    fallbackId: (anyConsultor?.id as string | undefined) ?? null,
+    fallbackNome: (anyConsultor?.nome as string | undefined) ?? null,
+  };
+}
+
+/**
+ * Resolve consultor canônico a partir do responsável SM (nome/email).
+ * Prioridade:
+ *   1) match exato por email (consultores.email)
+ *   2) match por nome normalizado (case/espaços-insensitive)
+ *   3) fallback "Escritório" (ou primeiro ativo)
+ * Nunca retorna null se houver fallback configurado.
+ */
+async function resolveConsultorFromResponsible(
+  admin: SupabaseClient,
+  tenantId: string,
+  responsibleName: string | null | undefined,
+  responsibleEmail: string | null | undefined,
+  fallback: ConsultorResolution,
+): Promise<{ id: string | null; matched: "email" | "name" | "fallback" | "none"; matchedNome: string | null }> {
+  const email = (responsibleEmail ?? "").trim().toLowerCase();
+  if (email) {
+    const { data } = await admin
+      .from("consultores")
+      .select("id, nome")
+      .eq("tenant_id", tenantId)
+      .eq("ativo", true)
+      .ilike("email", email)
+      .limit(1)
+      .maybeSingle();
+    if (data?.id) return { id: data.id as string, matched: "email", matchedNome: (data.nome as string) ?? null };
+  }
+  const name = (responsibleName ?? "").trim();
+  if (name) {
+    const { data } = await admin
+      .from("consultores")
+      .select("id, nome")
+      .eq("tenant_id", tenantId)
+      .eq("ativo", true)
+      .ilike("nome", name)
+      .limit(1)
+      .maybeSingle();
+    if (data?.id) return { id: data.id as string, matched: "name", matchedNome: (data.nome as string) ?? null };
+  }
+  if (fallback.fallbackId) {
+    return { id: fallback.fallbackId, matched: "fallback", matchedNome: fallback.fallbackNome };
+  }
+  return { id: null, matched: "none", matchedNome: null };
+}
+
+// ─── Mapa canônico de status SM → status nativo (SSOT proposalState.ts) ─────
+// Valores nativos válidos: rascunho | gerada | enviada | vista | aceita | recusada | expirada | cancelada
+const SM_STATUS_MAP: Record<string, string> = {
+  draft: "rascunho",
+  generated: "gerada",
+  sent: "enviada",
+  viewed: "vista",        // SM "viewed" → nativo "vista" (state machine SSOT)
+  accepted: "aceita",
+  approved: "aceita",
+  rejected: "recusada",
+  expired: "expirada",
+  cancelled: "cancelada",
+  canceled: "cancelada",
+};
+
+function mapSmStatus(rawStatus: string | null | undefined): { status: string; recognized: boolean; raw: string | null } {
+  const raw = (rawStatus ?? "").trim();
+  if (!raw) return { status: "rascunho", recognized: false, raw: null };
+  const mapped = SM_STATUS_MAP[raw.toLowerCase()];
+  if (mapped) return { status: mapped, recognized: true, raw };
+  return { status: "rascunho", recognized: false, raw };
+}
+
 // ─── Gate de elegibilidade ──────────────────────────────────────────────────
 type EligibilityIssue = { code: string; message: string };
 type EligibilityResult =
