@@ -7,7 +7,7 @@
 // - RB-58: UPDATEs críticos validam afetação com .select().
 // - RB-23: sem console.log ativo (apenas console.error com prefixo do módulo).
 // - DA-40: sem hardcode de pipeline/consultor — resolução por DB ou metadata.
-// - SSOT idempotência: external_entity_links (source=solar_market).
+// - SSOT idempotência: external_entity_links (source=solarmarket).
 // - Apenas grava em domínio canônico via service-role; tenant_id sempre explícito.
 
 import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.45.4";
@@ -25,7 +25,8 @@ const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-const SOURCE = "solar_market";
+const SOURCE = "solarmarket";
+const LEGACY_SM_SOURCES = [SOURCE, "solar_market"] as const;
 const DEFAULT_BATCH_LIMIT = 50;
 const MAX_BATCH_LIMIT = 200;
 
@@ -416,21 +417,39 @@ async function promoteCliente(
   const norm = normalizeSmClient(rawCliente);
   if (!norm.external_id) throw new Error("Cliente SM sem id");
 
+  const clienteCode = `SM-${norm.external_id}`.slice(0, 32);
+
   // 1) Link existente (idempotência canônica)
   const existing = await findLink(admin, tenantId, "cliente", norm.external_id);
   if (existing) return { id: existing, created: false, matchedBy: "link" };
 
-  // 2) Reconciliação por external_source + external_id (mesma origem, sem link ainda)
+  // 2) Reconciliação por external_source + external_id (compatível com legado)
   const { data: byExt } = await admin
     .from("clientes")
     .select("id")
     .eq("tenant_id", tenantId)
-    .eq("external_source", SOURCE)
+    .in("external_source", [...LEGACY_SM_SOURCES])
     .eq("external_id", norm.external_id)
+    .order("created_at", { ascending: true })
+    .limit(1)
     .maybeSingle();
   if (byExt?.id) {
     await upsertLink(admin, tenantId, jobId, "cliente", byExt.id as string, "cliente", norm.external_id, { matched_by: "external_id" });
     return { id: byExt.id as string, created: false, matchedBy: "external_id" };
+  }
+
+  // 2.1) Reconciliação por cliente_code (protege reprocessamento após falha no link)
+  const { data: byCode } = await admin
+    .from("clientes")
+    .select("id")
+    .eq("tenant_id", tenantId)
+    .eq("cliente_code", clienteCode)
+    .order("created_at", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+  if (byCode?.id) {
+    await upsertLink(admin, tenantId, jobId, "cliente", byCode.id as string, "cliente", norm.external_id, { matched_by: "cliente_code" });
+    return { id: byCode.id as string, created: false, matchedBy: "cliente_code" };
   }
 
   // 3) Reconciliação por CPF/CNPJ
@@ -482,12 +501,11 @@ async function promoteCliente(
   }
 
   // 6) Não existe — inserir novo
-  const cliente_code = `SM-${norm.external_id}`.slice(0, 32);
   const { data, error } = await admin
     .from("clientes")
     .insert({
       tenant_id: tenantId,
-      cliente_code,
+      cliente_code: clienteCode,
       nome: norm.nome,
       telefone: norm.telefone || "",
       email: norm.email,
@@ -507,7 +525,24 @@ async function promoteCliente(
     })
     .select("id")
     .single();
-  if (error || !data?.id) throw new Error(`insert cliente: ${error?.message}`);
+  if (error || !data?.id) {
+    const message = error?.message ?? "sem id";
+    if (/uq_clientes_tenant_cliente_code|duplicate key value/i.test(message)) {
+      const { data: byConflict } = await admin
+        .from("clientes")
+        .select("id")
+        .eq("tenant_id", tenantId)
+        .eq("cliente_code", clienteCode)
+        .order("created_at", { ascending: true })
+        .limit(1)
+        .maybeSingle();
+      if (byConflict?.id) {
+        await upsertLink(admin, tenantId, jobId, "cliente", byConflict.id as string, "cliente", norm.external_id, { matched_by: "cliente_code_conflict" });
+        return { id: byConflict.id as string, created: false, matchedBy: "cliente_code_conflict" };
+      }
+    }
+    throw new Error(`insert cliente: ${message}`);
+  }
 
   await upsertLink(admin, tenantId, jobId, "cliente", data.id as string, "cliente", norm.external_id);
   return { id: data.id as string, created: true, matchedBy: "insert" };
