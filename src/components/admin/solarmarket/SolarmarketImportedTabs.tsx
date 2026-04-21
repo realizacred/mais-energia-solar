@@ -69,10 +69,30 @@ function pickPayload(payload: any, ...keys: string[]): any {
 function CountBadge({ value, loading }: { value: number; loading: boolean }) {
   if (loading) return <Skeleton className="h-5 w-8 inline-block" />;
   return (
-    <Badge variant="outline" className="ml-2 bg-primary/10 text-primary border-primary/20">
-      {value}
+    <Badge
+      variant="outline"
+      className="ml-1.5 h-5 px-1.5 text-[11px] font-semibold tabular-nums bg-muted text-muted-foreground border-border group-data-[state=active]:bg-primary/15 group-data-[state=active]:text-primary group-data-[state=active]:border-primary/20"
+    >
+      {value.toLocaleString("pt-BR")}
     </Badge>
   );
+}
+
+// Mapeia status de proposta SolarMarket para variantes semânticas do design system (DS-05).
+function proposalStatusBadge(status: unknown) {
+  if (status == null || status === "") return <span className="text-muted-foreground text-xs">—</span>;
+  const raw = String(status).toLowerCase();
+  let cls = "bg-muted text-muted-foreground border-border";
+  if (/(approved|aceit|ganha|won|aprov|success|conclu)/.test(raw)) {
+    cls = "bg-success/10 text-success border-success/20";
+  } else if (/(pend|progress|andament|wait|open|enviad|sent)/.test(raw)) {
+    cls = "bg-warning/10 text-warning border-warning/20";
+  } else if (/(refus|recus|reject|cancel|lost|perd|erro|error|fail)/.test(raw)) {
+    cls = "bg-destructive/10 text-destructive border-destructive/20";
+  } else if (/(draft|rascunho|novo|new)/.test(raw)) {
+    cls = "bg-info/10 text-info border-info/20";
+  }
+  return <Badge variant="outline" className={`text-xs font-medium ${cls}`}>{String(status)}</Badge>;
 }
 
 function EmptyState({ icon: Icon, message }: { icon: any; message: string }) {
