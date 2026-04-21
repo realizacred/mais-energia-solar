@@ -195,6 +195,37 @@ export function PromocaoSolarmarketSection() {
         </CardContent>
       </Card>
 
+      {/* Status do Pipeline Padrão */}
+      {isLoadingPipeline ? (
+        <Skeleton className="h-16 w-full" />
+      ) : pipelineBlocked ? (
+        <div className="flex items-start gap-3 p-4 rounded-lg border border-destructive/40 bg-destructive/5">
+          <ShieldAlert className="w-5 h-5 text-destructive shrink-0 mt-0.5" />
+          <div className="text-sm flex-1">
+            <p className="font-semibold text-foreground">
+              Pipeline padrão não configurado
+            </p>
+            <p className="text-xs text-muted-foreground mt-1">
+              {!defaultPipeline
+                ? "Nenhum pipeline está marcado como padrão para este tenant. A promoção foi bloqueada para evitar dados quebrados no CRM."
+                : `O pipeline padrão "${defaultPipeline.name}" não possui etapas (pipeline_stages). Crie ao menos uma etapa antes de promover.`}
+              {" "}Acesse <strong>Configurações → Pipelines</strong> para definir o padrão e configurar as etapas.
+            </p>
+          </div>
+        </div>
+      ) : (
+        <div className="flex items-center gap-3 p-3 rounded-lg border border-success/30 bg-success/5">
+          <Star className="w-4 h-4 text-success shrink-0 fill-success" />
+          <div className="text-sm flex-1">
+            <span className="text-muted-foreground">Pipeline padrão ativo: </span>
+            <strong className="text-foreground">{defaultPipeline!.name}</strong>
+            <Badge variant="outline" className="ml-2 bg-success/10 text-success border-success/20 text-[10px]">
+              Padrão · {defaultPipeline!.stagesCount} etapa{defaultPipeline!.stagesCount === 1 ? "" : "s"}
+            </Badge>
+          </div>
+        </div>
+      )}
+
       {/* KPIs agregados */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         <KpiCard icon={Layers}        label="Itens processados" value={totals.processed} tone="primary" />
