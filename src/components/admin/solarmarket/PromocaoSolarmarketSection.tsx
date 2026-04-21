@@ -39,10 +39,11 @@ import {
   useSolarmarketPromoteLogs,
   type PromotionJob,
 } from "@/hooks/useSolarmarketPromote";
+import { useDefaultPipeline } from "@/hooks/useDefaultPipeline";
 import {
   Rocket, FlaskConical, Ban, Loader2, Eye, ListChecks,
   CheckCircle2, AlertTriangle, XCircle, Users, FolderKanban, FileText,
-  Layers, Activity, Info, ArrowRightLeft, ShieldAlert,
+  Layers, Activity, Info, ArrowRightLeft, ShieldAlert, Star,
 } from "lucide-react";
 
 const formatBR = (iso: string | null | undefined) =>
