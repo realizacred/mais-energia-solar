@@ -19,7 +19,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import {
-  Cloud, CheckCircle2, XCircle, Loader2, Download, Plug, Settings, AlertTriangle, Ban, Trash2, Eraser,
+  Cloud, CheckCircle2, XCircle, Loader2, Download, Settings, AlertTriangle, Ban, Trash2, Eraser,
 } from "lucide-react";
 
 const formatBR = (iso: string | null) =>
@@ -257,19 +257,45 @@ export default function ImportacaoSolarmarket() {
   return (
     <div className="container mx-auto p-6 space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 pb-2">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+          <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
             <Cloud className="w-5 h-5 text-primary" />
           </div>
-          <div>
-            <h1 className="text-xl font-bold text-foreground">Importação SolarMarket</h1>
-            <p className="text-sm text-muted-foreground">
+          <div className="space-y-1">
+            <h1 className="text-2xl font-display font-bold tracking-tight text-foreground">
+              Importação SolarMarket
+            </h1>
+            <p className="text-sm text-muted-foreground leading-relaxed">
               Importação one-shot de Clientes, Projetos, Propostas, Funis e Campos Customizados.
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-2 flex-wrap">
+        <div className="flex items-center gap-2 flex-wrap shrink-0">
+          {/* Operacionais */}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleTest}
+            disabled={!isConfigured || testConnection.isPending}
+          >
+            {testConnection.isPending ? (
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+            ) : (
+              <CheckCircle2 className="w-4 h-4 mr-2" />
+            )}
+            Testar conexão
+          </Button>
+          <Button asChild variant="outline" size="sm">
+            <Link to="/admin/configuracoes/integracoes/solarmarket">
+              <Settings className="w-4 h-4 mr-2" /> Configuração
+            </Link>
+          </Button>
+
+          {/* Separador visual */}
+          <span className="hidden sm:inline-block h-6 w-px bg-border mx-1" aria-hidden />
+
+          {/* Destrutivo */}
           <AlertDialog>
             <AlertDialogTrigger asChild>
               <Button
@@ -309,11 +335,6 @@ export default function ImportacaoSolarmarket() {
               </AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>
-          <Button asChild variant="outline" size="sm">
-            <Link to="/admin/configuracoes/integracoes/solarmarket">
-              <Settings className="w-4 h-4 mr-2" /> Configuração
-            </Link>
-          </Button>
         </div>
       </div>
 
@@ -341,50 +362,30 @@ export default function ImportacaoSolarmarket() {
         </Card>
       )}
 
-      {/* Conexão */}
-      <Card className="bg-card border-border shadow-sm">
-        <CardHeader>
-          <CardTitle className="text-base font-semibold flex items-center gap-2">
-            <Plug className="w-4 h-4 text-primary" />
-            Conexão
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <div className="flex flex-wrap items-center gap-3">
-            <p className="text-sm text-muted-foreground flex-1 min-w-[200px]">
-              URL: <code className="text-xs bg-muted px-1 py-0.5 rounded">{config?.base_url || "—"}</code>
-            </p>
-            <Button
-              variant="outline"
-              onClick={handleTest}
-              disabled={!isConfigured || testConnection.isPending}
-            >
-              {testConnection.isPending ? (
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              ) : (
-                <CheckCircle2 className="w-4 h-4 mr-2" />
-              )}
-              Testar conexão
-            </Button>
-          </div>
-          {testResult && (
-            <div
-              className={`flex items-start gap-2 p-3 rounded-md border text-sm ${
-                testResult.ok
-                  ? "bg-success/10 border-success/20 text-success"
-                  : "bg-destructive/10 border-destructive/20 text-destructive"
-              }`}
-            >
-              {testResult.ok ? (
-                <CheckCircle2 className="w-4 h-4 mt-0.5 shrink-0" />
-              ) : (
-                <XCircle className="w-4 h-4 mt-0.5 shrink-0" />
-              )}
-              <span>{testResult.message}</span>
-            </div>
+      {/* Resultado do teste de conexão (inline, discreto) */}
+      {testResult && (
+        <div
+          className={`flex items-start gap-2 p-3 rounded-md border text-sm ${
+            testResult.ok
+              ? "bg-success/10 border-success/20 text-success"
+              : "bg-destructive/10 border-destructive/20 text-destructive"
+          }`}
+        >
+          {testResult.ok ? (
+            <CheckCircle2 className="w-4 h-4 mt-0.5 shrink-0" />
+          ) : (
+            <XCircle className="w-4 h-4 mt-0.5 shrink-0" />
           )}
-        </CardContent>
-      </Card>
+          <div className="flex-1 min-w-0">
+            <p>{testResult.message}</p>
+            {config?.base_url && (
+              <p className="text-xs opacity-80 mt-0.5">
+                URL: <code className="font-mono">{config.base_url}</code>
+              </p>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Escopo + Disparo */}
       <Card className="bg-card border-border shadow-sm">

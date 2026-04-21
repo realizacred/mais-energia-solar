@@ -13,22 +13,20 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
-import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "@/hooks/use-toast";
 import {
   Users, FolderKanban, FileText, GitBranch, Settings2,
-  RefreshCw, Database, Search, AlertTriangle, Eye,
+  Database, Eye, Inbox,
 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { useSolarmarketImport, type ImportScope } from "@/hooks/useSolarmarketImport";
+import { useSolarmarketImport } from "@/hooks/useSolarmarketImport";
 import {
   SolarmarketRecordDetailDrawer,
   type RawEntityKind,
@@ -79,24 +77,12 @@ function CountBadge({ value, loading }: { value: number; loading: boolean }) {
 
 function EmptyState({ icon: Icon, message }: { icon: any; message: string }) {
   return (
-    <div className="flex flex-col items-center justify-center py-12 text-center">
-      <Icon className="w-10 h-10 text-muted-foreground/50 mb-3" />
-      <p className="text-sm text-muted-foreground">{message}</p>
-    </div>
-  );
-}
-
-function StagingNotice() {
-  return (
-    <div className="flex items-start gap-3 rounded-lg border border-warning/30 bg-warning/10 p-3 mb-4">
-      <AlertTriangle className="w-4 h-4 text-warning mt-0.5 shrink-0" />
-      <div className="text-xs text-foreground space-y-1">
-        <p className="font-medium">Dados brutos importados — ainda não incorporados ao CRM.</p>
-        <p className="text-muted-foreground">
-          Esta camada é apenas inspeção/auditoria do que veio da API SolarMarket.
-          Nada aqui aparece em Clientes/Projetos/Propostas do sistema até a fase de promoção deliberada.
-        </p>
+    <div className="flex flex-col items-center justify-center py-16 px-4 text-center">
+      <div className="h-14 w-14 rounded-xl bg-muted flex items-center justify-center mb-4">
+        <Icon className="h-7 w-7 text-muted-foreground/50" />
       </div>
+      <h3 className="text-base font-semibold text-foreground mb-1">Sem dados em staging</h3>
+      <p className="text-sm text-muted-foreground max-w-sm">{message}</p>
     </div>
   );
 }
@@ -176,7 +162,7 @@ function useRawList(
 // Componente principal
 // ─────────────────────────────────────────────────────────────────────────
 export function SolarmarketImportedTabs() {
-  const { importAll, jobs } = useSolarmarketImport();
+  const { jobs } = useSolarmarketImport();
   const runningJob = jobs.find((j) => j.status === "running" || j.status === "pending");
   const isImporting = !!runningJob;
   const counts = useImportedCounts(isImporting);
@@ -202,40 +188,35 @@ export function SolarmarketImportedTabs() {
     setPage(0);
   };
 
-  const handleReimport = async (entity: keyof ImportScope) => {
-    const labels: Record<string, string> = {
-      clientes: "Clientes",
-      projetos: "Projetos",
-      propostas: "Propostas",
-      funis: "Funis e Etapas",
-      custom_fields: "Campos Customizados",
-    };
-    if (!confirm(`Reimportar ${labels[entity]} do SolarMarket? Será iniciada uma nova importação (apenas em staging).`)) return;
-    try {
-      const scope: ImportScope = {
-        clientes: false, projetos: false, propostas: false, funis: false, custom_fields: false,
-        [entity]: true,
-      };
-      await importAll.mutateAsync(scope);
-      toast({ title: `Reimportação iniciada`, description: `${labels[entity]} sendo gravados em staging.` });
-    } catch (e: any) {
-      toast({ title: "Erro ao reimportar", description: e?.message, variant: "destructive" });
-    }
-  };
+  const totalRecords =
+    (counts.data?.clientes ?? 0) +
+    (counts.data?.projetos ?? 0) +
+    (counts.data?.propostas ?? 0) +
+    (counts.data?.funis ?? 0) +
+    (counts.data?.custom_fields ?? 0);
 
   return (
     <Card className="bg-card border-border shadow-sm">
-      <CardHeader>
+      <CardHeader className="space-y-1.5">
         <CardTitle className="text-base font-semibold flex items-center gap-2">
           <Database className="w-4 h-4 text-primary" />
           Dados Brutos Importados (Staging)
         </CardTitle>
+        <CardDescription className="text-xs">
+          Inspeção e auditoria do que veio da API SolarMarket. Ainda não promovido ao CRM.
+        </CardDescription>
       </CardHeader>
       <CardContent>
-        <StagingNotice />
+        {!counts.isLoading && totalRecords === 0 ? (
+          <EmptyState
+            icon={Inbox}
+            message="Execute uma importação acima para visualizar os dados brutos por entidade."
+          />
+        ) : (
         <Tabs
           value={activeTab}
           onValueChange={(v) => { setActiveTab(v as RawEntityKind); setSearch(""); setPage(0); }}
+          className="mt-1"
         >
           <TabsList className="overflow-x-auto flex-wrap h-auto">
             <TabsTrigger value="clientes" className="gap-1">
@@ -260,25 +241,7 @@ export function SolarmarketImportedTabs() {
             </TabsTrigger>
           </TabsList>
 
-          <div className="flex flex-col sm:flex-row gap-2 mt-4 mb-3">
-            <div className="relative flex-1 min-w-0">
-              <Search className="w-4 h-4 absolute left-2.5 top-2.5 text-muted-foreground" />
-              <Input
-                placeholder="Buscar por nome ou ID externo…"
-                className="pl-8"
-                value={search}
-                onChange={(e) => { setSearch(e.target.value); setPage(0); }}
-              />
-            </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => handleReimport(activeTab as keyof ImportScope)}
-              disabled={importAll.isPending || !!runningJob}
-            >
-              <RefreshCw className="w-4 h-4 mr-2" /> Reimportar
-            </Button>
-          </div>
+          <div className="mt-4" />
 
           <TabsContent value="clientes">
             <ListaRaw
@@ -321,6 +284,7 @@ export function SolarmarketImportedTabs() {
             />
           </TabsContent>
         </Tabs>
+        )}
 
         <SolarmarketRecordDetailDrawer
           open={drawerOpen}
