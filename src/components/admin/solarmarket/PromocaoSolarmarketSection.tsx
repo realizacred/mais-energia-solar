@@ -42,7 +42,7 @@ import {
 import {
   Rocket, FlaskConical, Ban, Loader2, Eye, ListChecks,
   CheckCircle2, AlertTriangle, XCircle, Users, FolderKanban, FileText,
-  Layers, Activity, Info, ArrowRightLeft,
+  Layers, Activity, Info, ArrowRightLeft, ShieldAlert,
 } from "lucide-react";
 
 const formatBR = (iso: string | null | undefined) =>
