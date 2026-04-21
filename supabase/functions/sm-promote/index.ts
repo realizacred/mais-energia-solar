@@ -252,7 +252,7 @@ function onlyDigits(v: unknown): string | null {
   return s ? s.replace(/\D+/g, "") || null : null;
 }
 
-export function normalizeSmClient(raw: AnyObj) {
+function normalizeSmClient(raw: AnyObj) {
   const c = raw?.client ?? raw ?? {};
   return {
     external_id: pickStr(c.id ?? raw.id),
@@ -271,7 +271,7 @@ export function normalizeSmClient(raw: AnyObj) {
   };
 }
 
-export function normalizeSmProject(raw: AnyObj) {
+function normalizeSmProject(raw: AnyObj) {
   return {
     external_id: pickStr(raw.id),
     nome: pickStr(raw.name) ?? "Projeto SolarMarket",
@@ -284,7 +284,7 @@ export function normalizeSmProject(raw: AnyObj) {
   };
 }
 
-export function normalizeSmProposal(raw: AnyObj) {
+function normalizeSmProposal(raw: AnyObj) {
   const pricing = Array.isArray(raw.pricingTable) ? raw.pricingTable : [];
   const variables = Array.isArray(raw.variables) ? raw.variables : [];
   const valor_total = pricing.reduce(
