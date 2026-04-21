@@ -178,8 +178,34 @@ async function findLink(
     .eq("source_entity_id", sourceEntityId)
     .maybeSingle();
   if (error) throw new Error(`findLink: ${error.message}`);
-  return (data?.entity_id as string) ?? null;
 }
+
+// Lista os source_entity_id já promovidos para um tipo canônico no tenant.
+// Usado para excluir staging já processado do batch de candidatos (escala).
+async function fetchPromotedSourceIds(
+  admin: SupabaseClient,
+  tenantId: string,
+  sourceEntityType: string,
+): Promise<string[]> {
+  const pageSize = 1000;
+  const out: string[] = [];
+  for (let from = 0; ; from += pageSize) {
+    const { data, error } = await admin
+      .from("external_entity_links")
+      .select("source_entity_id")
+      .eq("tenant_id", tenantId)
+      .eq("source", SOURCE)
+      .eq("source_entity_type", sourceEntityType)
+      .range(from, from + pageSize - 1);
+    if (error) throw new Error(`fetchPromotedSourceIds: ${error.message}`);
+    if (!data || data.length === 0) break;
+    for (const r of data) {
+      const v = (r as AnyObj).source_entity_id;
+      if (typeof v === "string" && v.length) out.push(v);
+    }
+    if (data.length < pageSize) break;
+  }
+  return out;
 
 async function upsertLink(
   admin: SupabaseClient,
@@ -695,13 +721,21 @@ async function actionPromoteAll(
     message: `promote-all iniciado (batch_limit=${batchLimit}, dry_run=${dryRun})`,
   });
 
-  // Backlog: propostas raw que ainda não têm link canônico
-  const { data: rows, error: fetchErr } = await admin
+  // Backlog: propostas raw que ainda não têm link canônico em external_entity_links.
+  // Filtro obrigatório (escala): nunca reprocessar staging já promovido.
+  const promotedIds = await fetchPromotedSourceIds(admin, tenantId, "proposta");
+  let fetchQuery = admin
     .from("sm_propostas_raw")
     .select("id, external_id, payload")
     .eq("tenant_id", tenantId)
     .order("imported_at", { ascending: true })
     .limit(batchLimit);
+  if (promotedIds.length > 0) {
+    // PostgREST aceita lista em .not("col", "in", "(a,b,c)")
+    const inList = `(${promotedIds.map((s) => `"${s.replace(/"/g, '\\"')}"`).join(",")})`;
+    fetchQuery = fetchQuery.not("external_id", "in", inList);
+  }
+  const { data: rows, error: fetchErr } = await fetchQuery;
   if (fetchErr) {
     await patchJob(admin, jobId, {
       status: "failed", finished_at: new Date().toISOString(),
