@@ -322,7 +322,7 @@ export default function ImportacaoSolarmarket() {
                 <AlertDialogFooter>
                   <AlertDialogCancel>Cancelar</AlertDialogCancel>
                   <AlertDialogAction
-                    onClick={handleClearStaging}
+                    onClick={() => handleClearStaging()}
                     className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                   >
                     Limpar staging
