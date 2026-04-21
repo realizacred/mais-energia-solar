@@ -7,7 +7,7 @@
 // - RB-58: UPDATEs críticos validam afetação com .select().
 // - RB-23: sem console.log ativo (apenas console.error com prefixo do módulo).
 // - DA-40: sem hardcode de pipeline/consultor — resolução por DB ou metadata.
-// - SSOT idempotência: external_entity_links (source=solar_market).
+// - SSOT idempotência: external_entity_links (source=solarmarket).
 // - Apenas grava em domínio canônico via service-role; tenant_id sempre explícito.
 
 import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.45.4";
@@ -135,6 +135,20 @@ async function promoteCliente(
   if (byExt?.id) {
     await upsertLink(admin, tenantId, jobId, "cliente", byExt.id as string, "cliente", norm.external_id, { matched_by: "external_id" });
     return { id: byExt.id as string, created: false, matchedBy: "external_id" };
+  }
+
+  // 2.1) Reconciliação por cliente_code (protege reprocessamento após falha no link)
+  const { data: byCode } = await admin
+    .from("clientes")
+    .select("id")
+    .eq("tenant_id", tenantId)
+    .eq("cliente_code", clienteCode)
+    .order("created_at", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+  if (byCode?.id) {
+    await upsertLink(admin, tenantId, jobId, "cliente", byCode.id as string, "cliente", norm.external_id, { matched_by: "cliente_code" });
+    return { id: byCode.id as string, created: false, matchedBy: "cliente_code" };
   }
 
   // 2.1) Reconciliação por cliente_code (protege reprocessamento após falha no link)
