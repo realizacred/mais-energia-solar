@@ -1118,6 +1118,7 @@ async function runImportJob(
       total_funis: realCounts.total_funis ?? 0,
       total_custom_fields: realCounts.total_custom_fields ?? 0,
       total_errors: totalErrors,
+      total_warnings: totalWarnings,
       finished_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
       ...(wasCancelled
@@ -1130,7 +1131,7 @@ async function runImportJob(
 
   if (!updRows || updRows.length === 0) {
     await logEntry(state, "job", "skipped", null, null,
-      `[finalize] Job já estava em estado terminal — status preservado. importado=${totalImportado}, errors=${totalErrors}`);
+      `[finalize] Job já estava em estado terminal — status preservado. importado=${totalImportado}, errors=${totalErrors}, warnings=${totalWarnings}`);
   }
 
   if (state.configId) {
@@ -1144,7 +1145,7 @@ async function runImportJob(
     ok: true,
     job_id: state.jobId,
     status: finalStatus,
-    summary: { funis: totalFunis, etapas: totalEtapas, custom_fields: totalCampos, errors: totalErrors },
+    summary: { funis: totalFunis, etapas: totalEtapas, custom_fields: totalCampos, errors: totalErrors, warnings: totalWarnings },
   };
 }
 
