@@ -181,22 +181,74 @@ async function logEvent(
 }
 
 // ─── Idempotência: external_entity_links (SSOT) ──────────────────────────────
+function canonicalTableForEntity(entityType: CanonicalEntity): "clientes" | "projetos" | "propostas_nativas" | "proposta_versoes" {
+  switch (entityType) {
+    case "cliente":
+      return "clientes";
+    case "projeto":
+      return "projetos";
+    case "proposta":
+      return "propostas_nativas";
+    case "versao":
+      return "proposta_versoes";
+  }
+}
+
+async function canonicalEntityExists(
+  admin: SupabaseClient,
+  tenantId: string,
+  entityType: CanonicalEntity,
+  entityId: string,
+): Promise<boolean> {
+  const table = canonicalTableForEntity(entityType);
+  const { data, error } = await admin
+    .from(table)
+    .select("id")
+    .eq("tenant_id", tenantId)
+    .eq("id", entityId)
+    .maybeSingle();
+  if (error) throw new Error(`canonicalEntityExists(${entityType}): ${error.message}`);
+  return !!data?.id;
+}
+
+async function cleanupOrphanLinks(admin: SupabaseClient, linkIds: string[]): Promise<void> {
+  if (linkIds.length === 0) return;
+  const { error } = await admin.from("external_entity_links").delete().in("id", linkIds);
+  if (error) throw new Error(`cleanupOrphanLinks: ${error.message}`);
+}
+
 async function findLink(
   admin: SupabaseClient,
   tenantId: string,
   sourceEntityType: string,
   sourceEntityId: string,
+  entityType: CanonicalEntity,
 ): Promise<string | null> {
   const { data, error } = await admin
     .from("external_entity_links")
-    .select("entity_id")
+    .select("id, entity_id")
     .eq("tenant_id", tenantId)
-    .eq("source", SOURCE)
+    .in("source", [...LEGACY_SM_SOURCES])
     .eq("source_entity_type", sourceEntityType)
     .eq("source_entity_id", sourceEntityId)
-    .maybeSingle();
+    .order("promoted_at", { ascending: false })
+    .limit(20);
   if (error) throw new Error(`findLink: ${error.message}`);
-  return (data as { entity_id?: string } | null)?.entity_id ?? null;
+
+  const orphanLinkIds: string[] = [];
+  for (const row of data ?? []) {
+    const entityId = (row as { entity_id?: string | null }).entity_id ?? null;
+    const linkId = (row as { id?: string | null }).id ?? null;
+    if (!entityId || !linkId) continue;
+    if (await canonicalEntityExists(admin, tenantId, entityType, entityId)) {
+      if (orphanLinkIds.length > 0) await cleanupOrphanLinks(admin, orphanLinkIds);
+      return entityId;
+    }
+    orphanLinkIds.push(linkId);
+  }
+
+  if (orphanLinkIds.length > 0) await cleanupOrphanLinks(admin, orphanLinkIds);
+  return null;
 }
 
 // Lista os source_entity_id já promovidos para um tipo canônico no tenant.
@@ -205,23 +257,33 @@ async function fetchPromotedSourceIds(
   admin: SupabaseClient,
   tenantId: string,
   sourceEntityType: string,
+  entityType: CanonicalEntity,
 ): Promise<string[]> {
   const pageSize = 1000;
   const out: string[] = [];
   for (let from = 0; ; from += pageSize) {
     const { data, error } = await admin
       .from("external_entity_links")
-      .select("source_entity_id")
+      .select("id, source_entity_id, entity_id")
       .eq("tenant_id", tenantId)
-      .eq("source", SOURCE)
+      .in("source", [...LEGACY_SM_SOURCES])
       .eq("source_entity_type", sourceEntityType)
       .range(from, from + pageSize - 1);
     if (error) throw new Error(`fetchPromotedSourceIds: ${error.message}`);
     if (!data || data.length === 0) break;
+    const orphanLinkIds: string[] = [];
     for (const r of data) {
-      const v = (r as AnyObj).source_entity_id;
-      if (typeof v === "string" && v.length) out.push(v);
+      const entityId = pickStr((r as AnyObj).entity_id);
+      const sourceEntityId = pickStr((r as AnyObj).source_entity_id);
+      const linkId = pickStr((r as AnyObj).id);
+      if (!entityId || !sourceEntityId || !linkId) continue;
+      if (await canonicalEntityExists(admin, tenantId, entityType, entityId)) {
+        out.push(sourceEntityId);
+      } else {
+        orphanLinkIds.push(linkId);
+      }
     }
+    if (orphanLinkIds.length > 0) await cleanupOrphanLinks(admin, orphanLinkIds);
     if (data.length < pageSize) break;
   }
   return out;
@@ -421,7 +483,7 @@ async function promoteCliente(
   const clienteCode = `SM-${norm.external_id}`.slice(0, 32);
 
   // 1) Link existente (idempotência canônica)
-  const existing = await findLink(admin, tenantId, "cliente", norm.external_id);
+  const existing = await findLink(admin, tenantId, "cliente", norm.external_id, "cliente");
   if (existing) return { id: existing, created: false, matchedBy: "link" };
 
   // 2) Reconciliação por external_source + external_id (compatível com legado)
@@ -584,7 +646,7 @@ async function promoteProjeto(
   const norm = normalizeSmProject(rawProjeto);
   if (!norm.external_id) throw new Error("Projeto SM sem id");
 
-  const existing = await findLink(admin, tenantId, "projeto", norm.external_id);
+  const existing = await findLink(admin, tenantId, "projeto", norm.external_id, "projeto");
   if (existing) return { id: existing, created: false };
 
   const codigo = `SM-PROJ-${norm.external_id}`.slice(0, 32);
@@ -644,7 +706,7 @@ async function promoteProposta(
   const norm = normalizeSmProposal(rawProposta);
   if (!norm.external_id) throw new Error("Proposta SM sem id");
 
-  const existing = await findLink(admin, tenantId, "proposta", norm.external_id);
+  const existing = await findLink(admin, tenantId, "proposta", norm.external_id, "proposta");
   if (existing) {
     // Garante que existe pelo menos uma versão; senão cria.
     const { data: v } = await admin
@@ -1360,7 +1422,7 @@ async function actionPromoteAll(
 
   // Backlog: propostas raw que ainda não têm link canônico em external_entity_links.
   // Filtro obrigatório (escala): nunca reprocessar staging já promovido.
-  const promotedIds = await fetchPromotedSourceIds(admin, tenantId, "proposta");
+  const promotedIds = await fetchPromotedSourceIds(admin, tenantId, "proposta", "proposta");
   let fetchQuery = admin
     .from("sm_propostas_raw")
     .select("id, external_id, payload")

@@ -14,6 +14,8 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
+const LEGACY_SM_SOURCES = ["solarmarket", "solar_market"] as const;
+
 export type PromotionJob = {
   id: string;
   tenant_id: string;
@@ -215,33 +217,35 @@ export function useSolarmarketStagingTotals() {
     staleTime: 1000 * 60, // 1min
     refetchInterval: 1000 * 30,
     queryFn: async (): Promise<SolarmarketStagingTotals> => {
-      const [cliRaw, projRaw, propRaw, links] = await Promise.all([
+      const [cliRaw, projRaw, propRaw, clientesPromovidos, projetosPromovidos, propostasPromovidas] = await Promise.all([
         supabase.from("sm_clientes_raw").select("id", { count: "exact", head: true }),
         supabase.from("sm_projetos_raw").select("id", { count: "exact", head: true }),
         supabase.from("sm_propostas_raw").select("id", { count: "exact", head: true }),
         supabase
-          .from("external_entity_links")
-          .select("entity_type")
-          .eq("source", "solar_market"),
+          .from("clientes")
+          .select("id", { count: "exact", head: true })
+          .in("external_source", [...LEGACY_SM_SOURCES]),
+        supabase
+          .from("projetos")
+          .select("id", { count: "exact", head: true })
+          .in("external_source", [...LEGACY_SM_SOURCES]),
+        supabase
+          .from("propostas_nativas")
+          .select("id", { count: "exact", head: true })
+          .in("external_source", [...LEGACY_SM_SOURCES]),
       ]);
 
       if (cliRaw.error) throw new Error(cliRaw.error.message);
       if (projRaw.error) throw new Error(projRaw.error.message);
       if (propRaw.error) throw new Error(propRaw.error.message);
-      if (links.error) throw new Error(links.error.message);
-
-      const promotedCounts = { cliente: 0, projeto: 0, proposta: 0 };
-      for (const row of links.data ?? []) {
-        const t = row.entity_type as string;
-        if (t === "cliente" || t === "projeto" || t === "proposta") {
-          promotedCounts[t]++;
-        }
-      }
+      if (clientesPromovidos.error) throw new Error(clientesPromovidos.error.message);
+      if (projetosPromovidos.error) throw new Error(projetosPromovidos.error.message);
+      if (propostasPromovidas.error) throw new Error(propostasPromovidas.error.message);
 
       return {
-        cliente: { total: cliRaw.count ?? 0, promoted: promotedCounts.cliente },
-        projeto: { total: projRaw.count ?? 0, promoted: promotedCounts.projeto },
-        proposta: { total: propRaw.count ?? 0, promoted: promotedCounts.proposta },
+        cliente: { total: cliRaw.count ?? 0, promoted: clientesPromovidos.count ?? 0 },
+        projeto: { total: projRaw.count ?? 0, promoted: projetosPromovidos.count ?? 0 },
+        proposta: { total: propRaw.count ?? 0, promoted: propostasPromovidas.count ?? 0 },
       };
     },
   });
