@@ -874,8 +874,9 @@ async function resolveConsultorFallback(
  * Resolve consultor canônico a partir do responsável SM (nome/email).
  * Prioridade:
  *   1) match exato por email (consultores.email)
- *   2) match por nome normalizado (case/espaços-insensitive)
- *   3) fallback "Escritório" (ou primeiro ativo)
+ *   2) match via sm_consultor_mapping
+ *   3) match direto por nome em consultores
+ *   4) fallback "Escritório" (ou primeiro ativo)
  * Nunca retorna null se houver fallback configurado.
  */
 async function resolveConsultorFromResponsible(
@@ -884,7 +885,7 @@ async function resolveConsultorFromResponsible(
   responsibleName: string | null | undefined,
   responsibleEmail: string | null | undefined,
   fallback: ConsultorResolution,
-): Promise<{ id: string | null; matched: "email" | "name" | "fallback" | "none"; matchedNome: string | null }> {
+): Promise<{ id: string | null; matched: "email" | "mapping" | "name" | "fallback" | "none"; matchedNome: string | null }> {
   const email = (responsibleEmail ?? "").trim().toLowerCase();
   if (email) {
     const { data } = await admin
@@ -897,8 +898,40 @@ async function resolveConsultorFromResponsible(
       .maybeSingle();
     if (data?.id) return { id: data.id as string, matched: "email", matchedNome: (data.nome as string) ?? null };
   }
+
   const name = (responsibleName ?? "").trim();
   if (name) {
+    const { data: mapping } = await admin
+      .from("sm_consultor_mapping")
+      .select("consultor_id, canonical_name, is_ex_funcionario")
+      .eq("tenant_id", tenantId)
+      .ilike("sm_name", name)
+      .limit(1)
+      .maybeSingle();
+
+    if (mapping?.consultor_id) {
+      const { data: mappedConsultor } = await admin
+        .from("consultores")
+        .select("id, nome")
+        .eq("tenant_id", tenantId)
+        .eq("ativo", true)
+        .eq("id", mapping.consultor_id)
+        .limit(1)
+        .maybeSingle();
+
+      if (mappedConsultor?.id) {
+        return {
+          id: mappedConsultor.id as string,
+          matched: "mapping",
+          matchedNome: (mappedConsultor.nome as string) ?? (mapping.canonical_name as string) ?? null,
+        };
+      }
+    }
+
+    if (mapping?.is_ex_funcionario && fallback.fallbackId) {
+      return { id: fallback.fallbackId, matched: "fallback", matchedNome: fallback.fallbackNome };
+    }
+
     const { data } = await admin
       .from("consultores")
       .select("id, nome")
@@ -909,6 +942,7 @@ async function resolveConsultorFromResponsible(
       .maybeSingle();
     if (data?.id) return { id: data.id as string, matched: "name", matchedNome: (data.nome as string) ?? null };
   }
+
   if (fallback.fallbackId) {
     return { id: fallback.fallbackId, matched: "fallback", matchedNome: fallback.fallbackNome };
   }
