@@ -195,16 +195,7 @@ Deno.serve(async (req) => {
           "GET /projects/:id/proposals": projProposals
             ? { status: projProposals.status, count: propList.length, sampleBodyKeys: projProposals.body && typeof projProposals.body === "object" ? Object.keys(projProposals.body).slice(0, 20) : null }
             : null,
-          "GET /proposals?limit=10": {
-            status: globalProposals.status,
-            preview: typeof globalProposals.body === "string"
-              ? globalProposals.body.slice(0, 300)
-              : Array.isArray(globalProposals.body)
-                ? { isArray: true, count: globalProposals.body.length, firstKeys: globalProposals.body[0] ? Object.keys(globalProposals.body[0]) : [] }
-                : globalProposals.body && typeof globalProposals.body === "object"
-                  ? { keys: Object.keys(globalProposals.body).slice(0, 20) }
-                  : null,
-          },
+          altEndpointVariants: altListings,
           "GET /projects/:id/funnels": projFunnels
             ? { status: projFunnels.status, body: projFunnels.body }
             : null,
