@@ -742,6 +742,80 @@ export default function MigracaoSolarmarket() {
                       </AlertDialogFooter>
                     </AlertDialogContent>
                   </AlertDialog>
+
+                  {/* RESETAR TUDO — destrutivo, dupla confirmação */}
+                  <AlertDialog open={resetOpen} onOpenChange={(o) => {
+                    setResetOpen(o);
+                    if (!o) setResetConfirmText("");
+                  }}>
+                    <AlertDialogTrigger asChild>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={isImporting || resetting}
+                        className="border-destructive text-destructive hover:bg-destructive/10"
+                      >
+                        {resetting ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <Trash2 className="w-4 h-4" />
+                        )}
+                        Resetar tudo
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent className="w-[90vw] max-w-lg">
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>
+                          ⚠️ Resetar importação do SolarMarket?
+                        </AlertDialogTitle>
+                        <AlertDialogDescription asChild>
+                          <div className="space-y-3 text-sm">
+                            <p>Esta ação vai <strong>apagar permanentemente</strong>:</p>
+                            <ul className="list-disc list-inside space-y-1 text-muted-foreground">
+                              <li>Todos os dados baixados do SolarMarket (clientes, projetos, propostas)</li>
+                              <li>Histórico de importações</li>
+                              <li>Histórico de migrações</li>
+                              <li>Mapeamentos configurados</li>
+                              <li>Clientes/projetos/propostas que vieram do SolarMarket</li>
+                            </ul>
+                            <p><strong>Não vai apagar</strong>:</p>
+                            <ul className="list-disc list-inside space-y-1 text-muted-foreground">
+                              <li>Consultores do CRM</li>
+                              <li>Pipelines e etapas do CRM</li>
+                              <li>Dados nativos do sistema</li>
+                            </ul>
+                            <p className="pt-2">
+                              Para confirmar, digite <strong>RESETAR</strong> abaixo:
+                            </p>
+                          </div>
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <Input
+                        autoFocus
+                        placeholder="Digite RESETAR para confirmar"
+                        value={resetConfirmText}
+                        onChange={(e) => setResetConfirmText(e.target.value)}
+                      />
+                      <AlertDialogFooter>
+                        <AlertDialogCancel disabled={resetting}>
+                          Cancelar
+                        </AlertDialogCancel>
+                        <AlertDialogAction
+                          disabled={resetConfirmText !== "RESETAR" || resetting}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            handleResetAll();
+                          }}
+                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                        >
+                          {resetting ? (
+                            <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                          ) : null}
+                          Sim, resetar tudo
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
                 </div>
                 <p className="text-xs text-muted-foreground">
                   Estas ações afetam apenas a área de revisão e a conexão com o
