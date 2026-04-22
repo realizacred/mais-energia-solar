@@ -127,6 +127,8 @@ export default function PromocaoSolarmarket() {
           </div>
         </motion.div>
 
+        <PromocaoPreflightCard />
+
         <PromocaoSolarmarketSection />
       </div>
     </div>
