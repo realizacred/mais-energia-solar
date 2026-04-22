@@ -120,6 +120,7 @@ export function PromocaoSolarmarketSection() {
   const [batchLimit, setBatchLimit] = useState(50);
   const [auditJobId, setAuditJobId] = useState<string | null>(null);
   const [activeScope, setActiveScope] = useState<"cliente" | "projeto" | "proposta" | null>(null);
+  const [runAllState, setRunAllState] = useState<{ running: boolean; scope: "cliente" | "projeto" | "proposta" | null; iteration: number; processed: number }>({ running: false, scope: null, iteration: 0, processed: 0 });
 
   const failedJobsCount = useMemo(
     () => jobs.filter((j) => ["failed", "cancelled", "completed_with_errors"].includes(j.status)).length,
@@ -175,6 +176,51 @@ export function PromocaoSolarmarketSection() {
       toast({ title: "Falha ao executar", description: message, variant: "destructive" });
     } finally {
       setActiveScope(null);
+    }
+  };
+
+  /**
+   * handleRunAll — Promove tudo em sequência: Clientes → Projetos → Propostas.
+   * Para cada escopo, executa lotes em loop até zerar pendentes (ou atingir
+   * teto de segurança de 100 iterações por escopo). Sem dry_run.
+   */
+  const handleRunAll = async () => {
+    if (pipelineBlocked || !!runningJob || promoteAll.isPending || runAllState.running) return;
+    const limit = Math.min(Math.max(1, Number(batchLimit) || 1), 200);
+    const scopes: Array<"cliente" | "projeto" | "proposta"> = ["cliente", "projeto", "proposta"];
+    setRunAllState({ running: true, scope: scopes[0], iteration: 0, processed: 0 });
+    let totalProcessed = 0;
+    let totalPromoted = 0;
+    try {
+      for (const scope of scopes) {
+        let safety = 0;
+        while (safety < 100) {
+          safety += 1;
+          setRunAllState((s) => ({ ...s, scope, iteration: safety }));
+          setActiveScope(scope);
+          const res = await promoteAll.mutateAsync({ batch_limit: limit, dry_run: false, scope });
+          const counters = res?.counters ?? {};
+          const processedNow = Number(counters.processed ?? counters.total ?? 0);
+          const promotedNow = Number(counters.promoted ?? 0);
+          totalProcessed += processedNow;
+          totalPromoted += promotedNow;
+          setRunAllState((s) => ({ ...s, processed: totalProcessed }));
+          // Parar este escopo se não houve nada para processar
+          if (processedNow === 0) break;
+          // Throttle para não estourar rate limits
+          await new Promise((r) => setTimeout(r, 600));
+        }
+      }
+      toast({
+        title: "Promoção completa concluída",
+        description: `${totalPromoted} item(ns) promovido(s) em ${totalProcessed} processado(s).`,
+      });
+    } catch (e) {
+      const message = e instanceof Error ? e.message : String(e);
+      toast({ title: "Promoção interrompida", description: message, variant: "destructive" });
+    } finally {
+      setActiveScope(null);
+      setRunAllState({ running: false, scope: null, iteration: 0, processed: 0 });
     }
   };
 
@@ -419,6 +465,33 @@ export function PromocaoSolarmarketSection() {
             </div>
           </div>
 
+          {/* Botão "Promover Tudo de Uma Vez" — loop automático Clientes → Projetos → Propostas */}
+          <div className="space-y-2">
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+              Promover tudo de uma vez (automático)
+            </p>
+            <Button
+              variant="default"
+              size="lg"
+              onClick={handleRunAll}
+              disabled={!!runningJob || promoteAll.isPending || pipelineBlocked || ensureDefaultPipeline.isPending || runAllState.running}
+              className="w-full justify-center bg-gradient-to-r from-primary to-info hover:opacity-90"
+              title={pipelineBlocked ? "Prepare o funil de projetos antes de executar" : "Executa Clientes → Projetos → Propostas em sequência até zerar pendentes"}
+            >
+              {runAllState.running ? (
+                <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+              ) : (
+                <Rocket className="w-5 h-5 mr-2" />
+              )}
+              {runAllState.running
+                ? `Promovendo ${runAllState.scope ?? ""} — lote ${runAllState.iteration} (${runAllState.processed} processados)`
+                : "Promover Tudo (Clientes → Projetos → Propostas)"}
+            </Button>
+            <p className="text-[11px] text-muted-foreground">
+              Roda automaticamente em loop até zerar pendentes em cada etapa. Pode levar alguns minutos.
+            </p>
+          </div>
+
           {/* Botões sequenciais: Clientes → Projetos → Propostas */}
           <div className="space-y-2">
             <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
@@ -436,7 +509,7 @@ export function PromocaoSolarmarketSection() {
                     key={scope}
                     variant={scope === "proposta" ? "default" : "outline"}
                     onClick={() => handleRun(false, scope)}
-                     disabled={!!runningJob || promoteAll.isPending || pipelineBlocked || ensureDefaultPipeline.isPending}
+                     disabled={!!runningJob || promoteAll.isPending || pipelineBlocked || ensureDefaultPipeline.isPending || runAllState.running}
                      title={pipelineBlocked ? "Prepare o funil de projetos antes de executar" : undefined}
                     className="justify-start"
                   >
@@ -455,6 +528,7 @@ export function PromocaoSolarmarketSection() {
               "Promover Propostas" executa o fluxo completo (cliente + projeto + proposta) para itens pendentes.
             </p>
           </div>
+
 
           {runningJob && (
             <div className="space-y-2 p-3 rounded-lg border border-info/30 bg-info/5">
