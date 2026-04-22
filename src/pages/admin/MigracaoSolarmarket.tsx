@@ -37,6 +37,8 @@ import { LoadingState } from "@/components/ui-kit/LoadingState";
 import { useMigracaoSolarmarket } from "@/hooks/useMigracaoSolarmarket";
 import { useSolarmarketImport } from "@/hooks/useSolarmarketImport";
 import { useSolarmarketConfig } from "@/hooks/useSolarmarketConfig";
+import { useTenantId } from "@/hooks/useTenantId";
+import { useRunningSolarmarketJob } from "@/hooks/useRunningSolarmarketJob";
 import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import {
@@ -151,6 +153,7 @@ function ProgressBar({ value }: { value: number }) {
 }
 
 export default function MigracaoSolarmarket() {
+  const { data: tenantId } = useTenantId();
   const {
     stats,
     isLoading,
@@ -165,6 +168,7 @@ export default function MigracaoSolarmarket() {
 
   const { isConfigured, isLoading: loadingCfg } = useSolarmarketConfig();
   const { clearStaging } = useSolarmarketImport();
+  const { data: runningJobFromHook } = useRunningSolarmarketJob(tenantId ?? null);
 
   const [advancedOpen, setAdvancedOpen] = useState(false);
 
@@ -244,6 +248,34 @@ export default function MigracaoSolarmarket() {
   const stepLabel =
     (runningJob?.current_step && STEP_LABELS_BUSINESS[runningJob.current_step]) ||
     "Iniciando…";
+
+  const counts = {
+    clientes: stats?.staging.clientes ?? 0,
+    projetos: stats?.staging.projetos ?? 0,
+    propostas: stats?.staging.propostas ?? 0,
+    funis: stats?.staging.funis ?? 0,
+    projeto_funis: stats?.staging.projeto_funis ?? 0,
+    custom_fields: stats?.staging.custom_fields ?? 0,
+  };
+
+  const importInProgress = !!runningJobFromHook;
+  const allEntitiesImported =
+    counts.clientes > 0 &&
+    counts.projetos > 0 &&
+    counts.propostas > 0 &&
+    counts.funis > 0 &&
+    counts.projeto_funis > 0 &&
+    counts.custom_fields > 0;
+  const importDone = !importInProgress && allEntitiesImported;
+
+  console.log("[DEBUG Fase 2]", {
+    runningJob: runningJobFromHook?.status,
+    counts,
+    noRunningJob:
+      !runningJobFromHook || !["running", "pending"].includes(runningJobFromHook.status),
+    allEntitiesImported,
+    importDone,
+  });
 
   const items = [
     { icon: Users, label: "Clientes e contatos", value: stats?.staging.clientes ?? 0 },
@@ -429,7 +461,7 @@ export default function MigracaoSolarmarket() {
         </Card>
 
         {/* RODAPÉ — PRÓXIMO PASSO */}
-        {stagingPronto ? (
+        {importDone ? (
           <Card className="bg-success/10 border-success/20 shadow-sm">
             <CardContent className="p-5 flex flex-col sm:flex-row sm:items-center gap-4">
               <div className="flex items-start gap-3 flex-1">
@@ -451,13 +483,66 @@ export default function MigracaoSolarmarket() {
               </Button>
             </CardContent>
           </Card>
+        ) : importInProgress ? (
+          <Card className="bg-info/10 border-info/20 shadow-sm">
+            <CardContent className="p-5 flex flex-col sm:flex-row sm:items-center gap-4">
+              <div className="flex items-start gap-3 flex-1">
+                <Loader2 className="w-5 h-5 text-info shrink-0 mt-0.5 animate-spin" />
+                <div>
+                  <p className="text-sm font-semibold text-foreground">
+                    Importação em andamento
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Aguarde a conclusão de todas as etapas antes de seguir para o próximo passo.
+                  </p>
+                </div>
+              </div>
+              <Button disabled>
+                Ir para Step 2 <ArrowRight className="w-4 h-4 ml-1" />
+              </Button>
+            </CardContent>
+          </Card>
         ) : (
           <Card className="bg-muted/30 border-border">
-            <CardContent className="p-5 text-center">
-              <p className="text-sm text-muted-foreground">
-                ⏳ Aguardando importação. Clique em <strong>Iniciar importação</strong> acima
-                para começar.
+            <CardContent className="p-5 space-y-4">
+              <p className="text-sm text-muted-foreground text-center">
+                ⏳ Complete a importação acima antes de ir para a Fase 2
               </p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {[
+                  { label: "Clientes", current: counts.clientes, expected: 1930 },
+                  { label: "Projetos", current: counts.projetos, expected: 1900 },
+                  { label: "Propostas", current: counts.propostas, expected: 1821 },
+                  { label: "Funis", current: counts.funis, expected: 6 },
+                  { label: "Vínculos projeto-funil", current: counts.projeto_funis, expected: null },
+                  { label: "Campos customizados", current: counts.custom_fields, expected: 17 },
+                ].map((item) => {
+                  const ok = item.current > 0;
+                  return (
+                    <div
+                      key={item.label}
+                      className="flex items-center justify-between gap-3 px-3 py-2 rounded-md bg-card border border-border"
+                    >
+                      <span className="text-sm text-foreground">{item.label}</span>
+                      <span className="flex items-center gap-2 text-sm font-mono">
+                        <span className={ok ? "text-success" : "text-muted-foreground"}>
+                          {item.current.toLocaleString("pt-BR")}
+                          {item.expected !== null && (
+                            <span className="text-muted-foreground">
+                              /{item.expected.toLocaleString("pt-BR")}
+                            </span>
+                          )}
+                        </span>
+                        {ok ? (
+                          <CheckCircle2 className="w-4 h-4 text-success" />
+                        ) : (
+                          <Clock className="w-4 h-4 text-muted-foreground" />
+                        )}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
             </CardContent>
           </Card>
         )}
