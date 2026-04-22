@@ -83,7 +83,7 @@ export function PromocaoPreflightCard() {
         icon={ListChecks}
         title="Checklist Pré-Promoção"
         description="Verifique se o ambiente está pronto antes de promover o lote."
-        variant={hasComercial && hasStages && allMapped ? "green" : "warning"}
+        variant={allReady ? "green" : "warning"}
       >
         <ul className="space-y-2.5">
           <ChecklistItem
@@ -97,13 +97,13 @@ export function PromocaoPreflightCard() {
             detail={hasStages ? `${stagesCount} stages` : "0 stages"}
           />
           <ChecklistItem
-            ok={allMapped}
-            label="Consultores mapeados?"
-            detail={`${mappedConsultores} de ${totalConsultores}`}
+            ok={hasConsultores}
+            label="Consultores ativos cadastrados?"
+            detail={hasConsultores ? `${totalConsultores} ativos` : "nenhum cadastrado"}
           />
         </ul>
 
-        {(!hasComercial || !hasStages || !allMapped) && (
+        {!allReady && (
           <div className="mt-4 pt-4 border-t border-border">
             <Link
               to="/admin/solarmarket-diagnostic"
