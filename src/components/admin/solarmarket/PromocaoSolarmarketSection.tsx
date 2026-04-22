@@ -42,7 +42,7 @@ import {
   useSolarmarketStagingTotals,
   type PromotionJob,
 } from "@/hooks/useSolarmarketPromote";
-import { useDefaultPipeline } from "@/hooks/useDefaultPipeline";
+import { useDefaultPipeline, useEnsureDefaultProjectPipeline } from "@/hooks/useDefaultPipeline";
 import {
   Rocket, FlaskConical, Ban, Loader2, Eye, ListChecks,
   CheckCircle2, AlertTriangle, XCircle, Users, FolderKanban, FileText,
@@ -115,6 +115,7 @@ function KpiCard({ icon: Icon, label, value, tone }: KpiCardProps) {
 export function PromocaoSolarmarketSection() {
   const { jobs, isLoading, promoteAll, cancelJob, clearFailedJobs, refetchJobs } = useSolarmarketPromote();
   const { data: defaultPipeline, isLoading: isLoadingPipeline } = useDefaultPipeline();
+  const ensureDefaultPipeline = useEnsureDefaultProjectPipeline();
   const { data: stagingTotals } = useSolarmarketStagingTotals();
   const [batchLimit, setBatchLimit] = useState(50);
   const [auditJobId, setAuditJobId] = useState<string | null>(null);
@@ -184,6 +185,21 @@ export function PromocaoSolarmarketSection() {
     } catch (e) {
       const message = e instanceof Error ? e.message : String(e);
       toast({ title: "Falha ao cancelar", description: message, variant: "destructive" });
+    }
+  };
+
+  const handleEnsurePipeline = async () => {
+    try {
+      const result = await ensureDefaultPipeline.mutateAsync();
+      toast({
+        title: "Funil preparado",
+        description: result.stagesCreated > 0
+          ? `Funil "${result.name}" configurado com ${result.stagesCreated} etapa(s).`
+          : `Funil "${result.name}" já estava pronto para a promoção.`,
+      });
+    } catch (e) {
+      const message = e instanceof Error ? e.message : String(e);
+      toast({ title: "Falha ao preparar funil", description: message, variant: "destructive" });
     }
   };
 
