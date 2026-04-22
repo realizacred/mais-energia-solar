@@ -988,7 +988,7 @@ async function runImportJob(
   let totalEtapas = 0;
   if (scope.funis && !runtime.steps.funis.done) {
     if (await checkCancel()) return { ok: false, job_id: state.jobId, status: "cancelled", cancelled: true };
-    await updateJob(state, { current_step: "funis", progress_pct: 5, updated_at: new Date().toISOString() });
+    await updateJob(state, { current_step: "funis", progress_pct: calculateProgress(runtime), updated_at: new Date().toISOString() });
     const r = await importEntity(
       state,
       "funil",
@@ -1011,7 +1011,7 @@ async function runImportJob(
     };
     await updateJob(state, {
       total_funis: totalFunis,
-      progress_pct: r.done ? 12 : 9,
+      progress_pct: calculateProgress(runtime),
       updated_at: new Date().toISOString(),
       scope: mergeScopeWithRuntime(rawScope, runtime),
     });
@@ -1024,7 +1024,7 @@ async function runImportJob(
 
   if (scope.clientes && !runtime.steps.clientes.done) {
     if (await checkCancel()) return { ok: false, job_id: state.jobId, status: "cancelled", cancelled: true };
-    await updateJob(state, { current_step: "clientes", progress_pct: 15, updated_at: new Date().toISOString() });
+    await updateJob(state, { current_step: "clientes", progress_pct: calculateProgress(runtime), updated_at: new Date().toISOString() });
     const r = await importEntity(
       state,
       "cliente",
@@ -1046,7 +1046,7 @@ async function runImportJob(
     };
     await updateJob(state, {
       total_clientes: Number((existingJob as any)?.total_clientes ?? 0) + r.count,
-      progress_pct: r.done ? 40 : Math.max(18, Number((existingJob as any)?.total_clientes ?? 0) > 0 ? Number((existingJob as any)?.total_clientes ?? 0) / 25 : 20),
+      progress_pct: calculateProgress(runtime),
       updated_at: new Date().toISOString(),
       scope: mergeScopeWithRuntime(rawScope, runtime),
     });
@@ -1059,7 +1059,7 @@ async function runImportJob(
 
   if (scope.projetos && !runtime.steps.projetos.done) {
     if (await checkCancel()) return { ok: false, job_id: state.jobId, status: "cancelled", cancelled: true };
-    await updateJob(state, { current_step: "projetos", progress_pct: 45, updated_at: new Date().toISOString() });
+    await updateJob(state, { current_step: "projetos", progress_pct: calculateProgress(runtime), updated_at: new Date().toISOString() });
     const r = await importEntity(
       state,
       "projeto",
@@ -1081,7 +1081,7 @@ async function runImportJob(
     };
     await updateJob(state, {
       total_projetos: Number((existingJob as any)?.total_projetos ?? 0) + r.count,
-      progress_pct: r.done ? 70 : 58,
+      progress_pct: calculateProgress(runtime),
       updated_at: new Date().toISOString(),
       scope: mergeScopeWithRuntime(rawScope, runtime),
     });
@@ -1105,7 +1105,7 @@ async function runImportJob(
   // ────────────────────────────────────────────────────────────────────
   if (scope.projeto_funis && !runtime.steps.projeto_funis.done) {
     if (await checkCancel()) return { ok: false, job_id: state.jobId, status: "cancelled", cancelled: true };
-    await updateJob(state, { current_step: "projeto_funis", progress_pct: 72, updated_at: new Date().toISOString() });
+    await updateJob(state, { current_step: "projeto_funis", progress_pct: calculateProgress(runtime), updated_at: new Date().toISOString() });
 
     const batchPage = Math.max(1, runtime.steps.projeto_funis.page ?? 1);
     const batchSize = 20;
@@ -1245,7 +1245,7 @@ async function runImportJob(
       await updateJob(state, {
         total_projeto_funis:
           Number((existingJob as any)?.total_projeto_funis ?? 0) + stepVinculos,
-        progress_pct: isLastBatch ? 75 : 73,
+        progress_pct: calculateProgress(runtime),
         updated_at: new Date().toISOString(),
         scope: mergeScopeWithRuntime(rawScope, runtime),
       });
@@ -1266,7 +1266,7 @@ async function runImportJob(
 
   if (scope.propostas && !runtime.steps.propostas.done) {
     if (await checkCancel()) return { ok: false, job_id: state.jobId, status: "cancelled", cancelled: true };
-    await updateJob(state, { current_step: "propostas", progress_pct: 75, updated_at: new Date().toISOString() });
+    await updateJob(state, { current_step: "propostas", progress_pct: calculateProgress(runtime), updated_at: new Date().toISOString() });
     const shouldUseProjectScopedFallback = runtime.steps.propostas.pathUsed === "/projects/:id/proposals";
     const r = shouldUseProjectScopedFallback
       ? await importProjectScopedProposals(state, {
@@ -1308,7 +1308,7 @@ async function runImportJob(
     };
     await updateJob(state, {
       total_propostas: Number((existingJob as any)?.total_propostas ?? 0) + proposalResult.count,
-      progress_pct: proposalResult.done ? 92 : 84,
+      progress_pct: calculateProgress(runtime),
       updated_at: new Date().toISOString(),
       scope: mergeScopeWithRuntime(rawScope, runtime),
     });
@@ -1323,7 +1323,7 @@ async function runImportJob(
   let totalCampos = Number((existingJob as any)?.total_custom_fields ?? 0);
   if (scope.custom_fields && !runtime.steps.custom_fields.done) {
     if (await checkCancel()) return { ok: false, job_id: state.jobId, status: "cancelled", cancelled: true };
-    await updateJob(state, { current_step: "custom_fields", progress_pct: 95, updated_at: new Date().toISOString() });
+    await updateJob(state, { current_step: "custom_fields", progress_pct: calculateProgress(runtime), updated_at: new Date().toISOString() });
     const r = await importEntity(
       state,
       "custom_field",
