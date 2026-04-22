@@ -145,21 +145,6 @@ Deno.serve(async (req) => {
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
 
-    // RPC para dados canônicos (já tem guarda interna de migração)
-    const { data: counts, error: resetErr } = await admin
-      .rpc("reset_migrated_data", { p_tenant_id: tenantId });
-
-    if (resetErr) {
-      return new Response(
-        JSON.stringify({ error: resetErr.message }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    return new Response(
-      JSON.stringify({ success: true, counts }),
-      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
 
   } catch (e: any) {
     return new Response(
