@@ -37,9 +37,10 @@ const CalculadoraConfig = lazy(() => import("@/components/admin/CalculadoraConfi
 const FinanciamentoConfig = lazy(() => import("@/components/admin/FinanciamentoConfig"));
 const FormasPagamentoPage = lazy(() => import("@/components/admin/FormasPagamentoPage").then(m => ({ default: m.FormasPagamentoPage })));
 const WebhookManager = lazy(() => import("@/components/admin/WebhookManager"));
-const ImportacaoSolarmarket = lazy(() => import("@/pages/admin/ImportacaoSolarmarket"));
 const SolarmarketConfigPage = lazy(() => import("@/pages/admin/SolarmarketConfigPage"));
-const PromocaoSolarmarket = lazy(() => import("@/pages/admin/PromocaoSolarmarket"));
+const MigracaoSolarmarket = lazy(() => import("@/pages/admin/MigracaoSolarmarket"));
+const MigracaoStep2Mapear = lazy(() => import("@/pages/admin/MigracaoStep2Mapear"));
+const MigracaoStep3Migrar = lazy(() => import("@/pages/admin/MigracaoStep3Migrar"));
 const SolarmarketDiagnosticPage = lazy(() => import("@/pages/admin/SolarmarketDiagnosticPage"));
 const SolarmarketMappingPage = lazy(() => import("@/pages/admin/SolarmarketMappingPage"));
 const SolarmarketMapeamentos = lazy(() => import("@/pages/admin/SolarmarketMapeamentos"));
@@ -747,9 +748,14 @@ export default function Admin() {
                 <Route path="dev/seed" element={<DevToolsPage />} />
                 <Route path="dev/reset-seed" element={<DevToolsPage />} />
                 <Route path="dev/rls-test" element={<RlsTestPage />} />
-                <Route path="importacao-solarmarket" element={<ImportacaoSolarmarket />} />
+                {/* Wizard unificado de migração SolarMarket */}
+                <Route path="migracao-solarmarket" element={<MigracaoSolarmarket />} />
+                <Route path="migracao-solarmarket/mapear" element={<MigracaoStep2Mapear />} />
+                <Route path="migracao-solarmarket/migrar" element={<MigracaoStep3Migrar />} />
+                {/* Telas antigas — redirecionam para o novo wizard */}
+                <Route path="importacao-solarmarket" element={<Navigate to="/admin/migracao-solarmarket" replace />} />
+                <Route path="promocao-solarmarket" element={<Navigate to="/admin/migracao-solarmarket" replace />} />
                 <Route path="configuracoes/integracoes/solarmarket" element={<SolarmarketConfigPage />} />
-                <Route path="promocao-solarmarket" element={<PromocaoSolarmarket />} />
                 <Route path="solarmarket-diagnostic" element={<SolarmarketDiagnosticPage />} />
                 <Route path="solarmarket-mapping" element={<SolarmarketMappingPage />} />
                 <Route path="solarmarket-mapeamentos" element={<SolarmarketMapeamentos />} />
