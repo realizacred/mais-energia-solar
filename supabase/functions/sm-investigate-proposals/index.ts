@@ -100,17 +100,32 @@ Deno.serve(async (req) => {
       projects.body?.data ?? projects.body?.results ?? projects.body?.items ?? [];
     const firstProjId = projList[0]?.id ?? projList[0]?._id ?? null;
 
-    // ─── ETAPA 2: Listar propostas via projeto (caminho atual da importação)
-    let projProposals: any = null;
-    if (firstProjId) {
-      projProposals = await smGet(baseUrl, access, `/projects/${firstProjId}/proposals`);
-    }
+    // ─── ETAPA 1.5: Listar mais projetos e iterar até encontrar 1 com propostas
+    const projectsBig = await smGet(baseUrl, access, "/projects", { page: 1, limit: 50 });
+    const projListBig: any[] =
+      Array.isArray(projectsBig.body) ? projectsBig.body :
+      projectsBig.body?.data ?? projectsBig.body?.results ?? projectsBig.body?.items ?? [];
 
-    // Pegar IDs de propostas
-    const propList: any[] =
-      Array.isArray(projProposals?.body) ? projProposals.body :
-      projProposals?.body?.data ?? projProposals?.body?.results ?? projProposals?.body?.items ?? [];
-    const firstPropId = propList[0]?.id ?? propList[0]?._id ?? null;
+    let firstProjId: number | string | null = projList[0]?.id ?? projList[0]?._id ?? null;
+    let projProposals: any = null;
+    let propList: any[] = [];
+    let firstPropId: any = null;
+
+    for (const p of projListBig) {
+      const pid = p?.id ?? p?._id;
+      if (!pid) continue;
+      const r = await smGet(baseUrl, access, `/projects/${pid}/proposals`);
+      const list: any[] =
+        Array.isArray(r.body) ? r.body :
+        r.body?.data ?? r.body?.results ?? r.body?.items ?? [];
+      if (list.length > 0) {
+        firstProjId = pid;
+        projProposals = r;
+        propList = list;
+        firstPropId = list[0]?.id ?? list[0]?._id ?? null;
+        break;
+      }
+    }
 
     // ─── ETAPA 3: Testar endpoint global /proposals (pode não existir)
     const globalProposals = await smGet(baseUrl, access, "/proposals", { limit: 10 });
