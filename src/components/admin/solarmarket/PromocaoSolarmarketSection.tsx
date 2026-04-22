@@ -465,6 +465,33 @@ export function PromocaoSolarmarketSection() {
             </div>
           </div>
 
+          {/* Botão "Promover Tudo de Uma Vez" — loop automático Clientes → Projetos → Propostas */}
+          <div className="space-y-2">
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+              Promover tudo de uma vez (automático)
+            </p>
+            <Button
+              variant="default"
+              size="lg"
+              onClick={handleRunAll}
+              disabled={!!runningJob || promoteAll.isPending || pipelineBlocked || ensureDefaultPipeline.isPending || runAllState.running}
+              className="w-full justify-center bg-gradient-to-r from-primary to-info hover:opacity-90"
+              title={pipelineBlocked ? "Prepare o funil de projetos antes de executar" : "Executa Clientes → Projetos → Propostas em sequência até zerar pendentes"}
+            >
+              {runAllState.running ? (
+                <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+              ) : (
+                <Rocket className="w-5 h-5 mr-2" />
+              )}
+              {runAllState.running
+                ? `Promovendo ${runAllState.scope ?? ""} — lote ${runAllState.iteration} (${runAllState.processed} processados)`
+                : "Promover Tudo (Clientes → Projetos → Propostas)"}
+            </Button>
+            <p className="text-[11px] text-muted-foreground">
+              Roda automaticamente em loop até zerar pendentes em cada etapa. Pode levar alguns minutos.
+            </p>
+          </div>
+
           {/* Botões sequenciais: Clientes → Projetos → Propostas */}
           <div className="space-y-2">
             <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
@@ -482,7 +509,7 @@ export function PromocaoSolarmarketSection() {
                     key={scope}
                     variant={scope === "proposta" ? "default" : "outline"}
                     onClick={() => handleRun(false, scope)}
-                     disabled={!!runningJob || promoteAll.isPending || pipelineBlocked || ensureDefaultPipeline.isPending}
+                     disabled={!!runningJob || promoteAll.isPending || pipelineBlocked || ensureDefaultPipeline.isPending || runAllState.running}
                      title={pipelineBlocked ? "Prepare o funil de projetos antes de executar" : undefined}
                     className="justify-start"
                   >
@@ -501,6 +528,7 @@ export function PromocaoSolarmarketSection() {
               "Promover Propostas" executa o fluxo completo (cliente + projeto + proposta) para itens pendentes.
             </p>
           </div>
+
 
           {runningJob && (
             <div className="space-y-2 p-3 rounded-lg border border-info/30 bg-info/5">
