@@ -91,7 +91,11 @@ export function useSolarmarketPromote() {
   });
 
   const promoteAll = useMutation({
-    mutationFn: async (params: { batch_limit: number; dry_run: boolean }) => {
+    mutationFn: async (params: {
+      batch_limit: number;
+      dry_run: boolean;
+      scope?: "cliente" | "projeto" | "proposta";
+    }) => {
       return invokePromote<{
         ok: boolean;
         job_id: string;
@@ -104,11 +108,13 @@ export function useSolarmarketPromote() {
         payload: {
           batch_limit: params.batch_limit,
           dry_run: params.dry_run,
+          scope: params.scope ?? "proposta",
         },
       });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: JOBS_KEY });
+      queryClient.invalidateQueries({ queryKey: ["sm-promote", "totals"] });
     },
   });
 
