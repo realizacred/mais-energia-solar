@@ -79,13 +79,19 @@ Deno.serve(async (req) => {
     let background_migration_paused = false;
     try {
       const { data: runs, error: runsErr } = await admin
-        .from("sm_operation_runs")
+        .from("sm_operation_runs" as never)
         .update({ status: "cancelled", finished_at: new Date().toISOString() })
         .eq("tenant_id", tenantId)
         .in("status", ["running", "pending"])
         .select("id");
-      if (!runsErr && runs) {
-        cancelled_runs = runs.length;
+      if (runsErr) {
+        // 42P01 = relation does not exist → tabela legada removida; ignorar.
+        const code = (runsErr as { code?: string }).code;
+        if (code && code !== "42P01") {
+          console.error("[reset-migrated-data] sm_operation_runs update error:", runsErr);
+        }
+      } else if (runs) {
+        cancelled_runs = (runs as unknown[]).length;
         background_migration_paused = true;
       }
     } catch (_) {
