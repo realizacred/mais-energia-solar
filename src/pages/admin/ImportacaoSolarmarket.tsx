@@ -26,7 +26,7 @@ import {
 import {
   Cloud, CheckCircle2, XCircle, Loader2, Download, Settings, AlertTriangle, Ban, Trash2, Eraser,
   Users, FolderKanban, FileText, GitBranch, Sliders, Activity, Database, Sparkles, ShieldCheck, TrendingUp,
-  CheckCircle, ArrowRight,
+  CheckCircle, ArrowRight, Clock,
 } from "lucide-react";
 
 const SCOPE_ITEMS: { k: keyof ImportScope; label: string; description: string; icon: typeof Users }[] = [
