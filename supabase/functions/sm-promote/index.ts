@@ -1050,6 +1050,8 @@ function validateEligibility(args: {
 }
 
 // ─── Pipeline orquestrado por proposta ───────────────────────────────────────
+type PromotionScope = "cliente" | "projeto" | "proposta";
+
 async function promoteOneProposalRow(
   admin: SupabaseClient,
   state: RequestState,
@@ -1058,6 +1060,7 @@ async function promoteOneProposalRow(
   rawProposalRow: AnyObj,
   pipeline: PipelineResolution,
   consultorFallback: ConsultorResolution,
+  scope: PromotionScope = "proposta",
 ): Promise<"promoted" | "skipped" | "blocked" | "error"> {
   const propostaPayload: AnyObj = rawProposalRow.payload ?? {};
   const propExtId = pickStr(propostaPayload.id) ?? rawProposalRow.external_id;
@@ -1136,6 +1139,12 @@ async function promoteOneProposalRow(
       sourceEntityType: "cliente", sourceEntityId: pickStr(rawCliente.id),
       canonicalEntityType: "cliente", canonicalEntityId: cli.id,
     });
+
+    // Scope=cliente: encerra aqui sem criar projeto/proposta
+    if (scope === "cliente") {
+      state.counters.promoted++;
+      return "promoted";
+    }
 
     // 2.5) Resolver consultor a partir do responsável SM (com fallback "Escritório")
     const responsibleName = pickStr(rawProjeto?.responsible?.name);
@@ -1239,6 +1248,12 @@ async function promoteOneProposalRow(
       },
     });
 
+    // Scope=projeto: encerra aqui sem criar proposta
+    if (scope === "projeto") {
+      state.counters.promoted++;
+      return "promoted";
+    }
+
     // 4) Snapshot canônico
     const snapshot = buildCanonicalSnapshot({
       cliente: normalizeSmClient(rawCliente),
@@ -1287,7 +1302,7 @@ async function promoteOneProposalRow(
 async function actionPromoteAll(
   admin: SupabaseClient,
   state: RequestState,
-  payload: { batch_limit?: number; dry_run?: boolean },
+  payload: { batch_limit?: number; dry_run?: boolean; scope?: PromotionScope },
 ): Promise<Response> {
   const tenantId = state.tenantId!;
   const userId = state.userId!;
@@ -1296,10 +1311,13 @@ async function actionPromoteAll(
     MAX_BATCH_LIMIT,
   );
   const dryRun = Boolean(payload.dry_run);
+  const scope: PromotionScope =
+    payload.scope === "cliente" || payload.scope === "projeto" ? payload.scope : "proposta";
 
   const jobId = await createJob(admin, tenantId, userId, "promote-all", {
     batch_limit: batchLimit,
     dry_run: dryRun,
+    scope,
   });
   state.jobId = jobId;
 
@@ -1314,7 +1332,7 @@ async function actionPromoteAll(
   const consultorFallback = await resolveConsultorFallback(admin, tenantId);
   await logEvent(admin, {
     jobId, tenantId, severity: "info", step: "init", status: "started",
-    message: `promote-all iniciado (batch_limit=${batchLimit}, dry_run=${dryRun}); pipeline=${pipeline.funilId ?? "—"} etapa=${pipeline.etapaId ?? "—"} configured=${pipeline.hasPipelineConfigured}; consultor_fallback=${consultorFallback.fallbackNome ?? "—"}`,
+    message: `promote-all iniciado (batch_limit=${batchLimit}, dry_run=${dryRun}, scope=${scope}); pipeline=${pipeline.funilId ?? "—"} etapa=${pipeline.etapaId ?? "—"} configured=${pipeline.hasPipelineConfigured}; consultor_fallback=${consultorFallback.fallbackNome ?? "—"}`,
   });
 
   // Backlog: propostas raw que ainda não têm link canônico em external_entity_links.
@@ -1361,7 +1379,7 @@ async function actionPromoteAll(
   }
 
   for (const row of candidates) {
-    await promoteOneProposalRow(admin, state, jobId, tenantId, row, pipeline, consultorFallback);
+    await promoteOneProposalRow(admin, state, jobId, tenantId, row, pipeline, consultorFallback, scope);
   }
 
   // Status final:

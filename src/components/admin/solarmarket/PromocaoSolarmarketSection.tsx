@@ -39,6 +39,7 @@ import { toast } from "@/hooks/use-toast";
 import {
   useSolarmarketPromote,
   useSolarmarketPromoteLogs,
+  useSolarmarketStagingTotals,
   type PromotionJob,
 } from "@/hooks/useSolarmarketPromote";
 import { useDefaultPipeline } from "@/hooks/useDefaultPipeline";
@@ -114,8 +115,10 @@ function KpiCard({ icon: Icon, label, value, tone }: KpiCardProps) {
 export function PromocaoSolarmarketSection() {
   const { jobs, isLoading, promoteAll, cancelJob, clearFailedJobs, refetchJobs } = useSolarmarketPromote();
   const { data: defaultPipeline, isLoading: isLoadingPipeline } = useDefaultPipeline();
+  const { data: stagingTotals } = useSolarmarketStagingTotals();
   const [batchLimit, setBatchLimit] = useState(50);
   const [auditJobId, setAuditJobId] = useState<string | null>(null);
+  const [activeScope, setActiveScope] = useState<"cliente" | "projeto" | "proposta" | null>(null);
 
   const failedJobsCount = useMemo(
     () => jobs.filter((j) => ["failed", "cancelled", "completed_with_errors"].includes(j.status)).length,
@@ -154,12 +157,14 @@ export function PromocaoSolarmarketSection() {
 
   const runningJob = jobs.find((j) => j.status === "running" || j.status === "pending") ?? null;
 
-  const handleRun = async (dry_run: boolean) => {
+  const handleRun = async (dry_run: boolean, scope: "cliente" | "projeto" | "proposta" = "proposta") => {
     const limit = Math.min(Math.max(1, Number(batchLimit) || 1), 200);
+    setActiveScope(scope);
     try {
-      const res = await promoteAll.mutateAsync({ batch_limit: limit, dry_run });
+      const res = await promoteAll.mutateAsync({ batch_limit: limit, dry_run, scope });
+      const scopeLabel = scope === "cliente" ? "clientes" : scope === "projeto" ? "projetos" : "propostas (completo)";
       toast({
-        title: dry_run ? "Dry run executado" : "Promoção iniciada",
+        title: dry_run ? "Dry run executado" : `Promoção iniciada — ${scopeLabel}`,
         description: dry_run
           ? `Job ${res.job_id.slice(0, 8)} — ${res.candidates ?? 0} candidatos identificados.`
           : `Job ${res.job_id.slice(0, 8)} concluído (${res.status}).`,
@@ -167,6 +172,8 @@ export function PromocaoSolarmarketSection() {
     } catch (e) {
       const message = e instanceof Error ? e.message : String(e);
       toast({ title: "Falha ao executar", description: message, variant: "destructive" });
+    } finally {
+      setActiveScope(null);
     }
   };
 
