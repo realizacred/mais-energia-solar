@@ -1302,7 +1302,7 @@ async function promoteOneProposalRow(
 async function actionPromoteAll(
   admin: SupabaseClient,
   state: RequestState,
-  payload: { batch_limit?: number; dry_run?: boolean },
+  payload: { batch_limit?: number; dry_run?: boolean; scope?: PromotionScope },
 ): Promise<Response> {
   const tenantId = state.tenantId!;
   const userId = state.userId!;
@@ -1311,10 +1311,13 @@ async function actionPromoteAll(
     MAX_BATCH_LIMIT,
   );
   const dryRun = Boolean(payload.dry_run);
+  const scope: PromotionScope =
+    payload.scope === "cliente" || payload.scope === "projeto" ? payload.scope : "proposta";
 
   const jobId = await createJob(admin, tenantId, userId, "promote-all", {
     batch_limit: batchLimit,
     dry_run: dryRun,
+    scope,
   });
   state.jobId = jobId;
 
