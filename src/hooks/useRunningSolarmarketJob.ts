@@ -16,7 +16,7 @@ export function useRunningSolarmarketJob(tenantId: string | null) {
       const { data, error } = await (supabase as any)
         .from("solarmarket_import_jobs")
         .select(
-          "id, status, total_clientes, total_projetos, total_projeto_funis, total_propostas, total_funis, total_custom_fields, updated_at, created_at"
+          "id, status, current_step, progress_pct, total_clientes, total_projetos, total_projeto_funis, total_propostas, total_funis, total_custom_fields, scope, updated_at, created_at"
         )
         .eq("tenant_id", tenantId!)
         .in("status", ["running", "pending"])
