@@ -115,8 +115,10 @@ function KpiCard({ icon: Icon, label, value, tone }: KpiCardProps) {
 export function PromocaoSolarmarketSection() {
   const { jobs, isLoading, promoteAll, cancelJob, clearFailedJobs, refetchJobs } = useSolarmarketPromote();
   const { data: defaultPipeline, isLoading: isLoadingPipeline } = useDefaultPipeline();
+  const { data: stagingTotals } = useSolarmarketStagingTotals();
   const [batchLimit, setBatchLimit] = useState(50);
   const [auditJobId, setAuditJobId] = useState<string | null>(null);
+  const [activeScope, setActiveScope] = useState<"cliente" | "projeto" | "proposta" | null>(null);
 
   const failedJobsCount = useMemo(
     () => jobs.filter((j) => ["failed", "cancelled", "completed_with_errors"].includes(j.status)).length,
