@@ -14,6 +14,8 @@ import { useSolarmarketConfig } from "@/hooks/useSolarmarketConfig";
 import { SolarmarketImportedTabs } from "@/components/admin/solarmarket/SolarmarketImportedTabs";
 import { ImportErrorsDialog } from "@/components/admin/solarmarket/ImportErrorsDialog";
 import { PromocaoSolarmarketSection } from "@/components/admin/solarmarket/PromocaoSolarmarketSection";
+import { ImportFunnelsCard } from "@/components/admin/solarmarket/ImportFunnelsCard";
+import { useTenantId } from "@/hooks/useTenantId";
 import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import {
@@ -101,6 +103,7 @@ function PremiumProgressBar({ value }: { value: number }) {
 export default function ImportacaoSolarmarket() {
   const { jobs, isLoading, testConnection, importAll, cancelImport, clearHistory, clearStaging } = useSolarmarketImport();
   const { config, isConfigured, isLoading: loadingCfg } = useSolarmarketConfig();
+  const { data: tenantId } = useTenantId();
   const [testResult, setTestResult] = useState<{ ok: boolean; message: string } | null>(null);
   const [now, setNow] = useState(() => Date.now());
   const [errorsJobId, setErrorsJobId] = useState<string | null>(null);
@@ -386,6 +389,11 @@ export default function ImportacaoSolarmarket() {
               )}
             </div>
           </div>
+        )}
+
+        {/* ============= IMPORTAÇÃO COMPLEMENTAR — FUNIS DOS PROJETOS ============= */}
+        {isConfigured && (
+          <ImportFunnelsCard tenantId={tenantId} />
         )}
 
         {/* ============= HERO CARD DE PROGRESSO (DOMINANTE) ============= */}
