@@ -98,6 +98,53 @@ function mergeScopeWithRuntime(rawScope: any, runtime: JobRuntimeState) {
   };
 }
 
+// Pesos relativos de cada etapa no progresso global (soma = 100).
+// Reflete o tempo real: propostas e projeto_funis são as etapas mais lentas.
+const STEPS_WEIGHTS: Record<ImportStepKey, number> = {
+  funis: 5,
+  clientes: 10,
+  projetos: 10,
+  projeto_funis: 30,
+  propostas: 40,
+  custom_fields: 5,
+};
+
+// Estimativa de páginas/batches para etapas paginadas por projeto
+// (~95 batches de 20 projetos = 1900 projetos).
+const ESTIMATED_PAGES_BY_PROJECT = 95;
+
+/**
+ * Calcula o progresso global (0-100) com base no estado real das etapas.
+ * - Etapa done: contribui com peso integral.
+ * - Etapa em andamento: contribui proporcionalmente à página atual.
+ *   Para projeto_funis/propostas usa ESTIMATED_PAGES_BY_PROJECT como denominador;
+ *   para as demais usa um fator genérico de 0.5.
+ */
+function calculateProgress(runtime: JobRuntimeState): number {
+  let progress = 0;
+  for (const step of STEP_SEQUENCE) {
+    const weight = STEPS_WEIGHTS[step];
+    const s = runtime.steps[step];
+    if (!s) continue;
+
+    if (s.done) {
+      progress += weight;
+    } else if ((s.page ?? 0) > 0) {
+      let stepProgress = 0;
+      if (step === "projeto_funis" || step === "propostas") {
+        stepProgress = Math.min(
+          (s.page ?? 0) / ESTIMATED_PAGES_BY_PROJECT,
+          0.95,
+        );
+      } else if ((s.page ?? 0) > 1) {
+        stepProgress = 0.5;
+      }
+      progress += weight * stepProgress;
+    }
+  }
+  return Math.min(Math.round(progress), 100);
+}
+
 function getNextPendingStep(
   scope: Record<ImportStepKey, boolean>,
   runtime: JobRuntimeState,
