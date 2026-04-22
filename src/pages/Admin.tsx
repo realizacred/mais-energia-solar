@@ -43,7 +43,7 @@ const MigracaoStep2Mapear = lazy(() => import("@/pages/admin/MigracaoStep2Mapear
 const MigracaoStep3Migrar = lazy(() => import("@/pages/admin/MigracaoStep3Migrar"));
 const SolarmarketDiagnosticPage = lazy(() => import("@/pages/admin/SolarmarketDiagnosticPage"));
 const SolarmarketMappingPage = lazy(() => import("@/pages/admin/SolarmarketMappingPage"));
-const SolarmarketMapeamentos = lazy(() => import("@/pages/admin/SolarmarketMapeamentos"));
+// SolarmarketMapeamentos removido — rota /admin/solarmarket-mapeamentos agora redireciona para /admin/migracao-solarmarket.
 const ClientesManager = lazy(() => import("@/components/admin/ClientesManager").then(m => ({ default: m.ClientesManager })));
 const RecebimentosManager = lazy(() => import("@/components/admin/RecebimentosManager").then(m => ({ default: m.RecebimentosManager })));
 const FinanceiroDashboard = lazy(() => import("@/components/admin/FinanceiroDashboard").then(m => ({ default: m.FinanceiroDashboard })));
