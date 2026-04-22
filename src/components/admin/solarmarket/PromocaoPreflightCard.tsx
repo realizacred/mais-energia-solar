@@ -15,7 +15,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
 import { SectionCard } from "@/components/ui-kit/SectionCard";
 import { useSolarmarketDiagnostic } from "@/hooks/useSolarmarketDiagnostic";
-import { useSmConsultorMapping } from "@/hooks/useSmConsultorMapping";
+import { useConsultoresAtivos } from "@/hooks/useConsultoresAtivos";
 import { AlertTriangle, CheckCircle2, XCircle, ListChecks, ArrowRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 
