@@ -34,6 +34,7 @@ type ImportStepKey =
   | "funis"
   | "clientes"
   | "projetos"
+  | "projeto_funis"
   | "propostas"
   | "custom_fields";
 
@@ -51,6 +52,7 @@ const STEP_SEQUENCE: ImportStepKey[] = [
   "funis",
   "clientes",
   "projetos",
+  "projeto_funis",
   "propostas",
   "custom_fields",
 ];
@@ -60,10 +62,14 @@ function createStepRuntime(): StepRuntimeState {
 }
 
 function getEnabledScope(rawScope: any): Record<ImportStepKey, boolean> {
+  const projetosOn = rawScope?.projetos !== false;
   return {
     funis: rawScope?.funis !== false,
     clientes: rawScope?.clientes !== false,
-    projetos: rawScope?.projetos !== false,
+    projetos: projetosOn,
+    // projeto_funis acompanha automaticamente o passo de projetos
+    // (necessário para a promoção saber em qual etapa cada projeto está).
+    projeto_funis: rawScope?.projeto_funis === false ? false : projetosOn,
     propostas: rawScope?.propostas !== false,
     custom_fields: rawScope?.custom_fields !== false,
   };
@@ -78,6 +84,7 @@ function getJobRuntime(rawScope: any): JobRuntimeState {
       funis: { ...createStepRuntime(), ...(steps?.funis ?? {}) },
       clientes: { ...createStepRuntime(), ...(steps?.clientes ?? {}) },
       projetos: { ...createStepRuntime(), ...(steps?.projetos ?? {}) },
+      projeto_funis: { ...createStepRuntime(), ...(steps?.projeto_funis ?? {}) },
       propostas: { ...createStepRuntime(), ...(steps?.propostas ?? {}) },
       custom_fields: { ...createStepRuntime(), ...(steps?.custom_fields ?? {}) },
     },
@@ -923,7 +930,7 @@ async function runImportJob(
 
   const { data: existingJob } = await adminClient
     .from("solarmarket_import_jobs")
-    .select("total_clientes,total_projetos,total_propostas,total_funis,total_custom_fields,total_errors,total_warnings")
+    .select("total_clientes,total_projetos,total_propostas,total_funis,total_custom_fields,total_projeto_funis,total_errors,total_warnings")
     .eq("id", state.jobId!)
     .maybeSingle();
 
@@ -1038,6 +1045,178 @@ async function runImportJob(
     }
   }
 
+  // ────────────────────────────────────────────────────────────────────
+  // STEP: projeto_funis
+  // Para cada projeto importado, busca GET /projects/:id/funnels e grava
+  // os vínculos em sm_projeto_funis_raw. Necessário para a promoção saber
+  // em qual funil/etapa cada projeto está. Propostas herdam do projeto pai.
+  //
+  // Estratégia: itera projetos do staging em batches de 20 (limite do
+  // budget de tempo da function). startPage = próximo batch a processar
+  // (1-indexed). Pula projetos já presentes em sm_projeto_funis_raw para
+  // suportar retomada idempotente.
+  // ────────────────────────────────────────────────────────────────────
+  if (scope.projeto_funis && !runtime.steps.projeto_funis.done) {
+    if (await checkCancel()) return { ok: false, job_id: state.jobId, status: "cancelled", cancelled: true };
+    await updateJob(state, { current_step: "projeto_funis", progress_pct: 72, updated_at: new Date().toISOString() });
+
+    const batchPage = Math.max(1, runtime.steps.projeto_funis.page ?? 1);
+    const batchSize = 20;
+    const from = (batchPage - 1) * batchSize;
+    const to = from + batchSize - 1;
+
+    const { data: projects, count: totalProjects, error: pjErr } = await state.supabase
+      .from("sm_projetos_raw")
+      .select("external_id", { count: "exact" })
+      .order("external_id", { ascending: true })
+      .range(from, to);
+
+    if (pjErr) {
+      await logEntry(
+        state, "projeto_funil", "error", null, null,
+        `[projeto_funis] Falha ao listar projetos: ${pjErr.message}`,
+        undefined,
+        { severity: "error", error_code: "SYSTEM_QUERY_FAILED", error_origin: "system" },
+      );
+      runtime.steps.projeto_funis = { page: batchPage, pathUsed: "/projects/:id/funnels", done: true };
+    } else if (!projects || projects.length === 0) {
+      runtime.steps.projeto_funis = { page: batchPage, pathUsed: "/projects/:id/funnels", done: true };
+    } else {
+      // Coletar IDs já processados (apenas dos projetos deste batch)
+      const projectIds = projects
+        .map((p: any) => Number(p?.external_id))
+        .filter((n: number) => Number.isFinite(n) && n > 0);
+
+      const { data: jaProcessados } = await state.supabase
+        .from("sm_projeto_funis_raw")
+        .select("sm_project_id")
+        .in("sm_project_id", projectIds);
+
+      const processedSet = new Set(
+        (jaProcessados || []).map((p: any) => Number(p.sm_project_id)),
+      );
+      const pendentes = projectIds.filter((id) => !processedSet.has(id));
+
+      let stepErrors = 0;
+      let stepVinculos = 0;
+
+      for (const projectId of pendentes) {
+        if (await isJobCancelled(state)) {
+          await logEntry(
+            state, "projeto_funil", "skipped", String(projectId), null,
+            `[cancelled] projeto_funis interrompido (batch=${batchPage}, vinculos=${stepVinculos})`,
+          );
+          runtime.steps.projeto_funis = { page: batchPage, pathUsed: "/projects/:id/funnels", done: false };
+          await updateJob(state, {
+            total_projeto_funis:
+              Number((existingJob as any)?.total_projeto_funis ?? 0) + stepVinculos,
+            updated_at: new Date().toISOString(),
+            scope: mergeScopeWithRuntime(rawScope, runtime),
+          });
+          return { ok: false, job_id: state.jobId, status: "cancelled", cancelled: true };
+        }
+
+        try {
+          const response = await smGet(state, `/projects/${projectId}/funnels`);
+          if (!response.ok) {
+            // 404 = projeto sem funis (válido no domínio)
+            if (response.status !== 404) {
+              stepErrors++;
+              await logEntry(
+                state, "projeto_funil", "error", String(projectId), null,
+                `[projeto_funis] Projeto ${projectId}: HTTP ${response.status}`,
+                undefined,
+                { severity: "error", error_code: "API_ERROR", error_origin: "api" },
+              );
+            }
+            continue;
+          }
+
+          const funnels = pickArray(response.body);
+          if (funnels.length === 0) continue;
+
+          const rows = funnels
+            .map((f: any) => ({
+              tenant_id: state.tenantId,
+              sm_project_id: projectId,
+              sm_funnel_id: Number(
+                f?.id ?? f?.funnel?.id ?? f?.funnel_id ?? 0,
+              ),
+              sm_stage_id:
+                f?.stage?.id != null
+                  ? Number(f.stage.id)
+                  : f?.stage_id != null
+                    ? Number(f.stage_id)
+                    : null,
+              payload: f,
+              import_job_id: state.jobId,
+            }))
+            .filter((r) => r.sm_funnel_id > 0);
+
+          if (rows.length > 0) {
+            const { error: upErr } = await state.supabase
+              .from("sm_projeto_funis_raw")
+              .upsert(rows, {
+                onConflict: "tenant_id,sm_project_id,sm_funnel_id",
+              });
+
+            if (upErr) {
+              stepErrors++;
+              await logEntry(
+                state, "projeto_funil", "error", String(projectId), null,
+                `[projeto_funis] upsert falhou: ${upErr.message}`,
+                undefined,
+                { severity: "error", error_code: "DB_UPSERT_FAILED", error_origin: "system" },
+              );
+            } else {
+              stepVinculos += rows.length;
+            }
+          }
+        } catch (e) {
+          stepErrors++;
+          await logEntry(
+            state, "projeto_funil", "error", String(projectId), null,
+            `[projeto_funis] Exceção projeto ${projectId}: ${(e as Error).message}`,
+            undefined,
+            { severity: "error", error_code: "UNHANDLED", error_origin: "system" },
+          );
+        }
+      }
+
+      const isLastBatch = typeof totalProjects === "number"
+        ? to + 1 >= totalProjects
+        : projects.length < batchSize;
+
+      runtime.steps.projeto_funis = {
+        page: isLastBatch ? batchPage : batchPage + 1,
+        pathUsed: "/projects/:id/funnels",
+        done: isLastBatch,
+      };
+
+      totalErrors += stepErrors;
+
+      await updateJob(state, {
+        total_projeto_funis:
+          Number((existingJob as any)?.total_projeto_funis ?? 0) + stepVinculos,
+        progress_pct: isLastBatch ? 75 : 73,
+        updated_at: new Date().toISOString(),
+        scope: mergeScopeWithRuntime(rawScope, runtime),
+      });
+
+      await logEntry(
+        state, "projeto_funil", "skipped", null, null,
+        isLastBatch
+          ? `[end] projeto_funis concluído: batch=${batchPage}, vinculos=${stepVinculos}, errors=${stepErrors}`
+          : `[yield] projeto_funis pausado: batch=${batchPage}, vinculos=${stepVinculos}, errors=${stepErrors}, next_batch=${batchPage + 1}`,
+      );
+
+      if (!isLastBatch) {
+        dispatchProcessJob(state, mergeScopeWithRuntime(rawScope, runtime));
+        return { ok: true, job_id: state.jobId, status: "running", resumed: true };
+      }
+    }
+  }
+
   if (scope.propostas && !runtime.steps.propostas.done) {
     if (await checkCancel()) return { ok: false, job_id: state.jobId, status: "cancelled", cancelled: true };
     await updateJob(state, { current_step: "propostas", progress_pct: 75, updated_at: new Date().toISOString() });
@@ -1139,6 +1318,7 @@ async function runImportJob(
     { table: "sm_propostas_raw", field: "total_propostas" },
     { table: "sm_funis_raw", field: "total_funis" },
     { table: "sm_custom_fields_raw", field: "total_custom_fields" },
+    { table: "sm_projeto_funis_raw", field: "total_projeto_funis" },
   ] as const;
 
   const realCounts: Record<string, number> = {};
@@ -1187,6 +1367,7 @@ async function runImportJob(
       total_propostas: realCounts.total_propostas ?? 0,
       total_funis: realCounts.total_funis ?? 0,
       total_custom_fields: realCounts.total_custom_fields ?? 0,
+      total_projeto_funis: realCounts.total_projeto_funis ?? 0,
       total_errors: totalErrors,
       total_warnings: totalWarnings,
       finished_at: new Date().toISOString(),
