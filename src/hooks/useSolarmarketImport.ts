@@ -15,6 +15,8 @@ export interface ImportScope {
   propostas: boolean;
   funis: boolean;
   custom_fields: boolean;
+  /** Auto-ativado quando `projetos` = true. Importa funis de cada projeto. */
+  projeto_funis?: boolean;
 }
 
 export interface SolarmarketImportJob {
@@ -28,6 +30,7 @@ export interface SolarmarketImportJob {
   total_propostas: number;
   total_funis: number;
   total_custom_fields: number;
+  total_projeto_funis?: number;
   total_errors: number;
   error_message: string | null;
   started_at: string | null;
@@ -52,7 +55,7 @@ async function findRecentActiveImportJob(): Promise<SolarmarketImportJob | null>
   const { data, error } = await (supabase as any)
     .from("solarmarket_import_jobs")
     .select(
-      "id, status, scope, current_step, progress_pct, total_clientes, total_projetos, total_propostas, total_funis, total_custom_fields, total_errors, error_message, started_at, finished_at, created_at, updated_at"
+      "id, status, scope, current_step, progress_pct, total_clientes, total_projetos, total_propostas, total_funis, total_custom_fields, total_projeto_funis, total_errors, error_message, started_at, finished_at, created_at, updated_at"
     )
     .in("status", ["pending", "running"])
     .order("created_at", { ascending: false })
@@ -77,7 +80,7 @@ export function useSolarmarketImport() {
       const { data, error } = await (supabase as any)
         .from("solarmarket_import_jobs")
         .select(
-          "id, status, scope, current_step, progress_pct, total_clientes, total_projetos, total_propostas, total_funis, total_custom_fields, total_errors, error_message, started_at, finished_at, created_at, updated_at"
+          "id, status, scope, current_step, progress_pct, total_clientes, total_projetos, total_propostas, total_funis, total_custom_fields, total_projeto_funis, total_errors, error_message, started_at, finished_at, created_at, updated_at"
         )
         .order("created_at", { ascending: false })
         .limit(20);
