@@ -3,7 +3,8 @@
  * importados do SolarMarket (tabelas sm_*_raw).
  *
  * Suporta as 6 tabelas de staging com colunas amigáveis por tipo, busca
- * por nome/identificação e modal "Ver JSON completo" com payload bruto.
+ * por nome/identificação, ordenação por coluna (A-Z padrão) e modal
+ * "Ver JSON completo" com payload bruto.
  */
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -25,7 +26,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Search, Eye, ChevronLeft, ChevronRight, Inbox } from "lucide-react";
+import {
+  Search,
+  Eye,
+  ChevronLeft,
+  ChevronRight,
+  Inbox,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
+} from "lucide-react";
 
 export type SmStagingTableName =
   | "sm_clientes_raw"
@@ -46,7 +56,15 @@ interface ColumnDef {
   header: string;
   /** extrator a partir da row (com payload já normalizado) */
   get: (row: any) => string;
+  /** Campo de ordenação no Postgres (ex.: "payload->>name", "imported_at"). Se omitido, coluna não é ordenável. */
+  sortField?: string;
   className?: string;
+}
+
+type SortDir = "asc" | "desc";
+interface SortState {
+  field: string;
+  direction: SortDir;
 }
 
 function fmtDate(v: any): string {
@@ -76,28 +94,28 @@ function sumPricing(payload: any): string {
 
 const COLUMNS: Record<SmStagingTableName, ColumnDef[]> = {
   sm_clientes_raw: [
-    { header: "Nome", get: (r) => r.payload?.name ?? "—" },
+    { header: "Nome", get: (r) => r.payload?.name ?? "—", sortField: "payload->>name" },
     { header: "CPF/CNPJ", get: (r) => r.payload?.cnpjCpf ?? "—" },
     { header: "Telefone", get: (r) => r.payload?.primaryPhone ?? "—" },
-    { header: "Cidade", get: (r) => r.payload?.city ?? "—" },
-    { header: "Importado em", get: (r) => fmtDate(r.imported_at) },
+    { header: "Cidade", get: (r) => r.payload?.city ?? "—", sortField: "payload->>city" },
+    { header: "Importado em", get: (r) => fmtDate(r.imported_at), sortField: "imported_at" },
   ],
   sm_projetos_raw: [
-    { header: "Nome", get: (r) => r.payload?.name ?? "—" },
-    { header: "Cliente", get: (r) => r.payload?.client?.name ?? "—" },
-    { header: "Responsável", get: (r) => r.payload?.responsible?.name ?? "—" },
-    { header: "Importado em", get: (r) => fmtDate(r.imported_at) },
+    { header: "Nome", get: (r) => r.payload?.name ?? "—", sortField: "payload->>name" },
+    { header: "Cliente", get: (r) => r.payload?.client?.name ?? "—", sortField: "payload->client->>name" },
+    { header: "Responsável", get: (r) => r.payload?.responsible?.name ?? "—", sortField: "payload->responsible->>name" },
+    { header: "Importado em", get: (r) => fmtDate(r.imported_at), sortField: "imported_at" },
   ],
   sm_propostas_raw: [
-    { header: "Nome", get: (r) => r.payload?.name ?? "—" },
-    { header: "Projeto", get: (r) => r.payload?.project?.name ?? "—" },
-    { header: "Status", get: (r) => r.payload?.status ?? "—" },
+    { header: "Nome", get: (r) => r.payload?.name ?? "—", sortField: "payload->>name" },
+    { header: "Projeto", get: (r) => r.payload?.project?.name ?? "—", sortField: "payload->project->>name" },
+    { header: "Status", get: (r) => r.payload?.status ?? "—", sortField: "payload->>status" },
     { header: "Valor", get: (r) => sumPricing(r.payload) },
-    { header: "Importado em", get: (r) => fmtDate(r.imported_at) },
+    { header: "Importado em", get: (r) => fmtDate(r.imported_at), sortField: "imported_at" },
   ],
   sm_funis_raw: [
-    { header: "Nome", get: (r) => r.payload?.name ?? "—" },
-    { header: "Ordem", get: (r) => String(r.payload?.order ?? "—") },
+    { header: "Nome", get: (r) => r.payload?.name ?? "—", sortField: "payload->>name" },
+    { header: "Ordem", get: (r) => String(r.payload?.order ?? "—"), sortField: "payload->>order" },
     {
       header: "Etapas",
       get: (r) =>
@@ -105,21 +123,22 @@ const COLUMNS: Record<SmStagingTableName, ColumnDef[]> = {
           ? String(r.payload.stages.length)
           : "—",
     },
-    { header: "Importado em", get: (r) => fmtDate(r.imported_at) },
+    { header: "Importado em", get: (r) => fmtDate(r.imported_at), sortField: "imported_at" },
   ],
   sm_projeto_funis_raw: [
-    { header: "Projeto SM ID", get: (r) => String(r.sm_project_id ?? "—") },
-    { header: "Funil/Item", get: (r) => r.payload?.name ?? "—" },
-    { header: "Etapa", get: (r) => r.payload?.stage?.name ?? "—" },
-    { header: "Status", get: (r) => r.payload?.status ?? "—" },
+    { header: "Projeto SM ID", get: (r) => String(r.sm_project_id ?? "—"), sortField: "sm_project_id" },
+    { header: "Funil/Item", get: (r) => r.payload?.name ?? "—", sortField: "payload->>name" },
+    { header: "Etapa", get: (r) => r.payload?.stage?.name ?? "—", sortField: "payload->stage->>name" },
+    { header: "Status", get: (r) => r.payload?.status ?? "—", sortField: "payload->>status" },
     {
       header: "Responsável",
       get: (r) => r.payload?.responsible?.name ?? "—",
+      sortField: "payload->responsible->>name",
     },
   ],
   sm_custom_fields_raw: [
-    { header: "Nome", get: (r) => r.payload?.name ?? "—" },
-    { header: "Tipo", get: (r) => r.payload?.type ?? "—" },
+    { header: "Nome", get: (r) => r.payload?.name ?? "—", sortField: "payload->>name" },
+    { header: "Tipo", get: (r) => r.payload?.type ?? "—", sortField: "payload->>type" },
     {
       header: "Valor padrão",
       get: (r) =>
@@ -127,8 +146,18 @@ const COLUMNS: Record<SmStagingTableName, ColumnDef[]> = {
           ? "—"
           : String(r.payload.default),
     },
-    { header: "Importado em", get: (r) => fmtDate(r.imported_at) },
+    { header: "Importado em", get: (r) => fmtDate(r.imported_at), sortField: "imported_at" },
   ],
+};
+
+/** Ordenação inicial A-Z por nome principal (ou identificador) */
+const DEFAULT_SORT: Record<SmStagingTableName, SortState> = {
+  sm_clientes_raw: { field: "payload->>name", direction: "asc" },
+  sm_projetos_raw: { field: "payload->>name", direction: "asc" },
+  sm_propostas_raw: { field: "payload->>name", direction: "asc" },
+  sm_funis_raw: { field: "payload->>name", direction: "asc" },
+  sm_projeto_funis_raw: { field: "payload->>name", direction: "asc" },
+  sm_custom_fields_raw: { field: "payload->>name", direction: "asc" },
 };
 
 /** Campo do payload para busca textual case-insensitive */
@@ -141,22 +170,62 @@ const SEARCH_FIELD: Record<SmStagingTableName, string> = {
   sm_custom_fields_raw: "payload->>name",
 };
 
+interface SortableHeaderProps {
+  label: string;
+  field?: string;
+  currentSort: SortState;
+  onSort: (field: string) => void;
+}
+
+function SortableHeader({ label, field, currentSort, onSort }: SortableHeaderProps) {
+  if (!field) {
+    return <TableHead>{label}</TableHead>;
+  }
+  const isActive = currentSort.field === field;
+  const direction = isActive ? currentSort.direction : null;
+
+  return (
+    <TableHead>
+      <button
+        type="button"
+        onClick={() => onSort(field)}
+        className="flex items-center gap-1.5 hover:text-foreground transition-colors cursor-pointer select-none"
+      >
+        <span>{label}</span>
+        {!isActive && <ArrowUpDown className="w-3 h-3 opacity-40" />}
+        {direction === "asc" && <ArrowUp className="w-3 h-3 text-primary" />}
+        {direction === "desc" && <ArrowDown className="w-3 h-3 text-primary" />}
+      </button>
+    </TableHead>
+  );
+}
+
 export function SmStagingTable({ tabela, tenantId }: Props) {
   const [page, setPage] = useState(0);
   const [search, setSearch] = useState("");
   const [searchInput, setSearchInput] = useState("");
   const [previewRow, setPreviewRow] = useState<any | null>(null);
+  const [sort, setSort] = useState<SortState>(DEFAULT_SORT[tabela]);
 
   const columns = COLUMNS[tabela];
 
+  const handleSort = (field: string) => {
+    setPage(0);
+    setSort((prev) =>
+      prev.field === field
+        ? { field, direction: prev.direction === "asc" ? "desc" : "asc" }
+        : { field, direction: "asc" },
+    );
+  };
+
   const { data, isLoading, isFetching } = useQuery({
-    queryKey: ["sm_staging_view", tabela, tenantId, page, search],
+    queryKey: ["sm_staging_view", tabela, tenantId, page, search, sort.field, sort.direction],
     queryFn: async () => {
       let query: any = supabase
         .from(tabela)
         .select("*", { count: "exact" })
         .eq("tenant_id", tenantId)
-        .order("imported_at", { ascending: false })
+        .order(sort.field, { ascending: sort.direction === "asc" })
         .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
 
       if (search.trim()) {
@@ -236,7 +305,13 @@ export function SmStagingTable({ tabela, tenantId }: Props) {
               <TableHeader>
                 <TableRow>
                   {columns.map((c) => (
-                    <TableHead key={c.header}>{c.header}</TableHead>
+                    <SortableHeader
+                      key={c.header}
+                      label={c.header}
+                      field={c.sortField}
+                      currentSort={sort}
+                      onSort={handleSort}
+                    />
                   ))}
                   <TableHead className="w-[80px] text-right">Ações</TableHead>
                 </TableRow>
