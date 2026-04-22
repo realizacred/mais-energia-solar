@@ -1,11 +1,12 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { FlaskConical, FolderX, Trash2, Wrench } from "lucide-react";
+import { FlaskConical, FolderX, Trash2, Wrench, Cloud } from "lucide-react";
 import { lazy, Suspense } from "react";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 
 const DevSeedTab = lazy(() => import("./DevSeedPage"));
 const DevResetSeedTab = lazy(() => import("./DevResetSeedPage"));
 const DevResetProjectAreaTab = lazy(() => import("./DevResetProjectAreaPage"));
+const DevResetSmTotalTab = lazy(() => import("./DevResetSmTotalPage"));
 
 export default function DevToolsPage() {
   return (
@@ -36,6 +37,10 @@ export default function DevToolsPage() {
             <FolderX className="h-4 w-4" />
             Reset Projetos
           </TabsTrigger>
+          <TabsTrigger value="reset-sm-total" className="flex-1 gap-2 shrink-0 whitespace-nowrap">
+            <Cloud className="h-4 w-4" />
+            Reset SM Total
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="seed">
@@ -53,6 +58,12 @@ export default function DevToolsPage() {
         <TabsContent value="reset-project">
           <Suspense fallback={<LoadingSpinner />}>
             <DevResetProjectAreaTab />
+          </Suspense>
+        </TabsContent>
+
+        <TabsContent value="reset-sm-total">
+          <Suspense fallback={<LoadingSpinner />}>
+            <DevResetSmTotalTab />
           </Suspense>
         </TabsContent>
       </Tabs>
