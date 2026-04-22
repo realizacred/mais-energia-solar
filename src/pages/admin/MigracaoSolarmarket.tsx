@@ -268,15 +268,6 @@ export default function MigracaoSolarmarket() {
     counts.custom_fields > 0;
   const importDone = !importInProgress && allEntitiesImported;
 
-  console.log("[DEBUG Fase 2]", {
-    runningJob: runningJobFromHook?.status,
-    counts,
-    noRunningJob:
-      !runningJobFromHook || !["running", "pending"].includes(runningJobFromHook.status),
-    allEntitiesImported,
-    importDone,
-  });
-
   const items = [
     { icon: Users, label: "Clientes e contatos", value: stats?.staging.clientes ?? 0 },
     { icon: FolderKanban, label: "Projetos (com vínculos de funis)", value: stats?.staging.projetos ?? 0 },
