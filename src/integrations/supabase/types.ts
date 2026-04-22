@@ -20500,6 +20500,87 @@ export type Database = {
         }
         Relationships: []
       }
+      sm_etapa_stage_map: {
+        Row: {
+          created_at: string
+          id: string
+          sm_etapa_name: string
+          sm_funil_name: string
+          stage_id: string
+          tenant_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          sm_etapa_name: string
+          sm_funil_name: string
+          stage_id: string
+          tenant_id?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          sm_etapa_name?: string
+          sm_funil_name?: string
+          stage_id?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sm_etapa_stage_map_stage_id_fkey"
+            columns: ["stage_id"]
+            isOneToOne: false
+            referencedRelation: "pipeline_stages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sm_etapa_stage_map_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sm_funil_pipeline_map: {
+        Row: {
+          created_at: string
+          id: string
+          pipeline_id: string
+          sm_funil_name: string
+          tenant_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          pipeline_id: string
+          sm_funil_name: string
+          tenant_id?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          pipeline_id?: string
+          sm_funil_name?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sm_funil_pipeline_map_pipeline_id_fkey"
+            columns: ["pipeline_id"]
+            isOneToOne: false
+            referencedRelation: "pipelines"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sm_funil_pipeline_map_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sm_funis_raw: {
         Row: {
           created_at: string
