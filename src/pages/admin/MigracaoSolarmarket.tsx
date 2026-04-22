@@ -33,7 +33,13 @@ import {
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { LoadingState } from "@/components/ui-kit/LoadingState";
+import { SmStagingTable } from "@/components/admin/solarmarket/SmStagingTable";
+import { supabase } from "@/integrations/supabase/client";
+import { useQueryClient } from "@tanstack/react-query";
+import { Trash2, Eye as EyeIcon } from "lucide-react";
 import { useMigracaoSolarmarket } from "@/hooks/useMigracaoSolarmarket";
 import { useSolarmarketImport } from "@/hooks/useSolarmarketImport";
 import { useSolarmarketConfig } from "@/hooks/useSolarmarketConfig";
@@ -176,6 +182,39 @@ export default function MigracaoSolarmarket() {
   const isImporting = !!runningJob;
 
   const [advancedOpen, setAdvancedOpen] = useState(false);
+  const [resetConfirmText, setResetConfirmText] = useState("");
+  const [resetOpen, setResetOpen] = useState(false);
+  const [resetting, setResetting] = useState(false);
+  const queryClient = useQueryClient();
+
+  const handleResetAll = async () => {
+    setResetting(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("sm-reset-all");
+      if (error) throw error;
+      if (data?.success === false) {
+        const firstErr = data?.errors?.[0]?.error ?? "Falha parcial";
+        throw new Error(firstErr);
+      }
+      toast({
+        title: "Reset executado com sucesso",
+        description: `${(data?.total_deleted ?? 0).toLocaleString("pt-BR")} registro(s) apagado(s).`,
+      });
+      setResetOpen(false);
+      setResetConfirmText("");
+      await queryClient.invalidateQueries();
+      // Recarregar a página para garantir estado limpo.
+      setTimeout(() => window.location.reload(), 600);
+    } catch (e: any) {
+      toast({
+        title: "Falha ao resetar",
+        description: e?.message ?? "Tente novamente.",
+        variant: "destructive",
+      });
+    } finally {
+      setResetting(false);
+    }
+  };
 
   if (isLoading || loadingCfg) {
     return <LoadingState message="Carregando migração..." />;
@@ -456,6 +495,75 @@ export default function MigracaoSolarmarket() {
           </CardContent>
         </Card>
 
+        {/* INSPECIONAR DADOS IMPORTADOS */}
+        {tenantId && (stats?.totalStaging ?? 0) > 0 && (
+          <Card className="bg-card border-border shadow-sm">
+            <CardContent className="p-6 space-y-4">
+              <div className="flex items-start gap-3">
+                <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                  <EyeIcon className="w-4 h-4 text-primary" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h3 className="text-base font-semibold text-foreground">
+                    Inspecionar dados importados
+                  </h3>
+                  <p className="text-sm text-muted-foreground mt-0.5">
+                    Veja os dados brutos antes de configurar os mapeamentos.
+                  </p>
+                </div>
+              </div>
+
+              <Tabs defaultValue="clientes" className="w-full">
+                <TabsList className="overflow-x-auto flex-wrap h-auto">
+                  <TabsTrigger value="clientes">
+                    Clientes ({counts.clientes.toLocaleString("pt-BR")})
+                  </TabsTrigger>
+                  <TabsTrigger value="projetos">
+                    Projetos ({counts.projetos.toLocaleString("pt-BR")})
+                  </TabsTrigger>
+                  <TabsTrigger value="propostas">
+                    Propostas ({counts.propostas.toLocaleString("pt-BR")})
+                  </TabsTrigger>
+                  <TabsTrigger value="funis">
+                    Funis ({counts.funis.toLocaleString("pt-BR")})
+                  </TabsTrigger>
+                  <TabsTrigger value="projeto-funis">
+                    Vínculos ({counts.projeto_funis.toLocaleString("pt-BR")})
+                  </TabsTrigger>
+                  <TabsTrigger value="custom">
+                    Campos ({counts.custom_fields.toLocaleString("pt-BR")})
+                  </TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="clientes" className="mt-4">
+                  <SmStagingTable tabela="sm_clientes_raw" tenantId={tenantId} />
+                </TabsContent>
+                <TabsContent value="projetos" className="mt-4">
+                  <SmStagingTable tabela="sm_projetos_raw" tenantId={tenantId} />
+                </TabsContent>
+                <TabsContent value="propostas" className="mt-4">
+                  <SmStagingTable tabela="sm_propostas_raw" tenantId={tenantId} />
+                </TabsContent>
+                <TabsContent value="funis" className="mt-4">
+                  <SmStagingTable tabela="sm_funis_raw" tenantId={tenantId} />
+                </TabsContent>
+                <TabsContent value="projeto-funis" className="mt-4">
+                  <SmStagingTable
+                    tabela="sm_projeto_funis_raw"
+                    tenantId={tenantId}
+                  />
+                </TabsContent>
+                <TabsContent value="custom" className="mt-4">
+                  <SmStagingTable
+                    tabela="sm_custom_fields_raw"
+                    tenantId={tenantId}
+                  />
+                </TabsContent>
+              </Tabs>
+            </CardContent>
+          </Card>
+        )}
+
         {/* RODAPÉ — PRÓXIMO PASSO */}
         {importDone ? (
           <Card className="bg-success/10 border-success/20 shadow-sm">
@@ -630,6 +738,80 @@ export default function MigracaoSolarmarket() {
                           className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                         >
                           Sim, apagar
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+
+                  {/* RESETAR TUDO — destrutivo, dupla confirmação */}
+                  <AlertDialog open={resetOpen} onOpenChange={(o) => {
+                    setResetOpen(o);
+                    if (!o) setResetConfirmText("");
+                  }}>
+                    <AlertDialogTrigger asChild>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={isImporting || resetting}
+                        className="border-destructive text-destructive hover:bg-destructive/10"
+                      >
+                        {resetting ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <Trash2 className="w-4 h-4" />
+                        )}
+                        Resetar tudo
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent className="w-[90vw] max-w-lg">
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>
+                          ⚠️ Resetar importação do SolarMarket?
+                        </AlertDialogTitle>
+                        <AlertDialogDescription asChild>
+                          <div className="space-y-3 text-sm">
+                            <p>Esta ação vai <strong>apagar permanentemente</strong>:</p>
+                            <ul className="list-disc list-inside space-y-1 text-muted-foreground">
+                              <li>Todos os dados baixados do SolarMarket (clientes, projetos, propostas)</li>
+                              <li>Histórico de importações</li>
+                              <li>Histórico de migrações</li>
+                              <li>Mapeamentos configurados</li>
+                              <li>Clientes/projetos/propostas que vieram do SolarMarket</li>
+                            </ul>
+                            <p><strong>Não vai apagar</strong>:</p>
+                            <ul className="list-disc list-inside space-y-1 text-muted-foreground">
+                              <li>Consultores do CRM</li>
+                              <li>Pipelines e etapas do CRM</li>
+                              <li>Dados nativos do sistema</li>
+                            </ul>
+                            <p className="pt-2">
+                              Para confirmar, digite <strong>RESETAR</strong> abaixo:
+                            </p>
+                          </div>
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <Input
+                        autoFocus
+                        placeholder="Digite RESETAR para confirmar"
+                        value={resetConfirmText}
+                        onChange={(e) => setResetConfirmText(e.target.value)}
+                      />
+                      <AlertDialogFooter>
+                        <AlertDialogCancel disabled={resetting}>
+                          Cancelar
+                        </AlertDialogCancel>
+                        <AlertDialogAction
+                          disabled={resetConfirmText !== "RESETAR" || resetting}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            handleResetAll();
+                          }}
+                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                        >
+                          {resetting ? (
+                            <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                          ) : null}
+                          Sim, resetar tudo
                         </AlertDialogAction>
                       </AlertDialogFooter>
                     </AlertDialogContent>
