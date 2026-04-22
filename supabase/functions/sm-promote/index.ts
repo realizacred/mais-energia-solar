@@ -1050,6 +1050,8 @@ function validateEligibility(args: {
 }
 
 // ─── Pipeline orquestrado por proposta ───────────────────────────────────────
+type PromotionScope = "cliente" | "projeto" | "proposta";
+
 async function promoteOneProposalRow(
   admin: SupabaseClient,
   state: RequestState,
@@ -1058,6 +1060,7 @@ async function promoteOneProposalRow(
   rawProposalRow: AnyObj,
   pipeline: PipelineResolution,
   consultorFallback: ConsultorResolution,
+  scope: PromotionScope = "proposta",
 ): Promise<"promoted" | "skipped" | "blocked" | "error"> {
   const propostaPayload: AnyObj = rawProposalRow.payload ?? {};
   const propExtId = pickStr(propostaPayload.id) ?? rawProposalRow.external_id;
