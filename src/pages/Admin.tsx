@@ -37,9 +37,7 @@ const CalculadoraConfig = lazy(() => import("@/components/admin/CalculadoraConfi
 const FinanciamentoConfig = lazy(() => import("@/components/admin/FinanciamentoConfig"));
 const FormasPagamentoPage = lazy(() => import("@/components/admin/FormasPagamentoPage").then(m => ({ default: m.FormasPagamentoPage })));
 const WebhookManager = lazy(() => import("@/components/admin/WebhookManager"));
-const ImportacaoSolarmarket = lazy(() => import("@/pages/admin/ImportacaoSolarmarket"));
 const SolarmarketConfigPage = lazy(() => import("@/pages/admin/SolarmarketConfigPage"));
-const PromocaoSolarmarket = lazy(() => import("@/pages/admin/PromocaoSolarmarket"));
 const MigracaoSolarmarket = lazy(() => import("@/pages/admin/MigracaoSolarmarket"));
 const MigracaoStep2Mapear = lazy(() => import("@/pages/admin/MigracaoStep2Mapear"));
 const MigracaoStep3Migrar = lazy(() => import("@/pages/admin/MigracaoStep3Migrar"));
