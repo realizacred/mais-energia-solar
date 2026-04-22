@@ -930,7 +930,7 @@ async function runImportJob(
 
   const { data: existingJob } = await adminClient
     .from("solarmarket_import_jobs")
-    .select("total_clientes,total_projetos,total_propostas,total_funis,total_custom_fields,total_errors,total_warnings")
+    .select("total_clientes,total_projetos,total_propostas,total_funis,total_custom_fields,total_projeto_funis,total_errors,total_warnings")
     .eq("id", state.jobId!)
     .maybeSingle();
 
@@ -1318,6 +1318,7 @@ async function runImportJob(
     { table: "sm_propostas_raw", field: "total_propostas" },
     { table: "sm_funis_raw", field: "total_funis" },
     { table: "sm_custom_fields_raw", field: "total_custom_fields" },
+    { table: "sm_projeto_funis_raw", field: "total_projeto_funis" },
   ] as const;
 
   const realCounts: Record<string, number> = {};
@@ -1366,6 +1367,7 @@ async function runImportJob(
       total_propostas: realCounts.total_propostas ?? 0,
       total_funis: realCounts.total_funis ?? 0,
       total_custom_fields: realCounts.total_custom_fields ?? 0,
+      total_projeto_funis: realCounts.total_projeto_funis ?? 0,
       total_errors: totalErrors,
       total_warnings: totalWarnings,
       finished_at: new Date().toISOString(),
