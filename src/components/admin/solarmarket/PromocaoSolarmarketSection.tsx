@@ -247,14 +247,30 @@ export function PromocaoSolarmarketSection() {
           <ShieldAlert className="w-5 h-5 text-destructive shrink-0 mt-0.5" />
           <div className="text-sm flex-1">
             <p className="font-semibold text-foreground">
-              Pipeline padrão não configurado
+              Funil padrão de projetos não configurado
             </p>
             <p className="text-xs text-muted-foreground mt-1">
               {!defaultPipeline
-                ? "Nenhum pipeline está marcado como padrão para este tenant. A promoção foi bloqueada para evitar dados quebrados no CRM."
-                : `O pipeline padrão "${defaultPipeline.name}" não possui etapas (pipeline_stages). Crie ao menos uma etapa antes de promover.`}
-              {" "}Acesse <strong>Configurações → Pipelines</strong> para definir o padrão e configurar as etapas.
+                ? "Nenhum funil de projetos ativo foi encontrado. A promoção foi bloqueada para evitar dados quebrados no CRM."
+                : `O funil "${defaultPipeline.name}" não possui etapas em projeto_etapas. Crie ao menos uma etapa antes de promover.`}
+              {" "}Você pode criar automaticamente um funil Comercial com as etapas padrão abaixo.
             </p>
+            <div className="mt-3">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleEnsurePipeline}
+                disabled={ensureDefaultPipeline.isPending || !!runningJob}
+                className="gap-2"
+              >
+                {ensureDefaultPipeline.isPending ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <FolderKanban className="w-4 h-4" />
+                )}
+                Criar funil + etapas
+              </Button>
+            </div>
           </div>
         </div>
       ) : (
@@ -376,9 +392,22 @@ export function PromocaoSolarmarketSection() {
               <Button
                 variant="outline"
                 size="sm"
+                onClick={handleEnsurePipeline}
+                disabled={!!runningJob || promoteAll.isPending || ensureDefaultPipeline.isPending}
+              >
+                {ensureDefaultPipeline.isPending ? (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                ) : (
+                  <FolderKanban className="w-4 h-4 mr-2" />
+                )}
+                Criar funil + etapas
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
                 onClick={() => handleRun(true, "proposta")}
-                disabled={!!runningJob || promoteAll.isPending || pipelineBlocked}
-                title={pipelineBlocked ? "Configure um pipeline padrão antes de executar" : "Apenas conta candidatos sem gravar"}
+                disabled={!!runningJob || promoteAll.isPending || pipelineBlocked || ensureDefaultPipeline.isPending}
+                title={pipelineBlocked ? "Prepare o funil de projetos antes de executar" : "Apenas conta candidatos sem gravar"}
               >
                 {promoteAll.isPending && promoteAll.variables?.dry_run ? (
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -407,8 +436,8 @@ export function PromocaoSolarmarketSection() {
                     key={scope}
                     variant={scope === "proposta" ? "default" : "outline"}
                     onClick={() => handleRun(false, scope)}
-                    disabled={!!runningJob || promoteAll.isPending || pipelineBlocked}
-                    title={pipelineBlocked ? "Configure um pipeline padrão antes de executar" : undefined}
+                     disabled={!!runningJob || promoteAll.isPending || pipelineBlocked || ensureDefaultPipeline.isPending}
+                     title={pipelineBlocked ? "Prepare o funil de projetos antes de executar" : undefined}
                     className="justify-start"
                   >
                     {isThisRunning ? (
