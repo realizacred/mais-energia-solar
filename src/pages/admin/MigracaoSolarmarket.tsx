@@ -505,15 +505,18 @@ export default function MigracaoSolarmarket() {
                 ⏳ Complete a importação acima antes de ir para a Fase 2
               </p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                {[
-                  { label: "Clientes", current: counts.clientes, expected: 1930 },
-                  { label: "Projetos", current: counts.projetos, expected: 1900 },
-                  { label: "Propostas", current: counts.propostas, expected: 1821 },
-                  { label: "Funis", current: counts.funis, expected: 6 },
-                  { label: "Vínculos projeto-funil", current: counts.projeto_funis, expected: null },
-                  { label: "Campos customizados", current: counts.custom_fields, expected: 17 },
-                ].map((item) => {
-                  const ok = item.current > 0;
+                {([
+                  { key: "clientes", label: "Clientes", current: counts.clientes, expected: 1930 as number | null },
+                  { key: "projetos", label: "Projetos", current: counts.projetos, expected: 1900 },
+                  { key: "propostas", label: "Propostas", current: counts.propostas, expected: 1821 },
+                  { key: "funis", label: "Funis", current: counts.funis, expected: 6 },
+                  { key: "projeto_funis", label: "Vínculos projeto-funil", current: counts.projeto_funis, expected: null },
+                  { key: "custom_fields", label: "Campos customizados", current: counts.custom_fields, expected: 17 },
+                ]).map((item) => {
+                  // Step concluído de verdade só quando _runtime.steps[key].done === true.
+                  // Se não há job algum, usamos count > 0 como heurística.
+                  const stepDone = lastJob?.scope?._runtime?.steps?.[item.key]?.done === true;
+                  const ok = lastJob ? stepDone : item.current > 0;
                   return (
                     <div
                       key={item.label}
