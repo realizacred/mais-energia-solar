@@ -39,6 +39,26 @@ async function deleteTableInBatches(
   }
 }
 
+async function tableExists(
+  admin: ReturnType<typeof createClient>,
+  tableName: string,
+) {
+  const { data, error } = await admin.rpc("exec_sql", {
+    query: `select exists (
+      select 1
+      from information_schema.tables
+      where table_schema = 'public'
+        and table_name = '${tableName.replace(/'/g, "''")}'
+    ) as exists;`,
+  } as never);
+
+  if (error) {
+    return false;
+  }
+
+  return Array.isArray(data) ? data[0]?.exists === true : false;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
