@@ -39,6 +39,7 @@ import { useSolarmarketImport } from "@/hooks/useSolarmarketImport";
 import { useSolarmarketConfig } from "@/hooks/useSolarmarketConfig";
 import { useTenantId } from "@/hooks/useTenantId";
 import { useRunningSolarmarketJob } from "@/hooks/useRunningSolarmarketJob";
+import { useLastSolarmarketJob } from "@/hooks/useLastSolarmarketJob";
 import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import {
