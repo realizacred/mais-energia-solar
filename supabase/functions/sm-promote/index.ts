@@ -680,14 +680,51 @@ async function promoteProposta(
     })
     .select("id")
     .single();
-  if (pnErr || !pn?.id) throw new Error(`insert proposta: ${pnErr?.message}`);
 
-  const versaoId = await insertVersao(admin, tenantId, pn.id as string, ctx.snapshot, norm, ctx.userId);
+  let propostaId: string | null = pn?.id as string | undefined ?? null;
+  let createdNow = !pnErr && !!propostaId;
 
-  await upsertLink(admin, tenantId, jobId, "proposta", pn.id as string, "proposta", norm.external_id, {
+  // Recuperação de conflito 23505 em uq_propostas_tenant_codigo:
+  // a proposta já existe no CRM mas o link não foi gravado (ex.: job anterior
+  // crashou após o insert). Reaproveita a proposta existente em vez de quebrar.
+  if (pnErr) {
+    const message = pnErr.message ?? "";
+    const isDup = (pnErr as { code?: string }).code === "23505"
+      || /uq_propostas_tenant_codigo|duplicate key/i.test(message);
+    if (!isDup) throw new Error(`insert proposta: ${message}`);
+
+    const { data: existingProp, error: lookupErr } = await admin
+      .from("propostas_nativas")
+      .select("id")
+      .eq("tenant_id", tenantId)
+      .eq("codigo", codigo)
+      .maybeSingle();
+    if (lookupErr || !existingProp?.id) {
+      throw new Error(`insert proposta: ${message} (lookup falhou: ${lookupErr?.message ?? "não encontrado"})`);
+    }
+    propostaId = existingProp.id as string;
+    createdNow = false;
+  }
+
+  if (!propostaId) throw new Error(`insert proposta: id nulo após recuperação`);
+
+  // Garante que existe pelo menos uma versão para a proposta reaproveitada.
+  let versaoId: string;
+  if (createdNow) {
+    versaoId = await insertVersao(admin, tenantId, propostaId, ctx.snapshot, norm, ctx.userId);
+  } else {
+    const { data: v } = await admin
+      .from("proposta_versoes")
+      .select("id").eq("tenant_id", tenantId).eq("proposta_id", propostaId).limit(1).maybeSingle();
+    versaoId = (v?.id as string | undefined)
+      ?? await insertVersao(admin, tenantId, propostaId, ctx.snapshot, norm, ctx.userId);
+  }
+
+  await upsertLink(admin, tenantId, jobId, "proposta", propostaId, "proposta", norm.external_id, {
     versao_id: versaoId,
+    recovered_from_conflict: !createdNow ? true : undefined,
   });
-  return { propostaId: pn.id as string, versaoId, created: true };
+  return { propostaId, versaoId, created: createdNow };
 }
 
 async function insertVersao(
