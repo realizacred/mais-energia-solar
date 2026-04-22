@@ -291,6 +291,54 @@ export function PromocaoSolarmarketSection() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
+          {/* Cards de progresso por etapa: X de Y (acumulado) + lote atual */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            {([
+              { key: "cliente",  label: "Clientes",  icon: Users,        scope: "cliente"  as const },
+              { key: "projeto",  label: "Projetos",  icon: FolderKanban, scope: "projeto"  as const },
+              { key: "proposta", label: "Propostas", icon: FileText,     scope: "proposta" as const },
+            ]).map(({ key, label, icon: Icon, scope }) => {
+              const t = stagingTotals?.[key as "cliente" | "projeto" | "proposta"];
+              const total = t?.total ?? 0;
+              const promoted = t?.promoted ?? 0;
+              const pending = Math.max(0, total - promoted);
+              const pct = total > 0 ? Math.round((promoted / total) * 100) : 0;
+              const isActiveScope = activeScope === scope && !!runningJob;
+              const batchProcessed = isActiveScope ? (runningJob?.items_processed ?? 0) : 0;
+              const batchTotal = isActiveScope ? (runningJob?.total_items ?? 0) : 0;
+
+              return (
+                <Card key={key} className="bg-card border-border shadow-sm">
+                  <CardContent className="p-4 space-y-2">
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                        <Icon className="w-4 h-4 text-primary" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-semibold text-foreground truncate">{label}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {promoted.toLocaleString("pt-BR")} de {total.toLocaleString("pt-BR")} promovidos
+                        </p>
+                      </div>
+                      <Badge variant="outline" className="bg-muted text-muted-foreground border-border text-[10px] font-mono">
+                        {pct}%
+                      </Badge>
+                    </div>
+                    <Progress value={pct} className="h-1.5" />
+                    {isActiveScope && batchTotal > 0 && (
+                      <p className="text-[11px] text-info">
+                        Lote atual: {batchProcessed} / {batchTotal}
+                      </p>
+                    )}
+                    <p className="text-[11px] text-muted-foreground">
+                      {pending.toLocaleString("pt-BR")} pendente(s) em staging
+                    </p>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div className="space-y-1.5">
               <Label htmlFor="promote_batch_limit" className="text-xs">Batch limit (1–200)</Label>
@@ -305,36 +353,62 @@ export function PromocaoSolarmarketSection() {
                 className="font-mono"
               />
               <p className="text-xs text-muted-foreground">
-                Quantidade máxima de propostas por execução.
+                Quantidade máxima de itens por execução.
               </p>
             </div>
             <div className="sm:col-span-2 flex flex-wrap items-end gap-2 justify-end">
               <Button
                 variant="outline"
-                onClick={() => handleRun(true)}
+                size="sm"
+                onClick={() => handleRun(true, "proposta")}
                 disabled={!!runningJob || promoteAll.isPending || pipelineBlocked}
-                title={pipelineBlocked ? "Configure um pipeline padrão antes de executar" : undefined}
+                title={pipelineBlocked ? "Configure um pipeline padrão antes de executar" : "Apenas conta candidatos sem gravar"}
               >
                 {promoteAll.isPending && promoteAll.variables?.dry_run ? (
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                 ) : (
                   <FlaskConical className="w-4 h-4 mr-2" />
                 )}
-                Simular (Dry Run)
-              </Button>
-              <Button
-                onClick={() => handleRun(false)}
-                disabled={!!runningJob || promoteAll.isPending || pipelineBlocked}
-                title={pipelineBlocked ? "Configure um pipeline padrão antes de executar" : undefined}
-              >
-                {promoteAll.isPending && !promoteAll.variables?.dry_run ? (
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                ) : (
-                  <Rocket className="w-4 h-4 mr-2" />
-                )}
-                Promover para CRM
+                Simular
               </Button>
             </div>
+          </div>
+
+          {/* Botões sequenciais: Clientes → Projetos → Propostas */}
+          <div className="space-y-2">
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+              Promover por etapa (sequencial — mais leve)
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+              {([
+                { scope: "cliente"  as const, label: "1. Promover Clientes",  icon: Users },
+                { scope: "projeto"  as const, label: "2. Promover Projetos",  icon: FolderKanban },
+                { scope: "proposta" as const, label: "3. Promover Propostas", icon: FileText },
+              ]).map(({ scope, label, icon: Icon }) => {
+                const isThisRunning = activeScope === scope && promoteAll.isPending;
+                return (
+                  <Button
+                    key={scope}
+                    variant={scope === "proposta" ? "default" : "outline"}
+                    onClick={() => handleRun(false, scope)}
+                    disabled={!!runningJob || promoteAll.isPending || pipelineBlocked}
+                    title={pipelineBlocked ? "Configure um pipeline padrão antes de executar" : undefined}
+                    className="justify-start"
+                  >
+                    {isThisRunning ? (
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    ) : (
+                      <Icon className="w-4 h-4 mr-2" />
+                    )}
+                    {label}
+                  </Button>
+                );
+              })}
+            </div>
+            <p className="text-[11px] text-muted-foreground">
+              <strong>Recomendado:</strong> rode em sequência. Cada etapa só processa o que ainda não foi promovido.
+              "Promover Propostas" executa o fluxo completo (cliente + projeto + proposta) para itens pendentes.
+            </p>
           </div>
 
           {runningJob && (
