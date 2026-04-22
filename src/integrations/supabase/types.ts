@@ -20614,6 +20614,50 @@ export type Database = {
         }
         Relationships: []
       }
+      sm_projeto_funis_raw: {
+        Row: {
+          created_at: string
+          id: string
+          import_job_id: string | null
+          imported_at: string
+          payload: Json
+          sm_funnel_id: number
+          sm_project_id: number
+          sm_stage_id: number | null
+          tenant_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          import_job_id?: string | null
+          imported_at?: string
+          payload: Json
+          sm_funnel_id: number
+          sm_project_id: number
+          sm_stage_id?: number | null
+          tenant_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          import_job_id?: string | null
+          imported_at?: string
+          payload?: Json
+          sm_funnel_id?: number
+          sm_project_id?: number
+          sm_stage_id?: number | null
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sm_projeto_funis_raw_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sm_projetos_raw: {
         Row: {
           created_at: string
