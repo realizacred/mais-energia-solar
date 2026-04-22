@@ -755,10 +755,10 @@ export default function Admin() {
                 {/* Telas antigas — redirecionam para o novo wizard */}
                 <Route path="importacao-solarmarket" element={<Navigate to="/admin/migracao-solarmarket" replace />} />
                 <Route path="promocao-solarmarket" element={<Navigate to="/admin/migracao-solarmarket" replace />} />
+                <Route path="solarmarket-mapeamentos" element={<Navigate to="/admin/migracao-solarmarket" replace />} />
                 <Route path="configuracoes/integracoes/solarmarket" element={<SolarmarketConfigPage />} />
                 <Route path="solarmarket-diagnostic" element={<SolarmarketDiagnosticPage />} />
                 <Route path="solarmarket-mapping" element={<SolarmarketMappingPage />} />
-                <Route path="solarmarket-mapeamentos" element={<SolarmarketMapeamentos />} />
                 
                 {/* Catch-all */}
                 <Route path="*" element={<Navigate to="leads" replace />} />
