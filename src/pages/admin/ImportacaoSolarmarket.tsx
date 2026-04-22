@@ -14,7 +14,7 @@ import { useSolarmarketConfig } from "@/hooks/useSolarmarketConfig";
 import { SolarmarketImportedTabs } from "@/components/admin/solarmarket/SolarmarketImportedTabs";
 import { ImportErrorsDialog } from "@/components/admin/solarmarket/ImportErrorsDialog";
 import { PromocaoSolarmarketSection } from "@/components/admin/solarmarket/PromocaoSolarmarketSection";
-import { ImportFunnelsCard } from "@/components/admin/solarmarket/ImportFunnelsCard";
+
 import { useTenantId } from "@/hooks/useTenantId";
 import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
@@ -30,7 +30,7 @@ import {
 
 const SCOPE_ITEMS: { k: keyof ImportScope; label: string; description: string; icon: typeof Users }[] = [
   { k: "clientes", label: "Clientes", description: "Cadastros e contatos", icon: Users },
-  { k: "projetos", label: "Projetos", description: "Oportunidades e deals", icon: FolderKanban },
+  { k: "projetos", label: "Projetos", description: "Oportunidades e deals + vínculos com funis/etapas", icon: FolderKanban },
   { k: "propostas", label: "Propostas", description: "Orçamentos comerciais", icon: FileText },
   { k: "funis", label: "Funis e Etapas", description: "Pipelines do CRM", icon: GitBranch },
   { k: "custom_fields", label: "Campos Customizados", description: "Atributos extras", icon: Sliders },
@@ -44,6 +44,7 @@ const STEP_LABELS: Record<string, string> = {
   funis: "Funis e Etapas",
   clientes: "Clientes",
   projetos: "Projetos",
+  projeto_funis: "Funis dos Projetos",
   propostas: "Propostas",
   custom_fields: "Campos Customizados",
   done: "Concluído",
@@ -113,6 +114,7 @@ export default function ImportacaoSolarmarket() {
     propostas: true,
     funis: true,
     custom_fields: true,
+    projeto_funis: true,
   });
 
   const isImporting = jobs.some((j) => j.status === "pending" || j.status === "running");
@@ -391,10 +393,7 @@ export default function ImportacaoSolarmarket() {
           </div>
         )}
 
-        {/* ============= IMPORTAÇÃO COMPLEMENTAR — FUNIS DOS PROJETOS ============= */}
-        {isConfigured && (
-          <ImportFunnelsCard tenantId={tenantId} />
-        )}
+        {/* Card "Funis dos Projetos" removido — agora é parte integrada do fluxo principal de importação. */}
 
         {/* ============= HERO CARD DE PROGRESSO (DOMINANTE) ============= */}
         {runningJob && (
