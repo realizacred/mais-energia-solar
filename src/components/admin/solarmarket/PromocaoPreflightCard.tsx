@@ -40,9 +40,9 @@ function ChecklistItem({ ok, label, detail }: ChecklistItemProps) {
 
 export function PromocaoPreflightCard() {
   const diagnostic = useSolarmarketDiagnostic();
-  const consultorMapping = useSmConsultorMapping();
+  const consultores = useConsultoresAtivos();
 
-  if (diagnostic.isLoading || consultorMapping.isLoading) {
+  if (diagnostic.isLoading || consultores.isLoading) {
     return (
       <div className="space-y-3">
         <Skeleton className="h-16 w-full" />
@@ -56,10 +56,9 @@ export function PromocaoPreflightCard() {
   const stagesCount = data?.comercialPipeline?.stages.length ?? 0;
   const hasStages = stagesCount > 0;
 
-  const mappings = consultorMapping.data ?? [];
-  const totalConsultores = mappings.length;
-  const mappedConsultores = mappings.filter((m) => !!m.consultor_id).length;
-  const allMapped = totalConsultores > 0 && mappedConsultores === totalConsultores;
+  const totalConsultores = consultores.data?.length ?? 0;
+  const hasConsultores = totalConsultores > 0;
+  const allReady = hasComercial && hasStages && hasConsultores;
 
   return (
     <div className="space-y-4">
