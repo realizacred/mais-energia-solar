@@ -39,6 +39,7 @@ import { toast } from "@/hooks/use-toast";
 import {
   useSolarmarketPromote,
   useSolarmarketPromoteLogs,
+  useSolarmarketStagingTotals,
   type PromotionJob,
 } from "@/hooks/useSolarmarketPromote";
 import { useDefaultPipeline } from "@/hooks/useDefaultPipeline";
