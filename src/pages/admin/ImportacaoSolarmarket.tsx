@@ -26,6 +26,7 @@ import {
 import {
   Cloud, CheckCircle2, XCircle, Loader2, Download, Settings, AlertTriangle, Ban, Trash2, Eraser,
   Users, FolderKanban, FileText, GitBranch, Sliders, Activity, Database, Sparkles, ShieldCheck, TrendingUp,
+  CheckCircle, ArrowRight,
 } from "lucide-react";
 
 const SCOPE_ITEMS: { k: keyof ImportScope; label: string; description: string; icon: typeof Users }[] = [
@@ -125,7 +126,7 @@ export default function ImportacaoSolarmarket() {
     refetchInterval: isImporting ? 3000 : false,
     queryFn: async () => {
       const tables = [
-        "sm_clientes_raw", "sm_projetos_raw", "sm_propostas_raw", "sm_funis_raw", "sm_custom_fields_raw",
+        "sm_clientes_raw", "sm_projetos_raw", "sm_propostas_raw", "sm_funis_raw", "sm_custom_fields_raw", "sm_projeto_funis_raw",
       ] as const;
       const results = await Promise.all(
         tables.map((t) => (supabase as any).from(t).select("id", { count: "exact", head: true })),
@@ -136,6 +137,7 @@ export default function ImportacaoSolarmarket() {
         propostas: results[2].count ?? 0,
         funis: results[3].count ?? 0,
         custom_fields: results[4].count ?? 0,
+        projeto_funis: results[5].count ?? 0,
       };
     },
   });
@@ -242,6 +244,7 @@ export default function ImportacaoSolarmarket() {
         { label: "Clientes", value: liveCounts.data?.clientes ?? runningJob.total_clientes ?? 0, icon: Users, tone: "primary" as const },
         { label: "Projetos", value: liveCounts.data?.projetos ?? runningJob.total_projetos ?? 0, icon: FolderKanban, tone: "info" as const },
         { label: "Propostas", value: liveCounts.data?.propostas ?? runningJob.total_propostas ?? 0, icon: FileText, tone: "secondary" as const },
+        { label: "Funis dos Projetos", value: liveCounts.data?.projeto_funis ?? (runningJob as any).total_projeto_funis ?? 0, icon: GitBranch, tone: "primary" as const },
         {
           label: "Erros",
           value: runningJob.total_errors ?? 0,
@@ -796,6 +799,45 @@ export default function ImportacaoSolarmarket() {
             </CardContent>
           </Card>
         </section>
+
+        {/* ============= NAVEGAÇÃO PARA FASE 2 (MAPEAMENTOS) ============= */}
+        {(() => {
+          const importDone =
+            (liveCounts.data?.clientes ?? 0) > 0 && (liveCounts.data?.projetos ?? 0) > 0;
+          if (importDone) {
+            return (
+              <Card className="bg-success/10 border-success/20 shadow-sm">
+                <CardContent className="p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div className="min-w-0">
+                    <h3 className="text-base font-semibold text-foreground flex items-center gap-2">
+                      <CheckCircle className="w-5 h-5 text-success" />
+                      Importação concluída
+                    </h3>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Próximo passo: configurar mapeamentos entre os funis do SolarMarket e os
+                      pipelines do seu CRM.
+                    </p>
+                  </div>
+                  <Button asChild variant="default" className="shrink-0">
+                    <Link to="/admin/solarmarket-mapeamentos">
+                      Ir para Fase 2 - Mapeamentos
+                      <ArrowRight className="w-4 h-4 ml-2" />
+                    </Link>
+                  </Button>
+                </CardContent>
+              </Card>
+            );
+          }
+          return (
+            <Card className="bg-muted/30 border-border shadow-sm">
+              <CardContent className="p-6">
+                <p className="text-sm text-muted-foreground text-center">
+                  ⏳ Complete a importação acima antes de ir para a Fase 2
+                </p>
+              </CardContent>
+            </Card>
+          );
+        })()}
 
         {/* ============= SEÇÃO: PROMOÇÃO PARA CRM (FASE 2) ============= */}
         <div className="border-t border-border pt-8">
