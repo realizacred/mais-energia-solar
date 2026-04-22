@@ -26,7 +26,7 @@ import {
 import {
   Cloud, CheckCircle2, XCircle, Loader2, Download, Settings, AlertTriangle, Ban, Trash2, Eraser,
   Users, FolderKanban, FileText, GitBranch, Sliders, Activity, Database, Sparkles, ShieldCheck, TrendingUp,
-  CheckCircle, ArrowRight,
+  CheckCircle, ArrowRight, Clock,
 } from "lucide-react";
 
 const SCOPE_ITEMS: { k: keyof ImportScope; label: string; description: string; icon: typeof Users }[] = [
@@ -802,8 +802,29 @@ export default function ImportacaoSolarmarket() {
 
         {/* ============= NAVEGAÇÃO PARA FASE 2 (MAPEAMENTOS) ============= */}
         {(() => {
-          const importDone =
-            (liveCounts.data?.clientes ?? 0) > 0 && (liveCounts.data?.projetos ?? 0) > 0;
+          const counts = {
+            clientes: liveCounts.data?.clientes ?? 0,
+            projetos: liveCounts.data?.projetos ?? 0,
+            propostas: liveCounts.data?.propostas ?? 0,
+            funis: liveCounts.data?.funis ?? 0,
+            projeto_funis: liveCounts.data?.projeto_funis ?? 0,
+            custom_fields: liveCounts.data?.custom_fields ?? 0,
+          };
+
+          const noRunningJob =
+            !runningJob || !["running", "pending"].includes(runningJob.status);
+
+          const allEntitiesImported =
+            counts.clientes > 0 &&
+            counts.projetos > 0 &&
+            counts.propostas > 0 &&
+            counts.funis > 0 &&
+            counts.projeto_funis > 0 &&
+            counts.custom_fields > 0;
+
+          const importDone = noRunningJob && allEntitiesImported;
+          const importInProgress = !noRunningJob;
+
           if (importDone) {
             return (
               <Card className="bg-success/10 border-success/20 shadow-sm">
@@ -828,12 +849,72 @@ export default function ImportacaoSolarmarket() {
               </Card>
             );
           }
+
+          if (importInProgress) {
+            return (
+              <Card className="bg-info/10 border-info/20 shadow-sm">
+                <CardContent className="p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div className="min-w-0">
+                    <h3 className="text-base font-semibold text-foreground flex items-center gap-2">
+                      <Activity className="w-5 h-5 text-info" />
+                      Importação em andamento
+                    </h3>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Aguarde a importação terminar antes de avançar para a Fase 2.
+                    </p>
+                  </div>
+                  <Button variant="default" className="shrink-0" disabled>
+                    Ir para Fase 2 - Mapeamentos
+                    <ArrowRight className="w-4 h-4 ml-2" />
+                  </Button>
+                </CardContent>
+              </Card>
+            );
+          }
+
+          const checklist: { label: string; current: number; expected: number | null }[] = [
+            { label: "Clientes", current: counts.clientes, expected: 1930 },
+            { label: "Projetos", current: counts.projetos, expected: 1900 },
+            { label: "Propostas", current: counts.propostas, expected: 1821 },
+            { label: "Funis", current: counts.funis, expected: 6 },
+            { label: "Vínculos projeto-funil", current: counts.projeto_funis, expected: null },
+            { label: "Campos customizados", current: counts.custom_fields, expected: 17 },
+          ];
+
           return (
             <Card className="bg-muted/30 border-border shadow-sm">
-              <CardContent className="p-6">
+              <CardContent className="p-6 space-y-4">
                 <p className="text-sm text-muted-foreground text-center">
                   ⏳ Complete a importação acima antes de ir para a Fase 2
                 </p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {checklist.map((item) => {
+                    const ok = item.current > 0;
+                    return (
+                      <div
+                        key={item.label}
+                        className="flex items-center justify-between gap-3 px-3 py-2 rounded-md bg-card border border-border"
+                      >
+                        <span className="text-sm text-foreground">{item.label}</span>
+                        <span className="flex items-center gap-2 text-sm font-mono">
+                          <span className={ok ? "text-success" : "text-muted-foreground"}>
+                            {item.current.toLocaleString("pt-BR")}
+                            {item.expected !== null && (
+                              <span className="text-muted-foreground">
+                                /{item.expected.toLocaleString("pt-BR")}
+                              </span>
+                            )}
+                          </span>
+                          {ok ? (
+                            <CheckCircle className="w-4 h-4 text-success" />
+                          ) : (
+                            <Clock className="w-4 h-4 text-muted-foreground" />
+                          )}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
               </CardContent>
             </Card>
           );
