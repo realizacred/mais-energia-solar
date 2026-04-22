@@ -1346,6 +1346,7 @@ async function runImportJob(
     };
     await updateJob(state, {
       total_custom_fields: totalCampos,
+      progress_pct: calculateProgress(runtime),
       updated_at: new Date().toISOString(),
       scope: mergeScopeWithRuntime(rawScope, runtime),
     });
