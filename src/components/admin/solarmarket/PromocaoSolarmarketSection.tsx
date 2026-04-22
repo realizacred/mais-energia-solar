@@ -179,6 +179,50 @@ export function PromocaoSolarmarketSection() {
     }
   };
 
+  /**
+   * handleRunAll — Promove tudo em sequência: Clientes → Projetos → Propostas.
+   * Para cada escopo, executa lotes em loop até zerar pendentes (ou atingir
+   * teto de segurança de 100 iterações por escopo). Sem dry_run.
+   */
+  const handleRunAll = async () => {
+    if (pipelineBlocked || !!runningJob || promoteAll.isPending || runAllState.running) return;
+    const limit = Math.min(Math.max(1, Number(batchLimit) || 1), 200);
+    const scopes: Array<"cliente" | "projeto" | "proposta"> = ["cliente", "projeto", "proposta"];
+    setRunAllState({ running: true, scope: scopes[0], iteration: 0, processed: 0 });
+    let totalProcessed = 0;
+    let totalPromoted = 0;
+    try {
+      for (const scope of scopes) {
+        let safety = 0;
+        while (safety < 100) {
+          safety += 1;
+          setRunAllState((s) => ({ ...s, scope, iteration: safety }));
+          setActiveScope(scope);
+          const res = await promoteAll.mutateAsync({ batch_limit: limit, dry_run: false, scope });
+          const counters = res?.counters ?? {};
+          const processedNow = Number(counters.processed ?? counters.total ?? 0);
+          const promotedNow = Number(counters.promoted ?? 0);
+          totalProcessed += processedNow;
+          totalPromoted += promotedNow;
+          setRunAllState((s) => ({ ...s, processed: totalProcessed }));
+          // Parar este escopo se não houve nada para processar
+          if (processedNow === 0) break;
+          // Throttle para não estourar rate limits
+          await new Promise((r) => setTimeout(r, 600));
+        }
+      }
+      toast({
+        title: "Promoção completa concluída",
+        description: `${totalPromoted} item(ns) promovido(s) em ${totalProcessed} processado(s).`,
+      });
+    } catch (e) {
+      const message = e instanceof Error ? e.message : String(e);
+      toast({ title: "Promoção interrompida", description: message, variant: "destructive" });
+    } finally {
+      setActiveScope(null);
+      setRunAllState({ running: false, scope: null, iteration: 0, processed: 0 });
+    }
+
   const handleCancel = async (job: PromotionJob) => {
     try {
       await cancelJob.mutateAsync({ job_id: job.id, reason: "Cancelado pelo usuário" });
