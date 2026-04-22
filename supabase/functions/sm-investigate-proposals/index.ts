@@ -126,8 +126,39 @@ Deno.serve(async (req) => {
       }
     }
 
-    // ─── ETAPA 3: Testar endpoint global /proposals (pode não existir)
-    const globalProposals = await smGet(baseUrl, access, "/proposals", { limit: 10 });
+    // ─── ETAPA 3: Testar variantes de endpoint global de propostas
+    const altListings: Record<string, any> = {};
+    const altPaths = [
+      "/proposals",
+      "/proposal",
+      "/quotes",
+      "/quotations",
+      "/propostas",
+      "/projects/proposals",
+      "/v2/proposals",
+    ];
+    for (const path of altPaths) {
+      const r = await smGet(baseUrl, access, path, { limit: 5 });
+      altListings[`GET ${path}?limit=5`] = {
+        status: r.status,
+        bodyPreview: typeof r.body === "string"
+          ? r.body.slice(0, 200)
+          : Array.isArray(r.body)
+            ? { isArray: true, count: r.body.length, firstKeys: r.body[0] ? Object.keys(r.body[0]) : [] }
+            : r.body && typeof r.body === "object"
+              ? { keys: Object.keys(r.body).slice(0, 20), sample: r.status === 200 ? r.body : undefined }
+              : r.body,
+      };
+      // Se achou uma proposta, captura
+      if (r.status === 200 && !firstPropId) {
+        const list: any[] = Array.isArray(r.body) ? r.body : r.body?.data ?? r.body?.results ?? r.body?.items ?? [];
+        if (list.length > 0) {
+          firstPropId = list[0]?.id ?? list[0]?._id ?? null;
+          propList = list;
+        }
+      }
+    }
+    const globalProposals = altListings["GET /proposals?limit=5"];
 
     // ─── ETAPA 4: Testar endpoints de vínculo de funil em propostas
     const tests: Record<string, any> = {};
