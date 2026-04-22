@@ -182,6 +182,23 @@ Deno.serve(async (req) => {
     const sampleProposal = propList[0] ?? null;
     const sampleKeys = sampleProposal ? Object.keys(sampleProposal) : [];
 
+    // ─── ETAPA 6: Pegar projeto completo + variantes para ver se proposta é embutida
+    const fullProject = firstProjId ? await smGet(baseUrl, access, `/projects/${firstProjId}`) : null;
+    const projectIncludeProposals = firstProjId
+      ? await smGet(baseUrl, access, `/projects/${firstProjId}`, { include: "proposals,kits,quotes" })
+      : null;
+    const projectKits = firstProjId ? await smGet(baseUrl, access, `/projects/${firstProjId}/kits`) : null;
+    const projectQuotes = firstProjId ? await smGet(baseUrl, access, `/projects/${firstProjId}/quotes`) : null;
+    const projectProposalsPlural = firstProjId ? await smGet(baseUrl, access, `/projects/${firstProjId}/proposal`) : null;
+
+    const projectExtras = {
+      "GET /projects/:id (full)": fullProject ? { status: fullProject.status, keys: fullProject.body && typeof fullProject.body === "object" ? Object.keys(fullProject.body) : [], body: fullProject.body } : null,
+      "GET /projects/:id?include=proposals,kits,quotes": projectIncludeProposals ? { status: projectIncludeProposals.status, body: projectIncludeProposals.body } : null,
+      "GET /projects/:id/kits": projectKits ? { status: projectKits.status, body: projectKits.body } : null,
+      "GET /projects/:id/quotes": projectQuotes ? { status: projectQuotes.status, body: projectQuotes.body } : null,
+      "GET /projects/:id/proposal (singular)": projectProposalsPlural ? { status: projectProposalsPlural.status, body: projectProposalsPlural.body } : null,
+    };
+
     return new Response(
       JSON.stringify({
         ok: true,
