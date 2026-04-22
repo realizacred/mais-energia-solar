@@ -182,6 +182,39 @@ export default function MigracaoSolarmarket() {
   const isImporting = !!runningJob;
 
   const [advancedOpen, setAdvancedOpen] = useState(false);
+  const [resetConfirmText, setResetConfirmText] = useState("");
+  const [resetOpen, setResetOpen] = useState(false);
+  const [resetting, setResetting] = useState(false);
+  const queryClient = useQueryClient();
+
+  const handleResetAll = async () => {
+    setResetting(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("sm-reset-all");
+      if (error) throw error;
+      if (data?.success === false) {
+        const firstErr = data?.errors?.[0]?.error ?? "Falha parcial";
+        throw new Error(firstErr);
+      }
+      toast({
+        title: "Reset executado com sucesso",
+        description: `${(data?.total_deleted ?? 0).toLocaleString("pt-BR")} registro(s) apagado(s).`,
+      });
+      setResetOpen(false);
+      setResetConfirmText("");
+      await queryClient.invalidateQueries();
+      // Recarregar a página para garantir estado limpo.
+      setTimeout(() => window.location.reload(), 600);
+    } catch (e: any) {
+      toast({
+        title: "Falha ao resetar",
+        description: e?.message ?? "Tente novamente.",
+        variant: "destructive",
+      });
+    } finally {
+      setResetting(false);
+    }
+  };
 
   if (isLoading || loadingCfg) {
     return <LoadingState message="Carregando migração..." />;
