@@ -495,6 +495,75 @@ export default function MigracaoSolarmarket() {
           </CardContent>
         </Card>
 
+        {/* INSPECIONAR DADOS IMPORTADOS */}
+        {tenantId && (stats?.totalStaging ?? 0) > 0 && (
+          <Card className="bg-card border-border shadow-sm">
+            <CardContent className="p-6 space-y-4">
+              <div className="flex items-start gap-3">
+                <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                  <EyeIcon className="w-4 h-4 text-primary" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h3 className="text-base font-semibold text-foreground">
+                    Inspecionar dados importados
+                  </h3>
+                  <p className="text-sm text-muted-foreground mt-0.5">
+                    Veja os dados brutos antes de configurar os mapeamentos.
+                  </p>
+                </div>
+              </div>
+
+              <Tabs defaultValue="clientes" className="w-full">
+                <TabsList className="overflow-x-auto flex-wrap h-auto">
+                  <TabsTrigger value="clientes">
+                    Clientes ({counts.clientes.toLocaleString("pt-BR")})
+                  </TabsTrigger>
+                  <TabsTrigger value="projetos">
+                    Projetos ({counts.projetos.toLocaleString("pt-BR")})
+                  </TabsTrigger>
+                  <TabsTrigger value="propostas">
+                    Propostas ({counts.propostas.toLocaleString("pt-BR")})
+                  </TabsTrigger>
+                  <TabsTrigger value="funis">
+                    Funis ({counts.funis.toLocaleString("pt-BR")})
+                  </TabsTrigger>
+                  <TabsTrigger value="projeto-funis">
+                    Vínculos ({counts.projeto_funis.toLocaleString("pt-BR")})
+                  </TabsTrigger>
+                  <TabsTrigger value="custom">
+                    Campos ({counts.custom_fields.toLocaleString("pt-BR")})
+                  </TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="clientes" className="mt-4">
+                  <SmStagingTable tabela="sm_clientes_raw" tenantId={tenantId} />
+                </TabsContent>
+                <TabsContent value="projetos" className="mt-4">
+                  <SmStagingTable tabela="sm_projetos_raw" tenantId={tenantId} />
+                </TabsContent>
+                <TabsContent value="propostas" className="mt-4">
+                  <SmStagingTable tabela="sm_propostas_raw" tenantId={tenantId} />
+                </TabsContent>
+                <TabsContent value="funis" className="mt-4">
+                  <SmStagingTable tabela="sm_funis_raw" tenantId={tenantId} />
+                </TabsContent>
+                <TabsContent value="projeto-funis" className="mt-4">
+                  <SmStagingTable
+                    tabela="sm_projeto_funis_raw"
+                    tenantId={tenantId}
+                  />
+                </TabsContent>
+                <TabsContent value="custom" className="mt-4">
+                  <SmStagingTable
+                    tabela="sm_custom_fields_raw"
+                    tenantId={tenantId}
+                  />
+                </TabsContent>
+              </Tabs>
+            </CardContent>
+          </Card>
+        )}
+
         {/* RODAPÉ — PRÓXIMO PASSO */}
         {importDone ? (
           <Card className="bg-success/10 border-success/20 shadow-sm">
