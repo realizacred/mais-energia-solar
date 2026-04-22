@@ -27794,6 +27794,7 @@ export type Database = {
         Args: { p_at: string; p_phone_e164: string; p_tenant_id: string }
         Returns: undefined
       }
+      trigger_sm_import_project_funnels: { Args: never; Returns: undefined }
       try_create_post_sale_visit: {
         Args: {
           p_data_prevista: string
