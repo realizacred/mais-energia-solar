@@ -34,6 +34,7 @@ type ImportStepKey =
   | "funis"
   | "clientes"
   | "projetos"
+  | "projeto_funis"
   | "propostas"
   | "custom_fields";
 
@@ -51,6 +52,7 @@ const STEP_SEQUENCE: ImportStepKey[] = [
   "funis",
   "clientes",
   "projetos",
+  "projeto_funis",
   "propostas",
   "custom_fields",
 ];
@@ -60,10 +62,14 @@ function createStepRuntime(): StepRuntimeState {
 }
 
 function getEnabledScope(rawScope: any): Record<ImportStepKey, boolean> {
+  const projetosOn = rawScope?.projetos !== false;
   return {
     funis: rawScope?.funis !== false,
     clientes: rawScope?.clientes !== false,
-    projetos: rawScope?.projetos !== false,
+    projetos: projetosOn,
+    // projeto_funis acompanha automaticamente o passo de projetos
+    // (necessário para a promoção saber em qual etapa cada projeto está).
+    projeto_funis: rawScope?.projeto_funis === false ? false : projetosOn,
     propostas: rawScope?.propostas !== false,
     custom_fields: rawScope?.custom_fields !== false,
   };
@@ -78,6 +84,7 @@ function getJobRuntime(rawScope: any): JobRuntimeState {
       funis: { ...createStepRuntime(), ...(steps?.funis ?? {}) },
       clientes: { ...createStepRuntime(), ...(steps?.clientes ?? {}) },
       projetos: { ...createStepRuntime(), ...(steps?.projetos ?? {}) },
+      projeto_funis: { ...createStepRuntime(), ...(steps?.projeto_funis ?? {}) },
       propostas: { ...createStepRuntime(), ...(steps?.propostas ?? {}) },
       custom_fields: { ...createStepRuntime(), ...(steps?.custom_fields ?? {}) },
     },
