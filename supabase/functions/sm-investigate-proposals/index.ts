@@ -213,6 +213,7 @@ Deno.serve(async (req) => {
             ? { status: projProposals.status, count: propList.length, sampleBodyKeys: projProposals.body && typeof projProposals.body === "object" ? Object.keys(projProposals.body).slice(0, 20) : null }
             : null,
           altEndpointVariants: altListings,
+          projectExtras,
           "GET /projects/:id/funnels": projFunnels
             ? { status: projFunnels.status, body: projFunnels.body }
             : null,
