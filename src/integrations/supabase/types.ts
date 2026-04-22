@@ -21151,6 +21151,7 @@ export type Database = {
           total_custom_fields: number
           total_errors: number
           total_funis: number
+          total_projeto_funis: number
           total_projetos: number
           total_propostas: number
           total_warnings: number
@@ -21173,6 +21174,7 @@ export type Database = {
           total_custom_fields?: number
           total_errors?: number
           total_funis?: number
+          total_projeto_funis?: number
           total_projetos?: number
           total_propostas?: number
           total_warnings?: number
@@ -21195,6 +21197,7 @@ export type Database = {
           total_custom_fields?: number
           total_errors?: number
           total_funis?: number
+          total_projeto_funis?: number
           total_projetos?: number
           total_propostas?: number
           total_warnings?: number
