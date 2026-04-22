@@ -1332,7 +1332,7 @@ async function actionPromoteAll(
   const consultorFallback = await resolveConsultorFallback(admin, tenantId);
   await logEvent(admin, {
     jobId, tenantId, severity: "info", step: "init", status: "started",
-    message: `promote-all iniciado (batch_limit=${batchLimit}, dry_run=${dryRun}); pipeline=${pipeline.funilId ?? "—"} etapa=${pipeline.etapaId ?? "—"} configured=${pipeline.hasPipelineConfigured}; consultor_fallback=${consultorFallback.fallbackNome ?? "—"}`,
+    message: `promote-all iniciado (batch_limit=${batchLimit}, dry_run=${dryRun}, scope=${scope}); pipeline=${pipeline.funilId ?? "—"} etapa=${pipeline.etapaId ?? "—"} configured=${pipeline.hasPipelineConfigured}; consultor_fallback=${consultorFallback.fallbackNome ?? "—"}`,
   });
 
   // Backlog: propostas raw que ainda não têm link canônico em external_entity_links.
