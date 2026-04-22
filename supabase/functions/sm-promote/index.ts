@@ -1379,7 +1379,7 @@ async function actionPromoteAll(
   }
 
   for (const row of candidates) {
-    await promoteOneProposalRow(admin, state, jobId, tenantId, row, pipeline, consultorFallback);
+    await promoteOneProposalRow(admin, state, jobId, tenantId, row, pipeline, consultorFallback, scope);
   }
 
   // Status final:
