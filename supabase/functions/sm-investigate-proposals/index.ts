@@ -98,7 +98,6 @@ Deno.serve(async (req) => {
     const projList: any[] =
       Array.isArray(projects.body) ? projects.body :
       projects.body?.data ?? projects.body?.results ?? projects.body?.items ?? [];
-    const firstProjId = projList[0]?.id ?? projList[0]?._id ?? null;
 
     // ─── ETAPA 1.5: Listar mais projetos e iterar até encontrar 1 com propostas
     const projectsBig = await smGet(baseUrl, access, "/projects", { page: 1, limit: 50 });
