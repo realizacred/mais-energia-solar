@@ -160,8 +160,7 @@ export default function MigracaoSolarmarket() {
     isLoading,
     currentStep,
     stagingPronto,
-    isImporting,
-    runningJob,
+    runningJob: runningJobFromMigracao,
     importAll,
     cancelImport,
     testConnection,
@@ -170,6 +169,11 @@ export default function MigracaoSolarmarket() {
   const { isConfigured, isLoading: loadingCfg } = useSolarmarketConfig();
   const { clearStaging } = useSolarmarketImport();
   const { data: runningJobFromHook } = useRunningSolarmarketJob(tenantId ?? null);
+  const { data: lastJob } = useLastSolarmarketJob(tenantId ?? null);
+
+  // Fonte única de verdade para "está importando agora": hook dedicado (running/pending).
+  const runningJob = runningJobFromHook ?? runningJobFromMigracao ?? null;
+  const isImporting = !!runningJob;
 
   const [advancedOpen, setAdvancedOpen] = useState(false);
 
