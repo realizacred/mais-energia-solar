@@ -33,7 +33,13 @@ import {
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { LoadingState } from "@/components/ui-kit/LoadingState";
+import { SmStagingTable } from "@/components/admin/solarmarket/SmStagingTable";
+import { supabase } from "@/integrations/supabase/client";
+import { useQueryClient } from "@tanstack/react-query";
+import { Trash2, Eye as EyeIcon } from "lucide-react";
 import { useMigracaoSolarmarket } from "@/hooks/useMigracaoSolarmarket";
 import { useSolarmarketImport } from "@/hooks/useSolarmarketImport";
 import { useSolarmarketConfig } from "@/hooks/useSolarmarketConfig";
