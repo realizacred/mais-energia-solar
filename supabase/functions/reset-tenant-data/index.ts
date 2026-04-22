@@ -39,25 +39,6 @@ async function deleteTableInBatches(
   }
 }
 
-async function tableExists(
-  admin: ReturnType<typeof createClient>,
-  tableName: string,
-) {
-  const { data, error } = await admin.rpc("exec_sql", {
-    query: `select exists (
-      select 1
-      from information_schema.tables
-      where table_schema = 'public'
-        and table_name = '${tableName.replace(/'/g, "''")}'
-    ) as exists;`,
-  } as never);
-
-  if (error) {
-    return false;
-  }
-
-  return Array.isArray(data) ? data[0]?.exists === true : false;
-}
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -118,70 +99,28 @@ Deno.serve(async (req) => {
 
     const tenantId = profile.tenant_id;
 
-    // GUARD: Check SSOT for active SolarMarket operations
-    const { data: hasActive, error: ssotErr } = await admin.rpc(
-      "has_active_sm_operation",
-      { p_tenant_id: tenantId }
-    );
-
-    if (ssotErr) {
-      console.error("[reset-tenant-data] SSOT check error:", ssotErr.message);
-    }
-
-    if (hasActive === true) {
-      return new Response(
-        JSON.stringify({
-          error: "Reset bloqueado: existe operação SolarMarket em andamento. Aguarde a conclusão antes de resetar.",
-          blocked: true,
-        }),
-        { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    // GUARD fallback: Check solar_market_sync_logs for running syncs
-    const { data: activeSyncs } = await admin
-      .from("solar_market_sync_logs")
-      .select("id", { count: "exact", head: true })
+    // Limpar links canônicos do SolarMarket para evitar reuso fantasma após reset
+    const { error: linksError } = await admin
+      .from("external_entity_links")
+      .delete()
       .eq("tenant_id", tenantId)
-      .eq("status", "running");
+      .eq("source", "solarmarket");
 
-    const syncCount = (activeSyncs as any)?.length ?? 0;
-
-    if (syncCount > 0) {
-      return new Response(
-        JSON.stringify({
-          error: "Reset bloqueado: existe sincronização SolarMarket em andamento. Aguarde a conclusão antes de resetar.",
-          blocked: true,
-          active_syncs: syncCount,
-        }),
-        { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+    if (linksError) {
+      throw new Error(`Erro ao apagar vínculos canônicos SM: ${linksError.message}`);
     }
 
-    // Marcar syncs travados como failed
-    await admin
-      .from("solar_market_sync_logs")
-      .update({
-        status: "failed",
-        finished_at: new Date().toISOString(),
-      })
-      .eq("tenant_id", tenantId)
-      .eq("status", "running");
-
-    // Deletar tabelas SM grandes em lotes por IDs para evitar timeout e erros silenciosos
-    for (const bigTable of ["solar_market_proposals", "solar_market_projects"]) {
+    // Deletar tabelas SM reais em lotes para evitar timeout
+    for (const bigTable of ["sm_propostas_raw", "sm_projetos_raw"]) {
       await deleteTableInBatches(admin, bigTable, tenantId);
     }
 
     // Resto das tabelas SM (pequenas, uma chamada basta)
     const smallSmTables = [
-      "solar_market_clients",
-      "solar_market_custom_field_values",
-      "solar_market_custom_fields",
-      "solar_market_custom_fields_snapshots",
-      "solar_market_funnel_stages",
-      "solar_market_funnels",
-      "solar_market_sync_logs",
+      "sm_clientes_raw",
+      "sm_custom_fields_raw",
+      "sm_funis_raw",
+      "sm_consultor_mapping",
     ];
     for (const table of smallSmTables) {
       const { error } = await admin.from(table).delete().eq("tenant_id", tenantId);
@@ -189,6 +128,22 @@ Deno.serve(async (req) => {
         throw new Error(`Erro ao apagar registros de ${table}: ${error.message}`);
       }
     }
+
+    // RPC para dados canônicos (já tem guarda interna de migração)
+    const { data: counts, error: resetErr } = await admin
+      .rpc("reset_migrated_data", { p_tenant_id: tenantId });
+
+    if (resetErr) {
+      return new Response(
+        JSON.stringify({ error: resetErr.message }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    return new Response(
+      JSON.stringify({ success: true, counts }),
+      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
 
     // RPC para dados canônicos (já tem guarda interna de migração)
     const { data: counts, error: resetErr } = await admin
