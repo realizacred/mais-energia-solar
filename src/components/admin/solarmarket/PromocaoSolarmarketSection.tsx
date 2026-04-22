@@ -120,6 +120,7 @@ export function PromocaoSolarmarketSection() {
   const [batchLimit, setBatchLimit] = useState(50);
   const [auditJobId, setAuditJobId] = useState<string | null>(null);
   const [activeScope, setActiveScope] = useState<"cliente" | "projeto" | "proposta" | null>(null);
+  const [runAllState, setRunAllState] = useState<{ running: boolean; scope: "cliente" | "projeto" | "proposta" | null; iteration: number; processed: number }>({ running: false, scope: null, iteration: 0, processed: 0 });
 
   const failedJobsCount = useMemo(
     () => jobs.filter((j) => ["failed", "cancelled", "completed_with_errors"].includes(j.status)).length,
