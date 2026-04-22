@@ -222,6 +222,7 @@ export function PromocaoSolarmarketSection() {
       setActiveScope(null);
       setRunAllState({ running: false, scope: null, iteration: 0, processed: 0 });
     }
+  };
 
   const handleCancel = async (job: PromotionJob) => {
     try {
