@@ -483,7 +483,7 @@ async function promoteCliente(
   const clienteCode = `SM-${norm.external_id}`.slice(0, 32);
 
   // 1) Link existente (idempotência canônica)
-  const existing = await findLink(admin, tenantId, "cliente", norm.external_id);
+  const existing = await findLink(admin, tenantId, "cliente", norm.external_id, "cliente");
   if (existing) return { id: existing, created: false, matchedBy: "link" };
 
   // 2) Reconciliação por external_source + external_id (compatível com legado)
@@ -646,7 +646,7 @@ async function promoteProjeto(
   const norm = normalizeSmProject(rawProjeto);
   if (!norm.external_id) throw new Error("Projeto SM sem id");
 
-  const existing = await findLink(admin, tenantId, "projeto", norm.external_id);
+  const existing = await findLink(admin, tenantId, "projeto", norm.external_id, "projeto");
   if (existing) return { id: existing, created: false };
 
   const codigo = `SM-PROJ-${norm.external_id}`.slice(0, 32);
@@ -706,7 +706,7 @@ async function promoteProposta(
   const norm = normalizeSmProposal(rawProposta);
   if (!norm.external_id) throw new Error("Proposta SM sem id");
 
-  const existing = await findLink(admin, tenantId, "proposta", norm.external_id);
+  const existing = await findLink(admin, tenantId, "proposta", norm.external_id, "proposta");
   if (existing) {
     // Garante que existe pelo menos uma versão; senão cria.
     const { data: v } = await admin
@@ -1422,7 +1422,7 @@ async function actionPromoteAll(
 
   // Backlog: propostas raw que ainda não têm link canônico em external_entity_links.
   // Filtro obrigatório (escala): nunca reprocessar staging já promovido.
-  const promotedIds = await fetchPromotedSourceIds(admin, tenantId, "proposta");
+  const promotedIds = await fetchPromotedSourceIds(admin, tenantId, "proposta", "proposta");
   let fetchQuery = admin
     .from("sm_propostas_raw")
     .select("id, external_id, payload")
