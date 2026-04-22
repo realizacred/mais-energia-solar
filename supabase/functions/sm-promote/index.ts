@@ -1140,6 +1140,12 @@ async function promoteOneProposalRow(
       canonicalEntityType: "cliente", canonicalEntityId: cli.id,
     });
 
+    // Scope=cliente: encerra aqui sem criar projeto/proposta
+    if (scope === "cliente") {
+      state.counters.promoted++;
+      return "promoted";
+    }
+
     // 2.5) Resolver consultor a partir do responsável SM (com fallback "Escritório")
     const responsibleName = pickStr(rawProjeto?.responsible?.name);
     const responsibleEmail = pickStr(rawProjeto?.responsible?.email);
