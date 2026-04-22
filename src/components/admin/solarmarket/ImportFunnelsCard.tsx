@@ -26,40 +26,29 @@ export function ImportFunnelsCard({ tenantId }: Props) {
     staleTime: 1000 * 5,
     refetchInterval: progress.isRunning ? 2000 : false,
     queryFn: async () => {
-      const [totalRes, processedRes, vinculosRes] = await Promise.all([
+      const [totalRes, vinculosRes, distinctRes] = await Promise.all([
         supabase
           .from("sm_projetos_raw")
           .select("id", { count: "exact", head: true })
           .eq("tenant_id", tenantId!),
-        supabase.rpc("sm_count_distinct_projeto_funis" as never, { p_tenant_id: tenantId }).then(
-          (r) => r,
-          () => ({ data: null, error: null }),
-        ),
         supabase
           .from("sm_projeto_funis_raw")
           .select("id", { count: "exact", head: true })
           .eq("tenant_id", tenantId!),
-      ]);
-
-      // Fallback: contar distinct via select se a RPC não existir
-      let processedCount = 0;
-      if (processedRes && (processedRes as { data?: number | null }).data != null) {
-        processedCount = Number((processedRes as { data: number }).data);
-      } else {
-        const { data } = await supabase
+        supabase
           .from("sm_projeto_funis_raw")
           .select("sm_project_id")
-          .eq("tenant_id", tenantId!);
-        const set = new Set<number>();
-        (data || []).forEach((row: { sm_project_id: number | null }) => {
-          if (row.sm_project_id != null) set.add(row.sm_project_id);
-        });
-        processedCount = set.size;
-      }
+          .eq("tenant_id", tenantId!),
+      ]);
+
+      const set = new Set<number>();
+      (distinctRes.data || []).forEach((row: { sm_project_id: number | null }) => {
+        if (row.sm_project_id != null) set.add(row.sm_project_id);
+      });
 
       return {
         total: totalRes.count ?? 0,
-        processed: processedCount,
+        processed: set.size,
         vinculos: vinculosRes.count ?? 0,
       };
     },
