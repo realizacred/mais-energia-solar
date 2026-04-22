@@ -198,3 +198,51 @@ export function useSolarmarketPromoteLogs(jobId: string | null) {
     },
   });
 }
+
+export type SolarmarketStagingTotals = {
+  cliente: { total: number; promoted: number };
+  projeto: { total: number; promoted: number };
+  proposta: { total: number; promoted: number };
+};
+
+/**
+ * Totais agregados staging vs promovidos para a Fase 2.
+ * Mostra "X de Y" por tipo (cliente/projeto/proposta) — visão acumulada.
+ */
+export function useSolarmarketStagingTotals() {
+  return useQuery({
+    queryKey: ["sm-promote", "totals"] as const,
+    staleTime: 1000 * 60, // 1min
+    refetchInterval: 1000 * 30,
+    queryFn: async (): Promise<SolarmarketStagingTotals> => {
+      const [cliRaw, projRaw, propRaw, links] = await Promise.all([
+        supabase.from("sm_clientes_raw").select("id", { count: "exact", head: true }),
+        supabase.from("sm_projetos_raw").select("id", { count: "exact", head: true }),
+        supabase.from("sm_propostas_raw").select("id", { count: "exact", head: true }),
+        supabase
+          .from("external_entity_links")
+          .select("entity_type")
+          .eq("source", "solar_market"),
+      ]);
+
+      if (cliRaw.error) throw new Error(cliRaw.error.message);
+      if (projRaw.error) throw new Error(projRaw.error.message);
+      if (propRaw.error) throw new Error(propRaw.error.message);
+      if (links.error) throw new Error(links.error.message);
+
+      const promotedCounts = { cliente: 0, projeto: 0, proposta: 0 };
+      for (const row of links.data ?? []) {
+        const t = row.entity_type as string;
+        if (t === "cliente" || t === "projeto" || t === "proposta") {
+          promotedCounts[t]++;
+        }
+      }
+
+      return {
+        cliente: { total: cliRaw.count ?? 0, promoted: promotedCounts.cliente },
+        projeto: { total: projRaw.count ?? 0, promoted: promotedCounts.projeto },
+        proposta: { total: propRaw.count ?? 0, promoted: promotedCounts.proposta },
+      };
+    },
+  });
+}
