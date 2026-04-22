@@ -1248,6 +1248,12 @@ async function promoteOneProposalRow(
       },
     });
 
+    // Scope=projeto: encerra aqui sem criar proposta
+    if (scope === "projeto") {
+      state.counters.promoted++;
+      return "promoted";
+    }
+
     // 4) Snapshot canônico
     const snapshot = buildCanonicalSnapshot({
       cliente: normalizeSmClient(rawCliente),
