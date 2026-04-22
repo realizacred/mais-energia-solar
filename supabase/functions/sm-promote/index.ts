@@ -658,6 +658,29 @@ async function promoteProposta(
   const codigo = `SM-PROP-${norm.external_id}`.slice(0, 32);
   const { status } = mapSmStatus(norm.status_source, norm.accepted_at);
 
+  // Idempotência: se já existe proposta com (tenant_id, codigo), reaproveita
+  // sem tentar inserir (evita erro 23505 em uq_propostas_tenant_codigo).
+  const { data: preExisting } = await admin
+    .from("propostas_nativas")
+    .select("id")
+    .eq("tenant_id", tenantId)
+    .eq("codigo", codigo)
+    .maybeSingle();
+
+  if (preExisting?.id) {
+    const propostaId = preExisting.id as string;
+    const { data: v } = await admin
+      .from("proposta_versoes")
+      .select("id").eq("tenant_id", tenantId).eq("proposta_id", propostaId).limit(1).maybeSingle();
+    const versaoId = (v?.id as string | undefined)
+      ?? await insertVersao(admin, tenantId, propostaId, ctx.snapshot, norm, ctx.userId);
+    await upsertLink(admin, tenantId, jobId, "proposta", propostaId, "proposta", norm.external_id, {
+      versao_id: versaoId,
+      recovered_from_conflict: true,
+    });
+    return { propostaId, versaoId, created: false };
+  }
+
   const { data: pn, error: pnErr } = await admin
     .from("propostas_nativas")
     .insert({
