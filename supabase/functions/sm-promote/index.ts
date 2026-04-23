@@ -1185,6 +1185,203 @@ function validateEligibility(args: {
     : { status: "eligible", issues: [] };
 }
 
+// ─── Dry-Run: simulação sem grava em canônicos ───────────────────────────────
+interface DryRunReport {
+  total_candidatos: number;
+  clientes_a_criar: number;
+  projetos_a_criar: number;
+  propostas_a_criar: number;
+  distribuicaoPorPipeline: Record<string, number>;
+  distribuicaoPorConsultor: Record<string, number>;
+  distribuicaoPorStage: Record<string, number>;
+  distribuicaoPorStatus: Record<string, number>;
+  bloqueados: Array<{ tipo: string; external_id: string | null; motivos: string[] }>;
+  warnings: Array<{ tipo: string; external_id: string | null; mensagem: string }>;
+}
+
+async function runDryRunReport(
+  admin: SupabaseClient,
+  tenantId: string,
+  candidates: AnyObj[],
+  pipeline: PipelineResolution,
+  consultorFallback: ConsultorResolution,
+): Promise<DryRunReport> {
+  const report: DryRunReport = {
+    total_candidatos: candidates.length,
+    clientes_a_criar: 0,
+    projetos_a_criar: 0,
+    propostas_a_criar: 0,
+    distribuicaoPorPipeline: {},
+    distribuicaoPorConsultor: {},
+    distribuicaoPorStage: {},
+    distribuicaoPorStatus: {},
+    bloqueados: [],
+    warnings: [],
+  };
+
+  const incr = (bucket: Record<string, number>, key: string) => {
+    bucket[key] = (bucket[key] ?? 0) + 1;
+  };
+
+  const clientesVistos = new Set<string>();
+  const projetosVistos = new Set<string>();
+
+  // Pré-carrega nomes dos pipelines configurados (para distribuição legível)
+  const pipelineNomeCache = new Map<string, string>();
+  if (pipeline.funilId) {
+    const { data: f } = await admin
+      .from("projeto_funis").select("id, nome").eq("id", pipeline.funilId).maybeSingle();
+    if (f?.nome) pipelineNomeCache.set(pipeline.funilId, f.nome as string);
+  }
+  // Mapa funil_sm → pipeline nativo (para deals adicionais)
+  const { data: funilMap } = await admin
+    .from("sm_funil_pipeline_map")
+    .select("sm_funil_name, pipeline_id, role")
+    .eq("tenant_id", tenantId);
+  const auxPipelinesByName = new Map<string, { pipelineId: string | null; role: string | null }>();
+  for (const m of (funilMap ?? []) as AnyObj[]) {
+    const k = String(m.sm_funil_name ?? "").trim().toLowerCase();
+    if (!k) continue;
+    auxPipelinesByName.set(k, {
+      pipelineId: (m.pipeline_id as string) ?? null,
+      role: (m.role as string) ?? null,
+    });
+  }
+  // Resolver nome amigável dos pipelines auxiliares
+  const auxPipelineIds = Array.from(auxPipelinesByName.values())
+    .map((v) => v.pipelineId)
+    .filter((x): x is string => !!x);
+  if (auxPipelineIds.length > 0) {
+    const { data: ps } = await admin
+      .from("projeto_funis").select("id, nome").in("id", auxPipelineIds);
+    for (const p of (ps ?? []) as AnyObj[]) {
+      pipelineNomeCache.set(p.id as string, (p.nome as string) ?? "—");
+    }
+  }
+  const pipelineComercialNome =
+    (pipeline.funilId && pipelineNomeCache.get(pipeline.funilId)) || "Comercial";
+
+  for (const row of candidates) {
+    const propostaPayload: AnyObj = (row.payload as AnyObj) ?? {};
+    const propExtId = pickStr(propostaPayload.id) ?? (row.external_id as string | null);
+    const projectExtId = pickStr(propostaPayload.project?.id);
+
+    if (!projectExtId) {
+      report.bloqueados.push({
+        tipo: "proposta",
+        external_id: propExtId,
+        motivos: ["SM_PROPOSAL_NO_PROJECT"],
+      });
+      continue;
+    }
+
+    // Carrega projeto + cliente do staging
+    const { data: projRow } = await admin
+      .from("sm_projetos_raw").select("payload")
+      .eq("tenant_id", tenantId).eq("external_id", projectExtId).maybeSingle();
+    const rawProjeto: AnyObj = (projRow?.payload as AnyObj) ?? {
+      id: projectExtId,
+      name: propostaPayload.project?.name,
+    };
+
+    const clientExtId = pickStr(rawProjeto?.client?.id);
+    let rawCliente: AnyObj | null = null;
+    if (clientExtId) {
+      const { data: cliRow } = await admin
+        .from("sm_clientes_raw").select("payload")
+        .eq("tenant_id", tenantId).eq("external_id", clientExtId).maybeSingle();
+      rawCliente = (cliRow?.payload as AnyObj) ?? rawProjeto.client ?? null;
+    } else {
+      rawCliente = rawProjeto?.client ?? null;
+    }
+
+    // Gate de elegibilidade
+    const elig = validateEligibility({
+      rawCliente, rawProjeto, rawProposta: propostaPayload, pipeline,
+    });
+    if (elig.status === "blocked") {
+      report.bloqueados.push({
+        tipo: "proposta",
+        external_id: propExtId,
+        motivos: elig.issues.map((i) => i.code),
+      });
+      continue;
+    }
+
+    // Conta cliente novo (por external_id)
+    if (clientExtId && !clientesVistos.has(clientExtId)) {
+      clientesVistos.add(clientExtId);
+      report.clientes_a_criar += 1;
+    }
+    // Conta projeto novo (por external_id)
+    if (!projetosVistos.has(projectExtId)) {
+      projetosVistos.add(projectExtId);
+      report.projetos_a_criar += 1;
+
+      // Pipeline principal (Comercial)
+      incr(report.distribuicaoPorPipeline, pipelineComercialNome);
+
+      // Pipelines auxiliares: olha funis vinculados ao projeto
+      const { data: pjFunis } = await admin
+        .from("sm_projeto_funis_raw").select("payload")
+        .eq("tenant_id", tenantId)
+        .eq("payload->project->>id", projectExtId);
+      for (const r of (pjFunis ?? []) as AnyObj[]) {
+        const fname = String(((r.payload as AnyObj)?.name ?? "")).trim();
+        if (!fname) continue;
+        if (fname.toLowerCase() === "vendedores") continue; // não vira deal
+        if (pipeline.funilId && fname.toLowerCase() === (pipelineComercialNome.toLowerCase()))
+          continue; // já contado
+        const aux = auxPipelinesByName.get(fname.toLowerCase());
+        if (aux?.pipelineId) {
+          const nome = pipelineNomeCache.get(aux.pipelineId) ?? fname;
+          incr(report.distribuicaoPorPipeline, nome);
+        } else {
+          // Funil sem mapeamento (warning apenas — não bloqueia)
+          report.warnings.push({
+            tipo: "projeto",
+            external_id: projectExtId,
+            mensagem: `Funil "${fname}" sem mapeamento para pipeline nativo (deal adicional será omitido).`,
+          });
+        }
+      }
+    }
+
+    // Proposta sempre conta como nova (raw → propostas_nativas)
+    report.propostas_a_criar += 1;
+
+    // Status canônico
+    const statusInfo = mapSmStatus(propostaPayload.status, propostaPayload.acceptanceDate);
+    incr(report.distribuicaoPorStatus, statusInfo.status);
+
+    // Stage resolvido
+    const stageId = resolveStageForStatus(pipeline, statusInfo.status);
+    if (stageId) {
+      // tenta nome amigável
+      const { data: stage } = await admin
+        .from("projeto_etapas").select("nome").eq("id", stageId).maybeSingle();
+      incr(report.distribuicaoPorStage, (stage?.nome as string) ?? statusInfo.status);
+    } else {
+      incr(report.distribuicaoPorStage, "—");
+    }
+
+    // Consultor (aplica nova hierarquia: Vendedores → responsible.name → fallback)
+    const responsibleName = pickStr(rawProjeto?.responsible?.name);
+    const responsibleEmail = pickStr(rawProjeto?.responsible?.email);
+    const consultorRes = await resolveConsultorFromResponsible(
+      admin, tenantId, responsibleName, responsibleEmail, consultorFallback, projectExtId,
+    );
+    let consultorLabel = consultorRes.matchedNome ?? "—";
+    if (consultorRes.matched === "fallback") consultorLabel = `${consultorLabel} (fallback)`;
+    if (consultorRes.matched === "name") consultorLabel = `${consultorLabel} (responsible)`;
+    if (consultorRes.matched === "vendedores_funnel") consultorLabel = `${consultorLabel} (Vendedores)`;
+    if (consultorRes.matched === "none") consultorLabel = "— (não resolvido)";
+    incr(report.distribuicaoPorConsultor, consultorLabel);
+  }
+
+  return report;
+}
+
 // ─── Pipeline orquestrado por proposta ───────────────────────────────────────
 type PromotionScope = "cliente" | "projeto" | "proposta";
 
@@ -1498,19 +1695,35 @@ async function actionPromoteAll(
   await patchJob(admin, jobId, { total_items: candidates.length });
 
   if (dryRun) {
+    // Simulação completa: para cada candidato, resolve consultor + pipeline + stage
+    // SEM executar nenhum INSERT/UPDATE em tabelas canônicas.
+    const report = await runDryRunReport(
+      admin,
+      tenantId,
+      candidates as AnyObj[],
+      pipeline,
+      consultorFallback,
+    );
+
     await logEvent(admin, {
       jobId, tenantId, severity: "info", step: "dry-run", status: "skipped",
-      message: `dry_run=true: ${candidates.length} candidatos identificados, nada promovido.`,
+      message: `dry_run=true: ${candidates.length} candidatos analisados, nada promovido. Bloqueados=${report.bloqueados.length}, warnings=${report.warnings.length}.`,
     });
     await patchJob(admin, jobId, {
       status: "completed" satisfies JobStatus,
       finished_at: new Date().toISOString(),
-      items_processed: 0, items_promoted: 0, items_skipped: candidates.length,
-      items_with_warnings: 0, items_with_errors: 0, items_blocked: 0,
+      items_processed: candidates.length,
+      items_promoted: 0,
+      items_skipped: candidates.length,
+      items_with_warnings: report.warnings.length,
+      items_with_errors: 0,
+      items_blocked: report.bloqueados.length,
+      metadata: { dry_run_report: report },
     });
     return jsonResponse({
       ok: true, job_id: jobId, status: "completed",
       dry_run: true, candidates: candidates.length,
+      report,
     });
   }
 
