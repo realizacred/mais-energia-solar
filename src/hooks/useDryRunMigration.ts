@@ -36,7 +36,7 @@ export interface DryRunResponse {
 
 export function useDryRunMigration() {
   return useMutation<DryRunResponse, Error, { batchSize?: number }>({
-    mutationFn: async ({ batchSize = 5000 } = {}) => {
+    mutationFn: async ({ batchSize = 10000 } = {}) => {
       const { data, error } = await supabase.functions.invoke("sm-promote", {
         body: {
           action: "promote-all",

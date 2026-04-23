@@ -75,15 +75,30 @@ export default function MigracaoStep3Migrar() {
 
   const summary = summaryQuery.data;
   const lastReport: DryRunReport | null = dryRun.data?.report ?? null;
-  const dryRunOk =
-    dryRun.isSuccess &&
-    !!lastReport &&
-    lastReport.bloqueados.length === 0;
 
   const runningJob = useMemo(
     () => jobs.find((j) => j.status === "pending" || j.status === "running"),
     [jobs],
   );
+
+  // Procura o último job dry-run "completed" (persiste após reload, ao contrário
+  // de dryRun.data que é mutation state). Libera o botão REAL.
+  const lastCompletedDryRun = useMemo(
+    () =>
+      jobs.find(
+        (j) =>
+          j.status === "completed" &&
+          (j.filters as { dry_run?: boolean } | null)?.dry_run === true,
+      ),
+    [jobs],
+  );
+
+  // Permite migração real se:
+  // - dry-run da sessão atual rodou sem bloqueios, OU
+  // - existe um job dry-run completed no histórico (sobrevive a reload).
+  const dryRunOk =
+    (dryRun.isSuccess && !!lastReport && lastReport.bloqueados.length === 0) ||
+    !!lastCompletedDryRun;
 
   const recentJobs = useMemo(() => jobs.slice(0, 8), [jobs]);
 
@@ -272,7 +287,7 @@ export default function MigracaoStep3Migrar() {
             <p className="text-xs text-muted-foreground">
               {lastReport && lastReport.bloqueados.length > 0
                 ? `O dry-run reportou ${lastReport.bloqueados.length} bloqueio(s). Resolva-os antes de migrar.`
-                : "Execute um Dry-Run sem bloqueios para liberar a migração real."}
+                : "Execute um Dry-Run (ou aguarde aparecer no histórico abaixo) para liberar a migração real."}
             </p>
           )}
           {runningJob && (
