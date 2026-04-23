@@ -24,7 +24,19 @@ export function useMigrationConfig(tenantId: string | null | undefined) {
     enabled: !!tenantId,
     staleTime: STALE_TIME,
     queryFn: async () => {
-      const { data, error } = await supabase
+      // Tipos gerados ainda não incluem a tabela recém-criada.
+      const { data, error } = await (supabase as unknown as {
+        from: (t: string) => {
+          select: (c: string) => {
+            eq: (
+              c: string,
+              v: string,
+            ) => {
+              maybeSingle: () => Promise<{ data: MigrationConfigRow | null; error: { message: string } | null }>;
+            };
+          };
+        };
+      })
         .from("solarmarket_migration_config")
         .select("tenant_id, default_pipeline_id, default_consultor_id")
         .eq("tenant_id", tenantId!)
