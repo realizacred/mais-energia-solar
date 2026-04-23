@@ -166,7 +166,7 @@ Deno.serve(async (req) => {
         .update({
           status: "cancelled",
           finished_at: new Date().toISOString(),
-          error_summary: { cancel_reason: "Cancelado pelo usuário (chunked)" },
+          error_summary: "Cancelado pelo usuário (chunked)",
         })
         .eq("id", masterJobId)
         .eq("tenant_id", ctx.tenantId)
@@ -267,7 +267,7 @@ Deno.serve(async (req) => {
           .update({
             status: "failed",
             finished_at: new Date().toISOString(),
-            error_summary: { last_chunk_error: sub.error ?? "erro desconhecido" },
+            error_summary: `Chunk falhou: ${sub.error ?? "erro desconhecido"}`,
           })
           .eq("id", masterJobId);
         return jsonResponse(
@@ -330,10 +330,7 @@ Deno.serve(async (req) => {
           .update({
             status: "failed",
             finished_at: new Date().toISOString(),
-            error_summary: {
-              reason: "stuck",
-              detail: "Chunk não processou nenhum item; abortando para evitar loop infinito.",
-            },
+            error_summary: "stuck: chunk não processou nenhum item; abortando para evitar loop infinito.",
           })
           .eq("id", masterJobId);
         return jsonResponse({
