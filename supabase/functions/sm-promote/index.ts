@@ -1498,19 +1498,35 @@ async function actionPromoteAll(
   await patchJob(admin, jobId, { total_items: candidates.length });
 
   if (dryRun) {
+    // Simulação completa: para cada candidato, resolve consultor + pipeline + stage
+    // SEM executar nenhum INSERT/UPDATE em tabelas canônicas.
+    const report = await runDryRunReport(
+      admin,
+      tenantId,
+      candidates as AnyObj[],
+      pipeline,
+      consultorFallback,
+    );
+
     await logEvent(admin, {
       jobId, tenantId, severity: "info", step: "dry-run", status: "skipped",
-      message: `dry_run=true: ${candidates.length} candidatos identificados, nada promovido.`,
+      message: `dry_run=true: ${candidates.length} candidatos analisados, nada promovido. Bloqueados=${report.bloqueados.length}, warnings=${report.warnings.length}.`,
     });
     await patchJob(admin, jobId, {
       status: "completed" satisfies JobStatus,
       finished_at: new Date().toISOString(),
-      items_processed: 0, items_promoted: 0, items_skipped: candidates.length,
-      items_with_warnings: 0, items_with_errors: 0, items_blocked: 0,
+      items_processed: candidates.length,
+      items_promoted: 0,
+      items_skipped: candidates.length,
+      items_with_warnings: report.warnings.length,
+      items_with_errors: 0,
+      items_blocked: report.bloqueados.length,
+      metadata: { dry_run_report: report } as never,
     });
     return jsonResponse({
       ok: true, job_id: jobId, status: "completed",
       dry_run: true, candidates: candidates.length,
+      report,
     });
   }
 
