@@ -100,7 +100,7 @@ async function resolveUserContext(
     internalTenantId
   ) {
     return {
-      userId: "system-internal-call",
+      userId: null as string | null,
       tenantId: internalTenantId,
     };
   }
@@ -120,7 +120,7 @@ async function resolveUserContext(
 async function createJob(
   admin: SupabaseClient,
   tenantId: string,
-  userId: string,
+  userId: string | null,
   jobType: string,
   filters: Record<string, unknown>,
 ): Promise<string> {
@@ -128,8 +128,8 @@ async function createJob(
     .from("solarmarket_promotion_jobs")
     .insert({
       tenant_id: tenantId,
-      triggered_by: userId,
-      trigger_source: "manual",
+      triggered_by: userId ?? null,
+      trigger_source: userId ? "manual" : "internal",
       job_type: jobType,
       status: "pending" satisfies JobStatus,
       filters,
