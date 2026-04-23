@@ -1018,18 +1018,23 @@ async function resolveConsultorFromResponsible(
     }
   }
 
-  // ── PRIORIDADE 2: responsible.name → match direto por nome em consultores ──
+  // ── PRIORIDADE 2: responsible.name → match EXATO (case-insensitive) por nome em consultores ──
+  // IMPORTANTE: usamos comparação exata pós-query para evitar match parcial
+  // (ex.: "Bruno Caetano" não pode bater em "BRUNO BANDEIRA").
   const name = (responsibleName ?? "").trim();
   if (name) {
+    const sanitized = name.replace(/[%_]/g, "");
     const { data } = await admin
       .from("consultores")
       .select("id, nome")
       .eq("tenant_id", tenantId)
       .eq("ativo", true)
-      .ilike("nome", name)
+      .ilike("nome", sanitized)
       .limit(1)
       .maybeSingle();
-    if (data?.id) return { id: data.id as string, matched: "name", matchedNome: (data.nome as string) ?? null };
+    if (data?.id && (data.nome as string).toLowerCase().trim() === name.toLowerCase()) {
+      return { id: data.id as string, matched: "name", matchedNome: (data.nome as string) ?? null };
+    }
   }
 
   // ── Auxiliar: email exato do responsável ──
