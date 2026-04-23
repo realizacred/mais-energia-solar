@@ -1415,7 +1415,9 @@ async function runDryRunReport(
 
     // ── Loop em memória sobre o chunk ──
     for (const row of chunk) {
-      const propostaPayload: AnyObj = (row.payload as AnyObj) ?? {};
+      const propostaPayload: AnyObj =
+        propostaPayloadsByExtId.get(String((row as AnyObj).external_id)) ??
+        ((row as AnyObj).payload as AnyObj) ?? {};
       const propExtId = pickStr(propostaPayload.id) ?? (row.external_id as string | null);
       const projectExtId = pickStr(propostaPayload.project?.id);
 
