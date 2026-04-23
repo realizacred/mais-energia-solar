@@ -1,10 +1,15 @@
 /**
  * Migração SolarMarket — Step 3 (Migrar dados para o CRM).
  *
- * UX: 1 clique → migração completa automática (clientes + projetos + propostas
- * em cascata, via edge `sm-promote` com scope=proposta).
+ * Background real: edge `sm-migrate-chunk` auto-encadeia steps via EdgeRuntime.waitUntil
+ * + pg_cron de safety. UI só observa estado real do banco.
  *
- * Polling de progresso a cada 2s mostra o avanço real em tempo real.
+ * Botões inteligentes:
+ *   - Nada iniciado / completo → "🚀 Iniciar Migração Completa"
+ *   - Running                  → "Migração em andamento" + Cancelar
+ *   - Failed/Cancelled c/ backlog → "↻ Continuar de onde parou"
+ *
+ * Inclui: card de totais (sempre atualizado), histórico de últimos 5 jobs.
  */
 import { useState } from "react";
 import { Link } from "react-router-dom";
@@ -19,11 +24,16 @@ import {
   Users,
   FolderKanban,
   FileText,
+  RefreshCw,
+  History,
+  XCircle,
+  Clock,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
+import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
   DialogContent,
@@ -35,10 +45,27 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { toast } from "sonner";
 import { useDryRunMigration, type DryRunReport } from "@/hooks/useDryRunMigration";
-import { useChunkedMigration } from "@/hooks/useChunkedMigration";
+import { useChunkedMigration, type ChunkedJob } from "@/hooks/useChunkedMigration";
 
 function formatNum(n: number): string {
   return n.toLocaleString("pt-BR");
+}
+
+function formatDateBR(s: string | null): string {
+  if (!s) return "—";
+  return new Date(s).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" });
+}
+
+function durationStr(start: string | null, end: string | null): string {
+  if (!start) return "—";
+  const e = end ? new Date(end).getTime() : Date.now();
+  const ms = e - new Date(start).getTime();
+  const s = Math.floor(ms / 1000);
+  if (s < 60) return `${s}s`;
+  const m = Math.floor(s / 60);
+  if (m < 60) return `${m}m ${s % 60}s`;
+  const h = Math.floor(m / 60);
+  return `${h}h ${m % 60}m`;
 }
 
 function StageBar({
@@ -70,9 +97,29 @@ function StageBar({
   );
 }
 
+function StatusBadge({ status }: { status: string }) {
+  const map: Record<string, { label: string; cls: string }> = {
+    running: { label: "Em execução", cls: "bg-info/10 text-info border-info/20" },
+    completed: { label: "Concluído", cls: "bg-success/10 text-success border-success/20" },
+    completed_with_warnings: {
+      label: "Concluído (avisos)",
+      cls: "bg-warning/10 text-warning border-warning/20",
+    },
+    failed: { label: "Falhou", cls: "bg-destructive/10 text-destructive border-destructive/20" },
+    cancelled: { label: "Cancelado", cls: "bg-muted text-muted-foreground border-border" },
+    pending: { label: "Pendente", cls: "bg-muted text-muted-foreground border-border" },
+  };
+  const cfg = map[status] ?? { label: status, cls: "bg-muted text-muted-foreground border-border" };
+  return (
+    <Badge variant="outline" className={cfg.cls}>
+      {cfg.label}
+    </Badge>
+  );
+}
+
 export default function MigracaoStep3Migrar() {
   const dryRun = useDryRunMigration();
-  const { start, cancel, progress } = useChunkedMigration();
+  const { start, continueJob, cancel, progress, isLoading } = useChunkedMigration();
 
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [confirmText, setConfirmText] = useState("");
@@ -81,10 +128,13 @@ export default function MigracaoStep3Migrar() {
 
   const isRunning = !!progress?.isRunning;
   const isComplete = !!progress?.isComplete;
+  const isResumable = !!progress?.isResumable;
+  const isStuck = !!progress?.isStuck;
   const job = progress?.job ?? null;
-  const lastError = progress?.lastError ?? null;
+  const totals = progress?.totals;
+  const history = progress?.history ?? [];
 
-  const canStart = !start.isPending && !isRunning;
+  const canStart = !start.isPending && !isRunning && !isResumable;
 
   const handleConfirmReal = async () => {
     if (confirmText.trim().toUpperCase() !== "MIGRAR") {
@@ -96,9 +146,21 @@ export default function MigracaoStep3Migrar() {
     try {
       const res = await start.mutateAsync();
       const id = res.master_job_id ?? "";
-      toast.success(`Migração iniciada em chunks (job ${id.slice(0, 8)}…). Acompanhe o progresso abaixo.`);
+      toast.success(
+        `Migração iniciada em background (job ${id.slice(0, 8)}…). Você pode fechar esta aba — o servidor continua processando.`,
+      );
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Falha ao iniciar migração.");
+    }
+  };
+
+  const handleContinue = async () => {
+    if (!job) return;
+    try {
+      await continueJob.mutateAsync(job.id);
+      toast.success("Migração retomada de onde parou. Continua em background.");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Falha ao retomar.");
     }
   };
 
@@ -120,19 +182,69 @@ export default function MigracaoStep3Migrar() {
             <ArrowLeft className="w-4 h-4 mr-2" /> Voltar para mapeamentos
           </Link>
         </Button>
-        <h1 className="text-xl font-bold text-foreground">
-          Step 3 — Migrar dados para o CRM
-        </h1>
+        <h1 className="text-xl font-bold text-foreground">Step 3 — Migrar dados para o CRM</h1>
         <p className="text-sm text-muted-foreground mt-1">
-          1 clique processa clientes, projetos e propostas em cascata. Acompanhe o progresso em tempo real.
+          Roda em background no servidor. Pode fechar a aba — a migração continua e você
+          vê o progresso real ao voltar.
         </p>
       </div>
 
-      {/* Painel principal — 1 botão + progresso */}
+      {/* Card de totais — SEMPRE visível, atualiza a cada 3-8s */}
+      <Card className="bg-card border-border shadow-sm">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base font-semibold text-foreground flex items-center gap-2">
+            <RefreshCw className={`w-4 h-4 text-primary ${isRunning ? "animate-spin" : ""}`} />
+            Estado atual
+            {isLoading && (
+              <span className="text-xs text-muted-foreground font-normal">carregando…</span>
+            )}
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {totals ? (
+            <div className="space-y-3 rounded-lg border border-border bg-muted/30 p-4">
+              <StageBar
+                icon={Users}
+                label="Clientes"
+                promoted={totals.clientes.promoted}
+                total={totals.clientes.total}
+              />
+              <StageBar
+                icon={FolderKanban}
+                label="Projetos"
+                promoted={totals.projetos.promoted}
+                total={totals.projetos.total}
+              />
+              <StageBar
+                icon={FileText}
+                label="Propostas"
+                promoted={totals.propostas.promoted}
+                total={totals.propostas.total}
+              />
+              <div className="pt-2 border-t border-border">
+                <StageBar
+                  icon={ShieldCheck}
+                  label="Total geral"
+                  promoted={
+                    totals.clientes.promoted +
+                    totals.projetos.promoted +
+                    totals.propostas.promoted
+                  }
+                  total={totals.clientes.total + totals.projetos.total + totals.propostas.total}
+                />
+              </div>
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">Carregando totais…</p>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Painel de execução */}
       <Card className="bg-card border-border shadow-sm">
         <CardHeader>
           <CardTitle className="text-base font-semibold text-foreground flex items-center gap-2">
-            <ShieldCheck className="w-4 h-4 text-primary" /> Migração completa (automática)
+            <Rocket className="w-4 h-4 text-primary" /> Migração completa (background)
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-5">
@@ -151,67 +263,87 @@ export default function MigracaoStep3Migrar() {
               )}
               Simular (Dry-Run)
             </Button>
-            <Button
-              onClick={() => setConfirmOpen(true)}
-              disabled={!canStart}
-              className="flex-1"
-            >
-              {start.isPending || isRunning ? (
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              ) : (
-                <Rocket className="w-4 h-4 mr-2" />
-              )}
-              {isRunning ? "Migração em andamento…" : "🚀 Iniciar Migração Completa"}
-            </Button>
+
+            {isResumable ? (
+              <Button
+                onClick={handleContinue}
+                disabled={continueJob.isPending}
+                className="flex-1"
+              >
+                {continueJob.isPending ? (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                ) : (
+                  <RefreshCw className="w-4 h-4 mr-2" />
+                )}
+                ↻ Continuar de onde parou
+              </Button>
+            ) : (
+              <Button
+                onClick={() => setConfirmOpen(true)}
+                disabled={!canStart}
+                className="flex-1"
+              >
+                {start.isPending || isRunning ? (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                ) : (
+                  <Rocket className="w-4 h-4 mr-2" />
+                )}
+                {isRunning
+                  ? "Migração em andamento…"
+                  : isComplete
+                    ? "✅ Migração concluída"
+                    : "🚀 Iniciar Migração Completa"}
+              </Button>
+            )}
           </div>
 
-          {/* Progresso geral */}
-          {(isRunning || isComplete || (job && job.items_processed > 0)) && (
+          {/* Progresso do job atual */}
+          {job && (
             <div className="space-y-3">
-              <div className="space-y-1.5">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="font-medium text-foreground">
-                    Progresso geral
-                    {job && (
-                      <span className="ml-2 text-xs text-muted-foreground">
-                        (job {job.id.slice(0, 8)}…)
-                      </span>
-                    )}
+              <div className="flex items-center justify-between text-sm">
+                <span className="font-medium text-foreground flex items-center gap-2">
+                  Job atual
+                  <span className="font-mono text-xs text-muted-foreground">
+                    ({job.id.slice(0, 8)}…)
                   </span>
-                  <span className="font-mono text-muted-foreground">
-                    {formatNum(job?.items_processed ?? 0)} / {formatNum(job?.total_items ?? 0)}
-                    <span className="ml-2 text-xs">({progress?.pctGeral ?? 0}%)</span>
-                  </span>
+                  <StatusBadge status={job.status} />
+                </span>
+                <span className="font-mono text-muted-foreground">
+                  {formatNum(job.items_processed)} / {formatNum(job.total_items)}
+                  <span className="ml-2 text-xs">({progress?.pctGeral ?? 0}%)</span>
+                </span>
+              </div>
+              <Progress value={progress?.pctGeral ?? 0} className="h-3" />
+
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
+                <div className="rounded border border-border bg-muted/30 p-2">
+                  <p className="text-muted-foreground">Promovidos</p>
+                  <p className="font-semibold text-success">{formatNum(job.items_promoted)}</p>
                 </div>
-                <Progress value={progress?.pctGeral ?? 0} className="h-3" />
+                <div className="rounded border border-border bg-muted/30 p-2">
+                  <p className="text-muted-foreground">Erros</p>
+                  <p className="font-semibold text-destructive">
+                    {formatNum(job.items_with_errors)}
+                  </p>
+                </div>
+                <div className="rounded border border-border bg-muted/30 p-2">
+                  <p className="text-muted-foreground">Bloqueados</p>
+                  <p className="font-semibold text-warning">{formatNum(job.items_blocked)}</p>
+                </div>
+                <div className="rounded border border-border bg-muted/30 p-2">
+                  <p className="text-muted-foreground">Avisos</p>
+                  <p className="font-semibold text-foreground">
+                    {formatNum(job.items_with_warnings)}
+                  </p>
+                </div>
               </div>
 
-              {/* Sub-barras por entidade (totais canônicos vs staging) */}
-              {progress && (
-                <div className="space-y-3 rounded-lg border border-border bg-muted/30 p-4">
-                  <StageBar
-                    icon={Users}
-                    label="Clientes migrados"
-                    promoted={progress.totals.clientes.promoted}
-                    total={progress.totals.clientes.total}
-                  />
-                  <StageBar
-                    icon={FolderKanban}
-                    label="Projetos migrados"
-                    promoted={progress.totals.projetos.promoted}
-                    total={progress.totals.projetos.total}
-                  />
-                  <StageBar
-                    icon={FileText}
-                    label="Propostas migradas"
-                    promoted={progress.totals.propostas.promoted}
-                    total={progress.totals.propostas.total}
-                  />
-                </div>
-              )}
-
-              {isRunning && job && (
-                <div className="flex items-center justify-end">
+              {isRunning && (
+                <div className="flex items-center justify-between text-xs text-muted-foreground">
+                  <span className="flex items-center gap-1.5">
+                    <Clock className="w-3 h-3" />
+                    Último step: {job.last_step_at ? formatDateBR(job.last_step_at) : "—"}
+                  </span>
                   <Button
                     variant="outline"
                     size="sm"
@@ -223,29 +355,99 @@ export default function MigracaoStep3Migrar() {
                 </div>
               )}
 
-              {isComplete && job && (
+              {isStuck && (
+                <div className="rounded-lg border border-warning/30 bg-warning/10 p-3">
+                  <p className="text-sm font-medium text-warning flex items-center gap-2">
+                    <AlertTriangle className="w-4 h-4" /> Job aparentemente travado
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Sem progresso há mais de 3 minutos. O cron de safety vai retomar
+                    automaticamente em até 1 minuto. Se persistir, cancele e use "Continuar".
+                  </p>
+                </div>
+              )}
+
+              {isComplete && (
                 <div className="rounded-lg border border-success/30 bg-success/10 p-3">
                   <p className="text-sm font-medium text-success flex items-center gap-2">
                     <CheckCircle2 className="w-4 h-4" /> Migração concluída
                   </p>
                   <p className="text-xs text-muted-foreground mt-1">
-                    {formatNum(job.items_promoted)} promovidos · {formatNum(job.items_with_errors)} erros · {formatNum(job.items_blocked)} bloqueados · {formatNum(job.items_with_warnings)} avisos
+                    Duração: {durationStr(job.started_at, job.finished_at)}
                   </p>
                 </div>
               )}
 
-              {lastError && (
+              {(job.status === "failed" || job.status === "cancelled") && job.error_summary && (
                 <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-3">
                   <p className="text-sm font-medium text-destructive flex items-center gap-2">
-                    <AlertTriangle className="w-4 h-4" /> Erro no loop
+                    <XCircle className="w-4 h-4" />
+                    {job.status === "failed" ? "Job falhou" : "Job cancelado"}
                   </p>
-                  <p className="text-xs text-muted-foreground mt-1">{lastError}</p>
+                  <p className="text-xs text-muted-foreground mt-1">{job.error_summary}</p>
+                  {isResumable && (
+                    <p className="text-xs text-foreground mt-2 font-medium">
+                      Use "↻ Continuar de onde parou" para retomar — itens já migrados
+                      são pulados (idempotente).
+                    </p>
+                  )}
                 </div>
               )}
             </div>
           )}
         </CardContent>
       </Card>
+
+      {/* Histórico */}
+      {history.length > 0 && (
+        <Card className="bg-card border-border shadow-sm">
+          <CardHeader>
+            <CardTitle className="text-base font-semibold text-foreground flex items-center gap-2">
+              <History className="w-4 h-4 text-primary" /> Histórico (últimos {history.length})
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs">
+                <thead className="text-muted-foreground">
+                  <tr className="border-b border-border">
+                    <th className="text-left py-2 px-2 font-medium">Início</th>
+                    <th className="text-left py-2 px-2 font-medium">Status</th>
+                    <th className="text-right py-2 px-2 font-medium">Processados</th>
+                    <th className="text-right py-2 px-2 font-medium">Promovidos</th>
+                    <th className="text-right py-2 px-2 font-medium">Erros</th>
+                    <th className="text-left py-2 px-2 font-medium">Duração</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {history.map((h: ChunkedJob) => (
+                    <tr key={h.id} className="border-b border-border/50">
+                      <td className="py-2 px-2 font-mono text-muted-foreground">
+                        {formatDateBR(h.started_at)}
+                      </td>
+                      <td className="py-2 px-2">
+                        <StatusBadge status={h.status} />
+                      </td>
+                      <td className="py-2 px-2 text-right font-mono">
+                        {formatNum(h.items_processed)} / {formatNum(h.total_items)}
+                      </td>
+                      <td className="py-2 px-2 text-right font-mono text-success">
+                        {formatNum(h.items_promoted)}
+                      </td>
+                      <td className="py-2 px-2 text-right font-mono text-destructive">
+                        {formatNum(h.items_with_errors)}
+                      </td>
+                      <td className="py-2 px-2 text-muted-foreground">
+                        {durationStr(h.started_at, h.finished_at)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Relatório do Dry-Run */}
       {lastReport && (
@@ -264,19 +466,27 @@ export default function MigracaoStep3Migrar() {
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
               <div>
                 <p className="text-xs text-muted-foreground">Candidatos</p>
-                <p className="text-lg font-semibold text-foreground">{formatNum(lastReport.total_candidatos)}</p>
+                <p className="text-lg font-semibold text-foreground">
+                  {formatNum(lastReport.total_candidatos)}
+                </p>
               </div>
               <div>
                 <p className="text-xs text-muted-foreground">Clientes</p>
-                <p className="text-lg font-semibold text-foreground">{formatNum(lastReport.clientes_a_criar)}</p>
+                <p className="text-lg font-semibold text-foreground">
+                  {formatNum(lastReport.clientes_a_criar)}
+                </p>
               </div>
               <div>
                 <p className="text-xs text-muted-foreground">Projetos</p>
-                <p className="text-lg font-semibold text-foreground">{formatNum(lastReport.projetos_a_criar)}</p>
+                <p className="text-lg font-semibold text-foreground">
+                  {formatNum(lastReport.projetos_a_criar)}
+                </p>
               </div>
               <div>
                 <p className="text-xs text-muted-foreground">Propostas</p>
-                <p className="text-lg font-semibold text-foreground">{formatNum(lastReport.propostas_a_criar)}</p>
+                <p className="text-lg font-semibold text-foreground">
+                  {formatNum(lastReport.propostas_a_criar)}
+                </p>
               </div>
             </div>
 
@@ -330,7 +540,8 @@ export default function MigracaoStep3Migrar() {
             <DialogTitle>Confirmar migração real</DialogTitle>
             <DialogDescription>
               Esta ação cria clientes, projetos e propostas no CRM. É idempotente
-              (itens já promovidos são pulados), mas grava dados reais.
+              (itens já promovidos são pulados) e roda em background — você pode
+              fechar a aba.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-2">
