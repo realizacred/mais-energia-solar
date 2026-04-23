@@ -49,6 +49,29 @@ function norm(s: string | null | undefined): string {
   return (s ?? "").trim().toLowerCase();
 }
 
+async function fetchAllPaged<T>(
+  build: () => any,
+  pageSize = 1000,
+): Promise<T[]> {
+  const all: T[] = [];
+  let from = 0;
+  // Loop até receber página parcial
+  // eslint-disable-next-line no-constant-condition
+  while (true) {
+    const { data, error } = await build().range(from, from + pageSize - 1);
+    if (error) throw new Error(error.message);
+    const rows = (data ?? []) as T[];
+    if (rows.length === 0) break;
+    all.push(...rows);
+    if (rows.length < pageSize) break;
+    from += pageSize;
+  }
+  return all;
+}
+
+type SmRawRow = { external_id?: string | number | null; payload: unknown };
+type SmFunilRawRow = { payload: unknown };
+
 export function useMigrationSummary(tenantId: string | null | undefined) {
   return useQuery<MigrationSummary>({
     queryKey: ["migration-summary", tenantId],
@@ -57,27 +80,30 @@ export function useMigrationSummary(tenantId: string | null | undefined) {
     queryFn: async () => {
       const tid = tenantId!;
 
-      const [cliCount, projetos, propostas, projFunis, consultorMap, funilMap, consultores] =
+      const [cliCount, projetosData, propostasData, projFunisData, consultorMap, funilMap, consultores] =
         await Promise.all([
           supabase
             .from("sm_clientes_raw")
             .select("id", { count: "exact", head: true })
             .eq("tenant_id", tid),
-          supabase
-            .from("sm_projetos_raw")
-            .select("external_id, payload")
-            .eq("tenant_id", tid)
-            .limit(5000),
-          supabase
-            .from("sm_propostas_raw")
-            .select("external_id, payload")
-            .eq("tenant_id", tid)
-            .limit(5000),
-          supabase
-            .from("sm_projeto_funis_raw")
-            .select("payload")
-            .eq("tenant_id", tid)
-            .limit(20000),
+          fetchAllPaged<SmRawRow>(() =>
+            supabase
+              .from("sm_projetos_raw")
+              .select("external_id, payload")
+              .eq("tenant_id", tid),
+          ),
+          fetchAllPaged<SmRawRow>(() =>
+            supabase
+              .from("sm_propostas_raw")
+              .select("external_id, payload")
+              .eq("tenant_id", tid),
+          ),
+          fetchAllPaged<SmFunilRawRow>(() =>
+            supabase
+              .from("sm_projeto_funis_raw")
+              .select("payload")
+              .eq("tenant_id", tid),
+          ),
           supabase
             .from("sm_consultor_mapping")
             .select("sm_name, consultor_id, is_ex_funcionario")
@@ -94,9 +120,6 @@ export function useMigrationSummary(tenantId: string | null | undefined) {
         ]);
 
       if (cliCount.error) throw new Error(cliCount.error.message);
-      if (projetos.error) throw new Error(projetos.error.message);
-      if (propostas.error) throw new Error(propostas.error.message);
-      if (projFunis.error) throw new Error(projFunis.error.message);
       if (consultorMap.error) throw new Error(consultorMap.error.message);
       if (funilMap.error) throw new Error(funilMap.error.message);
       if (consultores.error) throw new Error(consultores.error.message);
@@ -149,7 +172,7 @@ export function useMigrationSummary(tenantId: string | null | undefined) {
       // Indexar funis SM por projeto
       type SmFunil = { name: string; stageName: string | null; status: string | null };
       const funisPorProjeto = new Map<string, SmFunil[]>();
-      for (const r of projFunis.data ?? []) {
+      for (const r of projFunisData) {
         const p = (r.payload as Record<string, unknown>) ?? {};
         const projId = String(((p.project as Record<string, unknown>)?.id as string | number) ?? "");
         if (!projId) continue;
@@ -165,7 +188,7 @@ export function useMigrationSummary(tenantId: string | null | undefined) {
 
       // Indexar propostas por projeto
       const propsPorProjeto = new Map<string, Array<{ status: string | null; acc: string | null }>>();
-      for (const r of propostas.data ?? []) {
+      for (const r of propostasData) {
         const p = (r.payload as Record<string, unknown>) ?? {};
         const projId = String(((p.project as Record<string, unknown>)?.id as string | number) ?? "");
         if (!projId) continue;
@@ -184,7 +207,7 @@ export function useMigrationSummary(tenantId: string | null | undefined) {
 
       const incr = (m: Map<string, number>, k: string) => m.set(k, (m.get(k) ?? 0) + 1);
 
-      for (const proj of projetos.data ?? []) {
+      for (const proj of projetosData) {
         const projId = String(proj.external_id ?? "");
         const payload = (proj.payload as Record<string, unknown>) ?? {};
         const responsible = (payload.responsible as Record<string, unknown>) ?? {};
@@ -241,8 +264,8 @@ export function useMigrationSummary(tenantId: string | null | undefined) {
 
       return {
         clientes_a_criar: cliCount.count ?? 0,
-        projetos_a_criar: (projetos.data ?? []).length,
-        propostas_a_criar: (propostas.data ?? []).length,
+        projetos_a_criar: projetosData.length,
+        propostas_a_criar: propostasData.length,
         distribuicaoPorPipeline: sortDesc(distPipeline),
         distribuicaoPorConsultor: sortDesc(distConsultor),
         distribuicaoPorStatus: sortDesc(distStatus),
