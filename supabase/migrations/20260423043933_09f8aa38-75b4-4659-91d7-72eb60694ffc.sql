@@ -1,0 +1,1 @@
+UPDATE solarmarket_promotion_jobs SET status='cancelled', updated_at=NOW() WHERE id='4792f6e5-b1d0-4f7f-96b2-734ebd9244a0' AND status='running';
