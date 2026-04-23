@@ -1536,6 +1536,7 @@ async function runDryRunReport(
     projetosMap.clear();
     clientesMap.clear();
     funisPorProjeto.clear();
+    propostaPayloadsByExtId.clear();
   }
 
   return report;
