@@ -287,7 +287,7 @@ export default function MigracaoStep3Migrar() {
             <p className="text-xs text-muted-foreground">
               {lastReport && lastReport.bloqueados.length > 0
                 ? `O dry-run reportou ${lastReport.bloqueados.length} bloqueio(s). Resolva-os antes de migrar.`
-                : "Execute um Dry-Run sem bloqueios para liberar a migração real."}
+                : "Execute um Dry-Run (ou aguarde aparecer no histórico abaixo) para liberar a migração real."}
             </p>
           )}
           {runningJob && (
