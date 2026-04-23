@@ -1286,7 +1286,7 @@ async function promoteOneProposalRow(
     const responsibleName = pickStr(rawProjeto?.responsible?.name);
     const responsibleEmail = pickStr(rawProjeto?.responsible?.email);
     const consultorRes = await resolveConsultorFromResponsible(
-      admin, tenantId, responsibleName, responsibleEmail, consultorFallback,
+      admin, tenantId, responsibleName, responsibleEmail, consultorFallback, projectExtId,
     );
     if (consultorRes.matched === "fallback") {
       state.counters.warnings++;
