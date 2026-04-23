@@ -1,5 +1,5 @@
 // sm-promote: Motor canônico de promoção staging SolarMarket → CRM
-// v2026-04-21.2 — hardening etapa_id (FK projeto_etapas)
+// v2026-04-23.1 — MAX_BATCH_LIMIT = 10000 (force redeploy)
 // PR 3: pipeline real (cliente → projeto → proposta → versão) com normalizadores
 // e snapshot canônico mínimo compatível com flattenSnapshot.
 //
