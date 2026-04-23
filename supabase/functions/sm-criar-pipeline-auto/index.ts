@@ -82,8 +82,16 @@ Deno.serve(async (req) => {
       .eq("name", smFunilName.trim())
       .maybeSingle();
     if (existente) {
-      throw new Error(
-        `Já existe um pipeline com o nome "${smFunilName}". Renomeie o funil ou use outro pipeline.`,
+      return new Response(
+        JSON.stringify({
+          ok: false,
+          error: "PIPELINE_DUPLICADO",
+          message: `Já existe um pipeline com o nome "${smFunilName}". Escolha outro nome ou use o pipeline existente.`,
+        }),
+        {
+          status: 409,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
       );
     }
 
