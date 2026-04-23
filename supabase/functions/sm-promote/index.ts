@@ -1,5 +1,5 @@
 // sm-promote: Motor canônico de promoção staging SolarMarket → CRM
-// v2026-04-23.1 — MAX_BATCH_LIMIT = 10000 (force redeploy)
+// v2026-04-23.2 — usa .range() para superar PostgREST default cap de 1000 linhas
 // PR 3: pipeline real (cliente → projeto → proposta → versão) com normalizadores
 // e snapshot canônico mínimo compatível com flattenSnapshot.
 //
