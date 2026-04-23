@@ -1855,19 +1855,22 @@ async function actionPromoteAll(
   // RB-57/memória: dry-run NÃO carrega payload aqui (estourava ~150MB com 1.8k props).
   // Promoção real ainda precisa do payload — controlado pela flag `dryRun`.
   const selectCols = dryRun ? "id, external_id" : "id, external_id, payload";
+  // CRÍTICO: aplicar .not("external_id", "in", ...) ANTES de .range().
+  // Caso contrário, PostgREST traz as primeiras N linhas (já migradas) e o
+  // filtro posterior remove tudo → batch vazio em loop infinito.
   let fetchQuery = admin
     .from("sm_propostas_raw")
     .select(selectCols)
-    .eq("tenant_id", tenantId)
-    .order("imported_at", { ascending: true })
-    // .range() supera o cap default de 1000 linhas do PostgREST.
-    // .limit() sozinho ainda fica preso em 1000 (Supabase REST default).
-    .range(0, Math.max(0, batchLimit - 1));
+    .eq("tenant_id", tenantId);
   if (promotedIds.length > 0) {
     // PostgREST aceita lista em .not("col", "in", "(a,b,c)")
     const inList = `(${promotedIds.map((s) => `"${s.replace(/"/g, '\\"')}"`).join(",")})`;
     fetchQuery = fetchQuery.not("external_id", "in", inList);
   }
+  fetchQuery = fetchQuery
+    .order("imported_at", { ascending: true })
+    // .range() supera o cap default de 1000 linhas do PostgREST.
+    .range(0, Math.max(0, batchLimit - 1));
   const { data: rows, error: fetchErr } = await fetchQuery;
   if (fetchErr) {
     await patchJob(admin, jobId, {
