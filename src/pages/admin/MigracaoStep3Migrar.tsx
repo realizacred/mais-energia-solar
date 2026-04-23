@@ -64,7 +64,7 @@ function DistList({ entries }: { entries: Array<[string, number]> }) {
 }
 
 export default function MigracaoStep3Migrar() {
-  const { tenantId } = useTenantId();
+  const { data: tenantId } = useTenantId();
   const summaryQuery = useMigrationSummary(tenantId);
   const dryRun = useDryRunMigration();
   const startMig = useStartMigration();
