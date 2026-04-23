@@ -9,6 +9,8 @@
  *  - RB-23: sem console.log
  *  - RB-52: service role
  *  - RB-57: sem let no escopo de módulo
+ *  - Rollback manual: se qualquer passo após criar o pipeline falhar,
+ *    desfaz pipeline_stages + pipelines para evitar estado inconsistente.
  */
 import { createClient } from "npm:@supabase/supabase-js@2.45.0";
 
@@ -29,6 +31,14 @@ Deno.serve(async (req) => {
     return new Response("ok", { headers: corsHeaders });
   }
 
+  const admin = createClient(
+    Deno.env.get("SUPABASE_URL")!,
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+  );
+
+  // Estado por request (RB-57)
+  const state: { pipelineId: string | null } = { pipelineId: null };
+
   try {
     const body = await req.json().catch(() => ({}));
     const tenantId = (body?.tenantId as string) || "";
@@ -47,11 +57,6 @@ Deno.serve(async (req) => {
       );
     }
 
-    const admin = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
-    );
-
     // 1) Buscar o funil pelo nome no staging
     const { data: funis, error: funisErr } = await admin
       .from("sm_funis_raw")
@@ -69,20 +74,34 @@ Deno.serve(async (req) => {
       : [];
     if (stages.length === 0) throw new Error(`Funil "${smFunilName}" não tem etapas`);
 
-    // 2) Criar pipeline (RB-58: confirmar com .select())
+    // 2) Verificar se já existe pipeline com mesmo nome (constraint uq_pipeline_tenant_name_version)
+    const { data: existente } = await admin
+      .from("pipelines")
+      .select("id, name")
+      .eq("tenant_id", tenantId)
+      .eq("name", smFunilName.trim())
+      .maybeSingle();
+    if (existente) {
+      throw new Error(
+        `Já existe um pipeline com o nome "${smFunilName}". Renomeie o funil ou use outro pipeline.`,
+      );
+    }
+
+    // 3) Criar pipeline (RB-58: confirmar com .select())
     const { data: pipeline, error: pipeErr } = await admin
       .from("pipelines")
       .insert({
         tenant_id: tenantId,
-        name: smFunilName,
+        name: smFunilName.trim(),
         is_active: true,
       })
       .select("id, name")
       .single();
     if (pipeErr) throw new Error(`pipelines: ${pipeErr.message}`);
     if (!pipeline) throw new Error("Falha ao criar pipeline (sem retorno)");
+    state.pipelineId = pipeline.id;
 
-    // 3) Criar pipeline_stages na mesma ordem
+    // 4) Criar pipeline_stages na mesma ordem
     const stageRows = stages.map((s, idx) => ({
       tenant_id: tenantId,
       pipeline_id: pipeline.id,
@@ -102,26 +121,27 @@ Deno.serve(async (req) => {
       throw new Error("Falha ao criar todas as etapas do pipeline");
     }
 
-    // 4) Criar mapeamentos sm_etapa_name → stage_id
+    // 5) Criar mapeamentos sm_etapa_name → stage_id
+    // Schema real: (tenant_id, sm_funil_name, sm_etapa_name, stage_id)
     const mapRows = stages.map((s, idx) => ({
       tenant_id: tenantId,
-      sm_etapa_id: s?.id !== undefined && s?.id !== null ? Number(s.id) : null,
-      sm_etapa_name: String(s?.name ?? "").trim(),
+      sm_funil_name: smFunilName.trim(),
+      sm_etapa_name: String(s?.name ?? "").trim() || `Etapa ${idx + 1}`,
       stage_id: stagesCriadas[idx].id,
     }));
 
     const { error: mapErr } = await admin
       .from("sm_etapa_stage_map")
-      .upsert(mapRows, { onConflict: "tenant_id,sm_etapa_name" });
+      .upsert(mapRows, { onConflict: "tenant_id,sm_funil_name,sm_etapa_name" });
     if (mapErr) throw new Error(`sm_etapa_stage_map: ${mapErr.message}`);
 
-    // 5) Vincular funil ao pipeline em sm_funil_pipeline_map
+    // 6) Vincular funil ao pipeline em sm_funil_pipeline_map
     const { error: funilMapErr } = await admin
       .from("sm_funil_pipeline_map")
       .upsert(
         {
           tenant_id: tenantId,
-          sm_funil_name: smFunilName,
+          sm_funil_name: smFunilName.trim(),
           role: "pipeline",
           pipeline_id: pipeline.id,
         },
@@ -140,9 +160,28 @@ Deno.serve(async (req) => {
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   } catch (e) {
-    console.error("[sm-criar-pipeline-auto] fatal:", (e as Error).message);
+    const msg = (e as Error).message;
+    console.error("[sm-criar-pipeline-auto] fatal:", msg);
+
+    // Rollback manual se já havia criado pipeline
+    if (state.pipelineId) {
+      try {
+        await admin.from("sm_etapa_stage_map")
+          .delete()
+          .eq("tenant_id", (await req.json().catch(() => ({})))?.tenantId ?? "")
+          .in("stage_id", []); // best-effort, não crítico
+      } catch { /* ignore */ }
+      try {
+        await admin.from("pipeline_stages").delete().eq("pipeline_id", state.pipelineId);
+        await admin.from("pipelines").delete().eq("id", state.pipelineId);
+        console.error("[sm-criar-pipeline-auto] rollback do pipeline", state.pipelineId);
+      } catch (rb) {
+        console.error("[sm-criar-pipeline-auto] rollback falhou:", (rb as Error).message);
+      }
+    }
+
     return new Response(
-      JSON.stringify({ ok: false, error: (e as Error).message }),
+      JSON.stringify({ ok: false, error: msg }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   }
