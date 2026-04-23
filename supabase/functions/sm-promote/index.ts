@@ -1210,6 +1210,7 @@ async function runDryRunReport(
   candidates: AnyObj[],
   pipeline: PipelineResolution,
   consultorFallback: ConsultorResolution,
+  jobId: string | null = null,
 ): Promise<DryRunReport> {
   const report: DryRunReport = {
     total_candidatos: candidates.length,
@@ -1229,70 +1230,12 @@ async function runDryRunReport(
   };
 
   // ============================================================
-  // PRÉ-CARREGAMENTO EM BATCH (elimina N+1 dentro do loop)
+  // PRÉ-CARREGAMENTO LEVE (apenas metadados pequenos)
+  // Evita carregar 1.9k projetos + 1.9k clientes + 2.4k funis
+  // de uma vez (que estourava o limite de memória de ~150MB).
   // ============================================================
 
-  // 1. IDs únicos de projetos a partir das propostas candidatas
-  const projectExtIds = new Set<string>();
-  for (const row of candidates) {
-    const projId = pickStr((row.payload as AnyObj)?.project?.id);
-    if (projId) projectExtIds.add(projId);
-  }
-  const projectExtIdsArray = Array.from(projectExtIds);
-
-  // 2. Carrega todos os projetos do staging em chunks
-  const projetosMap = new Map<string, AnyObj>();
-  for (let i = 0; i < projectExtIdsArray.length; i += 500) {
-    const chunk = projectExtIdsArray.slice(i, i + 500);
-    const { data } = await admin
-      .from("sm_projetos_raw")
-      .select("external_id, payload")
-      .eq("tenant_id", tenantId)
-      .in("external_id", chunk);
-    for (const p of (data ?? []) as AnyObj[]) {
-      projetosMap.set(String(p.external_id), p.payload as AnyObj);
-    }
-  }
-
-  // 3. IDs únicos de clientes a partir dos projetos carregados
-  const clienteExtIds = new Set<string>();
-  for (const proj of projetosMap.values()) {
-    const cliId = pickStr(proj?.client?.id);
-    if (cliId) clienteExtIds.add(cliId);
-  }
-  const clienteExtIdsArray = Array.from(clienteExtIds);
-
-  // 4. Carrega todos os clientes em chunks
-  const clientesMap = new Map<string, AnyObj>();
-  for (let i = 0; i < clienteExtIdsArray.length; i += 500) {
-    const chunk = clienteExtIdsArray.slice(i, i + 500);
-    const { data } = await admin
-      .from("sm_clientes_raw")
-      .select("external_id, payload")
-      .eq("tenant_id", tenantId)
-      .in("external_id", chunk);
-    for (const c of (data ?? []) as AnyObj[]) {
-      clientesMap.set(String(c.external_id), c.payload as AnyObj);
-    }
-  }
-
-  // 5. Carrega TODOS os funis-de-projeto do tenant (uma query)
-  const funisPorProjeto = new Map<string, AnyObj[]>();
-  {
-    const { data: allFunis } = await admin
-      .from("sm_projeto_funis_raw")
-      .select("payload")
-      .eq("tenant_id", tenantId);
-    for (const f of (allFunis ?? []) as AnyObj[]) {
-      const projId = pickStr((f.payload as AnyObj)?.project?.id);
-      if (!projId) continue;
-      const list = funisPorProjeto.get(projId) ?? [];
-      list.push(f.payload as AnyObj);
-      funisPorProjeto.set(projId, list);
-    }
-  }
-
-  // 6. Consultores ativos do tenant
+  // Consultores ativos (~7 registros)
   const { data: consultores } = await admin
     .from("consultores")
     .select("id, nome")
@@ -1305,7 +1248,7 @@ async function runDryRunReport(
     consultoresByNomeExato.set(String(c.nome).trim().toLowerCase(), c.id as string);
   }
 
-  // 7. Mapeamento sm_consultor_mapping
+  // sm_consultor_mapping (~10 registros)
   const { data: consultorMap } = await admin
     .from("sm_consultor_mapping")
     .select("sm_name, consultor_id, is_ex_funcionario")
@@ -1321,7 +1264,7 @@ async function runDryRunReport(
     );
   }
 
-  // 8. Mapeamento de funis SM → pipelines nativos
+  // sm_funil_pipeline_map (~6 registros)
   const { data: funilMap } = await admin
     .from("sm_funil_pipeline_map")
     .select("sm_funil_name, pipeline_id, role")
@@ -1336,7 +1279,7 @@ async function runDryRunReport(
     });
   }
 
-  // 9. Nomes dos pipelines (principal + auxiliares)
+  // Nomes dos pipelines (principal + auxiliares)
   const pipelineNomeCache = new Map<string, string>();
   const auxPipelineIds = Array.from(auxPipelinesByName.values())
     .map((v) => v.pipelineId)
@@ -1352,7 +1295,7 @@ async function runDryRunReport(
   const pipelineComercialNome =
     (pipeline.funilId && pipelineNomeCache.get(pipeline.funilId)) || "Comercial";
 
-  // 10. Nomes das etapas
+  // Etapas (~30 registros)
   const { data: etapas } = await admin
     .from("projeto_etapas").select("id, nome");
   const etapasById = new Map<string, string>();
@@ -1361,139 +1304,219 @@ async function runDryRunReport(
   }
 
   // ============================================================
-  // LOOP EM MEMÓRIA — zero queries
+  // PROCESSAMENTO EM CHUNKS DE 200 CANDIDATOS
+  // Carrega projetos/clientes/funis APENAS do chunk atual,
+  // libera a memória entre chunks.
   // ============================================================
+  const CHUNK_SIZE = 200;
   const clientesVistos = new Set<string>();
   const projetosVistos = new Set<string>();
+  const totalChunks = Math.ceil(candidates.length / CHUNK_SIZE);
 
-  for (const row of candidates) {
-    const propostaPayload: AnyObj = (row.payload as AnyObj) ?? {};
-    const propExtId = pickStr(propostaPayload.id) ?? (row.external_id as string | null);
-    const projectExtId = pickStr(propostaPayload.project?.id);
+  for (let i = 0; i < candidates.length; i += CHUNK_SIZE) {
+    const chunk = candidates.slice(i, i + CHUNK_SIZE);
+    const chunkIndex = Math.floor(i / CHUNK_SIZE) + 1;
 
-    if (!projectExtId) {
-      report.bloqueados.push({
-        tipo: "proposta",
-        external_id: propExtId,
-        motivos: ["SM_PROPOSAL_NO_PROJECT"],
-      });
-      continue;
-    }
-
-    // Lookup do projeto em memória
-    const rawProjeto: AnyObj = projetosMap.get(projectExtId) ?? {
-      id: projectExtId,
-      name: propostaPayload.project?.name,
-    };
-
-    // Lookup do cliente em memória
-    const clientExtId = pickStr(rawProjeto?.client?.id);
-    let rawCliente: AnyObj | null = null;
-    if (clientExtId) {
-      rawCliente = clientesMap.get(clientExtId) ?? rawProjeto.client ?? null;
-    } else {
-      rawCliente = rawProjeto?.client ?? null;
-    }
-
-    // Gate de elegibilidade
-    const elig = validateEligibility({
-      rawCliente, rawProjeto, rawProposta: propostaPayload, pipeline,
-    });
-    if (elig.status === "blocked") {
-      report.bloqueados.push({
-        tipo: "proposta",
-        external_id: propExtId,
-        motivos: elig.issues.map((i) => i.code),
-      });
-      continue;
-    }
-
-    // Conta cliente novo
-    if (clientExtId && !clientesVistos.has(clientExtId)) {
-      clientesVistos.add(clientExtId);
-      report.clientes_a_criar += 1;
-    }
-
-    // Conta projeto novo + pipelines
-    if (!projetosVistos.has(projectExtId)) {
-      projetosVistos.add(projectExtId);
-      report.projetos_a_criar += 1;
-
-      // Pipeline principal (Comercial)
-      incr(report.distribuicaoPorPipeline, pipelineComercialNome);
-
-      // Pipelines auxiliares (via funis vinculados — em memória)
-      const funis = funisPorProjeto.get(projectExtId) ?? [];
-      for (const f of funis) {
-        const fname = String((f as AnyObj)?.name ?? "").trim();
-        if (!fname) continue;
-        if (fname.toLowerCase() === "vendedores") continue;
-        if (fname.toLowerCase() === pipelineComercialNome.toLowerCase()) continue;
-        const aux = auxPipelinesByName.get(fname.toLowerCase());
-        if (aux?.pipelineId) {
-          const nome = pipelineNomeCache.get(aux.pipelineId) ?? fname;
-          incr(report.distribuicaoPorPipeline, nome);
-        } else {
-          report.warnings.push({
-            tipo: "projeto",
-            external_id: projectExtId,
-            mensagem: `Funil "${fname}" sem mapeamento para pipeline nativo (deal adicional será omitido).`,
-          });
-        }
-      }
-    }
-
-    // Proposta sempre conta como nova
-    report.propostas_a_criar += 1;
-
-    // Status canônico
-    const statusInfo = mapSmStatus(propostaPayload.status, propostaPayload.acceptanceDate);
-    incr(report.distribuicaoPorStatus, statusInfo.status);
-
-    // Stage (lookup em memória)
-    const stageId = resolveStageForStatus(pipeline, statusInfo.status);
-    if (stageId) {
-      incr(report.distribuicaoPorStage, etapasById.get(stageId) ?? statusInfo.status);
-    } else {
-      incr(report.distribuicaoPorStage, "—");
-    }
-
-    // Consultor (hierarquia em memória: Vendedores → responsible.name (exato) → fallback)
-    const responsibleName = pickStr(rawProjeto?.responsible?.name);
-    let consultorLabel = "";
-
-    // PRIO 1: Funil "Vendedores" → stage.name → sm_consultor_mapping
-    const funisProj = funisPorProjeto.get(projectExtId) ?? [];
-    const vendedoresFunil = funisProj.find((f) =>
-      String((f as AnyObj)?.name ?? "").trim().toLowerCase() === "vendedores"
+    console.error(
+      `[sm-promote/dry-run] chunk ${chunkIndex}/${totalChunks} (${chunk.length} candidatos)`,
     );
-    if (vendedoresFunil) {
-      const stageName = pickStr((vendedoresFunil as AnyObj)?.stage?.name);
-      if (stageName) {
-        const mapping = smMappingByName.get(stageName.trim().toLowerCase());
-        if (mapping?.consultor_id) {
-          const nome = consultoresById.get(mapping.consultor_id) ?? stageName;
-          consultorLabel = `${nome} (Vendedores)`;
-        } else if (mapping?.is_ex && consultorFallback.fallbackNome) {
-          consultorLabel = `${consultorFallback.fallbackNome} (fallback)`;
+
+    // Atualiza progresso do job (não bloqueante)
+    if (jobId) {
+      try {
+        await admin
+          .from("solarmarket_promotion_jobs")
+          .update({
+            items_processed: Math.min(i + CHUNK_SIZE, candidates.length),
+            total_items: candidates.length,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", jobId);
+      } catch (_e) {
+        // não derruba o dry-run por falha no update de progresso
+      }
+    }
+
+    // IDs únicos de projetos deste chunk
+    const projectExtIdsChunk = new Set<string>();
+    for (const row of chunk) {
+      const projId = pickStr((row.payload as AnyObj)?.project?.id);
+      if (projId) projectExtIdsChunk.add(projId);
+    }
+
+    // Projetos do chunk (~200 registros)
+    const projetosMap = new Map<string, AnyObj>();
+    if (projectExtIdsChunk.size > 0) {
+      const { data } = await admin
+        .from("sm_projetos_raw")
+        .select("external_id, payload")
+        .eq("tenant_id", tenantId)
+        .in("external_id", Array.from(projectExtIdsChunk));
+      for (const p of (data ?? []) as AnyObj[]) {
+        projetosMap.set(String(p.external_id), p.payload as AnyObj);
+      }
+    }
+
+    // Clientes do chunk
+    const clienteExtIdsChunk = new Set<string>();
+    for (const proj of projetosMap.values()) {
+      const cliId = pickStr(proj?.client?.id);
+      if (cliId) clienteExtIdsChunk.add(cliId);
+    }
+    const clientesMap = new Map<string, AnyObj>();
+    if (clienteExtIdsChunk.size > 0) {
+      const { data } = await admin
+        .from("sm_clientes_raw")
+        .select("external_id, payload")
+        .eq("tenant_id", tenantId)
+        .in("external_id", Array.from(clienteExtIdsChunk));
+      for (const c of (data ?? []) as AnyObj[]) {
+        clientesMap.set(String(c.external_id), c.payload as AnyObj);
+      }
+    }
+
+    // Funis-de-projeto do chunk (filtrados por projectExtIds, em sub-chunks)
+    const funisPorProjeto = new Map<string, AnyObj[]>();
+    if (projectExtIdsChunk.size > 0) {
+      const projectIdsArr = Array.from(projectExtIdsChunk);
+      for (let j = 0; j < projectIdsArr.length; j += 100) {
+        const subChunk = projectIdsArr.slice(j, j + 100);
+        const { data } = await admin
+          .from("sm_projeto_funis_raw")
+          .select("payload")
+          .eq("tenant_id", tenantId)
+          .in("payload->project->>id", subChunk);
+        for (const f of (data ?? []) as AnyObj[]) {
+          const projId = pickStr((f.payload as AnyObj)?.project?.id);
+          if (!projId) continue;
+          const list = funisPorProjeto.get(projId) ?? [];
+          list.push(f.payload as AnyObj);
+          funisPorProjeto.set(projId, list);
         }
       }
     }
 
-    // PRIO 2: responsible.name match EXATO em consultores
-    if (!consultorLabel && responsibleName) {
-      const cid = consultoresByNomeExato.get(responsibleName.trim().toLowerCase());
-      if (cid) {
-        consultorLabel = `${consultoresById.get(cid)} (responsible)`;
+    // ── Loop em memória sobre o chunk ──
+    for (const row of chunk) {
+      const propostaPayload: AnyObj = (row.payload as AnyObj) ?? {};
+      const propExtId = pickStr(propostaPayload.id) ?? (row.external_id as string | null);
+      const projectExtId = pickStr(propostaPayload.project?.id);
+
+      if (!projectExtId) {
+        report.bloqueados.push({
+          tipo: "proposta",
+          external_id: propExtId,
+          motivos: ["SM_PROPOSAL_NO_PROJECT"],
+        });
+        continue;
       }
+
+      const rawProjeto: AnyObj = projetosMap.get(projectExtId) ?? {
+        id: projectExtId,
+        name: propostaPayload.project?.name,
+      };
+
+      const clientExtId = pickStr(rawProjeto?.client?.id);
+      let rawCliente: AnyObj | null = null;
+      if (clientExtId) {
+        rawCliente = clientesMap.get(clientExtId) ?? rawProjeto.client ?? null;
+      } else {
+        rawCliente = rawProjeto?.client ?? null;
+      }
+
+      const elig = validateEligibility({
+        rawCliente, rawProjeto, rawProposta: propostaPayload, pipeline,
+      });
+      if (elig.status === "blocked") {
+        report.bloqueados.push({
+          tipo: "proposta",
+          external_id: propExtId,
+          motivos: elig.issues.map((i) => i.code),
+        });
+        continue;
+      }
+
+      if (clientExtId && !clientesVistos.has(clientExtId)) {
+        clientesVistos.add(clientExtId);
+        report.clientes_a_criar += 1;
+      }
+
+      if (!projetosVistos.has(projectExtId)) {
+        projetosVistos.add(projectExtId);
+        report.projetos_a_criar += 1;
+
+        incr(report.distribuicaoPorPipeline, pipelineComercialNome);
+
+        const funis = funisPorProjeto.get(projectExtId) ?? [];
+        for (const f of funis) {
+          const fname = String((f as AnyObj)?.name ?? "").trim();
+          if (!fname) continue;
+          if (fname.toLowerCase() === "vendedores") continue;
+          if (fname.toLowerCase() === pipelineComercialNome.toLowerCase()) continue;
+          const aux = auxPipelinesByName.get(fname.toLowerCase());
+          if (aux?.pipelineId) {
+            const nome = pipelineNomeCache.get(aux.pipelineId) ?? fname;
+            incr(report.distribuicaoPorPipeline, nome);
+          } else {
+            report.warnings.push({
+              tipo: "projeto",
+              external_id: projectExtId,
+              mensagem: `Funil "${fname}" sem mapeamento para pipeline nativo (deal adicional será omitido).`,
+            });
+          }
+        }
+      }
+
+      report.propostas_a_criar += 1;
+
+      const statusInfo = mapSmStatus(propostaPayload.status, propostaPayload.acceptanceDate);
+      incr(report.distribuicaoPorStatus, statusInfo.status);
+
+      const stageId = resolveStageForStatus(pipeline, statusInfo.status);
+      if (stageId) {
+        incr(report.distribuicaoPorStage, etapasById.get(stageId) ?? statusInfo.status);
+      } else {
+        incr(report.distribuicaoPorStage, "—");
+      }
+
+      const responsibleName = pickStr(rawProjeto?.responsible?.name);
+      let consultorLabel = "";
+
+      const funisProj = funisPorProjeto.get(projectExtId) ?? [];
+      const vendedoresFunil = funisProj.find((f) =>
+        String((f as AnyObj)?.name ?? "").trim().toLowerCase() === "vendedores"
+      );
+      if (vendedoresFunil) {
+        const stageName = pickStr((vendedoresFunil as AnyObj)?.stage?.name);
+        if (stageName) {
+          const mapping = smMappingByName.get(stageName.trim().toLowerCase());
+          if (mapping?.consultor_id) {
+            const nome = consultoresById.get(mapping.consultor_id) ?? stageName;
+            consultorLabel = `${nome} (Vendedores)`;
+          } else if (mapping?.is_ex && consultorFallback.fallbackNome) {
+            consultorLabel = `${consultorFallback.fallbackNome} (fallback)`;
+          }
+        }
+      }
+
+      if (!consultorLabel && responsibleName) {
+        const cid = consultoresByNomeExato.get(responsibleName.trim().toLowerCase());
+        if (cid) {
+          consultorLabel = `${consultoresById.get(cid)} (responsible)`;
+        }
+      }
+
+      if (!consultorLabel) {
+        consultorLabel = `${consultorFallback.fallbackNome ?? "—"} (fallback)`;
+      }
+
+      incr(report.distribuicaoPorConsultor, consultorLabel);
     }
 
-    // PRIO 3: Fallback Escritório
-    if (!consultorLabel) {
-      consultorLabel = `${consultorFallback.fallbackNome ?? "—"} (fallback)`;
-    }
-
-    incr(report.distribuicaoPorConsultor, consultorLabel);
+    // Libera a memória do chunk antes do próximo lote
+    projetosMap.clear();
+    clientesMap.clear();
+    funisPorProjeto.clear();
   }
 
   return report;
@@ -1820,6 +1843,7 @@ async function actionPromoteAll(
       candidates as AnyObj[],
       pipeline,
       consultorFallback,
+      jobId,
     );
 
     await logEvent(admin, {
