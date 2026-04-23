@@ -85,8 +85,26 @@ function jsonResponse(body: unknown, status = 200): Response {
 }
 
 // ─── Auth ────────────────────────────────────────────────────────────────────
-async function resolveUserContext(authHeader: string | null) {
+async function resolveUserContext(
+  authHeader: string | null,
+  internalCallHeader?: string | null,
+  internalTenantId?: string | null,
+) {
   if (!authHeader) return null;
+
+  // Bypass para chamadas internas (sm-migrate-chunk em modo cron_resume).
+  // Aceita se: header especial + Authorization com service role key + tenant_id explícito.
+  if (
+    internalCallHeader === "sm-migrate-chunk-v1" &&
+    authHeader === `Bearer ${SUPABASE_SERVICE_ROLE_KEY}` &&
+    internalTenantId
+  ) {
+    return {
+      userId: "system-internal-call",
+      tenantId: internalTenantId,
+    };
+  }
+
   const userClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     global: { headers: { Authorization: authHeader } },
     auth: { persistSession: false },
@@ -1981,12 +1999,19 @@ Deno.serve(async (req: Request) => {
     if (req.method !== "POST") {
       return jsonResponse({ ok: false, error: "Método não permitido" }, 405);
     }
-    const ctx = await resolveUserContext(req.headers.get("Authorization"));
+    // Lê body antes para conseguir extrair tenant_id em chamadas internas.
+    const body = await req.json().catch(() => ({}));
+    const internalTenantId =
+      (body?.payload?.tenant_id as string | undefined) ??
+      req.headers.get("x-sm-tenant-override");
+    const ctx = await resolveUserContext(
+      req.headers.get("Authorization"),
+      req.headers.get("x-sm-internal-call"),
+      internalTenantId,
+    );
     if (!ctx) return jsonResponse({ ok: false, error: "Não autenticado" }, 401);
     state.userId = ctx.userId;
     state.tenantId = ctx.tenantId;
-
-    const body = await req.json().catch(() => ({}));
     const action = String(body?.action ?? "");
     const payload = (body?.payload ?? {}) as Record<string, unknown>;
 
