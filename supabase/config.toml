@@ -324,3 +324,7 @@ verify_jwt = false
 verify_jwt = false
 wall_clock_limit = 300
 
+[functions.sm-migrate-chunk]
+verify_jwt = false
+wall_clock_limit = 60
+
