@@ -49,6 +49,7 @@ import {
   CheckCircle2,
   AlertCircle,
   Plus,
+  Zap,
 } from "lucide-react";
 import { useTenantId } from "@/hooks/useTenantId";
 import {
@@ -60,6 +61,7 @@ import {
   usePipelinesCrm,
   useCreatePipelineCrm,
 } from "@/hooks/usePipelinesCrm";
+import { useCriarPipelineAuto } from "@/hooks/useCriarPipelineAuto";
 import { useSmEtapasFunil } from "@/hooks/useSmEtapasFunil";
 import { useSmConsultorMappings } from "@/hooks/useSmConsultorMapping";
 import { useMigrationConfig } from "@/hooks/useMigrationConfig";
@@ -109,6 +111,7 @@ export default function MigracaoStep2Mapear() {
   );
   const saveMutation = useSaveFunilPapel();
   const createPipelineMutation = useCreatePipelineCrm();
+  const criarAutoMutation = useCriarPipelineAuto();
 
   // Funis em que o usuário selecionou "pipeline" mas ainda não escolheu qual.
   const [pendentes, setPendentes] = useState<Record<string, boolean>>({});
@@ -361,6 +364,14 @@ export default function MigracaoStep2Mapear() {
                             abrirCriarPipeline(f.nome);
                             return;
                           }
+                          if (v === "__auto__") {
+                            if (!tenantId) return;
+                            criarAutoMutation.mutate({
+                              tenantId,
+                              smFunilName: f.nome,
+                            });
+                            return;
+                          }
                           handleEscolherPipeline(f.nome, v);
                         }}
                       >
@@ -377,10 +388,25 @@ export default function MigracaoStep2Mapear() {
                             </SelectItem>
                           ))}
                           {(pipelines ?? []).length > 0 && <SelectSeparator />}
+                          <SelectItem value="__auto__">
+                            <span className="flex items-start gap-1.5 text-primary">
+                              <Zap className="w-3.5 h-3.5 mt-0.5 shrink-0" />
+                              <span className="flex flex-col">
+                                <span className="text-sm font-medium">
+                                  Criar automaticamente "{f.nome}"
+                                </span>
+                                <span className="text-xs text-muted-foreground">
+                                  Com as {f.qtdEtapas}{" "}
+                                  {f.qtdEtapas === 1 ? "etapa" : "etapas"} do SolarMarket
+                                </span>
+                              </span>
+                            </span>
+                          </SelectItem>
+                          <SelectSeparator />
                           <SelectItem value="__new__">
                             <span className="flex items-center gap-1.5">
                               <Plus className="w-3.5 h-3.5" />
-                              Criar novo pipeline
+                              Criar novo pipeline (vazio)
                             </span>
                           </SelectItem>
                         </SelectContent>
