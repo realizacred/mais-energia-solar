@@ -29,7 +29,15 @@ export function useCriarPipelineAuto() {
         "sm-criar-pipeline-auto",
         { body: { tenantId, smFunilName } },
       );
-      if (error) throw error;
+      // Mesmo com HTTP 500, o supabase-js pode trazer o body em `data`
+      if (data && data.ok === false && data.error) {
+        throw new Error(data.error);
+      }
+      if (error) {
+        const { parseEdgeFunctionError } = await import("@/lib/parseEdgeFunctionError");
+        const msg = await parseEdgeFunctionError(error, "Falha ao criar pipeline");
+        throw new Error(msg);
+      }
       if (!data?.ok) throw new Error(data?.error || "Falha ao criar pipeline");
       return data;
     },
