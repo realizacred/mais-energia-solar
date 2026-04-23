@@ -320,3 +320,7 @@ verify_jwt = false
 [functions.sync-projeto-funis]
 verify_jwt = false
 
+[functions.sm-promote]
+verify_jwt = false
+wall_clock_limit = 300
+
