@@ -1718,7 +1718,7 @@ async function actionPromoteAll(
       items_with_warnings: report.warnings.length,
       items_with_errors: 0,
       items_blocked: report.bloqueados.length,
-      metadata: { dry_run_report: report } as never,
+      metadata: { dry_run_report: report },
     });
     return jsonResponse({
       ok: true, job_id: jobId, status: "completed",
