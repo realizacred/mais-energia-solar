@@ -60,6 +60,12 @@ import {
   usePipelinesCrm,
   useCreatePipelineCrm,
 } from "@/hooks/usePipelinesCrm";
+import { useSmEtapasFunil } from "@/hooks/useSmEtapasFunil";
+import { useSmConsultorMappings } from "@/hooks/useSmConsultorMapping";
+import { useMigrationConfig } from "@/hooks/useMigrationConfig";
+import { EtapasToConsultores } from "@/components/admin/solarmarket/mapeamento/EtapasToConsultores";
+import { ConfiguracoesPadraoCard } from "@/components/admin/solarmarket/mapeamento/ConfiguracoesPadraoCard";
+import { MappingValidation } from "@/components/admin/solarmarket/mapeamento/MappingValidation";
 import { toast } from "sonner";
 
 const PAPEIS: { value: FunilPapel; label: string; descricao: string; icon: typeof Workflow }[] = [
