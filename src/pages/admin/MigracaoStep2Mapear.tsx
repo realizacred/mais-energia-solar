@@ -404,22 +404,30 @@ export default function MigracaoStep2Mapear() {
           })}
       </div>
 
-      {/* Footer informativo (Subfase 2.3 trará botão Continuar) */}
-      <Card className="bg-muted/30 border-border shadow-sm">
-        <CardContent className="p-5 flex items-start gap-3">
-          <AlertCircle className="w-5 h-5 text-info shrink-0 mt-0.5" />
-          <div>
-            <p className="text-sm font-medium text-foreground">
-              Próximas sub-etapas
-            </p>
-            <p className="text-sm text-muted-foreground mt-1">
-              Após definir o papel de todos os funis, você poderá mapear cada etapa para um
-              consultor ou um stage do CRM. O botão para avançar ao Step 3 só será liberado
-              quando todos os mapeamentos estiverem completos.
-            </p>
-          </div>
-        </CardContent>
-      </Card>
+      {/* Mapeamento etapa → consultor (apenas para funis 'vendedor_source') */}
+      {tenantId &&
+        funis
+          ?.filter((f) => f.papel === "vendedor_source")
+          .map((f) => (
+            <EtapasToConsultores
+              key={`et-${f.smFunilId}`}
+              tenantId={tenantId}
+              smFunilName={f.nome}
+            />
+          ))}
+
+      {/* Configurações padrão (fallbacks) */}
+      {tenantId && <ConfiguracoesPadraoCard tenantId={tenantId} />}
+
+      {/* Validação global + botão Continuar */}
+      {tenantId && funis && (
+        <MappingValidation
+          funis={funis}
+          config={config}
+          etapasVendedores={etapasVendedores ?? []}
+          consultorMappings={consultorMappings ?? []}
+        />
+      )}
 
       {/* Dialog de criação de pipeline */}
       <Dialog open={criarOpen} onOpenChange={setCriarOpen}>
