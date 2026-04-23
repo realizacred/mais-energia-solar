@@ -129,7 +129,7 @@ async function createJob(
     .insert({
       tenant_id: tenantId,
       triggered_by: userId ?? null,
-      trigger_source: userId ? "manual" : "internal",
+      trigger_source: userId ? "manual" : "api",
       job_type: jobType,
       status: "pending" satisfies JobStatus,
       filters,
