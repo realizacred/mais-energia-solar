@@ -99,6 +99,14 @@ export default function MigracaoStep2Mapear() {
   const { data: tenantId } = useTenantId();
   const { data: funis, isLoading } = useSmFunisStaging(tenantId ?? undefined);
   const { data: pipelines } = usePipelinesCrm(tenantId);
+  const { data: config } = useMigrationConfig(tenantId);
+  const { data: consultorMappings } = useSmConsultorMappings(tenantId);
+  const funilVendedoresNome =
+    funis?.find((f) => f.papel === "vendedor_source")?.nome ?? null;
+  const { data: etapasVendedores } = useSmEtapasFunil(
+    tenantId,
+    funilVendedoresNome,
+  );
   const saveMutation = useSaveFunilPapel();
   const createPipelineMutation = useCreatePipelineCrm();
 
