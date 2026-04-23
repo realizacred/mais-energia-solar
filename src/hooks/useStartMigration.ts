@@ -22,7 +22,7 @@ export interface StartMigrationResponse {
 export function useStartMigration() {
   const qc = useQueryClient();
   return useMutation<StartMigrationResponse, Error, { batchSize?: number }>({
-    mutationFn: async ({ batchSize = 200 } = {}) => {
+    mutationFn: async ({ batchSize = 5000 } = {}) => {
       const { data, error } = await supabase.functions.invoke("sm-promote", {
         body: {
           action: "promote-all",
