@@ -1228,17 +1228,100 @@ async function runDryRunReport(
     bucket[key] = (bucket[key] ?? 0) + 1;
   };
 
-  const clientesVistos = new Set<string>();
-  const projetosVistos = new Set<string>();
+  // ============================================================
+  // PRÉ-CARREGAMENTO EM BATCH (elimina N+1 dentro do loop)
+  // ============================================================
 
-  // Pré-carrega nomes dos pipelines configurados (para distribuição legível)
-  const pipelineNomeCache = new Map<string, string>();
-  if (pipeline.funilId) {
-    const { data: f } = await admin
-      .from("projeto_funis").select("id, nome").eq("id", pipeline.funilId).maybeSingle();
-    if (f?.nome) pipelineNomeCache.set(pipeline.funilId, f.nome as string);
+  // 1. IDs únicos de projetos a partir das propostas candidatas
+  const projectExtIds = new Set<string>();
+  for (const row of candidates) {
+    const projId = pickStr((row.payload as AnyObj)?.project?.id);
+    if (projId) projectExtIds.add(projId);
   }
-  // Mapa funil_sm → pipeline nativo (para deals adicionais)
+  const projectExtIdsArray = Array.from(projectExtIds);
+
+  // 2. Carrega todos os projetos do staging em chunks
+  const projetosMap = new Map<string, AnyObj>();
+  for (let i = 0; i < projectExtIdsArray.length; i += 500) {
+    const chunk = projectExtIdsArray.slice(i, i + 500);
+    const { data } = await admin
+      .from("sm_projetos_raw")
+      .select("external_id, payload")
+      .eq("tenant_id", tenantId)
+      .in("external_id", chunk);
+    for (const p of (data ?? []) as AnyObj[]) {
+      projetosMap.set(String(p.external_id), p.payload as AnyObj);
+    }
+  }
+
+  // 3. IDs únicos de clientes a partir dos projetos carregados
+  const clienteExtIds = new Set<string>();
+  for (const proj of projetosMap.values()) {
+    const cliId = pickStr(proj?.client?.id);
+    if (cliId) clienteExtIds.add(cliId);
+  }
+  const clienteExtIdsArray = Array.from(clienteExtIds);
+
+  // 4. Carrega todos os clientes em chunks
+  const clientesMap = new Map<string, AnyObj>();
+  for (let i = 0; i < clienteExtIdsArray.length; i += 500) {
+    const chunk = clienteExtIdsArray.slice(i, i + 500);
+    const { data } = await admin
+      .from("sm_clientes_raw")
+      .select("external_id, payload")
+      .eq("tenant_id", tenantId)
+      .in("external_id", chunk);
+    for (const c of (data ?? []) as AnyObj[]) {
+      clientesMap.set(String(c.external_id), c.payload as AnyObj);
+    }
+  }
+
+  // 5. Carrega TODOS os funis-de-projeto do tenant (uma query)
+  const funisPorProjeto = new Map<string, AnyObj[]>();
+  {
+    const { data: allFunis } = await admin
+      .from("sm_projeto_funis_raw")
+      .select("payload")
+      .eq("tenant_id", tenantId);
+    for (const f of (allFunis ?? []) as AnyObj[]) {
+      const projId = pickStr((f.payload as AnyObj)?.project?.id);
+      if (!projId) continue;
+      const list = funisPorProjeto.get(projId) ?? [];
+      list.push(f.payload as AnyObj);
+      funisPorProjeto.set(projId, list);
+    }
+  }
+
+  // 6. Consultores ativos do tenant
+  const { data: consultores } = await admin
+    .from("consultores")
+    .select("id, nome")
+    .eq("tenant_id", tenantId)
+    .eq("ativo", true);
+  const consultoresById = new Map<string, string>();
+  const consultoresByNomeExato = new Map<string, string>();
+  for (const c of (consultores ?? []) as AnyObj[]) {
+    consultoresById.set(c.id as string, c.nome as string);
+    consultoresByNomeExato.set(String(c.nome).trim().toLowerCase(), c.id as string);
+  }
+
+  // 7. Mapeamento sm_consultor_mapping
+  const { data: consultorMap } = await admin
+    .from("sm_consultor_mapping")
+    .select("sm_name, consultor_id, is_ex_funcionario")
+    .eq("tenant_id", tenantId);
+  const smMappingByName = new Map<string, { consultor_id: string | null; is_ex: boolean }>();
+  for (const m of (consultorMap ?? []) as AnyObj[]) {
+    smMappingByName.set(
+      String(m.sm_name ?? "").trim().toLowerCase(),
+      {
+        consultor_id: (m.consultor_id as string) ?? null,
+        is_ex: !!m.is_ex_funcionario,
+      },
+    );
+  }
+
+  // 8. Mapeamento de funis SM → pipelines nativos
   const { data: funilMap } = await admin
     .from("sm_funil_pipeline_map")
     .select("sm_funil_name, pipeline_id, role")
@@ -1252,10 +1335,13 @@ async function runDryRunReport(
       role: (m.role as string) ?? null,
     });
   }
-  // Resolver nome amigável dos pipelines auxiliares
+
+  // 9. Nomes dos pipelines (principal + auxiliares)
+  const pipelineNomeCache = new Map<string, string>();
   const auxPipelineIds = Array.from(auxPipelinesByName.values())
     .map((v) => v.pipelineId)
     .filter((x): x is string => !!x);
+  if (pipeline.funilId) auxPipelineIds.push(pipeline.funilId);
   if (auxPipelineIds.length > 0) {
     const { data: ps } = await admin
       .from("projeto_funis").select("id, nome").in("id", auxPipelineIds);
@@ -1265,6 +1351,20 @@ async function runDryRunReport(
   }
   const pipelineComercialNome =
     (pipeline.funilId && pipelineNomeCache.get(pipeline.funilId)) || "Comercial";
+
+  // 10. Nomes das etapas
+  const { data: etapas } = await admin
+    .from("projeto_etapas").select("id, nome");
+  const etapasById = new Map<string, string>();
+  for (const e of (etapas ?? []) as AnyObj[]) {
+    etapasById.set(e.id as string, (e.nome as string) ?? "—");
+  }
+
+  // ============================================================
+  // LOOP EM MEMÓRIA — zero queries
+  // ============================================================
+  const clientesVistos = new Set<string>();
+  const projetosVistos = new Set<string>();
 
   for (const row of candidates) {
     const propostaPayload: AnyObj = (row.payload as AnyObj) ?? {};
@@ -1280,22 +1380,17 @@ async function runDryRunReport(
       continue;
     }
 
-    // Carrega projeto + cliente do staging
-    const { data: projRow } = await admin
-      .from("sm_projetos_raw").select("payload")
-      .eq("tenant_id", tenantId).eq("external_id", projectExtId).maybeSingle();
-    const rawProjeto: AnyObj = (projRow?.payload as AnyObj) ?? {
+    // Lookup do projeto em memória
+    const rawProjeto: AnyObj = projetosMap.get(projectExtId) ?? {
       id: projectExtId,
       name: propostaPayload.project?.name,
     };
 
+    // Lookup do cliente em memória
     const clientExtId = pickStr(rawProjeto?.client?.id);
     let rawCliente: AnyObj | null = null;
     if (clientExtId) {
-      const { data: cliRow } = await admin
-        .from("sm_clientes_raw").select("payload")
-        .eq("tenant_id", tenantId).eq("external_id", clientExtId).maybeSingle();
-      rawCliente = (cliRow?.payload as AnyObj) ?? rawProjeto.client ?? null;
+      rawCliente = clientesMap.get(clientExtId) ?? rawProjeto.client ?? null;
     } else {
       rawCliente = rawProjeto?.client ?? null;
     }
@@ -1313,12 +1408,13 @@ async function runDryRunReport(
       continue;
     }
 
-    // Conta cliente novo (por external_id)
+    // Conta cliente novo
     if (clientExtId && !clientesVistos.has(clientExtId)) {
       clientesVistos.add(clientExtId);
       report.clientes_a_criar += 1;
     }
-    // Conta projeto novo (por external_id)
+
+    // Conta projeto novo + pipelines
     if (!projetosVistos.has(projectExtId)) {
       projetosVistos.add(projectExtId);
       report.projetos_a_criar += 1;
@@ -1326,23 +1422,18 @@ async function runDryRunReport(
       // Pipeline principal (Comercial)
       incr(report.distribuicaoPorPipeline, pipelineComercialNome);
 
-      // Pipelines auxiliares: olha funis vinculados ao projeto
-      const { data: pjFunis } = await admin
-        .from("sm_projeto_funis_raw").select("payload")
-        .eq("tenant_id", tenantId)
-        .eq("payload->project->>id", projectExtId);
-      for (const r of (pjFunis ?? []) as AnyObj[]) {
-        const fname = String(((r.payload as AnyObj)?.name ?? "")).trim();
+      // Pipelines auxiliares (via funis vinculados — em memória)
+      const funis = funisPorProjeto.get(projectExtId) ?? [];
+      for (const f of funis) {
+        const fname = String((f as AnyObj)?.name ?? "").trim();
         if (!fname) continue;
-        if (fname.toLowerCase() === "vendedores") continue; // não vira deal
-        if (pipeline.funilId && fname.toLowerCase() === (pipelineComercialNome.toLowerCase()))
-          continue; // já contado
+        if (fname.toLowerCase() === "vendedores") continue;
+        if (fname.toLowerCase() === pipelineComercialNome.toLowerCase()) continue;
         const aux = auxPipelinesByName.get(fname.toLowerCase());
         if (aux?.pipelineId) {
           const nome = pipelineNomeCache.get(aux.pipelineId) ?? fname;
           incr(report.distribuicaoPorPipeline, nome);
         } else {
-          // Funil sem mapeamento (warning apenas — não bloqueia)
           report.warnings.push({
             tipo: "projeto",
             external_id: projectExtId,
@@ -1352,35 +1443,56 @@ async function runDryRunReport(
       }
     }
 
-    // Proposta sempre conta como nova (raw → propostas_nativas)
+    // Proposta sempre conta como nova
     report.propostas_a_criar += 1;
 
     // Status canônico
     const statusInfo = mapSmStatus(propostaPayload.status, propostaPayload.acceptanceDate);
     incr(report.distribuicaoPorStatus, statusInfo.status);
 
-    // Stage resolvido
+    // Stage (lookup em memória)
     const stageId = resolveStageForStatus(pipeline, statusInfo.status);
     if (stageId) {
-      // tenta nome amigável
-      const { data: stage } = await admin
-        .from("projeto_etapas").select("nome").eq("id", stageId).maybeSingle();
-      incr(report.distribuicaoPorStage, (stage?.nome as string) ?? statusInfo.status);
+      incr(report.distribuicaoPorStage, etapasById.get(stageId) ?? statusInfo.status);
     } else {
       incr(report.distribuicaoPorStage, "—");
     }
 
-    // Consultor (aplica nova hierarquia: Vendedores → responsible.name → fallback)
+    // Consultor (hierarquia em memória: Vendedores → responsible.name (exato) → fallback)
     const responsibleName = pickStr(rawProjeto?.responsible?.name);
-    const responsibleEmail = pickStr(rawProjeto?.responsible?.email);
-    const consultorRes = await resolveConsultorFromResponsible(
-      admin, tenantId, responsibleName, responsibleEmail, consultorFallback, projectExtId,
+    let consultorLabel = "";
+
+    // PRIO 1: Funil "Vendedores" → stage.name → sm_consultor_mapping
+    const funisProj = funisPorProjeto.get(projectExtId) ?? [];
+    const vendedoresFunil = funisProj.find((f) =>
+      String((f as AnyObj)?.name ?? "").trim().toLowerCase() === "vendedores"
     );
-    let consultorLabel = consultorRes.matchedNome ?? "—";
-    if (consultorRes.matched === "fallback") consultorLabel = `${consultorLabel} (fallback)`;
-    if (consultorRes.matched === "name") consultorLabel = `${consultorLabel} (responsible)`;
-    if (consultorRes.matched === "vendedores_funnel") consultorLabel = `${consultorLabel} (Vendedores)`;
-    if (consultorRes.matched === "none") consultorLabel = "— (não resolvido)";
+    if (vendedoresFunil) {
+      const stageName = pickStr((vendedoresFunil as AnyObj)?.stage?.name);
+      if (stageName) {
+        const mapping = smMappingByName.get(stageName.trim().toLowerCase());
+        if (mapping?.consultor_id) {
+          const nome = consultoresById.get(mapping.consultor_id) ?? stageName;
+          consultorLabel = `${nome} (Vendedores)`;
+        } else if (mapping?.is_ex && consultorFallback.fallbackNome) {
+          consultorLabel = `${consultorFallback.fallbackNome} (fallback)`;
+        }
+      }
+    }
+
+    // PRIO 2: responsible.name match EXATO em consultores
+    if (!consultorLabel && responsibleName) {
+      const cid = consultoresByNomeExato.get(responsibleName.trim().toLowerCase());
+      if (cid) {
+        consultorLabel = `${consultoresById.get(cid)} (responsible)`;
+      }
+    }
+
+    // PRIO 3: Fallback Escritório
+    if (!consultorLabel) {
+      consultorLabel = `${consultorFallback.fallbackNome ?? "—"} (fallback)`;
+    }
+
     incr(report.distribuicaoPorConsultor, consultorLabel);
   }
 
