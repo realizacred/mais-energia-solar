@@ -21280,6 +21280,52 @@ export type Database = {
           },
         ]
       }
+      solarmarket_migration_config: {
+        Row: {
+          created_at: string
+          default_consultor_id: string | null
+          default_pipeline_id: string | null
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          default_consultor_id?: string | null
+          default_pipeline_id?: string | null
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          default_consultor_id?: string | null
+          default_pipeline_id?: string | null
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "solarmarket_migration_config_default_consultor_id_fkey"
+            columns: ["default_consultor_id"]
+            isOneToOne: false
+            referencedRelation: "consultores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "solarmarket_migration_config_default_pipeline_id_fkey"
+            columns: ["default_pipeline_id"]
+            isOneToOne: false
+            referencedRelation: "pipelines"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "solarmarket_migration_config_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       solarmarket_promotion_jobs: {
         Row: {
           created_at: string
