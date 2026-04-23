@@ -956,11 +956,11 @@ async function resolveConsultorFallback(
 }
 
 /**
- * Resolve consultor canônico a partir do responsável SM (nome/email).
- * Prioridade:
- *   1) match exato por email (consultores.email)
- *   2) match via sm_consultor_mapping
- *   3) match direto por nome em consultores
+ * Resolve consultor canônico para um projeto SM.
+ * Prioridade (atualizada):
+ *   1) Funil "Vendedores" do projeto → stage.name → sm_consultor_mapping
+ *   2) responsible.name → match direto em consultores (por nome)
+ *   3) (auxiliares) responsible.email exato + responsible.name via sm_consultor_mapping
  *   4) fallback "Escritório" (ou primeiro ativo)
  * Nunca retorna null se houver fallback configurado.
  */
@@ -970,7 +970,69 @@ async function resolveConsultorFromResponsible(
   responsibleName: string | null | undefined,
   responsibleEmail: string | null | undefined,
   fallback: ConsultorResolution,
-): Promise<{ id: string | null; matched: "email" | "mapping" | "name" | "fallback" | "none"; matchedNome: string | null }> {
+  projectExtId: string | null | undefined,
+): Promise<{ id: string | null; matched: "vendedores_funnel" | "name" | "email" | "mapping" | "fallback" | "none"; matchedNome: string | null }> {
+  // ── PRIORIDADE 1: Funil "Vendedores" → stage.name → sm_consultor_mapping ──
+  if (projectExtId) {
+    const { data: funisRows } = await admin
+      .from("sm_projeto_funis_raw")
+      .select("payload")
+      .eq("tenant_id", tenantId)
+      .eq("payload->project->>id", projectExtId);
+
+    const vendedoresFunil = (funisRows ?? []).find((r: AnyObj) => {
+      const fname = String((r.payload as AnyObj)?.name ?? "").trim().toLowerCase();
+      return fname === "vendedores";
+    });
+    const stageName = pickStr((vendedoresFunil?.payload as AnyObj)?.stage?.name);
+
+    if (stageName) {
+      const { data: mapping } = await admin
+        .from("sm_consultor_mapping")
+        .select("consultor_id, canonical_name, is_ex_funcionario")
+        .eq("tenant_id", tenantId)
+        .ilike("sm_name", stageName)
+        .limit(1)
+        .maybeSingle();
+
+      if (mapping?.consultor_id) {
+        const { data: mappedConsultor } = await admin
+          .from("consultores")
+          .select("id, nome")
+          .eq("tenant_id", tenantId)
+          .eq("ativo", true)
+          .eq("id", mapping.consultor_id)
+          .limit(1)
+          .maybeSingle();
+        if (mappedConsultor?.id) {
+          return {
+            id: mappedConsultor.id as string,
+            matched: "vendedores_funnel",
+            matchedNome: (mappedConsultor.nome as string) ?? (mapping.canonical_name as string) ?? null,
+          };
+        }
+      }
+      if (mapping?.is_ex_funcionario && fallback.fallbackId) {
+        return { id: fallback.fallbackId, matched: "fallback", matchedNome: fallback.fallbackNome };
+      }
+    }
+  }
+
+  // ── PRIORIDADE 2: responsible.name → match direto por nome em consultores ──
+  const name = (responsibleName ?? "").trim();
+  if (name) {
+    const { data } = await admin
+      .from("consultores")
+      .select("id, nome")
+      .eq("tenant_id", tenantId)
+      .eq("ativo", true)
+      .ilike("nome", name)
+      .limit(1)
+      .maybeSingle();
+    if (data?.id) return { id: data.id as string, matched: "name", matchedNome: (data.nome as string) ?? null };
+  }
+
+  // ── Auxiliar: email exato do responsável ──
   const email = (responsibleEmail ?? "").trim().toLowerCase();
   if (email) {
     const { data } = await admin
@@ -984,7 +1046,7 @@ async function resolveConsultorFromResponsible(
     if (data?.id) return { id: data.id as string, matched: "email", matchedNome: (data.nome as string) ?? null };
   }
 
-  const name = (responsibleName ?? "").trim();
+  // ── Auxiliar: responsible.name via sm_consultor_mapping ──
   if (name) {
     const { data: mapping } = await admin
       .from("sm_consultor_mapping")
@@ -1003,7 +1065,6 @@ async function resolveConsultorFromResponsible(
         .eq("id", mapping.consultor_id)
         .limit(1)
         .maybeSingle();
-
       if (mappedConsultor?.id) {
         return {
           id: mappedConsultor.id as string,
@@ -1012,22 +1073,12 @@ async function resolveConsultorFromResponsible(
         };
       }
     }
-
     if (mapping?.is_ex_funcionario && fallback.fallbackId) {
       return { id: fallback.fallbackId, matched: "fallback", matchedNome: fallback.fallbackNome };
     }
-
-    const { data } = await admin
-      .from("consultores")
-      .select("id, nome")
-      .eq("tenant_id", tenantId)
-      .eq("ativo", true)
-      .ilike("nome", name)
-      .limit(1)
-      .maybeSingle();
-    if (data?.id) return { id: data.id as string, matched: "name", matchedNome: (data.nome as string) ?? null };
   }
 
+  // ── PRIORIDADE 3: Fallback Escritório ──
   if (fallback.fallbackId) {
     return { id: fallback.fallbackId, matched: "fallback", matchedNome: fallback.fallbackNome };
   }
