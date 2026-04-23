@@ -20546,21 +20546,24 @@ export type Database = {
         Row: {
           created_at: string
           id: string
-          pipeline_id: string
+          pipeline_id: string | null
+          role: string
           sm_funil_name: string
           tenant_id: string
         }
         Insert: {
           created_at?: string
           id?: string
-          pipeline_id: string
+          pipeline_id?: string | null
+          role?: string
           sm_funil_name: string
           tenant_id?: string
         }
         Update: {
           created_at?: string
           id?: string
-          pipeline_id?: string
+          pipeline_id?: string | null
+          role?: string
           sm_funil_name?: string
           tenant_id?: string
         }
