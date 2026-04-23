@@ -1337,10 +1337,27 @@ async function runDryRunReport(
       }
     }
 
-    // IDs únicos de projetos deste chunk
+    // Carrega payload das propostas DESTE chunk (candidates traz só id/external_id no dry-run)
+    const propExtIdsChunk = chunk
+      .map((r) => String((r as AnyObj).external_id ?? ""))
+      .filter((s) => s.length > 0);
+    const propostaPayloadsByExtId = new Map<string, AnyObj>();
+    if (propExtIdsChunk.length > 0) {
+      const { data: propRows } = await admin
+        .from("sm_propostas_raw")
+        .select("external_id, payload")
+        .eq("tenant_id", tenantId)
+        .in("external_id", propExtIdsChunk);
+      for (const p of (propRows ?? []) as AnyObj[]) {
+        propostaPayloadsByExtId.set(String(p.external_id), (p.payload as AnyObj) ?? {});
+      }
+    }
+
+    // IDs únicos de projetos deste chunk (a partir dos payloads recém-carregados)
     const projectExtIdsChunk = new Set<string>();
     for (const row of chunk) {
-      const projId = pickStr((row.payload as AnyObj)?.project?.id);
+      const pl = propostaPayloadsByExtId.get(String((row as AnyObj).external_id)) ?? (row.payload as AnyObj) ?? {};
+      const projId = pickStr(pl?.project?.id);
       if (projId) projectExtIdsChunk.add(projId);
     }
 
