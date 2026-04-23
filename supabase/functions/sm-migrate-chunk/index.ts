@@ -121,6 +121,7 @@ async function callSmPromoteOnce(
       Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
       apikey: SUPABASE_SERVICE_ROLE_KEY,
       "x-sm-tenant-override": tenantId,
+      "x-sm-internal-call": "sm-migrate-chunk-v1",
     },
     body: JSON.stringify({
       action: "promote-all",
