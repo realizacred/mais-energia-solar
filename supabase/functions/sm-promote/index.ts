@@ -1843,6 +1843,7 @@ async function actionPromoteAll(
       candidates as AnyObj[],
       pipeline,
       consultorFallback,
+      jobId,
     );
 
     await logEvent(admin, {
