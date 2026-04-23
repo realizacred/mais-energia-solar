@@ -49,8 +49,9 @@ export function useSaveConsultorMapping() {
           {
             tenant_id: tenantId,
             sm_name: smEtapaName,
+            canonical_name: smEtapaName.trim().toLowerCase(),
             consultor_id: consultorId,
-          },
+          } as never,
           { onConflict: "tenant_id,sm_name" },
         )
         .select("id");

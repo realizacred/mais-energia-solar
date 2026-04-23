@@ -49,7 +49,15 @@ export function useSaveMigrationConfig() {
       if (defaultPipelineId !== undefined) row.default_pipeline_id = defaultPipelineId;
       if (defaultConsultorId !== undefined) row.default_consultor_id = defaultConsultorId;
 
-      const { data, error } = await supabase
+      // Tipos gerados ainda não incluem a tabela recém-criada.
+      const { data, error } = await (supabase as unknown as {
+        from: (t: string) => {
+          upsert: (
+            r: Record<string, unknown>,
+            o: { onConflict: string },
+          ) => { select: (c: string) => Promise<{ data: unknown[] | null; error: { message: string } | null }> };
+        };
+      })
         .from("solarmarket_migration_config")
         .upsert(row, { onConflict: "tenant_id" })
         .select("tenant_id");
