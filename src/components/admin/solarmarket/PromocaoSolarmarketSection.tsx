@@ -49,6 +49,7 @@ import {
   Layers, Activity, Info, ArrowRightLeft, ShieldAlert, Star,
   Trash2, RefreshCw,
 } from "lucide-react";
+import { MigracaoEtapasCard } from "@/components/admin/solarmarket/MigracaoEtapasCard";
 
 const formatBR = (iso: string | null | undefined) =>
   iso ? new Date(iso).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" }) : "—";
@@ -285,8 +286,10 @@ export function PromocaoSolarmarketSection() {
         </CardContent>
       </Card>
 
-      {/* 🚧 Sistema em reconstrução — execução de promoção temporariamente desativada.
-          Mantemos KPIs, histórico e ferramentas de inspeção visíveis abaixo. */}
+      {/* ===== NOVA UI: Migração em 3 etapas sequenciais ===== */}
+      <MigracaoEtapasCard />
+
+      {/* 🚧 Banner legado mantido para contexto histórico (UI antiga abaixo permanece para inspeção) */}
       <div className="flex items-start gap-3 p-4 rounded-lg border border-warning/40 bg-warning/5">
         <AlertTriangle className="w-5 h-5 text-warning shrink-0 mt-0.5" />
         <div className="text-sm flex-1">
