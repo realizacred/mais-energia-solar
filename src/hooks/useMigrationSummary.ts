@@ -120,9 +120,6 @@ export function useMigrationSummary(tenantId: string | null | undefined) {
         ]);
 
       if (cliCount.error) throw new Error(cliCount.error.message);
-      if (projetos.error) throw new Error(projetos.error.message);
-      if (propostas.error) throw new Error(propostas.error.message);
-      if (projFunis.error) throw new Error(projFunis.error.message);
       if (consultorMap.error) throw new Error(consultorMap.error.message);
       if (funilMap.error) throw new Error(funilMap.error.message);
       if (consultores.error) throw new Error(consultores.error.message);
@@ -175,7 +172,7 @@ export function useMigrationSummary(tenantId: string | null | undefined) {
       // Indexar funis SM por projeto
       type SmFunil = { name: string; stageName: string | null; status: string | null };
       const funisPorProjeto = new Map<string, SmFunil[]>();
-      for (const r of projFunis.data ?? []) {
+      for (const r of projFunisData) {
         const p = (r.payload as Record<string, unknown>) ?? {};
         const projId = String(((p.project as Record<string, unknown>)?.id as string | number) ?? "");
         if (!projId) continue;
@@ -191,7 +188,7 @@ export function useMigrationSummary(tenantId: string | null | undefined) {
 
       // Indexar propostas por projeto
       const propsPorProjeto = new Map<string, Array<{ status: string | null; acc: string | null }>>();
-      for (const r of propostas.data ?? []) {
+      for (const r of propostasData) {
         const p = (r.payload as Record<string, unknown>) ?? {};
         const projId = String(((p.project as Record<string, unknown>)?.id as string | number) ?? "");
         if (!projId) continue;
@@ -210,7 +207,7 @@ export function useMigrationSummary(tenantId: string | null | undefined) {
 
       const incr = (m: Map<string, number>, k: string) => m.set(k, (m.get(k) ?? 0) + 1);
 
-      for (const proj of projetos.data ?? []) {
+      for (const proj of projetosData) {
         const projId = String(proj.external_id ?? "");
         const payload = (proj.payload as Record<string, unknown>) ?? {};
         const responsible = (payload.responsible as Record<string, unknown>) ?? {};
@@ -267,8 +264,8 @@ export function useMigrationSummary(tenantId: string | null | undefined) {
 
       return {
         clientes_a_criar: cliCount.count ?? 0,
-        projetos_a_criar: (projetos.data ?? []).length,
-        propostas_a_criar: (propostas.data ?? []).length,
+        projetos_a_criar: projetosData.length,
+        propostas_a_criar: propostasData.length,
         distribuicaoPorPipeline: sortDesc(distPipeline),
         distribuicaoPorConsultor: sortDesc(distConsultor),
         distribuicaoPorStatus: sortDesc(distStatus),
