@@ -1337,10 +1337,27 @@ async function runDryRunReport(
       }
     }
 
-    // IDs únicos de projetos deste chunk
+    // Carrega payload das propostas DESTE chunk (candidates traz só id/external_id no dry-run)
+    const propExtIdsChunk = chunk
+      .map((r) => String((r as AnyObj).external_id ?? ""))
+      .filter((s) => s.length > 0);
+    const propostaPayloadsByExtId = new Map<string, AnyObj>();
+    if (propExtIdsChunk.length > 0) {
+      const { data: propRows } = await admin
+        .from("sm_propostas_raw")
+        .select("external_id, payload")
+        .eq("tenant_id", tenantId)
+        .in("external_id", propExtIdsChunk);
+      for (const p of (propRows ?? []) as AnyObj[]) {
+        propostaPayloadsByExtId.set(String(p.external_id), (p.payload as AnyObj) ?? {});
+      }
+    }
+
+    // IDs únicos de projetos deste chunk (a partir dos payloads recém-carregados)
     const projectExtIdsChunk = new Set<string>();
     for (const row of chunk) {
-      const projId = pickStr((row.payload as AnyObj)?.project?.id);
+      const pl = propostaPayloadsByExtId.get(String((row as AnyObj).external_id)) ?? (row.payload as AnyObj) ?? {};
+      const projId = pickStr(pl?.project?.id);
       if (projId) projectExtIdsChunk.add(projId);
     }
 
@@ -1398,7 +1415,9 @@ async function runDryRunReport(
 
     // ── Loop em memória sobre o chunk ──
     for (const row of chunk) {
-      const propostaPayload: AnyObj = (row.payload as AnyObj) ?? {};
+      const propostaPayload: AnyObj =
+        propostaPayloadsByExtId.get(String((row as AnyObj).external_id)) ??
+        ((row as AnyObj).payload as AnyObj) ?? {};
       const propExtId = pickStr(propostaPayload.id) ?? (row.external_id as string | null);
       const projectExtId = pickStr(propostaPayload.project?.id);
 
@@ -1517,6 +1536,7 @@ async function runDryRunReport(
     projetosMap.clear();
     clientesMap.clear();
     funisPorProjeto.clear();
+    propostaPayloadsByExtId.clear();
   }
 
   return report;
@@ -1811,9 +1831,12 @@ async function actionPromoteAll(
   // Backlog: propostas raw que ainda não têm link canônico em external_entity_links.
   // Filtro obrigatório (escala): nunca reprocessar staging já promovido.
   const promotedIds = await fetchPromotedSourceIds(admin, tenantId, "proposta", "proposta");
+  // RB-57/memória: dry-run NÃO carrega payload aqui (estourava ~150MB com 1.8k props).
+  // Promoção real ainda precisa do payload — controlado pela flag `dryRun`.
+  const selectCols = dryRun ? "id, external_id" : "id, external_id, payload";
   let fetchQuery = admin
     .from("sm_propostas_raw")
-    .select("id, external_id, payload")
+    .select(selectCols)
     .eq("tenant_id", tenantId)
     .order("imported_at", { ascending: true })
     .limit(batchLimit);
