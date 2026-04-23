@@ -41,7 +41,7 @@ import {
 } from "@/hooks/useDryRunMigration";
 import { useStartMigration } from "@/hooks/useStartMigration";
 import { useSolarmarketPromote } from "@/hooks/useSolarmarketPromote";
-import { LoadingState } from "@/components/shared/LoadingState";
+import { LoadingState } from "@/components/ui-kit/LoadingState";
 
 function formatNum(n: number): string {
   return n.toLocaleString("pt-BR");
