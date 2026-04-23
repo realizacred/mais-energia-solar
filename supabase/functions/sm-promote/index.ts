@@ -1855,20 +1855,23 @@ async function actionPromoteAll(
   // RB-57/memória: dry-run NÃO carrega payload aqui (estourava ~150MB com 1.8k props).
   // Promoção real ainda precisa do payload — controlado pela flag `dryRun`.
   const selectCols = dryRun ? "id, external_id" : "id, external_id, payload";
+  // CRÍTICO: filtro de já-migrados precisa ser sintaticamente correto no PostgREST.
+  // Para .not("col","in", "(a,b,c)") com valores text "puros" (apenas dígitos/letras),
+  // NÃO usar aspas duplas — elas viram parte do literal e o filtro nunca casa.
+  // Aspas só são necessárias quando o valor contém vírgula, parêntese ou espaço.
+  const promotedSet = new Set(promotedIds);
   let fetchQuery = admin
     .from("sm_propostas_raw")
     .select(selectCols)
     .eq("tenant_id", tenantId)
     .order("imported_at", { ascending: true })
-    // .range() supera o cap default de 1000 linhas do PostgREST.
-    // .limit() sozinho ainda fica preso em 1000 (Supabase REST default).
-    .range(0, Math.max(0, batchLimit - 1));
-  if (promotedIds.length > 0) {
-    // PostgREST aceita lista em .not("col", "in", "(a,b,c)")
-    const inList = `(${promotedIds.map((s) => `"${s.replace(/"/g, '\\"')}"`).join(",")})`;
-    fetchQuery = fetchQuery.not("external_id", "in", inList);
-  }
-  const { data: rows, error: fetchErr } = await fetchQuery;
+    // Buscamos um pouco a mais para compensar o filtro client-side de já-migrados.
+    .range(0, Math.max(0, batchLimit - 1 + promotedSet.size));
+  const { data: rawRows, error: fetchErr } = await fetchQuery;
+  // Filtro client-side garantido (defensivo contra qualquer ambiguidade do PostgREST).
+  const rows = (rawRows ?? []).filter(
+    (r: AnyObj) => !promotedSet.has(String(r.external_id)),
+  ).slice(0, batchLimit);
   if (fetchErr) {
     await patchJob(admin, jobId, {
       status: "failed", finished_at: new Date().toISOString(),
