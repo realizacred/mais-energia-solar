@@ -35,7 +35,7 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { toast } from "sonner";
 import { useDryRunMigration, type DryRunReport } from "@/hooks/useDryRunMigration";
-import { useMigrateFull } from "@/hooks/useMigrateFull";
+import { useChunkedMigration } from "@/hooks/useChunkedMigration";
 
 function formatNum(n: number): string {
   return n.toLocaleString("pt-BR");
@@ -72,7 +72,7 @@ function StageBar({
 
 export default function MigracaoStep3Migrar() {
   const dryRun = useDryRunMigration();
-  const { start, cancel, progress } = useMigrateFull();
+  const { start, cancel, progress } = useChunkedMigration();
 
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [confirmText, setConfirmText] = useState("");
@@ -82,6 +82,7 @@ export default function MigracaoStep3Migrar() {
   const isRunning = !!progress?.isRunning;
   const isComplete = !!progress?.isComplete;
   const job = progress?.job ?? null;
+  const lastError = progress?.lastError ?? null;
 
   const canStart = !start.isPending && !isRunning;
 
@@ -93,8 +94,9 @@ export default function MigracaoStep3Migrar() {
     setConfirmOpen(false);
     setConfirmText("");
     try {
-      const res = await start.mutateAsync({});
-      toast.success(`Migração iniciada (job ${res.job_id.slice(0, 8)}…). Acompanhe o progresso abaixo.`);
+      const res = await start.mutateAsync();
+      const id = res.master_job_id ?? "";
+      toast.success(`Migração iniciada em chunks (job ${id.slice(0, 8)}…). Acompanhe o progresso abaixo.`);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Falha ao iniciar migração.");
     }
@@ -229,6 +231,15 @@ export default function MigracaoStep3Migrar() {
                   <p className="text-xs text-muted-foreground mt-1">
                     {formatNum(job.items_promoted)} promovidos · {formatNum(job.items_with_errors)} erros · {formatNum(job.items_blocked)} bloqueados · {formatNum(job.items_with_warnings)} avisos
                   </p>
+                </div>
+              )}
+
+              {lastError && (
+                <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-3">
+                  <p className="text-sm font-medium text-destructive flex items-center gap-2">
+                    <AlertTriangle className="w-4 h-4" /> Erro no loop
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">{lastError}</p>
                 </div>
               )}
             </div>
