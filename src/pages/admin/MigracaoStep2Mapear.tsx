@@ -4,15 +4,17 @@
  * Subfase 2.1 — escolha do PAPEL de cada funil do SolarMarket.
  *  - Lista os funis vindos do staging (sm_funis_raw).
  *  - Para cada funil, o usuário escolhe um papel:
- *      • pipeline         → vira um pipeline nativo (mapeamento detalhado: 2.2)
+ *      • pipeline         → vira um pipeline nativo (precisa escolher qual)
  *      • vendedor_source  → cada etapa indica o consultor responsável (2.2)
  *      • tag              → vira etiqueta (futuro)
  *      • ignore           → não é migrado
  *  - O papel é gravado em sm_funil_pipeline_map.role.
+ *  - Para 'pipeline', um dropdown abre para escolher qual pipeline nativo.
  *
  * Subfase 2.2 (próxima): mapeamento detalhado etapa→consultor / etapa→stage.
  * Subfase 2.3 (depois):  validação global, pré-sugestões e botão Step 3.
  */
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -20,6 +22,23 @@ import { Badge } from "@/components/ui/badge";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectSeparator,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 import {
   ArrowLeft,
   Folder,
@@ -29,6 +48,7 @@ import {
   Ban,
   CheckCircle2,
   AlertCircle,
+  Plus,
 } from "lucide-react";
 import { useTenantId } from "@/hooks/useTenantId";
 import {
@@ -36,6 +56,10 @@ import {
   useSaveFunilPapel,
   type FunilPapel,
 } from "@/hooks/useSmFunisStaging";
+import {
+  usePipelinesCrm,
+  useCreatePipelineCrm,
+} from "@/hooks/usePipelinesCrm";
 import { toast } from "sonner";
 
 const PAPEIS: { value: FunilPapel; label: string; descricao: string; icon: typeof Workflow }[] = [
@@ -68,22 +92,93 @@ const PAPEIS: { value: FunilPapel; label: string; descricao: string; icon: typeo
 export default function MigracaoStep2Mapear() {
   const { data: tenantId } = useTenantId();
   const { data: funis, isLoading } = useSmFunisStaging(tenantId ?? undefined);
+  const { data: pipelines } = usePipelinesCrm(tenantId);
   const saveMutation = useSaveFunilPapel();
+  const createPipelineMutation = useCreatePipelineCrm();
+
+  // Funis em que o usuário selecionou "pipeline" mas ainda não escolheu qual.
+  const [pendentes, setPendentes] = useState<Record<string, boolean>>({});
+  // Dialog de criação de pipeline novo. Guarda o funil que disparou para
+  // já vincular automaticamente após a criação.
+  const [criarOpen, setCriarOpen] = useState(false);
+  const [nomeNovoPipeline, setNomeNovoPipeline] = useState("");
+  const [funilParaVincular, setFunilParaVincular] = useState<string | null>(null);
+
+  const getPipelineName = (id: string | null) =>
+    pipelines?.find((p) => p.id === id)?.name ?? null;
 
   const handleChangePapel = async (smFunilName: string, papel: FunilPapel) => {
     if (!tenantId) return;
+
+    // 'pipeline' precisa de mais info (qual pipeline) — não salva ainda.
+    if (papel === "pipeline") {
+      setPendentes((prev) => ({ ...prev, [smFunilName]: true }));
+      return;
+    }
+
     try {
       await saveMutation.mutateAsync({
         tenantId,
         smFunilName,
         papel,
-        // Subfase 2.1: para 'pipeline' ainda não escolhemos pipeline aqui
-        // (será feito em 2.2). Mantemos pipeline_id atual se já existir.
-        pipelineId: papel === "pipeline" ? null : null,
+        pipelineId: null,
+      });
+      setPendentes((prev) => {
+        const next = { ...prev };
+        delete next[smFunilName];
+        return next;
       });
       toast.success("Papel salvo");
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Erro ao salvar papel";
+      toast.error(msg);
+    }
+  };
+
+  const handleEscolherPipeline = async (
+    smFunilName: string,
+    pipelineId: string,
+  ) => {
+    if (!tenantId || !pipelineId) return;
+    try {
+      await saveMutation.mutateAsync({
+        tenantId,
+        smFunilName,
+        papel: "pipeline",
+        pipelineId,
+      });
+      setPendentes((prev) => {
+        const next = { ...prev };
+        delete next[smFunilName];
+        return next;
+      });
+      toast.success("Pipeline vinculado");
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Erro ao vincular pipeline";
+      toast.error(msg);
+    }
+  };
+
+  const abrirCriarPipeline = (smFunilName: string) => {
+    setFunilParaVincular(smFunilName);
+    setNomeNovoPipeline("");
+    setCriarOpen(true);
+  };
+
+  const handleCriarPipeline = async () => {
+    if (!tenantId || !nomeNovoPipeline.trim()) return;
+    try {
+      const novo = await createPipelineMutation.mutateAsync({
+        tenantId,
+        name: nomeNovoPipeline,
+      });
+      toast.success("Pipeline criado");
+      setCriarOpen(false);
+      if (funilParaVincular) {
+        await handleEscolherPipeline(funilParaVincular, novo.id);
+      }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Erro ao criar pipeline";
       toast.error(msg);
     }
   };
@@ -168,74 +263,131 @@ export default function MigracaoStep2Mapear() {
         )}
 
         {!isLoading &&
-          funis?.map((f) => (
-            <Card
-              key={f.smFunilId}
-              className="bg-card border-border shadow-sm hover:shadow-md transition-shadow"
-            >
-              <CardHeader className="pb-3">
-                <div className="flex items-start justify-between gap-3 flex-wrap">
-                  <div className="flex items-start gap-3 min-w-0">
-                    <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-primary/10 shrink-0">
-                      <Folder className="w-5 h-5 text-primary" />
+          funis?.map((f) => {
+            const mostrarPipelineSelector =
+              f.papel === "pipeline" || pendentes[f.nome];
+            const pipelineNome = getPipelineName(f.pipelineId);
+
+            return (
+              <Card
+                key={f.smFunilId}
+                className="bg-card border-border shadow-sm hover:shadow-md transition-shadow"
+              >
+                <CardHeader className="pb-3">
+                  <div className="flex items-start justify-between gap-3 flex-wrap">
+                    <div className="flex items-start gap-3 min-w-0">
+                      <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-primary/10 shrink-0">
+                        <Folder className="w-5 h-5 text-primary" />
+                      </div>
+                      <div className="min-w-0">
+                        <CardTitle className="text-base font-semibold text-foreground truncate">
+                          {f.nome}
+                        </CardTitle>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          {f.qtdEtapas} {f.qtdEtapas === 1 ? "etapa" : "etapas"} •{" "}
+                          {f.qtdProjetosVinculados.toLocaleString("pt-BR")}{" "}
+                          {f.qtdProjetosVinculados === 1 ? "projeto vinculado" : "projetos vinculados"}
+                        </p>
+                      </div>
                     </div>
-                    <div className="min-w-0">
-                      <CardTitle className="text-base font-semibold text-foreground truncate">
-                        {f.nome}
-                      </CardTitle>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        {f.qtdEtapas} {f.qtdEtapas === 1 ? "etapa" : "etapas"} •{" "}
-                        {f.qtdProjetosVinculados.toLocaleString("pt-BR")}{" "}
-                        {f.qtdProjetosVinculados === 1 ? "projeto vinculado" : "projetos vinculados"}
-                      </p>
-                    </div>
-                  </div>
-                  {f.papel && (
-                    <Badge
-                      variant="outline"
-                      className="bg-success/10 text-success border-success/20 shrink-0"
-                    >
-                      <CheckCircle2 className="w-3 h-3 mr-1" />
-                      {PAPEIS.find((p) => p.value === f.papel)?.label ?? f.papel}
-                    </Badge>
-                  )}
-                </div>
-              </CardHeader>
-              <CardContent>
-                <Label className="text-sm font-medium text-foreground mb-3 block">
-                  Papel deste funil:
-                </Label>
-                <RadioGroup
-                  value={f.papel ?? ""}
-                  onValueChange={(v) => handleChangePapel(f.nome, v as FunilPapel)}
-                  className="grid grid-cols-1 sm:grid-cols-2 gap-3"
-                >
-                  {PAPEIS.map((p) => {
-                    const Icon = p.icon;
-                    const id = `${f.smFunilId}-${p.value}`;
-                    return (
-                      <Label
-                        key={p.value}
-                        htmlFor={id}
-                        className="flex items-start gap-3 rounded-lg border border-border bg-background p-3 cursor-pointer hover:border-primary/40 hover:bg-muted/40 transition-colors data-[state=checked]:border-primary"
+                    {f.papel && (
+                      <Badge
+                        variant="outline"
+                        className="bg-success/10 text-success border-success/20 shrink-0"
                       >
-                        <RadioGroupItem value={p.value} id={id} className="mt-0.5" />
-                        <Icon className="w-4 h-4 text-muted-foreground mt-0.5 shrink-0" />
-                        <div className="min-w-0">
-                          <p className="text-sm font-medium text-foreground">
-                            {p.label}
-                          </p>
-                          <p className="text-xs text-muted-foreground mt-0.5">
-                            {p.descricao}
-                          </p>
-                        </div>
+                        <CheckCircle2 className="w-3 h-3 mr-1" />
+                        {PAPEIS.find((p) => p.value === f.papel)?.label ?? f.papel}
+                      </Badge>
+                    )}
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <Label className="text-sm font-medium text-foreground mb-3 block">
+                    Papel deste funil:
+                  </Label>
+                  <RadioGroup
+                    value={pendentes[f.nome] ? "pipeline" : f.papel ?? ""}
+                    onValueChange={(v) => handleChangePapel(f.nome, v as FunilPapel)}
+                    className="grid grid-cols-1 sm:grid-cols-2 gap-3"
+                  >
+                    {PAPEIS.map((p) => {
+                      const Icon = p.icon;
+                      const id = `${f.smFunilId}-${p.value}`;
+                      return (
+                        <Label
+                          key={p.value}
+                          htmlFor={id}
+                          className="flex items-start gap-3 rounded-lg border border-border bg-background p-3 cursor-pointer hover:border-primary/40 hover:bg-muted/40 transition-colors data-[state=checked]:border-primary"
+                        >
+                          <RadioGroupItem value={p.value} id={id} className="mt-0.5" />
+                          <Icon className="w-4 h-4 text-muted-foreground mt-0.5 shrink-0" />
+                          <div className="min-w-0">
+                            <p className="text-sm font-medium text-foreground">
+                              {p.label}
+                            </p>
+                            <p className="text-xs text-muted-foreground mt-0.5">
+                              {p.descricao}
+                            </p>
+                          </div>
+                        </Label>
+                      );
+                    })}
+                  </RadioGroup>
+
+                  {/* Seletor de pipeline (somente quando papel = 'pipeline') */}
+                  {mostrarPipelineSelector && (
+                    <div className="mt-4 p-4 bg-primary/5 rounded-lg border border-primary/20 space-y-2">
+                      <Label className="text-sm font-medium text-foreground block">
+                        Qual pipeline do CRM este funil deve alimentar?
                       </Label>
-                    );
-                  })}
-                </RadioGroup>
-              </CardContent>
-            </Card>
-          ))}
+                      <Select
+                        value={f.pipelineId ?? ""}
+                        onValueChange={(v) => {
+                          if (v === "__new__") {
+                            abrirCriarPipeline(f.nome);
+                            return;
+                          }
+                          handleEscolherPipeline(f.nome, v);
+                        }}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione um pipeline..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {(pipelines ?? []).map((p) => (
+                            <SelectItem key={p.id} value={p.id}>
+                              {p.name}
+                              {p.qtd_stages > 0
+                                ? ` (${p.qtd_stages} ${p.qtd_stages === 1 ? "etapa" : "etapas"})`
+                                : " (sem etapas)"}
+                            </SelectItem>
+                          ))}
+                          {(pipelines ?? []).length > 0 && <SelectSeparator />}
+                          <SelectItem value="__new__">
+                            <span className="flex items-center gap-1.5">
+                              <Plus className="w-3.5 h-3.5" />
+                              Criar novo pipeline
+                            </span>
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
+                      {f.papel === "pipeline" && pipelineNome && (
+                        <p className="text-xs text-success flex items-center gap-1">
+                          <CheckCircle2 className="w-3 h-3" />
+                          Vinculado ao pipeline: <strong>{pipelineNome}</strong>
+                        </p>
+                      )}
+                      {f.papel === "pipeline" && !pipelineNome && (
+                        <p className="text-xs text-warning">
+                          Escolha um pipeline para concluir o vínculo.
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            );
+          })}
       </div>
 
       {/* Footer informativo (Subfase 2.3 trará botão Continuar) */}
@@ -254,6 +406,45 @@ export default function MigracaoStep2Mapear() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Dialog de criação de pipeline */}
+      <Dialog open={criarOpen} onOpenChange={setCriarOpen}>
+        <DialogContent className="w-[90vw] max-w-md">
+          <DialogHeader>
+            <DialogTitle>Criar novo pipeline</DialogTitle>
+            <DialogDescription>
+              O pipeline será criado vazio. As etapas serão definidas na próxima sub-etapa.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Label className="text-sm font-medium text-foreground">
+              Nome do pipeline
+            </Label>
+            <Input
+              autoFocus
+              placeholder="Ex: Comercial, Engenharia"
+              value={nomeNovoPipeline}
+              onChange={(e) => setNomeNovoPipeline(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && nomeNovoPipeline.trim()) {
+                  handleCriarPipeline();
+                }
+              }}
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setCriarOpen(false)}>
+              Cancelar
+            </Button>
+            <Button
+              onClick={handleCriarPipeline}
+              disabled={!nomeNovoPipeline.trim() || createPipelineMutation.isPending}
+            >
+              {createPipelineMutation.isPending ? "Criando..." : "Criar pipeline"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
