@@ -29,7 +29,7 @@ const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const SOURCE = "solarmarket";
 const LEGACY_SM_SOURCES = [SOURCE, "solar_market"] as const;
 const DEFAULT_BATCH_LIMIT = 50;
-const MAX_BATCH_LIMIT = 200;
+const MAX_BATCH_LIMIT = 10000;
 
 type CanonicalEntity = "cliente" | "projeto" | "proposta" | "versao";
 type Severity = "info" | "warning" | "error";
