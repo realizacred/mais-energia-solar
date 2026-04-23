@@ -1811,9 +1811,12 @@ async function actionPromoteAll(
   // Backlog: propostas raw que ainda não têm link canônico em external_entity_links.
   // Filtro obrigatório (escala): nunca reprocessar staging já promovido.
   const promotedIds = await fetchPromotedSourceIds(admin, tenantId, "proposta", "proposta");
+  // RB-57/memória: dry-run NÃO carrega payload aqui (estourava ~150MB com 1.8k props).
+  // Promoção real ainda precisa do payload — controlado pela flag `dryRun`.
+  const selectCols = dryRun ? "id, external_id" : "id, external_id, payload";
   let fetchQuery = admin
     .from("sm_propostas_raw")
-    .select("id, external_id, payload")
+    .select(selectCols)
     .eq("tenant_id", tenantId)
     .order("imported_at", { ascending: true })
     .limit(batchLimit);
