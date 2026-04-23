@@ -1819,7 +1819,7 @@ async function actionPromoteAll(
   payload: { batch_limit?: number; dry_run?: boolean; scope?: PromotionScope },
 ): Promise<Response> {
   const tenantId = state.tenantId!;
-  const userId = state.userId!;
+  const userId: string | null = state.userId;
   const batchLimit = Math.min(
     Math.max(Number(payload.batch_limit ?? DEFAULT_BATCH_LIMIT), 1),
     MAX_BATCH_LIMIT,
