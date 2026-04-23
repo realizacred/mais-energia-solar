@@ -1839,7 +1839,9 @@ async function actionPromoteAll(
     .select(selectCols)
     .eq("tenant_id", tenantId)
     .order("imported_at", { ascending: true })
-    .limit(batchLimit);
+    // .range() supera o cap default de 1000 linhas do PostgREST.
+    // .limit() sozinho ainda fica preso em 1000 (Supabase REST default).
+    .range(0, Math.max(0, batchLimit - 1));
   if (promotedIds.length > 0) {
     // PostgREST aceita lista em .not("col", "in", "(a,b,c)")
     const inList = `(${promotedIds.map((s) => `"${s.replace(/"/g, '\\"')}"`).join(",")})`;
