@@ -21340,6 +21340,7 @@ export type Database = {
           items_with_errors: number
           items_with_warnings: number
           job_type: string
+          last_step_at: string | null
           metadata: Json
           started_at: string | null
           status: string
@@ -21364,6 +21365,7 @@ export type Database = {
           items_with_errors?: number
           items_with_warnings?: number
           job_type: string
+          last_step_at?: string | null
           metadata?: Json
           started_at?: string | null
           status?: string
@@ -21388,6 +21390,7 @@ export type Database = {
           items_with_errors?: number
           items_with_warnings?: number
           job_type?: string
+          last_step_at?: string | null
           metadata?: Json
           started_at?: string | null
           status?: string
@@ -27821,6 +27824,13 @@ export type Database = {
             }
             Returns: Json
           }
+      sm_resume_stuck_migrations: {
+        Args: never
+        Returns: {
+          dispatched: boolean
+          job_id: string
+        }[]
+      }
       start_conversation_by_phone:
         | {
             Args: {
