@@ -680,6 +680,9 @@ async function promoteProjeto(
     codigo,
     status: mapProjetoStatusFromPromotion(canonicalStatus),
     observacoes: norm.descricao,
+    // Rastreabilidade SolarMarket (idempotência também via external_entity_links).
+    external_source: SOURCE,
+    external_id: norm.external_id,
   };
   if (pipeline.funilId) insertPayload.funil_id = pipeline.funilId;
   if (stageId) insertPayload.etapa_id = stageId;
