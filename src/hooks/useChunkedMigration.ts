@@ -47,6 +47,15 @@ export interface ChunkedProgress {
   pctGeral: number;
   pctTotal: number; // % acumulada de propostas migradas vs propostas em staging
   isStuck: boolean; // running mas last_step_at > 3min
+  lastActivityAt: string | null;
+  lastActivityAgeMs: number | null;
+  executionState:
+    | "empty"
+    | "ready"
+    | "running_active"
+    | "running_stalled"
+    | "resumable"
+    | "completed";
 }
 
 const KEY = ["sm-migrate-chunk", "progress-v2"] as const;
@@ -74,15 +83,34 @@ function applyOptimisticJobState(
   };
 
   const nextJob = { ...baseJob, ...patch };
+  const lastActivityAt = nextJob.last_step_at ?? nextJob.finished_at ?? nextJob.started_at ?? null;
+  const lastActivityAgeMs = lastActivityAt
+    ? Math.max(0, Date.now() - new Date(lastActivityAt).getTime())
+    : null;
+  const hasBacklog = previous.totals.propostas.total > previous.totals.propostas.promoted;
+  const isRunning = nextJob.status === "running";
+  const isComplete = nextJob.status === "completed" || nextJob.status === "completed_with_warnings";
+  const isResumable = (nextJob.status === "failed" || nextJob.status === "cancelled") && hasBacklog;
 
   return {
     ...previous,
     job: nextJob,
     history: [nextJob, ...previous.history.filter((item) => item.id !== nextJob.id)].slice(0, 5),
-    isRunning: nextJob.status === "running",
-    isComplete: nextJob.status === "completed" || nextJob.status === "completed_with_warnings",
-    isResumable: nextJob.status === "failed" || nextJob.status === "cancelled",
+    isRunning,
+    isComplete,
+    isResumable,
     isStuck: false,
+    lastActivityAt,
+    lastActivityAgeMs,
+    executionState: isRunning
+      ? "running_active"
+      : isResumable
+        ? "resumable"
+        : isComplete
+          ? "completed"
+          : hasBacklog
+            ? "ready"
+            : "empty",
   };
 }
 
@@ -227,6 +255,10 @@ export function useChunkedMigration() {
         isRunning &&
         !!job?.last_step_at &&
         Date.now() - new Date(job.last_step_at).getTime() > 3 * 60 * 1000;
+      const lastActivityAt = job?.last_step_at ?? job?.finished_at ?? job?.started_at ?? null;
+      const lastActivityAgeMs = lastActivityAt
+        ? Math.max(0, Date.now() - new Date(lastActivityAt).getTime())
+        : null;
 
       const total = job?.total_items ?? totals.propostas.total;
       const processed = job?.items_processed ?? 0;
@@ -236,6 +268,18 @@ export function useChunkedMigration() {
         totals.propostas.total > 0
           ? Math.min(100, Math.round((totals.propostas.promoted / totals.propostas.total) * 100))
           : 0;
+      const executionState: ChunkedProgress["executionState"] =
+        totals.clientes.total + totals.projetos.total + totals.propostas.total === 0
+          ? "empty"
+          : isRunning
+            ? isStuck
+              ? "running_stalled"
+              : "running_active"
+            : isResumable
+              ? "resumable"
+              : isComplete
+                ? "completed"
+                : "ready";
 
       return {
         job,
@@ -247,6 +291,9 @@ export function useChunkedMigration() {
         pctGeral,
         pctTotal,
         isStuck,
+        lastActivityAt,
+        lastActivityAgeMs,
+        executionState,
       };
     },
   });
