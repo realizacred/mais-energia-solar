@@ -42,7 +42,11 @@ const SELF_URL = `${SUPABASE_URL}/functions/v1/sm-migrate-chunk`;
 
 function isGatewayTimeoutLike(error: string | undefined): boolean {
   const message = String(error ?? "").toLowerCase();
-  return message.includes("http 504")
+  return message.includes("http 546")
+    || message.includes("cpu time exceeded")
+    || message.includes("exceeded cpu")
+    || message.includes("worker limit")
+    || message.includes("http 504")
     || message.includes("gateway timeout")
     || message.includes("connection closed before message completed");
 }
