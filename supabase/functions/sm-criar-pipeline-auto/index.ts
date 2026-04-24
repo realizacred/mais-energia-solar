@@ -1,16 +1,22 @@
 /**
  * sm-criar-pipeline-auto
- * Cria um pipeline nativo a partir de um funil do staging do SolarMarket,
- * replicando exatamente as etapas (stages) e gerando os mapeamentos
- * etapa_sm → stage_novo em sm_etapa_stage_map. Também vincula o funil
- * ao pipeline criado em sm_funil_pipeline_map.
+ * Cria, a partir de um funil SolarMarket no staging:
+ *   1) Pipeline COMERCIAL  (tabela `pipelines` + `pipeline_stages`)
+ *   2) Funil de EXECUÇÃO espelho (tabela `projeto_funis` + `projeto_etapas`)
+ *      com MESMO nome e MESMAS etapas/ordem do pipeline comercial.
+ *   3) Mapeamentos sm_etapa_stage_map (etapa SM → pipeline_stages.id)
+ *   4) Vinculação sm_funil_pipeline_map (funil SM → pipeline_id comercial)
+ *
+ * O espelho permite que `sm-promote` resolva, por NOME, o funil de execução
+ * correspondente ao pipeline comercial mapeado — alinhando os 2 mundos do CRM
+ * (Comercial e Execução) sem precisar de coluna extra no schema.
  *
  * Governança:
  *  - RB-23: sem console.log
  *  - RB-52: service role
  *  - RB-57: sem let no escopo de módulo
- *  - Rollback manual: se qualquer passo após criar o pipeline falhar,
- *    desfaz pipeline_stages + pipelines para evitar estado inconsistente.
+ *  - Rollback manual: se qualquer passo falhar após criar o pipeline, desfaz
+ *    pipeline_stages + pipelines + projeto_etapas + projeto_funis (espelho).
  */
 import { createClient } from "npm:@supabase/supabase-js@2.45.0";
 
@@ -37,7 +43,10 @@ Deno.serve(async (req) => {
   );
 
   // Estado por request (RB-57)
-  const state: { pipelineId: string | null } = { pipelineId: null };
+  const state: { pipelineId: string | null; funilExecId: string | null } = {
+    pipelineId: null,
+    funilExecId: null,
+  };
 
   try {
     const body = await req.json().catch(() => ({}));
@@ -74,19 +83,21 @@ Deno.serve(async (req) => {
       : [];
     if (stages.length === 0) throw new Error(`Funil "${smFunilName}" não tem etapas`);
 
-    // 2) Verificar se já existe pipeline com mesmo nome (constraint uq_pipeline_tenant_name_version)
+    const finalName = smFunilName.trim();
+
+    // 2) Verificar pipeline duplicado
     const { data: existente } = await admin
       .from("pipelines")
       .select("id, name")
       .eq("tenant_id", tenantId)
-      .eq("name", smFunilName.trim())
+      .eq("name", finalName)
       .maybeSingle();
     if (existente) {
       return new Response(
         JSON.stringify({
           ok: false,
           error: "PIPELINE_DUPLICADO",
-          message: `Já existe um pipeline com o nome "${smFunilName}". Escolha outro nome ou use o pipeline existente.`,
+          message: `Já existe um pipeline com o nome "${finalName}". Escolha outro nome ou use o pipeline existente.`,
         }),
         {
           status: 409,
@@ -95,12 +106,12 @@ Deno.serve(async (req) => {
       );
     }
 
-    // 3) Criar pipeline (RB-58: confirmar com .select())
+    // 3) Criar pipeline COMERCIAL (RB-58: confirmar com .select())
     const { data: pipeline, error: pipeErr } = await admin
       .from("pipelines")
       .insert({
         tenant_id: tenantId,
-        name: smFunilName.trim(),
+        name: finalName,
         is_active: true,
       })
       .select("id, name")
@@ -109,7 +120,7 @@ Deno.serve(async (req) => {
     if (!pipeline) throw new Error("Falha ao criar pipeline (sem retorno)");
     state.pipelineId = pipeline.id;
 
-    // 4) Criar pipeline_stages na mesma ordem
+    // 4) Criar pipeline_stages
     const stageRows = stages.map((s, idx) => ({
       tenant_id: tenantId,
       pipeline_id: pipeline.id,
@@ -129,11 +140,77 @@ Deno.serve(async (req) => {
       throw new Error("Falha ao criar todas as etapas do pipeline");
     }
 
-    // 5) Criar mapeamentos sm_etapa_name → stage_id
-    // Schema real: (tenant_id, sm_funil_name, sm_etapa_name, stage_id)
+    // 5) Criar FUNIL DE EXECUÇÃO ESPELHO (projeto_funis) com MESMO nome.
+    //    O sm-promote resolve por nome para alinhar Comercial ↔ Execução.
+    //    Se já existir um funil com esse nome (ex.: tenant pré-criou), reutiliza.
+    const { data: funilExistente } = await admin
+      .from("projeto_funis")
+      .select("id")
+      .eq("tenant_id", tenantId)
+      .ilike("nome", finalName)
+      .maybeSingle();
+
+    let funilExecId: string;
+    if (funilExistente?.id) {
+      funilExecId = funilExistente.id as string;
+    } else {
+      // calcular próxima ordem
+      const { data: funisOrd } = await admin
+        .from("projeto_funis")
+        .select("ordem")
+        .eq("tenant_id", tenantId)
+        .order("ordem", { ascending: false })
+        .limit(1);
+      const nextOrdem = ((funisOrd?.[0]?.ordem as number | undefined) ?? 0) + 1;
+
+      const { data: funilExec, error: funilExecErr } = await admin
+        .from("projeto_funis")
+        .insert({
+          tenant_id: tenantId,
+          nome: finalName,
+          ordem: nextOrdem,
+          ativo: true,
+        })
+        .select("id")
+        .single();
+      if (funilExecErr) throw new Error(`projeto_funis: ${funilExecErr.message}`);
+      if (!funilExec?.id) throw new Error("Falha ao criar funil de execução espelho");
+      funilExecId = funilExec.id as string;
+    }
+    state.funilExecId = funilExecId;
+
+    // 6) Criar projeto_etapas espelho (mesma ordem). Evita duplicar por nome.
+    const { data: etapasExistentes } = await admin
+      .from("projeto_etapas")
+      .select("nome")
+      .eq("tenant_id", tenantId)
+      .eq("funil_id", funilExecId);
+    const nomesExistentes = new Set(
+      (etapasExistentes ?? []).map((e) => String(e.nome).trim().toLowerCase()),
+    );
+
+    const etapasRows = stages
+      .map((s, idx) => ({
+        tenant_id: tenantId,
+        funil_id: funilExecId,
+        nome: String(s?.name ?? "").trim() || `Etapa ${idx + 1}`,
+        ordem: idx,
+        // categoria default: aberto, exceto última (ganho) - heurística simples
+        categoria: idx === stages.length - 1 ? "ganho" : "aberto",
+      }))
+      .filter((e) => !nomesExistentes.has(e.nome.toLowerCase()));
+
+    if (etapasRows.length > 0) {
+      const { error: etapasErr } = await admin
+        .from("projeto_etapas")
+        .insert(etapasRows);
+      if (etapasErr) throw new Error(`projeto_etapas: ${etapasErr.message}`);
+    }
+
+    // 7) Mapeamentos sm_etapa_name → pipeline_stages.id (Comercial)
     const mapRows = stages.map((s, idx) => ({
       tenant_id: tenantId,
-      sm_funil_name: smFunilName.trim(),
+      sm_funil_name: finalName,
       sm_etapa_name: String(s?.name ?? "").trim() || `Etapa ${idx + 1}`,
       stage_id: stagesCriadas[idx].id,
     }));
@@ -143,13 +220,13 @@ Deno.serve(async (req) => {
       .upsert(mapRows, { onConflict: "tenant_id,sm_funil_name,sm_etapa_name" });
     if (mapErr) throw new Error(`sm_etapa_stage_map: ${mapErr.message}`);
 
-    // 6) Vincular funil ao pipeline em sm_funil_pipeline_map
+    // 8) Vincular funil SM → pipeline COMERCIAL
     const { error: funilMapErr } = await admin
       .from("sm_funil_pipeline_map")
       .upsert(
         {
           tenant_id: tenantId,
-          sm_funil_name: smFunilName.trim(),
+          sm_funil_name: finalName,
           role: "pipeline",
           pipeline_id: pipeline.id,
         },
@@ -162,7 +239,9 @@ Deno.serve(async (req) => {
         ok: true,
         pipelineId: pipeline.id,
         pipelineName: pipeline.name,
+        funilExecId,
         qtdStages: stagesCriadas.length,
+        qtdEtapasExec: etapasRows.length,
         qtdMapeamentos: mapRows.length,
       }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
@@ -171,20 +250,25 @@ Deno.serve(async (req) => {
     const msg = (e as Error).message;
     console.error("[sm-criar-pipeline-auto] fatal:", msg);
 
-    // Rollback manual se já havia criado pipeline
+    // Rollback manual
     if (state.pipelineId) {
-      try {
-        await admin.from("sm_etapa_stage_map")
-          .delete()
-          .eq("tenant_id", (await req.json().catch(() => ({})))?.tenantId ?? "")
-          .in("stage_id", []); // best-effort, não crítico
-      } catch { /* ignore */ }
       try {
         await admin.from("pipeline_stages").delete().eq("pipeline_id", state.pipelineId);
         await admin.from("pipelines").delete().eq("id", state.pipelineId);
-        console.error("[sm-criar-pipeline-auto] rollback do pipeline", state.pipelineId);
+        console.error("[sm-criar-pipeline-auto] rollback pipeline", state.pipelineId);
       } catch (rb) {
-        console.error("[sm-criar-pipeline-auto] rollback falhou:", (rb as Error).message);
+        console.error("[sm-criar-pipeline-auto] rollback pipeline falhou:", (rb as Error).message);
+      }
+    }
+    // Só fazemos rollback do funil de execução se ele foi criado AGORA por este request
+    // (heurística: se funilExecId existe E pipeline também foi criado por este request).
+    if (state.funilExecId && state.pipelineId) {
+      try {
+        await admin.from("projeto_etapas").delete().eq("funil_id", state.funilExecId);
+        await admin.from("projeto_funis").delete().eq("id", state.funilExecId);
+        console.error("[sm-criar-pipeline-auto] rollback funil exec", state.funilExecId);
+      } catch (rb) {
+        console.error("[sm-criar-pipeline-auto] rollback funil exec falhou:", (rb as Error).message);
       }
     }
 
