@@ -271,8 +271,8 @@ async function processStep(
     return { ok: true, has_more: false, backlog_remaining: 0, finished: true };
   }
 
-  // Processa 1 chunk
-  const sub = await callSmPromoteOnce(tenantId, CHUNK_BATCH);
+  // Processa 1 chunk com fallback adaptativo para evitar 546/CPU limit
+  const sub = await runAdaptivePromoteChunk(admin, tenantId);
   if (!sub.ok) {
     const backlogAfterTimeout = await countBacklog(admin, tenantId);
     const progressedDespiteTimeout = backlogAfterTimeout < backlogBefore;
@@ -293,6 +293,11 @@ async function processStep(
           last_step_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
           error_summary: null,
+          metadata: {
+            ...(master.metadata ?? {}),
+            last_batch_used: sub.batch_used ?? null,
+            adaptive_batch_recovered: true,
+          },
         })
         .eq("id", masterJobId);
 
@@ -313,6 +318,7 @@ async function processStep(
           processed: processedDelta,
           promoted: processedDelta,
           recovered_after_timeout: 1,
+          batch_used: sub.batch_used ?? null,
         },
       };
     }
@@ -323,6 +329,10 @@ async function processStep(
         status: "failed",
         finished_at: new Date().toISOString(),
         error_summary: `Chunk falhou: ${sub.error ?? "erro desconhecido"}`,
+        metadata: {
+          ...(master.metadata ?? {}),
+          last_batch_used: sub.batch_used ?? null,
+        },
       })
       .eq("id", masterJobId);
     return {
