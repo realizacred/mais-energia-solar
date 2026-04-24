@@ -68,6 +68,19 @@ function toInt(v: unknown): number | null {
   return n === null ? null : Math.round(n);
 }
 
+/**
+ * Mapeia "tipo" do SolarMarket (BT/MT/AT) para o grupo canônico (B/A).
+ * proposta_versoes.grupo aceita apenas 'A', 'B' ou NULL.
+ */
+function mapGrupo(raw: string | null | undefined): "A" | "B" | null {
+  if (!raw) return null;
+  const s = String(raw).trim().toUpperCase();
+  if (s === "A" || s === "B") return s;
+  if (s === "BT") return "B";
+  if (s === "MT" || s === "AT") return "A";
+  return null;
+}
+
 interface VarMap {
   get(key: string): string | null;
   num(key: string): number | null;
@@ -91,18 +104,19 @@ function buildVarMap(variables: any[]): VarMap {
 }
 
 // Categoriza item da pricingTable do SM em categoria canônica nossa.
+// Categorias aceitas pelo BD: modulo, inversor, otimizador, estrutura, componente, bateria.
 function categorizar(category: string, item: string): string {
   const c = (category || "").toLowerCase();
   const it = (item || "").toLowerCase();
   if (c.includes("módulo") || c.includes("modulo") || c.includes("painel")) return "modulo";
-  if (c.includes("inversor") || c.includes("microinversor")) return "inversor";
+  if (c.includes("microinversor") || it.includes("microinversor")) return "inversor";
+  if (c.includes("inversor")) return "inversor";
+  if (c.includes("otimizador") || it.includes("otimizador") || it.includes("optimizer")) return "otimizador";
   if (c.includes("bateria")) return "bateria";
   if (c.includes("estrutura") || it.includes("estrutura") || it.includes("trilho") || it.includes("telha"))
     return "estrutura";
-  if (c.includes("cabo") || it.includes("cabo")) return "cabo";
-  if (c.includes("conector") || it.includes("conector") || it.includes("mc4")) return "conector";
-  if (c.includes("string") || it.includes("string box") || it.includes("disjuntor")) return "protecao";
-  return "outros";
+  // Cabos, conectores, string box, disjuntores e quaisquer outros itens BoS → componente.
+  return "componente";
 }
 
 // Extrai fabricante + modelo do "item" do SM. Geralmente vem "FABRICANTE MODELO".
@@ -327,7 +341,7 @@ Deno.serve(async (req) => {
           consumo_mensal: v.num("consumo_mensal"),
           tarifa_distribuidora: v.num("tarifa_distribuidora"),
           distribuidora_nome: v.get("dis_energia"),
-          grupo: v.get("tipo"), // BT/MT/AT
+          grupo: mapGrupo(v.get("tipo")), // BT→B, MT/AT→A
         };
 
         if (!dryRun) {
@@ -358,7 +372,7 @@ Deno.serve(async (req) => {
               .insert({
                 versao_id: versao.id,
                 tenant_id: tenantId,
-                tipo_kit: "montado",
+                tipo_kit: "customizado",
                 tipo_sistema: "on_grid",
               })
               .select("id")
@@ -427,7 +441,7 @@ Deno.serve(async (req) => {
               numero_uc: v.get("numero_uc_uc1") ?? v.get("numero_uc"),
               titular: v.get("titular_uc1") ?? v.get("cliente_nome"),
               tipo_ligacao: v.get("tipo_uc1") ?? v.get("tipo"),
-              grupo: v.get("subgrupo_uc1") ?? v.get("tipo"),
+              grupo: mapGrupo(v.get("subgrupo_uc1") ?? v.get("tipo")),
               consumo_mensal_kwh: consumoUc1,
               consumo_ponta_kwh: v.num("consumo_mensal_p_uc1"),
               consumo_fora_ponta_kwh: v.num("consumo_mensal_fp_uc1"),
