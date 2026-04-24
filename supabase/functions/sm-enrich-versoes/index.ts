@@ -488,8 +488,10 @@ Deno.serve(async (req) => {
             }
           }
         }
-      } catch (e) {
-        const msg = e instanceof Error ? e.message : String(e);
+      } catch (e: any) {
+        const msg = e instanceof Error
+          ? e.message
+          : (e?.message || e?.error_description || JSON.stringify(e));
         errors.push({
           projeto_id: projetoId,
           deal_id: dealId ?? undefined,
