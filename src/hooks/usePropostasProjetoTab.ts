@@ -54,6 +54,18 @@ export function usePropostasProjetoTab(dealId: string, customerId: string | null
     queryFn: async () => {
       if (!dealId && !customerId) return [] as PropostaNativaProjetoTab[];
 
+      // Resolve deal → projeto_id (propostas migradas SM têm projeto_id mas deal_id=NULL).
+      // RB-58 / DA-36: o ID na URL pode ser deals.id; buscamos o projeto_id vinculado.
+      let resolvedProjetoId: string | null = null;
+      if (dealId) {
+        const { data: dealRow } = await supabase
+          .from("deals")
+          .select("projeto_id")
+          .eq("id", dealId)
+          .maybeSingle();
+        resolvedProjetoId = (dealRow as any)?.projeto_id ?? null;
+      }
+
       let query = (supabase as any)
         .from("propostas_nativas")
         .select("id, titulo, codigo, proposta_num, versao_atual, status, created_at, is_principal, aceita_at, enviada_at, recusada_at, origem, cliente_id, clientes(nome)")
@@ -62,7 +74,12 @@ export function usePropostasProjetoTab(dealId: string, customerId: string | null
         .limit(20);
 
       if (dealId) {
-        query = query.eq("deal_id", dealId);
+        // Match por deal_id OU projeto_id (cobre propostas migradas SM com deal_id=NULL).
+        const orParts = [`deal_id.eq.${dealId}`, `projeto_id.eq.${dealId}`];
+        if (resolvedProjetoId && resolvedProjetoId !== dealId) {
+          orParts.push(`projeto_id.eq.${resolvedProjetoId}`);
+        }
+        query = query.or(orParts.join(","));
       } else if (customerId) {
         query = query.eq("cliente_id", customerId);
       }
