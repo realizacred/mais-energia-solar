@@ -135,22 +135,39 @@ export function ProjetosManager() {
 
   // Filter out orphan projetos (etapa_id pointing to deleted/invalid stage)
   // so cards never land in the wrong column or in an empty bucket.
+  // Also applies the status filter (Abertos/Ganhos/Perdidos/Excluídos) using
+  // the canonical source: projeto_etapas.categoria.
   const validProjetos = useMemo(
     () => projetos.filter(p => p.etapa_id && existingEtapaIds.has(p.etapa_id)),
     [projetos, existingEtapaIds]
   );
 
+  const statusFiltered = useMemo(() => {
+    const status = filters.status;
+    if (!status || status === "todos") return validProjetos;
+    return validProjetos.filter(p => {
+      const etapa = p.etapa_id ? etapaMap.get(p.etapa_id) : null;
+      return etapa?.categoria === status;
+    });
+  }, [validProjetos, filters.status, etapaMap]);
+
   const adaptedDeals = useMemo(
-    () => validProjetos.map(p => projetoToCard(p, etapaMap)),
-    [validProjetos, etapaMap]
+    () => statusFiltered.map(p => projetoToCard(p, etapaMap)),
+    [statusFiltered, etapaMap]
   );
 
   const adaptedOwnerColumns = useMemo(
     () => consultorColumns.map(c => ({
       ...c,
-      projetos: c.projetos.filter(p => p.etapa_id && existingEtapaIds.has(p.etapa_id)),
+      projetos: c.projetos.filter(p => {
+        if (!p.etapa_id || !existingEtapaIds.has(p.etapa_id)) return false;
+        const status = filters.status;
+        if (!status || status === "todos") return true;
+        const etapa = etapaMap.get(p.etapa_id);
+        return etapa?.categoria === status;
+      }),
     })).map(c => consultorColumnToOwner(c, etapaMap)),
-    [consultorColumns, etapaMap, existingEtapaIds]
+    [consultorColumns, etapaMap, existingEtapaIds, filters.status]
   );
 
   // ── Persistent filter storage ──
