@@ -442,7 +442,7 @@ export function ClienteViewDialog({ cliente, open, onOpenChange }: ClienteViewDi
                       <div
                         key={p.id}
                         className="flex items-center justify-between p-3 rounded-lg border border-border/50 bg-card hover:bg-muted/30 transition-colors cursor-pointer"
-                        onClick={() => { onOpenChange(false); navigate(`/admin/projetos/${p.id}`); }}
+                        onClick={() => { onOpenChange(false); navigate(`/admin/projetos?projeto=${p.id}`); }}
                       >
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-2">
