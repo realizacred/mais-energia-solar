@@ -35,6 +35,8 @@ export interface PipelineStage {
 
 export interface DealKanbanCard {
   deal_id: string;
+  project_id?: string | null;
+  detail_available?: boolean;
   tenant_id: string;
   pipeline_id: string;
   stage_id: string;
