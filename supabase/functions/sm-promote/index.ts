@@ -2459,6 +2459,15 @@ async function actionPromoteAll(
 
   const pipeline = await resolveDefaultPipeline(admin, tenantId);
   const consultorFallback = await resolveConsultorFallback(admin, tenantId);
+  await backfillDealsForProjectsWithoutDeal(
+    admin,
+    state,
+    jobId,
+    tenantId,
+    pipeline,
+    consultorFallback,
+    batchLimit,
+  );
   await logEvent(admin, {
     jobId, tenantId, severity: "info", step: "init", status: "started",
     message: `promote-all iniciado (batch_limit=${batchLimit}, dry_run=${dryRun}, scope=${scope}, skip_post_phases=${skipPostPhases}); pipeline=${pipeline.funilId ?? "—"} etapa=${pipeline.etapaId ?? "—"} configured=${pipeline.hasPipelineConfigured}; consultor_fallback=${consultorFallback.fallbackNome ?? "—"}`,
