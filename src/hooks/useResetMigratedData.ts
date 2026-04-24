@@ -38,6 +38,8 @@ export function useResetMigratedData() {
       qc.invalidateQueries({ queryKey: ["sm-migration-pending-count"] });
       qc.invalidateQueries({ queryKey: ["canonical-check"] });
       qc.invalidateQueries({ queryKey: ["sm-operation-runs"] });
+      // Limpa o card "Última migração interrompida" / "Última execução"
+      qc.invalidateQueries({ queryKey: ["sm-migrate-chunk", "progress-v2"] });
       // Also refresh native project views
       qc.invalidateQueries({ queryKey: ["projetos"] });
       qc.invalidateQueries({ queryKey: ["deals"] });

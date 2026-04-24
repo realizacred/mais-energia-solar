@@ -99,6 +99,20 @@ Deno.serve(async (req) => {
     }
 
     // ============================================================
+    // 0.1) Limpar histórico de jobs de migração chunked (UI Step 3)
+    //      Sem isso, o card "Última migração interrompida" persiste
+    //      após o reset e bloqueia a UI de recomeçar do zero.
+    // ============================================================
+    try {
+      await admin
+        .from("solarmarket_promotion_jobs" as never)
+        .delete()
+        .eq("tenant_id", tenantId);
+    } catch (e) {
+      console.error("[reset-migrated-data] solarmarket_promotion_jobs cleanup error:", e);
+    }
+
+    // ============================================================
     // 1) Coletar IDs canônicos com origem solar_market
     // ============================================================
     const { data: clientesRows } = await admin
