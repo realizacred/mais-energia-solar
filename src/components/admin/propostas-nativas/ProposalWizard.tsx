@@ -1434,6 +1434,7 @@ export function ProposalWizard() {
     if (res.versaoId) setSavedVersaoId(res.versaoId);
     if (res.projetoId) setSavedProjetoId(res.projetoId);
     if (res.dealId) setSavedDealId(res.dealId);
+    if (res.clienteId) setSavedClienteId(res.clienteId);
   }, []);
 
   // ─── Fire-and-forget: sync template_id_used on proposta_versoes (RB-25)
