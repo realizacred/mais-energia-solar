@@ -2921,7 +2921,7 @@ export function ProposalWizard() {
           <ChevronRight className="h-3 w-3 text-muted-foreground/50" />
           {savedProjetoId && (
             <>
-              <Button variant="link" size="sm" className="p-0 h-auto text-[11px] text-muted-foreground hover:text-foreground" onClick={() => navigate(`/admin/projetos/${savedProjetoId}`)}>
+              <Button variant="link" size="sm" className="p-0 h-auto text-[11px] text-muted-foreground hover:text-foreground" onClick={() => navigate(`/admin/projetos?projeto=${savedProjetoId}`)}>
                 Projeto
               </Button>
               <ChevronRight className="h-3 w-3 text-muted-foreground/50" />
