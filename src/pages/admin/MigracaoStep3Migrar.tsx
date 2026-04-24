@@ -23,6 +23,8 @@ import {
   X,
   Eraser,
   Sparkles,
+  Download,
+  Package,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -46,8 +48,6 @@ import {
   PromotionLogsDialog,
   type LogsFilter,
 } from "@/components/admin/solarmarket/PromotionLogsDialog";
-import { PromoteCustomFieldsCard } from "@/components/admin/solarmarket/PromoteCustomFieldsCard";
-import { EnrichVersoesCard } from "@/components/admin/solarmarket/EnrichVersoesCard";
 
 function StatRow({
   icon: Icon,
