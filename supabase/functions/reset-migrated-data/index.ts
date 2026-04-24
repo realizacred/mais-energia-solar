@@ -100,40 +100,49 @@ Deno.serve(async (req) => {
 
     // ============================================================
     // 0.1) Limpar histórico de jobs de migração chunked (UI Step 3)
-    //      Sem isso, o card "Última migração interrompida" persiste
-    //      após o reset e bloqueia a UI de recomeçar do zero.
+    //      Ordem importa: logs -> jobs. Há FK em solarmarket_promotion_logs.job_id.
+    //      Sem isso, o card "Última migração interrompida" persiste após o reset.
     // ============================================================
-    try {
-      await admin
-        .from("solarmarket_promotion_jobs" as never)
-        .delete()
-        .eq("tenant_id", tenantId);
-    } catch (e) {
-      console.error("[reset-migrated-data] solarmarket_promotion_jobs cleanup error:", e);
+    const { error: promotionLogsErr } = await admin
+      .from("solarmarket_promotion_logs" as never)
+      .delete()
+      .eq("tenant_id", tenantId);
+    if (promotionLogsErr) {
+      console.error("[reset-migrated-data] solarmarket_promotion_logs cleanup error:", promotionLogsErr);
+    }
+
+    const { error: promotionJobsErr } = await admin
+      .from("solarmarket_promotion_jobs" as never)
+      .delete()
+      .eq("tenant_id", tenantId);
+    if (promotionJobsErr) {
+      console.error("[reset-migrated-data] solarmarket_promotion_jobs cleanup error:", promotionJobsErr);
     }
 
     // ============================================================
     // 1) Coletar IDs canônicos com origem solar_market
     // ============================================================
+    const smSources = ["solarmarket", "solar_market"];
+
     const { data: clientesRows } = await admin
       .from("clientes")
       .select("id")
       .eq("tenant_id", tenantId)
-      .eq("external_source", "solar_market");
+      .in("external_source", smSources);
     const clienteIds = (clientesRows ?? []).map((r: any) => r.id as string);
 
     const { data: projetosRows } = await admin
       .from("projetos")
       .select("id")
       .eq("tenant_id", tenantId)
-      .eq("external_source", "solar_market");
+      .in("external_source", smSources);
     const projetoIds = (projetosRows ?? []).map((r: any) => r.id as string);
 
     const { data: propostasRows } = await admin
       .from("propostas_nativas")
       .select("id")
       .eq("tenant_id", tenantId)
-      .eq("external_source", "solar_market");
+      .in("external_source", smSources);
     const propostaIds = (propostasRows ?? []).map((r: any) => r.id as string);
 
     const counts: Record<string, number> = {
