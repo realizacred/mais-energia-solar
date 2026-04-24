@@ -2034,12 +2034,43 @@ async function actionPromoteAll(
     await promoteOneProposalRow(admin, state, jobId, tenantId, row, pipeline, consultorFallback, scope);
   }
 
-  // Status final:
-  // - errors>0  → failed
-  // - blocked>0 sem nenhum promoted → failed (nada entrou íntegro)
-  // - blocked>0 com promoted → completed_with_warnings
-  // - warnings/skipped → completed_with_warnings
-  // - tudo limpo → completed
+  // ── Fase 2: Custom fields & arquivos (cap_*) ──
+  // Encadeamento server-side: roda em loop até esgotar o staging.
+  // Atualiza metadata.phases.custom_fields para o frontend ler progresso.
+  await patchJob(admin, jobId, {
+    metadata: {
+      phases: {
+        custom_fields: { status: "running", processed: 0, upserted: 0, files_downloaded: 0, files_failed: 0 },
+        enrichment: { status: "pending", processed: 0, versoes_updated: 0, ucs_inserted: 0 },
+      },
+    },
+  });
+  const cfTotals = await runChainedPhase(admin, jobId, "sm-promote-custom-fields", "promote", { batch: 25 }, (r) => ({
+    processed: r.processed ?? 0,
+    upserted: r.upserted ?? 0,
+    files_downloaded: r.files_downloaded ?? 0,
+    files_skipped: r.files_skipped ?? 0,
+    files_failed: r.files_failed ?? 0,
+  }));
+
+  // ── Fase 3: Enriquecer propostas (kit, financeiro, UCs, lat/lng) ──
+  await patchJob(admin, jobId, {
+    metadata: {
+      phases: {
+        custom_fields: { status: "completed", ...cfTotals },
+        enrichment: { status: "running", processed: 0, versoes_updated: 0, ucs_inserted: 0, projetos_updated: 0 },
+      },
+    },
+  });
+  const enrTotals = await runChainedPhase(admin, jobId, "sm-enrich-versoes", "enrich", { batch: 10 }, (r) => ({
+    processed: r.processed ?? 0,
+    versoes_updated: r.versoes_updated ?? 0,
+    kit_itens_inserted: r.kit_itens_inserted ?? 0,
+    ucs_inserted: r.ucs_inserted ?? 0,
+    projetos_updated: r.projetos_updated ?? 0,
+  }));
+
+  // Status final (consolidando warnings das fases extras):
   let finalStatus: JobStatus;
   if (state.counters.errors > 0) {
     finalStatus = "failed";
@@ -2060,6 +2091,12 @@ async function actionPromoteAll(
     items_with_warnings: state.counters.warnings,
     items_with_errors: state.counters.errors,
     items_blocked: state.counters.blocked,
+    metadata: {
+      phases: {
+        custom_fields: { status: "completed", ...cfTotals },
+        enrichment: { status: "completed", ...enrTotals },
+      },
+    },
   });
 
   return jsonResponse({
@@ -2067,8 +2104,59 @@ async function actionPromoteAll(
     job_id: jobId,
     status: finalStatus,
     counters: state.counters,
+    custom_fields: cfTotals,
+    enrichment: enrTotals,
     duration_ms: Date.now() - state.startedAt,
   });
+}
+
+/**
+ * Encadeia chamadas a uma edge interna (sm-promote-custom-fields ou sm-enrich-versoes)
+ * em loop até next_offset === null. Acumula contadores e tolera falhas individuais
+ * de chunk (loga em solarmarket_promotion_logs e segue).
+ */
+async function runChainedPhase(
+  admin: SupabaseClient,
+  jobId: string,
+  fnName: string,
+  action: string,
+  basePayload: Record<string, unknown>,
+  pickCounters: (r: any) => Record<string, number>,
+): Promise<Record<string, number>> {
+  const HARD_CAP_CHUNKS = 500;
+  let offset = 0;
+  const acc: Record<string, number> = {};
+  const fnUrl = `${SUPABASE_URL}/functions/v1/${fnName}`;
+
+  for (let i = 0; i < HARD_CAP_CHUNKS; i++) {
+    let r: any;
+    try {
+      const resp = await fetch(fnUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+          apikey: SUPABASE_SERVICE_ROLE_KEY,
+        },
+        body: JSON.stringify({ action, payload: { ...basePayload, offset } }),
+      });
+      r = await resp.json();
+    } catch (e: any) {
+      console.error(`[${MODULE}] chained ${fnName} fetch error:`, e?.message);
+      break;
+    }
+    if (!r?.ok) {
+      console.error(`[${MODULE}] chained ${fnName} returned not ok:`, r?.error);
+      break;
+    }
+    const counters = pickCounters(r);
+    for (const [k, v] of Object.entries(counters)) {
+      acc[k] = (acc[k] ?? 0) + (v as number);
+    }
+    if (r.next_offset == null) break;
+    offset = r.next_offset;
+  }
+  return acc;
 }
 
 async function actionCancelJob(

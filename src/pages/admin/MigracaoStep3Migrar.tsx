@@ -23,6 +23,8 @@ import {
   X,
   Eraser,
   Sparkles,
+  Download,
+  Package,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -46,8 +48,6 @@ import {
   PromotionLogsDialog,
   type LogsFilter,
 } from "@/components/admin/solarmarket/PromotionLogsDialog";
-import { PromoteCustomFieldsCard } from "@/components/admin/solarmarket/PromoteCustomFieldsCard";
-import { EnrichVersoesCard } from "@/components/admin/solarmarket/EnrichVersoesCard";
 
 function StatRow({
   icon: Icon,
@@ -80,6 +80,43 @@ function StatRow({
         </div>
       </div>
       <Progress value={pct} className="h-2" />
+    </div>
+  );
+}
+
+function PhaseRow({
+  icon: Icon,
+  label,
+  status,
+  detail,
+}: {
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+  status: "pending" | "running" | "completed";
+  detail: string;
+}) {
+  const tone =
+    status === "completed"
+      ? "text-success"
+      : status === "running"
+        ? "text-info"
+        : "text-muted-foreground";
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2 min-w-0">
+          <Icon className={`w-4 h-4 shrink-0 ${tone}`} />
+          <span className="text-sm font-medium text-foreground">{label}</span>
+        </div>
+        <div className="flex items-center gap-2 text-xs">
+          {status === "running" && <Loader2 className="w-3.5 h-3.5 animate-spin text-info" />}
+          {status === "completed" && <CheckCircle2 className="w-3.5 h-3.5 text-success" />}
+          <span className={`font-mono ${tone}`}>
+            {status === "pending" ? "aguardando" : status === "running" ? "rodando" : "ok"}
+          </span>
+        </div>
+      </div>
+      <p className="text-xs text-muted-foreground pl-6">{detail}</p>
     </div>
   );
 }
@@ -260,6 +297,30 @@ export default function MigracaoStep3Migrar() {
                 promoted={totals?.propostas.promoted ?? 0}
                 total={totals?.propostas.total ?? 0}
               />
+
+              {/* Fases extras (rodam automaticamente após as propostas) */}
+              <div className="pt-3 border-t border-border space-y-5">
+                <PhaseRow
+                  icon={Download}
+                  label="Campos customizados & arquivos"
+                  status={progress?.phases.customFields.status ?? "pending"}
+                  detail={
+                    progress?.phases.customFields.processed
+                      ? `${progress.phases.customFields.processed.toLocaleString("pt-BR")} projetos · ${progress.phases.customFields.files_downloaded.toLocaleString("pt-BR")} arquivos baixados`
+                      : "Aguardando…"
+                  }
+                />
+                <PhaseRow
+                  icon={Package}
+                  label="Enriquecer propostas (kit, financeiro, UCs)"
+                  status={progress?.phases.enrichment.status ?? "pending"}
+                  detail={
+                    progress?.phases.enrichment.processed
+                      ? `${progress.phases.enrichment.processed.toLocaleString("pt-BR")} propostas · ${progress.phases.enrichment.versoes_updated.toLocaleString("pt-BR")} versões · ${progress.phases.enrichment.ucs_inserted.toLocaleString("pt-BR")} UCs`
+                      : "Aguardando…"
+                  }
+                />
+              </div>
             </div>
 
             {/* CTA */}
@@ -392,12 +453,6 @@ export default function MigracaoStep3Migrar() {
           </CardContent>
         </Card>
       )}
-
-      {/* Step 3.1 — Promover custom fields & arquivos */}
-      <PromoteCustomFieldsCard />
-
-      {/* Step 3.2 — Enriquecer propostas migradas (kit, financeiro, UCs, localização) */}
-      <EnrichVersoesCard />
 
       <PromotionLogsDialog
         open={logsOpen}
