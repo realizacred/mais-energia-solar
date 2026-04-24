@@ -14,17 +14,11 @@ function jsonResponse(body: Record<string, unknown>, status = 200) {
   });
 }
 
-// ═══════════════════════════════════════════════════════════
-// Token masking (NEVER log full token)
-// ═══════════════════════════════════════════════════════════
 function maskToken(token: string): string {
   if (token.length <= 8) return "****";
   return `${token.slice(0, 4)}${"*".repeat(token.length - 8)}${token.slice(-4)}`;
 }
 
-// ═══════════════════════════════════════════════════════════
-// Growatt HTTP Client — retry + auth header fallback
-// ═══════════════════════════════════════════════════════════
 type AuthHeaderMode = "bearer" | "token_header";
 
 interface GrowattRequestOpts {
@@ -75,18 +69,17 @@ async function growattRequest<T = unknown>(opts: GrowattRequestOpts): Promise<{ 
   const BACKOFF = [500, 1000, 2000];
   let lastErr: Error | null = null;
 
-  // Try Bearer first, then Token header on 401/403
   for (const headerMode of ["bearer", "token_header"] as AuthHeaderMode[]) {
     for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
       try {
-        console.log(`[Growatt-v1] ${opts.method} ${opts.path} (${headerMode}, attempt ${attempt + 1}), token=${maskToken(opts.token)}`);
+        console.warn(`[Growatt-v1] ${opts.method} ${opts.path} (${headerMode}, attempt ${attempt + 1}), token=${maskToken(opts.token)}`);
         const res = await growattFetch(opts, headerMode);
 
         if (res.status === 401 || res.status === 403) {
           const text = await res.text().catch(() => "");
           console.warn(`[Growatt-v1] Auth failed (${res.status}) with ${headerMode}: ${text.slice(0, 200)}`);
           lastErr = new Error(`auth_error:${res.status}`);
-          break; // Try next header mode
+          break;
         }
 
         if (res.status === 429 || res.status >= 500) {
@@ -131,9 +124,6 @@ async function growattRequest<T = unknown>(opts: GrowattRequestOpts): Promise<{ 
   throw lastErr || new Error("unknown_error");
 }
 
-// ═══════════════════════════════════════════════════════════
-// Normalizer
-// ═══════════════════════════════════════════════════════════
 interface NormalizedInverterData {
   inverter_sn: string;
   datalogger_sn: string | null;
@@ -158,7 +148,6 @@ function numOrNull(v: unknown): number | null {
 }
 
 function normalizeRealtimeData(sn: string, raw: Record<string, unknown>): NormalizedInverterData {
-  // The API may nest data under a "data" key or at root level
   const d = (raw.data && typeof raw.data === "object" ? raw.data : raw) as Record<string, unknown>;
 
   return {
@@ -186,7 +175,6 @@ function normalizeBatchData(raw: Record<string, unknown>): NormalizedInverterDat
   for (const [inverterId, value] of Object.entries(data)) {
     if (!value || typeof value !== "object") continue;
     const entry = value as Record<string, unknown>;
-    // Batch response: data[inverterId].dataloggerSn + data[inverterId][inverterId] = metrics
     const metrics = (entry[inverterId] || entry) as Record<string, unknown>;
     const dataloggerSn = (entry.dataloggerSn || null) as string | null;
 
@@ -197,15 +185,12 @@ function normalizeBatchData(raw: Record<string, unknown>): NormalizedInverterDat
   return results;
 }
 
-// ═══════════════════════════════════════════════════════════
-// Persistence helpers
-// ═══════════════════════════════════════════════════════════
 async function upsertRealtimeCache(
-  supabase: ReturnType<typeof createClient>,
+  supabase: any,
   tenantId: string,
   data: NormalizedInverterData,
 ) {
-  const { error } = await supabase.from("growatt_inverter_rt").upsert({
+  const { error } = await supabase.from("growatt_inverter_rt" as any).upsert({
     tenant_id: tenantId,
     inverter_sn: data.inverter_sn,
     datalogger_sn: data.datalogger_sn,
@@ -229,17 +214,16 @@ async function upsertRealtimeCache(
 }
 
 async function insertRawEvent(
-  supabase: ReturnType<typeof createClient>,
+  supabase: any,
   tenantId: string,
   data: NormalizedInverterData,
 ) {
-  // Hash for deduplication
   const encoder = new TextEncoder();
   const hashInput = `${tenantId}:${data.inverter_sn}:${data.ts_device || ""}:${JSON.stringify(data.raw_payload)}`;
   const hashBuffer = await crypto.subtle.digest("SHA-256", encoder.encode(hashInput));
   const payloadHash = Array.from(new Uint8Array(hashBuffer)).map((b) => b.toString(16).padStart(2, "0")).join("");
 
-  const { error } = await supabase.from("growatt_raw_events").upsert({
+  const { error } = await supabase.from("growatt_raw_events" as any).upsert({
     tenant_id: tenantId,
     inverter_sn: data.inverter_sn,
     ts_device: data.ts_device,
@@ -253,7 +237,7 @@ async function insertRawEvent(
 }
 
 async function updateHealthCache(
-  supabase: ReturnType<typeof createClient>,
+  supabase: any,
   tenantId: string,
   status: "ok" | "auth_error" | "timeout" | "upstream_error" | "parse_error" | "unknown",
   errorCode?: string,
@@ -271,56 +255,51 @@ async function updateHealthCache(
   if (status === "ok") payload.last_ok_at = now;
   else payload.last_fail_at = now;
 
-  await supabase.from("growatt_health_cache").upsert(payload, { onConflict: "tenant_id" });
+  await supabase.from("growatt_health_cache" as any).upsert(payload as any, { onConflict: "tenant_id" });
 }
 
-// ═══════════════════════════════════════════════════════════
-// Config loader
-// ═══════════════════════════════════════════════════════════
 async function loadGrowattConfig(
-  supabase: ReturnType<typeof createClient>,
+  supabase: any,
   tenantId: string,
 ): Promise<{ baseUrl: string; token: string }> {
   const { data, error } = await supabase
-    .from("monitoring_integrations")
-    .select("credentials, tokens")
+    .from("monitoring_integrations" as any)
+    .select("id, credentials, tokens")
     .eq("tenant_id", tenantId)
     .eq("provider", "growatt_v1")
     .maybeSingle();
 
-  if (error || !data) {
-    // Fallback: try regular "growatt" provider
+  const typedData = (data ?? null) as Record<string, any> | null;
+
+  if (error || !typedData) {
     const { data: fallback } = await supabase
-      .from("monitoring_integrations")
-      .select("credentials, tokens")
+      .from("monitoring_integrations" as any)
+      .select("id, credentials, tokens")
       .eq("tenant_id", tenantId)
       .eq("provider", "growatt")
       .maybeSingle();
 
-    if (!fallback) throw new Error("Growatt v1 integration not configured. Go to Integrations to set up.");
-    
-    const creds = (fallback.credentials || {}) as Record<string, unknown>;
-    const tokens = (fallback.tokens || {}) as Record<string, unknown>;
+    const typedFallback = (fallback ?? null) as Record<string, any> | null;
+    if (!typedFallback) throw new Error("Growatt v1 integration not configured. Go to Integrations to set up.");
+
+    const creds = (typedFallback.credentials || {}) as Record<string, unknown>;
+    const tokens = (typedFallback.tokens || {}) as Record<string, unknown>;
     const baseUrl = (creds.growatt_base_url || creds.base_url || "https://openapi.growatt.com/v1") as string;
     const token = (tokens.apiKey || tokens.api_key || creds.apiKey || "") as string;
     if (!token) throw new Error("Growatt API token not configured.");
     return { baseUrl, token };
   }
 
-  const creds = (data.credentials || {}) as Record<string, unknown>;
-  const tokens = (data.tokens || {}) as Record<string, unknown>;
+  const creds = (typedData.credentials || {}) as Record<string, unknown>;
+  const tokens = (typedData.tokens || {}) as Record<string, unknown>;
   const baseUrl = (creds.growatt_base_url || "https://openapi.growatt.com/v1") as string;
   const token = (tokens.growatt_token || creds.growatt_token || "") as string;
   if (!token) throw new Error("Growatt API token not configured.");
   return { baseUrl, token };
 }
 
-// ═══════════════════════════════════════════════════════════
-// Route handlers
-// ═══════════════════════════════════════════════════════════
-
 async function handleRealtime(
-  supabase: ReturnType<typeof createClient>,
+  supabase: any,
   tenantId: string,
   sn: string,
   includeRaw: boolean,
@@ -337,7 +316,6 @@ async function handleRealtime(
 
   const normalized = normalizeRealtimeData(sn, raw);
 
-  // Persist
   await Promise.all([
     upsertRealtimeCache(supabase, tenantId, normalized),
     insertRawEvent(supabase, tenantId, normalized),
@@ -351,7 +329,7 @@ async function handleRealtime(
 }
 
 async function handleBatch(
-  supabase: ReturnType<typeof createClient>,
+  supabase: any,
   tenantId: string,
   inverters: string[],
   pageNum: number,
@@ -369,7 +347,6 @@ async function handleBatch(
 
   const normalized = normalizeBatchData(raw);
 
-  // Persist all
   await Promise.all([
     ...normalized.map((d) => upsertRealtimeCache(supabase, tenantId, d)),
     ...normalized.map((d) => insertRawEvent(supabase, tenantId, d)),
@@ -386,7 +363,7 @@ async function handleBatch(
 }
 
 async function handleInfo(
-  supabase: ReturnType<typeof createClient>,
+  supabase: any,
   tenantId: string,
   sn: string,
 ) {
@@ -406,7 +383,7 @@ async function handleInfo(
 }
 
 async function handleTestConnection(
-  supabase: ReturnType<typeof createClient>,
+  supabase: any,
   tenantId: string,
   sn: string,
 ) {
@@ -436,26 +413,26 @@ async function handleTestConnection(
 }
 
 async function handleSaveConfig(
-  supabase: ReturnType<typeof createClient>,
+  supabase: any,
   tenantId: string,
   userId: string,
   baseUrl: string,
   token: string,
 ) {
-  // Normalize base URL
   let normalizedUrl = baseUrl.trim();
   if (!normalizedUrl.endsWith("/")) normalizedUrl += "/";
   if (!normalizedUrl.includes("/v1")) {
     normalizedUrl = normalizedUrl.replace(/\/$/, "/v1/");
   }
 
-  // Upsert into monitoring_integrations with provider='growatt_v1'
   const { data: existing } = await supabase
-    .from("monitoring_integrations")
+    .from("monitoring_integrations" as any)
     .select("id")
     .eq("tenant_id", tenantId)
     .eq("provider", "growatt_v1")
     .maybeSingle();
+
+  const existingRow = (existing ?? null) as { id: string } | null;
 
   const payload = {
     tenant_id: tenantId,
@@ -467,20 +444,18 @@ async function handleSaveConfig(
     updated_at: new Date().toISOString(),
   };
 
-  if (existing) {
-    await supabase.from("monitoring_integrations").update(payload).eq("id", existing.id);
+  if (existingRow) {
+    await supabase.from("monitoring_integrations" as any).update(payload as any).eq("id", existingRow.id);
   } else {
-    await supabase.from("monitoring_integrations").insert(payload);
+    await supabase.from("monitoring_integrations" as any).insert(payload as any);
   }
 
-  // Reset health cache
-  await supabase.from("growatt_health_cache").upsert({
+  await supabase.from("growatt_health_cache" as any).upsert({
     tenant_id: tenantId,
     status: "unknown",
     checked_at: new Date().toISOString(),
-  }, { onConflict: "tenant_id" });
+  } as any, { onConflict: "tenant_id" });
 
-  // Audit log
   await supabase.from("audit_logs").insert({
     tenant_id: tenantId,
     user_id: userId,
@@ -492,9 +467,6 @@ async function handleSaveConfig(
   return { success: true, message: "Configuração salva" };
 }
 
-// ═══════════════════════════════════════════════════════════
-// Main handler
-// ═══════════════════════════════════════════════════════════
 serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -504,7 +476,6 @@ serve(async (req: Request) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
 
-    // Auth
     const authHeader = req.headers.get("Authorization") || "";
     const { data: userData, error: userErr } = await supabaseAdmin.auth.getUser(
       authHeader.replace("Bearer ", ""),
@@ -529,14 +500,14 @@ serve(async (req: Request) => {
         const { base_url, token } = body;
         if (!base_url || !token) return jsonResponse({ error: "base_url e token são obrigatórios" }, 400);
         if (token.length < 16) return jsonResponse({ error: "Token deve ter pelo menos 16 caracteres" }, 400);
-        const result = await handleSaveConfig(supabaseAdmin, tenantId, userId, base_url, token);
+        const result = await handleSaveConfig(supabaseAdmin as any, tenantId, userId, base_url, token);
         return jsonResponse(result);
       }
 
       case "test_connection": {
         const sn = body.device_sn || body.sn;
         if (!sn) return jsonResponse({ error: "device_sn é obrigatório para teste" }, 400);
-        const result = await handleTestConnection(supabaseAdmin, tenantId, sn);
+        const result = await handleTestConnection(supabaseAdmin as any, tenantId, sn);
         return jsonResponse(result);
       }
 
@@ -544,7 +515,7 @@ serve(async (req: Request) => {
         const sn = body.device_sn || body.sn;
         if (!sn) return jsonResponse({ error: "device_sn é obrigatório" }, 400);
         const includeRaw = body.raw === true || url.searchParams.get("raw") === "1";
-        const result = await handleRealtime(supabaseAdmin, tenantId, sn, includeRaw);
+        const result = await handleRealtime(supabaseAdmin as any, tenantId, sn, includeRaw);
         return jsonResponse(result);
       }
 
@@ -555,20 +526,20 @@ serve(async (req: Request) => {
         }
         const pageNum = body.pageNum || 1;
         const includeRaw = body.raw === true;
-        const result = await handleBatch(supabaseAdmin, tenantId, inverters, pageNum, includeRaw);
+        const result = await handleBatch(supabaseAdmin as any, tenantId, inverters, pageNum, includeRaw);
         return jsonResponse(result);
       }
 
       case "info": {
         const sn = body.device_sn || body.sn;
         if (!sn) return jsonResponse({ error: "device_sn é obrigatório" }, 400);
-        const result = await handleInfo(supabaseAdmin, tenantId, sn);
+        const result = await handleInfo(supabaseAdmin as any, tenantId, sn);
         return jsonResponse(result);
       }
 
       case "health": {
         const { data } = await supabaseAdmin
-          .from("growatt_health_cache")
+          .from("growatt_health_cache" as any)
           .select("*")
           .eq("tenant_id", tenantId)
           .maybeSingle();
@@ -577,20 +548,21 @@ serve(async (req: Request) => {
 
       case "get_config": {
         const { data } = await supabaseAdmin
-          .from("monitoring_integrations")
+          .from("monitoring_integrations" as any)
           .select("credentials, status, last_sync_at, sync_error")
           .eq("tenant_id", tenantId)
           .eq("provider", "growatt_v1")
           .maybeSingle();
-        const creds = (data?.credentials || {}) as Record<string, unknown>;
+        const typedData = (data ?? null) as Record<string, any> | null;
+        const creds = (typedData?.credentials || {}) as Record<string, unknown>;
         return jsonResponse({
           success: true,
           config: {
             base_url: creds.growatt_base_url || "",
-            has_token: !!data,
-            status: data?.status || "disconnected",
-            last_sync_at: data?.last_sync_at,
-            sync_error: data?.sync_error,
+            has_token: !!typedData,
+            status: typedData?.status || "disconnected",
+            last_sync_at: typedData?.last_sync_at,
+            sync_error: typedData?.sync_error,
           },
         });
       }
@@ -602,7 +574,6 @@ serve(async (req: Request) => {
     const msg = (err as Error).message || "Internal server error";
     console.error("[Growatt-v1] Error:", msg);
 
-    // Classify error for user-friendly response
     if (msg.startsWith("auth_error")) {
       return jsonResponse({ error: "Falha de autenticação. Verifique o token Growatt.", category: "auth_error" }, 401);
     }
