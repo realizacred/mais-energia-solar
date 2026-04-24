@@ -44,6 +44,7 @@ import {
 import { useChunkedMigration } from "@/hooks/useChunkedMigration";
 import { useResetMigratedData } from "@/hooks/useResetMigratedData";
 import { toast } from "@/hooks/use-toast";
+import { PromotionLogsDialog, type LogsFilter } from "@/components/admin/solarmarket/PromotionLogsDialog";
 
 function formatRelativeTimestamp(value: string | null) {
   if (!value) return "sem atividade registrada";
