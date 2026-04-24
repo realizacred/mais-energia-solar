@@ -1,571 +1,358 @@
 /**
  * Migração SolarMarket — Step 3 (Migrar dados para o CRM).
  *
- * Background real: edge `sm-migrate-chunk` auto-encadeia steps via EdgeRuntime.waitUntil
- * + pg_cron de safety. UI só observa estado real do banco.
+ * UI 1-clique: 1 botão + 3 barras de progresso (clientes/projetos/propostas).
+ * Roda em background no servidor (sm-promote, scope=proposta com cascata).
+ * Pode fechar a aba — polling reanexa ao job ativo automaticamente.
  *
- * Botões inteligentes:
- *   - Nada iniciado / completo → "🚀 Iniciar Migração Completa"
- *   - Running                  → "Migração em andamento" + Cancelar
- *   - Failed/Cancelled c/ backlog → "↻ Continuar de onde parou"
- *
- * Inclui: card de totais (sempre atualizado), histórico de últimos 5 jobs.
+ * Mantém header "Step 3 — Migrar dados para o CRM" e botão "Voltar para mapeamentos".
  */
 import { useState } from "react";
 import { Link } from "react-router-dom";
+import { motion } from "framer-motion";
 import {
   ArrowLeft,
-  PlayCircle,
   Rocket,
   Loader2,
   CheckCircle2,
-  AlertTriangle,
-  ShieldCheck,
+  AlertCircle,
   Users,
   FolderKanban,
   FileText,
-  RefreshCw,
-  History,
-  XCircle,
-  Clock,
+  Play,
+  X,
+  Eraser,
+  Sparkles,
 } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { toast } from "sonner";
-import { useDryRunMigration, type DryRunReport } from "@/hooks/useDryRunMigration";
-import { useChunkedMigration, type ChunkedJob } from "@/hooks/useChunkedMigration";
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { useMigrateFull } from "@/hooks/useMigrateFull";
+import { useResetMigratedData } from "@/hooks/useResetMigratedData";
+import { toast } from "@/hooks/use-toast";
 
-function formatNum(n: number): string {
-  return n.toLocaleString("pt-BR");
-}
-
-function formatDateBR(s: string | null): string {
-  if (!s) return "—";
-  return new Date(s).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" });
-}
-
-function durationStr(start: string | null, end: string | null): string {
-  if (!start) return "—";
-  const e = end ? new Date(end).getTime() : Date.now();
-  const ms = e - new Date(start).getTime();
-  const s = Math.floor(ms / 1000);
-  if (s < 60) return `${s}s`;
-  const m = Math.floor(s / 60);
-  if (m < 60) return `${m}m ${s % 60}s`;
-  const h = Math.floor(m / 60);
-  return `${h}h ${m % 60}m`;
-}
-
-function StageBar({
+function StatRow({
   icon: Icon,
   label,
   promoted,
   total,
 }: {
-  icon: typeof Users;
+  icon: React.ComponentType<{ className?: string }>;
   label: string;
   promoted: number;
   total: number;
 }) {
   const pct = total > 0 ? Math.min(100, Math.round((promoted / total) * 100)) : 0;
+  const done = total > 0 && promoted >= total;
   return (
-    <div className="space-y-1.5">
-      <div className="flex items-center justify-between text-sm">
-        <div className="flex items-center gap-2 text-foreground">
-          <Icon className="w-4 h-4 text-primary" />
-          <span className="font-medium">{label}</span>
+    <div className="space-y-2">
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2 min-w-0">
+          <Icon className="w-4 h-4 text-primary shrink-0" />
+          <span className="text-sm font-medium text-foreground">{label}</span>
         </div>
-        <span className="font-mono text-muted-foreground">
-          {formatNum(promoted)} / {formatNum(total)}
-          <span className="ml-2 text-xs">({pct}%)</span>
-        </span>
+        <div className="flex items-center gap-2 text-xs font-mono">
+          <span className={done ? "text-success font-bold" : "text-foreground"}>
+            {promoted.toLocaleString("pt-BR")}
+          </span>
+          <span className="text-muted-foreground">
+            / {total.toLocaleString("pt-BR")}
+          </span>
+          {done && <CheckCircle2 className="w-3.5 h-3.5 text-success" />}
+        </div>
       </div>
       <Progress value={pct} className="h-2" />
     </div>
   );
 }
 
-function StatusBadge({ status }: { status: string }) {
-  const map: Record<string, { label: string; cls: string }> = {
-    running: { label: "Em execução", cls: "bg-info/10 text-info border-info/20" },
-    completed: { label: "Concluído", cls: "bg-success/10 text-success border-success/20" },
-    completed_with_warnings: {
-      label: "Concluído (avisos)",
-      cls: "bg-warning/10 text-warning border-warning/20",
-    },
-    failed: { label: "Falhou", cls: "bg-destructive/10 text-destructive border-destructive/20" },
-    cancelled: { label: "Cancelado", cls: "bg-muted text-muted-foreground border-border" },
-    pending: { label: "Pendente", cls: "bg-muted text-muted-foreground border-border" },
-  };
-  const cfg = map[status] ?? { label: status, cls: "bg-muted text-muted-foreground border-border" };
-  return (
-    <Badge variant="outline" className={cfg.cls}>
-      {cfg.label}
-    </Badge>
-  );
-}
-
 export default function MigracaoStep3Migrar() {
-  const dryRun = useDryRunMigration();
-  const { start, continueJob, cancel, progress, isLoading } = useChunkedMigration();
-
+  const { start, cancel, progress, isLoading } = useMigrateFull();
+  const resetMigrated = useResetMigratedData();
   const [confirmOpen, setConfirmOpen] = useState(false);
-  const [confirmText, setConfirmText] = useState("");
 
-  const lastReport: DryRunReport | null = dryRun.data?.report ?? null;
+  const handleStart = async () => {
+    try {
+      const res = await start.mutateAsync({ batch_limit: 10000, dry_run: false });
+      toast({
+        title: "Migração iniciada",
+        description: `Job ${res.job_id.slice(0, 8)}… em execução. Pode fechar a aba — segue rodando.`,
+      });
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      toast({ title: "Falha ao iniciar migração", description: msg, variant: "destructive" });
+    }
+  };
 
+  const handleCancel = async () => {
+    if (!progress?.job?.id) return;
+    try {
+      await cancel.mutateAsync(progress.job.id);
+      toast({ title: "Job cancelado" });
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      toast({ title: "Falha ao cancelar", description: msg, variant: "destructive" });
+    }
+  };
+
+  const handleClearArea = async () => {
+    try {
+      await resetMigrated.mutateAsync();
+      setConfirmOpen(false);
+      toast({ title: "Área de promoção limpa" });
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      toast({ title: "Falha ao limpar área", description: msg, variant: "destructive" });
+    }
+  };
+
+  const totals = progress?.totals;
+  const job = progress?.job;
   const isRunning = !!progress?.isRunning;
   const isComplete = !!progress?.isComplete;
-  const isResumable = !!progress?.isResumable;
-  const isStuck = !!progress?.isStuck;
-  const job = progress?.job ?? null;
-  const totals = progress?.totals;
-  const history = progress?.history ?? [];
-
-  const canStart = !start.isPending && !isRunning && !isResumable;
-
-  const handleConfirmReal = async () => {
-    if (confirmText.trim().toUpperCase() !== "MIGRAR") {
-      toast.error('Digite "MIGRAR" para confirmar.');
-      return;
-    }
-    setConfirmOpen(false);
-    setConfirmText("");
-    try {
-      const res = await start.mutateAsync();
-      const id = res.master_job_id ?? "";
-      toast.success(
-        `Migração iniciada em background (job ${id.slice(0, 8)}…). Você pode fechar esta aba — o servidor continua processando.`,
-      );
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Falha ao iniciar migração.");
-    }
-  };
-
-  const handleContinue = async () => {
-    if (!job) return;
-    try {
-      await continueJob.mutateAsync(job.id);
-      toast.success("Migração retomada de onde parou. Continua em background.");
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Falha ao retomar.");
-    }
-  };
-
-  const handleDryRun = async () => {
-    try {
-      await dryRun.mutateAsync({});
-      toast.success("Dry-run concluído. Veja o relatório abaixo.");
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Falha no dry-run.");
-    }
-  };
+  const totalStaging =
+    (totals?.clientes.total ?? 0) +
+    (totals?.projetos.total ?? 0) +
+    (totals?.propostas.total ?? 0);
+  const totalPromoted =
+    (totals?.clientes.promoted ?? 0) +
+    (totals?.projetos.promoted ?? 0) +
+    (totals?.propostas.promoted ?? 0);
+  const nothingToDo = totalStaging === 0;
 
   return (
     <div className="container mx-auto p-4 sm:p-6 lg:p-8 space-y-6 max-w-[1100px]">
-      {/* Header */}
+      {/* Header preservado */}
       <div>
         <Button asChild variant="ghost" size="sm" className="mb-2">
           <Link to="/admin/migracao-solarmarket/mapear">
             <ArrowLeft className="w-4 h-4 mr-2" /> Voltar para mapeamentos
           </Link>
         </Button>
-        <h1 className="text-xl font-bold text-foreground">Step 3 — Migrar dados para o CRM</h1>
+        <div className="flex items-center gap-2 flex-wrap">
+          <h1 className="text-xl font-bold text-foreground">
+            Step 3 — Migrar dados para o CRM
+          </h1>
+          <Badge
+            variant="outline"
+            className="bg-primary/10 text-primary border-primary/20 gap-1.5"
+          >
+            <Sparkles className="w-3 h-3" /> 1-clique
+          </Badge>
+        </div>
         <p className="text-sm text-muted-foreground mt-1">
-          Roda em background no servidor. Pode fechar a aba — a migração continua e você
-          vê o progresso real ao voltar.
+          Promove clientes, projetos e propostas em uma única operação.
+          Idempotente: registros já migrados são ignorados. Roda em background —
+          pode fechar a aba.
         </p>
       </div>
 
-      {/* Card de totais — SEMPRE visível, atualiza a cada 3-8s */}
-      <Card className="bg-card border-border shadow-sm">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base font-semibold text-foreground flex items-center gap-2">
-            <RefreshCw className={`w-4 h-4 text-primary ${isRunning ? "animate-spin" : ""}`} />
-            Estado atual
-            {isLoading && (
-              <span className="text-xs text-muted-foreground font-normal">carregando…</span>
-            )}
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          {totals ? (
-            <div className="space-y-3 rounded-lg border border-border bg-muted/30 p-4">
-              <StageBar
-                icon={Users}
-                label="Clientes"
-                promoted={totals.clientes.promoted}
-                total={totals.clientes.total}
-              />
-              <StageBar
-                icon={FolderKanban}
-                label="Projetos"
-                promoted={totals.projetos.promoted}
-                total={totals.projetos.total}
-              />
-              <StageBar
-                icon={FileText}
-                label="Propostas"
-                promoted={totals.propostas.promoted}
-                total={totals.propostas.total}
-              />
-              <div className="pt-2 border-t border-border">
-                <StageBar
-                  icon={ShieldCheck}
-                  label="Total geral"
-                  promoted={
-                    totals.clientes.promoted +
-                    totals.projetos.promoted +
-                    totals.propostas.promoted
-                  }
-                  total={totals.clientes.total + totals.projetos.total + totals.propostas.total}
-                />
+      {/* Card principal — barras + CTA */}
+      <motion.div
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3 }}
+      >
+        <Card className="bg-card border-border shadow-sm">
+          <CardContent className="p-6 space-y-6">
+            {/* Banner de status */}
+            {isLoading ? (
+              <div className="flex items-center gap-3 text-sm text-muted-foreground">
+                <Loader2 className="w-4 h-4 animate-spin" /> Carregando estado da migração…
               </div>
-            </div>
-          ) : (
-            <p className="text-sm text-muted-foreground">Carregando totais…</p>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Painel de execução */}
-      <Card className="bg-card border-border shadow-sm">
-        <CardHeader>
-          <CardTitle className="text-base font-semibold text-foreground flex items-center gap-2">
-            <Rocket className="w-4 h-4 text-primary" /> Migração completa (background)
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-5">
-          {/* Botões */}
-          <div className="flex flex-col sm:flex-row gap-3">
-            <Button
-              variant="outline"
-              onClick={handleDryRun}
-              disabled={dryRun.isPending || isRunning}
-              className="flex-1"
-            >
-              {dryRun.isPending ? (
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              ) : (
-                <PlayCircle className="w-4 h-4 mr-2" />
-              )}
-              Simular (Dry-Run)
-            </Button>
-
-            {isResumable ? (
-              <Button
-                onClick={handleContinue}
-                disabled={continueJob.isPending}
-                className="flex-1"
-              >
-                {continueJob.isPending ? (
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                ) : (
-                  <RefreshCw className="w-4 h-4 mr-2" />
-                )}
-                ↻ Continuar de onde parou
-              </Button>
-            ) : (
-              <Button
-                onClick={() => setConfirmOpen(true)}
-                disabled={!canStart}
-                className="flex-1"
-              >
-                {start.isPending || isRunning ? (
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                ) : (
-                  <Rocket className="w-4 h-4 mr-2" />
-                )}
-                {isRunning
-                  ? "Migração em andamento…"
-                  : isComplete
-                    ? "✅ Migração concluída"
-                    : "🚀 Iniciar Migração Completa"}
-              </Button>
-            )}
-          </div>
-
-          {/* Progresso do job atual */}
-          {job && (
-            <div className="space-y-3">
-              <div className="flex items-center justify-between text-sm">
-                <span className="font-medium text-foreground flex items-center gap-2">
-                  Job atual
-                  <span className="font-mono text-xs text-muted-foreground">
-                    ({job.id.slice(0, 8)}…)
-                  </span>
-                  <StatusBadge status={job.status} />
-                </span>
-                <span className="font-mono text-muted-foreground">
-                  {formatNum(job.items_processed)} / {formatNum(job.total_items)}
-                  <span className="ml-2 text-xs">({progress?.pctGeral ?? 0}%)</span>
-                </span>
+            ) : isRunning ? (
+              <div className="flex items-center justify-between gap-4 p-3 rounded-lg bg-info/10 border border-info/30">
+                <div className="flex items-center gap-3 min-w-0">
+                  <Loader2 className="w-5 h-5 animate-spin text-info shrink-0" />
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-foreground">
+                      Migração em andamento
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Job {job?.id.slice(0, 8)}… • {job?.items_processed ?? 0} de{" "}
+                      {job?.total_items ?? 0} processados. Pode fechar a aba.
+                    </p>
+                  </div>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleCancel}
+                  disabled={cancel.isPending}
+                >
+                  <X className="w-4 h-4" /> Cancelar
+                </Button>
               </div>
-              <Progress value={progress?.pctGeral ?? 0} className="h-3" />
-
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
-                <div className="rounded border border-border bg-muted/30 p-2">
-                  <p className="text-muted-foreground">Promovidos</p>
-                  <p className="font-semibold text-success">{formatNum(job.items_promoted)}</p>
-                </div>
-                <div className="rounded border border-border bg-muted/30 p-2">
-                  <p className="text-muted-foreground">Erros</p>
-                  <p className="font-semibold text-destructive">
-                    {formatNum(job.items_with_errors)}
+            ) : isComplete && totalPromoted > 0 ? (
+              <div className="flex items-center gap-3 p-3 rounded-lg bg-success/10 border border-success/30">
+                <CheckCircle2 className="w-5 h-5 text-success shrink-0" />
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-foreground">
+                    Última execução concluída — {totalPromoted.toLocaleString("pt-BR")}{" "}
+                    registros promovidos
                   </p>
-                </div>
-                <div className="rounded border border-border bg-muted/30 p-2">
-                  <p className="text-muted-foreground">Bloqueados</p>
-                  <p className="font-semibold text-warning">{formatNum(job.items_blocked)}</p>
-                </div>
-                <div className="rounded border border-border bg-muted/30 p-2">
-                  <p className="text-muted-foreground">Avisos</p>
-                  <p className="font-semibold text-foreground">
-                    {formatNum(job.items_with_warnings)}
-                  </p>
-                </div>
-              </div>
-
-              {isRunning && (
-                <div className="flex items-center justify-between text-xs text-muted-foreground">
-                  <span className="flex items-center gap-1.5">
-                    <Clock className="w-3 h-3" />
-                    Último step: {job.last_step_at ? formatDateBR(job.last_step_at) : "—"}
-                  </span>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => cancel.mutate(job.id)}
-                    disabled={cancel.isPending}
-                  >
-                    Cancelar migração
-                  </Button>
-                </div>
-              )}
-
-              {isStuck && (
-                <div className="rounded-lg border border-warning/30 bg-warning/10 p-3">
-                  <p className="text-sm font-medium text-warning flex items-center gap-2">
-                    <AlertTriangle className="w-4 h-4" /> Job aparentemente travado
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Sem progresso há mais de 3 minutos. O cron de safety vai retomar
-                    automaticamente em até 1 minuto. Se persistir, cancele e use "Continuar".
-                  </p>
-                </div>
-              )}
-
-              {isComplete && (
-                <div className="rounded-lg border border-success/30 bg-success/10 p-3">
-                  <p className="text-sm font-medium text-success flex items-center gap-2">
-                    <CheckCircle2 className="w-4 h-4" /> Migração concluída
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Duração: {durationStr(job.started_at, job.finished_at)}
-                  </p>
-                </div>
-              )}
-
-              {(job.status === "failed" || job.status === "cancelled") && job.error_summary && (
-                <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-3">
-                  <p className="text-sm font-medium text-destructive flex items-center gap-2">
-                    <XCircle className="w-4 h-4" />
-                    {job.status === "failed" ? "Job falhou" : "Job cancelado"}
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-1">{job.error_summary}</p>
-                  {isResumable && (
-                    <p className="text-xs text-foreground mt-2 font-medium">
-                      Use "↻ Continuar de onde parou" para retomar — itens já migrados
-                      são pulados (idempotente).
+                  {(job?.items_with_errors ?? 0) > 0 && (
+                    <p className="text-xs text-warning">
+                      {job?.items_with_errors} com erro ·{" "}
+                      {job?.items_with_warnings ?? 0} avisos
                     </p>
                   )}
                 </div>
-              )}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+              </div>
+            ) : nothingToDo ? (
+              <div className="flex items-center gap-3 p-3 rounded-lg bg-muted border border-border">
+                <AlertCircle className="w-5 h-5 text-muted-foreground shrink-0" />
+                <p className="text-sm text-muted-foreground">
+                  Nenhum dado em staging. Importe os dados primeiro na{" "}
+                  <Link
+                    to="/admin/migracao-solarmarket"
+                    className="text-primary underline"
+                  >
+                    Step 1
+                  </Link>
+                  .
+                </p>
+              </div>
+            ) : null}
 
-      {/* Histórico */}
-      {history.length > 0 && (
+            {/* Progresso por entidade */}
+            <div className="space-y-5">
+              <StatRow
+                icon={Users}
+                label="Clientes"
+                promoted={totals?.clientes.promoted ?? 0}
+                total={totals?.clientes.total ?? 0}
+              />
+              <StatRow
+                icon={FolderKanban}
+                label="Projetos"
+                promoted={totals?.projetos.promoted ?? 0}
+                total={totals?.projetos.total ?? 0}
+              />
+              <StatRow
+                icon={FileText}
+                label="Propostas"
+                promoted={totals?.propostas.promoted ?? 0}
+                total={totals?.propostas.total ?? 0}
+              />
+            </div>
+
+            {/* CTA */}
+            <div className="pt-2 border-t border-border flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <div className="text-xs text-muted-foreground">
+                {isRunning
+                  ? `Progresso geral: ${progress?.pctGeral ?? 0}%`
+                  : "Idempotente: registros já migrados são ignorados automaticamente."}
+              </div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+                  <AlertDialogTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={resetMigrated.isPending || isRunning}
+                      className="border-destructive/40 text-destructive hover:bg-destructive/10 hover:border-destructive"
+                    >
+                      {resetMigrated.isPending ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <Eraser className="w-4 h-4" />
+                      )}
+                      Limpar área
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent className="w-[90vw] max-w-md">
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Limpar área de promoção (DEV)</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Apaga TODOS os registros canônicos criados pela promoção
+                        (clientes, projetos, propostas, versões) com origem{" "}
+                        <code>solar_market</code>.
+                        <br />
+                        <br />
+                        Não afeta o staging (<code>sm_*_raw</code>). Use apenas em DEV.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                      <AlertDialogAction
+                        onClick={handleClearArea}
+                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                      >
+                        Limpar tudo
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+
+                <Button
+                  size="lg"
+                  onClick={handleStart}
+                  disabled={isRunning || start.isPending || nothingToDo}
+                  className="gap-2"
+                >
+                  {start.isPending ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" /> Iniciando…
+                    </>
+                  ) : isRunning ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" /> Em execução…
+                    </>
+                  ) : (
+                    <>
+                      <Rocket className="w-4 h-4" /> Iniciar migração completa
+                    </>
+                  )}
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </motion.div>
+
+      {/* Detalhes do job (compacto) */}
+      {job && (
         <Card className="bg-card border-border shadow-sm">
-          <CardHeader>
-            <CardTitle className="text-base font-semibold text-foreground flex items-center gap-2">
-              <History className="w-4 h-4 text-primary" /> Histórico (últimos {history.length})
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="overflow-x-auto">
-              <table className="w-full text-xs">
-                <thead className="text-muted-foreground">
-                  <tr className="border-b border-border">
-                    <th className="text-left py-2 px-2 font-medium">Início</th>
-                    <th className="text-left py-2 px-2 font-medium">Status</th>
-                    <th className="text-right py-2 px-2 font-medium">Processados</th>
-                    <th className="text-right py-2 px-2 font-medium">Promovidos</th>
-                    <th className="text-right py-2 px-2 font-medium">Erros</th>
-                    <th className="text-left py-2 px-2 font-medium">Duração</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {history.map((h: ChunkedJob) => (
-                    <tr key={h.id} className="border-b border-border/50">
-                      <td className="py-2 px-2 font-mono text-muted-foreground">
-                        {formatDateBR(h.started_at)}
-                      </td>
-                      <td className="py-2 px-2">
-                        <StatusBadge status={h.status} />
-                      </td>
-                      <td className="py-2 px-2 text-right font-mono">
-                        {formatNum(h.items_processed)} / {formatNum(h.total_items)}
-                      </td>
-                      <td className="py-2 px-2 text-right font-mono text-success">
-                        {formatNum(h.items_promoted)}
-                      </td>
-                      <td className="py-2 px-2 text-right font-mono text-destructive">
-                        {formatNum(h.items_with_errors)}
-                      </td>
-                      <td className="py-2 px-2 text-muted-foreground">
-                        {durationStr(h.started_at, h.finished_at)}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+          <CardContent className="p-5 space-y-3">
+            <h2 className="text-base font-semibold text-foreground">Última execução</h2>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+              <div>
+                <p className="text-muted-foreground">Status</p>
+                <p className="font-mono font-bold text-foreground">{job.status}</p>
+              </div>
+              <div>
+                <p className="text-muted-foreground">Promovidos</p>
+                <p className="font-mono font-bold text-success">{job.items_promoted}</p>
+              </div>
+              <div>
+                <p className="text-muted-foreground">Avisos</p>
+                <p className="font-mono font-bold text-warning">
+                  {job.items_with_warnings}
+                </p>
+              </div>
+              <div>
+                <p className="text-muted-foreground">Erros</p>
+                <p className="font-mono font-bold text-destructive">
+                  {job.items_with_errors}
+                </p>
+              </div>
             </div>
           </CardContent>
         </Card>
       )}
-
-      {/* Relatório do Dry-Run */}
-      {lastReport && (
-        <Card className="bg-card border-border shadow-sm">
-          <CardHeader>
-            <CardTitle className="text-base font-semibold text-foreground flex items-center gap-2">
-              {lastReport.bloqueados.length === 0 ? (
-                <CheckCircle2 className="w-4 h-4 text-success" />
-              ) : (
-                <AlertTriangle className="w-4 h-4 text-warning" />
-              )}
-              Relatório do Dry-Run
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
-              <div>
-                <p className="text-xs text-muted-foreground">Candidatos</p>
-                <p className="text-lg font-semibold text-foreground">
-                  {formatNum(lastReport.total_candidatos)}
-                </p>
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Clientes</p>
-                <p className="text-lg font-semibold text-foreground">
-                  {formatNum(lastReport.clientes_a_criar)}
-                </p>
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Projetos</p>
-                <p className="text-lg font-semibold text-foreground">
-                  {formatNum(lastReport.projetos_a_criar)}
-                </p>
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Propostas</p>
-                <p className="text-lg font-semibold text-foreground">
-                  {formatNum(lastReport.propostas_a_criar)}
-                </p>
-              </div>
-            </div>
-
-            {lastReport.bloqueados.length > 0 && (
-              <div>
-                <h4 className="text-sm font-medium text-destructive mb-2">
-                  Bloqueados ({lastReport.bloqueados.length})
-                </h4>
-                <ScrollArea className="h-48 rounded-md border border-border">
-                  <ul className="divide-y divide-border text-xs">
-                    {lastReport.bloqueados.map((b, i) => (
-                      <li key={i} className="p-2">
-                        <span className="font-mono text-muted-foreground">
-                          {b.tipo}/{b.external_id ?? "—"}
-                        </span>
-                        <span className="ml-2 text-foreground">{b.motivos.join(", ")}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </ScrollArea>
-              </div>
-            )}
-
-            {lastReport.warnings.length > 0 && (
-              <div>
-                <h4 className="text-sm font-medium text-warning mb-2">
-                  Warnings ({lastReport.warnings.length})
-                </h4>
-                <ScrollArea className="h-40 rounded-md border border-border">
-                  <ul className="divide-y divide-border text-xs">
-                    {lastReport.warnings.map((w, i) => (
-                      <li key={i} className="p-2">
-                        <span className="font-mono text-muted-foreground">
-                          {w.tipo}/{w.external_id ?? "—"}
-                        </span>
-                        <span className="ml-2 text-foreground">{w.mensagem}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </ScrollArea>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Confirmação */}
-      <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
-        <DialogContent className="w-[90vw] max-w-md">
-          <DialogHeader>
-            <DialogTitle>Confirmar migração real</DialogTitle>
-            <DialogDescription>
-              Esta ação cria clientes, projetos e propostas no CRM. É idempotente
-              (itens já promovidos são pulados) e roda em background — você pode
-              fechar a aba.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-2">
-            <p className="text-sm text-foreground">
-              Digite <span className="font-mono font-semibold">MIGRAR</span> para confirmar:
-            </p>
-            <Input
-              value={confirmText}
-              onChange={(e) => setConfirmText(e.target.value)}
-              placeholder="MIGRAR"
-              autoFocus
-            />
-          </div>
-          <DialogFooter>
-            <Button variant="ghost" onClick={() => setConfirmOpen(false)}>
-              Cancelar
-            </Button>
-            <Button onClick={handleConfirmReal} disabled={start.isPending}>
-              {start.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-              Iniciar migração
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
