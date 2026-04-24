@@ -69,7 +69,7 @@ export function useMigracaoSolarmarket() {
         (supabase as any)
           .from("projetos")
           .select("id", { count: "exact", head: true })
-          .eq("import_source", "solar_market"),
+          .or("external_source.eq.solar_market,external_source.eq.solarmarket"),
         (supabase as any)
           .from("propostas_nativas")
           .select("id", { count: "exact", head: true })
