@@ -51,10 +51,55 @@ export interface ChunkedProgress {
 
 const KEY = ["sm-migrate-chunk", "progress-v2"] as const;
 
+function applyOptimisticJobState(
+  previous: ChunkedProgress | undefined,
+  patch: Partial<ChunkedJob>,
+): ChunkedProgress | undefined {
+  if (!previous) return previous;
+
+  const baseJob: ChunkedJob = previous.job ?? {
+    id: patch.id ?? "optimistic",
+    status: "running",
+    total_items: 0,
+    items_processed: 0,
+    items_promoted: 0,
+    items_with_errors: 0,
+    items_with_warnings: 0,
+    items_blocked: 0,
+    items_skipped: 0,
+    started_at: null,
+    finished_at: null,
+    last_step_at: null,
+    error_summary: null,
+  };
+
+  const nextJob = { ...baseJob, ...patch };
+
+  return {
+    ...previous,
+    job: nextJob,
+    history: [nextJob, ...previous.history.filter((item) => item.id !== nextJob.id)].slice(0, 5),
+    isRunning: nextJob.status === "running",
+    isComplete: nextJob.status === "completed" || nextJob.status === "completed_with_warnings",
+    isResumable: nextJob.status === "failed" || nextJob.status === "cancelled",
+    isStuck: false,
+  };
+}
+
 export function useChunkedMigration() {
   const qc = useQueryClient();
 
   const start = useMutation({
+    onMutate: () => {
+      qc.setQueryData<ChunkedProgress | undefined>(KEY, (previous) =>
+        applyOptimisticJobState(previous, {
+          status: "running",
+          finished_at: null,
+          error_summary: null,
+          last_step_at: new Date().toISOString(),
+        }),
+      );
+    },
     mutationFn: async () => {
       const { data, error } = await supabase.functions.invoke("sm-migrate-chunk", {
         body: { action: "start", payload: {} },
@@ -74,6 +119,17 @@ export function useChunkedMigration() {
   });
 
   const continueJob = useMutation({
+    onMutate: async (jobId: string) => {
+      qc.setQueryData<ChunkedProgress | undefined>(KEY, (previous) =>
+        applyOptimisticJobState(previous, {
+          id: jobId,
+          status: "running",
+          finished_at: null,
+          error_summary: null,
+          last_step_at: new Date().toISOString(),
+        }),
+      );
+    },
     mutationFn: async (jobId: string) => {
       const { data, error } = await supabase.functions.invoke("sm-migrate-chunk", {
         body: { action: "continue", payload: { master_job_id: jobId } },
@@ -100,7 +156,7 @@ export function useChunkedMigration() {
   const progressQuery = useQuery<ChunkedProgress>({
     queryKey: KEY,
     staleTime: 1000 * 2,
-    refetchInterval: (query) => (query.state.data?.isRunning ? 3000 : 8000),
+    refetchInterval: (query) => (query.state.data?.isRunning ? 3000 : 3000),
     queryFn: async (): Promise<ChunkedProgress> => {
       // 1. Histórico (últimos 5 jobs)
       const { data: jobs } = await supabase
@@ -127,7 +183,7 @@ export function useChunkedMigration() {
         last_step_at: (j as any).last_step_at ?? null,
         error_summary: (j as any).error_summary ?? null,
       }));
-      const job = history[0] ?? null;
+      const job = history.find((item) => item.status === "running") ?? history[0] ?? null;
 
       // 2. Totais por entidade — staging vs canônico.
       //    Importante: projetos e propostas usam `external_source`, não `import_source`.
