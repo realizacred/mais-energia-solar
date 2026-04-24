@@ -100,7 +100,7 @@ export function useMigrateFull() {
       const { data: jobRow } = await supabase
         .from("solarmarket_promotion_jobs")
         .select(
-          "id, status, current_step, items_processed, total_items, items_promoted, items_with_errors, items_blocked, items_with_warnings, started_at, finished_at, filters, metadata",
+          "id, status, items_processed, total_items, items_promoted, items_with_errors, items_blocked, items_with_warnings, started_at, finished_at, filters, metadata",
         )
         .order("created_at", { ascending: false })
         .limit(1)
