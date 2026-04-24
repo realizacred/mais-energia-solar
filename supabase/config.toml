@@ -332,3 +332,7 @@ wall_clock_limit = 60
 verify_jwt = false
 wall_clock_limit = 300
 
+[functions.sm-enrich-versoes]
+verify_jwt = false
+wall_clock_limit = 300
+
