@@ -1955,7 +1955,7 @@ async function promoteOneProposalRow(
   const propExtId = pickStr(propostaPayload.id) ?? rawProposalRow.external_id;
   if (!propExtId) {
     state.counters.errors++;
-    await logEvent(admin, {
+    logEventBuffered(state, admin, {
       jobId, tenantId, severity: "error", step: "validate", status: "error",
       message: "Proposta sem external_id no payload — pulada.",
       sourceEntityType: "proposta",
@@ -1968,7 +1968,7 @@ async function promoteOneProposalRow(
   const projectExtId = pickStr(propostaPayload.project?.id);
   if (!projectExtId) {
     state.counters.skipped++;
-    await logEvent(admin, {
+    logEventBuffered(state, admin, {
       jobId, tenantId, severity: "warning", step: "resolve", status: "skipped",
       message: "Proposta sem project.id — não promovida.",
       sourceEntityType: "proposta", sourceEntityId: propExtId,
@@ -1994,7 +1994,7 @@ async function promoteOneProposalRow(
   }
   if (!rawCliente) {
     state.counters.skipped++;
-    await logEvent(admin, {
+    logEventBuffered(state, admin, {
       jobId, tenantId, severity: "warning", step: "resolve", status: "skipped",
       message: "Proposta sem cliente vinculado no projeto — não promovida.",
       sourceEntityType: "proposta", sourceEntityId: propExtId,
@@ -2007,7 +2007,7 @@ async function promoteOneProposalRow(
   const elig = validateEligibility({ rawCliente, rawProjeto, rawProposta: propostaPayload, pipeline });
   if (elig.status === "blocked") {
     state.counters.blocked++;
-    await logEvent(admin, {
+    logEventBuffered(state, admin, {
       jobId, tenantId, severity: "error", step: "eligibility", status: "blocked",
       message: `Promoção bloqueada (${elig.issues.length} motivo(s)): ${elig.issues.map((i) => i.code).join(", ")}`,
       sourceEntityType: "proposta", sourceEntityId: propExtId,
@@ -2021,7 +2021,7 @@ async function promoteOneProposalRow(
   try {
     // 2) Cliente
     const cli = await promoteCliente(admin, tenantId, jobId, rawCliente);
-    await logEvent(admin, {
+    logEventBuffered(state, admin, {
       jobId, tenantId, severity: "info", step: "promote.cliente",
       status: cli.created ? "created" : "linked",
       message: cli.created ? "Cliente criado." : "Cliente já existia (link reutilizado).",
@@ -2043,7 +2043,7 @@ async function promoteOneProposalRow(
     );
     if (consultorRes.matched === "fallback") {
       state.counters.warnings++;
-      await logEvent(admin, {
+      logEventBuffered(state, admin, {
         jobId, tenantId, severity: "warning", step: "resolve.consultor", status: "fallback",
         message: `Responsável SM "${responsibleName ?? responsibleEmail ?? "—"}" não encontrado; usando fallback "${consultorRes.matchedNome ?? "Escritório"}".`,
         sourceEntityType: "projeto", sourceEntityId: projectExtId,
@@ -2052,7 +2052,7 @@ async function promoteOneProposalRow(
       });
     } else if (consultorRes.matched === "none") {
       state.counters.warnings++;
-      await logEvent(admin, {
+      logEventBuffered(state, admin, {
         jobId, tenantId, severity: "warning", step: "resolve.consultor", status: "unresolved",
         message: "Nenhum consultor resolvido e nenhum fallback configurado para o tenant — projeto será criado sem consultor_id.",
         sourceEntityType: "projeto", sourceEntityId: projectExtId,
@@ -2065,7 +2065,7 @@ async function promoteOneProposalRow(
     const statusInfo = mapSmStatus(propNorm.status_source, propNorm.accepted_at);
     if (!statusInfo.recognized && statusInfo.raw) {
       state.counters.warnings++;
-      await logEvent(admin, {
+      logEventBuffered(state, admin, {
         jobId, tenantId, severity: "warning", step: "map.status", status: "unrecognized",
         message: `Status SM "${statusInfo.raw}" não reconhecido — usando "rascunho".`,
         sourceEntityType: "proposta", sourceEntityId: propExtId,
@@ -2075,7 +2075,7 @@ async function promoteOneProposalRow(
     }
     if (statusInfo.inconsistent) {
       state.counters.warnings++;
-      await logEvent(admin, {
+      logEventBuffered(state, admin, {
         jobId, tenantId, severity: "warning", step: "map.status", status: "inconsistent",
         message: `Status SM "${statusInfo.raw}" + acceptanceDate presente — forçado para "aceita".`,
         sourceEntityType: "proposta", sourceEntityId: propExtId,
@@ -2093,7 +2093,7 @@ async function promoteOneProposalRow(
     // 3) Projeto (etapa resolvida pelo status canônico mapeado)
     // LOG OBRIGATÓRIO antes de promoteProjeto — prova que o fluxo não para no cliente
     const stageIdResolved = resolveStageForStatus(pipelinePerProject, statusInfo.status);
-    await logEvent(admin, {
+    logEventBuffered(state, admin, {
       jobId, tenantId, severity: "info", step: "promote_projeto_start", status: "started",
       message: "Iniciando promoção do projeto.",
       sourceEntityType: "projeto", sourceEntityId: projectExtId,
@@ -2114,7 +2114,7 @@ async function promoteOneProposalRow(
       );
     } catch (projErr) {
       const projMsg = projErr instanceof Error ? projErr.message : String(projErr);
-      await logEvent(admin, {
+      logEventBuffered(state, admin, {
         jobId, tenantId, severity: "error", step: "promote_projeto_error", status: "error",
         message: projMsg,
         sourceEntityType: "projeto", sourceEntityId: projectExtId,
@@ -2130,7 +2130,7 @@ async function promoteOneProposalRow(
       throw projErr; // re-throw para o catch externo contabilizar como PROMOTE_FAILED
     }
 
-    await logEvent(admin, {
+    logEventBuffered(state, admin, {
       jobId, tenantId, severity: "info", step: "promote_projeto_success",
       status: proj.created ? "created" : "linked",
       message: proj.created ? "Projeto criado." : "Projeto já existia (link reutilizado).",
@@ -2168,7 +2168,7 @@ async function promoteOneProposalRow(
       userId: state.userId,
       consultorId: consultorRes.id,
     });
-    await logEvent(admin, {
+    logEventBuffered(state, admin, {
       jobId, tenantId, severity: "info", step: "promote.proposta",
       status: prop.created ? "created" : "linked",
       message: prop.created ? "Proposta + versão criadas." : "Proposta já existia (versão garantida).",
@@ -2190,7 +2190,7 @@ async function promoteOneProposalRow(
         },
       );
       if (dealRes.dealId && dealRes.created) {
-        await logEvent(admin, {
+        logEventBuffered(state, admin, {
           jobId, tenantId, severity: "info", step: "promote.deal", status: "created",
           message: `Deal criado e vinculado ao projeto.`,
           sourceEntityType: "proposta", sourceEntityId: propExtId,
@@ -2201,7 +2201,7 @@ async function promoteOneProposalRow(
         // já existia: silencioso
       } else {
         state.counters.warnings++;
-        await logEvent(admin, {
+        logEventBuffered(state, admin, {
           jobId, tenantId, severity: "warning", step: "promote.deal", status: "skipped",
           message: `Deal não criado: ${dealRes.reason ?? "motivo desconhecido"}.`,
           sourceEntityType: "projeto", sourceEntityId: projectExtId,
@@ -2214,7 +2214,7 @@ async function promoteOneProposalRow(
       state.counters.warnings++;
       const dmsg = dealErr instanceof Error ? dealErr.message : String(dealErr);
       console.error(`[${MODULE}] createDealForProject error:`, dmsg);
-      await logEvent(admin, {
+      logEventBuffered(state, admin, {
         jobId, tenantId, severity: "warning", step: "promote.deal", status: "error",
         message: `Falha ao criar deal: ${dmsg}`,
         sourceEntityType: "projeto", sourceEntityId: projectExtId,
@@ -2228,7 +2228,7 @@ async function promoteOneProposalRow(
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
     state.counters.errors++;
-    await logEvent(admin, {
+    logEventBuffered(state, admin, {
       jobId, tenantId, severity: "error", step: "promote", status: "error",
       message: msg,
       sourceEntityType: "proposta", sourceEntityId: propExtId,
