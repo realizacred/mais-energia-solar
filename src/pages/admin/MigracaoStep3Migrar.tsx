@@ -117,7 +117,7 @@ function PhaseCard({
       </Badge>
     ) : (
       <Badge variant="outline" className="bg-muted text-muted-foreground border-border text-[10px] h-5">
-        Aguardando fase {step - 1}
+        {step === 1 ? "Aguardando início" : `Aguardando fase ${step - 1}`}
       </Badge>
     );
 
@@ -412,7 +412,9 @@ export default function MigracaoStep3Migrar() {
               const phaseStates: PhaseState[] = phases.map((p, idx) => {
                 if (p.total === 0) return "empty";
                 if (p.promoted >= p.total) return "done";
-                if (idx === firstPendingIdx) return "active";
+                // Só marca como "active" (Em andamento) se houver job realmente rodando.
+                // Sem job ativo, fases pendentes ficam aguardando — não simulam execução.
+                if (idx === firstPendingIdx && isRunning) return "active";
                 return "pending";
               });
 
