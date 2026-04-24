@@ -37,6 +37,7 @@ const CRON_SECRET = "sm-resume-cron-v1"; // mesmo string usado em sm_resume_stuc
 
 const SOURCE_LIST = ["solarmarket", "solar_market"] as const;
 const CHUNK_BATCH = 300;
+const MIN_CHUNK_BATCH = 50;
 const SELF_URL = `${SUPABASE_URL}/functions/v1/sm-migrate-chunk`;
 
 function isGatewayTimeoutLike(error: string | undefined): boolean {
@@ -163,6 +164,61 @@ async function callSmPromoteOnce(
   };
 }
 
+async function runAdaptivePromoteChunk(
+  admin: any,
+  tenantId: string,
+): Promise<{
+  ok: boolean;
+  batch_used?: number;
+  job_id?: string;
+  status?: string;
+  counters?: Record<string, number>;
+  error?: string;
+}> {
+  const attempts = [CHUNK_BATCH, 200, 100, MIN_CHUNK_BATCH].filter((value, index, arr) => arr.indexOf(value) === index);
+
+  for (const batch of attempts) {
+    const result = await callSmPromoteOnce(tenantId, batch, true);
+    if (result.ok) {
+      return {
+        ok: true,
+        batch_used: batch,
+        job_id: result.job_id,
+        status: result.status,
+        counters: result.counters,
+      };
+    }
+
+    if (!isGatewayTimeoutLike(result.error) || batch === MIN_CHUNK_BATCH) {
+      return { ok: false, batch_used: batch, error: result.error };
+    }
+
+    try {
+      await admin
+        .from("solarmarket_promotion_logs")
+        .insert({
+          tenant_id: tenantId,
+          job_id: null,
+          severity: "warning",
+          step: "adaptive-batch",
+          status: "warning",
+          message: `Chunk ${batch} excedeu limite de CPU/timeout; reduzindo lote automaticamente.`,
+          source_entity_type: "job",
+          source_entity_id: tenantId,
+          canonical_entity_type: null,
+          canonical_entity_id: null,
+          error_code: "WORKER_LIMIT_RETRY",
+          error_origin: MODULE,
+          details: { attempted_batch: batch, next_batch: Math.max(MIN_CHUNK_BATCH, Math.floor(batch / 2)) },
+        });
+    } catch {
+      // não bloqueia a recuperação adaptativa por falha de log
+    }
+  }
+
+  return { ok: false, error: "Falha ao processar chunk adaptativo" };
+}
+
 /**
  * Lógica do step (extraída para ser chamada tanto por user quanto por cron).
  * Retorna { has_more, counters, error } SEM montar Response.
@@ -225,8 +281,8 @@ async function processStep(
     return { ok: true, has_more: false, backlog_remaining: 0, finished: true };
   }
 
-  // Processa 1 chunk
-  const sub = await callSmPromoteOnce(tenantId, CHUNK_BATCH);
+  // Processa 1 chunk com fallback adaptativo para evitar 546/CPU limit
+  const sub = await runAdaptivePromoteChunk(admin, tenantId);
   if (!sub.ok) {
     const backlogAfterTimeout = await countBacklog(admin, tenantId);
     const progressedDespiteTimeout = backlogAfterTimeout < backlogBefore;
@@ -247,6 +303,11 @@ async function processStep(
           last_step_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
           error_summary: null,
+          metadata: {
+            ...(master.metadata ?? {}),
+            last_batch_used: sub.batch_used ?? null,
+            adaptive_batch_recovered: true,
+          },
         })
         .eq("id", masterJobId);
 
@@ -267,6 +328,7 @@ async function processStep(
           processed: processedDelta,
           promoted: processedDelta,
           recovered_after_timeout: 1,
+          batch_used: sub.batch_used ?? null,
         },
       };
     }
@@ -277,6 +339,10 @@ async function processStep(
         status: "failed",
         finished_at: new Date().toISOString(),
         error_summary: `Chunk falhou: ${sub.error ?? "erro desconhecido"}`,
+        metadata: {
+          ...(master.metadata ?? {}),
+          last_batch_used: sub.batch_used ?? null,
+        },
       })
       .eq("id", masterJobId);
     return {
