@@ -2258,7 +2258,7 @@ async function ensureDefaultFunis(admin: SupabaseClient, tenantId: string): Prom
 async function actionPromoteAll(
   admin: SupabaseClient,
   state: RequestState,
-  payload: { batch_limit?: number; dry_run?: boolean; scope?: PromotionScope },
+  payload: { batch_limit?: number; dry_run?: boolean; scope?: PromotionScope; skip_post_phases?: boolean },
 ): Promise<Response> {
   const tenantId = state.tenantId!;
   const userId: string | null = state.userId;
@@ -2267,6 +2267,7 @@ async function actionPromoteAll(
     MAX_BATCH_LIMIT,
   );
   const dryRun = Boolean(payload.dry_run);
+  const skipPostPhases = Boolean(payload.skip_post_phases);
   const scope: PromotionScope =
     payload.scope === "cliente" || payload.scope === "projeto" ? payload.scope : "proposta";
 
@@ -2274,6 +2275,7 @@ async function actionPromoteAll(
     batch_limit: batchLimit,
     dry_run: dryRun,
     scope,
+    skip_post_phases: skipPostPhases,
   });
   state.jobId = jobId;
 
@@ -2282,8 +2284,6 @@ async function actionPromoteAll(
     started_at: new Date().toISOString(),
   });
 
-  // Bootstrap dos funis padrão (Comercial + Eng + Equip + Compesação).
-  // Idempotente: se já existem, não duplica. Crítico antes de resolveDefaultPipeline.
   if (!dryRun) {
     try {
       await ensureDefaultFunis(admin, tenantId);
@@ -2292,35 +2292,23 @@ async function actionPromoteAll(
     }
   }
 
-  // Resolve pipeline ANTES dos candidatos — falha rápido se o tenant tiver
-  // pipeline configurado mas inconsistente (sem etapa).
   const pipeline = await resolveDefaultPipeline(admin, tenantId);
   const consultorFallback = await resolveConsultorFallback(admin, tenantId);
   await logEvent(admin, {
     jobId, tenantId, severity: "info", step: "init", status: "started",
-    message: `promote-all iniciado (batch_limit=${batchLimit}, dry_run=${dryRun}, scope=${scope}); pipeline=${pipeline.funilId ?? "—"} etapa=${pipeline.etapaId ?? "—"} configured=${pipeline.hasPipelineConfigured}; consultor_fallback=${consultorFallback.fallbackNome ?? "—"}`,
+    message: `promote-all iniciado (batch_limit=${batchLimit}, dry_run=${dryRun}, scope=${scope}, skip_post_phases=${skipPostPhases}); pipeline=${pipeline.funilId ?? "—"} etapa=${pipeline.etapaId ?? "—"} configured=${pipeline.hasPipelineConfigured}; consultor_fallback=${consultorFallback.fallbackNome ?? "—"}`,
   });
 
-  // Backlog: propostas raw que ainda não têm link canônico em external_entity_links.
-  // Filtro obrigatório (escala): nunca reprocessar staging já promovido.
   const promotedIds = await fetchPromotedSourceIds(admin, tenantId, "proposta", "proposta");
-  // RB-57/memória: dry-run NÃO carrega payload aqui (estourava ~150MB com 1.8k props).
-  // Promoção real ainda precisa do payload — controlado pela flag `dryRun`.
   const selectCols = dryRun ? "id, external_id" : "id, external_id, payload";
-  // CRÍTICO: filtro de já-migrados precisa ser sintaticamente correto no PostgREST.
-  // Para .not("col","in", "(a,b,c)") com valores text "puros" (apenas dígitos/letras),
-  // NÃO usar aspas duplas — elas viram parte do literal e o filtro nunca casa.
-  // Aspas só são necessárias quando o valor contém vírgula, parêntese ou espaço.
   const promotedSet = new Set(promotedIds);
-  let fetchQuery = admin
+  const fetchQuery = admin
     .from("sm_propostas_raw")
     .select(selectCols)
     .eq("tenant_id", tenantId)
     .order("imported_at", { ascending: true })
-    // Buscamos um pouco a mais para compensar o filtro client-side de já-migrados.
     .range(0, Math.max(0, batchLimit - 1 + promotedSet.size));
   const { data: rawRows, error: fetchErr } = await fetchQuery;
-  // Filtro client-side garantido (defensivo contra qualquer ambiguidade do PostgREST).
   const rows = (rawRows ?? []).filter(
     (r: AnyObj) => !promotedSet.has(String(r.external_id)),
   ).slice(0, batchLimit);
@@ -2336,8 +2324,6 @@ async function actionPromoteAll(
   await patchJob(admin, jobId, { total_items: candidates.length });
 
   if (dryRun) {
-    // Simulação completa: para cada candidato, resolve consultor + pipeline + stage
-    // SEM executar nenhum INSERT/UPDATE em tabelas canônicas.
     const report = await runDryRunReport(
       admin,
       tenantId,
@@ -2373,43 +2359,6 @@ async function actionPromoteAll(
     await promoteOneProposalRow(admin, state, jobId, tenantId, row, pipeline, consultorFallback, scope);
   }
 
-  // ── Fase 2: Custom fields & arquivos (cap_*) ──
-  // Encadeamento server-side: roda em loop até esgotar o staging.
-  // Atualiza metadata.phases.custom_fields para o frontend ler progresso.
-  await patchJob(admin, jobId, {
-    metadata: {
-      phases: {
-        custom_fields: { status: "running", processed: 0, upserted: 0, files_downloaded: 0, files_failed: 0 },
-        enrichment: { status: "pending", processed: 0, versoes_updated: 0, ucs_inserted: 0 },
-      },
-    },
-  });
-  const cfTotals = await runChainedPhase(admin, jobId, "sm-promote-custom-fields", "promote", { batch: 25 }, (r) => ({
-    processed: r.processed ?? 0,
-    upserted: r.upserted ?? 0,
-    files_downloaded: r.files_downloaded ?? 0,
-    files_skipped: r.files_skipped ?? 0,
-    files_failed: r.files_failed ?? 0,
-  }));
-
-  // ── Fase 3: Enriquecer propostas (kit, financeiro, UCs, lat/lng) ──
-  await patchJob(admin, jobId, {
-    metadata: {
-      phases: {
-        custom_fields: { status: "completed", ...cfTotals },
-        enrichment: { status: "running", processed: 0, versoes_updated: 0, ucs_inserted: 0, projetos_updated: 0 },
-      },
-    },
-  });
-  const enrTotals = await runChainedPhase(admin, jobId, "sm-enrich-versoes", "enrich", { batch: 10 }, (r) => ({
-    processed: r.processed ?? 0,
-    versoes_updated: r.versoes_updated ?? 0,
-    kit_itens_inserted: r.kit_itens_inserted ?? 0,
-    ucs_inserted: r.ucs_inserted ?? 0,
-    projetos_updated: r.projetos_updated ?? 0,
-  }));
-
-  // Status final (consolidando warnings das fases extras):
   let finalStatus: JobStatus;
   if (state.counters.errors > 0) {
     finalStatus = "failed";
@@ -2421,7 +2370,7 @@ async function actionPromoteAll(
     finalStatus = "completed";
   }
 
-  await patchJob(admin, jobId, {
+  const basePatch: Parameters<typeof patchJob>[2] = {
     status: finalStatus,
     finished_at: new Date().toISOString(),
     items_processed: state.counters.processed,
@@ -2430,6 +2379,56 @@ async function actionPromoteAll(
     items_with_warnings: state.counters.warnings,
     items_with_errors: state.counters.errors,
     items_blocked: state.counters.blocked,
+  };
+
+  if (skipPostPhases || scope !== "proposta") {
+    await patchJob(admin, jobId, basePatch);
+    return jsonResponse({
+      ok: true,
+      job_id: jobId,
+      status: finalStatus,
+      counters: state.counters,
+      post_phases_skipped: true,
+      duration_ms: Date.now() - state.startedAt,
+    });
+  }
+
+  await patchJob(admin, jobId, {
+    ...basePatch,
+    finished_at: null,
+    metadata: {
+      phases: {
+        custom_fields: { status: "running", processed: 0, upserted: 0, files_downloaded: 0, files_failed: 0 },
+        enrichment: { status: "pending", processed: 0, versoes_updated: 0, ucs_inserted: 0 },
+      },
+    },
+  });
+  const cfTotals = await runChainedPhase(admin, jobId, "sm-promote-custom-fields", "promote", { batch: 25, tenant_id: tenantId }, (r) => ({
+    processed: r.processed ?? 0,
+    upserted: r.upserted ?? 0,
+    files_downloaded: r.files_downloaded ?? 0,
+    files_skipped: r.files_skipped ?? 0,
+    files_failed: r.files_failed ?? 0,
+  }));
+
+  await patchJob(admin, jobId, {
+    metadata: {
+      phases: {
+        custom_fields: { status: "completed", ...cfTotals },
+        enrichment: { status: "running", processed: 0, versoes_updated: 0, ucs_inserted: 0, projetos_updated: 0 },
+      },
+    },
+  });
+  const enrTotals = await runChainedPhase(admin, jobId, "sm-enrich-versoes", "enrich", { batch: 10, tenant_id: tenantId }, (r) => ({
+    processed: r.processed ?? 0,
+    versoes_updated: r.versoes_updated ?? 0,
+    kit_itens_inserted: r.kit_itens_inserted ?? 0,
+    ucs_inserted: r.ucs_inserted ?? 0,
+    projetos_updated: r.projetos_updated ?? 0,
+  }));
+
+  await patchJob(admin, jobId, {
+    ...basePatch,
     metadata: {
       phases: {
         custom_fields: { status: "completed", ...cfTotals },
