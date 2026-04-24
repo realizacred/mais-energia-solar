@@ -1,5 +1,13 @@
 # Regras Mestras - Migração SolarMarket → CRM Nativo
 
+> **Data de criação:** 2026-04-24
+> **Versão:** 1.0.0
+> **Última atualização:** 2026-04-24
+>
+> ⚠️ **REFERÊNCIA MESTRA** — Ao trabalhar em qualquer tarefa de migração SolarMarket,
+> consultar PRIMEIRO este documento. Se a tarefa contradizer alguma regra aqui,
+> PARAR e avisar o solicitante antes de prosseguir.
+
 ## PRINCÍPIO FUNDAMENTAL
 
 **NADA DO QUE FOR MIGRADO PODE QUEBRAR NADA DO QUE É NATIVO.**
