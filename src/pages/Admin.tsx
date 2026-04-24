@@ -42,8 +42,8 @@ const MigracaoSolarmarket = lazy(() => import("@/pages/admin/MigracaoSolarmarket
 const MigracaoStep2Mapear = lazy(() => import("@/pages/admin/MigracaoStep2Mapear"));
 const MigracaoStep3Migrar = lazy(() => import("@/pages/admin/MigracaoStep3Migrar"));
 const SolarmarketDiagnosticPage = lazy(() => import("@/pages/admin/SolarmarketDiagnosticPage"));
-const SolarmarketMappingPage = lazy(() => import("@/pages/admin/SolarmarketMappingPage"));
-// SolarmarketMapeamentos removido — rota /admin/solarmarket-mapeamentos agora redireciona para /admin/migracao-solarmarket.
+// Páginas órfãs removidas: SolarmarketMapeamentos, SolarmarketMappingPage, ImportacaoSolarmarket, PromocaoSolarmarket.
+// Todas as rotas legadas redirecionam para /admin/migracao-solarmarket (wizard unificado).
 const ClientesManager = lazy(() => import("@/components/admin/ClientesManager").then(m => ({ default: m.ClientesManager })));
 const RecebimentosManager = lazy(() => import("@/components/admin/RecebimentosManager").then(m => ({ default: m.RecebimentosManager })));
 const FinanceiroDashboard = lazy(() => import("@/components/admin/FinanceiroDashboard").then(m => ({ default: m.FinanceiroDashboard })));
@@ -756,9 +756,9 @@ export default function Admin() {
                 <Route path="importacao-solarmarket" element={<Navigate to="/admin/migracao-solarmarket" replace />} />
                 <Route path="promocao-solarmarket" element={<Navigate to="/admin/migracao-solarmarket" replace />} />
                 <Route path="solarmarket-mapeamentos" element={<Navigate to="/admin/migracao-solarmarket" replace />} />
+                <Route path="solarmarket-mapping" element={<Navigate to="/admin/migracao-solarmarket/mapear" replace />} />
                 <Route path="configuracoes/integracoes/solarmarket" element={<SolarmarketConfigPage />} />
                 <Route path="solarmarket-diagnostic" element={<SolarmarketDiagnosticPage />} />
-                <Route path="solarmarket-mapping" element={<SolarmarketMappingPage />} />
                 
                 {/* Catch-all */}
                 <Route path="*" element={<Navigate to="leads" replace />} />
