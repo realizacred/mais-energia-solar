@@ -15,6 +15,8 @@ import type { ProjetoItem, ProjetoEtapa, ConsultorColumn as ProjetoConsultorColu
 import type { DealKanbanCard, PipelineStage, OwnerColumn } from "@/hooks/useDealPipeline";
 import { PageHeader, LoadingState } from "@/components/ui-kit";
 import { supabase } from "@/integrations/supabase/client";
+import { getCurrentTenantId } from "@/lib/getCurrentTenantId";
+import { useEnsureDefaultProjectPipeline } from "@/hooks/useDefaultPipeline";
 
 import { ProjetoFilters } from "./ProjetoFilters";
 import { ProjetoKanbanStage } from "./ProjetoKanbanStage";
