@@ -40,7 +40,7 @@ export function useSmEnrichVersoes() {
 
   return useMutation<EnrichTotals, Error, RunOpts | void>({
     mutationFn: async (opts) => {
-      const batch = (opts as RunOpts | undefined)?.batch ?? 25;
+      const batch = (opts as RunOpts | undefined)?.batch ?? 10;
       const onProgress = (opts as RunOpts | undefined)?.onProgress;
 
       const acc: EnrichTotals = {
