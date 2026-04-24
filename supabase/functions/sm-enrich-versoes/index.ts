@@ -327,7 +327,7 @@ Deno.serve(async (req) => {
           consumo_mensal: v.num("consumo_mensal"),
           tarifa_distribuidora: v.num("tarifa_distribuidora"),
           distribuidora_nome: v.get("dis_energia"),
-          grupo: v.get("tipo"), // BT/MT/AT
+          grupo: mapGrupo(v.get("tipo")), // BT→B, MT/AT→A
         };
 
         if (!dryRun) {
@@ -427,7 +427,7 @@ Deno.serve(async (req) => {
               numero_uc: v.get("numero_uc_uc1") ?? v.get("numero_uc"),
               titular: v.get("titular_uc1") ?? v.get("cliente_nome"),
               tipo_ligacao: v.get("tipo_uc1") ?? v.get("tipo"),
-              grupo: v.get("subgrupo_uc1") ?? v.get("tipo"),
+              grupo: mapGrupo(v.get("subgrupo_uc1") ?? v.get("tipo")),
               consumo_mensal_kwh: consumoUc1,
               consumo_ponta_kwh: v.num("consumo_mensal_p_uc1"),
               consumo_fora_ponta_kwh: v.num("consumo_mensal_fp_uc1"),
