@@ -526,15 +526,32 @@ export function ProjetoDetalheProvider({ dealId, onBack, initialPipelineId, init
   );
 }
 
-// ─── Internal: propostas count query (kept from original) ──
+// ─── Internal: propostas count query ──
+// Propostas migradas do SolarMarket têm deal_id=NULL e só vinculam por projeto_id.
+// O id da rota pode ser deals.id ou projetos.id, então tentamos ambos via OR
+// e também resolvemos deals.projeto_id quando aplicável.
 function usePropostasCount(dealId: string) {
   return useQuery({
     queryKey: projetoDetalheKeys.propostasCount(dealId),
     queryFn: async () => {
+      // Resolve deals.projeto_id (caso a URL traga deal_id de um deal vinculado a projeto SM)
+      let resolvedProjetoId: string | null = null;
+      const { data: dealRow } = await supabase
+        .from("deals")
+        .select("projeto_id")
+        .eq("id", dealId)
+        .maybeSingle();
+      resolvedProjetoId = (dealRow as any)?.projeto_id ?? null;
+
+      const orParts = [`deal_id.eq.${dealId}`, `projeto_id.eq.${dealId}`];
+      if (resolvedProjetoId && resolvedProjetoId !== dealId) {
+        orParts.push(`projeto_id.eq.${resolvedProjetoId}`);
+      }
+
       const { count } = await supabase
         .from("propostas_nativas")
         .select("id", { count: "exact", head: true })
-        .eq("deal_id", dealId)
+        .or(orParts.join(","))
         .neq("status", "excluida");
       return count || 0;
     },
