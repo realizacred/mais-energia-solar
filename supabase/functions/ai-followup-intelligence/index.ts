@@ -78,7 +78,7 @@ Deno.serve(async (req) => {
       .order("created_at", { ascending: false })
       .limit(20);
 
-    const history = msgs.reverse();
+    const history = (msgs ?? []).reverse();
 
     // Load AI settings
     const { data: aiSettings } = await sb
