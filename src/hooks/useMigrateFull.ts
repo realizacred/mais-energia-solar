@@ -21,6 +21,7 @@ export type MigrateFullProgress = {
   job: {
     id: string;
     status: string;
+    current_step: string | null;
     items_processed: number;
     total_items: number;
     items_promoted: number;
@@ -34,6 +35,22 @@ export type MigrateFullProgress = {
     clientes: { promoted: number; total: number };
     projetos: { promoted: number; total: number };
     propostas: { promoted: number; total: number };
+  };
+  phases: {
+    customFields: {
+      status: "pending" | "running" | "completed";
+      processed: number;
+      upserted: number;
+      files_downloaded: number;
+      files_failed: number;
+    };
+    enrichment: {
+      status: "pending" | "running" | "completed";
+      processed: number;
+      versoes_updated: number;
+      ucs_inserted: number;
+      projetos_updated: number;
+    };
   };
   isRunning: boolean;
   isComplete: boolean;
@@ -83,7 +100,7 @@ export function useMigrateFull() {
       const { data: jobRow } = await supabase
         .from("solarmarket_promotion_jobs")
         .select(
-          "id, status, items_processed, total_items, items_promoted, items_with_errors, items_blocked, items_with_warnings, started_at, finished_at, filters",
+          "id, status, current_step, items_processed, total_items, items_promoted, items_with_errors, items_blocked, items_with_warnings, started_at, finished_at, filters, metadata",
         )
         .order("created_at", { ascending: false })
         .limit(1)
@@ -126,11 +143,17 @@ export function useMigrateFull() {
       const processed = job?.items_processed ?? 0;
       const pctGeral = total > 0 ? Math.min(100, Math.round((processed / total) * 100)) : 0;
 
+      // Lê fases extras do metadata escrito pela edge.
+      const meta = (job?.metadata as { phases?: Record<string, any> } | null) ?? null;
+      const cf = meta?.phases?.custom_fields ?? {};
+      const en = meta?.phases?.enrichment ?? {};
+
       return {
         job: job
           ? {
               id: job.id,
               status: job.status,
+              current_step: (job as any).current_step ?? null,
               items_processed: job.items_processed ?? 0,
               total_items: job.total_items ?? 0,
               items_promoted: job.items_promoted ?? 0,
@@ -142,6 +165,22 @@ export function useMigrateFull() {
             }
           : null,
         totals,
+        phases: {
+          customFields: {
+            status: (cf.status as "pending" | "running" | "completed") ?? "pending",
+            processed: cf.processed ?? 0,
+            upserted: cf.upserted ?? 0,
+            files_downloaded: cf.files_downloaded ?? 0,
+            files_failed: cf.files_failed ?? 0,
+          },
+          enrichment: {
+            status: (en.status as "pending" | "running" | "completed") ?? "pending",
+            processed: en.processed ?? 0,
+            versoes_updated: en.versoes_updated ?? 0,
+            ucs_inserted: en.ucs_inserted ?? 0,
+            projetos_updated: en.projetos_updated ?? 0,
+          },
+        },
         isRunning,
         isComplete,
         pctGeral,
