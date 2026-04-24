@@ -233,12 +233,14 @@ export function useChunkedMigration() {
           .from("projetos")
           .select("id", { count: "exact", head: true })
           .eq("tenant_id", tenantId!)
-          .in("external_source", [...LEGACY_SM_SOURCES]),
+          .in("external_source", [...LEGACY_SM_SOURCES])
+          .not("deal_id", "is", null),
         supabase
           .from("propostas_nativas")
           .select("id", { count: "exact", head: true })
           .eq("tenant_id", tenantId!)
-          .in("external_source", [...LEGACY_SM_SOURCES]),
+          .in("external_source", [...LEGACY_SM_SOURCES])
+          .not("deal_id", "is", null),
       ]);
 
       const totals: ChunkedTotals = {
