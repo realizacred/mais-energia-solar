@@ -1114,10 +1114,12 @@ async function resolvePipelinePerProject(
     })
     .filter((c) => c.funilName && c.funilName.toLowerCase() !== "vendedores");
 
-  if (candidates.length === 0) return empty;
+  const effectiveCandidates = candidates.length > 0
+    ? candidates
+    : [{ funilName: "LEAD", stageName: "" }];
 
   // 2) Para cada funil candidato, busca mapping em sm_funil_pipeline_map
-  const funilNames = Array.from(new Set(candidates.map((c) => c.funilName)));
+  const funilNames = Array.from(new Set(effectiveCandidates.map((c) => c.funilName)));
   const { data: maps } = await admin
     .from("sm_funil_pipeline_map")
     .select("sm_funil_name, pipeline_id, role")
@@ -1133,7 +1135,7 @@ async function resolvePipelinePerProject(
 
   const dealPipelineId = validMap.pipeline_id as string;
   const matchedFunilName = validMap.sm_funil_name as string;
-  const matchedCandidate = candidates.find((c) => c.funilName === matchedFunilName);
+  const matchedCandidate = effectiveCandidates.find((c) => c.funilName === matchedFunilName);
 
   // 3) Buscar pipeline_stages do pipeline comercial mapeado
   const { data: pStages } = await admin
@@ -1316,6 +1318,79 @@ async function createDealForProject(
   }
 
   return { dealId, created: true };
+}
+
+async function backfillDealsForProjectsWithoutDeal(
+  admin: SupabaseClient,
+  state: RequestState,
+  jobId: string,
+  tenantId: string,
+  defaultPipeline: PipelineResolution,
+  consultorFallback: ConsultorResolution,
+  limit: number,
+): Promise<void> {
+  const { data: projetos } = await admin
+    .from("projetos")
+    .select("id, cliente_id, consultor_id, codigo, external_id")
+    .eq("tenant_id", tenantId)
+    .in("external_source", [...LEGACY_SM_SOURCES])
+    .is("deal_id", null)
+    .order("created_at", { ascending: true })
+    .limit(limit);
+
+  for (const projeto of (projetos ?? []) as AnyObj[]) {
+    const projetoId = pickStr(projeto.id);
+    const clienteId = pickStr(projeto.cliente_id);
+    if (!projetoId || !clienteId) continue;
+
+    const projectPipeline = await resolvePipelinePerProject(
+      admin,
+      tenantId,
+      pickStr(projeto.external_id),
+      defaultPipeline,
+    );
+
+    const { data: proposta } = await admin
+      .from("propostas_nativas")
+      .select("id, valor_total, titulo, status")
+      .eq("tenant_id", tenantId)
+      .eq("projeto_id", projetoId)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    const proposalRow = (proposta as AnyObj | null) ?? null;
+    const dealRes = await createDealForProject(
+      admin,
+      tenantId,
+      projetoId,
+      clienteId,
+      pickStr(projeto.consultor_id) ?? consultorFallback.fallbackId,
+      projectPipeline,
+      {
+        id: pickStr(proposalRow?.id),
+        valor_total: pickNum(proposalRow?.valor_total),
+        titulo: pickStr(proposalRow?.titulo) ?? pickStr(projeto.codigo),
+        status: pickStr(proposalRow?.status) ?? "rascunho",
+      },
+    );
+
+    if (dealRes.dealId && dealRes.created) {
+      logEventBuffered(state, admin, {
+        jobId,
+        tenantId,
+        severity: "info",
+        step: "backfill.deal",
+        status: "created",
+        message: "Deal retroativamente criado para projeto migrado sem vínculo.",
+        sourceEntityType: "projeto",
+        sourceEntityId: projetoId,
+        canonicalEntityType: "projeto",
+        canonicalEntityId: projetoId,
+        details: { deal_id: dealRes.dealId },
+      });
+    }
+  }
 }
 
 // ─── Resolver de consultor (DA-40: sem hardcode; fallback "Escritório") ─────
@@ -2384,6 +2459,15 @@ async function actionPromoteAll(
 
   const pipeline = await resolveDefaultPipeline(admin, tenantId);
   const consultorFallback = await resolveConsultorFallback(admin, tenantId);
+  await backfillDealsForProjectsWithoutDeal(
+    admin,
+    state,
+    jobId,
+    tenantId,
+    pipeline,
+    consultorFallback,
+    batchLimit,
+  );
   await logEvent(admin, {
     jobId, tenantId, severity: "info", step: "init", status: "started",
     message: `promote-all iniciado (batch_limit=${batchLimit}, dry_run=${dryRun}, scope=${scope}, skip_post_phases=${skipPostPhases}); pipeline=${pipeline.funilId ?? "—"} etapa=${pipeline.etapaId ?? "—"} configured=${pipeline.hasPipelineConfigured}; consultor_fallback=${consultorFallback.fallbackNome ?? "—"}`,
