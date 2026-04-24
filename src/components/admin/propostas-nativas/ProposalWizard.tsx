@@ -2187,6 +2187,7 @@ export function ProposalWizard() {
             setSavedProjetoId(draftRes.projetoId);
           }
           if (draftRes.dealId) setSavedDealId(draftRes.dealId);
+          if (draftRes.clienteId) setSavedClienteId(draftRes.clienteId);
         }
         if (!projetoId) {
           const errorDetail = draftRes.status === "error"
