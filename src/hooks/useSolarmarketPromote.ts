@@ -228,11 +228,13 @@ export function useSolarmarketStagingTotals() {
         supabase
           .from("projetos")
           .select("id", { count: "exact", head: true })
-          .in("external_source", [...LEGACY_SM_SOURCES]),
+          .in("external_source", [...LEGACY_SM_SOURCES])
+          .not("deal_id", "is", null),
         supabase
           .from("propostas_nativas")
           .select("id", { count: "exact", head: true })
-          .in("external_source", [...LEGACY_SM_SOURCES]),
+          .in("external_source", [...LEGACY_SM_SOURCES])
+          .not("deal_id", "is", null),
       ]);
 
       if (cliRaw.error) throw new Error(cliRaw.error.message);
