@@ -36,8 +36,15 @@ const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const CRON_SECRET = "sm-resume-cron-v1"; // mesmo string usado em sm_resume_stuck_migrations
 
 const SOURCE_LIST = ["solarmarket", "solar_market"] as const;
-const CHUNK_BATCH = 25;
+const CHUNK_BATCH = 10;
 const SELF_URL = `${SUPABASE_URL}/functions/v1/sm-migrate-chunk`;
+
+function isGatewayTimeoutLike(error: string | undefined): boolean {
+  const message = String(error ?? "").toLowerCase();
+  return message.includes("http 504")
+    || message.includes("gateway timeout")
+    || message.includes("connection closed before message completed");
+}
 
 function jsonResponse(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
@@ -218,6 +225,49 @@ async function processStep(
   // Processa 1 chunk
   const sub = await callSmPromoteOnce(tenantId, CHUNK_BATCH);
   if (!sub.ok) {
+    const backlogAfterTimeout = await countBacklog(admin, tenantId);
+    const progressedDespiteTimeout = backlogAfterTimeout < backlogBefore;
+
+    if (isGatewayTimeoutLike(sub.error) && progressedDespiteTimeout) {
+      const processedDelta = backlogBefore - backlogAfterTimeout;
+      const newProcessed = (master.items_processed ?? 0) + processedDelta;
+      const newPromoted = (master.items_promoted ?? 0) + processedDelta;
+      const finished = backlogAfterTimeout <= 0;
+
+      await admin
+        .from("solarmarket_promotion_jobs")
+        .update({
+          status: finished ? "completed" : "running",
+          finished_at: finished ? new Date().toISOString() : null,
+          items_processed: newProcessed,
+          items_promoted: newPromoted,
+          last_step_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          error_summary: null,
+        })
+        .eq("id", masterJobId);
+
+      return {
+        ok: true,
+        has_more: !finished,
+        backlog_remaining: backlogAfterTimeout,
+        finished,
+        counters: {
+          processed: newProcessed,
+          promoted: newPromoted,
+          errors: master.items_with_errors ?? 0,
+          warnings: master.items_with_warnings ?? 0,
+          blocked: master.items_blocked ?? 0,
+          skipped: master.items_skipped ?? 0,
+        },
+        last_chunk: {
+          processed: processedDelta,
+          promoted: processedDelta,
+          recovered_after_timeout: 1,
+        },
+      };
+    }
+
     await admin
       .from("solarmarket_promotion_jobs")
       .update({
