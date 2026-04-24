@@ -42,6 +42,10 @@ export function useResetProjectArea() {
     },
     onSuccess: (data) => {
       qc.invalidateQueries();
+      qc.removeQueries({ queryKey: ["sm-migrate-chunk", "progress-v2"] });
+      qc.invalidateQueries({ queryKey: ["sm-migracao-stats"] });
+      qc.invalidateQueries({ queryKey: ["sm_last_job"] });
+      qc.invalidateQueries({ queryKey: ["sm_running_job"] });
       const c = data?.counts ?? ({} as Partial<ProjectAreaCounts>);
       const parts = [
         c.clientes && `${c.clientes} clientes`,
