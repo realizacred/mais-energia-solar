@@ -48,6 +48,8 @@ function isGatewayTimeoutLike(error: string | undefined): boolean {
     || message.includes("worker limit")
     || message.includes("http 504")
     || message.includes("gateway timeout")
+    || message.includes("statement timeout")
+    || message.includes("canceling statement due to statement timeout")
     || message.includes("connection closed before message completed");
 }
 
