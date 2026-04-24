@@ -254,6 +254,72 @@ async function logEvent(
   if (error) console.error(`[${MODULE}] log fail:`, error.message);
 }
 
+/**
+ * logEventBuffered — variante usada no hot path de promoção (loop por proposta).
+ * Acumula logs no state.logBuffer; flushLogs() faz bulk insert no fim do request.
+ * Logs com severity=error/warning são gravados imediatamente para preservar
+ * rastreabilidade em caso de timeout/crash do request.
+ */
+function logEventBuffered(
+  state: RequestState,
+  admin: SupabaseClient,
+  p: {
+    jobId: string;
+    tenantId: string;
+    severity: Severity;
+    step: string;
+    status: string;
+    message: string;
+    sourceEntityType?: string | null;
+    sourceEntityId?: string | null;
+    canonicalEntityType?: CanonicalEntity | null;
+    canonicalEntityId?: string | null;
+    errorCode?: string | null;
+    errorOrigin?: string | null;
+    details?: Record<string, unknown> | null;
+  },
+): void {
+  const normalizedStatus = normalizePromotionLogStatus(p.status, p.severity);
+  const normalizedSourceEntityId = p.sourceEntityId ?? p.canonicalEntityId ?? p.jobId;
+  const row: PendingLog = {
+    job_id: p.jobId,
+    tenant_id: p.tenantId,
+    severity: p.severity,
+    step: p.step,
+    status: normalizedStatus,
+    message: p.message,
+    source_entity_type: p.sourceEntityType ?? null,
+    source_entity_id: normalizedSourceEntityId,
+    canonical_entity_type: p.canonicalEntityType ?? null,
+    canonical_entity_id: p.canonicalEntityId ?? null,
+    error_code: p.errorCode ?? null,
+    error_origin: p.errorOrigin ?? null,
+    details: { raw_status: p.status, ...(p.details ?? {}) },
+  };
+  state.logBuffer.push(row);
+
+  // Flush eager se buffer crescer ou se for crítico — fire-and-forget
+  // (não bloqueia o loop; falha de log nunca aborta migração).
+  if (p.severity === "error" || state.logBuffer.length >= 100) {
+    void flushLogs(state, admin);
+  }
+}
+
+/**
+ * flushLogs — grava todos os logs pendentes em uma única chamada bulk.
+ * Resiliente: erro de log apenas registra no console, nunca falha o request.
+ */
+async function flushLogs(state: RequestState, admin: SupabaseClient): Promise<void> {
+  if (state.logBuffer.length === 0) return;
+  const batch = state.logBuffer.splice(0, state.logBuffer.length);
+  const { error } = await admin.from("solarmarket_promotion_logs").insert(batch);
+  if (error) {
+    console.error(`[${MODULE}] flushLogs fail (${batch.length} rows):`, error.message);
+    // re-enfileira para tentar de novo no próximo flush
+    state.logBuffer.unshift(...batch);
+  }
+}
+
 // ─── Idempotência: external_entity_links (SSOT) ──────────────────────────────
 function canonicalTableForEntity(entityType: CanonicalEntity): "clientes" | "projetos" | "propostas_nativas" | "proposta_versoes" {
   switch (entityType) {
