@@ -469,6 +469,36 @@ Deno.serve(async (req) => {
         return jsonResponse({ ok: false, error: "master_job_id e tenant_id obrigatórios" }, 400);
       }
 
+      const { data: resumableJob } = await admin
+        .from("solarmarket_promotion_jobs")
+        .select("id, status, error_summary")
+        .eq("id", masterJobId)
+        .eq("tenant_id", tenantId)
+        .maybeSingle();
+
+      if (
+        resumableJob &&
+        ["failed", "cancelled"].includes(String(resumableJob.status ?? "")) &&
+        isGatewayTimeoutLike(String(resumableJob.error_summary ?? ""))
+      ) {
+        const { data: resumedRows, error: resumeErr } = await admin
+          .from("solarmarket_promotion_jobs")
+          .update({
+            status: "running",
+            finished_at: null,
+            error_summary: null,
+            last_step_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", masterJobId)
+          .eq("tenant_id", tenantId)
+          .select("id");
+
+        if (resumeErr || !resumedRows || resumedRows.length === 0) {
+          return jsonResponse({ ok: false, error: "Falha ao reativar job interno" }, 409);
+        }
+      }
+
       const result = await processStep(admin, tenantId, masterJobId);
 
       // Auto-encadeamento: se ainda há trabalho, agenda próximo via waitUntil.
