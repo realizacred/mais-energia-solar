@@ -1,3 +1,4 @@
+// SECURITY: tenant_id sempre do JWT, ignora body. Vide auditoria de 2026-04-24.
 /**
  * sm-criar-pipeline-auto
  * Cria, a partir de um funil SolarMarket no staging:
@@ -13,8 +14,10 @@
  *
  * Governança:
  *  - RB-23: sem console.log
- *  - RB-52: service role
+ *  - RB-52: service role para escrita
  *  - RB-57: sem let no escopo de módulo
+ *  - SEGURANÇA: tenant_id resolvido via JWT (auth.uid → profiles.tenant_id);
+ *    body.tenantId é ignorado (apenas log de divergência via console.warn).
  *  - Rollback manual: se qualquer passo falhar após criar o pipeline, desfaz
  *    pipeline_stages + pipelines + projeto_etapas + projeto_funis (espelho).
  */
@@ -49,16 +52,52 @@ Deno.serve(async (req) => {
   };
 
   try {
-    const body = await req.json().catch(() => ({}));
-    const tenantId = (body?.tenantId as string) || "";
-    const smFunilName = (body?.smFunilName as string) || "";
-
-    if (!tenantId || !/^[0-9a-f-]{36}$/i.test(tenantId)) {
+    // ── SECURITY: resolver tenant_id via JWT (ignora body.tenantId) ──
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader?.startsWith("Bearer ")) {
       return new Response(
-        JSON.stringify({ ok: false, error: "tenantId (uuid) é obrigatório" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        JSON.stringify({ ok: false, error: "Autenticação obrigatória" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
+    const token = authHeader.replace("Bearer ", "");
+    const { data: { user }, error: authError } = await admin.auth.getUser(token);
+    if (authError || !user) {
+      return new Response(
+        JSON.stringify({ ok: false, error: "Sessão inválida" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+    const { data: profile } = await admin
+      .from("profiles")
+      .select("tenant_id")
+      .eq("user_id", user.id)
+      .maybeSingle();
+    const profileTenantId = profile?.tenant_id as string | undefined;
+    if (!profileTenantId) {
+      return new Response(
+        JSON.stringify({ ok: false, error: "Usuário sem tenant vinculado" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
+    const body = await req.json().catch(() => ({}));
+    const smFunilName = (body?.smFunilName as string) || "";
+
+    // Aviso de divergência (não bloqueia — segurança já garantida pelo JWT)
+    if (body?.tenantId && body.tenantId !== profileTenantId) {
+      console.warn(
+        "[sm-criar-pipeline-auto] body.tenantId divergente do JWT — ignorado",
+        {
+          bodyTenantId: body.tenantId,
+          jwtTenantId: profileTenantId,
+          userId: user.id,
+        },
+      );
+    }
+
+    const tenantId = profileTenantId;
+
     if (!smFunilName.trim()) {
       return new Response(
         JSON.stringify({ ok: false, error: "smFunilName é obrigatório" }),
