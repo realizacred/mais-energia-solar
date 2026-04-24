@@ -192,9 +192,13 @@ export function ProjetosManager() {
     }
   };
 
-  // Apply stored filters on mount
+  // Apply stored filters on mount.
+  // Roda novamente quando funis chegam para validar funilId persistido (defesa contra
+  // funil deletado) e respeita viewMode kanban-consultor (que NÃO deve filtrar funil).
+  const [storedPrefsApplied, setStoredPrefsApplied] = useState(false);
   useEffect(() => {
-    if (!storedPrefs) return;
+    if (!storedPrefs || storedPrefsApplied) return;
+    if (funis.length === 0) return; // aguarda metadata
     const updates: Record<string, any> = {};
     if (storedPrefs.status && storedPrefs.status !== "todos" && filters.status !== storedPrefs.status) {
       updates.status = storedPrefs.status;
@@ -202,14 +206,22 @@ export function ProjetosManager() {
     if (storedPrefs.consultorId && storedPrefs.consultorId !== "todos" && filters.consultorId !== storedPrefs.consultorId) {
       updates.consultorId = storedPrefs.consultorId;
     }
-    if (storedPrefs.funilId && filters.funilId !== storedPrefs.funilId) {
+    // Só aplica funilId se: (a) view não for por consultor; (b) funil ainda existe no tenant.
+    const funilExiste = !!funis.find((f) => f.id === storedPrefs.funilId);
+    if (
+      storedPrefs.funilId &&
+      funilExiste &&
+      viewMode !== "kanban-consultor" &&
+      filters.funilId !== storedPrefs.funilId
+    ) {
       updates.funilId = storedPrefs.funilId;
       setSelectedFunilId(storedPrefs.funilId);
     }
     if (Object.keys(updates).length > 0) {
       applyFilters(updates);
     }
-  }, []);
+    setStoredPrefsApplied(true);
+  }, [storedPrefs, funis, viewMode, filters, applyFilters, setSelectedFunilId, storedPrefsApplied]);
 
   const [editingEtapasFunilId, setEditingEtapasFunilId] = useState<string | null>(null);
   const [novoProjetoOpen, setNovoProjetoOpen] = useState(false);
