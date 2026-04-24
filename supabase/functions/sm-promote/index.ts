@@ -44,6 +44,22 @@ type JobStatus =
 
 type PromotionLogStatus = "ok" | "skipped" | "warning" | "error";
 
+interface PendingLog {
+  job_id: string;
+  tenant_id: string;
+  severity: Severity;
+  step: string;
+  status: PromotionLogStatus;
+  message: string;
+  source_entity_type: string | null;
+  source_entity_id: string | null;
+  canonical_entity_type: CanonicalEntity | null;
+  canonical_entity_id: string | null;
+  error_code: string | null;
+  error_origin: string | null;
+  details: Record<string, unknown>;
+}
+
 interface RequestState {
   startedAt: number;
   jobId: string | null;
@@ -57,6 +73,8 @@ interface RequestState {
     errors: number;
     processed: number;
   };
+  // Buffer de logs (bulk insert no fim do request) — RB-58 mantido com flush em error.
+  logBuffer: PendingLog[];
 }
 
 function normalizePromotionLogStatus(status: string, severity: Severity): PromotionLogStatus {
