@@ -348,22 +348,57 @@ export default function MigracaoStep3Migrar() {
                 <p className="text-muted-foreground">Promovidos</p>
                 <p className="font-mono font-bold text-success">{job.items_promoted}</p>
               </div>
-              <div>
-                <p className="text-muted-foreground">Avisos</p>
+              <button
+                type="button"
+                onClick={() => job.items_with_warnings > 0 && openLogs("warning")}
+                disabled={job.items_with_warnings === 0}
+                className="text-left rounded-md -m-1 p-1 transition-colors hover:bg-warning/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-warning/40 disabled:cursor-default disabled:hover:bg-transparent"
+              >
+                <p className="text-muted-foreground group-hover:text-foreground">
+                  Avisos {job.items_with_warnings > 0 && <span className="text-[10px]">(ver)</span>}
+                </p>
                 <p className="font-mono font-bold text-warning">
                   {job.items_with_warnings}
                 </p>
-              </div>
-              <div>
-                <p className="text-muted-foreground">Erros</p>
+              </button>
+              <button
+                type="button"
+                onClick={() => job.items_with_errors > 0 && openLogs("error")}
+                disabled={job.items_with_errors === 0}
+                className="text-left rounded-md -m-1 p-1 transition-colors hover:bg-destructive/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-destructive/40 disabled:cursor-default disabled:hover:bg-transparent"
+              >
+                <p className="text-muted-foreground">
+                  Erros {job.items_with_errors > 0 && <span className="text-[10px]">(ver)</span>}
+                </p>
                 <p className="font-mono font-bold text-destructive">
                   {job.items_with_errors}
                 </p>
-              </div>
+              </button>
             </div>
+            {(job.items_with_warnings > 0 || job.items_with_errors > 0) && (
+              <div className="pt-1">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-xs h-7 px-2"
+                  onClick={() => openLogs("all")}
+                >
+                  Ver todos os logs deste job
+                </Button>
+              </div>
+            )}
           </CardContent>
         </Card>
       )}
+
+      <PromotionLogsDialog
+        open={logsOpen}
+        onOpenChange={setLogsOpen}
+        jobId={job?.id ?? null}
+        initialFilter={logsFilter}
+        warningsCount={job?.items_with_warnings ?? 0}
+        errorsCount={job?.items_with_errors ?? 0}
+      />
     </div>
   );
 }
