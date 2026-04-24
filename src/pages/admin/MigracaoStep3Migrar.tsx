@@ -498,6 +498,15 @@ export default function MigracaoStep3Migrar() {
           </CardContent>
         </Card>
       )}
+
+      <PromotionLogsDialog
+        open={logsOpen}
+        onOpenChange={setLogsOpen}
+        jobId={job?.id ?? null}
+        initialFilter={logsFilter}
+        warningsCount={job?.items_with_warnings ?? 0}
+        errorsCount={job?.items_with_errors ?? 0}
+      />
     </div>
   );
 }
