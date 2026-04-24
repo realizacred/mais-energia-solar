@@ -44,6 +44,7 @@ import {
 import { useChunkedMigration } from "@/hooks/useChunkedMigration";
 import { useResetMigratedData } from "@/hooks/useResetMigratedData";
 import { toast } from "@/hooks/use-toast";
+import { PromotionLogsDialog, type LogsFilter } from "@/components/admin/solarmarket/PromotionLogsDialog";
 
 function formatRelativeTimestamp(value: string | null) {
   if (!value) return "sem atividade registrada";
@@ -104,6 +105,8 @@ export default function MigracaoStep3Migrar() {
   const { start, continueJob, cancel, progress, isLoading } = useChunkedMigration();
   const resetMigrated = useResetMigratedData();
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [logsOpen, setLogsOpen] = useState(false);
+  const [logsFilter, setLogsFilter] = useState<LogsFilter>("all");
 
   const handleStart = async () => {
     try {
@@ -443,14 +446,36 @@ export default function MigracaoStep3Migrar() {
               </div>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
-              <div className="rounded-lg border border-border bg-muted/30 p-3">
-                <p className="text-muted-foreground">Avisos</p>
+              <button
+                type="button"
+                onClick={() => {
+                  setLogsFilter("warning");
+                  setLogsOpen(true);
+                }}
+                disabled={!job.id}
+                className="text-left rounded-lg border border-border bg-muted/30 p-3 hover:border-warning/50 hover:bg-warning/5 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <p className="text-muted-foreground flex items-center justify-between">
+                  Avisos
+                  <span className="text-[10px] text-warning underline">ver</span>
+                </p>
                 <p className="font-mono font-bold text-warning">{job.items_with_warnings}</p>
-              </div>
-              <div className="rounded-lg border border-border bg-muted/30 p-3">
-                <p className="text-muted-foreground">Erros</p>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setLogsFilter("error");
+                  setLogsOpen(true);
+                }}
+                disabled={!job.id}
+                className="text-left rounded-lg border border-border bg-muted/30 p-3 hover:border-destructive/50 hover:bg-destructive/5 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <p className="text-muted-foreground flex items-center justify-between">
+                  Erros
+                  <span className="text-[10px] text-destructive underline">ver</span>
+                </p>
                 <p className="font-mono font-bold text-destructive">{job.items_with_errors}</p>
-              </div>
+              </button>
               <div className="rounded-lg border border-border bg-muted/30 p-3">
                 <p className="text-muted-foreground">Pulados / bloqueados</p>
                 <p className="font-mono font-bold text-foreground">
@@ -473,6 +498,15 @@ export default function MigracaoStep3Migrar() {
           </CardContent>
         </Card>
       )}
+
+      <PromotionLogsDialog
+        open={logsOpen}
+        onOpenChange={setLogsOpen}
+        jobId={job?.id ?? null}
+        initialFilter={logsFilter}
+        warningsCount={job?.items_with_warnings ?? 0}
+        errorsCount={job?.items_with_errors ?? 0}
+      />
     </div>
   );
 }
