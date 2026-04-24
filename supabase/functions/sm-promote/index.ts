@@ -538,6 +538,11 @@ function normalizeSmProposal(raw: AnyObj) {
   };
 }
 
+function resolveProposalSourceKey(rawRow: AnyObj): string | null {
+  const payload = (rawRow?.payload as AnyObj | undefined) ?? rawRow;
+  return normalizeSmProposal(payload).external_id ?? pickStr(rawRow?.external_id);
+}
+
 // Builder de snapshot canônico mínimo (compatível com resolveAllVariables).
 // Mantém raw_sm para auditoria. Estrutura plana com chaves canônicas.
 function buildCanonicalSnapshot(args: {
@@ -2394,9 +2399,10 @@ async function actionPromoteAll(
     .order("imported_at", { ascending: true })
     .range(0, Math.max(0, batchLimit - 1 + promotedSet.size));
   const { data: rawRows, error: fetchErr } = await fetchQuery;
-  const rows = (rawRows ?? []).filter(
-    (r: AnyObj) => !promotedSet.has(String(r.external_id)),
-  ).slice(0, batchLimit);
+  const rows = (rawRows ?? []).filter((r: AnyObj) => {
+    const sourceKey = resolveProposalSourceKey(r);
+    return sourceKey ? !promotedSet.has(sourceKey) : true;
+  }).slice(0, batchLimit);
   if (fetchErr) {
     await patchJob(admin, jobId, {
       status: "failed", finished_at: new Date().toISOString(),
