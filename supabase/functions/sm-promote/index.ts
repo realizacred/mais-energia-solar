@@ -391,8 +391,12 @@ function normalizeSmProposal(raw: AnyObj) {
     (acc: number, it: AnyObj) => acc + (pickNum(it.salesValue ?? it.totalValue) ?? 0),
     0,
   );
+  // CRÍTICO: em alguns tenants `payload.id` colide (ex.: 10 valores p/ 1.823 propostas).
+  // O identificador realmente único é `_sm_project_id` (1 proposta por projeto SM).
+  // Fallback: id legado (mantém compatibilidade com tenants antigos sem colisão).
+  const externalId = pickStr(raw._sm_project_id) ?? pickStr(raw.project?.id) ?? pickStr(raw.id);
   return {
-    external_id: pickStr(raw.id),
+    external_id: externalId,
     nome: pickStr(raw.name) ?? "Proposta SolarMarket",
     descricao: pickStr(raw.description),
     status_source: pickStr(raw.status),
