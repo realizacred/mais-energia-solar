@@ -417,12 +417,6 @@ export default function MigracaoStep3Migrar() {
         </Card>
       )}
 
-      {/* Step 3.1 — Promover custom fields & arquivos */}
-      <PromoteCustomFieldsCard />
-
-      {/* Step 3.2 — Enriquecer propostas migradas (kit, financeiro, UCs, localização) */}
-      <EnrichVersoesCard />
-
       <PromotionLogsDialog
         open={logsOpen}
         onOpenChange={setLogsOpen}
