@@ -942,6 +942,255 @@ function resolveStageForStatus(pipeline: PipelineResolution, status: string): st
   return pipeline.stageByStatus[status] ?? pipeline.etapaId;
 }
 
+// ─── Resolução de pipeline POR PROJETO (sm_funil_pipeline_map) ───────────────
+/**
+ * Para o projeto SM informado, descobre o funil SM associado (em
+ * sm_projeto_funis_raw, role !== "vendedores") e resolve:
+ *   - dealPipelineId / dealStageByStatus  → tabela `pipelines`/`pipeline_stages` (Comercial)
+ *   - funilExecId / etapaExecByStatus     → tabela `projeto_funis`/`projeto_etapas` (espelho por nome)
+ *
+ * Se nada estiver mapeado, retorna o `defaultPipeline` (resolveDefaultPipeline).
+ */
+interface PerProjectPipeline extends PipelineResolution {
+  dealPipelineId: string | null;            // pipelines.id (Comercial)
+  dealStageByStatus: Record<string, string>; // status canônico → pipeline_stages.id
+  dealStageDefault: string | null;
+}
+
+async function resolvePipelinePerProject(
+  admin: SupabaseClient,
+  tenantId: string,
+  projectExtId: string | null | undefined,
+  defaultPipeline: PipelineResolution,
+): Promise<PerProjectPipeline> {
+  const empty: PerProjectPipeline = {
+    ...defaultPipeline,
+    dealPipelineId: null,
+    dealStageByStatus: {},
+    dealStageDefault: null,
+  };
+
+  if (!projectExtId) return empty;
+
+  // 1) Funis SM associados ao projeto (excluindo "vendedores", que é de consultor)
+  const { data: funisRows } = await admin
+    .from("sm_projeto_funis_raw")
+    .select("payload")
+    .eq("tenant_id", tenantId)
+    .eq("payload->project->>id", projectExtId);
+
+  const candidates = (funisRows ?? [])
+    .map((r: AnyObj) => {
+      const fname = String((r.payload as AnyObj)?.name ?? "").trim();
+      const sname = String((r.payload as AnyObj)?.stage?.name ?? "").trim();
+      return { funilName: fname, stageName: sname };
+    })
+    .filter((c) => c.funilName && c.funilName.toLowerCase() !== "vendedores");
+
+  if (candidates.length === 0) return empty;
+
+  // 2) Para cada funil candidato, busca mapping em sm_funil_pipeline_map
+  const funilNames = Array.from(new Set(candidates.map((c) => c.funilName)));
+  const { data: maps } = await admin
+    .from("sm_funil_pipeline_map")
+    .select("sm_funil_name, pipeline_id, role")
+    .eq("tenant_id", tenantId)
+    .in("sm_funil_name", funilNames);
+
+  // Prioriza role="pipeline"; ignora "ignore"
+  const validMap = (maps ?? [])
+    .filter((m: AnyObj) => m.role !== "ignore" && m.pipeline_id)
+    .sort((a: AnyObj, b: AnyObj) => (a.role === "pipeline" ? -1 : 1))[0] as AnyObj | undefined;
+
+  if (!validMap) return empty;
+
+  const dealPipelineId = validMap.pipeline_id as string;
+  const matchedFunilName = validMap.sm_funil_name as string;
+  const matchedCandidate = candidates.find((c) => c.funilName === matchedFunilName);
+
+  // 3) Buscar pipeline_stages do pipeline comercial mapeado
+  const { data: pStages } = await admin
+    .from("pipeline_stages")
+    .select("id, name, position, is_won, is_closed")
+    .eq("tenant_id", tenantId)
+    .eq("pipeline_id", dealPipelineId)
+    .order("position", { ascending: true });
+  const stagesArr = (pStages ?? []) as Array<AnyObj>;
+
+  // Mapeamento etapa SM → pipeline_stages.id (sm_etapa_stage_map)
+  const { data: etapaMaps } = await admin
+    .from("sm_etapa_stage_map")
+    .select("sm_etapa_name, stage_id")
+    .eq("tenant_id", tenantId)
+    .eq("sm_funil_name", matchedFunilName);
+
+  const stageBySmEtapa = new Map<string, string>();
+  for (const em of (etapaMaps ?? []) as AnyObj[]) {
+    stageBySmEtapa.set(String(em.sm_etapa_name).toLowerCase().trim(), em.stage_id as string);
+  }
+
+  // dealStageByStatus: tenta achar stage pelo nome canônico (mesma heurística do default)
+  const dealStageByStatus: Record<string, string> = {};
+  for (const [status, aliases] of Object.entries(STATUS_STAGE_NAME)) {
+    const aliasesNorm = aliases.map(norm);
+    const found = stagesArr.find((s) => aliasesNorm.includes(norm(String(s.name ?? ""))));
+    if (found) dealStageByStatus[status] = found.id as string;
+  }
+
+  // Stage default = stage mapeada à etapa SM atual do projeto (se houver),
+  // senão a primeira do pipeline.
+  let dealStageDefault: string | null = null;
+  if (matchedCandidate?.stageName) {
+    const mapped = stageBySmEtapa.get(matchedCandidate.stageName.toLowerCase().trim());
+    if (mapped) dealStageDefault = mapped;
+  }
+  if (!dealStageDefault) dealStageDefault = (stagesArr[0]?.id as string | undefined) ?? null;
+
+  // 4) Resolver funil de EXECUÇÃO espelho (por nome igual ao do pipeline)
+  const { data: pipeRow } = await admin
+    .from("pipelines")
+    .select("name")
+    .eq("id", dealPipelineId)
+    .maybeSingle();
+  const pipelineName = pickStr((pipeRow as AnyObj | null)?.name);
+
+  let funilExecId: string | null = defaultPipeline.funilId;
+  let etapaExecDefault: string | null = defaultPipeline.etapaId;
+  let etapaExecByStatus: Record<string, string> = { ...defaultPipeline.stageByStatus };
+
+  if (pipelineName) {
+    const { data: funilExec } = await admin
+      .from("projeto_funis")
+      .select("id")
+      .eq("tenant_id", tenantId)
+      .eq("ativo", true)
+      .ilike("nome", pipelineName)
+      .maybeSingle();
+    if (funilExec?.id) {
+      funilExecId = funilExec.id as string;
+      const { data: etapas } = await admin
+        .from("projeto_etapas")
+        .select("id, nome, ordem")
+        .eq("tenant_id", tenantId)
+        .eq("funil_id", funilExecId)
+        .order("ordem", { ascending: true });
+      const etapasArr = (etapas ?? []) as Array<AnyObj>;
+      etapaExecDefault = (etapasArr[0]?.id as string | undefined) ?? null;
+      etapaExecByStatus = {};
+      for (const [status, aliases] of Object.entries(STATUS_STAGE_NAME)) {
+        const aliasesNorm = aliases.map(norm);
+        const found = etapasArr.find((s) => aliasesNorm.includes(norm(String(s.nome ?? ""))));
+        if (found) etapaExecByStatus[status] = found.id as string;
+      }
+    }
+  }
+
+  return {
+    funilId: funilExecId,
+    etapaId: etapaExecDefault,
+    hasPipelineConfigured: defaultPipeline.hasPipelineConfigured,
+    stageByStatus: etapaExecByStatus,
+    dealPipelineId,
+    dealStageByStatus,
+    dealStageDefault,
+  };
+}
+
+// ─── Criação de DEAL canônico para projetos migrados ─────────────────────────
+/**
+ * Cria um `deal` (oportunidade comercial) vinculado ao projeto recém-promovido,
+ * e atualiza os FKs `projetos.deal_id` e `propostas_nativas.deal_id`.
+ * Idempotente: se o projeto já tem deal_id, reutiliza.
+ */
+async function createDealForProject(
+  admin: SupabaseClient,
+  tenantId: string,
+  projetoId: string,
+  clienteId: string,
+  ownerId: string | null,
+  pipeline: PerProjectPipeline,
+  proposta: { id: string | null; valor_total: number | null; titulo: string | null; status: string },
+): Promise<{ dealId: string | null; created: boolean; reason?: string }> {
+  // Idempotência: se projeto já tem deal_id, reutiliza
+  const { data: projRow } = await admin
+    .from("projetos")
+    .select("deal_id, codigo")
+    .eq("id", projetoId)
+    .maybeSingle();
+  const existingDealId = (projRow as AnyObj | null)?.deal_id as string | null | undefined;
+  if (existingDealId) {
+    return { dealId: existingDealId, created: false, reason: "already_linked" };
+  }
+
+  if (!pipeline.dealPipelineId) {
+    return { dealId: null, created: false, reason: "no_pipeline_mapped" };
+  }
+  if (!ownerId) {
+    return { dealId: null, created: false, reason: "no_owner" };
+  }
+
+  // Stage do deal: por status canônico, senão a default
+  const stageId = pipeline.dealStageByStatus[proposta.status] ?? pipeline.dealStageDefault;
+  if (!stageId) {
+    return { dealId: null, created: false, reason: "no_stage" };
+  }
+
+  // Status do deal (text simples; valores comuns: open/won/lost)
+  const dealStatus =
+    proposta.status === "aceita" ? "won"
+    : proposta.status === "recusada" || proposta.status === "expirada" ? "lost"
+    : "open";
+
+  const title =
+    (proposta.titulo && proposta.titulo.trim()) ||
+    `Projeto ${(projRow as AnyObj | null)?.codigo ?? projetoId.slice(0, 8)}`;
+
+  const { data: deal, error: dealErr } = await admin
+    .from("deals")
+    .insert({
+      tenant_id: tenantId,
+      pipeline_id: pipeline.dealPipelineId,
+      stage_id: stageId,
+      customer_id: clienteId,
+      owner_id: ownerId,
+      projeto_id: projetoId,
+      title,
+      value: proposta.valor_total ?? 0,
+      status: dealStatus,
+      origem: SOURCE,
+    })
+    .select("id")
+    .single();
+
+  if (dealErr || !deal?.id) {
+    return { dealId: null, created: false, reason: `insert_failed: ${dealErr?.message ?? "no id"}` };
+  }
+  const dealId = deal.id as string;
+
+  // Atualiza FKs (RB-58: confirmar com .select())
+  const { data: updProj } = await admin
+    .from("projetos")
+    .update({ deal_id: dealId })
+    .eq("id", projetoId)
+    .select("id");
+  if (!updProj || updProj.length === 0) {
+    console.error(`[${MODULE}] createDealForProject: UPDATE projetos.deal_id afetou 0 linhas (id=${projetoId})`);
+  }
+
+  if (proposta.id) {
+    const { data: updProp } = await admin
+      .from("propostas_nativas")
+      .update({ deal_id: dealId })
+      .eq("id", proposta.id)
+      .select("id");
+    if (!updProp || updProp.length === 0) {
+      console.error(`[${MODULE}] createDealForProject: UPDATE propostas_nativas.deal_id afetou 0 linhas (id=${proposta.id})`);
+    }
+  }
+
+  return { dealId, created: true };
+}
+
 // ─── Resolver de consultor (DA-40: sem hardcode; fallback "Escritório") ─────
 interface ConsultorResolution {
   fallbackId: string | null; // "Consultor Escritório" do tenant (ou primeiro ativo)
