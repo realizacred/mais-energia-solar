@@ -2,7 +2,7 @@
  * Migração SolarMarket — Step 3 (Migrar dados para o CRM).
  *
  * UI 1-clique: 1 botão + 3 barras de progresso (clientes/projetos/propostas).
- * Roda em background no servidor (sm-promote, scope=proposta com cascata).
+ * Roda em background no servidor via `sm-migrate-chunk`.
  * Pode fechar a aba — polling reanexa ao job ativo automaticamente.
  *
  * Mantém header "Step 3 — Migrar dados para o CRM" e botão "Voltar para mapeamentos".
@@ -11,20 +11,18 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
-  ArrowLeft,
-  Rocket,
-  Loader2,
-  CheckCircle2,
   AlertCircle,
-  Users,
-  FolderKanban,
-  FileText,
-  Play,
-  X,
+  ArrowLeft,
+  CheckCircle2,
   Eraser,
+  FileText,
+  FolderKanban,
+  Loader2,
+  RefreshCw,
+  Rocket,
   Sparkles,
-  Download,
-  Package,
+  Users,
+  X,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -41,13 +39,9 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { useMigrateFull } from "@/hooks/useMigrateFull";
+import { useChunkedMigration } from "@/hooks/useChunkedMigration";
 import { useResetMigratedData } from "@/hooks/useResetMigratedData";
 import { toast } from "@/hooks/use-toast";
-import {
-  PromotionLogsDialog,
-  type LogsFilter,
-} from "@/components/admin/solarmarket/PromotionLogsDialog";
 
 function StatRow({
   icon: Icon,
@@ -73,9 +67,7 @@ function StatRow({
           <span className={done ? "text-success font-bold" : "text-foreground"}>
             {promoted.toLocaleString("pt-BR")}
           </span>
-          <span className="text-muted-foreground">
-            / {total.toLocaleString("pt-BR")}
-          </span>
+          <span className="text-muted-foreground">/ {total.toLocaleString("pt-BR")}</span>
           {done && <CheckCircle2 className="w-3.5 h-3.5 text-success" />}
         </div>
       </div>
@@ -84,65 +76,35 @@ function StatRow({
   );
 }
 
-function PhaseRow({
-  icon: Icon,
-  label,
-  status,
-  detail,
-}: {
-  icon: React.ComponentType<{ className?: string }>;
-  label: string;
-  status: "pending" | "running" | "completed";
-  detail: string;
-}) {
-  const tone =
-    status === "completed"
-      ? "text-success"
-      : status === "running"
-        ? "text-info"
-        : "text-muted-foreground";
-  return (
-    <div className="space-y-2">
-      <div className="flex items-center justify-between gap-3">
-        <div className="flex items-center gap-2 min-w-0">
-          <Icon className={`w-4 h-4 shrink-0 ${tone}`} />
-          <span className="text-sm font-medium text-foreground">{label}</span>
-        </div>
-        <div className="flex items-center gap-2 text-xs">
-          {status === "running" && <Loader2 className="w-3.5 h-3.5 animate-spin text-info" />}
-          {status === "completed" && <CheckCircle2 className="w-3.5 h-3.5 text-success" />}
-          <span className={`font-mono ${tone}`}>
-            {status === "pending" ? "aguardando" : status === "running" ? "rodando" : "ok"}
-          </span>
-        </div>
-      </div>
-      <p className="text-xs text-muted-foreground pl-6">{detail}</p>
-    </div>
-  );
-}
-
 export default function MigracaoStep3Migrar() {
-  const { start, cancel, progress, isLoading } = useMigrateFull();
+  const { start, continueJob, cancel, progress, isLoading } = useChunkedMigration();
   const resetMigrated = useResetMigratedData();
   const [confirmOpen, setConfirmOpen] = useState(false);
-  const [logsOpen, setLogsOpen] = useState(false);
-  const [logsFilter, setLogsFilter] = useState<LogsFilter>("all");
-
-  const openLogs = (f: LogsFilter) => {
-    setLogsFilter(f);
-    setLogsOpen(true);
-  };
 
   const handleStart = async () => {
     try {
-      const res = await start.mutateAsync({ batch_limit: 10000, dry_run: false });
+      const res = await start.mutateAsync();
       toast({
         title: "Migração iniciada",
-        description: `Job ${res.job_id.slice(0, 8)}… em execução. Pode fechar a aba — segue rodando.`,
+        description: `Job ${res.master_job_id?.slice(0, 8) ?? ""}… em execução. Pode fechar a aba — segue rodando.`,
       });
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
       toast({ title: "Falha ao iniciar migração", description: msg, variant: "destructive" });
+    }
+  };
+
+  const handleContinue = async () => {
+    if (!progress?.job?.id) return;
+    try {
+      await continueJob.mutateAsync(progress.job.id);
+      toast({
+        title: "Migração retomada",
+        description: "O processamento voltou a rodar em background.",
+      });
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      toast({ title: "Falha ao retomar", description: msg, variant: "destructive" });
     }
   };
 
@@ -172,6 +134,8 @@ export default function MigracaoStep3Migrar() {
   const job = progress?.job;
   const isRunning = !!progress?.isRunning;
   const isComplete = !!progress?.isComplete;
+  const isResumable = !!progress?.isResumable;
+  const isStuck = !!progress?.isStuck;
   const totalStaging =
     (totals?.clientes.total ?? 0) +
     (totals?.projetos.total ?? 0) +
@@ -184,7 +148,6 @@ export default function MigracaoStep3Migrar() {
 
   return (
     <div className="container mx-auto p-4 sm:p-6 lg:p-8 space-y-6 max-w-[1100px]">
-      {/* Header preservado */}
       <div>
         <Button asChild variant="ghost" size="sm" className="mb-2">
           <Link to="/admin/migracao-solarmarket/mapear">
@@ -192,9 +155,7 @@ export default function MigracaoStep3Migrar() {
           </Link>
         </Button>
         <div className="flex items-center gap-2 flex-wrap">
-          <h1 className="text-xl font-bold text-foreground">
-            Step 3 — Migrar dados para o CRM
-          </h1>
+          <h1 className="text-xl font-bold text-foreground">Step 3 — Migrar dados para o CRM</h1>
           <Badge
             variant="outline"
             className="bg-primary/10 text-primary border-primary/20 gap-1.5"
@@ -209,7 +170,6 @@ export default function MigracaoStep3Migrar() {
         </p>
       </div>
 
-      {/* Card principal — barras + CTA */}
       <motion.div
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
@@ -217,7 +177,6 @@ export default function MigracaoStep3Migrar() {
       >
         <Card className="bg-card border-border shadow-sm">
           <CardContent className="p-6 space-y-6">
-            {/* Banner de status */}
             {isLoading ? (
               <div className="flex items-center gap-3 text-sm text-muted-foreground">
                 <Loader2 className="w-4 h-4 animate-spin" /> Carregando estado da migração…
@@ -227,12 +186,10 @@ export default function MigracaoStep3Migrar() {
                 <div className="flex items-center gap-3 min-w-0">
                   <Loader2 className="w-5 h-5 animate-spin text-info shrink-0" />
                   <div className="min-w-0">
-                    <p className="text-sm font-semibold text-foreground">
-                      Migração em andamento
-                    </p>
+                    <p className="text-sm font-semibold text-foreground">Migração em andamento</p>
                     <p className="text-xs text-muted-foreground">
-                      Job {job?.id.slice(0, 8)}… • {job?.items_processed ?? 0} de{" "}
-                      {job?.total_items ?? 0} processados. Pode fechar a aba.
+                      Job {job?.id.slice(0, 8)}… • {job?.items_processed ?? 0} de {job?.total_items ?? 0} processados.
+                      Pode fechar a aba.
                     </p>
                   </div>
                 </div>
@@ -245,18 +202,66 @@ export default function MigracaoStep3Migrar() {
                   <X className="w-4 h-4" /> Cancelar
                 </Button>
               </div>
+            ) : isStuck ? (
+              <div className="flex items-center justify-between gap-4 p-3 rounded-lg bg-warning/10 border border-warning/30">
+                <div className="flex items-center gap-3 min-w-0">
+                  <AlertCircle className="w-5 h-5 text-warning shrink-0" />
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-foreground">Migração travada</p>
+                    <p className="text-xs text-muted-foreground">
+                      O processamento parou sem avançar. Retome para continuar do ponto onde ficou.
+                    </p>
+                  </div>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleContinue}
+                  disabled={continueJob.isPending}
+                >
+                  {continueJob.isPending ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <RefreshCw className="w-4 h-4" />
+                  )}
+                  Retomar
+                </Button>
+              </div>
+            ) : isResumable ? (
+              <div className="flex items-center justify-between gap-4 p-3 rounded-lg bg-warning/10 border border-warning/30">
+                <div className="flex items-center gap-3 min-w-0">
+                  <AlertCircle className="w-5 h-5 text-warning shrink-0" />
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-foreground">Última migração interrompida</p>
+                    <p className="text-xs text-muted-foreground">
+                      {job?.error_summary ?? "Ainda existem propostas pendentes no staging."}
+                    </p>
+                  </div>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleContinue}
+                  disabled={continueJob.isPending}
+                >
+                  {continueJob.isPending ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <RefreshCw className="w-4 h-4" />
+                  )}
+                  Continuar
+                </Button>
+              </div>
             ) : isComplete && totalPromoted > 0 ? (
               <div className="flex items-center gap-3 p-3 rounded-lg bg-success/10 border border-success/30">
                 <CheckCircle2 className="w-5 h-5 text-success shrink-0" />
                 <div className="min-w-0">
                   <p className="text-sm font-semibold text-foreground">
-                    Última execução concluída — {totalPromoted.toLocaleString("pt-BR")}{" "}
-                    registros promovidos
+                    Última execução concluída — {totalPromoted.toLocaleString("pt-BR")} registros promovidos
                   </p>
                   {(job?.items_with_errors ?? 0) > 0 && (
                     <p className="text-xs text-warning">
-                      {job?.items_with_errors} com erro ·{" "}
-                      {job?.items_with_warnings ?? 0} avisos
+                      {job?.items_with_errors} com erro · {job?.items_with_warnings ?? 0} avisos
                     </p>
                   )}
                 </div>
@@ -265,19 +270,11 @@ export default function MigracaoStep3Migrar() {
               <div className="flex items-center gap-3 p-3 rounded-lg bg-muted border border-border">
                 <AlertCircle className="w-5 h-5 text-muted-foreground shrink-0" />
                 <p className="text-sm text-muted-foreground">
-                  Nenhum dado em staging. Importe os dados primeiro na{" "}
-                  <Link
-                    to="/admin/migracao-solarmarket"
-                    className="text-primary underline"
-                  >
-                    Step 1
-                  </Link>
-                  .
+                  Nenhum dado em staging. Importe os dados primeiro na <Link to="/admin/migracao-solarmarket" className="text-primary underline">Step 1</Link>.
                 </p>
               </div>
             ) : null}
 
-            {/* Progresso por entidade */}
             <div className="space-y-5">
               <StatRow
                 icon={Users}
@@ -297,37 +294,12 @@ export default function MigracaoStep3Migrar() {
                 promoted={totals?.propostas.promoted ?? 0}
                 total={totals?.propostas.total ?? 0}
               />
-
-              {/* Fases extras (rodam automaticamente após as propostas) */}
-              <div className="pt-3 border-t border-border space-y-5">
-                <PhaseRow
-                  icon={Download}
-                  label="Campos customizados & arquivos"
-                  status={progress?.phases.customFields.status ?? "pending"}
-                  detail={
-                    progress?.phases.customFields.processed
-                      ? `${progress.phases.customFields.processed.toLocaleString("pt-BR")} projetos · ${progress.phases.customFields.files_downloaded.toLocaleString("pt-BR")} arquivos baixados`
-                      : "Aguardando…"
-                  }
-                />
-                <PhaseRow
-                  icon={Package}
-                  label="Enriquecer propostas (kit, financeiro, UCs)"
-                  status={progress?.phases.enrichment.status ?? "pending"}
-                  detail={
-                    progress?.phases.enrichment.processed
-                      ? `${progress.phases.enrichment.processed.toLocaleString("pt-BR")} propostas · ${progress.phases.enrichment.versoes_updated.toLocaleString("pt-BR")} versões · ${progress.phases.enrichment.ucs_inserted.toLocaleString("pt-BR")} UCs`
-                      : "Aguardando…"
-                  }
-                />
-              </div>
             </div>
 
-            {/* CTA */}
             <div className="pt-2 border-t border-border flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
               <div className="text-xs text-muted-foreground">
                 {isRunning
-                  ? `Progresso geral: ${progress?.pctGeral ?? 0}%`
+                  ? `Progresso do lote: ${progress?.pctGeral ?? 0}% · progresso total: ${progress?.pctTotal ?? 0}%`
                   : "Idempotente: registros já migrados são ignorados automaticamente."}
               </div>
               <div className="flex items-center gap-2 flex-wrap">
@@ -352,8 +324,7 @@ export default function MigracaoStep3Migrar() {
                       <AlertDialogTitle>Limpar área de promoção (DEV)</AlertDialogTitle>
                       <AlertDialogDescription>
                         Apaga TODOS os registros canônicos criados pela promoção
-                        (clientes, projetos, propostas, versões) com origem{" "}
-                        <code>solar_market</code>.
+                        (clientes, projetos, propostas, versões) com origem <code>solar_market</code>.
                         <br />
                         <br />
                         Não afeta o staging (<code>sm_*_raw</code>). Use apenas em DEV.
@@ -373,17 +344,21 @@ export default function MigracaoStep3Migrar() {
 
                 <Button
                   size="lg"
-                  onClick={handleStart}
-                  disabled={isRunning || start.isPending || nothingToDo}
+                  onClick={isResumable || isStuck ? handleContinue : handleStart}
+                  disabled={isRunning || start.isPending || continueJob.isPending || nothingToDo}
                   className="gap-2"
                 >
-                  {start.isPending ? (
+                  {start.isPending || continueJob.isPending ? (
                     <>
-                      <Loader2 className="w-4 h-4 animate-spin" /> Iniciando…
+                      <Loader2 className="w-4 h-4 animate-spin" /> {isResumable || isStuck ? "Retomando…" : "Iniciando…"}
                     </>
                   ) : isRunning ? (
                     <>
                       <Loader2 className="w-4 h-4 animate-spin" /> Em execução…
+                    </>
+                  ) : isResumable || isStuck ? (
+                    <>
+                      <RefreshCw className="w-4 h-4" /> Continuar migração
                     </>
                   ) : (
                     <>
@@ -397,7 +372,6 @@ export default function MigracaoStep3Migrar() {
         </Card>
       </motion.div>
 
-      {/* Detalhes do job (compacto) */}
       {job && (
         <Card className="bg-card border-border shadow-sm">
           <CardContent className="p-5 space-y-3">
@@ -411,57 +385,24 @@ export default function MigracaoStep3Migrar() {
                 <p className="text-muted-foreground">Promovidos</p>
                 <p className="font-mono font-bold text-success">{job.items_promoted}</p>
               </div>
-              <button
-                type="button"
-                onClick={() => job.items_with_warnings > 0 && openLogs("warning")}
-                disabled={job.items_with_warnings === 0}
-                className="text-left rounded-md -m-1 p-1 transition-colors hover:bg-warning/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-warning/40 disabled:cursor-default disabled:hover:bg-transparent"
-              >
-                <p className="text-muted-foreground group-hover:text-foreground">
-                  Avisos {job.items_with_warnings > 0 && <span className="text-[10px]">(ver)</span>}
-                </p>
-                <p className="font-mono font-bold text-warning">
-                  {job.items_with_warnings}
-                </p>
-              </button>
-              <button
-                type="button"
-                onClick={() => job.items_with_errors > 0 && openLogs("error")}
-                disabled={job.items_with_errors === 0}
-                className="text-left rounded-md -m-1 p-1 transition-colors hover:bg-destructive/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-destructive/40 disabled:cursor-default disabled:hover:bg-transparent"
-              >
-                <p className="text-muted-foreground">
-                  Erros {job.items_with_errors > 0 && <span className="text-[10px]">(ver)</span>}
-                </p>
-                <p className="font-mono font-bold text-destructive">
-                  {job.items_with_errors}
-                </p>
-              </button>
+              <div>
+                <p className="text-muted-foreground">Avisos</p>
+                <p className="font-mono font-bold text-warning">{job.items_with_warnings}</p>
+              </div>
+              <div>
+                <p className="text-muted-foreground">Erros</p>
+                <p className="font-mono font-bold text-destructive">{job.items_with_errors}</p>
+              </div>
             </div>
-            {(job.items_with_warnings > 0 || job.items_with_errors > 0) && (
-              <div className="pt-1">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="text-xs h-7 px-2"
-                  onClick={() => openLogs("all")}
-                >
-                  Ver todos os logs deste job
-                </Button>
+            {job.error_summary && (
+              <div className="rounded-lg border border-warning/30 bg-warning/10 p-3">
+                <p className="text-xs font-medium text-foreground">Resumo do erro</p>
+                <p className="text-xs text-muted-foreground mt-1 break-words">{job.error_summary}</p>
               </div>
             )}
           </CardContent>
         </Card>
       )}
-
-      <PromotionLogsDialog
-        open={logsOpen}
-        onOpenChange={setLogsOpen}
-        jobId={job?.id ?? null}
-        initialFilter={logsFilter}
-        warningsCount={job?.items_with_warnings ?? 0}
-        errorsCount={job?.items_with_errors ?? 0}
-      />
     </div>
   );
 }
