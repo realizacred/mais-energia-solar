@@ -117,7 +117,7 @@ function PhaseCard({
       </Badge>
     ) : (
       <Badge variant="outline" className="bg-muted text-muted-foreground border-border text-[10px] h-5">
-        Aguardando fase {step - 1}
+        {step === 1 ? "Aguardando início" : `Aguardando fase ${step - 1}`}
       </Badge>
     );
 
