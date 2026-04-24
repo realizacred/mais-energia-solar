@@ -2166,6 +2166,7 @@ export function ProposalWizard() {
     try {
       // Ensure draft is saved (creates project if needed) before generating
       let projetoId = savedProjetoId;
+      let resolvedClienteId: string | null = savedClienteId;
       if (!projetoId) {
         const params = buildPersistParams(
           savedPropostaId || propostaIdFromUrl || null,
@@ -2187,7 +2188,10 @@ export function ProposalWizard() {
             setSavedProjetoId(draftRes.projetoId);
           }
           if (draftRes.dealId) setSavedDealId(draftRes.dealId);
-          if (draftRes.clienteId) setSavedClienteId(draftRes.clienteId);
+          if (draftRes.clienteId) {
+            resolvedClienteId = draftRes.clienteId;
+            setSavedClienteId(draftRes.clienteId);
+          }
         }
         if (!projetoId) {
           const errorDetail = draftRes.status === "error"
@@ -2202,13 +2206,28 @@ export function ProposalWizard() {
         }
       }
 
+      // Fallback: if cliente_id still unknown but project exists, look it up
+      if (!resolvedClienteId && projetoId) {
+        const { data: projRow } = await supabase
+          .from("projetos")
+          .select("cliente_id")
+          .eq("id", projetoId)
+          .maybeSingle();
+        if (projRow?.cliente_id) {
+          resolvedClienteId = projRow.cliente_id;
+          setSavedClienteId(projRow.cliente_id);
+        }
+      }
+
       const isSyntheticLead = !!(effectiveLead as any)?._synthetic;
       const realLeadId = isSyntheticLead ? undefined : effectiveLead!.id;
-      const clienteIdForPayload = isSyntheticLead ? (effectiveLead as any)._clienteId : undefined;
+      // Prefer persisted clienteId (from draft RPC) over wizard-state synthetic flag
+      const clienteIdForPayload = resolvedClienteId
+        || (isSyntheticLead ? (effectiveLead as any)._clienteId : undefined);
       const idempotencyKey = generateIdempotencyKey(realLeadId || clienteIdForPayload || "no-lead");
       const payload: GenerateProposalPayload = {
         lead_id: realLeadId || undefined,
-        cliente_id: clienteIdForPayload,
+        cliente_id: clienteIdForPayload || undefined,
         projeto_id: projetoId,
         grupo: grupoValidation.grupo || (grupo.startsWith("B") ? "B" : "A"),
         idempotency_key: idempotencyKey,
