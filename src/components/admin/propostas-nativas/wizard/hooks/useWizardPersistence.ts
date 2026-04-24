@@ -100,6 +100,7 @@ export interface AtomicPersistResult {
   versaoId?: string;
   projetoId?: string;
   dealId?: string;
+  clienteId?: string;
   newVersionCreated?: boolean;
   reason?: string;
   message?: string;
@@ -348,6 +349,7 @@ async function persistProposalAtomic(
         versaoId: result.versao_id,
         projetoId: result.projeto_id,
         dealId: result.deal_id,
+        clienteId: result.cliente_id,
         newVersionCreated: false,
         message: "Proposta criada com sucesso",
       };
