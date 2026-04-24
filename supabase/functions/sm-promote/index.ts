@@ -1320,6 +1320,79 @@ async function createDealForProject(
   return { dealId, created: true };
 }
 
+async function backfillDealsForProjectsWithoutDeal(
+  admin: SupabaseClient,
+  state: RequestState,
+  jobId: string,
+  tenantId: string,
+  defaultPipeline: PipelineResolution,
+  consultorFallback: ConsultorResolution,
+  limit: number,
+): Promise<void> {
+  const { data: projetos } = await admin
+    .from("projetos")
+    .select("id, cliente_id, consultor_id, codigo, external_id")
+    .eq("tenant_id", tenantId)
+    .in("external_source", [...LEGACY_SM_SOURCES])
+    .is("deal_id", null)
+    .order("created_at", { ascending: true })
+    .limit(limit);
+
+  for (const projeto of (projetos ?? []) as AnyObj[]) {
+    const projetoId = pickStr(projeto.id);
+    const clienteId = pickStr(projeto.cliente_id);
+    if (!projetoId || !clienteId) continue;
+
+    const projectPipeline = await resolvePipelinePerProject(
+      admin,
+      tenantId,
+      pickStr(projeto.external_id),
+      defaultPipeline,
+    );
+
+    const { data: proposta } = await admin
+      .from("propostas_nativas")
+      .select("id, valor_total, titulo, status")
+      .eq("tenant_id", tenantId)
+      .eq("projeto_id", projetoId)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    const proposalRow = (proposta as AnyObj | null) ?? null;
+    const dealRes = await createDealForProject(
+      admin,
+      tenantId,
+      projetoId,
+      clienteId,
+      pickStr(projeto.consultor_id) ?? consultorFallback.fallbackId,
+      projectPipeline,
+      {
+        id: pickStr(proposalRow?.id),
+        valor_total: pickNum(proposalRow?.valor_total),
+        titulo: pickStr(proposalRow?.titulo) ?? pickStr(projeto.codigo),
+        status: pickStr(proposalRow?.status) ?? "rascunho",
+      },
+    );
+
+    if (dealRes.dealId && dealRes.created) {
+      logEventBuffered(state, admin, {
+        jobId,
+        tenantId,
+        severity: "info",
+        step: "backfill.deal",
+        status: "created",
+        message: "Deal retroativamente criado para projeto migrado sem vínculo.",
+        sourceEntityType: "projeto",
+        sourceEntityId: projetoId,
+        canonicalEntityType: "projeto",
+        canonicalEntityId: projetoId,
+        details: { deal_id: dealRes.dealId },
+      });
+    }
+  }
+}
+
 // ─── Resolver de consultor (DA-40: sem hardcode; fallback "Escritório") ─────
 interface ConsultorResolution {
   fallbackId: string | null; // "Consultor Escritório" do tenant (ou primeiro ativo)
