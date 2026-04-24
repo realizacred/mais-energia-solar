@@ -48,6 +48,10 @@ Deno.serve(async (req) => {
     if (!parcela_id) return jsonResponse({ error: "parcela_id é obrigatório" }, 400);
 
     // ── Get Asaas key from integration_configs (secure) ──
+    const supabaseAdmin = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+    );
     const { getAsaasKey } = await import("../_shared/get-asaas-key.ts");
     const asaasKey = await getAsaasKey(supabaseAdmin, tenantId);
 
