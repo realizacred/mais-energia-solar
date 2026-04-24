@@ -15,6 +15,8 @@ import type { ProjetoItem, ProjetoEtapa, ConsultorColumn as ProjetoConsultorColu
 import type { DealKanbanCard, PipelineStage, OwnerColumn } from "@/hooks/useDealPipeline";
 import { PageHeader, LoadingState } from "@/components/ui-kit";
 import { supabase } from "@/integrations/supabase/client";
+import { getCurrentTenantId } from "@/lib/getCurrentTenantId";
+import { useEnsureDefaultProjectPipeline } from "@/hooks/useDefaultPipeline";
 
 import { ProjetoFilters } from "./ProjetoFilters";
 import { ProjetoKanbanStage } from "./ProjetoKanbanStage";
@@ -242,6 +244,7 @@ export function ProjetosManager() {
 
   const [editingEtapasFunilId, setEditingEtapasFunilId] = useState<string | null>(null);
   const [novoProjetoOpen, setNovoProjetoOpen] = useState(false);
+  const ensureProjectPipeline = useEnsureDefaultProjectPipeline();
   const [templateDialogOpen, setTemplateDialogOpen] = useState(false);
   const [defaultConsultorId, setDefaultConsultorId] = useState<string | undefined>();
   const [legendOpen, setLegendOpen] = useState(false);
@@ -448,35 +451,126 @@ export function ProjetosManager() {
             return;
           }
 
-          // Create projeto directly in projetos table
-          const { data: newProjeto, error } = await supabase
-            .from("projetos")
-            .insert({
-              cliente_id: clienteId,
-              consultor_id: data.consultorId || null,
-              funil_id: data.pipelineId || funis[0]?.id || null,
-              etapa_id: data.stageId || etapas.find(e => e.funil_id === (data.pipelineId || funis[0]?.id) && e.ordem === 0)?.id || null,
-              valor_total: data.valor || 0,
-              observacoes: data.descricao || null,
-              status: "criado" as any,
-            } as any)
-            .select("id")
-            .single();
+          try {
+            // ── RB-60/RB-61: cadeia obrigatória cliente → projeto → deal com vínculos duais ──
+            const { tenantId } = await getCurrentTenantId();
 
-          if (error) {
-            toast({ title: "Erro ao criar projeto", description: error.message, variant: "destructive" });
-            return;
-          }
+            // 1) Garantir funil/etapa de PROJETO (mundo execução: projeto_funis/projeto_etapas)
+            let funilId = data.pipelineId || funis[0]?.id || null;
+            let etapaId =
+              data.stageId ||
+              etapas.find((e) => e.funil_id === funilId && e.ordem === 0)?.id ||
+              null;
 
-          if (newProjeto?.id) {
-            // Attach etiqueta if selected
+            if (!funilId || !etapaId) {
+              const ensured = await ensureProjectPipeline.mutateAsync();
+              funilId = ensured.id;
+              const { data: firstEtapa, error: etapaErr } = await supabase
+                .from("projeto_etapas")
+                .select("id")
+                .eq("funil_id", funilId)
+                .order("ordem", { ascending: true })
+                .limit(1)
+                .maybeSingle();
+              if (etapaErr) throw new Error(etapaErr.message);
+              etapaId = firstEtapa?.id || null;
+            }
+
+            if (!funilId || !etapaId) {
+              throw new Error("Não foi possível resolver funil/etapa de projeto.");
+            }
+
+            // 2) Garantir pipeline/stage COMERCIAL (mundo deals: pipelines/pipeline_stages)
+            await supabase.rpc("ensure_tenant_default_pipeline", { _tenant_id: tenantId });
+
+            const { data: comPipe, error: pipeErr } = await supabase
+              .from("pipelines")
+              .select("id")
+              .eq("tenant_id", tenantId)
+              .eq("is_active", true)
+              .order("created_at", { ascending: true })
+              .limit(1)
+              .maybeSingle();
+            if (pipeErr) throw new Error(pipeErr.message);
+            if (!comPipe?.id) throw new Error("Nenhum pipeline comercial disponível.");
+
+            const { data: comStage, error: stageErr } = await supabase
+              .from("pipeline_stages")
+              .select("id")
+              .eq("pipeline_id", comPipe.id)
+              .eq("is_closed", false)
+              .order("position", { ascending: true })
+              .limit(1)
+              .maybeSingle();
+            if (stageErr) throw new Error(stageErr.message);
+            if (!comStage?.id) throw new Error("Nenhuma etapa comercial disponível.");
+
+            // 3) INSERT projeto (com funil_id/etapa_id)
+            const { data: newProjeto, error: projErr } = await supabase
+              .from("projetos")
+              .insert({
+                cliente_id: clienteId,
+                consultor_id: data.consultorId || null,
+                funil_id: funilId,
+                etapa_id: etapaId,
+                valor_total: data.valor || 0,
+                observacoes: data.descricao || null,
+                status: "criado" as any,
+              } as any)
+              .select("id")
+              .single();
+            if (projErr || !newProjeto?.id) {
+              throw new Error(projErr?.message || "Falha ao criar projeto.");
+            }
+
+            // 4) INSERT deal vinculado ao projeto (RB-60: nunca projeto sem deal)
+            const { data: newDeal, error: dealErr } = await supabase
+              .from("deals")
+              .insert({
+                title: data.nome || data.cliente.nome,
+                customer_id: clienteId,
+                owner_id: data.consultorId || null,
+                pipeline_id: comPipe.id,
+                stage_id: comStage.id,
+                projeto_id: newProjeto.id,
+                value: data.valor || 0,
+                status: "open",
+              } as any)
+              .select("id")
+              .single();
+
+            if (dealErr || !newDeal?.id) {
+              // Rollback do projeto: sem deal o projeto fica órfão (RB-60)
+              await supabase.from("projetos").delete().eq("id", newProjeto.id);
+              throw new Error(dealErr?.message || "Falha ao criar deal.");
+            }
+
+            // 5) UPDATE projeto.deal_id
+            const { error: updErr } = await supabase
+              .from("projetos")
+              .update({ deal_id: newDeal.id } as any)
+              .eq("id", newProjeto.id);
+            if (updErr) {
+              console.error("[NovoProjeto] Falha ao vincular deal_id:", updErr.message);
+            }
+
+            // Etiqueta opcional
             if (data.etiqueta) {
               await supabase.from("projeto_etiqueta_rel").insert({
                 projeto_id: newProjeto.id,
                 etiqueta_id: data.etiqueta,
               } as any);
             }
+
+            toast({ title: "Projeto criado", description: "Projeto, deal e vínculos criados com sucesso." });
             setSelectedProjetoId(newProjeto.id);
+          } catch (err: any) {
+            console.error("[NovoProjeto] Erro:", err);
+            toast({
+              title: "Erro ao criar projeto",
+              description: err?.message || "Falha desconhecida.",
+              variant: "destructive",
+            });
           }
         }}
       />
