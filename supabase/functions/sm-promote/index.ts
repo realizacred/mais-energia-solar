@@ -1962,9 +1962,15 @@ async function promoteOneProposalRow(
       });
     }
 
+    // 2.8) Resolver pipeline POR PROJETO (usa sm_funil_pipeline_map quando existir).
+    // Se nada estiver mapeado, cai no `pipeline` default (Comercial padrão).
+    const pipelinePerProject = await resolvePipelinePerProject(
+      admin, tenantId, projectExtId, pipeline,
+    );
+
     // 3) Projeto (etapa resolvida pelo status canônico mapeado)
     // LOG OBRIGATÓRIO antes de promoteProjeto — prova que o fluxo não para no cliente
-    const stageIdResolved = resolveStageForStatus(pipeline, statusInfo.status);
+    const stageIdResolved = resolveStageForStatus(pipelinePerProject, statusInfo.status);
     await logEvent(admin, {
       jobId, tenantId, severity: "info", step: "promote_projeto_start", status: "started",
       message: "Iniciando promoção do projeto.",
@@ -1972,8 +1978,9 @@ async function promoteOneProposalRow(
       details: {
         cliente_id: cli.id,
         consultor_id: consultorRes.id,
-        funil_id: pipeline.funilId,
-        etapa_id: stageIdResolved ?? pipeline.etapaId,
+        funil_id: pipelinePerProject.funilId,
+        etapa_id: stageIdResolved ?? pipelinePerProject.etapaId,
+        deal_pipeline_id: pipelinePerProject.dealPipelineId,
         canonical_status: statusInfo.status,
       },
     });
@@ -1981,7 +1988,7 @@ async function promoteOneProposalRow(
     let proj: { id: string; created: boolean };
     try {
       proj = await promoteProjeto(
-        admin, tenantId, jobId, rawProjeto, cli.id, pipeline, consultorRes.id, statusInfo.status,
+        admin, tenantId, jobId, rawProjeto, cli.id, pipelinePerProject, consultorRes.id, statusInfo.status,
       );
     } catch (projErr) {
       const projMsg = projErr instanceof Error ? projErr.message : String(projErr);
@@ -1993,8 +2000,8 @@ async function promoteOneProposalRow(
         details: {
           cliente_id: cli.id,
           consultor_id: consultorRes.id,
-          funil_id: pipeline.funilId,
-          etapa_id: stageIdResolved ?? pipeline.etapaId,
+          funil_id: pipelinePerProject.funilId,
+          etapa_id: stageIdResolved ?? pipelinePerProject.etapaId,
           canonical_status: statusInfo.status,
         },
       });
@@ -2047,6 +2054,52 @@ async function promoteOneProposalRow(
       canonicalEntityType: "proposta", canonicalEntityId: prop.propostaId,
       details: { versao_id: prop.versaoId, status_mapped: statusInfo.status, status_source: statusInfo.raw },
     });
+
+    // 6) DEAL canônico (Comercial). Idempotente: se projeto já tem deal_id, reusa.
+    //    Não-fatal: se falhar, log warning e segue (proposta+projeto já criados).
+    try {
+      const dealRes = await createDealForProject(
+        admin, tenantId, proj.id, cli.id, consultorRes.id, pipelinePerProject,
+        {
+          id: prop.propostaId,
+          valor_total: propNorm.valor_total,
+          titulo: propNorm.nome,
+          status: statusInfo.status,
+        },
+      );
+      if (dealRes.dealId && dealRes.created) {
+        await logEvent(admin, {
+          jobId, tenantId, severity: "info", step: "promote.deal", status: "created",
+          message: `Deal criado e vinculado ao projeto.`,
+          sourceEntityType: "proposta", sourceEntityId: propExtId,
+          canonicalEntityType: "projeto", canonicalEntityId: proj.id,
+          details: { deal_id: dealRes.dealId, pipeline_id: pipelinePerProject.dealPipelineId },
+        });
+      } else if (dealRes.dealId && !dealRes.created) {
+        // já existia: silencioso
+      } else {
+        state.counters.warnings++;
+        await logEvent(admin, {
+          jobId, tenantId, severity: "warning", step: "promote.deal", status: "skipped",
+          message: `Deal não criado: ${dealRes.reason ?? "motivo desconhecido"}.`,
+          sourceEntityType: "projeto", sourceEntityId: projectExtId,
+          canonicalEntityType: "projeto", canonicalEntityId: proj.id,
+          errorCode: "DEAL_NOT_CREATED", errorOrigin: MODULE,
+          details: { reason: dealRes.reason, pipeline_id: pipelinePerProject.dealPipelineId },
+        });
+      }
+    } catch (dealErr) {
+      state.counters.warnings++;
+      const dmsg = dealErr instanceof Error ? dealErr.message : String(dealErr);
+      console.error(`[${MODULE}] createDealForProject error:`, dmsg);
+      await logEvent(admin, {
+        jobId, tenantId, severity: "warning", step: "promote.deal", status: "error",
+        message: `Falha ao criar deal: ${dmsg}`,
+        sourceEntityType: "projeto", sourceEntityId: projectExtId,
+        canonicalEntityType: "projeto", canonicalEntityId: proj.id,
+        errorCode: "DEAL_CREATE_FAILED", errorOrigin: MODULE,
+      });
+    }
 
     state.counters.promoted++;
     return "promoted";
