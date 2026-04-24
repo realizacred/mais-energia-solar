@@ -37,6 +37,7 @@ const CRON_SECRET = "sm-resume-cron-v1"; // mesmo string usado em sm_resume_stuc
 
 const SOURCE_LIST = ["solarmarket", "solar_market"] as const;
 const CHUNK_BATCH = 300;
+const MIN_CHUNK_BATCH = 50;
 const SELF_URL = `${SUPABASE_URL}/functions/v1/sm-migrate-chunk`;
 
 function isGatewayTimeoutLike(error: string | undefined): boolean {
