@@ -120,7 +120,7 @@ async function resolveUser(req: Request) {
   return { userId: user.id, tenantId: profile.tenant_id, adminClient };
 }
 
-async function logEvent(adminClient: ReturnType<typeof createClient>, params: {
+async function logEvent(adminClient: any, params: {
   tenantId: string; userId?: string; action: string; status: string;
   request?: unknown; response?: unknown; errorMessage?: string;
   itemsProcessed?: number; itemsCreated?: number; itemsUpdated?: number; itemsSkipped?: number;
@@ -143,7 +143,7 @@ async function logEvent(adminClient: ReturnType<typeof createClient>, params: {
 
 // ── Token management ──
 
-async function getOrCreateIntegration(adminClient: ReturnType<typeof createClient>, tenantId: string) {
+async function getOrCreateIntegration(adminClient: any, tenantId: string) {
   const { data } = await adminClient.from("integrations")
     .select("id, status, connected_account_email, scopes, metadata")
     .eq("tenant_id", tenantId).eq("provider", PROVIDER).single();
@@ -154,16 +154,17 @@ async function getOrCreateIntegration(adminClient: ReturnType<typeof createClien
   return created;
 }
 
-async function getValidAccessToken(adminClient: ReturnType<typeof createClient>, integrationId: string, tenantId: string): Promise<string | null> {
-  const { data: cred } = await adminClient.from("integration_credentials")
+async function getValidAccessToken(adminClient: any, integrationId: string, tenantId: string): Promise<string | null> {
+  const { data: credRaw } = await adminClient.from("integration_credentials")
     .select("*").eq("integration_id", integrationId).order("created_at", { ascending: false }).limit(1).single();
+  const cred = credRaw as Record<string, any> | null;
   if (!cred) return null;
 
-  if (cred.expires_at && new Date(cred.expires_at) > new Date(Date.now() + 60_000)) {
-    return await safeDecryptToken(cred.access_token_encrypted);
+  if (cred.expires_at && new Date(String(cred.expires_at)) > new Date(Date.now() + 60_000)) {
+    return await safeDecryptToken((cred.access_token_encrypted as string | null) ?? null);
   }
 
-  const refreshToken = await safeDecryptToken(cred.refresh_token_encrypted);
+  const refreshToken = await safeDecryptToken((cred.refresh_token_encrypted as string | null) ?? null);
   if (!refreshToken) return null;
 
   const clientId = Deno.env.get("GOOGLE_CLIENT_ID");
@@ -181,7 +182,7 @@ async function getValidAccessToken(adminClient: ReturnType<typeof createClient>,
 
     const newExpires = new Date(Date.now() + (data.expires_in || 3600) * 1000).toISOString();
     const encNew = await encryptToken(data.access_token);
-    await adminClient.from("integration_credentials").update({ access_token_encrypted: encNew, expires_at: newExpires, rotated_at: new Date().toISOString() }).eq("id", cred.id);
+    await adminClient.from("integration_credentials").update({ access_token_encrypted: encNew, expires_at: newExpires, rotated_at: new Date().toISOString() }).eq("id", String(cred.id));
     await logEvent(adminClient, { tenantId, action: "token_refresh", status: "success" });
     return data.access_token;
   } catch { return null; }
@@ -545,9 +546,10 @@ async function handlePullSync(req: Request) {
       // Upsert in chunks to avoid payload limits
       for (let i = 0; i < updateIdentities.length; i += CHUNK) {
         const chunk = updateIdentities.slice(i, i + CHUNK);
-        await adminClient.from("contact_identities")
-          .upsert(chunk, { onConflict: "tenant_id,identity_type,identity_value" })
-          .catch(() => {}); // Silently handle constraint conflicts (same as original)
+        try {
+          await adminClient.from("contact_identities")
+            .upsert(chunk, { onConflict: "tenant_id,identity_type,identity_value" });
+        } catch {}
       }
     }
 
@@ -602,9 +604,10 @@ async function handlePullSync(req: Request) {
     if (createIdentities.length > 0) {
       for (let i = 0; i < createIdentities.length; i += CHUNK) {
         const chunk = createIdentities.slice(i, i + CHUNK);
-        await adminClient.from("contact_identities")
-          .upsert(chunk, { onConflict: "tenant_id,identity_type,identity_value" })
-          .catch(() => {}); // Silently handle constraint conflicts (same as original)
+        try {
+          await adminClient.from("contact_identities")
+            .upsert(chunk, { onConflict: "tenant_id,identity_type,identity_value" });
+        } catch {}
       }
     }
 
@@ -687,9 +690,11 @@ async function handlePushUpsert(req: Request) {
         external_refs: { ...externalRefs, google: { resourceName: newResourceName, etag: result.etag } },
       }).eq("id", contact_id);
 
-      await adminClient.from("contact_identities").upsert({
-        tenant_id: tenantId, contact_id, identity_type: "google_resource", identity_value: newResourceName, is_primary: true,
-      }, { onConflict: "tenant_id,identity_type,identity_value" }).catch(() => {});
+      try {
+        await adminClient.from("contact_identities").upsert({
+          tenant_id: tenantId, contact_id, identity_type: "google_resource", identity_value: newResourceName, is_primary: true,
+        }, { onConflict: "tenant_id,identity_type,identity_value" });
+      } catch {}
     }
 
     await logEvent(adminClient, { tenantId, userId, action: "push_upsert", status: "success", response: { resourceName: resourceName || result.resourceName } });

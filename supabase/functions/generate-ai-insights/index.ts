@@ -133,7 +133,7 @@ async function generateInsightForTenant(
 
   const leadsByStatus: Record<string, number> = {};
   leads.forEach((l: any) => {
-    const statusName = l.status_id ? statusMap.get(l.status_id) || "Sem status" : "Sem status";
+    const statusName = String(l.status_id ? statusMap.get(l.status_id) || "Sem status" : "Sem status");
     leadsByStatus[statusName] = (leadsByStatus[statusName] || 0) + 1;
   });
 
@@ -154,7 +154,7 @@ async function generateInsightForTenant(
   const followUpsAtrasados = followUpsPendentes.filter((a: any) => new Date(a.data_agendada) < now);
 
   const leadsParados = leads.filter((l: any) => {
-    const score = scoreMap.get(l.id);
+    const score = scoreMap.get(l.id) as { nivel?: string } | undefined;
     if (!score || score.nivel !== "hot") return false;
     const lastContact = l.ultimo_contato ? new Date(l.ultimo_contato) : new Date(l.created_at);
     const daysSince = Math.floor((now.getTime() - lastContact.getTime()) / (1000 * 60 * 60 * 24));
@@ -195,7 +195,7 @@ ${Object.entries(leadsByStatus).map(([status, count]) => `- ${status}: ${count} 
 
 ### LEADS HOT PARADOS (sem contato há >3 dias)
 ${leadsParados.slice(0, 10).map((l: any) => {
-  const score = scoreMap.get(l.id);
+  const score = scoreMap.get(l.id) as { score?: number | string } | undefined;
   return `- ${l.nome} (${l.cidade}/${l.estado}) - Score: ${score?.score || "N/A"} - ${l.media_consumo}kWh - Vendedor: ${l.vendedor || "N/A"}`;
 }).join("\n") || "Nenhum"}
 
@@ -548,9 +548,10 @@ Deno.serve(async (req) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error) {
+    const err = error as Error;
     console.error("[generate-ai-insights] Error:", error);
     return new Response(
-      JSON.stringify({ error: error.message || "Erro interno" }),
+      JSON.stringify({ error: err.message || "Erro interno" }),
       {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },

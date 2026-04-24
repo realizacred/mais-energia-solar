@@ -45,23 +45,22 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Validate JWT using getClaims (doesn't depend on server session)
+    // Validate JWT using getUser with explicit bearer token
     const userClient = createClient(supabaseUrl, supabaseAnonKey, {
       global: { headers: { Authorization: authHeader } },
     });
 
-    const { data: claimsData, error: claimsError } = await userClient.auth.getClaims(token);
-    
-    if (claimsError || !claimsData?.claims) {
-      console.error("Token validation failed:", claimsError?.message);
+    const { data: userData, error: userError } = await userClient.auth.getUser(token);
+
+    if (userError || !userData?.user) {
+      console.error("Token validation failed:", userError?.message);
       return new Response(
         JSON.stringify({ error: "Unauthorized: Invalid token" }),
         { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    const requestingUserId = claimsData.claims.sub as string;
-    console.log("Authenticated user:", requestingUserId);
+    const requestingUserId = userData.user.id;
 
     // Check if requesting user has admin role
     const { data: hasAdminRole, error: roleError } = await userClient.rpc("has_role", {
@@ -93,7 +92,6 @@ Deno.serve(async (req) => {
       .maybeSingle();
 
     const tenantId = adminProfile?.tenant_id || null;
-    console.log("Resolved tenant_id:", tenantId);
 
     // Parse request body
     const { email, password, nome, role = "consultor", telefone }: CreateUserRequest = await req.json();
@@ -145,8 +143,6 @@ Deno.serve(async (req) => {
       );
     }
 
-    console.log("User created:", newUser.user.id);
-
     // Create profile for the new user
     const { error: profileError } = await adminClient
       .from("profiles")
@@ -190,12 +186,8 @@ Deno.serve(async (req) => {
 
       if (consultorError) {
         console.error("Consultor record creation error:", consultorError.message);
-      } else {
-        console.log("Consultor record auto-created for user:", newUser.user.id);
       }
     }
-
-    console.log(`User created successfully: ${newUser.user.id} with role: ${role}`);
 
     return new Response(
       JSON.stringify({

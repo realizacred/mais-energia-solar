@@ -1,4 +1,4 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { sanitizeError } from "../_shared/error-utils.ts";
 
 const corsHeaders = {
@@ -9,11 +9,11 @@ const corsHeaders = {
 
 // ── Helpers ─────────────────────────────────────────────────
 
-function getSupabaseAdmin() {
+function getSupabaseAdmin(): any {
   return createClient(
     Deno.env.get("SUPABASE_URL")!,
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
-  );
+  ) as any;
 }
 
 async function verifySignature(
@@ -40,7 +40,7 @@ async function verifySignature(
 
 // ── Read Meta config from integration_configs (DB, not env) ──
 async function getMetaConfig(
-  supabase: ReturnType<typeof createClient>
+  supabase: any
 ): Promise<{ appSecret: string | null; verifyToken: string | null }> {
   const { data } = await supabase
     .from("integration_configs")
@@ -60,7 +60,7 @@ async function getMetaConfig(
 
 // ── Resolve tenant from webhook endpoint registry ───────────
 async function resolveTenantFromPageId(
-  supabase: ReturnType<typeof createClient>,
+  supabase: any,
   pageId: string
 ): Promise<string | null> {
   const { data } = await supabase
@@ -103,7 +103,7 @@ async function resolveTenantFromPageId(
 
 // ── Persist validation failures for audit ───────────────────
 async function persistValidationFailure(
-  supabase: ReturnType<typeof createClient>,
+  supabase: any,
   reason: string,
   context: Record<string, unknown>,
 ) {
@@ -129,7 +129,7 @@ interface CrmLeadInput {
 }
 
 async function createCrmLead(
-  supabase: ReturnType<typeof createClient>,
+  supabase: any,
   input: CrmLeadInput,
 ) {
   const { tenantId, fbLeadId, formId, pageId, adId, leadgenValue } = input;
@@ -144,7 +144,7 @@ async function createCrmLead(
     .maybeSingle();
 
   if (!automation) {
-    console.log(`[FB-WEBHOOK][CRM] No active automation for tenant ${tenantId} — skipping CRM creation`);
+    console.warn(`[FB-WEBHOOK][CRM] No active automation for tenant ${tenantId} — skipping CRM creation`);
     await supabase.from("facebook_leads")
       .update({ processing_status: "no_automation" })
       .eq("facebook_lead_id", fbLeadId);
@@ -159,7 +159,7 @@ async function createCrmLead(
     .maybeSingle();
 
   if (existing) {
-    console.log(`[FB-WEBHOOK][CRM] Lead already exists for fb_lead ${fbLeadId}`);
+    console.warn(`[FB-WEBHOOK][CRM] Lead already exists for fb_lead ${fbLeadId}`);
     await supabase.from("facebook_leads")
       .update({ processing_status: "duplicate", processed_at: new Date().toISOString(), lead_id: existing.id })
       .eq("facebook_lead_id", fbLeadId);
@@ -256,7 +256,7 @@ async function createCrmLead(
     })
     .eq("facebook_lead_id", fbLeadId);
 
-  console.log(`[FB-WEBHOOK][CRM] Lead created in CRM: ${newLead.id} for fb_lead ${fbLeadId}`);
+  console.warn(`[FB-WEBHOOK][CRM] Lead created in CRM: ${newLead.id} for fb_lead ${fbLeadId}`);
 }
 
 // ── Main handler ────────────────────────────────────────────
@@ -279,7 +279,7 @@ Deno.serve(async (req) => {
     const expectedToken = verifyToken || "mais_energia_fb_verify";
 
     if (mode === "subscribe" && token === expectedToken) {
-      console.log("[FB-WEBHOOK] Hub challenge verified");
+      console.warn("[FB-WEBHOOK] Hub challenge verified");
       return new Response(challenge, {
         status: 200,
         headers: { ...corsHeaders, "Content-Type": "text/plain" },
@@ -385,7 +385,7 @@ Deno.serve(async (req) => {
           errorCount++;
         } else {
           processedCount++;
-          console.log(`[FB-WEBHOOK] Lead ${fbLeadId} stored`);
+          console.warn(`[FB-WEBHOOK] Lead ${fbLeadId} stored`);
 
           // ── Create CRM lead automatically ─────────────────
           try {
