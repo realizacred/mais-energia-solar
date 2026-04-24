@@ -18,7 +18,7 @@
  *  - Rollback manual: se qualquer passo falhar após criar o pipeline, desfaz
  *    pipeline_stages + pipelines + projeto_etapas + projeto_funis (espelho).
  */
-import { createClient } from "npm:@supabase/supabase-js@2.45.0";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",

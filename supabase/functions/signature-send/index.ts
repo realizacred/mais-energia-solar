@@ -10,8 +10,8 @@
  * Auto-signers: Contratante (client) + Contratada (representative from brand_settings)
  */
 
-import { createClient } from "npm:@supabase/supabase-js@2";
-import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+import { corsHeaders } from "https://esm.sh/@supabase/supabase-js@2.49.1/cors";
 import { getSignatureAdapter } from "../_shared/signatureAdapters.ts";
 
 Deno.serve(async (req) => {

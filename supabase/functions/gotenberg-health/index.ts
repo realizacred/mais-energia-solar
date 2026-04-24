@@ -3,7 +3,7 @@
  * Tests Gotenberg connectivity via /health endpoint.
  * With circuit breaker: after 3 consecutive failures, marks as "unhealthy" for 5min.
  */
-import { createClient } from "npm:@supabase/supabase-js@2";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import {
   isCircuitOpen,
   recordFailure,

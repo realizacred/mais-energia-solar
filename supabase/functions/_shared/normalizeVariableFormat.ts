@@ -1,4 +1,4 @@
-import { strFromU8, strToU8, unzipSync, zipSync } from "npm:fflate@0.8.2";
+import { strFromU8, strToU8, unzipSync, zipSync } from "https://esm.sh/fflate@0.8.2";
 
 /**
  * Robust defragmentation of DOCX XML runs.

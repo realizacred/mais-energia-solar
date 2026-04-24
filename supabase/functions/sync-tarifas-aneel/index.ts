@@ -1,7 +1,7 @@
 // ──────────────────────────────────────────────────────────────────────────────
 // sync-tarifas-aneel v7.0 — Versioning + Chunking + Governance
 // ──────────────────────────────────────────────────────────────────────────────
-import { createClient } from "npm:@supabase/supabase-js@2.39.3";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
