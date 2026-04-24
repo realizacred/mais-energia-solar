@@ -10,6 +10,8 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
+import { formatDistanceToNow } from "date-fns";
+import { ptBR } from "date-fns/locale";
 import {
   AlertCircle,
   ArrowLeft,
@@ -42,6 +44,28 @@ import {
 import { useChunkedMigration } from "@/hooks/useChunkedMigration";
 import { useResetMigratedData } from "@/hooks/useResetMigratedData";
 import { toast } from "@/hooks/use-toast";
+
+function formatRelativeTimestamp(value: string | null) {
+  if (!value) return "sem atividade registrada";
+  return formatDistanceToNow(new Date(value), { addSuffix: true, locale: ptBR });
+}
+
+function formatJobStatusLabel(status: string | null | undefined) {
+  switch (status) {
+    case "running":
+      return "Em execução";
+    case "completed":
+      return "Concluído";
+    case "completed_with_warnings":
+      return "Concluído com avisos";
+    case "failed":
+      return "Falhou";
+    case "cancelled":
+      return "Cancelado";
+    default:
+      return "Sem job";
+  }
+}
 
 function StatRow({
   icon: Icon,
@@ -144,7 +168,11 @@ export default function MigracaoStep3Migrar() {
     (totals?.clientes.promoted ?? 0) +
     (totals?.projetos.promoted ?? 0) +
     (totals?.propostas.promoted ?? 0);
+  const totalPending = Math.max(0, totalStaging - totalPromoted);
   const nothingToDo = totalStaging === 0;
+  const lastActivityLabel = formatRelativeTimestamp(progress?.lastActivityAt ?? null);
+  const statusLabel = formatJobStatusLabel(job?.status);
+  const executionState = progress?.executionState;
 
   return (
     <div className="container mx-auto p-4 sm:p-6 lg:p-8 space-y-6 max-w-[1100px]">
@@ -181,99 +209,117 @@ export default function MigracaoStep3Migrar() {
               <div className="flex items-center gap-3 text-sm text-muted-foreground">
                 <Loader2 className="w-4 h-4 animate-spin" /> Carregando estado da migração…
               </div>
-            ) : isRunning ? (
+            ) : executionState === "running_stalled" ? (
+              <div className="flex flex-col gap-3 p-3 rounded-lg bg-warning/10 border border-warning/30 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex items-start gap-3 min-w-0">
+                  <AlertCircle className="w-5 h-5 text-warning shrink-0 mt-0.5" />
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-foreground">Sem atividade recente no job</p>
+                    <p className="text-xs text-muted-foreground">
+                      Job {job?.id.slice(0, 8)}… continua marcado como em execução, mas o último avanço foi {lastActivityLabel}.
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Se esse tempo continuar aumentando, use retomar para forçar o próximo lote.
+                    </p>
+                  </div>
+                </div>
+                <Button variant="outline" size="sm" onClick={handleContinue} disabled={continueJob.isPending}>
+                  {continueJob.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
+                  Retomar agora
+                </Button>
+              </div>
+            ) : executionState === "running_active" ? (
               <div className="flex items-center justify-between gap-4 p-3 rounded-lg bg-info/10 border border-info/30">
                 <div className="flex items-center gap-3 min-w-0">
                   <Loader2 className="w-5 h-5 animate-spin text-info shrink-0" />
                   <div className="min-w-0">
-                    <p className="text-sm font-semibold text-foreground">Migração em andamento</p>
+                    <p className="text-sm font-semibold text-foreground">Migração rodando agora</p>
                     <p className="text-xs text-muted-foreground">
-                      Job {job?.id.slice(0, 8)}… • {job?.items_processed ?? 0} de {job?.total_items ?? 0} processados.
-                      Pode fechar a aba.
+                      Job {job?.id.slice(0, 8)}… • {job?.items_processed ?? 0} de {job?.total_items ?? 0} processados • última atividade {lastActivityLabel}.
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Pode fechar a aba: a execução continua no servidor e esta tela só acompanha o andamento real.
                     </p>
                   </div>
                 </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleCancel}
-                  disabled={cancel.isPending}
-                >
+                <Button variant="outline" size="sm" onClick={handleCancel} disabled={cancel.isPending}>
                   <X className="w-4 h-4" /> Cancelar
                 </Button>
               </div>
-            ) : isStuck ? (
-              <div className="flex items-center justify-between gap-4 p-3 rounded-lg bg-warning/10 border border-warning/30">
-                <div className="flex items-center gap-3 min-w-0">
-                  <AlertCircle className="w-5 h-5 text-warning shrink-0" />
-                  <div className="min-w-0">
-                    <p className="text-sm font-semibold text-foreground">Migração travada</p>
-                    <p className="text-xs text-muted-foreground">
-                      O processamento parou sem avançar. Retome para continuar do ponto onde ficou.
-                    </p>
-                  </div>
-                </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleContinue}
-                  disabled={continueJob.isPending}
-                >
-                  {continueJob.isPending ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <RefreshCw className="w-4 h-4" />
-                  )}
-                  Retomar
-                </Button>
-              </div>
-            ) : isResumable ? (
+            ) : executionState === "resumable" ? (
               <div className="flex items-center justify-between gap-4 p-3 rounded-lg bg-warning/10 border border-warning/30">
                 <div className="flex items-center gap-3 min-w-0">
                   <AlertCircle className="w-5 h-5 text-warning shrink-0" />
                   <div className="min-w-0">
                     <p className="text-sm font-semibold text-foreground">Última migração interrompida</p>
                     <p className="text-xs text-muted-foreground">
-                      {job?.error_summary ?? "Ainda existem propostas pendentes no staging."}
+                      {job?.error_summary ?? "Ainda existem registros pendentes para migrar."}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Última atividade {lastActivityLabel} • faltam {totalPending.toLocaleString("pt-BR")} registros para alcançar o staging atual.
                     </p>
                   </div>
                 </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleContinue}
-                  disabled={continueJob.isPending}
-                >
-                  {continueJob.isPending ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <RefreshCw className="w-4 h-4" />
-                  )}
+                <Button variant="outline" size="sm" onClick={handleContinue} disabled={continueJob.isPending}>
+                  {continueJob.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
                   Continuar
                 </Button>
               </div>
-            ) : isComplete && totalPromoted > 0 ? (
+            ) : executionState === "completed" && totalPromoted > 0 ? (
               <div className="flex items-center gap-3 p-3 rounded-lg bg-success/10 border border-success/30">
                 <CheckCircle2 className="w-5 h-5 text-success shrink-0" />
                 <div className="min-w-0">
-                  <p className="text-sm font-semibold text-foreground">
-                    Última execução concluída — {totalPromoted.toLocaleString("pt-BR")} registros promovidos
+                  <p className="text-sm font-semibold text-foreground">Migração concluída para o staging atual</p>
+                  <p className="text-xs text-muted-foreground">
+                    {totalPromoted.toLocaleString("pt-BR")} registros já existem no CRM e a última atividade foi {lastActivityLabel}.
                   </p>
-                  {(job?.items_with_errors ?? 0) > 0 && (
+                  {(job?.items_with_errors ?? 0) > 0 || (job?.items_with_warnings ?? 0) > 0 ? (
                     <p className="text-xs text-warning">
-                      {job?.items_with_errors} com erro · {job?.items_with_warnings ?? 0} avisos
+                      {job?.items_with_errors ?? 0} erros · {job?.items_with_warnings ?? 0} avisos na última execução
                     </p>
-                  )}
+                  ) : null}
                 </div>
               </div>
-            ) : nothingToDo ? (
+            ) : executionState === "empty" ? (
               <div className="flex items-center gap-3 p-3 rounded-lg bg-muted border border-border">
                 <AlertCircle className="w-5 h-5 text-muted-foreground shrink-0" />
                 <p className="text-sm text-muted-foreground">
                   Nenhum dado em staging. Importe os dados primeiro na <Link to="/admin/migracao-solarmarket" className="text-primary underline">Step 1</Link>.
                 </p>
               </div>
-            ) : null}
+            ) : (
+              <div className="flex items-center gap-3 p-3 rounded-lg bg-primary/10 border border-primary/20">
+                <Rocket className="w-5 h-5 text-primary shrink-0" />
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-foreground">Pronto para iniciar a migração</p>
+                  <p className="text-xs text-muted-foreground">
+                    Há {totalStaging.toLocaleString("pt-BR")} registros no staging e {totalPromoted.toLocaleString("pt-BR")} já promovidos no CRM.
+                  </p>
+                </div>
+              </div>
+            )}
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div className="rounded-lg border border-border bg-muted/40 p-3">
+                <p className="text-xs text-muted-foreground">No staging</p>
+                <p className="text-2xl font-bold tracking-tight text-foreground">{totalStaging.toLocaleString("pt-BR")}</p>
+              </div>
+              <div className="rounded-lg border border-border bg-muted/40 p-3">
+                <p className="text-xs text-muted-foreground">Já no CRM</p>
+                <p className="text-2xl font-bold tracking-tight text-foreground">{totalPromoted.toLocaleString("pt-BR")}</p>
+              </div>
+              <div className="rounded-lg border border-border bg-muted/40 p-3">
+                <p className="text-xs text-muted-foreground">Ainda pendentes</p>
+                <p className="text-2xl font-bold tracking-tight text-foreground">{totalPending.toLocaleString("pt-BR")}</p>
+              </div>
+            </div>
+
+            <div className="rounded-lg border border-border bg-muted/30 p-3">
+              <p className="text-xs font-medium text-foreground">Como ler os números</p>
+              <p className="text-xs text-muted-foreground mt-1">
+                Cada linha compara o total encontrado no staging com o total já criado no CRM. Se o número da direita ainda estiver maior, essa entidade continua pendente.
+              </p>
+            </div>
 
             <div className="space-y-5">
               <StatRow
@@ -299,8 +345,8 @@ export default function MigracaoStep3Migrar() {
             <div className="pt-2 border-t border-border flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
               <div className="text-xs text-muted-foreground">
                 {isRunning
-                  ? `Progresso do job atual: ${progress?.pctGeral ?? 0}% · propostas migradas no staging: ${progress?.pctTotal ?? 0}%`
-                  : "Idempotente: registros já migrados são ignorados automaticamente."}
+                  ? `Job atual: ${progress?.pctGeral ?? 0}% do lote processado • última atividade ${lastActivityLabel} • staging de propostas em ${progress?.pctTotal ?? 0}%`
+                  : `Status atual: ${statusLabel} • última atividade ${lastActivityLabel}. Registros já migrados são ignorados automaticamente.`}
               </div>
               <div className="flex items-center gap-2 flex-wrap">
                 <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
@@ -379,19 +425,37 @@ export default function MigracaoStep3Migrar() {
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
               <div>
                 <p className="text-muted-foreground">Status</p>
-                <p className="font-mono font-bold text-foreground">{job.status}</p>
+                <p className="font-mono font-bold text-foreground">{statusLabel}</p>
               </div>
               <div>
-                <p className="text-muted-foreground">Processados no job</p>
-                <p className="font-mono font-bold text-success">{job.items_promoted}</p>
+                <p className="text-muted-foreground">Última atividade</p>
+                <p className="font-mono font-bold text-foreground">{lastActivityLabel}</p>
               </div>
               <div>
+                <p className="text-muted-foreground">Lote processado</p>
+                <p className="font-mono font-bold text-success">
+                  {job.items_processed} / {job.total_items}
+                </p>
+              </div>
+              <div>
+                <p className="text-muted-foreground">Criados no CRM neste job</p>
+                <p className="font-mono font-bold text-foreground">{job.items_promoted}</p>
+              </div>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+              <div className="rounded-lg border border-border bg-muted/30 p-3">
                 <p className="text-muted-foreground">Avisos</p>
                 <p className="font-mono font-bold text-warning">{job.items_with_warnings}</p>
               </div>
-              <div>
+              <div className="rounded-lg border border-border bg-muted/30 p-3">
                 <p className="text-muted-foreground">Erros</p>
                 <p className="font-mono font-bold text-destructive">{job.items_with_errors}</p>
+              </div>
+              <div className="rounded-lg border border-border bg-muted/30 p-3">
+                <p className="text-muted-foreground">Pulados / bloqueados</p>
+                <p className="font-mono font-bold text-foreground">
+                  {job.items_skipped} / {job.items_blocked}
+                </p>
               </div>
             </div>
             {job.error_summary && (
