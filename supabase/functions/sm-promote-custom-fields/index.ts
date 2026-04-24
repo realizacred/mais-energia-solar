@@ -66,7 +66,7 @@ function sanitizeFilename(url: string): string {
 }
 
 async function downloadAndStore(
-  supabase: ReturnType<typeof createClient>,
+  supabase: any,
   url: string,
   storagePath: string,
 ): Promise<{ ok: boolean; path: string; reason?: string }> {
@@ -242,7 +242,7 @@ Deno.serve(async (req) => {
         if (def.field_type === "file") {
           const urls = rawValue
             .split(/\s*\|\s*/)
-            .filter((u) => /^https?:\/\//i.test(u));
+            .filter((u: string) => /^https?:\/\//i.test(u));
           if (urls.length === 0) continue;
           const localPaths: string[] = [];
           for (const url of urls) {

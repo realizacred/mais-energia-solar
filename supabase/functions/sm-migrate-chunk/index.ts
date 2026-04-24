@@ -67,7 +67,7 @@ async function resolveUserContext(authHeader: string | null) {
 }
 
 async function countBacklog(
-  admin: ReturnType<typeof createClient>,
+  admin: any,
   tenantId: string,
 ): Promise<number> {
   const { count: total } = await admin
@@ -168,7 +168,7 @@ async function callSmPromoteOnce(
  * Retorna { has_more, counters, error } SEM montar Response.
  */
 async function processStep(
-  admin: ReturnType<typeof createClient>,
+  admin: any,
   tenantId: string,
   masterJobId: string,
 ): Promise<{
@@ -181,7 +181,7 @@ async function processStep(
   finished?: boolean;
 }> {
   // Verifica job ainda ativo
-  const { data: master, error: masterErr } = await admin
+  const { data: masterRaw, error: masterErr } = await admin
     .from("solarmarket_promotion_jobs")
     .select(
       "id, status, total_items, items_processed, items_promoted, items_with_errors, items_with_warnings, items_blocked, items_skipped, metadata",
@@ -189,6 +189,9 @@ async function processStep(
     .eq("id", masterJobId)
     .eq("tenant_id", tenantId)
     .maybeSingle();
+  // Cast: typecheck estrito do supabase-js v2 retorna campos como `{}`.
+  // Os tipos reais no banco são number/string/jsonb.
+  const master = masterRaw as any;
 
   if (masterErr || !master) {
     return { ok: false, has_more: false, backlog_remaining: 0, error: "Job mestre não encontrado" };
