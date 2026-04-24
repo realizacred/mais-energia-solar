@@ -45,7 +45,7 @@ export interface ChunkedProgress {
   isComplete: boolean;
   isResumable: boolean; // failed ou cancelled E ainda tem backlog
   pctGeral: number;
-  pctTotal: number; // % sobre todos os entes (clientes+projetos+propostas)
+  pctTotal: number; // % acumulada de propostas migradas vs propostas em staging
   isStuck: boolean; // running mas last_step_at > 3min
 }
 
@@ -232,12 +232,10 @@ export function useChunkedMigration() {
       const processed = job?.items_processed ?? 0;
       const pctGeral = total > 0 ? Math.min(100, Math.round((processed / total) * 100)) : 0;
 
-      const totalEntes =
-        totals.clientes.total + totals.projetos.total + totals.propostas.total;
-      const promovidoEntes =
-        totals.clientes.promoted + totals.projetos.promoted + totals.propostas.promoted;
       const pctTotal =
-        totalEntes > 0 ? Math.min(100, Math.round((promovidoEntes / totalEntes) * 100)) : 0;
+        totals.propostas.total > 0
+          ? Math.min(100, Math.round((totals.propostas.promoted / totals.propostas.total) * 100))
+          : 0;
 
       return {
         job,

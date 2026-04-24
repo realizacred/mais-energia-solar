@@ -299,7 +299,7 @@ export default function MigracaoStep3Migrar() {
             <div className="pt-2 border-t border-border flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
               <div className="text-xs text-muted-foreground">
                 {isRunning
-                  ? `Progresso do lote: ${progress?.pctGeral ?? 0}% · progresso total: ${progress?.pctTotal ?? 0}%`
+                  ? `Progresso do job atual: ${progress?.pctGeral ?? 0}% · propostas migradas no staging: ${progress?.pctTotal ?? 0}%`
                   : "Idempotente: registros já migrados são ignorados automaticamente."}
               </div>
               <div className="flex items-center gap-2 flex-wrap">
@@ -375,14 +375,14 @@ export default function MigracaoStep3Migrar() {
       {job && (
         <Card className="bg-card border-border shadow-sm">
           <CardContent className="p-5 space-y-3">
-            <h2 className="text-base font-semibold text-foreground">Última execução</h2>
+            <h2 className="text-base font-semibold text-foreground">Job atual</h2>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
               <div>
                 <p className="text-muted-foreground">Status</p>
                 <p className="font-mono font-bold text-foreground">{job.status}</p>
               </div>
               <div>
-                <p className="text-muted-foreground">Promovidos</p>
+                <p className="text-muted-foreground">Processados no job</p>
                 <p className="font-mono font-bold text-success">{job.items_promoted}</p>
               </div>
               <div>
