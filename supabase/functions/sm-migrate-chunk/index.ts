@@ -334,7 +334,7 @@ async function processStep(
           processed: processedDelta,
           promoted: processedDelta,
           recovered_after_timeout: 1,
-          batch_used: sub.batch_used ?? null,
+          batch_used: sub.batch_used ?? 0,
         },
       };
     }
