@@ -734,13 +734,13 @@ async function promoteCliente(
     }
   }
 
-  // 4) Reconciliação por telefone (evita uq_clientes_tenant_telefone)
-  if (norm.telefone) {
+  // 4) Reconciliação por telefone (telefone_normalized = só dígitos).
+  if (norm.telefone_digits) {
     const { data: byPhone } = await admin
       .from("clientes")
       .select("id")
       .eq("tenant_id", tenantId)
-      .eq("telefone_normalized", norm.telefone)
+      .eq("telefone_normalized", norm.telefone_digits)
       .order("created_at", { ascending: true })
       .limit(1)
       .maybeSingle();
@@ -766,7 +766,7 @@ async function promoteCliente(
     }
   }
 
-  // 6) Não existe — inserir novo
+  // 6) Não existe — inserir novo (RB-62: campos formatados; telefone_normalized só dígitos)
   const { data, error } = await admin
     .from("clientes")
     .insert({
@@ -774,6 +774,7 @@ async function promoteCliente(
       cliente_code: clienteCode,
       nome: norm.nome,
       telefone: norm.telefone || "",
+      telefone_normalized: norm.telefone_digits || null,
       email: norm.email,
       cpf_cnpj: norm.cpf_cnpj,
       cep: norm.cep,
