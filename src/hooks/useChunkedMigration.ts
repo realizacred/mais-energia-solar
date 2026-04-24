@@ -12,6 +12,7 @@
  */
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useTenantId } from "@/hooks/useTenantId";
 
 const LEGACY_SM_SOURCES = ["solarmarket", "solar_market"] as const;
 
@@ -116,10 +117,12 @@ function applyOptimisticJobState(
 
 export function useChunkedMigration() {
   const qc = useQueryClient();
+  const { data: tenantId } = useTenantId();
+  const progressKey = [...KEY, tenantId] as const;
 
   const start = useMutation({
     onMutate: () => {
-      qc.setQueryData<ChunkedProgress | undefined>(KEY, (previous) =>
+      qc.setQueryData<ChunkedProgress | undefined>(progressKey, (previous) =>
         applyOptimisticJobState(previous, {
           status: "running",
           finished_at: null,
@@ -143,12 +146,12 @@ export function useChunkedMigration() {
       if (!resp?.ok) throw new Error(resp?.error ?? "Resposta inválida do backend.");
       return resp;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: KEY }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: progressKey }),
   });
 
   const continueJob = useMutation({
     onMutate: async (jobId: string) => {
-      qc.setQueryData<ChunkedProgress | undefined>(KEY, (previous) =>
+      qc.setQueryData<ChunkedProgress | undefined>(progressKey, (previous) =>
         applyOptimisticJobState(previous, {
           id: jobId,
           status: "running",
@@ -167,7 +170,7 @@ export function useChunkedMigration() {
       if (!resp?.ok) throw new Error(resp?.error ?? "Falha ao retomar.");
       return resp;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: KEY }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: progressKey }),
   });
 
   const cancel = useMutation({
@@ -178,11 +181,12 @@ export function useChunkedMigration() {
       if (error) throw new Error(error.message);
       return data;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: KEY }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: progressKey }),
   });
 
   const progressQuery = useQuery<ChunkedProgress>({
-    queryKey: KEY,
+    queryKey: progressKey,
+    enabled: !!tenantId,
     staleTime: 1000 * 2,
     refetchInterval: (query) => (query.state.data?.isRunning ? 3000 : 3000),
     queryFn: async (): Promise<ChunkedProgress> => {
@@ -192,6 +196,7 @@ export function useChunkedMigration() {
         .select(
           "id, status, total_items, items_processed, items_promoted, items_with_errors, items_with_warnings, items_blocked, items_skipped, started_at, finished_at, last_step_at, error_summary",
         )
+        .eq("tenant_id", tenantId!)
         .eq("job_type", "migrate-chunked")
         .order("created_at", { ascending: false })
         .limit(5);
@@ -216,20 +221,23 @@ export function useChunkedMigration() {
       // 2. Totais por entidade — staging vs canônico.
       //    Importante: projetos e propostas usam `external_source`, não `import_source`.
       const [cliRaw, projRaw, propRaw, cliProm, projProm, propProm] = await Promise.all([
-        supabase.from("sm_clientes_raw").select("id", { count: "exact", head: true }),
-        supabase.from("sm_projetos_raw").select("id", { count: "exact", head: true }),
-        supabase.from("sm_propostas_raw").select("id", { count: "exact", head: true }),
+        supabase.from("sm_clientes_raw").select("id", { count: "exact", head: true }).eq("tenant_id", tenantId!),
+        supabase.from("sm_projetos_raw").select("id", { count: "exact", head: true }).eq("tenant_id", tenantId!),
+        supabase.from("sm_propostas_raw").select("id", { count: "exact", head: true }).eq("tenant_id", tenantId!),
         supabase
           .from("clientes")
           .select("id", { count: "exact", head: true })
+          .eq("tenant_id", tenantId!)
           .in("external_source", [...LEGACY_SM_SOURCES]),
         supabase
           .from("projetos")
           .select("id", { count: "exact", head: true })
+          .eq("tenant_id", tenantId!)
           .in("external_source", [...LEGACY_SM_SOURCES]),
         supabase
           .from("propostas_nativas")
           .select("id", { count: "exact", head: true })
+          .eq("tenant_id", tenantId!)
           .in("external_source", [...LEGACY_SM_SOURCES]),
       ]);
 
