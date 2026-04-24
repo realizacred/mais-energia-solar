@@ -1114,10 +1114,12 @@ async function resolvePipelinePerProject(
     })
     .filter((c) => c.funilName && c.funilName.toLowerCase() !== "vendedores");
 
-  if (candidates.length === 0) return empty;
+  const effectiveCandidates = candidates.length > 0
+    ? candidates
+    : [{ funilName: "LEAD", stageName: "" }];
 
   // 2) Para cada funil candidato, busca mapping em sm_funil_pipeline_map
-  const funilNames = Array.from(new Set(candidates.map((c) => c.funilName)));
+  const funilNames = Array.from(new Set(effectiveCandidates.map((c) => c.funilName)));
   const { data: maps } = await admin
     .from("sm_funil_pipeline_map")
     .select("sm_funil_name, pipeline_id, role")
@@ -1133,7 +1135,7 @@ async function resolvePipelinePerProject(
 
   const dealPipelineId = validMap.pipeline_id as string;
   const matchedFunilName = validMap.sm_funil_name as string;
-  const matchedCandidate = candidates.find((c) => c.funilName === matchedFunilName);
+  const matchedCandidate = effectiveCandidates.find((c) => c.funilName === matchedFunilName);
 
   // 3) Buscar pipeline_stages do pipeline comercial mapeado
   const { data: pStages } = await admin
