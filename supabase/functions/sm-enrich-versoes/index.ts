@@ -371,7 +371,7 @@ Deno.serve(async (req) => {
               .insert({
                 versao_id: versao.id,
                 tenant_id: tenantId,
-                tipo_kit: "montado",
+                tipo_kit: "customizado",
                 tipo_sistema: "on_grid",
               })
               .select("id")
