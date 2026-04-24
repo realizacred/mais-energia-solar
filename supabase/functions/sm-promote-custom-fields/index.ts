@@ -178,11 +178,15 @@ Deno.serve(async (req) => {
     }
 
     // 2. Carrega todas as variáveis das propostas em uma só query (por sm_project_id).
+    // PostgREST: `.in()` não funciona em operador JSON `->>` — usar `.filter("col", "in", "(...)")`.
     const smIds = projetos.map((p) => Number(p.external_id)).filter(Boolean);
-    const { data: propostas, error: propErr } = await supabase
-      .from("sm_propostas_raw")
-      .select("payload")
-      .in("payload->>_sm_project_id", smIds.map(String));
+    const inList = smIds.map((id) => `"${id}"`).join(",");
+    const { data: propostas, error: propErr } = smIds.length === 0
+      ? { data: [] as any[], error: null }
+      : await supabase
+          .from("sm_propostas_raw")
+          .select("payload")
+          .filter("payload->>_sm_project_id", "in", `(${inList})`);
     if (propErr) throw propErr;
 
     // Indexar por sm_project_id (pegar a proposta mais recente de cada projeto).
