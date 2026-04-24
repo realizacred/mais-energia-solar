@@ -177,10 +177,18 @@ Deno.serve(async (req) => {
       .map((p) => p.external_id)
       .filter((x): x is string => !!x);
 
-    const { data: stagingRows, error: stErr } = await supabase
-      .from("sm_propostas_raw")
-      .select("payload")
-      .in("payload->>_sm_project_id", projectExternalIds);
+    // PostgREST: `.in()` não funciona em operador JSON `->>` (silenciosamente retorna 0 linhas).
+    // Usamos `.filter("col", "in", "(a,b,c)")` com a sintaxe nativa do PostgREST.
+    // Valores são quoted para suportar IDs com caracteres especiais.
+    const inList = projectExternalIds
+      .map((id) => `"${String(id).replace(/"/g, '\\"')}"`)
+      .join(",");
+    const { data: stagingRows, error: stErr } = projectExternalIds.length === 0
+      ? { data: [] as any[], error: null }
+      : await supabase
+          .from("sm_propostas_raw")
+          .select("payload")
+          .filter("payload->>_sm_project_id", "in", `(${inList})`);
 
     if (stErr) throw stErr;
 
