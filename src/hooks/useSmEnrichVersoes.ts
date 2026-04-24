@@ -40,7 +40,7 @@ export function useSmEnrichVersoes() {
 
   return useMutation<EnrichTotals, Error, RunOpts | void>({
     mutationFn: async (opts) => {
-      const batch = (opts as RunOpts | undefined)?.batch ?? 25;
+      const batch = (opts as RunOpts | undefined)?.batch ?? 10;
       const onProgress = (opts as RunOpts | undefined)?.onProgress;
 
       const acc: EnrichTotals = {
@@ -61,7 +61,7 @@ export function useSmEnrichVersoes() {
       for (let i = 0; i < HARD_LIMIT_CHUNKS; i++) {
         const { data, error } = await supabase.functions.invoke(
           "sm-enrich-versoes",
-          { body: { batch, offset } },
+          { body: { action: "enrich", payload: { batch, offset } } },
         );
         if (error) throw new Error(error.message || "Edge function error");
         const r = data as EnrichResult;

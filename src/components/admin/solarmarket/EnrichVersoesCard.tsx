@@ -30,7 +30,7 @@ export function EnrichVersoesCard() {
     setProgress(null);
     try {
       const result = await enrich.mutateAsync({
-        batch: 25,
+        batch: 10,
         onProgress: (p) => setProgress(p),
       });
       toast({

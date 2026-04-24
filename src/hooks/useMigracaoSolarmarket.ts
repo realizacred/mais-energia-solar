@@ -73,7 +73,7 @@ export function useMigracaoSolarmarket() {
         (supabase as any)
           .from("propostas_nativas")
           .select("id", { count: "exact", head: true })
-          .eq("source", "legacy_import"),
+          .or("external_source.eq.solar_market,external_source.eq.solarmarket"),
       ]);
 
       const staging = {
