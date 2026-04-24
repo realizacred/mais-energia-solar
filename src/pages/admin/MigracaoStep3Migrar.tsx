@@ -260,6 +260,30 @@ export default function MigracaoStep3Migrar() {
                 promoted={totals?.propostas.promoted ?? 0}
                 total={totals?.propostas.total ?? 0}
               />
+
+              {/* Fases extras (rodam automaticamente após as propostas) */}
+              <div className="pt-3 border-t border-border space-y-5">
+                <PhaseRow
+                  icon={Download}
+                  label="Campos customizados & arquivos"
+                  status={progress?.phases.customFields.status ?? "pending"}
+                  detail={
+                    progress?.phases.customFields.processed
+                      ? `${progress.phases.customFields.processed.toLocaleString("pt-BR")} projetos · ${progress.phases.customFields.files_downloaded.toLocaleString("pt-BR")} arquivos baixados`
+                      : "Aguardando…"
+                  }
+                />
+                <PhaseRow
+                  icon={Package}
+                  label="Enriquecer propostas (kit, financeiro, UCs)"
+                  status={progress?.phases.enrichment.status ?? "pending"}
+                  detail={
+                    progress?.phases.enrichment.processed
+                      ? `${progress.phases.enrichment.processed.toLocaleString("pt-BR")} propostas · ${progress.phases.enrichment.versoes_updated.toLocaleString("pt-BR")} versões · ${progress.phases.enrichment.ucs_inserted.toLocaleString("pt-BR")} UCs`
+                      : "Aguardando…"
+                  }
+                />
+              </div>
             </div>
 
             {/* CTA */}
