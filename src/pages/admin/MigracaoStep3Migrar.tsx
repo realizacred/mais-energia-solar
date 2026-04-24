@@ -425,19 +425,37 @@ export default function MigracaoStep3Migrar() {
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
               <div>
                 <p className="text-muted-foreground">Status</p>
-                <p className="font-mono font-bold text-foreground">{job.status}</p>
+                <p className="font-mono font-bold text-foreground">{statusLabel}</p>
               </div>
               <div>
-                <p className="text-muted-foreground">Processados no job</p>
-                <p className="font-mono font-bold text-success">{job.items_promoted}</p>
+                <p className="text-muted-foreground">Última atividade</p>
+                <p className="font-mono font-bold text-foreground">{lastActivityLabel}</p>
               </div>
               <div>
+                <p className="text-muted-foreground">Lote processado</p>
+                <p className="font-mono font-bold text-success">
+                  {job.items_processed} / {job.total_items}
+                </p>
+              </div>
+              <div>
+                <p className="text-muted-foreground">Criados no CRM neste job</p>
+                <p className="font-mono font-bold text-foreground">{job.items_promoted}</p>
+              </div>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+              <div className="rounded-lg border border-border bg-muted/30 p-3">
                 <p className="text-muted-foreground">Avisos</p>
                 <p className="font-mono font-bold text-warning">{job.items_with_warnings}</p>
               </div>
-              <div>
+              <div className="rounded-lg border border-border bg-muted/30 p-3">
                 <p className="text-muted-foreground">Erros</p>
                 <p className="font-mono font-bold text-destructive">{job.items_with_errors}</p>
+              </div>
+              <div className="rounded-lg border border-border bg-muted/30 p-3">
+                <p className="text-muted-foreground">Pulados / bloqueados</p>
+                <p className="font-mono font-bold text-foreground">
+                  {job.items_skipped} / {job.items_blocked}
+                </p>
               </div>
             </div>
             {job.error_summary && (
