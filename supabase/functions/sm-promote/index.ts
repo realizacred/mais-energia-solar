@@ -93,6 +93,7 @@ function createInitialState(): RequestState {
     tenantId: null,
     userId: null,
     counters: { promoted: 0, skipped: 0, blocked: 0, warnings: 0, errors: 0, processed: 0 },
+    logBuffer: [],
   };
 }
 
