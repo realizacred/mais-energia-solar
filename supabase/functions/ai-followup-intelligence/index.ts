@@ -144,12 +144,13 @@ Deno.serve(async (req) => {
       : null;
 
     // Load follow-up history for this conversation
-    const { data: fuLogs = [] } = await sb
+    const { data: fuLogsRaw } = await sb
       .from("wa_followup_logs")
       .select("action, ai_confidence, ai_reason, created_at, tentativa")
       .eq("conversation_id", conversation_id)
       .order("created_at", { ascending: false })
       .limit(5);
+    const fuLogs = fuLogsRaw ?? [];
 
     const fuContext = fuLogs.length
       ? `\nFollow-ups anteriores: ${fuLogs.map((l: any) => `${l.action}(conf:${l.ai_confidence ?? "?"}, #${l.tentativa})`).join(", ")}`
@@ -206,13 +207,14 @@ ${histText || "(vazio)"}`,
 
       case "suggest_timing": {
         // Analyze response patterns from logs
-        const { data: responseLogs = [] } = await sb
+        const { data: responseLogsRaw } = await sb
           .from("wa_followup_logs")
           .select("action, created_at, responded_at, response_time_minutes")
           .eq("tenant_id", tenantId)
           .in("action", ["sent", "responded"])
           .order("created_at", { ascending: false })
           .limit(50);
+        const responseLogs = responseLogsRaw ?? [];
 
         const avgResponseTime = responseLogs
           .filter((l: any) => l.response_time_minutes != null)
