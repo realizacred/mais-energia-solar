@@ -164,6 +164,51 @@ async function callSmPromoteOnce(
   };
 }
 
+async function runAdaptivePromoteChunk(
+  admin: any,
+  tenantId: string,
+): Promise<{
+  ok: boolean;
+  batch_used?: number;
+  counters?: Record<string, number>;
+  error?: string;
+}> {
+  const attempts = [CHUNK_BATCH, 200, 100, MIN_CHUNK_BATCH].filter((value, index, arr) => arr.indexOf(value) === index);
+
+  for (const batch of attempts) {
+    const result = await callSmPromoteOnce(tenantId, batch, true);
+    if (result.ok) {
+      return { ok: true, batch_used: batch, counters: result.counters };
+    }
+
+    if (!isGatewayTimeoutLike(result.error) || batch === MIN_CHUNK_BATCH) {
+      return { ok: false, batch_used: batch, error: result.error };
+    }
+
+    await admin
+      .from("solarmarket_promotion_logs")
+      .insert({
+        tenant_id: tenantId,
+        job_id: null,
+        severity: "warning",
+        step: "adaptive-batch",
+        status: "warning",
+        message: `Chunk ${batch} excedeu limite de CPU/timeout; reduzindo lote automaticamente.`,
+        source_entity_type: "job",
+        source_entity_id: tenantId,
+        canonical_entity_type: null,
+        canonical_entity_id: null,
+        error_code: "WORKER_LIMIT_RETRY",
+        error_origin: MODULE,
+        details: { attempted_batch: batch, next_batch: Math.max(MIN_CHUNK_BATCH, Math.floor(batch / 2)) },
+      })
+      .then(() => undefined)
+      .catch(() => undefined);
+  }
+
+  return { ok: false, error: "Falha ao processar chunk adaptativo" };
+}
+
 /**
  * Lógica do step (extraída para ser chamada tanto por user quanto por cron).
  * Retorna { has_more, counters, error } SEM montar Response.
