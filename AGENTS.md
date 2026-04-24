@@ -1,376 +1,394 @@
 =============================================================================
-AGENTS.md v4.0 ó REGRAS MESTRAS DO PROJETO
-⁄ltima atualizaÁ„o: 2026-04-24
+AGENTS.md v4.0 ‚Äî REGRAS MESTRAS DO PROJETO
+√öltima atualiza√ß√£o: 2026-04-24
 Stack: React + Vite + TypeScript + Supabase + Tailwind + shadcn/ui + React Query
 Agente: Lovable
 Tenant principal: 17de8315-2e2f-4a79-8751-e5d507d69a41
 =============================================================================
-BLOCO 0 ó ÕNDICE R¡PIDO
-RB-01 a RB-58: Regras Bloqueantes (mantidas da v3.13)
-RB-59 a RB-75: NOVAS ó MigraÁ„o SolarMarket
-DA-43 a DA-47: NOVAS ó Decisıes arquiteturais de migraÁ„o
-Bloco 24: NOVO ó Fluxo completo de migraÁ„o SM
-Checklist Bloco 9: ATUALIZADO com validaÁıes de migraÁ„o
+
+BLOCO 0 ‚Äî √çNDICE R√ÅPIDO
+- RB-01 a RB-58: Regras Bloqueantes (mantidas da v3.13)
+- RB-59 a RB-75: NOVAS ‚Äî Migra√ß√£o SolarMarket
+- DA-43 a DA-47: NOVAS ‚Äî Decis√µes arquiteturais de migra√ß√£o
+- Bloco 24: NOVO ‚Äî Fluxo completo de migra√ß√£o SM
+- Checklist Bloco 9: ATUALIZADO com valida√ß√µes de migra√ß√£o
+
 =============================================================================
-BLOCO 1 ó REGRAS BLOQUEANTES (RB-XX)
-NUNCA quebrar. Build falha, PR È rejeitado, cÛdigo È revertido.
+BLOCO 1 ‚Äî REGRAS BLOQUEANTES (RB-XX)
+=============================================================================
+NUNCA quebrar. Build falha, PR √© rejeitado, c√≥digo √© revertido.
+
 [MANTIDAS RB-01 a RB-58 da v3.13]
---- NOVAS RB v4.0 ó MIGRA«√O SOLARMARKET ----------------------------------
-RB-59 MIGRA«√O SM ó PARIDADE FUNCIONAL OBRIGAT”RIA
+
+--- NOVAS RB v4.0 ‚Äî MIGRA√á√ÉO SOLARMARKET ----------------------------------
+
+RB-59 MIGRA√á√ÉO SM ‚Äî PARIDADE FUNCIONAL OBRIGAT√ìRIA
 Todo registro migrado do SolarMarket DEVE se comportar 100% igual a um
 registro criado nativamente pela UI.
-CritÈrios de validaÁ„o obrigatÛrios:
+Crit√©rios de valida√ß√£o obrigat√≥rios:
+- Abrir detalhe sem erro "n√£o encontrado"
+- Aparecer em kanbans, listas e buscas
+- Permitir edi√ß√£o sem quebrar
+- Acionar todas as triggers/automa√ß√µes
+- Integrar com relat√≥rios e filtros
+- Card do kanban mostra R$, kWp, cliente
+NUNCA deploy de migra√ß√£o sem validar com 1 registro nativo criado manualmente.
+ANTES de codar migra√ß√£o: criar 1 cliente/projeto/proposta nativo como refer√™ncia.
 
-Abrir detalhe sem erro "n„o encontrado"
-Aparecer em kanbans, listas e buscas
-Permitir ediÁ„o sem quebrar
-Acionar todas as triggers/automaÁıes
-Integrar com relatÛrios e filtros
-Card do kanban mostra R$, kWp, cliente
-
-NUNCA deploy de migraÁ„o sem validar com 1 registro nativo criado manualmente.
-ANTES de codar migraÁ„o: criar 1 cliente/projeto/proposta nativo como referÍncia.
-RB-60 MIGRA«√O SM ó CADEIA OBRIGAT”RIA
-Ao migrar um projeto, DEVE criar em cadeia (ordem obrigatÛria):
-
-Cliente (se n„o existir) - SELECT antes de INSERT
-Projeto (com external_source='solarmarket' + external_id)
-Deal (OBRIGAT”RIO - sem deal = sem kanban comercial)
-VÌnculos funil_id + etapa_id (em projeto_funis/projeto_etapas)
-external_entity_links (rastreabilidade)
-
+RB-60 MIGRA√á√ÉO SM ‚Äî CADEIA OBRIGAT√ìRIA
+Ao migrar um projeto, DEVE criar em cadeia (ordem obrigat√≥ria):
+1. Cliente (se n√£o existir) - SELECT antes de INSERT
+2. Projeto (com external_source='solarmarket' + external_id)
+3. Deal (OBRIGAT√ìRIO - sem deal = sem kanban comercial)
+4. V√≠nculos funil_id + etapa_id (em projeto_funis/projeto_etapas)
+5. external_entity_links (rastreabilidade)
 NUNCA criar projeto sem deal.
 NUNCA deixar funil_id ou etapa_id NULL.
-NUNCA pular external_entity_links (quebra idempotÍncia).
-RB-61 MIGRA«√O SM ó ARQUITETURA DUAL DE FUNIS
-Sistema tem DOIS sistemas paralelos (decis„o arquitetural - N√O UNIFICAR):
+NUNCA pular external_entity_links (quebra idempot√™ncia).
 
-pipelines + pipeline_stages ? mundo dos DEALS (kanban comercial)
-projeto_funis + projeto_etapas ? mundo dos PROJETOS (kanban execuÁ„o)
-
+RB-61 MIGRA√á√ÉO SM ‚Äî ARQUITETURA DUAL DE FUNIS
+Sistema tem DOIS sistemas paralelos (decis√£o arquitetural - N√ÉO UNIFICAR):
+- pipelines + pipeline_stages ‚Üí mundo dos DEALS (kanban comercial)
+- projeto_funis + projeto_etapas ‚Üí mundo dos PROJETOS (kanban execu√ß√£o)
 Ao migrar:
-
-deals.pipeline_id ? pipelines.id
-deals.stage_id ? pipeline_stages.id
-projetos.funil_id ? projeto_funis.id
-projetos.etapa_id ? projeto_etapas.id
-
+- deals.pipeline_id ‚Üí pipelines.id
+- deals.stage_id ‚Üí pipeline_stages.id
+- projetos.funil_id ‚Üí projeto_funis.id
+- projetos.etapa_id ‚Üí projeto_etapas.id
 SEMPRE manter espelho: cada pipeline tem projeto_funis correspondente.
 sm-criar-pipeline-auto deve criar AMBOS em paralelo.
 NUNCA gravar pipeline_id em projetos.funil_id (mundos diferentes).
-RB-62 MIGRA«√O SM ó FORMATA«√O NATIVA OBRIGAT”RIA
-Ao migrar, aplicar formataÁ„o idÍntica ao fluxo nativo:
 
-Telefone: "(XX) XXXXX-XXXX" + telefone_normalized sÛ n˙meros
-CPF: "XXX.XXX.XXX-XX"
-CNPJ: "XX.XXX.XXX/XXXX-XX"
-CEP: "XXXXX-XXX"
-Nome: capitalize cada palavra ("Jo„o Silva" n„o "JO√O SILVA")
-Email: lowercase + trim
-EndereÁo: SEPARAR em rua + n˙mero + bairro + cidade + estado + CEP
-
+RB-62 MIGRA√á√ÉO SM ‚Äî FORMATA√á√ÉO NATIVA OBRIGAT√ìRIA
+Ao migrar, aplicar formata√ß√£o id√™ntica ao fluxo nativo:
+- Telefone: "(XX) XXXXX-XXXX" + telefone_normalized s√≥ n√∫meros
+- CPF: "XXX.XXX.XXX-XX"
+- CNPJ: "XX.XXX.XXX/XXXX-XX"
+- CEP: "XXXXX-XXX"
+- Nome: capitalize cada palavra ("Jo√£o Silva" n√£o "JO√ÉO SILVA")
+- Email: lowercase + trim
+- Endere√ßo: SEPARAR em rua + n√∫mero + bairro + cidade + estado + CEP
 Se valor vier sujo do SM, NORMALIZAR antes de inserir.
-NUNCA gravar dado sem formataÁ„o se campo nativo tem formato.
+NUNCA gravar dado sem formata√ß√£o se campo nativo tem formato.
 Helper centralizado: src/lib/migrationFormatters.ts
-RB-63 MIGRA«√O SM ó VALIDA«√O PR…-INSERT
+
+RB-63 MIGRA√á√ÉO SM ‚Äî VALIDA√á√ÉO PR√â-INSERT
 Antes de inserir, validar:
-
-CPF/CNPJ formato v·lido? Se n„o, guardar raw em observacoes + NULL no campo
-Email tem @ e domÌnio? Se n„o, NULL
-Telefone tem 10-11 dÌgitos? Se n„o, NULL
-EndereÁo tem CEP? Se n„o, marcar como incompleto
-Nome obrigatÛrio? Se vazio, BLOQUEAR migraÁ„o desse registro
-
-NUNCA inserir registro com campos crÌticos inv·lidos silenciosamente.
+- CPF/CNPJ formato v√°lido? Se n√£o, guardar raw em observacoes + NULL no campo
+- Email tem @ e dom√≠nio? Se n√£o, NULL
+- Telefone tem 10-11 d√≠gitos? Se n√£o, NULL
+- Endere√ßo tem CEP? Se n√£o, marcar como incompleto
+- Nome obrigat√≥rio? Se vazio, BLOQUEAR migra√ß√£o desse registro
+NUNCA inserir registro com campos cr√≠ticos inv√°lidos silenciosamente.
 SEMPRE log em solarmarket_promotion_logs todos os descartes/blocks.
-RB-64 MIGRA«√O SM ó IDEMPOT NCIA VIA SSOT
-external_entity_links È SSOT (Single Source of Truth) de idempotÍncia.
-Rodar migraÁ„o N vezes DEVE produzir o mesmo resultado final.
-ANTES de INSERT: SELECT em external_entity_links para checar existÍncia.
+
+RB-64 MIGRA√á√ÉO SM ‚Äî IDEMPOT√äNCIA VIA SSOT
+external_entity_links √© SSOT (Single Source of Truth) de idempot√™ncia.
+Rodar migra√ß√£o N vezes DEVE produzir o mesmo resultado final.
+ANTES de INSERT: SELECT em external_entity_links para checar exist√™ncia.
 Ao editar: UPDATE existente, NUNCA duplicar.
 NUNCA criar registros duplicados por dedup fraco.
-Padr„o obrigatÛrio:
-SELECT entity_id FROM external_entity_links
-WHERE source='solarmarket' AND source_entity_type='X' AND source_entity_id=Y;
-RB-65 MIGRA«√O SM ó FLUXO CORRETO OBRIGAT”RIO
-Ordem de execuÁ„o (N√O PULAR ETAPAS):
+Padr√£o obrigat√≥rio:
+  SELECT entity_id FROM external_entity_links
+  WHERE source='solarmarket' AND source_entity_type='X' AND source_entity_id=Y;
 
-sm-import ? popular sm_*_raw (staging) - TODAS as 6 tabelas
-sm-criar-pipeline-auto ? criar pipelines + projeto_funis espelho
-sm-promote ? clientes + projetos + propostas (esqueletos)
-sm-enrich-versoes ? valor, potÍncia, kit, UCs, localizaÁ„o
-sm-promote-custom-fields ? custom fields + arquivos
-
+RB-65 MIGRA√á√ÉO SM ‚Äî FLUXO CORRETO OBRIGAT√ìRIO
+Ordem de execu√ß√£o (N√ÉO PULAR ETAPAS):
+1. sm-import ‚Üí popular sm_*_raw (staging) - TODAS as 6 tabelas
+2. sm-criar-pipeline-auto ‚Üí criar pipelines + projeto_funis espelho
+3. sm-promote ‚Üí clientes + projetos + propostas (esqueletos)
+4. sm-enrich-versoes ‚Üí valor, pot√™ncia, kit, UCs, localiza√ß√£o
+5. sm-promote-custom-fields ‚Üí custom fields + arquivos
 NUNCA pular sm-enrich-versoes (sem ela: card vazio, R$ NULL).
 NUNCA pular sm-criar-pipeline-auto (sem ela: funil_id NULL).
 NUNCA rodar fora de ordem.
-ValidaÁ„o entre etapas: cada step DEVE confirmar conclus„o da anterior.
-RB-66 MIGRA«√O SM ó JOBS ”RF√OS DEVEM SER CANCELADOS
+Valida√ß√£o entre etapas: cada step DEVE confirmar conclus√£o da anterior.
+
+RB-66 MIGRA√á√ÉO SM ‚Äî JOBS √ìRF√ÉOS DEVEM SER CANCELADOS
 Jobs em solarmarket_promotion_jobs com:
-
-status='running' E last_step_at IS NULL E created_at < now() - 5min
+- status='running' E last_step_at IS NULL E created_at < now() - 5min
 DEVEM ser marcados como 'cancelled' automaticamente.
+Cron sm_resume_stuck_migrations j√° faz isso (ver pg_cron).
+NUNCA deixar jobs √≥rf√£os bloqueando novos disparos.
+ANTES de iniciar nova migra√ß√£o: query de valida√ß√£o de jobs ativos.
 
-Cron sm_resume_stuck_migrations j· faz isso (ver pg_cron).
-NUNCA deixar jobs Ûrf„os bloqueando novos disparos.
-ANTES de iniciar nova migraÁ„o: query de validaÁ„o de jobs ativos.
-RB-67 MIGRA«√O SM ó PROPAGAR VALOR/POT NCIA EM CASCATA
-Valor e potÍncia est„o em sm_propostas_raw.payload.variables:
-
-payload.variables[key='preco'] ? proposta_versoes.valor_total ? projetos.valor_total
-payload.variables[key='potencia_sistema'] ? proposta_versoes.potencia_kwp ? projetos.potencia_kwp
-payload.variables[key='modulo_quantidade'] ? projetos.numero_modulos
-payload.variables[key='modulo_fabricante'] + modulo_modelo ? projetos.modelo_modulos
-payload.variables[key='inversor_fabricante'] + inversor_modelo ? projetos.modelo_inversor
-
+RB-67 MIGRA√á√ÉO SM ‚Äî PROPAGAR VALOR/POT√äNCIA EM CASCATA
+Valor e pot√™ncia est√£o em sm_propostas_raw.payload.variables:
+- payload.variables[key='preco'] ‚Üí proposta_versoes.valor_total ‚Üí projetos.valor_total
+- payload.variables[key='potencia_sistema'] ‚Üí proposta_versoes.potencia_kwp ‚Üí projetos.potencia_kwp
+- payload.variables[key='modulo_quantidade'] ‚Üí projetos.numero_modulos
+- payload.variables[key='modulo_fabricante'] + modulo_modelo ‚Üí projetos.modelo_modulos
+- payload.variables[key='inversor_fabricante'] + inversor_modelo ‚Üí projetos.modelo_inversor
 sm-enrich-versoes DEVE atualizar AMBAS as tabelas em cascata:
-proposta_versoes.X ? projetos.X (via projeto_id)
-Card do kanban lÍ de projetos ó se projetos.valor_total=0, card mostra "R$ ó".
-RB-68 MIGRA«√O SM ó MATCH STAGING vs CAN‘NICO COM PREFIX
+  proposta_versoes.X ‚Üí projetos.X (via projeto_id)
+Card do kanban l√™ de projetos ‚Äî se projetos.valor_total=0, card mostra "R$ ‚Äî".
+
+RB-68 MIGRA√á√ÉO SM ‚Äî MATCH STAGING vs CAN√îNICO COM PREFIX
 sm_propostas_raw._sm_proposal_id pode ter formato "10:2" (proposta_id:projeto_id).
-propostas_nativas.external_id pode ter sÛ "10".
+propostas_nativas.external_id pode ter s√≥ "10".
 SEMPRE usar split_part(_sm_proposal_id, ':', 1) no JOIN.
-NUNCA fazer match exato direto ó vai retornar 0 linhas silenciosamente.
-Padr„o obrigatÛrio:
-JOIN sm_propostas_raw sr
-ON split_part(sr.payload->>'_sm_proposal_id', ':', 1) = pn.external_id
-RB-69 MIGRA«√O SM ó CONSULTAR AGENTS.md ANTES DE CODAR
-Ao receber tarefa relacionada a migraÁ„o SolarMarket:
+NUNCA fazer match exato direto ‚Äî vai retornar 0 linhas silenciosamente.
+Padr√£o obrigat√≥rio:
+  JOIN sm_propostas_raw sr
+  ON split_part(sr.payload->>'_sm_proposal_id', ':', 1) = pn.external_id
 
-LER AGENTS.md seÁ„o "MigraÁ„o SM" (RB-52, RB-57, RB-58, RB-59 a RB-75)
-VALIDAR se soluÁ„o proposta viola alguma RB
-Se violar: REPORTAR ao usu·rio antes de implementar
-Se n„o violar: implementar e referenciar RB no commit message
-
-NUNCA implementar soluÁ„o que contradiga AGENTS.md sem aviso prÈvio.
+RB-69 MIGRA√á√ÉO SM ‚Äî CONSULTAR AGENTS.md ANTES DE CODAR
+Ao receber tarefa relacionada a migra√ß√£o SolarMarket:
+1. LER AGENTS.md se√ß√£o "Migra√ß√£o SM" (RB-52, RB-57, RB-58, RB-59 a RB-75)
+2. VALIDAR se solu√ß√£o proposta viola alguma RB
+3. Se violar: REPORTAR ao usu√°rio antes de implementar
+4. Se n√£o violar: implementar e referenciar RB no commit message
+NUNCA implementar solu√ß√£o que contradiga AGENTS.md sem aviso pr√©vio.
 SEMPRE incluir no commit: "ref: RB-XX, RB-YY"
-RB-70 MIGRA«√O SM ó DRY-RUN OBRIGAT”RIO EM PRODU«√O
-Antes de rodar migraÁ„o em massa em ambiente de produÁ„o:
 
-Executar dry_run=true primeiro
-Validar report.bloqueados = 0
-Validar report.warnings revisados
-SÛ ent„o rodar dry_run=false
-
+RB-70 MIGRA√á√ÉO SM ‚Äî DRY-RUN OBRIGAT√ìRIO EM PRODU√á√ÉO
+Antes de rodar migra√ß√£o em massa em ambiente de produ√ß√£o:
+1. Executar dry_run=true primeiro
+2. Validar report.bloqueados = 0
+3. Validar report.warnings revisados
+4. S√≥ ent√£o rodar dry_run=false
 NUNCA migrar 1000+ registros sem dry-run validado.
 NUNCA ignorar warnings sem documentar motivo.
-RB-71 MIGRA«√O SM ó CHUNKS PEQUENOS PARA EVITAR MEMORY CRASH
-Edge functions tÍm limite de memÛria (128MB Deno isolate).
+
+RB-71 MIGRA√á√ÉO SM ‚Äî CHUNKS PEQUENOS PARA EVITAR MEMORY CRASH
+Edge functions t√™m limite de mem√≥ria (128MB Deno isolate).
 Carregar 1000+ payloads JSONB de uma vez = crash silencioso.
 SEMPRE processar em chunks:
-
-sm-promote: m·ximo 25 registros por chunk
-sm-enrich-versoes: m·ximo 25 registros por chunk
-sm-promote-custom-fields: m·ximo 20 registros por chunk
-Auto-encadeamento via EdgeRuntime.waitUntil
-
-NUNCA tentar processar tudo em 1 invocaÁ„o.
+- sm-promote: m√°ximo 25 registros por chunk
+- sm-enrich-versoes: m√°ximo 25 registros por chunk
+- sm-promote-custom-fields: m√°ximo 20 registros por chunk
+- Auto-encadeamento via EdgeRuntime.waitUntil
+NUNCA tentar processar tudo em 1 invoca√ß√£o.
 SEMPRE retornar next_offset para continuar.
-RB-72 MIGRA«√O SM ó UI DEVE CHAMAR ENDPOINT CHUNKED
+
+RB-72 MIGRA√á√ÉO SM ‚Äî UI DEVE CHAMAR ENDPOINT CHUNKED
 Frontend NUNCA deve chamar sm-promote diretamente.
 SEMPRE usar sm-migrate-chunk (orquestrador com chunks).
-Bug histÛrico: UI chamando sm-promote com batch_limit=10000 = memory crash.
-ValidaÁ„o: useMigrateFull/useStartMigration deve chamar sm-migrate-chunk.
-RB-73 MIGRA«√O SM ó RESPEITAR PIPELINES EXISTENTES DO TENANT
-NUNCA criar pipelines automaticamente em tenant que J¡ TEM pipelines.
+Bug hist√≥rico: UI chamando sm-promote com batch_limit=10000 = memory crash.
+Valida√ß√£o: useMigrateFull/useStartMigration deve chamar sm-migrate-chunk.
+
+RB-73 MIGRA√á√ÉO SM ‚Äî RESPEITAR PIPELINES EXISTENTES DO TENANT
+NUNCA criar pipelines automaticamente em tenant que J√Å TEM pipelines.
 ANTES de criar: SELECT count em pipelines WHERE tenant_id=X.
 Se tenant tem >0 pipelines:
-
-N√O auto-criar pipelines SM
-Permitir admin MAPEAR pipelines SM aos existentes
-Step 2 manual obrigatÛrio
-
+- N√ÉO auto-criar pipelines SM
+- Permitir admin MAPEAR pipelines SM aos existentes
+- Step 2 manual obrigat√≥rio
 Se tenant tem 0 pipelines (novo):
+- Pode criar os 4 padr√£o (Comercial, Engenharia, Equipamento, Compensa√ß√£o)
+- Pedir confirma√ß√£o antes
+NUNCA bagun√ßar CRM existente do cliente.
 
-Pode criar os 4 padr„o (Comercial, Engenharia, Equipamento, CompesaÁ„o)
-Pedir confirmaÁ„o antes
-
-NUNCA bagunÁar CRM existente do cliente.
-RB-74 MIGRA«√O SM ó RESET RESPEITA SCHEMA REAL
-FunÁ„o sm-reset-all DEVE usar nomes corretos de colunas:
-
-clientes.external_source ?
-projetos.external_source ?
-propostas_nativas.external_source ?
-deals: N√O TEM external_source ó filtrar via JOIN com projetos
-external_entity_links.source (n„o external_source)
-
+RB-74 MIGRA√á√ÉO SM ‚Äî RESET RESPEITA SCHEMA REAL
+Fun√ß√£o sm-reset-all DEVE usar nomes corretos de colunas:
+- clientes.external_source ‚úì
+- projetos.external_source ‚úì
+- propostas_nativas.external_source ‚úì
+- deals: N√ÉO TEM external_source ‚Äî filtrar via JOIN com projetos
+- external_entity_links.source (n√£o external_source)
 NUNCA assumir que coluna 'external_source' existe em todas as tabelas.
 SEMPRE verificar information_schema antes.
-RB-75 MIGRA«√O SM ó LOGS ESTRUTURADOS, N√O VERBOSE
-Edge functions de migraÁ„o geram MUITOS logs.
+
+RB-75 MIGRA√á√ÉO SM ‚Äî LOGS ESTRUTURADOS, N√ÉO VERBOSE
+Edge functions de migra√ß√£o geram MUITOS logs.
 Limite Supabase: ~1000 logs/edge invocation antes de truncate.
-PERMITIDO em produÁ„o:
+PERMITIDO em produ√ß√£o:
+- console.error com prefixo do m√≥dulo + erro
+- console.warn com prefixo + warning cr√≠tico
+- 1 summary final por chunk
+N√ÉO PERMITIDO:
+- console.log por registro processado
+- console.log de cada step interno
+- console.log de payloads completos
+Para debug: usar DEBUG=true via env var, condicional no c√≥digo.
 
-console.error com prefixo do mÛdulo + erro
-console.warn com prefixo + warning crÌtico
-1 summary final por chunk
-
-N√O PERMITIDO:
-
-console.log por registro processado
-console.log de cada step interno
-console.log de payloads completos
-
-Para debug: usar DEBUG=true via env var, condicional no cÛdigo.
 =============================================================================
-BLOCO 2 ó BOAS PR¡TICAS [mantidas v3.13]
+BLOCO 2 ‚Äî BOAS PR√ÅTICAS [mantidas v3.13]
 =============================================================================
-BLOCO 3 ó SNIPPETS OBRIGAT”RIOS [mantidos v3.13]
+
 =============================================================================
-BLOCO 4 ó ANTI-PADR’ES (AP-XX) [mantidos v3.13]
---- NOVOS AP v4.0 ó MIGRA«√O SM ------------------------------------------
-AP-30 MIGRA«√O SEM CRIAR DEAL
-? Errado: INSERT INTO projetos sem criar deal correspondente
-? Certo: cliente ? projeto ? deal ? vÌnculos funil/etapa
+BLOCO 3 ‚Äî SNIPPETS OBRIGAT√ìRIOS [mantidos v3.13]
+=============================================================================
+
+=============================================================================
+BLOCO 4 ‚Äî ANTI-PADR√ïES (AP-XX) [mantidos v3.13]
+=============================================================================
+
+--- NOVOS AP v4.0 ‚Äî MIGRA√á√ÉO SM ------------------------------------------
+
+AP-30 MIGRA√á√ÉO SEM CRIAR DEAL
+‚úó Errado: INSERT INTO projetos sem criar deal correspondente
+‚úì Certo: cliente ‚Üí projeto ‚Üí deal ‚Üí v√≠nculos funil/etapa
+
 AP-31 USAR PIPELINE_ID EM PROJETOS.FUNIL_ID
-? Errado: gravar UUID de pipelines.id em projetos.funil_id
-? Certo: usar projeto_funis.id (sistema dual)
+‚úó Errado: gravar UUID de pipelines.id em projetos.funil_id
+‚úì Certo: usar projeto_funis.id (sistema dual)
+
 AP-32 MATCH EXATO EM _SM_PROPOSAL_ID
-? Errado: WHERE _sm_proposal_id = '10' (mas staging tem '10:2')
-? Certo: WHERE split_part(_sm_proposal_id, ':', 1) = '10'
+‚úó Errado: WHERE _sm_proposal_id = '10' (mas staging tem '10:2')
+‚úì Certo: WHERE split_part(_sm_proposal_id, ':', 1) = '10'
+
 AP-33 PULAR ENRICH-VERSOES
-? Errado: rodar sm-promote sem sm-enrich-versoes depois
-? Certo: pipeline completo (5 etapas em ordem)
+‚úó Errado: rodar sm-promote sem sm-enrich-versoes depois
+‚úì Certo: pipeline completo (5 etapas em ordem)
+
 AP-34 MIGRAR SEM FORMATAR
-? Errado: gravar telefone "32988887777" sem formataÁ„o
-? Certo: aplicar formatPhoneBR antes de gravar
+‚úó Errado: gravar telefone "32988887777" sem formata√ß√£o
+‚úì Certo: aplicar formatPhoneBR antes de gravar
+
 =============================================================================
-BLOCO 5 ó DECIS’ES ARQUITETURAIS (DA-XX) [mantidas DA-01 a DA-42]
---- NOVAS DA v4.0 ó MIGRA«√O SM ------------------------------------------
-DA-43 MIGRA«√O SM ó PROPOSTAS MAPEADAS POR PREFIXO
+BLOCO 5 ‚Äî DECIS√ïES ARQUITETURAIS (DA-XX) [mantidas DA-01 a DA-42]
+=============================================================================
+
+--- NOVAS DA v4.0 ‚Äî MIGRA√á√ÉO SM ------------------------------------------
+
+DA-43 MIGRA√á√ÉO SM ‚Äî PROPOSTAS MAPEADAS POR PREFIXO
 sm_propostas_raw._sm_proposal_id tem formato "proposta_id:projeto_id".
-A parte antes do ":" È o identificador canÙnico usado em external_id.
-Decis„o: usar split_part em JOINs (RB-68).
-Motivo: SolarMarket API retorna ID composto; n„o alteramos staging.
-DA-44 MIGRA«√O SM ó 25 REGISTROS POR CHUNK
-Chunks de 25 em sm-migrate-chunk È o equilÌbrio entre:
+A parte antes do ":" √© o identificador can√¥nico usado em external_id.
+Decis√£o: usar split_part em JOINs (RB-68).
+Motivo: SolarMarket API retorna ID composto; n√£o alteramos staging.
 
-Timeout de edge function (max 60s)
-Quantidade de queries por registro (~5-10 N+1)
-MemÛria disponÌvel em Deno isolate (128MB)
-Decis„o: manter 25 atÈ otimizar N+1 em sm-promote (cache + bulk insert).
-Motivo: chunks maiores estouram memÛria; menores aumentam overhead.
+DA-44 MIGRA√á√ÉO SM ‚Äî 25 REGISTROS POR CHUNK
+Chunks de 25 em sm-migrate-chunk √© o equil√≠brio entre:
+- Timeout de edge function (max 60s)
+- Quantidade de queries por registro (~5-10 N+1)
+- Mem√≥ria dispon√≠vel em Deno isolate (128MB)
+Decis√£o: manter 25 at√© otimizar N+1 em sm-promote (cache + bulk insert).
+Motivo: chunks maiores estouram mem√≥ria; menores aumentam overhead.
 
-DA-45 MIGRA«√O SM ó CUSTOM FIELDS VIA DEAL_ID
-deal_custom_field_values.deal_id aponta para deals.id (n„o projetos.id).
-Decis„o: criar deals antes de popular custom fields.
+DA-45 MIGRA√á√ÉO SM ‚Äî CUSTOM FIELDS VIA DEAL_ID
+deal_custom_field_values.deal_id aponta para deals.id (n√£o projetos.id).
+Decis√£o: criar deals antes de popular custom fields.
 Motivo: arquitetura nativa vincula custom fields a deals.
-SequÍncia obrigatÛria: projetos ? deals ? deal_custom_field_values.
-DA-46 MIGRA«√O SM ó ARQUIVOS SOBEM PARA STORAGE PR”PRIO
-URLs externas de arquivos (RG, comprovante endereÁo) em sm_propostas_raw
-s„o baixadas e armazenadas em bucket 'imported-files'.
+Sequ√™ncia obrigat√≥ria: projetos ‚Üí deals ‚Üí deal_custom_field_values.
+
+DA-46 MIGRA√á√ÉO SM ‚Äî ARQUIVOS SOBEM PARA STORAGE PR√ìPRIO
+URLs externas de arquivos (RG, comprovante endere√ßo) em sm_propostas_raw
+s√£o baixadas e armazenadas em bucket 'imported-files'.
 Path: sm/{tenant_id}/{deal_id}/{field_key}/{filename}
-Idempotente: skip se j· existe.
+Idempotente: skip se j√° existe.
 NUNCA manter URL externa do SolarMarket (vai quebrar quando SM cair).
-DA-47 MIGRA«√O SM ó SCHEMA DUAL FUNIL/PIPELINE … DEFINITIVO
+
+DA-47 MIGRA√á√ÉO SM ‚Äî SCHEMA DUAL FUNIL/PIPELINE ‚Äî DEFINITIVO
 Sistema tem dois mundos paralelos por design:
-
-Comercial (deals + pipelines): negociaÁ„o, valores, propostas
-ExecuÁ„o (projetos + projeto_funis): instalaÁ„o, vistoria, comissionamento
-Decis„o: N√O unificar. Cada um tem propÛsito distinto.
-Motivo: separation of concerns; usu·rios diferentes acessam cada kanban.
+- Comercial (deals + pipelines): negocia√ß√£o, valores, propostas
+- Execu√ß√£o (projetos + projeto_funis): instala√ß√£o, vistoria, comissionamento
+Decis√£o: N√ÉO unificar. Cada um tem prop√≥sito distinto.
+Motivo: separation of concerns; usu√°rios diferentes acessam cada kanban.
 
 =============================================================================
-BLOCO 6-8 ó [mantidos v3.13]
+BLOCO 6-8 ‚Äî [mantidos v3.13]
 =============================================================================
-BLOCO 9 ó CHECKLIST DE PR [ATUALIZADO v4.0]
+
+=============================================================================
+BLOCO 9 ‚Äî CHECKLIST DE PR [ATUALIZADO v4.0]
+=============================================================================
+
 [Mantido checklist da v3.13]
-NOVO ó CHECKLIST ESPECÕFICO DE MIGRA«√O SM:
+
+NOVO ‚Äî CHECKLIST ESPEC√çFICO DE MIGRA√á√ÉO SM:
 [ ] Staging populado em TODAS as 6 tabelas
 [ ] projeto_funis = pipelines (espelho criado)
-[ ] 0 jobs Ûrf„os em solarmarket_promotion_jobs
+[ ] 0 jobs √≥rf√£os em solarmarket_promotion_jobs
 [ ] Dry-run executado e report validado (bloqueados=0)
 [ ] Promote em chunks (sem timeout, sem memory crash)
-[ ] Enrich rodado atÈ processed=0
+[ ] Enrich rodado at√© processed=0
 [ ] Custom fields + arquivos baixados
-[ ] 1 cliente/projeto/proposta NATIVO criado para comparaÁ„o
-[ ] Query de validaÁ„o: campos crÌticos > 0% NULL
-[ ] Teste manual: abrir projeto sem erro "n„o encontrado"
+[ ] 1 cliente/projeto/proposta NATIVO criado para compara√ß√£o
+[ ] Query de valida√ß√£o: campos cr√≠ticos > 0% NULL
+[ ] Teste manual: abrir projeto sem erro "n√£o encontrado"
 [ ] Teste manual: card kanban mostra R$, kWp, cliente
 [ ] Teste manual: aba Propostas lista com kit completo
-[ ] Teste manual: ediÁ„o funciona
-[ ] Validar formataÁ„o: telefones com (XX) XXXXX-XXXX
-[ ] Validar formataÁ„o: CPFs com XXX.XXX.XXX-XX
+[ ] Teste manual: edi√ß√£o funciona
+[ ] Validar formata√ß√£o: telefones com (XX) XXXXX-XXXX
+[ ] Validar formata√ß√£o: CPFs com XXX.XXX.XXX-XX
+
 =============================================================================
-BLOCO 10-22 ó [mantidos v3.13]
+BLOCO 10-22 ‚Äî [mantidos v3.13]
 =============================================================================
-BLOCO 23 ó CORRE«’ES E MELHORIAS v3.13 [mantido]
+
 =============================================================================
-BLOCO 24 ó NOVO v4.0 ó FLUXO COMPLETO DE MIGRA«√O SM
-DIAGN”STICO R¡PIDO:
+BLOCO 23 ‚Äî CORRE√á√ïES E MELHORIAS v3.13 [mantido]
+=============================================================================
+
+=============================================================================
+BLOCO 24 ‚Äî NOVO v4.0 ‚Äî FLUXO COMPLETO DE MIGRA√á√ÉO SM
+=============================================================================
+
+DIAGN√ìSTICO R√ÅPIDO:
 Antes de migrar QUALQUER coisa, validar estado atual:
-sql-- 1. Jobs Ûrf„os (devem ser 0)
+
+```sql
+-- 1. Jobs √≥rf√£os (devem ser 0)
 SELECT COUNT(*) FROM solarmarket_promotion_jobs
 WHERE status='running' AND (last_step_at IS NULL OR last_step_at < now() - interval '5 min');
 
 -- 2. Staging populado (devem ter dados)
-SELECT 
+SELECT
   (SELECT COUNT(*) FROM sm_clientes_raw WHERE tenant_id=X) AS clientes,
   (SELECT COUNT(*) FROM sm_projetos_raw WHERE tenant_id=X) AS projetos,
   (SELECT COUNT(*) FROM sm_propostas_raw WHERE tenant_id=X) AS propostas,
   (SELECT COUNT(*) FROM sm_funis_raw WHERE tenant_id=X) AS funis;
 
--- 3. Pipelines existentes (decidir auto-criar ou n„o)
+-- 3. Pipelines existentes (decidir auto-criar ou n√£o)
 SELECT COUNT(*) FROM pipelines WHERE tenant_id=X;
 SELECT COUNT(*) FROM projeto_funis WHERE tenant_id=X;
+```
+
 FLUXO COMPLETO (5 FASES):
-FASE 0 ó Higiene (1 min)
 
-Cancelar jobs Ûrf„os
-Validar staging populado
+FASE 0 ‚Äî Higiene (1 min)
+- Cancelar jobs √≥rf√£os
+- Validar staging populado
 
-FASE 1 ó Bootstrap pipelines (5-10 min)
+FASE 1 ‚Äî Bootstrap pipelines (5-10 min)
+- Se tenant vazio: criar 4 pipelines padr√£o + espelho projeto_funis
+- Se tenant tem: admin mapeia manualmente
+- Validar: projeto_funis = pipelines
 
-Se tenant vazio: criar 4 pipelines padr„o + espelho projeto_funis
-Se tenant tem: admin mapeia manualmente
-Validar: projeto_funis = pipelines
+FASE 2 ‚Äî Promote esqueletos (30-45 min)
+- sm-migrate-chunk em chunks de 25
+- Cria: clientes + projetos + deals + propostas (estruturas b√°sicas)
+- Idempotente via external_entity_links
+- Auto-encadeamento via EdgeRuntime.waitUntil
 
-FASE 2 ó Promote esqueletos (30-45 min)
+FASE 3 ‚Äî Enrich vers√µes (15-20 min)
+- sm-enrich-versoes em loop at√© processed=0
+- Popula: valor_total, potencia_kwp, payback, TIR, VPL
+- Cria: kit + itens + UCs + localiza√ß√£o do projeto
+- Sobrescreve sempre (idempotente)
 
-sm-migrate-chunk em chunks de 25
-Cria: clientes + projetos + deals + propostas (estruturas b·sicas)
-Idempotente via external_entity_links
-Auto-encadeamento via EdgeRuntime.waitUntil
+FASE 4 ‚Äî Custom fields (10-15 min)
+- sm-promote-custom-fields em chunks
+- Popula: deal_custom_field_values
+- Baixa: RG, comprovante endere√ßo para Storage
+- Idempotente
 
-FASE 3 ó Enrich versıes (15-20 min)
+FASE 5 ‚Äî Valida√ß√£o (10 min)
+- Query de valida√ß√£o por entidade
+- Teste manual em 1 registro
+- Compara√ß√£o com nativo
 
-sm-enrich-versoes em loop atÈ processed=0
-Popula: valor_total, potencia_kwp, payback, TIR, VPL
-Cria: kit + itens + UCs + localizaÁ„o do projeto
-Sobrescreve sempre (idempotente)
+VALIDA√á√ÉO P√ìS-MIGRA√á√ÉO:
 
-FASE 4 ó Custom fields (10-15 min)
-
-sm-promote-custom-fields em chunks
-Popula: deal_custom_field_values
-Baixa: RG, comprovante endereÁo para Storage
-Idempotente
-
-FASE 5 ó ValidaÁ„o (10 min)
-
-Query de validaÁ„o por entidade
-Teste manual em 1 registro
-ComparaÁ„o com nativo
-
-VALIDA«√O P”S-MIGRA«√O:
-sql-- Cliente
-SELECT 
+```sql
+-- Cliente
+SELECT
   COUNT(*) AS total,
   COUNT(*) FILTER (WHERE telefone ~ '^\([0-9]{2}\) [0-9]{4,5}-[0-9]{4}$') AS tel_ok,
   COUNT(*) FILTER (WHERE cep IS NOT NULL AND rua IS NOT NULL) AS endereco_ok
 FROM clientes WHERE external_source='solarmarket';
 
 -- Projeto
-SELECT 
+SELECT
   COUNT(*) AS total,
   COUNT(deal_id) AS com_deal,
   COUNT(funil_id) AS com_funil,
   COUNT(*) FILTER (WHERE valor_total > 0) AS com_valor
 FROM projetos WHERE external_source='solarmarket';
 
--- Proposta + vers„o
-SELECT 
+-- Proposta + vers√£o
+SELECT
   COUNT(DISTINCT pn.id) AS propostas,
   COUNT(DISTINCT pv.id) AS versoes,
   COUNT(DISTINCT pk.id) AS kits,
@@ -380,12 +398,14 @@ LEFT JOIN proposta_versoes pv ON pv.proposta_id=pn.id
 LEFT JOIN proposta_kits pk ON pk.versao_id=pv.id
 LEFT JOIN proposta_versao_ucs puv ON puv.versao_id=pv.id
 WHERE pn.external_source='solarmarket';
-CRIT…RIO DE ACEITE:
+```
 
-95%+ clientes com telefone formatado
-95%+ projetos com deal_id e funil_id
-95%+ projetos com valor_total > 0
-100% propostas com pelo menos 1 vers„o + kit + UC
+CRIT√âRIO DE ACEITE:
+- 95%+ clientes com telefone formatado
+- 95%+ projetos com deal_id e funil_id
+- 95%+ projetos com valor_total > 0
+- 100% propostas com pelo menos 1 vers√£o + kit + UC
 
 =============================================================================
 FIM DO AGENTS.md v4.0
+=============================================================================
