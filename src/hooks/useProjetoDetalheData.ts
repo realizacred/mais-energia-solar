@@ -52,17 +52,37 @@ export function useProjetoDetalheData(dealId: string) {
   return useQuery({
     queryKey: projetoDetalheKeys.detail(dealId),
     queryFn: async (): Promise<ProjetoDetalheFullData> => {
+      // 0. Resolve identifier: aceita tanto deals.id quanto projetos.id
+      // (projetos migrados do SolarMarket podem propagar projetos.id na URL/cards)
+      let resolvedDealId = dealId;
+      const dealProbe = await supabase
+        .from("deals")
+        .select("id")
+        .eq("id", dealId)
+        .maybeSingle();
+      if (!dealProbe.data) {
+        const projetoProbe = await supabase
+          .from("projetos")
+          .select("deal_id")
+          .eq("id", dealId)
+          .maybeSingle();
+        const fallback = (projetoProbe.data as any)?.deal_id;
+        if (fallback) {
+          resolvedDealId = fallback;
+        }
+      }
+
       // 1. Deal + history
       const [dealRes, historyRes] = await Promise.all([
         supabase
           .from("deals")
           .select("id, title, value, kwp, status, created_at, updated_at, owner_id, pipeline_id, stage_id, customer_id, expected_close_date, motivo_perda_id, motivo_perda_obs, deal_num")
-          .eq("id", dealId)
+          .eq("id", resolvedDealId)
           .single(),
         supabase
           .from("deal_stage_history")
           .select("id, deal_id, from_stage_id, to_stage_id, moved_at, moved_by, metadata")
-          .eq("deal_id", dealId)
+          .eq("deal_id", resolvedDealId)
           .order("moved_at", { ascending: false }),
       ]);
 
