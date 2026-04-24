@@ -244,6 +244,7 @@ export function ProjetosManager() {
 
   const [editingEtapasFunilId, setEditingEtapasFunilId] = useState<string | null>(null);
   const [novoProjetoOpen, setNovoProjetoOpen] = useState(false);
+  const ensureProjectPipeline = useEnsureDefaultProjectPipeline();
   const [templateDialogOpen, setTemplateDialogOpen] = useState(false);
   const [defaultConsultorId, setDefaultConsultorId] = useState<string | undefined>();
   const [legendOpen, setLegendOpen] = useState(false);
