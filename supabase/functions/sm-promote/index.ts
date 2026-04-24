@@ -25,6 +25,7 @@ const corsHeaders = {
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+const SM_MIGRATE_CHUNK_URL = `${SUPABASE_URL}/functions/v1/sm-migrate-chunk`;
 
 const SOURCE = "solarmarket";
 const LEGACY_SM_SOURCES = [SOURCE, "solar_market"] as const;
@@ -81,6 +82,42 @@ function jsonResponse(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
     status,
     headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+}
+
+async function delegateManualPromoteToChunked(authHeader: string): Promise<Response> {
+  const res = await fetch(SM_MIGRATE_CHUNK_URL, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: authHeader,
+      apikey: SUPABASE_ANON_KEY,
+    },
+    body: JSON.stringify({ action: "start", payload: {} }),
+  });
+
+  const rawText = await res.text();
+  let parsed: Record<string, unknown> = {};
+  try {
+    parsed = JSON.parse(rawText);
+  } catch {
+    parsed = { ok: false, error: rawText || `Falha ao iniciar ${SM_MIGRATE_CHUNK_URL}` };
+  }
+
+  if (!res.ok) {
+    return jsonResponse({
+      ok: false,
+      error: typeof parsed.error === "string" ? parsed.error : `HTTP ${res.status}`,
+      existing_job_id: parsed.existing_job_id ?? null,
+    });
+  }
+
+  return jsonResponse({
+    ...parsed,
+    ok: true,
+    job_id: parsed.master_job_id ?? null,
+    status: "running",
+    delegated_to: "sm-migrate-chunk",
   });
 }
 
@@ -2520,9 +2557,19 @@ Deno.serve(async (req: Request) => {
     state.tenantId = ctx.tenantId;
     const action = String(body?.action ?? "");
     const payload = (body?.payload ?? {}) as Record<string, unknown>;
+    const authHeader = req.headers.get("Authorization");
+    const internalCallHeader = req.headers.get("x-sm-internal-call");
 
     switch (action) {
       case "promote-all":
+        if (
+          internalCallHeader !== "sm-migrate-chunk-v1" &&
+          !Boolean(payload.dry_run) &&
+          (payload.scope === undefined || payload.scope === "proposta") &&
+          authHeader
+        ) {
+          return await delegateManualPromoteToChunked(authHeader);
+        }
         return await actionPromoteAll(admin, state, payload as never);
       case "cancel-job":
         return await actionCancelJob(admin, state, payload as never);
