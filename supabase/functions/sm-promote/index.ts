@@ -718,7 +718,7 @@ async function promoteCliente(
     return { id: byCode.id as string, created: false, matchedBy: "cliente_code" };
   }
 
-  // 3) Reconciliação por CPF/CNPJ
+  // 3) Reconciliação por CPF/CNPJ (busca pelo formato gravado: formatado).
   if (norm.cpf_cnpj) {
     const { data: byDoc } = await admin
       .from("clientes")
