@@ -38,16 +38,14 @@ interface Props {
   onReorderFunis?: () => void;
 }
 
+// Status agrupado por categoria da etapa do projeto (aberto/ganho/perdido/excluido).
+// Reflete o ciclo de vida comercial em vez de status técnicos individuais.
 const STATUS_OPTIONS: { value: string; label: string }[] = [
   { value: "todos", label: "Todos" },
-  { value: "criado", label: "Criado" },
-  { value: "aguardando_documentacao", label: "Aguardando Documentação" },
-  { value: "em_analise", label: "Em Análise" },
-  { value: "aprovado", label: "Aprovado" },
-  { value: "em_instalacao", label: "Em Instalação" },
-  { value: "instalado", label: "Instalado" },
-  { value: "concluido", label: "Concluído" },
-  { value: "cancelado", label: "Cancelado" },
+  { value: "aberto", label: "Abertos" },
+  { value: "ganho", label: "Ganhos" },
+  { value: "perdido", label: "Perdidos" },
+  { value: "excluido", label: "Excluídos" },
 ];
 
 export function ProjetoFilters({
