@@ -68,38 +68,95 @@ function formatJobStatusLabel(status: string | null | undefined) {
   }
 }
 
-function StatRow({
+type PhaseState = "done" | "active" | "pending" | "empty";
+
+function PhaseCard({
+  step,
   icon: Icon,
   label,
   promoted,
   total,
+  state,
 }: {
+  step: number;
   icon: React.ComponentType<{ className?: string }>;
   label: string;
   promoted: number;
   total: number;
+  state: PhaseState;
 }) {
   const pct = total > 0 ? Math.min(100, Math.round((promoted / total) * 100)) : 0;
-  const done = total > 0 && promoted >= total;
+  const remaining = Math.max(0, total - promoted);
+
+  const containerClass =
+    state === "done"
+      ? "border-success/40 bg-success/5"
+      : state === "active"
+        ? "border-primary/50 bg-primary/5 shadow-sm ring-1 ring-primary/20"
+        : "border-border bg-muted/30 opacity-70";
+
+  const iconWrapClass =
+    state === "done"
+      ? "bg-success/15 text-success"
+      : state === "active"
+        ? "bg-primary/15 text-primary"
+        : "bg-muted text-muted-foreground";
+
+  const statusBadge =
+    state === "done" ? (
+      <Badge variant="outline" className="bg-success/10 text-success border-success/30 gap-1 text-[10px] h-5">
+        <CheckCircle2 className="w-3 h-3" /> Concluído
+      </Badge>
+    ) : state === "active" ? (
+      <Badge variant="outline" className="bg-primary/10 text-primary border-primary/30 gap-1 text-[10px] h-5">
+        <Loader2 className="w-3 h-3 animate-spin" /> Em andamento
+      </Badge>
+    ) : state === "empty" ? (
+      <Badge variant="outline" className="bg-muted text-muted-foreground border-border text-[10px] h-5">
+        Sem dados
+      </Badge>
+    ) : (
+      <Badge variant="outline" className="bg-muted text-muted-foreground border-border text-[10px] h-5">
+        Aguardando fase {step - 1}
+      </Badge>
+    );
+
   return (
-    <div className="space-y-2">
-      <div className="flex items-center justify-between gap-3">
-        <div className="flex items-center gap-2 min-w-0">
-          <Icon className="w-4 h-4 text-primary shrink-0" />
-          <span className="text-sm font-medium text-foreground">{label}</span>
+    <div className={`rounded-lg border p-4 transition-colors ${containerClass}`}>
+      <div className="flex items-start justify-between gap-3 mb-3">
+        <div className="flex items-center gap-3 min-w-0">
+          <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${iconWrapClass}`}>
+            <Icon className="w-5 h-5" />
+          </div>
+          <div className="min-w-0">
+            <p className="text-[10px] uppercase tracking-wide text-muted-foreground font-semibold">
+              Fase {step}
+            </p>
+            <p className="text-sm font-semibold text-foreground">{label}</p>
+          </div>
         </div>
-        <div className="flex items-center gap-2 text-xs font-mono">
-          <span className={done ? "text-success font-bold" : "text-foreground"}>
+        {statusBadge}
+      </div>
+
+      <div className="flex items-baseline justify-between gap-2 mb-1.5">
+        <div className="flex items-baseline gap-1.5 font-mono">
+          <span className={`text-lg font-bold tracking-tight ${state === "done" ? "text-success" : "text-foreground"}`}>
             {promoted.toLocaleString("pt-BR")}
           </span>
-          <span className="text-muted-foreground">/ {total.toLocaleString("pt-BR")}</span>
-          {done && <CheckCircle2 className="w-3.5 h-3.5 text-success" />}
+          <span className="text-xs text-muted-foreground">/ {total.toLocaleString("pt-BR")}</span>
         </div>
+        <span className="text-xs font-mono text-muted-foreground">{pct}%</span>
       </div>
       <Progress value={pct} className="h-2" />
+      {state !== "done" && state !== "empty" && remaining > 0 && (
+        <p className="text-[11px] text-muted-foreground mt-2">
+          {remaining.toLocaleString("pt-BR")} pendente{remaining > 1 ? "s" : ""}
+        </p>
+      )}
     </div>
   );
 }
+
 
 export default function MigracaoStep3Migrar() {
   const { start, continueJob, cancel, progress, isLoading } = useChunkedMigration();
@@ -324,26 +381,57 @@ export default function MigracaoStep3Migrar() {
               </p>
             </div>
 
-            <div className="space-y-5">
-              <StatRow
-                icon={Users}
-                label="Clientes"
-                promoted={totals?.clientes.promoted ?? 0}
-                total={totals?.clientes.total ?? 0}
-              />
-              <StatRow
-                icon={FolderKanban}
-                label="Projetos"
-                promoted={totals?.projetos.promoted ?? 0}
-                total={totals?.projetos.total ?? 0}
-              />
-              <StatRow
-                icon={FileText}
-                label="Propostas"
-                promoted={totals?.propostas.promoted ?? 0}
-                total={totals?.propostas.total ?? 0}
-              />
-            </div>
+            {(() => {
+              const phases = [
+                {
+                  step: 1,
+                  icon: Users,
+                  label: "Clientes",
+                  promoted: totals?.clientes.promoted ?? 0,
+                  total: totals?.clientes.total ?? 0,
+                },
+                {
+                  step: 2,
+                  icon: FolderKanban,
+                  label: "Projetos",
+                  promoted: totals?.projetos.promoted ?? 0,
+                  total: totals?.projetos.total ?? 0,
+                },
+                {
+                  step: 3,
+                  icon: FileText,
+                  label: "Propostas e campos adicionais",
+                  promoted: totals?.propostas.promoted ?? 0,
+                  total: totals?.propostas.total ?? 0,
+                },
+              ];
+
+              // Primeira fase com pendência define a "ativa"
+              const firstPendingIdx = phases.findIndex((p) => p.total > 0 && p.promoted < p.total);
+
+              const phaseStates: PhaseState[] = phases.map((p, idx) => {
+                if (p.total === 0) return "empty";
+                if (p.promoted >= p.total) return "done";
+                if (idx === firstPendingIdx) return "active";
+                return "pending";
+              });
+
+              return (
+                <div className="space-y-3">
+                  {phases.map((p, idx) => (
+                    <PhaseCard
+                      key={p.step}
+                      step={p.step}
+                      icon={p.icon}
+                      label={p.label}
+                      promoted={p.promoted}
+                      total={p.total}
+                      state={phaseStates[idx]}
+                    />
+                  ))}
+                </div>
+              );
+            })()}
 
             <div className="pt-2 border-t border-border flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
               <div className="text-xs text-muted-foreground">
