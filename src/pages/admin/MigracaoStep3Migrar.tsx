@@ -46,6 +46,7 @@ import {
   PromotionLogsDialog,
   type LogsFilter,
 } from "@/components/admin/solarmarket/PromotionLogsDialog";
+import { PromoteCustomFieldsCard } from "@/components/admin/solarmarket/PromoteCustomFieldsCard";
 
 function StatRow({
   icon: Icon,
@@ -390,6 +391,9 @@ export default function MigracaoStep3Migrar() {
           </CardContent>
         </Card>
       )}
+
+      {/* Step 3.1 — Promover custom fields & arquivos */}
+      <PromoteCustomFieldsCard />
 
       <PromotionLogsDialog
         open={logsOpen}

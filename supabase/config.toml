@@ -328,3 +328,7 @@ wall_clock_limit = 300
 verify_jwt = false
 wall_clock_limit = 60
 
+[functions.sm-promote-custom-fields]
+verify_jwt = false
+wall_clock_limit = 300
+
