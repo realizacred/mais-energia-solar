@@ -345,8 +345,8 @@ export default function MigracaoStep3Migrar() {
             <div className="pt-2 border-t border-border flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
               <div className="text-xs text-muted-foreground">
                 {isRunning
-                  ? `Job atual: ${progress?.pctGeral ?? 0}% do lote processado • última atividade ${lastActivityLabel} • staging de propostas em ${progress?.pctTotal ?? 0}%`
-                  : `Status atual: ${statusLabel} • última atividade ${lastActivityLabel}. Registros já migrados são ignorados automaticamente.`}
+                  ? `Execução interna: ${progress?.pctGeral ?? 0}% das linhas do lote já foram avaliadas pelo motor • CRM real agora: ${totalPromoted.toLocaleString("pt-BR")} registros criados • última atividade ${lastActivityLabel}`
+                  : `Status atual: ${statusLabel} • CRM real: ${totalPromoted.toLocaleString("pt-BR")} registros criados • última atividade ${lastActivityLabel}. Registros já migrados são ignorados automaticamente.`}
               </div>
               <div className="flex items-center gap-2 flex-wrap">
                 <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
@@ -438,7 +438,7 @@ export default function MigracaoStep3Migrar() {
                 </p>
               </div>
               <div>
-                <p className="text-muted-foreground">Criados no CRM neste job</p>
+                <p className="text-muted-foreground">Linhas avaliadas como promovidas pelo motor</p>
                 <p className="font-mono font-bold text-foreground">{job.items_promoted}</p>
               </div>
             </div>
@@ -464,6 +464,12 @@ export default function MigracaoStep3Migrar() {
                 <p className="text-xs text-muted-foreground mt-1 break-words">{job.error_summary}</p>
               </div>
             )}
+            <div className="rounded-lg border border-border bg-muted/30 p-3">
+              <p className="text-xs font-medium text-foreground">Leitura correta desta seção</p>
+              <p className="text-xs text-muted-foreground mt-1">
+                Os cards e barras acima mostram o que já existe de verdade no CRM. Esta seção do job mostra o andamento interno do motor de migração e pode avançar antes de aparecer novo total no CRM.
+              </p>
+            </div>
           </CardContent>
         </Card>
       )}
