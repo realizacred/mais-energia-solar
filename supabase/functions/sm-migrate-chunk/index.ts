@@ -170,6 +170,8 @@ async function runAdaptivePromoteChunk(
 ): Promise<{
   ok: boolean;
   batch_used?: number;
+  job_id?: string;
+  status?: string;
   counters?: Record<string, number>;
   error?: string;
 }> {
@@ -178,32 +180,40 @@ async function runAdaptivePromoteChunk(
   for (const batch of attempts) {
     const result = await callSmPromoteOnce(tenantId, batch, true);
     if (result.ok) {
-      return { ok: true, batch_used: batch, counters: result.counters };
+      return {
+        ok: true,
+        batch_used: batch,
+        job_id: result.job_id,
+        status: result.status,
+        counters: result.counters,
+      };
     }
 
     if (!isGatewayTimeoutLike(result.error) || batch === MIN_CHUNK_BATCH) {
       return { ok: false, batch_used: batch, error: result.error };
     }
 
-    await admin
-      .from("solarmarket_promotion_logs")
-      .insert({
-        tenant_id: tenantId,
-        job_id: null,
-        severity: "warning",
-        step: "adaptive-batch",
-        status: "warning",
-        message: `Chunk ${batch} excedeu limite de CPU/timeout; reduzindo lote automaticamente.`,
-        source_entity_type: "job",
-        source_entity_id: tenantId,
-        canonical_entity_type: null,
-        canonical_entity_id: null,
-        error_code: "WORKER_LIMIT_RETRY",
-        error_origin: MODULE,
-        details: { attempted_batch: batch, next_batch: Math.max(MIN_CHUNK_BATCH, Math.floor(batch / 2)) },
-      })
-      .then(() => undefined)
-      .catch(() => undefined);
+    try {
+      await admin
+        .from("solarmarket_promotion_logs")
+        .insert({
+          tenant_id: tenantId,
+          job_id: null,
+          severity: "warning",
+          step: "adaptive-batch",
+          status: "warning",
+          message: `Chunk ${batch} excedeu limite de CPU/timeout; reduzindo lote automaticamente.`,
+          source_entity_type: "job",
+          source_entity_id: tenantId,
+          canonical_entity_type: null,
+          canonical_entity_id: null,
+          error_code: "WORKER_LIMIT_RETRY",
+          error_origin: MODULE,
+          details: { attempted_batch: batch, next_batch: Math.max(MIN_CHUNK_BATCH, Math.floor(batch / 2)) },
+        });
+    } catch {
+      // não bloqueia a recuperação adaptativa por falha de log
+    }
   }
 
   return { ok: false, error: "Falha ao processar chunk adaptativo" };
