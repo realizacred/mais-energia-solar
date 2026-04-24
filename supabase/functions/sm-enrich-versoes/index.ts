@@ -68,6 +68,19 @@ function toInt(v: unknown): number | null {
   return n === null ? null : Math.round(n);
 }
 
+/**
+ * Mapeia "tipo" do SolarMarket (BT/MT/AT) para o grupo canônico (B/A).
+ * proposta_versoes.grupo aceita apenas 'A', 'B' ou NULL.
+ */
+function mapGrupo(raw: string | null | undefined): "A" | "B" | null {
+  if (!raw) return null;
+  const s = String(raw).trim().toUpperCase();
+  if (s === "A" || s === "B") return s;
+  if (s === "BT") return "B";
+  if (s === "MT" || s === "AT") return "A";
+  return null;
+}
+
 interface VarMap {
   get(key: string): string | null;
   num(key: string): number | null;
