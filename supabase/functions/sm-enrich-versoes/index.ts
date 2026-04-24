@@ -104,18 +104,19 @@ function buildVarMap(variables: any[]): VarMap {
 }
 
 // Categoriza item da pricingTable do SM em categoria canônica nossa.
+// Categorias aceitas pelo BD: modulo, inversor, otimizador, estrutura, componente, bateria.
 function categorizar(category: string, item: string): string {
   const c = (category || "").toLowerCase();
   const it = (item || "").toLowerCase();
   if (c.includes("módulo") || c.includes("modulo") || c.includes("painel")) return "modulo";
-  if (c.includes("inversor") || c.includes("microinversor")) return "inversor";
+  if (c.includes("microinversor") || it.includes("microinversor")) return "inversor";
+  if (c.includes("inversor")) return "inversor";
+  if (c.includes("otimizador") || it.includes("otimizador") || it.includes("optimizer")) return "otimizador";
   if (c.includes("bateria")) return "bateria";
   if (c.includes("estrutura") || it.includes("estrutura") || it.includes("trilho") || it.includes("telha"))
     return "estrutura";
-  if (c.includes("cabo") || it.includes("cabo")) return "cabo";
-  if (c.includes("conector") || it.includes("conector") || it.includes("mc4")) return "conector";
-  if (c.includes("string") || it.includes("string box") || it.includes("disjuntor")) return "protecao";
-  return "outros";
+  // Cabos, conectores, string box, disjuntores e quaisquer outros itens BoS → componente.
+  return "componente";
 }
 
 // Extrai fabricante + modelo do "item" do SM. Geralmente vem "FABRICANTE MODELO".
