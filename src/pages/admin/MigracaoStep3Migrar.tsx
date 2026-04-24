@@ -42,6 +42,10 @@ import {
 import { useMigrateFull } from "@/hooks/useMigrateFull";
 import { useResetMigratedData } from "@/hooks/useResetMigratedData";
 import { toast } from "@/hooks/use-toast";
+import {
+  PromotionLogsDialog,
+  type LogsFilter,
+} from "@/components/admin/solarmarket/PromotionLogsDialog";
 
 function StatRow({
   icon: Icon,
