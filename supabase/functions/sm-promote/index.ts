@@ -1084,17 +1084,71 @@ interface PerProjectPipeline extends PipelineResolution {
   dealStageDefault: string | null;
 }
 
+async function resolveDefaultDealPipeline(
+  admin: SupabaseClient,
+  tenantId: string,
+): Promise<Pick<PerProjectPipeline, "dealPipelineId" | "dealStageByStatus" | "dealStageDefault">> {
+  const { data: preferred } = await admin
+    .from("pipelines")
+    .select("id")
+    .eq("tenant_id", tenantId)
+    .eq("is_active", true)
+    .eq("kind", "process")
+    .ilike("name", "comercial")
+    .limit(1)
+    .maybeSingle();
+
+  const pipelineRow = preferred ?? await (async () => {
+    const { data: fallback } = await admin
+      .from("pipelines")
+      .select("id")
+      .eq("tenant_id", tenantId)
+      .eq("is_active", true)
+      .eq("kind", "process")
+      .order("is_default", { ascending: false })
+      .order("created_at", { ascending: true })
+      .limit(1)
+      .maybeSingle();
+    return fallback;
+  })();
+
+  const dealPipelineId = pickStr((pipelineRow as AnyObj | null)?.id);
+  if (!dealPipelineId) {
+    return { dealPipelineId: null, dealStageByStatus: {}, dealStageDefault: null };
+  }
+
+  const { data: pStages } = await admin
+    .from("pipeline_stages")
+    .select("id, name, position")
+    .eq("tenant_id", tenantId)
+    .eq("pipeline_id", dealPipelineId)
+    .order("position", { ascending: true });
+
+  const stagesArr = (pStages ?? []) as Array<AnyObj>;
+  const dealStageByStatus: Record<string, string> = {};
+  for (const [status, aliases] of Object.entries(STATUS_STAGE_NAME)) {
+    const aliasesNorm = aliases.map(norm);
+    const found = stagesArr.find((s) => aliasesNorm.includes(norm(String(s.name ?? ""))));
+    if (found) dealStageByStatus[status] = found.id as string;
+  }
+
+  return {
+    dealPipelineId,
+    dealStageByStatus,
+    dealStageDefault: (stagesArr[0]?.id as string | undefined) ?? null,
+  };
+}
+
 async function resolvePipelinePerProject(
   admin: SupabaseClient,
   tenantId: string,
   projectExtId: string | null | undefined,
   defaultPipeline: PipelineResolution,
 ): Promise<PerProjectPipeline> {
+  const defaultDeal = await resolveDefaultDealPipeline(admin, tenantId);
   const empty: PerProjectPipeline = {
     ...defaultPipeline,
-    dealPipelineId: null,
-    dealStageByStatus: {},
-    dealStageDefault: null,
+    ...defaultDeal,
   };
 
   if (!projectExtId) return empty;
