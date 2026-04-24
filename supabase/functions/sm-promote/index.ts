@@ -391,8 +391,12 @@ function normalizeSmProposal(raw: AnyObj) {
     (acc: number, it: AnyObj) => acc + (pickNum(it.salesValue ?? it.totalValue) ?? 0),
     0,
   );
+  // CRÍTICO: em alguns tenants `payload.id` colide (ex.: 10 valores p/ 1.823 propostas).
+  // O identificador realmente único é `_sm_project_id` (1 proposta por projeto SM).
+  // Fallback: id legado (mantém compatibilidade com tenants antigos sem colisão).
+  const externalId = pickStr(raw._sm_project_id) ?? pickStr(raw.project?.id) ?? pickStr(raw.id);
   return {
-    external_id: pickStr(raw.id),
+    external_id: externalId,
     nome: pickStr(raw.name) ?? "Proposta SolarMarket",
     descricao: pickStr(raw.description),
     status_source: pickStr(raw.status),
@@ -1812,6 +1816,105 @@ async function promoteOneProposalRow(
   }
 }
 
+// ─── Bootstrap de funis padrão (Comercial + Eng/Equip/Compesação) ───────────
+// Garante que todo tenant que rodar a migração tenha os 4 funis essenciais
+// para classificação de projetos. Idempotente: só cria o que falta.
+const DEFAULT_FUNIS: Array<{ nome: string; etapas: Array<{ nome: string; categoria: "aberto" | "ganho" | "perdido"; cor: string }> }> = [
+  {
+    nome: "Comercial",
+    etapas: [
+      { nome: "Novo Lead", categoria: "aberto", cor: "#3B82F6" },
+      { nome: "Qualificado", categoria: "aberto", cor: "#6366F1" },
+      { nome: "Proposta Enviada", categoria: "aberto", cor: "#F59E0B" },
+      { nome: "Negociação", categoria: "aberto", cor: "#F97316" },
+      { nome: "Fechado", categoria: "ganho", cor: "#10B981" },
+      { nome: "Perdido", categoria: "perdido", cor: "#EF4444" },
+    ],
+  },
+  {
+    nome: "Engenharia",
+    etapas: [
+      { nome: "Aguardando Documentação", categoria: "aberto", cor: "#3B82F6" },
+      { nome: "Em Projeto", categoria: "aberto", cor: "#6366F1" },
+      { nome: "Aprovado", categoria: "aberto", cor: "#10B981" },
+      { nome: "Cancelado", categoria: "perdido", cor: "#EF4444" },
+    ],
+  },
+  {
+    nome: "Equipamento",
+    etapas: [
+      { nome: "Aguardando Compra", categoria: "aberto", cor: "#3B82F6" },
+      { nome: "Em Trânsito", categoria: "aberto", cor: "#F59E0B" },
+      { nome: "Recebido", categoria: "ganho", cor: "#10B981" },
+    ],
+  },
+  {
+    nome: "Compesação",
+    etapas: [
+      { nome: "Aguardando Vistoria", categoria: "aberto", cor: "#3B82F6" },
+      { nome: "Em Análise", categoria: "aberto", cor: "#F59E0B" },
+      { nome: "Homologado", categoria: "ganho", cor: "#10B981" },
+    ],
+  },
+];
+
+async function ensureDefaultFunis(admin: SupabaseClient, tenantId: string): Promise<void> {
+  const { data: existing } = await admin
+    .from("projeto_funis")
+    .select("id, nome, ordem")
+    .eq("tenant_id", tenantId);
+  const existingByName = new Map<string, { id: string; ordem: number }>();
+  let maxOrdem = 0;
+  for (const f of (existing ?? []) as AnyObj[]) {
+    existingByName.set(String(f.nome).trim().toLowerCase(), {
+      id: f.id as string,
+      ordem: (f.ordem as number) ?? 0,
+    });
+    if ((f.ordem as number) > maxOrdem) maxOrdem = f.ordem as number;
+  }
+
+  for (const def of DEFAULT_FUNIS) {
+    const key = def.nome.toLowerCase();
+    let funilId = existingByName.get(key)?.id;
+    if (!funilId) {
+      maxOrdem += 1;
+      const { data: created, error } = await admin
+        .from("projeto_funis")
+        .insert({ tenant_id: tenantId, nome: def.nome, ordem: maxOrdem, ativo: true })
+        .select("id")
+        .single();
+      if (error || !created?.id) {
+        console.error(`[${MODULE}] ensureDefaultFunis falha em ${def.nome}:`, error?.message);
+        continue;
+      }
+      funilId = created.id as string;
+    }
+
+    // Etapas: cria apenas as que faltam (case-insensitive por nome).
+    const { data: stages } = await admin
+      .from("projeto_etapas")
+      .select("nome")
+      .eq("tenant_id", tenantId)
+      .eq("funil_id", funilId);
+    const stageNames = new Set((stages ?? []).map((s: AnyObj) => String(s.nome).trim().toLowerCase()));
+
+    const toInsert = def.etapas
+      .filter((e) => !stageNames.has(e.nome.toLowerCase()))
+      .map((e, idx) => ({
+        tenant_id: tenantId,
+        funil_id: funilId!,
+        nome: e.nome,
+        ordem: stageNames.size + idx,
+        categoria: e.categoria,
+        cor: e.cor,
+      }));
+    if (toInsert.length > 0) {
+      const { error: insErr } = await admin.from("projeto_etapas").insert(toInsert);
+      if (insErr) console.error(`[${MODULE}] ensureDefaultFunis etapas ${def.nome}:`, insErr.message);
+    }
+  }
+}
+
 // ─── Actions ─────────────────────────────────────────────────────────────────
 async function actionPromoteAll(
   admin: SupabaseClient,
@@ -1839,6 +1942,16 @@ async function actionPromoteAll(
     status: "running" satisfies JobStatus,
     started_at: new Date().toISOString(),
   });
+
+  // Bootstrap dos funis padrão (Comercial + Eng + Equip + Compesação).
+  // Idempotente: se já existem, não duplica. Crítico antes de resolveDefaultPipeline.
+  if (!dryRun) {
+    try {
+      await ensureDefaultFunis(admin, tenantId);
+    } catch (e) {
+      console.error(`[${MODULE}] ensureDefaultFunis falhou (não-fatal):`, (e as Error).message);
+    }
+  }
 
   // Resolve pipeline ANTES dos candidatos — falha rápido se o tenant tiver
   // pipeline configurado mas inconsistente (sem etapa).
