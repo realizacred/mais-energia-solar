@@ -52,12 +52,39 @@ Deno.serve(async (req) => {
       .from("profiles")
       .select("tenant_id")
       .eq("user_id", user.id)
-      .single();
+      .maybeSingle();
 
     if (!profile?.tenant_id) {
       return new Response(
         JSON.stringify({ error: "Tenant não encontrado." }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const tenantId = profile.tenant_id;
+
+    const { error: promotionLogsErr } = await admin
+      .from("solarmarket_promotion_logs" as never)
+      .delete()
+      .eq("tenant_id", tenantId);
+
+    if (promotionLogsErr) {
+      return new Response(
+        JSON.stringify({ error: `solarmarket_promotion_logs: ${promotionLogsErr.message}` }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const { error: promotionJobsErr } = await admin
+      .from("solarmarket_promotion_jobs" as never)
+      .delete()
+      .eq("tenant_id", tenantId)
+      .eq("job_type", "migrate-chunked");
+
+    if (promotionJobsErr) {
+      return new Response(
+        JSON.stringify({ error: `solarmarket_promotion_jobs: ${promotionJobsErr.message}` }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
