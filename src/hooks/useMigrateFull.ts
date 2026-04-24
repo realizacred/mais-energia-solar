@@ -21,7 +21,6 @@ export type MigrateFullProgress = {
   job: {
     id: string;
     status: string;
-    current_step: string | null;
     items_processed: number;
     total_items: number;
     items_promoted: number;
@@ -153,7 +152,6 @@ export function useMigrateFull() {
           ? {
               id: job.id,
               status: job.status,
-              current_step: (job as any).current_step ?? null,
               items_processed: job.items_processed ?? 0,
               total_items: job.total_items ?? 0,
               items_promoted: job.items_promoted ?? 0,

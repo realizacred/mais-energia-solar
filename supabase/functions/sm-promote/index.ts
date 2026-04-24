@@ -2038,7 +2038,6 @@ async function actionPromoteAll(
   // Encadeamento server-side: roda em loop até esgotar o staging.
   // Atualiza metadata.phases.custom_fields para o frontend ler progresso.
   await patchJob(admin, jobId, {
-    current_step: "custom_fields",
     metadata: {
       phases: {
         custom_fields: { status: "running", processed: 0, upserted: 0, files_downloaded: 0, files_failed: 0 },
@@ -2056,7 +2055,6 @@ async function actionPromoteAll(
 
   // ── Fase 3: Enriquecer propostas (kit, financeiro, UCs, lat/lng) ──
   await patchJob(admin, jobId, {
-    current_step: "enrichment",
     metadata: {
       phases: {
         custom_fields: { status: "completed", ...cfTotals },
@@ -2087,7 +2085,6 @@ async function actionPromoteAll(
   await patchJob(admin, jobId, {
     status: finalStatus,
     finished_at: new Date().toISOString(),
-    current_step: "done",
     items_processed: state.counters.processed,
     items_promoted: state.counters.promoted,
     items_skipped: state.counters.skipped,
