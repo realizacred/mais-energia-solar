@@ -3,7 +3,7 @@
  * Converts a DOCX file to PDF using Gotenberg (LibreOffice-based).
  * With retry (exponential backoff) and circuit breaker.
  */
-import { createClient } from "npm:@supabase/supabase-js@2";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { normalizeDocxVariableFormat } from "../_shared/normalizeVariableFormat.ts";
 import { resolveGotenbergUrl } from "../_shared/resolveGotenbergUrl.ts";
 import {

@@ -1,4 +1,4 @@
-import { createClient } from "npm:@supabase/supabase-js@2";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -99,13 +99,14 @@ Deno.serve(async (req) => {
     if (!conv) throw new Error("Conversation not found");
 
     // Get last 20 messages for context
-    const { data: messages = [] } = await adminClient
+    const { data: messagesRaw } = await adminClient
       .from("wa_messages")
       .select("direction, content, message_type, created_at, is_internal_note")
       .eq("conversation_id", conversation_id)
       .eq("is_internal_note", false)
       .order("created_at", { ascending: false })
       .limit(20);
+    const messages = messagesRaw ?? [];
 
     // Get lead data if available
     let leadContext = "";

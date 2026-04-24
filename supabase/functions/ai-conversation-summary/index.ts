@@ -121,13 +121,14 @@ Deno.serve(async (req) => {
     if (!conv) throw new Error("Conversation not found");
 
     // Get all messages (up to 50 for comprehensive summary)
-    const { data: messages = [] } = await adminClient
+    const { data: messagesRaw } = await adminClient
       .from("wa_messages")
       .select("id, direction, content, message_type, created_at, is_internal_note, source")
       .eq("conversation_id", conversation_id)
       .eq("is_internal_note", false)
       .order("created_at", { ascending: false })
       .limit(50);
+    const messages = messagesRaw ?? [];
 
     if (messages.length === 0) {
       return new Response(

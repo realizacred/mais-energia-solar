@@ -7,7 +7,7 @@
  * as the SINGLE SOURCE OF TRUTH — same base as template-preview.
  * Document-only vars (contrato, assinatura) are added as isolated enrichment.
  */
-import { createClient } from "npm:@supabase/supabase-js@2";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { processXmlContent, shouldProcessXmlFile } from "../_shared/docxProcessor.ts";
 import { resolveGotenbergUrl } from "../_shared/resolveGotenbergUrl.ts";
 import { flattenSnapshot } from "../_shared/flattenSnapshot.ts";
@@ -240,7 +240,7 @@ async function processDocx(
   templateBytes: Uint8Array,
   variables: Record<string, string>,
 ): Promise<Uint8Array> {
-  const { unzipSync, zipSync, strFromU8, strToU8 } = await import("npm:fflate@0.8.2");
+  const { unzipSync, zipSync, strFromU8, strToU8 } = await import("https://esm.sh/fflate@0.8.2");
 
   const unzipped = unzipSync(templateBytes);
   const processed: Record<string, Uint8Array> = {};

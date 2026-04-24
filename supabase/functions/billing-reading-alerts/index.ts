@@ -166,7 +166,7 @@ Deno.serve(async (req) => {
           channel: canal,
           status: "failed",
           error_message: errorMsg,
-        }).catch(() => {});
+        });
       }
     }
 

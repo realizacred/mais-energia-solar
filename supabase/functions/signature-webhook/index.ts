@@ -7,8 +7,8 @@
  * Public endpoint — no JWT verification
  */
 
-import { createClient } from "npm:@supabase/supabase-js@2";
-import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+import { corsHeaders } from "https://esm.sh/@supabase/supabase-js@2.49.1/cors";
 import {
   detectWebhookProvider,
   parseZapSignWebhook,
