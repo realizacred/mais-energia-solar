@@ -106,6 +106,7 @@ async function scheduleNextStep(masterJobId: string, tenantId: string): Promise<
 async function callSmPromoteOnce(
   tenantId: string,
   batchLimit: number,
+  skipPostPhases = true,
 ): Promise<{
   ok: boolean;
   job_id?: string;
@@ -130,6 +131,7 @@ async function callSmPromoteOnce(
         dry_run: false,
         scope: "proposta",
         tenant_id: tenantId,
+        skip_post_phases: skipPostPhases,
       },
     }),
   });

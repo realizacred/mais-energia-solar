@@ -28,18 +28,20 @@ const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const BUCKET = "imported-files";
 
-// Mapa: chave SM (cap_*) -> field_key canônico (mesmo nome no tenant).
-// Apenas chaves explicitamente listadas serão promovidas.
-const CAP_FIELD_KEYS = [
-  "cap_obs",
-  "cap_equipamento",
-  "cap_localizacao",
-  "cap_wifi",
-  "cap_disjuntor",
-  "cap_transformador",
-  "cap_identidade",
-  "cap_comprovante_endereco",
-] as const;
+// Mapa: chaves do SM -> field_key canônico do projeto.
+const CAP_FIELD_ALIAS_MAP = {
+  cap_obs: "cap_obs",
+  cap_equipamento: "cap_equipamento",
+  cap_localizacao: "cap_localizacao",
+  cap_wifi: "cap_wifi",
+  cap_disjuntor: "cap_disjuntor",
+  cap_transformador: "cap_transformador",
+  cap_identidade: "cap_identidade",
+  cap_comprovante_endereco: "cap_comprovante_endereco",
+  capo_observacoes: "cap_obs",
+} as const;
+
+const CAP_FIELD_KEYS = Object.keys(CAP_FIELD_ALIAS_MAP) as Array<keyof typeof CAP_FIELD_ALIAS_MAP>;
 
 interface PromoteResult {
   ok: boolean;
@@ -158,12 +160,13 @@ Deno.serve(async (req) => {
 
     const tenantId = projetos[0].tenant_id as string;
 
+    const canonicalFieldKeys = Array.from(new Set(Object.values(CAP_FIELD_ALIAS_MAP)));
     const { data: fields, error: fieldsErr } = await supabase
       .from("deal_custom_fields")
       .select("id, field_key, field_type, tenant_id")
       .eq("tenant_id", tenantId)
       .eq("is_active", true)
-      .in("field_key", [...CAP_FIELD_KEYS]);
+      .in("field_key", canonicalFieldKeys);
     if (fieldsErr) throw fieldsErr;
 
     const fieldMap = new Map<string, { id: string; field_type: string }>();
@@ -212,9 +215,10 @@ Deno.serve(async (req) => {
       const rows: Array<Record<string, any>> = [];
 
       for (const v of variables) {
-        const key = v?.key as string | undefined;
-        if (!key || !CAP_FIELD_KEYS.includes(key as any)) continue;
-        const def = fieldMap.get(key);
+        const sourceKey = v?.key as string | undefined;
+        if (!sourceKey || !CAP_FIELD_KEYS.includes(sourceKey as keyof typeof CAP_FIELD_ALIAS_MAP)) continue;
+        const canonicalKey = CAP_FIELD_ALIAS_MAP[sourceKey as keyof typeof CAP_FIELD_ALIAS_MAP];
+        const def = fieldMap.get(canonicalKey);
         if (!def) continue;
         const rawValue = (v?.value ?? v?.formattedValue ?? "")
           .toString()
@@ -232,7 +236,6 @@ Deno.serve(async (req) => {
         };
 
         if (def.field_type === "file") {
-          // Multiple URLs separated by " | "
           const urls = rawValue
             .split(/\s*\|\s*/)
             .filter((u) => /^https?:\/\//i.test(u));
@@ -240,7 +243,7 @@ Deno.serve(async (req) => {
           const localPaths: string[] = [];
           for (const url of urls) {
             const fname = sanitizeFilename(url);
-            const path = `sm/${tenantId}/${dealId}/${key}/${fname}`;
+            const path = `sm/${tenantId}/${dealId}/${canonicalKey}/${fname}`;
             if (dryRun) {
               localPaths.push(path);
               filesSkipped++;
@@ -254,18 +257,18 @@ Deno.serve(async (req) => {
                 else filesDownloaded++;
               } else {
                 filesFailed++;
-                errors.push({
-                  projeto_id: projetoId,
-                  deal_id: dealId,
-                  error: `download ${key}: ${r.reason}`,
+                  errors.push({
+                    projeto_id: projetoId,
+                    deal_id: dealId,
+                    error: `download ${canonicalKey}: ${r.reason}`,
                 });
               }
             } catch (e) {
               filesFailed++;
-              errors.push({
-                projeto_id: projetoId,
-                deal_id: dealId,
-                error: `download ${key}: ${(e as Error).message}`,
+                errors.push({
+                  projeto_id: projetoId,
+                  deal_id: dealId,
+                  error: `download ${canonicalKey}: ${(e as Error).message}`,
               });
             }
           }

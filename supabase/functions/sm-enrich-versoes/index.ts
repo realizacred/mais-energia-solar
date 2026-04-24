@@ -146,7 +146,7 @@ Deno.serve(async (req) => {
     }
 
     // 1. Buscar lote de propostas_nativas SM.
-    //    Ordenamos por id para offset estável.
+    //    Neste tenant a proposta nativa usa external_id = sm_project_id.
     const { data: propostas, error: propErr } = await supabase
       .from("propostas_nativas")
       .select("id, projeto_id, tenant_id, external_id, deal_id")
@@ -173,25 +173,23 @@ Deno.serve(async (req) => {
       );
     }
 
-    // 2. Carregar staging (sm_propostas_raw) por external_id.
-    const externalIds = propostas
+    const projectExternalIds = propostas
       .map((p) => p.external_id)
       .filter((x): x is string => !!x);
 
     const { data: stagingRows, error: stErr } = await supabase
       .from("sm_propostas_raw")
       .select("payload")
-      .in("payload->>_sm_proposal_id", externalIds);
+      .in("payload->>_sm_project_id", projectExternalIds);
 
     if (stErr) throw stErr;
 
-    // Index por _sm_proposal_id (string).
-    const stagingByExt = new Map<string, any>();
+    const stagingByProjectExt = new Map<string, any>();
     for (const row of stagingRows ?? []) {
       const p = (row as any).payload;
-      const ext = String(p?._sm_proposal_id ?? p?.id ?? "");
+      const ext = String(p?._sm_project_id ?? p?.project?.id ?? "");
       if (!ext) continue;
-      stagingByExt.set(ext, p);
+      stagingByProjectExt.set(ext, p);
     }
 
     // 3. Carregar versão atual de cada proposta (uma por proposta — versao_atual).
@@ -226,7 +224,7 @@ Deno.serve(async (req) => {
       const projetoId = prop.projeto_id as string;
       const dealId = prop.deal_id as string | null;
       const tenantId = prop.tenant_id as string;
-      const sm = stagingByExt.get(String(prop.external_id ?? ""));
+      const sm = stagingByProjectExt.get(String(prop.external_id ?? ""));
       const versao = versaoByProp.get(propId);
 
       if (!sm || !versao) continue;
@@ -245,9 +243,9 @@ Deno.serve(async (req) => {
           custoTotal += toNumber(row?.totalCost) ?? 0;
           lucroTotal += toNumber(row?.profit) ?? 0;
         }
-        // Fallback: se pricingTable vier vazio, usa kits_custo_total/preco_kits das vars.
+        // Fallbacks do SM: preço total costuma vir em `preco`.
         if (custoTotal === 0) custoTotal = v.num("kits_custo_total") ?? 0;
-        if (valorTotal === 0) valorTotal = v.num("preco_kits") ?? v.num("preco_total") ?? 0;
+        if (valorTotal === 0) valorTotal = v.num("preco") ?? v.num("preco_total") ?? v.num("preco_kits") ?? 0;
 
         // ─── 3b. Calcular potência e geração ───
         // Soma potencias dos módulos: qnt * potencia_w
@@ -264,12 +262,17 @@ Deno.serve(async (req) => {
             potenciaWp += qnt * potUn;
           }
         }
-        // Fallback: variáveis modulo_potencia + modulo_quantidade
+        // Fallback: variáveis do SM; potência total costuma vir pronta em `potencia_sistema`.
         if (potenciaWp === 0) {
-          const potMod = v.num("modulo_potencia") ?? 0;
-          const qtdMod = v.num("modulo_quantidade") ?? v.num("modulo_qtd") ?? 0;
-          potenciaWp = potMod * qtdMod;
-          if (qtdModulosTotal === 0) qtdModulosTotal = qtdMod;
+          const potSistema = v.num("potencia_sistema");
+          if (potSistema && potSistema > 0) {
+            potenciaWp = potSistema >= 100 ? potSistema : potSistema * 1000;
+          } else {
+            const potMod = v.num("modulo_potencia") ?? 0;
+            const qtdMod = v.num("modulo_quantidade") ?? v.num("modulo_qtd") ?? 0;
+            potenciaWp = potMod * qtdMod;
+            if (qtdModulosTotal === 0) qtdModulosTotal = qtdMod;
+          }
         }
         const potenciaKwp = potenciaWp > 0 ? potenciaWp / 1000 : null;
 
