@@ -1943,6 +1943,16 @@ async function actionPromoteAll(
     started_at: new Date().toISOString(),
   });
 
+  // Bootstrap dos funis padrão (Comercial + Eng + Equip + Compesação).
+  // Idempotente: se já existem, não duplica. Crítico antes de resolveDefaultPipeline.
+  if (!dryRun) {
+    try {
+      await ensureDefaultFunis(admin, tenantId);
+    } catch (e) {
+      console.error(`[${MODULE}] ensureDefaultFunis falhou (não-fatal):`, (e as Error).message);
+    }
+  }
+
   // Resolve pipeline ANTES dos candidatos — falha rápido se o tenant tiver
   // pipeline configurado mas inconsistente (sem etapa).
   const pipeline = await resolveDefaultPipeline(admin, tenantId);
