@@ -381,26 +381,57 @@ export default function MigracaoStep3Migrar() {
               </p>
             </div>
 
-            <div className="space-y-5">
-              <StatRow
-                icon={Users}
-                label="Clientes"
-                promoted={totals?.clientes.promoted ?? 0}
-                total={totals?.clientes.total ?? 0}
-              />
-              <StatRow
-                icon={FolderKanban}
-                label="Projetos"
-                promoted={totals?.projetos.promoted ?? 0}
-                total={totals?.projetos.total ?? 0}
-              />
-              <StatRow
-                icon={FileText}
-                label="Propostas"
-                promoted={totals?.propostas.promoted ?? 0}
-                total={totals?.propostas.total ?? 0}
-              />
-            </div>
+            {(() => {
+              const phases = [
+                {
+                  step: 1,
+                  icon: Users,
+                  label: "Clientes",
+                  promoted: totals?.clientes.promoted ?? 0,
+                  total: totals?.clientes.total ?? 0,
+                },
+                {
+                  step: 2,
+                  icon: FolderKanban,
+                  label: "Projetos",
+                  promoted: totals?.projetos.promoted ?? 0,
+                  total: totals?.projetos.total ?? 0,
+                },
+                {
+                  step: 3,
+                  icon: FileText,
+                  label: "Propostas e campos adicionais",
+                  promoted: totals?.propostas.promoted ?? 0,
+                  total: totals?.propostas.total ?? 0,
+                },
+              ];
+
+              // Primeira fase com pendência define a "ativa"
+              const firstPendingIdx = phases.findIndex((p) => p.total > 0 && p.promoted < p.total);
+
+              const phaseStates: PhaseState[] = phases.map((p, idx) => {
+                if (p.total === 0) return "empty";
+                if (p.promoted >= p.total) return "done";
+                if (idx === firstPendingIdx) return "active";
+                return "pending";
+              });
+
+              return (
+                <div className="space-y-3">
+                  {phases.map((p, idx) => (
+                    <PhaseCard
+                      key={p.step}
+                      step={p.step}
+                      icon={p.icon}
+                      label={p.label}
+                      promoted={p.promoted}
+                      total={p.total}
+                      state={phaseStates[idx]}
+                    />
+                  ))}
+                </div>
+              );
+            })()}
 
             <div className="pt-2 border-t border-border flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
               <div className="text-xs text-muted-foreground">
