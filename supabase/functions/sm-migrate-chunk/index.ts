@@ -42,7 +42,11 @@ const SELF_URL = `${SUPABASE_URL}/functions/v1/sm-migrate-chunk`;
 
 function isGatewayTimeoutLike(error: string | undefined): boolean {
   const message = String(error ?? "").toLowerCase();
-  return message.includes("http 504")
+  return message.includes("http 546")
+    || message.includes("cpu time exceeded")
+    || message.includes("exceeded cpu")
+    || message.includes("worker limit")
+    || message.includes("http 504")
     || message.includes("gateway timeout")
     || message.includes("connection closed before message completed");
 }
@@ -463,6 +467,36 @@ Deno.serve(async (req) => {
       const tenantId = String(payload.tenant_id ?? "");
       if (!masterJobId || !tenantId) {
         return jsonResponse({ ok: false, error: "master_job_id e tenant_id obrigatórios" }, 400);
+      }
+
+      const { data: resumableJob } = await admin
+        .from("solarmarket_promotion_jobs")
+        .select("id, status, error_summary")
+        .eq("id", masterJobId)
+        .eq("tenant_id", tenantId)
+        .maybeSingle();
+
+      if (
+        resumableJob &&
+        ["failed", "cancelled"].includes(String(resumableJob.status ?? "")) &&
+        isGatewayTimeoutLike(String(resumableJob.error_summary ?? ""))
+      ) {
+        const { data: resumedRows, error: resumeErr } = await admin
+          .from("solarmarket_promotion_jobs")
+          .update({
+            status: "running",
+            finished_at: null,
+            error_summary: null,
+            last_step_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", masterJobId)
+          .eq("tenant_id", tenantId)
+          .select("id");
+
+        if (resumeErr || !resumedRows || resumedRows.length === 0) {
+          return jsonResponse({ ok: false, error: "Falha ao reativar job interno" }, 409);
+        }
       }
 
       const result = await processStep(admin, tenantId, masterJobId);
