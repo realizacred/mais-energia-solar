@@ -84,6 +84,43 @@ function StatRow({
   );
 }
 
+function PhaseRow({
+  icon: Icon,
+  label,
+  status,
+  detail,
+}: {
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+  status: "pending" | "running" | "completed";
+  detail: string;
+}) {
+  const tone =
+    status === "completed"
+      ? "text-success"
+      : status === "running"
+        ? "text-info"
+        : "text-muted-foreground";
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2 min-w-0">
+          <Icon className={`w-4 h-4 shrink-0 ${tone}`} />
+          <span className="text-sm font-medium text-foreground">{label}</span>
+        </div>
+        <div className="flex items-center gap-2 text-xs">
+          {status === "running" && <Loader2 className="w-3.5 h-3.5 animate-spin text-info" />}
+          {status === "completed" && <CheckCircle2 className="w-3.5 h-3.5 text-success" />}
+          <span className={`font-mono ${tone}`}>
+            {status === "pending" ? "aguardando" : status === "running" ? "rodando" : "ok"}
+          </span>
+        </div>
+      </div>
+      <p className="text-xs text-muted-foreground pl-6">{detail}</p>
+    </div>
+  );
+}
+
 export default function MigracaoStep3Migrar() {
   const { start, cancel, progress, isLoading } = useMigrateFull();
   const resetMigrated = useResetMigratedData();
