@@ -12,6 +12,7 @@
  */
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useTenantId } from "@/hooks/useTenantId";
 
 const LEGACY_SM_SOURCES = ["solarmarket", "solar_market"] as const;
 
@@ -116,6 +117,7 @@ function applyOptimisticJobState(
 
 export function useChunkedMigration() {
   const qc = useQueryClient();
+  const { data: tenantId } = useTenantId();
 
   const start = useMutation({
     onMutate: () => {
@@ -182,7 +184,8 @@ export function useChunkedMigration() {
   });
 
   const progressQuery = useQuery<ChunkedProgress>({
-    queryKey: KEY,
+    queryKey: [...KEY, tenantId],
+    enabled: !!tenantId,
     staleTime: 1000 * 2,
     refetchInterval: (query) => (query.state.data?.isRunning ? 3000 : 3000),
     queryFn: async (): Promise<ChunkedProgress> => {
@@ -192,6 +195,7 @@ export function useChunkedMigration() {
         .select(
           "id, status, total_items, items_processed, items_promoted, items_with_errors, items_with_warnings, items_blocked, items_skipped, started_at, finished_at, last_step_at, error_summary",
         )
+        .eq("tenant_id", tenantId!)
         .eq("job_type", "migrate-chunked")
         .order("created_at", { ascending: false })
         .limit(5);
@@ -222,14 +226,17 @@ export function useChunkedMigration() {
         supabase
           .from("clientes")
           .select("id", { count: "exact", head: true })
+          .eq("tenant_id", tenantId!)
           .in("external_source", [...LEGACY_SM_SOURCES]),
         supabase
           .from("projetos")
           .select("id", { count: "exact", head: true })
+          .eq("tenant_id", tenantId!)
           .in("external_source", [...LEGACY_SM_SOURCES]),
         supabase
           .from("propostas_nativas")
           .select("id", { count: "exact", head: true })
+          .eq("tenant_id", tenantId!)
           .in("external_source", [...LEGACY_SM_SOURCES]),
       ]);
 
