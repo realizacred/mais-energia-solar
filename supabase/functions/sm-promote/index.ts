@@ -474,15 +474,69 @@ function onlyDigits(v: unknown): string | null {
   return s ? s.replace(/\D+/g, "") || null : null;
 }
 
+// ─── Formatadores nativos (RB-62) ───────────────────────────────────────────
+// Inline para evitar dependência de import path em Deno isolate.
+// Espelho de src/lib/migrationFormatters.ts — manter SINCRONIZADO.
+function fmtPhoneBR(raw: unknown): string | null {
+  if (raw === null || raw === undefined) return null;
+  let d = String(raw).replace(/\D+/g, "");
+  if ((d.length === 12 || d.length === 13) && d.startsWith("55")) d = d.slice(2);
+  if (d.length !== 10 && d.length !== 11) return null;
+  const ddd = d.slice(0, 2);
+  const rest = d.slice(2);
+  return rest.length === 9
+    ? `(${ddd}) ${rest.slice(0, 5)}-${rest.slice(5)}`
+    : `(${ddd}) ${rest.slice(0, 4)}-${rest.slice(4)}`;
+}
+function fmtCpfCnpj(raw: unknown): string | null {
+  if (raw === null || raw === undefined) return null;
+  const d = String(raw).replace(/\D+/g, "");
+  if (d.length === 11) return `${d.slice(0,3)}.${d.slice(3,6)}.${d.slice(6,9)}-${d.slice(9)}`;
+  if (d.length === 14) return `${d.slice(0,2)}.${d.slice(2,5)}.${d.slice(5,8)}/${d.slice(8,12)}-${d.slice(12)}`;
+  return null;
+}
+function fmtCep(raw: unknown): string | null {
+  if (raw === null || raw === undefined) return null;
+  const d = String(raw).replace(/\D+/g, "");
+  return d.length === 8 ? `${d.slice(0,5)}-${d.slice(5)}` : null;
+}
+function fmtName(raw: unknown): string | null {
+  if (raw === null || raw === undefined) return null;
+  const s = String(raw).trim().replace(/\s+/g, " ");
+  if (!s) return null;
+  const lower = new Set(["de","da","do","dos","das","e","di","du"]);
+  return s.toLowerCase().split(" ").map((w, i) => {
+    if (i > 0 && lower.has(w)) return w;
+    return w.split("-").map(p => p ? p[0].toUpperCase() + p.slice(1) : p).join("-");
+  }).join(" ");
+}
+function fmtEmail(raw: unknown): string | null {
+  if (raw === null || raw === undefined) return null;
+  const s = String(raw).trim().toLowerCase();
+  if (!s || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s)) return null;
+  return s;
+}
+
 function normalizeSmClient(raw: AnyObj) {
   const c = raw?.client ?? raw ?? {};
+  // Dígitos para lookups/UNIQUE; formatado para gravação visível.
+  const phoneDigits = onlyDigits(c.primaryPhone ?? c.phone ?? c.telefone) ?? "";
+  const docDigits = onlyDigits(c.cnpjCpf ?? c.cpfCnpj ?? c.cpf_cnpj) ?? "";
+  const cepDigits = onlyDigits(c.zipCode ?? c.cep) ?? "";
+  const phoneFmt = fmtPhoneBR(phoneDigits);
+  const docFmt = fmtCpfCnpj(docDigits);
+  const cepFmt = fmtCep(cepDigits);
   return {
     external_id: pickStr(c.id ?? raw.id),
-    nome: pickStr(c.name ?? c.nome) ?? "Cliente sem nome",
-    email: pickStr(c.email),
-    telefone: onlyDigits(c.primaryPhone ?? c.phone ?? c.telefone) ?? "",
-    cpf_cnpj: onlyDigits(c.cnpjCpf ?? c.cpfCnpj ?? c.cpf_cnpj),
-    cep: onlyDigits(c.zipCode ?? c.cep),
+    nome: fmtName(c.name ?? c.nome) ?? "Cliente sem nome",
+    email: fmtEmail(c.email),
+    // RB-62: telefone formatado p/ exibição; telefone_digits p/ dedup/UNIQUE.
+    telefone: phoneFmt ?? "",
+    telefone_digits: phoneDigits,
+    // CPF/CNPJ formatado quando válido; senão null e raw vai p/ observacoes.
+    cpf_cnpj: docFmt,
+    cpf_cnpj_digits: docDigits,
+    cep: cepFmt,
     estado: pickStr(c.state ?? c.estado),
     cidade: pickStr(c.city ?? c.cidade),
     bairro: pickStr(c.neighborhood ?? c.bairro),
@@ -664,7 +718,7 @@ async function promoteCliente(
     return { id: byCode.id as string, created: false, matchedBy: "cliente_code" };
   }
 
-  // 3) Reconciliação por CPF/CNPJ
+  // 3) Reconciliação por CPF/CNPJ (busca pelo formato gravado: formatado).
   if (norm.cpf_cnpj) {
     const { data: byDoc } = await admin
       .from("clientes")
@@ -680,13 +734,13 @@ async function promoteCliente(
     }
   }
 
-  // 4) Reconciliação por telefone (evita uq_clientes_tenant_telefone)
-  if (norm.telefone) {
+  // 4) Reconciliação por telefone (telefone_normalized = só dígitos).
+  if (norm.telefone_digits) {
     const { data: byPhone } = await admin
       .from("clientes")
       .select("id")
       .eq("tenant_id", tenantId)
-      .eq("telefone_normalized", norm.telefone)
+      .eq("telefone_normalized", norm.telefone_digits)
       .order("created_at", { ascending: true })
       .limit(1)
       .maybeSingle();
@@ -712,7 +766,7 @@ async function promoteCliente(
     }
   }
 
-  // 6) Não existe — inserir novo
+  // 6) Não existe — inserir novo (RB-62: campos formatados; telefone_normalized só dígitos)
   const { data, error } = await admin
     .from("clientes")
     .insert({
@@ -720,6 +774,7 @@ async function promoteCliente(
       cliente_code: clienteCode,
       nome: norm.nome,
       telefone: norm.telefone || "",
+      telefone_normalized: norm.telefone_digits || null,
       email: norm.email,
       cpf_cnpj: norm.cpf_cnpj,
       cep: norm.cep,
