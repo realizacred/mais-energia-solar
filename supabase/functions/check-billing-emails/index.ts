@@ -416,13 +416,17 @@ Deno.serve(async (req) => {
             }
 
             // Also check email_ingestion_messages if table exists
-            const { data: existingIngestion } = await admin
-              .from('email_ingestion_messages')
-              .select('id')
-              .eq('gmail_message_id', msg.id)
-              .maybeSingle()
-              .then(r => r)
-              .catch(() => ({ data: null }));
+            let existingIngestion: { id: string } | null = null;
+            try {
+              const { data } = await admin
+                .from('email_ingestion_messages')
+                .select('id')
+                .eq('gmail_message_id', msg.id)
+                .maybeSingle();
+              existingIngestion = data;
+            } catch {
+              existingIngestion = null;
+            }
 
             if (existingIngestion) {
               totalSkipped++;

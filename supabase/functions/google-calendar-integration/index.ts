@@ -169,7 +169,7 @@ async function decryptToken(encrypted: string): Promise<string> {
  */
 async function safeDecryptToken(
   value: string | null,
-  migrationCtx?: { adminClient: ReturnType<typeof createClient>; credId: string; field: "access_token_encrypted" | "refresh_token_encrypted" }
+  migrationCtx?: { adminClient: any; credId: string; field: "access_token_encrypted" | "refresh_token_encrypted" }
 ): Promise<string | null> {
   if (!value) return null;
 
@@ -253,7 +253,7 @@ async function resolveUser(req: Request) {
 }
 
 /** Get per-tenant OAuth credentials from integrations table */
-async function getTenantOAuthCreds(adminClient: ReturnType<typeof createClient>, tenantId: string) {
+async function getTenantOAuthCreds(adminClient: any, tenantId: string): Promise<{ clientId: string; clientSecret: string } | null> {
   const { data } = await adminClient
     .from("integrations")
     .select("oauth_client_id, oauth_client_secret_encrypted")
@@ -261,8 +261,8 @@ async function getTenantOAuthCreds(adminClient: ReturnType<typeof createClient>,
     .eq("provider", "google_calendar")
     .single();
 
-  const clientId = data?.oauth_client_id;
-  const clientSecret = data?.oauth_client_secret_encrypted;
+  const clientId = data?.oauth_client_id as string | undefined;
+  const clientSecret = data?.oauth_client_secret_encrypted as string | undefined;
 
   if (!clientId || !clientSecret) {
     // Fallback to env vars
@@ -276,7 +276,7 @@ async function getTenantOAuthCreds(adminClient: ReturnType<typeof createClient>,
 }
 
 async function auditLog(
-  adminClient: ReturnType<typeof createClient>,
+  adminClient: any,
   params: {
     tenantId: string;
     integrationId?: string;
@@ -953,7 +953,7 @@ async function handleAuditLog(req: Request) {
 // ── TOKEN REFRESH HELPER ────────────────────────────────────
 
 async function getValidAccessToken(
-  adminClient: ReturnType<typeof createClient>,
+  adminClient: any,
   integrationId: string,
   tenantId: string
 ): Promise<string | null> {

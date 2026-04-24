@@ -66,7 +66,11 @@ Deno.serve(async (req) => {
 
     // Build multipart form for Gotenberg
     const formData = new FormData();
-    const blob = new Blob([normalizedDocxBytes], {
+    const normalizedArrayBuffer = normalizedDocxBytes.buffer.slice(
+      normalizedDocxBytes.byteOffset,
+      normalizedDocxBytes.byteOffset + normalizedDocxBytes.byteLength,
+    ) as ArrayBuffer;
+    const blob = new Blob([normalizedArrayBuffer], {
       type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
     });
     formData.append("files", blob, filename || "proposta.docx");
