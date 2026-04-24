@@ -67,7 +67,7 @@ async function resolveUserContext(authHeader: string | null) {
 }
 
 async function countBacklog(
-  admin: ReturnType<typeof createClient>,
+  admin: any,
   tenantId: string,
 ): Promise<number> {
   const { count: total } = await admin
@@ -168,7 +168,7 @@ async function callSmPromoteOnce(
  * Retorna { has_more, counters, error } SEM montar Response.
  */
 async function processStep(
-  admin: ReturnType<typeof createClient>,
+  admin: any,
   tenantId: string,
   masterJobId: string,
 ): Promise<{
