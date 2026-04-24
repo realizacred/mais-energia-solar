@@ -60,7 +60,8 @@ export function useMigracaoSolarmarket() {
       );
 
       // Conta o que já foi promovido para o CRM (origem solar_market).
-      // Usamos colunas conhecidas de cada tabela canônica.
+      // Para projeto/proposta, só consideramos migrado quando o vínculo comercial
+      // foi concluído (deal_id preenchido), evitando falso positivo no painel.
       const [clientesMig, projetosMig, propostasMig] = await Promise.all([
         (supabase as any)
           .from("clientes")
@@ -69,11 +70,13 @@ export function useMigracaoSolarmarket() {
         (supabase as any)
           .from("projetos")
           .select("id", { count: "exact", head: true })
-          .or("external_source.eq.solar_market,external_source.eq.solarmarket"),
+          .or("external_source.eq.solar_market,external_source.eq.solarmarket")
+          .not("deal_id", "is", null),
         (supabase as any)
           .from("propostas_nativas")
           .select("id", { count: "exact", head: true })
-          .or("external_source.eq.solar_market,external_source.eq.solarmarket"),
+          .or("external_source.eq.solar_market,external_source.eq.solarmarket")
+          .not("deal_id", "is", null),
       ]);
 
       const staging = {
