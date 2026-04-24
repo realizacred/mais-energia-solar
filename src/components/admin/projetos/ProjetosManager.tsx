@@ -697,7 +697,7 @@ export function ProjetosManager() {
                   />
                 ) : (
                   <ProjetoListView
-                    projetos={projetos}
+                    projetos={statusFiltered}
                     etapas={selectedFunilEtapas}
                     onViewProjeto={(p) => setSelectedProjetoId(p.deal_id || p.id)}
                   />
