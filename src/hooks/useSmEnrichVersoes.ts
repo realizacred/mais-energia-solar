@@ -61,7 +61,7 @@ export function useSmEnrichVersoes() {
       for (let i = 0; i < HARD_LIMIT_CHUNKS; i++) {
         const { data, error } = await supabase.functions.invoke(
           "sm-enrich-versoes",
-          { body: { batch, offset } },
+          { body: { action: "enrich", payload: { batch, offset } } },
         );
         if (error) throw new Error(error.message || "Edge function error");
         const r = data as EnrichResult;
