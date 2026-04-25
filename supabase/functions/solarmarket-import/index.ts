@@ -13,7 +13,7 @@ import { extractFileUrls } from "../_shared/extractFileUrls.ts";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
+    "authorization, x-client-info, apikey, content-type, x-sm-cron-secret",
 };
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
@@ -22,12 +22,13 @@ const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
 const SM_URL_FALLBACK = Deno.env.get("SOLARMARKET_API_URL");
 const SM_TOKEN_FALLBACK = Deno.env.get("SOLARMARKET_API_TOKEN");
 const EXTERNAL_SOURCE = "solarmarket";
+const CRON_SECRET = "sm-resume-cron-v1";
 
 // Throttle: ~55 req/min = 1100ms entre chamadas (margem de segurança contra 60/min)
 const MIN_INTERVAL_MS = 1100;
 const MAX_RETRIES_429 = 4;
 const REQUEST_TIME_BUDGET_MS = 75_000;
-const MAX_PAGES_PER_INVOCATION = 1;
+const MAX_PAGES_PER_INVOCATION = 3;
 const JOB_RUNTIME_KEY = "_runtime";
 
 type ImportStepKey =
@@ -1462,15 +1463,17 @@ Deno.serve(async (req) => {
     const body = await req.json().catch(() => ({}));
     const { action, scope } = body;
     const authHeader = req.headers.get("Authorization");
-    if (!authHeader?.startsWith("Bearer ")) {
+    const token = authHeader?.startsWith("Bearer ") ? authHeader.replace("Bearer ", "") : "";
+    const isServiceRoleDispatch = action === "process-job" && token === SUPABASE_SERVICE_ROLE_KEY;
+    const isCronDispatch = action === "process-job" && req.headers.get("x-sm-cron-secret") === CRON_SECRET;
+    const isInternalJobDispatch = isServiceRoleDispatch || isCronDispatch;
+
+    if (!isInternalJobDispatch && !authHeader?.startsWith("Bearer ")) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-
-    const token = authHeader.replace("Bearer ", "");
-    const isInternalJobDispatch = action === "process-job" && token === SUPABASE_SERVICE_ROLE_KEY;
 
     let userId = "";
     let tenantId = "";
@@ -1478,15 +1481,15 @@ Deno.serve(async (req) => {
     if (isInternalJobDispatch) {
       userId = String(body.triggered_by ?? "");
       tenantId = String(body.tenant_id ?? "");
-      if (!userId || !tenantId) {
-        return new Response(JSON.stringify({ error: "tenant_id e triggered_by são obrigatórios" }), {
+      if (!tenantId) {
+        return new Response(JSON.stringify({ error: "tenant_id é obrigatório" }), {
           status: 400,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
     } else {
       const supabaseAuth = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-        global: { headers: { Authorization: authHeader } },
+        global: { headers: { Authorization: authHeader! } },
       });
       const { data: userData, error: cErr } = await supabaseAuth.auth.getUser(token);
       if (cErr || !userData?.user?.id) {
