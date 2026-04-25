@@ -1489,7 +1489,7 @@ Deno.serve(async (req) => {
       }
     } else {
       const supabaseAuth = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-        global: { headers: { Authorization: authHeader } },
+        global: { headers: { Authorization: authHeader! } },
       });
       const { data: userData, error: cErr } = await supabaseAuth.auth.getUser(token);
       if (cErr || !userData?.user?.id) {
