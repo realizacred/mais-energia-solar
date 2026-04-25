@@ -27824,6 +27824,13 @@ export type Database = {
             }
             Returns: Json
           }
+      sm_resume_stuck_imports: {
+        Args: never
+        Returns: {
+          dispatched: boolean
+          job_id: string
+        }[]
+      }
       sm_resume_stuck_migrations: {
         Args: never
         Returns: {
