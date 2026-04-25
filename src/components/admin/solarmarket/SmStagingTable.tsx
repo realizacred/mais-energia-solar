@@ -36,6 +36,26 @@ import {
   ArrowUp,
   ArrowDown,
 } from "lucide-react";
+import {
+  formatPhoneBR,
+  formatCpfCnpj,
+  formatCep,
+} from "@/lib/migrationFormatters";
+
+/**
+ * Aplica formatter nativo; se vier null (dado curto/inválido) preserva
+ * o valor cru entre parênteses para manter visibilidade do problema.
+ * Bug B-1 — Auditoria 2026-04-25 (RB-62).
+ */
+function fmtOrRaw(
+  raw: unknown,
+  formatter: (v: unknown) => string | null,
+): string {
+  if (raw === null || raw === undefined || raw === "") return "—";
+  const formatted = formatter(raw);
+  if (formatted) return formatted;
+  return `${String(raw)} (inválido)`;
+}
 
 export type SmStagingTableName =
   | "sm_clientes_raw"
