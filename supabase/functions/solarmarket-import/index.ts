@@ -1463,15 +1463,17 @@ Deno.serve(async (req) => {
     const body = await req.json().catch(() => ({}));
     const { action, scope } = body;
     const authHeader = req.headers.get("Authorization");
-    if (!authHeader?.startsWith("Bearer ")) {
+    const token = authHeader?.startsWith("Bearer ") ? authHeader.replace("Bearer ", "") : "";
+    const isServiceRoleDispatch = action === "process-job" && token === SUPABASE_SERVICE_ROLE_KEY;
+    const isCronDispatch = action === "process-job" && req.headers.get("x-sm-cron-secret") === CRON_SECRET;
+    const isInternalJobDispatch = isServiceRoleDispatch || isCronDispatch;
+
+    if (!isInternalJobDispatch && !authHeader?.startsWith("Bearer ")) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-
-    const token = authHeader.replace("Bearer ", "");
-    const isInternalJobDispatch = action === "process-job" && token === SUPABASE_SERVICE_ROLE_KEY;
 
     let userId = "";
     let tenantId = "";
@@ -1479,8 +1481,8 @@ Deno.serve(async (req) => {
     if (isInternalJobDispatch) {
       userId = String(body.triggered_by ?? "");
       tenantId = String(body.tenant_id ?? "");
-      if (!userId || !tenantId) {
-        return new Response(JSON.stringify({ error: "tenant_id e triggered_by são obrigatórios" }), {
+      if (!tenantId) {
+        return new Response(JSON.stringify({ error: "tenant_id é obrigatório" }), {
           status: 400,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
