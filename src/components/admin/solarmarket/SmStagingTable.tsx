@@ -39,7 +39,6 @@ import {
 import {
   formatPhoneBR,
   formatCpfCnpj,
-  formatCep,
 } from "@/lib/migrationFormatters";
 
 /**
