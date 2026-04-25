@@ -115,8 +115,8 @@ function sumPricing(payload: any): string {
 const COLUMNS: Record<SmStagingTableName, ColumnDef[]> = {
   sm_clientes_raw: [
     { header: "Nome", get: (r) => r.payload?.name ?? "—", sortField: "payload->>name" },
-    { header: "CPF/CNPJ", get: (r) => r.payload?.cnpjCpf ?? "—" },
-    { header: "Telefone", get: (r) => r.payload?.primaryPhone ?? "—" },
+    { header: "CPF/CNPJ", get: (r) => fmtOrRaw(r.payload?.cnpjCpf, formatCpfCnpj) },
+    { header: "Telefone", get: (r) => fmtOrRaw(r.payload?.primaryPhone, formatPhoneBR) },
     { header: "Cidade", get: (r) => r.payload?.city ?? "—", sortField: "payload->>city" },
     { header: "Importado em", get: (r) => fmtDate(r.imported_at), sortField: "imported_at" },
   ],
