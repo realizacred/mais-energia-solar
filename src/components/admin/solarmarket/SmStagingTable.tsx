@@ -36,6 +36,25 @@ import {
   ArrowUp,
   ArrowDown,
 } from "lucide-react";
+import {
+  formatPhoneBR,
+  formatCpfCnpj,
+} from "@/lib/migrationFormatters";
+
+/**
+ * Aplica formatter nativo; se vier null (dado curto/inválido) preserva
+ * o valor cru entre parênteses para manter visibilidade do problema.
+ * Bug B-1 — Auditoria 2026-04-25 (RB-62).
+ */
+function fmtOrRaw(
+  raw: unknown,
+  formatter: (v: unknown) => string | null,
+): string {
+  if (raw === null || raw === undefined || raw === "") return "—";
+  const formatted = formatter(raw);
+  if (formatted) return formatted;
+  return `${String(raw)} (inválido)`;
+}
 
 export type SmStagingTableName =
   | "sm_clientes_raw"
@@ -95,8 +114,8 @@ function sumPricing(payload: any): string {
 const COLUMNS: Record<SmStagingTableName, ColumnDef[]> = {
   sm_clientes_raw: [
     { header: "Nome", get: (r) => r.payload?.name ?? "—", sortField: "payload->>name" },
-    { header: "CPF/CNPJ", get: (r) => r.payload?.cnpjCpf ?? "—" },
-    { header: "Telefone", get: (r) => r.payload?.primaryPhone ?? "—" },
+    { header: "CPF/CNPJ", get: (r) => fmtOrRaw(r.payload?.cnpjCpf, formatCpfCnpj) },
+    { header: "Telefone", get: (r) => fmtOrRaw(r.payload?.primaryPhone, formatPhoneBR) },
     { header: "Cidade", get: (r) => r.payload?.city ?? "—", sortField: "payload->>city" },
     { header: "Importado em", get: (r) => fmtDate(r.imported_at), sortField: "imported_at" },
   ],
