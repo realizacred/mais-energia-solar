@@ -812,6 +812,7 @@ async function promoteCliente(
     // Em vez de jogar throw, re-procuramos pelos índices únicos conhecidos.
     const isDup = /duplicate key value|unique constraint/i.test(message);
     if (isDup) {
+      const externalIdSafe = norm.external_id ?? "";
       const tryFind = async (
         column: "telefone_normalized" | "cpf_cnpj" | "cliente_code" | "external_id",
         value: string | null | undefined,
@@ -827,7 +828,9 @@ async function promoteCliente(
           .limit(1)
           .maybeSingle();
         if (!row?.id) return null;
-        await upsertLink(admin, tenantId, jobId, "cliente", row.id as string, "cliente", norm.external_id, { matched_by: matchedBy });
+        if (externalIdSafe) {
+          await upsertLink(admin, tenantId, jobId, "cliente", row.id as string, "cliente", externalIdSafe, { matched_by: matchedBy });
+        }
         return { id: row.id as string, created: false, matchedBy };
       };
 
