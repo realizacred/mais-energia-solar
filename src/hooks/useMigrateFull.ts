@@ -67,11 +67,11 @@ export function useMigrateFull() {
         body: { action: "start", payload: { batch_limit: params.batch_limit ?? 25, dry_run: !!params.dry_run } },
       });
       if (error) throw new Error(error.message || "Falha ao iniciar migração.");
-      const resp = data as { ok?: boolean; error?: string; job_id?: string };
+      const resp = data as { ok?: boolean; error?: string; job_id?: string; master_job_id?: string };
       if (!resp || resp.ok === false) {
         throw new Error(resp?.error ?? "Migração retornou erro.");
       }
-      return { ok: true, job_id: resp.master_job_id, status: "running" } as { ok: true; job_id: string; status: string };
+      return { ok: true, job_id: resp.master_job_id ?? resp.job_id ?? "", status: "running" };
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: KEY });
