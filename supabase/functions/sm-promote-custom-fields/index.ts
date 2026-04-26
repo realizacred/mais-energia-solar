@@ -37,18 +37,41 @@ const BUCKET = "imported-files";
 
 interface MappingEntry {
   sm_field_key: string;
-  action: "map" | "create_new" | "ignore";
+  action: "map" | "create_new" | "ignore" | "map_native";
   crm_field_id: string | null;
   crm_field_type: string | null; // só preenchido em create_new
+  crm_native_target: string | null; // só preenchido em map_native
 }
 
 interface MappingResolved {
   /** sm_field_key → { crm_field_id, field_type } para entradas mapeáveis (map + create_new) */
   resolvable: Map<string, { id: string; field_type: string }>;
+  /** sm_field_key → caminho whitelisted no snapshot da proposta (action=map_native) */
+  nativeTargets: Map<string, string>;
   /** sm_field_key list para entradas com action='ignore' */
   ignored: Set<string>;
   /** sm_field_keys conhecidos (qualquer action) */
   known: Set<string>;
+}
+
+/**
+ * Whitelist obrigatória — DEVE espelhar a constraint
+ * `sm_cfm_native_target_whitelist` em sm_custom_field_mapping.
+ * Mudanças aqui exigem migration correspondente.
+ */
+const NATIVE_TARGET_WHITELIST = new Set<string>([
+  "snapshot.tipo_telhado",
+  "snapshot.garantias.modulo_sm",
+  "snapshot.garantias.inversor_sm",
+  "snapshot.garantias.microinversor_sm",
+]);
+
+/** Converte "snapshot.garantias.modulo_sm" → ["garantias","modulo_sm"]. */
+function nativePathToSnapshotKeys(path: string): string[] | null {
+  if (!path.startsWith("snapshot.")) return null;
+  const tail = path.slice("snapshot.".length);
+  if (!tail) return null;
+  return tail.split(".");
 }
 
 interface PromoteResult {
@@ -58,6 +81,7 @@ interface PromoteResult {
   files_downloaded: number;
   files_skipped: number;
   files_failed: number;
+  native_updates: number;
   errors: Array<{ projeto_id?: string; deal_id?: string; error: string }>;
   warnings: Array<{ projeto_id?: string; deal_id?: string; warning: string }>;
   next_offset: number | null;
@@ -127,7 +151,7 @@ async function loadFieldMapping(
   // 1. Mapeamentos configurados
   const { data: mappings, error: mErr } = await supabase
     .from("sm_custom_field_mapping")
-    .select("sm_field_key, action, crm_field_id, crm_field_type")
+    .select("sm_field_key, action, crm_field_id, crm_field_type, crm_native_target")
     .eq("tenant_id", tenantId);
   if (mErr) throw mErr;
 
@@ -138,7 +162,7 @@ async function loadFieldMapping(
   const fieldIds = Array.from(
     new Set(
       entries
-        .filter((e) => e.action !== "ignore" && e.crm_field_id)
+        .filter((e) => (e.action === "map" || e.action === "create_new") && e.crm_field_id)
         .map((e) => e.crm_field_id as string),
     ),
   );
@@ -158,15 +182,31 @@ async function loadFieldMapping(
     }
   }
 
-  // 3. Montar Map resolvable + Set ignored + lista invalid (mapping aponta pra
-  //    crm_field_id que sumiu / foi desativado).
+  // 3. Montar Map resolvable + Set ignored + nativeTargets + lista invalid.
   const resolvable = new Map<string, { id: string; field_type: string }>();
+  const nativeTargets = new Map<string, string>();
   const ignored = new Set<string>();
   const invalid: Array<{ sm_field_key: string; reason: string }> = [];
 
   for (const e of entries) {
     if (e.action === "ignore") {
       ignored.add(e.sm_field_key);
+      continue;
+    }
+    if (e.action === "map_native") {
+      const target = e.crm_native_target;
+      if (!target) {
+        invalid.push({ sm_field_key: e.sm_field_key, reason: "missing_crm_native_target" });
+        continue;
+      }
+      if (!NATIVE_TARGET_WHITELIST.has(target)) {
+        invalid.push({
+          sm_field_key: e.sm_field_key,
+          reason: `crm_native_target_not_whitelisted:${target}`,
+        });
+        continue;
+      }
+      nativeTargets.set(e.sm_field_key, target);
       continue;
     }
     if (!e.crm_field_id) {
@@ -228,7 +268,7 @@ async function loadFieldMapping(
   const unmapped = allSlugs.filter((k) => !known.has(k));
 
   return {
-    resolved: { resolvable, ignored, known },
+    resolved: { resolvable, nativeTargets, ignored, known },
     unmapped,
     invalid,
   };
@@ -283,6 +323,7 @@ Deno.serve(async (req) => {
           files_downloaded: 0,
           files_skipped: 0,
           files_failed: 0,
+          native_updates: 0,
           errors: [],
           warnings: [],
           next_offset: null,
@@ -348,9 +389,18 @@ Deno.serve(async (req) => {
     let filesDownloaded = 0;
     let filesSkipped = 0;
     let filesFailed = 0;
+    let nativeUpdates = 0;
     const errors: Array<{ projeto_id?: string; deal_id?: string; error: string }> = [];
     const warnings: Array<{ projeto_id?: string; deal_id?: string; warning: string }> = [];
     const ignoredSeen = new Set<string>(); // dedup warnings
+
+    /**
+     * Bucket de updates nativos por projeto.
+     * projetoId → { snapshotKeyPath[] : value }
+     * snapshotKeyPath é o array de chaves DENTRO de snapshot
+     * (ex.: ["garantias","modulo_sm"] vindo de "snapshot.garantias.modulo_sm").
+     */
+    const nativeBucket = new Map<string, Array<{ keys: string[]; value: string }>>();
 
     for (const proj of projetos) {
       const dealId = (proj as any).deal_id as string;
@@ -374,6 +424,21 @@ Deno.serve(async (req) => {
             });
             ignoredSeen.add(sourceKey);
           }
+          continue;
+        }
+
+        // Native target? grava no bucket e segue.
+        const nativePath = resolved.nativeTargets.get(sourceKey);
+        if (nativePath) {
+          const rawValue = (v?.value ?? v?.formattedValue ?? "")
+            .toString()
+            .trim();
+          if (!rawValue) continue;
+          const keys = nativePathToSnapshotKeys(nativePath);
+          if (!keys) continue;
+          const arr = nativeBucket.get(projetoId) ?? [];
+          arr.push({ keys, value: rawValue });
+          nativeBucket.set(projetoId, arr);
           continue;
         }
 
@@ -463,6 +528,91 @@ Deno.serve(async (req) => {
       }
     }
 
+    /* ---------------------------------------------------------------
+     * Flush dos native targets em proposta_versoes.snapshot.
+     *
+     * Estratégia:
+     *  1) Para cada projetoId no bucket, encontrar a versão mais recente
+     *     em proposta_versoes (via propostas_nativas.projeto_id).
+     *  2) Para cada par {keys, value}, aplicar jsonb_set aninhado em snapshot.
+     *  3) Em dry-run: não escreve, só conta.
+     * --------------------------------------------------------------- */
+    if (nativeBucket.size > 0) {
+      const projetoIds = Array.from(nativeBucket.keys());
+
+      // Buscar versões mais recentes em uma query (versao DESC, primeira por projeto).
+      const { data: versoes, error: vErr } = await supabase
+        .from("proposta_versoes")
+        .select("id, snapshot, versao, propostas_nativas!inner(projeto_id)")
+        .eq("propostas_nativas.tenant_id", tenantId)
+        .in("propostas_nativas.projeto_id", projetoIds)
+        .order("versao", { ascending: false });
+
+      if (vErr) {
+        errors.push({ error: `native_targets_select: ${vErr.message}` });
+      } else {
+        // Pegar a primeira (maior versao) por projeto_id.
+        const latestByProj = new Map<string, { id: string; snapshot: any }>();
+        for (const v of versoes ?? []) {
+          const pid = ((v as any).propostas_nativas?.projeto_id ?? null) as string | null;
+          if (!pid) continue;
+          if (!latestByProj.has(pid)) {
+            latestByProj.set(pid, {
+              id: (v as any).id as string,
+              snapshot: (v as any).snapshot ?? {},
+            });
+          }
+        }
+
+        for (const [projetoId, ops] of nativeBucket.entries()) {
+          const latest = latestByProj.get(projetoId);
+          if (!latest) {
+            warnings.push({
+              projeto_id: projetoId,
+              warning: "native_target: nenhuma versão de proposta encontrada — pulado",
+            });
+            continue;
+          }
+
+          // Mutar cópia do snapshot in-memory (jsonb_set aninhado em JS).
+          const snapshot = JSON.parse(JSON.stringify(latest.snapshot ?? {}));
+          for (const op of ops) {
+            let cursor: any = snapshot;
+            for (let i = 0; i < op.keys.length - 1; i++) {
+              const k = op.keys[i];
+              if (typeof cursor[k] !== "object" || cursor[k] === null) {
+                cursor[k] = {};
+              }
+              cursor = cursor[k];
+            }
+            cursor[op.keys[op.keys.length - 1]] = op.value;
+          }
+
+          if (!dryRun) {
+            const { error: uErr, count } = await supabase
+              .from("proposta_versoes")
+              .update({ snapshot }, { count: "exact" })
+              .eq("id", latest.id);
+            if (uErr) {
+              errors.push({
+                projeto_id: projetoId,
+                error: `native_target_update: ${uErr.message}`,
+              });
+            } else if ((count ?? 0) === 0) {
+              warnings.push({
+                projeto_id: projetoId,
+                warning: "native_target_update: 0 rows affected",
+              });
+            } else {
+              nativeUpdates += ops.length;
+            }
+          } else {
+            nativeUpdates += ops.length;
+          }
+        }
+      }
+    }
+
     const result: PromoteResult = {
       ok: true,
       processed: projetos.length,
@@ -470,6 +620,7 @@ Deno.serve(async (req) => {
       files_downloaded: filesDownloaded,
       files_skipped: filesSkipped,
       files_failed: filesFailed,
+      native_updates: nativeUpdates,
       errors: errors.slice(0, 50),
       warnings: warnings.slice(0, 50),
       next_offset: projetos.length === batch ? offset + batch : null,
