@@ -20476,6 +20476,7 @@ export type Database = {
           crm_field_id: string | null
           crm_field_name_input: string | null
           crm_field_type: string | null
+          crm_native_target: string | null
           id: string
           sm_field_key: string
           sm_field_label: string | null
@@ -20492,6 +20493,7 @@ export type Database = {
           crm_field_id?: string | null
           crm_field_name_input?: string | null
           crm_field_type?: string | null
+          crm_native_target?: string | null
           id?: string
           sm_field_key: string
           sm_field_label?: string | null
@@ -20508,6 +20510,7 @@ export type Database = {
           crm_field_id?: string | null
           crm_field_name_input?: string | null
           crm_field_type?: string | null
+          crm_native_target?: string | null
           id?: string
           sm_field_key?: string
           sm_field_label?: string | null
