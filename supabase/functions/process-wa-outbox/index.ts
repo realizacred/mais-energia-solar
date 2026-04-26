@@ -61,7 +61,7 @@ Deno.serve(async (req) => {
     // ── Step 1: Find all connected instances with pending outbox items ──
     const { data: instances, error: instErr } = await supabase
       .from("wa_instances")
-      .select("id, tenant_id, evolution_instance_key, evolution_api_url, status, api_key")
+      .select("id, tenant_id, evolution_instance_key, evolution_api_url, status, api_key, api_flavor")
       .eq("status", "connected");
 
     if (instErr) {
