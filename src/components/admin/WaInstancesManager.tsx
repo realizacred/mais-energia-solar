@@ -530,6 +530,8 @@ function InstanceFormDialog({
   initialVendedorIds,
   onSaveEdit,
   onCreateSuccess,
+  defaultApiFlavor,
+  lockApiFlavor,
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
@@ -538,6 +540,10 @@ function InstanceFormDialog({
   initialVendedorIds: string[];
   onSaveEdit: (data: any, selectedVendedorIds: string[]) => Promise<void>;
   onCreateSuccess: () => void;
+  /** Pré-seleciona o tipo de API ao abrir em modo "create". */
+  defaultApiFlavor?: "classic" | "go";
+  /** Quando true, impede o usuário de trocar o tipo de API no formulário. */
+  lockApiFlavor?: boolean;
 }) {
   const [mode, setMode] = useState<CreateMode>("create");
   const [nome, setNome] = useState("");
