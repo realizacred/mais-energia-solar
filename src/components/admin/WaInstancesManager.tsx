@@ -925,7 +925,11 @@ function InstanceFormDialog({
               </div>
               <div>
                 <Label>Tipo de API *</Label>
-                <Select value={apiFlavor} onValueChange={(v) => setApiFlavor(v as "classic" | "go")}>
+                <Select
+                  value={apiFlavor}
+                  onValueChange={(v) => setApiFlavor(v as "classic" | "go")}
+                  disabled={lockApiFlavor}
+                >
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="classic">Evolution Clássica (Baileys / Node)</SelectItem>
@@ -933,7 +937,9 @@ function InstanceFormDialog({
                   </SelectContent>
                 </Select>
                 <p className="text-[10px] text-muted-foreground mt-1">
-                  Selecione conforme a versão do servidor Evolution. Default: Clássica.
+                  {lockApiFlavor
+                    ? `Tipo definido pela origem do card (${apiFlavor === "go" ? "Evolution GO" : "Evolution Clássica"}).`
+                    : "Selecione conforme a versão do servidor Evolution. Default: Clássica."}
                 </p>
               </div>
               {isRegister && (
