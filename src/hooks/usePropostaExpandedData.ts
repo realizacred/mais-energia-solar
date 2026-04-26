@@ -21,6 +21,17 @@ export interface UCDetailData {
   percentual_atendimento: number | null;
 }
 
+export interface KitItemDetailData {
+  id: string;
+  categoria: string | null;
+  descricao: string | null;
+  fabricante: string | null;
+  modelo: string | null;
+  potencia_w: number | null;
+  quantidade: number | null;
+  preco_unitario: number | null;
+}
+
 export function usePropostaExpandedSnapshot(versaoId: string | null, enabled: boolean) {
   return useQuery({
     queryKey: ["proposta-expanded-snapshot", versaoId],
@@ -51,6 +62,33 @@ export function usePropostaExpandedUcs(versaoId: string | null, enabled: boolean
         .order("ordem");
       if (error) throw error;
       return (data as unknown as UCDetailData[]) || [];
+    },
+    staleTime: STALE_TIME,
+    enabled: !!versaoId && enabled,
+  });
+}
+
+export function usePropostaExpandedKitItems(versaoId: string | null, enabled: boolean) {
+  return useQuery({
+    queryKey: ["proposta-expanded-kit-items", versaoId],
+    queryFn: async () => {
+      if (!versaoId) return [];
+      const { data: kits, error: kitError } = await supabase
+        .from("proposta_kits")
+        .select("id")
+        .eq("versao_id", versaoId);
+      if (kitError) throw kitError;
+
+      const kitIds = (kits || []).map((kit: any) => kit.id).filter(Boolean);
+      if (kitIds.length === 0) return [];
+
+      const { data, error } = await (supabase as any)
+        .from("proposta_kit_itens")
+        .select("id, categoria, descricao, fabricante, modelo, potencia_w, quantidade, preco_unitario")
+        .in("kit_id", kitIds)
+        .order("ordem");
+      if (error) throw error;
+      return (data as KitItemDetailData[]) || [];
     },
     staleTime: STALE_TIME,
     enabled: !!versaoId && enabled,
