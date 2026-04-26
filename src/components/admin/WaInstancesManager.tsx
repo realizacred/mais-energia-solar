@@ -72,8 +72,26 @@ const STATUS_CONFIG: Record<string, { label: string; className: string; icon: ty
   error: { label: "Erro", className: "bg-destructive/10 text-destructive border-destructive/20", icon: WifiOff },
 };
 
-export function WaInstancesManager() {
-  const { instances, loading, updateInstance, deleteInstance, disconnectInstance, disconnecting, checkStatus, checkingStatus, syncHistory, vendedores, instanceVendedores, saveVendedores } = useWaInstances();
+export interface WaInstancesManagerProps {
+  /**
+   * Filtra a lista exibida e força o tipo de API ao criar/editar.
+   * - "classic": Evolution Clássica (Baileys/Node)
+   * - "go":     Evolution GO (whatsmeow)
+   * Quando omitido, exibe ambos sem filtro (modo legado).
+   */
+  apiFlavorFilter?: "classic" | "go";
+}
+
+export function WaInstancesManager({ apiFlavorFilter }: WaInstancesManagerProps = {}) {
+  const { instances: rawInstances, loading, updateInstance, deleteInstance, disconnectInstance, disconnecting, checkStatus, checkingStatus, syncHistory, vendedores, instanceVendedores, saveVendedores } = useWaInstances();
+
+  // Filtra por tipo de API quando solicitado pela página chamadora.
+  const instances = apiFlavorFilter
+    ? rawInstances.filter((i: any) => {
+        const flavor = (i?.api_flavor === "go" ? "go" : "classic");
+        return flavor === apiFlavorFilter;
+      })
+    : rawInstances;
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const [showCreate, setShowCreate] = useState(false);
