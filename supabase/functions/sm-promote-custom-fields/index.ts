@@ -387,9 +387,18 @@ Deno.serve(async (req) => {
     let filesDownloaded = 0;
     let filesSkipped = 0;
     let filesFailed = 0;
+    let nativeUpdates = 0;
     const errors: Array<{ projeto_id?: string; deal_id?: string; error: string }> = [];
     const warnings: Array<{ projeto_id?: string; deal_id?: string; warning: string }> = [];
     const ignoredSeen = new Set<string>(); // dedup warnings
+
+    /**
+     * Bucket de updates nativos por projeto.
+     * projetoId → { snapshotKeyPath[] : value }
+     * snapshotKeyPath é o array de chaves DENTRO de snapshot
+     * (ex.: ["garantias","modulo_sm"] vindo de "snapshot.garantias.modulo_sm").
+     */
+    const nativeBucket = new Map<string, Array<{ keys: string[]; value: string }>>();
 
     for (const proj of projetos) {
       const dealId = (proj as any).deal_id as string;
