@@ -2,7 +2,7 @@
 // process-fatura-pdf — Orchestrator: parse PDF → store → update UC → notify WA
 // ──────────────────────────────────────────────────────────────────────────────
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
-import { extractText, getDocumentProxy } from "npm:unpdf@0.12.1";
+import { extractText, getDocumentProxy } from "https://esm.sh/unpdf@0.12.1";
 import { detectUcType } from "../_shared/ucTypeDetector.ts";
 
 const corsHeaders = {
@@ -190,7 +190,7 @@ Deno.serve(async (req) => {
       tenantId = profile.tenant_id;
 
       const body: ProcessRequest = await req.json();
-      return await processInvoice(admin, body, tenantId, supabaseUrl, serviceRoleKey);
+      return await processInvoice(admin, body, tenantId!, supabaseUrl, serviceRoleKey);
     }
   } catch (err: any) {
     console.error("[process-fatura-pdf] Error:", err);

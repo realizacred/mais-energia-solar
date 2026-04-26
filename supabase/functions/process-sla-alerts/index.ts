@@ -173,7 +173,7 @@ Deno.serve(async (req) => {
             .order("created_at", { ascending: false })
             .limit(10);
 
-          const hist = recentMsgs
+          const hist = (recentMsgs ?? [])
             .slice()
             .reverse()
             .map((m: any) => `[${m.direction === "in" ? "Cliente" : "Atendente"}]: ${m.content || "(mídia)"}`)

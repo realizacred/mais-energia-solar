@@ -182,7 +182,7 @@ Deno.serve(async (req) => {
     console.log(`[public-create-lead] tenant=${tenantId}, consultor=${vendedorId} (${vendedorNome})`);
 
     // ── CHECK FOR DUPLICATE LEADS BY PHONE ──
-    let leadId: string;
+    let leadId: string = "";
     let isNewLead = true;
 
     if (existing_lead_id) {

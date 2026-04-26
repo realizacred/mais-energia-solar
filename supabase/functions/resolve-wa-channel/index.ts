@@ -26,9 +26,10 @@ Deno.serve(async (req) => {
     );
 
     // 1) Resolve consultant via secure RPC
-    const { data: consultor, error: cErr } = await supabase
+    const { data: consultorData, error: cErr } = await supabase
       .rpc("resolve_consultor_public", { _codigo: slug })
       .maybeSingle();
+    const consultor = consultorData as any;
 
     if (cErr || !consultor) {
       return new Response(JSON.stringify({ error: "Consultor não encontrado" }), {
