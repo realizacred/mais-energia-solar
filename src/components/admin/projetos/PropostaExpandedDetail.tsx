@@ -35,7 +35,7 @@ import { ProposalMessageDrawer } from "./ProposalMessageDrawer";
 import { ProposalMessageHistory } from "./ProposalMessageHistory";
 import { ClonePropostaModal } from "./ClonePropostaModal";
 import { useExcluirProposta } from "@/hooks/usePropostasProjetoTab";
-import { usePropostaExpandedSnapshot, usePropostaExpandedUcs, usePropostaAuditLogs, usePropostaEvents, type UCDetailData, type ProposalEventEntry } from "@/hooks/usePropostaExpandedData";
+import { usePropostaExpandedSnapshot, usePropostaExpandedUcs, usePropostaExpandedKitItems, usePropostaAuditLogs, usePropostaEvents, type UCDetailData, type KitItemDetailData, type ProposalEventEntry } from "@/hooks/usePropostaExpandedData";
 import { useReabrirProposta, useIsAdminOrGerente } from "@/hooks/useReabrirProposta";
 import { useProposalTemplates } from "@/hooks/useProposalTemplates";
 
@@ -492,6 +492,7 @@ function SmResumoTab({ snapshot, latestVersao, wpPrice }: { snapshot: any; lates
 function NativeResumoTab({ snapshot, ucsDetail, latestVersao, wpPrice, buildSummaryRows }: {
   snapshot: SnapshotData | null;
   ucsDetail: UCDetailData[];
+  kitItemsDetail: KitItemDetailData[];
   latestVersao: VersaoData | undefined;
   wpPrice: string | null;
   buildSummaryRows: () => Array<{ label: string; qty: number; value: number; pct: number; children?: Array<{ label: string; qty: number }> }>;
