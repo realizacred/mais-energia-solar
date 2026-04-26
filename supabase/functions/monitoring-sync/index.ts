@@ -1697,7 +1697,8 @@ async function ecosolysListPlants(token: string): Promise<NormalizedPlant[]> {
 // ═══════════════════════════════════════════════════════════
 
 interface SyncContext {
-  supabaseAdmin: ReturnType<typeof createClient>;
+  // deno-lint-ignore no-explicit-any
+  supabaseAdmin: any;
   tenantId: string; userId: string; provider: string; integrationId: string;
 }
 
