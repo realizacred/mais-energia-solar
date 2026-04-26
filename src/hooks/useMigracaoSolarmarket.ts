@@ -8,7 +8,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useSolarmarketImport } from "@/hooks/useSolarmarketImport";
 
-export type MigracaoStep = 1 | 2 | 3;
+export type MigracaoStep = 1 | 2 | 3 | 4;
 
 export interface MigracaoStats {
   // Staging (área de revisão)
