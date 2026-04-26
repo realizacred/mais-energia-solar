@@ -269,12 +269,14 @@ Deno.serve(async (req) => {
 });
 
 // ── Evolution API Integration ─────────────────────────────
+// Suporta dois flavors: 'classic' (Baileys) e 'go' (whatsmeow / Evolution GO)
 
 async function sendEvolutionMessage(
   apiUrl: string,
   instanceKey: string,
   apiKey: string,
-  item: any
+  item: any,
+  flavor: "classic" | "go" = "classic"
 ) {
   const baseUrl = apiUrl.replace(/\/$/, "");
   let endpoint: string;
@@ -283,41 +285,77 @@ async function sendEvolutionMessage(
   // Detect group JID and extract number accordingly
   const isGroup = item.remote_jid?.includes("@g.us");
   const number = isGroup
-    ? item.remote_jid // Groups: send full JID as-is (e.g. 120363xxx@g.us)
+    ? item.remote_jid // Groups: send full JID as-is
     : item.remote_jid.replace("@s.whatsapp.net", "").replace("@c.us", "");
 
-  switch (item.message_type) {
-    case "text":
-      endpoint = `/message/sendText/${instanceKey}`;
-      body = { number, text: item.content };
-      break;
-    case "image":
-      endpoint = `/message/sendMedia/${instanceKey}`;
-      body = { number, mediatype: "image", media: item.media_url, caption: item.content || "" };
-      break;
-    case "document":
-      endpoint = `/message/sendMedia/${instanceKey}`;
-      body = {
-        number,
-        mediatype: "document",
-        media: item.media_url,
-        caption: item.content || "",
-        fileName: item.media_filename || item.content || "documento",
-      };
-      break;
-    case "audio":
-      endpoint = `/message/sendWhatsAppAudio/${instanceKey}`;
-      body = { number, audio: item.media_url };
-      console.log(`[process-wa-outbox] Sending audio: endpoint=${endpoint}, mime=${item.media_mime_type || 'unknown'}, url_len=${(item.media_url || '').length}`);
-
-      break;
-    case "video":
-      endpoint = `/message/sendMedia/${instanceKey}`;
-      body = { number, mediatype: "video", media: item.media_url, caption: item.content || "" };
-      break;
-    default:
-      endpoint = `/message/sendText/${instanceKey}`;
-      body = { number, text: item.content || "" };
+  if (flavor === "go") {
+    // Evolution GO endpoints — flat /send/* with phone+instanceId
+    switch (item.message_type) {
+      case "text":
+        endpoint = `/send/text`;
+        body = { instanceId: instanceKey, phone: number, message: item.content };
+        break;
+      case "image":
+        endpoint = `/send/media`;
+        body = { instanceId: instanceKey, phone: number, mediaType: "image", media: item.media_url, caption: item.content || "" };
+        break;
+      case "document":
+        endpoint = `/send/media`;
+        body = {
+          instanceId: instanceKey,
+          phone: number,
+          mediaType: "document",
+          media: item.media_url,
+          caption: item.content || "",
+          fileName: item.media_filename || item.content || "documento",
+        };
+        break;
+      case "audio":
+        endpoint = `/send/audio`;
+        body = { instanceId: instanceKey, phone: number, audio: item.media_url };
+        break;
+      case "video":
+        endpoint = `/send/media`;
+        body = { instanceId: instanceKey, phone: number, mediaType: "video", media: item.media_url, caption: item.content || "" };
+        break;
+      default:
+        endpoint = `/send/text`;
+        body = { instanceId: instanceKey, phone: number, message: item.content || "" };
+    }
+  } else {
+    // Classic Evolution API (Baileys) — original endpoints
+    switch (item.message_type) {
+      case "text":
+        endpoint = `/message/sendText/${instanceKey}`;
+        body = { number, text: item.content };
+        break;
+      case "image":
+        endpoint = `/message/sendMedia/${instanceKey}`;
+        body = { number, mediatype: "image", media: item.media_url, caption: item.content || "" };
+        break;
+      case "document":
+        endpoint = `/message/sendMedia/${instanceKey}`;
+        body = {
+          number,
+          mediatype: "document",
+          media: item.media_url,
+          caption: item.content || "",
+          fileName: item.media_filename || item.content || "documento",
+        };
+        break;
+      case "audio":
+        endpoint = `/message/sendWhatsAppAudio/${instanceKey}`;
+        body = { number, audio: item.media_url };
+        console.log(`[process-wa-outbox] Sending audio: endpoint=${endpoint}, mime=${item.media_mime_type || 'unknown'}, url_len=${(item.media_url || '').length}`);
+        break;
+      case "video":
+        endpoint = `/message/sendMedia/${instanceKey}`;
+        body = { number, mediatype: "video", media: item.media_url, caption: item.content || "" };
+        break;
+      default:
+        endpoint = `/message/sendText/${instanceKey}`;
+        body = { number, text: item.content || "" };
+    }
   }
 
   const response = await fetch(`${baseUrl}${endpoint}`, {
@@ -328,10 +366,10 @@ async function sendEvolutionMessage(
 
   if (!response.ok) {
     const errorBody = await response.text();
-    throw new Error(`Evolution API error [${response.status}]: ${errorBody}`);
+    throw new Error(`Evolution API error [${response.status}] (flavor=${flavor}): ${errorBody}`);
   }
 
   const result = await response.json();
-  console.log(`[process-wa-outbox] Message sent via Evolution API: ${JSON.stringify(result?.key || {})}`);
+  console.log(`[process-wa-outbox] Message sent via Evolution ${flavor}: ${JSON.stringify(result?.key || result?.id || {})}`);
   return result;
 }
