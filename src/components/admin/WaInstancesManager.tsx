@@ -893,6 +893,19 @@ function InstanceFormDialog({
                   className="font-mono text-sm"
                 />
               </div>
+              <div>
+                <Label>Tipo de API *</Label>
+                <Select value={apiFlavor} onValueChange={(v) => setApiFlavor(v as "classic" | "go")}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="classic">Evolution Clássica (Baileys / Node)</SelectItem>
+                    <SelectItem value="go">Evolution GO (whatsmeow)</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-[10px] text-muted-foreground mt-1">
+                  Selecione conforme a versão do servidor Evolution. Default: Clássica.
+                </p>
+              </div>
               {isRegister && (
                 <div>
                   <Label>API Key *</Label>
