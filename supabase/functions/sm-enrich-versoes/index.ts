@@ -461,7 +461,13 @@ Deno.serve(async (req) => {
             }
           }
 
-          // ─── 3f. UPDATE projetos (endereço/cidade/UF + potência/módulos) ───
+          // ─── 3f. Marcar proposta como principal (RB-59) ───
+          await supabase
+            .from("propostas_nativas")
+            .update({ is_principal: true })
+            .eq("id", propId);
+
+          // ─── 3g. UPDATE projetos (endereço/cidade/UF + potência/módulos + proposta_id) ───
           const projUpdate: Record<string, any> = {
             cidade_instalacao: v.get("cliente_cidade") ?? v.get("cidade"),
             uf_instalacao: v.get("cliente_estado"),
@@ -480,6 +486,7 @@ Deno.serve(async (req) => {
               : null,
             valor_total: valorTotal > 0 ? valorTotal : null,
             geracao_mensal_media_kwh: geracaoMensal,
+            proposta_id: propId, // RB-60: vincula projeto à proposta principal
           };
           // Remove chaves null/undefined para não sobrescrever com NULL.
           for (const k of Object.keys(projUpdate)) {
