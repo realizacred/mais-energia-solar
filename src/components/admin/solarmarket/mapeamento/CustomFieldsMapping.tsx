@@ -113,6 +113,66 @@ export function CustomFieldsMapping({ tenantId }: Props) {
     setDrafts((prev) => ({ ...prev, [key]: { ...prev[key], ...patch } }));
   }
 
+  // Autosave por linha (debounce 700ms): persiste assim que o draft está válido,
+  // evitando perda de estado ao navegar entre etapas do wizard.
+  const autosaveTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
+  useEffect(() => {
+    if (!smFields) return;
+    for (const f of smFields) {
+      const draft = drafts[f.key];
+      if (!draft) continue;
+      const s = getRowState(f);
+      // Validação mínima por ação
+      const valid =
+        (s.action === "map" && !!s.crm_field_id) ||
+        (s.action === "create" && !!s.crm_field_name_input.trim()) ||
+        (s.action === "map_native" && !!s.crm_native_target) ||
+        s.action === "ignore";
+      if (!valid) continue;
+
+      // Reagenda timer
+      if (autosaveTimers.current[f.key]) clearTimeout(autosaveTimers.current[f.key]);
+      autosaveTimers.current[f.key] = setTimeout(() => {
+        saveMutation.mutate(
+          {
+            tenantId,
+            smField: f,
+            action: s.action as CfAction,
+            crm_field_id: s.crm_field_id || null,
+            crm_field_name_input: s.crm_field_name_input || null,
+            crm_field_context: s.crm_field_context || null,
+            crm_field_type: s.crm_field_type || null,
+            crm_native_target: s.crm_native_target || null,
+          },
+          {
+            onSuccess: () => {
+              setDrafts((prev) => {
+                const next = { ...prev };
+                delete next[f.key];
+                return next;
+              });
+            },
+          },
+        );
+      }, 700);
+    }
+    // cleanup ao desmontar
+    return () => {
+      // não limpa aqui para não cancelar saves pendentes durante re-render normal
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [drafts, smFields, tenantId]);
+
+  // Garante flush ao desmontar (ex: usuário clicou em "Voltar"/"Continuar").
+  useEffect(() => {
+    return () => {
+      const timers = autosaveTimers.current;
+      Object.keys(timers).forEach((k) => {
+        clearTimeout(timers[k]);
+      });
+    };
+  }, []);
+
   async function handleSave(field: SmField) {
     const s = getRowState(field);
     if (!s.action) return;
