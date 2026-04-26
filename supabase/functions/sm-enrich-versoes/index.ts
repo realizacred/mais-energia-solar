@@ -151,6 +151,9 @@ Deno.serve(async (req) => {
     const batch = Math.min(Math.max(Number(payload.batch ?? 25), 1), 100);
     const offset = Math.max(Number(payload.offset ?? 0), 0);
     const dryRun = payload.dry_run === true;
+    const tenantIdFilter = typeof payload.tenant_id === "string" && payload.tenant_id.trim()
+      ? payload.tenant_id.trim()
+      : null;
 
     if (action !== "enrich") {
       return new Response(
@@ -165,6 +168,7 @@ Deno.serve(async (req) => {
       .from("propostas_nativas")
       .select("id, projeto_id, tenant_id, external_id, deal_id")
       .eq("external_source", "solarmarket")
+      .eq("tenant_id", tenantIdFilter ?? undefined)
       .order("id", { ascending: true })
       .range(offset, offset + batch - 1);
 
