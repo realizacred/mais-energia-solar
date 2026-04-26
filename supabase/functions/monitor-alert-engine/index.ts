@@ -139,7 +139,8 @@ Deno.serve(async (req) => {
 // Per-tenant processing
 // ═══════════════════════════════════════════════════════════
 async function processAlertsTenant(
-  sb: ReturnType<typeof createClient>,
+  // deno-lint-ignore no-explicit-any
+  sb: any,
   tenantId: string,
   stats: { plants_processed: number; opened: number; closed: number; skipped: number; errors: number },
 ) {
@@ -159,7 +160,8 @@ async function processAlertsTenant(
     .eq("is_active", true);
 
   const planCache = new Map<string, Record<string, unknown>>();
-  for (const p of allPlans || []) {
+  for (const plan of allPlans || []) {
+    const p = plan as any;
     planCache.set(p.id, p.features as Record<string, unknown>);
   }
 
@@ -223,7 +225,8 @@ async function processAlertsTenant(
     .eq("is_active", true);
 
   const channelsByPlant = new Map<string, any[]>();
-  for (const ch of channels || []) {
+  for (const channel of channels || []) {
+    const ch = channel as any;
     const key = ch.plant_id;
     if (!channelsByPlant.has(key)) channelsByPlant.set(key, []);
     channelsByPlant.get(key)!.push(ch);

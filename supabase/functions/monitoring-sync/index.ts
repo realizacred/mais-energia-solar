@@ -122,7 +122,7 @@ async function solaredgeListSites(apiKey: string): Promise<NormalizedPlant[]> {
   const res = await fetch(`${SE_BASE}/sites/list?api_key=${encodeURIComponent(apiKey)}&size=100`);
   if (!res.ok) throw new Error(`SolarEdge ${res.status}`);
   const json = await res.json();
-  return ((json.sites?.site || []) as Record<string, unknown>[]).map((s) => ({
+  return ((json.sites?.site || []) as any[]).map((s) => ({
     external_id: String(s.id), name: String(s.name || ""),
     capacity_kw: s.peakPower != null ? Number(s.peakPower) : null,
     address: [s.address?.address, s.address?.city].filter(Boolean).join(", ") || null,
@@ -1861,11 +1861,11 @@ async function syncPlantsByProvider(
         break;
       }
 
-      const batch = (dbPlants || []).slice(i, i + CONCURRENCY);
+      const batch = ((dbPlants || []) as any[]).slice(i, i + CONCURRENCY);
       // Add inter-batch delay for rate-limited providers
       if (i > 0 && isHuawei) await new Promise(r => setTimeout(r, 10000)); // 10s between Huawei batches
       const results = await Promise.allSettled(
-        batch.map(async (p) => {
+        batch.map(async (p: any) => {
           const metrics = await metricsFn(p.external_id);
           const monitorId = legacyToMonitorId.get(p.id) || null;
           const err = await upsertMetrics(ctx, p.id, metrics, monitorId);
@@ -2579,7 +2579,7 @@ async function dispatchSync(
     if (!at) throw new Error("No access token.");
     return await syncPlantsByProvider(ctx, () => solarmanListPlants(at), (eid) => solarmanMetrics(at, eid), mode, selectedPlantIds);
   } else if (p === "apsystems") {
-    return { plantsUpserted: 0, metricsUpserted: 0, errors: ["APsystems sync requires session refresh. Use portal credentials."] };
+    return { plantsUpserted: 0, metricsUpserted: 0, errors: ["APsystems sync requires session refresh. Use portal credentials."], errorCategories: [] };
   } else if (p === "livoltek" || p === "livoltek_cf") {
     let lvToken = tokens.token as string || "";
     const lvBaseUrl = (tokens.baseUrl as string) || (credentials.baseUrl as string) || "https://api-eu.livoltek-portal.com:8081";
@@ -2684,9 +2684,9 @@ async function handleCron(supabaseAdmin: ReturnType<typeof createClient>, body?:
   const results: { provider: string; plants_synced: number; metrics_synced: number; errors: string[] }[] = [];
 
   // Filter to implementable providers, and optionally to a single provider
-  let syncableIntegrations = integrations.filter(int => SYNC_IMPLEMENTED.has(int.provider));
+  let syncableIntegrations = (integrations as any[]).filter((int: any) => SYNC_IMPLEMENTED.has(int.provider));
   if (filterProvider) {
-    syncableIntegrations = syncableIntegrations.filter(int => int.provider === filterProvider);
+    syncableIntegrations = syncableIntegrations.filter((int: any) => int.provider === filterProvider);
     (globalThis as any).__singleProviderFilter = filterProvider;
     console.log(`[monitoring-sync] Filtered to provider=${filterProvider}, ${syncableIntegrations.length} integration(s)`);
   } else {
@@ -2694,8 +2694,8 @@ async function handleCron(supabaseAdmin: ReturnType<typeof createClient>, body?:
   }
 
   // Process ALL providers in parallel so no single provider blocks the others
-  const settledResults = await Promise.allSettled(syncableIntegrations.map(async (int) => {
-    const provider = int.provider;
+  const settledResults = await Promise.allSettled(syncableIntegrations.map(async (int: any) => {
+    const provider = int.provider as string;
 
     try {
       console.log(`[monitoring-sync] CRON syncing provider=${provider} integration=${int.id}`);
@@ -2704,10 +2704,10 @@ async function handleCron(supabaseAdmin: ReturnType<typeof createClient>, body?:
       const credentials = (int.credentials || {}) as Record<string, any>;
       const ctx: SyncContext = {
         supabaseAdmin,
-        tenantId: int.tenant_id,
+        tenantId: int.tenant_id as string,
         userId: "cron",
         provider,
-        integrationId: int.id,
+        integrationId: int.id as string,
       };
 
       // At night or consolidation: only sync metrics (don't update plant status)
