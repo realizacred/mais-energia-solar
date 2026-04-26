@@ -8,6 +8,7 @@
  *
  * Reusa hooks existentes (§16 / RB-04 / RB-69) — não dispara queries próprias.
  */
+import { useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -42,6 +43,14 @@ const TILE = {
 export function CustomFieldsMappingSummary({ tenantId }: Props) {
   const fieldsQ = useSmCustomFieldsStaging(tenantId);
   const mappingsQ = useCustomFieldMappings(tenantId);
+
+  // Garante leitura fresca ao entrar no Step 4 (evita exibir cache vazio
+  // quando o usuário acaba de mapear no Step 3 e voltou para cá).
+  useEffect(() => {
+    mappingsQ.refetch();
+    fieldsQ.refetch();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tenantId]);
 
   const isLoading = fieldsQ.isLoading || mappingsQ.isLoading;
   const fields = fieldsQ.data ?? [];
