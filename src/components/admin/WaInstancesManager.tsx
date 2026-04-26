@@ -524,6 +524,7 @@ function InstanceFormDialog({
   const [instanceKey, setInstanceKey] = useState("");
   const [apiUrl, setApiUrl] = useState("https://");
   const [apiKey, setApiKey] = useState("");
+  const [apiFlavor, setApiFlavor] = useState<"classic" | "go">("classic");
   const [selectedVendedorIds, setSelectedVendedorIds] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
 
