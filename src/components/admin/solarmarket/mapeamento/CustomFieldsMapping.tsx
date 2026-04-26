@@ -123,7 +123,7 @@ export function CustomFieldsMapping({ tenantId }: Props) {
       // Validação mínima por ação
       const valid =
         (s.action === "map" && !!s.crm_field_id) ||
-        (s.action === "create" && !!s.crm_field_name_input.trim()) ||
+        (s.action === "create_new" && !!s.crm_field_name_input.trim()) ||
         (s.action === "map_native" && !!s.crm_native_target) ||
         s.action === "ignore";
       if (!valid) continue;
