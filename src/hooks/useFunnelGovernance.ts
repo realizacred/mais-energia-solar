@@ -57,14 +57,8 @@ export function useFunisComPapel() {
     staleTime: STALE,
     queryFn: async () => {
       const [pf, pp] = await Promise.all([
-        supabase
-          .from("projeto_funis")
-          .select("id, nome, ordem, ativo, papel" as never)
-          .order("ordem"),
-        supabase
-          .from("pipelines")
-          .select("id, name, is_active, papel" as never)
-          .order("name"),
+        sb.from("projeto_funis").select("id, nome, ordem, ativo, papel").order("ordem"),
+        sb.from("pipelines").select("id, name, is_active, papel").order("name"),
       ]);
       if (pf.error) throw new Error(pf.error.message);
       if (pp.error) throw new Error(pp.error.message);
