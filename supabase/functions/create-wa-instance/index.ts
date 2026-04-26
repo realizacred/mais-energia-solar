@@ -233,24 +233,11 @@ Deno.serve(async (req) => {
         "QRCODE_UPDATED",
       ];
 
-      const encodedKey = encodeURIComponent(effectiveInstanceKey);
-      const webhookSetUrl = `${baseUrl}/webhook/set/${encodedKey}`;
+      const { url: webhookSetUrl, init: webhookInit } = setWebhookRequest(provCtx, webhookUrl, webhookEvents);
 
-      console.log(`[create-wa-instance] Setting webhook: ${webhookSetUrl}`);
+      console.log(`[create-wa-instance] Setting webhook (${flavor}): ${webhookSetUrl}`);
 
-      const webhookRes = await fetch(webhookSetUrl, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          apikey: resolvedApiKey,
-        },
-        body: JSON.stringify({
-          url: webhookUrl,
-          webhook_by_events: false,
-          webhook_base64: false,
-          events: webhookEvents,
-        }),
-      });
+      const webhookRes = await fetch(webhookSetUrl, webhookInit);
 
       if (webhookRes.ok) {
         webhookConfigured = true;
