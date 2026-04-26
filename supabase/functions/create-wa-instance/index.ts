@@ -73,7 +73,8 @@ Deno.serve(async (req) => {
       });
     }
 
-    const { instance_name, api_url, api_key, number, groups_ignore, reject_call, always_online, consultor_ids, register_only, evolution_instance_key } = await req.json();
+    const { instance_name, api_url, api_key, number, groups_ignore, reject_call, always_online, consultor_ids, register_only, evolution_instance_key, api_flavor } = await req.json();
+    const flavor: WaApiFlavor = api_flavor === "go" ? "go" : "classic";
 
     if (!instance_name || !api_url) {
       return new Response(JSON.stringify({ error: "instance_name e api_url são obrigatórios" }), {
