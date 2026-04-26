@@ -54,6 +54,7 @@ const FUNCTIONAL_MONITORING_IDS = new Set([
  */
 const DEDICATED_COMPONENTS: Record<string, React.LazyExoticComponent<React.ComponentType<any>>> = {
   whatsapp_evolution: lazy(() => import("@/components/admin/WaInstancesManager").then(m => ({ default: m.WaInstancesManager }))),
+  whatsapp_evolution_go: lazy(() => import("@/components/admin/WaInstancesManager").then(m => ({ default: m.WaInstancesManager }))),
   meta_facebook: lazy(() => import("@/pages/admin/MetaFacebookConfigPage")),
   instagram_api: lazy(() => import("@/components/admin/InstagramConfig").then(m => ({ default: m.InstagramConfig }))),
   google_calendar: lazy(() => import("@/components/admin/integrations/IntegrationsPage")),
