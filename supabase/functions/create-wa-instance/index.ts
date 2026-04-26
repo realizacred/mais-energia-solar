@@ -1,4 +1,12 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import {
+  buildContext,
+  createInstanceRequest,
+  fetchConnectionState,
+  fetchQrCode,
+  setWebhookRequest,
+  type WaApiFlavor,
+} from "../_shared/wa-provider.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",

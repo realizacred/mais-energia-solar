@@ -25549,6 +25549,7 @@ export type Database = {
       }
       wa_instances: {
         Row: {
+          api_flavor: string
           api_key: string | null
           consultor_id: string | null
           created_at: string
@@ -25570,6 +25571,7 @@ export type Database = {
           webhook_secret: string
         }
         Insert: {
+          api_flavor?: string
           api_key?: string | null
           consultor_id?: string | null
           created_at?: string
@@ -25591,6 +25593,7 @@ export type Database = {
           webhook_secret?: string
         }
         Update: {
+          api_flavor?: string
           api_key?: string | null
           consultor_id?: string | null
           created_at?: string
