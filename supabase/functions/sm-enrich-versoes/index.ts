@@ -164,12 +164,13 @@ Deno.serve(async (req) => {
 
     // 1. Buscar lote de propostas_nativas SM.
     //    Neste tenant a proposta nativa usa external_id = sm_project_id.
-    const { data: propostas, error: propErr } = await supabase
+    let propostasQuery = supabase
       .from("propostas_nativas")
       .select("id, projeto_id, tenant_id, external_id, deal_id")
       .eq("external_source", "solarmarket")
-      .eq("tenant_id", tenantIdFilter ?? undefined)
-      .order("id", { ascending: true })
+      .order("id", { ascending: true });
+    if (tenantIdFilter) propostasQuery = propostasQuery.eq("tenant_id", tenantIdFilter);
+    const { data: propostas, error: propErr } = await propostasQuery
       .range(offset, offset + batch - 1);
 
     if (propErr) throw propErr;
