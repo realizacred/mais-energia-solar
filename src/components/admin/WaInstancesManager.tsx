@@ -359,6 +359,8 @@ export function WaInstancesManager({ apiFlavorFilter }: WaInstancesManagerProps 
         instance={editInstance}
         vendedores={vendedores as any}
         initialVendedorIds={editInstance ? getInstanceVendedorIds(editInstance.id) : []}
+        defaultApiFlavor={apiFlavorFilter}
+        lockApiFlavor={!!apiFlavorFilter}
         onSaveEdit={async (data, selectedVendedorIds) => {
           if (!editInstance) return;
           const instanceId = editInstance.id;
