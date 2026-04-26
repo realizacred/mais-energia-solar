@@ -85,7 +85,7 @@ Deno.serve(async (req) => {
     return json({ error: "Missing SUPABASE_SERVICE_ROLE_KEY" }, 500);
   }
 
-  const sb = createClient(
+  const sb: any = createClient(
     Deno.env.get("SUPABASE_URL")!,
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
   );
@@ -139,7 +139,7 @@ Deno.serve(async (req) => {
 // Per-tenant processing
 // ═══════════════════════════════════════════════════════════
 async function processAlertsTenant(
-  sb: ReturnType<typeof createClient>,
+  sb: any,
   tenantId: string,
   stats: { plants_processed: number; opened: number; closed: number; skipped: number; errors: number },
 ) {
