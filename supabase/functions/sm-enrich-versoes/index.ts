@@ -151,6 +151,9 @@ Deno.serve(async (req) => {
     const batch = Math.min(Math.max(Number(payload.batch ?? 25), 1), 100);
     const offset = Math.max(Number(payload.offset ?? 0), 0);
     const dryRun = payload.dry_run === true;
+    const tenantIdFilter = typeof payload.tenant_id === "string" && payload.tenant_id.trim()
+      ? payload.tenant_id.trim()
+      : null;
 
     if (action !== "enrich") {
       return new Response(
@@ -161,11 +164,13 @@ Deno.serve(async (req) => {
 
     // 1. Buscar lote de propostas_nativas SM.
     //    Neste tenant a proposta nativa usa external_id = sm_project_id.
-    const { data: propostas, error: propErr } = await supabase
+    let propostasQuery = supabase
       .from("propostas_nativas")
       .select("id, projeto_id, tenant_id, external_id, deal_id")
       .eq("external_source", "solarmarket")
-      .order("id", { ascending: true })
+      .order("id", { ascending: true });
+    if (tenantIdFilter) propostasQuery = propostasQuery.eq("tenant_id", tenantIdFilter);
+    const { data: propostas, error: propErr } = await propostasQuery
       .range(offset, offset + batch - 1);
 
     if (propErr) throw propErr;

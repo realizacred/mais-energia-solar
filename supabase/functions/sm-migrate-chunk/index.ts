@@ -3,7 +3,7 @@
 // Arquitetura (revista):
 //   - action=start  → cria job mestre + agenda 1º step via EdgeRuntime.waitUntil
 //                     (returns 202 imediatamente; loop continua sem aba aberta)
-//   - action=step   → processa 1 chunk via sm-promote(batch=100, scope=proposta)
+//   - action=step   → processa 1 chunk via sm-promote(batch=25, scope=proposta)
 //                     no fim, se has_more, auto-encadeia o próximo step via fetch
 //                     (não-bloqueante via EdgeRuntime.waitUntil)
 //   - action=continue → retoma um job existente (botão "Continuar" da UI)
@@ -36,7 +36,7 @@ const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const CRON_SECRET = "sm-resume-cron-v1"; // mesmo string usado em sm_resume_stuck_migrations
 
 const SOURCE_LIST = ["solarmarket", "solar_market"] as const;
-const CHUNK_BATCH = 100;
+const CHUNK_BATCH = 25;
 const MIN_CHUNK_BATCH = 25;
 const SELF_URL = `${SUPABASE_URL}/functions/v1/sm-migrate-chunk`;
 
@@ -181,7 +181,7 @@ async function runAdaptivePromoteChunk(
   counters?: Record<string, number>;
   error?: string;
 }> {
-  const attempts = [CHUNK_BATCH, 50, MIN_CHUNK_BATCH].filter((value, index, arr) => arr.indexOf(value) === index);
+  const attempts = [CHUNK_BATCH].filter((value, index, arr) => arr.indexOf(value) === index);
 
   for (const batch of attempts) {
     const result = await callSmPromoteOnce(tenantId, batch, true);

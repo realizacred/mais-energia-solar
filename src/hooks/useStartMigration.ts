@@ -1,7 +1,7 @@
 /**
  * useStartMigration — Executa a migração REAL (grava em canônicos).
  *
- * Invoca a edge `sm-promote` com `dry_run=false`. Deve ser chamada APENAS
+ * Invoca a edge `sm-migrate-chunk`. Deve ser chamada APENAS
  * após um dry-run bem-sucedido (validado pela página).
  *
  * Governança:
@@ -23,11 +23,8 @@ export function useStartMigration() {
   const qc = useQueryClient();
   return useMutation<StartMigrationResponse, Error, { batchSize?: number }>({
     mutationFn: async ({ batchSize = 10000 } = {}) => {
-      const { data, error } = await supabase.functions.invoke("sm-promote", {
-        body: {
-          action: "promote-all",
-          payload: { batch_limit: batchSize, dry_run: false, scope: "proposta" },
-        },
+      const { data, error } = await supabase.functions.invoke("sm-migrate-chunk", {
+        body: { action: "start", payload: { batch_limit: batchSize } },
       });
       if (error) throw new Error(error.message || "Falha ao iniciar migração.");
       const resp = data as StartMigrationResponse | { ok: false; error?: string };

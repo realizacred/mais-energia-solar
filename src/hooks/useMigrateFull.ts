@@ -2,7 +2,7 @@
  * useMigrateFull — Migração SolarMarket completa em 1 clique.
  *
  * Estratégia:
- *   - 1 invocação de `sm-promote` com scope=proposta cria clientes + projetos
+ *   - 1 invocação de `sm-migrate-chunk` cria clientes + projetos
  *     + propostas em cascata (já é o comportamento atual da edge).
  *   - Polling de `solarmarket_promotion_jobs` a cada 2s mostra progresso real.
  *   - Sub-progresso por entidade lido das tabelas canônicas (clientes,
@@ -63,22 +63,15 @@ export function useMigrateFull() {
 
   const start = useMutation({
     mutationFn: async (params: { batch_limit?: number; dry_run?: boolean } = {}) => {
-      const { data, error } = await supabase.functions.invoke("sm-promote", {
-        body: {
-          action: "promote-all",
-          payload: {
-            batch_limit: params.batch_limit ?? 10000,
-            dry_run: !!params.dry_run,
-            scope: "proposta", // cascade: cliente → projeto → proposta
-          },
-        },
+      const { data, error } = await supabase.functions.invoke("sm-migrate-chunk", {
+        body: { action: "start", payload: { batch_limit: params.batch_limit ?? 25, dry_run: !!params.dry_run } },
       });
       if (error) throw new Error(error.message || "Falha ao iniciar migração.");
-      const resp = data as { ok?: boolean; error?: string; job_id?: string };
+      const resp = data as { ok?: boolean; error?: string; job_id?: string; master_job_id?: string };
       if (!resp || resp.ok === false) {
         throw new Error(resp?.error ?? "Migração retornou erro.");
       }
-      return resp as { ok: true; job_id: string; status: string };
+      return { ok: true, job_id: resp.master_job_id ?? resp.job_id ?? "", status: "running" };
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: KEY });
@@ -188,10 +181,10 @@ export function useMigrateFull() {
 
   const cancel = useMutation({
     mutationFn: async (jobId: string) => {
-      const { data, error } = await supabase.functions.invoke("sm-promote", {
+      const { data, error } = await supabase.functions.invoke("sm-migrate-chunk", {
         body: {
-          action: "cancel-job",
-          payload: { job_id: jobId, reason: "Cancelado pelo usuário" },
+          action: "cancel",
+          payload: { master_job_id: jobId, reason: "Cancelado pelo usuário" },
         },
       });
       if (error) throw new Error(error.message);
