@@ -446,6 +446,9 @@ export default function MigracaoStep2Mapear() {
       {/* Configurações padrão (fallbacks) */}
       {tenantId && <ConfiguracoesPadraoCard tenantId={tenantId} />}
 
+      {/* Mapeamento de campos customizados (Custom Fields) */}
+      {tenantId && <CustomFieldsMapping tenantId={tenantId} />}
+
       {/* Validação global + botão Continuar */}
       {tenantId && funis && (
         <MappingValidation
