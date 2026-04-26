@@ -173,9 +173,10 @@ Deno.serve(async (req) => {
         evolution_instance_key: effectiveInstanceKey,
         evolution_api_url: baseUrl,
         api_key: api_key || null,  // Store only per-instance key; null = uses global
+        api_flavor: flavor,
         owner_user_id: user.id,
         status: initialStatus,
-      })
+      } as any)
       .select("id, webhook_secret")
       .single();
 
