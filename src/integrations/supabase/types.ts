@@ -28101,6 +28101,10 @@ export type Database = {
             }
             Returns: Json
           }
+      sm_release_promotion_step: {
+        Args: { _job_id: string; _tenant_id: string }
+        Returns: boolean
+      }
       sm_resume_stuck_imports: {
         Args: never
         Returns: {
@@ -28114,6 +28118,10 @@ export type Database = {
           dispatched: boolean
           job_id: string
         }[]
+      }
+      sm_try_claim_promotion_step: {
+        Args: { _job_id: string; _lease_seconds?: number; _tenant_id: string }
+        Returns: boolean
       }
       start_conversation_by_phone:
         | {

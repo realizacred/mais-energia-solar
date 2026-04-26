@@ -36,8 +36,8 @@ const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const CRON_SECRET = "sm-resume-cron-v1"; // mesmo string usado em sm_resume_stuck_migrations
 
 const SOURCE_LIST = ["solarmarket", "solar_market"] as const;
-const CHUNK_BATCH = 25;
-const MIN_CHUNK_BATCH = 25;
+const CHUNK_BATCH = 5;
+const MIN_CHUNK_BATCH = 5;
 const SELF_URL = `${SUPABASE_URL}/functions/v1/sm-migrate-chunk`;
 
 function isGatewayTimeoutLike(error: string | undefined): boolean {
@@ -268,6 +268,27 @@ async function processStep(
     };
   }
 
+  const { data: claimed, error: claimErr } = await admin.rpc("sm_try_claim_promotion_step", {
+    _job_id: masterJobId,
+    _tenant_id: tenantId,
+    _lease_seconds: 180,
+  });
+  if (claimErr) {
+    return { ok: false, has_more: false, backlog_remaining: 0, error: `Falha ao reservar lote: ${claimErr.message}` };
+  }
+  if (!claimed) {
+    const backlog = await countBacklog(admin, tenantId);
+    return {
+      ok: true,
+      has_more: false,
+      backlog_remaining: backlog,
+      finished: false,
+      error: "Outro lote já está em execução; aguardando finalizar.",
+    };
+  }
+
+  try {
+
   // Marca início do step (safety cron usa isso para detectar travado)
   await admin
     .from("solarmarket_promotion_jobs")
@@ -444,6 +465,12 @@ async function processStep(
     },
     last_chunk: c,
   };
+  } finally {
+    await admin.rpc("sm_release_promotion_step", {
+      _job_id: masterJobId,
+      _tenant_id: tenantId,
+    });
+  }
 }
 
 Deno.serve(async (req) => {
