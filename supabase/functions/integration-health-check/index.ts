@@ -398,7 +398,7 @@ async function checkGoogleCalendar(admin: any, tenantId: string): Promise<CheckR
       return { integration_name: "google_calendar", status: "not_configured", latency_ms: null, error_message: null, details: { reason: "Nenhuma integração Google Agenda configurada" } };
     }
 
-    const statusMap: Record<string, string> = {
+    const statusMap: Record<string, HealthStatus> = {
       connected: "healthy",
       error: "down",
       revoked: "down",
@@ -406,7 +406,7 @@ async function checkGoogleCalendar(admin: any, tenantId: string): Promise<CheckR
       disconnected: "not_configured",
     };
 
-    const healthStatus = statusMap[integration.status] || "degraded";
+    const healthStatus: HealthStatus = statusMap[integration.status] || "degraded";
 
     // If connected, verify credentials exist
     if (integration.status === "connected") {

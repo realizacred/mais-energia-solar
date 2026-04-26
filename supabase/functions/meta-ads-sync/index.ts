@@ -101,6 +101,7 @@ Deno.serve(async (req) => {
   }
 
   const supabase = getSupabaseAdmin();
+  let tenantId: string | undefined;
 
   try {
     // ── Get Meta access token from integration_configs ───────
@@ -121,7 +122,7 @@ Deno.serve(async (req) => {
     }
 
     const accessToken = tokenConfig.api_key;
-    const tenantId = tokenConfig.tenant_id;
+    tenantId = tokenConfig.tenant_id;
 
     // ── Get Ad Account ID from integrations metadata ─────────
     const { data: integration } = await supabase

@@ -85,7 +85,7 @@ Deno.serve(async (req) => {
     return json({ error: "Missing SUPABASE_SERVICE_ROLE_KEY" }, 500);
   }
 
-  const sb = createClient(
+  const sb: any = createClient(
     Deno.env.get("SUPABASE_URL")!,
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
   );
@@ -101,7 +101,7 @@ Deno.serve(async (req) => {
       return json({ ok: true, msg: "No active integrations", ms: Date.now() - started });
     }
 
-    const tenantIds = [...new Set(integrations.map((i: any) => i.tenant_id))];
+    const tenantIds = [...new Set(integrations.map((i: any) => i.tenant_id as string))] as string[];
     const stats = { tenants: tenantIds.length, plants_processed: 0, opened: 0, closed: 0, skipped: 0, errors: 0 };
 
     for (const tenantId of tenantIds) {
@@ -139,7 +139,7 @@ Deno.serve(async (req) => {
 // Per-tenant processing
 // ═══════════════════════════════════════════════════════════
 async function processAlertsTenant(
-  sb: ReturnType<typeof createClient>,
+  sb: any,
   tenantId: string,
   stats: { plants_processed: number; opened: number; closed: number; skipped: number; errors: number },
 ) {
