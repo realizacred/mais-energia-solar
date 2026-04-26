@@ -241,12 +241,12 @@ export default function MigracaoStep3Migrar() {
     <div className="container mx-auto p-4 sm:p-6 lg:p-8 space-y-6 max-w-[1100px]">
       <div>
         <Button asChild variant="ghost" size="sm" className="mb-2">
-          <Link to="/admin/migracao-solarmarket/mapear">
-            <ArrowLeft className="w-4 h-4 mr-2" /> Voltar para mapeamentos
+          <Link to="/admin/migracao-solarmarket/custom-fields">
+            <ArrowLeft className="w-4 h-4 mr-2" /> Voltar para campos customizados
           </Link>
         </Button>
         <div className="flex items-center gap-2 flex-wrap">
-          <h1 className="text-xl font-bold text-foreground">Step 3 — Migrar dados para o CRM</h1>
+          <h1 className="text-xl font-bold text-foreground">Step 4 — Migrar dados para o CRM</h1>
           <Badge
             variant="outline"
             className="bg-primary/10 text-primary border-primary/20 gap-1.5"

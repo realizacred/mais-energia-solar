@@ -300,7 +300,7 @@ export function CustomFieldsMapping({ tenantId }: Props) {
                   )}
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-[180px_1fr_auto] gap-2 items-end">
+                <div className="grid grid-cols-1 md:grid-cols-[180px_1fr] gap-2 items-end">
                   {/* Ação */}
                   <div>
                     <Label className="text-xs text-muted-foreground">Ação</Label>
@@ -445,15 +445,24 @@ export function CustomFieldsMapping({ tenantId }: Props) {
                     )}
                   </div>
 
-                  <Button
-                    size="sm"
-                    onClick={() => handleSave(f)}
-                    disabled={!isDirty || saveMutation.isPending}
-                  >
-                    <ActionIcon className="w-3.5 h-3.5 mr-1" />
-                    {saveMutation.isPending ? "Salvando..." : "Salvar"}
-                  </Button>
                 </div>
+
+                {/* Indicador de autosave — substitui o antigo botão Salvar individual */}
+                {state.action && (
+                  <p className="text-[11px] text-muted-foreground flex items-center gap-1">
+                    {isDirty ? (
+                      <>
+                        <span className="inline-block w-1.5 h-1.5 rounded-full bg-warning animate-pulse" />
+                        Salvando automaticamente…
+                      </>
+                    ) : saved ? (
+                      <>
+                        <CheckCircle2 className="w-3 h-3 text-success" />
+                        Salvo automaticamente
+                      </>
+                    ) : null}
+                  </p>
+                )}
               </div>
             );
           })}
