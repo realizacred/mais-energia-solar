@@ -640,6 +640,7 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
   const versaoIds = p.versoes.map(v => v.id);
   const { data: snapshotData } = usePropostaExpandedSnapshot(latestVersao?.id || null, isExpanded);
   const { data: ucsDetail = [] } = usePropostaExpandedUcs(latestVersao?.id || null, isExpanded);
+  const { data: kitItemsDetail = [] } = usePropostaExpandedKitItems(latestVersao?.id || null, isExpanded);
   const { data: auditLogs = [] } = usePropostaAuditLogs(p.id, versaoIds, isExpanded);
   const { data: proposalEvents = [] } = usePropostaEvents(p.id, isExpanded);
 
@@ -1182,7 +1183,17 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
     const servicos = snapshot.servicos || [];
 
     // Kit items
-    const kitItems = snapshot.itens || [];
+    const snapshotKitItems = snapshot.itens || [];
+    const kitItems = snapshotKitItems.length > 0
+      ? snapshotKitItems
+      : kitItemsDetail.map((item) => ({
+          descricao: item.descricao || item.modelo || item.categoria || "Item do kit",
+          quantidade: item.quantidade || 0,
+          preco_unitario: item.preco_unitario || 0,
+          categoria: item.categoria || "componente",
+          fabricante: item.fabricante || undefined,
+          modelo: item.modelo || item.descricao || undefined,
+        }));
     if (kitItems.length > 0) {
       const kitTotal = kitItems.reduce((s, i) => s + (i.preco_unitario * i.quantidade), 0);
       rows.push({
