@@ -323,6 +323,7 @@ Deno.serve(async (req) => {
           files_downloaded: 0,
           files_skipped: 0,
           files_failed: 0,
+          native_updates: 0,
           errors: [],
           warnings: [],
           next_offset: null,
