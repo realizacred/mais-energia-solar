@@ -292,6 +292,9 @@ Deno.serve(async (req) => {
     const batch = Math.min(Math.max(Number(payload.batch ?? 25), 1), 100);
     const offset = Math.max(Number(payload.offset ?? 0), 0);
     const dryRun = payload.dry_run === true;
+    const tenantIdFilter = typeof payload.tenant_id === "string" && payload.tenant_id.trim()
+      ? payload.tenant_id.trim()
+      : null;
 
     if (action !== "promote") {
       return new Response(
@@ -304,13 +307,15 @@ Deno.serve(async (req) => {
     }
 
     // 1. Carrega o lote de projetos.
-    const { data: projetos, error: projErr } = await supabase
+    let projetosQuery = supabase
       .from("projetos")
       .select("id, deal_id, external_id, tenant_id")
       .eq("external_source", "solarmarket")
       .not("deal_id", "is", null)
       .not("external_id", "is", null)
-      .order("external_id", { ascending: true })
+      .order("external_id", { ascending: true });
+    if (tenantIdFilter) projetosQuery = projetosQuery.eq("tenant_id", tenantIdFilter);
+    const { data: projetos, error: projErr } = await projetosQuery
       .range(offset, offset + batch - 1);
 
     if (projErr) throw projErr;
