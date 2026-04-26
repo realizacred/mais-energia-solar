@@ -37,18 +37,41 @@ const BUCKET = "imported-files";
 
 interface MappingEntry {
   sm_field_key: string;
-  action: "map" | "create_new" | "ignore";
+  action: "map" | "create_new" | "ignore" | "map_native";
   crm_field_id: string | null;
   crm_field_type: string | null; // só preenchido em create_new
+  crm_native_target: string | null; // só preenchido em map_native
 }
 
 interface MappingResolved {
   /** sm_field_key → { crm_field_id, field_type } para entradas mapeáveis (map + create_new) */
   resolvable: Map<string, { id: string; field_type: string }>;
+  /** sm_field_key → caminho whitelisted no snapshot da proposta (action=map_native) */
+  nativeTargets: Map<string, string>;
   /** sm_field_key list para entradas com action='ignore' */
   ignored: Set<string>;
   /** sm_field_keys conhecidos (qualquer action) */
   known: Set<string>;
+}
+
+/**
+ * Whitelist obrigatória — DEVE espelhar a constraint
+ * `sm_cfm_native_target_whitelist` em sm_custom_field_mapping.
+ * Mudanças aqui exigem migration correspondente.
+ */
+const NATIVE_TARGET_WHITELIST = new Set<string>([
+  "snapshot.tipo_telhado",
+  "snapshot.garantias.modulo_sm",
+  "snapshot.garantias.inversor_sm",
+  "snapshot.garantias.microinversor_sm",
+]);
+
+/** Converte "snapshot.garantias.modulo_sm" → ["garantias","modulo_sm"]. */
+function nativePathToSnapshotKeys(path: string): string[] | null {
+  if (!path.startsWith("snapshot.")) return null;
+  const tail = path.slice("snapshot.".length);
+  if (!tail) return null;
+  return tail.split(".");
 }
 
 interface PromoteResult {
