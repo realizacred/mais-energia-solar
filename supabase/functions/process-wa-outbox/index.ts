@@ -154,12 +154,13 @@ Deno.serve(async (req) => {
             continue;
           }
 
-          console.log(`[process-wa-outbox] Using ${keySource} api_key for instance ${inst.evolution_instance_key}`);
+          console.log(`[process-wa-outbox] Using ${keySource} api_key for instance ${inst.evolution_instance_key} (flavor=${(inst as any).api_flavor || "classic"})`);
           const sendResult = await sendEvolutionMessage(
             inst.evolution_api_url,
             inst.evolution_instance_key,
             effectiveApiKey,
-            { ...item, remote_jid: canonicalJid }
+            { ...item, remote_jid: canonicalJid },
+            (inst as any).api_flavor || "classic"
           );
 
           const evolutionMessageId = sendResult?.key?.id || sendResult?.id || null;
