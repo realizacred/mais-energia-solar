@@ -1923,7 +1923,7 @@ async function syncPlantsByProvider(
 
           let devUpdated = 0;
           for (const mp of dbMonitorPlants as any[]) {
-            const solarPlant = mp.legacy_plant_id ? statusMap.get(mp.legacy_plant_id) : null;
+            const solarPlant = mp.legacy_plant_id ? (statusMap.get(mp.legacy_plant_id) as any) : null;
             const isNormal = solarPlant?.status === "normal";
             const recentUpdate = solarPlant?.updated_at && (Date.now() - new Date(solarPlant.updated_at).getTime()) < 2 * 60 * 60 * 1000;
             const derivedStatus = isNormal && recentUpdate ? "online" : "offline";
@@ -1974,7 +1974,7 @@ async function syncPlantsByProvider(
 
         // Auto-create monitor_plants record if missing (from solar_plants data)
         if (!monitorPlantId) {
-          const solarPlant = solarMap.get(group.stationId);
+          const solarPlant = solarMap.get(group.stationId) as any;
           if (!solarPlant) { console.log(`[Sync] Skipping devices for unknown station ${group.stationId}`); continue; }
           const { data: created, error: createErr } = await ctx.supabaseAdmin.from("monitor_plants").upsert({
             tenant_id: ctx.tenantId, provider_id: ctx.provider, provider_plant_id: group.stationId,
@@ -2032,7 +2032,7 @@ async function syncPlantsByProvider(
 
       let almCount = 0;
       for (const a of alarms) {
-        const mapped = monitorPlantMap.get(a.provider_plant_id);
+        const mapped = monitorPlantMap.get(a.provider_plant_id) as any;
         if (!mapped) { continue; } // skip alarms for unmapped plants
         try {
           const { error } = await ctx.supabaseAdmin.from("monitor_events").upsert({
