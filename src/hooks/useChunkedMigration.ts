@@ -164,7 +164,7 @@ export function useChunkedMigration() {
       const { data, error } = await supabase.functions.invoke("sm-migrate-chunk", {
         body: { action: "start", payload: {} },
       });
-      if (error) throw new Error(error.message || "Falha ao iniciar.");
+      if (error) throw new Error(await extractInvokeError(error, "Falha ao iniciar."));
       const resp = data as {
         ok: boolean;
         master_job_id?: string;
