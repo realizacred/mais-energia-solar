@@ -1,9 +1,12 @@
 import { AiFollowupSettingsPanel } from "@/components/admin/AiFollowupSettingsPanel";
 import { FollowupAnalyticsDashboard } from "@/components/admin/FollowupAnalyticsDashboard";
 import { AiProviderPanel } from "@/components/admin/AiProviderPanel";
+import { FunnelHealthPanel } from "@/components/admin/ai/FunnelHealthPanel";
+import { FunnelRolesPanel } from "@/components/admin/ai/FunnelRolesPanel";
+import { AiFeaturesPanel } from "@/components/admin/ai/AiFeaturesPanel";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PageHeader } from "@/components/ui-kit";
-import { Settings, BarChart3, Brain, Bot } from "lucide-react";
+import { Settings, BarChart3, Brain, Bot, Activity, GitBranch, Sparkles } from "lucide-react";
 
 export default function AiConfigPage() {
   return (
@@ -11,7 +14,7 @@ export default function AiConfigPage() {
       <PageHeader
         icon={Brain}
         title="Configuração de IA"
-        description="Modelo, temperatura, limites e gate inteligente de follow-up"
+        description="Modelo, limites, coerência de funis e gate inteligente de follow-up"
       />
 
       <Tabs defaultValue="provider" className="w-full">
@@ -19,6 +22,18 @@ export default function AiConfigPage() {
           <TabsTrigger value="provider" className="gap-1.5 shrink-0 whitespace-nowrap">
             <Bot className="h-4 w-4" />
             Provedor & Consumo
+          </TabsTrigger>
+          <TabsTrigger value="features" className="gap-1.5 shrink-0 whitespace-nowrap">
+            <Sparkles className="h-4 w-4" />
+            Recursos de IA
+          </TabsTrigger>
+          <TabsTrigger value="health" className="gap-1.5 shrink-0 whitespace-nowrap">
+            <Activity className="h-4 w-4" />
+            Saúde dos Funis
+          </TabsTrigger>
+          <TabsTrigger value="roles" className="gap-1.5 shrink-0 whitespace-nowrap">
+            <GitBranch className="h-4 w-4" />
+            Papéis dos Funis
           </TabsTrigger>
           <TabsTrigger value="settings" className="gap-1.5 shrink-0 whitespace-nowrap">
             <Settings className="h-4 w-4" />
@@ -32,6 +47,18 @@ export default function AiConfigPage() {
 
         <TabsContent value="provider" className="mt-4">
           <AiProviderPanel />
+        </TabsContent>
+
+        <TabsContent value="features" className="mt-4">
+          <AiFeaturesPanel />
+        </TabsContent>
+
+        <TabsContent value="health" className="mt-4">
+          <FunnelHealthPanel />
+        </TabsContent>
+
+        <TabsContent value="roles" className="mt-4">
+          <FunnelRolesPanel />
         </TabsContent>
 
         <TabsContent value="settings" className="mt-4">
