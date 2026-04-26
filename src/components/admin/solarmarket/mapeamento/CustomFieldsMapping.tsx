@@ -12,7 +12,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+// Button e toast removidos: autosave dispensa botão "Salvar" e toasts por linha.
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -31,7 +31,7 @@ import {
   Link2,
   Plus,
   Ban,
-  Settings2,
+  // Settings2 removido — não usado após remoção do botão Salvar.
 } from "lucide-react";
 import {
   useSmCustomFieldsStaging,
@@ -42,7 +42,7 @@ import {
   type SmField,
 } from "@/hooks/useSmCustomFieldMapping";
 import { useCustomFieldsList } from "@/hooks/useCustomFieldsSettings";
-import { toast } from "sonner";
+// toast removido com handleSave.
 
 const ACTION_LABELS: Record<CfAction, { label: string; icon: typeof Link2; cls: string }> = {
   map: { label: "Vincular", icon: Link2, cls: "bg-info/10 text-info border-info/20" },
@@ -171,46 +171,8 @@ export function CustomFieldsMapping({ tenantId }: Props) {
     };
   }, []);
 
-  async function handleSave(field: SmField) {
-    const s = getRowState(field);
-    if (!s.action) return;
-
-    if (s.action === "map" && !s.crm_field_id) {
-      toast.error("Selecione um campo do CRM");
-      return;
-    }
-    if (s.action === "create_new" && !s.crm_field_name_input.trim()) {
-      toast.error("Informe o nome do novo campo");
-      return;
-    }
-    if (s.action === "map_native" && !s.crm_native_target) {
-      toast.error("Selecione o campo nativo de destino");
-      return;
-    }
-
-    try {
-      await saveMutation.mutateAsync({
-        tenantId,
-        smField: field,
-        action: s.action,
-        crm_field_id: s.crm_field_id || null,
-        crm_field_name_input: s.crm_field_name_input || null,
-        crm_field_context: s.crm_field_context || null,
-        crm_field_type: s.crm_field_type || null,
-        crm_native_target: s.crm_native_target || null,
-      });
-      // limpa draft após persistir
-      setDrafts((prev) => {
-        const next = { ...prev };
-        delete next[field.key];
-        return next;
-      });
-      toast.success(`Campo "${field.key}" salvo`);
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : "Erro ao salvar mapeamento";
-      toast.error(msg);
-    }
-  }
+  // handleSave removido: autosave debounced (700ms) cobre todas as ações.
+  // Mantido getRowState/patch/useEffect acima como única fonte de persistência.
 
   return (
     <Card className="bg-card border-border shadow-sm">
@@ -266,7 +228,7 @@ export function CustomFieldsMapping({ tenantId }: Props) {
             const state = getRowState(f);
             const saved = mappings?.[f.key];
             const isDirty = !!drafts[f.key];
-            const ActionIcon = state.action ? ACTION_LABELS[state.action].icon : Settings2;
+            // ActionIcon era usado pelo botão Salvar individual; removido junto com o autosave.
 
             return (
               <div
@@ -300,7 +262,7 @@ export function CustomFieldsMapping({ tenantId }: Props) {
                   )}
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-[180px_1fr_auto] gap-2 items-end">
+                <div className="grid grid-cols-1 md:grid-cols-[180px_1fr] gap-2 items-end">
                   {/* Ação */}
                   <div>
                     <Label className="text-xs text-muted-foreground">Ação</Label>
@@ -445,15 +407,24 @@ export function CustomFieldsMapping({ tenantId }: Props) {
                     )}
                   </div>
 
-                  <Button
-                    size="sm"
-                    onClick={() => handleSave(f)}
-                    disabled={!isDirty || saveMutation.isPending}
-                  >
-                    <ActionIcon className="w-3.5 h-3.5 mr-1" />
-                    {saveMutation.isPending ? "Salvando..." : "Salvar"}
-                  </Button>
                 </div>
+
+                {/* Indicador de autosave — substitui o antigo botão Salvar individual */}
+                {state.action && (
+                  <p className="text-[11px] text-muted-foreground flex items-center gap-1">
+                    {isDirty ? (
+                      <>
+                        <span className="inline-block w-1.5 h-1.5 rounded-full bg-warning animate-pulse" />
+                        Salvando automaticamente…
+                      </>
+                    ) : saved ? (
+                      <>
+                        <CheckCircle2 className="w-3 h-3 text-success" />
+                        Salvo automaticamente
+                      </>
+                    ) : null}
+                  </p>
+                )}
               </div>
             );
           })}
