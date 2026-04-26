@@ -190,7 +190,7 @@ Deno.serve(async (req) => {
       tenantId = profile.tenant_id;
 
       const body: ProcessRequest = await req.json();
-      return await processInvoice(admin, body, tenantId, supabaseUrl, serviceRoleKey);
+      return await processInvoice(admin, body, tenantId!, supabaseUrl, serviceRoleKey);
     }
   } catch (err: any) {
     console.error("[process-fatura-pdf] Error:", err);
