@@ -35,7 +35,7 @@ interface Props {
 
 const TILE = {
   map:        { label: "Vincular a campo existente", Icon: Link2,        color: "text-info",        bg: "bg-info/10",        border: "border-info/30" },
-  create:     { label: "Criar novo campo no CRM",    Icon: Plus,         color: "text-success",     bg: "bg-success/10",     border: "border-success/30" },
+  create_new: { label: "Criar novo campo no CRM",    Icon: Plus,         color: "text-success",     bg: "bg-success/10",     border: "border-success/30" },
   map_native: { label: "Gravar em campo nativo",     Icon: Layers,       color: "text-primary",     bg: "bg-primary/10",     border: "border-primary/30" },
   ignore:     { label: "Ignorar na migração",        Icon: XCircle,      color: "text-muted-foreground", bg: "bg-muted",     border: "border-border" },
 } as const;
