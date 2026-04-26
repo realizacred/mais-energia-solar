@@ -40,6 +40,7 @@ const WebhookManager = lazy(() => import("@/components/admin/WebhookManager"));
 const SolarmarketConfigPage = lazy(() => import("@/pages/admin/SolarmarketConfigPage"));
 const MigracaoSolarmarket = lazy(() => import("@/pages/admin/MigracaoSolarmarket"));
 const MigracaoStep2Mapear = lazy(() => import("@/pages/admin/MigracaoStep2Mapear"));
+const MigracaoStep3CustomFields = lazy(() => import("@/pages/admin/MigracaoStep3CustomFields"));
 const MigracaoStep3Migrar = lazy(() => import("@/pages/admin/MigracaoStep3Migrar"));
 const SolarmarketDiagnosticPage = lazy(() => import("@/pages/admin/SolarmarketDiagnosticPage"));
 // Páginas órfãs removidas: SolarmarketMapeamentos, SolarmarketMappingPage, ImportacaoSolarmarket, PromocaoSolarmarket.
