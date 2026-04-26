@@ -752,6 +752,7 @@ export default function Admin() {
                 {/* Wizard unificado de migração SolarMarket */}
                 <Route path="migracao-solarmarket" element={<MigracaoSolarmarket />} />
                 <Route path="migracao-solarmarket/mapear" element={<MigracaoStep2Mapear />} />
+                <Route path="migracao-solarmarket/custom-fields" element={<MigracaoStep3CustomFields />} />
                 <Route path="migracao-solarmarket/migrar" element={<MigracaoStep3Migrar />} />
                 {/* Telas antigas — redirecionam para o novo wizard */}
                 <Route path="importacao-solarmarket" element={<Navigate to="/admin/migracao-solarmarket" replace />} />
