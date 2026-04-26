@@ -20467,6 +20467,72 @@ export type Database = {
           },
         ]
       }
+      sm_custom_field_mapping: {
+        Row: {
+          action: string
+          created_at: string
+          created_by: string | null
+          crm_field_context: string | null
+          crm_field_id: string | null
+          crm_field_name_input: string | null
+          crm_field_type: string | null
+          id: string
+          sm_field_key: string
+          sm_field_label: string | null
+          sm_field_type: string | null
+          sm_topic: string | null
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          created_by?: string | null
+          crm_field_context?: string | null
+          crm_field_id?: string | null
+          crm_field_name_input?: string | null
+          crm_field_type?: string | null
+          id?: string
+          sm_field_key: string
+          sm_field_label?: string | null
+          sm_field_type?: string | null
+          sm_topic?: string | null
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          created_by?: string | null
+          crm_field_context?: string | null
+          crm_field_id?: string | null
+          crm_field_name_input?: string | null
+          crm_field_type?: string | null
+          id?: string
+          sm_field_key?: string
+          sm_field_label?: string | null
+          sm_field_type?: string | null
+          sm_topic?: string | null
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sm_custom_field_mapping_crm_field_id_fkey"
+            columns: ["crm_field_id"]
+            isOneToOne: false
+            referencedRelation: "deal_custom_fields"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sm_custom_field_mapping_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sm_custom_fields_raw: {
         Row: {
           created_at: string
