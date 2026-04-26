@@ -179,7 +179,7 @@ export function CustomFieldsMapping({ tenantId }: Props) {
       toast.error("Selecione um campo do CRM");
       return;
     }
-    if (s.action === "create" && !s.crm_field_name_input.trim()) {
+    if (s.action === "create_new" && !s.crm_field_name_input.trim()) {
       toast.error("Informe o nome do novo campo");
       return;
     }
