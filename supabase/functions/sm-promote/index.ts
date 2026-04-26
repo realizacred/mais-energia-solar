@@ -2684,10 +2684,9 @@ async function actionPromoteAll(
     });
   }
 
-  // Paralelização controlada: processa em batches de PARALLEL_CHUNK propostas em paralelo.
-  // UPSERTs em clientes/projetos são idempotentes via external_id, então colisão dentro do
-  // batch é segura (Postgres serializa o conflict). Ganho ~3-5x sobre execução serial.
-  const PARALLEL_CHUNK = 5;
+  // Modo seguro: processamento serial para evitar estouro de CPU e colisões de concorrência
+  // durante a migração em massa. Velocidade menor, estabilidade maior.
+  const PARALLEL_CHUNK = 1;
   for (let i = 0; i < candidates.length; i += PARALLEL_CHUNK) {
     const slice = candidates.slice(i, i + PARALLEL_CHUNK);
     await Promise.all(
