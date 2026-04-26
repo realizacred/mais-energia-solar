@@ -356,7 +356,7 @@ export function CustomFieldsMapping({ tenantId }: Props) {
                       </>
                     )}
 
-                    {state.action === "create" && (
+                    {state.action === "create_new" && (
                       <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                         <div className="sm:col-span-1">
                           <Label className="text-xs text-muted-foreground">
