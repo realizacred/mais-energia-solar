@@ -938,8 +938,8 @@ Inclua: análise do perfil de consumo, adequação técnica do sistema, retorno 
       // without depending on relational tables (fluxo_caixa_acumulado_anual_X, economia_anual_valor_X, etc.)
       ...flattenSeries25(calcResult.series, valorTotal),
       // P2/P4: Persist wizard inputs that resolvers need from snapshot
-      capo_seguro: body._wizard_state?.capo_seguro ?? body.capo_seguro ?? undefined,
-      area_util: calcAreaUtil(body.itens, body.ucs),
+      capo_seguro: (body._wizard_state as any)?.capo_seguro ?? (body as any).capo_seguro ?? undefined,
+      area_util: calcAreaUtil(body.itens as any, body.ucs as any),
       ai_justificativa: aiJustificativa ?? undefined,
       customFieldValues: {
         ...wizardCustomFieldValues,
@@ -1323,7 +1323,7 @@ Inclua: análise do perfil de consumo, adequação técnica do sistema, retorno 
     });
   } catch (err) {
     console.error("[proposal-generate] Error:", err);
-    return jsonError(err.message ?? "Erro interno", 500);
+    return jsonError((err as any)?.message ?? "Erro interno", 500);
   }
 });
 

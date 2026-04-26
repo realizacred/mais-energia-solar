@@ -65,7 +65,7 @@ Deno.serve(async (req) => {
       if (noOwner.length) {
         const iids = [...new Set(noOwner.map((c: any) => c.instance_id).filter(Boolean))];
         if (iids.length) {
-          const om = await resolveOwners(sb, iids);
+          const om = await resolveOwners(sb, iids as string[]);
           for (const c of noOwner) if (!c.assigned_to && c.instance_id) c.assigned_to = om.get(c.instance_id) || null;
         }
       }

@@ -216,7 +216,7 @@ Deno.serve(async (req) => {
     return jsonOk({ success: true, idempotent: false, render_id: render!.id, html, url: null });
   } catch (err) {
     console.error("[proposal-render] Error:", err);
-    return jsonError(err.message ?? "Erro interno", 500);
+    return jsonError((err as any)?.message ?? "Erro interno", 500);
   }
 });
 
