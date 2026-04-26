@@ -77,8 +77,9 @@ interface DetectionSummary {
   errors: number;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function detectForTenant(
-  supabase: ReturnType<typeof createClient>,
+  supabase: any,
   tenantId: string,
 ): Promise<DetectionSummary> {
   const summary: DetectionSummary = {
