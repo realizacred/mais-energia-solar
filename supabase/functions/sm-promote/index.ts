@@ -563,10 +563,20 @@ function normalizeSmProject(raw: AnyObj) {
 function normalizeSmProposal(raw: AnyObj) {
   const pricing = Array.isArray(raw.pricingTable) ? raw.pricingTable : [];
   const variables = Array.isArray(raw.variables) ? raw.variables : [];
-  const valor_total = pricing.reduce(
+  const smVars: Record<string, unknown> = {};
+  for (const v of variables as AnyObj[]) {
+    const byKey = pickStr(v?.key);
+    const byItem = pickStr(v?.item);
+    if (byKey) smVars[byKey] = v?.value ?? v?.formattedValue ?? null;
+    if (byItem) smVars[byItem] = v?.value ?? v?.formattedValue ?? null;
+  }
+  const pricingTotal = pricing.reduce(
     (acc: number, it: AnyObj) => acc + (pickNum(it.salesValue ?? it.totalValue) ?? 0),
     0,
   );
+  const valor_total = pricingTotal > 0
+    ? pricingTotal
+    : (pickNum(smVars.preco) ?? pickNum(smVars.preco_total) ?? pickNum(smVars.preco_kits) ?? 0);
   // CRÍTICO: em alguns tenants `payload.id` colide (ex.: 10 valores p/ 1.823 propostas).
   // O identificador realmente único é `_sm_project_id` (1 proposta por projeto SM).
   // Fallback: id legado (mantém compatibilidade com tenants antigos sem colisão).
@@ -612,7 +622,9 @@ function buildCanonicalSnapshot(args: {
   // Variáveis SM viram um dicionário item→value para facilitar lookup
   const smVars: Record<string, unknown> = {};
   for (const v of proposta.variables as AnyObj[]) {
+    const key = pickStr(v?.key);
     const k = pickStr(v?.item);
+    if (key) smVars[key] = v?.value ?? v?.formattedValue ?? null;
     if (k) smVars[k] = v?.value ?? v?.formattedValue ?? null;
   }
 
@@ -643,7 +655,7 @@ function buildCanonicalSnapshot(args: {
       pricing_table: proposta.pricing_table,
     },
     geracao: {
-      potencia_kwp: pickNum(smVars["Potência do Sistema (kWp)"] ?? smVars["potencia_kwp"]),
+      potencia_kwp: pickNum(smVars["Potência do Sistema (kWp)"] ?? smVars["potencia_kwp"] ?? smVars["potencia_sistema"]),
       geracao_mensal: pickNum(smVars["Geração Mensal (kWh)"]),
       geracao_anual: pickNum(smVars["Geração Anual (kWh)"]),
     },
