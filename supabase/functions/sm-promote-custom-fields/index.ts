@@ -81,6 +81,7 @@ interface PromoteResult {
   files_downloaded: number;
   files_skipped: number;
   files_failed: number;
+  native_updates: number;
   errors: Array<{ projeto_id?: string; deal_id?: string; error: string }>;
   warnings: Array<{ projeto_id?: string; deal_id?: string; warning: string }>;
   next_offset: number | null;
