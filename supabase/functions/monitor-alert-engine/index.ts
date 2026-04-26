@@ -101,7 +101,7 @@ Deno.serve(async (req) => {
       return json({ ok: true, msg: "No active integrations", ms: Date.now() - started });
     }
 
-    const tenantIds = [...new Set(integrations.map((i: any) => i.tenant_id))];
+    const tenantIds = [...new Set(integrations.map((i: any) => i.tenant_id as string))] as string[];
     const stats = { tenants: tenantIds.length, plants_processed: 0, opened: 0, closed: 0, skipped: 0, errors: 0 };
 
     for (const tenantId of tenantIds) {
