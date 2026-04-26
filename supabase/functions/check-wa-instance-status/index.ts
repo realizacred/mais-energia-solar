@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { buildContext, fetchConnectionState, logoutRequest } from "../_shared/wa-provider.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -89,7 +90,7 @@ Deno.serve(async (req) => {
 
     // ── ACTION: LOGOUT ──
     if (action === "logout" && instanceId && instances.length === 1) {
-      const inst = instances[0];
+      const inst = instances[0] as any;
       const apiUrl = inst.evolution_api_url?.replace(/\/$/, "");
       const instanceKey = inst.evolution_instance_key;
       const apiKey = inst.api_key;
@@ -102,13 +103,15 @@ Deno.serve(async (req) => {
       }
 
       try {
-        const encodedKey = encodeURIComponent(instanceKey);
-        const logoutUrl = `${apiUrl}/instance/logout/${encodedKey}`;
-
-        const logoutRes = await fetch(logoutUrl, {
-          method: "DELETE",
-          headers: { apikey: apiKey, "Content-Type": "application/json" },
+        const provCtx = buildContext({
+          api_flavor: inst.api_flavor,
+          evolution_api_url: apiUrl,
+          evolution_instance_key: instanceKey,
+          api_key: apiKey,
         });
+        const { url: logoutUrl, init: logoutInit } = logoutRequest(provCtx);
+
+        const logoutRes = await fetch(logoutUrl, logoutInit);
 
         const logoutText = await logoutRes.text();
 

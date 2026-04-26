@@ -73,7 +73,8 @@ Deno.serve(async (req) => {
       });
     }
 
-    const { instance_name, api_url, api_key, number, groups_ignore, reject_call, always_online, consultor_ids, register_only, evolution_instance_key } = await req.json();
+    const { instance_name, api_url, api_key, number, groups_ignore, reject_call, always_online, consultor_ids, register_only, evolution_instance_key, api_flavor } = await req.json();
+    const flavor: WaApiFlavor = api_flavor === "go" ? "go" : "classic";
 
     if (!instance_name || !api_url) {
       return new Response(JSON.stringify({ error: "instance_name e api_url são obrigatórios" }), {
@@ -103,73 +104,44 @@ Deno.serve(async (req) => {
     let qrBase64: string | null = null;
     const effectiveInstanceKey = register_only ? evolution_instance_key : instance_name;
 
+    // Build provider context (used for both classic & GO via shared adapter)
+    const provCtx = buildContext({
+      api_flavor: flavor,
+      evolution_api_url: baseUrl,
+      evolution_instance_key: effectiveInstanceKey,
+      api_key: resolvedApiKey,
+    });
+
     if (register_only) {
-      // ── REGISTER ONLY: skip Evolution create, just validate the instance exists ──
-      console.log(`[create-wa-instance] Register-only mode for existing instance: ${effectiveInstanceKey}`);
-
-      const encodedKey = encodeURIComponent(effectiveInstanceKey);
-      const stateUrl = `${baseUrl}/instance/connectionState/${encodedKey}`;
-      const stateRes = await fetch(stateUrl, {
-        method: "GET",
-        headers: { apikey: resolvedApiKey },
-      });
-
-      if (!stateRes.ok) {
-        const errText = await stateRes.text();
-        console.error(`[create-wa-instance] Instance validation failed: ${stateRes.status} ${errText}`);
-        return new Response(JSON.stringify({ error: `Instância "${effectiveInstanceKey}" não encontrada na Evolution API. Verifique o nome.` }), {
+      // ── REGISTER ONLY: skip create, validate the instance exists via state probe ──
+      console.log(`[create-wa-instance] Register-only (${flavor}) for: ${effectiveInstanceKey}`);
+      const stateInfo = await fetchConnectionState(provCtx);
+      if (stateInfo.state === "unknown" && !stateInfo.raw) {
+        return new Response(JSON.stringify({ error: `Instância "${effectiveInstanceKey}" não encontrada na ${flavor === "go" ? "Evolution GO" : "Evolution"}. Verifique o nome.` }), {
           status: 404,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-
-      // Check if already connected
-      const stateData = await stateRes.json();
-      const connectionState = stateData?.instance?.state || stateData?.state || "unknown";
-      if (connectionState === "open") {
-        // Already connected — get QR not needed, but try to get connect info
-        qrBase64 = null;
-      } else {
-        // Try to get QR code for disconnected existing instance
-        const connectUrl = `${baseUrl}/instance/connect/${encodedKey}`;
-        const connectRes = await fetch(connectUrl, {
-          method: "GET",
-          headers: { apikey: resolvedApiKey },
-        });
-        if (connectRes.ok) {
-          const connectData = await connectRes.json();
-          qrBase64 = connectData?.base64 || connectData?.qrcode?.base64 || null;
-        }
+      if (stateInfo.state !== "open") {
+        qrBase64 = await fetchQrCode(provCtx);
       }
     } else {
-      // ── CREATE NEW: call Evolution API to create instance ──
-      const createUrl = `${baseUrl}/instance/create`;
-      console.log(`[create-wa-instance] Creating instance: ${instance_name} at ${createUrl}`);
-
-      const createPayload: Record<string, unknown> = {
-        instanceName: instance_name,
-        qrcode: true,
-        integration: "WHATSAPP-BAILEYS",
-      };
-      if (number) createPayload.number = String(number);
-      if (groups_ignore !== undefined) createPayload.groupsIgnore = Boolean(groups_ignore);
-      if (reject_call !== undefined) createPayload.rejectCall = Boolean(reject_call);
-      if (always_online !== undefined) createPayload.alwaysOnline = Boolean(always_online);
-
-      const evoRes = await fetch(createUrl, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          apikey: resolvedApiKey,
-        },
-        body: JSON.stringify(createPayload),
+      // ── CREATE NEW: call provider via adapter ──
+      const { url: createUrl, init: createInit } = createInstanceRequest(provCtx, {
+        number: number ? String(number) : undefined,
+        groupsIgnore: groups_ignore !== undefined ? Boolean(groups_ignore) : undefined,
+        rejectCall: reject_call !== undefined ? Boolean(reject_call) : undefined,
+        alwaysOnline: always_online !== undefined ? Boolean(always_online) : undefined,
       });
+      console.log(`[create-wa-instance] Creating instance (${flavor}): ${instance_name} at ${createUrl}`);
+
+      const evoRes = await fetch(createUrl, createInit);
 
       if (!evoRes.ok) {
         const errText = await evoRes.text();
-        console.error(`[create-wa-instance] Evolution error: ${evoRes.status} ${errText}`);
+        console.error(`[create-wa-instance] Provider error: ${evoRes.status} ${errText}`);
 
-        let friendlyMsg = "Erro ao criar instância na Evolution API";
+        let friendlyMsg = "Erro ao criar instância no provedor WhatsApp";
         try {
           const parsed = JSON.parse(errText);
           if (parsed?.message) friendlyMsg = parsed.message;
@@ -182,11 +154,13 @@ Deno.serve(async (req) => {
         });
       }
 
-      const evoData = await evoRes.json();
-      console.log(`[create-wa-instance] Evolution response keys:`, Object.keys(evoData));
-
-      // Extract QR code from response
-      qrBase64 = evoData?.qrcode?.base64 || evoData?.base64 || null;
+      const evoData = await evoRes.json().catch(() => ({}));
+      // Try to extract QR from create response (classic returns it inline; GO requires separate call)
+      qrBase64 = evoData?.qrcode?.base64 || evoData?.base64 || evoData?.qrcode || null;
+      if (!qrBase64) {
+        // Fallback: fetch QR explicitly (Evolution GO path)
+        qrBase64 = await fetchQrCode(provCtx);
+      }
     }
 
     // Step 2: Save to wa_instances table
@@ -199,9 +173,10 @@ Deno.serve(async (req) => {
         evolution_instance_key: effectiveInstanceKey,
         evolution_api_url: baseUrl,
         api_key: api_key || null,  // Store only per-instance key; null = uses global
+        api_flavor: flavor,
         owner_user_id: user.id,
         status: initialStatus,
-      })
+      } as any)
       .select("id, webhook_secret")
       .single();
 
@@ -258,24 +233,11 @@ Deno.serve(async (req) => {
         "QRCODE_UPDATED",
       ];
 
-      const encodedKey = encodeURIComponent(effectiveInstanceKey);
-      const webhookSetUrl = `${baseUrl}/webhook/set/${encodedKey}`;
+      const { url: webhookSetUrl, init: webhookInit } = setWebhookRequest(provCtx, webhookUrl, webhookEvents);
 
-      console.log(`[create-wa-instance] Setting webhook: ${webhookSetUrl}`);
+      console.log(`[create-wa-instance] Setting webhook (${flavor}): ${webhookSetUrl}`);
 
-      const webhookRes = await fetch(webhookSetUrl, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          apikey: resolvedApiKey,
-        },
-        body: JSON.stringify({
-          url: webhookUrl,
-          webhook_by_events: false,
-          webhook_base64: false,
-          events: webhookEvents,
-        }),
-      });
+      const webhookRes = await fetch(webhookSetUrl, webhookInit);
 
       if (webhookRes.ok) {
         webhookConfigured = true;
