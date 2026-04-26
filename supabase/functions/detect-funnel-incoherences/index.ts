@@ -190,7 +190,7 @@ async function detectForTenant(
     return summary;
   }
 
-  const projetoIds = (projetos ?? []).map((p) => p.id as string);
+  const projetoIds = ((projetos ?? []) as Array<{ id: string }>).map((p) => p.id);
   summary.projects_scanned = projetoIds.length;
   if (projetoIds.length === 0) return summary;
 
@@ -358,7 +358,9 @@ Deno.serve(async (req) => {
         .select("tenant_id")
         .eq("ativo", true);
       if (tErr) throw new Error(tErr.message);
-      tenantIds = Array.from(new Set((tRules ?? []).map((r) => r.tenant_id as string)));
+      tenantIds = Array.from(
+        new Set(((tRules ?? []) as Array<{ tenant_id: string }>).map((r) => r.tenant_id)),
+      );
     }
 
     const summaries: DetectionSummary[] = [];
