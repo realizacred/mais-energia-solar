@@ -100,10 +100,10 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Fetch instance with tenant isolation
+    // Fetch instance with tenant isolation (includes api_flavor)
     const { data: instance, error: instErr } = await supabaseAdmin
       .from("wa_instances")
-      .select("evolution_instance_key, evolution_api_url, api_key")
+      .select("evolution_instance_key, evolution_api_url, api_key, api_flavor")
       .eq("id", instance_id)
       .eq("tenant_id", profile.tenant_id)
       .single();
@@ -123,23 +123,21 @@ Deno.serve(async (req) => {
       });
     }
 
-    const baseUrl = instance.evolution_api_url.replace(/\/+$/, "");
-    const instanceKey = encodeURIComponent(instance.evolution_instance_key);
-
-    // Step 1: Check connection state
-    const stateUrl = `${baseUrl}/instance/connectionState/${instanceKey}`;
-    const stateRes = await fetch(stateUrl, {
-      method: "GET",
-      headers: { apikey: apiKey },
+    // Use shared adapter for both Classic & GO flavors
+    const { buildContext, fetchConnectionState, fetchQrCode } = await import("../_shared/wa-provider.ts");
+    const ctx = buildContext({
+      api_flavor: (instance as any).api_flavor,
+      evolution_api_url: instance.evolution_api_url,
+      evolution_instance_key: instance.evolution_instance_key,
+      api_key: apiKey,
     });
 
-    let connectionState = "unknown";
-    if (stateRes.ok) {
-      const stateData = await stateRes.json();
-      connectionState = stateData?.instance?.state || stateData?.state || "unknown";
-    } else {
-      await stateRes.text(); // consume body
-    }
+    // Step 1: Check connection state via adapter
+    const stateResult = await fetchConnectionState(ctx).catch((e) => {
+      console.warn("[get-wa-qrcode] State check failed:", e);
+      return { state: "unknown" as const, raw: null };
+    });
+    const connectionState = stateResult.state;
 
     // If already connected, update DB and return
     if (connectionState === "open") {
@@ -157,28 +155,11 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Step 2: Get QR code via connect endpoint
-    const connectUrl = `${baseUrl}/instance/connect/${instanceKey}`;
-    const connectRes = await fetch(connectUrl, {
-      method: "GET",
-      headers: { apikey: apiKey },
+    // Step 2: Get QR code via adapter
+    const qrBase64 = await fetchQrCode(ctx).catch((e) => {
+      console.warn("[get-wa-qrcode] QR fetch failed:", e);
+      return null;
     });
-
-    if (!connectRes.ok) {
-      const errText = await connectRes.text();
-      console.warn(`[get-wa-qrcode] Connect error: ${connectRes.status} ${errText}`);
-      return new Response(JSON.stringify({
-        success: true,
-        status: connectionState,
-        qr_code_base64: null,
-        error: "Não foi possível gerar QR Code",
-      }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    const connectData = await connectRes.json();
-    const qrBase64 = connectData?.base64 || connectData?.qrcode?.base64 || null;
 
     return new Response(JSON.stringify({
       success: true,
