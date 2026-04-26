@@ -194,7 +194,7 @@ export function useChunkedMigration() {
       const { data, error } = await supabase.functions.invoke("sm-migrate-chunk", {
         body: { action: "continue", payload: { master_job_id: jobId } },
       });
-      if (error) throw new Error(error.message);
+      if (error) throw new Error(await extractInvokeError(error, "Falha ao retomar."));
       const resp = data as { ok: boolean; error?: string };
       if (!resp?.ok) throw new Error(resp?.error ?? "Falha ao retomar.");
       return resp;
@@ -207,7 +207,7 @@ export function useChunkedMigration() {
       const { data, error } = await supabase.functions.invoke("sm-migrate-chunk", {
         body: { action: "cancel", payload: { master_job_id: jobId } },
       });
-      if (error) throw new Error(error.message);
+      if (error) throw new Error(await extractInvokeError(error, "Falha ao cancelar."));
       return data;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: progressKey }),
