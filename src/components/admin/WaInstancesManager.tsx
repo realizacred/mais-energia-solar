@@ -72,8 +72,26 @@ const STATUS_CONFIG: Record<string, { label: string; className: string; icon: ty
   error: { label: "Erro", className: "bg-destructive/10 text-destructive border-destructive/20", icon: WifiOff },
 };
 
-export function WaInstancesManager() {
-  const { instances, loading, updateInstance, deleteInstance, disconnectInstance, disconnecting, checkStatus, checkingStatus, syncHistory, vendedores, instanceVendedores, saveVendedores } = useWaInstances();
+export interface WaInstancesManagerProps {
+  /**
+   * Filtra a lista exibida e força o tipo de API ao criar/editar.
+   * - "classic": Evolution Clássica (Baileys/Node)
+   * - "go":     Evolution GO (whatsmeow)
+   * Quando omitido, exibe ambos sem filtro (modo legado).
+   */
+  apiFlavorFilter?: "classic" | "go";
+}
+
+export function WaInstancesManager({ apiFlavorFilter }: WaInstancesManagerProps = {}) {
+  const { instances: rawInstances, loading, updateInstance, deleteInstance, disconnectInstance, disconnecting, checkStatus, checkingStatus, syncHistory, vendedores, instanceVendedores, saveVendedores } = useWaInstances();
+
+  // Filtra por tipo de API quando solicitado pela página chamadora.
+  const instances = apiFlavorFilter
+    ? rawInstances.filter((i: any) => {
+        const flavor = (i?.api_flavor === "go" ? "go" : "classic");
+        return flavor === apiFlavorFilter;
+      })
+    : rawInstances;
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const [showCreate, setShowCreate] = useState(false);
@@ -341,6 +359,8 @@ export function WaInstancesManager() {
         instance={editInstance}
         vendedores={vendedores as any}
         initialVendedorIds={editInstance ? getInstanceVendedorIds(editInstance.id) : []}
+        defaultApiFlavor={apiFlavorFilter}
+        lockApiFlavor={!!apiFlavorFilter}
         onSaveEdit={async (data, selectedVendedorIds) => {
           if (!editInstance) return;
           const instanceId = editInstance.id;
@@ -510,6 +530,8 @@ function InstanceFormDialog({
   initialVendedorIds,
   onSaveEdit,
   onCreateSuccess,
+  defaultApiFlavor,
+  lockApiFlavor,
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
@@ -518,6 +540,10 @@ function InstanceFormDialog({
   initialVendedorIds: string[];
   onSaveEdit: (data: any, selectedVendedorIds: string[]) => Promise<void>;
   onCreateSuccess: () => void;
+  /** Pré-seleciona o tipo de API ao abrir em modo "create". */
+  defaultApiFlavor?: "classic" | "go";
+  /** Quando true, impede o usuário de trocar o tipo de API no formulário. */
+  lockApiFlavor?: boolean;
 }) {
   const [mode, setMode] = useState<CreateMode>("create");
   const [nome, setNome] = useState("");
@@ -547,7 +573,11 @@ function InstanceFormDialog({
       setInstanceKey(instance?.evolution_instance_key || "");
       setApiUrl(instance?.evolution_api_url || "https://");
       setApiKey((instance as any)?.api_key || "");
-      setApiFlavor(((instance as any)?.api_flavor === "go" ? "go" : "classic"));
+      setApiFlavor(
+        instance
+          ? ((instance as any)?.api_flavor === "go" ? "go" : "classic")
+          : (defaultApiFlavor ?? "classic")
+      );
       setSelectedVendedorIds(initialVendedorIds);
       setStep("form");
       setQrCode(null);
@@ -895,7 +925,11 @@ function InstanceFormDialog({
               </div>
               <div>
                 <Label>Tipo de API *</Label>
-                <Select value={apiFlavor} onValueChange={(v) => setApiFlavor(v as "classic" | "go")}>
+                <Select
+                  value={apiFlavor}
+                  onValueChange={(v) => setApiFlavor(v as "classic" | "go")}
+                  disabled={lockApiFlavor}
+                >
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="classic">Evolution Clássica (Baileys / Node)</SelectItem>
@@ -903,7 +937,9 @@ function InstanceFormDialog({
                   </SelectContent>
                 </Select>
                 <p className="text-[10px] text-muted-foreground mt-1">
-                  Selecione conforme a versão do servidor Evolution. Default: Clássica.
+                  {lockApiFlavor
+                    ? `Tipo definido pela origem do card (${apiFlavor === "go" ? "Evolution GO" : "Evolution Clássica"}).`
+                    : "Selecione conforme a versão do servidor Evolution. Default: Clássica."}
                 </p>
               </div>
               {isRegister && (
