@@ -57,7 +57,7 @@ export function CustomFieldsMappingSummary({ tenantId }: Props) {
   const mappings = mappingsQ.data ?? {};
 
   const totalFields = fields.length;
-  const counts: Record<CfAction, number> = { map: 0, create: 0, map_native: 0, ignore: 0 };
+  const counts: Record<CfAction, number> = { map: 0, create_new: 0, map_native: 0, ignore: 0 };
   let pendentes = 0;
 
   for (const f of fields) {
