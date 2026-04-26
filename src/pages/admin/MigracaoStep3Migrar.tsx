@@ -163,6 +163,7 @@ function PhaseCard({
 export default function MigracaoStep3Migrar() {
   const { start, continueJob, cancel, progress, isLoading } = useChunkedMigration();
   const resetMigrated = useResetMigratedData();
+  const { data: tenantId } = useTenantId();
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [logsOpen, setLogsOpen] = useState(false);
   const [logsFilter, setLogsFilter] = useState<LogsFilter>("all");
