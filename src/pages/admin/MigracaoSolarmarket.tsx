@@ -109,11 +109,12 @@ function StepDot({
   );
 }
 
-function Stepper({ current }: { current: 1 | 2 | 3 }) {
+function Stepper({ current }: { current: 1 | 2 | 3 | 4 }) {
   const steps: Array<{ idx: number; label: string }> = [
     { idx: 1, label: "Importar" },
     { idx: 2, label: "Mapear" },
-    { idx: 3, label: "Migrar" },
+    { idx: 3, label: "Custom Fields" },
+    { idx: 4, label: "Migrar" },
   ];
 
   return (

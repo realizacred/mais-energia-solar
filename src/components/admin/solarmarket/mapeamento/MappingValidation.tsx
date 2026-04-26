@@ -102,9 +102,9 @@ export function MappingValidation({
         <div className="flex justify-end pt-2 border-t border-border">
           <Button
             disabled={!canContinue}
-            onClick={() => navigate("/admin/migracao-solarmarket/migrar")}
+            onClick={() => navigate("/admin/migracao-solarmarket/custom-fields")}
           >
-            Continuar para Step 3
+            Continuar para Step 3 — Custom Fields
             <ArrowRight className="w-4 h-4 ml-2" />
           </Button>
         </div>

@@ -67,7 +67,7 @@ import { useSmConsultorMappings } from "@/hooks/useSmConsultorMapping";
 import { useMigrationConfig } from "@/hooks/useMigrationConfig";
 import { EtapasToConsultores } from "@/components/admin/solarmarket/mapeamento/EtapasToConsultores";
 import { ConfiguracoesPadraoCard } from "@/components/admin/solarmarket/mapeamento/ConfiguracoesPadraoCard";
-import { CustomFieldsMapping } from "@/components/admin/solarmarket/mapeamento/CustomFieldsMapping";
+
 import { MappingValidation } from "@/components/admin/solarmarket/mapeamento/MappingValidation";
 import { toast } from "sonner";
 
@@ -445,9 +445,6 @@ export default function MigracaoStep2Mapear() {
 
       {/* Configurações padrão (fallbacks) */}
       {tenantId && <ConfiguracoesPadraoCard tenantId={tenantId} />}
-
-      {/* Mapeamento de campos customizados (Custom Fields) */}
-      {tenantId && <CustomFieldsMapping tenantId={tenantId} />}
 
       {/* Validação global + botão Continuar */}
       {tenantId && funis && (

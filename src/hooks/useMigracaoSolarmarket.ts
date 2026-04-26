@@ -8,7 +8,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useSolarmarketImport } from "@/hooks/useSolarmarketImport";
 
-export type MigracaoStep = 1 | 2 | 3;
+export type MigracaoStep = 1 | 2 | 3 | 4;
 
 export interface MigracaoStats {
   // Staging (área de revisão)
@@ -110,8 +110,9 @@ export function useMigracaoSolarmarket() {
 
   // Lógica do step ativo:
   // - Staging vazio                              → 1 (importar)
-  // - Tem staging e nada migrado                 → 2 (mapear)
-  // - Tem staging e algo migrado                 → 3 (migrar / concluído)
+  // - Tem staging e nada migrado                 → 2 (mapear funis/consultores)
+  // - Tem staging e algo migrado                 → 4 (migrar / concluído)
+  // Step 3 (Custom Fields) é navegação manual a partir do Step 2.
   const currentStep: MigracaoStep = (() => {
     if (!stats) return 1;
     if (stats.totalStaging === 0) return 1;
@@ -120,7 +121,7 @@ export function useMigracaoSolarmarket() {
       stats.migrado.projetos_sm > 0 ||
       stats.migrado.propostas_sm > 0;
     if (!algoMigrado) return 2;
-    return 3;
+    return 4;
   })();
 
   const stagingPronto =

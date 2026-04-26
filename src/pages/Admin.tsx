@@ -40,6 +40,7 @@ const WebhookManager = lazy(() => import("@/components/admin/WebhookManager"));
 const SolarmarketConfigPage = lazy(() => import("@/pages/admin/SolarmarketConfigPage"));
 const MigracaoSolarmarket = lazy(() => import("@/pages/admin/MigracaoSolarmarket"));
 const MigracaoStep2Mapear = lazy(() => import("@/pages/admin/MigracaoStep2Mapear"));
+const MigracaoStep3CustomFields = lazy(() => import("@/pages/admin/MigracaoStep3CustomFields"));
 const MigracaoStep3Migrar = lazy(() => import("@/pages/admin/MigracaoStep3Migrar"));
 const SolarmarketDiagnosticPage = lazy(() => import("@/pages/admin/SolarmarketDiagnosticPage"));
 // Páginas órfãs removidas: SolarmarketMapeamentos, SolarmarketMappingPage, ImportacaoSolarmarket, PromocaoSolarmarket.
@@ -751,6 +752,7 @@ export default function Admin() {
                 {/* Wizard unificado de migração SolarMarket */}
                 <Route path="migracao-solarmarket" element={<MigracaoSolarmarket />} />
                 <Route path="migracao-solarmarket/mapear" element={<MigracaoStep2Mapear />} />
+                <Route path="migracao-solarmarket/custom-fields" element={<MigracaoStep3CustomFields />} />
                 <Route path="migracao-solarmarket/migrar" element={<MigracaoStep3Migrar />} />
                 {/* Telas antigas — redirecionam para o novo wizard */}
                 <Route path="importacao-solarmarket" element={<Navigate to="/admin/migracao-solarmarket" replace />} />
