@@ -573,7 +573,11 @@ function InstanceFormDialog({
       setInstanceKey(instance?.evolution_instance_key || "");
       setApiUrl(instance?.evolution_api_url || "https://");
       setApiKey((instance as any)?.api_key || "");
-      setApiFlavor(((instance as any)?.api_flavor === "go" ? "go" : "classic"));
+      setApiFlavor(
+        instance
+          ? ((instance as any)?.api_flavor === "go" ? "go" : "classic")
+          : (defaultApiFlavor ?? "classic")
+      );
       setSelectedVendedorIds(initialVendedorIds);
       setStep("form");
       setQrCode(null);
