@@ -29,8 +29,8 @@ const SM_MIGRATE_CHUNK_URL = `${SUPABASE_URL}/functions/v1/sm-migrate-chunk`;
 
 const SOURCE = "solarmarket";
 const LEGACY_SM_SOURCES = [SOURCE, "solar_market"] as const;
-const DEFAULT_BATCH_LIMIT = 50;
-const MAX_BATCH_LIMIT = 10000;
+const DEFAULT_BATCH_LIMIT = 5;
+const MAX_BATCH_LIMIT = 5;
 
 type CanonicalEntity = "cliente" | "projeto" | "proposta" | "versao";
 type Severity = "info" | "warning" | "error";
@@ -411,19 +411,10 @@ async function fetchPromotedSourceIds(
       .range(from, from + pageSize - 1);
     if (error) throw new Error(`fetchPromotedSourceIds: ${error.message}`);
     if (!data || data.length === 0) break;
-    const orphanLinkIds: string[] = [];
     for (const r of data) {
-      const entityId = pickStr((r as AnyObj).entity_id);
       const sourceEntityId = pickStr((r as AnyObj).source_entity_id);
-      const linkId = pickStr((r as AnyObj).id);
-      if (!entityId || !sourceEntityId || !linkId) continue;
-      if (await canonicalEntityExists(admin, tenantId, entityType, entityId)) {
-        out.push(sourceEntityId);
-      } else {
-        orphanLinkIds.push(linkId);
-      }
+      if (sourceEntityId) out.push(sourceEntityId);
     }
-    if (orphanLinkIds.length > 0) await cleanupOrphanLinks(admin, orphanLinkIds);
     if (data.length < pageSize) break;
   }
   return out;
