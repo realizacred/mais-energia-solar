@@ -428,7 +428,7 @@ async function checkGoogleCalendar(admin: any, tenantId: string): Promise<CheckR
 
     return {
       integration_name: "google_calendar",
-      status: healthStatus,
+      status: healthStatus as HealthStatus,
       latency_ms: null,
       error_message: integration.status !== "connected" ? `Status: ${integration.status}` : null,
       details: { account: integration.connected_account_email, db_status: integration.status },
