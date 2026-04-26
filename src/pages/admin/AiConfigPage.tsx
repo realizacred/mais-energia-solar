@@ -3,10 +3,11 @@ import { FollowupAnalyticsDashboard } from "@/components/admin/FollowupAnalytics
 import { AiProviderPanel } from "@/components/admin/AiProviderPanel";
 import { FunnelHealthPanel } from "@/components/admin/ai/FunnelHealthPanel";
 import { FunnelRolesPanel } from "@/components/admin/ai/FunnelRolesPanel";
+import { FunnelRulesPanel } from "@/components/admin/ai/FunnelRulesPanel";
 import { AiFeaturesPanel } from "@/components/admin/ai/AiFeaturesPanel";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PageHeader } from "@/components/ui-kit";
-import { Settings, BarChart3, Brain, Bot, Activity, GitBranch, Sparkles } from "lucide-react";
+import { Settings, BarChart3, Brain, Bot, Activity, GitBranch, Sparkles, Scale } from "lucide-react";
 
 export default function AiConfigPage() {
   return (
@@ -35,6 +36,10 @@ export default function AiConfigPage() {
             <GitBranch className="h-4 w-4" />
             Papéis dos Funis
           </TabsTrigger>
+          <TabsTrigger value="rules" className="gap-1.5 shrink-0 whitespace-nowrap">
+            <Scale className="h-4 w-4" />
+            Regras de Coerência
+          </TabsTrigger>
           <TabsTrigger value="settings" className="gap-1.5 shrink-0 whitespace-nowrap">
             <Settings className="h-4 w-4" />
             Follow-up IA
@@ -59,6 +64,10 @@ export default function AiConfigPage() {
 
         <TabsContent value="roles" className="mt-4">
           <FunnelRolesPanel />
+        </TabsContent>
+
+        <TabsContent value="rules" className="mt-4">
+          <FunnelRulesPanel />
         </TabsContent>
 
         <TabsContent value="settings" className="mt-4">
