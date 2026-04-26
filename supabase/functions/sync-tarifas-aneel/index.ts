@@ -388,7 +388,7 @@ function aggregateGrupoARecords(records: TarifaAneel[]): GrupoATarifaAgregada[] 
 // ── Chunked upsert helper ────────────────────────────────────────────────────
 
 async function chunkedUpsert(
-  supabase: ReturnType<typeof createClient>,
+  supabase: any,
   table: string,
   records: any[],
   onConflict: string,
@@ -417,7 +417,7 @@ async function chunkedUpsert(
 // ── Background processor ─────────────────────────────────────────────────────
 
 async function processSync(
-  supabase: ReturnType<typeof createClient>,
+  supabase: any,
   runId: string,
   tenantId: string,
   userId: string | null,

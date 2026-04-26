@@ -11,7 +11,10 @@
  */
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
-import { corsHeaders } from "https://esm.sh/@supabase/supabase-js@2.49.1/cors";
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
 import { getSignatureAdapter } from "../_shared/signatureAdapters.ts";
 
 Deno.serve(async (req) => {
@@ -138,6 +141,8 @@ Deno.serve(async (req) => {
     // 7. Build signers list — prefer request signers, fallback to auto-resolve
     let signersList: Array<{ name: string; email: string; cpf?: string; phone?: string; auth_method?: string }> = [];
 
+    let autoResolved = false;
+
     if (requestSigners && Array.isArray(requestSigners) && requestSigners.length > 0) {
       // Use signers provided by the frontend modal
       signersList = requestSigners.map((s: any) => ({
@@ -149,7 +154,6 @@ Deno.serve(async (req) => {
     } else {
       // 7a. Auto-resolve: Contratante (client) + Contratada (representative)
       const clienteId = doc.cliente_id;
-      let autoResolved = false;
 
       if (clienteId) {
         const { data: cliente } = await supabase
