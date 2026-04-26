@@ -73,7 +73,7 @@ Deno.serve(async (req) => {
 
       const results = await sendPushToSubscriptions(
         subs,
-        { conversationId: "test", contactName: "🧪 Teste Push", messagePreview: "Se você viu esta notificação, push está funcionando!", instanceId: null },
+        { conversationId: "test", contactName: "🧪 Teste Push", messagePreview: "Se você viu esta notificação, push está funcionando!", instanceId: undefined },
         supabase,
         null
       );
