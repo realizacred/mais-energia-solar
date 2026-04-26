@@ -1369,6 +1369,18 @@ async function createDealForProject(
     .maybeSingle();
   const existingDealId = (projRow as AnyObj | null)?.deal_id as string | null | undefined;
   if (existingDealId) {
+    await admin
+      .from("deals")
+      .update({ value: proposta.valor_total ?? 0 })
+      .eq("id", existingDealId)
+      .eq("tenant_id", tenantId);
+    if (proposta.id) {
+      await admin
+        .from("propostas_nativas")
+        .update({ deal_id: existingDealId })
+        .eq("id", proposta.id)
+        .eq("tenant_id", tenantId);
+    }
     return { dealId: existingDealId, created: false, reason: "already_linked" };
   }
 
@@ -1473,7 +1485,7 @@ async function backfillDealsForProjectsWithoutDeal(
 
     const { data: proposta } = await admin
       .from("propostas_nativas")
-      .select("id, valor_total, titulo, status")
+      .select("id, titulo, status")
       .eq("tenant_id", tenantId)
       .eq("projeto_id", projetoId)
       .order("created_at", { ascending: false })
@@ -1481,6 +1493,15 @@ async function backfillDealsForProjectsWithoutDeal(
       .maybeSingle();
 
     const proposalRow = (proposta as AnyObj | null) ?? null;
+    const { data: versao } = proposalRow?.id
+      ? await admin
+          .from("proposta_versoes")
+          .select("valor_total")
+          .eq("tenant_id", tenantId)
+          .eq("proposta_id", proposalRow.id)
+          .limit(1)
+          .maybeSingle()
+      : { data: null };
     const dealRes = await createDealForProject(
       admin,
       tenantId,
@@ -1490,7 +1511,7 @@ async function backfillDealsForProjectsWithoutDeal(
       projectPipeline,
       {
         id: pickStr(proposalRow?.id),
-        valor_total: pickNum(proposalRow?.valor_total),
+        valor_total: pickNum((versao as AnyObj | null)?.valor_total),
         titulo: pickStr(proposalRow?.titulo) ?? pickStr(projeto.codigo),
         status: pickStr(proposalRow?.status) ?? "rascunho",
       },
