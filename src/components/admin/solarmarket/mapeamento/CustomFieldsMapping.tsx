@@ -46,7 +46,7 @@ import { toast } from "sonner";
 
 const ACTION_LABELS: Record<CfAction, { label: string; icon: typeof Link2; cls: string }> = {
   map: { label: "Vincular", icon: Link2, cls: "bg-info/10 text-info border-info/20" },
-  create: { label: "Criar novo", icon: Plus, cls: "bg-primary/10 text-primary border-primary/20" },
+  create_new: { label: "Criar novo", icon: Plus, cls: "bg-primary/10 text-primary border-primary/20" },
   map_native: { label: "Campo nativo", icon: Sparkles, cls: "bg-success/10 text-success border-success/20" },
   ignore: { label: "Ignorar", icon: Ban, cls: "bg-muted text-muted-foreground border-border" },
 };
@@ -60,12 +60,10 @@ const CONTEXTS = [
 const FIELD_TYPES = [
   { value: "text", label: "Texto curto" },
   { value: "textarea", label: "Texto longo" },
-  { value: "number", label: "Número" },
-  { value: "currency", label: "Moeda" },
-  { value: "date", label: "Data" },
-  { value: "boolean", label: "Sim/Não" },
   { value: "select", label: "Lista" },
   { value: "file", label: "Arquivo" },
+  { value: "currency", label: "Moeda" },
+  { value: "boolean", label: "Sim/Não" },
 ];
 
 interface Props {
@@ -125,7 +123,7 @@ export function CustomFieldsMapping({ tenantId }: Props) {
       // Validação mínima por ação
       const valid =
         (s.action === "map" && !!s.crm_field_id) ||
-        (s.action === "create" && !!s.crm_field_name_input.trim()) ||
+        (s.action === "create_new" && !!s.crm_field_name_input.trim()) ||
         (s.action === "map_native" && !!s.crm_native_target) ||
         s.action === "ignore";
       if (!valid) continue;
@@ -181,7 +179,7 @@ export function CustomFieldsMapping({ tenantId }: Props) {
       toast.error("Selecione um campo do CRM");
       return;
     }
-    if (s.action === "create" && !s.crm_field_name_input.trim()) {
+    if (s.action === "create_new" && !s.crm_field_name_input.trim()) {
       toast.error("Informe o nome do novo campo");
       return;
     }
@@ -358,7 +356,7 @@ export function CustomFieldsMapping({ tenantId }: Props) {
                       </>
                     )}
 
-                    {state.action === "create" && (
+                    {state.action === "create_new" && (
                       <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                         <div className="sm:col-span-1">
                           <Label className="text-xs text-muted-foreground">

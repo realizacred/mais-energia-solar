@@ -15,7 +15,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
-export type CfAction = "map" | "create" | "map_native" | "ignore";
+export type CfAction = "map" | "create_new" | "map_native" | "ignore";
 
 export const NATIVE_TARGETS = [
   { value: "snapshot.tipo_telhado", label: "Dimensionamento → Tipo de Telhado" },
@@ -130,11 +130,11 @@ export function useSaveCustomFieldMapping() {
         action: input.action,
         crm_field_id: input.action === "map" ? input.crm_field_id ?? null : null,
         crm_field_name_input:
-          input.action === "create" ? input.crm_field_name_input ?? null : null,
+          input.action === "create_new" ? input.crm_field_name_input ?? null : null,
         crm_field_context:
-          input.action === "create" ? input.crm_field_context ?? null : null,
+          input.action === "create_new" ? input.crm_field_context ?? null : null,
         crm_field_type:
-          input.action === "create" ? input.crm_field_type ?? null : null,
+          input.action === "create_new" ? input.crm_field_type ?? null : null,
         crm_native_target:
           input.action === "map_native" ? input.crm_native_target ?? null : null,
       };
