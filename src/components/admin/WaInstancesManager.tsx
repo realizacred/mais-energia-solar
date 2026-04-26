@@ -524,6 +524,7 @@ function InstanceFormDialog({
   const [instanceKey, setInstanceKey] = useState("");
   const [apiUrl, setApiUrl] = useState("https://");
   const [apiKey, setApiKey] = useState("");
+  const [apiFlavor, setApiFlavor] = useState<"classic" | "go">("classic");
   const [selectedVendedorIds, setSelectedVendedorIds] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
 
@@ -546,6 +547,7 @@ function InstanceFormDialog({
       setInstanceKey(instance?.evolution_instance_key || "");
       setApiUrl(instance?.evolution_api_url || "https://");
       setApiKey((instance as any)?.api_key || "");
+      setApiFlavor(((instance as any)?.api_flavor === "go" ? "go" : "classic"));
       setSelectedVendedorIds(initialVendedorIds);
       setStep("form");
       setQrCode(null);
@@ -606,6 +608,7 @@ function InstanceFormDialog({
       const body: Record<string, unknown> = {
         instance_name: nome.trim(),
         api_url: apiUrl.trim(),
+        api_flavor: apiFlavor,
         consultor_ids: selectedVendedorIds,
       };
 
@@ -889,6 +892,19 @@ function InstanceFormDialog({
                   placeholder="https://evolution.suaempresa.com"
                   className="font-mono text-sm"
                 />
+              </div>
+              <div>
+                <Label>Tipo de API *</Label>
+                <Select value={apiFlavor} onValueChange={(v) => setApiFlavor(v as "classic" | "go")}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="classic">Evolution Clássica (Baileys / Node)</SelectItem>
+                    <SelectItem value="go">Evolution GO (whatsmeow)</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-[10px] text-muted-foreground mt-1">
+                  Selecione conforme a versão do servidor Evolution. Default: Clássica.
+                </p>
               </div>
               {isRegister && (
                 <div>

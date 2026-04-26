@@ -42,10 +42,10 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    // Fetch instance details
+    // Fetch instance details (incl. api_flavor)
     const { data: instance, error: instErr } = await supabase
       .from("wa_instances")
-      .select("evolution_instance_key, evolution_api_url, api_key, status")
+      .select("evolution_instance_key, evolution_api_url, api_key, status, api_flavor")
       .eq("id", instance_id)
       .single();
 
@@ -71,28 +71,21 @@ Deno.serve(async (req) => {
       });
     }
 
-    const baseUrl = instance.evolution_api_url.replace(/\/+$/, "");
-    const instanceKey = encodeURIComponent(instance.evolution_instance_key);
-    const url = `${baseUrl}/chat/sendPresence/${instanceKey}`;
-
-    const evoRes = await fetch(url, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        apikey: apiKey,
-      },
-      body: JSON.stringify({
-        number,
-        options: {
-          presence,
-          delay: 2000,
-        },
-      }),
+    // Use shared adapter (Classic + GO)
+    const { buildContext, sendPresenceRequest } = await import("../_shared/wa-provider.ts");
+    const ctx = buildContext({
+      api_flavor: (instance as any).api_flavor,
+      evolution_api_url: instance.evolution_api_url,
+      evolution_instance_key: instance.evolution_instance_key,
+      api_key: apiKey,
     });
+    const { url, init } = sendPresenceRequest(ctx, { number, presence, delay: 2000 });
+
+    const evoRes = await fetch(url, init);
 
     if (!evoRes.ok) {
       const errText = await evoRes.text();
-      console.warn(`[send-wa-presence] Evolution API error: ${evoRes.status} ${errText}`);
+      console.warn(`[send-wa-presence] Evolution API error (flavor=${ctx.flavor}): ${evoRes.status} ${errText}`);
       return new Response(JSON.stringify({ error: "Erro ao enviar presença" }), {
         status: 502,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
