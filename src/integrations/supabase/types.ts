@@ -41,6 +41,204 @@ export type Database = {
         }
         Relationships: []
       }
+      ai_features_config: {
+        Row: {
+          enabled: boolean
+          feature_description: string | null
+          feature_key: string
+          feature_label: string
+          id: string
+          model: string | null
+          provider: string | null
+          tenant_id: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          enabled?: boolean
+          feature_description?: string | null
+          feature_key: string
+          feature_label: string
+          id?: string
+          model?: string | null
+          provider?: string | null
+          tenant_id: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          enabled?: boolean
+          feature_description?: string | null
+          feature_key?: string
+          feature_label?: string
+          id?: string
+          model?: string | null
+          provider?: string | null
+          tenant_id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_features_config_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_funnel_alerts: {
+        Row: {
+          created_at: string
+          deal_id: string | null
+          detectado_em: string
+          estado: string
+          etapa_atual_alvo: string | null
+          etapa_esperada_alvo: string | null
+          funil_alvo_papel: Database["public"]["Enums"]["papel_funil"]
+          funil_origem_papel: Database["public"]["Enums"]["papel_funil"]
+          id: string
+          mensagem: string | null
+          projeto_id: string | null
+          resolvido_em: string | null
+          resolvido_por: string | null
+          rule_id: string | null
+          severidade: string
+          sugestao_ia: string | null
+          tenant_id: string
+        }
+        Insert: {
+          created_at?: string
+          deal_id?: string | null
+          detectado_em?: string
+          estado?: string
+          etapa_atual_alvo?: string | null
+          etapa_esperada_alvo?: string | null
+          funil_alvo_papel: Database["public"]["Enums"]["papel_funil"]
+          funil_origem_papel: Database["public"]["Enums"]["papel_funil"]
+          id?: string
+          mensagem?: string | null
+          projeto_id?: string | null
+          resolvido_em?: string | null
+          resolvido_por?: string | null
+          rule_id?: string | null
+          severidade?: string
+          sugestao_ia?: string | null
+          tenant_id: string
+        }
+        Update: {
+          created_at?: string
+          deal_id?: string | null
+          detectado_em?: string
+          estado?: string
+          etapa_atual_alvo?: string | null
+          etapa_esperada_alvo?: string | null
+          funil_alvo_papel?: Database["public"]["Enums"]["papel_funil"]
+          funil_origem_papel?: Database["public"]["Enums"]["papel_funil"]
+          id?: string
+          mensagem?: string | null
+          projeto_id?: string | null
+          resolvido_em?: string | null
+          resolvido_por?: string | null
+          rule_id?: string | null
+          severidade?: string
+          sugestao_ia?: string | null
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_funnel_alerts_deal_id_fkey"
+            columns: ["deal_id"]
+            isOneToOne: false
+            referencedRelation: "deals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_funnel_alerts_projeto_id_fkey"
+            columns: ["projeto_id"]
+            isOneToOne: false
+            referencedRelation: "projetos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_funnel_alerts_rule_id_fkey"
+            columns: ["rule_id"]
+            isOneToOne: false
+            referencedRelation: "ai_funnel_rules"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_funnel_alerts_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_funnel_rules: {
+        Row: {
+          acao: string
+          ativo: boolean
+          created_at: string
+          created_by: string | null
+          descricao: string | null
+          etapa_alvo_categoria_esperada: Database["public"]["Enums"]["projeto_etapa_categoria"]
+          etapa_origem_categoria: Database["public"]["Enums"]["projeto_etapa_categoria"]
+          funil_alvo_papel: Database["public"]["Enums"]["papel_funil"]
+          funil_origem_papel: Database["public"]["Enums"]["papel_funil"]
+          id: string
+          nome: string
+          prioridade: number
+          template_key: string | null
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          acao?: string
+          ativo?: boolean
+          created_at?: string
+          created_by?: string | null
+          descricao?: string | null
+          etapa_alvo_categoria_esperada: Database["public"]["Enums"]["projeto_etapa_categoria"]
+          etapa_origem_categoria?: Database["public"]["Enums"]["projeto_etapa_categoria"]
+          funil_alvo_papel: Database["public"]["Enums"]["papel_funil"]
+          funil_origem_papel: Database["public"]["Enums"]["papel_funil"]
+          id?: string
+          nome: string
+          prioridade?: number
+          template_key?: string | null
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          acao?: string
+          ativo?: boolean
+          created_at?: string
+          created_by?: string | null
+          descricao?: string | null
+          etapa_alvo_categoria_esperada?: Database["public"]["Enums"]["projeto_etapa_categoria"]
+          etapa_origem_categoria?: Database["public"]["Enums"]["projeto_etapa_categoria"]
+          funil_alvo_papel?: Database["public"]["Enums"]["papel_funil"]
+          funil_origem_papel?: Database["public"]["Enums"]["papel_funil"]
+          id?: string
+          nome?: string
+          prioridade?: number
+          template_key?: string | null
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_funnel_rules_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ai_insights: {
         Row: {
           created_at: string
@@ -13839,6 +14037,7 @@ export type Database = {
           is_default: boolean
           kind: Database["public"]["Enums"]["pipeline_kind"]
           name: string
+          papel: Database["public"]["Enums"]["papel_funil"]
           parent_pipeline_id: string | null
           tenant_id: string
           version: number
@@ -13850,6 +14049,7 @@ export type Database = {
           is_default?: boolean
           kind?: Database["public"]["Enums"]["pipeline_kind"]
           name: string
+          papel?: Database["public"]["Enums"]["papel_funil"]
           parent_pipeline_id?: string | null
           tenant_id: string
           version?: number
@@ -13861,6 +14061,7 @@ export type Database = {
           is_default?: boolean
           kind?: Database["public"]["Enums"]["pipeline_kind"]
           name?: string
+          papel?: Database["public"]["Enums"]["papel_funil"]
           parent_pipeline_id?: string | null
           tenant_id?: string
           version?: number
@@ -15524,6 +15725,7 @@ export type Database = {
           id: string
           nome: string
           ordem: number
+          papel: Database["public"]["Enums"]["papel_funil"]
           tenant_id: string
           updated_at: string
         }
@@ -15533,6 +15735,7 @@ export type Database = {
           id?: string
           nome: string
           ordem?: number
+          papel?: Database["public"]["Enums"]["papel_funil"]
           tenant_id?: string
           updated_at?: string
         }
@@ -15542,6 +15745,7 @@ export type Database = {
           id?: string
           nome?: string
           ordem?: number
+          papel?: Database["public"]["Enums"]["papel_funil"]
           tenant_id?: string
           updated_at?: string
         }
@@ -27925,6 +28129,10 @@ export type Database = {
             }
             Returns: Json
           }
+      suggest_papel_funil: {
+        Args: { p_nome: string }
+        Returns: Database["public"]["Enums"]["papel_funil"]
+      }
       sync_concessionarias_from_subgrupos: { Args: never; Returns: Json }
       tenant_and_user_active: { Args: never; Returns: boolean }
       tenant_is_active: { Args: { _tenant_id?: string }; Returns: boolean }
@@ -28089,6 +28297,14 @@ export type Database = {
         | "recebida"
         | "cancelada"
       pagamento_validacao_enum: "valido" | "divergente" | "pendente"
+      papel_funil:
+        | "comercial"
+        | "engenharia"
+        | "suprimentos"
+        | "instalacao"
+        | "concessionaria"
+        | "pos_venda"
+        | "outro"
       parcela_status_enum: "pendente" | "pago" | "atrasado" | "cancelado"
       pipeline_kind: "process" | "owner_board"
       plant_relation_type: "geradora" | "beneficiaria" | "compensacao"
@@ -28406,6 +28622,15 @@ export const Constants = {
         "cancelada",
       ],
       pagamento_validacao_enum: ["valido", "divergente", "pendente"],
+      papel_funil: [
+        "comercial",
+        "engenharia",
+        "suprimentos",
+        "instalacao",
+        "concessionaria",
+        "pos_venda",
+        "outro",
+      ],
       parcela_status_enum: ["pendente", "pago", "atrasado", "cancelado"],
       pipeline_kind: ["process", "owner_board"],
       plant_relation_type: ["geradora", "beneficiaria", "compensacao"],
