@@ -806,19 +806,40 @@ async function promoteCliente(
     .single();
   if (error || !data?.id) {
     const message = error?.message ?? "sem id";
-    if (/uq_clientes_tenant_cliente_code|duplicate key value/i.test(message)) {
-      const { data: byConflict } = await admin
-        .from("clientes")
-        .select("id")
-        .eq("tenant_id", tenantId)
-        .eq("cliente_code", clienteCode)
-        .order("created_at", { ascending: true })
-        .limit(1)
-        .maybeSingle();
-      if (byConflict?.id) {
-        await upsertLink(admin, tenantId, jobId, "cliente", byConflict.id as string, "cliente", norm.external_id, { matched_by: "cliente_code_conflict" });
-        return { id: byConflict.id as string, created: false, matchedBy: "cliente_code_conflict" };
-      }
+    // Tratamento robusto de race condition entre promoções paralelas (PARALLEL_CHUNK=5):
+    // 5 propostas com o mesmo cliente leem reconciliação NULL ao mesmo tempo, todas tentam INSERT,
+    // uma vence as constraints (telefone, cpf_cnpj, cliente_code) e as outras morrem.
+    // Em vez de jogar throw, re-procuramos pelos índices únicos conhecidos.
+    const isDup = /duplicate key value|unique constraint/i.test(message);
+    if (isDup) {
+      const externalIdSafe = norm.external_id ?? "";
+      const tryFind = async (
+        column: "telefone_normalized" | "cpf_cnpj" | "cliente_code" | "external_id",
+        value: string | null | undefined,
+        matchedBy: string,
+      ): Promise<{ id: string; created: false; matchedBy: string } | null> => {
+        if (!value) return null;
+        const { data: row } = await admin
+          .from("clientes")
+          .select("id")
+          .eq("tenant_id", tenantId)
+          .eq(column, value)
+          .order("created_at", { ascending: true })
+          .limit(1)
+          .maybeSingle();
+        if (!row?.id) return null;
+        if (externalIdSafe) {
+          await upsertLink(admin, tenantId, jobId, "cliente", row.id as string, "cliente", externalIdSafe, { matched_by: matchedBy });
+        }
+        return { id: row.id as string, created: false, matchedBy };
+      };
+
+      const found =
+        (await tryFind("external_id", norm.external_id, "external_id_race")) ??
+        (await tryFind("telefone_normalized", norm.telefone_digits, "telefone_race")) ??
+        (await tryFind("cpf_cnpj", norm.cpf_cnpj, "cpf_cnpj_race")) ??
+        (await tryFind("cliente_code", clienteCode, "cliente_code_race"));
+      if (found) return found;
     }
     throw new Error(`insert cliente: ${message}`);
   }

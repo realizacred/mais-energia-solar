@@ -28072,6 +28072,7 @@ export type Database = {
         Args: { _deal_id: string; _proposta_id: string }
         Returns: undefined
       }
+      sm_cancel_orphan_promotion_jobs: { Args: never; Returns: number }
       sm_classify_funnel_stage:
         | {
             Args: {
