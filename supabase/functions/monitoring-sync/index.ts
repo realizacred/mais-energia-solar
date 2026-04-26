@@ -45,13 +45,13 @@ interface DailyMetrics {
 async function md5Base64(text: string): Promise<string> {
   const { createHash } = await import("node:crypto");
   const hash = createHash("md5").update(text).digest();
-  return base64Encode(new Uint8Array(hash));
+  return base64Encode(new Uint8Array(hash).buffer as ArrayBuffer);
 }
 
 async function hmacSha1Base64(secret: string, data: string): Promise<string> {
   const { createHmac } = await import("node:crypto");
   const sig = createHmac("sha1", secret).update(data).digest();
-  return base64Encode(new Uint8Array(sig));
+  return base64Encode(new Uint8Array(sig).buffer as ArrayBuffer);
 }
 
 function normStatus(raw: number | string | undefined, map: Record<string, string>): string {

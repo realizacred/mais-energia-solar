@@ -29,13 +29,13 @@ async function sha256Hex(text: string): Promise<string> {
 async function md5Base64(text: string): Promise<string> {
   const { createHash } = await import("node:crypto");
   const hash = createHash("md5").update(text).digest();
-  return base64Encode(new Uint8Array(hash));
+  return base64Encode(new Uint8Array(hash).buffer as ArrayBuffer);
 }
 
 async function hmacSha1Base64(secret: string, data: string): Promise<string> {
   const { createHmac } = await import("node:crypto");
   const sig = createHmac("sha1", secret).update(data).digest();
-  return base64Encode(new Uint8Array(sig));
+  return base64Encode(new Uint8Array(sig).buffer as ArrayBuffer);
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -868,7 +868,8 @@ const PORTAL_PROVIDERS = new Set([
 // ═══════════════════════════════════════════════════════════
 
 interface ConnectContext {
-  supabaseAdmin: ReturnType<typeof createClient>;
+  // deno-lint-ignore no-explicit-any
+  supabaseAdmin: any;
   tenantId: string;
   userId: string;
   provider: string;
@@ -881,7 +882,7 @@ async function upsertIntegration(ctx: ConnectContext, data: { status: string; sy
     .select("id, status")
     .single();
   if (error) throw error;
-  return integration;
+  return integration as { id: string; status: string } | null;
 }
 
 async function auditLog(ctx: ConnectContext, action: string, registroId: string | undefined, dados: Record<string, unknown>) {
