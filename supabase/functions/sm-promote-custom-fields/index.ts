@@ -150,7 +150,7 @@ async function loadFieldMapping(
   // 1. Mapeamentos configurados
   const { data: mappings, error: mErr } = await supabase
     .from("sm_custom_field_mapping")
-    .select("sm_field_key, action, crm_field_id, crm_field_type")
+    .select("sm_field_key, action, crm_field_id, crm_field_type, crm_native_target")
     .eq("tenant_id", tenantId);
   if (mErr) throw mErr;
 
@@ -161,7 +161,7 @@ async function loadFieldMapping(
   const fieldIds = Array.from(
     new Set(
       entries
-        .filter((e) => e.action !== "ignore" && e.crm_field_id)
+        .filter((e) => (e.action === "map" || e.action === "create_new") && e.crm_field_id)
         .map((e) => e.crm_field_id as string),
     ),
   );
@@ -181,15 +181,31 @@ async function loadFieldMapping(
     }
   }
 
-  // 3. Montar Map resolvable + Set ignored + lista invalid (mapping aponta pra
-  //    crm_field_id que sumiu / foi desativado).
+  // 3. Montar Map resolvable + Set ignored + nativeTargets + lista invalid.
   const resolvable = new Map<string, { id: string; field_type: string }>();
+  const nativeTargets = new Map<string, string>();
   const ignored = new Set<string>();
   const invalid: Array<{ sm_field_key: string; reason: string }> = [];
 
   for (const e of entries) {
     if (e.action === "ignore") {
       ignored.add(e.sm_field_key);
+      continue;
+    }
+    if (e.action === "map_native") {
+      const target = e.crm_native_target;
+      if (!target) {
+        invalid.push({ sm_field_key: e.sm_field_key, reason: "missing_crm_native_target" });
+        continue;
+      }
+      if (!NATIVE_TARGET_WHITELIST.has(target)) {
+        invalid.push({
+          sm_field_key: e.sm_field_key,
+          reason: `crm_native_target_not_whitelisted:${target}`,
+        });
+        continue;
+      }
+      nativeTargets.set(e.sm_field_key, target);
       continue;
     }
     if (!e.crm_field_id) {
@@ -251,7 +267,7 @@ async function loadFieldMapping(
   const unmapped = allSlugs.filter((k) => !known.has(k));
 
   return {
-    resolved: { resolvable, ignored, known },
+    resolved: { resolvable, nativeTargets, ignored, known },
     unmapped,
     invalid,
   };
