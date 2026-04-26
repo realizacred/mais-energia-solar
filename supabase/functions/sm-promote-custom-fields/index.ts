@@ -425,6 +425,21 @@ Deno.serve(async (req) => {
           continue;
         }
 
+        // Native target? grava no bucket e segue.
+        const nativePath = resolved.nativeTargets.get(sourceKey);
+        if (nativePath) {
+          const rawValue = (v?.value ?? v?.formattedValue ?? "")
+            .toString()
+            .trim();
+          if (!rawValue) continue;
+          const keys = nativePathToSnapshotKeys(nativePath);
+          if (!keys) continue;
+          const arr = nativeBucket.get(projetoId) ?? [];
+          arr.push({ keys, value: rawValue });
+          nativeBucket.set(projetoId, arr);
+          continue;
+        }
+
         const def = resolved.resolvable.get(sourceKey);
         if (!def) continue; // slug fora do mapeamento (não deveria acontecer pós-validação)
 
