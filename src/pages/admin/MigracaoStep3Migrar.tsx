@@ -261,6 +261,8 @@ export default function MigracaoStep3Migrar() {
         </p>
       </div>
 
+      {tenantId && <CustomFieldsMappingSummary tenantId={tenantId} />}
+
       <motion.div
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
