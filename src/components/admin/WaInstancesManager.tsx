@@ -608,6 +608,7 @@ function InstanceFormDialog({
       const body: Record<string, unknown> = {
         instance_name: nome.trim(),
         api_url: apiUrl.trim(),
+        api_flavor: apiFlavor,
         consultor_ids: selectedVendedorIds,
       };
 
