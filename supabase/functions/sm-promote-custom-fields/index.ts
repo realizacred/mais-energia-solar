@@ -527,6 +527,91 @@ Deno.serve(async (req) => {
       }
     }
 
+    /* ---------------------------------------------------------------
+     * Flush dos native targets em proposta_versoes.snapshot.
+     *
+     * Estratégia:
+     *  1) Para cada projetoId no bucket, encontrar a versão mais recente
+     *     em proposta_versoes (via propostas_nativas.projeto_id).
+     *  2) Para cada par {keys, value}, aplicar jsonb_set aninhado em snapshot.
+     *  3) Em dry-run: não escreve, só conta.
+     * --------------------------------------------------------------- */
+    if (nativeBucket.size > 0) {
+      const projetoIds = Array.from(nativeBucket.keys());
+
+      // Buscar versões mais recentes em uma query (versao DESC, primeira por projeto).
+      const { data: versoes, error: vErr } = await supabase
+        .from("proposta_versoes")
+        .select("id, snapshot, versao, propostas_nativas!inner(projeto_id)")
+        .eq("propostas_nativas.tenant_id", tenantId)
+        .in("propostas_nativas.projeto_id", projetoIds)
+        .order("versao", { ascending: false });
+
+      if (vErr) {
+        errors.push({ error: `native_targets_select: ${vErr.message}` });
+      } else {
+        // Pegar a primeira (maior versao) por projeto_id.
+        const latestByProj = new Map<string, { id: string; snapshot: any }>();
+        for (const v of versoes ?? []) {
+          const pid = ((v as any).propostas_nativas?.projeto_id ?? null) as string | null;
+          if (!pid) continue;
+          if (!latestByProj.has(pid)) {
+            latestByProj.set(pid, {
+              id: (v as any).id as string,
+              snapshot: (v as any).snapshot ?? {},
+            });
+          }
+        }
+
+        for (const [projetoId, ops] of nativeBucket.entries()) {
+          const latest = latestByProj.get(projetoId);
+          if (!latest) {
+            warnings.push({
+              projeto_id: projetoId,
+              warning: "native_target: nenhuma versão de proposta encontrada — pulado",
+            });
+            continue;
+          }
+
+          // Mutar cópia do snapshot in-memory (jsonb_set aninhado em JS).
+          const snapshot = JSON.parse(JSON.stringify(latest.snapshot ?? {}));
+          for (const op of ops) {
+            let cursor: any = snapshot;
+            for (let i = 0; i < op.keys.length - 1; i++) {
+              const k = op.keys[i];
+              if (typeof cursor[k] !== "object" || cursor[k] === null) {
+                cursor[k] = {};
+              }
+              cursor = cursor[k];
+            }
+            cursor[op.keys[op.keys.length - 1]] = op.value;
+          }
+
+          if (!dryRun) {
+            const { error: uErr, count } = await supabase
+              .from("proposta_versoes")
+              .update({ snapshot }, { count: "exact" })
+              .eq("id", latest.id);
+            if (uErr) {
+              errors.push({
+                projeto_id: projetoId,
+                error: `native_target_update: ${uErr.message}`,
+              });
+            } else if ((count ?? 0) === 0) {
+              warnings.push({
+                projeto_id: projetoId,
+                warning: "native_target_update: 0 rows affected",
+              });
+            } else {
+              nativeUpdates += ops.length;
+            }
+          } else {
+            nativeUpdates += ops.length;
+          }
+        }
+      }
+    }
+
     const result: PromoteResult = {
       ok: true,
       processed: projetos.length,
@@ -534,6 +619,7 @@ Deno.serve(async (req) => {
       files_downloaded: filesDownloaded,
       files_skipped: filesSkipped,
       files_failed: filesFailed,
+      native_updates: nativeUpdates,
       errors: errors.slice(0, 50),
       warnings: warnings.slice(0, 50),
       next_offset: projetos.length === batch ? offset + batch : null,
