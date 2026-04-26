@@ -824,7 +824,7 @@ async function processSync(
       log(`MT agregado: ${aggregated.length} combinações únicas`);
 
       // Pre-fetch manual records to protect them
-      const concIds = concessionarias.map(c => c.id);
+      const concIds = concessionarias.map((c: any) => c.id);
       const { data: existingManual } = await supabase
         .from('concessionaria_tarifas_subgrupo')
         .select('concessionaria_id, subgrupo, modalidade_tarifaria')
@@ -833,7 +833,7 @@ async function processSync(
         .in('concessionaria_id', concIds);
 
       const manualKeys = new Set(
-        (existingManual || []).map(r => `${r.concessionaria_id}|${r.subgrupo}|${r.modalidade_tarifaria}`)
+        (existingManual || []).map((r: any) => `${r.concessionaria_id}|${r.subgrupo}|${r.modalidade_tarifaria}`)
       );
       if (manualKeys.size > 0) log(`🔒 ${manualKeys.size} registros manuais protegidos`);
 
