@@ -45,13 +45,13 @@ interface DailyMetrics {
 async function md5Base64(text: string): Promise<string> {
   const { createHash } = await import("node:crypto");
   const hash = createHash("md5").update(text).digest();
-  return base64Encode(new Uint8Array(hash));
+  return base64Encode(new Uint8Array(hash).buffer as ArrayBuffer);
 }
 
 async function hmacSha1Base64(secret: string, data: string): Promise<string> {
   const { createHmac } = await import("node:crypto");
   const sig = createHmac("sha1", secret).update(data).digest();
-  return base64Encode(new Uint8Array(sig));
+  return base64Encode(new Uint8Array(sig).buffer as ArrayBuffer);
 }
 
 function normStatus(raw: number | string | undefined, map: Record<string, string>): string {
@@ -122,7 +122,7 @@ async function solaredgeListSites(apiKey: string): Promise<NormalizedPlant[]> {
   const res = await fetch(`${SE_BASE}/sites/list?api_key=${encodeURIComponent(apiKey)}&size=100`);
   if (!res.ok) throw new Error(`SolarEdge ${res.status}`);
   const json = await res.json();
-  return ((json.sites?.site || []) as Record<string, unknown>[]).map((s) => ({
+  return ((json.sites?.site || []) as any[]).map((s) => ({
     external_id: String(s.id), name: String(s.name || ""),
     capacity_kw: s.peakPower != null ? Number(s.peakPower) : null,
     address: [s.address?.address, s.address?.city].filter(Boolean).join(", ") || null,
@@ -1697,7 +1697,8 @@ async function ecosolysListPlants(token: string): Promise<NormalizedPlant[]> {
 // ═══════════════════════════════════════════════════════════
 
 interface SyncContext {
-  supabaseAdmin: ReturnType<typeof createClient>;
+  // deno-lint-ignore no-explicit-any
+  supabaseAdmin: any;
   tenantId: string; userId: string; provider: string; integrationId: string;
 }
 
@@ -1861,11 +1862,11 @@ async function syncPlantsByProvider(
         break;
       }
 
-      const batch = (dbPlants || []).slice(i, i + CONCURRENCY);
+      const batch = ((dbPlants || []) as any[]).slice(i, i + CONCURRENCY);
       // Add inter-batch delay for rate-limited providers
       if (i > 0 && isHuawei) await new Promise(r => setTimeout(r, 10000)); // 10s between Huawei batches
       const results = await Promise.allSettled(
-        batch.map(async (p) => {
+        batch.map(async (p: any) => {
           const metrics = await metricsFn(p.external_id);
           const monitorId = legacyToMonitorId.get(p.id) || null;
           const err = await upsertMetrics(ctx, p.id, metrics, monitorId);
@@ -1922,7 +1923,7 @@ async function syncPlantsByProvider(
 
           let devUpdated = 0;
           for (const mp of dbMonitorPlants as any[]) {
-            const solarPlant = mp.legacy_plant_id ? statusMap.get(mp.legacy_plant_id) : null;
+            const solarPlant = mp.legacy_plant_id ? (statusMap.get(mp.legacy_plant_id) as any) : null;
             const isNormal = solarPlant?.status === "normal";
             const recentUpdate = solarPlant?.updated_at && (Date.now() - new Date(solarPlant.updated_at).getTime()) < 2 * 60 * 60 * 1000;
             const derivedStatus = isNormal && recentUpdate ? "online" : "offline";
@@ -1973,7 +1974,7 @@ async function syncPlantsByProvider(
 
         // Auto-create monitor_plants record if missing (from solar_plants data)
         if (!monitorPlantId) {
-          const solarPlant = solarMap.get(group.stationId);
+          const solarPlant = solarMap.get(group.stationId) as any;
           if (!solarPlant) { console.log(`[Sync] Skipping devices for unknown station ${group.stationId}`); continue; }
           const { data: created, error: createErr } = await ctx.supabaseAdmin.from("monitor_plants").upsert({
             tenant_id: ctx.tenantId, provider_id: ctx.provider, provider_plant_id: group.stationId,
@@ -2031,7 +2032,7 @@ async function syncPlantsByProvider(
 
       let almCount = 0;
       for (const a of alarms) {
-        const mapped = monitorPlantMap.get(a.provider_plant_id);
+        const mapped = monitorPlantMap.get(a.provider_plant_id) as any;
         if (!mapped) { continue; } // skip alarms for unmapped plants
         try {
           const { error } = await ctx.supabaseAdmin.from("monitor_events").upsert({
@@ -2579,7 +2580,7 @@ async function dispatchSync(
     if (!at) throw new Error("No access token.");
     return await syncPlantsByProvider(ctx, () => solarmanListPlants(at), (eid) => solarmanMetrics(at, eid), mode, selectedPlantIds);
   } else if (p === "apsystems") {
-    return { plantsUpserted: 0, metricsUpserted: 0, errors: ["APsystems sync requires session refresh. Use portal credentials."] };
+    return { plantsUpserted: 0, metricsUpserted: 0, errors: ["APsystems sync requires session refresh. Use portal credentials."], errorCategories: [] };
   } else if (p === "livoltek" || p === "livoltek_cf") {
     let lvToken = tokens.token as string || "";
     const lvBaseUrl = (tokens.baseUrl as string) || (credentials.baseUrl as string) || "https://api-eu.livoltek-portal.com:8081";
@@ -2653,6 +2654,7 @@ async function dispatchSync(
 
     return await syncPlantsByProvider(ctx, listFnLv, (eid) => livoltekMetrics(lvToken, lvBaseUrl, eid), mode, selectedPlantIds);
   } else {
+    return { plantsUpserted: 0, metricsUpserted: 0, errors: [`Provider ${p} not implemented`], errorCategories: [] };
   }
 }
 
@@ -2660,7 +2662,7 @@ async function dispatchSync(
 
 // CRON_SECRET is read from Deno.env at runtime
 
-async function handleCron(supabaseAdmin: ReturnType<typeof createClient>, body?: Record<string, unknown>): Promise<Response> {
+async function handleCron(supabaseAdmin: any, body?: Record<string, unknown>): Promise<Response> {
   const cronMode = (body?.mode as string) || "full";
   const isConsolidation = cronMode === "consolidation";
   const filterProvider = body?.provider as string | undefined; // Optional: sync only one provider
@@ -2684,9 +2686,9 @@ async function handleCron(supabaseAdmin: ReturnType<typeof createClient>, body?:
   const results: { provider: string; plants_synced: number; metrics_synced: number; errors: string[] }[] = [];
 
   // Filter to implementable providers, and optionally to a single provider
-  let syncableIntegrations = integrations.filter(int => SYNC_IMPLEMENTED.has(int.provider));
+  let syncableIntegrations = (integrations as any[]).filter((int: any) => SYNC_IMPLEMENTED.has(int.provider));
   if (filterProvider) {
-    syncableIntegrations = syncableIntegrations.filter(int => int.provider === filterProvider);
+    syncableIntegrations = syncableIntegrations.filter((int: any) => int.provider === filterProvider);
     (globalThis as any).__singleProviderFilter = filterProvider;
     console.log(`[monitoring-sync] Filtered to provider=${filterProvider}, ${syncableIntegrations.length} integration(s)`);
   } else {
@@ -2694,8 +2696,8 @@ async function handleCron(supabaseAdmin: ReturnType<typeof createClient>, body?:
   }
 
   // Process ALL providers in parallel so no single provider blocks the others
-  const settledResults = await Promise.allSettled(syncableIntegrations.map(async (int) => {
-    const provider = int.provider;
+  const settledResults = await Promise.allSettled(syncableIntegrations.map(async (int: any) => {
+    const provider = int.provider as string;
 
     try {
       console.log(`[monitoring-sync] CRON syncing provider=${provider} integration=${int.id}`);
@@ -2704,10 +2706,10 @@ async function handleCron(supabaseAdmin: ReturnType<typeof createClient>, body?:
       const credentials = (int.credentials || {}) as Record<string, any>;
       const ctx: SyncContext = {
         supabaseAdmin,
-        tenantId: int.tenant_id,
+        tenantId: int.tenant_id as string,
         userId: "cron",
         provider,
-        integrationId: int.id,
+        integrationId: int.id as string,
       };
 
       // At night or consolidation: only sync metrics (don't update plant status)

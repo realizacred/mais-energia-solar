@@ -85,7 +85,7 @@ Deno.serve(async (req) => {
     return json({ error: "Missing SUPABASE_SERVICE_ROLE_KEY" }, 500);
   }
 
-  const sb: any = createClient(
+  const sb = createClient(
     Deno.env.get("SUPABASE_URL")!,
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
   );
@@ -101,7 +101,7 @@ Deno.serve(async (req) => {
       return json({ ok: true, msg: "No active integrations", ms: Date.now() - started });
     }
 
-    const tenantIds = [...new Set(integrations.map((i: any) => i.tenant_id as string))] as string[];
+    const tenantIds = [...new Set(integrations.map((i: any) => i.tenant_id))];
     const stats = { tenants: tenantIds.length, plants_processed: 0, opened: 0, closed: 0, skipped: 0, errors: 0 };
 
     for (const tenantId of tenantIds) {
@@ -139,6 +139,7 @@ Deno.serve(async (req) => {
 // Per-tenant processing
 // ═══════════════════════════════════════════════════════════
 async function processAlertsTenant(
+  // deno-lint-ignore no-explicit-any
   sb: any,
   tenantId: string,
   stats: { plants_processed: number; opened: number; closed: number; skipped: number; errors: number },
@@ -159,7 +160,8 @@ async function processAlertsTenant(
     .eq("is_active", true);
 
   const planCache = new Map<string, Record<string, unknown>>();
-  for (const p of allPlans || []) {
+  for (const plan of allPlans || []) {
+    const p = plan as any;
     planCache.set(p.id, p.features as Record<string, unknown>);
   }
 
@@ -223,7 +225,8 @@ async function processAlertsTenant(
     .eq("is_active", true);
 
   const channelsByPlant = new Map<string, any[]>();
-  for (const ch of channels || []) {
+  for (const channel of channels || []) {
+    const ch = channel as any;
     const key = ch.plant_id;
     if (!channelsByPlant.has(key)) channelsByPlant.set(key, []);
     channelsByPlant.get(key)!.push(ch);
