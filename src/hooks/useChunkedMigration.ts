@@ -16,6 +16,35 @@ import { useTenantId } from "@/hooks/useTenantId";
 
 const LEGACY_SM_SOURCES = ["solarmarket", "solar_market"] as const;
 
+/**
+ * supabase.functions.invoke joga FunctionsHttpError quando status != 2xx,
+ * deixando `data` como null e a mensagem real escondida em error.context.response.
+ * Esta helper extrai o `error` real do body (ex: "Já existe uma migração em andamento")
+ * para que o toast mostre a causa, em vez de "non-2xx status code".
+ */
+async function extractInvokeError(err: unknown, fallback: string): Promise<string> {
+  // FunctionsHttpError tem context.response (Response clonável)
+  const anyErr = err as { context?: { response?: Response }; message?: string };
+  const resp = anyErr?.context?.response;
+  if (resp && typeof resp.clone === "function") {
+    try {
+      const body = await resp.clone().json();
+      if (body && typeof body === "object") {
+        const msg = (body as { error?: string }).error;
+        if (msg) return msg;
+      }
+    } catch {
+      try {
+        const text = await resp.clone().text();
+        if (text) return text.slice(0, 400);
+      } catch {
+        // ignore
+      }
+    }
+  }
+  return anyErr?.message || fallback;
+}
+
 export interface ChunkedJob {
   id: string;
   status: string; // running | completed | completed_with_warnings | failed | cancelled
