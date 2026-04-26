@@ -15,7 +15,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
-export type CfAction = "map" | "create" | "map_native" | "ignore";
+export type CfAction = "map" | "create_new" | "map_native" | "ignore";
 
 export const NATIVE_TARGETS = [
   { value: "snapshot.tipo_telhado", label: "Dimensionamento → Tipo de Telhado" },
