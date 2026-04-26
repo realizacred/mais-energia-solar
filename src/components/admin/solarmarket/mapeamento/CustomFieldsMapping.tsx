@@ -31,7 +31,7 @@ import {
   Link2,
   Plus,
   Ban,
-  Settings2,
+  // Settings2 removido — não usado após remoção do botão Salvar.
 } from "lucide-react";
 import {
   useSmCustomFieldsStaging,
