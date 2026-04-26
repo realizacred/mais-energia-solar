@@ -46,7 +46,7 @@ import { toast } from "sonner";
 
 const ACTION_LABELS: Record<CfAction, { label: string; icon: typeof Link2; cls: string }> = {
   map: { label: "Vincular", icon: Link2, cls: "bg-info/10 text-info border-info/20" },
-  create: { label: "Criar novo", icon: Plus, cls: "bg-primary/10 text-primary border-primary/20" },
+  create_new: { label: "Criar novo", icon: Plus, cls: "bg-primary/10 text-primary border-primary/20" },
   map_native: { label: "Campo nativo", icon: Sparkles, cls: "bg-success/10 text-success border-success/20" },
   ignore: { label: "Ignorar", icon: Ban, cls: "bg-muted text-muted-foreground border-border" },
 };
@@ -60,12 +60,10 @@ const CONTEXTS = [
 const FIELD_TYPES = [
   { value: "text", label: "Texto curto" },
   { value: "textarea", label: "Texto longo" },
-  { value: "number", label: "Número" },
-  { value: "currency", label: "Moeda" },
-  { value: "date", label: "Data" },
-  { value: "boolean", label: "Sim/Não" },
   { value: "select", label: "Lista" },
   { value: "file", label: "Arquivo" },
+  { value: "currency", label: "Moeda" },
+  { value: "boolean", label: "Sim/Não" },
 ];
 
 interface Props {
