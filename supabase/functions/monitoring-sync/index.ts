@@ -2654,6 +2654,7 @@ async function dispatchSync(
 
     return await syncPlantsByProvider(ctx, listFnLv, (eid) => livoltekMetrics(lvToken, lvBaseUrl, eid), mode, selectedPlantIds);
   } else {
+    return { plantsUpserted: 0, metricsUpserted: 0, errors: [`Provider ${p} not implemented`], errorCategories: [] };
   }
 }
 
@@ -2661,7 +2662,7 @@ async function dispatchSync(
 
 // CRON_SECRET is read from Deno.env at runtime
 
-async function handleCron(supabaseAdmin: ReturnType<typeof createClient>, body?: Record<string, unknown>): Promise<Response> {
+async function handleCron(supabaseAdmin: any, body?: Record<string, unknown>): Promise<Response> {
   const cronMode = (body?.mode as string) || "full";
   const isConsolidation = cronMode === "consolidation";
   const filterProvider = body?.provider as string | undefined; // Optional: sync only one provider
