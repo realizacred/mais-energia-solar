@@ -43,6 +43,14 @@ export function CustomFieldsMappingSummary({ tenantId }: Props) {
   const fieldsQ = useSmCustomFieldsStaging(tenantId);
   const mappingsQ = useCustomFieldMappings(tenantId);
 
+  // Garante leitura fresca ao entrar no Step 4 (evita exibir cache vazio
+  // quando o usuário acaba de mapear no Step 3 e voltou para cá).
+  useEffect(() => {
+    mappingsQ.refetch();
+    fieldsQ.refetch();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tenantId]);
+
   const isLoading = fieldsQ.isLoading || mappingsQ.isLoading;
   const fields = fieldsQ.data ?? [];
   const mappings = mappingsQ.data ?? {};
