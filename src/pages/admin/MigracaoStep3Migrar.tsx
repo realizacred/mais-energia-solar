@@ -78,13 +78,14 @@ function formatJobStatusLabel(status: string | null | undefined) {
 
 type PhaseState = "done" | "active" | "pending" | "empty";
 
-function PhaseCard({
+function PhaseTimelineItem({
   step,
   icon: Icon,
   label,
   promoted,
   total,
   state,
+  isLast,
 }: {
   step: number;
   icon: React.ComponentType<{ className?: string }>;
@@ -92,6 +93,7 @@ function PhaseCard({
   promoted: number;
   total: number;
   state: PhaseState;
+  isLast: boolean;
 }) {
   const pct = total > 0 ? Math.min(100, Math.round((promoted / total) * 100)) : 0;
   const remaining = Math.max(0, total - promoted);
@@ -100,67 +102,85 @@ function PhaseCard({
     state === "done"
       ? "border-success/40 bg-success/5"
       : state === "active"
-        ? "border-primary/50 bg-primary/5 shadow-sm ring-1 ring-primary/20"
-        : "border-border bg-muted/30 opacity-70";
+        ? "border-primary/60 bg-primary/5 shadow-md ring-2 ring-primary/20"
+        : state === "empty"
+          ? "border-dashed border-border bg-muted/20 opacity-60"
+          : "border-border bg-card";
 
-  const iconWrapClass =
+  const ringClass =
     state === "done"
-      ? "bg-success/15 text-success"
+      ? "bg-success text-success-foreground"
       : state === "active"
-        ? "bg-primary/15 text-primary"
+        ? "bg-primary text-primary-foreground"
         : "bg-muted text-muted-foreground";
 
-  const statusBadge =
-    state === "done" ? (
-      <Badge variant="outline" className="bg-success/10 text-success border-success/30 gap-1 text-[10px] h-5">
-        <CheckCircle2 className="w-3 h-3" /> Concluído
-      </Badge>
-    ) : state === "active" ? (
-      <Badge variant="outline" className="bg-primary/10 text-primary border-primary/30 gap-1 text-[10px] h-5">
-        <Loader2 className="w-3 h-3 animate-spin" /> Em andamento
-      </Badge>
-    ) : state === "empty" ? (
-      <Badge variant="outline" className="bg-muted text-muted-foreground border-border text-[10px] h-5">
-        Sem dados
-      </Badge>
-    ) : (
-      <Badge variant="outline" className="bg-muted text-muted-foreground border-border text-[10px] h-5">
-        {step === 1 ? "Aguardando início" : `Aguardando fase ${step - 1}`}
-      </Badge>
-    );
+  const progressClass =
+    state === "done"
+      ? "[&>div]:bg-success"
+      : state === "active"
+        ? "[&>div]:bg-primary"
+        : "[&>div]:bg-muted-foreground/30";
 
   return (
-    <div className={`rounded-lg border p-4 transition-colors ${containerClass}`}>
-      <div className="flex items-start justify-between gap-3 mb-3">
-        <div className="flex items-center gap-3 min-w-0">
-          <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${iconWrapClass}`}>
-            <Icon className="w-5 h-5" />
-          </div>
-          <div className="min-w-0">
-            <p className="text-[10px] uppercase tracking-wide text-muted-foreground font-semibold">
-              Fase {step}
-            </p>
-            <p className="text-sm font-semibold text-foreground">{label}</p>
-          </div>
-        </div>
-        {statusBadge}
-      </div>
-
-      <div className="flex items-baseline justify-between gap-2 mb-1.5">
-        <div className="flex items-baseline gap-1.5 font-mono">
-          <span className={`text-lg font-bold tracking-tight ${state === "done" ? "text-success" : "text-foreground"}`}>
-            {promoted.toLocaleString("pt-BR")}
-          </span>
-          <span className="text-xs text-muted-foreground">/ {total.toLocaleString("pt-BR")}</span>
-        </div>
-        <span className="text-xs font-mono text-muted-foreground">{pct}%</span>
-      </div>
-      <Progress value={pct} className="h-2" />
-      {state !== "done" && state !== "empty" && remaining > 0 && (
-        <p className="text-[11px] text-muted-foreground mt-2">
-          {remaining.toLocaleString("pt-BR")} pendente{remaining > 1 ? "s" : ""}
-        </p>
+    <div className="relative flex-1 min-w-[220px]">
+      {/* Connector line to next phase */}
+      {!isLast && (
+        <div
+          className={`hidden md:block absolute top-5 left-[calc(50%+1.5rem)] right-[calc(-50%+1.5rem)] h-0.5 ${
+            state === "done" ? "bg-success/40" : "bg-border"
+          }`}
+          aria-hidden="true"
+        />
       )}
+
+      <div className={`relative rounded-xl border p-4 transition-all ${containerClass}`}>
+        <div className="flex items-start gap-3 mb-3">
+          <div className={`relative w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${ringClass}`}>
+            {state === "done" ? (
+              <CheckCircle2 className="w-5 h-5" />
+            ) : state === "active" ? (
+              <Loader2 className="w-5 h-5 animate-spin" />
+            ) : (
+              <Icon className="w-5 h-5" />
+            )}
+            <span className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-background border border-border text-[10px] font-bold flex items-center justify-center text-foreground">
+              {step}
+            </span>
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-semibold text-foreground leading-tight">{label}</p>
+            <p className="text-[11px] text-muted-foreground mt-0.5">
+              {state === "done"
+                ? "Concluído"
+                : state === "active"
+                  ? "Em andamento"
+                  : state === "empty"
+                    ? "Sem dados no staging"
+                    : step === 1
+                      ? "Aguardando início"
+                      : `Aguardando fase ${step - 1}`}
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-baseline justify-between gap-2 mb-2">
+          <div className="flex items-baseline gap-1.5 font-mono">
+            <span className={`text-2xl font-bold tracking-tight ${state === "done" ? "text-success" : "text-foreground"}`}>
+              {promoted.toLocaleString("pt-BR")}
+            </span>
+            <span className="text-xs text-muted-foreground">/ {total.toLocaleString("pt-BR")}</span>
+          </div>
+          <span className={`text-xs font-mono font-semibold ${state === "done" ? "text-success" : "text-muted-foreground"}`}>
+            {pct}%
+          </span>
+        </div>
+        <Progress value={pct} className={`h-2.5 ${progressClass}`} />
+        {state !== "done" && state !== "empty" && remaining > 0 && (
+          <p className="text-[11px] text-muted-foreground mt-2">
+            {remaining.toLocaleString("pt-BR")} pendente{remaining > 1 ? "s" : ""}
+          </p>
+        )}
+      </div>
     </div>
   );
 }
