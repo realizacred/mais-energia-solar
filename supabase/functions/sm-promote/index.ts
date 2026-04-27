@@ -596,6 +596,9 @@ function normalizeSmProposal(raw: AnyObj) {
 }
 
 function resolveProposalSourceKey(rawRow: AnyObj): string | null {
+  const rawExternalId = pickStr(rawRow?.external_id);
+  if (rawExternalId) return rawExternalId.split(":")[0] || rawExternalId;
+
   const payload = (rawRow?.payload as AnyObj | undefined) ?? rawRow;
   return normalizeSmProposal(payload).external_id ?? pickStr(rawRow?.external_id);
 }
