@@ -8,8 +8,8 @@
  * Mantém header "Step 3 — Migrar dados para o CRM" e botão "Voltar para mapeamentos".
  */
 import { useState } from "react";
-import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
+import { MigrationLayout } from "@/components/admin/solarmarket/MigrationLayout";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
@@ -361,120 +361,88 @@ export default function MigracaoStep3Migrar() {
     primary: "text-primary",
   }[banner.tone];
 
-  return (
-    <div className="container mx-auto p-4 sm:p-6 lg:p-8 space-y-5 max-w-[1180px]">
-      {/* Breadcrumb / back */}
-      <Button asChild variant="ghost" size="sm" className="-ml-2">
-        <Link to="/admin/migracao-solarmarket/custom-fields">
-          <ArrowLeft className="w-4 h-4 mr-2" /> Voltar para campos customizados
-        </Link>
-      </Button>
-
-      {/* STICKY HEADER — title + main CTA always visible while scrolling */}
-      <div className="sticky top-0 z-30 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 py-3 bg-background/85 backdrop-blur-md border-b border-border">
-        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
-          <div className="min-w-0">
-            <div className="flex items-center gap-2 flex-wrap">
-              <h1 className="text-lg sm:text-xl font-bold text-foreground leading-tight">
-                Migrar dados para o CRM
-              </h1>
-              <Badge variant="outline" className="bg-primary/10 text-primary border-primary/30 gap-1.5">
-                <Sparkles className="w-3 h-3" /> Step 4 · 1-clique
-              </Badge>
-              {isRunning && (
-                <Badge variant="outline" className="bg-info/10 text-info border-info/30 gap-1.5">
-                  <Loader2 className="w-3 h-3 animate-spin" /> Rodando
-                </Badge>
-              )}
-              {executionState === "completed" && totalPromoted > 0 && !isRunning && (
-                <Badge variant="outline" className="bg-success/10 text-success border-success/30 gap-1.5">
-                  <CheckCircle2 className="w-3 h-3" /> Concluído
-                </Badge>
-              )}
-              {(executionState === "resumable" || executionState === "running_stalled") && (
-                <Badge variant="outline" className="bg-warning/10 text-warning border-warning/30 gap-1.5">
-                  <AlertCircle className="w-3 h-3" /> Interrompido
-                </Badge>
-              )}
-            </div>
-            <p className="text-xs text-muted-foreground mt-1 hidden sm:block">
-              Idempotente · roda em background · pode fechar a aba.
-            </p>
-          </div>
-
-          <div className="flex items-center gap-2 flex-wrap">
-            <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
-              <AlertDialogTrigger asChild>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={resetMigrated.isPending || isRunning}
-                  className="border-destructive/40 text-destructive hover:bg-destructive/10 hover:border-destructive"
-                >
-                  {resetMigrated.isPending ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <Eraser className="w-4 h-4" />
-                  )}
-                  Limpar área
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent className="w-[90vw] max-w-md">
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Limpar área de promoção (DEV)</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    Apaga TODOS os registros canônicos criados pela promoção
-                    (clientes, projetos, propostas, versões) com origem <code>solar_market</code>.
-                    <br /><br />
-                    Não afeta o staging (<code>sm_*_raw</code>). Use apenas em DEV.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                  <AlertDialogAction
-                    onClick={handleClearArea}
-                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                  >
-                    Limpar tudo
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
-
-            {isRunning && (
-              <Button variant="outline" size="sm" onClick={handleCancel} disabled={cancel.isPending}>
-                <X className="w-4 h-4" /> Cancelar
-              </Button>
+  const headerActions = (
+    <>
+      <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+        <AlertDialogTrigger asChild>
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={resetMigrated.isPending || isRunning}
+            className="h-8 border-destructive/40 text-destructive hover:bg-destructive/10 hover:border-destructive"
+          >
+            {resetMigrated.isPending ? (
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+            ) : (
+              <Eraser className="w-3.5 h-3.5" />
             )}
-
-            <Button
-              size="lg"
-              onClick={isResumable || isStuck ? handleContinue : handleStart}
-              disabled={isRunning || start.isPending || continueJob.isPending || nothingToDo}
-              className="gap-2 shadow-md"
+            Limpar área
+          </Button>
+        </AlertDialogTrigger>
+        <AlertDialogContent className="w-[90vw] max-w-md">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Limpar área de promoção (DEV)</AlertDialogTitle>
+            <AlertDialogDescription>
+              Apaga TODOS os registros canônicos criados pela promoção
+              (clientes, projetos, propostas, versões) com origem <code>solar_market</code>.
+              <br /><br />
+              Não afeta o staging (<code>sm_*_raw</code>). Use apenas em DEV.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleClearArea}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              {start.isPending || continueJob.isPending ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" /> {isResumable || isStuck ? "Retomando…" : "Iniciando…"}
-                </>
-              ) : isRunning ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" /> Em execução…
-                </>
-              ) : isResumable || isStuck ? (
-                <>
-                  <RefreshCw className="w-4 h-4" /> Continuar migração
-                </>
-              ) : (
-                <>
-                  <Rocket className="w-4 h-4" /> Iniciar migração
-                </>
-              )}
-            </Button>
-          </div>
-        </div>
-      </div>
+              Limpar tudo
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
+      {isRunning && (
+        <Button variant="outline" size="sm" onClick={handleCancel} disabled={cancel.isPending} className="h-8">
+          <X className="w-3.5 h-3.5" /> Cancelar
+        </Button>
+      )}
+
+      <Button
+        size="sm"
+        onClick={isResumable || isStuck ? handleContinue : handleStart}
+        disabled={isRunning || start.isPending || continueJob.isPending || nothingToDo}
+        className="h-8 gap-1.5 shadow-sm"
+      >
+        {start.isPending || continueJob.isPending ? (
+          <>
+            <Loader2 className="w-3.5 h-3.5 animate-spin" /> {isResumable || isStuck ? "Retomando…" : "Iniciando…"}
+          </>
+        ) : isRunning ? (
+          <>
+            <Loader2 className="w-3.5 h-3.5 animate-spin" /> Em execução…
+          </>
+        ) : isResumable || isStuck ? (
+          <>
+            <RefreshCw className="w-3.5 h-3.5" /> Continuar
+          </>
+        ) : (
+          <>
+            <Rocket className="w-3.5 h-3.5" /> Iniciar migração
+          </>
+        )}
+      </Button>
+    </>
+  );
+
+  return (
+    <MigrationLayout
+      stepLabel="Step 4 / 4"
+      title="Migrar dados para o CRM"
+      subtitle="Idempotente · roda em background · pode fechar a aba."
+      backTo="/admin/migracao-solarmarket/custom-fields"
+      backLabel="Voltar para campos customizados"
+      actions={headerActions}
+    >
       {tenantId && <CustomFieldsMappingSummary tenantId={tenantId} />}
 
       {/* HERO CARD — overall progress + stats */}
@@ -726,6 +694,6 @@ export default function MigracaoStep3Migrar() {
         warningsCount={job?.items_with_warnings ?? 0}
         errorsCount={job?.items_with_errors ?? 0}
       />
-    </div>
+    </MigrationLayout>
   );
 }
