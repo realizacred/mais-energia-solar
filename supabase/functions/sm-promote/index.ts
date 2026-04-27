@@ -727,18 +727,21 @@ async function promoteCliente(
     return { id: byCode.id as string, created: false, matchedBy: "cliente_code" };
   }
 
-  // 3) Reconciliação por CPF/CNPJ (busca pelo formato gravado: formatado).
-  if (norm.cpf_cnpj) {
+  // 3) Reconciliação por CPF/CNPJ.
+  // O banco possui trigger trg_normalize_cpf_cnpj que grava cpf_cnpj somente com dígitos;
+  // portanto o lookup precisa usar os dígitos, não o valor formatado exibível.
+  const docLookup = norm.cpf_cnpj_digits || norm.cpf_cnpj;
+  if (docLookup) {
     const { data: byDoc } = await admin
       .from("clientes")
       .select("id")
       .eq("tenant_id", tenantId)
-      .eq("cpf_cnpj", norm.cpf_cnpj)
+      .eq("cpf_cnpj", docLookup)
       .order("created_at", { ascending: true })
       .limit(1)
       .maybeSingle();
     if (byDoc?.id) {
-      await upsertLink(admin, tenantId, jobId, "cliente", byDoc.id as string, "cliente", norm.external_id, { matched_by: "cpf_cnpj" });
+      await upsertLink(admin, tenantId, jobId, "cliente", byDoc.id as string, "cliente", norm.external_id, { matched_by: "cpf_cnpj_digits" });
       return { id: byDoc.id as string, created: false, matchedBy: "cpf_cnpj" };
     }
   }
@@ -834,6 +837,7 @@ async function promoteCliente(
       const found =
         (await tryFind("external_id", norm.external_id, "external_id_race")) ??
         (await tryFind("telefone_normalized", norm.telefone_digits, "telefone_race")) ??
+        (await tryFind("cpf_cnpj", norm.cpf_cnpj_digits, "cpf_cnpj_digits_race")) ??
         (await tryFind("cpf_cnpj", norm.cpf_cnpj, "cpf_cnpj_race")) ??
         (await tryFind("cliente_code", clienteCode, "cliente_code_race"));
       if (found) return found;
