@@ -412,27 +412,29 @@ async function fetchPromotedSourceIds(
       .range(from, from + pageSize - 1);
     if (error) throw new Error(`fetchPromotedSourceIds: ${error.message}`);
     if (!data || data.length === 0) break;
-    for (const r of data) {
-      const sourceEntityId = pickStr((r as AnyObj).source_entity_id);
-      const entityId = pickStr((r as AnyObj).entity_id);
-      if (!sourceEntityId) continue;
-
-      // Para proposta, link só vale como "promovido" quando a proposta existe
-      // e já está vinculada ao deal comercial. Isso evita links órfãos ou parciais
-      // travarem a retomada da migração após falha anterior.
-      if (sourceEntityType === "proposta" && entityType === "proposta") {
-        if (!entityId) continue;
-        const { data: proposta } = await admin
+    if (sourceEntityType === "proposta" && entityType === "proposta") {
+      const entityIds = data.map((r) => pickStr((r as AnyObj).entity_id)).filter(Boolean) as string[];
+      const promotedEntityIds = new Set<string>();
+      if (entityIds.length > 0) {
+        const { data: propostas, error: propErr } = await admin
           .from("propostas_nativas")
-          .select("id, deal_id")
+          .select("id")
           .eq("tenant_id", tenantId)
-          .eq("id", entityId)
-          .not("deal_id", "is", null)
-          .maybeSingle();
-        if (!proposta?.id) continue;
+          .in("id", entityIds)
+          .not("deal_id", "is", null);
+        if (propErr) throw new Error(`fetchPromotedSourceIds propostas: ${propErr.message}`);
+        for (const p of propostas ?? []) promotedEntityIds.add(String((p as AnyObj).id));
       }
-
-      out.push(sourceEntityId);
+      for (const r of data) {
+        const sourceEntityId = pickStr((r as AnyObj).source_entity_id);
+        const entityId = pickStr((r as AnyObj).entity_id);
+        if (sourceEntityId && entityId && promotedEntityIds.has(entityId)) out.push(sourceEntityId);
+      }
+    } else {
+      for (const r of data) {
+        const sourceEntityId = pickStr((r as AnyObj).source_entity_id);
+        if (sourceEntityId) out.push(sourceEntityId);
+      }
     }
     if (data.length < pageSize) break;
   }
