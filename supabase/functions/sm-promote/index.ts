@@ -31,6 +31,7 @@ const SOURCE = "solarmarket";
 const LEGACY_SM_SOURCES = [SOURCE, "solar_market"] as const;
 const DEFAULT_BATCH_LIMIT = 5;
 const MAX_BATCH_LIMIT = 5;
+const SUBJOB_HEARTBEAT_EVERY = 1;
 
 type CanonicalEntity = "cliente" | "projeto" | "proposta" | "versao";
 type Severity = "info" | "warning" | "error";
@@ -2633,6 +2634,7 @@ async function actionPromoteAll(
   await patchJob(admin, jobId, {
     status: "running" satisfies JobStatus,
     started_at: new Date().toISOString(),
+    last_step_at: new Date().toISOString(),
   });
 
   if (!dryRun) {
@@ -2659,21 +2661,12 @@ async function actionPromoteAll(
     message: `promote-all iniciado (batch_limit=${batchLimit}, dry_run=${dryRun}, scope=${scope}, skip_post_phases=${skipPostPhases}); pipeline=${pipeline.funilId ?? "—"} etapa=${pipeline.etapaId ?? "—"} configured=${pipeline.hasPipelineConfigured}; consultor_fallback=${consultorFallback.fallbackNome ?? "—"}`,
   });
 
-  // Otimização (espelha padrão da importação): em vez de carregar TODOS os
-  // promotedIds em memória (custoso quando já há centenas migradas), montamos
-  // o Set incrementalmente apenas com os IDs vistos nesta página + filtramos
-  // candidatos página a página até atingir batch_limit. Mantém idempotência
-  // sem inflar memória do isolate Deno.
+  const promotedIds = await fetchPromotedSourceIds(admin, tenantId, "proposta", "proposta");
   const selectCols = dryRun ? "id, external_id" : "id, external_id, payload";
-  const promotedSet = new Set<string>();
+  const promotedSet = new Set(promotedIds);
   const candidateMeta: AnyObj[] = [];
-  const pageSize = 200;
-  // Limite de páginas escaneadas por invocação para evitar varrer staging gigante:
-  // se o staging tiver 5000+ propostas e quase todas já estão migradas, paramos
-  // após 50 páginas (10k linhas) e o próximo chunk continuará a partir do offset.
-  const MAX_SCAN_PAGES = 50;
-  let scannedPages = 0;
-  for (let from = 0; candidateMeta.length < batchLimit && scannedPages < MAX_SCAN_PAGES; from += pageSize) {
+  const pageSize = 100;
+  for (let from = 0; candidateMeta.length < batchLimit; from += pageSize) {
     const { data: pageRows, error: pageErr } = await admin
       .from("sm_propostas_raw")
       .select("id, external_id")
@@ -2687,33 +2680,12 @@ async function actionPromoteAll(
       });
       return jsonResponse({ ok: false, job_id: jobId, error: pageErr.message }, 500);
     }
-    scannedPages++;
-    if (!pageRows || pageRows.length === 0) break;
-
-    // Busca apenas os links já promovidos PARA ESTA PÁGINA (não global)
-    const pageSourceKeys = (pageRows as AnyObj[])
-      .map((r) => resolveProposalSourceKey(r))
-      .filter((k): k is string => !!k);
-    if (pageSourceKeys.length > 0) {
-      const { data: pageLinks } = await admin
-        .from("external_entity_links")
-        .select("source_entity_id")
-        .eq("tenant_id", tenantId)
-        .in("source", [...LEGACY_SM_SOURCES])
-        .eq("source_entity_type", "proposta")
-        .in("source_entity_id", pageSourceKeys);
-      for (const lnk of (pageLinks ?? []) as AnyObj[]) {
-        const id = pickStr(lnk.source_entity_id);
-        if (id) promotedSet.add(id);
-      }
-    }
-
-    for (const r of (pageRows as AnyObj[])) {
+    for (const r of (pageRows ?? []) as AnyObj[]) {
       const sourceKey = resolveProposalSourceKey(r);
       if (!sourceKey || !promotedSet.has(sourceKey)) candidateMeta.push(r);
       if (candidateMeta.length >= batchLimit) break;
     }
-    if (pageRows.length < pageSize) break;
+    if (!pageRows || pageRows.length < pageSize) break;
   }
 
   let rows = candidateMeta;
@@ -2772,18 +2744,10 @@ async function actionPromoteAll(
 
   // Modo seguro: processamento serial para evitar estouro de CPU e colisões de concorrência
   // durante a migração em massa. Velocidade menor, estabilidade maior.
-  // Time budget interno (espelha solarmarket-import): se a invocação se aproxima do
-  // limite de CPU/wall-clock, paramos cedo e retornamos parcial — o orquestrador
-  // (sm-migrate-chunk) re-dispara para continuar de onde parou (via idempotência SSOT).
-  const PROMOTE_TIME_BUDGET_MS = 50_000;
-  const promoteStartedAt = Date.now();
   const PARALLEL_CHUNK = 1;
-  let earlyYielded = false;
   for (let i = 0; i < candidates.length; i += PARALLEL_CHUNK) {
-    if (Date.now() - promoteStartedAt > PROMOTE_TIME_BUDGET_MS) {
-      earlyYielded = true;
-      console.warn(`[${MODULE}] time-budget hit at ${i}/${candidates.length}; yielding`);
-      break;
+    if (i % SUBJOB_HEARTBEAT_EVERY === 0) {
+      await patchJob(admin, jobId, { last_step_at: new Date().toISOString() });
     }
     const slice = candidates.slice(i, i + PARALLEL_CHUNK);
     await Promise.all(
@@ -2814,6 +2778,7 @@ async function actionPromoteAll(
   const basePatch: Parameters<typeof patchJob>[2] = {
     status: finalStatus,
     finished_at: new Date().toISOString(),
+    last_step_at: new Date().toISOString(),
     items_processed: state.counters.processed,
     items_promoted: state.counters.promoted,
     items_skipped: state.counters.skipped,
