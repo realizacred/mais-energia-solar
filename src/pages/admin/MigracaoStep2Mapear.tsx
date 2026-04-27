@@ -15,8 +15,8 @@
  * Subfase 2.3 (depois):  validação global, pré-sugestões e botão Step 3.
  */
 import { useState } from "react";
-import { Link } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { MigrationLayout } from "@/components/admin/solarmarket/MigrationLayout";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -40,7 +40,6 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import {
-  ArrowLeft,
   Folder,
   Workflow,
   Users,
@@ -208,67 +207,35 @@ export default function MigracaoStep2Mapear() {
   const totalFunis = funis?.length ?? 0;
   const totalDefinidos = funis?.filter((f) => f.papel !== null).length ?? 0;
 
+  const headerActions =
+    !isLoading && funis ? (
+      <Badge
+        variant="outline"
+        className={
+          totalDefinidos === totalFunis
+            ? "h-6 bg-success/10 text-success border-success/20"
+            : "h-6 bg-warning/10 text-warning border-warning/20"
+        }
+      >
+        {totalDefinidos} de {totalFunis} definidos
+      </Badge>
+    ) : null;
+
   return (
-    <div className="container mx-auto p-4 sm:p-6 lg:p-8 space-y-6 max-w-[1100px]">
-      {/* Header */}
-      <div>
-        <Button asChild variant="ghost" size="sm" className="mb-2">
-          <Link to="/admin/migracao-solarmarket">
-            <ArrowLeft className="w-4 h-4 mr-2" /> Voltar para a importação
-          </Link>
-        </Button>
-        <h1 className="text-xl font-bold text-foreground">
-          Step 2 — Configurar mapeamentos
-        </h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          Defina como cada funil do SolarMarket deve ser tratado na migração para o seu CRM.
-        </p>
-      </div>
-
-      {/* Card de introdução */}
-      <Card className="bg-card border-border shadow-sm">
-        <CardContent className="p-5">
-          <div className="flex items-start gap-3">
-            <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-primary/10 shrink-0">
-              <Folder className="w-5 h-5 text-primary" />
-            </div>
-            <div className="space-y-1">
-              <p className="text-sm font-medium text-foreground">
-                Como você quer tratar cada funil do SolarMarket?
-              </p>
-              <p className="text-sm text-muted-foreground">
-                Escolha o papel de cada funil abaixo. Nesta etapa só definimos o tipo —
-                o mapeamento detalhado de etapas (para consultor ou stage) virá na próxima sub-etapa.
-              </p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Lista de funis */}
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h2 className="text-base font-semibold text-foreground">
-            Funis do SolarMarket
-          </h2>
-          {!isLoading && funis && (
-            <Badge
-              variant="outline"
-              className={
-                totalDefinidos === totalFunis
-                  ? "bg-success/10 text-success border-success/20"
-                  : "bg-warning/10 text-warning border-warning/20"
-              }
-            >
-              {totalDefinidos} de {totalFunis} definidos
-            </Badge>
-          )}
-        </div>
-
+    <MigrationLayout
+      stepLabel="Step 2 / 4"
+      title="Configurar mapeamentos"
+      subtitle="Defina como cada funil do SolarMarket deve ser tratado no CRM. O detalhamento de etapas vem na próxima etapa."
+      backTo="/admin/migracao-solarmarket"
+      backLabel="Voltar para a importação"
+      actions={headerActions}
+    >
+      {/* Lista de funis em grid 2 colunas em telas largas */}
+      <div className="space-y-3">
         {isLoading && (
-          <div className="space-y-3">
-            {[0, 1, 2].map((i) => (
-              <Skeleton key={i} className="h-32 w-full rounded-lg" />
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
+            {[0, 1, 2, 3].map((i) => (
+              <Skeleton key={i} className="h-40 w-full rounded-lg" />
             ))}
           </div>
         )}
