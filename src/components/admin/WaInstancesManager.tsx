@@ -611,7 +611,39 @@ function InstanceFormDialog({
     );
   };
 
-  // For editing existing instances
+  // Buscar instâncias existentes no servidor Evolution para o usuário escolher
+  const handleFetchRemoteInstances = async () => {
+    if (!apiUrl.trim()) {
+      toast({ title: "URL obrigatória", description: "Informe a URL do servidor Evolution antes de buscar.", variant: "destructive" });
+      return;
+    }
+    setFetchingRemote(true);
+    setRemoteInstances(null);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) throw new Error("Sessão inválida");
+      const { data, error } = await supabase.functions.invoke("list-evolution-instances", {
+        headers: { Authorization: `Bearer ${session.access_token}` },
+        body: {
+          api_url: apiUrl.trim(),
+          api_key: apiKey.trim(),
+          api_flavor: apiFlavor,
+        },
+      });
+      if (error) throw error;
+      if (!data?.success) throw new Error(data?.error || "Erro ao buscar instâncias");
+      setRemoteInstances(data.instances || []);
+      if (!data.instances?.length) {
+        toast({ title: "Nenhuma instância encontrada", description: "O servidor Evolution não retornou instâncias." });
+      }
+    } catch (e: any) {
+      console.error("[list-evolution-instances]", e);
+      toast({ title: "Erro ao buscar", description: e.message, variant: "destructive" });
+    } finally {
+      setFetchingRemote(false);
+    }
+  };
+
   const handleSubmitEdit = async () => {
     if (!nome.trim() || !instanceKey.trim() || !apiUrl.trim()) return;
     setSaving(true);
