@@ -522,7 +522,9 @@ function normalizeSmClient(raw: AnyObj) {
     nome: fmtName(c.name ?? c.nome) ?? "Cliente sem nome",
     email: fmtEmail(c.email),
     // RB-62: telefone formatado p/ exibição; telefone_digits p/ dedup/UNIQUE.
-    telefone: phoneFmt ?? "",
+    // Fallback: se não bate no padrão BR (10/11 dígitos), grava os dígitos brutos
+    // para o usuário enxergar e corrigir depois — em vez de aparecer vazio.
+    telefone: phoneFmt ?? (phoneDigits ? phoneDigits : ""),
     telefone_digits: phoneDigits,
     // CPF/CNPJ formatado quando válido; senão null e raw vai p/ observacoes.
     cpf_cnpj: docFmt,
