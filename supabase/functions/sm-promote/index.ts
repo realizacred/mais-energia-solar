@@ -2409,7 +2409,7 @@ async function promoteOneProposalRow(
 
   try {
     // 2) Cliente
-    const cli = await promoteCliente(admin, tenantId, jobId, rawCliente);
+    const cli = await promoteCliente(admin, tenantId, jobId, rawCliente, clienteCache);
     logEventBuffered(state, admin, {
       jobId, tenantId, severity: "info", step: "promote.cliente",
       status: cli.created ? "created" : "linked",
