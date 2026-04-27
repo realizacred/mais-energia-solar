@@ -2552,6 +2552,20 @@ async function ensureDefaultFunis(admin: SupabaseClient, tenantId: string): Prom
     if ((f.ordem as number) > maxOrdem) maxOrdem = f.ordem as number;
   }
 
+  const { count: existingPipelinesCount } = await admin
+    .from("pipelines")
+    .select("id", { count: "exact", head: true })
+    .eq("tenant_id", tenantId);
+  const canBootstrapCommercialPipelines = (existingPipelinesCount ?? 0) === 0;
+
+  const { data: existingMaps } = await admin
+    .from("sm_funil_pipeline_map")
+    .select("sm_funil_name, role, pipeline_id")
+    .eq("tenant_id", tenantId);
+  const mapByFunil = new Map(
+    ((existingMaps ?? []) as AnyObj[]).map((m) => [String(m.sm_funil_name).trim().toLowerCase(), m]),
+  );
+
   // 3) Para cada funil do SM: garante o projeto_funis e replica as etapas reais
   for (const row of smFunis as AnyObj[]) {
     const payload = (row.payload ?? {}) as AnyObj;
@@ -2627,6 +2641,62 @@ async function ensureDefaultFunis(admin: SupabaseClient, tenantId: string): Prom
         console.error(`[${MODULE}] ensureDefaultFunis etapas ${funilNome}:`, insErr.message);
       }
     }
+
+    // Se o tenant ainda não tem nenhum pipeline comercial, cria o espelho
+    // pipelines/pipeline_stages/mapeamentos uma única vez. Se já houver pipeline,
+    // respeita o mapeamento manual (RB-73) e não interfere.
+    const mapAtual = mapByFunil.get(key);
+    if (!canBootstrapCommercialPipelines || mapAtual?.role === "ignore" || mapAtual?.role === "vendedor_source" || mapAtual?.pipeline_id) {
+      continue;
+    }
+
+    const { data: pipeline, error: pipeErr } = await admin
+      .from("pipelines")
+      .insert({
+        tenant_id: tenantId,
+        name: funilNome,
+        is_active: true,
+        kind: "process",
+        papel: funilNome.toLowerCase().includes("engenharia") ? "engenharia" : "comercial",
+      })
+      .select("id")
+      .single();
+    if (pipeErr || !pipeline?.id) {
+      console.error(`[${MODULE}] ensureDefaultFunis pipeline ${funilNome}:`, pipeErr?.message);
+      continue;
+    }
+
+    const stageRows = stagesOrdenadas.map((s, idx) => ({
+      tenant_id: tenantId,
+      pipeline_id: pipeline.id,
+      name: String(s?.name ?? "").trim() || `Etapa ${idx + 1}`,
+      position: idx,
+      probability: idx === stagesOrdenadas.length - 1 ? 100 : 50,
+      is_closed: idx === stagesOrdenadas.length - 1,
+      is_won: idx === stagesOrdenadas.length - 1,
+    }));
+    const { data: createdStages, error: stErr } = await admin
+      .from("pipeline_stages")
+      .insert(stageRows)
+      .select("id, name");
+    if (stErr || !createdStages || createdStages.length === 0) {
+      console.error(`[${MODULE}] ensureDefaultFunis pipeline_stages ${funilNome}:`, stErr?.message);
+      continue;
+    }
+
+    await admin.from("sm_etapa_stage_map").upsert(
+      createdStages.map((stage: AnyObj, idx: number) => ({
+        tenant_id: tenantId,
+        sm_funil_name: funilNome,
+        sm_etapa_name: stageRows[idx].name,
+        stage_id: stage.id,
+      })),
+      { onConflict: "tenant_id,sm_funil_name,sm_etapa_name" },
+    );
+    await admin.from("sm_funil_pipeline_map").upsert(
+      { tenant_id: tenantId, sm_funil_name: funilNome, role: "pipeline", pipeline_id: pipeline.id },
+      { onConflict: "tenant_id,sm_funil_name" },
+    );
   }
 }
 
