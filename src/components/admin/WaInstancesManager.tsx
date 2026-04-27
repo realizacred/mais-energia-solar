@@ -996,7 +996,78 @@ function InstanceFormDialog({
                 </div>
               )}
 
-              {!isRegister && (
+              {isRegister && (
+                <div className="rounded-lg border border-border bg-muted/20 p-3 space-y-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-xs font-medium text-foreground">
+                      Não sabe o nome exato? Busque no servidor:
+                    </p>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={handleFetchRemoteInstances}
+                      disabled={fetchingRemote || !apiUrl.trim()}
+                      className="gap-1.5 h-7 text-xs"
+                    >
+                      {fetchingRemote ? <Spinner size="sm" /> : <RefreshCw className="h-3 w-3" />}
+                      Buscar instâncias
+                    </Button>
+                  </div>
+                  {remoteInstances && remoteInstances.length > 0 && (
+                    <div className="max-h-48 overflow-y-auto space-y-1 border-t pt-2">
+                      {remoteInstances.map((ri) => {
+                        const isSelected = instanceKey === ri.name;
+                        return (
+                          <button
+                            key={ri.name}
+                            type="button"
+                            disabled={ri.already_linked}
+                            onClick={() => {
+                              setInstanceKey(ri.name);
+                              if (!nome.trim()) setNome(ri.profile_name || ri.name);
+                            }}
+                            className={`w-full text-left p-2 rounded-md border text-xs transition-colors ${
+                              ri.already_linked
+                                ? "bg-muted/50 border-border opacity-60 cursor-not-allowed"
+                                : isSelected
+                                ? "bg-primary/10 border-primary"
+                                : "bg-background border-border hover:bg-accent"
+                            }`}
+                          >
+                            <div className="flex items-center justify-between gap-2">
+                              <div className="flex-1 min-w-0">
+                                <p className="font-mono font-medium truncate">{ri.name}</p>
+                                {(ri.profile_name || ri.phone_number) && (
+                                  <p className="text-[10px] text-muted-foreground truncate">
+                                    {ri.profile_name}{ri.profile_name && ri.phone_number ? " · " : ""}{ri.phone_number}
+                                  </p>
+                                )}
+                              </div>
+                              <Badge
+                                variant="outline"
+                                className={`text-[9px] shrink-0 ${
+                                  ri.already_linked
+                                    ? "bg-muted text-muted-foreground"
+                                    : ri.status === "connected"
+                                    ? "bg-success/10 text-success border-success/20"
+                                    : "bg-muted text-muted-foreground"
+                                }`}
+                              >
+                                {ri.already_linked ? "já vinculada" : ri.status}
+                              </Badge>
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                  {remoteInstances && remoteInstances.length === 0 && (
+                    <p className="text-[10px] text-muted-foreground italic">Nenhuma instância encontrada no servidor.</p>
+                  )}
+                </div>
+              )}
+
                 <div className="rounded-lg bg-muted/30 border border-border p-3">
                   <p className="text-xs text-muted-foreground">
                     🔑 A API Key global configurada no servidor será usada automaticamente para criar a instância.
