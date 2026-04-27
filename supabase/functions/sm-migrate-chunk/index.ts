@@ -129,26 +129,34 @@ async function callSmPromoteOnce(
   error?: string;
 }> {
   const url = `${SUPABASE_URL}/functions/v1/sm-promote`;
-  const res = await fetch(url, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
-      apikey: SUPABASE_SERVICE_ROLE_KEY,
-      "x-sm-tenant-override": tenantId,
-      "x-sm-internal-call": "sm-migrate-chunk-v1",
-    },
-    body: JSON.stringify({
-      action: "promote-all",
-      payload: {
-        batch_limit: batchLimit,
-        dry_run: false,
-        scope: "proposta",
-        tenant_id: tenantId,
-        skip_post_phases: skipPostPhases,
+  let res: Response;
+  try {
+    res = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+        apikey: SUPABASE_SERVICE_ROLE_KEY,
+        "x-sm-tenant-override": tenantId,
+        "x-sm-internal-call": "sm-migrate-chunk-v1",
       },
-    }),
-  });
+      body: JSON.stringify({
+        action: "promote-all",
+        payload: {
+          batch_limit: batchLimit,
+          dry_run: false,
+          scope: "proposta",
+          tenant_id: tenantId,
+          skip_post_phases: skipPostPhases,
+        },
+      }),
+    });
+  } catch (e) {
+    return {
+      ok: false,
+      error: e instanceof Error ? e.message : String(e),
+    };
+  }
   const text = await res.text();
   let body: Record<string, unknown> = {};
   try {
