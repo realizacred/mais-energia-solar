@@ -251,17 +251,18 @@ export default function MigracaoStep2Mapear() {
           </Card>
         )}
 
-        {!isLoading &&
-          funis?.map((f) => {
-            const mostrarPipelineSelector =
-              f.papel === "pipeline" || pendentes[f.nome];
-            const pipelineNome = getPipelineName(f.pipelineId);
+        {!isLoading && funis && funis.length > 0 && (
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
+            {funis.map((f) => {
+              const mostrarPipelineSelector =
+                f.papel === "pipeline" || pendentes[f.nome];
+              const pipelineNome = getPipelineName(f.pipelineId);
 
-            return (
-              <Card
-                key={f.smFunilId}
-                className="bg-card border-border shadow-sm hover:shadow-md transition-shadow"
-              >
+              return (
+                <Card
+                  key={f.smFunilId}
+                  className="bg-card border-border shadow-sm hover:shadow-md transition-shadow"
+                >
                 <CardHeader className="pb-3">
                   <div className="flex items-start justify-between gap-3 flex-wrap">
                     <div className="flex items-start gap-3 min-w-0">
