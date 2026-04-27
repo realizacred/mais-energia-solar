@@ -414,7 +414,25 @@ async function fetchPromotedSourceIds(
     if (!data || data.length === 0) break;
     for (const r of data) {
       const sourceEntityId = pickStr((r as AnyObj).source_entity_id);
-      if (sourceEntityId) out.push(sourceEntityId);
+      const entityId = pickStr((r as AnyObj).entity_id);
+      if (!sourceEntityId) continue;
+
+      // Para proposta, link só vale como "promovido" quando a proposta existe
+      // e já está vinculada ao deal comercial. Isso evita links órfãos ou parciais
+      // travarem a retomada da migração após falha anterior.
+      if (sourceEntityType === "proposta" && entityType === "proposta") {
+        if (!entityId) continue;
+        const { data: proposta } = await admin
+          .from("propostas_nativas")
+          .select("id, deal_id")
+          .eq("tenant_id", tenantId)
+          .eq("id", entityId)
+          .not("deal_id", "is", null)
+          .maybeSingle();
+        if (!proposta?.id) continue;
+      }
+
+      out.push(sourceEntityId);
     }
     if (data.length < pageSize) break;
   }
