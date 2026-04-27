@@ -2659,12 +2659,21 @@ async function actionPromoteAll(
     message: `promote-all iniciado (batch_limit=${batchLimit}, dry_run=${dryRun}, scope=${scope}, skip_post_phases=${skipPostPhases}); pipeline=${pipeline.funilId ?? "—"} etapa=${pipeline.etapaId ?? "—"} configured=${pipeline.hasPipelineConfigured}; consultor_fallback=${consultorFallback.fallbackNome ?? "—"}`,
   });
 
-  const promotedIds = await fetchPromotedSourceIds(admin, tenantId, "proposta", "proposta");
+  // Otimização (espelha padrão da importação): em vez de carregar TODOS os
+  // promotedIds em memória (custoso quando já há centenas migradas), montamos
+  // o Set incrementalmente apenas com os IDs vistos nesta página + filtramos
+  // candidatos página a página até atingir batch_limit. Mantém idempotência
+  // sem inflar memória do isolate Deno.
   const selectCols = dryRun ? "id, external_id" : "id, external_id, payload";
-  const promotedSet = new Set(promotedIds);
+  const promotedSet = new Set<string>();
   const candidateMeta: AnyObj[] = [];
-  const pageSize = 100;
-  for (let from = 0; candidateMeta.length < batchLimit; from += pageSize) {
+  const pageSize = 200;
+  // Limite de páginas escaneadas por invocação para evitar varrer staging gigante:
+  // se o staging tiver 5000+ propostas e quase todas já estão migradas, paramos
+  // após 50 páginas (10k linhas) e o próximo chunk continuará a partir do offset.
+  const MAX_SCAN_PAGES = 50;
+  let scannedPages = 0;
+  for (let from = 0; candidateMeta.length < batchLimit && scannedPages < MAX_SCAN_PAGES; from += pageSize) {
     const { data: pageRows, error: pageErr } = await admin
       .from("sm_propostas_raw")
       .select("id, external_id")
@@ -2678,12 +2687,33 @@ async function actionPromoteAll(
       });
       return jsonResponse({ ok: false, job_id: jobId, error: pageErr.message }, 500);
     }
-    for (const r of (pageRows ?? []) as AnyObj[]) {
+    scannedPages++;
+    if (!pageRows || pageRows.length === 0) break;
+
+    // Busca apenas os links já promovidos PARA ESTA PÁGINA (não global)
+    const pageSourceKeys = (pageRows as AnyObj[])
+      .map((r) => resolveProposalSourceKey(r))
+      .filter((k): k is string => !!k);
+    if (pageSourceKeys.length > 0) {
+      const { data: pageLinks } = await admin
+        .from("external_entity_links")
+        .select("source_entity_id")
+        .eq("tenant_id", tenantId)
+        .in("source", [...LEGACY_SM_SOURCES])
+        .eq("source_entity_type", "proposta")
+        .in("source_entity_id", pageSourceKeys);
+      for (const lnk of (pageLinks ?? []) as AnyObj[]) {
+        const id = pickStr(lnk.source_entity_id);
+        if (id) promotedSet.add(id);
+      }
+    }
+
+    for (const r of (pageRows as AnyObj[])) {
       const sourceKey = resolveProposalSourceKey(r);
       if (!sourceKey || !promotedSet.has(sourceKey)) candidateMeta.push(r);
       if (candidateMeta.length >= batchLimit) break;
     }
-    if (!pageRows || pageRows.length < pageSize) break;
+    if (pageRows.length < pageSize) break;
   }
 
   let rows = candidateMeta;
