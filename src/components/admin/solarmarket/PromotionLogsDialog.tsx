@@ -94,13 +94,32 @@ export function PromotionLogsDialog({
 
       const severities = filter === "all" ? ["warning", "error"] : [filter];
 
+      // Master jobs (sm-migrate-chunk) só agregam contadores; os logs reais
+      // ficam vinculados aos sub-jobs do sm-promote, registrados em
+      // metadata.sub_jobs[].id. Buscamos a lista e consultamos por todos.
+      const { data: masterRow } = await supabase
+        .from("solarmarket_promotion_jobs")
+        .select("metadata")
+        .eq("id", jobId)
+        .maybeSingle();
+
+      const subJobIds = Array.isArray(
+        (masterRow?.metadata as { sub_jobs?: Array<{ id?: string }> } | null)?.sub_jobs,
+      )
+        ? ((masterRow!.metadata as { sub_jobs: Array<{ id?: string }> }).sub_jobs
+            .map((s) => s?.id)
+            .filter((id): id is string => typeof id === "string" && id.length > 0))
+        : [];
+
+      const allJobIds = Array.from(new Set<string>([jobId, ...subJobIds]));
+
       const { data: rows, error, count } = await supabase
         .from("solarmarket_promotion_logs")
         .select(
           "id, created_at, severity, source_entity_type, source_entity_id, error_code, message, details",
           { count: "exact" },
         )
-        .eq("job_id", jobId)
+        .in("job_id", allJobIds)
         .in("severity", severities)
         .order("created_at", { ascending: false })
         .limit(limit);
