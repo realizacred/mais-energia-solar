@@ -2483,49 +2483,33 @@ async function promoteOneProposalRow(
   }
 }
 
-// ─── Bootstrap de funis padrão (Comercial + Eng/Equip/Compesação) ───────────
-// Garante que todo tenant que rodar a migração tenha os 4 funis essenciais
-// para classificação de projetos. Idempotente: só cria o que falta.
-const DEFAULT_FUNIS: Array<{ nome: string; etapas: Array<{ nome: string; categoria: "aberto" | "ganho" | "perdido"; cor: string }> }> = [
-  {
-    nome: "Comercial",
-    etapas: [
-      { nome: "Novo Lead", categoria: "aberto", cor: "#3B82F6" },
-      { nome: "Qualificado", categoria: "aberto", cor: "#6366F1" },
-      { nome: "Proposta Enviada", categoria: "aberto", cor: "#F59E0B" },
-      { nome: "Negociação", categoria: "aberto", cor: "#F97316" },
-      { nome: "Fechado", categoria: "ganho", cor: "#10B981" },
-      { nome: "Perdido", categoria: "perdido", cor: "#EF4444" },
-    ],
-  },
-  {
-    nome: "Engenharia",
-    etapas: [
-      { nome: "Aguardando Documentação", categoria: "aberto", cor: "#3B82F6" },
-      { nome: "Em Projeto", categoria: "aberto", cor: "#6366F1" },
-      { nome: "Aprovado", categoria: "aberto", cor: "#10B981" },
-      { nome: "Cancelado", categoria: "perdido", cor: "#EF4444" },
-    ],
-  },
-  {
-    nome: "Equipamento",
-    etapas: [
-      { nome: "Aguardando Compra", categoria: "aberto", cor: "#3B82F6" },
-      { nome: "Em Trânsito", categoria: "aberto", cor: "#F59E0B" },
-      { nome: "Recebido", categoria: "ganho", cor: "#10B981" },
-    ],
-  },
-  {
-    nome: "Compesação",
-    etapas: [
-      { nome: "Aguardando Vistoria", categoria: "aberto", cor: "#3B82F6" },
-      { nome: "Em Análise", categoria: "aberto", cor: "#F59E0B" },
-      { nome: "Homologado", categoria: "ganho", cor: "#10B981" },
-    ],
-  },
-];
-
+// ─── Bootstrap de funis a partir do staging do SolarMarket ──────────────────
+// REGRAS RB-61 / RB-65 / RB-73:
+//   - NUNCA criar etapas hardcoded "Aguardando Documentação", "Aguardando Compra",
+//     etc. Essas etapas inventadas não correspondem ao que existe no SM e fazem
+//     o motor cair em fallback genérico, perdendo a posição real do projeto.
+//   - O `projeto_funis`/`projeto_etapas` espelho DEVE replicar exatamente os
+//     funis e etapas presentes em `sm_funis_raw` (nome, ordem, quantidade).
+//   - Idempotente: só insere o que falta. Não renomeia nem apaga existentes
+//     (preserva personalizações do usuário).
+//   - Categoria padrão: última etapa = "ganho", demais = "aberto" (heurística
+//     simples; usuário pode ajustar via UI depois).
 async function ensureDefaultFunis(admin: SupabaseClient, tenantId: string): Promise<void> {
+  // 1) Carrega TODOS os funis do staging
+  const { data: smFunis, error: smErr } = await admin
+    .from("sm_funis_raw")
+    .select("payload")
+    .eq("tenant_id", tenantId);
+  if (smErr) {
+    console.error(`[${MODULE}] ensureDefaultFunis: falha ao ler sm_funis_raw: ${smErr.message}`);
+    return;
+  }
+  if (!smFunis || smFunis.length === 0) {
+    console.warn(`[${MODULE}] ensureDefaultFunis: sm_funis_raw vazio para tenant ${tenantId}, nada a espelhar`);
+    return;
+  }
+
+  // 2) Carrega funis já existentes no tenant (case-insensitive por nome)
   const { data: existing } = await admin
     .from("projeto_funis")
     .select("id, nome, ordem")
@@ -2540,44 +2524,80 @@ async function ensureDefaultFunis(admin: SupabaseClient, tenantId: string): Prom
     if ((f.ordem as number) > maxOrdem) maxOrdem = f.ordem as number;
   }
 
-  for (const def of DEFAULT_FUNIS) {
-    const key = def.nome.toLowerCase();
+  // 3) Para cada funil do SM: garante o projeto_funis e replica as etapas reais
+  for (const row of smFunis as AnyObj[]) {
+    const payload = (row.payload ?? {}) as AnyObj;
+    const funilNome = String(payload.name ?? "").trim();
+    if (!funilNome) continue;
+
+    // Pula funil "Vendedores" — é mapa de consultores, não pipeline real
+    if (funilNome.toLowerCase() === "vendedores") continue;
+
+    const stagesRaw = Array.isArray(payload.stages) ? (payload.stages as AnyObj[]) : [];
+    if (stagesRaw.length === 0) continue;
+
+    // Ordena pelas ordens originais do SM
+    const stagesOrdenadas = [...stagesRaw].sort(
+      (a, b) => (Number(a.order) || 0) - (Number(b.order) || 0),
+    );
+
+    const key = funilNome.toLowerCase();
     let funilId = existingByName.get(key)?.id;
+
     if (!funilId) {
       maxOrdem += 1;
       const { data: created, error } = await admin
         .from("projeto_funis")
-        .insert({ tenant_id: tenantId, nome: def.nome, ordem: maxOrdem, ativo: true })
+        .insert({
+          tenant_id: tenantId,
+          nome: funilNome,
+          ordem: maxOrdem,
+          ativo: true,
+        })
         .select("id")
         .single();
       if (error || !created?.id) {
-        console.error(`[${MODULE}] ensureDefaultFunis falha em ${def.nome}:`, error?.message);
+        console.error(`[${MODULE}] ensureDefaultFunis falha em ${funilNome}:`, error?.message);
         continue;
       }
       funilId = created.id as string;
+      existingByName.set(key, { id: funilId, ordem: maxOrdem });
     }
 
-    // Etapas: cria apenas as que faltam (case-insensitive por nome).
-    const { data: stages } = await admin
+    // 4) Etapas: replica EXATAMENTE as do SM (nome + ordem). Só insere o que falta.
+    const { data: stagesAtuais } = await admin
       .from("projeto_etapas")
-      .select("nome")
+      .select("nome, ordem")
       .eq("tenant_id", tenantId)
       .eq("funil_id", funilId);
-    const stageNames = new Set((stages ?? []).map((s: AnyObj) => String(s.nome).trim().toLowerCase()));
+    const stageNamesExistentes = new Set(
+      (stagesAtuais ?? []).map((s: AnyObj) => String(s.nome).trim().toLowerCase()),
+    );
+    const ordemBase = (stagesAtuais ?? []).reduce(
+      (max, s: AnyObj) => Math.max(max, Number(s.ordem) || 0),
+      -1,
+    );
 
-    const toInsert = def.etapas
-      .filter((e) => !stageNames.has(e.nome.toLowerCase()))
-      .map((e, idx) => ({
+    const toInsert: AnyObj[] = [];
+    stagesOrdenadas.forEach((s, idx) => {
+      const etapaNome = String(s?.name ?? "").trim();
+      if (!etapaNome) return;
+      if (stageNamesExistentes.has(etapaNome.toLowerCase())) return;
+      const isLast = idx === stagesOrdenadas.length - 1;
+      toInsert.push({
         tenant_id: tenantId,
         funil_id: funilId!,
-        nome: e.nome,
-        ordem: stageNames.size + idx,
-        categoria: e.categoria,
-        cor: e.cor,
-      }));
+        nome: etapaNome,
+        ordem: ordemBase + 1 + idx,
+        categoria: isLast ? "ganho" : "aberto",
+      });
+    });
+
     if (toInsert.length > 0) {
       const { error: insErr } = await admin.from("projeto_etapas").insert(toInsert);
-      if (insErr) console.error(`[${MODULE}] ensureDefaultFunis etapas ${def.nome}:`, insErr.message);
+      if (insErr) {
+        console.error(`[${MODULE}] ensureDefaultFunis etapas ${funilNome}:`, insErr.message);
+      }
     }
   }
 }
