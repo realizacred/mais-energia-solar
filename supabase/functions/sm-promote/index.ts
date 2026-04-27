@@ -402,6 +402,29 @@ async function fetchPromotedSourceIds(
 ): Promise<string[]> {
   const pageSize = 1000;
   const out: string[] = [];
+
+  // Proposta só conta como promovida quando a proposta existe e já tem deal_id.
+  // Lê direto do canônico para não depender de links órfãos nem montar .in() gigante.
+  if (sourceEntityType === "proposta" && entityType === "proposta") {
+    for (let from = 0; ; from += pageSize) {
+      const { data, error } = await admin
+        .from("propostas_nativas")
+        .select("external_id")
+        .eq("tenant_id", tenantId)
+        .in("external_source", [...LEGACY_SM_SOURCES])
+        .not("deal_id", "is", null)
+        .range(from, from + pageSize - 1);
+      if (error) throw new Error(`fetchPromotedSourceIds propostas: ${error.message}`);
+      if (!data || data.length === 0) break;
+      for (const r of data) {
+        const sourceEntityId = pickStr((r as AnyObj).external_id);
+        if (sourceEntityId) out.push(sourceEntityId);
+      }
+      if (data.length < pageSize) break;
+    }
+    return out;
+  }
+
   for (let from = 0; ; from += pageSize) {
     const { data, error } = await admin
       .from("external_entity_links")
@@ -412,29 +435,9 @@ async function fetchPromotedSourceIds(
       .range(from, from + pageSize - 1);
     if (error) throw new Error(`fetchPromotedSourceIds: ${error.message}`);
     if (!data || data.length === 0) break;
-    if (sourceEntityType === "proposta" && entityType === "proposta") {
-      const entityIds = data.map((r) => pickStr((r as AnyObj).entity_id)).filter(Boolean) as string[];
-      const promotedEntityIds = new Set<string>();
-      if (entityIds.length > 0) {
-        const { data: propostas, error: propErr } = await admin
-          .from("propostas_nativas")
-          .select("id")
-          .eq("tenant_id", tenantId)
-          .in("id", entityIds)
-          .not("deal_id", "is", null);
-        if (propErr) throw new Error(`fetchPromotedSourceIds propostas: ${propErr.message}`);
-        for (const p of propostas ?? []) promotedEntityIds.add(String((p as AnyObj).id));
-      }
-      for (const r of data) {
-        const sourceEntityId = pickStr((r as AnyObj).source_entity_id);
-        const entityId = pickStr((r as AnyObj).entity_id);
-        if (sourceEntityId && entityId && promotedEntityIds.has(entityId)) out.push(sourceEntityId);
-      }
-    } else {
-      for (const r of data) {
-        const sourceEntityId = pickStr((r as AnyObj).source_entity_id);
-        if (sourceEntityId) out.push(sourceEntityId);
-      }
+    for (const r of data) {
+      const sourceEntityId = pickStr((r as AnyObj).source_entity_id);
+      if (sourceEntityId) out.push(sourceEntityId);
     }
     if (data.length < pageSize) break;
   }
