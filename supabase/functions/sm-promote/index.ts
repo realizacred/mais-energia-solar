@@ -31,6 +31,7 @@ const SOURCE = "solarmarket";
 const LEGACY_SM_SOURCES = [SOURCE, "solar_market"] as const;
 const DEFAULT_BATCH_LIMIT = 5;
 const MAX_BATCH_LIMIT = 5;
+const SUBJOB_HEARTBEAT_EVERY = 1;
 
 type CanonicalEntity = "cliente" | "projeto" | "proposta" | "versao";
 type Severity = "info" | "warning" | "error";
@@ -2633,6 +2634,7 @@ async function actionPromoteAll(
   await patchJob(admin, jobId, {
     status: "running" satisfies JobStatus,
     started_at: new Date().toISOString(),
+    last_step_at: new Date().toISOString(),
   });
 
   if (!dryRun) {
@@ -2744,6 +2746,9 @@ async function actionPromoteAll(
   // durante a migração em massa. Velocidade menor, estabilidade maior.
   const PARALLEL_CHUNK = 1;
   for (let i = 0; i < candidates.length; i += PARALLEL_CHUNK) {
+    if (i % SUBJOB_HEARTBEAT_EVERY === 0) {
+      await patchJob(admin, jobId, { last_step_at: new Date().toISOString() });
+    }
     const slice = candidates.slice(i, i + PARALLEL_CHUNK);
     await Promise.all(
       slice.map((row) =>
@@ -2773,6 +2778,7 @@ async function actionPromoteAll(
   const basePatch: Parameters<typeof patchJob>[2] = {
     status: finalStatus,
     finished_at: new Date().toISOString(),
+    last_step_at: new Date().toISOString(),
     items_processed: state.counters.processed,
     items_promoted: state.counters.promoted,
     items_skipped: state.counters.skipped,
