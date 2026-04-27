@@ -8,8 +8,8 @@
  * Mantém header "Step 3 — Migrar dados para o CRM" e botão "Voltar para mapeamentos".
  */
 import { useState } from "react";
-import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
+import { MigrationLayout } from "@/components/admin/solarmarket/MigrationLayout";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
