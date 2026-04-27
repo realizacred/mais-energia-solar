@@ -2060,7 +2060,7 @@ async function runDryRunReport(
       const propostaPayload: AnyObj =
         propostaPayloadsByExtId.get(String((row as AnyObj).external_id)) ??
         ((row as AnyObj).payload as AnyObj) ?? {};
-      const propExtId = pickStr(propostaPayload.id) ?? (row.external_id as string | null);
+      const propExtId = resolveProposalSourceKey(row as AnyObj);
       const projectExtId = pickStr(propostaPayload.project?.id);
 
       if (!projectExtId) {
@@ -2198,7 +2198,7 @@ async function promoteOneProposalRow(
   scope: PromotionScope = "proposta",
 ): Promise<"promoted" | "skipped" | "blocked" | "error"> {
   const propostaPayload: AnyObj = rawProposalRow.payload ?? {};
-  const propExtId = pickStr(propostaPayload.id) ?? rawProposalRow.external_id;
+  const propExtId = resolveProposalSourceKey(rawProposalRow);
   if (!propExtId) {
     state.counters.errors++;
     logEventBuffered(state, admin, {
