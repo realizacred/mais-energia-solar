@@ -1068,6 +1068,7 @@ function InstanceFormDialog({
                 </div>
               )}
 
+              {!isRegister && (
                 <div className="rounded-lg bg-muted/30 border border-border p-3">
                   <p className="text-xs text-muted-foreground">
                     🔑 A API Key global configurada no servidor será usada automaticamente para criar a instância.
