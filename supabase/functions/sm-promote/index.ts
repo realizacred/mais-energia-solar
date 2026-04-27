@@ -2338,6 +2338,7 @@ async function promoteOneProposalRow(
   pipeline: PipelineResolution,
   consultorFallback: ConsultorResolution,
   scope: PromotionScope = "proposta",
+  clienteCache?: ClienteCache,
 ): Promise<"promoted" | "skipped" | "blocked" | "error"> {
   const propostaPayload: AnyObj = rawProposalRow.payload ?? {};
   const propExtId = resolveProposalSourceKey(rawProposalRow);
