@@ -2953,6 +2953,60 @@ async function actionPromoteAll(
     });
   }
 
+  // ─── PERFORMANCE (Fase B): pré-busca cache de clientes existentes em UMA query ───
+  // Antes: cada `promoteCliente` fazia 5 SELECTs de dedup (~250ms × N clientes).
+  // Depois: 1 SELECT bulk no início + lookup em memória (Map) por cliente.
+  // Cache é opcional — se prefetch falhar, `promoteCliente` cai no caminho normal.
+  let clienteCache: ClienteCache | undefined;
+  try {
+    // Coleta external_ids de clientes referenciados por todas as propostas do batch.
+    const projectExtIds = new Set<string>();
+    for (const r of candidates as AnyObj[]) {
+      const projId = pickStr((r.payload as AnyObj)?.project?.id);
+      if (projId) projectExtIds.add(projId);
+    }
+    if (projectExtIds.size > 0) {
+      // Carrega payloads de projetos (para extrair client.id) em sub-chunks de 200.
+      const projIdArr = Array.from(projectExtIds);
+      const clienteExtIds = new Set<string>();
+      const rawClientesForCache: AnyObj[] = [];
+      for (let j = 0; j < projIdArr.length; j += 200) {
+        const sub = projIdArr.slice(j, j + 200);
+        const { data: projRows } = await admin
+          .from("sm_projetos_raw")
+          .select("payload")
+          .eq("tenant_id", tenantId)
+          .in("external_id", sub);
+        for (const p of (projRows ?? []) as AnyObj[]) {
+          const cid = pickStr((p.payload as AnyObj)?.client?.id);
+          if (cid) clienteExtIds.add(cid);
+          // Inline client (alguns projetos trazem o cliente embutido)
+          if ((p.payload as AnyObj)?.client) {
+            rawClientesForCache.push((p.payload as AnyObj).client as AnyObj);
+          }
+        }
+      }
+      // Carrega payloads de sm_clientes_raw em sub-chunks de 200.
+      const cliIdArr = Array.from(clienteExtIds);
+      for (let j = 0; j < cliIdArr.length; j += 200) {
+        const sub = cliIdArr.slice(j, j + 200);
+        const { data: cliRows } = await admin
+          .from("sm_clientes_raw")
+          .select("payload")
+          .eq("tenant_id", tenantId)
+          .in("external_id", sub);
+        for (const c of (cliRows ?? []) as AnyObj[]) {
+          if (c.payload) rawClientesForCache.push(c.payload as AnyObj);
+        }
+      }
+      clienteCache = await prefetchClienteCache(admin, tenantId, rawClientesForCache);
+    }
+  } catch (err) {
+    // Falha no prefetch é não-fatal: cada promoteCliente faz fallback para SELECTs paralelos da Fase A.
+    console.error(`[${MODULE}] prefetchClienteCache falhou (não-fatal):`, (err as Error).message);
+    clienteCache = undefined;
+  }
+
   // Modo seguro: processamento serial para evitar estouro de CPU e colisões de concorrência
   // durante a migração em massa. Velocidade menor, estabilidade maior.
   const PARALLEL_CHUNK = 1;
@@ -2963,7 +3017,7 @@ async function actionPromoteAll(
     const slice = candidates.slice(i, i + PARALLEL_CHUNK);
     await Promise.all(
       slice.map((row) =>
-        promoteOneProposalRow(admin, state, jobId, tenantId, row, pipeline, consultorFallback, scope)
+        promoteOneProposalRow(admin, state, jobId, tenantId, row, pipeline, consultorFallback, scope, clienteCache)
           .catch((err) => {
             console.error(`[${MODULE}] promoteOneProposalRow uncaught:`, (err as Error).message);
           }),
