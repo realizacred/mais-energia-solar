@@ -2662,24 +2662,47 @@ async function actionPromoteAll(
   const promotedIds = await fetchPromotedSourceIds(admin, tenantId, "proposta", "proposta");
   const selectCols = dryRun ? "id, external_id" : "id, external_id, payload";
   const promotedSet = new Set(promotedIds);
-  const fetchQuery = admin
-    .from("sm_propostas_raw")
-    .select(selectCols)
-    .eq("tenant_id", tenantId)
-    .not("external_id", "in", `(${promotedIds.map((id) => `"${String(id).replace(/"/g, "\\\"")}"`).join(",")})`)
-    .order("imported_at", { ascending: true })
-    .range(0, Math.max(0, batchLimit - 1));
-  const { data: rawRows, error: fetchErr } = await fetchQuery;
-  const rows = (rawRows ?? []).filter((r: AnyObj) => {
-    const sourceKey = resolveProposalSourceKey(r);
-    return sourceKey ? !promotedSet.has(sourceKey) : true;
-  }).slice(0, batchLimit);
-  if (fetchErr) {
-    await patchJob(admin, jobId, {
-      status: "failed", finished_at: new Date().toISOString(),
-      error_summary: { fetch: fetchErr.message },
-    });
-    return jsonResponse({ ok: false, job_id: jobId, error: fetchErr.message }, 500);
+  const candidateMeta: AnyObj[] = [];
+  const pageSize = 100;
+  for (let from = 0; candidateMeta.length < batchLimit; from += pageSize) {
+    const { data: pageRows, error: pageErr } = await admin
+      .from("sm_propostas_raw")
+      .select("id, external_id")
+      .eq("tenant_id", tenantId)
+      .order("imported_at", { ascending: true })
+      .range(from, from + pageSize - 1);
+    if (pageErr) {
+      await patchJob(admin, jobId, {
+        status: "failed", finished_at: new Date().toISOString(),
+        error_summary: { fetch: pageErr.message },
+      });
+      return jsonResponse({ ok: false, job_id: jobId, error: pageErr.message }, 500);
+    }
+    for (const r of (pageRows ?? []) as AnyObj[]) {
+      const sourceKey = resolveProposalSourceKey(r);
+      if (!sourceKey || !promotedSet.has(sourceKey)) candidateMeta.push(r);
+      if (candidateMeta.length >= batchLimit) break;
+    }
+    if (!pageRows || pageRows.length < pageSize) break;
+  }
+
+  let rows = candidateMeta;
+  if (!dryRun && candidateMeta.length > 0) {
+    const ids = candidateMeta.map((r) => r.id).filter(Boolean);
+    const { data: payloadRows, error: payloadErr } = await admin
+      .from("sm_propostas_raw")
+      .select(selectCols)
+      .eq("tenant_id", tenantId)
+      .in("id", ids);
+    if (payloadErr) {
+      await patchJob(admin, jobId, {
+        status: "failed", finished_at: new Date().toISOString(),
+        error_summary: { fetch: payloadErr.message },
+      });
+      return jsonResponse({ ok: false, job_id: jobId, error: payloadErr.message }, 500);
+    }
+    const payloadById = new Map((payloadRows ?? []).map((r: AnyObj) => [r.id, r]));
+    rows = candidateMeta.map((r) => payloadById.get(r.id) ?? r);
   }
 
   const candidates = rows ?? [];
