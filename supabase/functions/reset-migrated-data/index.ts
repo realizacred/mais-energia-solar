@@ -202,7 +202,8 @@ Deno.serve(async (req) => {
       }
     }
 
-    // deals por cliente/projeto
+    // deals vinculados aos projetos SM.
+    // RB-74: deals não possui external_source nem cliente_id; o vínculo seguro é via projetos.deal_id/projeto_id.
     if (projetoIds.length > 0) {
       for (const ids of chunk(projetoIds)) {
         const { data, error } = await admin
@@ -212,18 +213,6 @@ Deno.serve(async (req) => {
           .in("projeto_id", ids)
           .select("id");
         if (error) return jsonResponse({ error: `deals(projeto): ${error.message}` }, 500);
-        counts.deals += data?.length ?? 0;
-      }
-    }
-    if (clienteIds.length > 0) {
-      for (const ids of chunk(clienteIds)) {
-        const { data, error } = await admin
-          .from("deals")
-          .delete()
-          .eq("tenant_id", tenantId)
-          .in("cliente_id", ids)
-          .select("id");
-        if (error) return jsonResponse({ error: `deals(cliente): ${error.message}` }, 500);
         counts.deals += data?.length ?? 0;
       }
     }
