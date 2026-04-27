@@ -397,10 +397,12 @@ export default function MigracaoStep2Mapear() {
                       )}
                     </div>
                   )}
-                </CardContent>
-              </Card>
-            );
-          })}
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {/* Mapeamento etapa → consultor (apenas para funis 'vendedor_source') */}
@@ -466,6 +468,6 @@ export default function MigracaoStep2Mapear() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </MigrationLayout>
   );
 }
