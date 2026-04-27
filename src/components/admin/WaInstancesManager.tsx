@@ -594,7 +594,8 @@ function InstanceFormDialog({
       if (pollingRef.current) clearInterval(pollingRef.current);
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
     }
-  }, [open, instance, initialVendedorIds]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, instance?.id]);
 
   useEffect(() => {
     return () => {
