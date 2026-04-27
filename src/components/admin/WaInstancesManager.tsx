@@ -554,6 +554,10 @@ function InstanceFormDialog({
   const [selectedVendedorIds, setSelectedVendedorIds] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
 
+  // Buscar instâncias existentes no servidor (modo register)
+  const [remoteInstances, setRemoteInstances] = useState<Array<{ name: string; status: string; phone_number: string | null; profile_name: string | null; already_linked: boolean }> | null>(null);
+  const [fetchingRemote, setFetchingRemote] = useState(false);
+
   // QR Code flow state (only for new instances)
   const [step, setStep] = useState<CreateStep>("form");
   const [qrCode, setQrCode] = useState<string | null>(null);
@@ -584,6 +588,8 @@ function InstanceFormDialog({
       setCreatedInstanceId(null);
       setQrStatus("waiting");
       setQrError(null);
+      setRemoteInstances(null);
+      setFetchingRemote(false);
     } else {
       if (pollingRef.current) clearInterval(pollingRef.current);
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
@@ -605,7 +611,39 @@ function InstanceFormDialog({
     );
   };
 
-  // For editing existing instances
+  // Buscar instâncias existentes no servidor Evolution para o usuário escolher
+  const handleFetchRemoteInstances = async () => {
+    if (!apiUrl.trim()) {
+      toast({ title: "URL obrigatória", description: "Informe a URL do servidor Evolution antes de buscar.", variant: "destructive" });
+      return;
+    }
+    setFetchingRemote(true);
+    setRemoteInstances(null);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) throw new Error("Sessão inválida");
+      const { data, error } = await supabase.functions.invoke("list-evolution-instances", {
+        headers: { Authorization: `Bearer ${session.access_token}` },
+        body: {
+          api_url: apiUrl.trim(),
+          api_key: apiKey.trim(),
+          api_flavor: apiFlavor,
+        },
+      });
+      if (error) throw error;
+      if (!data?.success) throw new Error(data?.error || "Erro ao buscar instâncias");
+      setRemoteInstances(data.instances || []);
+      if (!data.instances?.length) {
+        toast({ title: "Nenhuma instância encontrada", description: "O servidor Evolution não retornou instâncias." });
+      }
+    } catch (e: any) {
+      console.error("[list-evolution-instances]", e);
+      toast({ title: "Erro ao buscar", description: e.message, variant: "destructive" });
+    } finally {
+      setFetchingRemote(false);
+    }
+  };
+
   const handleSubmitEdit = async () => {
     if (!nome.trim() || !instanceKey.trim() || !apiUrl.trim()) return;
     setSaving(true);
@@ -955,6 +993,78 @@ function InstanceFormDialog({
                   <p className="text-[10px] text-muted-foreground mt-1">
                     Obrigatória para validar a instância existente.
                   </p>
+                </div>
+              )}
+
+              {isRegister && (
+                <div className="rounded-lg border border-border bg-muted/20 p-3 space-y-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-xs font-medium text-foreground">
+                      Não sabe o nome exato? Busque no servidor:
+                    </p>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={handleFetchRemoteInstances}
+                      disabled={fetchingRemote || !apiUrl.trim()}
+                      className="gap-1.5 h-7 text-xs"
+                    >
+                      {fetchingRemote ? <Spinner size="sm" /> : <RefreshCw className="h-3 w-3" />}
+                      Buscar instâncias
+                    </Button>
+                  </div>
+                  {remoteInstances && remoteInstances.length > 0 && (
+                    <div className="max-h-48 overflow-y-auto space-y-1 border-t pt-2">
+                      {remoteInstances.map((ri) => {
+                        const isSelected = instanceKey === ri.name;
+                        return (
+                          <button
+                            key={ri.name}
+                            type="button"
+                            disabled={ri.already_linked}
+                            onClick={() => {
+                              setInstanceKey(ri.name);
+                              if (!nome.trim()) setNome(ri.profile_name || ri.name);
+                            }}
+                            className={`w-full text-left p-2 rounded-md border text-xs transition-colors ${
+                              ri.already_linked
+                                ? "bg-muted/50 border-border opacity-60 cursor-not-allowed"
+                                : isSelected
+                                ? "bg-primary/10 border-primary"
+                                : "bg-background border-border hover:bg-accent"
+                            }`}
+                          >
+                            <div className="flex items-center justify-between gap-2">
+                              <div className="flex-1 min-w-0">
+                                <p className="font-mono font-medium truncate">{ri.name}</p>
+                                {(ri.profile_name || ri.phone_number) && (
+                                  <p className="text-[10px] text-muted-foreground truncate">
+                                    {ri.profile_name}{ri.profile_name && ri.phone_number ? " · " : ""}{ri.phone_number}
+                                  </p>
+                                )}
+                              </div>
+                              <Badge
+                                variant="outline"
+                                className={`text-[9px] shrink-0 ${
+                                  ri.already_linked
+                                    ? "bg-muted text-muted-foreground"
+                                    : ri.status === "connected"
+                                    ? "bg-success/10 text-success border-success/20"
+                                    : "bg-muted text-muted-foreground"
+                                }`}
+                              >
+                                {ri.already_linked ? "já vinculada" : ri.status}
+                              </Badge>
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                  {remoteInstances && remoteInstances.length === 0 && (
+                    <p className="text-[10px] text-muted-foreground italic">Nenhuma instância encontrada no servidor.</p>
+                  )}
                 </div>
               )}
 
