@@ -588,6 +588,8 @@ function InstanceFormDialog({
       setCreatedInstanceId(null);
       setQrStatus("waiting");
       setQrError(null);
+      setRemoteInstances(null);
+      setFetchingRemote(false);
     } else {
       if (pollingRef.current) clearInterval(pollingRef.current);
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
