@@ -2666,8 +2666,9 @@ async function actionPromoteAll(
     .from("sm_propostas_raw")
     .select(selectCols)
     .eq("tenant_id", tenantId)
+    .not("external_id", "in", `(${promotedIds.map((id) => `"${String(id).replace(/"/g, "\\\"")}"`).join(",")})`)
     .order("imported_at", { ascending: true })
-    .range(0, Math.max(0, batchLimit - 1 + promotedSet.size));
+    .range(0, Math.max(0, batchLimit - 1));
   const { data: rawRows, error: fetchErr } = await fetchQuery;
   const rows = (rawRows ?? []).filter((r: AnyObj) => {
     const sourceKey = resolveProposalSourceKey(r);
