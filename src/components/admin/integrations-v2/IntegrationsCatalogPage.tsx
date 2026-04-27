@@ -52,19 +52,24 @@ const FUNCTIONAL_MONITORING_IDS = new Set([
  * Providers that have dedicated configuration components.
  * Rendered inline inside the catalog instead of navigating away.
  */
+const WaInstancesClassic = lazy(() =>
+  import("@/components/admin/WaInstancesManager").then((m) => ({
+    default: function WaInstancesClassicWrapper() {
+      return <m.WaInstancesManager apiFlavorFilter="classic" />;
+    },
+  }))
+);
+const WaInstancesGo = lazy(() =>
+  import("@/components/admin/WaInstancesManager").then((m) => ({
+    default: function WaInstancesGoWrapper() {
+      return <m.WaInstancesManager apiFlavorFilter="go" />;
+    },
+  }))
+);
+
 const DEDICATED_COMPONENTS: Record<string, React.LazyExoticComponent<React.ComponentType<any>>> = {
-  // Evolution Clássica → mostra apenas instâncias api_flavor=classic e trava o seletor
-  whatsapp_evolution: lazy(() =>
-    import("@/components/admin/WaInstancesManager").then((m) => ({
-      default: () => <m.WaInstancesManager apiFlavorFilter="classic" />,
-    }))
-  ),
-  // Evolution GO → mostra apenas instâncias api_flavor=go e trava o seletor
-  whatsapp_evolution_go: lazy(() =>
-    import("@/components/admin/WaInstancesManager").then((m) => ({
-      default: () => <m.WaInstancesManager apiFlavorFilter="go" />,
-    }))
-  ),
+  whatsapp_evolution: WaInstancesClassic,
+  whatsapp_evolution_go: WaInstancesGo,
   meta_facebook: lazy(() => import("@/pages/admin/MetaFacebookConfigPage")),
   instagram_api: lazy(() => import("@/components/admin/InstagramConfig").then(m => ({ default: m.InstagramConfig }))),
   google_calendar: lazy(() => import("@/components/admin/integrations/IntegrationsPage")),
