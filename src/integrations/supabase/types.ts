@@ -28123,6 +28123,14 @@ export type Database = {
         Args: { _job_id: string; _lease_seconds?: number; _tenant_id: string }
         Returns: boolean
       }
+      sm_validate_migration_readiness: {
+        Args: { p_tenant_id: string }
+        Returns: {
+          check_name: string
+          check_status: string
+          details: Json
+        }[]
+      }
       start_conversation_by_phone:
         | {
             Args: {
