@@ -28127,8 +28127,8 @@ export type Database = {
         Args: { p_tenant_id: string }
         Returns: {
           check_name: string
+          check_status: string
           details: Json
-          status: string
         }[]
       }
       start_conversation_by_phone:
