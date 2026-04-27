@@ -554,6 +554,10 @@ function InstanceFormDialog({
   const [selectedVendedorIds, setSelectedVendedorIds] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
 
+  // Buscar instâncias existentes no servidor (modo register)
+  const [remoteInstances, setRemoteInstances] = useState<Array<{ name: string; status: string; phone_number: string | null; profile_name: string | null; already_linked: boolean }> | null>(null);
+  const [fetchingRemote, setFetchingRemote] = useState(false);
+
   // QR Code flow state (only for new instances)
   const [step, setStep] = useState<CreateStep>("form");
   const [qrCode, setQrCode] = useState<string | null>(null);
