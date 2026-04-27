@@ -81,13 +81,16 @@ async function countBacklog(
     .from("sm_propostas_raw")
     .select("id", { count: "exact", head: true })
     .eq("tenant_id", tenantId);
-  const { count: linked } = await admin
-    .from("external_entity_links")
+  // Só considera proposta realmente concluída quando existe no CRM E já tem deal_id.
+  // Links órfãos/antigos em external_entity_links não podem zerar o backlog,
+  // senão o job marca "completed" enquanto a UI ainda mostra pendentes.
+  const { count: promotedWithDeal } = await admin
+    .from("propostas_nativas")
     .select("id", { count: "exact", head: true })
     .eq("tenant_id", tenantId)
-    .in("source", [...SOURCE_LIST])
-    .eq("source_entity_type", "proposta");
-  return Math.max(0, (total ?? 0) - (linked ?? 0));
+    .in("external_source", [...SOURCE_LIST])
+    .not("deal_id", "is", null);
+  return Math.max(0, (total ?? 0) - (promotedWithDeal ?? 0));
 }
 
 /**
