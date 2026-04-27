@@ -62,6 +62,7 @@ import {
   useCreatePipelineCrm,
 } from "@/hooks/usePipelinesCrm";
 import { useCriarPipelineAuto } from "@/hooks/useCriarPipelineAuto";
+import { useEnsureComercialMirror } from "@/hooks/useEnsureComercialMirror";
 import { useSmEtapasFunil } from "@/hooks/useSmEtapasFunil";
 import { useSmConsultorMappings } from "@/hooks/useSmConsultorMapping";
 import { useMigrationConfig } from "@/hooks/useMigrationConfig";
@@ -100,6 +101,9 @@ const PAPEIS: { value: FunilPapel; label: string; descricao: string; icon: typeo
 
 export default function MigracaoStep2Mapear() {
   const { data: tenantId } = useTenantId();
+  // Garante o funil de execução "Comercial" espelhando o pipeline existente
+  // (RB-61: arquitetura dual). Roda 1x ao montar.
+  useEnsureComercialMirror(tenantId);
   const { data: funis, isLoading } = useSmFunisStaging(tenantId ?? undefined);
   const { data: pipelines } = usePipelinesCrm(tenantId);
   const { data: config } = useMigrationConfig(tenantId);
