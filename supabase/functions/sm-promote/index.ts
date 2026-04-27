@@ -706,20 +706,130 @@ function buildCanonicalSnapshot(args: {
 }
 
 // ─── Promotores canônicos ────────────────────────────────────────────────────
+
+/**
+ * ClienteCache — cache em memória (escopo do chunk) para evitar N+1 de SELECTs
+ * em `clientes` ao promover múltiplos clientes do mesmo lote.
+ *
+ * Estrutura: 5 índices (external_id, cliente_code, cpf_cnpj, telefone_normalized, email)
+ * apontando para o mesmo `id` canônico. Populado por `prefetchClienteCache` com
+ * UMA query bulk no início do chunk; `promoteCliente` consulta antes de cair
+ * nos 5 SELECTs paralelos da Fase A.
+ *
+ * Não substitui a verificação por link (`external_entity_links`), que é SSOT
+ * de idempotência (RB-64) e permanece como primeiro passo.
+ */
+export type ClienteCache = {
+  byExternalId: Map<string, string>;
+  byCode: Map<string, string>;
+  byDoc: Map<string, string>;
+  byPhone: Map<string, string>;
+  byEmail: Map<string, string>;
+};
+
+export function emptyClienteCache(): ClienteCache {
+  return {
+    byExternalId: new Map(),
+    byCode: new Map(),
+    byDoc: new Map(),
+    byPhone: new Map(),
+    byEmail: new Map(),
+  };
+}
+
+/**
+ * Pré-busca em UMA query todos os clientes existentes do tenant que casam
+ * com qualquer identificador do lote de raws. Reduz N×5 SELECTs para 1.
+ */
+export async function prefetchClienteCache(
+  admin: SupabaseClient,
+  tenantId: string,
+  rawClientes: AnyObj[],
+): Promise<ClienteCache> {
+  const cache = emptyClienteCache();
+  if (!rawClientes.length) return cache;
+
+  const extIds = new Set<string>();
+  const codes = new Set<string>();
+  const docs = new Set<string>();
+  const phones = new Set<string>();
+  const emails = new Set<string>();
+
+  for (const raw of rawClientes) {
+    const n = normalizeSmClient(raw);
+    if (!n.external_id) continue;
+    extIds.add(n.external_id);
+    codes.add(`SM-${n.external_id}`.slice(0, 32));
+    if (n.cpf_cnpj_digits) docs.add(n.cpf_cnpj_digits);
+    if (n.cpf_cnpj && n.cpf_cnpj !== n.cpf_cnpj_digits) docs.add(n.cpf_cnpj);
+    if (n.telefone_digits) phones.add(n.telefone_digits);
+    if (n.email) emails.add(n.email);
+  }
+
+  if (!extIds.size && !codes.size && !docs.size && !phones.size && !emails.size) {
+    return cache;
+  }
+
+  // OR composto numa única query — Postgres usa os índices apropriados.
+  const orParts: string[] = [];
+  if (extIds.size) orParts.push(`external_id.in.(${Array.from(extIds).map((v) => `"${v}"`).join(",")})`);
+  if (codes.size) orParts.push(`cliente_code.in.(${Array.from(codes).map((v) => `"${v}"`).join(",")})`);
+  if (docs.size) orParts.push(`cpf_cnpj.in.(${Array.from(docs).map((v) => `"${v}"`).join(",")})`);
+  if (phones.size) orParts.push(`telefone_normalized.in.(${Array.from(phones).map((v) => `"${v}"`).join(",")})`);
+  if (emails.size) orParts.push(`email.in.(${Array.from(emails).map((v) => `"${v}"`).join(",")})`);
+
+  const { data, error } = await admin
+    .from("clientes")
+    .select("id, external_id, cliente_code, cpf_cnpj, telefone_normalized, email")
+    .eq("tenant_id", tenantId)
+    .or(orParts.join(","));
+
+  if (error || !data) return cache; // fallback gracioso: caminho normal cobre
+
+  for (const row of data as AnyObj[]) {
+    const id = row.id as string;
+    if (row.external_id) cache.byExternalId.set(String(row.external_id), id);
+    if (row.cliente_code) cache.byCode.set(String(row.cliente_code), id);
+    if (row.cpf_cnpj) cache.byDoc.set(String(row.cpf_cnpj), id);
+    if (row.telefone_normalized) cache.byPhone.set(String(row.telefone_normalized), id);
+    if (row.email) cache.byEmail.set(String(row.email).toLowerCase(), id);
+  }
+  return cache;
+}
+
 async function promoteCliente(
   admin: SupabaseClient,
   tenantId: string,
   jobId: string,
   rawCliente: AnyObj,
+  cache?: ClienteCache,
 ): Promise<{ id: string; created: boolean; matchedBy?: string }> {
   const norm = normalizeSmClient(rawCliente);
   if (!norm.external_id) throw new Error("Cliente SM sem id");
 
   const clienteCode = `SM-${norm.external_id}`.slice(0, 32);
 
-  // 1) Link existente (idempotência canônica)
+  // 1) Link existente (idempotência canônica - RB-64, SSOT)
   const existing = await findLink(admin, tenantId, "cliente", norm.external_id, "cliente");
   if (existing) return { id: existing, created: false, matchedBy: "link" };
+
+  // 1.5) PERFORMANCE (Fase B): consulta cache do chunk antes de SELECTs.
+  // Mesma ordem de prioridade da Fase A. Hit no cache = 0 round-trips de dedup.
+  if (cache) {
+    const docKey = norm.cpf_cnpj_digits || norm.cpf_cnpj || "";
+    const emailKey = norm.email?.toLowerCase() || "";
+    const cachedId =
+      (norm.external_id && cache.byExternalId.get(norm.external_id)) ||
+      cache.byCode.get(clienteCode) ||
+      (docKey && cache.byDoc.get(docKey)) ||
+      (norm.telefone_digits && cache.byPhone.get(norm.telefone_digits)) ||
+      (emailKey && cache.byEmail.get(emailKey)) ||
+      null;
+    if (cachedId) {
+      await upsertLink(admin, tenantId, jobId, "cliente", cachedId, "cliente", norm.external_id, { matched_by: "cache" });
+      return { id: cachedId, created: false, matchedBy: "cache" };
+    }
+  }
 
   // 2-5) PERFORMANCE (Fase A): paraleliza os 5 lookups de dedup independentes.
   // Antes: 5 SELECTs sequenciais (~250ms). Depois: 5 em paralelo (~50ms).
