@@ -2772,8 +2772,19 @@ async function actionPromoteAll(
 
   // Modo seguro: processamento serial para evitar estouro de CPU e colisões de concorrência
   // durante a migração em massa. Velocidade menor, estabilidade maior.
+  // Time budget interno (espelha solarmarket-import): se a invocação se aproxima do
+  // limite de CPU/wall-clock, paramos cedo e retornamos parcial — o orquestrador
+  // (sm-migrate-chunk) re-dispara para continuar de onde parou (via idempotência SSOT).
+  const PROMOTE_TIME_BUDGET_MS = 50_000;
+  const promoteStartedAt = Date.now();
   const PARALLEL_CHUNK = 1;
+  let earlyYielded = false;
   for (let i = 0; i < candidates.length; i += PARALLEL_CHUNK) {
+    if (Date.now() - promoteStartedAt > PROMOTE_TIME_BUDGET_MS) {
+      earlyYielded = true;
+      console.warn(`[${MODULE}] time-budget hit at ${i}/${candidates.length}; yielding`);
+      break;
+    }
     const slice = candidates.slice(i, i + PARALLEL_CHUNK);
     await Promise.all(
       slice.map((row) =>
