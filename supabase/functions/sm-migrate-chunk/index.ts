@@ -36,7 +36,7 @@ const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const CRON_SECRET = "sm-resume-cron-v1"; // mesmo string usado em sm_resume_stuck_migrations
 
 const SOURCE_LIST = ["solarmarket", "solar_market"] as const;
-const CHUNK_BATCH = 5;
+const CHUNK_BATCH = 25;
 const MIN_CHUNK_BATCH = 5;
 const SELF_URL = `${SUPABASE_URL}/functions/v1/sm-migrate-chunk`;
 
@@ -195,7 +195,7 @@ async function runAdaptivePromoteChunk(
   const attempts = [CHUNK_BATCH].filter((value, index, arr) => arr.indexOf(value) === index);
 
   for (const batch of attempts) {
-    const result = await callSmPromoteOnce(tenantId, batch, true);
+    const result = await callSmPromoteOnce(tenantId, batch, false);
     if (result.ok) {
       return {
         ok: true,
@@ -459,6 +459,45 @@ async function processStep(
         finished_at: new Date().toISOString(),
       })
       .eq("id", masterJobId);
+
+    // RB-65: encadear fases 3 (enrich) e 4 (custom fields) automaticamente
+    try {
+      // @ts-ignore EdgeRuntime global
+      EdgeRuntime.waitUntil((async () => {
+        try {
+          await fetch(`${SUPABASE_URL}/functions/v1/sm-enrich-versoes`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+              apikey: SUPABASE_SERVICE_ROLE_KEY,
+              "x-sm-tenant-override": tenantId,
+              "x-sm-internal-call": "sm-migrate-chunk-v1",
+            },
+            body: JSON.stringify({ tenant_id: tenantId, batch_limit: 25 }),
+          });
+        } catch (e) {
+          console.error("[sm-migrate-chunk] enrich-versoes chain failed:", e);
+        }
+        try {
+          await fetch(`${SUPABASE_URL}/functions/v1/sm-promote-custom-fields`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+              apikey: SUPABASE_SERVICE_ROLE_KEY,
+              "x-sm-tenant-override": tenantId,
+              "x-sm-internal-call": "sm-migrate-chunk-v1",
+            },
+            body: JSON.stringify({ tenant_id: tenantId, batch_limit: 20 }),
+          });
+        } catch (e) {
+          console.error("[sm-migrate-chunk] promote-custom-fields chain failed:", e);
+        }
+      })());
+    } catch (e) {
+      console.error("[sm-migrate-chunk] failed to schedule post-phases:", e);
+    }
   }
 
   return {
