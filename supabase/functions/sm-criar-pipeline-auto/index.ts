@@ -257,7 +257,7 @@ Deno.serve(async (req) => {
         nome: String(s?.name ?? "").trim() || `Etapa ${idx + 1}`,
         ordem: idx,
         // categoria default: aberto, exceto última (ganho) - heurística simples
-        categoria: idx === stages.length - 1 ? "ganho" : "aberto",
+        categoria: idx === stagesOrdenadas.length - 1 ? "ganho" : "aberto",
       }))
       .filter((e) => !nomesExistentes.has(e.nome.toLowerCase()));
 
