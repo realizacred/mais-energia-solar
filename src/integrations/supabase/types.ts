@@ -28101,6 +28101,12 @@ export type Database = {
             }
             Returns: Json
           }
+      sm_distinct_proposta_variable_keys: {
+        Args: { p_tenant_id: string }
+        Returns: {
+          key: string
+        }[]
+      }
       sm_release_promotion_step: {
         Args: { _job_id: string; _tenant_id: string }
         Returns: boolean
