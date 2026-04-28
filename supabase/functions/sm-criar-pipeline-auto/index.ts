@@ -232,12 +232,26 @@ Deno.serve(async (req) => {
     // 6) Criar projeto_etapas espelho (mesma ordem). Evita duplicar por nome.
     const { data: etapasExistentes } = await admin
       .from("projeto_etapas")
-      .select("nome")
+      .select("id, nome, ordem")
       .eq("tenant_id", tenantId)
       .eq("funil_id", funilExecId);
     const nomesExistentes = new Set(
       (etapasExistentes ?? []).map((e) => String(e.nome).trim().toLowerCase()),
     );
+
+    for (const [idx, s] of stagesOrdenadas.entries()) {
+      const etapaNome = String(s?.name ?? "").trim();
+      const existente = (etapasExistentes ?? []).find(
+        (e) => String(e.nome).trim().toLowerCase() === etapaNome.toLowerCase(),
+      );
+      if (!existente?.id || Number(existente.ordem) === idx) continue;
+      const { error: etapaOrdemErr } = await admin
+        .from("projeto_etapas")
+        .update({ ordem: idx })
+        .eq("tenant_id", tenantId)
+        .eq("id", existente.id);
+      if (etapaOrdemErr) throw new Error(`projeto_etapas ordem: ${etapaOrdemErr.message}`);
+    }
 
     const etapasRows = stagesOrdenadas
       .map((s, idx) => ({
