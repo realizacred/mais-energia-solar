@@ -49,6 +49,34 @@ const QK_SM_FIELDS = (tenantId: string | null) => ["sm-fields-raw", tenantId] as
 const QK_CF_MAPPING = (tenantId: string | null) => ["sm-cf-mapping", tenantId] as const;
 const STALE = 1000 * 60 * 5;
 
+const CONTEXT_PREFIX: Record<string, "cap" | "pre" | "pos"> = {
+  projeto: "cap",
+  pre_dimensionamento: "pre",
+  pos_dimensionamento: "pos",
+};
+
+function normalizeSmFieldKey(raw: unknown): string {
+  const value = Array.isArray(raw) ? raw[0] : raw;
+  return String(value ?? "").trim().replace(/^\[(.*)\]$/, "$1").trim();
+}
+
+function normalizeFieldBase(raw: string): string {
+  return raw
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/([a-z0-9])([A-Z])/g, "$1_$2")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "")
+    .replace(/^(cap|cape|capo|pre|pos)_/, "");
+}
+
+function buildFieldKey(context: string | null | undefined, name: string | null | undefined, smKey: string): string {
+  const prefix = CONTEXT_PREFIX[context ?? ""] ?? "cap";
+  const base = normalizeFieldBase(name?.trim() || smKey) || normalizeFieldBase(smKey) || "campo_sm";
+  return `${prefix}_${base}`;
+}
+
 /** Lista campos do staging SolarMarket (sm_custom_fields_raw). */
 export function useSmCustomFieldsStaging(tenantId: string | null) {
   return useQuery<SmField[]>({
@@ -66,9 +94,8 @@ export function useSmCustomFieldsStaging(tenantId: string | null) {
       const out: SmField[] = [];
       for (const row of (data ?? [])) {
         const p = row.payload ?? {};
-        // payload.key vem como array (["capo_i"]) ou string
-        const rawKey = Array.isArray(p.key) ? p.key[0] : p.key;
-        const key = String(rawKey ?? "").trim();
+        // payload.key pode vir como array (["capo_i"]) ou string "[capo_i]".
+        const key = normalizeSmFieldKey(p.key);
         if (!key || seen.has(key)) continue;
         seen.add(key);
         out.push({
@@ -99,7 +126,7 @@ export function useCustomFieldMappings(tenantId: string | null) {
         .eq("tenant_id", tenantId);
       if (error) throw error;
       const out: Record<string, CfMappingRow> = {};
-      for (const row of (data ?? [])) out[row.sm_field_key] = row as CfMappingRow;
+      for (const row of (data ?? [])) out[normalizeSmFieldKey(row.sm_field_key)] = row as CfMappingRow;
       return out;
     },
   });
@@ -121,9 +148,10 @@ export function useSaveCustomFieldMapping() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (input: SaveCfMappingInput) => {
+      const smFieldKey = normalizeSmFieldKey(input.smField.key);
       const payload: Record<string, any> = {
         tenant_id: input.tenantId,
-        sm_field_key: input.smField.key,
+        sm_field_key: smFieldKey,
         sm_field_label: input.smField.label,
         sm_field_type: input.smField.type,
         sm_topic: input.smField.topic,
@@ -142,9 +170,52 @@ export function useSaveCustomFieldMapping() {
         .from("sm_custom_field_mapping")
         .upsert(payload, { onConflict: "tenant_id,sm_field_key" });
       if (error) throw error;
+
+      if (input.action !== "create_new") return;
+
+      const fieldKey = buildFieldKey(
+        input.crm_field_context,
+        input.crm_field_name_input,
+        smFieldKey,
+      );
+      const { data: existingField, error: existingError } = await (supabase as any)
+        .from("deal_custom_fields")
+        .select("id")
+        .eq("tenant_id", input.tenantId)
+        .eq("field_key", fieldKey)
+        .maybeSingle();
+      if (existingError) throw existingError;
+
+      const fieldId = existingField?.id ?? (await (async () => {
+        const { data: createdField, error: createError } = await (supabase as any)
+          .from("deal_custom_fields")
+          .insert({
+            tenant_id: input.tenantId,
+            title: input.crm_field_name_input?.trim() || smFieldKey,
+            field_key: fieldKey,
+            field_type: input.crm_field_type ?? "text",
+            field_context: input.crm_field_context ?? "projeto",
+            options: [],
+            ordem: 999,
+            is_active: true,
+          })
+          .select("id")
+          .single();
+        if (createError) throw createError;
+        return createdField.id;
+      })());
+
+      const { error: linkError } = await (supabase as any)
+        .from("sm_custom_field_mapping")
+        .update({ crm_field_id: fieldId })
+        .eq("tenant_id", input.tenantId)
+        .eq("sm_field_key", smFieldKey);
+      if (linkError) throw linkError;
     },
     onSuccess: (_d, vars) => {
       qc.invalidateQueries({ queryKey: QK_CF_MAPPING(vars.tenantId) });
+      qc.invalidateQueries({ queryKey: ["deal-custom-fields"] });
+      qc.invalidateQueries({ queryKey: ["deal-custom-fields-active"] });
     },
   });
 }

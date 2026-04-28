@@ -50,8 +50,11 @@ const DEFAULT_NATIVE_KEYS = new Set([
   "capo_i",
   "capo_m",
   "capo_mi",
-  "capo_overlord",
 ]);
+
+function normalizeSmKey(raw: unknown): string {
+  return String(raw ?? "").trim().replace(/^\[(.*)\]$/, "$1").trim();
+}
 
 interface MappingEntry {
   sm_field_key: string;
@@ -232,7 +235,7 @@ async function promoteNativeFields(
 ): Promise<{ nativeUpdates: number; filesDownloaded: number; filesSkipped: number; filesFailed: number; errors: Array<{ projeto_id?: string; deal_id?: string; error: string }> }> {
   const values = new Map<string, string>();
   for (const v of args.variables) {
-    const key = typeof v?.key === "string" ? v.key : null;
+    const key = normalizeSmKey(v?.key);
     if (!key) continue;
     const raw = (v?.value ?? v?.formattedValue ?? v?.displayValue ?? "").toString().trim();
     if (raw) values.set(key, raw);
@@ -329,9 +332,6 @@ async function promoteNativeFields(
       ...(garantiaMicro ? { microinversor_sm: garantiaMicro } : {}),
     };
   }
-  const overlord = firstValue(values, ["capo_overlord"]);
-  if (overlord) versaoSnapshotPatch.overlord = overlord;
-
   const concessionaria = firstValue(values, ["cap_concessionaria"]);
   if (concessionaria) ucMetadataPatch.concessionaria_sm = concessionaria;
   const ucDocs = values.get("cap_uc");
@@ -401,7 +401,8 @@ async function loadFieldMapping(
     .eq("tenant_id", tenantId);
   if (mErr) throw mErr;
 
-  const entries: MappingEntry[] = (mappings ?? []) as MappingEntry[];
+  const entries: MappingEntry[] = ((mappings ?? []) as MappingEntry[])
+    .map((entry) => ({ ...entry, sm_field_key: normalizeSmKey(entry.sm_field_key) }));
   const known = new Set(entries.map((e) => e.sm_field_key));
 
   // 2. Resolver field_type real para todos crm_field_id (uma query)
@@ -499,16 +500,16 @@ async function loadFieldMapping(
         ? (r as any).payload.variables
         : [];
       for (const v of vars) {
-        const k = typeof v?.key === "string" ? v.key : null;
+        const k = normalizeSmKey(v?.key);
         if (!k) continue;
-        if (/^(cap|capo|cape)_/.test(k)) set.add(k);
+        if (/^(cap|capo|cape|pre|pos)_/.test(k)) set.add(k);
       }
     }
     allSlugs = Array.from(set);
   } else {
     allSlugs = (smSlugs as Array<{ key: string }>)
-      .map((r) => r.key)
-      .filter((k) => /^(cap|capo|cape)_/.test(k));
+      .map((r) => normalizeSmKey(r.key))
+      .filter((k) => /^(cap|capo|cape|pre|pos)_/.test(k));
   }
 
   const unmapped = allSlugs.filter((k) => !known.has(k));
@@ -667,7 +668,7 @@ Deno.serve(async (req) => {
       const rows: Array<Record<string, any>> = [];
 
       for (const v of variables) {
-        const sourceKey = v?.key as string | undefined;
+        const sourceKey = normalizeSmKey(v?.key);
         if (!sourceKey) continue;
 
         if (DEFAULT_NATIVE_KEYS.has(sourceKey)) continue;
