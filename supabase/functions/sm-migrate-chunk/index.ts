@@ -199,9 +199,13 @@ async function runPostPhaseUntilDone(
   fnName: "sm-enrich-versoes" | "sm-promote-custom-fields",
   action: "enrich" | "promote",
   batch: number,
+  projectExternalIds?: string[],
 ): Promise<void> {
   const fnUrl = `${SUPABASE_URL}/functions/v1/${fnName}`;
   let offset = 0;
+  const scopedProjectIds = Array.isArray(projectExternalIds)
+    ? projectExternalIds.map((id) => String(id).trim()).filter(Boolean)
+    : [];
 
   for (let i = 0; i < 500; i++) {
     const resp = await fetch(fnUrl, {
@@ -215,7 +219,7 @@ async function runPostPhaseUntilDone(
       },
       body: JSON.stringify({
         action,
-        payload: { tenant_id: tenantId, batch, offset },
+        payload: { tenant_id: tenantId, batch, offset, project_external_ids: scopedProjectIds },
       }),
     });
     const text = await resp.text();
