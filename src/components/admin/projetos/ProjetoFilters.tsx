@@ -30,6 +30,7 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 
 // Chip arrastável de funil no filtro do kanban principal.
+// UX: o chip inteiro é o handle — activationConstraint evita conflito com clique.
 function SortableFunilChip({
   funil,
   active,
@@ -46,33 +47,28 @@ function SortableFunilChip({
   const style: React.CSSProperties = {
     transform: CSS.Transform.toString(transform),
     transition,
-    opacity: isDragging ? 0.6 : 1,
+    opacity: isDragging ? 0.5 : 1,
     zIndex: isDragging ? 20 : undefined,
   };
   return (
     <div ref={setNodeRef} style={style} className="flex items-center shrink-0">
       <button
         type="button"
-        aria-label="Arrastar para reordenar"
-        className="p-1 -mr-1 cursor-grab active:cursor-grabbing text-muted-foreground/60 hover:text-foreground touch-none"
+        onClick={onSelect}
         {...attributes}
         {...listeners}
-      >
-        <GripVertical className="h-3 w-3" />
-      </button>
-      <Button
-        variant="ghost"
-        size="sm"
-        onClick={onSelect}
         className={cn(
-          "px-3 h-7 text-xs font-medium rounded-md whitespace-nowrap",
+          "flex items-center gap-1 px-3 h-7 text-xs font-medium rounded-md whitespace-nowrap touch-none select-none transition-all",
+          isDragging ? "cursor-grabbing" : "cursor-grab",
           active
             ? "bg-background text-foreground shadow-sm"
             : "text-muted-foreground hover:text-foreground hover:bg-background/50",
         )}
+        title="Arraste para reordenar • Clique para selecionar"
       >
+        <GripVertical className="h-3 w-3 opacity-50" />
         {funil.nome}
-      </Button>
+      </button>
       {onEditEtapas && (
         <Button
           variant="ghost"

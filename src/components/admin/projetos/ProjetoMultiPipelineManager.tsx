@@ -29,6 +29,8 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 
 // Aba arrastável de pipeline (funil) no detalhe do projeto.
+// UX: o chip inteiro é o handle — o clique ainda seleciona graças ao
+// activationConstraint por distância no PointerSensor.
 function SortablePipelineTab({
   membershipId,
   pipelineName,
@@ -45,32 +47,28 @@ function SortablePipelineTab({
   const style: React.CSSProperties = {
     transform: CSS.Transform.toString(transform),
     transition,
-    opacity: isDragging ? 0.6 : 1,
+    opacity: isDragging ? 0.5 : 1,
     zIndex: isDragging ? 20 : undefined,
   };
   return (
-    <div ref={setNodeRef} style={style} className="flex items-center shrink-0">
-      <button
-        type="button"
-        aria-label="Arrastar para reordenar"
-        className="p-1 -mr-1 cursor-grab active:cursor-grabbing text-muted-foreground/60 hover:text-foreground touch-none"
-        {...attributes}
-        {...listeners}
-      >
-        <GripVertical className="h-3 w-3" />
-      </button>
-      <button
-        onClick={onSelect}
-        className={cn(
-          "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all whitespace-nowrap",
-          active
-            ? "bg-secondary/10 text-secondary border border-secondary/30 shadow-sm"
-            : "bg-muted/40 text-muted-foreground hover:bg-muted/80 border border-transparent",
-        )}
-      >
-        {pipelineName}
-      </button>
-    </div>
+    <button
+      ref={setNodeRef}
+      style={style}
+      onClick={onSelect}
+      {...attributes}
+      {...listeners}
+      className={cn(
+        "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all whitespace-nowrap shrink-0 touch-none select-none",
+        isDragging ? "cursor-grabbing" : "cursor-grab",
+        active
+          ? "bg-secondary/10 text-secondary border border-secondary/30 shadow-sm"
+          : "bg-muted/40 text-muted-foreground hover:bg-muted/80 border border-transparent",
+      )}
+      title="Arraste para reordenar • Clique para selecionar"
+    >
+      <GripVertical className="h-3 w-3 opacity-50" />
+      {pipelineName}
+    </button>
   );
 }
 
