@@ -538,10 +538,10 @@ Deno.serve(async (req) => {
       // Buscar versões mais recentes em uma query (versao DESC, primeira por projeto).
       const { data: versoes, error: vErr } = await supabase
         .from("proposta_versoes")
-        .select("id, snapshot, versao, propostas_nativas!inner(projeto_id)")
+        .select("id, snapshot, versao_numero, propostas_nativas!inner(projeto_id)")
         .eq("propostas_nativas.tenant_id", tenantId)
         .in("propostas_nativas.projeto_id", projetoIds)
-        .order("versao", { ascending: false });
+        .order("versao_numero", { ascending: false });
 
       if (vErr) {
         errors.push({ error: `native_targets_select: ${vErr.message}` });
