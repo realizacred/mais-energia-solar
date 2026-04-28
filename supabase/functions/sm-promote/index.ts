@@ -1476,6 +1476,7 @@ async function resolvePipelinePerProject(
   if (matchedCandidate?.stageName) {
     const mapped = stageBySmEtapa.get(matchedCandidate.stageName.toLowerCase().trim());
     if (mapped) dealStageDefault = mapped;
+    if (!dealStageDefault) dealStageDefault = findPipelineStageForSmEtapa(stagesArr, matchedCandidate.stageName);
   }
   if (!dealStageDefault) dealStageDefault = (stagesArr[0]?.id as string | undefined) ?? null;
 
@@ -1554,6 +1555,14 @@ async function resolvePipelinePerProject(
         .ilike("sm_etapa_name", secCandidate.stageName)
         .maybeSingle();
       secStageId = pickStr((secEtapaMap as AnyObj | null)?.stage_id);
+      if (!secStageId) {
+        const { data: secStagesAll } = await admin
+          .from("pipeline_stages")
+          .select("id, name, is_won")
+          .eq("tenant_id", tenantId)
+          .eq("pipeline_id", secPipelineId);
+        secStageId = findPipelineStageForSmEtapa((secStagesAll ?? []) as AnyObj[], secCandidate.stageName);
+      }
     }
     if (!secStageId) secStageId = secFirstStage ?? null;
 
