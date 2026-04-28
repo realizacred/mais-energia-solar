@@ -390,8 +390,10 @@ async function processStep(
 
     if (isGatewayTimeoutLike(sub.error) && progressedDespiteTimeout) {
       const processedDelta = backlogBefore - backlogAfterTimeout;
-      const newProcessed = (master.items_processed ?? 0) + processedDelta;
-      const newPromoted = (master.items_promoted ?? 0) + processedDelta;
+      const totalItems = Number(master.total_items ?? 0);
+      const canonicalProcessed = Math.max(0, totalItems - backlogAfterTimeout);
+      const newProcessed = canonicalProcessed;
+      const newPromoted = canonicalProcessed;
       const finished = backlogAfterTimeout <= 0;
 
       await admin
