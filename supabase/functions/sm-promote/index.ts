@@ -2869,7 +2869,7 @@ async function ensureDefaultFunis(admin: SupabaseClient, tenantId: string): Prom
       existingByName.set(targetKey, { id: funilId, ordem: maxOrdem });
     }
 
-    // 4) Etapas: replica EXATAMENTE as do SM (nome + ordem). Só insere o que falta.
+    // 4) Etapas: replica o funil de destino autorizado. Só insere o que falta.
     const { data: stagesAtuais } = await admin
       .from("projeto_etapas")
       .select("nome, ordem")
@@ -2908,7 +2908,6 @@ async function ensureDefaultFunis(admin: SupabaseClient, tenantId: string): Prom
     // Se o tenant ainda não tem nenhum pipeline comercial, cria o espelho
     // pipelines/pipeline_stages/mapeamentos uma única vez. Se já houver pipeline,
     // respeita o mapeamento manual (RB-73) e não interfere.
-    const mapAtual = mapByFunil.get(key);
     if (!canBootstrapCommercialPipelines || mapAtual?.role === "ignore" || mapAtual?.role === "vendedor_source" || mapAtual?.pipeline_id) {
       continue;
     }
