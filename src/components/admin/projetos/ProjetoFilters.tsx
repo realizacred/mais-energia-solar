@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { Search, X, Filter, List, Layers, Tag, Users, Pencil, Plus, ArrowUpDown, Check, SlidersHorizontal } from "lucide-react";
+import { Search, X, Filter, List, Layers, Tag, Users, Pencil, Plus, ArrowUpDown, Check, SlidersHorizontal, GripVertical } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -12,6 +12,84 @@ import {
 } from "@/components/ui/select";
 import type { ProjetoFunil, ProjetoEtiqueta } from "@/hooks/useProjetoPipeline";
 import { cn } from "@/lib/utils";
+import { useUserFunnelOrder } from "@/hooks/useUserFunnelOrder";
+import {
+  DndContext,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  closestCenter,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  horizontalListSortingStrategy,
+  useSortable,
+  arrayMove,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+
+// Chip arrastável de funil no filtro do kanban principal.
+function SortableFunilChip({
+  funil,
+  active,
+  onSelect,
+  onEditEtapas,
+}: {
+  funil: ProjetoFunil;
+  active: boolean;
+  onSelect: () => void;
+  onEditEtapas?: () => void;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
+    useSortable({ id: funil.id });
+  const style: React.CSSProperties = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.6 : 1,
+    zIndex: isDragging ? 20 : undefined,
+  };
+  return (
+    <div ref={setNodeRef} style={style} className="flex items-center shrink-0">
+      <button
+        type="button"
+        aria-label="Arrastar para reordenar"
+        className="p-1 -mr-1 cursor-grab active:cursor-grabbing text-muted-foreground/60 hover:text-foreground touch-none"
+        {...attributes}
+        {...listeners}
+      >
+        <GripVertical className="h-3 w-3" />
+      </button>
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={onSelect}
+        className={cn(
+          "px-3 h-7 text-xs font-medium rounded-md whitespace-nowrap",
+          active
+            ? "bg-background text-foreground shadow-sm"
+            : "text-muted-foreground hover:text-foreground hover:bg-background/50",
+        )}
+      >
+        {funil.nome}
+      </Button>
+      {onEditEtapas && (
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-6 w-6 -ml-0.5"
+          onClick={(e) => {
+            e.stopPropagation();
+            onEditEtapas();
+          }}
+          title={`Editar etapas de "${funil.nome}"`}
+        >
+          <Pencil className="h-3 w-3 text-muted-foreground" />
+        </Button>
+      )}
+    </div>
+  );
+}
 
 interface ConsultorOption { id: string; nome: string; }
 
