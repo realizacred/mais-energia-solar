@@ -508,38 +508,12 @@ async function processStep(
       // @ts-ignore EdgeRuntime global
       EdgeRuntime.waitUntil((async () => {
         try {
-          await fetch(`${SUPABASE_URL}/functions/v1/sm-enrich-versoes`, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
-              apikey: SUPABASE_SERVICE_ROLE_KEY,
-              "x-sm-tenant-override": tenantId,
-              "x-sm-internal-call": "sm-migrate-chunk-v1",
-            },
-            body: JSON.stringify({
-              action: "enrich",
-              payload: { tenant_id: tenantId, batch: 25, offset: 0 },
-            }),
-          });
+          await runPostPhaseUntilDone(tenantId, "sm-enrich-versoes", "enrich", 25);
         } catch (e) {
           console.error("[sm-migrate-chunk] enrich-versoes chain failed:", e);
         }
         try {
-          await fetch(`${SUPABASE_URL}/functions/v1/sm-promote-custom-fields`, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
-              apikey: SUPABASE_SERVICE_ROLE_KEY,
-              "x-sm-tenant-override": tenantId,
-              "x-sm-internal-call": "sm-migrate-chunk-v1",
-            },
-            body: JSON.stringify({
-              action: "promote",
-              payload: { tenant_id: tenantId, batch: 20, offset: 0 },
-            }),
-          });
+          await runPostPhaseUntilDone(tenantId, "sm-promote-custom-fields", "promote", 20);
         } catch (e) {
           console.error("[sm-migrate-chunk] promote-custom-fields chain failed:", e);
         }
