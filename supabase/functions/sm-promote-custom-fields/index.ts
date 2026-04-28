@@ -672,7 +672,7 @@ Deno.serve(async (req) => {
       const rows: Array<Record<string, any>> = [];
 
       for (const v of variables) {
-        const sourceKey = v?.key as string | undefined;
+        const sourceKey = normalizeSmKey(v?.key);
         if (!sourceKey) continue;
 
         if (DEFAULT_NATIVE_KEYS.has(sourceKey)) continue;
