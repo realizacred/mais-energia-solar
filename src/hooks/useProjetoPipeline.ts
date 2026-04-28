@@ -195,21 +195,85 @@ export function useProjetoPipeline() {
     }
 
     // SERVER-SIDE funil filter: filter by etapa_ids belonging to the selected funil
-    // This avoids loading all projetos and filtering client-side
+    // OR by deal_pipeline_stages (multi-pipeline membership: projeto pode estar em N pipelines)
+    let etapaOverrideByDealId = new Map<string, string>();
     if (f.funilId) {
       const funilEtapaIds = availableEtapas
         .filter(e => e.funil_id === f.funilId)
         .map(e => e.id);
 
-      if (funilEtapaIds.length > 0) {
-        // Filter: etapa_id in funil OR funil_id matches (for projetos without etapa_id)
-        query = query.or(`etapa_id.in.(${funilEtapaIds.join(",")}),funil_id.eq.${f.funilId}`);
-      } else {
-        query = query.eq("funil_id", f.funilId);
+      // Resolve pipeline_id (mundo comercial) equivalente ao projeto_funil (mundo execução) via NOME
+      // (RB-61/DA-47: sistemas duais com IDs diferentes mas nomes espelhados)
+      const selectedFunil = availableFunis.find(funil => funil.id === f.funilId);
+      let dealIdsViaMembership: string[] = [];
+      if (selectedFunil) {
+        const { data: pipelineMatch } = await supabase
+          .from("pipelines")
+          .select("id")
+          .ilike("name", selectedFunil.nome)
+          .maybeSingle();
+
+        if (pipelineMatch?.id) {
+          const { data: memberships } = await supabase
+            .from("deal_pipeline_stages")
+            .select("deal_id, stage_id")
+            .eq("pipeline_id", pipelineMatch.id);
+
+          // Mapa stage_id (pipeline_stages) → etapa_id (projeto_etapas) via nome
+          const stageIds = [...new Set((memberships || []).map((m: any) => m.stage_id).filter(Boolean))];
+          const stageNameById = new Map<string, string>();
+          if (stageIds.length > 0) {
+            const { data: stageRows } = await supabase
+              .from("pipeline_stages")
+              .select("id, name")
+              .in("id", stageIds);
+            (stageRows || []).forEach((s: any) => stageNameById.set(s.id, (s.name || "").toLowerCase().trim()));
+          }
+          const projetoEtapaByName = new Map<string, string>();
+          availableEtapas
+            .filter(e => e.funil_id === f.funilId)
+            .forEach(e => projetoEtapaByName.set((e.nome || "").toLowerCase().trim(), e.id));
+
+          (memberships || []).forEach((m: any) => {
+            if (!m.deal_id || !m.stage_id) return;
+            const stageName = stageNameById.get(m.stage_id);
+            if (!stageName) return;
+            const projEtapaId = projetoEtapaByName.get(stageName);
+            if (projEtapaId) etapaOverrideByDealId.set(m.deal_id, projEtapaId);
+          });
+
+          dealIdsViaMembership = [...etapaOverrideByDealId.keys()];
+        }
       }
+
+      const orParts: string[] = [];
+      if (funilEtapaIds.length > 0) orParts.push(`etapa_id.in.(${funilEtapaIds.join(",")})`);
+      orParts.push(`funil_id.eq.${f.funilId}`);
+      if (dealIdsViaMembership.length > 0) {
+        const dealChunk = dealIdsViaMembership.slice(0, 1500);
+        orParts.push(`deal_id.in.(${dealChunk.join(",")})`);
+      }
+      query = query.or(orParts.join(","));
     }
 
     const data = await fetchAllProjetosRows(query as any);
+
+    // Aplica override de etapa_id para projetos vindos via multi-pipeline membership
+    // (preserva original quando projeto já pertence ao funil filtrado nativamente)
+    if (etapaOverrideByDealId.size > 0 && f.funilId) {
+      const validEtapaIdsDoFunil = new Set(
+        availableEtapas.filter(e => e.funil_id === f.funilId).map(e => e.id)
+      );
+      (data || []).forEach((p: any) => {
+        if (!p.deal_id) return;
+        const override = etapaOverrideByDealId.get(p.deal_id);
+        if (!override) return;
+        // Só sobrescreve se a etapa_id atual NÃO pertence ao funil filtrado
+        if (!p.etapa_id || !validEtapaIdsDoFunil.has(p.etapa_id)) {
+          p.etapa_id = override;
+        }
+      });
+    }
 
     const projetoIds = (data || []).map((p: any) => p.id);
     const relMap = new Map<string, string[]>();
