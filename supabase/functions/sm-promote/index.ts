@@ -30,7 +30,7 @@ const SM_MIGRATE_CHUNK_URL = `${SUPABASE_URL}/functions/v1/sm-migrate-chunk`;
 const SOURCE = "solarmarket";
 const LEGACY_SM_SOURCES = [SOURCE, "solar_market"] as const;
 const DEFAULT_BATCH_LIMIT = 5;
-const MAX_BATCH_LIMIT = 25;
+const MAX_BATCH_LIMIT = 50;
 const SUBJOB_HEARTBEAT_EVERY = 1;
 
 type CanonicalEntity = "cliente" | "projeto" | "proposta" | "versao";
@@ -1068,26 +1068,7 @@ async function promoteProjeto(
     .insert(insertPayload)
     .select("id")
     .single();
-  if (error || !data?.id) {
-    const message = error?.message ?? "sem id";
-    const isDuplicate = (error as { code?: string } | null)?.code === "23505"
-      || /uq_projetos_tenant_codigo|duplicate key/i.test(message);
-    if (!isDuplicate) throw new Error(`insert projeto: ${message}`);
-
-    const { data: existingByCode, error: lookupErr } = await admin
-      .from("projetos")
-      .select("id")
-      .eq("tenant_id", tenantId)
-      .eq("codigo", codigo)
-      .maybeSingle();
-    if (lookupErr || !existingByCode?.id) {
-      throw new Error(`insert projeto: ${message} (lookup falhou: ${lookupErr?.message ?? "não encontrado"})`);
-    }
-    await upsertLink(admin, tenantId, jobId, "projeto", existingByCode.id as string, "projeto", norm.external_id, {
-      recovered_from_conflict: true,
-    });
-    return { id: existingByCode.id as string, created: false };
-  }
+  if (error || !data?.id) throw new Error(`insert projeto: ${error?.message}`);
 
   await upsertLink(admin, tenantId, jobId, "projeto", data.id as string, "projeto", norm.external_id);
   return { id: data.id as string, created: true };
@@ -2815,7 +2796,11 @@ async function ensureDefaultFunis(admin: SupabaseClient, tenantId: string): Prom
     ((existingMaps ?? []) as AnyObj[]).map((m) => [String(m.sm_funil_name).trim().toLowerCase(), m]),
   );
 
-  // 3) Para cada funil do SM: garante o projeto_funis e replica as etapas reais
+  // 3) Para cada funil do SM: respeita ESTRITAMENTE o mapeamento manual.
+  //    Funis ignorados (Pagamento/Compensação) ou fonte de consultor (Vendedores)
+  //    não podem criar projeto_funis/projeto_etapas. Quando um funil SM aponta para
+  //    um pipeline existente (ex.: LEAD → Comercial), o espelho de execução usa o
+  //    NOME/STAGES do pipeline de destino — nunca o nome bruto do funil de origem.
   for (const row of smFunis as AnyObj[]) {
     const payload = (row.payload ?? {}) as AnyObj;
     const funilNome = String(payload.name ?? "").trim();
@@ -2824,16 +2809,46 @@ async function ensureDefaultFunis(admin: SupabaseClient, tenantId: string): Prom
     // Pula funil "Vendedores" — é mapa de consultores, não pipeline real
     if (funilNome.toLowerCase() === "vendedores") continue;
 
+    const key = funilNome.toLowerCase();
+    const mapAtual = mapByFunil.get(key);
+    if (!mapAtual) continue;
+    if (mapAtual?.role === "ignore" || mapAtual?.role === "vendedor_source") continue;
+
     const stagesRaw = Array.isArray(payload.stages) ? (payload.stages as AnyObj[]) : [];
     if (stagesRaw.length === 0) continue;
 
     // Ordena pelas ordens originais do SM
-    const stagesOrdenadas = [...stagesRaw].sort(
+    let stagesOrdenadas = [...stagesRaw].sort(
       (a, b) => (Number(a.order) || 0) - (Number(b.order) || 0),
     );
 
-    const key = funilNome.toLowerCase();
-    let funilId = existingByName.get(key)?.id;
+    let targetFunilNome = funilNome;
+    if (mapAtual?.pipeline_id) {
+      const { data: targetPipeline } = await admin
+        .from("pipelines")
+        .select("id, name")
+        .eq("tenant_id", tenantId)
+        .eq("id", mapAtual.pipeline_id as string)
+        .maybeSingle();
+      const pipelineName = pickStr((targetPipeline as AnyObj | null)?.name);
+      if (!pipelineName) continue;
+      targetFunilNome = pipelineName;
+
+      const { data: targetStages } = await admin
+        .from("pipeline_stages")
+        .select("name, position")
+        .eq("tenant_id", tenantId)
+        .eq("pipeline_id", mapAtual.pipeline_id as string)
+        .order("position", { ascending: true });
+      if ((targetStages?.length ?? 0) > 0) {
+        stagesOrdenadas = (targetStages ?? []).map((s: AnyObj) => ({ name: s.name, order: s.position }));
+      }
+    } else if (!canBootstrapCommercialPipelines) {
+      continue;
+    }
+
+    const targetKey = targetFunilNome.toLowerCase();
+    let funilId = existingByName.get(targetKey)?.id;
 
     if (!funilId) {
       maxOrdem += 1;
@@ -2841,7 +2856,7 @@ async function ensureDefaultFunis(admin: SupabaseClient, tenantId: string): Prom
         .from("projeto_funis")
         .insert({
           tenant_id: tenantId,
-          nome: funilNome,
+          nome: targetFunilNome,
           ordem: maxOrdem,
           ativo: true,
         })
@@ -2852,42 +2867,34 @@ async function ensureDefaultFunis(admin: SupabaseClient, tenantId: string): Prom
         continue;
       }
       funilId = created.id as string;
-      existingByName.set(key, { id: funilId, ordem: maxOrdem });
+      existingByName.set(targetKey, { id: funilId, ordem: maxOrdem });
     }
 
-    // 4) Etapas: replica EXATAMENTE as do SM (nome + ordem). Só insere o que falta.
+    // 4) Etapas: replica o funil de destino autorizado. Só insere o que falta.
     const { data: stagesAtuais } = await admin
       .from("projeto_etapas")
-      .select("id, nome, ordem")
+      .select("nome, ordem")
       .eq("tenant_id", tenantId)
       .eq("funil_id", funilId);
-    const stagesAtuaisByName = new Map(
-      (stagesAtuais ?? []).map((s: AnyObj) => [String(s.nome).trim().toLowerCase(), s]),
+    const stageNamesExistentes = new Set(
+      (stagesAtuais ?? []).map((s: AnyObj) => String(s.nome).trim().toLowerCase()),
     );
-
-    for (const [idx, s] of stagesOrdenadas.entries()) {
-      const etapaNome = String(s?.name ?? "").trim();
-      const atual = stagesAtuaisByName.get(etapaNome.toLowerCase());
-      if (!atual?.id || Number(atual.ordem) === idx) continue;
-      const { error: updErr } = await admin
-        .from("projeto_etapas")
-        .update({ ordem: idx })
-        .eq("tenant_id", tenantId)
-        .eq("id", atual.id);
-      if (updErr) console.error(`[${MODULE}] ensureDefaultFunis reordem etapa ${funilNome}/${etapaNome}:`, updErr.message);
-    }
+    const ordemBase = (stagesAtuais ?? []).reduce(
+      (max, s: AnyObj) => Math.max(max, Number(s.ordem) || 0),
+      -1,
+    );
 
     const toInsert: AnyObj[] = [];
     stagesOrdenadas.forEach((s, idx) => {
       const etapaNome = String(s?.name ?? "").trim();
       if (!etapaNome) return;
-      if (stagesAtuaisByName.has(etapaNome.toLowerCase())) return;
+      if (stageNamesExistentes.has(etapaNome.toLowerCase())) return;
       const isLast = idx === stagesOrdenadas.length - 1;
       toInsert.push({
         tenant_id: tenantId,
         funil_id: funilId!,
         nome: etapaNome,
-        ordem: idx,
+        ordem: ordemBase + 1 + idx,
         categoria: isLast ? "ganho" : "aberto",
       });
     });
@@ -2902,7 +2909,6 @@ async function ensureDefaultFunis(admin: SupabaseClient, tenantId: string): Prom
     // Se o tenant ainda não tem nenhum pipeline comercial, cria o espelho
     // pipelines/pipeline_stages/mapeamentos uma única vez. Se já houver pipeline,
     // respeita o mapeamento manual (RB-73) e não interfere.
-    const mapAtual = mapByFunil.get(key);
     if (!canBootstrapCommercialPipelines || mapAtual?.role === "ignore" || mapAtual?.role === "vendedor_source" || mapAtual?.pipeline_id) {
       continue;
     }

@@ -520,12 +520,12 @@ async function processStep(
       // @ts-ignore EdgeRuntime global
       EdgeRuntime.waitUntil((async () => {
         try {
-          await runPostPhaseUntilDone(tenantId, "sm-enrich-versoes", "enrich", 5);
+          await runPostPhaseUntilDone(tenantId, "sm-enrich-versoes", "enrich", 25);
         } catch (e) {
           console.error("[sm-migrate-chunk] enrich-versoes chain failed:", e);
         }
         try {
-          await runPostPhaseUntilDone(tenantId, "sm-promote-custom-fields", "promote", 5);
+          await runPostPhaseUntilDone(tenantId, "sm-promote-custom-fields", "promote", 20);
         } catch (e) {
           console.error("[sm-migrate-chunk] promote-custom-fields chain failed:", e);
         }
