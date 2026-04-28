@@ -2762,6 +2762,7 @@ async function promoteOneProposalRow(
       });
     }
 
+    if (projectExtId) state.promotedProjectExternalIds.push(projectExtId);
     state.counters.promoted++;
     return "promoted";
   } catch (e) {
