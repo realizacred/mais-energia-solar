@@ -1297,6 +1297,19 @@ function resolveStageForStatus(pipeline: PipelineResolution, status: string): st
   return pipeline.smEtapaId ?? pipeline.stageByStatus[status] ?? pipeline.etapaId;
 }
 
+function findPipelineStageForSmEtapa(stages: AnyObj[], smEtapaName: string | null | undefined): string | null {
+  const smName = String(smEtapaName ?? "").trim();
+  if (!smName) return null;
+  const normalized = norm(smName);
+  const exact = stages.find((s) => norm(String(s.name ?? "")) === normalized);
+  if (exact?.id) return exact.id as string;
+  if (["fechado", "ganho", "ganha", "venda fechada"].includes(normalized)) {
+    const won = stages.find((s) => Boolean(s.is_won));
+    if (won?.id) return won.id as string;
+  }
+  return null;
+}
+
 // ─── Resolução de pipeline POR PROJETO (sm_funil_pipeline_map) ───────────────
 /**
  * Para o projeto SM informado, descobre o funil SM associado (em
