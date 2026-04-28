@@ -295,6 +295,9 @@ Deno.serve(async (req) => {
     const tenantIdFilter = typeof payload.tenant_id === "string" && payload.tenant_id.trim()
       ? payload.tenant_id.trim()
       : null;
+    const projectExternalIdsFilter = Array.isArray(payload.project_external_ids)
+      ? payload.project_external_ids.map((id: unknown) => String(id).trim()).filter(Boolean).slice(0, 20)
+      : [];
 
     if (action !== "promote") {
       return new Response(
@@ -315,6 +318,7 @@ Deno.serve(async (req) => {
       .not("external_id", "is", null)
       .order("external_id", { ascending: true });
     if (tenantIdFilter) projetosQuery = projetosQuery.eq("tenant_id", tenantIdFilter);
+    if (projectExternalIdsFilter.length > 0) projetosQuery = projetosQuery.in("external_id", projectExternalIdsFilter);
     const { data: projetos, error: projErr } = await projetosQuery
       .range(offset, offset + batch - 1);
 
@@ -628,7 +632,7 @@ Deno.serve(async (req) => {
       native_updates: nativeUpdates,
       errors: errors.slice(0, 50),
       warnings: warnings.slice(0, 50),
-      next_offset: projetos.length === batch ? offset + batch : null,
+      next_offset: projectExternalIdsFilter.length > 0 || projetos.length < batch ? null : offset + batch,
       duration_ms: Date.now() - startedAt,
     };
 
