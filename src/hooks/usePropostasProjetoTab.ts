@@ -22,6 +22,8 @@ export interface VersaoProjetoTab {
   public_slug: string | null;
   gerado_em: string | null;
   usuario_editou_em: string | null;
+  tir: number | null;
+  vpl: number | null;
 }
 
 export interface PropostaNativaProjetoTab {
