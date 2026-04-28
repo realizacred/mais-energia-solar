@@ -1659,6 +1659,23 @@ async function createDealForProject(
     }
   }
 
+  // Multi-pipeline: inserir membership em pipelines secundários.
+  // O trigger trg_sync_dps_kanban materializa cada linha em deal_kanban_projection.
+  if (pipeline.secondaryPipelines.length > 0) {
+    const dpsRows = pipeline.secondaryPipelines.map((sp) => ({
+      tenant_id: tenantId,
+      deal_id: dealId,
+      pipeline_id: sp.pipelineId,
+      stage_id: sp.stageId,
+    }));
+    const { error: dpsErr } = await admin
+      .from("deal_pipeline_stages")
+      .upsert(dpsRows, { onConflict: "deal_id,pipeline_id" });
+    if (dpsErr) {
+      console.error(`[${MODULE}] createDealForProject: secondary pipelines upsert failed: ${dpsErr.message}`);
+    }
+  }
+
   return { dealId, created: true };
 }
 
