@@ -140,6 +140,7 @@ async function callSmPromoteOnce(
   job_id?: string;
   status?: string;
   counters?: Record<string, number>;
+  promoted_project_external_ids?: string[];
   error?: string;
 }> {
   const url = `${SUPABASE_URL}/functions/v1/sm-promote`;
@@ -189,6 +190,7 @@ async function callSmPromoteOnce(
     job_id?: string;
     status?: string;
     counters?: Record<string, number>;
+    promoted_project_external_ids?: string[];
   };
 }
 
@@ -242,6 +244,7 @@ async function runAdaptivePromoteChunk(
   job_id?: string;
   status?: string;
   counters?: Record<string, number>;
+  promoted_project_external_ids?: string[];
   error?: string;
 }> {
   const attempts = [CHUNK_BATCH, Math.max(MIN_CHUNK_BATCH, Math.floor(CHUNK_BATCH / 2)), MIN_CHUNK_BATCH]
@@ -258,6 +261,7 @@ async function runAdaptivePromoteChunk(
         job_id: result.job_id,
         status: result.status,
         counters: result.counters,
+        promoted_project_external_ids: result.promoted_project_external_ids,
       };
     }
 
