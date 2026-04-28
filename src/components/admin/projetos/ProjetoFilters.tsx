@@ -257,34 +257,26 @@ export function ProjetoFilters({
                   Todos
                 </Button>
               )}
-              {activeFunis.map(f => (
-                <div key={f.id} className="flex items-center shrink-0">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => onFilterFunilChange(f.id)}
-                    className={cn(
-                      "px-3 h-7 text-xs font-medium rounded-md whitespace-nowrap",
-                      filterFunil === f.id
-                        ? "bg-background text-foreground shadow-sm"
-                        : "text-muted-foreground hover:text-foreground hover:bg-background/50"
-                    )}
-                  >
-                    {f.nome}
-                  </Button>
-                  {onEditEtapas && (
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-6 w-6 -ml-0.5"
-                      onClick={(e) => { e.stopPropagation(); onEditEtapas(f.id); }}
-                      title={`Editar etapas de "${f.nome}"`}
-                    >
-                      <Pencil className="h-3 w-3 text-muted-foreground" />
-                    </Button>
-                  )}
-                </div>
-              ))}
+              <DndContext
+                sensors={sensors}
+                collisionDetection={closestCenter}
+                onDragEnd={handleDragEnd}
+              >
+                <SortableContext
+                  items={activeFunis.map((f) => f.id)}
+                  strategy={horizontalListSortingStrategy}
+                >
+                  {activeFunis.map((f) => (
+                    <SortableFunilChip
+                      key={f.id}
+                      funil={f}
+                      active={filterFunil === f.id}
+                      onSelect={() => onFilterFunilChange(f.id)}
+                      onEditEtapas={onEditEtapas ? () => onEditEtapas(f.id) : undefined}
+                    />
+                  ))}
+                </SortableContext>
+              </DndContext>
               {onCreateFunil && (
                 <Button
                   variant="ghost"
