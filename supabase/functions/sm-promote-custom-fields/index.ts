@@ -33,7 +33,25 @@ const corsHeaders = {
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-const BUCKET = "imported-files";
+const CUSTOM_FIELD_BUCKET = "imported-files";
+const CLIENT_DOC_BUCKET = "documentos-clientes";
+
+const DEFAULT_NATIVE_KEYS = new Set([
+  "cap_identidade",
+  "cap_comprovante_endereco",
+  "cap_uc",
+  "cap_concessionaria",
+  "cap_docs",
+  "cap_localizacao",
+  "cap_disjuntor",
+  "cap_transformador",
+  "cap_data_instal",
+  "cape_telhado",
+  "capo_i",
+  "capo_m",
+  "capo_mi",
+  "capo_overlord",
+]);
 
 interface MappingEntry {
   sm_field_key: string;
@@ -98,14 +116,54 @@ function sanitizeFilename(url: string): string {
   }
 }
 
+function splitUrls(rawValue: unknown): string[] {
+  return String(rawValue ?? "")
+    .split(/\s*\|\s*/)
+    .map((u) => u.trim())
+    .filter((u) => /^https?:\/\//i.test(u));
+}
+
+function firstValue(vars: Map<string, string>, keys: string[]): string | null {
+  for (const key of keys) {
+    const value = vars.get(key)?.trim();
+    if (value) return value;
+  }
+  return null;
+}
+
+function toIsoDate(raw: string | null): string | null {
+  if (!raw) return null;
+  const value = raw.trim();
+  if (!value) return null;
+  const br = value.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (br) return `${br[3]}-${br[2].padStart(2, "0")}-${br[1].padStart(2, "0")}`;
+  const iso = value.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  return iso ? `${iso[1]}-${iso[2]}-${iso[3]}` : null;
+}
+
+function extractNumber(raw: string | null): number | null {
+  if (!raw) return null;
+  const match = raw.replace(",", ".").match(/\d+(?:\.\d+)?/);
+  return match ? Number(match[0]) : null;
+}
+
+function mergeNote(existing: string | null | undefined, label: string, value: string | null): string | null {
+  if (!value) return existing ?? null;
+  const line = `[SM ${label}: ${value}]`;
+  const current = (existing ?? "").trim();
+  if (current.includes(line)) return current || null;
+  return current ? `${current}\n${line}` : line;
+}
+
 async function downloadAndStore(
   supabase: any,
+  bucket: string,
   url: string,
   storagePath: string,
 ): Promise<{ ok: boolean; path: string; reason?: string }> {
   // Skip if already exists.
   const { data: existing } = await supabase.storage
-    .from(BUCKET)
+    .from(bucket)
     .list(storagePath.split("/").slice(0, -1).join("/"), {
       search: storagePath.split("/").pop(),
     });
@@ -117,12 +175,18 @@ async function downloadAndStore(
   if (!resp.ok) {
     return { ok: false, path: storagePath, reason: `http_${resp.status}` };
   }
-  const contentType =
-    resp.headers.get("content-type") || "application/octet-stream";
+  let contentType = resp.headers.get("content-type") || "application/octet-stream";
+  if (contentType === "application/octet-stream") {
+    const name = storagePath.toLowerCase();
+    if (/\.pdf$/.test(name)) contentType = "application/pdf";
+    else if (/\.(jpg|jpeg)$/.test(name)) contentType = "image/jpeg";
+    else if (/\.png$/.test(name)) contentType = "image/png";
+    else if (/\.webp$/.test(name)) contentType = "image/webp";
+  }
   const blob = await resp.blob();
 
   const { error: upErr } = await supabase.storage
-    .from(BUCKET)
+    .from(bucket)
     .upload(storagePath, blob, {
       contentType,
       upsert: false,
@@ -131,6 +195,188 @@ async function downloadAndStore(
     return { ok: false, path: storagePath, reason: upErr.message };
   }
   return { ok: true, path: storagePath };
+}
+
+async function resolveLookupId(
+  supabase: any,
+  table: "disjuntores" | "transformadores",
+  tenantId: string,
+  rawValue: string | null,
+): Promise<string | null> {
+  const numeric = extractNumber(rawValue);
+  if (numeric === null) return null;
+  const column = table === "disjuntores" ? "amperagem" : "potencia_kva";
+  const { data } = await supabase
+    .from(table)
+    .select("id, descricao")
+    .eq("tenant_id", tenantId)
+    .eq(column, numeric)
+    .eq("ativo", true)
+    .limit(10);
+  const rows = data ?? [];
+  if (rows.length === 0) return null;
+  const rawLower = String(rawValue ?? "").toLowerCase();
+  const phaseMatch = rows.find((row: any) => rawLower && String(row.descricao ?? "").toLowerCase() === rawLower);
+  return (phaseMatch ?? rows[0]).id as string;
+}
+
+async function promoteNativeFields(
+  supabase: any,
+  args: {
+    tenantId: string;
+    projetoId: string;
+    dealId: string;
+    variables: any[];
+    dryRun: boolean;
+  },
+): Promise<{ nativeUpdates: number; filesDownloaded: number; filesSkipped: number; filesFailed: number; errors: Array<{ projeto_id?: string; deal_id?: string; error: string }> }> {
+  const values = new Map<string, string>();
+  for (const v of args.variables) {
+    const key = typeof v?.key === "string" ? v.key : null;
+    if (!key) continue;
+    const raw = (v?.value ?? v?.formattedValue ?? v?.displayValue ?? "").toString().trim();
+    if (raw) values.set(key, raw);
+  }
+
+  const errors: Array<{ projeto_id?: string; deal_id?: string; error: string }> = [];
+  let nativeUpdates = 0;
+  let filesDownloaded = 0;
+  let filesSkipped = 0;
+  let filesFailed = 0;
+
+  const { data: projetoRow } = await supabase
+    .from("projetos")
+    .select("cliente_id, observacoes")
+    .eq("id", args.projetoId)
+    .eq("tenant_id", args.tenantId)
+    .maybeSingle();
+  const clienteId = projetoRow?.cliente_id as string | undefined;
+  if (!clienteId) return { nativeUpdates, filesDownloaded, filesSkipped, filesFailed, errors };
+
+  const { data: clienteRow } = await supabase
+    .from("clientes")
+    .select("observacoes, identidade_urls, comprovante_endereco_urls, comprovante_beneficiaria_urls")
+    .eq("id", clienteId)
+    .eq("tenant_id", args.tenantId)
+    .maybeSingle();
+
+  const clientePatch: Record<string, any> = {};
+  const projetoPatch: Record<string, any> = {};
+  const versaoSnapshotPatch: Record<string, any> = {};
+  const ucMetadataPatch: Record<string, any> = {};
+
+  const downloadClientDocs = async (field: "identidade_urls" | "comprovante_endereco_urls" | "comprovante_beneficiaria_urls", sourceKey: string) => {
+    const urls = splitUrls(values.get(sourceKey));
+    if (urls.length === 0) return;
+    const paths: string[] = [];
+    for (const url of urls) {
+      const path = `${args.tenantId}/${clienteId}/${field}/${Date.now()}-${sanitizeFilename(url)}`;
+      if (args.dryRun) {
+        paths.push(path);
+        filesSkipped++;
+        continue;
+      }
+      try {
+        const result = await downloadAndStore(supabase, CLIENT_DOC_BUCKET, url, path);
+        if (result.ok) {
+          paths.push(result.path);
+          if (result.reason === "already_exists") filesSkipped++;
+          else filesDownloaded++;
+        } else {
+          filesFailed++;
+          errors.push({ projeto_id: args.projetoId, deal_id: args.dealId, error: `download native ${sourceKey}: ${result.reason}` });
+        }
+      } catch (e) {
+        filesFailed++;
+        errors.push({ projeto_id: args.projetoId, deal_id: args.dealId, error: `download native ${sourceKey}: ${(e as Error).message}` });
+      }
+    }
+    if (paths.length > 0) {
+      const existing = Array.isArray(clienteRow?.[field]) ? clienteRow[field] : [];
+      clientePatch[field] = Array.from(new Set([...existing, ...paths]));
+    }
+  };
+
+  await downloadClientDocs("identidade_urls", "cap_identidade");
+  await downloadClientDocs("comprovante_endereco_urls", "cap_comprovante_endereco");
+  await downloadClientDocs("comprovante_beneficiaria_urls", "cap_uc");
+
+  const localizacao = firstValue(values, ["cap_localizacao"]);
+  if (localizacao) clientePatch.localizacao = localizacao;
+  const dataInstalacao = toIsoDate(firstValue(values, ["cap_data_instal"]));
+  if (dataInstalacao) {
+    clientePatch.data_instalacao = dataInstalacao;
+    projetoPatch.data_instalacao = dataInstalacao;
+  }
+  const disjuntorId = await resolveLookupId(supabase, "disjuntores", args.tenantId, firstValue(values, ["cap_disjuntor"]));
+  if (disjuntorId) clientePatch.disjuntor_id = disjuntorId;
+  const transformadorId = await resolveLookupId(supabase, "transformadores", args.tenantId, firstValue(values, ["cap_transformador"]));
+  if (transformadorId) clientePatch.transformador_id = transformadorId;
+
+  projetoPatch.observacoes = mergeNote(projetoRow?.observacoes, "Concessionária", firstValue(values, ["cap_concessionaria"]));
+  projetoPatch.observacoes = mergeNote(projetoPatch.observacoes, "Docs", firstValue(values, ["cap_docs"]));
+  clientePatch.observacoes = mergeNote(clienteRow?.observacoes, "Observações", firstValue(values, ["cap_obs"]));
+
+  const tipoTelhado = firstValue(values, ["cape_telhado"]);
+  if (tipoTelhado) versaoSnapshotPatch.tipo_telhado = tipoTelhado;
+  const garantiaInversor = firstValue(values, ["capo_i"]);
+  const garantiaModulo = firstValue(values, ["capo_m"]);
+  const garantiaMicro = firstValue(values, ["capo_mi"]);
+  if (garantiaInversor || garantiaModulo || garantiaMicro) {
+    versaoSnapshotPatch.garantias = {
+      ...(garantiaInversor ? { inversor_sm: garantiaInversor } : {}),
+      ...(garantiaModulo ? { modulo_sm: garantiaModulo } : {}),
+      ...(garantiaMicro ? { microinversor_sm: garantiaMicro } : {}),
+    };
+  }
+  const overlord = firstValue(values, ["capo_overlord"]);
+  if (overlord) versaoSnapshotPatch.overlord = overlord;
+
+  const concessionaria = firstValue(values, ["cap_concessionaria"]);
+  if (concessionaria) ucMetadataPatch.concessionaria_sm = concessionaria;
+  const ucDocs = values.get("cap_uc");
+  if (ucDocs) ucMetadataPatch.documentos_uc_sm = ucDocs;
+
+  const applyUpdate = async (table: string, patch: Record<string, any>, id: string) => {
+    const clean = Object.fromEntries(Object.entries(patch).filter(([, v]) => v !== null && v !== undefined && v !== ""));
+    if (Object.keys(clean).length === 0) return;
+    if (args.dryRun) {
+      nativeUpdates += Object.keys(clean).length;
+      return;
+    }
+    const { data, error } = await supabase.from(table).update(clean).eq("id", id).eq("tenant_id", args.tenantId).select("id");
+    if (error) errors.push({ projeto_id: args.projetoId, deal_id: args.dealId, error: `native ${table}: ${error.message}` });
+    else if (data?.length) nativeUpdates += Object.keys(clean).length;
+  };
+
+  await applyUpdate("clientes", clientePatch, clienteId);
+  await applyUpdate("projetos", projetoPatch, args.projetoId);
+
+  if (Object.keys(versaoSnapshotPatch).length > 0 || Object.keys(ucMetadataPatch).length > 0) {
+    const { data: latest } = await supabase
+      .from("proposta_versoes")
+      .select("id, snapshot, versao_numero, propostas_nativas!inner(projeto_id), proposta_versao_ucs(id, metadata)")
+      .eq("tenant_id", args.tenantId)
+      .eq("propostas_nativas.projeto_id", args.projetoId)
+      .order("versao_numero", { ascending: false })
+      .limit(1);
+    const versao = latest?.[0];
+    if (versao?.id && Object.keys(versaoSnapshotPatch).length > 0) {
+      const snapshot = { ...(versao.snapshot ?? {}), ...versaoSnapshotPatch, garantias: { ...((versao.snapshot ?? {}).garantias ?? {}), ...(versaoSnapshotPatch.garantias ?? {}) } };
+      await applyUpdate("proposta_versoes", { snapshot }, versao.id as string);
+    }
+    const uc = (versao as any)?.proposta_versao_ucs?.[0];
+    if (uc?.id && Object.keys(ucMetadataPatch).length > 0 && !args.dryRun) {
+      const metadata = { ...(uc.metadata ?? {}), ...ucMetadataPatch };
+      const { error } = await supabase.from("proposta_versao_ucs").update({ metadata }).eq("id", uc.id);
+      if (error) errors.push({ projeto_id: args.projetoId, deal_id: args.dealId, error: `native uc metadata: ${error.message}` });
+      else nativeUpdates += Object.keys(ucMetadataPatch).length;
+    } else if (uc?.id && Object.keys(ucMetadataPatch).length > 0) {
+      nativeUpdates += Object.keys(ucMetadataPatch).length;
+    }
+  }
+
+  return { nativeUpdates, filesDownloaded, filesSkipped, filesFailed, errors };
 }
 
 /**
@@ -405,11 +651,26 @@ Deno.serve(async (req) => {
 
       const variables: any[] = Array.isArray(sm?.variables) ? sm.variables : [];
 
+      const nativeResult = await promoteNativeFields(supabase, {
+        tenantId,
+        projetoId,
+        dealId,
+        variables,
+        dryRun,
+      });
+      nativeUpdates += nativeResult.nativeUpdates;
+      filesDownloaded += nativeResult.filesDownloaded;
+      filesSkipped += nativeResult.filesSkipped;
+      filesFailed += nativeResult.filesFailed;
+      errors.push(...nativeResult.errors);
+
       const rows: Array<Record<string, any>> = [];
 
       for (const v of variables) {
         const sourceKey = v?.key as string | undefined;
         if (!sourceKey) continue;
+
+        if (DEFAULT_NATIVE_KEYS.has(sourceKey)) continue;
 
         // Slug ignorado pelo usuário → warning único, não migra.
         if (resolved.ignored.has(sourceKey)) {
@@ -470,7 +731,7 @@ Deno.serve(async (req) => {
               continue;
             }
             try {
-              const r = await downloadAndStore(supabase, url, path);
+              const r = await downloadAndStore(supabase, CUSTOM_FIELD_BUCKET, url, path);
               if (r.ok) {
                 localPaths.push(r.path);
                 if (r.reason === "already_exists") filesSkipped++;
