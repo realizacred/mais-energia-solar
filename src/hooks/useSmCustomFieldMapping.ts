@@ -49,6 +49,34 @@ const QK_SM_FIELDS = (tenantId: string | null) => ["sm-fields-raw", tenantId] as
 const QK_CF_MAPPING = (tenantId: string | null) => ["sm-cf-mapping", tenantId] as const;
 const STALE = 1000 * 60 * 5;
 
+const CONTEXT_PREFIX: Record<string, "cap" | "pre" | "pos"> = {
+  projeto: "cap",
+  pre_dimensionamento: "pre",
+  pos_dimensionamento: "pos",
+};
+
+function normalizeSmFieldKey(raw: unknown): string {
+  const value = Array.isArray(raw) ? raw[0] : raw;
+  return String(value ?? "").trim().replace(/^\[(.*)\]$/, "$1").trim();
+}
+
+function normalizeFieldBase(raw: string): string {
+  return raw
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/([a-z0-9])([A-Z])/g, "$1_$2")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "")
+    .replace(/^(cap|cape|capo|pre|pos)_/, "");
+}
+
+function buildFieldKey(context: string | null | undefined, name: string | null | undefined, smKey: string): string {
+  const prefix = CONTEXT_PREFIX[context ?? ""] ?? "cap";
+  const base = normalizeFieldBase(name?.trim() || smKey) || normalizeFieldBase(smKey) || "campo_sm";
+  return `${prefix}_${base}`;
+}
+
 /** Lista campos do staging SolarMarket (sm_custom_fields_raw). */
 export function useSmCustomFieldsStaging(tenantId: string | null) {
   return useQuery<SmField[]>({
@@ -66,9 +94,8 @@ export function useSmCustomFieldsStaging(tenantId: string | null) {
       const out: SmField[] = [];
       for (const row of (data ?? [])) {
         const p = row.payload ?? {};
-        // payload.key vem como array (["capo_i"]) ou string
-        const rawKey = Array.isArray(p.key) ? p.key[0] : p.key;
-        const key = String(rawKey ?? "").trim();
+        // payload.key pode vir como array (["capo_i"]) ou string "[capo_i]".
+        const key = normalizeSmFieldKey(p.key);
         if (!key || seen.has(key)) continue;
         seen.add(key);
         out.push({
@@ -99,7 +126,7 @@ export function useCustomFieldMappings(tenantId: string | null) {
         .eq("tenant_id", tenantId);
       if (error) throw error;
       const out: Record<string, CfMappingRow> = {};
-      for (const row of (data ?? [])) out[row.sm_field_key] = row as CfMappingRow;
+      for (const row of (data ?? [])) out[normalizeSmFieldKey(row.sm_field_key)] = row as CfMappingRow;
       return out;
     },
   });
