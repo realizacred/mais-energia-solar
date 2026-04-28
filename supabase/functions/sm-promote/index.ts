@@ -1382,6 +1382,7 @@ async function resolvePipelinePerProject(
   const empty: PerProjectPipeline = {
     ...defaultPipeline,
     ...defaultDeal,
+    secondaryPipelines: [],
   };
 
   if (!projectExtId) return empty;
