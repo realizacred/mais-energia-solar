@@ -441,31 +441,94 @@ export function ProjetoMultiPipelineManager({ dealId, dealStatus, pipelines, all
 
             return (
               <div className="rounded-xl border border-border/60 bg-card p-3 space-y-2 min-h-[100px]">
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between gap-2 flex-wrap">
                   <span className="text-sm font-semibold text-foreground">{activeMembership.pipeline_name}</span>
-                  {!isComercial && (
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-6 w-6 text-muted-foreground hover:text-destructive"
-                          onClick={() => removeFromPipeline(activeMembership.id)}
-                          disabled={saving === activeMembership.id || isLocked}
-                        >
-                          {saving === activeMembership.id ? (
-                            <Loader2 className="h-3 w-3 animate-spin" />
-                          ) : (
-                            <X className="h-3 w-3" />
-                          )}
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent side="left" className="text-xs">
-                        Remover deste funil
-                      </TooltipContent>
-                    </Tooltip>
-                  )}
+                  <div className="flex items-center gap-1.5">
+                    {/* Botões Ganhar / Perder por funil */}
+                    {(() => {
+                      const wonStage = allPStages.find(s => s.is_won);
+                      const lostStage = allPStages.find(s => s.is_closed && !s.is_won);
+                      const isOnWon = wonStage && wonStage.id === activeMembership.stage_id;
+                      const isOnLost = lostStage && lostStage.id === activeMembership.stage_id;
+                      const busy = saving === activeMembership.id;
+                      return (
+                        <>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant={isOnWon ? "default" : "outline"}
+                                size="sm"
+                                className={cn(
+                                  "h-7 text-xs gap-1",
+                                  isOnWon
+                                    ? "bg-success text-success-foreground hover:bg-success/90 border-success"
+                                    : "text-success border-success/30 hover:bg-success/10 hover:text-success",
+                                )}
+                                onClick={() => markFunnelOutcome(activeMembership, "won")}
+                                disabled={busy || !wonStage || isOnWon}
+                              >
+                                {busy ? <Loader2 className="h-3 w-3 animate-spin" /> : <Trophy className="h-3 w-3" />}
+                                Ganhar
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent side="bottom" className="text-xs">
+                              {wonStage
+                                ? `Marcar este funil como ganho (${wonStage.name})`
+                                : "Funil sem etapa de ganho configurada"}
+                            </TooltipContent>
+                          </Tooltip>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant={isOnLost ? "default" : "outline"}
+                                size="sm"
+                                className={cn(
+                                  "h-7 text-xs gap-1",
+                                  isOnLost
+                                    ? "bg-destructive text-destructive-foreground hover:bg-destructive/90 border-destructive"
+                                    : "text-destructive border-destructive/30 hover:bg-destructive/10 hover:text-destructive",
+                                )}
+                                onClick={() => markFunnelOutcome(activeMembership, "lost")}
+                                disabled={busy || !lostStage || isOnLost}
+                              >
+                                {busy ? <Loader2 className="h-3 w-3 animate-spin" /> : <XCircle className="h-3 w-3" />}
+                                Perder
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent side="bottom" className="text-xs">
+                              {lostStage
+                                ? `Marcar este funil como perdido (${lostStage.name})`
+                                : "Funil sem etapa de perda configurada"}
+                            </TooltipContent>
+                          </Tooltip>
+                        </>
+                      );
+                    })()}
+                    {!isComercial && (
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6 text-muted-foreground hover:text-destructive"
+                            onClick={() => removeFromPipeline(activeMembership.id)}
+                            disabled={saving === activeMembership.id || isLocked}
+                          >
+                            {saving === activeMembership.id ? (
+                              <Loader2 className="h-3 w-3 animate-spin" />
+                            ) : (
+                              <X className="h-3 w-3" />
+                            )}
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent side="left" className="text-xs">
+                          Remover deste funil
+                        </TooltipContent>
+                      </Tooltip>
+                    )}
+                  </div>
                 </div>
+
 
                 {/* Mini stepper — linear stages only */}
                 <div className="relative pt-1">
