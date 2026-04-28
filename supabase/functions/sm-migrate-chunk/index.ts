@@ -195,7 +195,7 @@ async function runAdaptivePromoteChunk(
   const attempts = [CHUNK_BATCH].filter((value, index, arr) => arr.indexOf(value) === index);
 
   for (const batch of attempts) {
-    const result = await callSmPromoteOnce(tenantId, batch, true);
+    const result = await callSmPromoteOnce(tenantId, batch, false);
     if (result.ok) {
       return {
         ok: true,
