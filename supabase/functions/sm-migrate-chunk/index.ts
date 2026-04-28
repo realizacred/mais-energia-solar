@@ -354,7 +354,7 @@ async function processStep(
     const backlog = await countBacklog(admin, tenantId);
     return {
       ok: true,
-      has_more: false,
+      has_more: backlog > 0,
       backlog_remaining: backlog,
       finished: false,
       error: "Outro lote já está em execução; aguardando finalizar.",
@@ -479,7 +479,17 @@ async function processStep(
         console.error("[sm-migrate-chunk] promote-custom-fields chunk chain failed:", e);
       }
     })();
-    await postPhaseTask;
+    // Não bloquear o step principal: as pós-fases podem ultrapassar o limite
+    // de execução da Edge Function e impedir o auto-encadeamento do próximo chunk.
+    try {
+      // @ts-ignore EdgeRuntime global
+      if (typeof EdgeRuntime !== "undefined" && EdgeRuntime.waitUntil) {
+        // @ts-ignore
+        EdgeRuntime.waitUntil(postPhaseTask);
+      }
+    } catch {
+      // fallback: a promise já foi iniciada acima; não deve bloquear o chunk
+    }
   }
 
   const subJobs = Array.isArray((master.metadata as { sub_jobs?: unknown[] })?.sub_jobs)
@@ -490,6 +500,7 @@ async function processStep(
     { id: sub.job_id, status: sub.status, counters: c, ts: new Date().toISOString() },
   ];
 
+  const backlogAfter = await countBacklog(admin, tenantId);
   const totalItems = Number(master.total_items ?? 0);
   const newProcessed = Math.max(0, totalItems - backlogAfter);
   const newPromoted = newProcessed;
@@ -513,7 +524,6 @@ async function processStep(
     })
     .eq("id", masterJobId);
 
-  const backlogAfter = await countBacklog(admin, tenantId);
   const hasMore = backlogAfter > 0 && processedDelta > 0;
 
   if (backlogAfter > 0 && processedDelta === 0) {
