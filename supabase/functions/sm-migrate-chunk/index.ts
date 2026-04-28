@@ -481,9 +481,9 @@ async function processStep(
     // @ts-ignore EdgeRuntime global
     if (typeof EdgeRuntime !== "undefined" && EdgeRuntime.waitUntil) {
       // @ts-ignore
-      EdgeRuntime.waitUntil(postPhaseTask);
+      await EdgeRuntime.waitUntil(postPhaseTask);
     } else {
-      void postPhaseTask;
+      await postPhaseTask;
     }
   }
 
