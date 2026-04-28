@@ -350,25 +350,10 @@ Deno.serve(async (req) => {
       tenantId,
     );
 
-    if (unmapped.length > 0 || invalid.length > 0) {
-      return new Response(
-        JSON.stringify({
-          ok: false,
-          error: "mapping_incomplete",
-          message:
-            "Há campos do SolarMarket sem mapeamento configurado em sm_custom_field_mapping. " +
-            "Configure-os via Admin → Migração SolarMarket → Step 2 → Custom Fields.",
-          unmapped_sm_keys: unmapped,
-          invalid_mappings: invalid,
-          tenant_id: tenantId,
-          duration_ms: Date.now() - startedAt,
-        }),
-        {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        },
-      );
-    }
+    const mappingWarnings = [
+      ...unmapped.map((key) => ({ warning: `slug '${key}' sem mapeamento — pulado` })),
+      ...invalid.map((entry) => ({ warning: `mapeamento inválido '${entry.sm_field_key}' (${entry.reason}) — pulado` })),
+    ];
 
     // 3. Carrega payloads das propostas correspondentes ao lote (uma query).
     const smIds = projetos.map((p: any) => Number(p.external_id)).filter(Boolean);
@@ -401,6 +386,7 @@ Deno.serve(async (req) => {
     let nativeUpdates = 0;
     const errors: Array<{ projeto_id?: string; deal_id?: string; error: string }> = [];
     const warnings: Array<{ projeto_id?: string; deal_id?: string; warning: string }> = [];
+    warnings.push(...mappingWarnings.slice(0, 50));
     const ignoredSeen = new Set<string>(); // dedup warnings
 
     /**
