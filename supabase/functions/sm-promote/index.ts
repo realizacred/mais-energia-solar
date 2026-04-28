@@ -2847,8 +2847,7 @@ async function ensureDefaultFunis(admin: SupabaseClient, tenantId: string): Prom
     }
 
     const targetKey = targetFunilNome.toLowerCase();
-    let funilId = existingByName.get(key)?.id;
-    funilId = existingByName.get(targetKey)?.id ?? funilId;
+    let funilId = existingByName.get(targetKey)?.id;
 
     if (!funilId) {
       maxOrdem += 1;
