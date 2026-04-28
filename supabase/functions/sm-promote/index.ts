@@ -1503,6 +1503,46 @@ async function resolvePipelinePerProject(
     }
   }
 
+  // ─── Multi-pipeline: resolver pipelines secundários ────────────────────────
+  // Para cada funil SM mapeado adicional (além do principal), resolver:
+  //  - pipelineId (já vem do mapping)
+  //  - stageId via sm_etapa_stage_map daquele funil; fallback = primeira stage do pipeline
+  const secondaryPipelines: Array<{ pipelineId: string; stageId: string }> = [];
+  for (const m of validMaps.slice(1)) {
+    const secPipelineId = m.pipeline_id as string;
+    const secFunilName = m.sm_funil_name as string;
+    if (!secPipelineId || secPipelineId === dealPipelineId) continue;
+
+    const secCandidate = effectiveCandidates.find((c) => c.funilName === secFunilName);
+
+    // Stages do pipeline secundário (1ª como fallback)
+    const { data: secStages } = await admin
+      .from("pipeline_stages")
+      .select("id")
+      .eq("tenant_id", tenantId)
+      .eq("pipeline_id", secPipelineId)
+      .order("position", { ascending: true })
+      .limit(1);
+    const secFirstStage = ((secStages ?? [])[0] as AnyObj | undefined)?.id as string | undefined;
+
+    let secStageId: string | null = null;
+    if (secCandidate?.stageName) {
+      const { data: secEtapaMap } = await admin
+        .from("sm_etapa_stage_map")
+        .select("stage_id")
+        .eq("tenant_id", tenantId)
+        .eq("sm_funil_name", secFunilName)
+        .ilike("sm_etapa_name", secCandidate.stageName)
+        .maybeSingle();
+      secStageId = pickStr((secEtapaMap as AnyObj | null)?.stage_id);
+    }
+    if (!secStageId) secStageId = secFirstStage ?? null;
+
+    if (secStageId) {
+      secondaryPipelines.push({ pipelineId: secPipelineId, stageId: secStageId });
+    }
+  }
+
   return {
     funilId: funilExecId,
     etapaId: etapaExecDefault,
@@ -1511,6 +1551,7 @@ async function resolvePipelinePerProject(
     dealPipelineId,
     dealStageByStatus,
     dealStageDefault,
+    secondaryPipelines,
   };
 }
 
