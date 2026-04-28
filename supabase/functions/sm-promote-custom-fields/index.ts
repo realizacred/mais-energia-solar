@@ -249,7 +249,7 @@ async function promoteNativeFields(
 
   const { data: clienteRow } = await supabase
     .from("clientes")
-    .select("observacoes")
+    .select("observacoes, identidade_urls, comprovante_endereco_urls, comprovante_beneficiaria_urls")
     .eq("id", clienteId)
     .eq("tenant_id", args.tenantId)
     .maybeSingle();
@@ -285,7 +285,10 @@ async function promoteNativeFields(
         errors.push({ projeto_id: args.projetoId, deal_id: args.dealId, error: `download native ${sourceKey}: ${(e as Error).message}` });
       }
     }
-    if (paths.length > 0) clientePatch[field] = paths;
+    if (paths.length > 0) {
+      const existing = Array.isArray(clienteRow?.[field]) ? clienteRow[field] : [];
+      clientePatch[field] = Array.from(new Set([...existing, ...paths]));
+    }
   };
 
   await downloadClientDocs("identidade_urls", "cap_identidade");
@@ -346,7 +349,7 @@ async function promoteNativeFields(
   if (Object.keys(versaoSnapshotPatch).length > 0 || Object.keys(ucMetadataPatch).length > 0) {
     const { data: latest } = await supabase
       .from("proposta_versoes")
-      .select("id, snapshot, proposta_versao_ucs(id, metadata)")
+      .select("id, snapshot, versao_numero, propostas_nativas!inner(projeto_id), proposta_versao_ucs(id, metadata)")
       .eq("tenant_id", args.tenantId)
       .eq("propostas_nativas.projeto_id", args.projetoId)
       .order("versao_numero", { ascending: false })
