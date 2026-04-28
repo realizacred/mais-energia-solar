@@ -43,6 +43,10 @@ const SELF_URL = `${SUPABASE_URL}/functions/v1/sm-migrate-chunk`;
 function isGatewayTimeoutLike(error: string | undefined): boolean {
   const message = String(error ?? "").toLowerCase();
   return message.includes("http 546")
+    || message.includes("http 521")
+    || message.includes("error code 521")
+    || message.includes("web server is down")
+    || message.includes("cloudflare")
     || message.includes("cpu time exceeded")
     || message.includes("exceeded cpu")
     || message.includes("worker limit")
@@ -51,6 +55,13 @@ function isGatewayTimeoutLike(error: string | undefined): boolean {
     || message.includes("statement timeout")
     || message.includes("canceling statement due to statement timeout")
     || message.includes("connection closed before message completed");
+}
+
+function isRecoverableChunkFailure(error: string | undefined): boolean {
+  const message = String(error ?? "").toLowerCase();
+  return isGatewayTimeoutLike(message)
+    || message.includes("falha ao processar chunk adaptativo")
+    || message.includes("chunk falhou: falha ao processar chunk adaptativo");
 }
 
 function jsonResponse(body: unknown, status = 200): Response {
@@ -181,6 +192,47 @@ async function callSmPromoteOnce(
   };
 }
 
+async function runPostPhaseUntilDone(
+  tenantId: string,
+  fnName: "sm-enrich-versoes" | "sm-promote-custom-fields",
+  action: "enrich" | "promote",
+  batch: number,
+): Promise<void> {
+  const fnUrl = `${SUPABASE_URL}/functions/v1/${fnName}`;
+  let offset = 0;
+
+  for (let i = 0; i < 500; i++) {
+    const resp = await fetch(fnUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+        apikey: SUPABASE_SERVICE_ROLE_KEY,
+        "x-sm-tenant-override": tenantId,
+        "x-sm-internal-call": "sm-migrate-chunk-v1",
+      },
+      body: JSON.stringify({
+        action,
+        payload: { tenant_id: tenantId, batch, offset },
+      }),
+    });
+    const text = await resp.text();
+    let body: Record<string, unknown> = {};
+    try {
+      body = JSON.parse(text);
+    } catch {
+      body = { raw: text };
+    }
+    if (!resp.ok || body.ok === false) {
+      throw new Error(typeof body.error === "string" ? body.error : `HTTP ${resp.status}`);
+    }
+    if (body.next_offset == null) return;
+    offset = Number(body.next_offset);
+  }
+
+  throw new Error(`${fnName} excedeu limite de chunks de segurança`);
+}
+
 async function runAdaptivePromoteChunk(
   admin: any,
   tenantId: string,
@@ -192,10 +244,13 @@ async function runAdaptivePromoteChunk(
   counters?: Record<string, number>;
   error?: string;
 }> {
-  const attempts = [CHUNK_BATCH].filter((value, index, arr) => arr.indexOf(value) === index);
+  const attempts = [CHUNK_BATCH, Math.max(MIN_CHUNK_BATCH, Math.floor(CHUNK_BATCH / 2)), MIN_CHUNK_BATCH]
+    .filter((value, index, arr) => arr.indexOf(value) === index);
 
   for (const batch of attempts) {
-    const result = await callSmPromoteOnce(tenantId, batch, false);
+    // RB-65/RB-71: durante os chunks, promove só os esqueletos.
+    // As fases 3/4 rodam uma única vez ao final do job mestre, em lotes pequenos.
+    const result = await callSmPromoteOnce(tenantId, batch, true);
     if (result.ok) {
       return {
         ok: true,
@@ -465,32 +520,12 @@ async function processStep(
       // @ts-ignore EdgeRuntime global
       EdgeRuntime.waitUntil((async () => {
         try {
-          await fetch(`${SUPABASE_URL}/functions/v1/sm-enrich-versoes`, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
-              apikey: SUPABASE_SERVICE_ROLE_KEY,
-              "x-sm-tenant-override": tenantId,
-              "x-sm-internal-call": "sm-migrate-chunk-v1",
-            },
-            body: JSON.stringify({ tenant_id: tenantId, batch_limit: 25 }),
-          });
+          await runPostPhaseUntilDone(tenantId, "sm-enrich-versoes", "enrich", 25);
         } catch (e) {
           console.error("[sm-migrate-chunk] enrich-versoes chain failed:", e);
         }
         try {
-          await fetch(`${SUPABASE_URL}/functions/v1/sm-promote-custom-fields`, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
-              apikey: SUPABASE_SERVICE_ROLE_KEY,
-              "x-sm-tenant-override": tenantId,
-              "x-sm-internal-call": "sm-migrate-chunk-v1",
-            },
-            body: JSON.stringify({ tenant_id: tenantId, batch_limit: 20 }),
-          });
+          await runPostPhaseUntilDone(tenantId, "sm-promote-custom-fields", "promote", 20);
         } catch (e) {
           console.error("[sm-migrate-chunk] promote-custom-fields chain failed:", e);
         }
@@ -558,7 +593,7 @@ Deno.serve(async (req) => {
       if (
         resumableJob &&
         ["failed", "cancelled"].includes(String(resumableJob.status ?? "")) &&
-        isGatewayTimeoutLike(String(resumableJob.error_summary ?? ""))
+        isRecoverableChunkFailure(String(resumableJob.error_summary ?? ""))
       ) {
         const { data: resumedRows, error: resumeErr } = await admin
           .from("solarmarket_promotion_jobs")
