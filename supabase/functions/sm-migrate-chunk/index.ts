@@ -57,6 +57,13 @@ function isGatewayTimeoutLike(error: string | undefined): boolean {
     || message.includes("connection closed before message completed");
 }
 
+function isRecoverableChunkFailure(error: string | undefined): boolean {
+  const message = String(error ?? "").toLowerCase();
+  return isGatewayTimeoutLike(message)
+    || message.includes("falha ao processar chunk adaptativo")
+    || message.includes("chunk falhou: falha ao processar chunk adaptativo");
+}
+
 function jsonResponse(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
     status,
@@ -586,7 +593,7 @@ Deno.serve(async (req) => {
       if (
         resumableJob &&
         ["failed", "cancelled"].includes(String(resumableJob.status ?? "")) &&
-        isGatewayTimeoutLike(String(resumableJob.error_summary ?? ""))
+        isRecoverableChunkFailure(String(resumableJob.error_summary ?? ""))
       ) {
         const { data: resumedRows, error: resumeErr } = await admin
           .from("solarmarket_promotion_jobs")
