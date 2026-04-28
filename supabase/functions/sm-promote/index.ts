@@ -3244,6 +3244,7 @@ async function actionPromoteAll(
       job_id: jobId,
       status: finalStatus,
       counters: state.counters,
+      promoted_project_external_ids: state.promotedProjectExternalIds,
       post_phases_skipped: true,
       duration_ms: Date.now() - state.startedAt,
     });
@@ -3298,6 +3299,7 @@ async function actionPromoteAll(
     job_id: jobId,
     status: finalStatus,
     counters: state.counters,
+    promoted_project_external_ids: state.promotedProjectExternalIds,
     custom_fields: cfTotals,
     enrichment: enrTotals,
     duration_ms: Date.now() - state.startedAt,
