@@ -181,6 +181,47 @@ async function callSmPromoteOnce(
   };
 }
 
+async function runPostPhaseUntilDone(
+  tenantId: string,
+  fnName: "sm-enrich-versoes" | "sm-promote-custom-fields",
+  action: "enrich" | "promote",
+  batch: number,
+): Promise<void> {
+  const fnUrl = `${SUPABASE_URL}/functions/v1/${fnName}`;
+  let offset = 0;
+
+  for (let i = 0; i < 500; i++) {
+    const resp = await fetch(fnUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+        apikey: SUPABASE_SERVICE_ROLE_KEY,
+        "x-sm-tenant-override": tenantId,
+        "x-sm-internal-call": "sm-migrate-chunk-v1",
+      },
+      body: JSON.stringify({
+        action,
+        payload: { tenant_id: tenantId, batch, offset },
+      }),
+    });
+    const text = await resp.text();
+    let body: Record<string, unknown> = {};
+    try {
+      body = JSON.parse(text);
+    } catch {
+      body = { raw: text };
+    }
+    if (!resp.ok || body.ok === false) {
+      throw new Error(typeof body.error === "string" ? body.error : `HTTP ${resp.status}`);
+    }
+    if (body.next_offset == null) return;
+    offset = Number(body.next_offset);
+  }
+
+  throw new Error(`${fnName} excedeu limite de chunks de segurança`);
+}
+
 async function runAdaptivePromoteChunk(
   admin: any,
   tenantId: string,
