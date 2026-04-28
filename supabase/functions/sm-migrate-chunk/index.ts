@@ -43,6 +43,10 @@ const SELF_URL = `${SUPABASE_URL}/functions/v1/sm-migrate-chunk`;
 function isGatewayTimeoutLike(error: string | undefined): boolean {
   const message = String(error ?? "").toLowerCase();
   return message.includes("http 546")
+    || message.includes("http 521")
+    || message.includes("error code 521")
+    || message.includes("web server is down")
+    || message.includes("cloudflare")
     || message.includes("cpu time exceeded")
     || message.includes("exceeded cpu")
     || message.includes("worker limit")
@@ -233,7 +237,8 @@ async function runAdaptivePromoteChunk(
   counters?: Record<string, number>;
   error?: string;
 }> {
-  const attempts = [CHUNK_BATCH].filter((value, index, arr) => arr.indexOf(value) === index);
+  const attempts = [CHUNK_BATCH, Math.max(MIN_CHUNK_BATCH, Math.floor(CHUNK_BATCH / 2)), MIN_CHUNK_BATCH]
+    .filter((value, index, arr) => arr.indexOf(value) === index);
 
   for (const batch of attempts) {
     // RB-65/RB-71: durante os chunks, promove só os esqueletos.
