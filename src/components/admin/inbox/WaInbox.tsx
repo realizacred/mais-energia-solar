@@ -246,6 +246,25 @@ export function WaInbox({ vendorMode = false, vendorUserId, showCompactStats = f
     }
   }, [initialConversationId, allConversations, filterStatus, queryClient]);
 
+  // Auto-open newly created conversation (from "Nova conversa" dialog).
+  // Waits for the conversation to appear in the list after invalidation.
+  useEffect(() => {
+    if (!pendingNewConvId) return;
+    const target = allConversations.find((c) => c.id === pendingNewConvId);
+    if (target) {
+      if (filterStatus !== "all") setFilterStatus("all");
+      setSelectedConv(target);
+      setPendingNewConvId(null);
+    }
+  }, [pendingNewConvId, allConversations, filterStatus]);
+
+  // Safety: if conversation never shows up (5s), give up silently
+  useEffect(() => {
+    if (!pendingNewConvId) return;
+    const t = setTimeout(() => setPendingNewConvId(null), 5000);
+    return () => clearTimeout(t);
+  }, [pendingNewConvId]);
+
   // Keep selectedConv in sync with query data (e.g. after tag toggle, status change)
   // Uses a ref to store the last synced conversation JSON to avoid re-render loops
   const lastSyncedConvRef = useRef<string>("");
