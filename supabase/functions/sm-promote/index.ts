@@ -1591,6 +1591,53 @@ async function resolvePipelinePerProject(
     }
   }
 
+  // ─── Garantia: pipeline COMERCIAL sempre presente na projeção ────────────────
+  // RB-59/RB-60: todo deal migrado deve aparecer no kanban Comercial,
+  // independentemente do mapeamento sm_funil_pipeline_map (que pode apontar
+  // direto para Engenharia/Equipamento). Sem isso, projetos "ganhos" desaparecem
+  // do funil comercial e da aba "Funis do Projeto" no detalhe.
+  try {
+    const { data: pipComercial } = await admin
+      .from("pipelines")
+      .select("id")
+      .eq("tenant_id", tenantId)
+      .eq("is_active", true)
+      .ilike("name", "comercial")
+      .limit(1)
+      .maybeSingle();
+    const comercialId = (pipComercial as AnyObj | null)?.id as string | undefined;
+    if (
+      comercialId &&
+      comercialId !== dealPipelineId &&
+      !secondaryPipelines.some((sp) => sp.pipelineId === comercialId)
+    ) {
+      const { data: comStages } = await admin
+        .from("pipeline_stages")
+        .select("id, name, position, is_won")
+        .eq("tenant_id", tenantId)
+        .eq("pipeline_id", comercialId);
+      const stagesArr = (comStages ?? []) as AnyObj[];
+      const wonStage = stagesArr.find((s) => Boolean(s.is_won));
+      const firstStage = stagesArr.sort((a, b) => Number(a.position ?? 0) - Number(b.position ?? 0))[0];
+      // Resolver nome do pipeline principal para detectar se é pós-venda.
+      let principalNomeNorm = "";
+      if (dealPipelineId) {
+        const { data: pipPrincipal } = await admin
+          .from("pipelines").select("name").eq("id", dealPipelineId).maybeSingle();
+        principalNomeNorm = norm(((pipPrincipal as AnyObj | null)?.name as string) ?? "");
+      }
+      const isPostVenda = ["engenharia", "equipamento", "compensacao"].includes(principalNomeNorm);
+      const chosenStageId = (isPostVenda && wonStage?.id)
+        ? (wonStage.id as string)
+        : ((firstStage as AnyObj | undefined)?.id as string | undefined);
+      if (chosenStageId) {
+        secondaryPipelines.push({ pipelineId: comercialId, stageId: chosenStageId });
+      }
+    }
+  } catch (e) {
+    console.error(`[${MODULE}] resolvePipelineForProject: ensure-comercial failed: ${(e as Error).message}`);
+  }
+
   return {
     funilId: funilExecId,
     etapaId: etapaExecDefault,
