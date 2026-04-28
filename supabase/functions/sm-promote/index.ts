@@ -1227,6 +1227,8 @@ interface PipelineResolution {
   hasPipelineConfigured: boolean;
   /** Mapa status canônico → etapa_id nativa de projeto. */
   stageByStatus: Record<string, string>;
+  /** Etapa operacional exata vinda do funil/etapa SM, quando mapeável por nome. */
+  smEtapaId?: string | null;
 }
 
 /**
@@ -1292,7 +1294,7 @@ async function resolveDefaultPipeline(
 
 /** Resolve etapa para um status canônico, com fallback para etapa default. */
 function resolveStageForStatus(pipeline: PipelineResolution, status: string): string | null {
-  return pipeline.stageByStatus[status] ?? pipeline.etapaId;
+  return pipeline.smEtapaId ?? pipeline.stageByStatus[status] ?? pipeline.etapaId;
 }
 
 // ─── Resolução de pipeline POR PROJETO (sm_funil_pipeline_map) ───────────────
