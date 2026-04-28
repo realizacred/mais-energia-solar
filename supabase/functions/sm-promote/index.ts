@@ -30,7 +30,7 @@ const SM_MIGRATE_CHUNK_URL = `${SUPABASE_URL}/functions/v1/sm-migrate-chunk`;
 const SOURCE = "solarmarket";
 const LEGACY_SM_SOURCES = [SOURCE, "solar_market"] as const;
 const DEFAULT_BATCH_LIMIT = 5;
-const MAX_BATCH_LIMIT = 50;
+const MAX_BATCH_LIMIT = 25;
 const SUBJOB_HEARTBEAT_EVERY = 1;
 
 type CanonicalEntity = "cliente" | "projeto" | "proposta" | "versao";
