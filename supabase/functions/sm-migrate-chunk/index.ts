@@ -478,13 +478,7 @@ async function processStep(
         console.error("[sm-migrate-chunk] promote-custom-fields chunk chain failed:", e);
       }
     })();
-    // @ts-ignore EdgeRuntime global
-    if (typeof EdgeRuntime !== "undefined" && EdgeRuntime.waitUntil) {
-      // @ts-ignore
-      await EdgeRuntime.waitUntil(postPhaseTask);
-    } else {
-      await postPhaseTask;
-    }
+    await postPhaseTask;
   }
 
   const subJobs = Array.isArray((master.metadata as { sub_jobs?: unknown[] })?.sub_jobs)
