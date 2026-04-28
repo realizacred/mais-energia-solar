@@ -354,7 +354,7 @@ async function processStep(
     const backlog = await countBacklog(admin, tenantId);
     return {
       ok: true,
-      has_more: false,
+      has_more: backlog > 0,
       backlog_remaining: backlog,
       finished: false,
       error: "Outro lote já está em execução; aguardando finalizar.",
