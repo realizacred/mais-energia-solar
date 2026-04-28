@@ -42,14 +42,15 @@ const TILE = {
 } as const;
 
 export function CustomFieldsMappingSummary({ tenantId }: Props) {
+  const qc = useQueryClient();
   const fieldsQ = useSmCustomFieldsStaging(tenantId);
   const mappingsQ = useCustomFieldMappings(tenantId);
 
-  // Garante leitura fresca ao entrar no Step 4 (evita exibir cache vazio
-  // quando o usuário acaba de mapear no Step 3 e voltou para cá).
+  // Invalida o cache (não só refetch) ao entrar no Step 4 — garante que,
+  // se o usuário voltou do Step 3 após mapear, os contadores reflitam o banco.
   useEffect(() => {
-    mappingsQ.refetch();
-    fieldsQ.refetch();
+    qc.invalidateQueries({ queryKey: ["sm-custom-fields-staging", tenantId] });
+    qc.invalidateQueries({ queryKey: ["sm-custom-field-mapping", tenantId] });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tenantId]);
 
