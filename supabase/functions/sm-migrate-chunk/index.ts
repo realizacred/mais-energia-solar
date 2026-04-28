@@ -460,7 +460,6 @@ async function processStep(
   const promotedProjectExternalIds = Array.isArray(sub.promoted_project_external_ids)
     ? sub.promoted_project_external_ids.map((id) => String(id).trim()).filter(Boolean)
     : [];
-  const promoted = Number(c.promoted ?? 0);
   const errors = Number(c.errors ?? 0);
   const warnings = Number(c.warnings ?? 0);
   const blocked = Number(c.blocked ?? 0);
