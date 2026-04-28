@@ -49,8 +49,8 @@ export function CustomFieldsMappingSummary({ tenantId }: Props) {
   // Invalida o cache (não só refetch) ao entrar no Step 4 — garante que,
   // se o usuário voltou do Step 3 após mapear, os contadores reflitam o banco.
   useEffect(() => {
-    qc.invalidateQueries({ queryKey: ["sm-custom-fields-staging", tenantId] });
-    qc.invalidateQueries({ queryKey: ["sm-custom-field-mapping", tenantId] });
+    qc.invalidateQueries({ queryKey: ["sm-fields-raw", tenantId] });
+    qc.invalidateQueries({ queryKey: ["sm-cf-mapping", tenantId] });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tenantId]);
 
