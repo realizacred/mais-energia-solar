@@ -117,6 +117,26 @@ export default function MigracaoStep2Mapear() {
   const saveMutation = useSaveFunilPapel();
   const createPipelineMutation = useCreatePipelineCrm();
   const criarAutoMutation = useCriarPipelineAuto();
+  const criarComercialMutation = useCreatePipelineComercialPadrao();
+
+  const temPipelineComercial = (pipelines ?? []).some(
+    (p) => (p.name ?? "").trim().toLowerCase() === "comercial",
+  );
+
+  const handleCriarComercialPadrao = async () => {
+    if (!tenantId) return;
+    try {
+      const res = await criarComercialMutation.mutateAsync({ tenantId });
+      toast.success(
+        res.created
+          ? "Pipeline Comercial criado com etapas padrão"
+          : "Pipeline Comercial já existia — etapas padrão garantidas",
+      );
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Erro ao criar pipeline Comercial";
+      toast.error(msg);
+    }
+  };
 
   // Funis em que o usuário selecionou "pipeline" mas ainda não escolheu qual.
   const [pendentes, setPendentes] = useState<Record<string, boolean>>({});
