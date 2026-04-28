@@ -1305,9 +1305,16 @@ function resolveStageForStatus(pipeline: PipelineResolution, status: string): st
  * Se nada estiver mapeado, retorna o `defaultPipeline` (resolveDefaultPipeline).
  */
 interface PerProjectPipeline extends PipelineResolution {
-  dealPipelineId: string | null;            // pipelines.id (Comercial)
+  dealPipelineId: string | null;            // pipelines.id (Comercial PRINCIPAL)
   dealStageByStatus: Record<string, string>; // status canônico → pipeline_stages.id
   dealStageDefault: string | null;
+  /**
+   * Pipelines secundários onde o deal também deve aparecer (multi-pipeline).
+   * Cada projeto pode estar em vários funis SM ao mesmo tempo (ex.: Comercial + Engenharia + Equipamento).
+   * Inserir uma linha em `deal_pipeline_stages` por pipeline secundário dispara
+   * `trg_sync_dps_kanban`, que materializa a projeção em `deal_kanban_projection`.
+   */
+  secondaryPipelines: Array<{ pipelineId: string; stageId: string }>;
 }
 
 async function resolveDefaultDealPipeline(
