@@ -62,6 +62,7 @@ import {
 } from "@/hooks/usePipelinesCrm";
 import { useCriarPipelineAuto } from "@/hooks/useCriarPipelineAuto";
 import { useEnsureComercialMirror } from "@/hooks/useEnsureComercialMirror";
+import { useCreatePipelineComercialPadrao } from "@/hooks/useCreatePipelineComercialPadrao";
 import { useSmEtapasFunil } from "@/hooks/useSmEtapasFunil";
 import { useSmConsultorMappings } from "@/hooks/useSmConsultorMapping";
 import { useMigrationConfig } from "@/hooks/useMigrationConfig";
