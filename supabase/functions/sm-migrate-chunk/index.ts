@@ -490,6 +490,7 @@ async function processStep(
     { id: sub.job_id, status: sub.status, counters: c, ts: new Date().toISOString() },
   ];
 
+  const backlogAfter = await countBacklog(admin, tenantId);
   const totalItems = Number(master.total_items ?? 0);
   const newProcessed = Math.max(0, totalItems - backlogAfter);
   const newPromoted = newProcessed;
@@ -513,7 +514,6 @@ async function processStep(
     })
     .eq("id", masterJobId);
 
-  const backlogAfter = await countBacklog(admin, tenantId);
   const hasMore = backlogAfter > 0 && processedDelta > 0;
 
   if (backlogAfter > 0 && processedDelta === 0) {
