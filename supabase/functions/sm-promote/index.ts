@@ -1305,9 +1305,16 @@ function resolveStageForStatus(pipeline: PipelineResolution, status: string): st
  * Se nada estiver mapeado, retorna o `defaultPipeline` (resolveDefaultPipeline).
  */
 interface PerProjectPipeline extends PipelineResolution {
-  dealPipelineId: string | null;            // pipelines.id (Comercial)
+  dealPipelineId: string | null;            // pipelines.id (Comercial PRINCIPAL)
   dealStageByStatus: Record<string, string>; // status canônico → pipeline_stages.id
   dealStageDefault: string | null;
+  /**
+   * Pipelines secundários onde o deal também deve aparecer (multi-pipeline).
+   * Cada projeto pode estar em vários funis SM ao mesmo tempo (ex.: Comercial + Engenharia + Equipamento).
+   * Inserir uma linha em `deal_pipeline_stages` por pipeline secundário dispara
+   * `trg_sync_dps_kanban`, que materializa a projeção em `deal_kanban_projection`.
+   */
+  secondaryPipelines: Array<{ pipelineId: string; stageId: string }>;
 }
 
 async function resolveDefaultDealPipeline(
@@ -1375,6 +1382,7 @@ async function resolvePipelinePerProject(
   const empty: PerProjectPipeline = {
     ...defaultPipeline,
     ...defaultDeal,
+    secondaryPipelines: [],
   };
 
   if (!projectExtId) return empty;
@@ -1406,11 +1414,12 @@ async function resolvePipelinePerProject(
     .eq("tenant_id", tenantId)
     .in("sm_funil_name", funilNames);
 
-  // Prioriza role="pipeline"; ignora "ignore"
-  const validMap = (maps ?? [])
+  // Prioriza role="pipeline"; ignora "ignore". Mantém TODOS os válidos para multi-pipeline.
+  const validMaps = (maps ?? [])
     .filter((m: AnyObj) => m.role !== "ignore" && m.pipeline_id)
-    .sort((a: AnyObj, b: AnyObj) => (a.role === "pipeline" ? -1 : 1))[0] as AnyObj | undefined;
+    .sort((a: AnyObj, b: AnyObj) => (a.role === "pipeline" ? -1 : 1)) as AnyObj[];
 
+  const validMap = validMaps[0];
   if (!validMap) return empty;
 
   const dealPipelineId = validMap.pipeline_id as string;
@@ -1494,6 +1503,46 @@ async function resolvePipelinePerProject(
     }
   }
 
+  // ─── Multi-pipeline: resolver pipelines secundários ────────────────────────
+  // Para cada funil SM mapeado adicional (além do principal), resolver:
+  //  - pipelineId (já vem do mapping)
+  //  - stageId via sm_etapa_stage_map daquele funil; fallback = primeira stage do pipeline
+  const secondaryPipelines: Array<{ pipelineId: string; stageId: string }> = [];
+  for (const m of validMaps.slice(1)) {
+    const secPipelineId = m.pipeline_id as string;
+    const secFunilName = m.sm_funil_name as string;
+    if (!secPipelineId || secPipelineId === dealPipelineId) continue;
+
+    const secCandidate = effectiveCandidates.find((c) => c.funilName === secFunilName);
+
+    // Stages do pipeline secundário (1ª como fallback)
+    const { data: secStages } = await admin
+      .from("pipeline_stages")
+      .select("id")
+      .eq("tenant_id", tenantId)
+      .eq("pipeline_id", secPipelineId)
+      .order("position", { ascending: true })
+      .limit(1);
+    const secFirstStage = ((secStages ?? [])[0] as AnyObj | undefined)?.id as string | undefined;
+
+    let secStageId: string | null = null;
+    if (secCandidate?.stageName) {
+      const { data: secEtapaMap } = await admin
+        .from("sm_etapa_stage_map")
+        .select("stage_id")
+        .eq("tenant_id", tenantId)
+        .eq("sm_funil_name", secFunilName)
+        .ilike("sm_etapa_name", secCandidate.stageName)
+        .maybeSingle();
+      secStageId = pickStr((secEtapaMap as AnyObj | null)?.stage_id);
+    }
+    if (!secStageId) secStageId = secFirstStage ?? null;
+
+    if (secStageId) {
+      secondaryPipelines.push({ pipelineId: secPipelineId, stageId: secStageId });
+    }
+  }
+
   return {
     funilId: funilExecId,
     etapaId: etapaExecDefault,
@@ -1502,6 +1551,7 @@ async function resolvePipelinePerProject(
     dealPipelineId,
     dealStageByStatus,
     dealStageDefault,
+    secondaryPipelines,
   };
 }
 
@@ -1539,6 +1589,18 @@ async function createDealForProject(
         .update({ deal_id: existingDealId })
         .eq("id", proposta.id)
         .eq("tenant_id", tenantId);
+    }
+    // Multi-pipeline também na re-execução (idempotente)
+    if (pipeline.secondaryPipelines.length > 0) {
+      const dpsRows = pipeline.secondaryPipelines.map((sp) => ({
+        tenant_id: tenantId,
+        deal_id: existingDealId,
+        pipeline_id: sp.pipelineId,
+        stage_id: sp.stageId,
+      }));
+      await admin
+        .from("deal_pipeline_stages")
+        .upsert(dpsRows, { onConflict: "deal_id,pipeline_id" });
     }
     return { dealId: existingDealId, created: false, reason: "already_linked" };
   }
@@ -1606,6 +1668,23 @@ async function createDealForProject(
       .select("id");
     if (!updProp || updProp.length === 0) {
       console.error(`[${MODULE}] createDealForProject: UPDATE propostas_nativas.deal_id afetou 0 linhas (id=${proposta.id})`);
+    }
+  }
+
+  // Multi-pipeline: inserir membership em pipelines secundários.
+  // O trigger trg_sync_dps_kanban materializa cada linha em deal_kanban_projection.
+  if (pipeline.secondaryPipelines.length > 0) {
+    const dpsRows = pipeline.secondaryPipelines.map((sp) => ({
+      tenant_id: tenantId,
+      deal_id: dealId,
+      pipeline_id: sp.pipelineId,
+      stage_id: sp.stageId,
+    }));
+    const { error: dpsErr } = await admin
+      .from("deal_pipeline_stages")
+      .upsert(dpsRows, { onConflict: "deal_id,pipeline_id" });
+    if (dpsErr) {
+      console.error(`[${MODULE}] createDealForProject: secondary pipelines upsert failed: ${dpsErr.message}`);
     }
   }
 
