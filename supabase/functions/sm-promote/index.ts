@@ -2796,7 +2796,11 @@ async function ensureDefaultFunis(admin: SupabaseClient, tenantId: string): Prom
     ((existingMaps ?? []) as AnyObj[]).map((m) => [String(m.sm_funil_name).trim().toLowerCase(), m]),
   );
 
-  // 3) Para cada funil do SM: garante o projeto_funis e replica as etapas reais
+  // 3) Para cada funil do SM: respeita ESTRITAMENTE o mapeamento manual.
+  //    Funis ignorados (Pagamento/Compensação) ou fonte de consultor (Vendedores)
+  //    não podem criar projeto_funis/projeto_etapas. Quando um funil SM aponta para
+  //    um pipeline existente (ex.: LEAD → Comercial), o espelho de execução usa o
+  //    NOME/STAGES do pipeline de destino — nunca o nome bruto do funil de origem.
   for (const row of smFunis as AnyObj[]) {
     const payload = (row.payload ?? {}) as AnyObj;
     const funilNome = String(payload.name ?? "").trim();
@@ -2805,16 +2809,46 @@ async function ensureDefaultFunis(admin: SupabaseClient, tenantId: string): Prom
     // Pula funil "Vendedores" — é mapa de consultores, não pipeline real
     if (funilNome.toLowerCase() === "vendedores") continue;
 
+    const key = funilNome.toLowerCase();
+    const mapAtual = mapByFunil.get(key);
+    if (mapAtual?.role === "ignore" || mapAtual?.role === "vendedor_source") continue;
+
     const stagesRaw = Array.isArray(payload.stages) ? (payload.stages as AnyObj[]) : [];
     if (stagesRaw.length === 0) continue;
 
     // Ordena pelas ordens originais do SM
-    const stagesOrdenadas = [...stagesRaw].sort(
+    let stagesOrdenadas = [...stagesRaw].sort(
       (a, b) => (Number(a.order) || 0) - (Number(b.order) || 0),
     );
 
-    const key = funilNome.toLowerCase();
+    let targetFunilNome = funilNome;
+    if (mapAtual?.pipeline_id) {
+      const { data: targetPipeline } = await admin
+        .from("pipelines")
+        .select("id, name")
+        .eq("tenant_id", tenantId)
+        .eq("id", mapAtual.pipeline_id as string)
+        .maybeSingle();
+      const pipelineName = pickStr((targetPipeline as AnyObj | null)?.name);
+      if (!pipelineName) continue;
+      targetFunilNome = pipelineName;
+
+      const { data: targetStages } = await admin
+        .from("pipeline_stages")
+        .select("name, position")
+        .eq("tenant_id", tenantId)
+        .eq("pipeline_id", mapAtual.pipeline_id as string)
+        .order("position", { ascending: true });
+      if ((targetStages?.length ?? 0) > 0) {
+        stagesOrdenadas = (targetStages ?? []).map((s: AnyObj) => ({ name: s.name, order: s.position }));
+      }
+    } else if (!canBootstrapCommercialPipelines) {
+      continue;
+    }
+
+    const targetKey = targetFunilNome.toLowerCase();
     let funilId = existingByName.get(key)?.id;
+    funilId = existingByName.get(targetKey)?.id ?? funilId;
 
     if (!funilId) {
       maxOrdem += 1;
@@ -2822,7 +2856,7 @@ async function ensureDefaultFunis(admin: SupabaseClient, tenantId: string): Prom
         .from("projeto_funis")
         .insert({
           tenant_id: tenantId,
-          nome: funilNome,
+          nome: targetFunilNome,
           ordem: maxOrdem,
           ativo: true,
         })
@@ -2833,7 +2867,7 @@ async function ensureDefaultFunis(admin: SupabaseClient, tenantId: string): Prom
         continue;
       }
       funilId = created.id as string;
-      existingByName.set(key, { id: funilId, ordem: maxOrdem });
+      existingByName.set(targetKey, { id: funilId, ordem: maxOrdem });
     }
 
     // 4) Etapas: replica EXATAMENTE as do SM (nome + ordem). Só insere o que falta.
