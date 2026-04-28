@@ -1414,11 +1414,12 @@ async function resolvePipelinePerProject(
     .eq("tenant_id", tenantId)
     .in("sm_funil_name", funilNames);
 
-  // Prioriza role="pipeline"; ignora "ignore"
-  const validMap = (maps ?? [])
+  // Prioriza role="pipeline"; ignora "ignore". Mantém TODOS os válidos para multi-pipeline.
+  const validMaps = (maps ?? [])
     .filter((m: AnyObj) => m.role !== "ignore" && m.pipeline_id)
-    .sort((a: AnyObj, b: AnyObj) => (a.role === "pipeline" ? -1 : 1))[0] as AnyObj | undefined;
+    .sort((a: AnyObj, b: AnyObj) => (a.role === "pipeline" ? -1 : 1)) as AnyObj[];
 
+  const validMap = validMaps[0];
   if (!validMap) return empty;
 
   const dealPipelineId = validMap.pipeline_id as string;
