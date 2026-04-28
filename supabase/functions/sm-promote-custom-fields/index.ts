@@ -50,7 +50,6 @@ const DEFAULT_NATIVE_KEYS = new Set([
   "capo_i",
   "capo_m",
   "capo_mi",
-  "capo_overlord",
 ]);
 
 function normalizeSmKey(raw: unknown): string {
@@ -333,9 +332,6 @@ async function promoteNativeFields(
       ...(garantiaMicro ? { microinversor_sm: garantiaMicro } : {}),
     };
   }
-  const overlord = firstValue(values, ["capo_overlord"]);
-  if (overlord) versaoSnapshotPatch.overlord = overlord;
-
   const concessionaria = firstValue(values, ["cap_concessionaria"]);
   if (concessionaria) ucMetadataPatch.concessionaria_sm = concessionaria;
   const ucDocs = values.get("cap_uc");
