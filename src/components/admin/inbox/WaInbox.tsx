@@ -872,11 +872,9 @@ export function WaInbox({ vendorMode = false, vendorUserId, showCompactStats = f
         onOpenChange={setShowStartChat}
         instances={instances}
         onConversationStarted={async (convId) => {
+          setShowStartChat(false);
+          setPendingNewConvId(convId);
           await queryClient.invalidateQueries({ queryKey: ["wa-conversations"] });
-          setTimeout(() => {
-            const conv = allConversations.find((c) => c.id === convId);
-            if (conv) handleSelectConversation(conv);
-          }, 500);
         }}
       />
     </div>
