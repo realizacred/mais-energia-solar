@@ -196,6 +196,7 @@ export function useProjetoPipeline() {
 
     // SERVER-SIDE funil filter: filter by etapa_ids belonging to the selected funil
     // OR by deal_pipeline_stages (multi-pipeline membership: projeto pode estar em N pipelines)
+    let etapaOverrideByDealId = new Map<string, string>();
     if (f.funilId) {
       const funilEtapaIds = availableEtapas
         .filter(e => e.funil_id === f.funilId)
@@ -215,9 +216,33 @@ export function useProjetoPipeline() {
         if (pipelineMatch?.id) {
           const { data: memberships } = await supabase
             .from("deal_pipeline_stages")
-            .select("deal_id")
+            .select("deal_id, stage_id")
             .eq("pipeline_id", pipelineMatch.id);
-          dealIdsViaMembership = (memberships || []).map((m: any) => m.deal_id).filter(Boolean);
+
+          // Mapa stage_id (pipeline_stages) → etapa_id (projeto_etapas) via nome
+          const stageIds = [...new Set((memberships || []).map((m: any) => m.stage_id).filter(Boolean))];
+          const stageNameById = new Map<string, string>();
+          if (stageIds.length > 0) {
+            const { data: stageRows } = await supabase
+              .from("pipeline_stages")
+              .select("id, name")
+              .in("id", stageIds);
+            (stageRows || []).forEach((s: any) => stageNameById.set(s.id, (s.name || "").toLowerCase().trim()));
+          }
+          const projetoEtapaByName = new Map<string, string>();
+          availableEtapas
+            .filter(e => e.funil_id === f.funilId)
+            .forEach(e => projetoEtapaByName.set((e.nome || "").toLowerCase().trim(), e.id));
+
+          (memberships || []).forEach((m: any) => {
+            if (!m.deal_id || !m.stage_id) return;
+            const stageName = stageNameById.get(m.stage_id);
+            if (!stageName) return;
+            const projEtapaId = projetoEtapaByName.get(stageName);
+            if (projEtapaId) etapaOverrideByDealId.set(m.deal_id, projEtapaId);
+          });
+
+          dealIdsViaMembership = [...etapaOverrideByDealId.keys()];
         }
       }
 
@@ -225,7 +250,6 @@ export function useProjetoPipeline() {
       if (funilEtapaIds.length > 0) orParts.push(`etapa_id.in.(${funilEtapaIds.join(",")})`);
       orParts.push(`funil_id.eq.${f.funilId}`);
       if (dealIdsViaMembership.length > 0) {
-        // Chunk to evitar URL gigante (>2000 deal_ids)
         const dealChunk = dealIdsViaMembership.slice(0, 1500);
         orParts.push(`deal_id.in.(${dealChunk.join(",")})`);
       }
@@ -233,6 +257,23 @@ export function useProjetoPipeline() {
     }
 
     const data = await fetchAllProjetosRows(query as any);
+
+    // Aplica override de etapa_id para projetos vindos via multi-pipeline membership
+    // (preserva original quando projeto já pertence ao funil filtrado nativamente)
+    if (etapaOverrideByDealId.size > 0 && f.funilId) {
+      const validEtapaIdsDoFunil = new Set(
+        availableEtapas.filter(e => e.funil_id === f.funilId).map(e => e.id)
+      );
+      (data || []).forEach((p: any) => {
+        if (!p.deal_id) return;
+        const override = etapaOverrideByDealId.get(p.deal_id);
+        if (!override) return;
+        // Só sobrescreve se a etapa_id atual NÃO pertence ao funil filtrado
+        if (!p.etapa_id || !validEtapaIdsDoFunil.has(p.etapa_id)) {
+          p.etapa_id = override;
+        }
+      });
+    }
 
     const projetoIds = (data || []).map((p: any) => p.id);
     const relMap = new Map<string, string[]>();
