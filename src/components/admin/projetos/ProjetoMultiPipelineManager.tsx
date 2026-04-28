@@ -352,23 +352,25 @@ export function ProjetoMultiPipelineManager({ dealId, dealStatus, pipelines, all
       {/* Tabs for pipeline memberships */}
       {memberships.length > 0 && (
         <div className="space-y-2">
-          {/* Tab bar */}
-          <div className="flex items-center gap-1 overflow-x-auto pb-0.5">
-            {memberships.map(membership => (
-              <button
-                key={membership.id}
-                onClick={() => setActivePipelineId(membership.pipeline_id)}
-                className={cn(
-                  "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all whitespace-nowrap",
-                  activePipelineId === membership.pipeline_id
-                    ? "bg-secondary/10 text-secondary border border-secondary/30 shadow-sm"
-                    : "bg-muted/40 text-muted-foreground hover:bg-muted/80 border border-transparent"
-                )}
-              >
-                {membership.pipeline_name}
-              </button>
-            ))}
-          </div>
+          {/* Tab bar — ordem canônica (pipelines.position) sobrescrita por preferência pessoal */}
+          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleTabDragEnd}>
+            <SortableContext
+              items={orderedMemberships.map((m) => m.pipeline_id)}
+              strategy={horizontalListSortingStrategy}
+            >
+              <div className="flex items-center gap-1 overflow-x-auto pb-0.5">
+                {orderedMemberships.map((membership) => (
+                  <SortablePipelineTab
+                    key={membership.id}
+                    membershipId={membership.pipeline_id}
+                    pipelineName={membership.pipeline_name}
+                    active={activePipelineId === membership.pipeline_id}
+                    onSelect={() => setActivePipelineId(membership.pipeline_id)}
+                  />
+                ))}
+              </div>
+            </SortableContext>
+          </DndContext>
 
           {/* Active pipeline stepper */}
           {activeMembership && (() => {
