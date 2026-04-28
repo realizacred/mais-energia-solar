@@ -142,7 +142,6 @@ export function useCreatePipelineComercialPadrao() {
               funil_id: funilId!,
               nome: s.name,
               ordem: s.position,
-              ativo: true,
             })),
           );
         if (etErr) throw new Error(etErr.message);
