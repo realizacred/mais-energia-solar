@@ -148,7 +148,27 @@ export function ProjetoFilters({
 
   const hasActive = activeFilterCount > 0;
 
-  const activeFunis = funis.filter(f => f.ativo);
+  // Ordem: (1) canônica do BD por `ordem`, (2) sobrescrita pela preferência pessoal do usuário.
+  const { sortByUserOrder, setOrder } = useUserFunnelOrder("projeto-funis");
+  const activeFunis = useMemo(() => {
+    const canonical = [...funis]
+      .filter((f) => f.ativo)
+      .sort((a, b) => a.ordem - b.ordem);
+    return sortByUserOrder(canonical);
+  }, [funis, sortByUserOrder]);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
+  );
+  const handleDragEnd = (e: DragEndEvent) => {
+    const { active, over } = e;
+    if (!over || active.id === over.id) return;
+    const oldIndex = activeFunis.findIndex((f) => f.id === active.id);
+    const newIndex = activeFunis.findIndex((f) => f.id === over.id);
+    if (oldIndex < 0 || newIndex < 0) return;
+    const reordered = arrayMove(activeFunis, oldIndex, newIndex).map((f) => f.id);
+    setOrder(reordered);
+  };
 
   const toggleEtiqueta = (id: string) => {
     if (filterEtiquetas.includes(id)) {
