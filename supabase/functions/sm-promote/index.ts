@@ -1068,7 +1068,25 @@ async function promoteProjeto(
     .insert(insertPayload)
     .select("id")
     .single();
-  if (error || !data?.id) throw new Error(`insert projeto: ${error?.message}`);
+  if (error || !data?.id) {
+    const message = error?.message ?? "sem retorno";
+    const isDuplicate = error?.code === "23505" || /duplicate key|unique constraint|uq_projetos_tenant_codigo/i.test(message);
+    if (isDuplicate) {
+      const { data: existingProject, error: existingErr } = await admin
+        .from("projetos")
+        .select("id")
+        .eq("tenant_id", tenantId)
+        .eq("codigo", codigo)
+        .maybeSingle();
+      if (!existingErr && existingProject?.id) {
+        await upsertLink(admin, tenantId, jobId, "projeto", existingProject.id as string, "projeto", norm.external_id, {
+          matched_by: "codigo_duplicate_recovery",
+        });
+        return { id: existingProject.id as string, created: false };
+      }
+    }
+    throw new Error(`insert projeto: ${message}`);
+  }
 
   await upsertLink(admin, tenantId, jobId, "projeto", data.id as string, "projeto", norm.external_id);
   return { id: data.id as string, created: true };
