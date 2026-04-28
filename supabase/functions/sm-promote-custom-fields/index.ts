@@ -175,8 +175,14 @@ async function downloadAndStore(
   if (!resp.ok) {
     return { ok: false, path: storagePath, reason: `http_${resp.status}` };
   }
-  const contentType =
-    resp.headers.get("content-type") || "application/octet-stream";
+  let contentType = resp.headers.get("content-type") || "application/octet-stream";
+  if (contentType === "application/octet-stream") {
+    const name = storagePath.toLowerCase();
+    if (/\.pdf$/.test(name)) contentType = "application/pdf";
+    else if (/\.(jpg|jpeg)$/.test(name)) contentType = "image/jpeg";
+    else if (/\.png$/.test(name)) contentType = "image/png";
+    else if (/\.webp$/.test(name)) contentType = "image/webp";
+  }
   const blob = await resp.blob();
 
   const { error: upErr } = await supabase.storage
