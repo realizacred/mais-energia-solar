@@ -22,6 +22,8 @@ export interface VersaoProjetoTab {
   public_slug: string | null;
   gerado_em: string | null;
   usuario_editou_em: string | null;
+  tir: number | null;
+  vpl: number | null;
 }
 
 export interface PropostaNativaProjetoTab {
@@ -93,7 +95,7 @@ export function usePropostasProjetoTab(dealId: string, customerId: string | null
       // Fetch versoes
       const { data: versoes } = await supabase
         .from("proposta_versoes")
-        .select("id, proposta_id, versao_numero, valor_total, potencia_kwp, status, economia_mensal, geracao_mensal, payback_meses, created_at, snapshot, output_pdf_path, output_docx_path, link_pdf, public_slug, gerado_em, usuario_editou_em, template_id_used")
+        .select("id, proposta_id, versao_numero, valor_total, potencia_kwp, status, economia_mensal, geracao_mensal, payback_meses, tir, vpl, created_at, snapshot, output_pdf_path, output_docx_path, link_pdf, public_slug, gerado_em, usuario_editou_em, template_id_used")
         .in("proposta_id", ids)
         .order("versao_numero", { ascending: false });
 
@@ -171,6 +173,8 @@ export function usePropostasProjetoTab(dealId: string, customerId: string | null
               public_slug: v.public_slug || null,
               gerado_em: v.gerado_em || v.created_at,
               usuario_editou_em: v.usuario_editou_em || null,
+              tir: v.tir ?? null,
+              vpl: v.vpl ?? null,
             };
           }),
       }));
