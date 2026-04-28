@@ -687,7 +687,7 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
   const { data: proposalEvents = [] } = usePropostaEvents(p.id, isExpanded);
 
   // Merge audit_logs + proposal_events into unified timeline
-  const mergedTimeline = useMergedTimeline(auditLogs, proposalEvents);
+  const mergedTimeline = useMergedTimeline(auditLogs, proposalEvents, p.created_at);
   const loadingDetail = !snapshotData && isExpanded && !!latestVersao?.id;
 
   // Fallback: buscar dados do lead quando snapshot não tiver dados de cliente/localização
