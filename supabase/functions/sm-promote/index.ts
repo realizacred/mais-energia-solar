@@ -1697,7 +1697,25 @@ async function createDealForProject(
     .single();
 
   if (dealErr || !deal?.id) {
-    return { dealId: null, created: false, reason: `insert_failed: ${dealErr?.message ?? "no id"}` };
+    const message = dealErr?.message ?? "no id";
+    const isDuplicate = dealErr?.code === "23505" || /duplicate key|unique constraint|uq_deal_projeto/i.test(message);
+    if (isDuplicate) {
+      const { data: existingDeal } = await admin
+        .from("deals")
+        .select("id")
+        .eq("tenant_id", tenantId)
+        .eq("projeto_id", projetoId)
+        .maybeSingle();
+      if (existingDeal?.id) {
+        const dealId = existingDeal.id as string;
+        await admin.from("projetos").update({ deal_id: dealId }).eq("id", projetoId).eq("tenant_id", tenantId);
+        if (proposta.id) {
+          await admin.from("propostas_nativas").update({ deal_id: dealId }).eq("id", proposta.id).eq("tenant_id", tenantId);
+        }
+        return { dealId, created: false, reason: "projeto_duplicate_recovery" };
+      }
+    }
+    return { dealId: null, created: false, reason: `insert_failed: ${message}` };
   }
   const dealId = deal.id as string;
 
