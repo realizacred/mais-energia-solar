@@ -98,6 +98,7 @@ export function WaInbox({ vendorMode = false, vendorUserId, showCompactStats = f
   const [showResolve, setShowResolve] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [showStartChat, setShowStartChat] = useState(false);
+  const [pendingNewConvId, setPendingNewConvId] = useState<string | null>(null);
   const [prefillMessage, setPrefillMessage] = useState<string | null>(null);
   const [preContactData, setPreContactData] = useState<LeadAutoOpenData | null>(null);
   const autoOpenProcessedRef = useRef(false);
