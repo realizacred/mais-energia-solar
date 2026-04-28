@@ -33,7 +33,25 @@ const corsHeaders = {
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-const BUCKET = "imported-files";
+const CUSTOM_FIELD_BUCKET = "imported-files";
+const CLIENT_DOC_BUCKET = "documentos-clientes";
+
+const DEFAULT_NATIVE_KEYS = new Set([
+  "cap_identidade",
+  "cap_comprovante_endereco",
+  "cap_uc",
+  "cap_concessionaria",
+  "cap_docs",
+  "cap_localizacao",
+  "cap_disjuntor",
+  "cap_transformador",
+  "cap_data_instal",
+  "cape_telhado",
+  "capo_i",
+  "capo_m",
+  "capo_mi",
+  "capo_overlord",
+]);
 
 interface MappingEntry {
   sm_field_key: string;
@@ -100,12 +118,13 @@ function sanitizeFilename(url: string): string {
 
 async function downloadAndStore(
   supabase: any,
+  bucket: string,
   url: string,
   storagePath: string,
 ): Promise<{ ok: boolean; path: string; reason?: string }> {
   // Skip if already exists.
   const { data: existing } = await supabase.storage
-    .from(BUCKET)
+    .from(bucket)
     .list(storagePath.split("/").slice(0, -1).join("/"), {
       search: storagePath.split("/").pop(),
     });
@@ -122,7 +141,7 @@ async function downloadAndStore(
   const blob = await resp.blob();
 
   const { error: upErr } = await supabase.storage
-    .from(BUCKET)
+    .from(bucket)
     .upload(storagePath, blob, {
       contentType,
       upsert: false,
