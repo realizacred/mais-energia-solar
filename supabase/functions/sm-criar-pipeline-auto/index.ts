@@ -33,6 +33,7 @@ const corsHeaders = {
 interface Stage {
   id?: number | string;
   name?: string;
+  order?: number | string;
 }
 
 Deno.serve(async (req) => {
@@ -122,6 +123,12 @@ Deno.serve(async (req) => {
       : [];
     if (stages.length === 0) throw new Error(`Funil "${smFunilName}" não tem etapas`);
 
+    const stagesOrdenadas = [...stages].sort((a, b) => {
+      const orderA = Number(a?.order);
+      const orderB = Number(b?.order);
+      return (Number.isFinite(orderA) ? orderA : 0) - (Number.isFinite(orderB) ? orderB : 0);
+    });
+
     const finalName = smFunilName.trim();
 
     // 2) Verificar pipeline duplicado
@@ -160,7 +167,7 @@ Deno.serve(async (req) => {
     state.pipelineId = pipeline.id;
 
     // 4) Criar pipeline_stages
-    const stageRows = stages.map((s, idx) => ({
+    const stageRows = stagesOrdenadas.map((s, idx) => ({
       tenant_id: tenantId,
       pipeline_id: pipeline.id,
       name: String(s?.name ?? "").trim() || `Etapa ${idx + 1}`,
@@ -175,9 +182,13 @@ Deno.serve(async (req) => {
       .insert(stageRows)
       .select("id, name, position");
     if (stagesErr) throw new Error(`pipeline_stages: ${stagesErr.message}`);
-    if (!stagesCriadas || stagesCriadas.length !== stages.length) {
+    if (!stagesCriadas || stagesCriadas.length !== stagesOrdenadas.length) {
       throw new Error("Falha ao criar todas as etapas do pipeline");
     }
+
+    const stagesCriadasOrdenadas = [...stagesCriadas].sort(
+      (a, b) => Number(a.position ?? 0) - Number(b.position ?? 0),
+    );
 
     // 5) Criar FUNIL DE EXECUÇÃO ESPELHO (projeto_funis) com MESMO nome.
     //    O sm-promote resolve por nome para alinhar Comercial ↔ Execução.
@@ -221,21 +232,35 @@ Deno.serve(async (req) => {
     // 6) Criar projeto_etapas espelho (mesma ordem). Evita duplicar por nome.
     const { data: etapasExistentes } = await admin
       .from("projeto_etapas")
-      .select("nome")
+      .select("id, nome, ordem")
       .eq("tenant_id", tenantId)
       .eq("funil_id", funilExecId);
     const nomesExistentes = new Set(
       (etapasExistentes ?? []).map((e) => String(e.nome).trim().toLowerCase()),
     );
 
-    const etapasRows = stages
+    for (const [idx, s] of stagesOrdenadas.entries()) {
+      const etapaNome = String(s?.name ?? "").trim();
+      const existente = (etapasExistentes ?? []).find(
+        (e) => String(e.nome).trim().toLowerCase() === etapaNome.toLowerCase(),
+      );
+      if (!existente?.id || Number(existente.ordem) === idx) continue;
+      const { error: etapaOrdemErr } = await admin
+        .from("projeto_etapas")
+        .update({ ordem: idx })
+        .eq("tenant_id", tenantId)
+        .eq("id", existente.id);
+      if (etapaOrdemErr) throw new Error(`projeto_etapas ordem: ${etapaOrdemErr.message}`);
+    }
+
+    const etapasRows = stagesOrdenadas
       .map((s, idx) => ({
         tenant_id: tenantId,
         funil_id: funilExecId,
         nome: String(s?.name ?? "").trim() || `Etapa ${idx + 1}`,
         ordem: idx,
         // categoria default: aberto, exceto última (ganho) - heurística simples
-        categoria: idx === stages.length - 1 ? "ganho" : "aberto",
+        categoria: idx === stagesOrdenadas.length - 1 ? "ganho" : "aberto",
       }))
       .filter((e) => !nomesExistentes.has(e.nome.toLowerCase()));
 
@@ -247,11 +272,11 @@ Deno.serve(async (req) => {
     }
 
     // 7) Mapeamentos sm_etapa_name → pipeline_stages.id (Comercial)
-    const mapRows = stages.map((s, idx) => ({
+    const mapRows = stagesOrdenadas.map((s, idx) => ({
       tenant_id: tenantId,
       sm_funil_name: finalName,
       sm_etapa_name: String(s?.name ?? "").trim() || `Etapa ${idx + 1}`,
-      stage_id: stagesCriadas[idx].id,
+      stage_id: stagesCriadasOrdenadas[idx].id,
     }));
 
     const { error: mapErr } = await admin
