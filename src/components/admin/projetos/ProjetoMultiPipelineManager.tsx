@@ -160,7 +160,38 @@ export function ProjetoMultiPipelineManager({ dealId, dealStatus, pipelines, all
     setActivePipelineId(byId || byName || memberships[0].pipeline_id);
   }, [memberships, activePipelineId, initialPipelineId, initialPipelineName]);
 
-  const activeMembership = memberships.find(m => m.pipeline_id === activePipelineId) || null;
+  // Ordem: (1) canônica via pipelines.position (ordem exibida na aba Projetos),
+  // (2) sobrescrita pela preferência pessoal do usuário via drag-and-drop.
+  const { sortByUserOrder, setOrder } = useUserFunnelOrder("deal-pipelines");
+  const pipelineOrderIndex = useMemo(() => {
+    const m = new Map<string, number>();
+    pipelines.forEach((p, i) => m.set(p.id, i));
+    return m;
+  }, [pipelines]);
+  const orderedMemberships = useMemo(() => {
+    const canonical = [...memberships].sort((a, b) => {
+      const pa = pipelineOrderIndex.get(a.pipeline_id) ?? Number.POSITIVE_INFINITY;
+      const pb = pipelineOrderIndex.get(b.pipeline_id) ?? Number.POSITIVE_INFINITY;
+      return pa - pb;
+    });
+    // sortByUserOrder usa `id`; para pipelines, chave estável é pipeline_id.
+    return sortByUserOrder(canonical.map((m) => ({ ...m, id: m.pipeline_id }))) as typeof canonical;
+  }, [memberships, pipelineOrderIndex, sortByUserOrder]);
+
+  const activeMembership = orderedMemberships.find(m => m.pipeline_id === activePipelineId) || null;
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
+  );
+  const handleTabDragEnd = (e: DragEndEvent) => {
+    const { active, over } = e;
+    if (!over || active.id === over.id) return;
+    const ids = orderedMemberships.map((m) => m.pipeline_id);
+    const oldIndex = ids.indexOf(String(active.id));
+    const newIndex = ids.indexOf(String(over.id));
+    if (oldIndex < 0 || newIndex < 0) return;
+    setOrder(arrayMove(ids, oldIndex, newIndex));
+  };
 
   const availablePipelines = useMemo(() =>
     pipelines.filter(p => !memberships.some(m => m.pipeline_id === p.id)),
