@@ -255,6 +255,65 @@ export function ProjetoMultiPipelineManager({ dealId, dealStatus, pipelines, all
     }
   };
 
+  /**
+   * Marca o resultado (ganho/perdido) deste funil específico:
+   *  - Move o projeto para a etapa terminal correspondente do pipeline
+   *  - Se o pipeline for "Comercial", também atualiza deals.status (sincroniza
+   *    com os botões globais Ganhar/Perder do topo do detalhe)
+   * Permite alternar entre won ↔ lost mesmo quando o deal já está fechado.
+   */
+  const markFunnelOutcome = async (
+    membership: DealPipelineMembership,
+    outcome: "won" | "lost",
+  ) => {
+    const stages = allStagesMap.get(membership.pipeline_id) || [];
+    const target = outcome === "won"
+      ? stages.find(s => s.is_won)
+      : stages.find(s => s.is_closed && !s.is_won);
+
+    if (!target) {
+      toast({
+        title: "Etapa não configurada",
+        description: `Este funil não possui etapa de ${outcome === "won" ? "ganho" : "perda"}. Configure em Configurações > Funis.`,
+        variant: "destructive",
+      });
+      return;
+    }
+    if (target.id === membership.stage_id && (membership.pipeline_name.toLowerCase() !== "comercial")) {
+      return;
+    }
+
+    setSaving(membership.id);
+    try {
+      const { error: stageErr } = await supabase
+        .from("deal_pipeline_stages")
+        .update({ stage_id: target.id })
+        .eq("id", membership.id);
+      if (stageErr) throw stageErr;
+
+      // Sincroniza deals.status apenas para o funil Comercial
+      if (membership.pipeline_name.trim().toLowerCase() === "comercial") {
+        const { error: dealErr } = await supabase
+          .from("deals")
+          .update({ status: outcome })
+          .eq("id", dealId);
+        if (dealErr) throw dealErr;
+      }
+
+      toast({
+        title: outcome === "won" ? "Funil marcado como Ganho" : "Funil marcado como Perdido",
+        description: membership.pipeline_name,
+      });
+      await fetchMemberships();
+      onMembershipChange?.();
+    } catch (err: any) {
+      toast({ title: "Erro", description: err.message, variant: "destructive" });
+    } finally {
+      setSaving(null);
+    }
+  };
+
+
   if (loading) {
     return (
       <div className="flex items-center gap-2 py-2">
