@@ -9,6 +9,7 @@
  * Reusa hooks existentes (§16 / RB-04 / RB-69) — não dispara queries próprias.
  */
 import { useEffect } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -41,14 +42,15 @@ const TILE = {
 } as const;
 
 export function CustomFieldsMappingSummary({ tenantId }: Props) {
+  const qc = useQueryClient();
   const fieldsQ = useSmCustomFieldsStaging(tenantId);
   const mappingsQ = useCustomFieldMappings(tenantId);
 
-  // Garante leitura fresca ao entrar no Step 4 (evita exibir cache vazio
-  // quando o usuário acaba de mapear no Step 3 e voltou para cá).
+  // Invalida o cache (não só refetch) ao entrar no Step 4 — garante que,
+  // se o usuário voltou do Step 3 após mapear, os contadores reflitam o banco.
   useEffect(() => {
-    mappingsQ.refetch();
-    fieldsQ.refetch();
+    qc.invalidateQueries({ queryKey: ["sm-fields-raw", tenantId] });
+    qc.invalidateQueries({ queryKey: ["sm-cf-mapping", tenantId] });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tenantId]);
 
