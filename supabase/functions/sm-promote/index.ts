@@ -1502,6 +1502,10 @@ async function resolvePipelinePerProject(
         const found = etapasArr.find((s) => aliasesNorm.includes(norm(String(s.nome ?? ""))));
         if (found) etapaExecByStatus[status] = found.id as string;
       }
+      if (matchedCandidate?.stageName) {
+        const exact = etapasArr.find((s) => norm(String(s.nome ?? "")) === norm(matchedCandidate.stageName));
+        if (exact?.id) etapaExecDefault = exact.id as string;
+      }
     }
   }
 
@@ -1548,6 +1552,7 @@ async function resolvePipelinePerProject(
   return {
     funilId: funilExecId,
     etapaId: etapaExecDefault,
+    smEtapaId: etapaExecDefault,
     hasPipelineConfigured: defaultPipeline.hasPipelineConfigured,
     stageByStatus: etapaExecByStatus,
     dealPipelineId,
