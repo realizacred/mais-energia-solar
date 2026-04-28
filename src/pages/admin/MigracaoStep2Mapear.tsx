@@ -62,6 +62,7 @@ import {
 } from "@/hooks/usePipelinesCrm";
 import { useCriarPipelineAuto } from "@/hooks/useCriarPipelineAuto";
 import { useEnsureComercialMirror } from "@/hooks/useEnsureComercialMirror";
+import { useCreatePipelineComercialPadrao } from "@/hooks/useCreatePipelineComercialPadrao";
 import { useSmEtapasFunil } from "@/hooks/useSmEtapasFunil";
 import { useSmConsultorMappings } from "@/hooks/useSmConsultorMapping";
 import { useMigrationConfig } from "@/hooks/useMigrationConfig";
@@ -116,6 +117,26 @@ export default function MigracaoStep2Mapear() {
   const saveMutation = useSaveFunilPapel();
   const createPipelineMutation = useCreatePipelineCrm();
   const criarAutoMutation = useCriarPipelineAuto();
+  const criarComercialMutation = useCreatePipelineComercialPadrao();
+
+  const temPipelineComercial = (pipelines ?? []).some(
+    (p) => (p.name ?? "").trim().toLowerCase() === "comercial",
+  );
+
+  const handleCriarComercialPadrao = async () => {
+    if (!tenantId) return;
+    try {
+      const res = await criarComercialMutation.mutateAsync({ tenantId });
+      toast.success(
+        res.created
+          ? "Pipeline Comercial criado com etapas padrão"
+          : "Pipeline Comercial já existia — etapas padrão garantidas",
+      );
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Erro ao criar pipeline Comercial";
+      toast.error(msg);
+    }
+  };
 
   // Funis em que o usuário selecionou "pipeline" mas ainda não escolheu qual.
   const [pendentes, setPendentes] = useState<Record<string, boolean>>({});
@@ -232,6 +253,32 @@ export default function MigracaoStep2Mapear() {
     >
       {/* Lista de funis em grid 2 colunas em telas largas */}
       <div className="space-y-3">
+        {!isLoading && !temPipelineComercial && (
+          <Card className="bg-primary/5 border-l-4 border-l-primary shadow-sm">
+            <CardContent className="p-4 flex items-start gap-3 flex-wrap">
+              <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-primary/10 shrink-0">
+                <Workflow className="w-5 h-5 text-primary" />
+              </div>
+              <div className="flex-1 min-w-[240px]">
+                <p className="text-sm font-semibold text-foreground">
+                  Você ainda não tem um pipeline "Comercial"
+                </p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Crie agora com as 6 etapas padrão (Lead novo → Qualificação → Proposta → Negociação → Ganho/Perdido) e depois vincule o funil <strong>LEAD</strong> a ele.
+                </p>
+              </div>
+              <Button
+                onClick={handleCriarComercialPadrao}
+                disabled={criarComercialMutation.isPending}
+                className="shrink-0"
+              >
+                <Plus className="w-4 h-4 mr-1.5" />
+                {criarComercialMutation.isPending ? "Criando..." : "Criar pipeline Comercial"}
+              </Button>
+            </CardContent>
+          </Card>
+        )}
+
         {isLoading && (
           <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
             {[0, 1, 2, 3].map((i) => (
