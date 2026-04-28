@@ -347,8 +347,8 @@ function FinancialKPIs({ snapshot, latestVersao }: { snapshot: any; latestVersao
   const s = snapshot || {};
   const fin = s.financeiro || {};
 
-  const tir = fin.tir ?? s.tir ?? null;
-  const vpl = fin.vpl ?? s.vpl ?? null;
+  const tir = latestVersao?.tir ?? fin.tir ?? s.tir ?? null;
+  const vpl = latestVersao?.vpl ?? fin.vpl ?? s.vpl ?? null;
   const paybackMeses = latestVersao?.payback_meses
     ?? fin.payback_meses
     ?? s.payback_meses
