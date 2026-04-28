@@ -2811,6 +2811,7 @@ async function ensureDefaultFunis(admin: SupabaseClient, tenantId: string): Prom
 
     const key = funilNome.toLowerCase();
     const mapAtual = mapByFunil.get(key);
+    if (!mapAtual) continue;
     if (mapAtual?.role === "ignore" || mapAtual?.role === "vendedor_source") continue;
 
     const stagesRaw = Array.isArray(payload.stages) ? (payload.stages as AnyObj[]) : [];
