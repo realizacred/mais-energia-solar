@@ -491,8 +491,9 @@ async function processStep(
     { id: sub.job_id, status: sub.status, counters: c, ts: new Date().toISOString() },
   ];
 
-  const newProcessed = (master.items_processed ?? 0) + processedDelta;
-  const newPromoted = (master.items_promoted ?? 0) + promoted;
+  const totalItems = Number(master.total_items ?? 0);
+  const newProcessed = Math.max(0, totalItems - backlogAfter);
+  const newPromoted = newProcessed;
   const newErrors = (master.items_with_errors ?? 0) + errors;
   const newWarnings = (master.items_with_warnings ?? 0) + warnings;
   const newBlocked = (master.items_blocked ?? 0) + blocked;
