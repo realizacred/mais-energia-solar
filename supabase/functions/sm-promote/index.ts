@@ -1585,9 +1585,13 @@ async function createDealForProject(
     .maybeSingle();
   const existingDealId = (projRow as AnyObj | null)?.deal_id as string | null | undefined;
   if (existingDealId) {
+    const stageId = pipeline.dealStageDefault ?? pipeline.dealStageByStatus[proposta.status] ?? null;
+    const updatePayload: AnyObj = { value: proposta.valor_total ?? 0 };
+    if (pipeline.dealPipelineId) updatePayload.pipeline_id = pipeline.dealPipelineId;
+    if (stageId) updatePayload.stage_id = stageId;
     await admin
       .from("deals")
-      .update({ value: proposta.valor_total ?? 0 })
+      .update(updatePayload)
       .eq("id", existingDealId)
       .eq("tenant_id", tenantId);
     if (proposta.id) {
