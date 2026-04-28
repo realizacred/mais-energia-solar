@@ -2839,28 +2839,36 @@ async function ensureDefaultFunis(admin: SupabaseClient, tenantId: string): Prom
     // 4) Etapas: replica EXATAMENTE as do SM (nome + ordem). Só insere o que falta.
     const { data: stagesAtuais } = await admin
       .from("projeto_etapas")
-      .select("nome, ordem")
+      .select("id, nome, ordem")
       .eq("tenant_id", tenantId)
       .eq("funil_id", funilId);
-    const stageNamesExistentes = new Set(
-      (stagesAtuais ?? []).map((s: AnyObj) => String(s.nome).trim().toLowerCase()),
+    const stagesAtuaisByName = new Map(
+      (stagesAtuais ?? []).map((s: AnyObj) => [String(s.nome).trim().toLowerCase(), s]),
     );
-    const ordemBase = (stagesAtuais ?? []).reduce(
-      (max, s: AnyObj) => Math.max(max, Number(s.ordem) || 0),
-      -1,
-    );
+
+    for (const [idx, s] of stagesOrdenadas.entries()) {
+      const etapaNome = String(s?.name ?? "").trim();
+      const atual = stagesAtuaisByName.get(etapaNome.toLowerCase());
+      if (!atual?.id || Number(atual.ordem) === idx) continue;
+      const { error: updErr } = await admin
+        .from("projeto_etapas")
+        .update({ ordem: idx })
+        .eq("tenant_id", tenantId)
+        .eq("id", atual.id);
+      if (updErr) console.error(`[${MODULE}] ensureDefaultFunis reordem etapa ${funilNome}/${etapaNome}:`, updErr.message);
+    }
 
     const toInsert: AnyObj[] = [];
     stagesOrdenadas.forEach((s, idx) => {
       const etapaNome = String(s?.name ?? "").trim();
       if (!etapaNome) return;
-      if (stageNamesExistentes.has(etapaNome.toLowerCase())) return;
+      if (stagesAtuaisByName.has(etapaNome.toLowerCase())) return;
       const isLast = idx === stagesOrdenadas.length - 1;
       toInsert.push({
         tenant_id: tenantId,
         funil_id: funilId!,
         nome: etapaNome,
-        ordem: ordemBase + 1 + idx,
+        ordem: idx,
         categoria: isLast ? "ganho" : "aberto",
       });
     });
