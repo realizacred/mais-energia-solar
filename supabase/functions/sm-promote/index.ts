@@ -1227,6 +1227,8 @@ interface PipelineResolution {
   hasPipelineConfigured: boolean;
   /** Mapa status canônico → etapa_id nativa de projeto. */
   stageByStatus: Record<string, string>;
+  /** Etapa operacional exata vinda do funil/etapa SM, quando mapeável por nome. */
+  smEtapaId?: string | null;
 }
 
 /**
@@ -1292,7 +1294,20 @@ async function resolveDefaultPipeline(
 
 /** Resolve etapa para um status canônico, com fallback para etapa default. */
 function resolveStageForStatus(pipeline: PipelineResolution, status: string): string | null {
-  return pipeline.stageByStatus[status] ?? pipeline.etapaId;
+  return pipeline.smEtapaId ?? pipeline.stageByStatus[status] ?? pipeline.etapaId;
+}
+
+function findPipelineStageForSmEtapa(stages: AnyObj[], smEtapaName: string | null | undefined): string | null {
+  const smName = String(smEtapaName ?? "").trim();
+  if (!smName) return null;
+  const normalized = norm(smName);
+  const exact = stages.find((s) => norm(String(s.name ?? "")) === normalized);
+  if (exact?.id) return exact.id as string;
+  if (["fechado", "ganho", "ganha", "venda fechada"].includes(normalized)) {
+    const won = stages.find((s) => Boolean(s.is_won));
+    if (won?.id) return won.id as string;
+  }
+  return null;
 }
 
 // ─── Resolução de pipeline POR PROJETO (sm_funil_pipeline_map) ───────────────
@@ -1461,6 +1476,7 @@ async function resolvePipelinePerProject(
   if (matchedCandidate?.stageName) {
     const mapped = stageBySmEtapa.get(matchedCandidate.stageName.toLowerCase().trim());
     if (mapped) dealStageDefault = mapped;
+    if (!dealStageDefault) dealStageDefault = findPipelineStageForSmEtapa(stagesArr, matchedCandidate.stageName);
   }
   if (!dealStageDefault) dealStageDefault = (stagesArr[0]?.id as string | undefined) ?? null;
 
@@ -1500,6 +1516,10 @@ async function resolvePipelinePerProject(
         const found = etapasArr.find((s) => aliasesNorm.includes(norm(String(s.nome ?? ""))));
         if (found) etapaExecByStatus[status] = found.id as string;
       }
+      if (matchedCandidate?.stageName) {
+        const exact = etapasArr.find((s) => norm(String(s.nome ?? "")) === norm(matchedCandidate.stageName));
+        if (exact?.id) etapaExecDefault = exact.id as string;
+      }
     }
   }
 
@@ -1535,6 +1555,14 @@ async function resolvePipelinePerProject(
         .ilike("sm_etapa_name", secCandidate.stageName)
         .maybeSingle();
       secStageId = pickStr((secEtapaMap as AnyObj | null)?.stage_id);
+      if (!secStageId) {
+        const { data: secStagesAll } = await admin
+          .from("pipeline_stages")
+          .select("id, name, is_won")
+          .eq("tenant_id", tenantId)
+          .eq("pipeline_id", secPipelineId);
+        secStageId = findPipelineStageForSmEtapa((secStagesAll ?? []) as AnyObj[], secCandidate.stageName);
+      }
     }
     if (!secStageId) secStageId = secFirstStage ?? null;
 
@@ -1546,6 +1574,7 @@ async function resolvePipelinePerProject(
   return {
     funilId: funilExecId,
     etapaId: etapaExecDefault,
+    smEtapaId: etapaExecDefault,
     hasPipelineConfigured: defaultPipeline.hasPipelineConfigured,
     stageByStatus: etapaExecByStatus,
     dealPipelineId,
@@ -1578,9 +1607,13 @@ async function createDealForProject(
     .maybeSingle();
   const existingDealId = (projRow as AnyObj | null)?.deal_id as string | null | undefined;
   if (existingDealId) {
+    const stageId = pipeline.dealStageDefault ?? pipeline.dealStageByStatus[proposta.status] ?? null;
+    const updatePayload: AnyObj = { value: proposta.valor_total ?? 0 };
+    if (pipeline.dealPipelineId) updatePayload.pipeline_id = pipeline.dealPipelineId;
+    if (stageId) updatePayload.stage_id = stageId;
     await admin
       .from("deals")
-      .update({ value: proposta.valor_total ?? 0 })
+      .update(updatePayload)
       .eq("id", existingDealId)
       .eq("tenant_id", tenantId);
     if (proposta.id) {
