@@ -30,7 +30,7 @@ const SM_MIGRATE_CHUNK_URL = `${SUPABASE_URL}/functions/v1/sm-migrate-chunk`;
 const SOURCE = "solarmarket";
 const LEGACY_SM_SOURCES = [SOURCE, "solar_market"] as const;
 const DEFAULT_BATCH_LIMIT = 5;
-const MAX_BATCH_LIMIT = 50;
+const MAX_BATCH_LIMIT = 25;
 const SUBJOB_HEARTBEAT_EVERY = 1;
 
 type CanonicalEntity = "cliente" | "projeto" | "proposta" | "versao";
@@ -1068,7 +1068,26 @@ async function promoteProjeto(
     .insert(insertPayload)
     .select("id")
     .single();
-  if (error || !data?.id) throw new Error(`insert projeto: ${error?.message}`);
+  if (error || !data?.id) {
+    const message = error?.message ?? "sem id";
+    const isDuplicate = (error as { code?: string } | null)?.code === "23505"
+      || /uq_projetos_tenant_codigo|duplicate key/i.test(message);
+    if (!isDuplicate) throw new Error(`insert projeto: ${message}`);
+
+    const { data: existingByCode, error: lookupErr } = await admin
+      .from("projetos")
+      .select("id")
+      .eq("tenant_id", tenantId)
+      .eq("codigo", codigo)
+      .maybeSingle();
+    if (lookupErr || !existingByCode?.id) {
+      throw new Error(`insert projeto: ${message} (lookup falhou: ${lookupErr?.message ?? "não encontrado"})`);
+    }
+    await upsertLink(admin, tenantId, jobId, "projeto", existingByCode.id as string, "projeto", norm.external_id, {
+      recovered_from_conflict: true,
+    });
+    return { id: existingByCode.id as string, created: false };
+  }
 
   await upsertLink(admin, tenantId, jobId, "projeto", data.id as string, "projeto", norm.external_id);
   return { id: data.id as string, created: true };
