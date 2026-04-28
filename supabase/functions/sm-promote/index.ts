@@ -1617,12 +1617,15 @@ async function resolvePipelinePerProject(
         .eq("tenant_id", tenantId)
         .eq("pipeline_id", comercialId);
       const stagesArr = (comStages ?? []) as AnyObj[];
-      // Se algum status canônico do projeto é "aceita"/won, usar stage is_won
       const wonStage = stagesArr.find((s) => Boolean(s.is_won));
       const firstStage = stagesArr.sort((a, b) => Number(a.position ?? 0) - Number(b.position ?? 0))[0];
-      // Heurística: se o pipeline principal mapeado já é "pós-venda" (Engenharia/Equipamento),
-      // o deal já é won — então projeção em Comercial vai pra "Ganho".
-      const principalNomeNorm = norm(pipelineNomeCache.get(dealPipelineId ?? "") ?? "");
+      // Resolver nome do pipeline principal para detectar se é pós-venda.
+      let principalNomeNorm = "";
+      if (dealPipelineId) {
+        const { data: pipPrincipal } = await admin
+          .from("pipelines").select("name").eq("id", dealPipelineId).maybeSingle();
+        principalNomeNorm = norm(((pipPrincipal as AnyObj | null)?.name as string) ?? "");
+      }
       const isPostVenda = ["engenharia", "equipamento", "compensacao"].includes(principalNomeNorm);
       const chosenStageId = (isPostVenda && wonStage?.id)
         ? (wonStage.id as string)
