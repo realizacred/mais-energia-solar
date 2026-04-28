@@ -1590,6 +1590,18 @@ async function createDealForProject(
         .eq("id", proposta.id)
         .eq("tenant_id", tenantId);
     }
+    // Multi-pipeline também na re-execução (idempotente)
+    if (pipeline.secondaryPipelines.length > 0) {
+      const dpsRows = pipeline.secondaryPipelines.map((sp) => ({
+        tenant_id: tenantId,
+        deal_id: existingDealId,
+        pipeline_id: sp.pipelineId,
+        stage_id: sp.stageId,
+      }));
+      await admin
+        .from("deal_pipeline_stages")
+        .upsert(dpsRows, { onConflict: "deal_id,pipeline_id" });
+    }
     return { dealId: existingDealId, created: false, reason: "already_linked" };
   }
 
