@@ -479,7 +479,17 @@ async function processStep(
         console.error("[sm-migrate-chunk] promote-custom-fields chunk chain failed:", e);
       }
     })();
-    await postPhaseTask;
+    // Não bloquear o step principal: as pós-fases podem ultrapassar o limite
+    // de execução da Edge Function e impedir o auto-encadeamento do próximo chunk.
+    try {
+      // @ts-ignore EdgeRuntime global
+      if (typeof EdgeRuntime !== "undefined" && EdgeRuntime.waitUntil) {
+        // @ts-ignore
+        EdgeRuntime.waitUntil(postPhaseTask);
+      }
+    } catch {
+      // fallback: a promise já foi iniciada acima; não deve bloquear o chunk
+    }
   }
 
   const subJobs = Array.isArray((master.metadata as { sub_jobs?: unknown[] })?.sub_jobs)
