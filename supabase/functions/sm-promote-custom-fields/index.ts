@@ -116,6 +116,45 @@ function sanitizeFilename(url: string): string {
   }
 }
 
+function splitUrls(rawValue: unknown): string[] {
+  return String(rawValue ?? "")
+    .split(/\s*\|\s*/)
+    .map((u) => u.trim())
+    .filter((u) => /^https?:\/\//i.test(u));
+}
+
+function firstValue(vars: Map<string, string>, keys: string[]): string | null {
+  for (const key of keys) {
+    const value = vars.get(key)?.trim();
+    if (value) return value;
+  }
+  return null;
+}
+
+function toIsoDate(raw: string | null): string | null {
+  if (!raw) return null;
+  const value = raw.trim();
+  if (!value) return null;
+  const br = value.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (br) return `${br[3]}-${br[2].padStart(2, "0")}-${br[1].padStart(2, "0")}`;
+  const iso = value.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  return iso ? `${iso[1]}-${iso[2]}-${iso[3]}` : null;
+}
+
+function extractNumber(raw: string | null): number | null {
+  if (!raw) return null;
+  const match = raw.replace(",", ".").match(/\d+(?:\.\d+)?/);
+  return match ? Number(match[0]) : null;
+}
+
+function mergeNote(existing: string | null | undefined, label: string, value: string | null): string | null {
+  if (!value) return existing ?? null;
+  const line = `[SM ${label}: ${value}]`;
+  const current = (existing ?? "").trim();
+  if (current.includes(line)) return current || null;
+  return current ? `${current}\n${line}` : line;
+}
+
 async function downloadAndStore(
   supabase: any,
   bucket: string,
