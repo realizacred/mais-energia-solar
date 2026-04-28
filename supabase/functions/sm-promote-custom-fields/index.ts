@@ -53,6 +53,10 @@ const DEFAULT_NATIVE_KEYS = new Set([
   "capo_overlord",
 ]);
 
+function normalizeSmKey(raw: unknown): string {
+  return String(raw ?? "").trim().replace(/^\[(.*)\]$/, "$1").trim();
+}
+
 interface MappingEntry {
   sm_field_key: string;
   action: "map" | "create_new" | "ignore" | "map_native";
@@ -232,7 +236,7 @@ async function promoteNativeFields(
 ): Promise<{ nativeUpdates: number; filesDownloaded: number; filesSkipped: number; filesFailed: number; errors: Array<{ projeto_id?: string; deal_id?: string; error: string }> }> {
   const values = new Map<string, string>();
   for (const v of args.variables) {
-    const key = typeof v?.key === "string" ? v.key : null;
+    const key = normalizeSmKey(v?.key);
     if (!key) continue;
     const raw = (v?.value ?? v?.formattedValue ?? v?.displayValue ?? "").toString().trim();
     if (raw) values.set(key, raw);
