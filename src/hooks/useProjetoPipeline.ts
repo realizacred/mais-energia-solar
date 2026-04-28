@@ -195,18 +195,41 @@ export function useProjetoPipeline() {
     }
 
     // SERVER-SIDE funil filter: filter by etapa_ids belonging to the selected funil
-    // This avoids loading all projetos and filtering client-side
+    // OR by deal_pipeline_stages (multi-pipeline membership: projeto pode estar em N pipelines)
     if (f.funilId) {
       const funilEtapaIds = availableEtapas
         .filter(e => e.funil_id === f.funilId)
         .map(e => e.id);
 
-      if (funilEtapaIds.length > 0) {
-        // Filter: etapa_id in funil OR funil_id matches (for projetos without etapa_id)
-        query = query.or(`etapa_id.in.(${funilEtapaIds.join(",")}),funil_id.eq.${f.funilId}`);
-      } else {
-        query = query.eq("funil_id", f.funilId);
+      // Resolve pipeline_id (mundo comercial) equivalente ao projeto_funil (mundo execução) via NOME
+      // (RB-61/DA-47: sistemas duais com IDs diferentes mas nomes espelhados)
+      const selectedFunil = availableFunis.find(funil => funil.id === f.funilId);
+      let dealIdsViaMembership: string[] = [];
+      if (selectedFunil) {
+        const { data: pipelineMatch } = await supabase
+          .from("pipelines")
+          .select("id")
+          .ilike("name", selectedFunil.nome)
+          .maybeSingle();
+
+        if (pipelineMatch?.id) {
+          const { data: memberships } = await supabase
+            .from("deal_pipeline_stages")
+            .select("deal_id")
+            .eq("pipeline_id", pipelineMatch.id);
+          dealIdsViaMembership = (memberships || []).map((m: any) => m.deal_id).filter(Boolean);
+        }
       }
+
+      const orParts: string[] = [];
+      if (funilEtapaIds.length > 0) orParts.push(`etapa_id.in.(${funilEtapaIds.join(",")})`);
+      orParts.push(`funil_id.eq.${f.funilId}`);
+      if (dealIdsViaMembership.length > 0) {
+        // Chunk to evitar URL gigante (>2000 deal_ids)
+        const dealChunk = dealIdsViaMembership.slice(0, 1500);
+        orParts.push(`deal_id.in.(${dealChunk.join(",")})`);
+      }
+      query = query.or(orParts.join(","));
     }
 
     const data = await fetchAllProjetosRows(query as any);
