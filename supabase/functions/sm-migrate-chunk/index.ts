@@ -476,7 +476,10 @@ async function processStep(
               "x-sm-tenant-override": tenantId,
               "x-sm-internal-call": "sm-migrate-chunk-v1",
             },
-            body: JSON.stringify({ tenant_id: tenantId, batch_limit: 25 }),
+            body: JSON.stringify({
+              action: "enrich",
+              payload: { tenant_id: tenantId, batch: 25, offset: 0 },
+            }),
           });
         } catch (e) {
           console.error("[sm-migrate-chunk] enrich-versoes chain failed:", e);
@@ -491,7 +494,10 @@ async function processStep(
               "x-sm-tenant-override": tenantId,
               "x-sm-internal-call": "sm-migrate-chunk-v1",
             },
-            body: JSON.stringify({ tenant_id: tenantId, batch_limit: 20 }),
+            body: JSON.stringify({
+              action: "promote",
+              payload: { tenant_id: tenantId, batch: 20, offset: 0 },
+            }),
           });
         } catch (e) {
           console.error("[sm-migrate-chunk] promote-custom-fields chain failed:", e);
