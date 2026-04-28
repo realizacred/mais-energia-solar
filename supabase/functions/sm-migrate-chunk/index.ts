@@ -195,7 +195,9 @@ async function runAdaptivePromoteChunk(
   const attempts = [CHUNK_BATCH].filter((value, index, arr) => arr.indexOf(value) === index);
 
   for (const batch of attempts) {
-    const result = await callSmPromoteOnce(tenantId, batch, false);
+    // RB-65/RB-71: durante os chunks, promove só os esqueletos.
+    // As fases 3/4 rodam uma única vez ao final do job mestre, em lotes pequenos.
+    const result = await callSmPromoteOnce(tenantId, batch, true);
     if (result.ok) {
       return {
         ok: true,
