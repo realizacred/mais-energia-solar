@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { Search, X, Filter, List, Layers, Tag, Users, Pencil, Plus, ArrowUpDown, Check, SlidersHorizontal } from "lucide-react";
+import { Search, X, Filter, List, Layers, Tag, Users, Pencil, Plus, ArrowUpDown, Check, SlidersHorizontal, GripVertical } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -12,6 +12,84 @@ import {
 } from "@/components/ui/select";
 import type { ProjetoFunil, ProjetoEtiqueta } from "@/hooks/useProjetoPipeline";
 import { cn } from "@/lib/utils";
+import { useUserFunnelOrder } from "@/hooks/useUserFunnelOrder";
+import {
+  DndContext,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  closestCenter,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  horizontalListSortingStrategy,
+  useSortable,
+  arrayMove,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+
+// Chip arrastável de funil no filtro do kanban principal.
+function SortableFunilChip({
+  funil,
+  active,
+  onSelect,
+  onEditEtapas,
+}: {
+  funil: ProjetoFunil;
+  active: boolean;
+  onSelect: () => void;
+  onEditEtapas?: () => void;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
+    useSortable({ id: funil.id });
+  const style: React.CSSProperties = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.6 : 1,
+    zIndex: isDragging ? 20 : undefined,
+  };
+  return (
+    <div ref={setNodeRef} style={style} className="flex items-center shrink-0">
+      <button
+        type="button"
+        aria-label="Arrastar para reordenar"
+        className="p-1 -mr-1 cursor-grab active:cursor-grabbing text-muted-foreground/60 hover:text-foreground touch-none"
+        {...attributes}
+        {...listeners}
+      >
+        <GripVertical className="h-3 w-3" />
+      </button>
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={onSelect}
+        className={cn(
+          "px-3 h-7 text-xs font-medium rounded-md whitespace-nowrap",
+          active
+            ? "bg-background text-foreground shadow-sm"
+            : "text-muted-foreground hover:text-foreground hover:bg-background/50",
+        )}
+      >
+        {funil.nome}
+      </Button>
+      {onEditEtapas && (
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-6 w-6 -ml-0.5"
+          onClick={(e) => {
+            e.stopPropagation();
+            onEditEtapas();
+          }}
+          title={`Editar etapas de "${funil.nome}"`}
+        >
+          <Pencil className="h-3 w-3 text-muted-foreground" />
+        </Button>
+      )}
+    </div>
+  );
+}
 
 interface ConsultorOption { id: string; nome: string; }
 
@@ -70,7 +148,27 @@ export function ProjetoFilters({
 
   const hasActive = activeFilterCount > 0;
 
-  const activeFunis = funis.filter(f => f.ativo);
+  // Ordem: (1) canônica do BD por `ordem`, (2) sobrescrita pela preferência pessoal do usuário.
+  const { sortByUserOrder, setOrder } = useUserFunnelOrder("projeto-funis");
+  const activeFunis = useMemo(() => {
+    const canonical = [...funis]
+      .filter((f) => f.ativo)
+      .sort((a, b) => a.ordem - b.ordem);
+    return sortByUserOrder(canonical);
+  }, [funis, sortByUserOrder]);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
+  );
+  const handleDragEnd = (e: DragEndEvent) => {
+    const { active, over } = e;
+    if (!over || active.id === over.id) return;
+    const oldIndex = activeFunis.findIndex((f) => f.id === active.id);
+    const newIndex = activeFunis.findIndex((f) => f.id === over.id);
+    if (oldIndex < 0 || newIndex < 0) return;
+    const reordered = arrayMove(activeFunis, oldIndex, newIndex).map((f) => f.id);
+    setOrder(reordered);
+  };
 
   const toggleEtiqueta = (id: string) => {
     if (filterEtiquetas.includes(id)) {
@@ -159,34 +257,26 @@ export function ProjetoFilters({
                   Todos
                 </Button>
               )}
-              {activeFunis.map(f => (
-                <div key={f.id} className="flex items-center shrink-0">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => onFilterFunilChange(f.id)}
-                    className={cn(
-                      "px-3 h-7 text-xs font-medium rounded-md whitespace-nowrap",
-                      filterFunil === f.id
-                        ? "bg-background text-foreground shadow-sm"
-                        : "text-muted-foreground hover:text-foreground hover:bg-background/50"
-                    )}
-                  >
-                    {f.nome}
-                  </Button>
-                  {onEditEtapas && (
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-6 w-6 -ml-0.5"
-                      onClick={(e) => { e.stopPropagation(); onEditEtapas(f.id); }}
-                      title={`Editar etapas de "${f.nome}"`}
-                    >
-                      <Pencil className="h-3 w-3 text-muted-foreground" />
-                    </Button>
-                  )}
-                </div>
-              ))}
+              <DndContext
+                sensors={sensors}
+                collisionDetection={closestCenter}
+                onDragEnd={handleDragEnd}
+              >
+                <SortableContext
+                  items={activeFunis.map((f) => f.id)}
+                  strategy={horizontalListSortingStrategy}
+                >
+                  {activeFunis.map((f) => (
+                    <SortableFunilChip
+                      key={f.id}
+                      funil={f}
+                      active={filterFunil === f.id}
+                      onSelect={() => onFilterFunilChange(f.id)}
+                      onEditEtapas={onEditEtapas ? () => onEditEtapas(f.id) : undefined}
+                    />
+                  ))}
+                </SortableContext>
+              </DndContext>
               {onCreateFunil && (
                 <Button
                   variant="ghost"

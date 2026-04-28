@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  Layers, Plus, X, Check, ChevronDown, ChevronRight, Trash2, Loader2
+  Layers, Plus, X, Check, ChevronDown, ChevronRight, Trash2, Loader2, GripVertical
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -11,6 +11,68 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
+import { useUserFunnelOrder } from "@/hooks/useUserFunnelOrder";
+import {
+  DndContext,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  closestCenter,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  horizontalListSortingStrategy,
+  useSortable,
+  arrayMove,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+
+// Aba arrastável de pipeline (funil) no detalhe do projeto.
+function SortablePipelineTab({
+  membershipId,
+  pipelineName,
+  active,
+  onSelect,
+}: {
+  membershipId: string;
+  pipelineName: string;
+  active: boolean;
+  onSelect: () => void;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
+    useSortable({ id: membershipId });
+  const style: React.CSSProperties = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.6 : 1,
+    zIndex: isDragging ? 20 : undefined,
+  };
+  return (
+    <div ref={setNodeRef} style={style} className="flex items-center shrink-0">
+      <button
+        type="button"
+        aria-label="Arrastar para reordenar"
+        className="p-1 -mr-1 cursor-grab active:cursor-grabbing text-muted-foreground/60 hover:text-foreground touch-none"
+        {...attributes}
+        {...listeners}
+      >
+        <GripVertical className="h-3 w-3" />
+      </button>
+      <button
+        onClick={onSelect}
+        className={cn(
+          "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all whitespace-nowrap",
+          active
+            ? "bg-secondary/10 text-secondary border border-secondary/30 shadow-sm"
+            : "bg-muted/40 text-muted-foreground hover:bg-muted/80 border border-transparent",
+        )}
+      >
+        {pipelineName}
+      </button>
+    </div>
+  );
+}
 
 interface PipelineInfo {
   id: string;
@@ -98,7 +160,38 @@ export function ProjetoMultiPipelineManager({ dealId, dealStatus, pipelines, all
     setActivePipelineId(byId || byName || memberships[0].pipeline_id);
   }, [memberships, activePipelineId, initialPipelineId, initialPipelineName]);
 
-  const activeMembership = memberships.find(m => m.pipeline_id === activePipelineId) || null;
+  // Ordem: (1) canônica via pipelines.position (ordem exibida na aba Projetos),
+  // (2) sobrescrita pela preferência pessoal do usuário via drag-and-drop.
+  const { sortByUserOrder, setOrder } = useUserFunnelOrder("deal-pipelines");
+  const pipelineOrderIndex = useMemo(() => {
+    const m = new Map<string, number>();
+    pipelines.forEach((p, i) => m.set(p.id, i));
+    return m;
+  }, [pipelines]);
+  const orderedMemberships = useMemo(() => {
+    const canonical = [...memberships].sort((a, b) => {
+      const pa = pipelineOrderIndex.get(a.pipeline_id) ?? Number.POSITIVE_INFINITY;
+      const pb = pipelineOrderIndex.get(b.pipeline_id) ?? Number.POSITIVE_INFINITY;
+      return pa - pb;
+    });
+    // sortByUserOrder usa `id`; para pipelines, chave estável é pipeline_id.
+    return sortByUserOrder(canonical.map((m) => ({ ...m, id: m.pipeline_id }))) as typeof canonical;
+  }, [memberships, pipelineOrderIndex, sortByUserOrder]);
+
+  const activeMembership = orderedMemberships.find(m => m.pipeline_id === activePipelineId) || null;
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
+  );
+  const handleTabDragEnd = (e: DragEndEvent) => {
+    const { active, over } = e;
+    if (!over || active.id === over.id) return;
+    const ids = orderedMemberships.map((m) => m.pipeline_id);
+    const oldIndex = ids.indexOf(String(active.id));
+    const newIndex = ids.indexOf(String(over.id));
+    if (oldIndex < 0 || newIndex < 0) return;
+    setOrder(arrayMove(ids, oldIndex, newIndex));
+  };
 
   const availablePipelines = useMemo(() =>
     pipelines.filter(p => !memberships.some(m => m.pipeline_id === p.id)),
@@ -259,23 +352,25 @@ export function ProjetoMultiPipelineManager({ dealId, dealStatus, pipelines, all
       {/* Tabs for pipeline memberships */}
       {memberships.length > 0 && (
         <div className="space-y-2">
-          {/* Tab bar */}
-          <div className="flex items-center gap-1 overflow-x-auto pb-0.5">
-            {memberships.map(membership => (
-              <button
-                key={membership.id}
-                onClick={() => setActivePipelineId(membership.pipeline_id)}
-                className={cn(
-                  "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all whitespace-nowrap",
-                  activePipelineId === membership.pipeline_id
-                    ? "bg-secondary/10 text-secondary border border-secondary/30 shadow-sm"
-                    : "bg-muted/40 text-muted-foreground hover:bg-muted/80 border border-transparent"
-                )}
-              >
-                {membership.pipeline_name}
-              </button>
-            ))}
-          </div>
+          {/* Tab bar — ordem canônica (pipelines.position) sobrescrita por preferência pessoal */}
+          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleTabDragEnd}>
+            <SortableContext
+              items={orderedMemberships.map((m) => m.pipeline_id)}
+              strategy={horizontalListSortingStrategy}
+            >
+              <div className="flex items-center gap-1 overflow-x-auto pb-0.5">
+                {orderedMemberships.map((membership) => (
+                  <SortablePipelineTab
+                    key={membership.id}
+                    membershipId={membership.pipeline_id}
+                    pipelineName={membership.pipeline_name}
+                    active={activePipelineId === membership.pipeline_id}
+                    onSelect={() => setActivePipelineId(membership.pipeline_id)}
+                  />
+                ))}
+              </div>
+            </SortableContext>
+          </DndContext>
 
           {/* Active pipeline stepper */}
           {activeMembership && (() => {
