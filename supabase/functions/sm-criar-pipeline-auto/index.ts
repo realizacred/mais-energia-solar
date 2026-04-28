@@ -33,6 +33,7 @@ const corsHeaders = {
 interface Stage {
   id?: number | string;
   name?: string;
+  order?: number | string;
 }
 
 Deno.serve(async (req) => {
@@ -124,6 +125,27 @@ Deno.serve(async (req) => {
 
     const finalName = smFunilName.trim();
 
+    const { data: existingMap } = await admin
+      .from("sm_funil_pipeline_map")
+      .select("role, pipeline_id")
+      .eq("tenant_id", tenantId)
+      .eq("sm_funil_name", finalName)
+      .maybeSingle();
+    if (existingMap?.role === "ignore" || existingMap?.role === "vendedor_source" || existingMap?.pipeline_id) {
+      return new Response(
+        JSON.stringify({
+          ok: false,
+          error: "FUNIL_JA_MAPEADO",
+          message: `O funil "${finalName}" já tem mapeamento definido e não pode criar pipeline/funil automaticamente.`,
+        }),
+        { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
+    const stagesOrdenadas = [...stages].sort(
+      (a, b) => (Number(a?.order) || 0) - (Number(b?.order) || 0),
+    );
+
     // 2) Verificar pipeline duplicado
     const { data: existente } = await admin
       .from("pipelines")
@@ -160,7 +182,7 @@ Deno.serve(async (req) => {
     state.pipelineId = pipeline.id;
 
     // 4) Criar pipeline_stages
-    const stageRows = stages.map((s, idx) => ({
+    const stageRows = stagesOrdenadas.map((s, idx) => ({
       tenant_id: tenantId,
       pipeline_id: pipeline.id,
       name: String(s?.name ?? "").trim() || `Etapa ${idx + 1}`,
@@ -175,7 +197,7 @@ Deno.serve(async (req) => {
       .insert(stageRows)
       .select("id, name, position");
     if (stagesErr) throw new Error(`pipeline_stages: ${stagesErr.message}`);
-    if (!stagesCriadas || stagesCriadas.length !== stages.length) {
+    if (!stagesCriadas || stagesCriadas.length !== stagesOrdenadas.length) {
       throw new Error("Falha ao criar todas as etapas do pipeline");
     }
 
@@ -228,7 +250,7 @@ Deno.serve(async (req) => {
       (etapasExistentes ?? []).map((e) => String(e.nome).trim().toLowerCase()),
     );
 
-    const etapasRows = stages
+    const etapasRows = stagesOrdenadas
       .map((s, idx) => ({
         tenant_id: tenantId,
         funil_id: funilExecId,
@@ -247,7 +269,7 @@ Deno.serve(async (req) => {
     }
 
     // 7) Mapeamentos sm_etapa_name → pipeline_stages.id (Comercial)
-    const mapRows = stages.map((s, idx) => ({
+    const mapRows = stagesOrdenadas.map((s, idx) => ({
       tenant_id: tenantId,
       sm_funil_name: finalName,
       sm_etapa_name: String(s?.name ?? "").trim() || `Etapa ${idx + 1}`,
