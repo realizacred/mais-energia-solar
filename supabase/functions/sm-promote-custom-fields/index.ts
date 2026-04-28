@@ -645,11 +645,26 @@ Deno.serve(async (req) => {
 
       const variables: any[] = Array.isArray(sm?.variables) ? sm.variables : [];
 
+      const nativeResult = await promoteNativeFields(supabase, {
+        tenantId,
+        projetoId,
+        dealId,
+        variables,
+        dryRun,
+      });
+      nativeUpdates += nativeResult.nativeUpdates;
+      filesDownloaded += nativeResult.filesDownloaded;
+      filesSkipped += nativeResult.filesSkipped;
+      filesFailed += nativeResult.filesFailed;
+      errors.push(...nativeResult.errors);
+
       const rows: Array<Record<string, any>> = [];
 
       for (const v of variables) {
         const sourceKey = v?.key as string | undefined;
         if (!sourceKey) continue;
+
+        if (DEFAULT_NATIVE_KEYS.has(sourceKey)) continue;
 
         // Slug ignorado pelo usuário → warning único, não migra.
         if (resolved.ignored.has(sourceKey)) {
@@ -710,7 +725,7 @@ Deno.serve(async (req) => {
               continue;
             }
             try {
-              const r = await downloadAndStore(supabase, url, path);
+              const r = await downloadAndStore(supabase, CUSTOM_FIELD_BUCKET, url, path);
               if (r.ok) {
                 localPaths.push(r.path);
                 if (r.reason === "already_exists") filesSkipped++;
