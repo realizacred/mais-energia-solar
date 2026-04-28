@@ -36,8 +36,8 @@ const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const CRON_SECRET = "sm-resume-cron-v1"; // mesmo string usado em sm_resume_stuck_migrations
 
 const SOURCE_LIST = ["solarmarket", "solar_market"] as const;
-const CHUNK_BATCH = 5;
-const MIN_CHUNK_BATCH = 5;
+const CHUNK_BATCH = 3;
+const MIN_CHUNK_BATCH = 1;
 const SELF_URL = `${SUPABASE_URL}/functions/v1/sm-migrate-chunk`;
 
 function isGatewayTimeoutLike(error: string | undefined): boolean {
@@ -140,6 +140,7 @@ async function callSmPromoteOnce(
   job_id?: string;
   status?: string;
   counters?: Record<string, number>;
+  promoted_project_external_ids?: string[];
   error?: string;
 }> {
   const url = `${SUPABASE_URL}/functions/v1/sm-promote`;
@@ -189,6 +190,7 @@ async function callSmPromoteOnce(
     job_id?: string;
     status?: string;
     counters?: Record<string, number>;
+    promoted_project_external_ids?: string[];
   };
 }
 
@@ -197,9 +199,13 @@ async function runPostPhaseUntilDone(
   fnName: "sm-enrich-versoes" | "sm-promote-custom-fields",
   action: "enrich" | "promote",
   batch: number,
+  projectExternalIds?: string[],
 ): Promise<void> {
   const fnUrl = `${SUPABASE_URL}/functions/v1/${fnName}`;
   let offset = 0;
+  const scopedProjectIds = Array.isArray(projectExternalIds)
+    ? projectExternalIds.map((id) => String(id).trim()).filter(Boolean)
+    : [];
 
   for (let i = 0; i < 500; i++) {
     const resp = await fetch(fnUrl, {
@@ -213,7 +219,7 @@ async function runPostPhaseUntilDone(
       },
       body: JSON.stringify({
         action,
-        payload: { tenant_id: tenantId, batch, offset },
+        payload: { tenant_id: tenantId, batch, offset, project_external_ids: scopedProjectIds },
       }),
     });
     const text = await resp.text();
@@ -242,6 +248,7 @@ async function runAdaptivePromoteChunk(
   job_id?: string;
   status?: string;
   counters?: Record<string, number>;
+  promoted_project_external_ids?: string[];
   error?: string;
 }> {
   const attempts = [CHUNK_BATCH, Math.max(MIN_CHUNK_BATCH, Math.floor(CHUNK_BATCH / 2)), MIN_CHUNK_BATCH]
@@ -258,6 +265,7 @@ async function runAdaptivePromoteChunk(
         job_id: result.job_id,
         status: result.status,
         counters: result.counters,
+        promoted_project_external_ids: result.promoted_project_external_ids,
       };
     }
 
@@ -447,12 +455,31 @@ async function processStep(
   }
 
   const c = sub.counters ?? {};
+  const promotedProjectExternalIds = Array.isArray(sub.promoted_project_external_ids)
+    ? sub.promoted_project_external_ids.map((id) => String(id).trim()).filter(Boolean)
+    : [];
   const promoted = Number(c.promoted ?? 0);
   const errors = Number(c.errors ?? 0);
   const warnings = Number(c.warnings ?? 0);
   const blocked = Number(c.blocked ?? 0);
   const skipped = Number(c.skipped ?? 0);
   const processedDelta = Number(c.processed ?? 0);
+
+  if (promotedProjectExternalIds.length > 0) {
+    const postPhaseTask = (async () => {
+      try {
+        await runPostPhaseUntilDone(tenantId, "sm-enrich-versoes", "enrich", 25, promotedProjectExternalIds);
+      } catch (e) {
+        console.error("[sm-migrate-chunk] enrich-versoes chunk chain failed:", e);
+      }
+      try {
+        await runPostPhaseUntilDone(tenantId, "sm-promote-custom-fields", "promote", 20, promotedProjectExternalIds);
+      } catch (e) {
+        console.error("[sm-migrate-chunk] promote-custom-fields chunk chain failed:", e);
+      }
+    })();
+    await postPhaseTask;
+  }
 
   const subJobs = Array.isArray((master.metadata as { sub_jobs?: unknown[] })?.sub_jobs)
     ? ((master.metadata as { sub_jobs: unknown[] }).sub_jobs as unknown[])

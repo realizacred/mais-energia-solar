@@ -66,6 +66,7 @@ interface RequestState {
   jobId: string | null;
   tenantId: string | null;
   userId: string | null;
+  promotedProjectExternalIds: string[];
   counters: {
     promoted: number;
     skipped: number;
@@ -93,6 +94,7 @@ function createInitialState(): RequestState {
     jobId: null,
     tenantId: null,
     userId: null,
+      promotedProjectExternalIds: [],
     counters: { promoted: 0, skipped: 0, blocked: 0, warnings: 0, errors: 0, processed: 0 },
     logBuffer: [],
   };
@@ -2760,6 +2762,7 @@ async function promoteOneProposalRow(
       });
     }
 
+    if (projectExtId) state.promotedProjectExternalIds.push(projectExtId);
     state.counters.promoted++;
     return "promoted";
   } catch (e) {
@@ -3241,6 +3244,7 @@ async function actionPromoteAll(
       job_id: jobId,
       status: finalStatus,
       counters: state.counters,
+      promoted_project_external_ids: state.promotedProjectExternalIds,
       post_phases_skipped: true,
       duration_ms: Date.now() - state.startedAt,
     });
@@ -3295,6 +3299,7 @@ async function actionPromoteAll(
     job_id: jobId,
     status: finalStatus,
     counters: state.counters,
+    promoted_project_external_ids: state.promotedProjectExternalIds,
     custom_fields: cfTotals,
     enrichment: enrTotals,
     duration_ms: Date.now() - state.startedAt,

@@ -295,6 +295,9 @@ Deno.serve(async (req) => {
     const tenantIdFilter = typeof payload.tenant_id === "string" && payload.tenant_id.trim()
       ? payload.tenant_id.trim()
       : null;
+    const projectExternalIdsFilter = Array.isArray(payload.project_external_ids)
+      ? payload.project_external_ids.map((id: unknown) => String(id).trim()).filter(Boolean).slice(0, 20)
+      : [];
 
     if (action !== "promote") {
       return new Response(
@@ -315,6 +318,7 @@ Deno.serve(async (req) => {
       .not("external_id", "is", null)
       .order("external_id", { ascending: true });
     if (tenantIdFilter) projetosQuery = projetosQuery.eq("tenant_id", tenantIdFilter);
+    if (projectExternalIdsFilter.length > 0) projetosQuery = projetosQuery.in("external_id", projectExternalIdsFilter);
     const { data: projetos, error: projErr } = await projetosQuery
       .range(offset, offset + batch - 1);
 
@@ -346,25 +350,10 @@ Deno.serve(async (req) => {
       tenantId,
     );
 
-    if (unmapped.length > 0 || invalid.length > 0) {
-      return new Response(
-        JSON.stringify({
-          ok: false,
-          error: "mapping_incomplete",
-          message:
-            "Há campos do SolarMarket sem mapeamento configurado em sm_custom_field_mapping. " +
-            "Configure-os via Admin → Migração SolarMarket → Step 2 → Custom Fields.",
-          unmapped_sm_keys: unmapped,
-          invalid_mappings: invalid,
-          tenant_id: tenantId,
-          duration_ms: Date.now() - startedAt,
-        }),
-        {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        },
-      );
-    }
+    const mappingWarnings = [
+      ...unmapped.map((key) => ({ warning: `slug '${key}' sem mapeamento — pulado` })),
+      ...invalid.map((entry) => ({ warning: `mapeamento inválido '${entry.sm_field_key}' (${entry.reason}) — pulado` })),
+    ];
 
     // 3. Carrega payloads das propostas correspondentes ao lote (uma query).
     const smIds = projetos.map((p: any) => Number(p.external_id)).filter(Boolean);
@@ -397,6 +386,7 @@ Deno.serve(async (req) => {
     let nativeUpdates = 0;
     const errors: Array<{ projeto_id?: string; deal_id?: string; error: string }> = [];
     const warnings: Array<{ projeto_id?: string; deal_id?: string; warning: string }> = [];
+    warnings.push(...mappingWarnings.slice(0, 50));
     const ignoredSeen = new Set<string>(); // dedup warnings
 
     /**
@@ -548,10 +538,10 @@ Deno.serve(async (req) => {
       // Buscar versões mais recentes em uma query (versao DESC, primeira por projeto).
       const { data: versoes, error: vErr } = await supabase
         .from("proposta_versoes")
-        .select("id, snapshot, versao, propostas_nativas!inner(projeto_id)")
+        .select("id, snapshot, versao_numero, propostas_nativas!inner(projeto_id)")
         .eq("propostas_nativas.tenant_id", tenantId)
         .in("propostas_nativas.projeto_id", projetoIds)
-        .order("versao", { ascending: false });
+        .order("versao_numero", { ascending: false });
 
       if (vErr) {
         errors.push({ error: `native_targets_select: ${vErr.message}` });
@@ -628,7 +618,7 @@ Deno.serve(async (req) => {
       native_updates: nativeUpdates,
       errors: errors.slice(0, 50),
       warnings: warnings.slice(0, 50),
-      next_offset: projetos.length === batch ? offset + batch : null,
+      next_offset: projectExternalIdsFilter.length > 0 || projetos.length < batch ? null : offset + batch,
       duration_ms: Date.now() - startedAt,
     };
 

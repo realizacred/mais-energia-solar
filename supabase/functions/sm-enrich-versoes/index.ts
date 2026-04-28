@@ -154,6 +154,9 @@ Deno.serve(async (req) => {
     const tenantIdFilter = typeof payload.tenant_id === "string" && payload.tenant_id.trim()
       ? payload.tenant_id.trim()
       : null;
+    const projectExternalIdsFilter = Array.isArray(payload.project_external_ids)
+      ? payload.project_external_ids.map((id: unknown) => String(id).trim()).filter(Boolean).slice(0, 25)
+      : [];
 
     if (action !== "enrich") {
       return new Response(
@@ -170,6 +173,7 @@ Deno.serve(async (req) => {
       .eq("external_source", "solarmarket")
       .order("id", { ascending: true });
     if (tenantIdFilter) propostasQuery = propostasQuery.eq("tenant_id", tenantIdFilter);
+    if (projectExternalIdsFilter.length > 0) propostasQuery = propostasQuery.in("external_id", projectExternalIdsFilter);
     const { data: propostas, error: propErr } = await propostasQuery
       .range(offset, offset + batch - 1);
 
@@ -526,7 +530,7 @@ Deno.serve(async (req) => {
       }
     }
 
-    const nextOffset = propostas.length < batch ? null : offset + batch;
+    const nextOffset = projectExternalIdsFilter.length > 0 || propostas.length < batch ? null : offset + batch;
 
     return new Response(
       JSON.stringify({
