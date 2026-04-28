@@ -234,11 +234,96 @@ function normalizeUC(raw: any): NormalizedUC {
   };
 }
 
+// ─── Adapter: snapshot SolarMarket → shape canônico ───────
+/**
+ * Detecta snapshots importados do SolarMarket (shape diferente do nativo) e
+ * remapeia para o formato esperado pelo normalizer.
+ *
+ * Shape SM detectado por:
+ *   - source === "solar_market" / "solarmarket"
+ *   - OU presença de kit.itens[] com chaves "qnt"/"unitCost"/"item"/"category"
+ *
+ * Mapeamentos:
+ *   kit.itens[].{qnt,item,unitCost,category} → itens[].{quantidade,descricao,preco_unitario,categoria}
+ *   cliente.endereco.{cidade,estado}         → loc_cidade / loc_estado
+ *   geracao.{potencia_kwp,geracao_mensal}    → potencia_kwp / geracao_mensal_estimada
+ */
+function adaptSmSnapshot(s: Record<string, any>): Record<string, any> {
+  const kitItens = Array.isArray(s?.kit?.itens) ? s.kit.itens : [];
+  const looksLikeSm =
+    s?.source === "solar_market" ||
+    s?.source === "solarmarket" ||
+    (kitItens.length > 0 && kitItens[0] && (
+      "qnt" in kitItens[0] ||
+      "unitCost" in kitItens[0] ||
+      ("item" in kitItens[0] && "category" in kitItens[0])
+    ));
+
+  if (!looksLikeSm) return s;
+
+  // Já adaptado anteriormente? Evitar duplo trabalho.
+  if (Array.isArray(s.itens) && s.itens.length > 0) return s;
+
+  // Mapear categorias SM → nativas
+  const mapCategoria = (c: unknown): string => {
+    const v = String(c || "").toLowerCase().trim();
+    if (v === "módulo" || v === "modulo" || v === "modulos" || v === "módulos") return "modulo";
+    if (v === "inversor" || v === "inversores") return "inversor";
+    if (v === "kit" || v === "kti") return "kit";
+    if (v === "instalação" || v === "instalacao" || v === "mão de obra" || v === "mao de obra") return "servico";
+    return v || "outros";
+  };
+
+  const itens = kitItens.map((it: any) => {
+    const desc = String(it.item || it.descricao || "").trim();
+    // Tenta separar fabricante/modelo (ex: "OSDA ODA610-33V-MHDRZ" → "OSDA" + resto)
+    const parts = desc.split(/\s+/);
+    const fabricante = parts.length > 1 ? parts[0] : "";
+    const modelo = parts.length > 1 ? parts.slice(1).join(" ") : desc;
+    return {
+      descricao: desc,
+      fabricante,
+      modelo,
+      quantidade: Number(it.qnt ?? it.quantidade ?? 1),
+      preco_unitario: Number(it.unitCost ?? it.preco_unitario ?? 0),
+      potencia_w: Number(it.potencia_w ?? 0),
+      categoria: mapCategoria(it.category ?? it.categoria),
+      avulso: false,
+      produto_ref: null,
+    };
+  });
+
+  const endereco = s?.cliente?.endereco || {};
+  const cliente = s?.cliente || {};
+  const geracao = s?.geracao || {};
+
+  return {
+    ...s,
+    // Itens canônicos
+    itens,
+    // Localização vinda do endereço do cliente (snapshot SM)
+    loc_cidade: s.loc_cidade ?? endereco.cidade ?? s.locCidade ?? "",
+    loc_estado: s.loc_estado ?? endereco.estado ?? s.locEstado ?? "",
+    // Cliente: garantir campos top-level usados pelo normalizer
+    cliente: {
+      ...cliente,
+      celular: cliente.celular ?? cliente.telefone,
+      cnpj_cpf: cliente.cnpj_cpf ?? cliente.cpf_cnpj ?? cliente.documento,
+    },
+    // Sistema
+    potencia_kwp: s.potencia_kwp ?? geracao.potencia_kwp ?? 0,
+    geracao_mensal_estimada:
+      s.geracao_mensal_estimada ??
+      geracao.geracao_mensal ??
+      (geracao.geracao_anual ? Math.round(Number(geracao.geracao_anual) / 12) : 0),
+  };
+}
+
 // ─── Função principal ─────────────────────────────────────
 export function normalizeProposalSnapshot(
   raw: Record<string, unknown> | null | undefined
 ): NormalizedProposalSnapshot {
-  const s = (raw || {}) as Record<string, any>;
+  const s = adaptSmSnapshot((raw || {}) as Record<string, any>);
   const fin = (s.financeiro || {}) as Record<string, any>;
 
   // Cliente — suporta camelCase e objeto aninhado
