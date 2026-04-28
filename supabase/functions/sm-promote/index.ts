@@ -3149,33 +3149,33 @@ async function actionPromoteAll(
     finished_at: null,
     metadata: {
       phases: {
-        custom_fields: { status: "running", processed: 0, upserted: 0, files_downloaded: 0, files_failed: 0 },
-        enrichment: { status: "pending", processed: 0, versoes_updated: 0, ucs_inserted: 0 },
+        enrichment: { status: "running", processed: 0, versoes_updated: 0, ucs_inserted: 0 },
+        custom_fields: { status: "pending", processed: 0, upserted: 0, files_downloaded: 0, files_failed: 0 },
       },
     },
   });
-  const cfTotals = await runChainedPhase(admin, jobId, "sm-promote-custom-fields", "promote", { batch: 25, tenant_id: tenantId }, (r) => ({
-    processed: r.processed ?? 0,
-    upserted: r.upserted ?? 0,
-    files_downloaded: r.files_downloaded ?? 0,
-    files_skipped: r.files_skipped ?? 0,
-    files_failed: r.files_failed ?? 0,
-  }));
-
-  await patchJob(admin, jobId, {
-    metadata: {
-      phases: {
-        custom_fields: { status: "completed", ...cfTotals },
-        enrichment: { status: "running", processed: 0, versoes_updated: 0, ucs_inserted: 0, projetos_updated: 0 },
-      },
-    },
-  });
-  const enrTotals = await runChainedPhase(admin, jobId, "sm-enrich-versoes", "enrich", { batch: 10, tenant_id: tenantId }, (r) => ({
+  const enrTotals = await runChainedPhase(admin, jobId, "sm-enrich-versoes", "enrich", { batch: 25, tenant_id: tenantId }, (r) => ({
     processed: r.processed ?? 0,
     versoes_updated: r.versoes_updated ?? 0,
     kit_itens_inserted: r.kit_itens_inserted ?? 0,
     ucs_inserted: r.ucs_inserted ?? 0,
     projetos_updated: r.projetos_updated ?? 0,
+  }));
+
+  await patchJob(admin, jobId, {
+    metadata: {
+      phases: {
+        enrichment: { status: "completed", ...enrTotals },
+        custom_fields: { status: "running", processed: 0, upserted: 0, files_downloaded: 0, files_failed: 0 },
+      },
+    },
+  });
+  const cfTotals = await runChainedPhase(admin, jobId, "sm-promote-custom-fields", "promote", { batch: 20, tenant_id: tenantId }, (r) => ({
+    processed: r.processed ?? 0,
+    upserted: r.upserted ?? 0,
+    files_downloaded: r.files_downloaded ?? 0,
+    files_skipped: r.files_skipped ?? 0,
+    files_failed: r.files_failed ?? 0,
   }));
 
   await patchJob(admin, jobId, {
