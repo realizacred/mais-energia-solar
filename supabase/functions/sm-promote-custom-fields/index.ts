@@ -405,7 +405,8 @@ async function loadFieldMapping(
     .eq("tenant_id", tenantId);
   if (mErr) throw mErr;
 
-  const entries: MappingEntry[] = (mappings ?? []) as MappingEntry[];
+  const entries: MappingEntry[] = ((mappings ?? []) as MappingEntry[])
+    .map((entry) => ({ ...entry, sm_field_key: normalizeSmKey(entry.sm_field_key) }));
   const known = new Set(entries.map((e) => e.sm_field_key));
 
   // 2. Resolver field_type real para todos crm_field_id (uma query)
@@ -503,16 +504,16 @@ async function loadFieldMapping(
         ? (r as any).payload.variables
         : [];
       for (const v of vars) {
-        const k = typeof v?.key === "string" ? v.key : null;
+        const k = normalizeSmKey(v?.key);
         if (!k) continue;
-        if (/^(cap|capo|cape)_/.test(k)) set.add(k);
+        if (/^(cap|capo|cape|pre|pos)_/.test(k)) set.add(k);
       }
     }
     allSlugs = Array.from(set);
   } else {
     allSlugs = (smSlugs as Array<{ key: string }>)
-      .map((r) => r.key)
-      .filter((k) => /^(cap|capo|cape)_/.test(k));
+      .map((r) => normalizeSmKey(r.key))
+      .filter((k) => /^(cap|capo|cape|pre|pos)_/.test(k));
   }
 
   const unmapped = allSlugs.filter((k) => !known.has(k));
