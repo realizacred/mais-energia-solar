@@ -455,12 +455,37 @@ async function processStep(
   }
 
   const c = sub.counters ?? {};
+  const promotedProjectExternalIds = Array.isArray(sub.promoted_project_external_ids)
+    ? sub.promoted_project_external_ids.map((id) => String(id).trim()).filter(Boolean)
+    : [];
   const promoted = Number(c.promoted ?? 0);
   const errors = Number(c.errors ?? 0);
   const warnings = Number(c.warnings ?? 0);
   const blocked = Number(c.blocked ?? 0);
   const skipped = Number(c.skipped ?? 0);
   const processedDelta = Number(c.processed ?? 0);
+
+  if (promotedProjectExternalIds.length > 0) {
+    const postPhaseTask = (async () => {
+      try {
+        await runPostPhaseUntilDone(tenantId, "sm-enrich-versoes", "enrich", 25, promotedProjectExternalIds);
+      } catch (e) {
+        console.error("[sm-migrate-chunk] enrich-versoes chunk chain failed:", e);
+      }
+      try {
+        await runPostPhaseUntilDone(tenantId, "sm-promote-custom-fields", "promote", 20, promotedProjectExternalIds);
+      } catch (e) {
+        console.error("[sm-migrate-chunk] promote-custom-fields chunk chain failed:", e);
+      }
+    })();
+    // @ts-ignore EdgeRuntime global
+    if (typeof EdgeRuntime !== "undefined" && EdgeRuntime.waitUntil) {
+      // @ts-ignore
+      EdgeRuntime.waitUntil(postPhaseTask);
+    } else {
+      void postPhaseTask;
+    }
+  }
 
   const subJobs = Array.isArray((master.metadata as { sub_jobs?: unknown[] })?.sub_jobs)
     ? ((master.metadata as { sub_jobs: unknown[] }).sub_jobs as unknown[])
