@@ -162,6 +162,7 @@ function getStatusChangeLabel(payload: Record<string, any> | null): string {
 function useMergedTimeline(
   auditLogs: Array<{ id: string; acao: string; tabela: string; user_email: string | null; created_at: string }>,
   events: ProposalEventEntry[],
+  propostaCreatedAt?: string | null,
 ): TimelineEntry[] {
   return useMemo(() => {
     const entries: TimelineEntry[] = [];
@@ -186,8 +187,49 @@ function useMergedTimeline(
     // Track event timestamps to deduplicate audit_logs
     const eventTimestamps = new Set(events.map(e => new Date(e.created_at).getTime()));
 
+    // Heurística de migração: agrupar audit_logs do tipo 'sistema' que ocorreram
+    // dentro de janela de 60s ao redor da criação da proposta em UMA única entrada
+    // "Importado do SolarMarket". Evita ruído de 5+ linhas idênticas na timeline.
+    const propCreatedTime = propostaCreatedAt ? new Date(propostaCreatedAt).getTime() : null;
+    const MIGRATION_WINDOW_MS = 60_000;
+    const migrationLogIds = new Set<string>();
+    let migrationAnchor: { id: string; created_at: string } | null = null;
+
+    if (propCreatedTime !== null) {
+      for (const log of auditLogs) {
+        if (log.user_email !== "sistema") continue;
+        const logTime = new Date(log.created_at).getTime();
+        if (Math.abs(logTime - propCreatedTime) <= MIGRATION_WINDOW_MS) {
+          migrationLogIds.add(log.id);
+          // Usa o log mais antigo como âncora (representa o momento da importação)
+          if (!migrationAnchor || new Date(log.created_at).getTime() < new Date(migrationAnchor.created_at).getTime()) {
+            migrationAnchor = { id: log.id, created_at: log.created_at };
+          }
+        }
+      }
+    }
+
+    // Só agrupa se houver 2+ logs de migração (evita esconder ações legítimas isoladas)
+    const shouldGroupMigration = migrationLogIds.size >= 2 && migrationAnchor !== null;
+
+    if (shouldGroupMigration && migrationAnchor) {
+      entries.push({
+        id: `mig-${migrationAnchor.id}`,
+        source: "audit",
+        label: "Importado do SolarMarket",
+        icon: <FilePlus className="h-3 w-3" />,
+        dotClass: "border-info/40 bg-info/10 text-info",
+        badgeClass: "bg-info/10 text-info",
+        userName: "SISTEMA",
+        created_at: migrationAnchor.created_at,
+      });
+    }
+
     // Add audit_logs that DON'T overlap with events (within 5s window)
+    // e que não façam parte do grupo de migração já consolidado
     for (const log of auditLogs) {
+      if (shouldGroupMigration && migrationLogIds.has(log.id)) continue;
+
       const logTime = new Date(log.created_at).getTime();
       // Skip if there's a proposal_event within 5 seconds (likely same action)
       const hasDuplicate = [...eventTimestamps].some(evTime => Math.abs(evTime - logTime) < 5000);
@@ -214,7 +256,7 @@ function useMergedTimeline(
     entries.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
     return entries;
-  }, [auditLogs, events]);
+  }, [auditLogs, events, propostaCreatedAt]);
 }
 
 // ─── Status Badge (SSOT from proposalStatusConfig) ───
@@ -645,7 +687,7 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
   const { data: proposalEvents = [] } = usePropostaEvents(p.id, isExpanded);
 
   // Merge audit_logs + proposal_events into unified timeline
-  const mergedTimeline = useMergedTimeline(auditLogs, proposalEvents);
+  const mergedTimeline = useMergedTimeline(auditLogs, proposalEvents, p.created_at);
   const loadingDetail = !snapshotData && isExpanded && !!latestVersao?.id;
 
   // Fallback: buscar dados do lead quando snapshot não tiver dados de cliente/localização
