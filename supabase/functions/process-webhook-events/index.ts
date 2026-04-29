@@ -644,6 +644,17 @@ async function handleMessageUpsert(
             status: "pending",
           });
         } catch (_) {}
+
+        // ── Auto-resolução em tempo real (Fase 1) ──
+        // Tenta vincular conversa nova a cliente/lead via telefone (match único).
+        // Nunca cria registros, nunca envia mensagem, nunca quebra webhook.
+        try {
+          await supabase.functions.invoke("wa-resolve-conversation", {
+            body: { conversation_id: newConv.id, source: "realtime" },
+          }).catch((e: any) => console.warn("[auto-resolve] invoke skipped:", e?.message));
+        } catch (e: any) {
+          console.warn("[auto-resolve] error suppressed:", e?.message);
+        }
       }
     }
     timingLog("conversation_upsert", t0_conv, { conversationId, isNew: !existingConv });
