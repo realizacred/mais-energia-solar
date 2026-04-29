@@ -1078,6 +1078,7 @@ export const VARIABLES_CATALOG: CatalogVariable[] = [
   v("comercial", "comercial.proposta_identificador", "proposta_identificador", "Identificador da Proposta", "Identificador único da proposta", "-", "2590-1"),
   v("comercial", "comercial.proposta_titulo", "proposta_titulo", "Título da Proposta", "Nome/título da proposta", "-", "Proposta Sistema Fotovoltaico"),
   v("comercial", "comercial.proposta_link", "proposta_link", "Link da Proposta", "URL de visualização pública da proposta", "-", "https://..."),
+  v("comercial", "comercial.qr_code", "qr_code", "QR Code da Proposta", "QR Code que aponta para a versão Web pública desta proposta. No DOCX/PDF é renderizado como imagem PNG inline (use {qr_code} sozinho em uma linha). Cada versão tem QR único; ao gerar nova versão o QR antigo deixa de funcionar.", "imagem", "[QR PNG]"),
   v("comercial", "comercial.proposta_validade", "proposta_validade", "Validade", "Data de validade da proposta", "data", "15/03/2025"),
   v("comercial", "comercial.proposta_versao", "proposta_versao", "Versão da Proposta", "Número da versão da proposta", "-", "v2"),
   v("comercial", "comercial.proposta_data", "proposta_data", "Data da proposta", "Data de criação da proposta", "data", "01/03/2025"),

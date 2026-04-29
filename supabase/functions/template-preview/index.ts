@@ -4,6 +4,7 @@ import { flattenSnapshot } from "../_shared/flattenSnapshot.ts";
 import { normalizeVariableFormat } from "../_shared/normalizeVariableFormat.ts";
 import { resolveGotenbergUrl } from "../_shared/resolveGotenbergUrl.ts";
 import { injectChartsIntoDocx } from "../_shared/chartInjector.ts";
+import { injectQrCodeIntoDocx } from "../_shared/qrInjector.ts";
 
 
 // ═══════════════════════════════════════════════════════════════
@@ -1166,9 +1167,10 @@ Deno.serve(async (req) => {
       leadId = propostaRes.data.lead_id;
 
       // Versão depende de proposta_id — buscar sequencialmente
+      // (id + public_slug needed for QR injection)
       const { data: versao } = await adminClient
         .from("proposta_versoes")
-        .select("snapshot, valor_total, potencia_kwp, economia_mensal, payback_meses, validade_dias, versao_numero")
+        .select("id, public_slug, snapshot, valor_total, potencia_kwp, economia_mensal, payback_meses, validade_dias, versao_numero")
         .eq("proposta_id", proposta_id)
         .order("versao_numero", { ascending: false })
         .limit(1)
@@ -1412,6 +1414,31 @@ Deno.serve(async (req) => {
     } catch (chartErr: any) {
       console.error(`[template-preview] Chart injection error (non-blocking): ${chartErr?.message}`);
       // Non-blocking — proposal continues without charts
+    }
+
+    // ── 8d. QR CODE INJECTION (non-blocking) ───────────────
+    // If template uses {qr_code} / {{qr_code}} / [qr_code], generate a PNG
+    // pointing to the public landing for this version (/pl/{public_slug})
+    // and inject it inline. Skips silently if no placeholder is present.
+    try {
+      const slug = (versaoData as any)?.public_slug as string | null | undefined;
+      const baseUrl = Deno.env.get("APP_URL") || Deno.env.get("APP_URL_LOCKED") || "";
+      const publicUrl = slug && baseUrl ? `${baseUrl.replace(/\/+$/, "")}/pl/${slug}` : null;
+
+      const qrResult = await injectQrCodeIntoDocx({
+        docxBytes: report,
+        publicUrl,
+        tenantId,
+        proposalId: proposta_id || undefined,
+      });
+      if (qrResult.injected) {
+        report = qrResult.output;
+      } else if (qrResult.reason && qrResult.reason !== "no_qr_placeholder") {
+        console.warn(`[template-preview] QR not injected: ${qrResult.reason}`);
+      }
+    } catch (qrErr: any) {
+      console.error(`[template-preview] QR injection error (non-blocking): ${qrErr?.message}`);
+      // Non-blocking — proposal continues without QR
     }
 
     // ── 8c. BACKEND AUDIT: Build audit report + block on critical errors ──
