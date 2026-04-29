@@ -27979,6 +27979,10 @@ export type Database = {
       }
       reset_migrated_data: { Args: { p_tenant_id: string }; Returns: Json }
       reset_project_area: { Args: { p_tenant_id: string }; Returns: Json }
+      reset_project_area_chunk: {
+        Args: { p_batch_size?: number; p_tenant_id: string }
+        Returns: Json
+      }
       reset_solar_data_layer: { Args: { _confirm: string }; Returns: Json }
       reset_tenant_data: { Args: { p_tenant_id: string }; Returns: Json }
       resolve_consultor_public: {
