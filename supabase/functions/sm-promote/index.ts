@@ -528,12 +528,25 @@ async function filterRowsByMigratableFunilMap(
     const funis = funisByProject.get(projectId) ?? [];
     // Sem linha em sm_projeto_funis_raw mantém o fallback legado para LEAD.
     if (funis.length === 0) return true;
-    return funis.some((name) => {
+    // Se algum funil é mapeado como pipeline, passa.
+    const hasPipeline = funis.some((name) => {
       const lower = name.toLowerCase().trim();
       if (lower === "vendedores") return false;
       const mapped = mapByName.get(lower);
       return mapped?.role === "pipeline" && Boolean(mapped?.pipeline_id);
     });
+    if (hasPipeline) return true;
+    // Caso contrário, só passa se TODOS os funis restantes forem "vendedores"
+    // (sem mapeamento ignore explícito). Ex: projeto que só está no funil de
+    // identificação de consultor → trata como LEAD via fallback default (linha 1620).
+    // Funis com role="ignore" continuam barrando o projeto.
+    const hasIgnore = funis.some((name) => {
+      const mapped = mapByName.get(name.toLowerCase().trim());
+      return mapped?.role === "ignore";
+    });
+    if (hasIgnore) return false;
+    const onlyVendedores = funis.every((name) => name.toLowerCase().trim() === "vendedores");
+    return onlyVendedores;
   });
 }
 

@@ -100,6 +100,7 @@ async function countBacklog(
   const rawKeys = new Set<string>();
   const funisByProject = new Map<string, string[]>();
   const mappedMigratableFunis = new Set<string>();
+  const ignoredFunis = new Set<string>();
   const blockedKeys = new Set<string>();
   const promotedKeys = new Set<string>();
 
@@ -142,8 +143,12 @@ async function countBacklog(
     .eq("tenant_id", tenantId);
   if (mapErr) throw new Error(`countBacklog/maps: ${mapErr.message}`);
   for (const m of maps ?? []) {
-    if (m.role === "pipeline" && m.pipeline_id && m.sm_funil_name) {
-      mappedMigratableFunis.add(String(m.sm_funil_name).toLowerCase().trim());
+    const name = String(m.sm_funil_name ?? "").toLowerCase().trim();
+    if (!name) continue;
+    if (m.role === "pipeline" && m.pipeline_id) {
+      mappedMigratableFunis.add(name);
+    } else if (m.role === "ignore") {
+      ignoredFunis.add(name);
     }
   }
 
@@ -184,7 +189,18 @@ async function countBacklog(
   for (const key of rawKeys) {
     if (promotedKeys.has(key) || blockedKeys.has(key)) continue;
     const funis = funisByProject.get(key) ?? [];
-    if (funis.length === 0 || funis.some((name) => mappedMigratableFunis.has(name.toLowerCase().trim()))) {
+    if (funis.length === 0) {
+      remaining += 1;
+      continue;
+    }
+    const lowered = funis.map((n) => n.toLowerCase().trim());
+    if (lowered.some((n) => ignoredFunis.has(n))) continue;
+    if (lowered.some((n) => mappedMigratableFunis.has(n))) {
+      remaining += 1;
+      continue;
+    }
+    // Apenas funil "vendedores" (identificação de consultor) → trata como LEAD
+    if (lowered.every((n) => n === "vendedores")) {
       remaining += 1;
     }
   }
