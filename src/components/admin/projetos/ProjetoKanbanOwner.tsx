@@ -113,21 +113,18 @@ export function ProjetoKanbanOwner({ columns, onMoveProjeto, onViewProjeto, onCr
               </div>
 
               {/* Cards */}
-              <div className="px-3 pb-3 min-h-[80px] space-y-2 flex-1">
+              <div className="px-3 pb-3 min-h-[80px] space-y-2 flex-1 overflow-y-auto">
                 {col.deals.length === 0 && (
                   <div className="flex items-center justify-center h-16 text-xs text-muted-foreground/50 italic">
                     Arraste projetos aqui
                   </div>
                 )}
-                {col.deals.map(deal => (
-                  <OwnerDealCard
-                    key={deal.deal_id}
-                    deal={deal}
-                    isDragging={draggedId === deal.deal_id}
-                    onDragStart={handleDragStart}
-                    onClick={() => onViewProjeto?.(deal)}
-                  />
-                ))}
+                <OwnerProgressiveList
+                  deals={col.deals}
+                  draggedId={draggedId}
+                  onDragStart={handleDragStart}
+                  onViewProjeto={onViewProjeto}
+                />
               </div>
             </div>
           );
