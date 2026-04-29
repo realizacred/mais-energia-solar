@@ -1642,7 +1642,7 @@ async function resolvePipelinePerProject(
       if (!secStageId) {
         const { data: secStagesAll } = await admin
           .from("pipeline_stages")
-          .select("id, name, is_won")
+          .select("id, name, is_won, is_closed")
           .eq("tenant_id", tenantId)
           .eq("pipeline_id", secPipelineId);
         secStageId = findPipelineStageForSmEtapa((secStagesAll ?? []) as AnyObj[], secCandidate.stageName);
