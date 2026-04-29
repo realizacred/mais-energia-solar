@@ -1,12 +1,15 @@
 import { Button } from "@/components/ui/button";
 import { formatBRLCompact as formatBRL } from "@/lib/formatters";
 import { getEtiquetaConfig } from "@/lib/etiquetas";
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { Zap, Plus, LayoutGrid, Phone, DollarSign } from "lucide-react";
 import type { OwnerColumn, DealKanbanCard } from "@/hooks/useDealPipeline";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
+
+const INITIAL_OWNER_CARDS = 50;
+const OWNER_CARDS_INCREMENT = 50;
 
 interface Props {
   columns: OwnerColumn[];
@@ -110,21 +113,18 @@ export function ProjetoKanbanOwner({ columns, onMoveProjeto, onViewProjeto, onCr
               </div>
 
               {/* Cards */}
-              <div className="px-3 pb-3 min-h-[80px] space-y-2 flex-1">
+              <div className="px-3 pb-3 min-h-[80px] space-y-2 flex-1 overflow-y-auto">
                 {col.deals.length === 0 && (
                   <div className="flex items-center justify-center h-16 text-xs text-muted-foreground/50 italic">
                     Arraste projetos aqui
                   </div>
                 )}
-                {col.deals.map(deal => (
-                  <OwnerDealCard
-                    key={deal.deal_id}
-                    deal={deal}
-                    isDragging={draggedId === deal.deal_id}
-                    onDragStart={handleDragStart}
-                    onClick={() => onViewProjeto?.(deal)}
-                  />
-                ))}
+                <OwnerProgressiveList
+                  deals={col.deals}
+                  draggedId={draggedId}
+                  onDragStart={handleDragStart}
+                  onViewProjeto={onViewProjeto}
+                />
               </div>
             </div>
           );
@@ -193,5 +193,58 @@ function OwnerDealCard({ deal, isDragging, onDragStart, onClick }: OwnerDealCard
         </div>
       </div>
     </div>
+  );
+}
+
+// ── Progressive list with infinite scroll sentinel ──────────
+
+interface OwnerProgressiveListProps {
+  deals: DealKanbanCard[];
+  draggedId: string | null;
+  onDragStart: (e: React.DragEvent, id: string) => void;
+  onViewProjeto?: (deal: DealKanbanCard) => void;
+}
+
+function OwnerProgressiveList({ deals, draggedId, onDragStart, onViewProjeto }: OwnerProgressiveListProps) {
+  const [visibleCount, setVisibleCount] = useState(INITIAL_OWNER_CARDS);
+  const visible = deals.slice(0, visibleCount);
+  const remaining = deals.length - visibleCount;
+  const sentinelRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (remaining <= 0 || !sentinelRef.current) return;
+    const node = sentinelRef.current;
+    const observer = new IntersectionObserver(
+      entries => {
+        if (entries[0]?.isIntersecting) {
+          setVisibleCount(prev => prev + OWNER_CARDS_INCREMENT);
+        }
+      },
+      { rootMargin: "200px 0px" },
+    );
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [remaining]);
+
+  return (
+    <>
+      {visible.map(deal => (
+        <OwnerDealCard
+          key={deal.deal_id}
+          deal={deal}
+          isDragging={draggedId === deal.deal_id}
+          onDragStart={onDragStart}
+          onClick={() => onViewProjeto?.(deal)}
+        />
+      ))}
+      {remaining > 0 && (
+        <div
+          ref={sentinelRef}
+          className="w-full py-2 text-center text-[10px] font-medium text-muted-foreground/60"
+        >
+          Carregando mais {Math.min(remaining, OWNER_CARDS_INCREMENT)} de {remaining}…
+        </div>
+      )}
+    </>
   );
 }

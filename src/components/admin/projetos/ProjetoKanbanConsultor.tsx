@@ -1,5 +1,5 @@
 import { formatBRLCompact as formatBRL } from "@/lib/formatters";
-import { useState, useCallback, useEffect, useMemo } from "react";
+import { useState, useCallback, useEffect, useMemo, useRef } from "react";
 
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { Plus, DollarSign, User, ChevronDown, Zap, GripVertical, MoreVertical, ArrowUpDown, SortAsc, SortDesc, Calendar, Type } from "lucide-react";
@@ -98,7 +98,8 @@ function sortColumnsByOrder(columns: OwnerColumn[], order: string[]): OwnerColum
   });
 }
 
-const INITIAL_CARDS = 8;
+const INITIAL_CARDS = 50;
+const CARDS_INCREMENT = 50;
 
 function ProgressiveCardList({
   deals, draggedId, onDragStart, onViewProjeto, onViewProjetoTab, dynamicEtiquetas,
@@ -110,9 +111,25 @@ function ProgressiveCardList({
   onViewProjetoTab?: (deal: DealKanbanCard, tab: string) => void;
   dynamicEtiquetas: DynamicEtiqueta[];
 }) {
-  const [showAll, setShowAll] = useState(false);
-  const visible = showAll ? deals : deals.slice(0, INITIAL_CARDS);
-  const remaining = deals.length - INITIAL_CARDS;
+  const [visibleCount, setVisibleCount] = useState(INITIAL_CARDS);
+  const visible = deals.slice(0, visibleCount);
+  const remaining = deals.length - visibleCount;
+  const sentinelRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (remaining <= 0 || !sentinelRef.current) return;
+    const node = sentinelRef.current;
+    const observer = new IntersectionObserver(
+      entries => {
+        if (entries[0]?.isIntersecting) {
+          setVisibleCount(prev => prev + CARDS_INCREMENT);
+        }
+      },
+      { rootMargin: "200px 0px" },
+    );
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [remaining]);
 
   return (
     <div className="flex-1 min-h-0 px-2 pb-2 space-y-0 overflow-y-auto divide-y divide-border/40" style={{ maxHeight: "calc(100vh - 340px)" }}>
@@ -132,13 +149,13 @@ function ProgressiveCardList({
               />
             </div>
           ))}
-          {!showAll && remaining > 0 && (
-            <button
-              onClick={() => setShowAll(true)}
-              className="w-full py-2 text-[10px] font-semibold text-primary hover:text-primary/80 transition-colors"
+          {remaining > 0 && (
+            <div
+              ref={sentinelRef}
+              className="w-full py-2 text-center text-[10px] font-medium text-muted-foreground/60"
             >
-              Mostrar mais {remaining} projetos
-            </button>
+              Carregando mais {Math.min(remaining, CARDS_INCREMENT)} de {remaining}…
+            </div>
           )}
         </>
       )}
