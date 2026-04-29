@@ -246,17 +246,44 @@ export function useProjetoPipeline() {
         }
       }
 
+      // Query principal: projetos vinculados nativamente ao funil (etapa_id ou funil_id)
       const orParts: string[] = [];
       if (funilEtapaIds.length > 0) orParts.push(`etapa_id.in.(${funilEtapaIds.join(",")})`);
       orParts.push(`funil_id.eq.${f.funilId}`);
-      if (dealIdsViaMembership.length > 0) {
-        const dealChunk = dealIdsViaMembership.slice(0, 1500);
-        orParts.push(`deal_id.in.(${dealChunk.join(",")})`);
-      }
       query = query.or(orParts.join(","));
     }
 
     const data = await fetchAllProjetosRows(query as any);
+
+    // Fetch separado: projetos que pertencem ao funil APENAS via deal_pipeline_stages (multi-pipeline).
+    // Feito em chunks pequenos para evitar URL gigante (HTTP 400 Bad Request).
+    if (f.funilId && etapaOverrideByDealId.size > 0) {
+      const existingProjetoIds = new Set((data || []).map((p: any) => p.id));
+      const existingDealIds = new Set((data || []).map((p: any) => p.deal_id).filter(Boolean));
+      const dealIdsToFetch = [...etapaOverrideByDealId.keys()].filter(d => !existingDealIds.has(d));
+
+      const DEAL_CHUNK = 100; // ~3.6KB por chunk — seguro para URL
+      for (let i = 0; i < dealIdsToFetch.length; i += DEAL_CHUNK) {
+        const chunk = dealIdsToFetch.slice(i, i + DEAL_CHUNK);
+        let extraQuery = supabase
+          .from("projetos")
+          .select("id, deal_id, codigo, projeto_num, lead_id, cliente_id, consultor_id, funil_id, etapa_id, proposta_id, potencia_kwp, valor_total, status, observacoes, created_at, updated_at, clientes:cliente_id(nome, telefone)")
+          .in("deal_id", chunk)
+          .order("created_at", { ascending: false });
+
+        if (f.consultorId !== "todos") extraQuery = extraQuery.eq("consultor_id", f.consultorId);
+        if (f.status !== "todos") extraQuery = extraQuery.eq("status", f.status as any);
+
+        const { data: extra, error: extraErr } = await extraQuery;
+        if (extraErr) throw extraErr;
+        (extra || []).forEach((p: any) => {
+          if (!existingProjetoIds.has(p.id)) {
+            data.push(p);
+            existingProjetoIds.add(p.id);
+          }
+        });
+      }
+    }
 
     // Aplica override de etapa_id para projetos vindos via multi-pipeline membership
     // (preserva original quando projeto já pertence ao funil filtrado nativamente)
