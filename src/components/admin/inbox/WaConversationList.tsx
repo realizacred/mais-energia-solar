@@ -574,37 +574,7 @@ export function WaConversationList({
             <CrossInstanceWrapper conversations={conversations}>
               {(crossInstanceMap) => (
                 <div role="listbox">
-                  {/* Unassigned section */}
-                  {unassigned.length > 0 && (
-                    <>
-                      <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide px-1 my-2">
-                        Não atribuídos
-                      </p>
-                      {unassigned.map((conv) => (
-                        <ConversationItem
-                          key={conv.id}
-                          conv={conv}
-                          isSelected={conv.id === selectedId}
-                          hasUnread={conv.unread_count > 0}
-                          onSelect={onSelect}
-                          vendedores={vendedores}
-                          instances={instances}
-                          mutedIds={mutedIds}
-                          hiddenIds={hiddenIds}
-                          followupConvIds={followupConvIds}
-                          crossInstanceCount={crossInstanceMap.get(conv.cliente_telefone)}
-                        />
-                      ))}
-                    </>
-                  )}
-
-                  {/* Assigned section */}
-                  {assigned.length > 0 && unassigned.length > 0 && (
-                    <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide px-1 my-2">
-                      Atribuídos
-                    </p>
-                  )}
-                  {assigned.map((conv) => (
+                  {conversations.map((conv) => (
                     <ConversationItem
                       key={conv.id}
                       conv={conv}
