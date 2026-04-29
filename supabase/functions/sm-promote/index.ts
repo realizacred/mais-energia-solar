@@ -3260,8 +3260,10 @@ async function actionPromoteAll(
   });
 
   const promotedIds = await fetchPromotedSourceIds(admin, tenantId, "proposta", "proposta");
+  const blockedIds = await fetchBlockedSourceIds(admin, tenantId, "proposta");
   const selectCols = dryRun ? "id, external_id" : "id, external_id, payload";
   const promotedSet = new Set(promotedIds);
+  const blockedSet = new Set(blockedIds);
   const candidateMeta: AnyObj[] = [];
   const pageSize = 100;
   for (let from = 0; candidateMeta.length < batchLimit; from += pageSize) {
@@ -3280,15 +3282,15 @@ async function actionPromoteAll(
     }
     for (const r of (pageRows ?? []) as AnyObj[]) {
       const sourceKey = resolveProposalSourceKey(r);
-      if (!sourceKey || !promotedSet.has(sourceKey)) candidateMeta.push(r);
+      if (!sourceKey || (!promotedSet.has(sourceKey) && !blockedSet.has(sourceKey))) candidateMeta.push(r);
       if (candidateMeta.length >= batchLimit) break;
     }
     if (!pageRows || pageRows.length < pageSize) break;
   }
 
-  let rows = candidateMeta;
+  let rows = await filterRowsByMigratableFunilMap(admin, tenantId, candidateMeta);
   if (!dryRun && candidateMeta.length > 0) {
-    const ids = candidateMeta.map((r) => r.id).filter(Boolean);
+    const ids = rows.map((r) => r.id).filter(Boolean);
     const { data: payloadRows, error: payloadErr } = await admin
       .from("sm_propostas_raw")
       .select(selectCols)
@@ -3302,7 +3304,7 @@ async function actionPromoteAll(
       return jsonResponse({ ok: false, job_id: jobId, error: payloadErr.message }, 500);
     }
     const payloadById = new Map((payloadRows ?? []).map((r: AnyObj) => [r.id, r]));
-    rows = candidateMeta.map((r) => payloadById.get(r.id) ?? r);
+    rows = rows.map((r) => payloadById.get(r.id) ?? r);
   }
 
   const candidates = rows ?? [];
