@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 // timezone: America/Sao_Paulo (via Intl)
 import {
   Activity,
@@ -12,6 +14,8 @@ import {
   CheckCircle2,
   XCircle,
   CircleDot,
+  Link2,
+  Loader2,
 } from "lucide-react";
 
 import { PageHeader, StatCard, EmptyState } from "@/components/ui-kit";
@@ -36,11 +40,18 @@ import {
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 
+import { Button } from "@/components/ui/button";
+
 import { useWaHealthMetrics } from "@/hooks/useWaHealthMetrics";
 import { useWaHealthInstances } from "@/hooks/useWaHealthInstances";
 import { useWaHealthOutbox } from "@/hooks/useWaHealthOutbox";
 import { useWaHealthWebhooks } from "@/hooks/useWaHealthWebhooks";
 import { useWaHealthOrphanConversations } from "@/hooks/useWaHealthOrphanConversations";
+import {
+  resolveWaConversation,
+  resolveWaConversationsBatch,
+  type ResolutionStatus,
+} from "@/services/whatsapp/waConversationResolver";
 
 const TZ = "America/Sao_Paulo";
 
