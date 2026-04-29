@@ -423,16 +423,9 @@ export function WaConversationList({
   hiddenIds,
   followupConvIds,
 }: WaConversationListProps) {
-  // Split conversations into unassigned and assigned
-  const { unassigned, assigned } = useMemo(() => {
-    const u: WaConversation[] = [];
-    const a: WaConversation[] = [];
-    for (const conv of conversations) {
-      if (!conv.assigned_to) u.push(conv);
-      else a.push(conv);
-    }
-    return { unassigned: u, assigned: a };
-  }, [conversations]);
+  // Lista única ordenada por última mensagem (já vem ordenada do hook).
+  // Removido o split unassigned/assigned para garantir que conversas atribuídas
+  // com mensagens recentes apareçam no topo (comportamento estilo WhatsApp).
 
   return (
     <div className="flex h-full min-h-0 w-full min-w-0 flex-col overflow-hidden border-r border-border/30 bg-card/50">
@@ -581,37 +574,7 @@ export function WaConversationList({
             <CrossInstanceWrapper conversations={conversations}>
               {(crossInstanceMap) => (
                 <div role="listbox">
-                  {/* Unassigned section */}
-                  {unassigned.length > 0 && (
-                    <>
-                      <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide px-1 my-2">
-                        Não atribuídos
-                      </p>
-                      {unassigned.map((conv) => (
-                        <ConversationItem
-                          key={conv.id}
-                          conv={conv}
-                          isSelected={conv.id === selectedId}
-                          hasUnread={conv.unread_count > 0}
-                          onSelect={onSelect}
-                          vendedores={vendedores}
-                          instances={instances}
-                          mutedIds={mutedIds}
-                          hiddenIds={hiddenIds}
-                          followupConvIds={followupConvIds}
-                          crossInstanceCount={crossInstanceMap.get(conv.cliente_telefone)}
-                        />
-                      ))}
-                    </>
-                  )}
-
-                  {/* Assigned section */}
-                  {assigned.length > 0 && unassigned.length > 0 && (
-                    <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide px-1 my-2">
-                      Atribuídos
-                    </p>
-                  )}
-                  {assigned.map((conv) => (
+                  {conversations.map((conv) => (
                     <ConversationItem
                       key={conv.id}
                       conv={conv}
