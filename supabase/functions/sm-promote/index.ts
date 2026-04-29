@@ -943,11 +943,10 @@ async function promoteCliente(
     await upsertLink(admin, tenantId, jobId, "cliente", id, "cliente", norm.external_id, { matched_by: "telefone" });
     return { id, created: false, matchedBy: "telefone" };
   }
-  if (byEmailRes.data?.id) {
-    const id = byEmailRes.data.id as string;
-    await upsertLink(admin, tenantId, jobId, "cliente", id, "cliente", norm.external_id, { matched_by: "email" });
-    return { id, created: false, matchedBy: "email" };
-  }
+  // RB-DEDUP-V4: dedup por EMAIL DESATIVADO. Apenas CPF/CNPJ válido e telefone REAL
+  // (não-placeholder) podem agrupar clientes. Email fica disponível como dado, não chave.
+  // (Bloco mantido como no-op para preservar a estrutura do diff e facilitar rollback.)
+  void byEmailRes;
 
   // 6) Não existe — inserir novo (RB-62: campos formatados; telefone_normalized só dígitos)
   const { data, error } = await admin
