@@ -284,6 +284,15 @@ export default function WaSaudePage() {
             />
           </>
         )}
+        {events.data && (
+          <StatCard
+            icon={Zap}
+            color={events.data.errors > 0 ? "destructive" : events.data.pending > 0 ? "warning" : "success"}
+            label="Eventos pós-resolução"
+            value={`${events.data.pending} / ${events.data.processed}`}
+            subtitle={`Pendentes / Processados${events.data.errors ? ` · ${events.data.errors} erros` : ""}`}
+          />
+        )}
       </div>
 
       {/* Instâncias */}
