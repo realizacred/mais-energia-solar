@@ -92,7 +92,28 @@ const STAGE_SORT_LABELS: Record<StageSortOption, string> = {
   data_asc: "Mais antigo",
 };
 
-const INITIAL_STAGE_CARDS = 15;
+const INITIAL_STAGE_CARDS = 50;
+const STAGE_CARDS_INCREMENT = 50;
+
+// Hook: dispara callback quando o sentinel entra no viewport (scroll infinito).
+function useInfiniteSentinel(
+  ref: React.RefObject<HTMLElement>,
+  enabled: boolean,
+  onIntersect: () => void,
+) {
+  useEffect(() => {
+    if (!enabled || !ref.current) return;
+    const node = ref.current;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) onIntersect();
+      },
+      { rootMargin: "200px 0px" },
+    );
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [ref, enabled, onIntersect]);
+}
 
 // ─── Progressive card list for desktop Kanban columns ──
 function ProgressiveStageCards({
@@ -111,6 +132,12 @@ function ProgressiveStageCards({
   const [visibleCount, setVisibleCount] = useState(INITIAL_STAGE_CARDS);
   const visible = deals.slice(0, visibleCount);
   const remaining = deals.length - visibleCount;
+  const sentinelRef = useRef<HTMLDivElement>(null);
+
+  const loadMore = useCallback(() => {
+    setVisibleCount(prev => prev + STAGE_CARDS_INCREMENT);
+  }, []);
+  useInfiniteSentinel(sentinelRef, remaining > 0, loadMore);
 
   return (
     <div className="px-2 pb-2 min-h-[60px] space-y-0 flex-1 min-h-0 overflow-y-auto divide-y divide-border/40">
@@ -134,12 +161,12 @@ function ProgressiveStageCards({
         </div>
       ))}
       {remaining > 0 && (
-        <button
-          onClick={() => setVisibleCount(prev => prev + INITIAL_STAGE_CARDS)}
-          className="w-full py-2 text-[10px] font-semibold text-primary hover:text-primary/80 transition-colors"
+        <div
+          ref={sentinelRef}
+          className="w-full py-2 text-center text-[10px] font-medium text-muted-foreground/60"
         >
-          Mostrar mais {Math.min(remaining, INITIAL_STAGE_CARDS)} de {remaining}
-        </button>
+          Carregando mais {Math.min(remaining, STAGE_CARDS_INCREMENT)} de {remaining}…
+        </div>
       )}
     </div>
   );
@@ -157,6 +184,12 @@ function ProgressiveMobileCards({
   const [visibleCount, setVisibleCount] = useState(INITIAL_STAGE_CARDS);
   const visible = deals.slice(0, visibleCount);
   const remaining = deals.length - visibleCount;
+  const sentinelRef = useRef<HTMLDivElement>(null);
+
+  const loadMore = useCallback(() => {
+    setVisibleCount(prev => prev + STAGE_CARDS_INCREMENT);
+  }, []);
+  useInfiniteSentinel(sentinelRef, remaining > 0, loadMore);
 
   return (
     <>
@@ -172,12 +205,12 @@ function ProgressiveMobileCards({
         />
       ))}
       {remaining > 0 && (
-        <button
-          onClick={() => setVisibleCount(prev => prev + INITIAL_STAGE_CARDS)}
-          className="w-full py-2 text-[10px] font-semibold text-primary hover:text-primary/80 transition-colors"
+        <div
+          ref={sentinelRef}
+          className="w-full py-2 text-center text-[10px] font-medium text-muted-foreground/60"
         >
-          Mostrar mais {Math.min(remaining, INITIAL_STAGE_CARDS)} de {remaining}
-        </button>
+          Carregando mais {Math.min(remaining, STAGE_CARDS_INCREMENT)} de {remaining}…
+        </div>
       )}
     </>
   );
