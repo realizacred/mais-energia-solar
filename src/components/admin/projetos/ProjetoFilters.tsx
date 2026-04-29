@@ -380,20 +380,49 @@ export function ProjetoFilters({
 
       {/* Active tag badges */}
       {filterEtiquetas.length > 0 && (
-        <div className="flex flex-wrap gap-1.5">
+        <div className="flex flex-wrap items-center gap-1.5">
+          <span className="text-[11px] text-muted-foreground font-medium">
+            Etiquetas ativas:
+          </span>
           {filterEtiquetas.map(etId => {
             const et = etiquetas.find(e => e.id === etId);
-            return et ? (
-              <Badge
+            if (!et) return null;
+            return (
+              <button
                 key={etId}
-                className="text-[10px] h-5 px-2 cursor-pointer border"
-                style={{ backgroundColor: `${et.cor}20`, color: et.cor, borderColor: `${et.cor}40` }}
+                type="button"
                 onClick={() => toggleEtiqueta(etId)}
+                className="group inline-flex items-center gap-1.5 h-6 pl-2 pr-1.5 rounded-full border text-[11px] font-medium transition-colors"
+                style={{
+                  backgroundColor: `${et.cor}1A`,
+                  color: et.cor,
+                  borderColor: `${et.cor}66`,
+                }}
+                title={`Remover filtro: ${et.nome}`}
               >
-                {et.nome} ×
-              </Badge>
-            ) : null;
+                <span
+                  className="inline-block h-2 w-2 rounded-full shrink-0"
+                  style={{ backgroundColor: et.cor }}
+                />
+                <span className="leading-none">{et.nome}</span>
+                <span
+                  className="inline-flex items-center justify-center h-4 w-4 rounded-full transition-colors group-hover:bg-foreground/10"
+                  aria-hidden
+                >
+                  <X className="h-3 w-3" />
+                </span>
+              </button>
+            );
           })}
+          {filterEtiquetas.length > 1 && (
+            <button
+              type="button"
+              onClick={() => onFilterEtiquetasChange([])}
+              className="text-[11px] text-muted-foreground hover:text-foreground underline-offset-2 hover:underline ml-1"
+            >
+              Limpar etiquetas
+            </button>
+          )}
         </div>
       )}
     </div>
