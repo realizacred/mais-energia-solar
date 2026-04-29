@@ -40,6 +40,15 @@ const CHUNK_BATCH = 3;
 const MIN_CHUNK_BATCH = 1;
 const SELF_URL = `${SUPABASE_URL}/functions/v1/sm-migrate-chunk`;
 
+function proposalSourceKey(row: Record<string, unknown>): string | null {
+  const raw = String(row.external_id ?? "").trim();
+  return raw ? (raw.split(":")[0] || raw) : null;
+}
+
+function toPostgrestInList(ids: string[]): string {
+  return `(${ids.map((id) => `"${String(id).replace(/"/g, '\\"')}"`).join(",")})`;
+}
+
 function isGatewayTimeoutLike(error: string | undefined): boolean {
   const message = String(error ?? "").toLowerCase();
   return message.includes("http 546")
