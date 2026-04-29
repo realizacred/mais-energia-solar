@@ -1677,7 +1677,7 @@ async function resolvePipelinePerProject(
     ) {
       const { data: comStages } = await admin
         .from("pipeline_stages")
-        .select("id, name, position, is_won")
+        .select("id, name, position, is_won, is_closed")
         .eq("tenant_id", tenantId)
         .eq("pipeline_id", comercialId);
       const stagesArr = (comStages ?? []) as AnyObj[];
