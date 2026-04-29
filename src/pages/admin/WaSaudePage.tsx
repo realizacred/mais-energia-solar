@@ -1,7 +1,5 @@
 import { useState } from "react";
-import { format } from "date-fns";
-import { toZonedTime } from "date-fns-tz";
-import { ptBR } from "date-fns/locale";
+// timezone: America/Sao_Paulo (via Intl)
 import {
   Activity,
   Inbox,
@@ -46,10 +44,19 @@ import { useWaHealthOrphanConversations } from "@/hooks/useWaHealthOrphanConvers
 
 const TZ = "America/Sao_Paulo";
 
+const dtFmt = new Intl.DateTimeFormat("pt-BR", {
+  timeZone: TZ,
+  day: "2-digit",
+  month: "2-digit",
+  year: "2-digit",
+  hour: "2-digit",
+  minute: "2-digit",
+});
+
 function fmt(date?: string | null) {
   if (!date) return "—";
   try {
-    return format(toZonedTime(new Date(date), TZ), "dd/MM/yy HH:mm", { locale: ptBR });
+    return dtFmt.format(new Date(date)).replace(",", "");
   } catch {
     return "—";
   }
