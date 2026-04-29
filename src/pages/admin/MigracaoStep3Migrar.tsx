@@ -586,7 +586,11 @@ export default function MigracaoStep3Migrar() {
         </CardContent>
       </Card>
 
+      {/* RELATÓRIO FINAL — auditoria pós-migração explicando dedup e órfãos */}
+      <MigrationFinalReport tenantId={tenantId ?? null} />
+
       {/* JOB TÉCNICO — colapsado por padrão */}
+
       {job && (
         <Collapsible defaultOpen={isRunning || (job.items_with_errors ?? 0) > 0}>
           <Card className="bg-card border-border shadow-sm">
