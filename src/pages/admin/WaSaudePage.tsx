@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 // timezone: America/Sao_Paulo (via Intl)
@@ -16,6 +16,10 @@ import {
   CircleDot,
   Link2,
   Loader2,
+  Sparkles,
+  Check,
+  X,
+  Zap,
 } from "lucide-react";
 
 import { PageHeader, StatCard, EmptyState } from "@/components/ui-kit";
@@ -47,11 +51,18 @@ import { useWaHealthInstances } from "@/hooks/useWaHealthInstances";
 import { useWaHealthOutbox } from "@/hooks/useWaHealthOutbox";
 import { useWaHealthWebhooks } from "@/hooks/useWaHealthWebhooks";
 import { useWaHealthOrphanConversations } from "@/hooks/useWaHealthOrphanConversations";
+import { useWaLinkSuggestions } from "@/hooks/useWaLinkSuggestions";
+import { useWaResolutionEvents } from "@/hooks/useWaResolutionEvents";
 import {
   resolveWaConversation,
   resolveWaConversationsBatch,
   type ResolutionStatus,
 } from "@/services/whatsapp/waConversationResolver";
+import {
+  generateLinkSuggestion,
+  acceptSuggestion,
+  rejectSuggestion,
+} from "@/services/whatsapp/waLinkSuggestion";
 
 const TZ = "America/Sao_Paulo";
 
@@ -117,9 +128,14 @@ export default function WaSaudePage() {
   const outbox = useWaHealthOutbox(outboxStatus);
   const webhooks = useWaHealthWebhooks();
   const orphans = useWaHealthOrphanConversations();
+  const events = useWaResolutionEvents();
+  const orphanIds = useMemo(() => orphans.data?.map((o) => o.id) ?? [], [orphans.data]);
+  const suggestions = useWaLinkSuggestions(orphanIds);
   const queryClient = useQueryClient();
   const [resolvingId, setResolvingId] = useState<string | null>(null);
   const [batchRunning, setBatchRunning] = useState(false);
+  const [suggestingId, setSuggestingId] = useState<string | null>(null);
+  const [reviewingId, setReviewingId] = useState<string | null>(null);
 
   const STATUS_TOAST: Record<ResolutionStatus, (r: any) => void> = {
     resolved: () => toast.success("Conversa vinculada com sucesso"),
@@ -132,6 +148,8 @@ export default function WaSaudePage() {
   const invalidate = () => {
     queryClient.invalidateQueries({ queryKey: ["wa-health-orphan-conversations"] });
     queryClient.invalidateQueries({ queryKey: ["wa-health-metrics"] });
+    queryClient.invalidateQueries({ queryKey: ["wa-link-suggestions"] });
+    queryClient.invalidateQueries({ queryKey: ["wa-health-resolution-events"] });
   };
 
   const handleResolve = async (id: string) => {
@@ -157,6 +175,52 @@ export default function WaSaudePage() {
       invalidate();
     } finally {
       setBatchRunning(false);
+    }
+  };
+
+  const handleSuggest = async (id: string) => {
+    setSuggestingId(id);
+    try {
+      const r = await generateLinkSuggestion(id);
+      if (r?.status === "suggested") toast.success("Sugestão IA gerada");
+      else if (r?.status === "no_candidates") toast.info("Nenhum candidato encontrado");
+      else if (r?.status === "already_resolved") toast.info("Conversa já vinculada");
+      else toast.info("Sugestão processada");
+      invalidate();
+    } catch (e: any) {
+      toast.error("Falha ao gerar sugestão", { description: e?.message });
+    } finally {
+      setSuggestingId(null);
+    }
+  };
+
+  const handleAccept = async (suggestionConvId: string) => {
+    const s = suggestions.data?.[suggestionConvId];
+    if (!s) return;
+    setReviewingId(suggestionConvId);
+    try {
+      await acceptSuggestion(s);
+      toast.success("Sugestão aceita e conversa vinculada");
+      invalidate();
+    } catch (e: any) {
+      toast.error("Erro ao aceitar", { description: e?.message });
+    } finally {
+      setReviewingId(null);
+    }
+  };
+
+  const handleReject = async (suggestionConvId: string) => {
+    const s = suggestions.data?.[suggestionConvId];
+    if (!s) return;
+    setReviewingId(suggestionConvId);
+    try {
+      await rejectSuggestion(s.id);
+      toast.success("Sugestão rejeitada");
+      invalidate();
+    } catch (e: any) {
+      toast.error("Erro ao rejeitar", { description: e?.message });
+    } finally {
+      setReviewingId(null);
     }
   };
 
@@ -219,6 +283,15 @@ export default function WaSaudePage() {
               subtitle={`${m.instances_inactive} inativas (>6h)`}
             />
           </>
+        )}
+        {events.data && (
+          <StatCard
+            icon={Zap}
+            color={events.data.errors > 0 ? "destructive" : events.data.pending > 0 ? "warning" : "success"}
+            label="Eventos pós-resolução"
+            value={`${events.data.pending} / ${events.data.processed}`}
+            subtitle={`Pendentes / Processados${events.data.errors ? ` · ${events.data.errors} erros` : ""}`}
+          />
         )}
       </div>
 
@@ -428,38 +501,117 @@ export default function WaSaudePage() {
                   <TableHead>Última mensagem</TableHead>
                   <TableHead>Qtd.</TableHead>
                   <TableHead>Última em</TableHead>
-                  <TableHead className="text-right">Ação</TableHead>
+                  <TableHead>Sugestão IA</TableHead>
+                  <TableHead className="text-right">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {orphans.data.map((c) => (
-                  <TableRow key={c.id}>
-                    <TableCell className="font-mono text-xs">{c.remote_jid}</TableCell>
-                    <TableCell className="font-mono text-xs text-muted-foreground">
-                      {c.telefone_normalizado ?? "—"}
-                    </TableCell>
-                    <TableCell className="text-sm max-w-xs truncate text-muted-foreground" title={c.last_message_preview ?? ""}>
-                      {c.last_message_preview ?? "—"}
-                    </TableCell>
-                    <TableCell>{c.message_count}</TableCell>
-                    <TableCell className="text-muted-foreground whitespace-nowrap">{fmt(c.last_message_at)}</TableCell>
-                    <TableCell className="text-right">
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => handleResolve(c.id)}
-                        disabled={resolvingId === c.id || batchRunning}
-                      >
-                        {resolvingId === c.id ? (
-                          <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+                {orphans.data.map((c) => {
+                  const sugg = suggestions.data?.[c.id];
+                  const conf = sugg?.confidence ?? 0;
+                  const highConf = conf >= 0.7;
+                  return (
+                    <TableRow key={c.id}>
+                      <TableCell className="font-mono text-xs">{c.remote_jid}</TableCell>
+                      <TableCell className="font-mono text-xs text-muted-foreground">
+                        {c.telefone_normalizado ?? "—"}
+                      </TableCell>
+                      <TableCell className="text-sm max-w-xs truncate text-muted-foreground" title={c.last_message_preview ?? ""}>
+                        {c.last_message_preview ?? "—"}
+                      </TableCell>
+                      <TableCell>{c.message_count}</TableCell>
+                      <TableCell className="text-muted-foreground whitespace-nowrap">{fmt(c.last_message_at)}</TableCell>
+                      <TableCell className="max-w-[220px]">
+                        {sugg ? (
+                          <div className="flex flex-col gap-1">
+                            <div className="flex items-center gap-1.5">
+                              <Badge
+                                variant="outline"
+                                className={cn(
+                                  "text-xs",
+                                  highConf
+                                    ? "border-success/40 bg-success/10 text-success"
+                                    : "border-warning/40 bg-warning/10 text-warning"
+                                )}
+                              >
+                                {sugg.suggested_entity_type} · {(conf * 100).toFixed(0)}%
+                              </Badge>
+                            </div>
+                            <span className="text-xs text-foreground truncate" title={sugg.entity_name ?? ""}>
+                              {sugg.entity_name ?? "—"}
+                            </span>
+                            {sugg.reason && (
+                              <span className="text-[11px] text-muted-foreground truncate" title={sugg.reason}>
+                                {sugg.reason}
+                              </span>
+                            )}
+                          </div>
                         ) : (
-                          <Link2 className="h-3.5 w-3.5 mr-1.5" />
+                          <span className="text-xs text-muted-foreground">—</span>
                         )}
-                        Resolver vínculo
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex items-center justify-end gap-1">
+                          {sugg ? (
+                            <>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="text-success hover:text-success"
+                                onClick={() => handleAccept(c.id)}
+                                disabled={reviewingId === c.id}
+                                title="Aceitar sugestão"
+                              >
+                                {reviewingId === c.id ? (
+                                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                ) : (
+                                  <Check className="h-3.5 w-3.5" />
+                                )}
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="text-destructive hover:text-destructive"
+                                onClick={() => handleReject(c.id)}
+                                disabled={reviewingId === c.id}
+                                title="Rejeitar sugestão"
+                              >
+                                <X className="h-3.5 w-3.5" />
+                              </Button>
+                            </>
+                          ) : (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => handleSuggest(c.id)}
+                              disabled={suggestingId === c.id}
+                              title="Gerar sugestão IA"
+                            >
+                              {suggestingId === c.id ? (
+                                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                              ) : (
+                                <Sparkles className="h-3.5 w-3.5" />
+                              )}
+                            </Button>
+                          )}
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => handleResolve(c.id)}
+                            disabled={resolvingId === c.id || batchRunning}
+                          >
+                            {resolvingId === c.id ? (
+                              <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+                            ) : (
+                              <Link2 className="h-3.5 w-3.5 mr-1.5" />
+                            )}
+                            Resolver
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
               </TableBody>
             </Table>
           )}
