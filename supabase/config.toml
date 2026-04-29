@@ -339,3 +339,9 @@ wall_clock_limit = 300
 verify_jwt = false
 wall_clock_limit = 300
 
+[functions.wa-resolve-conversation]
+verify_jwt = false
+
+[functions.wa-ai-suggest-link]
+verify_jwt = true
+
