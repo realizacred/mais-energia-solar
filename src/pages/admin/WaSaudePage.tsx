@@ -128,9 +128,14 @@ export default function WaSaudePage() {
   const outbox = useWaHealthOutbox(outboxStatus);
   const webhooks = useWaHealthWebhooks();
   const orphans = useWaHealthOrphanConversations();
+  const events = useWaResolutionEvents();
+  const orphanIds = useMemo(() => orphans.data?.map((o) => o.id) ?? [], [orphans.data]);
+  const suggestions = useWaLinkSuggestions(orphanIds);
   const queryClient = useQueryClient();
   const [resolvingId, setResolvingId] = useState<string | null>(null);
   const [batchRunning, setBatchRunning] = useState(false);
+  const [suggestingId, setSuggestingId] = useState<string | null>(null);
+  const [reviewingId, setReviewingId] = useState<string | null>(null);
 
   const STATUS_TOAST: Record<ResolutionStatus, (r: any) => void> = {
     resolved: () => toast.success("Conversa vinculada com sucesso"),
@@ -143,6 +148,8 @@ export default function WaSaudePage() {
   const invalidate = () => {
     queryClient.invalidateQueries({ queryKey: ["wa-health-orphan-conversations"] });
     queryClient.invalidateQueries({ queryKey: ["wa-health-metrics"] });
+    queryClient.invalidateQueries({ queryKey: ["wa-link-suggestions"] });
+    queryClient.invalidateQueries({ queryKey: ["wa-health-resolution-events"] });
   };
 
   const handleResolve = async (id: string) => {
@@ -168,6 +175,52 @@ export default function WaSaudePage() {
       invalidate();
     } finally {
       setBatchRunning(false);
+    }
+  };
+
+  const handleSuggest = async (id: string) => {
+    setSuggestingId(id);
+    try {
+      const r = await generateLinkSuggestion(id);
+      if (r?.status === "suggested") toast.success("Sugestão IA gerada");
+      else if (r?.status === "no_candidates") toast.info("Nenhum candidato encontrado");
+      else if (r?.status === "already_resolved") toast.info("Conversa já vinculada");
+      else toast.info("Sugestão processada");
+      invalidate();
+    } catch (e: any) {
+      toast.error("Falha ao gerar sugestão", { description: e?.message });
+    } finally {
+      setSuggestingId(null);
+    }
+  };
+
+  const handleAccept = async (suggestionConvId: string) => {
+    const s = suggestions.data?.[suggestionConvId];
+    if (!s) return;
+    setReviewingId(suggestionConvId);
+    try {
+      await acceptSuggestion(s);
+      toast.success("Sugestão aceita e conversa vinculada");
+      invalidate();
+    } catch (e: any) {
+      toast.error("Erro ao aceitar", { description: e?.message });
+    } finally {
+      setReviewingId(null);
+    }
+  };
+
+  const handleReject = async (suggestionConvId: string) => {
+    const s = suggestions.data?.[suggestionConvId];
+    if (!s) return;
+    setReviewingId(suggestionConvId);
+    try {
+      await rejectSuggestion(s.id);
+      toast.success("Sugestão rejeitada");
+      invalidate();
+    } catch (e: any) {
+      toast.error("Erro ao rejeitar", { description: e?.message });
+    } finally {
+      setReviewingId(null);
     }
   };
 
