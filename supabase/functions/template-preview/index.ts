@@ -1166,9 +1166,10 @@ Deno.serve(async (req) => {
       leadId = propostaRes.data.lead_id;
 
       // Versão depende de proposta_id — buscar sequencialmente
+      // (id + public_slug needed for QR injection)
       const { data: versao } = await adminClient
         .from("proposta_versoes")
-        .select("snapshot, valor_total, potencia_kwp, economia_mensal, payback_meses, validade_dias, versao_numero")
+        .select("id, public_slug, snapshot, valor_total, potencia_kwp, economia_mensal, payback_meses, validade_dias, versao_numero")
         .eq("proposta_id", proposta_id)
         .order("versao_numero", { ascending: false })
         .limit(1)
