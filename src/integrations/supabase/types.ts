@@ -25022,6 +25022,48 @@ export type Database = {
           },
         ]
       }
+      wa_conversation_resolution_logs: {
+        Row: {
+          conversation_id: string
+          created_at: string
+          id: string
+          matched_entity_id: string | null
+          matched_entity_type: string | null
+          phone_raw: string | null
+          phone_variants: Json | null
+          reason: string | null
+          resolved_by: string | null
+          status: string
+          tenant_id: string
+        }
+        Insert: {
+          conversation_id: string
+          created_at?: string
+          id?: string
+          matched_entity_id?: string | null
+          matched_entity_type?: string | null
+          phone_raw?: string | null
+          phone_variants?: Json | null
+          reason?: string | null
+          resolved_by?: string | null
+          status: string
+          tenant_id: string
+        }
+        Update: {
+          conversation_id?: string
+          created_at?: string
+          id?: string
+          matched_entity_id?: string | null
+          matched_entity_type?: string | null
+          phone_raw?: string | null
+          phone_variants?: Json | null
+          reason?: string | null
+          resolved_by?: string | null
+          status?: string
+          tenant_id?: string
+        }
+        Relationships: []
+      }
       wa_conversation_summaries: {
         Row: {
           conversation_id: string

@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 // timezone: America/Sao_Paulo (via Intl)
 import {
   Activity,
@@ -12,6 +14,8 @@ import {
   CheckCircle2,
   XCircle,
   CircleDot,
+  Link2,
+  Loader2,
 } from "lucide-react";
 
 import { PageHeader, StatCard, EmptyState } from "@/components/ui-kit";
@@ -36,11 +40,18 @@ import {
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 
+import { Button } from "@/components/ui/button";
+
 import { useWaHealthMetrics } from "@/hooks/useWaHealthMetrics";
 import { useWaHealthInstances } from "@/hooks/useWaHealthInstances";
 import { useWaHealthOutbox } from "@/hooks/useWaHealthOutbox";
 import { useWaHealthWebhooks } from "@/hooks/useWaHealthWebhooks";
 import { useWaHealthOrphanConversations } from "@/hooks/useWaHealthOrphanConversations";
+import {
+  resolveWaConversation,
+  resolveWaConversationsBatch,
+  type ResolutionStatus,
+} from "@/services/whatsapp/waConversationResolver";
 
 const TZ = "America/Sao_Paulo";
 
@@ -106,6 +117,48 @@ export default function WaSaudePage() {
   const outbox = useWaHealthOutbox(outboxStatus);
   const webhooks = useWaHealthWebhooks();
   const orphans = useWaHealthOrphanConversations();
+  const queryClient = useQueryClient();
+  const [resolvingId, setResolvingId] = useState<string | null>(null);
+  const [batchRunning, setBatchRunning] = useState(false);
+
+  const STATUS_TOAST: Record<ResolutionStatus, (r: any) => void> = {
+    resolved: () => toast.success("Conversa vinculada com sucesso"),
+    ambiguous: (r) => toast.warning("Mais de um possível vínculo", { description: r.reason }),
+    not_found: () => toast.info("Nenhum match encontrado"),
+    already_resolved: () => toast.info("Conversa já vinculada"),
+    error: (r) => toast.error("Erro ao processar", { description: r.reason }),
+  };
+
+  const invalidate = () => {
+    queryClient.invalidateQueries({ queryKey: ["wa-health-orphan-conversations"] });
+    queryClient.invalidateQueries({ queryKey: ["wa-health-metrics"] });
+  };
+
+  const handleResolve = async (id: string) => {
+    setResolvingId(id);
+    try {
+      const r = await resolveWaConversation(id);
+      STATUS_TOAST[r.status]?.(r);
+      invalidate();
+    } finally {
+      setResolvingId(null);
+    }
+  };
+
+  const handleBatch = async () => {
+    if (!orphans.data?.length) return;
+    setBatchRunning(true);
+    try {
+      const ids = orphans.data.slice(0, 20).map((c) => c.id);
+      const s = await resolveWaConversationsBatch(ids, 20);
+      toast.success(`Lote processado: ${s.resolved} vinculadas`, {
+        description: `${s.ambiguous} ambíguas · ${s.not_found} sem match · ${s.errors} erros · ${s.already_resolved} já vinculadas`,
+      });
+      invalidate();
+    } finally {
+      setBatchRunning(false);
+    }
+  };
 
   const m = metrics.data;
 
@@ -339,10 +392,23 @@ export default function WaSaudePage() {
 
       {/* Conversas órfãs */}
       <Card>
-        <CardHeader>
+        <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="flex items-center gap-2 text-base">
             <Users className="h-4 w-4 text-primary" /> Conversas órfãs (sem lead/cliente)
           </CardTitle>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={handleBatch}
+            disabled={batchRunning || !orphans.data?.length}
+          >
+            {batchRunning ? (
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            ) : (
+              <Link2 className="h-4 w-4 mr-2" />
+            )}
+            Resolver até 20 órfãs
+          </Button>
         </CardHeader>
         <CardContent className="p-0">
           {orphans.isLoading ? (
@@ -358,22 +424,40 @@ export default function WaSaudePage() {
               <TableHeader>
                 <TableRow>
                   <TableHead>JID</TableHead>
+                  <TableHead>Telefone</TableHead>
                   <TableHead>Última mensagem</TableHead>
-                  <TableHead>Qtd. mensagens</TableHead>
+                  <TableHead>Qtd.</TableHead>
                   <TableHead>Última em</TableHead>
-                  <TableHead>Criada em</TableHead>
+                  <TableHead className="text-right">Ação</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {orphans.data.map((c) => (
                   <TableRow key={c.id}>
                     <TableCell className="font-mono text-xs">{c.remote_jid}</TableCell>
+                    <TableCell className="font-mono text-xs text-muted-foreground">
+                      {c.telefone_normalizado ?? "—"}
+                    </TableCell>
                     <TableCell className="text-sm max-w-xs truncate text-muted-foreground" title={c.last_message_preview ?? ""}>
                       {c.last_message_preview ?? "—"}
                     </TableCell>
                     <TableCell>{c.message_count}</TableCell>
                     <TableCell className="text-muted-foreground whitespace-nowrap">{fmt(c.last_message_at)}</TableCell>
-                    <TableCell className="text-muted-foreground whitespace-nowrap">{fmt(c.created_at)}</TableCell>
+                    <TableCell className="text-right">
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => handleResolve(c.id)}
+                        disabled={resolvingId === c.id || batchRunning}
+                      >
+                        {resolvingId === c.id ? (
+                          <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+                        ) : (
+                          <Link2 className="h-3.5 w-3.5 mr-1.5" />
+                        )}
+                        Resolver vínculo
+                      </Button>
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
