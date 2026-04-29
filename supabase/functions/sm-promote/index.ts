@@ -534,15 +534,47 @@ function fmtEmail(raw: unknown): string | null {
   return s;
 }
 
+/**
+ * RB-DEDUP-V4 (regra travada com usuário):
+ * Telefone só é usado para dedup se for REAL.
+ * É placeholder quando:
+ *  - length != 10 e != 11
+ *  - todo dígito repetido (9999999..., 0000000..., 1111111...)
+ *  - termina em 999999 ou 000000 (DDD válido + sufixo fake)
+ *  - número conhecido sem dono (lista explícita)
+ * Retorna true se for placeholder (NÃO usar para dedup).
+ */
+const KNOWN_PLACEHOLDER_PHONES = new Set<string>([
+  "99999999999", "9999999999",
+  "00000000000", "0000000000",
+  "11111111111", "22222222222", "33333333333",
+  "44444444444", "55555555555", "66666666666",
+  "77777777777", "88888888888",
+]);
+function isPlaceholderPhone(digits: string): boolean {
+  if (!digits) return true;
+  const len = digits.length;
+  if (len !== 10 && len !== 11) return true;
+  if (KNOWN_PLACEHOLDER_PHONES.has(digits)) return true;
+  // Todo dígito repetido
+  if (/^(\d)\1+$/.test(digits)) return true;
+  // Termina em 999999 ou 000000 (placeholder com DDD real)
+  if (/(9{6,}|0{6,})$/.test(digits)) return true;
+  return false;
+}
+
 function normalizeSmClient(raw: AnyObj) {
   const c = raw?.client ?? raw ?? {};
   // Dígitos para lookups/UNIQUE; formatado para gravação visível.
-  const phoneDigits = onlyDigits(c.primaryPhone ?? c.phone ?? c.telefone) ?? "";
+  const phoneDigitsRaw = onlyDigits(c.primaryPhone ?? c.phone ?? c.telefone) ?? "";
   const docDigits = onlyDigits(c.cnpjCpf ?? c.cpfCnpj ?? c.cpf_cnpj) ?? "";
   const cepDigits = onlyDigits(c.zipCode ?? c.cep) ?? "";
-  const phoneFmt = fmtPhoneBR(phoneDigits);
+  const phoneFmt = fmtPhoneBR(phoneDigitsRaw);
   const docFmt = fmtCpfCnpj(docDigits);
   const cepFmt = fmtCep(cepDigits);
+  // RB-DEDUP-V4: telefone_digits só preenche se for telefone REAL.
+  // Placeholders ficam apenas no campo "telefone" (visível) sem participar do dedup.
+  const phoneDigits = isPlaceholderPhone(phoneDigitsRaw) ? "" : phoneDigitsRaw;
   return {
     external_id: pickStr(c.id ?? raw.id),
     nome: fmtName(c.name ?? c.nome) ?? "Cliente sem nome",
@@ -816,16 +848,15 @@ async function promoteCliente(
   if (existing) return { id: existing, created: false, matchedBy: "link" };
 
   // 1.5) PERFORMANCE (Fase B): consulta cache do chunk antes de SELECTs.
-  // Mesma ordem de prioridade da Fase A. Hit no cache = 0 round-trips de dedup.
+  // RB-DEDUP-V4: cache só hit por external_id, cliente_code, CPF/CNPJ e telefone REAL.
+  // Email FORA do dedup (regra travada com usuário).
   if (cache) {
     const docKey = norm.cpf_cnpj_digits || norm.cpf_cnpj || "";
-    const emailKey = norm.email?.toLowerCase() || "";
     const cachedId =
       (norm.external_id && cache.byExternalId.get(norm.external_id)) ||
       cache.byCode.get(clienteCode) ||
       (docKey && cache.byDoc.get(docKey)) ||
       (norm.telefone_digits && cache.byPhone.get(norm.telefone_digits)) ||
-      (emailKey && cache.byEmail.get(emailKey)) ||
       null;
     if (cachedId) {
       await upsertLink(admin, tenantId, jobId, "cliente", cachedId, "cliente", norm.external_id, { matched_by: "cache" });
@@ -911,11 +942,10 @@ async function promoteCliente(
     await upsertLink(admin, tenantId, jobId, "cliente", id, "cliente", norm.external_id, { matched_by: "telefone" });
     return { id, created: false, matchedBy: "telefone" };
   }
-  if (byEmailRes.data?.id) {
-    const id = byEmailRes.data.id as string;
-    await upsertLink(admin, tenantId, jobId, "cliente", id, "cliente", norm.external_id, { matched_by: "email" });
-    return { id, created: false, matchedBy: "email" };
-  }
+  // RB-DEDUP-V4: dedup por EMAIL DESATIVADO. Apenas CPF/CNPJ válido e telefone REAL
+  // (não-placeholder) podem agrupar clientes. Email fica disponível como dado, não chave.
+  // (Bloco mantido como no-op para preservar a estrutura do diff e facilitar rollback.)
+  void byEmailRes;
 
   // 6) Não existe — inserir novo (RB-62: campos formatados; telefone_normalized só dígitos)
   const { data, error } = await admin
