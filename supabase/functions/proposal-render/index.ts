@@ -168,14 +168,16 @@ Deno.serve(async (req) => {
       const variables = buildVariablesFromSnapshot(snap, renderParams);
       html = renderTemplateBlocksToHtml(templateBlocks, variables, renderParams);
     } else {
-      // No template blocks available — use legacy HTML renderer as fallback
-      // Covers: no template linked, empty template_html, or invalid blocks
-      if (!templateId) {
-        console.error("[proposal-render] No template_id_used found for versao:", versao_id, "— using legacy fallback");
-      } else {
-        console.error("[proposal-render] Template found but template_html empty/invalid:", templateId, "— using legacy fallback");
-      }
-      html = renderLegacyHtml(renderParams);
+      // RB-69: Sem template vinculado, NÃO inventamos layout genérico.
+      // Retornamos erro estruturado para o admin vincular um Modelo Web válido.
+      const motivo = !templateId
+        ? "Esta proposta não tem um Modelo Web vinculado."
+        : "O Modelo Web vinculado está vazio ou com formato inválido.";
+      console.error("[proposal-render] template ausente/inválido:", { versao_id, templateId, motivo });
+      return jsonError(
+        `${motivo} Vá em Configurações → Modelos de Proposta → Modelo WEB e vincule/edite um template antes de gerar.`,
+        422
+      );
     }
 
     // ── 8. SALVAR ───────────────────────────────────────────
