@@ -1362,9 +1362,9 @@ function findPipelineStageForSmEtapa(stages: AnyObj[], smEtapaName: string | nul
     const won = stages.find((s) => Boolean(s.is_won));
     if (won?.id) return won.id as string;
   }
-  // Perdido (closed-lost)
+  // Perdido (closed-lost): is_closed=true E is_won=false
   if (["perdido", "perdida", "cancelado", "cancelada", "recusado", "recusada", "desistiu"].includes(normalized)) {
-    const lost = stages.find((s) => Boolean(s.is_lost));
+    const lost = stages.find((s) => Boolean(s.is_closed) && !Boolean(s.is_won));
     if (lost?.id) return lost.id as string;
   }
   // Proposta enviada (variações)
