@@ -673,7 +673,13 @@ function normalizeSmClient(raw: AnyObj) {
     // RB-62: telefone formatado p/ exibição; telefone_digits p/ dedup/UNIQUE.
     // Fallback: se não bate no padrão BR (10/11 dígitos), grava os dígitos brutos
     // para o usuário enxergar e corrigir depois — em vez de aparecer vazio.
-    telefone: phoneFmt ?? (phoneDigits ? phoneDigits : ""),
+    // RB-DEDUP-V4: se o telefone bruto é placeholder (ex: 32999999999, 99999999999),
+    // NÃO grava em `telefone` — caso contrário a trigger BEFORE INSERT
+    // `normalize_cliente_telefone` recalcula telefone_normalized a partir de telefone
+    // e viola uq_clientes_tenant_telefone (placeholders já existem em clientes legados).
+    // Quando phoneDigits está vazio (placeholder), grava telefone="" para que a trigger
+    // gere telefone_normalized="" (excluído pelo índice parcial WHERE <> '').
+    telefone: phoneDigits ? (phoneFmt ?? phoneDigits) : "",
     telefone_digits: phoneDigits,
     // CPF/CNPJ formatado quando válido; senão null e raw vai p/ observacoes.
     cpf_cnpj: docFmt,
