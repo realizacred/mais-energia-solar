@@ -392,10 +392,23 @@ export default function WaSaudePage() {
 
       {/* Conversas órfãs */}
       <Card>
-        <CardHeader>
+        <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="flex items-center gap-2 text-base">
             <Users className="h-4 w-4 text-primary" /> Conversas órfãs (sem lead/cliente)
           </CardTitle>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={handleBatch}
+            disabled={batchRunning || !orphans.data?.length}
+          >
+            {batchRunning ? (
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            ) : (
+              <Link2 className="h-4 w-4 mr-2" />
+            )}
+            Resolver até 20 órfãs
+          </Button>
         </CardHeader>
         <CardContent className="p-0">
           {orphans.isLoading ? (
@@ -411,22 +424,40 @@ export default function WaSaudePage() {
               <TableHeader>
                 <TableRow>
                   <TableHead>JID</TableHead>
+                  <TableHead>Telefone</TableHead>
                   <TableHead>Última mensagem</TableHead>
-                  <TableHead>Qtd. mensagens</TableHead>
+                  <TableHead>Qtd.</TableHead>
                   <TableHead>Última em</TableHead>
-                  <TableHead>Criada em</TableHead>
+                  <TableHead className="text-right">Ação</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {orphans.data.map((c) => (
                   <TableRow key={c.id}>
                     <TableCell className="font-mono text-xs">{c.remote_jid}</TableCell>
+                    <TableCell className="font-mono text-xs text-muted-foreground">
+                      {c.telefone_normalizado ?? "—"}
+                    </TableCell>
                     <TableCell className="text-sm max-w-xs truncate text-muted-foreground" title={c.last_message_preview ?? ""}>
                       {c.last_message_preview ?? "—"}
                     </TableCell>
                     <TableCell>{c.message_count}</TableCell>
                     <TableCell className="text-muted-foreground whitespace-nowrap">{fmt(c.last_message_at)}</TableCell>
-                    <TableCell className="text-muted-foreground whitespace-nowrap">{fmt(c.created_at)}</TableCell>
+                    <TableCell className="text-right">
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => handleResolve(c.id)}
+                        disabled={resolvingId === c.id || batchRunning}
+                      >
+                        {resolvingId === c.id ? (
+                          <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+                        ) : (
+                          <Link2 className="h-3.5 w-3.5 mr-1.5" />
+                        )}
+                        Resolver vínculo
+                      </Button>
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
