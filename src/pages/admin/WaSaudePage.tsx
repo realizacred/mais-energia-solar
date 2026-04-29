@@ -117,6 +117,48 @@ export default function WaSaudePage() {
   const outbox = useWaHealthOutbox(outboxStatus);
   const webhooks = useWaHealthWebhooks();
   const orphans = useWaHealthOrphanConversations();
+  const queryClient = useQueryClient();
+  const [resolvingId, setResolvingId] = useState<string | null>(null);
+  const [batchRunning, setBatchRunning] = useState(false);
+
+  const STATUS_TOAST: Record<ResolutionStatus, (r: any) => void> = {
+    resolved: () => toast.success("Conversa vinculada com sucesso"),
+    ambiguous: (r) => toast.warning("Mais de um possível vínculo", { description: r.reason }),
+    not_found: () => toast.info("Nenhum match encontrado"),
+    already_resolved: () => toast.info("Conversa já vinculada"),
+    error: (r) => toast.error("Erro ao processar", { description: r.reason }),
+  };
+
+  const invalidate = () => {
+    queryClient.invalidateQueries({ queryKey: ["wa-health-orphan-conversations"] });
+    queryClient.invalidateQueries({ queryKey: ["wa-health-metrics"] });
+  };
+
+  const handleResolve = async (id: string) => {
+    setResolvingId(id);
+    try {
+      const r = await resolveWaConversation(id);
+      STATUS_TOAST[r.status]?.(r);
+      invalidate();
+    } finally {
+      setResolvingId(null);
+    }
+  };
+
+  const handleBatch = async () => {
+    if (!orphans.data?.length) return;
+    setBatchRunning(true);
+    try {
+      const ids = orphans.data.slice(0, 20).map((c) => c.id);
+      const s = await resolveWaConversationsBatch(ids, 20);
+      toast.success(`Lote processado: ${s.resolved} vinculadas`, {
+        description: `${s.ambiguous} ambíguas · ${s.not_found} sem match · ${s.errors} erros · ${s.already_resolved} já vinculadas`,
+      });
+      invalidate();
+    } finally {
+      setBatchRunning(false);
+    }
+  };
 
   const m = metrics.data;
 
