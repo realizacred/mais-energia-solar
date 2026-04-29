@@ -53,6 +53,7 @@ import { useTenantId } from "@/hooks/useTenantId";
 import { toast } from "@/hooks/use-toast";
 import { PromotionLogsDialog, type LogsFilter } from "@/components/admin/solarmarket/PromotionLogsDialog";
 import { CustomFieldsMappingSummary } from "@/components/admin/solarmarket/migracao/CustomFieldsMappingSummary";
+import { MigrationFinalReport } from "@/components/admin/solarmarket/migracao/MigrationFinalReport";
 
 function formatRelativeTimestamp(value: string | null) {
   if (!value) return "sem atividade registrada";
@@ -585,7 +586,11 @@ export default function MigracaoStep3Migrar() {
         </CardContent>
       </Card>
 
+      {/* RELATÓRIO FINAL — auditoria pós-migração explicando dedup e órfãos */}
+      <MigrationFinalReport tenantId={tenantId ?? null} />
+
       {/* JOB TÉCNICO — colapsado por padrão */}
+
       {job && (
         <Collapsible defaultOpen={isRunning || (job.items_with_errors ?? 0) > 0}>
           <Card className="bg-card border-border shadow-sm">
