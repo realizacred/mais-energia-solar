@@ -501,38 +501,117 @@ export default function WaSaudePage() {
                   <TableHead>Última mensagem</TableHead>
                   <TableHead>Qtd.</TableHead>
                   <TableHead>Última em</TableHead>
-                  <TableHead className="text-right">Ação</TableHead>
+                  <TableHead>Sugestão IA</TableHead>
+                  <TableHead className="text-right">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {orphans.data.map((c) => (
-                  <TableRow key={c.id}>
-                    <TableCell className="font-mono text-xs">{c.remote_jid}</TableCell>
-                    <TableCell className="font-mono text-xs text-muted-foreground">
-                      {c.telefone_normalizado ?? "—"}
-                    </TableCell>
-                    <TableCell className="text-sm max-w-xs truncate text-muted-foreground" title={c.last_message_preview ?? ""}>
-                      {c.last_message_preview ?? "—"}
-                    </TableCell>
-                    <TableCell>{c.message_count}</TableCell>
-                    <TableCell className="text-muted-foreground whitespace-nowrap">{fmt(c.last_message_at)}</TableCell>
-                    <TableCell className="text-right">
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => handleResolve(c.id)}
-                        disabled={resolvingId === c.id || batchRunning}
-                      >
-                        {resolvingId === c.id ? (
-                          <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+                {orphans.data.map((c) => {
+                  const sugg = suggestions.data?.[c.id];
+                  const conf = sugg?.confidence ?? 0;
+                  const highConf = conf >= 0.7;
+                  return (
+                    <TableRow key={c.id}>
+                      <TableCell className="font-mono text-xs">{c.remote_jid}</TableCell>
+                      <TableCell className="font-mono text-xs text-muted-foreground">
+                        {c.telefone_normalizado ?? "—"}
+                      </TableCell>
+                      <TableCell className="text-sm max-w-xs truncate text-muted-foreground" title={c.last_message_preview ?? ""}>
+                        {c.last_message_preview ?? "—"}
+                      </TableCell>
+                      <TableCell>{c.message_count}</TableCell>
+                      <TableCell className="text-muted-foreground whitespace-nowrap">{fmt(c.last_message_at)}</TableCell>
+                      <TableCell className="max-w-[220px]">
+                        {sugg ? (
+                          <div className="flex flex-col gap-1">
+                            <div className="flex items-center gap-1.5">
+                              <Badge
+                                variant="outline"
+                                className={cn(
+                                  "text-xs",
+                                  highConf
+                                    ? "border-success/40 bg-success/10 text-success"
+                                    : "border-warning/40 bg-warning/10 text-warning"
+                                )}
+                              >
+                                {sugg.suggested_entity_type} · {(conf * 100).toFixed(0)}%
+                              </Badge>
+                            </div>
+                            <span className="text-xs text-foreground truncate" title={sugg.entity_name ?? ""}>
+                              {sugg.entity_name ?? "—"}
+                            </span>
+                            {sugg.reason && (
+                              <span className="text-[11px] text-muted-foreground truncate" title={sugg.reason}>
+                                {sugg.reason}
+                              </span>
+                            )}
+                          </div>
                         ) : (
-                          <Link2 className="h-3.5 w-3.5 mr-1.5" />
+                          <span className="text-xs text-muted-foreground">—</span>
                         )}
-                        Resolver vínculo
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex items-center justify-end gap-1">
+                          {sugg ? (
+                            <>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="text-success hover:text-success"
+                                onClick={() => handleAccept(c.id)}
+                                disabled={reviewingId === c.id}
+                                title="Aceitar sugestão"
+                              >
+                                {reviewingId === c.id ? (
+                                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                ) : (
+                                  <Check className="h-3.5 w-3.5" />
+                                )}
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="text-destructive hover:text-destructive"
+                                onClick={() => handleReject(c.id)}
+                                disabled={reviewingId === c.id}
+                                title="Rejeitar sugestão"
+                              >
+                                <X className="h-3.5 w-3.5" />
+                              </Button>
+                            </>
+                          ) : (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => handleSuggest(c.id)}
+                              disabled={suggestingId === c.id}
+                              title="Gerar sugestão IA"
+                            >
+                              {suggestingId === c.id ? (
+                                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                              ) : (
+                                <Sparkles className="h-3.5 w-3.5" />
+                              )}
+                            </Button>
+                          )}
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => handleResolve(c.id)}
+                            disabled={resolvingId === c.id || batchRunning}
+                          >
+                            {resolvingId === c.id ? (
+                              <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+                            ) : (
+                              <Link2 className="h-3.5 w-3.5 mr-1.5" />
+                            )}
+                            Resolver
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
               </TableBody>
             </Table>
           )}
