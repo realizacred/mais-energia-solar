@@ -423,16 +423,9 @@ export function WaConversationList({
   hiddenIds,
   followupConvIds,
 }: WaConversationListProps) {
-  // Split conversations into unassigned and assigned
-  const { unassigned, assigned } = useMemo(() => {
-    const u: WaConversation[] = [];
-    const a: WaConversation[] = [];
-    for (const conv of conversations) {
-      if (!conv.assigned_to) u.push(conv);
-      else a.push(conv);
-    }
-    return { unassigned: u, assigned: a };
-  }, [conversations]);
+  // Lista única ordenada por última mensagem (já vem ordenada do hook).
+  // Removido o split unassigned/assigned para garantir que conversas atribuídas
+  // com mensagens recentes apareçam no topo (comportamento estilo WhatsApp).
 
   return (
     <div className="flex h-full min-h-0 w-full min-w-0 flex-col overflow-hidden border-r border-border/30 bg-card/50">
