@@ -195,3 +195,56 @@ function OwnerDealCard({ deal, isDragging, onDragStart, onClick }: OwnerDealCard
     </div>
   );
 }
+
+// ── Progressive list with infinite scroll sentinel ──────────
+
+interface OwnerProgressiveListProps {
+  deals: DealKanbanCard[];
+  draggedId: string | null;
+  onDragStart: (e: React.DragEvent, id: string) => void;
+  onViewProjeto?: (deal: DealKanbanCard) => void;
+}
+
+function OwnerProgressiveList({ deals, draggedId, onDragStart, onViewProjeto }: OwnerProgressiveListProps) {
+  const [visibleCount, setVisibleCount] = useState(INITIAL_OWNER_CARDS);
+  const visible = deals.slice(0, visibleCount);
+  const remaining = deals.length - visibleCount;
+  const sentinelRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (remaining <= 0 || !sentinelRef.current) return;
+    const node = sentinelRef.current;
+    const observer = new IntersectionObserver(
+      entries => {
+        if (entries[0]?.isIntersecting) {
+          setVisibleCount(prev => prev + OWNER_CARDS_INCREMENT);
+        }
+      },
+      { rootMargin: "200px 0px" },
+    );
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [remaining]);
+
+  return (
+    <>
+      {visible.map(deal => (
+        <OwnerDealCard
+          key={deal.deal_id}
+          deal={deal}
+          isDragging={draggedId === deal.deal_id}
+          onDragStart={onDragStart}
+          onClick={() => onViewProjeto?.(deal)}
+        />
+      ))}
+      {remaining > 0 && (
+        <div
+          ref={sentinelRef}
+          className="w-full py-2 text-center text-[10px] font-medium text-muted-foreground/60"
+        >
+          Carregando mais {Math.min(remaining, OWNER_CARDS_INCREMENT)} de {remaining}…
+        </div>
+      )}
+    </>
+  );
+}
