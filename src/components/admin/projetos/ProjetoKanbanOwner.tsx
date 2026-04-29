@@ -1,12 +1,15 @@
 import { Button } from "@/components/ui/button";
 import { formatBRLCompact as formatBRL } from "@/lib/formatters";
 import { getEtiquetaConfig } from "@/lib/etiquetas";
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { Zap, Plus, LayoutGrid, Phone, DollarSign } from "lucide-react";
 import type { OwnerColumn, DealKanbanCard } from "@/hooks/useDealPipeline";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
+
+const INITIAL_OWNER_CARDS = 50;
+const OWNER_CARDS_INCREMENT = 50;
 
 interface Props {
   columns: OwnerColumn[];
