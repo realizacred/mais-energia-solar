@@ -3280,15 +3280,20 @@ async function actionPromoteAll(
       });
       return jsonResponse({ ok: false, job_id: jobId, error: pageErr.message }, 500);
     }
+    const pageCandidates: AnyObj[] = [];
     for (const r of (pageRows ?? []) as AnyObj[]) {
       const sourceKey = resolveProposalSourceKey(r);
-      if (!sourceKey || (!promotedSet.has(sourceKey) && !blockedSet.has(sourceKey))) candidateMeta.push(r);
+      if (!sourceKey || (!promotedSet.has(sourceKey) && !blockedSet.has(sourceKey))) pageCandidates.push(r);
+    }
+    const migratablePage = await filterRowsByMigratableFunilMap(admin, tenantId, pageCandidates);
+    for (const r of migratablePage) {
+      candidateMeta.push(r);
       if (candidateMeta.length >= batchLimit) break;
     }
     if (!pageRows || pageRows.length < pageSize) break;
   }
 
-  let rows = await filterRowsByMigratableFunilMap(admin, tenantId, candidateMeta);
+  let rows = candidateMeta;
   if (!dryRun && candidateMeta.length > 0) {
     const ids = rows.map((r) => r.id).filter(Boolean);
     const { data: payloadRows, error: payloadErr } = await admin
