@@ -848,16 +848,15 @@ async function promoteCliente(
   if (existing) return { id: existing, created: false, matchedBy: "link" };
 
   // 1.5) PERFORMANCE (Fase B): consulta cache do chunk antes de SELECTs.
-  // Mesma ordem de prioridade da Fase A. Hit no cache = 0 round-trips de dedup.
+  // RB-DEDUP-V4: cache só hit por external_id, cliente_code, CPF/CNPJ e telefone REAL.
+  // Email FORA do dedup (regra travada com usuário).
   if (cache) {
     const docKey = norm.cpf_cnpj_digits || norm.cpf_cnpj || "";
-    const emailKey = norm.email?.toLowerCase() || "";
     const cachedId =
       (norm.external_id && cache.byExternalId.get(norm.external_id)) ||
       cache.byCode.get(clienteCode) ||
       (docKey && cache.byDoc.get(docKey)) ||
       (norm.telefone_digits && cache.byPhone.get(norm.telefone_digits)) ||
-      (emailKey && cache.byEmail.get(emailKey)) ||
       null;
     if (cachedId) {
       await upsertLink(admin, tenantId, jobId, "cliente", cachedId, "cliente", norm.external_id, { matched_by: "cache" });
