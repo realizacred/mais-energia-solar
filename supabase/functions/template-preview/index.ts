@@ -1416,6 +1416,31 @@ Deno.serve(async (req) => {
       // Non-blocking — proposal continues without charts
     }
 
+    // ── 8d. QR CODE INJECTION (non-blocking) ───────────────
+    // If template uses {qr_code} / {{qr_code}} / [qr_code], generate a PNG
+    // pointing to the public landing for this version (/pl/{public_slug})
+    // and inject it inline. Skips silently if no placeholder is present.
+    try {
+      const slug = (versaoData as any)?.public_slug as string | null | undefined;
+      const baseUrl = Deno.env.get("APP_URL") || Deno.env.get("APP_URL_LOCKED") || "";
+      const publicUrl = slug && baseUrl ? `${baseUrl.replace(/\/+$/, "")}/pl/${slug}` : null;
+
+      const qrResult = await injectQrCodeIntoDocx({
+        docxBytes: report,
+        publicUrl,
+        tenantId,
+        proposalId: proposta_id || undefined,
+      });
+      if (qrResult.injected) {
+        report = qrResult.output;
+      } else if (qrResult.reason && qrResult.reason !== "no_qr_placeholder") {
+        console.warn(`[template-preview] QR not injected: ${qrResult.reason}`);
+      }
+    } catch (qrErr: any) {
+      console.error(`[template-preview] QR injection error (non-blocking): ${qrErr?.message}`);
+      // Non-blocking — proposal continues without QR
+    }
+
     // ── 8c. BACKEND AUDIT: Build audit report + block on critical errors ──
     const CRITICAL_VARIABLES = new Set([
       "nome", "cliente_nome", "potencia_kwp", "valor_total",
