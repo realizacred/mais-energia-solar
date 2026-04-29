@@ -25022,6 +25022,51 @@ export type Database = {
           },
         ]
       }
+      wa_conversation_resolution_events: {
+        Row: {
+          conversation_id: string
+          created_at: string
+          dedupe_key: string
+          entity_id: string
+          entity_type: string
+          error_message: string | null
+          id: string
+          payload: Json | null
+          processed_at: string | null
+          source: string
+          status: string
+          tenant_id: string
+        }
+        Insert: {
+          conversation_id: string
+          created_at?: string
+          dedupe_key: string
+          entity_id: string
+          entity_type: string
+          error_message?: string | null
+          id?: string
+          payload?: Json | null
+          processed_at?: string | null
+          source: string
+          status?: string
+          tenant_id: string
+        }
+        Update: {
+          conversation_id?: string
+          created_at?: string
+          dedupe_key?: string
+          entity_id?: string
+          entity_type?: string
+          error_message?: string | null
+          id?: string
+          payload?: Json | null
+          processed_at?: string | null
+          source?: string
+          status?: string
+          tenant_id?: string
+        }
+        Relationships: []
+      }
       wa_conversation_resolution_logs: {
         Row: {
           conversation_id: string
@@ -25060,6 +25105,51 @@ export type Database = {
           reason?: string | null
           resolved_by?: string | null
           status?: string
+          tenant_id?: string
+        }
+        Relationships: []
+      }
+      wa_conversation_resolution_suggestions: {
+        Row: {
+          confidence: number | null
+          conversation_id: string
+          created_at: string
+          evidence: Json | null
+          id: string
+          reason: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
+          suggested_entity_id: string | null
+          suggested_entity_type: string | null
+          tenant_id: string
+        }
+        Insert: {
+          confidence?: number | null
+          conversation_id: string
+          created_at?: string
+          evidence?: Json | null
+          id?: string
+          reason?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          suggested_entity_id?: string | null
+          suggested_entity_type?: string | null
+          tenant_id: string
+        }
+        Update: {
+          confidence?: number | null
+          conversation_id?: string
+          created_at?: string
+          evidence?: Json | null
+          id?: string
+          reason?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          suggested_entity_id?: string | null
+          suggested_entity_type?: string | null
           tenant_id?: string
         }
         Relationships: []
