@@ -17818,6 +17818,7 @@ export type Database = {
           file_url: string | null
           grupo: string
           id: string
+          is_default: boolean
           nome: string
           ordem: number
           template_html: string | null
@@ -17835,6 +17836,7 @@ export type Database = {
           file_url?: string | null
           grupo?: string
           id?: string
+          is_default?: boolean
           nome: string
           ordem?: number
           template_html?: string | null
@@ -17852,6 +17854,7 @@ export type Database = {
           file_url?: string | null
           grupo?: string
           id?: string
+          is_default?: boolean
           nome?: string
           ordem?: number
           template_html?: string | null
