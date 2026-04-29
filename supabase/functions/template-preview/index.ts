@@ -4,6 +4,7 @@ import { flattenSnapshot } from "../_shared/flattenSnapshot.ts";
 import { normalizeVariableFormat } from "../_shared/normalizeVariableFormat.ts";
 import { resolveGotenbergUrl } from "../_shared/resolveGotenbergUrl.ts";
 import { injectChartsIntoDocx } from "../_shared/chartInjector.ts";
+import { injectQrCodeIntoDocx } from "../_shared/qrInjector.ts";
 
 
 // ═══════════════════════════════════════════════════════════════
