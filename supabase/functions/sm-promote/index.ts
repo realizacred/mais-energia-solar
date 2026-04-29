@@ -1045,6 +1045,22 @@ async function promoteCliente(
   void byEmailRes;
 
   // 6) Não existe — inserir novo (RB-62: campos formatados; telefone_normalized só dígitos)
+  // RB-59 (paridade nativa): se houver lead com mesmo telefone_normalized no tenant,
+  // vincular cliente.lead_id ao lead — espelha ConvertLeadToClientDialog.
+  let leadIdLink: string | null = null;
+  if (norm.telefone_digits) {
+    const { data: leadRow } = await admin
+      .from("leads")
+      .select("id")
+      .eq("tenant_id", tenantId)
+      .eq("telefone_normalized", norm.telefone_digits)
+      .is("deleted_at", null)
+      .order("created_at", { ascending: true })
+      .limit(1)
+      .maybeSingle();
+    if (leadRow?.id) leadIdLink = leadRow.id as string;
+  }
+
   const { data, error } = await admin
     .from("clientes")
     .insert({
@@ -1066,6 +1082,7 @@ async function promoteCliente(
       origem: SOURCE,
       external_source: SOURCE,
       external_id: norm.external_id,
+      lead_id: leadIdLink,
       ativo: true,
     })
     .select("id")
