@@ -446,6 +446,97 @@ async function fetchPromotedSourceIds(
   return out;
 }
 
+// Lista propostas já bloqueadas por validação dura. Elas continuam auditáveis nos logs,
+// mas não podem ficar voltando para o próximo chunk porque travam o orquestrador.
+async function fetchBlockedSourceIds(
+  admin: SupabaseClient,
+  tenantId: string,
+  sourceEntityType: string,
+): Promise<string[]> {
+  const pageSize = 1000;
+  const out = new Set<string>();
+  for (let from = 0; ; from += pageSize) {
+    const { data, error } = await admin
+      .from("solarmarket_promotion_logs")
+      .select("source_entity_id")
+      .eq("tenant_id", tenantId)
+      .eq("source_entity_type", sourceEntityType)
+      .eq("step", "eligibility")
+      .eq("severity", "error")
+      .range(from, from + pageSize - 1);
+    if (error) throw new Error(`fetchBlockedSourceIds: ${error.message}`);
+    if (!data || data.length === 0) break;
+    for (const r of data) {
+      const sourceEntityId = pickStr((r as AnyObj).source_entity_id);
+      if (sourceEntityId) out.add(sourceEntityId);
+    }
+    if (data.length < pageSize) break;
+  }
+  return Array.from(out);
+}
+
+function toPostgrestInList(ids: string[]): string {
+  return `(${ids.map((id) => `"${String(id).replace(/"/g, '\\"')}"`).join(",")})`;
+}
+
+async function filterRowsByMigratableFunilMap(
+  admin: SupabaseClient,
+  tenantId: string,
+  rows: AnyObj[],
+): Promise<AnyObj[]> {
+  const projectIds = Array.from(new Set(rows.map((r) => resolveProposalSourceKey(r)).filter(Boolean) as string[]));
+  if (projectIds.length === 0) return [];
+
+  const funisByProject = new Map<string, string[]>();
+  for (let i = 0; i < projectIds.length; i += 100) {
+    const sub = projectIds.slice(i, i + 100);
+    const { data, error } = await admin
+      .from("sm_projeto_funis_raw")
+      .select("payload")
+      .eq("tenant_id", tenantId)
+      .filter("payload->project->>id", "in", toPostgrestInList(sub));
+    if (error) throw new Error(`filterRowsByMigratableFunilMap/funis: ${error.message}`);
+    for (const f of (data ?? []) as AnyObj[]) {
+      const payload = (f.payload ?? {}) as AnyObj;
+      const projectId = pickStr(payload?.project?.id);
+      const funilName = pickStr(payload?.name);
+      if (!projectId || !funilName) continue;
+      const list = funisByProject.get(projectId) ?? [];
+      list.push(funilName);
+      funisByProject.set(projectId, list);
+    }
+  }
+
+  const funilNames = Array.from(new Set(Array.from(funisByProject.values()).flat()));
+  const mapByName = new Map<string, AnyObj>();
+  if (funilNames.length > 0) {
+    const { data, error } = await admin
+      .from("sm_funil_pipeline_map")
+      .select("sm_funil_name, role, pipeline_id")
+      .eq("tenant_id", tenantId)
+      .in("sm_funil_name", funilNames);
+    if (error) throw new Error(`filterRowsByMigratableFunilMap/maps: ${error.message}`);
+    for (const m of (data ?? []) as AnyObj[]) {
+      const name = pickStr(m.sm_funil_name);
+      if (name) mapByName.set(name.toLowerCase().trim(), m);
+    }
+  }
+
+  return rows.filter((row) => {
+    const projectId = resolveProposalSourceKey(row);
+    if (!projectId) return false;
+    const funis = funisByProject.get(projectId) ?? [];
+    // Sem linha em sm_projeto_funis_raw mantém o fallback legado para LEAD.
+    if (funis.length === 0) return true;
+    return funis.some((name) => {
+      const lower = name.toLowerCase().trim();
+      if (lower === "vendedores") return false;
+      const mapped = mapByName.get(lower);
+      return mapped?.role === "pipeline" && Boolean(mapped?.pipeline_id);
+    });
+  });
+}
+
 async function upsertLink(
   admin: SupabaseClient,
   tenantId: string,
@@ -3169,8 +3260,10 @@ async function actionPromoteAll(
   });
 
   const promotedIds = await fetchPromotedSourceIds(admin, tenantId, "proposta", "proposta");
+  const blockedIds = await fetchBlockedSourceIds(admin, tenantId, "proposta");
   const selectCols = dryRun ? "id, external_id" : "id, external_id, payload";
   const promotedSet = new Set(promotedIds);
+  const blockedSet = new Set(blockedIds);
   const candidateMeta: AnyObj[] = [];
   const pageSize = 100;
   for (let from = 0; candidateMeta.length < batchLimit; from += pageSize) {
@@ -3187,9 +3280,14 @@ async function actionPromoteAll(
       });
       return jsonResponse({ ok: false, job_id: jobId, error: pageErr.message }, 500);
     }
+    const pageCandidates: AnyObj[] = [];
     for (const r of (pageRows ?? []) as AnyObj[]) {
       const sourceKey = resolveProposalSourceKey(r);
-      if (!sourceKey || !promotedSet.has(sourceKey)) candidateMeta.push(r);
+      if (!sourceKey || (!promotedSet.has(sourceKey) && !blockedSet.has(sourceKey))) pageCandidates.push(r);
+    }
+    const migratablePage = await filterRowsByMigratableFunilMap(admin, tenantId, pageCandidates);
+    for (const r of migratablePage) {
+      candidateMeta.push(r);
       if (candidateMeta.length >= batchLimit) break;
     }
     if (!pageRows || pageRows.length < pageSize) break;
@@ -3197,7 +3295,7 @@ async function actionPromoteAll(
 
   let rows = candidateMeta;
   if (!dryRun && candidateMeta.length > 0) {
-    const ids = candidateMeta.map((r) => r.id).filter(Boolean);
+    const ids = rows.map((r) => r.id).filter(Boolean);
     const { data: payloadRows, error: payloadErr } = await admin
       .from("sm_propostas_raw")
       .select(selectCols)
@@ -3211,7 +3309,7 @@ async function actionPromoteAll(
       return jsonResponse({ ok: false, job_id: jobId, error: payloadErr.message }, 500);
     }
     const payloadById = new Map((payloadRows ?? []).map((r: AnyObj) => [r.id, r]));
-    rows = candidateMeta.map((r) => payloadById.get(r.id) ?? r);
+    rows = rows.map((r) => payloadById.get(r.id) ?? r);
   }
 
   const candidates = rows ?? [];

@@ -40,6 +40,15 @@ const CHUNK_BATCH = 3;
 const MIN_CHUNK_BATCH = 1;
 const SELF_URL = `${SUPABASE_URL}/functions/v1/sm-migrate-chunk`;
 
+function proposalSourceKey(row: Record<string, unknown>): string | null {
+  const raw = String(row.external_id ?? "").trim();
+  return raw ? (raw.split(":")[0] || raw) : null;
+}
+
+function toPostgrestInList(ids: string[]): string {
+  return `(${ids.map((id) => `"${String(id).replace(/"/g, '\\"')}"`).join(",")})`;
+}
+
 function isGatewayTimeoutLike(error: string | undefined): boolean {
   const message = String(error ?? "").toLowerCase();
   return message.includes("http 546")
@@ -88,20 +97,98 @@ async function countBacklog(
   admin: any,
   tenantId: string,
 ): Promise<number> {
-  const { count: total } = await admin
-    .from("sm_propostas_raw")
-    .select("id", { count: "exact", head: true })
+  const rawKeys = new Set<string>();
+  const funisByProject = new Map<string, string[]>();
+  const mappedMigratableFunis = new Set<string>();
+  const blockedKeys = new Set<string>();
+  const promotedKeys = new Set<string>();
+
+  for (let from = 0; ; from += 1000) {
+    const { data, error } = await admin
+      .from("sm_propostas_raw")
+      .select("external_id")
+      .eq("tenant_id", tenantId)
+      .range(from, from + 999);
+    if (error) throw new Error(`countBacklog/raw: ${error.message}`);
+    for (const row of data ?? []) {
+      const key = proposalSourceKey(row);
+      if (key) rawKeys.add(key);
+    }
+    if (!data || data.length < 1000) break;
+  }
+
+  for (let from = 0; ; from += 1000) {
+    const { data, error } = await admin
+      .from("sm_projeto_funis_raw")
+      .select("payload")
+      .eq("tenant_id", tenantId)
+      .range(from, from + 999);
+    if (error) throw new Error(`countBacklog/funis: ${error.message}`);
+    for (const row of data ?? []) {
+      const payload = row.payload ?? {};
+      const projectId = String(payload?.project?.id ?? "").trim();
+      const funilName = String(payload?.name ?? "").trim();
+      if (!projectId || !funilName) continue;
+      const list = funisByProject.get(projectId) ?? [];
+      list.push(funilName);
+      funisByProject.set(projectId, list);
+    }
+    if (!data || data.length < 1000) break;
+  }
+
+  const { data: maps, error: mapErr } = await admin
+    .from("sm_funil_pipeline_map")
+    .select("sm_funil_name, role, pipeline_id")
     .eq("tenant_id", tenantId);
-  // Só considera proposta realmente concluída quando existe no CRM E já tem deal_id.
-  // Links órfãos/antigos em external_entity_links não podem zerar o backlog,
-  // senão o job marca "completed" enquanto a UI ainda mostra pendentes.
-  const { count: promotedWithDeal } = await admin
-    .from("propostas_nativas")
-    .select("id", { count: "exact", head: true })
-    .eq("tenant_id", tenantId)
-    .in("external_source", [...SOURCE_LIST])
-    .not("deal_id", "is", null);
-  return Math.max(0, (total ?? 0) - (promotedWithDeal ?? 0));
+  if (mapErr) throw new Error(`countBacklog/maps: ${mapErr.message}`);
+  for (const m of maps ?? []) {
+    if (m.role === "pipeline" && m.pipeline_id && m.sm_funil_name) {
+      mappedMigratableFunis.add(String(m.sm_funil_name).toLowerCase().trim());
+    }
+  }
+
+  for (let from = 0; ; from += 1000) {
+    const { data, error } = await admin
+      .from("propostas_nativas")
+      .select("external_id")
+      .eq("tenant_id", tenantId)
+      .in("external_source", [...SOURCE_LIST])
+      .not("deal_id", "is", null)
+      .range(from, from + 999);
+    if (error) throw new Error(`countBacklog/promoted: ${error.message}`);
+    for (const row of data ?? []) {
+      const key = String(row.external_id ?? "").trim();
+      if (key) promotedKeys.add(key);
+    }
+    if (!data || data.length < 1000) break;
+  }
+
+  for (let from = 0; ; from += 1000) {
+    const { data, error } = await admin
+      .from("solarmarket_promotion_logs")
+      .select("source_entity_id")
+      .eq("tenant_id", tenantId)
+      .eq("source_entity_type", "proposta")
+      .eq("step", "eligibility")
+      .eq("severity", "error")
+      .range(from, from + 999);
+    if (error) throw new Error(`countBacklog/blocked: ${error.message}`);
+    for (const row of data ?? []) {
+      const key = String(row.source_entity_id ?? "").trim();
+      if (key) blockedKeys.add(key);
+    }
+    if (!data || data.length < 1000) break;
+  }
+
+  let remaining = 0;
+  for (const key of rawKeys) {
+    if (promotedKeys.has(key) || blockedKeys.has(key)) continue;
+    const funis = funisByProject.get(key) ?? [];
+    if (funis.length === 0 || funis.some((name) => mappedMigratableFunis.has(name.toLowerCase().trim()))) {
+      remaining += 1;
+    }
+  }
+  return remaining;
 }
 
 /**
