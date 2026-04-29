@@ -1351,12 +1351,46 @@ function findPipelineStageForSmEtapa(stages: AnyObj[], smEtapaName: string | nul
   const smName = String(smEtapaName ?? "").trim();
   if (!smName) return null;
   const normalized = norm(smName);
+
+  // 1) Match exato por nome (case/acento-insensitive)
   const exact = stages.find((s) => norm(String(s.name ?? "")) === normalized);
   if (exact?.id) return exact.id as string;
-  if (["fechado", "ganho", "ganha", "venda fechada"].includes(normalized)) {
+
+  // 2) Aliases semânticos: SM → CRM
+  // Ganho (closed-won)
+  if (["fechado", "ganho", "ganha", "venda fechada", "vendido", "concluido", "concluído"].includes(normalized)) {
     const won = stages.find((s) => Boolean(s.is_won));
     if (won?.id) return won.id as string;
   }
+  // Perdido (closed-lost): is_closed=true E is_won=false
+  if (["perdido", "perdida", "cancelado", "cancelada", "recusado", "recusada", "desistiu"].includes(normalized)) {
+    const lost = stages.find((s) => Boolean(s.is_closed) && !Boolean(s.is_won));
+    if (lost?.id) return lost.id as string;
+  }
+  // Proposta enviada (variações)
+  if (["enviar proposta", "proposta", "proposta a enviar", "elaborar proposta", "elaboração da proposta"].includes(normalized)) {
+    const proposta = stages.find((s) => norm(String(s.name ?? "")).includes("proposta"));
+    if (proposta?.id) return proposta.id as string;
+  }
+  // Lead novo / entrada (variações)
+  if (["recebido", "novo", "novo lead", "entrada", "novo contato", "lead recebido"].includes(normalized)) {
+    const lead = stages.find((s) => {
+      const n = norm(String(s.name ?? ""));
+      return n.includes("lead") || n.includes("novo") || n.includes("entrada");
+    });
+    if (lead?.id) return lead.id as string;
+  }
+  // Qualificação (variações)
+  if (["qualificacao", "qualificação", "qualificar", "em analise", "em análise"].includes(normalized)) {
+    const qual = stages.find((s) => norm(String(s.name ?? "")).includes("qualif"));
+    if (qual?.id) return qual.id as string;
+  }
+  // Negociação (variações)
+  if (["negociacao", "negociação", "negociando", "em negociacao", "follow up"].includes(normalized)) {
+    const neg = stages.find((s) => norm(String(s.name ?? "")).includes("negoc"));
+    if (neg?.id) return neg.id as string;
+  }
+
   return null;
 }
 
@@ -1608,7 +1642,7 @@ async function resolvePipelinePerProject(
       if (!secStageId) {
         const { data: secStagesAll } = await admin
           .from("pipeline_stages")
-          .select("id, name, is_won")
+          .select("id, name, is_won, is_closed")
           .eq("tenant_id", tenantId)
           .eq("pipeline_id", secPipelineId);
         secStageId = findPipelineStageForSmEtapa((secStagesAll ?? []) as AnyObj[], secCandidate.stageName);
@@ -1643,7 +1677,7 @@ async function resolvePipelinePerProject(
     ) {
       const { data: comStages } = await admin
         .from("pipeline_stages")
-        .select("id, name, position, is_won")
+        .select("id, name, position, is_won, is_closed")
         .eq("tenant_id", tenantId)
         .eq("pipeline_id", comercialId);
       const stagesArr = (comStages ?? []) as AnyObj[];
