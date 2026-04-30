@@ -5,6 +5,7 @@ import { handleSupabaseError } from "@/lib/errorHandler";
 import type { OrcamentoDisplayItem } from "@/types/orcamento";
 import type { LeadStatus } from "@/types/lead";
 import type { VendedorFilter } from "@/hooks/useLeads";
+import { normalizeBrazilianPhone } from "@/utils/phone/normalizeBrazilianPhone";
 
 const PAGE_SIZE = 25;
 
@@ -59,28 +60,36 @@ export function useOrcamentosAdmin({ autoFetch = true, pageSize = PAGE_SIZE }: U
       // Buscar projetos vinculados via cliente (telefone_normalized OU email).
       // Observação: projetos.lead_id está sempre NULL nesta base — o vínculo
       // canônico lead↔projeto acontece através de clientes (SSOT do cadastro).
+      // Auditoria 2026-04-30: 34% dos leads não casavam com clientes migrados
+      // por divergência do 9º dígito (lead salvo com 10d, cliente SM com 11d).
+      // Usamos normalizeBrazilianPhone para gerar variantes (com/sem 9) e
+      // recuperar 53% dos casos órfãos. Email permanece como fallback secundário.
       const leadsForLookup = (orcamentosRes.data || [])
-        .map((o: any) => ({
-          lead_id: o.lead_id as string | null,
-          telefone_normalized: o.leads?.telefone_normalized as string | null,
-          email: (o.leads?.email as string | null)?.toLowerCase() || null,
-        }))
+        .map((o: any) => {
+          const tn = (o.leads?.telefone_normalized as string | null) || null;
+          const norm = normalizeBrazilianPhone(tn || o.leads?.telefone || null);
+          return {
+            lead_id: o.lead_id as string | null,
+            telefone_normalized: tn,
+            phone_variants: norm?.variants || (tn ? [tn] : []),
+            email: (o.leads?.email as string | null)?.toLowerCase() || null,
+          };
+        })
         .filter((l) => l.lead_id);
 
       const phones = Array.from(
-        new Set(leadsForLookup.map((l) => l.telefone_normalized).filter(Boolean) as string[])
-      );
+        new Set(leadsForLookup.flatMap((l) => l.phone_variants))
+      ).filter(Boolean);
       const emails = Array.from(
         new Set(leadsForLookup.map((l) => l.email).filter(Boolean) as string[])
       );
 
       const projetoByLead = new Map<string, string>();
       if (phones.length > 0 || emails.length > 0) {
-        // 1) clientes que casam por telefone OU email
+        // 1) clientes que casam por telefone (variantes) OU email
         const orParts: string[] = [];
         if (phones.length > 0) orParts.push(`telefone_normalized.in.(${phones.join(",")})`);
         if (emails.length > 0) {
-          // emails podem conter vírgulas/aspas raramente — escapamos via quoting do PostgREST
           const safeEmails = emails.map((e) => `"${e.replace(/"/g, '\\"')}"`).join(",");
           orParts.push(`email.in.(${safeEmails})`);
         }
@@ -105,20 +114,32 @@ export function useOrcamentosAdmin({ autoFetch = true, pageSize = PAGE_SIZE }: U
             }
           }
 
-          // Indexar clientes por telefone e email para casar com leads
+          // Indexar clientes por telefone (todas as variantes do próprio cliente) e email
           const clienteByPhone = new Map<string, string>();
           const clienteByEmail = new Map<string, string>();
           for (const c of (clientesData || []) as any[]) {
-            if (c.telefone_normalized) clienteByPhone.set(c.telefone_normalized, c.id);
+            if (c.telefone_normalized) {
+              const cNorm = normalizeBrazilianPhone(c.telefone_normalized);
+              const variants = cNorm?.variants || [c.telefone_normalized];
+              for (const v of variants) {
+                if (!clienteByPhone.has(v)) clienteByPhone.set(v, c.id);
+              }
+            }
             if (c.email) clienteByEmail.set(String(c.email).toLowerCase(), c.id);
           }
 
           for (const l of leadsForLookup) {
             if (!l.lead_id) continue;
-            const cid =
-              (l.telefone_normalized && clienteByPhone.get(l.telefone_normalized)) ||
-              (l.email && clienteByEmail.get(l.email)) ||
-              null;
+            // Tenta cada variante do lead até encontrar
+            let cid: string | null = null;
+            for (const v of l.phone_variants) {
+              const found = clienteByPhone.get(v);
+              if (found) {
+                cid = found;
+                break;
+              }
+            }
+            if (!cid && l.email) cid = clienteByEmail.get(l.email) || null;
             const pid = cid ? projetoByCliente.get(cid) : null;
             if (pid) projetoByLead.set(l.lead_id, pid);
           }
