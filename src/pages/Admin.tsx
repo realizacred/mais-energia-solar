@@ -163,6 +163,10 @@ const FiscalPage = lazy(() => import("@/components/admin/fiscal/FiscalPage"));
 const RolePermissionsManager = lazy(() => import("@/components/admin/RolePermissionsManager").then(m => ({ default: m.RolePermissionsManager })));
 const WaHealthDashboard = lazy(() => import("@/pages/admin/WaHealthDashboard"));
 const WaSaudePage = lazy(() => import("@/pages/admin/WaSaudePage"));
+const WhatsappInstanciasPage = lazy(() => import("@/pages/admin/integracoes/whatsapp/WhatsappInstanciasPage"));
+const WhatsappIaResolucaoPage = lazy(() => import("@/pages/admin/integracoes/whatsapp/WhatsappIaResolucaoPage"));
+const WhatsappAutoRespostasPage = lazy(() => import("@/pages/admin/integracoes/whatsapp/WhatsappAutoRespostasPage"));
+const WhatsappFollowupPage = lazy(() => import("@/pages/admin/integracoes/whatsapp/WhatsappFollowupPage"));
 const DevToolsPage = lazy(() => import("@/pages/admin/DevToolsPage"));
 const RlsTestPage = lazy(() => import("@/pages/admin/dev/RlsTestPage"));
 const BillingFeaturesPage = lazy(() => import("@/components/admin/billing/BillingFeaturesPage"));
@@ -767,10 +771,10 @@ export default function Admin() {
                 {/* Aliases — Central de Configurações de Integrações (Fase 1) */}
                 {/* Reaproveitam páginas existentes; rotas antigas continuam funcionando. */}
                 <Route path="integracoes/whatsapp/saude" element={<WaSaudePage />} />
-                <Route path="integracoes/whatsapp/instancias" element={<Navigate to="/admin/catalogo-integracoes?tab=instancias" replace />} />
-                <Route path="integracoes/whatsapp/ia-resolucao" element={<WaSaudePage />} />
-                <Route path="integracoes/whatsapp/auto-respostas" element={<Navigate to="/admin/automacoes" replace />} />
-                <Route path="integracoes/whatsapp/follow-up" element={<Navigate to="/admin/followup-wa" replace />} />
+                <Route path="integracoes/whatsapp/instancias" element={<WhatsappInstanciasPage />} />
+                <Route path="integracoes/whatsapp/ia-resolucao" element={<WhatsappIaResolucaoPage />} />
+                <Route path="integracoes/whatsapp/auto-respostas" element={<WhatsappAutoRespostasPage />} />
+                <Route path="integracoes/whatsapp/follow-up" element={<WhatsappFollowupPage />} />
                 <Route path="integracoes/solarmarket/migracao" element={<Navigate to="/admin/migracao-solarmarket" replace />} />
                 <Route path="integracoes/solarmarket/configuracoes" element={<SolarmarketConfigPage />} />
                 <Route path="integracoes/solarmarket/funis" element={<Navigate to="/admin/migracao-solarmarket/mapear" replace />} />
