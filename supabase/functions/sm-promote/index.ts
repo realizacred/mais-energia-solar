@@ -458,7 +458,7 @@ async function fetchBlockedSourceIds(
   for (let from = 0; ; from += pageSize) {
     const { data, error } = await admin
       .from("solarmarket_promotion_logs")
-      .select("source_entity_id")
+      .select("source_entity_id, error_code")
       .eq("tenant_id", tenantId)
       .eq("source_entity_type", sourceEntityType)
       .eq("step", "eligibility")
@@ -467,6 +467,9 @@ async function fetchBlockedSourceIds(
     if (error) throw new Error(`fetchBlockedSourceIds: ${error.message}`);
     if (!data || data.length === 0) break;
     for (const r of data) {
+      // Logs antigos marcavam telefones brutos/placeholder como sem contato.
+      // Após a correção do gate, esses registros devem voltar ao backlog uma vez.
+      if (pickStr((r as AnyObj).error_code) === "CLIENT_NO_CONTACT") continue;
       const sourceEntityId = pickStr((r as AnyObj).source_entity_id);
       if (sourceEntityId) out.add(sourceEntityId);
     }
@@ -2317,15 +2320,17 @@ function validateEligibility(args: {
     const norm = normalizeSmClient(rawCliente);
     if (!norm.external_id) issues.push({ code: "CLIENT_NO_EXTERNAL_ID", message: "Cliente sem id externo." });
     if (!norm.nome) issues.push({ code: "CLIENT_NO_NAME", message: "Cliente sem nome." });
-    // RB-63: presença de contato é avaliada pelos DÍGITOS BRUTOS (não pelo formatado).
-    // Telefones com 12-13 dígitos (placeholder "999..." ou ruído) são rejeitados pelo
-    // formatter (fmtPhoneBR), mas ainda assim representam contato existente. Bloquear
-    // somente quando o cliente realmente não tem nenhum dado bruto de contato.
-    const hasPhone = !!(norm.telefone_digits && norm.telefone_digits.length > 0);
-    const hasDoc = !!(norm.cpf_cnpj_digits && norm.cpf_cnpj_digits.length > 0);
+    // RB-63: presença de contato é avaliada pelo dado BRUTO vindo do SM.
+    // Telefones placeholder/ruidosos não entram em dedup nem em telefone_normalized,
+    // mas não podem bloquear a cadeia inteira se o SM trouxe algum telefone para auditoria.
+    const c = rawCliente?.client ?? rawCliente ?? {};
+    const rawPhoneDigits = onlyDigits(c.primaryPhone ?? c.phone ?? c.telefone) ?? "";
+    const rawDocDigits = onlyDigits(c.cnpjCpf ?? c.cpfCnpj ?? c.cpf_cnpj) ?? "";
+    const hasPhone = rawPhoneDigits.length > 0;
+    const hasDoc = rawDocDigits.length > 0;
     const hasEmail = !!norm.email;
     if (!hasPhone && !hasDoc && !hasEmail) {
-      issues.push({ code: "CLIENT_NO_CONTACT", message: "Cliente sem telefone, e-mail ou CPF/CNPJ." });
+      issues.push({ code: "CLIENT_NO_RAW_CONTACT", message: "Cliente sem telefone, e-mail ou CPF/CNPJ no payload bruto." });
     }
   }
 
