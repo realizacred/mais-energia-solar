@@ -141,6 +141,8 @@ export function usePropostaRapidaLead() {
         .from("pipelines")
         .select("id")
         .eq("tenant_id", tenantId)
+        .eq("is_active", true)
+        .order("created_at", { ascending: true })
         .limit(1)
         .maybeSingle();
 
