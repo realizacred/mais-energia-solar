@@ -96,18 +96,39 @@ export function usePropostaRapidaLead() {
         clienteId = newCliente.id;
       }
 
-      // 3. Buscar projeto existente via cliente.lead_id
-      const { data: existingProjeto } = await supabase
+      // 3. Buscar projeto existente via cliente_id (mais recente primeiro - estabiliza ordem)
+      const { data: existingProjetos } = await supabase
         .from("projetos")
         .select("id, deal_id")
         .eq("cliente_id", clienteId!)
         .eq("tenant_id", tenantId)
-        .limit(1)
-        .maybeSingle();
+        .order("created_at", { ascending: false })
+        .limit(1);
+
+      const existingProjeto = existingProjetos?.[0];
 
       if (existingProjeto) {
-        // Lead já tem projeto → redirecionar direto
+        // 3a. Verificar se já tem proposta nativa ativa (não rascunho/expirada)
+        const { data: existingPropostas } = await supabase
+          .from("propostas_nativas")
+          .select("id, status, latest_versao_id")
+          .eq("projeto_id", existingProjeto.id)
+          .eq("tenant_id", tenantId)
+          .order("created_at", { ascending: false })
+          .limit(1);
+
+        const propostaAtiva = existingPropostas?.[0];
+
         await markLeadAsViewed(lead.id, tenantId);
+
+        if (propostaAtiva) {
+          // Proposta já existe → abrir a proposta existente em vez de criar nova
+          toast.info("Lead já possui proposta. Abrindo proposta existente...");
+          navigate(`/admin/propostas-nativas/${propostaAtiva.id}`);
+          return;
+        }
+
+        // Projeto existe mas sem proposta → ir para wizard de nova versão
         toast.info("Lead já possui projeto. Abrindo wizard...");
         navigate(
           `/admin/propostas-nativas/nova?deal_id=${existingProjeto.deal_id || existingProjeto.id}&customer_id=${clienteId}&lead_id=${lead.id}`
