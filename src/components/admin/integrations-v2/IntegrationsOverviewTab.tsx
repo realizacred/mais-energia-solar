@@ -186,7 +186,7 @@ function DomainCard({ title, description, icon: Icon, borderClass, iconColor, st
 
 export default function IntegrationsOverviewTab() {
   const navigate = useNavigate();
-  const { tenantId } = useTenantId();
+  const { data: tenantId } = useTenantId();
 
   const { data, isLoading } = useQuery({
     queryKey: ["integrations-overview", tenantId],
