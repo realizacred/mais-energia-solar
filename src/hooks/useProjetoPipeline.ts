@@ -187,9 +187,9 @@ export function useProjetoPipeline() {
     if (f.consultorId !== "todos") {
       query = query.eq("consultor_id", f.consultorId);
     }
-    if (f.status !== "todos") {
-      query = query.eq("status", f.status as any);
-    }
+    // NOTE: f.status ("aberto" | "ganho" | "perdido") é filtro SEMÂNTICO
+    // aplicado client-side via etapa.categoria (ver ProjetosManager.statusFiltered).
+    // NÃO mapeia para o enum projeto_status (criado/em_instalacao/concluido/etc).
     if (f.search) {
       query = query.or(`codigo.ilike.%${f.search}%`);
     }
@@ -272,7 +272,7 @@ export function useProjetoPipeline() {
           .order("created_at", { ascending: false });
 
         if (f.consultorId !== "todos") extraQuery = extraQuery.eq("consultor_id", f.consultorId);
-        if (f.status !== "todos") extraQuery = extraQuery.eq("status", f.status as any);
+        // f.status é filtro semântico via etapa.categoria — aplicado client-side
 
         const { data: extra, error: extraErr } = await extraQuery;
         if (extraErr) throw extraErr;
