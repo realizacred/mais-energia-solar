@@ -36,7 +36,7 @@ const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const CRON_SECRET = "sm-resume-cron-v1"; // mesmo string usado em sm_resume_stuck_migrations
 
 const SOURCE_LIST = ["solarmarket", "solar_market"] as const;
-const CHUNK_BATCH = 3;
+const CHUNK_BATCH = 5;
 const MIN_CHUNK_BATCH = 1;
 const SELF_URL = `${SUPABASE_URL}/functions/v1/sm-migrate-chunk`;
 
@@ -179,6 +179,10 @@ async function countBacklog(
       .range(from, from + 999);
     if (error) throw new Error(`countBacklog/blocked: ${error.message}`);
     for (const row of data ?? []) {
+      const errorCode = String((row as Record<string, unknown>).error_code ?? "");
+      // Logs legados de CLIENT_NO_CONTACT foram gerados antes do gate considerar
+      // telefone bruto do SolarMarket. Não retirar do backlog: precisam reprocessar.
+      if (errorCode === "CLIENT_NO_CONTACT") continue;
       const key = String(row.source_entity_id ?? "").trim();
       if (key) blockedKeys.add(key);
     }
