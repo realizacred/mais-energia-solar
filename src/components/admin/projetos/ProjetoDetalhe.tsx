@@ -262,7 +262,7 @@ function ProjetoDetalheContent() {
   const [editClienteId, setEditClienteId] = useState<string | null>(null);
 
   const {
-    deal, loading, activeTab, setActiveTab, stages,
+    deal, projetoId, loading, activeTab, setActiveTab, stages,
     customerName, customerPhone, customerEmail, customerCpfCnpj, customerEmpresa, customerAddress,
     ownerName, pipelines, allStagesMap, userNamesMap,
     currentStage, currentPipeline, projectCode,
@@ -501,7 +501,7 @@ function ProjetoDetalheContent() {
             <ProjetoInstalacaoTab dealId={deal.id} />
           )}
           {activeTab === "suprimentos" && (
-            <SuprimentosListPageInline projetoId={deal.id} />
+            <SuprimentosListPageInline projetoId={projetoId ?? deal.id} />
           )}
           {activeTab === "concessionaria" && (
             <ProjetoConcessionariaTab dealId={deal.id} />

@@ -81,7 +81,7 @@ export function useOrdensCompra(filtros?: OrdemCompraFiltros) {
     queryFn: async () => {
       let query = (supabase as any)
         .from("ordens_compra")
-        .select("*, projetos(nome, codigo), fornecedores(nome)")
+        .select("*, projetos(codigo, clientes(nome)), fornecedores(nome)")
         .order("created_at", { ascending: false });
 
       if (filtros?.status) query = query.eq("status", filtros.status);
@@ -93,7 +93,7 @@ export function useOrdensCompra(filtros?: OrdemCompraFiltros) {
       if (error) throw error;
       return (data ?? []).map((o: any) => ({
         ...o,
-        projeto_nome: o.projetos?.nome || null,
+        projeto_nome: o.projetos?.clientes?.nome || null,
         projeto_codigo: o.projetos?.codigo || null,
         fornecedor_nome: o.fornecedores?.nome || null,
         projetos: undefined,
@@ -113,14 +113,14 @@ export function useOrdemCompraDetalhe(id: string | undefined) {
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from("ordens_compra")
-        .select("*, projetos(nome, codigo), fornecedores(nome)")
+        .select("*, projetos(codigo, clientes(nome)), fornecedores(nome)")
         .eq("id", id)
         .maybeSingle();
       if (error) throw error;
       if (!data) return null;
       return {
         ...data,
-        projeto_nome: data.projetos?.nome || null,
+        projeto_nome: data.projetos?.clientes?.nome || null,
         projeto_codigo: data.projetos?.codigo || null,
         fornecedor_nome: data.fornecedores?.nome || null,
         projetos: undefined,
@@ -486,10 +486,14 @@ export function useProjetosSelect() {
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from("projetos")
-        .select("id, nome, codigo")
-        .order("nome");
+        .select("id, codigo, clientes(nome)")
+        .order("codigo");
       if (error) throw error;
-      return (data ?? []) as Array<{ id: string; nome: string; codigo: string | null }>;
+      return (data ?? []).map((p: any) => ({
+        id: p.id,
+        nome: p.clientes?.nome || p.codigo || "Projeto",
+        codigo: p.codigo,
+      })) as Array<{ id: string; nome: string; codigo: string | null }>;
     },
   });
 }

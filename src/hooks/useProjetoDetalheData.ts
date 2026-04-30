@@ -27,6 +27,7 @@ export const projetoDetalheKeys = {
 // ─── Types ─────────────────────────────────────────
 export interface ProjetoDetalheFullData {
   deal: DealDetail;
+  projetoId: string | null;
   history: StageHistory[];
   stages: StageInfo[];
   customerName: string;
@@ -130,7 +131,7 @@ export function useProjetoDetalheData(dealId: string) {
       const [dealRes, historyRes] = await Promise.all([
         supabase
           .from("deals")
-          .select("id, title, value, kwp, status, created_at, updated_at, owner_id, pipeline_id, stage_id, customer_id, expected_close_date, motivo_perda_id, motivo_perda_obs, deal_num")
+          .select("id, title, value, kwp, status, created_at, updated_at, owner_id, pipeline_id, stage_id, customer_id, projeto_id, expected_close_date, motivo_perda_id, motivo_perda_obs, deal_num")
           .eq("id", resolvedDealId)
           .single(),
         supabase
@@ -243,6 +244,7 @@ export function useProjetoDetalheData(dealId: string) {
 
       return {
         deal: d,
+        projetoId: d.projeto_id ?? null,
         history: historyData,
         stages: (stagesRes.data || []) as StageInfo[],
         customerName,

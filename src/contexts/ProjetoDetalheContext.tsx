@@ -25,6 +25,7 @@ export interface DealDetail {
   pipeline_id: string;
   stage_id: string;
   customer_id: string | null;
+  projeto_id: string | null;
   expected_close_date: string | null;
   motivo_perda_id: string | null;
   motivo_perda_obs: string | null;
@@ -75,6 +76,7 @@ export interface ProjetoDetalheContextValue {
 
   // Data
   deal: DealDetail | null;
+  projetoId: string | null;
   history: StageHistory[];
   stages: StageInfo[];
   loading: boolean;
@@ -183,6 +185,7 @@ export function ProjetoDetalheProvider({ dealId, onBack, initialPipelineId, init
 
   // Derived data from query
   const deal = fullData?.deal ?? null;
+  const projetoId = fullData?.projetoId ?? null;
   const history = fullData?.history ?? [];
   const stages = fullData?.stages ?? [];
   const customerName = fullData?.customerName ?? "";
@@ -203,7 +206,7 @@ export function ProjetoDetalheProvider({ dealId, onBack, initialPipelineId, init
   const [searchParams, setSearchParams] = useSearchParams();
   const tabFromUrl = searchParams.get("tab") as TabId | null;
 
-  const validTabs: TabId[] = ["gerenciamento", "comunicacao", "propostas", "documentos", "instalacao", "concessionaria"];
+  const validTabs: TabId[] = ["gerenciamento", "comunicacao", "propostas", "documentos", "instalacao", "suprimentos", "concessionaria"];
 
   const [activeTab, setActiveTabState] = useState<TabId>(
     (tabFromUrl && validTabs.includes(tabFromUrl))
@@ -453,6 +456,7 @@ export function ProjetoDetalheProvider({ dealId, onBack, initialPipelineId, init
     initialPipelineId,
     initialPipelineName,
     deal,
+    projetoId,
     history,
     stages,
     loading: loadingData,
@@ -508,7 +512,7 @@ export function ProjetoDetalheProvider({ dealId, onBack, initialPipelineId, init
     tabBadge,
   }), [
     dealId, onBack, initialPipelineId, initialPipelineName,
-    deal, history, stages, loadingData,
+    deal, projetoId, history, stages, loadingData,
     customerName, customerPhone, customerEmail, customerCpfCnpj, customerAddress, customerEmpresa,
     ownerName, pipelines, allStagesMap, propostasCountData, docsCount, userNamesMap,
     dealEtiquetas, allEtiquetas, etiquetaPopoverOpen,
