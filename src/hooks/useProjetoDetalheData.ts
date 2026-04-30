@@ -53,7 +53,8 @@ export function useProjetoDetalheData(dealId: string) {
     queryKey: projetoDetalheKeys.detail(dealId),
     queryFn: async (): Promise<ProjetoDetalheFullData> => {
       // 0. Resolve identifier: aceita tanto deals.id quanto projetos.id
-      // (projetos migrados do SolarMarket podem propagar projetos.id na URL/cards)
+      // (projetos migrados do SolarMarket OU criados a partir de leads sem pipeline
+      //  podem propagar projetos.id na URL/cards). RB-60: cadeia projeto→deal obrigatória.
       let resolvedDealId = dealId;
       const dealProbe = await supabase
         .from("deals")
@@ -63,12 +64,65 @@ export function useProjetoDetalheData(dealId: string) {
       if (!dealProbe.data) {
         const projetoProbe = await supabase
           .from("projetos")
-          .select("deal_id")
+          .select("id, deal_id, cliente_id, consultor_id, tenant_id")
           .eq("id", dealId)
           .maybeSingle();
-        const fallback = (projetoProbe.data as any)?.deal_id;
+        const projetoRow: any = projetoProbe.data;
+        const fallback = projetoRow?.deal_id;
         if (fallback) {
           resolvedDealId = fallback;
+        } else if (projetoRow) {
+          // Projeto existe mas não tem deal vinculado → criar on-demand (RB-60)
+          const tenantId = projetoRow.tenant_id;
+          const { data: pipeline } = await supabase
+            .from("pipelines")
+            .select("id")
+            .eq("tenant_id", tenantId)
+            .eq("is_active", true)
+            .order("created_at", { ascending: true })
+            .limit(1)
+            .maybeSingle();
+          if (pipeline) {
+            const { data: stage } = await supabase
+              .from("pipeline_stages")
+              .select("id")
+              .eq("pipeline_id", (pipeline as any).id)
+              .order("position", { ascending: true })
+              .limit(1)
+              .maybeSingle();
+            if (stage) {
+              let title = "Projeto";
+              if (projetoRow.cliente_id) {
+                const { data: cli } = await supabase
+                  .from("clientes")
+                  .select("nome")
+                  .eq("id", projetoRow.cliente_id)
+                  .maybeSingle();
+                if ((cli as any)?.nome) title = (cli as any).nome;
+              }
+              const { data: newDeal, error: dealErr } = await supabase
+                .from("deals")
+                .insert({
+                  pipeline_id: (pipeline as any).id,
+                  stage_id: (stage as any).id,
+                  owner_id: projetoRow.consultor_id || null,
+                  customer_id: projetoRow.cliente_id || null,
+                  projeto_id: projetoRow.id,
+                  value: 0,
+                  title,
+                  tenant_id: tenantId,
+                } as any)
+                .select("id")
+                .single();
+              if (!dealErr && newDeal) {
+                await supabase
+                  .from("projetos")
+                  .update({ deal_id: (newDeal as any).id } as any)
+                  .eq("id", projetoRow.id);
+                resolvedDealId = (newDeal as any).id;
+              }
+            }
+          }
         }
       }
 
