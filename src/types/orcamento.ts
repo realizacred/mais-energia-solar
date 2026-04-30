@@ -82,6 +82,8 @@ export interface OrcamentoDisplayItem {
   data_proxima_acao: string | null;
   created_at: string;
   updated_at: string;
+  /** ID do projeto vinculado ao lead, se já convertido. Permite navegação direta. */
+  projeto_id?: string | null;
 }
 
 export interface LeadSimplified {
