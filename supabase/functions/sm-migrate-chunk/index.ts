@@ -171,7 +171,7 @@ async function countBacklog(
   for (let from = 0; ; from += 1000) {
     const { data, error } = await admin
       .from("solarmarket_promotion_logs")
-      .select("source_entity_id")
+        .select("source_entity_id, error_code")
       .eq("tenant_id", tenantId)
       .eq("source_entity_type", "proposta")
       .eq("step", "eligibility")
