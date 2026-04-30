@@ -244,7 +244,7 @@ export function useProjetoDetalheData(dealId: string) {
 
       return {
         deal: d,
-        projetoId: (d as any).projeto_id ?? null,
+        projetoId: d.projeto_id ?? null,
         history: historyData,
         stages: (stagesRes.data || []) as StageInfo[],
         customerName,
