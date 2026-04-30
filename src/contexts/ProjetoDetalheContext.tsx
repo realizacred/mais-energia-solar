@@ -25,6 +25,7 @@ export interface DealDetail {
   pipeline_id: string;
   stage_id: string;
   customer_id: string | null;
+  projeto_id: string | null;
   expected_close_date: string | null;
   motivo_perda_id: string | null;
   motivo_perda_obs: string | null;
