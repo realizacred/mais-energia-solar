@@ -111,7 +111,7 @@ export function usePropostaRapidaLead() {
         // 3a. Verificar se já tem proposta nativa ativa (não rascunho/expirada)
         const { data: existingPropostas } = await supabase
           .from("propostas_nativas")
-          .select("id, status, latest_versao_id")
+          .select("id, status")
           .eq("projeto_id", existingProjeto.id)
           .eq("tenant_id", tenantId)
           .order("created_at", { ascending: false })
