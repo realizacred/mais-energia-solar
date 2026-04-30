@@ -167,6 +167,11 @@ const WhatsappInstanciasPage = lazy(() => import("@/pages/admin/integracoes/what
 const WhatsappIaResolucaoPage = lazy(() => import("@/pages/admin/integracoes/whatsapp/WhatsappIaResolucaoPage"));
 const WhatsappAutoRespostasPage = lazy(() => import("@/pages/admin/integracoes/whatsapp/WhatsappAutoRespostasPage"));
 const WhatsappFollowupPage = lazy(() => import("@/pages/admin/integracoes/whatsapp/WhatsappFollowupPage"));
+const SolarmarketMigracaoPage = lazy(() => import("@/pages/admin/integracoes/solarmarket/SolarmarketMigracaoPage"));
+const SolarmarketFunisPage = lazy(() => import("@/pages/admin/integracoes/solarmarket/SolarmarketFunisPage"));
+const SolarmarketEtapasPage = lazy(() => import("@/pages/admin/integracoes/solarmarket/SolarmarketEtapasPage"));
+const SolarmarketConsultoresPage = lazy(() => import("@/pages/admin/integracoes/solarmarket/SolarmarketConsultoresPage"));
+const SolarmarketLogsPage = lazy(() => import("@/pages/admin/integracoes/solarmarket/SolarmarketLogsPage"));
 const DevToolsPage = lazy(() => import("@/pages/admin/DevToolsPage"));
 const RlsTestPage = lazy(() => import("@/pages/admin/dev/RlsTestPage"));
 const BillingFeaturesPage = lazy(() => import("@/components/admin/billing/BillingFeaturesPage"));
@@ -775,11 +780,12 @@ export default function Admin() {
                 <Route path="integracoes/whatsapp/ia-resolucao" element={<WhatsappIaResolucaoPage />} />
                 <Route path="integracoes/whatsapp/auto-respostas" element={<WhatsappAutoRespostasPage />} />
                 <Route path="integracoes/whatsapp/follow-up" element={<WhatsappFollowupPage />} />
-                <Route path="integracoes/solarmarket/migracao" element={<Navigate to="/admin/migracao-solarmarket" replace />} />
+                <Route path="integracoes/solarmarket/migracao" element={<SolarmarketMigracaoPage />} />
                 <Route path="integracoes/solarmarket/configuracoes" element={<SolarmarketConfigPage />} />
-                <Route path="integracoes/solarmarket/funis" element={<Navigate to="/admin/migracao-solarmarket/mapear" replace />} />
-                <Route path="integracoes/solarmarket/etapas" element={<Navigate to="/admin/migracao-solarmarket/mapear" replace />} />
-                <Route path="integracoes/solarmarket/consultores" element={<Navigate to="/admin/migracao-solarmarket/mapear" replace />} />
+                <Route path="integracoes/solarmarket/funis" element={<SolarmarketFunisPage />} />
+                <Route path="integracoes/solarmarket/etapas" element={<SolarmarketEtapasPage />} />
+                <Route path="integracoes/solarmarket/consultores" element={<SolarmarketConsultoresPage />} />
+                <Route path="integracoes/solarmarket/logs" element={<SolarmarketLogsPage />} />
                 <Route path="integracoes/ia/provedores" element={<AiConfigPage />} />
                 <Route path="integracoes/ia/features" element={<AiConfigPage />} />
                 <Route path="integracoes/ia/lead-scoring" element={<Navigate to="/admin/inteligencia-config" replace />} />
