@@ -172,6 +172,9 @@ const SolarmarketFunisPage = lazy(() => import("@/pages/admin/integracoes/solarm
 const SolarmarketEtapasPage = lazy(() => import("@/pages/admin/integracoes/solarmarket/SolarmarketEtapasPage"));
 const SolarmarketConsultoresPage = lazy(() => import("@/pages/admin/integracoes/solarmarket/SolarmarketConsultoresPage"));
 const SolarmarketLogsPage = lazy(() => import("@/pages/admin/integracoes/solarmarket/SolarmarketLogsPage"));
+const IaProvedoresPage = lazy(() => import("@/pages/admin/integracoes/ia/IaProvedoresPage"));
+const IaFeaturesPage = lazy(() => import("@/pages/admin/integracoes/ia/IaFeaturesPage"));
+const IaLeadScoringPage = lazy(() => import("@/pages/admin/integracoes/ia/IaLeadScoringPage"));
 const DevToolsPage = lazy(() => import("@/pages/admin/DevToolsPage"));
 const RlsTestPage = lazy(() => import("@/pages/admin/dev/RlsTestPage"));
 const BillingFeaturesPage = lazy(() => import("@/components/admin/billing/BillingFeaturesPage"));
@@ -786,9 +789,9 @@ export default function Admin() {
                 <Route path="integracoes/solarmarket/etapas" element={<SolarmarketEtapasPage />} />
                 <Route path="integracoes/solarmarket/consultores" element={<SolarmarketConsultoresPage />} />
                 <Route path="integracoes/solarmarket/logs" element={<SolarmarketLogsPage />} />
-                <Route path="integracoes/ia/provedores" element={<AiConfigPage />} />
-                <Route path="integracoes/ia/features" element={<AiConfigPage />} />
-                <Route path="integracoes/ia/lead-scoring" element={<Navigate to="/admin/inteligencia-config" replace />} />
+                <Route path="integracoes/ia/provedores" element={<IaProvedoresPage />} />
+                <Route path="integracoes/ia/features" element={<IaFeaturesPage />} />
+                <Route path="integracoes/ia/lead-scoring" element={<IaLeadScoringPage />} />
                 <Route path="integracoes/conexoes/provedores" element={<Navigate to="/admin/catalogo-integracoes?tab=catalogo" replace />} />
                 <Route path="integracoes/conexoes/credenciais" element={<Navigate to="/admin/catalogo-integracoes?tab=catalogo" replace />} />
                 <Route path="integracoes/conexoes/jobs" element={<Navigate to="/admin/catalogo-integracoes?tab=saude" replace />} />
