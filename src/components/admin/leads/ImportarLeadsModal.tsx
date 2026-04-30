@@ -42,6 +42,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useConsultoresAtivos } from "@/hooks/useConsultoresAtivos";
 import { useLeadOrigensAtivas } from "@/hooks/useLeadOrigens";
 import { formatPhone } from "@/lib/validations";
+import { toCanonicalPhoneDigits } from "@/utils/phone/toCanonicalPhoneDigits";
 import { toast } from "sonner";
 import * as XLSX from "xlsx";
 
