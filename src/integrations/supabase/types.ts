@@ -28138,27 +28138,17 @@ export type Database = {
         Args: { p_segundos?: number; p_token: string }
         Returns: Json
       }
-      registrar_view_proposta:
-        | {
-            Args: {
-              p_device_type?: string
-              p_ip?: string
-              p_referrer?: string
-              p_screen_width?: number
-              p_token: string
-              p_user_agent?: string
-            }
-            Returns: Json
-          }
-        | {
-            Args: {
-              p_ip?: string
-              p_referrer?: string
-              p_token: string
-              p_user_agent?: string
-            }
-            Returns: Json
-          }
+      registrar_view_proposta: {
+        Args: {
+          p_device_type?: string
+          p_ip?: string
+          p_referrer?: string
+          p_screen_width?: number
+          p_token: string
+          p_user_agent?: string
+        }
+        Returns: Json
+      }
       release_followup_lock: { Args: never; Returns: undefined }
       release_outbox_lock:
         | { Args: never; Returns: undefined }
