@@ -327,6 +327,12 @@ export function OrcamentosTable({
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end" className="w-48">
+                        {orc.projeto_id && (
+                          <DropdownMenuItem onClick={() => navigate(`/admin/projetos?projeto=${orc.projeto_id}`)}>
+                            <FolderOpen className="w-4 h-4 mr-2 text-success" />
+                            Abrir projeto
+                          </DropdownMenuItem>
+                        )}
                         <DropdownMenuItem onClick={() => onView(orc)}>
                           <Eye className="w-4 h-4 mr-2 text-secondary" />
                           Ver detalhes
