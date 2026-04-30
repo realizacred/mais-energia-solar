@@ -75,6 +75,7 @@ export interface ProjetoDetalheContextValue {
 
   // Data
   deal: DealDetail | null;
+  projetoId: string | null;
   history: StageHistory[];
   stages: StageInfo[];
   loading: boolean;
@@ -183,6 +184,7 @@ export function ProjetoDetalheProvider({ dealId, onBack, initialPipelineId, init
 
   // Derived data from query
   const deal = fullData?.deal ?? null;
+  const projetoId = fullData?.projetoId ?? null;
   const history = fullData?.history ?? [];
   const stages = fullData?.stages ?? [];
   const customerName = fullData?.customerName ?? "";
@@ -453,6 +455,7 @@ export function ProjetoDetalheProvider({ dealId, onBack, initialPipelineId, init
     initialPipelineId,
     initialPipelineName,
     deal,
+    projetoId,
     history,
     stages,
     loading: loadingData,
@@ -508,7 +511,7 @@ export function ProjetoDetalheProvider({ dealId, onBack, initialPipelineId, init
     tabBadge,
   }), [
     dealId, onBack, initialPipelineId, initialPipelineName,
-    deal, history, stages, loadingData,
+    deal, projetoId, history, stages, loadingData,
     customerName, customerPhone, customerEmail, customerCpfCnpj, customerAddress, customerEmpresa,
     ownerName, pipelines, allStagesMap, propostasCountData, docsCount, userNamesMap,
     dealEtiquetas, allEtiquetas, etiquetaPopoverOpen,
