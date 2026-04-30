@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Phone, Eye, Trash2, ShoppingCart, UserCheck, MessageSquare, History, UserPlus, Pencil, MoreHorizontal, UserRound, RotateCcw, ScrollText, Loader2 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { Phone, Eye, Trash2, ShoppingCart, UserCheck, MessageSquare, History, UserPlus, Pencil, MoreHorizontal, UserRound, RotateCcw, ScrollText, Loader2, FolderOpen } from "lucide-react";
 import { usePropostaRapidaLead } from "@/hooks/usePropostaRapidaLead";
 import type { QuickLeadData } from "@/hooks/usePropostaRapidaLead";
 import { useReopenLead } from "@/hooks/useReopenLead";
@@ -63,6 +64,7 @@ export function OrcamentosTable({
   const [assignOrcamento, setAssignOrcamento] = useState<OrcamentoDisplayItem | null>(null);
   const [editOpen, setEditOpen] = useState(false);
   const [editOrcamento, setEditOrcamento] = useState<OrcamentoDisplayItem | null>(null);
+  const navigate = useNavigate();
 
   const groupedOrcamentos = useGroupedOrcamentos(orcamentos, sortOption);
   const { reopenLead, reopening } = useReopenLead(onRefresh);
@@ -236,6 +238,16 @@ export function OrcamentosTable({
                   {/* Inline actions for lg+ */}
                   <TooltipProvider>
                     <div className="hidden lg:flex items-center gap-1">
+                      {orc.projeto_id && (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-8 w-8 text-success hover:text-success/80" onClick={() => navigate(`/admin/projetos?projeto=${orc.projeto_id}`)}>
+                              <FolderOpen className="w-4 h-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Abrir projeto vinculado</TooltipContent>
+                        </Tooltip>
+                      )}
                       <Tooltip>
                         <TooltipTrigger asChild>
                           <Button variant="ghost" size="icon" className="h-8 w-8 text-primary hover:text-primary/80" onClick={() => onView(orc)}>
@@ -315,6 +327,12 @@ export function OrcamentosTable({
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end" className="w-48">
+                        {orc.projeto_id && (
+                          <DropdownMenuItem onClick={() => navigate(`/admin/projetos?projeto=${orc.projeto_id}`)}>
+                            <FolderOpen className="w-4 h-4 mr-2 text-success" />
+                            Abrir projeto
+                          </DropdownMenuItem>
+                        )}
                         <DropdownMenuItem onClick={() => onView(orc)}>
                           <Eye className="w-4 h-4 mr-2 text-secondary" />
                           Ver detalhes
