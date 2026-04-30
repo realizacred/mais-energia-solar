@@ -407,5 +407,32 @@ CRITÉRIO DE ACEITE:
 - 100% propostas com pelo menos 1 versão + kit + UC
 
 =============================================================================
-FIM DO AGENTS.md v4.0
+BLOCO 25 — NOVO v4.1 — CENTRAL DE INTEGRAÇÕES SEM DUPLICAÇÃO
+=============================================================================
+
+RB-76 CENTRAL DE INTEGRAÇÕES — AUDITAR ANTES DE CRIAR
+Antes de criar qualquer página, hook, service ou tabela de integração:
+1. Auditar se já existe página equivalente (rg em src/pages e src/components/admin).
+2. Auditar se já existe tabela equivalente (information_schema / types.ts).
+3. Auditar se já existe hook/service equivalente (rg em src/hooks e src/services).
+4. Preferir alias de rota antes de mover componente.
+5. Preferir reaproveitar tabela existente antes de criar nova.
+6. PROIBIDO criar system_integrations_config genérico se já houver tabela específica.
+7. PROIBIDO duplicar configuração de WhatsApp, IA, SolarMarket ou Conexões.
+8. Toda nova tela de integração DEVE declarar no topo (comentário) quais
+   tabelas existentes reaproveita e quais componentes encapsula.
+9. Toda entrega DEVE ser faseada por domínio (WhatsApp, SolarMarket, IA,
+   Conexões — nunca tudo junto).
+10. PROIBIDO implementar "tudo em uma entrega". Fases curtas, validáveis.
+
+DA-48 INTEGRAÇÕES USAM CATÁLOGO COMO SHELL CENTRAL
+- IntegrationsCatalogPage em /admin/catalogo-integracoes é o shell central.
+- A rota /admin/integracoes continua apontando para ele (redirect).
+- Novas áreas devem ser organizadas via menu/submenu e aliases de rota
+  sob /admin/integracoes/{dominio}/{secao}.
+- NÃO criar segunda central paralela.
+- Páginas wrapper finas (≤30 linhas) são preferíveis a duplicar componente.
+
+=============================================================================
+FIM DO AGENTS.md v4.1
 =============================================================================
