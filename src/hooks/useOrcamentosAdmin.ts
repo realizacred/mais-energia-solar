@@ -55,7 +55,26 @@ export function useOrcamentosAdmin({ autoFetch = true, pageSize = PAGE_SIZE }: U
       ]);
 
       if (orcamentosRes.error) throw orcamentosRes.error;
-      
+
+      // Buscar projetos vinculados aos leads desta página (para mostrar atalho na tabela)
+      const leadIds = Array.from(
+        new Set((orcamentosRes.data || []).map((o: any) => o.lead_id).filter(Boolean))
+      );
+      const projetoByLead = new Map<string, string>();
+      if (leadIds.length > 0) {
+        const { data: projsData } = await supabase
+          .from("projetos")
+          .select("id, lead_id, created_at")
+          .in("lead_id", leadIds)
+          .order("created_at", { ascending: false });
+        for (const p of (projsData || []) as any[]) {
+          // mantém o mais recente (primeiro por ordem desc)
+          if (p.lead_id && !projetoByLead.has(p.lead_id)) {
+            projetoByLead.set(p.lead_id, p.id);
+          }
+        }
+      }
+
       // Transform to flat display format
       const displayItems: OrcamentoDisplayItem[] = (orcamentosRes.data || []).map((orc: any) => {
         const leadVendedorNome = orc.orc_consultores?.nome || orc.leads?.consultores?.nome || orc.leads?.consultor || orc.consultor || null;
@@ -94,6 +113,7 @@ export function useOrcamentosAdmin({ autoFetch = true, pageSize = PAGE_SIZE }: U
           data_proxima_acao: orc.data_proxima_acao,
           created_at: orc.created_at,
           updated_at: orc.updated_at,
+          projeto_id: orc.lead_id ? projetoByLead.get(orc.lead_id) ?? null : null,
         };
       });
 
