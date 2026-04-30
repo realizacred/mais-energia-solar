@@ -415,6 +415,7 @@ export function ImportarLeadsModal({ open, onOpenChange, onSuccess }: ImportarLe
         const batch = toImport.slice(i, i + 50);
         const rows = batch.map((r) => {
           const phoneDigits = normalizePhone(r.data.telefone || "");
+          const canonical = toCanonicalPhoneDigits(r.data.telefone || "");
           const formattedPhone = phoneDigits.length === 11
             ? formatPhone(phoneDigits)
             : phoneDigits.length === 10
@@ -430,7 +431,7 @@ export function ImportarLeadsModal({ open, onOpenChange, onSuccess }: ImportarLe
           return {
             nome: r.data.nome.trim(),
             telefone: formattedPhone,
-            telefone_normalized: phoneDigits.slice(-11),
+            telefone_normalized: canonical,
             email: r.data.email?.trim() || null,
             cidade: r.data.cidade?.trim() || "",
             estado: r.data.estado?.trim().toUpperCase().slice(0, 2) || "",
