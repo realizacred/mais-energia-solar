@@ -450,14 +450,29 @@ export function useWaMessages(conversationId?: string) {
       if (error) throw error;
       const sorted = (data || []).reverse(); // oldest first
       // ⚠️ Guard: only commit if user is still on the same conversation.
-      // Prevents stale fetch from overwriting messages of the new conversation.
       if (activeConvIdRef.current !== requestedConvId) {
         return sorted;
       }
       setHasOlderMessages(sorted.length === PAGE_SIZE);
       const withNames = await resolveNames(sorted);
       if (activeConvIdRef.current !== requestedConvId) return withNames;
-      setAllMessages(withNames);
+      // 🛡️ MERGE em vez de SOBRESCREVER: preserva mensagens que chegaram via
+      // realtime ANTES do fetch inicial terminar (evita perda em race condition).
+      setAllMessages(prev => {
+        if (prev.length === 0) return withNames;
+        const map = new Map<string, WaMessage>();
+        for (const m of withNames) map.set(m.id, m);
+        for (const m of prev) {
+          // Mantém mensagens vindas do realtime que não estão no fetch
+          if (!map.has(m.id)) map.set(m.id, m);
+        }
+        return Array.from(map.values()).sort((a, b) => {
+          const ta = new Date(a.created_at).getTime();
+          const tb = new Date(b.created_at).getTime();
+          if (ta !== tb) return ta - tb;
+          return a.id.localeCompare(b.id);
+        });
+      });
       setInitialLoadDone(true);
       return withNames;
     },
@@ -571,7 +586,44 @@ export function useWaMessages(conversationId?: string) {
           );
         }
       )
-      .subscribe();
+      .subscribe(async (status) => {
+        // 🛡️ BACKFILL on (re)connect: closes the gap between subscribe and any
+        // INSERTs that happened during the connection setup or after a network
+        // drop / token renewal (Supabase realtime has no replay).
+        if (status !== "SUBSCRIBED") return;
+        if (activeConvIdRef.current !== conversationId) return;
+        try {
+          // Use the latest message we have as the cursor; fall back to nothing
+          // if state is empty (initial query will own that case).
+          const latest = await new Promise<WaMessage | undefined>((resolve) => {
+            setAllMessages((prev) => {
+              resolve(prev.length > 0 ? prev[prev.length - 1] : undefined);
+              return prev;
+            });
+          });
+          if (!latest) return;
+          const { data, error } = await supabase
+            .from("wa_messages")
+            .select("id, conversation_id, content, direction, message_type, status, source, media_url, media_mime_type, media_status, media_error_message, file_name, file_size, quoted_message_id, sent_by_user_id, is_internal_note, participant_jid, participant_name, evolution_message_id, correlation_id, error_message, error_code, metadata, created_at, queued_at, sent_at, delivered_at, read_at, failed_at")
+            .eq("conversation_id", conversationId)
+            .or(`created_at.gt.${latest.created_at},and(created_at.eq.${latest.created_at},id.gt.${latest.id})`)
+            .order("created_at", { ascending: true })
+            .order("id", { ascending: true })
+            .limit(PAGE_SIZE);
+          if (error || !data || data.length === 0) return;
+          if (activeConvIdRef.current !== conversationId) return;
+          const withNames = await resolveNames(data);
+          if (activeConvIdRef.current !== conversationId) return;
+          setAllMessages((prev) => {
+            const ids = new Set(prev.map((m) => m.id));
+            const merged = [...prev];
+            for (const m of withNames) if (!ids.has(m.id)) merged.push(m);
+            return merged;
+          });
+        } catch {
+          // best-effort backfill — silent failure is acceptable
+        }
+      });
 
     return () => {
       supabase.removeChannel(channel);
