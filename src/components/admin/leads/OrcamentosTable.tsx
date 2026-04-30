@@ -238,6 +238,16 @@ export function OrcamentosTable({
                   {/* Inline actions for lg+ */}
                   <TooltipProvider>
                     <div className="hidden lg:flex items-center gap-1">
+                      {orc.projeto_id && (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-8 w-8 text-success hover:text-success/80" onClick={() => navigate(`/admin/projetos?projeto=${orc.projeto_id}`)}>
+                              <FolderOpen className="w-4 h-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Abrir projeto vinculado</TooltipContent>
+                        </Tooltip>
+                      )}
                       <Tooltip>
                         <TooltipTrigger asChild>
                           <Button variant="ghost" size="icon" className="h-8 w-8 text-primary hover:text-primary/80" onClick={() => onView(orc)}>
