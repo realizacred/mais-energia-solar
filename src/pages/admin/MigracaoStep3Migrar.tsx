@@ -253,12 +253,13 @@ export default function MigracaoStep3Migrar() {
   const totalStaging =
     (totals?.clientes.total ?? 0) +
     (totals?.projetos.total ?? 0) +
-    (totals?.propostas.total ?? 0);
+    Math.max(0, (totals?.propostas.total ?? 0) - (totals?.blocked.propostas ?? 0));
   const totalPromoted =
     (totals?.clientes.promoted ?? 0) +
     (totals?.projetos.promoted ?? 0) +
     (totals?.propostas.promoted ?? 0);
   const totalPending = Math.max(0, totalStaging - totalPromoted);
+  const blockedPropostas = totals?.blocked.propostas ?? 0;
   const nothingToDo = totalStaging === 0;
   const lastActivityLabel = formatRelativeTimestamp(progress?.lastActivityAt ?? null);
   const statusLabel = formatJobStatusLabel(job?.status);
@@ -322,7 +323,7 @@ export default function MigracaoStep3Migrar() {
         icon: CheckCircle2,
         spin: false,
         title: "Migração concluída para o staging atual",
-        desc: `${totalPromoted.toLocaleString("pt-BR")} registros no CRM • última atividade ${lastActivityLabel}.`,
+        desc: `${totalPromoted.toLocaleString("pt-BR")} registros no CRM • ${blockedPropostas.toLocaleString("pt-BR")} bloqueados por regra dura • última atividade ${lastActivityLabel}.`,
         action: null,
       };
     }
@@ -341,7 +342,7 @@ export default function MigracaoStep3Migrar() {
       icon: Rocket,
       spin: false,
       title: "Pronto para iniciar a migração",
-      desc: `${totalStaging.toLocaleString("pt-BR")} registros no staging • ${totalPromoted.toLocaleString("pt-BR")} já no CRM.`,
+      desc: `${totalStaging.toLocaleString("pt-BR")} registros migráveis • ${totalPromoted.toLocaleString("pt-BR")} já no CRM.`,
       action: null,
     };
   })();
@@ -508,6 +509,11 @@ export default function MigracaoStep3Migrar() {
                 <p className="text-[11px] uppercase tracking-wide text-muted-foreground font-medium">Pendentes</p>
                 <p className={`text-xl font-bold tracking-tight font-mono mt-0.5 ${totalPending > 0 ? "text-warning" : "text-muted-foreground"}`}>
                   {totalPending.toLocaleString("pt-BR")}
+                  {blockedPropostas > 0 && (
+                    <span className="ml-2 text-xs font-medium text-muted-foreground">
+                      + {blockedPropostas.toLocaleString("pt-BR")} bloqueadas
+                    </span>
+                  )}
                 </p>
               </div>
             </div>
@@ -553,7 +559,7 @@ export default function MigracaoStep3Migrar() {
                 icon: FileText,
                 label: "Propostas + custom fields",
                 promoted: totals?.propostas.promoted ?? 0,
-                total: totals?.propostas.total ?? 0,
+                total: Math.max(0, (totals?.propostas.total ?? 0) - (totals?.blocked.propostas ?? 0)),
               },
             ];
 

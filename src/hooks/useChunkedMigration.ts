@@ -65,6 +65,7 @@ export interface ChunkedTotals {
   clientes: { promoted: number; total: number };
   projetos: { promoted: number; total: number };
   propostas: { promoted: number; total: number };
+  blocked: { clientes: number; projetos: number; propostas: number };
 }
 
 export interface ChunkedProgress {
@@ -117,7 +118,11 @@ function applyOptimisticJobState(
   const lastActivityAgeMs = lastActivityAt
     ? Math.max(0, Date.now() - new Date(lastActivityAt).getTime())
     : null;
-  const hasBacklog = previous.totals.propostas.total > previous.totals.propostas.promoted;
+    const effectiveProposalTotal = Math.max(
+      0,
+      previous.totals.propostas.total - (previous.totals.blocked?.propostas ?? 0),
+    );
+    const hasBacklog = effectiveProposalTotal > previous.totals.propostas.promoted;
   const isRunning = nextJob.status === "running";
   const isComplete = nextJob.status === "completed" || nextJob.status === "completed_with_warnings";
   const isResumable = (nextJob.status === "failed" || nextJob.status === "cancelled") && hasBacklog;
@@ -249,7 +254,7 @@ export function useChunkedMigration() {
 
       // 2. Totais por entidade — staging vs canônico.
       //    Importante: projetos e propostas usam `external_source`, não `import_source`.
-      const [cliRaw, projRaw, propRaw, cliProm, projProm, propProm] = await Promise.all([
+      const [cliRaw, projRaw, propRaw, cliProm, projProm, propProm, propBlocked] = await Promise.all([
         supabase.from("sm_clientes_raw").select("id", { count: "exact", head: true }).eq("tenant_id", tenantId!),
         supabase.from("sm_projetos_raw").select("id", { count: "exact", head: true }).eq("tenant_id", tenantId!),
         supabase.from("sm_propostas_raw").select("id", { count: "exact", head: true }).eq("tenant_id", tenantId!),
@@ -270,12 +275,23 @@ export function useChunkedMigration() {
           .eq("tenant_id", tenantId!)
           .in("external_source", [...LEGACY_SM_SOURCES])
           .not("deal_id", "is", null),
+        supabase
+          .from("solarmarket_promotion_logs")
+          .select("source_entity_id")
+          .eq("tenant_id", tenantId!)
+          .eq("source_entity_type", "proposta")
+          .eq("step", "eligibility")
+          .eq("severity", "error")
+          .neq("error_code", "CLIENT_NO_CONTACT"),
       ]);
+
+      const blockedPropostas = new Set((propBlocked.data ?? []).map((row) => row.source_entity_id).filter(Boolean)).size;
 
       const totals: ChunkedTotals = {
         clientes: { promoted: cliProm.count ?? 0, total: cliRaw.count ?? 0 },
         projetos: { promoted: projProm.count ?? 0, total: projRaw.count ?? 0 },
         propostas: { promoted: propProm.count ?? 0, total: propRaw.count ?? 0 },
+        blocked: { clientes: 0, projetos: 0, propostas: blockedPropostas },
       };
 
       const isRunning = !!job && job.status === "running";
@@ -283,7 +299,8 @@ export function useChunkedMigration() {
         !!job && (job.status === "completed" || job.status === "completed_with_warnings");
 
       // Resumable: último job parou no meio E ainda tem propostas em staging não migradas
-      const propostasFaltam = totals.propostas.total - totals.propostas.promoted;
+      const effectiveProposalTotal = Math.max(0, totals.propostas.total - totals.blocked.propostas);
+      const propostasFaltam = effectiveProposalTotal - totals.propostas.promoted;
       const isResumable =
         !!job &&
         (job.status === "failed" || job.status === "cancelled") &&
@@ -304,8 +321,8 @@ export function useChunkedMigration() {
       const pctGeral = total > 0 ? Math.min(100, Math.round((processed / total) * 100)) : 0;
 
       const pctTotal =
-        totals.propostas.total > 0
-          ? Math.min(100, Math.round((totals.propostas.promoted / totals.propostas.total) * 100))
+        effectiveProposalTotal > 0
+          ? Math.min(100, Math.round((totals.propostas.promoted / effectiveProposalTotal) * 100))
           : 0;
       const executionState: ChunkedProgress["executionState"] =
         totals.clientes.total + totals.projetos.total + totals.propostas.total === 0
