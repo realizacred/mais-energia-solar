@@ -763,7 +763,28 @@ export default function Admin() {
                 <Route path="solarmarket-mapping" element={<Navigate to="/admin/migracao-solarmarket/mapear" replace />} />
                 <Route path="configuracoes/integracoes/solarmarket" element={<SolarmarketConfigPage />} />
                 <Route path="solarmarket-diagnostic" element={<SolarmarketDiagnosticPage />} />
-                
+
+                {/* Aliases — Central de Configurações de Integrações (Fase 1) */}
+                {/* Reaproveitam páginas existentes; rotas antigas continuam funcionando. */}
+                <Route path="integracoes/whatsapp/saude" element={<WaSaudePage />} />
+                <Route path="integracoes/whatsapp/instancias" element={<Navigate to="/admin/catalogo-integracoes?tab=instancias" replace />} />
+                <Route path="integracoes/whatsapp/ia-resolucao" element={<WaSaudePage />} />
+                <Route path="integracoes/whatsapp/auto-respostas" element={<Navigate to="/admin/automacoes" replace />} />
+                <Route path="integracoes/whatsapp/follow-up" element={<Navigate to="/admin/followup-wa" replace />} />
+                <Route path="integracoes/solarmarket/migracao" element={<Navigate to="/admin/migracao-solarmarket" replace />} />
+                <Route path="integracoes/solarmarket/configuracoes" element={<SolarmarketConfigPage />} />
+                <Route path="integracoes/solarmarket/funis" element={<Navigate to="/admin/migracao-solarmarket/mapear" replace />} />
+                <Route path="integracoes/solarmarket/etapas" element={<Navigate to="/admin/migracao-solarmarket/mapear" replace />} />
+                <Route path="integracoes/solarmarket/consultores" element={<Navigate to="/admin/migracao-solarmarket/mapear" replace />} />
+                <Route path="integracoes/ia/provedores" element={<AiConfigPage />} />
+                <Route path="integracoes/ia/features" element={<AiConfigPage />} />
+                <Route path="integracoes/ia/lead-scoring" element={<Navigate to="/admin/inteligencia-config" replace />} />
+                <Route path="integracoes/conexoes/provedores" element={<Navigate to="/admin/catalogo-integracoes?tab=catalogo" replace />} />
+                <Route path="integracoes/conexoes/credenciais" element={<Navigate to="/admin/catalogo-integracoes?tab=catalogo" replace />} />
+                <Route path="integracoes/conexoes/jobs" element={<Navigate to="/admin/catalogo-integracoes?tab=saude" replace />} />
+                <Route path="integracoes/conexoes/logs" element={<Navigate to="/admin/auditoria" replace />} />
+                <Route path="integracoes/visao-geral" element={<Navigate to="/admin/catalogo-integracoes?tab=overview" replace />} />
+
                 {/* Catch-all */}
                 <Route path="*" element={<Navigate to="leads" replace />} />
               </Routes>
