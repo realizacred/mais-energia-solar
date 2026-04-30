@@ -521,7 +521,11 @@ export function useWaMessages(conversationId?: string) {
         },
         async (payload) => {
           const newMsg = payload.new as any;
+          // ⚠️ Guard: realtime channel can fire briefly after conversation change
+          // (cleanup is async). Drop events that don't match the active conv.
+          if (newMsg.conversation_id !== activeConvIdRef.current) return;
           const [withName] = await resolveNames([newMsg]);
+          if (activeConvIdRef.current !== newMsg.conversation_id) return;
           setAllMessages(prev => {
             // Deterministic dedup: check by id, correlation_id, or evolution_message_id
             const isDuplicate = prev.some(m => 
