@@ -786,9 +786,9 @@ export default function Admin() {
                 <Route path="integracoes/solarmarket/etapas" element={<SolarmarketEtapasPage />} />
                 <Route path="integracoes/solarmarket/consultores" element={<SolarmarketConsultoresPage />} />
                 <Route path="integracoes/solarmarket/logs" element={<SolarmarketLogsPage />} />
-                <Route path="integracoes/ia/provedores" element={<AiConfigPage />} />
-                <Route path="integracoes/ia/features" element={<AiConfigPage />} />
-                <Route path="integracoes/ia/lead-scoring" element={<Navigate to="/admin/inteligencia-config" replace />} />
+                <Route path="integracoes/ia/provedores" element={<IaProvedoresPage />} />
+                <Route path="integracoes/ia/features" element={<IaFeaturesPage />} />
+                <Route path="integracoes/ia/lead-scoring" element={<IaLeadScoringPage />} />
                 <Route path="integracoes/conexoes/provedores" element={<Navigate to="/admin/catalogo-integracoes?tab=catalogo" replace />} />
                 <Route path="integracoes/conexoes/credenciais" element={<Navigate to="/admin/catalogo-integracoes?tab=catalogo" replace />} />
                 <Route path="integracoes/conexoes/jobs" element={<Navigate to="/admin/catalogo-integracoes?tab=saude" replace />} />
