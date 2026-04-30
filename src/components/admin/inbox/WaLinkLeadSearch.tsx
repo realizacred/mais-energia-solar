@@ -40,7 +40,7 @@ interface WaLinkLeadSearchProps {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   conversation: WaConversation | null;
-  onLink: (leadId: string | null) => void;
+  onLink: (link: { leadId: string | null; clienteId: string | null }) => void;
 }
 
 // Strip country code "55" prefix and format for better matching
@@ -160,14 +160,12 @@ export function WaLinkLeadSearch({
   });
 
   const handleSelectLead = (lead: LeadResult) => {
-    onLink(lead.id);
+    onLink({ leadId: lead.id, clienteId: null });
     onOpenChange(false);
   };
 
   const handleSelectCliente = (cliente: ClienteResult) => {
-    // Link by lead_id if client has one, otherwise link client id
-    const linkId = cliente.lead_id || cliente.id;
-    onLink(linkId);
+    onLink({ leadId: cliente.lead_id || null, clienteId: cliente.id });
     onOpenChange(false);
   };
 
@@ -297,14 +295,17 @@ export function WaLinkLeadSearch({
           </Tabs>
 
           {/* Current link info */}
-          {conversation?.lead_id && (
+          {(conversation?.lead_id || conversation?.cliente_id) && (
             <div className="flex items-center justify-between px-2 py-1.5 bg-muted/30 rounded-lg text-xs text-muted-foreground">
-              <span>Lead vinculado atualmente: <code className="text-[10px]">{conversation.lead_id.substring(0, 8)}...</code></span>
+              <span>
+                {conversation.lead_id ? "Lead" : "Cliente"} vinculado atualmente:{" "}
+                <code className="text-[10px]">{(conversation.lead_id || conversation.cliente_id)?.substring(0, 8)}...</code>
+              </span>
               <Button
                 size="sm"
                 variant="ghost"
                 className="h-6 text-xs text-destructive hover:text-destructive"
-                onClick={() => { onLink(null); onOpenChange(false); }}
+                onClick={() => { onLink({ leadId: null, clienteId: null }); onOpenChange(false); }}
               >
                 <Link2Off className="h-3 w-3 mr-1" />
                 Desvincular

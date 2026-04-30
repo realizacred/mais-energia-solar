@@ -595,10 +595,10 @@ export function WaInbox({ vendorMode = false, vendorUserId, showCompactStats = f
     setSelectedConv({ ...selectedConv, assigned_to: null });
   };
 
-  const handleLinkLead = (leadId: string | null) => {
+  const handleLinkLead = ({ leadId, clienteId }: { leadId: string | null; clienteId: string | null }) => {
     if (!selectedConv) return;
-    updateConversation({ id: selectedConv.id, updates: { lead_id: leadId } as any });
-    setSelectedConv({ ...selectedConv, lead_id: leadId });
+    updateConversation({ id: selectedConv.id, updates: { lead_id: leadId, cliente_id: clienteId } });
+    setSelectedConv({ ...selectedConv, lead_id: leadId, cliente_id: clienteId });
   };
 
   const handleToggleTag = (tagId: string, add: boolean) => {
