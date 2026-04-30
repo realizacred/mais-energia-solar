@@ -118,7 +118,10 @@ function applyOptimisticJobState(
   const lastActivityAgeMs = lastActivityAt
     ? Math.max(0, Date.now() - new Date(lastActivityAt).getTime())
     : null;
-    const effectiveProposalTotal = Math.max(0, previous.totals.propostas.total - previous.totals.blocked.propostas);
+    const effectiveProposalTotal = Math.max(
+      0,
+      previous.totals.propostas.total - (previous.totals.blocked?.propostas ?? 0),
+    );
     const hasBacklog = effectiveProposalTotal > previous.totals.propostas.promoted;
   const isRunning = nextJob.status === "running";
   const isComplete = nextJob.status === "completed" || nextJob.status === "completed_with_warnings";
@@ -274,7 +277,7 @@ export function useChunkedMigration() {
           .not("deal_id", "is", null),
         supabase
           .from("solarmarket_promotion_logs")
-          .select("source_entity_id", { count: "exact", head: true })
+          .select("source_entity_id")
           .eq("tenant_id", tenantId!)
           .eq("source_entity_type", "proposta")
           .eq("step", "eligibility")
@@ -282,7 +285,7 @@ export function useChunkedMigration() {
           .neq("error_code", "CLIENT_NO_CONTACT"),
       ]);
 
-      const blockedPropostas = propBlocked.count ?? 0;
+      const blockedPropostas = new Set((propBlocked.data ?? []).map((row) => row.source_entity_id).filter(Boolean)).size;
 
       const totals: ChunkedTotals = {
         clientes: { promoted: cliProm.count ?? 0, total: cliRaw.count ?? 0 },
