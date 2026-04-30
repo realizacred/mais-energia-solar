@@ -25377,12 +25377,15 @@ export type Database = {
           mensagem_enviada: string | null
           mensagem_original: string | null
           metadata: Json | null
+          proposal_context: Json | null
+          proposta_id: string | null
           queue_id: string | null
           responded_at: string | null
           response_time_minutes: number | null
           rule_id: string | null
           tenant_id: string
           tentativa: number | null
+          versao_id: string | null
         }
         Insert: {
           action: string
@@ -25398,12 +25401,15 @@ export type Database = {
           mensagem_enviada?: string | null
           mensagem_original?: string | null
           metadata?: Json | null
+          proposal_context?: Json | null
+          proposta_id?: string | null
           queue_id?: string | null
           responded_at?: string | null
           response_time_minutes?: number | null
           rule_id?: string | null
           tenant_id: string
           tentativa?: number | null
+          versao_id?: string | null
         }
         Update: {
           action?: string
@@ -25419,12 +25425,15 @@ export type Database = {
           mensagem_enviada?: string | null
           mensagem_original?: string | null
           metadata?: Json | null
+          proposal_context?: Json | null
+          proposta_id?: string | null
           queue_id?: string | null
           responded_at?: string | null
           response_time_minutes?: number | null
           rule_id?: string | null
           tenant_id?: string
           tentativa?: number | null
+          versao_id?: string | null
         }
         Relationships: [
           {
@@ -25460,11 +25469,14 @@ export type Database = {
       wa_followup_queue: {
         Row: {
           assigned_to: string | null
+          cenario: string | null
           conversation_id: string
           created_at: string
           google_calendar_event_id: string | null
           id: string
           mensagem_enviada: string | null
+          proposal_context: Json | null
+          proposta_id: string | null
           responded_at: string | null
           rule_id: string
           scheduled_at: string
@@ -25473,14 +25485,18 @@ export type Database = {
           tenant_id: string
           tentativa: number
           updated_at: string
+          versao_id: string | null
         }
         Insert: {
           assigned_to?: string | null
+          cenario?: string | null
           conversation_id: string
           created_at?: string
           google_calendar_event_id?: string | null
           id?: string
           mensagem_enviada?: string | null
+          proposal_context?: Json | null
+          proposta_id?: string | null
           responded_at?: string | null
           rule_id: string
           scheduled_at: string
@@ -25489,14 +25505,18 @@ export type Database = {
           tenant_id: string
           tentativa?: number
           updated_at?: string
+          versao_id?: string | null
         }
         Update: {
           assigned_to?: string | null
+          cenario?: string | null
           conversation_id?: string
           created_at?: string
           google_calendar_event_id?: string | null
           id?: string
           mensagem_enviada?: string | null
+          proposal_context?: Json | null
+          proposta_id?: string | null
           responded_at?: string | null
           rule_id?: string
           scheduled_at?: string
@@ -25505,6 +25525,7 @@ export type Database = {
           tenant_id?: string
           tentativa?: number
           updated_at?: string
+          versao_id?: string | null
         }
         Relationships: [
           {
@@ -25527,6 +25548,8 @@ export type Database = {
         Row: {
           ativo: boolean
           cenario: string
+          config: Json
+          cooldown_horas: number
           created_at: string
           descricao: string | null
           envio_automatico: boolean
@@ -25536,14 +25559,18 @@ export type Database = {
           nome: string
           ordem: number
           prazo_minutos: number
+          precisa_revisao_humana: boolean
           prioridade: string
           status_conversa: string[] | null
           tenant_id: string
           updated_at: string
+          usar_ia: boolean
         }
         Insert: {
           ativo?: boolean
           cenario: string
+          config?: Json
+          cooldown_horas?: number
           created_at?: string
           descricao?: string | null
           envio_automatico?: boolean
@@ -25553,14 +25580,18 @@ export type Database = {
           nome: string
           ordem?: number
           prazo_minutos?: number
+          precisa_revisao_humana?: boolean
           prioridade?: string
           status_conversa?: string[] | null
           tenant_id: string
           updated_at?: string
+          usar_ia?: boolean
         }
         Update: {
           ativo?: boolean
           cenario?: string
+          config?: Json
+          cooldown_horas?: number
           created_at?: string
           descricao?: string | null
           envio_automatico?: boolean
@@ -25570,10 +25601,12 @@ export type Database = {
           nome?: string
           ordem?: number
           prazo_minutos?: number
+          precisa_revisao_humana?: boolean
           prioridade?: string
           status_conversa?: string[] | null
           tenant_id?: string
           updated_at?: string
+          usar_ia?: boolean
         }
         Relationships: [
           {
@@ -27228,6 +27261,37 @@ export type Database = {
           remote_jid: string
           rule_id: string
           tenant_id: string
+        }[]
+      }
+      claim_proposal_followup_candidates: {
+        Args: { _limit?: number }
+        Returns: {
+          attempt_count: number
+          cenario: string
+          cliente_id: string
+          cliente_nome: string
+          cliente_telefone: string
+          consultor_id: string
+          cooldown_horas: number
+          deal_id: string
+          economia_mensal: number
+          enviada_at: string
+          fallback_template: string
+          max_tentativas: number
+          payback_meses: number
+          potencia_kwp: number
+          precisa_revisao_humana: boolean
+          projeto_id: string
+          prompt_ia: string
+          proposta_id: string
+          rule_id: string
+          status_proposta: string
+          tenant_id: string
+          usar_ia: boolean
+          valido_ate: string
+          valor_total: number
+          versao_id: string
+          viewed_at: string
         }[]
       }
       claim_wa_bg_jobs: {
