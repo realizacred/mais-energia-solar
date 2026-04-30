@@ -492,9 +492,12 @@ export function useWaMessages(conversationId?: string) {
         .limit(PAGE_SIZE);
       if (error) throw error;
       const older = (data || []).reverse();
+      // ⚠️ Guard: ignore result if user switched conversations mid-fetch
+      if (activeConvIdRef.current !== conversationId) return;
       setHasOlderMessages(older.length === PAGE_SIZE);
       if (older.length > 0) {
         const withNames = await resolveNames(older);
+        if (activeConvIdRef.current !== conversationId) return;
         setAllMessages(prev => [...withNames, ...prev]);
       }
     } finally {
