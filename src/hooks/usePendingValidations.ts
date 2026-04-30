@@ -1,6 +1,87 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
+/**
+ * SSOT — Validação de Vendas (RB-59 / RB-67):
+ *
+ * Dados migrados do SolarMarket NÃO preenchem `clientes.valor_projeto` nem
+ * `clientes.potencia_kwp`. Os valores canônicos vivem em
+ * `proposta_versoes.valor_total` e `proposta_versoes.potencia_kwp`, vinculados
+ * via `propostas_nativas.cliente_id` e `propostas_nativas.versao_atual`.
+ *
+ * Esta função enriquece os itens carregados (clientes/historico) com os valores
+ * corretos da última versão da proposta principal de cada cliente, sem alterar
+ * o shape público dos itens — assim a UI segue funcionando inalterada.
+ */
+async function enrichWithPropostaVersao<T extends { id: string; valor_projeto: number | null; potencia_kwp: number | null }>(
+  items: T[],
+): Promise<T[]> {
+  const clienteIds = items.map((i) => i.id).filter((id) => id && !id.startsWith("lead-"));
+  if (clienteIds.length === 0) return items;
+
+  // Busca todas as propostas dos clientes (status != excluida).
+  const { data: propostas } = await supabase
+    .from("propostas_nativas")
+    .select("id, cliente_id, versao_atual, status")
+    .in("cliente_id", clienteIds)
+    .neq("status", "excluida");
+
+  if (!propostas || propostas.length === 0) return items;
+
+  // Agrupa por cliente. Preferência: status='aceita' > 'enviada' > demais (mais recente vence).
+  const rank = (s: string | null) => (s === "aceita" ? 3 : s === "enviada" ? 2 : 1);
+  const propostaPorCliente = new Map<string, { id: string; versao_atual: number | null }>();
+  for (const p of propostas) {
+    const cur = propostaPorCliente.get(p.cliente_id);
+    if (!cur || rank(p.status) > rank((cur as any).status ?? null)) {
+      propostaPorCliente.set(p.cliente_id, p as any);
+    }
+  }
+
+  const propostaIds = Array.from(propostaPorCliente.values()).map((p) => p.id);
+  if (propostaIds.length === 0) return items;
+
+  const { data: versoes } = await supabase
+    .from("proposta_versoes")
+    .select("proposta_id, versao_numero, valor_total, potencia_kwp, created_at")
+    .in("proposta_id", propostaIds)
+    .order("versao_numero", { ascending: false });
+
+  if (!versoes || versoes.length === 0) return items;
+
+  // Mapa proposta_id -> melhor versão (versao_atual se bater, senão a maior).
+  const versaoPorProposta = new Map<string, { valor_total: number | null; potencia_kwp: number | null }>();
+  for (const v of versoes) {
+    const propostaInfo = Array.from(propostaPorCliente.values()).find((p) => p.id === v.proposta_id);
+    const isPreferida = propostaInfo?.versao_atual != null
+      ? v.versao_numero === propostaInfo.versao_atual
+      : true;
+    if (!versaoPorProposta.has(v.proposta_id) || isPreferida) {
+      versaoPorProposta.set(v.proposta_id, {
+        valor_total: v.valor_total,
+        potencia_kwp: v.potencia_kwp,
+      });
+    }
+  }
+
+  const valorPorCliente = new Map<string, { valor: number | null; potencia: number | null }>();
+  for (const [clienteId, proposta] of propostaPorCliente.entries()) {
+    const v = versaoPorProposta.get(proposta.id);
+    if (v) valorPorCliente.set(clienteId, { valor: v.valor_total, potencia: v.potencia_kwp });
+  }
+
+  return items.map((item) => {
+    const enr = valorPorCliente.get(item.id);
+    if (!enr) return item;
+    // Só sobrescreve se a fonte legada estiver vazia (preserva fluxo nativo).
+    return {
+      ...item,
+      valor_projeto: (item.valor_projeto && item.valor_projeto > 0) ? item.valor_projeto : (enr.valor ?? null),
+      potencia_kwp: (item.potencia_kwp && item.potencia_kwp > 0) ? item.potencia_kwp : (enr.potencia ?? null),
+    };
+  });
+}
+
 export interface PendingValidation {
   id: string;
   nome: string;
@@ -195,8 +276,9 @@ export function usePendingValidations() {
       }
 
       const items = [...clienteItems, ...orphanItems];
-      setPendingItems(items);
-      setPendingCount(items.length);
+      const enriched = await enrichWithPropostaVersao(items);
+      setPendingItems(enriched);
+      setPendingCount(enriched.length);
     } catch (error) {
       console.error("Error fetching pending validations:", error);
     } finally {
@@ -251,7 +333,8 @@ export function usePendingValidations() {
         .limit(50);
 
       if (error) throw error;
-      setHistoryItems((data as unknown as ValidationHistory[]) || []);
+      const enriched = await enrichWithPropostaVersao((data as unknown as ValidationHistory[]) || []);
+      setHistoryItems(enriched);
     } catch (error) {
       console.error("Error fetching validation history:", error);
     } finally {
