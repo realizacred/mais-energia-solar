@@ -406,6 +406,14 @@ export function useWaMessages(conversationId?: string) {
   // Attendant name cache
   const namesCache = useRef<Record<string, string>>({});
 
+  // ⚠️ Guard ref: tracks the currently-active conversationId to prevent
+  // stale async callbacks (initial query, realtime, loadOlder) from writing
+  // messages of a previous conversation into the current one.
+  const activeConvIdRef = useRef<string | undefined>(conversationId);
+  useEffect(() => {
+    activeConvIdRef.current = conversationId;
+  }, [conversationId]);
+
   const resolveNames = useCallback(async (msgs: any[]): Promise<WaMessage[]> => {
     const userIds = [...new Set(msgs.filter(m => m.sent_by_user_id).map(m => m.sent_by_user_id!))];
     const uncached = userIds.filter(id => !(id in namesCache.current));
@@ -431,17 +439,24 @@ export function useWaMessages(conversationId?: string) {
     queryKey: ["wa-messages-initial", conversationId],
     queryFn: async () => {
       if (!conversationId) return [];
+      const requestedConvId = conversationId;
       const { data, error } = await supabase
         .from("wa_messages")
         .select("id, conversation_id, content, direction, message_type, status, source, media_url, media_mime_type, media_status, media_error_message, file_name, file_size, quoted_message_id, sent_by_user_id, is_internal_note, participant_jid, participant_name, evolution_message_id, correlation_id, error_message, error_code, metadata, created_at, queued_at, sent_at, delivered_at, read_at, failed_at")
-        .eq("conversation_id", conversationId)
+        .eq("conversation_id", requestedConvId)
         .order("created_at", { ascending: false })
         .order("id", { ascending: false })
         .limit(PAGE_SIZE);
       if (error) throw error;
       const sorted = (data || []).reverse(); // oldest first
+      // ⚠️ Guard: only commit if user is still on the same conversation.
+      // Prevents stale fetch from overwriting messages of the new conversation.
+      if (activeConvIdRef.current !== requestedConvId) {
+        return sorted;
+      }
       setHasOlderMessages(sorted.length === PAGE_SIZE);
       const withNames = await resolveNames(sorted);
+      if (activeConvIdRef.current !== requestedConvId) return withNames;
       setAllMessages(withNames);
       setInitialLoadDone(true);
       return withNames;
@@ -451,10 +466,12 @@ export function useWaMessages(conversationId?: string) {
     gcTime: 2 * 60_000,
   });
 
-  // Reset pagination/loading state on conversation change
-  // Note: do NOT clear allMessages here — the query (line 445) will replace them
-  // when new data arrives, avoiding a flash of empty screen
+  // Reset state on conversation change. Clearing allMessages here is REQUIRED
+  // to prevent messages from a previous conversation flashing in the new one
+  // (cross-conversation leak). The brief empty state is acceptable; React Query
+  // cache + 30s staleTime makes returning to a recent conversation instant.
   useEffect(() => {
+    setAllMessages([]);
     setHasOlderMessages(true);
     setInitialLoadDone(false);
   }, [conversationId]);
@@ -475,9 +492,12 @@ export function useWaMessages(conversationId?: string) {
         .limit(PAGE_SIZE);
       if (error) throw error;
       const older = (data || []).reverse();
+      // ⚠️ Guard: ignore result if user switched conversations mid-fetch
+      if (activeConvIdRef.current !== conversationId) return;
       setHasOlderMessages(older.length === PAGE_SIZE);
       if (older.length > 0) {
         const withNames = await resolveNames(older);
+        if (activeConvIdRef.current !== conversationId) return;
         setAllMessages(prev => [...withNames, ...prev]);
       }
     } finally {
@@ -501,7 +521,11 @@ export function useWaMessages(conversationId?: string) {
         },
         async (payload) => {
           const newMsg = payload.new as any;
+          // ⚠️ Guard: realtime channel can fire briefly after conversation change
+          // (cleanup is async). Drop events that don't match the active conv.
+          if (newMsg.conversation_id !== activeConvIdRef.current) return;
           const [withName] = await resolveNames([newMsg]);
+          if (activeConvIdRef.current !== newMsg.conversation_id) return;
           setAllMessages(prev => {
             // Deterministic dedup: check by id, correlation_id, or evolution_message_id
             const isDuplicate = prev.some(m => 
@@ -528,6 +552,8 @@ export function useWaMessages(conversationId?: string) {
         },
         (payload) => {
           const updated = payload.new as any;
+          // ⚠️ Guard against cross-conversation leak from late realtime events
+          if (updated.conversation_id !== activeConvIdRef.current) return;
           // Safe merge: only apply non-null/non-undefined fields to prevent
           // Realtime payloads with null values from wiping existing data
           const safeFields = Object.fromEntries(
