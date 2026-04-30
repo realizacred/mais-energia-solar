@@ -172,6 +172,9 @@ const SolarmarketFunisPage = lazy(() => import("@/pages/admin/integracoes/solarm
 const SolarmarketEtapasPage = lazy(() => import("@/pages/admin/integracoes/solarmarket/SolarmarketEtapasPage"));
 const SolarmarketConsultoresPage = lazy(() => import("@/pages/admin/integracoes/solarmarket/SolarmarketConsultoresPage"));
 const SolarmarketLogsPage = lazy(() => import("@/pages/admin/integracoes/solarmarket/SolarmarketLogsPage"));
+const IaProvedoresPage = lazy(() => import("@/pages/admin/integracoes/ia/IaProvedoresPage"));
+const IaFeaturesPage = lazy(() => import("@/pages/admin/integracoes/ia/IaFeaturesPage"));
+const IaLeadScoringPage = lazy(() => import("@/pages/admin/integracoes/ia/IaLeadScoringPage"));
 const DevToolsPage = lazy(() => import("@/pages/admin/DevToolsPage"));
 const RlsTestPage = lazy(() => import("@/pages/admin/dev/RlsTestPage"));
 const BillingFeaturesPage = lazy(() => import("@/components/admin/billing/BillingFeaturesPage"));
