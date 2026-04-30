@@ -250,10 +250,16 @@ export default function MigracaoStep3Migrar() {
   const isComplete = !!progress?.isComplete;
   const isResumable = !!progress?.isResumable;
   const isStuck = !!progress?.isStuck;
-  const totalStaging =
-    (totals?.clientes.total ?? 0) +
-    (totals?.projetos.total ?? 0) +
-    Math.max(0, (totals?.propostas.total ?? 0) - (totals?.blocked.propostas ?? 0));
+  const effectiveClientesTotal = isComplete
+    ? (totals?.clientes.promoted ?? 0)
+    : (totals?.clientes.total ?? 0);
+  const effectiveProjetosTotal = isComplete
+    ? (totals?.projetos.promoted ?? 0)
+    : (totals?.projetos.total ?? 0);
+  const effectivePropostasTotal = isComplete
+    ? (totals?.propostas.promoted ?? 0)
+    : Math.max(0, (totals?.propostas.total ?? 0) - (totals?.blocked.propostas ?? 0));
+  const totalStaging = effectiveClientesTotal + effectiveProjetosTotal + effectivePropostasTotal;
   const totalPromoted =
     (totals?.clientes.promoted ?? 0) +
     (totals?.projetos.promoted ?? 0) +
@@ -545,21 +551,21 @@ export default function MigracaoStep3Migrar() {
                 icon: Users,
                 label: "Clientes",
                 promoted: totals?.clientes.promoted ?? 0,
-                total: totals?.clientes.total ?? 0,
+                total: effectiveClientesTotal,
               },
               {
                 step: 2,
                 icon: FolderKanban,
                 label: "Projetos",
                 promoted: totals?.projetos.promoted ?? 0,
-                total: totals?.projetos.total ?? 0,
+                total: effectiveProjetosTotal,
               },
               {
                 step: 3,
                 icon: FileText,
                 label: "Propostas + custom fields",
                 promoted: totals?.propostas.promoted ?? 0,
-                total: Math.max(0, (totals?.propostas.total ?? 0) - (totals?.blocked.propostas ?? 0)),
+                total: effectivePropostasTotal,
               },
             ];
 
