@@ -450,14 +450,29 @@ export function useWaMessages(conversationId?: string) {
       if (error) throw error;
       const sorted = (data || []).reverse(); // oldest first
       // ⚠️ Guard: only commit if user is still on the same conversation.
-      // Prevents stale fetch from overwriting messages of the new conversation.
       if (activeConvIdRef.current !== requestedConvId) {
         return sorted;
       }
       setHasOlderMessages(sorted.length === PAGE_SIZE);
       const withNames = await resolveNames(sorted);
       if (activeConvIdRef.current !== requestedConvId) return withNames;
-      setAllMessages(withNames);
+      // 🛡️ MERGE em vez de SOBRESCREVER: preserva mensagens que chegaram via
+      // realtime ANTES do fetch inicial terminar (evita perda em race condition).
+      setAllMessages(prev => {
+        if (prev.length === 0) return withNames;
+        const map = new Map<string, WaMessage>();
+        for (const m of withNames) map.set(m.id, m);
+        for (const m of prev) {
+          // Mantém mensagens vindas do realtime que não estão no fetch
+          if (!map.has(m.id)) map.set(m.id, m);
+        }
+        return Array.from(map.values()).sort((a, b) => {
+          const ta = new Date(a.created_at).getTime();
+          const tb = new Date(b.created_at).getTime();
+          if (ta !== tb) return ta - tb;
+          return a.id.localeCompare(b.id);
+        });
+      });
       setInitialLoadDone(true);
       return withNames;
     },
