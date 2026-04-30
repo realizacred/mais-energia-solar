@@ -486,10 +486,14 @@ export function useProjetosSelect() {
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from("projetos")
-        .select("id, nome, codigo")
-        .order("nome");
+        .select("id, codigo, clientes(nome)")
+        .order("codigo");
       if (error) throw error;
-      return (data ?? []) as Array<{ id: string; nome: string; codigo: string | null }>;
+      return (data ?? []).map((p: any) => ({
+        id: p.id,
+        nome: p.clientes?.nome || p.codigo || "Projeto",
+        codigo: p.codigo,
+      })) as Array<{ id: string; nome: string; codigo: string | null }>;
     },
   });
 }
