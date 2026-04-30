@@ -7,7 +7,8 @@
  import { useOrcamentosVendedor, OrcamentoVendedor } from "@/hooks/useOrcamentosVendedor";
  import { useGamification } from "@/hooks/useGamification";
  import { useAdvancedMetrics } from "@/hooks/useAdvancedMetrics";
- import type { Lead } from "@/types/lead";
+import type { Lead } from "@/types/lead";
+import { toCanonicalPhoneDigits } from "@/utils/phone/toCanonicalPhoneDigits";
  
 export interface VendedorProfile {
   id: string;
@@ -36,7 +37,7 @@ const ADMIN_PROFILE: VendedorProfile = {
    lead_code: orc.lead_code,
    nome: orc.nome,
    telefone: orc.telefone,
-   telefone_normalized: orc.telefone.replace(/\D/g, ""),
+   telefone_normalized: toCanonicalPhoneDigits(orc.telefone),
    email: null,
    cep: orc.cep,
    estado: orc.estado,
