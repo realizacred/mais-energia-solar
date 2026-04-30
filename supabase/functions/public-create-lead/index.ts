@@ -7,6 +7,41 @@ const corsHeaders = {
 };
 
 /**
+ * SSOT canônico para telefone_normalized (espelho de
+ * src/utils/phone/toCanonicalPhoneDigits.ts). AGENTS.md RB-62.
+ * Gera 11 dígitos para celular (com 9º) ou 10 para fixo. null se inválido.
+ */
+const PHONE_PLACEHOLDERS = new Set([
+  "99999999999",
+  "00000000000",
+  "11111111111",
+  "12345678901",
+]);
+function toCanonicalPhoneDigits(input?: string | null): string | null {
+  if (!input) return null;
+  const beforeAt = String(input).includes("@") ? String(input).split("@")[0] : String(input);
+  let digits = beforeAt.replace(/\D/g, "");
+  if (!digits) return null;
+  if (digits.length === 13 && digits.startsWith("55")) digits = digits.slice(2);
+  if (digits.length === 12 && digits.startsWith("55")) digits = digits.slice(2);
+  if (digits.length !== 10 && digits.length !== 11) return null;
+  const ddd = digits.slice(0, 2);
+  const rest = digits.slice(2);
+  const dddNum = Number(ddd);
+  if (dddNum < 11 || dddNum > 99) return null;
+  let canonical: string;
+  if (rest.length === 8) {
+    canonical = /^[89]/.test(rest) ? `${ddd}9${rest}` : digits;
+  } else {
+    canonical = digits;
+  }
+  if (PHONE_PLACEHOLDERS.has(canonical)) return null;
+  if (/^(\d)\1+$/.test(canonical)) return null;
+  if (/(9{6,}|0{6,})$/.test(canonical)) return null;
+  return canonical;
+}
+
+/**
  * PUBLIC edge function — no auth required.
  * Unified server-side lead creation for public forms (/v/slug).
  *
@@ -208,13 +243,29 @@ Deno.serve(async (req) => {
         .update({ consultor_id: vendedorId, consultor: vendedorNome })
         .eq("id", leadId);
     } else {
-      const phoneNormalized = telefone.replace(/\D/g, "");
-      if (phoneNormalized.length >= 10) {
+      // Telefone canônico (11 dígitos com 9º para celular). null se inválido.
+      const canonicalPhone = toCanonicalPhoneDigits(telefone);
+      // Variantes para dedupe tolerante (com/sem 9º dígito)
+      const phoneVariants: string[] = [];
+      if (canonicalPhone) {
+        phoneVariants.push(canonicalPhone);
+        // gera variante alternativa (com/sem 9) para casar leads históricos
+        const ddd = canonicalPhone.slice(0, 2);
+        const rest = canonicalPhone.slice(2);
+        if (rest.length === 9 && rest.startsWith("9")) {
+          phoneVariants.push(`${ddd}${rest.slice(1)}`);
+        } else if (rest.length === 8) {
+          phoneVariants.push(`${ddd}9${rest}`);
+        }
+      }
+
+      if (phoneVariants.length > 0) {
+        const inList = phoneVariants.join(",");
         const { data: existingLeads } = await supabaseAdmin
           .from("leads")
           .select("id, nome, telefone, created_at")
           .eq("tenant_id", tenantId)
-          .or(`telefone_normalized.eq.${phoneNormalized},telefone.eq.${telefone}`)
+          .or(`telefone_normalized.in.(${inList}),telefone.eq.${telefone}`)
           .order("created_at", { ascending: false })
           .limit(5);
 
@@ -237,6 +288,7 @@ Deno.serve(async (req) => {
             id: newLeadId,
             nome: nome.trim(),
             telefone: telefone.trim(),
+            telefone_normalized: canonicalPhone, // RB-62: gravar canônico
             consultor_id: vendedorId,
             consultor: vendedorNome,
             tenant_id: tenantId,
