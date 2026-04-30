@@ -276,8 +276,9 @@ export function usePendingValidations() {
       }
 
       const items = [...clienteItems, ...orphanItems];
-      setPendingItems(items);
-      setPendingCount(items.length);
+      const enriched = await enrichWithPropostaVersao(items);
+      setPendingItems(enriched);
+      setPendingCount(enriched.length);
     } catch (error) {
       console.error("Error fetching pending validations:", error);
     } finally {
@@ -332,7 +333,8 @@ export function usePendingValidations() {
         .limit(50);
 
       if (error) throw error;
-      setHistoryItems((data as unknown as ValidationHistory[]) || []);
+      const enriched = await enrichWithPropostaVersao((data as unknown as ValidationHistory[]) || []);
+      setHistoryItems(enriched);
     } catch (error) {
       console.error("Error fetching validation history:", error);
     } finally {
