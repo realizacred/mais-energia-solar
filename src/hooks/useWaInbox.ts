@@ -552,6 +552,8 @@ export function useWaMessages(conversationId?: string) {
         },
         (payload) => {
           const updated = payload.new as any;
+          // ⚠️ Guard against cross-conversation leak from late realtime events
+          if (updated.conversation_id !== activeConvIdRef.current) return;
           // Safe merge: only apply non-null/non-undefined fields to prevent
           // Realtime payloads with null values from wiping existing data
           const safeFields = Object.fromEntries(
