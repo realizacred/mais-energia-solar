@@ -597,7 +597,7 @@ export function WaInbox({ vendorMode = false, vendorUserId, showCompactStats = f
 
   const handleLinkLead = ({ leadId, clienteId }: { leadId: string | null; clienteId: string | null }) => {
     if (!selectedConv) return;
-    updateConversation({ id: selectedConv.id, updates: { lead_id: leadId, cliente_id: clienteId } as any });
+    updateConversation({ id: selectedConv.id, updates: { lead_id: leadId, cliente_id: clienteId } });
     setSelectedConv({ ...selectedConv, lead_id: leadId, cliente_id: clienteId });
   };
 
