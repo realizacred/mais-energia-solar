@@ -87,6 +87,7 @@ const WebhookManagerTab = lazy(() => import("@/components/admin/WebhookManager")
 const WaInstancesManagerTab = lazy(() => import("@/components/admin/WaInstancesManager").then(m => ({ default: m.WaInstancesManager })));
 const WhatsAppAutomationConfigTab = lazy(() => import("@/components/admin/WhatsAppAutomationConfig").then(m => ({ default: m.WhatsAppAutomationConfig })));
 const IntegrationGuidesManagerTab = lazy(() => import("@/components/admin/integrations-v2/IntegrationGuidesManager"));
+const IntegrationsOverviewTab = lazy(() => import("@/components/admin/integrations-v2/IntegrationsOverviewTab"));
 
 const CANONICAL_TO_LEGACY: Record<string, string> = Object.fromEntries(
   Object.entries(LEGACY_ID_MAP).map(([legacy, canonical]) => [canonical, legacy])
@@ -376,6 +377,7 @@ export default function IntegrationsCatalogPage() {
       {/* ─── Main Tabs §29 ─── */}
       <Tabs value={urlTab} onValueChange={handleTabChange}>
         <TabsList className="bg-muted overflow-x-auto flex-wrap h-auto">
+          <TabsTrigger className="shrink-0 whitespace-nowrap" value="overview">Visão Geral</TabsTrigger>
           <TabsTrigger className="shrink-0 whitespace-nowrap" value="catalogo">Catálogo</TabsTrigger>
           <TabsTrigger className="shrink-0 whitespace-nowrap" value="saude">Saúde</TabsTrigger>
           <TabsTrigger className="shrink-0 whitespace-nowrap" value="webhooks">Webhooks</TabsTrigger>
@@ -383,6 +385,12 @@ export default function IntegrationsCatalogPage() {
           <TabsTrigger className="shrink-0 whitespace-nowrap" value="automacao">Automação</TabsTrigger>
           <TabsTrigger className="shrink-0 whitespace-nowrap" value="tutoriais">Tutoriais</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="overview" className="mt-6">
+          <Suspense fallback={<LoadingState message="Carregando visão geral…" />}>
+            <IntegrationsOverviewTab />
+          </Suspense>
+        </TabsContent>
 
         <TabsContent value="catalogo" className="mt-6 space-y-6">
           {/* ─── Toolbar ─── */}
