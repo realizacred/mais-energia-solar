@@ -406,6 +406,14 @@ export function useWaMessages(conversationId?: string) {
   // Attendant name cache
   const namesCache = useRef<Record<string, string>>({});
 
+  // ⚠️ Guard ref: tracks the currently-active conversationId to prevent
+  // stale async callbacks (initial query, realtime, loadOlder) from writing
+  // messages of a previous conversation into the current one.
+  const activeConvIdRef = useRef<string | undefined>(conversationId);
+  useEffect(() => {
+    activeConvIdRef.current = conversationId;
+  }, [conversationId]);
+
   const resolveNames = useCallback(async (msgs: any[]): Promise<WaMessage[]> => {
     const userIds = [...new Set(msgs.filter(m => m.sent_by_user_id).map(m => m.sent_by_user_id!))];
     const uncached = userIds.filter(id => !(id in namesCache.current));
