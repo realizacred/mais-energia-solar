@@ -175,6 +175,10 @@ const SolarmarketLogsPage = lazy(() => import("@/pages/admin/integracoes/solarma
 const IaProvedoresPage = lazy(() => import("@/pages/admin/integracoes/ia/IaProvedoresPage"));
 const IaFeaturesPage = lazy(() => import("@/pages/admin/integracoes/ia/IaFeaturesPage"));
 const IaLeadScoringPage = lazy(() => import("@/pages/admin/integracoes/ia/IaLeadScoringPage"));
+const ConexoesProvedoresPage = lazy(() => import("@/pages/admin/integracoes/conexoes/ConexoesProvedoresPage"));
+const ConexoesCredenciaisPage = lazy(() => import("@/pages/admin/integracoes/conexoes/ConexoesCredenciaisPage"));
+const ConexoesJobsPage = lazy(() => import("@/pages/admin/integracoes/conexoes/ConexoesJobsPage"));
+const ConexoesLogsPage = lazy(() => import("@/pages/admin/integracoes/conexoes/ConexoesLogsPage"));
 const DevToolsPage = lazy(() => import("@/pages/admin/DevToolsPage"));
 const RlsTestPage = lazy(() => import("@/pages/admin/dev/RlsTestPage"));
 const BillingFeaturesPage = lazy(() => import("@/components/admin/billing/BillingFeaturesPage"));
@@ -792,10 +796,10 @@ export default function Admin() {
                 <Route path="integracoes/ia/provedores" element={<IaProvedoresPage />} />
                 <Route path="integracoes/ia/features" element={<IaFeaturesPage />} />
                 <Route path="integracoes/ia/lead-scoring" element={<IaLeadScoringPage />} />
-                <Route path="integracoes/conexoes/provedores" element={<Navigate to="/admin/catalogo-integracoes?tab=catalogo" replace />} />
-                <Route path="integracoes/conexoes/credenciais" element={<Navigate to="/admin/catalogo-integracoes?tab=catalogo" replace />} />
-                <Route path="integracoes/conexoes/jobs" element={<Navigate to="/admin/catalogo-integracoes?tab=saude" replace />} />
-                <Route path="integracoes/conexoes/logs" element={<Navigate to="/admin/auditoria" replace />} />
+                <Route path="integracoes/conexoes/provedores" element={<ConexoesProvedoresPage />} />
+                <Route path="integracoes/conexoes/credenciais" element={<ConexoesCredenciaisPage />} />
+                <Route path="integracoes/conexoes/jobs" element={<ConexoesJobsPage />} />
+                <Route path="integracoes/conexoes/logs" element={<ConexoesLogsPage />} />
                 <Route path="integracoes/visao-geral" element={<Navigate to="/admin/catalogo-integracoes?tab=overview" replace />} />
 
                 {/* Catch-all */}
