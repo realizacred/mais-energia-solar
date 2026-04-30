@@ -7,6 +7,41 @@ const corsHeaders = {
 };
 
 /**
+ * SSOT canônico para telefone_normalized (espelho de
+ * src/utils/phone/toCanonicalPhoneDigits.ts). AGENTS.md RB-62.
+ * Gera 11 dígitos para celular (com 9º) ou 10 para fixo. null se inválido.
+ */
+const PHONE_PLACEHOLDERS = new Set([
+  "99999999999",
+  "00000000000",
+  "11111111111",
+  "12345678901",
+]);
+function toCanonicalPhoneDigits(input?: string | null): string | null {
+  if (!input) return null;
+  const beforeAt = String(input).includes("@") ? String(input).split("@")[0] : String(input);
+  let digits = beforeAt.replace(/\D/g, "");
+  if (!digits) return null;
+  if (digits.length === 13 && digits.startsWith("55")) digits = digits.slice(2);
+  if (digits.length === 12 && digits.startsWith("55")) digits = digits.slice(2);
+  if (digits.length !== 10 && digits.length !== 11) return null;
+  const ddd = digits.slice(0, 2);
+  const rest = digits.slice(2);
+  const dddNum = Number(ddd);
+  if (dddNum < 11 || dddNum > 99) return null;
+  let canonical: string;
+  if (rest.length === 8) {
+    canonical = /^[89]/.test(rest) ? `${ddd}9${rest}` : digits;
+  } else {
+    canonical = digits;
+  }
+  if (PHONE_PLACEHOLDERS.has(canonical)) return null;
+  if (/^(\d)\1+$/.test(canonical)) return null;
+  if (/(9{6,}|0{6,})$/.test(canonical)) return null;
+  return canonical;
+}
+
+/**
  * PUBLIC edge function — no auth required.
  * Unified server-side lead creation for public forms (/v/slug).
  *
