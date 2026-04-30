@@ -56,21 +56,71 @@ export function useOrcamentosAdmin({ autoFetch = true, pageSize = PAGE_SIZE }: U
 
       if (orcamentosRes.error) throw orcamentosRes.error;
 
-      // Buscar projetos vinculados aos leads desta página (para mostrar atalho na tabela)
-      const leadIds = Array.from(
-        new Set((orcamentosRes.data || []).map((o: any) => o.lead_id).filter(Boolean))
+      // Buscar projetos vinculados via cliente (telefone_normalized OU email).
+      // Observação: projetos.lead_id está sempre NULL nesta base — o vínculo
+      // canônico lead↔projeto acontece através de clientes (SSOT do cadastro).
+      const leadsForLookup = (orcamentosRes.data || [])
+        .map((o: any) => ({
+          lead_id: o.lead_id as string | null,
+          telefone_normalized: o.leads?.telefone_normalized as string | null,
+          email: (o.leads?.email as string | null)?.toLowerCase() || null,
+        }))
+        .filter((l) => l.lead_id);
+
+      const phones = Array.from(
+        new Set(leadsForLookup.map((l) => l.telefone_normalized).filter(Boolean) as string[])
       );
+      const emails = Array.from(
+        new Set(leadsForLookup.map((l) => l.email).filter(Boolean) as string[])
+      );
+
       const projetoByLead = new Map<string, string>();
-      if (leadIds.length > 0) {
-        const { data: projsData } = await supabase
-          .from("projetos")
-          .select("id, lead_id, created_at")
-          .in("lead_id", leadIds)
-          .order("created_at", { ascending: false });
-        for (const p of (projsData || []) as any[]) {
-          // mantém o mais recente (primeiro por ordem desc)
-          if (p.lead_id && !projetoByLead.has(p.lead_id)) {
-            projetoByLead.set(p.lead_id, p.id);
+      if (phones.length > 0 || emails.length > 0) {
+        // 1) clientes que casam por telefone OU email
+        const orParts: string[] = [];
+        if (phones.length > 0) orParts.push(`telefone_normalized.in.(${phones.join(",")})`);
+        if (emails.length > 0) {
+          // emails podem conter vírgulas/aspas raramente — escapamos via quoting do PostgREST
+          const safeEmails = emails.map((e) => `"${e.replace(/"/g, '\\"')}"`).join(",");
+          orParts.push(`email.in.(${safeEmails})`);
+        }
+        const { data: clientesData } = await supabase
+          .from("clientes")
+          .select("id, telefone_normalized, email")
+          .or(orParts.join(","));
+
+        const clienteIds = (clientesData || []).map((c: any) => c.id);
+        if (clienteIds.length > 0) {
+          const { data: projsData } = await supabase
+            .from("projetos")
+            .select("id, cliente_id, created_at")
+            .in("cliente_id", clienteIds)
+            .order("created_at", { ascending: false });
+
+          // cliente_id -> projeto mais recente
+          const projetoByCliente = new Map<string, string>();
+          for (const p of (projsData || []) as any[]) {
+            if (p.cliente_id && !projetoByCliente.has(p.cliente_id)) {
+              projetoByCliente.set(p.cliente_id, p.id);
+            }
+          }
+
+          // Indexar clientes por telefone e email para casar com leads
+          const clienteByPhone = new Map<string, string>();
+          const clienteByEmail = new Map<string, string>();
+          for (const c of (clientesData || []) as any[]) {
+            if (c.telefone_normalized) clienteByPhone.set(c.telefone_normalized, c.id);
+            if (c.email) clienteByEmail.set(String(c.email).toLowerCase(), c.id);
+          }
+
+          for (const l of leadsForLookup) {
+            if (!l.lead_id) continue;
+            const cid =
+              (l.telefone_normalized && clienteByPhone.get(l.telefone_normalized)) ||
+              (l.email && clienteByEmail.get(l.email)) ||
+              null;
+            const pid = cid ? projetoByCliente.get(cid) : null;
+            if (pid) projetoByLead.set(l.lead_id, pid);
           }
         }
       }
