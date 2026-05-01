@@ -297,13 +297,17 @@ export function ProposalViewsCard({ propostaId, versaoId, statusVisualizacao, pr
               <div className="space-y-1.5">
                 {envios.map(e => {
                   const CanalIcon = CANAL_ICON[e.canal] || Send;
+                  const isPhone = e.canal === "whatsapp" || e.canal === "sms";
+                  const destino = e.destinatario
+                    ? (isPhone ? (formatPhoneBR(e.destinatario) || e.destinatario) : e.destinatario)
+                    : null;
                   return (
                     <div key={e.id} className="flex items-center gap-2 text-xs">
                       <CanalIcon className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
                       <Badge variant="outline" className="text-[10px]">{e.canal}</Badge>
-                      {e.destinatario && <span className="text-muted-foreground truncate">{e.destinatario}</span>}
+                      {destino && <span className="text-muted-foreground truncate">{destino}</span>}
                       <span className="ml-auto text-muted-foreground whitespace-nowrap">
-                        {format(new Date(e.enviado_em), "dd/MM HH:mm", { locale: ptBR })}
+                        {format(new Date(e.enviado_em), "dd/MM/yyyy HH:mm", { locale: ptBR })}
                       </span>
                     </div>
                   );
