@@ -343,19 +343,17 @@ function StatusIcon({ status, isPrincipal }: { status: string; isPrincipal: bool
 }
 
 // ─── Financial KPIs (shared) ──────────────────────────
+// SSOT: snapshot é fonte de verdade. Coluna direta é apenas cache derivado (último fallback).
+// NUNCA recalcular financeiro fora de calcFinancialSeries/calcGrupoB/calcGrupoA.
 function FinancialKPIs({ snapshot, latestVersao }: { snapshot: any; latestVersao: VersaoData | undefined }) {
   const s = snapshot || {};
   const fin = s.financeiro || {};
 
-  const tir = latestVersao?.tir ?? fin.tir ?? s.tir ?? null;
-  const vpl = latestVersao?.vpl ?? fin.vpl ?? s.vpl ?? null;
-  const paybackMeses = latestVersao?.payback_meses
-    ?? fin.payback_meses
-    ?? s.payback_meses
-    ?? (latestVersao?.valor_total && latestVersao?.economia_mensal && latestVersao.economia_mensal > 0
-        ? Math.round(latestVersao.valor_total / latestVersao.economia_mensal)
-        : null);
-  const economiaMensal = latestVersao?.economia_mensal ?? fin.economia_mensal ?? s.economia_mensal ?? null;
+  // Precedência: snapshot.raiz → snapshot.financeiro → coluna direta (cache legado)
+  const tir = s.tir ?? fin.tir ?? latestVersao?.tir ?? null;
+  const vpl = s.vpl ?? fin.vpl ?? latestVersao?.vpl ?? null;
+  const paybackMeses = s.payback_meses ?? fin.payback_meses ?? latestVersao?.payback_meses ?? null;
+  const economiaMensal = s.economia_mensal ?? fin.economia_mensal ?? latestVersao?.economia_mensal ?? null;
 
   const paybackLabel = paybackMeses != null
     ? `${Math.floor(paybackMeses / 12)} anos e ${Math.round(paybackMeses % 12)} meses`
@@ -540,8 +538,9 @@ function NativeResumoTab({ snapshot, ucsDetail, latestVersao, wpPrice, buildSumm
   wpPrice: string | null;
   buildSummaryRows: () => Array<{ label: string; qty: number; value: number; pct: number; children?: Array<{ label: string; qty: number }> }>;
 }) {
-  const geracaoMensal = (snapshot as Record<string, any>)?.geracaoMensalEstimada || latestVersao?.geracao_mensal || 0;
-  const economiaMensal = latestVersao?.economia_mensal || 0;
+  const geracaoMensal = (snapshot as Record<string, any>)?.geracaoMensalEstimada || (snapshot as Record<string, any>)?.geracao_mensal_kwh || latestVersao?.geracao_mensal || 0;
+  // SSOT: snapshot prioritário sobre coluna direta (cache legado pode estar dessincronizado)
+  const economiaMensal = (snapshot as Record<string, any>)?.economia_mensal ?? latestVersao?.economia_mensal ?? 0;
   return (
     <div className="space-y-4 mt-3">
       {/* Row 1: Unidades + Resumo side by side */}

@@ -277,7 +277,12 @@ export function StepPagamento({
   const tarifaBase = ucGeradora?.tarifa_distribuidora || 1.10;
   const custoDisp = ucGeradora?.custo_disponibilidade_valor || 54.81;
 
-  // Economy calc — baseado na geração total com desconto Fio B progressivo
+  // ─── Estimativa preliminar (UI only) ─────────────────────────────────────
+  // ATENÇÃO: este cálculo é APENAS uma estimativa visual para o passo de pagamento.
+  // NÃO é a economia oficial — a economia oficial vem de calcFinancialSeries (snapshot).
+  // NÃO persistir esse valor em proposta_versoes.economia_mensal.
+  // Conforme AGENTS.md: NUNCA calcular economia oficial fora de
+  // calcFinancialSeries / calcGrupoB / calcGrupoA.
   const anoAtualCalc = new Date().getFullYear();
   const fioBPctAtual = anoAtualCalc <= 2022 ? 0 : anoAtualCalc === 2023 ? 0.15 : anoAtualCalc === 2024 ? 0.30
     : anoAtualCalc === 2025 ? 0.45 : anoAtualCalc === 2026 ? 0.60 : anoAtualCalc === 2027 ? 0.75
@@ -504,9 +509,9 @@ export function StepPagamento({
         </Tabs>
 
         <div className="flex items-center gap-3 sm:gap-4 text-sm flex-wrap">
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-1.5" title="Estimativa preliminar — valor oficial é calculado pelo motor financeiro (snapshot)">
             <DollarSign className="h-4 w-4 text-success" />
-            <span className="text-muted-foreground">Economia:</span>
+            <span className="text-muted-foreground">Economia (estimativa):</span>
             <span className="font-bold text-success">{formatBRL(economiaMensal)}</span>
             <Badge className="text-[10px] h-5 px-1.5 bg-success/10 text-success border border-success/30">{(Number(economiaPercent) || 0).toFixed(2)}%</Badge>
             <Button variant="link" size="sm" onClick={() => setShowGastosModal(true)} className="text-primary text-xs p-0 h-auto hover:opacity-80">Ver mais</Button>

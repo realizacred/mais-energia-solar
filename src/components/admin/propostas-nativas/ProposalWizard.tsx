@@ -1410,15 +1410,19 @@ export function ProposalWizard() {
   ): PersistenceParams => {
     const snapshot = collectSnapshot();
     const titulo = nomeProposta || cliente.nome || selectedLead?.nome || "Proposta";
+    // SSOT: economia_mensal vem SEMPRE do snapshot canônico (calcFinancialSeries).
+    // NUNCA calcular como geração × tarifa — fórmula paralela proibida (RB AGENTS.md).
+    const snapEconomia = (snapshot as any)?.economia_mensal;
+    const economiaMensalSnap = typeof snapEconomia === "number" && snapEconomia > 0
+      ? Math.round(snapEconomia * 100) / 100
+      : undefined;
     return {
       effectivePropostaId: overridePropostaId ?? savedPropostaId ?? null,
       effectiveVersaoId: overrideVersaoId ?? savedVersaoId ?? null,
       snapshot,
       potenciaKwp,
       precoFinal,
-      economiaMensal: geracaoMensalEstimada > 0
-        ? Math.round(geracaoMensalEstimada * (ucs.find(u => u.is_geradora)?.tarifa_distribuidora || 0.80))
-        : undefined,
+      economiaMensal: economiaMensalSnap,
       geracaoMensal: geracaoMensalEstimada || undefined,
       leadId: (selectedLead as any)?._synthetic ? undefined : selectedLead?.id,
       dealId: resolvedDealId,
@@ -2592,6 +2596,9 @@ export function ProposalWizard() {
     const nextKey = activeSteps[step + 1]?.key;
     if (currentStepKey === STEP_KEYS.RESUMO && nextKey === STEP_KEYS.PROPOSTA) {
       // Run canonical validation before allowing navigation
+      // SSOT: economia_mensal vem do snapshot canônico (calcFinancialSeries) — nunca de geração×tarifa.
+      const _snap = collectSnapshot() as any;
+      const _econSnap = typeof _snap?.economia_mensal === "number" ? _snap.economia_mensal : 0;
       const validation = validatePropostaFinal({
         cliente,
         selectedLead,
@@ -2604,9 +2611,7 @@ export function ProposalWizard() {
         precoFinal,
         geracaoMensalKwh: geracaoMensalEstimada,
         consumoTotal,
-        economiaMensal: geracaoMensalEstimada > 0
-          ? Math.round(geracaoMensalEstimada * (ucs.find(u => u.is_geradora)?.tarifa_distribuidora || 0.80))
-          : 0,
+        economiaMensal: _econSnap > 0 ? _econSnap : 0,
         locEstado,
         locCidade,
         locDistribuidoraNome: locDistribuidoraNome,
