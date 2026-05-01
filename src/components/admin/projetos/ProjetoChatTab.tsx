@@ -351,7 +351,7 @@ function ExpandedChatHistory({ conversationId }: { conversationId: string }) {
           .select("id, summary_json, last_message_id, message_count, updated_at")
           .eq("conversation_id", conversationId)
           .maybeSingle();
-        if (data) setCachedSummary(data as WaConversationSummaryRow);
+        if (data) setCachedSummary(data as unknown as WaConversationSummaryRow);
       } catch {
         // ignore errors loading cached summary
       }
