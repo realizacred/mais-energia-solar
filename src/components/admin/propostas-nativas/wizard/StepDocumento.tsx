@@ -946,6 +946,14 @@ export function StepDocumento({
           </Button>
 
           <div className="space-y-2">
+            {resolvedPublicUrl && (
+              <div className="rounded-lg border border-border/60 bg-muted/20 p-3 space-y-2">
+                <div className="mx-auto w-fit rounded-md bg-background p-2 border border-border/60">
+                  <QRCodeCanvas value={resolvedPublicUrl} size={132} includeMargin />
+                </div>
+                <p className="break-all text-[10px] leading-relaxed text-muted-foreground">{resolvedPublicUrl}</p>
+              </div>
+            )}
             <Button
               variant="ghost"
               size="sm"
@@ -971,13 +979,13 @@ export function StepDocumento({
                   size="sm"
                   className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground w-full justify-start p-0 h-auto"
                   onClick={() => handleCopyLink(true)}
-                  disabled={!outputPdfPath && !externalPdfUrl && !pdfBlobUrl}
+                  disabled={!result?.proposta_id || !result?.versao_id}
                 >
                   {copiedTracker ? <Check className="h-3.5 w-3.5 text-success" /> : <LinkIcon className="h-3.5 w-3.5" />}
                   Copiar link com rastreio
                 </Button>
               </TooltipTrigger>
-              {!outputPdfPath && !externalPdfUrl && !pdfBlobUrl && <TooltipContent>Gere a proposta primeiro</TooltipContent>}
+              {(!result?.proposta_id || !result?.versao_id) && <TooltipContent>Gere a proposta primeiro</TooltipContent>}
             </Tooltip>
             <Tooltip>
               <TooltipTrigger asChild>
