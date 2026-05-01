@@ -1,22 +1,31 @@
 /**
  * ProposalProblemSection — Dramatic before/after comparison.
  * Página pública — exceção RB-02 documentada.
+ *
+ * Usa useProposalKPIs (motor canônico) para "antes/depois". Sem fallback
+ * de tarifa 0,85 nem fórmula consumo×tarifa crua. Se não dá pra calcular,
+ * a seção exibe placeholders neutros.
  */
 
 import { motion } from "framer-motion";
 import { TrendingUp, TrendingDown, AlertTriangle, Sun, ArrowRight } from "lucide-react";
-import { AnimatedSection, StaggerContainer, StaggerItem } from "./AnimatedSection";
-import type { LandingSectionProps } from "./types";
+import { AnimatedSection } from "./AnimatedSection";
+import type { LandingSectionProps, CenarioData } from "./types";
+import { useProposalKPIs } from "../hooks/useProposalKPIs";
 
-export function ProposalProblemSection({ snapshot: s, versaoData }: LandingSectionProps) {
-  const consumo = s.consumoTotal || 0;
-  const tarifa = s.ucs[0]?.tarifa_distribuidora ?? 0.85;
-  const contaAtual = tarifa > 0 && consumo > 0 ? consumo * tarifa : (versaoData.economia_mensal ?? 0) * 1.2;
-  const economiaMensal = versaoData.economia_mensal ?? 0;
-  const contaDepois = Math.max(50, contaAtual - economiaMensal);
-  const percentEconomia = contaAtual > 0 ? Math.round((economiaMensal / contaAtual) * 100) : 80;
+interface Props extends LandingSectionProps {
+  activeCenario?: CenarioData | null;
+}
+
+export function ProposalProblemSection({ snapshot: s, versaoData, activeCenario }: Props) {
+  const kpis = useProposalKPIs(s, versaoData, activeCenario ?? null);
+  const contaAtual = kpis.contaAtualMensal ?? 0;
+  const economiaMensal = kpis.economiaMensal ?? 0;
+  const contaDepois = kpis.contaDepoisMensal ?? Math.max(0, contaAtual - economiaMensal);
+  const percentEconomia = kpis.percentEconomiaConta ?? 0;
   const economiaAnual = economiaMensal * 12;
-
+  const hasContaAtual = contaAtual > 0;
+  const hasEconomia = economiaMensal > 0;
   return (
     <AnimatedSection style={{ padding: "5rem 1.5rem", background: "#fff" }}>
       <div style={{ maxWidth: 900, margin: "0 auto" }}>
@@ -81,15 +90,17 @@ export function ProposalProblemSection({ snapshot: s, versaoData }: LandingSecti
               <p style={{ margin: 0 }}>
                 <span style={{ fontSize: "0.85rem", opacity: 0.5 }}>R$ </span>
                 <span style={{ fontFamily: "Montserrat, sans-serif", fontWeight: 900, fontSize: "clamp(2rem, 5vw, 3rem)" }}>
-                  {Math.round(contaAtual).toLocaleString("pt-BR")}
+                  {hasContaAtual ? Math.round(contaAtual).toLocaleString("pt-BR") : "—"}
                 </span>
               </p>
               <p style={{ fontSize: "0.82rem", opacity: 0.5, margin: "4px 0 0" }}>/mês na conta de luz</p>
-              <div style={{ marginTop: 20, padding: "10px 14px", background: "rgba(239,68,68,0.12)", borderRadius: 10 }}>
-                <p style={{ margin: 0, fontSize: "0.75rem", color: "#FCA5A5" }}>
-                  💸 Em 25 anos: <strong>R$ {Math.round(contaAtual * 12 * 25).toLocaleString("pt-BR")}</strong> jogados fora
-                </p>
-              </div>
+              {hasContaAtual && (
+                <div style={{ marginTop: 20, padding: "10px 14px", background: "rgba(239,68,68,0.12)", borderRadius: 10 }}>
+                  <p style={{ margin: 0, fontSize: "0.75rem", color: "#FCA5A5" }}>
+                    💸 Em 25 anos: <strong>R$ {Math.round(contaAtual * 12 * 25).toLocaleString("pt-BR")}</strong> jogados fora
+                  </p>
+                </div>
+              )}
             </div>
           </motion.div>
 
@@ -145,38 +156,42 @@ export function ProposalProblemSection({ snapshot: s, versaoData }: LandingSecti
               <p style={{ margin: 0 }}>
                 <span style={{ fontSize: "0.85rem", opacity: 0.5 }}>R$ </span>
                 <span style={{ fontFamily: "Montserrat, sans-serif", fontWeight: 900, fontSize: "clamp(2rem, 5vw, 3rem)" }}>
-                  {Math.round(contaDepois).toLocaleString("pt-BR")}
+                  {hasEconomia || contaDepois > 0 ? Math.round(contaDepois).toLocaleString("pt-BR") : "—"}
                 </span>
               </p>
               <p style={{ fontSize: "0.82rem", opacity: 0.5, margin: "4px 0 0" }}>/mês com energia solar</p>
-              <div style={{ marginTop: 20, padding: "10px 14px", background: "rgba(34,197,94,0.12)", borderRadius: 10 }}>
-                <p style={{ margin: 0, fontSize: "0.75rem", color: "#86EFAC" }}>
-                  ✅ Em 25 anos: <strong>R$ {Math.round(economiaAnual * 25).toLocaleString("pt-BR")}</strong> de economia
-                </p>
-              </div>
+              {hasEconomia && (
+                <div style={{ marginTop: 20, padding: "10px 14px", background: "rgba(34,197,94,0.12)", borderRadius: 10 }}>
+                  <p style={{ margin: 0, fontSize: "0.75rem", color: "#86EFAC" }}>
+                    ✅ Em 25 anos: <strong>R$ {Math.round((kpis.economia25Anos ?? economiaAnual * 25)).toLocaleString("pt-BR")}</strong> de economia
+                  </p>
+                </div>
+              )}
             </div>
           </motion.div>
         </div>
 
         {/* Economia badge */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ delay: 0.5 }}
-          style={{ textAlign: "center", marginTop: 32 }}
-        >
-          <span style={{
-            display: "inline-flex", alignItems: "center", gap: 8,
-            background: "linear-gradient(135deg, #16A34A, #15803D)",
-            color: "#fff", padding: "10px 28px", borderRadius: 999,
-            fontFamily: "Montserrat, sans-serif", fontWeight: 800, fontSize: "1rem",
-            boxShadow: "0 4px 20px rgba(22,163,74,0.25)",
-          }}>
-            <Sun style={{ width: 18, height: 18 }} />
-            {percentEconomia}% DE ECONOMIA NA SUA CONTA
-          </span>
-        </motion.div>
+        {percentEconomia > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ delay: 0.5 }}
+            style={{ textAlign: "center", marginTop: 32 }}
+          >
+            <span style={{
+              display: "inline-flex", alignItems: "center", gap: 8,
+              background: "linear-gradient(135deg, #16A34A, #15803D)",
+              color: "#fff", padding: "10px 28px", borderRadius: 999,
+              fontFamily: "Montserrat, sans-serif", fontWeight: 800, fontSize: "1rem",
+              boxShadow: "0 4px 20px rgba(22,163,74,0.25)",
+            }}>
+              <Sun style={{ width: 18, height: 18 }} />
+              {percentEconomia}% DE ECONOMIA NA SUA CONTA
+            </span>
+          </motion.div>
+        )}
       </div>
     </AnimatedSection>
   );

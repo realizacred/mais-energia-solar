@@ -1,51 +1,27 @@
 /**
- * ProposalHeroSection — Full-screen hero with dramatic gradient, animated counters, and CTA.
+ * ProposalHeroSection — Full-screen hero with dramatic gradient and CTA.
  * Página pública — exceção RB-02 documentada.
+ *
+ * Números vêm de useProposalKPIs (SSOT). Sem fallbacks mentirosos: se o KPI
+ * não pôde ser calculado, exibimos "—" em vez de 0/valor inventado.
  */
 
-import { useRef, useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { Sun, Zap, ArrowDown, TrendingDown } from "lucide-react";
 import { formatBRL } from "@/lib/formatters";
-import type { LandingSectionProps } from "./types";
+import type { LandingSectionProps, CenarioData } from "./types";
+import { useProposalKPIs } from "../hooks/useProposalKPIs";
 
 interface Props extends LandingSectionProps {
   onScrollDown?: () => void;
+  activeCenario?: CenarioData | null;
 }
 
-function AnimatedNumber({ end, suffix = "", prefix = "", decimals = 0, duration = 1800 }: {
-  end: number; suffix?: string; prefix?: string; decimals?: number; duration?: number;
-}) {
-  const [value, setValue] = useState(0);
-  const ref = useRef<HTMLSpanElement>(null);
-  const animated = useRef(false);
-
-  useEffect(() => {
-    if (!ref.current || animated.current) return;
-    const obs = new IntersectionObserver(([e]) => {
-      if (e.isIntersecting && !animated.current) {
-        animated.current = true;
-        const start = performance.now();
-        (function step(now: number) {
-          const t = Math.min((now - start) / duration, 1);
-          const eased = 1 - Math.pow(1 - t, 3);
-          setValue(Number((end * eased).toFixed(decimals)));
-          if (t < 1) requestAnimationFrame(step);
-        })(performance.now());
-      }
-    }, { threshold: 0.3 });
-    obs.observe(ref.current);
-    return () => obs.disconnect();
-  }, [end, duration, decimals]);
-
-  return <span ref={ref}>{prefix}{decimals > 0 ? value.toFixed(decimals).replace(".", ",") : value.toLocaleString("pt-BR")}{suffix}</span>;
-}
-
-export function ProposalHeroSection({ snapshot: s, versaoData, brand, tenantNome, consultorNome, onScrollDown }: Props) {
-  const potKwp = s.potenciaKwp || versaoData.potencia_kwp || 0;
-  const economiaMensal = versaoData.economia_mensal ?? s.economiaMensal ?? 0;
-  const paybackMeses = versaoData.payback_meses ?? s.paybackMeses ?? 0;
-  const paybackAnos = paybackMeses > 0 ? (paybackMeses / 12).toFixed(1).replace(".", ",") : "—";
+export function ProposalHeroSection({ snapshot: s, versaoData, brand, tenantNome, consultorNome, onScrollDown, activeCenario }: Props) {
+  const kpis = useProposalKPIs(s, versaoData, activeCenario ?? null);
+  const potKwpLabel = kpis.potenciaKwp != null ? kpis.potenciaKwp.toFixed(1).replace(".", ",") : "—";
+  const economiaLabel = kpis.economiaMensal != null ? formatBRL(kpis.economiaMensal) : "—";
+  const paybackAnos = kpis.paybackAnosLabel ?? "—";
 
   return (
     <section style={{
@@ -147,7 +123,7 @@ export function ProposalHeroSection({ snapshot: s, versaoData, brand, tenantNome
             WebkitTextFillColor: "transparent",
             fontSize: "clamp(2.2rem, 7vw, 4rem)",
           }}>
-            {formatBRL(economiaMensal)}
+            {economiaLabel}
           </span>
           <span style={{ fontSize: "clamp(1rem, 3vw, 1.6rem)", color: "rgba(255,255,255,0.5)", fontWeight: 600 }}>/mês</span>
         </motion.h1>
@@ -163,7 +139,7 @@ export function ProposalHeroSection({ snapshot: s, versaoData, brand, tenantNome
             maxWidth: 520, lineHeight: 1.6,
           }}
         >
-          Sistema fotovoltaico de <strong style={{ color: "rgba(255,255,255,0.85)" }}>{potKwp.toFixed(1).replace(".", ",")} kWp</strong> projetado
+          Sistema fotovoltaico de <strong style={{ color: "rgba(255,255,255,0.85)" }}>{potKwpLabel} kWp</strong> projetado
           sob medida para você. Retorno em <strong style={{ color: "rgba(255,255,255,0.85)" }}>{paybackAnos} anos</strong>.
         </motion.p>
 
@@ -175,8 +151,8 @@ export function ProposalHeroSection({ snapshot: s, versaoData, brand, tenantNome
           style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap", marginTop: 36 }}
         >
           {[
-            { icon: <Zap style={{ width: 18, height: 18 }} />, value: `${potKwp.toFixed(1).replace(".", ",")} kWp`, label: "Potência" },
-            { icon: <TrendingDown style={{ width: 18, height: 18 }} />, value: formatBRL(economiaMensal), label: "Economia/mês" },
+            { icon: <Zap style={{ width: 18, height: 18 }} />, value: `${potKwpLabel} kWp`, label: "Potência" },
+            { icon: <TrendingDown style={{ width: 18, height: 18 }} />, value: economiaLabel, label: "Economia/mês" },
             { icon: <Sun style={{ width: 18, height: 18 }} />, value: `${paybackAnos} anos`, label: "Payback" },
           ].map((kpi, i) => (
             <motion.div

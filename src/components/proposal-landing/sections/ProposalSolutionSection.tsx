@@ -10,9 +10,13 @@ import type { LandingSectionProps } from "./types";
 
 export function ProposalSolutionSection({ snapshot: s, versaoData }: LandingSectionProps) {
   const potKwp = s.potenciaKwp || versaoData.potencia_kwp || 0;
-  const geracaoBase = s.geracaoMensalEstimada > 0
-    ? s.geracaoMensalEstimada
-    : potKwp > 0 ? Math.round(potKwp * 4.5 * 30 * 0.8) : 0;
+  // Geração: usa snapshot direto. Se zero E temos irradiação real, calcula com PR=0,8.
+  // Sem dado nenhum, mostra "—" (não inventa 4,5).
+  let geracaoBase = s.geracaoMensalEstimada;
+  if (geracaoBase <= 0 && potKwp > 0 && s.locIrradiacao > 0) {
+    geracaoBase = Math.round(potKwp * s.locIrradiacao * 30 * 0.8);
+  }
+  const geracaoLabel = geracaoBase > 0 ? geracaoBase.toLocaleString("pt-BR") : "—";
 
   const modulos = s.itens.filter(i => i.categoria === "modulo" || i.categoria === "modulos");
   const inversores = s.itens.filter(i => i.categoria === "inversor" || i.categoria === "inversores");
@@ -22,7 +26,7 @@ export function ProposalSolutionSection({ snapshot: s, versaoData }: LandingSect
   const specs = [
     {
       icon: <Zap style={{ width: 28, height: 28 }} />,
-      value: `${potKwp.toFixed(2).replace(".", ",")}`,
+      value: potKwp > 0 ? `${potKwp.toFixed(2).replace(".", ",")}` : "—",
       suffix: "kWp",
       label: "Potência Instalada",
       color: "#F07B24",
@@ -30,7 +34,7 @@ export function ProposalSolutionSection({ snapshot: s, versaoData }: LandingSect
     },
     {
       icon: <BatteryCharging style={{ width: 28, height: 28 }} />,
-      value: geracaoBase.toLocaleString("pt-BR"),
+      value: geracaoLabel,
       suffix: "kWh/mês",
       label: "Geração Estimada",
       color: "#3B82F6",

@@ -1,6 +1,9 @@
 /**
  * ProposalFinancialSection — Dramatic financial analysis.
  * Página pública — exceção RB-02 documentada.
+ *
+ * Números vêm de useProposalKPIs (motor canônico). Economia 25 anos usa a
+ * série real com inflação e perda de eficiência (não mais linear).
  */
 
 import { useRef, useState, useEffect } from "react";
@@ -9,18 +12,20 @@ import { TrendingUp, DollarSign, Clock, PiggyBank } from "lucide-react";
 import { formatBRL, formatBRLInteger } from "@/lib/formatters";
 import { AnimatedSection, StaggerContainer, StaggerItem } from "./AnimatedSection";
 import type { LandingSectionProps, CenarioData } from "./types";
+import { useProposalKPIs } from "../hooks/useProposalKPIs";
 
 interface Props extends LandingSectionProps {
   activeCenario: CenarioData | null;
 }
 
 export function ProposalFinancialSection({ snapshot: s, versaoData, activeCenario }: Props) {
-  const economiaMensal = versaoData.economia_mensal ?? s.economiaMensal ?? 0;
-  const valorTotal = activeCenario?.preco_final ?? versaoData.valor_total ?? 0;
-  const paybackMeses = activeCenario?.payback_meses ?? versaoData.payback_meses ?? s.paybackMeses ?? 0;
-  const economiaAnual = economiaMensal * 12;
-  const economia25anos = economiaAnual * 25;
-  const roi = valorTotal > 0 ? Math.round(((economia25anos - valorTotal) / valorTotal) * 100) : 0;
+  const kpis = useProposalKPIs(s, versaoData, activeCenario ?? null);
+  const economiaAnual = kpis.economiaAnual ?? 0;
+  const economia25anos = kpis.economia25Anos ?? 0;
+  const valorTotal = kpis.valorTotal ?? 0;
+  const roi = valorTotal > 0 && economia25anos > 0
+    ? Math.round(((economia25anos - valorTotal) / valorTotal) * 100)
+    : null;
 
   // Animated bar chart
   const [barVisible, setBarVisible] = useState(false);
@@ -35,37 +40,41 @@ export function ProposalFinancialSection({ snapshot: s, versaoData, activeCenari
     return () => obs.disconnect();
   }, []);
 
+  // Série anual REAL (com inflação) quando disponível; fallback nominal só no extremo.
+  const serieAnual = kpis.economiaAnualSerie.length > 0
+    ? kpis.economiaAnualSerie
+    : Array.from({ length: 25 }, () => economiaAnual);
   const bars = Array.from({ length: 5 }, (_, i) => ({
     year: i + 1,
-    economia: economiaAnual * Math.pow(1.06, i),
+    economia: serieAnual[i] ?? 0,
   }));
-  const maxBar = Math.max(...bars.map(b => b.economia));
+  const maxBar = Math.max(...bars.map(b => b.economia), 1);
 
-  const kpis = [
+  const kpisCards = [
     {
       icon: <DollarSign style={{ width: 22, height: 22 }} />,
-      value: formatBRL(economiaAnual),
+      value: economiaAnual > 0 ? formatBRL(economiaAnual) : "—",
       label: "Economia no 1° Ano",
       color: "#16A34A",
       bg: "rgba(22,163,74,0.1)",
     },
     {
       icon: <Clock style={{ width: 22, height: 22 }} />,
-      value: `${(paybackMeses / 12).toFixed(1).replace(".", ",")} anos`,
+      value: kpis.paybackAnosLabel ? `${kpis.paybackAnosLabel} anos` : "—",
       label: "Retorno do Investimento",
       color: "#3B82F6",
       bg: "rgba(59,130,246,0.1)",
     },
     {
       icon: <PiggyBank style={{ width: 22, height: 22 }} />,
-      value: formatBRLInteger(economia25anos),
+      value: economia25anos > 0 ? formatBRLInteger(economia25anos) : "—",
       label: "Economia em 25 Anos",
       color: "#F07B24",
       bg: "rgba(240,123,36,0.1)",
     },
     {
       icon: <TrendingUp style={{ width: 22, height: 22 }} />,
-      value: `${roi}%`,
+      value: roi != null ? `${roi}%` : "—",
       label: "Retorno Sobre Investimento",
       color: "#8B5CF6",
       bg: "rgba(139,92,246,0.1)",
@@ -108,7 +117,7 @@ export function ProposalFinancialSection({ snapshot: s, versaoData, activeCenari
           gap: 16,
           marginBottom: 40,
         }}>
-          {kpis.map((kpi, i) => (
+          {kpisCards.map((kpi, i) => (
             <StaggerItem key={i}>
               <div style={{
                 background: "rgba(255,255,255,0.06)", backdropFilter: "blur(8px)",
