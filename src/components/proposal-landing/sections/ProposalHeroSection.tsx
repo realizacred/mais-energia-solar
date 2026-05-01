@@ -123,7 +123,7 @@ export function ProposalHeroSection({ snapshot: s, versaoData, brand, tenantNome
             WebkitTextFillColor: "transparent",
             fontSize: "clamp(2.2rem, 7vw, 4rem)",
           }}>
-            {formatBRL(economiaMensal)}
+            {economiaLabel}
           </span>
           <span style={{ fontSize: "clamp(1rem, 3vw, 1.6rem)", color: "rgba(255,255,255,0.5)", fontWeight: 600 }}>/mês</span>
         </motion.h1>
