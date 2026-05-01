@@ -153,38 +153,11 @@ export function StepDocumento({
 
     (async () => {
       try {
-        // Try to get existing tracked token
-        const { data: existing } = await supabase
-          .from("proposta_aceite_tokens" as any)
-          .select("token")
-          .eq("proposta_id", result.proposta_id)
-          .eq("versao_id", result.versao_id)
-          .eq("tipo", "tracked")
-          .order("created_at", { ascending: false })
-          .limit(1)
-          .maybeSingle();
-
-        let token = (existing as any)?.token as string | undefined;
-
-        // Create if not exists
-        if (!token) {
-          const { tenantId } = await getCurrentTenantId();
-          const { data: created } = await supabase
-            .from("proposta_aceite_tokens" as any)
-            .insert({
-              proposta_id: result.proposta_id,
-              versao_id: result.versao_id,
-              tenant_id: tenantId,
-              tipo: "tracked",
-            } as any)
-            .select("token")
-            .single();
-          token = (created as any)?.token;
-        }
+        const token = await getOrCreateProposalToken(result.proposta_id, result.versao_id, "tracked");
 
         if (cancelled) return;
 
-        const url = token ? `${getPublicUrl()}/proposta/${token}` : "";
+        const url = `${getPublicUrl()}/proposta/${token}`;
         setResolvedPublicUrl(url);
 
         // Set WA default message with link
