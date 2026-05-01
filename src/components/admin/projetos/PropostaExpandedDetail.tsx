@@ -1527,6 +1527,9 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
                     <TabsTrigger value="historico" className="text-xs h-7 px-0 pb-1 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none">
                       Histórico
                     </TabsTrigger>
+                    <TabsTrigger value="rastreio" className="text-xs h-7 px-0 pb-1 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none">
+                      Rastreio
+                    </TabsTrigger>
                   </TabsList>
 
                   {(p.status === "gerada" || p.status === "generated" || p.status === "enviada" || p.status === "sent" || p.status === "vista") && (
