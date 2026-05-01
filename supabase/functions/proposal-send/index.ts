@@ -268,25 +268,38 @@ Deno.serve(async (req) => {
     let whatsappSent = false;
     if (canalFinal === "whatsapp") {
       const targetLeadId = lead_id || proposta.lead_id;
+      const destinatario = { telefone: "", nome: "", lead_id: targetLeadId || null, cliente_id: proposta.cliente_id || null };
+
       if (targetLeadId) {
+        const { data: lead } = await adminClient
+          .from("leads").select("telefone, nome")
+          .eq("id", targetLeadId).eq("tenant_id", tenantId).single();
+        destinatario.telefone = lead?.telefone || "";
+        destinatario.nome = lead?.nome || "";
+      }
+
+      if (!destinatario.telefone && proposta.cliente_id) {
+        const { data: cliente } = await adminClient
+          .from("clientes").select("telefone, nome")
+          .eq("id", proposta.cliente_id).eq("tenant_id", tenantId).single();
+        destinatario.telefone = cliente?.telefone || "";
+        destinatario.nome = destinatario.nome || cliente?.nome || "";
+      }
+
+      if (destinatario.telefone) {
         try {
-          const { data: lead } = await adminClient
-            .from("leads").select("telefone, nome")
-            .eq("id", targetLeadId).eq("tenant_id", tenantId).single();
+          // Resolve WA instance for tenant
+          const { data: waInstance } = await adminClient
+            .from("wa_instances")
+            .select("id")
+            .eq("tenant_id", tenantId)
+            .eq("status", "connected")
+            .limit(1)
+            .maybeSingle();
 
-          if (lead?.telefone) {
-            // Resolve WA instance for tenant
-            const { data: waInstance } = await adminClient
-              .from("wa_instances")
-              .select("id")
-              .eq("tenant_id", tenantId)
-              .eq("status", "connected")
-              .limit(1)
-              .maybeSingle();
-
-            if (waInstance) {
+          if (waInstance) {
               const mensagem = mensagemFinal || (
-                `Olá ${lead.nome || ""}! 🌞\n\n` +
+                `Olá ${destinatario.nome || ""}! 🌞\n\n` +
                 `Sua proposta solar está pronta!\n\n` +
                 `📄 *${proposta.titulo || proposta.codigo || "Proposta Solar"}*\n` +
                 `⚡ ${versao.potencia_kwp} kWp | 💰 Economia: R$ ${versao.economia_mensal?.toFixed(2) ?? "—"}/mês\n\n` +
@@ -294,9 +307,56 @@ Deno.serve(async (req) => {
                 `${tenant?.nome || "Empresa"} — Energia Solar ☀️`
               );
 
-              const cleanPhone = lead.telefone.replace(/\D/g, "");
-              const remoteJid = `${cleanPhone}@s.whatsapp.net`;
+              const remoteJid = normalizeWaJid(destinatario.telefone);
+              const phoneDigits = remoteJid.split("@")[0];
               const idempKey = `proposal_send:${tenantId}:${proposta_id}:${aceiteToken.id}`;
+
+              let { data: conversation } = await adminClient
+                .from("wa_conversations")
+                .select("id")
+                .eq("tenant_id", tenantId)
+                .or(`remote_jid.eq.${remoteJid},telefone_normalized.eq.${phoneDigits}`)
+                .order("updated_at", { ascending: false })
+                .limit(1)
+                .maybeSingle();
+
+              if (!conversation) {
+                const { data: createdConversation, error: convErr } = await adminClient
+                  .from("wa_conversations")
+                  .insert({
+                    tenant_id: tenantId,
+                    instance_id: waInstance.id,
+                    remote_jid: remoteJid,
+                    telefone_normalized: phoneDigits,
+                    cliente_telefone: phoneDigits,
+                    cliente_nome: destinatario.nome || null,
+                    cliente_id: destinatario.cliente_id,
+                    lead_id: destinatario.lead_id,
+                    assigned_to: userId,
+                    status: "open",
+                  })
+                  .select("id")
+                  .single();
+                if (convErr) throw convErr;
+                conversation = createdConversation;
+              }
+
+              const { data: waMessage, error: msgErr } = await adminClient
+                .from("wa_messages")
+                .insert({
+                  tenant_id: tenantId,
+                  conversation_id: conversation.id,
+                  direction: "out",
+                  message_type: "text",
+                  content: mensagem,
+                  sent_by_user_id: userId,
+                  status: "pending",
+                  queued_at: new Date().toISOString(),
+                  metadata: { source: "proposal-send", proposta_id, versao_id },
+                })
+                .select("id")
+                .single();
+              if (msgErr) throw msgErr;
 
               const { error: enqueueErr } = await adminClient.rpc("enqueue_wa_outbox_item", {
                 p_tenant_id: tenantId,
@@ -304,26 +364,41 @@ Deno.serve(async (req) => {
                 p_remote_jid: remoteJid,
                 p_message_type: "text",
                 p_content: mensagem,
+                p_conversation_id: conversation.id,
+                p_message_id: waMessage.id,
                 p_idempotency_key: idempKey,
               });
 
               whatsappSent = !enqueueErr;
               if (enqueueErr) {
                 console.error("[proposal-send] WA enqueue failed:", enqueueErr.message);
+                await adminClient.from("wa_messages").update({ status: "failed", error_message: enqueueErr.message }).eq("id", waMessage.id);
               }
 
               if (whatsappSent) {
+                await adminClient.from("wa_conversations").update({
+                  last_message_at: new Date().toISOString(),
+                  last_message_preview: mensagem.slice(0, 100),
+                  last_message_id: waMessage.id,
+                  last_message_direction: "out",
+                  cliente_id: destinatario.cliente_id,
+                  lead_id: destinatario.lead_id,
+                }).eq("id", conversation.id);
+
                 await adminClient.from("proposta_envios").update({
-                  destinatario: lead.telefone,
+                  destinatario: destinatario.telefone,
                   detalhes: {
                     token: aceiteToken.token,
                     public_url: publicUrl,
-                    destinatario_nome: lead.nome,
-                    destinatario_telefone: lead.telefone,
+                    destinatario_nome: destinatario.nome,
+                    destinatario_telefone: destinatario.telefone,
+                    conversation_id: conversation.id,
+                    message_id: waMessage.id,
                   },
                 }).eq("token_id", aceiteToken.id).eq("tenant_id", tenantId);
+
+                EdgeRuntime.waitUntil(adminClient.functions.invoke("process-wa-outbox"));
               }
-            }
           }
         } catch (e) {
           console.warn("[proposal-send] WhatsApp send failed:", e);
