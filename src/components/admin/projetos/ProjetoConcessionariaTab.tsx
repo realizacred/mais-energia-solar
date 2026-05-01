@@ -279,7 +279,7 @@ function VistoriaCard({ ctx, habilitado }: { ctx: ReturnType<typeof useConcessio
 
   return (
     <>
-      <Card className="shadow-sm">
+      <Card className={cn("shadow-sm", !habilitado && status === "nao_solicitada" && "opacity-60")}>
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
