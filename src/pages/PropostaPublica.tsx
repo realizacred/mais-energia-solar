@@ -165,10 +165,15 @@ export default function PropostaPublica() {
       if (sw < 768) deviceType = "Mobile";
       else if (sw < 1024) deviceType = "Tablet";
 
+      // IMPORTANTE: passar TODOS os parâmetros nomeados (inclusive p_ip=null).
+      // O supabase-js resolve a função por assinatura — omitir um arg nomeado
+      // faz o Postgres procurar uma sobrecarga inexistente e falha silenciosa
+      // (No function matches the given name and argument types).
       await supabase.rpc("registrar_view_proposta" as any, {
         p_token: td.token ?? token,
         p_user_agent: navigator.userAgent,
         p_referrer: document.referrer || null,
+        p_ip: null,
         p_device_type: deviceType,
         p_screen_width: sw,
       });
