@@ -273,25 +273,38 @@ export function StepDocumento({
       ? null
       : (externalPdfUrl || pdfBlobUrl || null);
 
-    if (!outputPdfPath && !directPdfUrl) {
+    if (withTracker && (!result?.proposta_id || !result?.versao_id)) {
+      toast({ title: "Gere a proposta primeiro para copiar o link rastreável", variant: "destructive" });
+      return;
+    }
+
+    if (!withTracker && !outputPdfPath && !directPdfUrl) {
       toast({ title: "Gere a proposta primeiro para copiar o link do PDF", variant: "destructive" });
       return;
     }
 
     try {
-      let url = directPdfUrl;
+      let url: string | null = null;
 
-      if (!url && outputPdfPath) {
-        const { data: signedData, error: signErr } = await supabase.storage
-          .from("proposta-documentos")
-          .createSignedUrl(outputPdfPath, 604800); // 7 days
+      if (withTracker) {
+        const token = await getOrCreateProposalToken(result.proposta_id, result.versao_id, "tracked");
+        url = `${getPublicUrl()}/proposta/${token}`;
+        setResolvedPublicUrl(url);
+      } else {
+        url = directPdfUrl;
 
-        if (signErr || !signedData?.signedUrl) {
-          toast({ title: "Erro ao gerar link do PDF", description: signErr?.message, variant: "destructive" });
-          return;
+        if (!url && outputPdfPath) {
+          const { data: signedData, error: signErr } = await supabase.storage
+            .from("proposta-documentos")
+            .createSignedUrl(outputPdfPath, 604800); // 7 days
+
+          if (signErr || !signedData?.signedUrl) {
+            toast({ title: "Erro ao gerar link do PDF", description: signErr?.message, variant: "destructive" });
+            return;
+          }
+
+          url = signedData.signedUrl;
         }
-
-        url = signedData.signedUrl;
       }
 
       if (!url) {
@@ -315,7 +328,7 @@ export function StepDocumento({
 
       toast({
         title: withTracker
-          ? "Link do PDF copiado (com rastreio)! 🔗"
+          ? "Link rastreável da proposta copiado! 🔗"
           : "Link do PDF copiado! 🔗",
       });
     } catch (err: any) {
