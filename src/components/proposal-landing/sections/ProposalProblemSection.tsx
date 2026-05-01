@@ -156,15 +156,17 @@ export function ProposalProblemSection({ snapshot: s, versaoData, activeCenario 
               <p style={{ margin: 0 }}>
                 <span style={{ fontSize: "0.85rem", opacity: 0.5 }}>R$ </span>
                 <span style={{ fontFamily: "Montserrat, sans-serif", fontWeight: 900, fontSize: "clamp(2rem, 5vw, 3rem)" }}>
-                  {Math.round(contaDepois).toLocaleString("pt-BR")}
+                  {hasEconomia || contaDepois > 0 ? Math.round(contaDepois).toLocaleString("pt-BR") : "—"}
                 </span>
               </p>
               <p style={{ fontSize: "0.82rem", opacity: 0.5, margin: "4px 0 0" }}>/mês com energia solar</p>
-              <div style={{ marginTop: 20, padding: "10px 14px", background: "rgba(34,197,94,0.12)", borderRadius: 10 }}>
-                <p style={{ margin: 0, fontSize: "0.75rem", color: "#86EFAC" }}>
-                  ✅ Em 25 anos: <strong>R$ {Math.round(economiaAnual * 25).toLocaleString("pt-BR")}</strong> de economia
-                </p>
-              </div>
+              {hasEconomia && (
+                <div style={{ marginTop: 20, padding: "10px 14px", background: "rgba(34,197,94,0.12)", borderRadius: 10 }}>
+                  <p style={{ margin: 0, fontSize: "0.75rem", color: "#86EFAC" }}>
+                    ✅ Em 25 anos: <strong>R$ {Math.round((kpis.economia25Anos ?? economiaAnual * 25)).toLocaleString("pt-BR")}</strong> de economia
+                  </p>
+                </div>
+              )}
             </div>
           </motion.div>
         </div>
