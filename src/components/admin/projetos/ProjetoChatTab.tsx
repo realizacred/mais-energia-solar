@@ -9,6 +9,7 @@ import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
+import { normalizeBrazilianPhone } from "@/utils/phone/normalizeBrazilianPhone";
 import {
   MessageSquare, ChevronDown, ChevronUp, StickyNote, User, Users,
   Sparkles, RefreshCw, Target, TrendingUp, ShieldAlert,
@@ -27,6 +28,40 @@ interface WaConvBasic {
   last_message_preview: string | null;
   last_message_at: string | null;
   status: string;
+}
+
+interface WaOutboxAudit {
+  id: string;
+  content: string | null;
+  message_type: string;
+  status: string;
+  delivery_status: string | null;
+  error_message: string | null;
+  remote_jid: string;
+  remote_jid_canonical: string | null;
+  conversation_id: string | null;
+  message_id: string | null;
+  created_at: string;
+  sent_at: string | null;
+  delivered_at: string | null;
+  read_at: string | null;
+}
+
+function getPhoneLookupTerms(variants: string[], fallbackDigits: string): string[] {
+  const terms = new Set<string>();
+  [...variants, fallbackDigits].forEach(value => {
+    const digits = value.replace(/\D/g, "");
+    if (digits.length >= 8) terms.add(digits);
+    if (digits.length >= 9) terms.add(digits.slice(-9));
+    if (digits.length >= 8) terms.add(digits.slice(-8));
+  });
+  return Array.from(terms).filter(term => term.length >= 8);
+}
+
+function buildPhoneOrFilter(columns: string[], terms: string[]): string {
+  return columns
+    .flatMap(column => terms.map(term => `${column}.ilike.%${term}%`))
+    .join(",");
 }
 
 interface WaMsg {
@@ -63,6 +98,19 @@ interface CachedSummary {
   updated_at: string;
 }
 
+interface ProfileNameRow {
+  user_id: string;
+  nome: string | null;
+}
+
+interface WaConversationSummaryRow {
+  id: string;
+  summary_json: ConversationSummary;
+  last_message_id: string;
+  message_count: number;
+  updated_at: string;
+}
+
 // ── Main Component ──────────────────────────────────
 
 interface ProjetoChatTabProps {
@@ -72,6 +120,7 @@ interface ProjetoChatTabProps {
 
 export function ProjetoChatTab({ customerId, customerPhone }: ProjetoChatTabProps) {
   const [conversations, setConversations] = useState<WaConvBasic[]>([]);
+  const [outboxAudits, setOutboxAudits] = useState<WaOutboxAudit[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedConvId, setExpandedConvId] = useState<string | null>(null);
 
@@ -79,17 +128,27 @@ export function ProjetoChatTab({ customerId, customerPhone }: ProjetoChatTabProp
     async function load() {
       if (!customerPhone && !customerId) { setLoading(false); return; }
       try {
-        const digits = customerPhone.replace(/\D/g, "");
-        if (digits.length >= 8) {
-          const suffix = digits.slice(-8);
-          const { data } = await supabase
+        const normalized = normalizeBrazilianPhone(customerPhone);
+        const terms = getPhoneLookupTerms(normalized?.variants ?? [], normalized?.digits ?? customerPhone.replace(/\D/g, ""));
+        if (terms.length > 0) {
+          const [convRes, outboxRes] = await Promise.all([
+            supabase
             .from("wa_conversations")
             .select("id, cliente_nome, cliente_telefone, last_message_preview, last_message_at, status")
-            .or(`cliente_telefone.ilike.%${suffix}%,remote_jid.ilike.%${suffix}%`)
+            .or(buildPhoneOrFilter(["cliente_telefone", "remote_jid", "telefone_normalized"], terms))
             .order("last_message_at", { ascending: false })
-            .limit(10);
-          const convs = (data || []) as WaConvBasic[];
+            .limit(10),
+            supabase
+              .from("wa_outbox")
+              .select("id, content, message_type, status, delivery_status, error_message, remote_jid, remote_jid_canonical, conversation_id, message_id, created_at, sent_at, delivered_at, read_at")
+              .or(buildPhoneOrFilter(["remote_jid", "remote_jid_canonical"], terms))
+              .order("created_at", { ascending: false })
+              .limit(20),
+          ]);
+          const convs = (convRes.data || []) as WaConvBasic[];
+          const audits = ((outboxRes.data || []) as WaOutboxAudit[]).filter(item => !item.message_id);
           setConversations(convs);
+          setOutboxAudits(audits);
           // Auto-expand first conversation
           if (convs.length > 0) setExpandedConvId(convs[0].id);
         }
@@ -104,7 +163,7 @@ export function ProjetoChatTab({ customerId, customerPhone }: ProjetoChatTabProp
   return (
     <div className="space-y-4">
 
-      {conversations.length === 0 ? (
+      {conversations.length === 0 && outboxAudits.length === 0 ? (
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-14 text-muted-foreground">
             <MessageSquare className="h-10 w-10 mb-3 opacity-30" />
@@ -123,6 +182,9 @@ export function ProjetoChatTab({ customerId, customerPhone }: ProjetoChatTabProp
               isExpanded={expandedConvId === conv.id}
               onToggle={() => setExpandedConvId(prev => prev === conv.id ? null : conv.id)}
             />
+          ))}
+          {outboxAudits.map(item => (
+            <OutboxAuditCard key={item.id} item={item} />
           ))}
         </div>
       )}
@@ -183,6 +245,59 @@ function ConversationCard({
   );
 }
 
+function OutboxAuditCard({ item }: { item: WaOutboxAudit }) {
+  const statusLabel = item.read_at
+    ? "Lida"
+    : item.delivered_at
+      ? "Entregue"
+      : item.sent_at || item.status === "sent"
+        ? "Enviada"
+        : item.status === "failed"
+          ? "Falhou"
+          : item.status === "pending"
+            ? "Na fila"
+            : item.status;
+
+  const sentAt = item.sent_at || item.created_at;
+
+  return (
+    <Card className={cn("overflow-hidden", item.status === "failed" ? "border-destructive/30 bg-destructive/5" : "border-warning/30 bg-warning/5")}>
+      <CardContent className="p-4 space-y-3">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex items-start gap-3 min-w-0">
+            <div className="w-9 h-9 rounded-full bg-warning/15 flex items-center justify-center shrink-0">
+              <Clock className="h-4 w-4 text-warning" />
+            </div>
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-2">
+                <p className="text-sm font-bold text-foreground">Auditoria WhatsApp</p>
+                <Badge variant="outline" className={cn("text-[9px] h-4", item.status === "failed" ? "border-destructive/30 text-destructive" : "border-warning/30 text-warning")}>
+                  {statusLabel}
+                </Badge>
+              </div>
+              <p className="text-xs text-muted-foreground mt-0.5">Mensagem encontrada na fila de envio, sem conversa vinculada</p>
+            </div>
+          </div>
+          <div className="text-right shrink-0">
+            <p className="text-[10px] text-muted-foreground">{item.remote_jid_canonical || item.remote_jid}</p>
+            <p className="text-[10px] text-muted-foreground mt-0.5">{format(new Date(sentAt), "dd/MM/yyyy HH:mm", { locale: ptBR })}</p>
+          </div>
+        </div>
+
+        {item.content && (
+          <div className="rounded-lg border border-border/40 bg-card/60 p-3">
+            <p className="text-xs text-foreground whitespace-pre-wrap leading-relaxed">{item.content}</p>
+          </div>
+        )}
+
+        {item.error_message && (
+          <p className="text-xs text-destructive">{item.error_message}</p>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
 // ── Expanded Chat History ──────────────────────────
 
 function ExpandedChatHistory({ conversationId }: { conversationId: string }) {
@@ -214,7 +329,7 @@ function ExpandedChatHistory({ conversationId }: { conversationId: string }) {
             .from("profiles")
             .select("user_id, nome")
             .in("user_id", userIds);
-          const nameMap = new Map((profiles || []).map((p: any) => [p.user_id, p.nome]));
+          const nameMap = new Map((profiles || []).map((p: ProfileNameRow) => [p.user_id, p.nome]));
           msgs.forEach(m => {
             if (m.sent_by_user_id) m.sent_by_name = nameMap.get(m.sent_by_user_id) || null;
           });
@@ -232,11 +347,11 @@ function ExpandedChatHistory({ conversationId }: { conversationId: string }) {
     async function loadCachedSummary() {
       try {
         const { data } = await supabase
-          .from("wa_conversation_summaries" as any)
-          .select("id, conversation_id, summary, key_points, sentiment, topics, generated_at, model_used")
+          .from("wa_conversation_summaries")
+          .select("id, summary_json, last_message_id, message_count, updated_at")
           .eq("conversation_id", conversationId)
           .maybeSingle();
-        if (data) setCachedSummary(data as any);
+        if (data) setCachedSummary(data as unknown as WaConversationSummaryRow);
       } catch {
         // ignore errors loading cached summary
       }
@@ -279,8 +394,8 @@ function ExpandedChatHistory({ conversationId }: { conversationId: string }) {
         };
         setCachedSummary(cached);
       }
-    } catch (err: any) {
-      setSummaryError(err.message || "Erro ao gerar resumo");
+    } catch (err: unknown) {
+      setSummaryError(err instanceof Error ? err.message : "Erro ao gerar resumo");
     } finally {
       setSummaryLoading(false);
     }
