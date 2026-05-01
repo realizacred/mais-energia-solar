@@ -99,10 +99,11 @@ export function DocumentosTab({ dealId, clienteTelefone, consultorTelefone: cons
   const { data: clienteData } = useQuery({
     queryKey: ["projeto-cliente-validacao", dealId],
     queryFn: async () => {
+      // dealId é deals.id — buscar projeto via deal_id (sistema dual: deals ≠ projetos)
       const { data: projeto } = await supabase
         .from("projetos")
         .select("cliente_id")
-        .eq("id", dealId)
+        .eq("deal_id", dealId)
         .maybeSingle();
       if (!projeto?.cliente_id) return null;
       const { data: cliente } = await supabase
