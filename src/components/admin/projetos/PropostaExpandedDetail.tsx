@@ -1675,6 +1675,19 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
                       )}
                     </div>
                   </TabsContent>
+
+                  <TabsContent value="rastreio" className="px-4 pb-4 mt-0">
+                    <div className="mt-3">
+                      <ProposalViewsCard
+                        propostaId={p.id}
+                        versaoId={latestVersao?.id}
+                        statusVisualizacao={(p as any).status_visualizacao}
+                        primeiroAcessoEm={(p as any).primeiro_acesso_em}
+                        ultimoAcessoEm={(p as any).ultimo_acesso_em}
+                        totalAberturas={(p as any).total_aberturas ?? 0}
+                      />
+                    </div>
+                  </TabsContent>
                 </>
               )}
             </Tabs>
