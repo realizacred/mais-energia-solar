@@ -11,6 +11,15 @@ function renderTemplate(corpo: string, vars: Record<string, string>): string {
   return corpo.replace(/\{\{(\w+)\}\}/g, (_match, key) => vars[key] ?? `{{${key}}}`);
 }
 
+function normalizeWaJid(rawPhoneOrJid: string): string {
+  const [numPart] = rawPhoneOrJid.split("@");
+  let digits = numPart.replace(/\D/g, "");
+  if (digits.startsWith("55") && (digits.length === 12 || digits.length === 13)) digits = digits.slice(2);
+  if (digits.length === 10) digits = `${digits.slice(0, 2)}9${digits.slice(2)}`;
+  if (!digits.startsWith("55")) digits = `55${digits}`;
+  return `${digits}@s.whatsapp.net`;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -50,7 +59,7 @@ Deno.serve(async (req) => {
     // ── 3. VERIFICAR OWNERSHIP + DADOS (paralelo) ───────────
     const [propostaRes, tenantRes, versaoRes, renderRes] = await Promise.all([
       adminClient.from("propostas_nativas")
-        .select("id, lead_id, titulo, codigo, deal_id").eq("id", proposta_id).eq("tenant_id", tenantId).single(),
+        .select("id, lead_id, cliente_id, projeto_id, titulo, codigo, deal_id").eq("id", proposta_id).eq("tenant_id", tenantId).single(),
       adminClient.from("tenants")
         .select("dominio_customizado, slug, nome").eq("id", tenantId).single(),
       adminClient.from("proposta_versoes")
