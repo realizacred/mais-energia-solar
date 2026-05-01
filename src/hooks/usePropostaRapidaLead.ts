@@ -165,11 +165,11 @@ export function usePropostaRapidaLead() {
 
       // 6. Criar deal vinculado ao projeto (apenas se pipeline comercial existir)
       let newDealId: string | null = null;
-      if (pipeline && dealStageId) {
+      if (pipelineComercial && dealStageId) {
         const { data: newDeal, error: dealError } = await supabase
           .from("deals")
           .insert({
-            pipeline_id: pipeline.id,
+            pipeline_id: pipelineComercial.id,
             stage_id: dealStageId,
             owner_id: lead.consultor_id || null,
             customer_id: clienteId!,
