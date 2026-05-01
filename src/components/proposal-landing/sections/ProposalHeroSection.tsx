@@ -139,7 +139,7 @@ export function ProposalHeroSection({ snapshot: s, versaoData, brand, tenantNome
             maxWidth: 520, lineHeight: 1.6,
           }}
         >
-          Sistema fotovoltaico de <strong style={{ color: "rgba(255,255,255,0.85)" }}>{potKwp.toFixed(1).replace(".", ",")} kWp</strong> projetado
+          Sistema fotovoltaico de <strong style={{ color: "rgba(255,255,255,0.85)" }}>{potKwpLabel} kWp</strong> projetado
           sob medida para você. Retorno em <strong style={{ color: "rgba(255,255,255,0.85)" }}>{paybackAnos} anos</strong>.
         </motion.p>
 
