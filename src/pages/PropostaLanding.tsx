@@ -403,10 +403,10 @@ export default function PropostaLanding() {
       `}</style>
 
       {/* 1. HERO — Full-screen, dramatic */}
-      <ProposalHeroSection {...sectionProps} onScrollDown={scrollToCTA} />
+      <ProposalHeroSection {...sectionProps} onScrollDown={scrollToCTA} activeCenario={activeCenario} />
 
       {/* 2. DOR DO CLIENTE — Before/After comparison */}
-      <ProposalProblemSection {...sectionProps} />
+      <ProposalProblemSection {...sectionProps} activeCenario={activeCenario} />
 
       {/* 3. SOLUÇÃO — System specs showcase */}
       <ProposalSolutionSection {...sectionProps} />
