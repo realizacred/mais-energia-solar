@@ -276,7 +276,7 @@ export function ProposalViewsCard({ propostaId, versaoId, statusVisualizacao, pr
           {(primeiroAcessoEm || activeToken?.first_viewed_at) && (
             <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground mb-3">
               <span>
-                Primeiro acesso: {format(new Date(primeiroAcessoEm || activeToken!.first_viewed_at!), "dd/MM HH:mm", { locale: ptBR })}
+                Primeiro acesso: {format(new Date(primeiroAcessoEm || activeToken!.first_viewed_at!), "dd/MM/yyyy HH:mm", { locale: ptBR })}
               </span>
               {(ultimoAcessoEm || activeToken?.last_viewed_at) && (
                 <span>
@@ -329,7 +329,7 @@ export function ProposalViewsCard({ propostaId, versaoId, statusVisualizacao, pr
                     ) : (
                       <Monitor className="h-3 w-3 shrink-0" />
                     )}
-                    <span>{format(new Date(v.created_at), "dd/MM HH:mm", { locale: ptBR })}</span>
+                    <span>{format(new Date(v.created_at), "dd/MM/yyyy HH:mm", { locale: ptBR })}</span>
                     {v.referrer && (
                       <span className="text-[10px] truncate max-w-[120px]">
                         <Globe className="h-2.5 w-2.5 inline mr-0.5" />
@@ -383,7 +383,7 @@ export function ProposalViewsCard({ propostaId, versaoId, statusVisualizacao, pr
                       <EvIcon className="h-3 w-3 shrink-0" />
                       <span className="truncate">{config.label}{extra}</span>
                       <span className="ml-auto whitespace-nowrap text-[10px]">
-                        {format(new Date(ev.created_at), "dd/MM HH:mm", { locale: ptBR })}
+                        {format(new Date(ev.created_at), "dd/MM/yyyy HH:mm", { locale: ptBR })}
                       </span>
                     </div>
                   );
