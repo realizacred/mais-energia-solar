@@ -17,6 +17,7 @@ import { PageHeader, LoadingState } from "@/components/ui-kit";
 import { supabase } from "@/integrations/supabase/client";
 import { getCurrentTenantId } from "@/lib/getCurrentTenantId";
 import { useEnsureDefaultProjectPipeline } from "@/hooks/useDefaultPipeline";
+import { resolveDefaultCommercialPipeline } from "@/services/pipelines/resolveDefaultCommercialPipeline";
 
 import { ProjetoFilters } from "./ProjetoFilters";
 import { ProjetoKanbanStage } from "./ProjetoKanbanStage";
@@ -481,29 +482,14 @@ export function ProjetosManager() {
             }
 
             // 2) Garantir pipeline/stage COMERCIAL (mundo deals: pipelines/pipeline_stages)
+            // SSOT: usar resolveDefaultCommercialPipeline (não pegar "primeiro por created_at").
             await supabase.rpc("ensure_tenant_default_pipeline", { _tenant_id: tenantId });
 
-            const { data: comPipe, error: pipeErr } = await supabase
-              .from("pipelines")
-              .select("id")
-              .eq("tenant_id", tenantId)
-              .eq("is_active", true)
-              .order("created_at", { ascending: true })
-              .limit(1)
-              .maybeSingle();
-            if (pipeErr) throw new Error(pipeErr.message);
-            if (!comPipe?.id) throw new Error("Nenhum pipeline comercial disponível.");
-
-            const { data: comStage, error: stageErr } = await supabase
-              .from("pipeline_stages")
-              .select("id")
-              .eq("pipeline_id", comPipe.id)
-              .eq("is_closed", false)
-              .order("position", { ascending: true })
-              .limit(1)
-              .maybeSingle();
-            if (stageErr) throw new Error(stageErr.message);
-            if (!comStage?.id) throw new Error("Nenhuma etapa comercial disponível.");
+            const commercial = await resolveDefaultCommercialPipeline(tenantId);
+            if (!commercial.pipelineId) throw new Error("Nenhum pipeline comercial disponível.");
+            if (!commercial.stageId) throw new Error("Nenhuma etapa comercial disponível.");
+            const comPipe = { id: commercial.pipelineId };
+            const comStage = { id: commercial.stageId };
 
             // 3) INSERT projeto (com funil_id/etapa_id)
             const { data: newProjeto, error: projErr } = await supabase
