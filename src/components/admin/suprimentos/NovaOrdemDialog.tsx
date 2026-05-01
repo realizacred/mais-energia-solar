@@ -147,11 +147,18 @@ export function NovaOrdemDialog({ open, onOpenChange, defaultProjetoId }: NovaOr
           {step === 1 && (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>Projeto</Label>
-                <Select value={projetoId} onValueChange={setProjetoId}>
+                <Label>Projeto {defaultProjetoId && <span className="text-xs text-muted-foreground font-normal">(travado pelo contexto)</span>}</Label>
+                <Select
+                  value={projetoId}
+                  onValueChange={setProjetoId}
+                  disabled={!!defaultProjetoId}
+                >
                   <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
                   <SelectContent>
-                    {projetos.map(p => (
+                    {(defaultProjetoId
+                      ? projetos.filter(p => p.id === defaultProjetoId)
+                      : projetos
+                    ).map(p => (
                       <SelectItem key={p.id} value={p.id}>{p.codigo || p.nome}</SelectItem>
                     ))}
                   </SelectContent>
