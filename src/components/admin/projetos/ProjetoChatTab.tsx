@@ -9,6 +9,7 @@ import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
+import { normalizeBrazilianPhone } from "@/utils/phone/normalizeBrazilianPhone";
 import {
   MessageSquare, ChevronDown, ChevronUp, StickyNote, User, Users,
   Sparkles, RefreshCw, Target, TrendingUp, ShieldAlert,
@@ -27,6 +28,23 @@ interface WaConvBasic {
   last_message_preview: string | null;
   last_message_at: string | null;
   status: string;
+}
+
+interface WaOutboxAudit {
+  id: string;
+  content: string | null;
+  message_type: string;
+  status: string;
+  delivery_status: string | null;
+  error_message: string | null;
+  remote_jid: string;
+  remote_jid_canonical: string | null;
+  conversation_id: string | null;
+  message_id: string | null;
+  created_at: string;
+  sent_at: string | null;
+  delivered_at: string | null;
+  read_at: string | null;
 }
 
 interface WaMsg {
@@ -72,6 +90,7 @@ interface ProjetoChatTabProps {
 
 export function ProjetoChatTab({ customerId, customerPhone }: ProjetoChatTabProps) {
   const [conversations, setConversations] = useState<WaConvBasic[]>([]);
+  const [outboxAudits, setOutboxAudits] = useState<WaOutboxAudit[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedConvId, setExpandedConvId] = useState<string | null>(null);
 
@@ -79,17 +98,27 @@ export function ProjetoChatTab({ customerId, customerPhone }: ProjetoChatTabProp
     async function load() {
       if (!customerPhone && !customerId) { setLoading(false); return; }
       try {
-        const digits = customerPhone.replace(/\D/g, "");
-        if (digits.length >= 8) {
-          const suffix = digits.slice(-8);
-          const { data } = await supabase
+        const normalized = normalizeBrazilianPhone(customerPhone);
+        const terms = getPhoneLookupTerms(normalized?.variants ?? [], normalized?.digits ?? customerPhone.replace(/\D/g, ""));
+        if (terms.length > 0) {
+          const [convRes, outboxRes] = await Promise.all([
+            supabase
             .from("wa_conversations")
             .select("id, cliente_nome, cliente_telefone, last_message_preview, last_message_at, status")
-            .or(`cliente_telefone.ilike.%${suffix}%,remote_jid.ilike.%${suffix}%`)
+            .or(buildPhoneOrFilter(["cliente_telefone", "remote_jid", "telefone_normalized"], terms))
             .order("last_message_at", { ascending: false })
-            .limit(10);
-          const convs = (data || []) as WaConvBasic[];
+            .limit(10),
+            supabase
+              .from("wa_outbox")
+              .select("id, content, message_type, status, delivery_status, error_message, remote_jid, remote_jid_canonical, conversation_id, message_id, created_at, sent_at, delivered_at, read_at")
+              .or(buildPhoneOrFilter(["remote_jid", "remote_jid_canonical"], terms))
+              .order("created_at", { ascending: false })
+              .limit(20),
+          ]);
+          const convs = (convRes.data || []) as WaConvBasic[];
+          const audits = ((outboxRes.data || []) as WaOutboxAudit[]).filter(item => !item.message_id);
           setConversations(convs);
+          setOutboxAudits(audits);
           // Auto-expand first conversation
           if (convs.length > 0) setExpandedConvId(convs[0].id);
         }
@@ -104,7 +133,7 @@ export function ProjetoChatTab({ customerId, customerPhone }: ProjetoChatTabProp
   return (
     <div className="space-y-4">
 
-      {conversations.length === 0 ? (
+      {conversations.length === 0 && outboxAudits.length === 0 ? (
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-14 text-muted-foreground">
             <MessageSquare className="h-10 w-10 mb-3 opacity-30" />
@@ -123,6 +152,9 @@ export function ProjetoChatTab({ customerId, customerPhone }: ProjetoChatTabProp
               isExpanded={expandedConvId === conv.id}
               onToggle={() => setExpandedConvId(prev => prev === conv.id ? null : conv.id)}
             />
+          ))}
+          {outboxAudits.map(item => (
+            <OutboxAuditCard key={item.id} item={item} />
           ))}
         </div>
       )}
