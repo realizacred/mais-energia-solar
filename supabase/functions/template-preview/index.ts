@@ -1418,12 +1418,41 @@ Deno.serve(async (req) => {
 
     // ── 8d. QR CODE INJECTION (non-blocking) ───────────────
     // If template uses {qr_code} / {{qr_code}} / [qr_code], generate a PNG
-    // pointing to the public landing for this version (/pl/{public_slug})
+    // pointing to the tracked public proposal route (/proposta/{token})
     // and inject it inline. Skips silently if no placeholder is present.
     try {
-      const slug = (versaoData as any)?.public_slug as string | null | undefined;
       const baseUrl = Deno.env.get("APP_URL") || Deno.env.get("APP_URL_LOCKED") || "";
-      const publicUrl = slug && baseUrl ? `${baseUrl.replace(/\/+$/, "")}/pl/${slug}` : null;
+      let token: string | null = null;
+
+      if (proposta_id && versaoData?.id) {
+        const { data: existingToken } = await adminClient
+          .from("proposta_aceite_tokens")
+          .select("token")
+          .eq("proposta_id", proposta_id)
+          .eq("versao_id", versaoData.id)
+          .eq("tipo", "tracked")
+          .is("invalidado_em", null)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        token = existingToken?.token ?? null;
+
+        if (!token) {
+          const { data: createdToken, error: createTokenError } = await adminClient
+            .from("proposta_aceite_tokens")
+            .insert({ proposta_id, versao_id: versaoData.id, tenant_id: tenantId, tipo: "tracked" })
+            .select("token")
+            .single();
+
+          if (createTokenError) {
+            console.warn(`[template-preview] QR token not created: ${createTokenError.message}`);
+          }
+          token = createdToken?.token ?? null;
+        }
+      }
+
+      const publicUrl = token && baseUrl ? `${baseUrl.replace(/\/+$/, "")}/proposta/${token}` : null;
 
       const qrResult = await injectQrCodeIntoDocx({
         docxBytes: report,
