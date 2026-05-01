@@ -8,6 +8,7 @@ import { Separator } from "@/components/ui/separator";
 import { useProposalTracking } from "@/hooks/useProposalTracking";
 import { format, formatDistanceToNow, parseISO, eachDayOfInterval, startOfDay, subDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { formatPhoneBR } from "@/lib/formatters";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
 
 interface ProposalTrackingPanelProps {
@@ -200,33 +201,41 @@ export function ProposalViewsCard({ propostaId, versaoId, statusVisualizacao, pr
             )}
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
-            <div className="bg-muted/50 rounded-lg p-3 text-center">
-              <p className="text-[10px] text-muted-foreground uppercase">Views</p>
-              <p className="text-lg font-bold">{totalViews}</p>
+          {totalViews === 0 && envios.length === 0 ? (
+            <div className="bg-muted/30 rounded-lg p-4 text-center mb-4">
+              <Eye className="h-5 w-5 text-muted-foreground mx-auto mb-1.5 opacity-60" />
+              <p className="text-xs text-muted-foreground">Aguardando primeiro acesso do cliente</p>
+              <p className="text-[10px] text-muted-foreground/70 mt-0.5">As métricas aparecem após envio e visualização</p>
             </div>
-            <div className="bg-muted/50 rounded-lg p-3 text-center">
-              <p className="text-[10px] text-muted-foreground uppercase">Mobile</p>
-              <div className="flex items-center justify-center gap-1">
-                <Smartphone className="h-3.5 w-3.5 text-muted-foreground" />
-                <p className="text-lg font-bold">{deviceBreakdown.mobile}</p>
+          ) : (
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
+              <div className="bg-muted/50 rounded-lg p-3 text-center">
+                <p className="text-[10px] text-muted-foreground uppercase">Views</p>
+                <p className="text-lg font-bold">{totalViews}</p>
+              </div>
+              <div className="bg-muted/50 rounded-lg p-3 text-center">
+                <p className="text-[10px] text-muted-foreground uppercase">Mobile</p>
+                <div className="flex items-center justify-center gap-1">
+                  <Smartphone className="h-3.5 w-3.5 text-muted-foreground" />
+                  <p className="text-lg font-bold">{deviceBreakdown.mobile}</p>
+                </div>
+              </div>
+              <div className="bg-muted/50 rounded-lg p-3 text-center">
+                <p className="text-[10px] text-muted-foreground uppercase">Desktop</p>
+                <div className="flex items-center justify-center gap-1">
+                  <Monitor className="h-3.5 w-3.5 text-muted-foreground" />
+                  <p className="text-lg font-bold">{deviceBreakdown.desktop}</p>
+                </div>
+              </div>
+              <div className="bg-muted/50 rounded-lg p-3 text-center">
+                <p className="text-[10px] text-muted-foreground uppercase">Envios</p>
+                <div className="flex items-center justify-center gap-1">
+                  <Send className="h-3.5 w-3.5 text-muted-foreground" />
+                  <p className="text-lg font-bold">{envios.length}</p>
+                </div>
               </div>
             </div>
-            <div className="bg-muted/50 rounded-lg p-3 text-center">
-              <p className="text-[10px] text-muted-foreground uppercase">Desktop</p>
-              <div className="flex items-center justify-center gap-1">
-                <Monitor className="h-3.5 w-3.5 text-muted-foreground" />
-                <p className="text-lg font-bold">{deviceBreakdown.desktop}</p>
-              </div>
-            </div>
-            <div className="bg-muted/50 rounded-lg p-3 text-center">
-              <p className="text-[10px] text-muted-foreground uppercase">Envios</p>
-              <div className="flex items-center justify-center gap-1">
-                <Send className="h-3.5 w-3.5 text-muted-foreground" />
-                <p className="text-lg font-bold">{envios.length}</p>
-              </div>
-            </div>
-          </div>
+          )}
 
           {/* ── Daily Views Chart ─────────────────────────── */}
           {dailyViews.length > 1 && (
@@ -267,7 +276,7 @@ export function ProposalViewsCard({ propostaId, versaoId, statusVisualizacao, pr
           {(primeiroAcessoEm || activeToken?.first_viewed_at) && (
             <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground mb-3">
               <span>
-                Primeiro acesso: {format(new Date(primeiroAcessoEm || activeToken!.first_viewed_at!), "dd/MM HH:mm", { locale: ptBR })}
+                Primeiro acesso: {format(new Date(primeiroAcessoEm || activeToken!.first_viewed_at!), "dd/MM/yyyy HH:mm", { locale: ptBR })}
               </span>
               {(ultimoAcessoEm || activeToken?.last_viewed_at) && (
                 <span>
@@ -288,13 +297,17 @@ export function ProposalViewsCard({ propostaId, versaoId, statusVisualizacao, pr
               <div className="space-y-1.5">
                 {envios.map(e => {
                   const CanalIcon = CANAL_ICON[e.canal] || Send;
+                  const isPhone = e.canal === "whatsapp" || e.canal === "sms";
+                  const destino = e.destinatario
+                    ? (isPhone ? (formatPhoneBR(e.destinatario) || e.destinatario) : e.destinatario)
+                    : null;
                   return (
                     <div key={e.id} className="flex items-center gap-2 text-xs">
                       <CanalIcon className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
                       <Badge variant="outline" className="text-[10px]">{e.canal}</Badge>
-                      {e.destinatario && <span className="text-muted-foreground truncate">{e.destinatario}</span>}
+                      {destino && <span className="text-muted-foreground truncate">{destino}</span>}
                       <span className="ml-auto text-muted-foreground whitespace-nowrap">
-                        {format(new Date(e.enviado_em), "dd/MM HH:mm", { locale: ptBR })}
+                        {format(new Date(e.enviado_em), "dd/MM/yyyy HH:mm", { locale: ptBR })}
                       </span>
                     </div>
                   );
@@ -316,7 +329,7 @@ export function ProposalViewsCard({ propostaId, versaoId, statusVisualizacao, pr
                     ) : (
                       <Monitor className="h-3 w-3 shrink-0" />
                     )}
-                    <span>{format(new Date(v.created_at), "dd/MM HH:mm", { locale: ptBR })}</span>
+                    <span>{format(new Date(v.created_at), "dd/MM/yyyy HH:mm", { locale: ptBR })}</span>
                     {v.referrer && (
                       <span className="text-[10px] truncate max-w-[120px]">
                         <Globe className="h-2.5 w-2.5 inline mr-0.5" />
@@ -370,7 +383,7 @@ export function ProposalViewsCard({ propostaId, versaoId, statusVisualizacao, pr
                       <EvIcon className="h-3 w-3 shrink-0" />
                       <span className="truncate">{config.label}{extra}</span>
                       <span className="ml-auto whitespace-nowrap text-[10px]">
-                        {format(new Date(ev.created_at), "dd/MM HH:mm", { locale: ptBR })}
+                        {format(new Date(ev.created_at), "dd/MM/yyyy HH:mm", { locale: ptBR })}
                       </span>
                     </div>
                   );
