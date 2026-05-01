@@ -95,7 +95,7 @@ export function useProposalKPIs(
         : versaoData.valor_total) || null;
 
     // ── Tarifa real da UC (não chutar 0,85) ────────────────────────────────
-    const uc0 = s.ucs[0];
+    const uc0 = s.ucs[0] as any;
     const tarifa = uc0?.tarifa_distribuidora ?? 0;
     const tarifaFioB = uc0?.tarifa_fio_b ?? 0;
     const consumoMensalKwh = s.consumoTotal > 0 ? s.consumoTotal : (uc0?.consumo_mensal ?? 0);
