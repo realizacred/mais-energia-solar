@@ -269,11 +269,13 @@ export function StepDocumento({
   };
 
   const handleCopyLink = async (withTracker: boolean) => {
+    const propostaId = result?.proposta_id as string | undefined;
+    const versaoId = result?.versao_id as string | undefined;
     const directPdfUrl = outputPdfPath
       ? null
       : (externalPdfUrl || pdfBlobUrl || null);
 
-    if (withTracker && (!result?.proposta_id || !result?.versao_id)) {
+    if (withTracker && (!propostaId || !versaoId)) {
       toast({ title: "Gere a proposta primeiro para copiar o link rastreável", variant: "destructive" });
       return;
     }
@@ -287,7 +289,7 @@ export function StepDocumento({
       let url: string | null = null;
 
       if (withTracker) {
-        const token = await getOrCreateProposalToken(result.proposta_id, result.versao_id, "tracked");
+        const token = await getOrCreateProposalToken(propostaId!, versaoId!, "tracked");
         url = `${getPublicUrl()}/proposta/${token}`;
         setResolvedPublicUrl(url);
       } else {
