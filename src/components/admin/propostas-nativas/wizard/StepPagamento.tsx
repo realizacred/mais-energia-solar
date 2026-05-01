@@ -277,7 +277,12 @@ export function StepPagamento({
   const tarifaBase = ucGeradora?.tarifa_distribuidora || 1.10;
   const custoDisp = ucGeradora?.custo_disponibilidade_valor || 54.81;
 
-  // Economy calc — baseado na geração total com desconto Fio B progressivo
+  // ─── Estimativa preliminar (UI only) ─────────────────────────────────────
+  // ATENÇÃO: este cálculo é APENAS uma estimativa visual para o passo de pagamento.
+  // NÃO é a economia oficial — a economia oficial vem de calcFinancialSeries (snapshot).
+  // NÃO persistir esse valor em proposta_versoes.economia_mensal.
+  // Conforme AGENTS.md: NUNCA calcular economia oficial fora de
+  // calcFinancialSeries / calcGrupoB / calcGrupoA.
   const anoAtualCalc = new Date().getFullYear();
   const fioBPctAtual = anoAtualCalc <= 2022 ? 0 : anoAtualCalc === 2023 ? 0.15 : anoAtualCalc === 2024 ? 0.30
     : anoAtualCalc === 2025 ? 0.45 : anoAtualCalc === 2026 ? 0.60 : anoAtualCalc === 2027 ? 0.75
