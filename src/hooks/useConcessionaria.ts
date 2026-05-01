@@ -33,10 +33,31 @@ export interface AtivacaoData {
   observacoes?: string | null;
 }
 
+type HomologacaoStatus = "nao_solicitada" | "solicitada" | "em_analise" | "aprovada" | "reprovada";
+
+export interface HomologacaoData {
+  id?: string;
+  status: HomologacaoStatus;
+  protocolo?: string | null;
+  data_solicitacao?: string | null;
+  data_aprovacao?: string | null;
+  motivo_reprovacao?: string | null;
+  observacoes?: string | null;
+}
+
+export interface ConcessionariaPrereqs {
+  propostaAceita: boolean;
+  instalacaoConcluida: boolean;
+  homologacaoAprovada: boolean;
+  loading: boolean;
+}
+
 const keys = {
   vistoria: (pid: string) => ["projeto_vistoria", pid] as const,
   medidor: (pid: string) => ["projeto_medidor", pid] as const,
   ativacao: (pid: string) => ["projeto_ativacao", pid] as const,
+  homologacao: (pid: string) => ["projeto_homologacao", pid] as const,
+  prereqs: (pid: string) => ["projeto_concessionaria_prereqs", pid] as const,
 };
 
 export function useConcessionaria(projetoId: string) {
