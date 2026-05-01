@@ -362,7 +362,8 @@ function VistoriaCard({ ctx, habilitado }: { ctx: ReturnType<typeof useConcessio
               {/* Action buttons by status */}
               <div className="flex flex-wrap gap-2">
                 {status === "nao_solicitada" && (
-                  <Button onClick={handleRegistrarSolicitacao} disabled={ctx.vistoriaSaving}>
+                  <Button onClick={handleRegistrarSolicitacao} disabled={ctx.vistoriaSaving || !habilitado}>
+                    {!habilitado && <Lock className="h-4 w-4 mr-2" />}
                     Registrar solicitação
                   </Button>
                 )}
