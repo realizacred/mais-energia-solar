@@ -136,54 +136,15 @@ export function usePropostaRapidaLead() {
         return;
       }
 
-      // 4. Buscar pipeline comercial e stage default (deals) — opcional
-      const { data: pipeline } = await supabase
-        .from("pipelines")
-        .select("id")
-        .eq("tenant_id", tenantId)
-        .eq("is_active", true)
-        .order("created_at", { ascending: true })
-        .limit(1)
-        .maybeSingle();
-
-      let dealStageId: string | null = null;
-      if (pipeline) {
-        const { data: stage } = await supabase
-          .from("pipeline_stages")
-          .select("id")
-          .eq("pipeline_id", pipeline.id)
-          .order("position", { ascending: true })
-          .limit(1)
-          .maybeSingle();
-        dealStageId = stage?.id || null;
-      }
-
-      // 4b. Buscar funil de projetos (projeto_funis) e primeira etapa (projeto_etapas)
-      const { data: funilComercial } = await supabase
-        .from("projeto_funis")
-        .select("id")
-        .eq("tenant_id", tenantId)
-        .eq("ativo", true)
-        .order("ordem", { ascending: true })
-        .limit(1)
-        .maybeSingle();
-
-      let funilId: string | null = null;
-      let etapaId: string | null = null;
-
-      if (funilComercial) {
-        funilId = funilComercial.id;
-        // Buscar primeira etapa do funil
-        const { data: primeiraEtapa } = await supabase
-          .from("projeto_etapas")
-          .select("id")
-          .eq("funil_id", funilComercial.id)
-          .order("ordem", { ascending: true })
-          .limit(1)
-          .maybeSingle();
-
-        etapaId = primeiraEtapa?.id || null;
-      }
+      // 4. Resolver pipeline COMERCIAL canônico (deals + projeto_funis em espelho).
+      // SSOT: nunca pegar "primeiro por created_at" — ver resolveDefaultCommercialPipeline.
+      const resolution = await resolveDefaultCommercialPipeline(tenantId);
+      const funilId: string | null = resolution.funilId;
+      const etapaId: string | null = resolution.etapaId;
+      const pipelineComercial = resolution.pipelineId
+        ? { id: resolution.pipelineId }
+        : null;
+      const dealStageId: string | null = resolution.stageId;
 
       // 5. Criar projeto PRIMEIRO (deals.projeto_id é NOT NULL)
       const { data: newProjeto, error: projetoError } = await supabase
