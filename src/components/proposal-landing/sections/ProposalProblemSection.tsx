@@ -1,22 +1,31 @@
 /**
  * ProposalProblemSection — Dramatic before/after comparison.
  * Página pública — exceção RB-02 documentada.
+ *
+ * Usa useProposalKPIs (motor canônico) para "antes/depois". Sem fallback
+ * de tarifa 0,85 nem fórmula consumo×tarifa crua. Se não dá pra calcular,
+ * a seção exibe placeholders neutros.
  */
 
 import { motion } from "framer-motion";
 import { TrendingUp, TrendingDown, AlertTriangle, Sun, ArrowRight } from "lucide-react";
-import { AnimatedSection, StaggerContainer, StaggerItem } from "./AnimatedSection";
-import type { LandingSectionProps } from "./types";
+import { AnimatedSection } from "./AnimatedSection";
+import type { LandingSectionProps, CenarioData } from "./types";
+import { useProposalKPIs } from "../hooks/useProposalKPIs";
 
-export function ProposalProblemSection({ snapshot: s, versaoData }: LandingSectionProps) {
-  const consumo = s.consumoTotal || 0;
-  const tarifa = s.ucs[0]?.tarifa_distribuidora ?? 0.85;
-  const contaAtual = tarifa > 0 && consumo > 0 ? consumo * tarifa : (versaoData.economia_mensal ?? 0) * 1.2;
-  const economiaMensal = versaoData.economia_mensal ?? 0;
-  const contaDepois = Math.max(50, contaAtual - economiaMensal);
-  const percentEconomia = contaAtual > 0 ? Math.round((economiaMensal / contaAtual) * 100) : 80;
+interface Props extends LandingSectionProps {
+  activeCenario?: CenarioData | null;
+}
+
+export function ProposalProblemSection({ snapshot: s, versaoData, activeCenario }: Props) {
+  const kpis = useProposalKPIs(s, versaoData, activeCenario ?? null);
+  const contaAtual = kpis.contaAtualMensal ?? 0;
+  const economiaMensal = kpis.economiaMensal ?? 0;
+  const contaDepois = kpis.contaDepoisMensal ?? Math.max(0, contaAtual - economiaMensal);
+  const percentEconomia = kpis.percentEconomiaConta ?? 0;
   const economiaAnual = economiaMensal * 12;
-
+  const hasContaAtual = contaAtual > 0;
+  const hasEconomia = economiaMensal > 0;
   return (
     <AnimatedSection style={{ padding: "5rem 1.5rem", background: "#fff" }}>
       <div style={{ maxWidth: 900, margin: "0 auto" }}>
