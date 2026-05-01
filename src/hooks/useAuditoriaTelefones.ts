@@ -28,7 +28,7 @@ export function useAuditoriaTelefones() {
         .select("*")
         .order("tabela");
       if (error) throw error;
-      return (data ?? []) as AuditoriaTelefoneRow[];
+      return ((data ?? []) as unknown) as AuditoriaTelefoneRow[];
     },
     staleTime: 30_000,
   });
