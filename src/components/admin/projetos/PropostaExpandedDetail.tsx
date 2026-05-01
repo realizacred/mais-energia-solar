@@ -5,6 +5,7 @@ import { getPublicUrl } from "@/lib/getPublicUrl";
 import { useNavigate } from "react-router-dom";
 import { ProposalSnapshotView } from "@/components/admin/propostas-nativas/ProposalSnapshotView";
 import { StepDocumento } from "@/components/admin/propostas-nativas/wizard/StepDocumento";
+import { ProposalViewsCard } from "@/components/admin/propostas-nativas/ProposalViewsCard";
 import {
   Zap, SunMedium, DollarSign, FileText, Eye, Pencil, Copy, Trash2, Download,
   ChevronDown, MoreVertical, ExternalLink, AlertCircle, CheckCircle, Loader2,
