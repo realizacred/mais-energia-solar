@@ -117,7 +117,7 @@ export function ProposalFinancialSection({ snapshot: s, versaoData, activeCenari
           gap: 16,
           marginBottom: 40,
         }}>
-          {kpis.map((kpi, i) => (
+          {kpisCards.map((kpi, i) => (
             <StaggerItem key={i}>
               <div style={{
                 background: "rgba(255,255,255,0.06)", backdropFilter: "blur(8px)",
