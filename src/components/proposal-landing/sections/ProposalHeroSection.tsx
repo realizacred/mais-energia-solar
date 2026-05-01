@@ -151,8 +151,8 @@ export function ProposalHeroSection({ snapshot: s, versaoData, brand, tenantNome
           style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap", marginTop: 36 }}
         >
           {[
-            { icon: <Zap style={{ width: 18, height: 18 }} />, value: `${potKwp.toFixed(1).replace(".", ",")} kWp`, label: "Potência" },
-            { icon: <TrendingDown style={{ width: 18, height: 18 }} />, value: formatBRL(economiaMensal), label: "Economia/mês" },
+            { icon: <Zap style={{ width: 18, height: 18 }} />, value: `${potKwpLabel} kWp`, label: "Potência" },
+            { icon: <TrendingDown style={{ width: 18, height: 18 }} />, value: economiaLabel, label: "Economia/mês" },
             { icon: <Sun style={{ width: 18, height: 18 }} />, value: `${paybackAnos} anos`, label: "Payback" },
           ].map((kpi, i) => (
             <motion.div
