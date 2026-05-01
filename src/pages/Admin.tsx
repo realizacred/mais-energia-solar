@@ -162,6 +162,7 @@ const ContactsPage = lazy(() => import("@/pages/admin/ContactsPage"));
 const FiscalPage = lazy(() => import("@/components/admin/fiscal/FiscalPage"));
 const RolePermissionsManager = lazy(() => import("@/components/admin/RolePermissionsManager").then(m => ({ default: m.RolePermissionsManager })));
 const WaHealthDashboard = lazy(() => import("@/pages/admin/WaHealthDashboard"));
+const AuditoriaTelefonesPage = lazy(() => import("@/pages/admin/AuditoriaTelefonesPage"));
 const WaSaudePage = lazy(() => import("@/pages/admin/WaSaudePage"));
 const WhatsappInstanciasPage = lazy(() => import("@/pages/admin/integracoes/whatsapp/WhatsappInstanciasPage"));
 const WhatsappIaResolucaoPage = lazy(() => import("@/pages/admin/integracoes/whatsapp/WhatsappIaResolucaoPage"));
@@ -609,6 +610,7 @@ export default function Admin() {
                 <Route path="followup-wa-queue" element={<Navigate to="/admin/followup-queue" replace />} />
                 <Route path="metricas-atendimento" element={<WaAtendimentoMetrics />} />
                 <Route path="wa-health" element={<WaHealthDashboard />} />
+                <Route path="auditoria-telefones" element={<AuditoriaTelefonesPage />} />
                 <Route path="whatsapp/saude" element={<WaSaudePage />} />
                 <Route path="wa-etiquetas" element={<WaTagsManager />} />
                 <Route path="contatos" element={<ContactsPage />} />
