@@ -343,19 +343,17 @@ function StatusIcon({ status, isPrincipal }: { status: string; isPrincipal: bool
 }
 
 // ─── Financial KPIs (shared) ──────────────────────────
+// SSOT: snapshot é fonte de verdade. Coluna direta é apenas cache derivado (último fallback).
+// NUNCA recalcular financeiro fora de calcFinancialSeries/calcGrupoB/calcGrupoA.
 function FinancialKPIs({ snapshot, latestVersao }: { snapshot: any; latestVersao: VersaoData | undefined }) {
   const s = snapshot || {};
   const fin = s.financeiro || {};
 
-  const tir = latestVersao?.tir ?? fin.tir ?? s.tir ?? null;
-  const vpl = latestVersao?.vpl ?? fin.vpl ?? s.vpl ?? null;
-  const paybackMeses = latestVersao?.payback_meses
-    ?? fin.payback_meses
-    ?? s.payback_meses
-    ?? (latestVersao?.valor_total && latestVersao?.economia_mensal && latestVersao.economia_mensal > 0
-        ? Math.round(latestVersao.valor_total / latestVersao.economia_mensal)
-        : null);
-  const economiaMensal = latestVersao?.economia_mensal ?? fin.economia_mensal ?? s.economia_mensal ?? null;
+  // Precedência: snapshot.raiz → snapshot.financeiro → coluna direta (cache legado)
+  const tir = s.tir ?? fin.tir ?? latestVersao?.tir ?? null;
+  const vpl = s.vpl ?? fin.vpl ?? latestVersao?.vpl ?? null;
+  const paybackMeses = s.payback_meses ?? fin.payback_meses ?? latestVersao?.payback_meses ?? null;
+  const economiaMensal = s.economia_mensal ?? fin.economia_mensal ?? latestVersao?.economia_mensal ?? null;
 
   const paybackLabel = paybackMeses != null
     ? `${Math.floor(paybackMeses / 12)} anos e ${Math.round(paybackMeses % 12)} meses`
