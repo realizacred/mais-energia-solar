@@ -238,18 +238,47 @@ export function ProjetoMultiPipelineManager({ dealId, dealStatus, pipelines, all
 
   const removeFromPipeline = async (membershipId: string) => {
     if (isLocked) { toast({ title: "Projeto bloqueado", description: "Não é possível remover funis de um projeto ganho/perdido.", variant: "destructive" }); return; }
+
+    // Encontrar o membership alvo para validar regras de negócio
+    const target = memberships.find(m => m.id === membershipId);
+    if (!target) {
+      toast({ title: "Erro", description: "Funil não encontrado.", variant: "destructive" });
+      return;
+    }
+
+    // Bloquear remoção do funil PRIMÁRIO do deal (Comercial). Senão a trigger
+    // sync_deal_primary_pipeline_membership recria o registro automaticamente.
+    const { data: dealRow } = await supabase
+      .from("deals")
+      .select("pipeline_id")
+      .eq("id", dealId)
+      .maybeSingle();
+    if (dealRow?.pipeline_id === target.pipeline_id) {
+      toast({
+        title: "Não é possível remover",
+        description: "Este é o funil principal do projeto. Mova o projeto para outro funil principal antes de remover.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setSaving(membershipId);
     try {
-      const { error } = await supabase
+      // .select() força retornar as linhas afetadas — assim detectamos RLS silencioso
+      const { data, error } = await supabase
         .from("deal_pipeline_stages")
         .delete()
-        .eq("id", membershipId);
+        .eq("id", membershipId)
+        .select("id");
       if (error) throw error;
+      if (!data || data.length === 0) {
+        throw new Error("Nenhum registro foi removido (verifique permissões).");
+      }
       toast({ title: "Removido do funil" });
       await fetchMemberships();
       onMembershipChange?.();
     } catch (err: any) {
-      toast({ title: "Erro", description: err.message, variant: "destructive" });
+      toast({ title: "Erro ao remover", description: err.message, variant: "destructive" });
     } finally {
       setSaving(null);
     }
