@@ -27165,6 +27165,19 @@ export type Database = {
           },
         ]
       }
+      v_auditoria_telefones: {
+        Row: {
+          registro_id: string | null
+          rotulo: string | null
+          status_phone: string | null
+          tabela: string | null
+          telefone_atual: string | null
+          telefone_normalized: string | null
+          telefone_sugerido: string | null
+          tenant_id: string | null
+        }
+        Relationships: []
+      }
       vw_wa_integrity_audit: {
         Row: {
           erro: string | null
@@ -27208,6 +27221,7 @@ export type Database = {
         Args: { _conversation_id: string; _user_id?: string }
         Returns: boolean
       }
+      canonical_phone_digits: { Args: { raw: string }; Returns: string }
       canonicalize_phone_br: { Args: { raw_phone: string }; Returns: string }
       check_feature_access: {
         Args: { _feature_key: string; _tenant_id: string }
@@ -27526,6 +27540,7 @@ export type Database = {
           solar_plant_id: string
         }[]
       }
+      format_phone_br: { Args: { raw: string }; Returns: string }
       generate_consultor_slug: { Args: { nome: string }; Returns: string }
       get_active_financing_banks: {
         Args: never
