@@ -15759,6 +15759,53 @@ export type Database = {
           },
         ]
       }
+      projeto_homologacao: {
+        Row: {
+          created_at: string
+          data_aprovacao: string | null
+          data_solicitacao: string | null
+          id: string
+          motivo_reprovacao: string | null
+          observacoes: string | null
+          projeto_id: string
+          protocolo: string | null
+          status: Database["public"]["Enums"]["homologacao_status"]
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          data_aprovacao?: string | null
+          data_solicitacao?: string | null
+          id?: string
+          motivo_reprovacao?: string | null
+          observacoes?: string | null
+          projeto_id: string
+          protocolo?: string | null
+          status?: Database["public"]["Enums"]["homologacao_status"]
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          data_aprovacao?: string | null
+          data_solicitacao?: string | null
+          id?: string
+          motivo_reprovacao?: string | null
+          observacoes?: string | null
+          projeto_id?: string
+          protocolo?: string | null
+          status?: Database["public"]["Enums"]["homologacao_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "projeto_homologacao_projeto_id_fkey"
+            columns: ["projeto_id"]
+            isOneToOne: true
+            referencedRelation: "projetos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       projeto_materiais: {
         Row: {
           created_at: string
@@ -28370,6 +28417,7 @@ export type Database = {
       sync_concessionarias_from_subgrupos: { Args: never; Returns: Json }
       tenant_and_user_active: { Args: never; Returns: boolean }
       tenant_is_active: { Args: { _tenant_id?: string }; Returns: boolean }
+      tenant_of_projeto: { Args: { _projeto_id: string }; Returns: string }
       touch_contact_last_interaction: {
         Args: { p_at: string; p_phone_e164: string; p_tenant_id: string }
         Returns: undefined
@@ -28500,6 +28548,12 @@ export type Database = {
         | "financiamento"
         | "crediario"
         | "outro"
+      homologacao_status:
+        | "nao_solicitada"
+        | "solicitada"
+        | "em_analise"
+        | "aprovada"
+        | "reprovada"
       integration_audit_action:
         | "connect_started"
         | "connect_completed"
@@ -28821,6 +28875,13 @@ export const Constants = {
         "financiamento",
         "crediario",
         "outro",
+      ],
+      homologacao_status: [
+        "nao_solicitada",
+        "solicitada",
+        "em_analise",
+        "aprovada",
+        "reprovada",
       ],
       integration_audit_action: [
         "connect_started",

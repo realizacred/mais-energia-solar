@@ -33,10 +33,31 @@ export interface AtivacaoData {
   observacoes?: string | null;
 }
 
+type HomologacaoStatus = "nao_solicitada" | "solicitada" | "em_analise" | "aprovada" | "reprovada";
+
+export interface HomologacaoData {
+  id?: string;
+  status: HomologacaoStatus;
+  protocolo?: string | null;
+  data_solicitacao?: string | null;
+  data_aprovacao?: string | null;
+  motivo_reprovacao?: string | null;
+  observacoes?: string | null;
+}
+
+export interface ConcessionariaPrereqs {
+  propostaAceita: boolean;
+  instalacaoConcluida: boolean;
+  homologacaoAprovada: boolean;
+  loading: boolean;
+}
+
 const keys = {
   vistoria: (pid: string) => ["projeto_vistoria", pid] as const,
   medidor: (pid: string) => ["projeto_medidor", pid] as const,
   ativacao: (pid: string) => ["projeto_ativacao", pid] as const,
+  homologacao: (pid: string) => ["projeto_homologacao", pid] as const,
+  prereqs: (pid: string) => ["projeto_concessionaria_prereqs", pid] as const,
 };
 
 export function useConcessionaria(projetoId: string) {
@@ -204,6 +225,83 @@ export function useConcessionaria(projetoId: string) {
     },
   });
 
+  // ── Homologação (Parecer de Acesso) ──
+  const homologacaoQuery = useQuery({
+    queryKey: keys.homologacao(projetoId),
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("projeto_homologacao")
+        .select("*")
+        .eq("projeto_id", projetoId)
+        .maybeSingle();
+      if (error) throw error;
+      return data as HomologacaoData | null;
+    },
+    staleTime: 1000 * 60 * 5,
+    enabled: !!projetoId,
+  });
+
+  const salvarHomologacaoMut = useMutation({
+    mutationFn: async (dados: Partial<HomologacaoData>) => {
+      const existing = homologacaoQuery.data as any;
+      if (existing?.id) {
+        const { error } = await supabase
+          .from("projeto_homologacao")
+          .update({ ...dados, updated_at: new Date().toISOString() })
+          .eq("id", existing.id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from("projeto_homologacao")
+          .insert({ projeto_id: projetoId, ...dados } as any);
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: keys.homologacao(projetoId) });
+      qc.invalidateQueries({ queryKey: keys.prereqs(projetoId) });
+      toast({ title: "Homologação atualizada" });
+    },
+    onError: (e: any) => {
+      console.error("[useConcessionaria] Erro ao salvar homologação:", e);
+      toast({ title: "Erro ao salvar homologação", description: e.message, variant: "destructive" });
+    },
+  });
+
+  // ── Pré-requisitos (gate da vistoria) ──
+  const prereqsQuery = useQuery({
+    queryKey: keys.prereqs(projetoId),
+    queryFn: async (): Promise<Omit<ConcessionariaPrereqs, "loading">> => {
+      const [propResp, instResp] = await Promise.all([
+        supabase
+          .from("propostas_nativas")
+          .select("id", { count: "exact", head: true })
+          .eq("deal_id", projetoId)
+          .eq("status", "aceita"),
+        supabase
+          .from("os_instalacao")
+          .select("id", { count: "exact", head: true })
+          .eq("projeto_id", projetoId)
+          .eq("status", "concluida"),
+      ]);
+      const homolog = homologacaoQuery.data;
+      return {
+        propostaAceita: (propResp.count ?? 0) > 0,
+        instalacaoConcluida: (instResp.count ?? 0) > 0,
+        homologacaoAprovada: homolog?.status === "aprovada",
+      };
+    },
+    enabled: !!projetoId && !homologacaoQuery.isLoading,
+    staleTime: 1000 * 60 * 2,
+  });
+
+  const prereqs: ConcessionariaPrereqs = {
+    propostaAceita: prereqsQuery.data?.propostaAceita ?? false,
+    instalacaoConcluida: prereqsQuery.data?.instalacaoConcluida ?? false,
+    homologacaoAprovada: prereqsQuery.data?.homologacaoAprovada ?? false,
+    loading: prereqsQuery.isLoading || homologacaoQuery.isLoading,
+  };
+
   return {
     vistoria: vistoriaQuery.data,
     vistoriaLoading: vistoriaQuery.isLoading,
@@ -221,5 +319,12 @@ export function useConcessionaria(projetoId: string) {
     ativacaoLoading: ativacaoQuery.isLoading,
     salvarAtivacao: salvarAtivacaoMut.mutateAsync,
     ativacaoSaving: salvarAtivacaoMut.isPending,
+
+    homologacao: homologacaoQuery.data,
+    homologacaoLoading: homologacaoQuery.isLoading,
+    salvarHomologacao: salvarHomologacaoMut.mutateAsync,
+    homologacaoSaving: salvarHomologacaoMut.isPending,
+
+    prereqs,
   };
 }
