@@ -1421,7 +1421,7 @@ Deno.serve(async (req) => {
     // pointing to the tracked public proposal route (/proposta/{token})
     // and inject it inline. Skips silently if no placeholder is present.
     try {
-      const baseUrl = Deno.env.get("APP_URL") || Deno.env.get("APP_URL_LOCKED") || "";
+      const baseUrl = Deno.env.get("APP_URL") || Deno.env.get("APP_URL_LOCKED") || req.headers.get("origin") || "";
       let token: string | null = null;
 
       if (proposta_id && versaoData?.id) {
