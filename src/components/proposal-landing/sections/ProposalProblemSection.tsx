@@ -90,15 +90,17 @@ export function ProposalProblemSection({ snapshot: s, versaoData, activeCenario 
               <p style={{ margin: 0 }}>
                 <span style={{ fontSize: "0.85rem", opacity: 0.5 }}>R$ </span>
                 <span style={{ fontFamily: "Montserrat, sans-serif", fontWeight: 900, fontSize: "clamp(2rem, 5vw, 3rem)" }}>
-                  {Math.round(contaAtual).toLocaleString("pt-BR")}
+                  {hasContaAtual ? Math.round(contaAtual).toLocaleString("pt-BR") : "—"}
                 </span>
               </p>
               <p style={{ fontSize: "0.82rem", opacity: 0.5, margin: "4px 0 0" }}>/mês na conta de luz</p>
-              <div style={{ marginTop: 20, padding: "10px 14px", background: "rgba(239,68,68,0.12)", borderRadius: 10 }}>
-                <p style={{ margin: 0, fontSize: "0.75rem", color: "#FCA5A5" }}>
-                  💸 Em 25 anos: <strong>R$ {Math.round(contaAtual * 12 * 25).toLocaleString("pt-BR")}</strong> jogados fora
-                </p>
-              </div>
+              {hasContaAtual && (
+                <div style={{ marginTop: 20, padding: "10px 14px", background: "rgba(239,68,68,0.12)", borderRadius: 10 }}>
+                  <p style={{ margin: 0, fontSize: "0.75rem", color: "#FCA5A5" }}>
+                    💸 Em 25 anos: <strong>R$ {Math.round(contaAtual * 12 * 25).toLocaleString("pt-BR")}</strong> jogados fora
+                  </p>
+                </div>
+              )}
             </div>
           </motion.div>
 
