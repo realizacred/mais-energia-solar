@@ -98,6 +98,19 @@ interface CachedSummary {
   updated_at: string;
 }
 
+interface ProfileNameRow {
+  user_id: string;
+  nome: string | null;
+}
+
+interface WaConversationSummaryRow {
+  id: string;
+  summary_json: ConversationSummary;
+  last_message_id: string;
+  message_count: number;
+  updated_at: string;
+}
+
 // ── Main Component ──────────────────────────────────
 
 interface ProjetoChatTabProps {
@@ -316,7 +329,7 @@ function ExpandedChatHistory({ conversationId }: { conversationId: string }) {
             .from("profiles")
             .select("user_id, nome")
             .in("user_id", userIds);
-          const nameMap = new Map((profiles || []).map((p: any) => [p.user_id, p.nome]));
+          const nameMap = new Map((profiles || []).map((p: ProfileNameRow) => [p.user_id, p.nome]));
           msgs.forEach(m => {
             if (m.sent_by_user_id) m.sent_by_name = nameMap.get(m.sent_by_user_id) || null;
           });
@@ -334,11 +347,11 @@ function ExpandedChatHistory({ conversationId }: { conversationId: string }) {
     async function loadCachedSummary() {
       try {
         const { data } = await supabase
-          .from("wa_conversation_summaries" as any)
-          .select("id, conversation_id, summary, key_points, sentiment, topics, generated_at, model_used")
+          .from("wa_conversation_summaries")
+          .select("id, summary_json, last_message_id, message_count, updated_at")
           .eq("conversation_id", conversationId)
           .maybeSingle();
-        if (data) setCachedSummary(data as any);
+        if (data) setCachedSummary(data as WaConversationSummaryRow);
       } catch {
         // ignore errors loading cached summary
       }
@@ -381,8 +394,8 @@ function ExpandedChatHistory({ conversationId }: { conversationId: string }) {
         };
         setCachedSummary(cached);
       }
-    } catch (err: any) {
-      setSummaryError(err.message || "Erro ao gerar resumo");
+    } catch (err: unknown) {
+      setSummaryError(err instanceof Error ? err.message : "Erro ao gerar resumo");
     } finally {
       setSummaryLoading(false);
     }
