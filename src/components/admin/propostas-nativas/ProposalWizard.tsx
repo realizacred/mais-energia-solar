@@ -2596,6 +2596,9 @@ export function ProposalWizard() {
     const nextKey = activeSteps[step + 1]?.key;
     if (currentStepKey === STEP_KEYS.RESUMO && nextKey === STEP_KEYS.PROPOSTA) {
       // Run canonical validation before allowing navigation
+      // SSOT: economia_mensal vem do snapshot canônico (calcFinancialSeries) — nunca de geração×tarifa.
+      const _snap = collectSnapshot() as any;
+      const _econSnap = typeof _snap?.economia_mensal === "number" ? _snap.economia_mensal : 0;
       const validation = validatePropostaFinal({
         cliente,
         selectedLead,
@@ -2608,9 +2611,7 @@ export function ProposalWizard() {
         precoFinal,
         geracaoMensalKwh: geracaoMensalEstimada,
         consumoTotal,
-        economiaMensal: geracaoMensalEstimada > 0
-          ? Math.round(geracaoMensalEstimada * (ucs.find(u => u.is_geradora)?.tarifa_distribuidora || 0.80))
-          : 0,
+        economiaMensal: _econSnap > 0 ? _econSnap : 0,
         locEstado,
         locCidade,
         locDistribuidoraNome: locDistribuidoraNome,
