@@ -8,6 +8,7 @@ import { Separator } from "@/components/ui/separator";
 import { useProposalTracking } from "@/hooks/useProposalTracking";
 import { format, formatDistanceToNow, parseISO, eachDayOfInterval, startOfDay, subDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { formatPhoneBR } from "@/lib/formatters";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
 
 interface ProposalTrackingPanelProps {
