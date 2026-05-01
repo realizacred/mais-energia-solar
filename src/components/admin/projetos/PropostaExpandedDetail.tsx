@@ -538,8 +538,9 @@ function NativeResumoTab({ snapshot, ucsDetail, latestVersao, wpPrice, buildSumm
   wpPrice: string | null;
   buildSummaryRows: () => Array<{ label: string; qty: number; value: number; pct: number; children?: Array<{ label: string; qty: number }> }>;
 }) {
-  const geracaoMensal = (snapshot as Record<string, any>)?.geracaoMensalEstimada || latestVersao?.geracao_mensal || 0;
-  const economiaMensal = latestVersao?.economia_mensal || 0;
+  const geracaoMensal = (snapshot as Record<string, any>)?.geracaoMensalEstimada || (snapshot as Record<string, any>)?.geracao_mensal_kwh || latestVersao?.geracao_mensal || 0;
+  // SSOT: snapshot prioritário sobre coluna direta (cache legado pode estar dessincronizado)
+  const economiaMensal = (snapshot as Record<string, any>)?.economia_mensal ?? latestVersao?.economia_mensal ?? 0;
   return (
     <div className="space-y-4 mt-3">
       {/* Row 1: Unidades + Resumo side by side */}
