@@ -30,6 +30,8 @@ import { formatBRL } from "./types";
 import { toast } from "@/hooks/use-toast";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { formatDateTime, formatDate, formatTime, formatDateShort } from "@/lib/dateUtils";
+import { QRCodeCanvas } from "qrcode.react";
+import { getOrCreateProposalToken } from "@/services/proposal/proposalDetail.service";
 
 // ─── Types ────────────────────────────────────────────────
 
@@ -151,38 +153,11 @@ export function StepDocumento({
 
     (async () => {
       try {
-        // Try to get existing tracked token
-        const { data: existing } = await supabase
-          .from("proposta_aceite_tokens" as any)
-          .select("token")
-          .eq("proposta_id", result.proposta_id)
-          .eq("versao_id", result.versao_id)
-          .eq("tipo", "tracked")
-          .order("created_at", { ascending: false })
-          .limit(1)
-          .maybeSingle();
-
-        let token = (existing as any)?.token as string | undefined;
-
-        // Create if not exists
-        if (!token) {
-          const { tenantId } = await getCurrentTenantId();
-          const { data: created } = await supabase
-            .from("proposta_aceite_tokens" as any)
-            .insert({
-              proposta_id: result.proposta_id,
-              versao_id: result.versao_id,
-              tenant_id: tenantId,
-              tipo: "tracked",
-            } as any)
-            .select("token")
-            .single();
-          token = (created as any)?.token;
-        }
+        const token = await getOrCreateProposalToken(result.proposta_id, result.versao_id, "tracked");
 
         if (cancelled) return;
 
-        const url = token ? `${getPublicUrl()}/proposta/${token}` : "";
+        const url = `${getPublicUrl()}/proposta/${token}`;
         setResolvedPublicUrl(url);
 
         // Set WA default message with link
@@ -294,29 +269,44 @@ export function StepDocumento({
   };
 
   const handleCopyLink = async (withTracker: boolean) => {
+    const propostaId = result?.proposta_id as string | undefined;
+    const versaoId = result?.versao_id as string | undefined;
     const directPdfUrl = outputPdfPath
       ? null
       : (externalPdfUrl || pdfBlobUrl || null);
 
-    if (!outputPdfPath && !directPdfUrl) {
+    if (withTracker && (!propostaId || !versaoId)) {
+      toast({ title: "Gere a proposta primeiro para copiar o link rastreável", variant: "destructive" });
+      return;
+    }
+
+    if (!withTracker && !outputPdfPath && !directPdfUrl) {
       toast({ title: "Gere a proposta primeiro para copiar o link do PDF", variant: "destructive" });
       return;
     }
 
     try {
-      let url = directPdfUrl;
+      let url: string | null = null;
 
-      if (!url && outputPdfPath) {
-        const { data: signedData, error: signErr } = await supabase.storage
-          .from("proposta-documentos")
-          .createSignedUrl(outputPdfPath, 604800); // 7 days
+      if (withTracker) {
+        const token = await getOrCreateProposalToken(propostaId!, versaoId!, "tracked");
+        url = `${getPublicUrl()}/proposta/${token}`;
+        setResolvedPublicUrl(url);
+      } else {
+        url = directPdfUrl;
 
-        if (signErr || !signedData?.signedUrl) {
-          toast({ title: "Erro ao gerar link do PDF", description: signErr?.message, variant: "destructive" });
-          return;
+        if (!url && outputPdfPath) {
+          const { data: signedData, error: signErr } = await supabase.storage
+            .from("proposta-documentos")
+            .createSignedUrl(outputPdfPath, 604800); // 7 days
+
+          if (signErr || !signedData?.signedUrl) {
+            toast({ title: "Erro ao gerar link do PDF", description: signErr?.message, variant: "destructive" });
+            return;
+          }
+
+          url = signedData.signedUrl;
         }
-
-        url = signedData.signedUrl;
       }
 
       if (!url) {
@@ -340,7 +330,7 @@ export function StepDocumento({
 
       toast({
         title: withTracker
-          ? "Link do PDF copiado (com rastreio)! 🔗"
+          ? "Link rastreável da proposta copiado! 🔗"
           : "Link do PDF copiado! 🔗",
       });
     } catch (err: any) {
@@ -958,6 +948,14 @@ export function StepDocumento({
           </Button>
 
           <div className="space-y-2">
+            {resolvedPublicUrl && (
+              <div className="rounded-lg border border-border/60 bg-muted/20 p-3 space-y-2">
+                <div className="mx-auto w-fit rounded-md bg-background p-2 border border-border/60">
+                  <QRCodeCanvas value={resolvedPublicUrl} size={132} includeMargin />
+                </div>
+                <p className="break-all text-[10px] leading-relaxed text-muted-foreground">{resolvedPublicUrl}</p>
+              </div>
+            )}
             <Button
               variant="ghost"
               size="sm"
@@ -983,13 +981,13 @@ export function StepDocumento({
                   size="sm"
                   className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground w-full justify-start p-0 h-auto"
                   onClick={() => handleCopyLink(true)}
-                  disabled={!outputPdfPath && !externalPdfUrl && !pdfBlobUrl}
+                  disabled={!result?.proposta_id || !result?.versao_id}
                 >
                   {copiedTracker ? <Check className="h-3.5 w-3.5 text-success" /> : <LinkIcon className="h-3.5 w-3.5" />}
                   Copiar link com rastreio
                 </Button>
               </TooltipTrigger>
-              {!outputPdfPath && !externalPdfUrl && !pdfBlobUrl && <TooltipContent>Gere a proposta primeiro</TooltipContent>}
+              {(!result?.proposta_id || !result?.versao_id) && <TooltipContent>Gere a proposta primeiro</TooltipContent>}
             </Tooltip>
             <Tooltip>
               <TooltipTrigger asChild>

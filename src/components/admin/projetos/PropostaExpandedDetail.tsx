@@ -1029,6 +1029,7 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
         }
 
         const artifactResult = await rawResp.json();
+        signedUrlCacheRef.current = null;
 
         // If PDF was generated, get signed URL and display it
         if (artifactResult.output_pdf_path) {
@@ -1037,6 +1038,11 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
             .createSignedUrl(artifactResult.output_pdf_path, 3600);
           if (signedData?.signedUrl) {
             setPdfSignedUrl(signedData.signedUrl);
+            signedUrlCacheRef.current = {
+              url: signedData.signedUrl,
+              path: artifactResult.output_pdf_path,
+              fetchedAt: Date.now(),
+            };
           }
           toast({ title: "Proposta gerada!", description: "PDF gerado com sucesso." });
         } else if (artifactResult.output_docx_path) {
