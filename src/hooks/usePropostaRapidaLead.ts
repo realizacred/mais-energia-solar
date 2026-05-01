@@ -7,6 +7,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { getCurrentTenantId } from "@/lib/getCurrentTenantId";
+import { resolveDefaultCommercialPipeline } from "@/services/pipelines/resolveDefaultCommercialPipeline";
 import { toast } from "sonner";
 import type { Lead } from "@/types/lead";
 
