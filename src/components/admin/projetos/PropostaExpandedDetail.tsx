@@ -5,6 +5,7 @@ import { getPublicUrl } from "@/lib/getPublicUrl";
 import { useNavigate } from "react-router-dom";
 import { ProposalSnapshotView } from "@/components/admin/propostas-nativas/ProposalSnapshotView";
 import { StepDocumento } from "@/components/admin/propostas-nativas/wizard/StepDocumento";
+import { ProposalViewsCard } from "@/components/admin/propostas-nativas/ProposalViewsCard";
 import {
   Zap, SunMedium, DollarSign, FileText, Eye, Pencil, Copy, Trash2, Download,
   ChevronDown, MoreVertical, ExternalLink, AlertCircle, CheckCircle, Loader2,
@@ -1526,6 +1527,9 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
                     <TabsTrigger value="historico" className="text-xs h-7 px-0 pb-1 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none">
                       Histórico
                     </TabsTrigger>
+                    <TabsTrigger value="rastreio" className="text-xs h-7 px-0 pb-1 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none">
+                      Rastreio
+                    </TabsTrigger>
                   </TabsList>
 
                   {(p.status === "gerada" || p.status === "generated" || p.status === "enviada" || p.status === "sent" || p.status === "vista") && (
@@ -1669,6 +1673,19 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
                           })}
                         </div>
                       )}
+                    </div>
+                  </TabsContent>
+
+                  <TabsContent value="rastreio" className="px-4 pb-4 mt-0">
+                    <div className="mt-3">
+                      <ProposalViewsCard
+                        propostaId={p.id}
+                        versaoId={latestVersao?.id}
+                        statusVisualizacao={(p as any).status_visualizacao}
+                        primeiroAcessoEm={(p as any).primeiro_acesso_em}
+                        ultimoAcessoEm={(p as any).ultimo_acesso_em}
+                        totalAberturas={(p as any).total_aberturas ?? 0}
+                      />
                     </div>
                   </TabsContent>
                 </>
