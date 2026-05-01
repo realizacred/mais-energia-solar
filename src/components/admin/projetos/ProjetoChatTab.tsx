@@ -47,6 +47,23 @@ interface WaOutboxAudit {
   read_at: string | null;
 }
 
+function getPhoneLookupTerms(variants: string[], fallbackDigits: string): string[] {
+  const terms = new Set<string>();
+  [...variants, fallbackDigits].forEach(value => {
+    const digits = value.replace(/\D/g, "");
+    if (digits.length >= 8) terms.add(digits);
+    if (digits.length >= 9) terms.add(digits.slice(-9));
+    if (digits.length >= 8) terms.add(digits.slice(-8));
+  });
+  return Array.from(terms).filter(term => term.length >= 8);
+}
+
+function buildPhoneOrFilter(columns: string[], terms: string[]): string {
+  return columns
+    .flatMap(column => terms.map(term => `${column}.ilike.%${term}%`))
+    .join(",");
+}
+
 interface WaMsg {
   id: string;
   direction: "in" | "out";
@@ -211,6 +228,59 @@ function ConversationCard({
           <ExpandedChatHistory conversationId={conversation.id} />
         </div>
       )}
+    </Card>
+  );
+}
+
+function OutboxAuditCard({ item }: { item: WaOutboxAudit }) {
+  const statusLabel = item.read_at
+    ? "Lida"
+    : item.delivered_at
+      ? "Entregue"
+      : item.sent_at || item.status === "sent"
+        ? "Enviada"
+        : item.status === "failed"
+          ? "Falhou"
+          : item.status === "pending"
+            ? "Na fila"
+            : item.status;
+
+  const sentAt = item.sent_at || item.created_at;
+
+  return (
+    <Card className={cn("overflow-hidden", item.status === "failed" ? "border-destructive/30 bg-destructive/5" : "border-warning/30 bg-warning/5")}>
+      <CardContent className="p-4 space-y-3">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex items-start gap-3 min-w-0">
+            <div className="w-9 h-9 rounded-full bg-warning/15 flex items-center justify-center shrink-0">
+              <Clock className="h-4 w-4 text-warning" />
+            </div>
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-2">
+                <p className="text-sm font-bold text-foreground">Auditoria WhatsApp</p>
+                <Badge variant="outline" className={cn("text-[9px] h-4", item.status === "failed" ? "border-destructive/30 text-destructive" : "border-warning/30 text-warning")}>
+                  {statusLabel}
+                </Badge>
+              </div>
+              <p className="text-xs text-muted-foreground mt-0.5">Mensagem encontrada na fila de envio, sem conversa vinculada</p>
+            </div>
+          </div>
+          <div className="text-right shrink-0">
+            <p className="text-[10px] text-muted-foreground">{item.remote_jid_canonical || item.remote_jid}</p>
+            <p className="text-[10px] text-muted-foreground mt-0.5">{format(new Date(sentAt), "dd/MM/yyyy HH:mm", { locale: ptBR })}</p>
+          </div>
+        </div>
+
+        {item.content && (
+          <div className="rounded-lg border border-border/40 bg-card/60 p-3">
+            <p className="text-xs text-foreground whitespace-pre-wrap leading-relaxed">{item.content}</p>
+          </div>
+        )}
+
+        {item.error_message && (
+          <p className="text-xs text-destructive">{item.error_message}</p>
+        )}
+      </CardContent>
     </Card>
   );
 }
