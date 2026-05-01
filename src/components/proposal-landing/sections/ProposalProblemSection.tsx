@@ -172,24 +172,26 @@ export function ProposalProblemSection({ snapshot: s, versaoData, activeCenario 
         </div>
 
         {/* Economia badge */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ delay: 0.5 }}
-          style={{ textAlign: "center", marginTop: 32 }}
-        >
-          <span style={{
-            display: "inline-flex", alignItems: "center", gap: 8,
-            background: "linear-gradient(135deg, #16A34A, #15803D)",
-            color: "#fff", padding: "10px 28px", borderRadius: 999,
-            fontFamily: "Montserrat, sans-serif", fontWeight: 800, fontSize: "1rem",
-            boxShadow: "0 4px 20px rgba(22,163,74,0.25)",
-          }}>
-            <Sun style={{ width: 18, height: 18 }} />
-            {percentEconomia}% DE ECONOMIA NA SUA CONTA
-          </span>
-        </motion.div>
+        {percentEconomia > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ delay: 0.5 }}
+            style={{ textAlign: "center", marginTop: 32 }}
+          >
+            <span style={{
+              display: "inline-flex", alignItems: "center", gap: 8,
+              background: "linear-gradient(135deg, #16A34A, #15803D)",
+              color: "#fff", padding: "10px 28px", borderRadius: 999,
+              fontFamily: "Montserrat, sans-serif", fontWeight: 800, fontSize: "1rem",
+              boxShadow: "0 4px 20px rgba(22,163,74,0.25)",
+            }}>
+              <Sun style={{ width: 18, height: 18 }} />
+              {percentEconomia}% DE ECONOMIA NA SUA CONTA
+            </span>
+          </motion.div>
+        )}
       </div>
     </AnimatedSection>
   );
