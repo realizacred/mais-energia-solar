@@ -30,6 +30,8 @@ import { formatBRL } from "./types";
 import { toast } from "@/hooks/use-toast";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { formatDateTime, formatDate, formatTime, formatDateShort } from "@/lib/dateUtils";
+import { QRCodeCanvas } from "qrcode.react";
+import { getOrCreateProposalToken } from "@/services/proposal/proposalDetail.service";
 
 // ─── Types ────────────────────────────────────────────────
 
