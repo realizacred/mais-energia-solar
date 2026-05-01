@@ -201,33 +201,41 @@ export function ProposalViewsCard({ propostaId, versaoId, statusVisualizacao, pr
             )}
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
-            <div className="bg-muted/50 rounded-lg p-3 text-center">
-              <p className="text-[10px] text-muted-foreground uppercase">Views</p>
-              <p className="text-lg font-bold">{totalViews}</p>
+          {totalViews === 0 && envios.length === 0 ? (
+            <div className="bg-muted/30 rounded-lg p-4 text-center mb-4">
+              <Eye className="h-5 w-5 text-muted-foreground mx-auto mb-1.5 opacity-60" />
+              <p className="text-xs text-muted-foreground">Aguardando primeiro acesso do cliente</p>
+              <p className="text-[10px] text-muted-foreground/70 mt-0.5">As métricas aparecem após envio e visualização</p>
             </div>
-            <div className="bg-muted/50 rounded-lg p-3 text-center">
-              <p className="text-[10px] text-muted-foreground uppercase">Mobile</p>
-              <div className="flex items-center justify-center gap-1">
-                <Smartphone className="h-3.5 w-3.5 text-muted-foreground" />
-                <p className="text-lg font-bold">{deviceBreakdown.mobile}</p>
+          ) : (
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
+              <div className="bg-muted/50 rounded-lg p-3 text-center">
+                <p className="text-[10px] text-muted-foreground uppercase">Views</p>
+                <p className="text-lg font-bold">{totalViews}</p>
+              </div>
+              <div className="bg-muted/50 rounded-lg p-3 text-center">
+                <p className="text-[10px] text-muted-foreground uppercase">Mobile</p>
+                <div className="flex items-center justify-center gap-1">
+                  <Smartphone className="h-3.5 w-3.5 text-muted-foreground" />
+                  <p className="text-lg font-bold">{deviceBreakdown.mobile}</p>
+                </div>
+              </div>
+              <div className="bg-muted/50 rounded-lg p-3 text-center">
+                <p className="text-[10px] text-muted-foreground uppercase">Desktop</p>
+                <div className="flex items-center justify-center gap-1">
+                  <Monitor className="h-3.5 w-3.5 text-muted-foreground" />
+                  <p className="text-lg font-bold">{deviceBreakdown.desktop}</p>
+                </div>
+              </div>
+              <div className="bg-muted/50 rounded-lg p-3 text-center">
+                <p className="text-[10px] text-muted-foreground uppercase">Envios</p>
+                <div className="flex items-center justify-center gap-1">
+                  <Send className="h-3.5 w-3.5 text-muted-foreground" />
+                  <p className="text-lg font-bold">{envios.length}</p>
+                </div>
               </div>
             </div>
-            <div className="bg-muted/50 rounded-lg p-3 text-center">
-              <p className="text-[10px] text-muted-foreground uppercase">Desktop</p>
-              <div className="flex items-center justify-center gap-1">
-                <Monitor className="h-3.5 w-3.5 text-muted-foreground" />
-                <p className="text-lg font-bold">{deviceBreakdown.desktop}</p>
-              </div>
-            </div>
-            <div className="bg-muted/50 rounded-lg p-3 text-center">
-              <p className="text-[10px] text-muted-foreground uppercase">Envios</p>
-              <div className="flex items-center justify-center gap-1">
-                <Send className="h-3.5 w-3.5 text-muted-foreground" />
-                <p className="text-lg font-bold">{envios.length}</p>
-              </div>
-            </div>
-          </div>
+          )}
 
           {/* ── Daily Views Chart ─────────────────────────── */}
           {dailyViews.length > 1 && (
