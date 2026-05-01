@@ -221,7 +221,7 @@ function HomologacaoCard({ ctx, habilitado }: { ctx: ReturnType<typeof useConces
 }
 
 // ── Vistoria Card ──
-function VistoriaCard({ ctx }: { ctx: ReturnType<typeof useConcessionaria> }) {
+function VistoriaCard({ ctx, habilitado }: { ctx: ReturnType<typeof useConcessionaria>; habilitado: boolean }) {
   const [resultModal, setResultModal] = useState(false);
   const [resultado, setResultado] = useState<string>("aprovada");
   const [motivo, setMotivo] = useState("");
