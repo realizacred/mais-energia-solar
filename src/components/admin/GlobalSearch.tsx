@@ -45,7 +45,6 @@ function useGlobalSearchResults(rawTerm: string) {
       const leadOr = [
         `nome.ilike.${like}`,
         `email.ilike.${like}`,
-        `cpf_cnpj.ilike.${like}`,
         `cidade.ilike.${like}`,
         `telefone.ilike.${like}`,
         ...(likeDigits ? [`telefone_normalized.ilike.${likeDigits}`] : []),
@@ -82,7 +81,7 @@ function useGlobalSearchResults(rawTerm: string) {
         await Promise.all([
           supabase
             .from("leads")
-            .select("id, nome, telefone, email, cidade, cpf_cnpj")
+            .select("id, nome, telefone, email, cidade")
             .is("deleted_at", null)
             .or(leadOr)
             .limit(PER_GROUP_LIMIT),
@@ -189,7 +188,7 @@ export function GlobalSearch() {
             {results.leads.map((lead) => (
               <CommandItem
                 key={lead.id}
-                value={`lead-${lead.id}-${lead.nome}-${lead.telefone}-${lead.email ?? ""}-${lead.cpf_cnpj ?? ""}`}
+                value={`lead-${lead.id}-${lead.nome}-${lead.telefone}-${lead.email ?? ""}`}
                 onSelect={() => go(`/admin/leads`)}
                 className="flex items-center gap-2 cursor-pointer"
               >
@@ -199,7 +198,7 @@ export function GlobalSearch() {
                   <p className="text-xs text-muted-foreground truncate">
                     {formatPhoneBR(lead.telefone) || lead.telefone}
                     {lead.cidade ? ` · ${lead.cidade}` : ""}
-                    {lead.cpf_cnpj ? ` · ${lead.cpf_cnpj}` : ""}
+                    {lead.email ? ` · ${lead.email}` : ""}
                   </p>
                 </div>
               </CommandItem>
