@@ -53,22 +53,30 @@ async function resolveMonitorPlantId(plantId: string): Promise<string> {
 
 // ─── Registry ────────────────────────────────────────────────
 
+// Wave 3 — explicit columns aligned with StringRegistry / StringMetric / StringAlert
+const REGISTRY_COLS =
+  "id,tenant_id,plant_id,device_id,inverter_serial,provider_id,mppt_number,string_number,granularity,first_seen_at,last_seen_at,baseline_day,baseline_power_p50_w,baseline_power_avg_w,baseline_power_p90_w,is_active,metadata,created_at,updated_at";
+const METRIC_COLS =
+  "id,tenant_id,registry_id,plant_id,device_id,ts,power_w,voltage_v,current_a,online,generating,metadata,created_at";
+const ALERT_COLS =
+  "id,tenant_id,plant_id,device_id,registry_id,alert_type,severity,status,detected_at,resolved_at,message,context,created_at,updated_at";
+
 export async function listStringRegistry(plantId: string): Promise<StringRegistry[]> {
   const resolvedId = await resolveMonitorPlantId(plantId);
-  const { data, error } = await supabase
+  const { data } = await supabase
     .from("monitor_string_registry" as any)
-    .select("*")
+    .select(REGISTRY_COLS)
     .eq("plant_id", resolvedId)
     .eq("is_active", true)
     .order("device_id")
     .order("mppt_number")
     .order("string_number");
-  
+
   // If no results with resolved ID, try with original plantId as fallback
   if ((!data || data.length === 0) && resolvedId !== plantId) {
     const { data: fallbackData } = await supabase
       .from("monitor_string_registry" as any)
-      .select("*")
+      .select(REGISTRY_COLS)
       .eq("plant_id", plantId)
       .eq("is_active", true)
       .order("device_id")
@@ -78,14 +86,14 @@ export async function listStringRegistry(plantId: string): Promise<StringRegistr
       return (fallbackData as unknown as StringRegistry[]);
     }
   }
-  
+
   return (data as unknown as StringRegistry[]) || [];
 }
 
 export async function listStringRegistryByDevice(deviceId: string): Promise<StringRegistry[]> {
   const { data } = await supabase
     .from("monitor_string_registry" as any)
-    .select("*")
+    .select(REGISTRY_COLS)
     .eq("device_id", deviceId)
     .eq("is_active", true)
     .order("mppt_number")
@@ -101,7 +109,7 @@ export async function listLatestMetrics(registryIds: string[]): Promise<StringMe
   // Get the latest metric for each registry entry
   const { data } = await supabase
     .from("monitor_string_metrics" as any)
-    .select("*")
+    .select(METRIC_COLS)
     .in("registry_id", registryIds)
     .order("ts", { ascending: false })
     .limit(registryIds.length * 2);
@@ -125,7 +133,7 @@ export async function listMetricsHistory(
 ): Promise<StringMetric[]> {
   const { data } = await supabase
     .from("monitor_string_metrics" as any)
-    .select("*")
+    .select(METRIC_COLS)
     .eq("registry_id", registryId)
     .gte("ts", startDate)
     .lte("ts", endDate)
@@ -147,7 +155,7 @@ export async function listStringAlerts(filters?: {
 
   let q = supabase
     .from("monitor_string_alerts" as any)
-    .select("*")
+    .select(ALERT_COLS)
     .order("detected_at", { ascending: false });
 
   if (resolvedPlantId) q = q.eq("plant_id", resolvedPlantId);
