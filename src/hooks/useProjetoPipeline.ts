@@ -518,6 +518,14 @@ export function useProjetoPipeline() {
       setSelectedFunilId(newFilters.funilId ?? null);
     }
     setFilters(merged);
+
+    // `status` aqui é categoria semântica da etapa (aberto/ganho/perdido/excluido),
+    // não o enum técnico `projetos.status`. Quando só ele muda, o filtro é aplicado
+    // em memória no ProjetosManager para nunca enviar "aberto" ao PostgREST como
+    // `projeto_status`.
+    const changedKeys = Object.keys(newFilters);
+    if (changedKeys.length === 1 && changedKeys[0] === "status") return;
+
     setLoading(true);
     try {
       const enriched = await fetchProjetos(merged);
