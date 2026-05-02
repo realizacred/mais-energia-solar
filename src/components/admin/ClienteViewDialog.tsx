@@ -22,6 +22,7 @@ import {
   TrendingDown, Send, ChevronRight, Sun,
 } from "lucide-react";
 import { formatDate, formatDateTime } from "@/lib/dateUtils";
+import { formatPhoneBR } from "@/lib/formatters";
 import {
   useClienteProjetos,
   useClientePropostas,
@@ -239,7 +240,7 @@ export function ClienteViewDialog({ cliente, open, onOpenChange }: ClienteViewDi
               </DialogTitle>
               <div className="flex items-center gap-3 mt-0.5 flex-wrap">
                 <span className="text-xs text-muted-foreground flex items-center gap-1">
-                  <Phone className="w-3 h-3" />{cliente.telefone}
+                  <Phone className="w-3 h-3" />{formatPhoneBR(cliente.telefone) || cliente.telefone}
                 </span>
                 {cliente.email && (
                   <span className="text-xs text-muted-foreground flex items-center gap-1">

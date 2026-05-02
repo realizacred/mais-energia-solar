@@ -11,6 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { formatPhoneBR } from "@/lib/formatters";
 
 const TIPO_LABELS: Record<string, string> = {
   primeiro_contato: "Primeiro Contato",
@@ -107,7 +108,7 @@ export function SlaBreachDashboard() {
                     </p>
                     <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
                       {breach.vendedor?.nome && <span>👤 {breach.vendedor.nome}</span>}
-                      {breach.lead?.telefone && <span>📱 {breach.lead.telefone}</span>}
+                      {breach.lead?.telefone && <span>📱 {formatPhoneBR(breach.lead.telefone) || breach.lead.telefone}</span>}
                       {breach.created_at && (
                         <span className="flex items-center gap-1">
                           <Clock className="h-3 w-3" />

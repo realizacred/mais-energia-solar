@@ -26,6 +26,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { formatPhoneBR } from "@/lib/formatters";
 
 const HEALTH_VARIANT: Record<string, "success" | "warning" | "destructive" | "muted"> = {
   healthy: "success",
@@ -331,7 +332,7 @@ export function SuperAdminTenantDetail({ tenantId, onBack }: Props) {
                                 )}
                               </p>
                               <p className="text-xs text-muted-foreground">{u.email || "—"}</p>
-                              {u.telefone && <p className="text-xs text-muted-foreground">{u.telefone}</p>}
+                              {u.telefone && <p className="text-xs text-muted-foreground">{formatPhoneBR(u.telefone) || u.telefone}</p>}
                             </div>
                           </TableCell>
                           <TableCell>

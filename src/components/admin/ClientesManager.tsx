@@ -62,6 +62,7 @@ import {
 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatPhone } from "@/lib/validations";
+import { formatPhoneBR } from "@/lib/formatters";
 import { CpfCnpjInput } from "@/components/shared/CpfCnpjInput";
 import { AddressFields, type AddressData } from "@/components/shared/AddressFields";
 import { PhoneInput } from "@/components/ui-kit/inputs/PhoneInput";
@@ -721,7 +722,7 @@ export function ClientesManager({ onSelectCliente }: ClientesManagerProps) {
                   </TableCell>
                   <TableCell>
                     <div className="text-sm">
-                      <p>{cliente.telefone}</p>
+                      <p>{formatPhoneBR(cliente.telefone) || cliente.telefone}</p>
                       {cliente.email && (
                         <p className="text-muted-foreground text-xs">{cliente.email}</p>
                       )}

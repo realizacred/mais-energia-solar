@@ -19,6 +19,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useOfflineLeadSync } from "@/hooks/useOfflineLeadSync";
 import type { LeadSimplified } from "@/types/orcamento";
+import { formatPhoneBR } from "@/lib/formatters";
 
 interface OfflineDuplicateResolverProps {
   vendedorNome?: string | null;
@@ -116,7 +117,7 @@ export function OfflineDuplicateResolver({ vendedorNome }: OfflineDuplicateResol
                         <p className="font-medium">{duplicate.leadData.nome}</p>
                         <p className="text-xs text-muted-foreground flex items-center gap-1">
                           <Phone className="w-3 h-3" />
-                          {duplicate.leadData.telefone}
+                          {formatPhoneBR(duplicate.leadData.telefone) || duplicate.leadData.telefone}
                         </p>
                       </div>
                     </div>
@@ -182,7 +183,7 @@ export function OfflineDuplicateResolver({ vendedorNome }: OfflineDuplicateResol
                                 </div>
                                 <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
                                   <Phone className="h-3 w-3 shrink-0" />
-                                  <span className="text-xs">{lead.telefone}</span>
+                                  <span className="text-xs">{formatPhoneBR(lead.telefone) || lead.telefone}</span>
                                   <span className="text-xs">• Cadastrado em {createdDate}</span>
                                 </div>
                               </div>

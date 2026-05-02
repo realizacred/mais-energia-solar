@@ -7,6 +7,7 @@ import { differenceInDays, parseISO } from "date-fns";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { ScheduleWhatsAppDialog } from "@/components/vendor/ScheduleWhatsAppDialog";
 import type { Lead } from "@/types/lead";
+import { formatPhoneBR } from "@/lib/formatters";
 
 interface VendorFollowUpManagerProps {
   leads: Lead[];
@@ -192,7 +193,7 @@ export function VendorFollowUpManager({ leads, diasAlerta = 3, onViewLead }: Ven
                             className="flex items-center gap-1 text-primary hover:underline"
                           >
                             <Phone className="w-3 h-3" />
-                            {lead.telefone}
+                            {formatPhoneBR(lead.telefone) || lead.telefone}
                           </a>
                         </td>
                         <td className="p-3">{getStatusBadge(lead)}</td>
