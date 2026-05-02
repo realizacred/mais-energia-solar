@@ -18792,6 +18792,189 @@ export type Database = {
           },
         ]
       }
+      proposta_versoes_backup_wave2: {
+        Row: {
+          aceito_em: string | null
+          backup_at: string | null
+          calc_hash: string | null
+          consumo_mensal: number | null
+          created_at: string | null
+          custo_disponibilidade: number | null
+          distribuidora_nome: string | null
+          economia_mensal: number | null
+          economia_mensal_percent: number | null
+          engine_version: string | null
+          enviado_em: string | null
+          final_snapshot: Json | null
+          finalized_at: string | null
+          generated_at: string | null
+          generation_audit_json: Json | null
+          generation_error: string | null
+          generation_status: string | null
+          geracao_anual: number | null
+          geracao_mensal: number | null
+          gerado_em: string | null
+          gerado_por: string | null
+          grupo: string | null
+          id: string | null
+          idempotency_key: string | null
+          inflacao_energetica: number | null
+          irradiance_dataset_code: string | null
+          irradiance_source_point: Json | null
+          irradiance_version_id: string | null
+          link_pdf: string | null
+          motivo_rejeicao: string | null
+          observacoes: string | null
+          origem: string | null
+          output_docx_path: string | null
+          output_pdf_path: string | null
+          payback_meses: number | null
+          perda_eficiencia_anual: number | null
+          potencia_kwp: number | null
+          proposta_id: string | null
+          public_slug: string | null
+          rejeitado_em: string | null
+          snapshot: Json | null
+          snapshot_locked: boolean | null
+          sobredimensionamento: number | null
+          status: Database["public"]["Enums"]["proposta_nativa_status"] | null
+          substituida_em: string | null
+          substituida_por: string | null
+          tarifa_distribuidora: number | null
+          template_id_used: string | null
+          tenant_id: string | null
+          tir: number | null
+          updated_at: string | null
+          usuario_editou_em: string | null
+          validade_dias: number | null
+          valido_ate: string | null
+          valor_total: number | null
+          versao_numero: number | null
+          viewed_at: string | null
+          vpl: number | null
+        }
+        Insert: {
+          aceito_em?: string | null
+          backup_at?: string | null
+          calc_hash?: string | null
+          consumo_mensal?: number | null
+          created_at?: string | null
+          custo_disponibilidade?: number | null
+          distribuidora_nome?: string | null
+          economia_mensal?: number | null
+          economia_mensal_percent?: number | null
+          engine_version?: string | null
+          enviado_em?: string | null
+          final_snapshot?: Json | null
+          finalized_at?: string | null
+          generated_at?: string | null
+          generation_audit_json?: Json | null
+          generation_error?: string | null
+          generation_status?: string | null
+          geracao_anual?: number | null
+          geracao_mensal?: number | null
+          gerado_em?: string | null
+          gerado_por?: string | null
+          grupo?: string | null
+          id?: string | null
+          idempotency_key?: string | null
+          inflacao_energetica?: number | null
+          irradiance_dataset_code?: string | null
+          irradiance_source_point?: Json | null
+          irradiance_version_id?: string | null
+          link_pdf?: string | null
+          motivo_rejeicao?: string | null
+          observacoes?: string | null
+          origem?: string | null
+          output_docx_path?: string | null
+          output_pdf_path?: string | null
+          payback_meses?: number | null
+          perda_eficiencia_anual?: number | null
+          potencia_kwp?: number | null
+          proposta_id?: string | null
+          public_slug?: string | null
+          rejeitado_em?: string | null
+          snapshot?: Json | null
+          snapshot_locked?: boolean | null
+          sobredimensionamento?: number | null
+          status?: Database["public"]["Enums"]["proposta_nativa_status"] | null
+          substituida_em?: string | null
+          substituida_por?: string | null
+          tarifa_distribuidora?: number | null
+          template_id_used?: string | null
+          tenant_id?: string | null
+          tir?: number | null
+          updated_at?: string | null
+          usuario_editou_em?: string | null
+          validade_dias?: number | null
+          valido_ate?: string | null
+          valor_total?: number | null
+          versao_numero?: number | null
+          viewed_at?: string | null
+          vpl?: number | null
+        }
+        Update: {
+          aceito_em?: string | null
+          backup_at?: string | null
+          calc_hash?: string | null
+          consumo_mensal?: number | null
+          created_at?: string | null
+          custo_disponibilidade?: number | null
+          distribuidora_nome?: string | null
+          economia_mensal?: number | null
+          economia_mensal_percent?: number | null
+          engine_version?: string | null
+          enviado_em?: string | null
+          final_snapshot?: Json | null
+          finalized_at?: string | null
+          generated_at?: string | null
+          generation_audit_json?: Json | null
+          generation_error?: string | null
+          generation_status?: string | null
+          geracao_anual?: number | null
+          geracao_mensal?: number | null
+          gerado_em?: string | null
+          gerado_por?: string | null
+          grupo?: string | null
+          id?: string | null
+          idempotency_key?: string | null
+          inflacao_energetica?: number | null
+          irradiance_dataset_code?: string | null
+          irradiance_source_point?: Json | null
+          irradiance_version_id?: string | null
+          link_pdf?: string | null
+          motivo_rejeicao?: string | null
+          observacoes?: string | null
+          origem?: string | null
+          output_docx_path?: string | null
+          output_pdf_path?: string | null
+          payback_meses?: number | null
+          perda_eficiencia_anual?: number | null
+          potencia_kwp?: number | null
+          proposta_id?: string | null
+          public_slug?: string | null
+          rejeitado_em?: string | null
+          snapshot?: Json | null
+          snapshot_locked?: boolean | null
+          sobredimensionamento?: number | null
+          status?: Database["public"]["Enums"]["proposta_nativa_status"] | null
+          substituida_em?: string | null
+          substituida_por?: string | null
+          tarifa_distribuidora?: number | null
+          template_id_used?: string | null
+          tenant_id?: string | null
+          tir?: number | null
+          updated_at?: string | null
+          usuario_editou_em?: string | null
+          validade_dias?: number | null
+          valido_ate?: string | null
+          valor_total?: number | null
+          versao_numero?: number | null
+          viewed_at?: string | null
+          vpl?: number | null
+        }
+        Relationships: []
+      }
       proposta_views: {
         Row: {
           created_at: string
@@ -26761,6 +26944,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      wave2_financial_fix_log: {
+        Row: {
+          after_value: number | null
+          before_value: number | null
+          created_at: string
+          details: Json | null
+          fix_type: string
+          id: string
+          tenant_id: string | null
+          versao_id: string | null
+        }
+        Insert: {
+          after_value?: number | null
+          before_value?: number | null
+          created_at?: string
+          details?: Json | null
+          fix_type: string
+          id?: string
+          tenant_id?: string | null
+          versao_id?: string | null
+        }
+        Update: {
+          after_value?: number | null
+          before_value?: number | null
+          created_at?: string
+          details?: Json | null
+          fix_type?: string
+          id?: string
+          tenant_id?: string | null
+          versao_id?: string | null
+        }
+        Relationships: []
       }
       webhook_config: {
         Row: {
