@@ -85,6 +85,7 @@ export function useOrcamentosAdmin({ autoFetch = true, pageSize = PAGE_SIZE }: U
       );
 
       const projetoByLead = new Map<string, string>();
+      const projetoTemProposta = new Map<string, boolean>();
       if (phones.length > 0 || emails.length > 0) {
         // 1) clientes que casam por telefone (variantes) OU email
         const orParts: string[] = [];
@@ -102,15 +103,18 @@ export function useOrcamentosAdmin({ autoFetch = true, pageSize = PAGE_SIZE }: U
         if (clienteIds.length > 0) {
           const { data: projsData } = await supabase
             .from("projetos")
-            .select("id, cliente_id, created_at")
+            .select("id, cliente_id, proposta_id, created_at")
             .in("cliente_id", clienteIds)
             .order("created_at", { ascending: false });
 
-          // cliente_id -> projeto mais recente
-          const projetoByCliente = new Map<string, string>();
+          // cliente_id -> projeto mais recente (id + tem_proposta)
+          const projetoByCliente = new Map<string, { id: string; tem_proposta: boolean }>();
           for (const p of (projsData || []) as any[]) {
             if (p.cliente_id && !projetoByCliente.has(p.cliente_id)) {
-              projetoByCliente.set(p.cliente_id, p.id);
+              projetoByCliente.set(p.cliente_id, {
+                id: p.id,
+                tem_proposta: !!p.proposta_id,
+              });
             }
           }
 
@@ -130,7 +134,6 @@ export function useOrcamentosAdmin({ autoFetch = true, pageSize = PAGE_SIZE }: U
 
           for (const l of leadsForLookup) {
             if (!l.lead_id) continue;
-            // Tenta cada variante do lead até encontrar
             let cid: string | null = null;
             for (const v of l.phone_variants) {
               const found = clienteByPhone.get(v);
@@ -140,8 +143,11 @@ export function useOrcamentosAdmin({ autoFetch = true, pageSize = PAGE_SIZE }: U
               }
             }
             if (!cid && l.email) cid = clienteByEmail.get(l.email) || null;
-            const pid = cid ? projetoByCliente.get(cid) : null;
-            if (pid) projetoByLead.set(l.lead_id, pid);
+            const proj = cid ? projetoByCliente.get(cid) : null;
+            if (proj) {
+              projetoByLead.set(l.lead_id, proj.id);
+              projetoTemProposta.set(l.lead_id, proj.tem_proposta);
+            }
           }
         }
       }
@@ -185,6 +191,7 @@ export function useOrcamentosAdmin({ autoFetch = true, pageSize = PAGE_SIZE }: U
           created_at: orc.created_at,
           updated_at: orc.updated_at,
           projeto_id: orc.lead_id ? projetoByLead.get(orc.lead_id) ?? null : null,
+          projeto_tem_proposta: orc.lead_id ? projetoTemProposta.get(orc.lead_id) ?? false : false,
         };
       });
 

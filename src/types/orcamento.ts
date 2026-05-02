@@ -84,6 +84,8 @@ export interface OrcamentoDisplayItem {
   updated_at: string;
   /** ID do projeto vinculado ao lead, se já convertido. Permite navegação direta. */
   projeto_id?: string | null;
+  /** True se o projeto vinculado já tem proposta gerada. */
+  projeto_tem_proposta?: boolean;
 }
 
 export interface LeadSimplified {
