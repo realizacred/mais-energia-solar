@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -10,66 +10,123 @@ import {
   CommandGroup,
   CommandItem,
 } from "@/components/ui/command";
-import { Users, UserCheck, FolderKanban, Search } from "lucide-react";
+import { Users, UserCheck, FolderKanban, Package, Cpu } from "lucide-react";
+import { formatPhoneBR } from "@/lib/formatters";
 
-const STALE_TIME = 1000 * 60 * 5;
+const STALE_TIME = 1000 * 30;
+const MIN_CHARS = 2;
+const PER_GROUP_LIMIT = 8;
 
-function useGlobalSearchData() {
-  const leads = useQuery({
-    queryKey: ["global-search-leads"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("leads")
-        .select("id, nome, telefone, email, cidade, status_id")
-        .is("deleted_at", null)
-        .order("created_at", { ascending: false })
-        .limit(200);
-      if (error) throw error;
-      return data ?? [];
-    },
-    staleTime: STALE_TIME,
-  });
-
-  const clientes = useQuery({
-    queryKey: ["global-search-clientes"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("clientes")
-        .select("id, nome, telefone, cidade")
-        .eq("ativo", true)
-        .order("nome")
-        .limit(200);
-      if (error) throw error;
-      return data ?? [];
-    },
-    staleTime: STALE_TIME,
-  });
-
-  const projetos = useQuery({
-    queryKey: ["global-search-projetos"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("projetos")
-        .select("id, codigo, status, potencia_kwp, cidade_instalacao")
-        .order("created_at", { ascending: false })
-        .limit(200);
-      if (error) throw error;
-      return data ?? [];
-    },
-    staleTime: STALE_TIME,
-  });
-
-  return { leads, clientes, projetos };
+function digitsOnly(s: string): string {
+  return s.replace(/\D+/g, "");
 }
 
-function normalize(str: string): string {
-  return str.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+/**
+ * Busca global por termo parcial em múltiplas entidades.
+ * - Leads / Clientes: nome, telefone (raw + normalizado), email, cpf_cnpj, cidade
+ * - Projetos: codigo, modelo_modulos, modelo_inversor, cidade
+ * - Kits (solar_kit_catalog): name, fabricante, marca
+ * - Inversores (inversores_catalogo): fabricante, modelo
+ */
+function useGlobalSearchResults(rawTerm: string) {
+  const term = rawTerm.trim();
+  const enabled = term.length >= MIN_CHARS;
+  const digits = digitsOnly(term);
+
+  return useQuery({
+    queryKey: ["global-search", term],
+    enabled,
+    staleTime: STALE_TIME,
+    queryFn: async () => {
+      const like = `%${term}%`;
+      const likeDigits = digits ? `%${digits}%` : null;
+
+      // OR clauses dinâmicas (telefone bate em formatado e normalizado)
+      const leadOr = [
+        `nome.ilike.${like}`,
+        `email.ilike.${like}`,
+        `cidade.ilike.${like}`,
+        `telefone.ilike.${like}`,
+        ...(likeDigits ? [`telefone_normalized.ilike.${likeDigits}`] : []),
+      ].join(",");
+
+      const clienteOr = [
+        `nome.ilike.${like}`,
+        `email.ilike.${like}`,
+        `cpf_cnpj.ilike.${like}`,
+        `cidade.ilike.${like}`,
+        `telefone.ilike.${like}`,
+        ...(likeDigits ? [`telefone_normalized.ilike.${likeDigits}`] : []),
+      ].join(",");
+
+      const projetoOr = [
+        `codigo.ilike.${like}`,
+        `modelo_modulos.ilike.${like}`,
+        `modelo_inversor.ilike.${like}`,
+        `cidade_instalacao.ilike.${like}`,
+      ].join(",");
+
+      const kitOr = [
+        `name.ilike.${like}`,
+        `fabricante.ilike.${like}`,
+        `marca.ilike.${like}`,
+      ].join(",");
+
+      const inversorOr = [
+        `fabricante.ilike.${like}`,
+        `modelo.ilike.${like}`,
+      ].join(",");
+
+      const [leadsRes, clientesRes, projetosRes, kitsRes, inversoresRes] =
+        await Promise.all([
+          supabase
+            .from("leads")
+            .select("id, nome, telefone, email, cidade")
+            .is("deleted_at", null)
+            .or(leadOr)
+            .limit(PER_GROUP_LIMIT),
+          supabase
+            .from("clientes")
+            .select("id, nome, telefone, email, cidade, cpf_cnpj")
+            .eq("ativo", true)
+            .or(clienteOr)
+            .limit(PER_GROUP_LIMIT),
+          supabase
+            .from("projetos")
+            .select(
+              "id, codigo, status, potencia_kwp, cidade_instalacao, modelo_modulos, modelo_inversor"
+            )
+            .or(projetoOr)
+            .limit(PER_GROUP_LIMIT),
+          supabase
+            .from("solar_kit_catalog")
+            .select("id, name, fabricante, marca, estimated_kwp, product_kind")
+            .or(kitOr)
+            .limit(PER_GROUP_LIMIT),
+          supabase
+            .from("inversores_catalogo")
+            .select("id, fabricante, modelo, potencia_nominal_kw, fases")
+            .eq("ativo", true)
+            .or(inversorOr)
+            .limit(PER_GROUP_LIMIT),
+        ]);
+
+      return {
+        leads: leadsRes.data ?? [],
+        clientes: clientesRes.data ?? [],
+        projetos: projetosRes.data ?? [],
+        kits: kitsRes.data ?? [],
+        inversores: inversoresRes.data ?? [],
+      };
+    },
+  });
 }
 
 export function GlobalSearch() {
   const [open, setOpen] = useState(false);
+  const [term, setTerm] = useState("");
   const navigate = useNavigate();
-  const { leads, clientes, projetos } = useGlobalSearchData();
+  const { data, isFetching } = useGlobalSearchResults(term);
 
   // ⌘K / Ctrl+K shortcut
   useEffect(() => {
@@ -83,54 +140,65 @@ export function GlobalSearch() {
     return () => window.removeEventListener("keydown", onKeyDown);
   }, []);
 
-  const handleSelectLead = useCallback(
-    (id: string) => {
+  // Reset term ao abrir/fechar para evitar resultado obsoleto
+  useEffect(() => {
+    if (!open) setTerm("");
+  }, [open]);
+
+  const go = useCallback(
+    (path: string) => {
       setOpen(false);
-      navigate(`/admin/leads`);
+      navigate(path);
     },
     [navigate]
   );
 
-  const handleSelectCliente = useCallback(
-    (id: string) => {
-      setOpen(false);
-      navigate(`/admin/gestao-clientes`);
-    },
-    [navigate]
+  const results = data ?? { leads: [], clientes: [], projetos: [], kits: [], inversores: [] };
+  const hasAny = useMemo(
+    () =>
+      results.leads.length +
+        results.clientes.length +
+        results.projetos.length +
+        results.kits.length +
+        results.inversores.length >
+      0,
+    [results]
   );
 
-  const handleSelectProjeto = useCallback(
-    (id: string) => {
-      setOpen(false);
-      navigate(`/admin/projetos`);
-    },
-    [navigate]
-  );
-
-  const leadsData = leads.data ?? [];
-  const clientesData = clientes.data ?? [];
-  const projetosData = projetos.data ?? [];
+  const showHint = term.trim().length < MIN_CHARS;
 
   return (
     <CommandDialog open={open} onOpenChange={setOpen}>
-      <CommandInput placeholder="Buscar leads, clientes, projetos..." />
+      <CommandInput
+        placeholder="Buscar por nome, telefone, CPF, projeto, módulo, inversor..."
+        value={term}
+        onValueChange={setTerm}
+      />
       <CommandList>
-        <CommandEmpty>Nenhum resultado encontrado.</CommandEmpty>
+        {showHint ? (
+          <CommandEmpty>Digite ao menos {MIN_CHARS} caracteres.</CommandEmpty>
+        ) : isFetching && !hasAny ? (
+          <CommandEmpty>Buscando…</CommandEmpty>
+        ) : !hasAny ? (
+          <CommandEmpty>Nenhum resultado para “{term}”.</CommandEmpty>
+        ) : null}
 
-        {leadsData.length > 0 && (
+        {results.leads.length > 0 && (
           <CommandGroup heading="Leads">
-            {leadsData.slice(0, 8).map((lead) => (
+            {results.leads.map((lead) => (
               <CommandItem
                 key={lead.id}
-                value={`lead-${lead.nome}-${lead.telefone}-${lead.email ?? ""}-${lead.cidade ?? ""}`}
-                onSelect={() => handleSelectLead(lead.id)}
+                value={`lead-${lead.id}-${lead.nome}-${lead.telefone}-${lead.email ?? ""}`}
+                onSelect={() => go(`/admin/leads`)}
                 className="flex items-center gap-2 cursor-pointer"
               >
                 <Users className="h-4 w-4 text-muted-foreground shrink-0" />
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-foreground truncate">{lead.nome}</p>
                   <p className="text-xs text-muted-foreground truncate">
-                    {lead.telefone} {lead.cidade ? `· ${lead.cidade}` : ""}
+                    {formatPhoneBR(lead.telefone) || lead.telefone}
+                    {lead.cidade ? ` · ${lead.cidade}` : ""}
+                    {lead.email ? ` · ${lead.email}` : ""}
                   </p>
                 </div>
               </CommandItem>
@@ -138,20 +206,22 @@ export function GlobalSearch() {
           </CommandGroup>
         )}
 
-        {clientesData.length > 0 && (
+        {results.clientes.length > 0 && (
           <CommandGroup heading="Clientes">
-            {clientesData.slice(0, 8).map((cliente) => (
+            {results.clientes.map((cliente) => (
               <CommandItem
                 key={cliente.id}
-                value={`cliente-${cliente.nome}-${cliente.telefone}-${cliente.cidade ?? ""}`}
-                onSelect={() => handleSelectCliente(cliente.id)}
+                value={`cliente-${cliente.id}-${cliente.nome}-${cliente.telefone}-${cliente.email ?? ""}-${cliente.cpf_cnpj ?? ""}`}
+                onSelect={() => go(`/admin/gestao-clientes`)}
                 className="flex items-center gap-2 cursor-pointer"
               >
                 <UserCheck className="h-4 w-4 text-muted-foreground shrink-0" />
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-foreground truncate">{cliente.nome}</p>
                   <p className="text-xs text-muted-foreground truncate">
-                    {cliente.telefone} {cliente.cidade ? `· ${cliente.cidade}` : ""}
+                    {formatPhoneBR(cliente.telefone) || cliente.telefone}
+                    {cliente.cidade ? ` · ${cliente.cidade}` : ""}
+                    {cliente.cpf_cnpj ? ` · ${cliente.cpf_cnpj}` : ""}
                   </p>
                 </div>
               </CommandItem>
@@ -159,20 +229,68 @@ export function GlobalSearch() {
           </CommandGroup>
         )}
 
-        {projetosData.length > 0 && (
+        {results.projetos.length > 0 && (
           <CommandGroup heading="Projetos">
-            {projetosData.slice(0, 8).map((projeto) => (
+            {results.projetos.map((projeto) => (
               <CommandItem
                 key={projeto.id}
-                value={`projeto-${projeto.codigo}-${projeto.status ?? ""}-${projeto.cidade_instalacao ?? ""}`}
-                onSelect={() => handleSelectProjeto(projeto.id)}
+                value={`projeto-${projeto.id}-${projeto.codigo}-${projeto.modelo_modulos ?? ""}-${projeto.modelo_inversor ?? ""}`}
+                onSelect={() => go(`/admin/projetos?projeto=${projeto.id}`)}
                 className="flex items-center gap-2 cursor-pointer"
               >
                 <FolderKanban className="h-4 w-4 text-muted-foreground shrink-0" />
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-foreground truncate">{projeto.codigo}</p>
                   <p className="text-xs text-muted-foreground truncate">
-                    {projeto.status ?? ""} {projeto.potencia_kwp ? `· ${projeto.potencia_kwp} kWp` : ""}
+                    {projeto.potencia_kwp ? `${projeto.potencia_kwp} kWp` : projeto.status ?? ""}
+                    {projeto.cidade_instalacao ? ` · ${projeto.cidade_instalacao}` : ""}
+                    {projeto.modelo_modulos ? ` · ${projeto.modelo_modulos}` : ""}
+                  </p>
+                </div>
+              </CommandItem>
+            ))}
+          </CommandGroup>
+        )}
+
+        {results.kits.length > 0 && (
+          <CommandGroup heading="Kits / Módulos">
+            {results.kits.map((kit) => (
+              <CommandItem
+                key={kit.id}
+                value={`kit-${kit.id}-${kit.name}-${kit.fabricante ?? ""}-${kit.marca ?? ""}`}
+                onSelect={() => go(`/admin/catalogo-kits`)}
+                className="flex items-center gap-2 cursor-pointer"
+              >
+                <Package className="h-4 w-4 text-muted-foreground shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-foreground truncate">{kit.name}</p>
+                  <p className="text-xs text-muted-foreground truncate">
+                    {[kit.fabricante, kit.marca].filter(Boolean).join(" · ")}
+                    {kit.estimated_kwp ? ` · ${kit.estimated_kwp} kWp` : ""}
+                  </p>
+                </div>
+              </CommandItem>
+            ))}
+          </CommandGroup>
+        )}
+
+        {results.inversores.length > 0 && (
+          <CommandGroup heading="Inversores">
+            {results.inversores.map((inv) => (
+              <CommandItem
+                key={inv.id}
+                value={`inversor-${inv.id}-${inv.fabricante}-${inv.modelo}`}
+                onSelect={() => go(`/admin/catalogo-inversores`)}
+                className="flex items-center gap-2 cursor-pointer"
+              >
+                <Cpu className="h-4 w-4 text-muted-foreground shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-foreground truncate">
+                    {inv.fabricante} {inv.modelo}
+                  </p>
+                  <p className="text-xs text-muted-foreground truncate">
+                    {inv.potencia_nominal_kw ? `${inv.potencia_nominal_kw} kW` : ""}
+                    {inv.fases ? ` · ${inv.fases}` : ""}
                   </p>
                 </div>
               </CommandItem>
