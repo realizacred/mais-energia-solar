@@ -4,7 +4,7 @@
 // Solar reduz energia (ponta e fora ponta) mas NUNCA reduz demanda contratada.
 // ──────────────────────────────────────────────────────────────────────────────
 
-import { getFioBCobranca } from "./calcGrupoB";
+import { getFioBCobranca } from "./calcGrupoB.ts";
 
 export type ModalidadeTarifaria = "verde" | "azul";
 
