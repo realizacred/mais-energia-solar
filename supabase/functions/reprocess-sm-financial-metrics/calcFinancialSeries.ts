@@ -12,8 +12,8 @@
  * Usage: called by collectSnapshot() in ProposalWizard before saving.
  */
 
-import { calcGrupoB, type RegraGD, type TipoFase, type TariffComponentes, type CustoDisponibilidade } from "@/lib/calcGrupoB";
-import { calcGrupoA } from "@/lib/calcGrupoA";
+import { calcGrupoB, type RegraGD, type TipoFase, type TariffComponentes, type CustoDisponibilidade } from "./calcGrupoB.ts";
+import { calcGrupoA } from "./calcGrupoA.ts";
 
 export interface FinancialSeriesInput {
   precoFinal: number;
