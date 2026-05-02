@@ -225,26 +225,31 @@ Deno.serve(async (req) => {
           totalSent++;
         } catch (err) {
           console.error(`[process-wa-outbox] Failed item ${item.id}:`, err);
+          const errStr = String(err);
+          // Detect "number does not exist" → terminal, no retry
+          const isInvalidNumber = /exists["']?\s*:\s*false|number not exists|Bad Request/i.test(errStr) && /exists/i.test(errStr);
           const retryCount = (item.retry_count || 0) + 1;
-          const newStatus = retryCount >= item.max_retries ? "failed" : "pending";
+          const newStatus = isInvalidNumber
+            ? "failed_final"
+            : (retryCount >= item.max_retries ? "failed" : "pending");
 
           await supabase
             .from("wa_outbox")
             .update({
               status: newStatus,
               retry_count: retryCount,
-              error_message: String(err),
+              error_message: isInvalidNumber ? `numero_invalido_nao_reenviado: ${errStr.slice(0, 500)}` : errStr.slice(0, 1000),
             })
             .eq("id", item.id);
 
-          if (newStatus === "failed" && item.message_id) {
+          if ((newStatus === "failed" || newStatus === "failed_final") && item.message_id) {
             await supabase
               .from("wa_messages")
-              .update({ status: "failed", error_message: String(err) })
+              .update({ status: "failed", error_message: errStr.slice(0, 1000) })
               .eq("id", item.message_id);
           }
 
-          logOps(inst.tenant_id, inst.id, item.message_type === "audio" ? "send_audio_error" : "outbox_failed", { outbox_id: item.id, error: String(err), retry_count: retryCount, final: newStatus === "failed", message_type: item.message_type });
+          logOps(inst.tenant_id, inst.id, item.message_type === "audio" ? "send_audio_error" : "outbox_failed", { outbox_id: item.id, error: errStr, retry_count: retryCount, final: newStatus !== "pending", invalid_number: isInvalidNumber, message_type: item.message_type });
           totalFailed++;
         }
       }
