@@ -145,14 +145,23 @@ export function ProjetosManager() {
     [projetos, existingEtapaIds]
   );
 
+  // Status do projeto considera categoria da etapa + status da proposta.
+  // Proposta aceita (verde) é tratada como "ganho", não pode aparecer em "Abertos".
+  const ACEITA_STATUSES = ["aceita", "accepted", "aprovada", "ganha"];
+  const RECUSADA_STATUSES = ["recusada", "rejeitada", "perdida", "rejected"];
+  const resolveProjetoStatus = useCallback((p: ProjetoItem): string => {
+    const proposta = (p.proposta_status || "").toLowerCase();
+    if (ACEITA_STATUSES.includes(proposta)) return "ganho";
+    if (RECUSADA_STATUSES.includes(proposta)) return "perdido";
+    const etapa = p.etapa_id ? etapaMap.get(p.etapa_id) : null;
+    return etapa?.categoria || "aberto";
+  }, [etapaMap]);
+
   const statusFiltered = useMemo(() => {
     const status = filters.status;
     if (!status || status === "todos") return validProjetos;
-    return validProjetos.filter(p => {
-      const etapa = p.etapa_id ? etapaMap.get(p.etapa_id) : null;
-      return etapa?.categoria === status;
-    });
-  }, [validProjetos, filters.status, etapaMap]);
+    return validProjetos.filter(p => resolveProjetoStatus(p) === status);
+  }, [validProjetos, filters.status, resolveProjetoStatus]);
 
   const adaptedDeals = useMemo(
     () => statusFiltered.map(p => projetoToCard(p, etapaMap)),
@@ -166,11 +175,10 @@ export function ProjetosManager() {
         if (!p.etapa_id || !existingEtapaIds.has(p.etapa_id)) return false;
         const status = filters.status;
         if (!status || status === "todos") return true;
-        const etapa = etapaMap.get(p.etapa_id);
-        return etapa?.categoria === status;
+        return resolveProjetoStatus(p) === status;
       }),
     })).map(c => consultorColumnToOwner(c, etapaMap)),
-    [consultorColumns, etapaMap, existingEtapaIds, filters.status]
+    [consultorColumns, etapaMap, existingEtapaIds, filters.status, resolveProjetoStatus]
   );
 
   // ── Persistent filter storage ──
