@@ -21,8 +21,9 @@
    FileText,
    
    ExternalLink,
-   X,
- } from "lucide-react";
+  X,
+} from "lucide-react";
+import { formatPhoneBR } from "@/lib/formatters";
  
  interface ServicoDetail {
    id: string;
@@ -189,7 +190,7 @@
                      </CardHeader>
                      <CardContent className="pt-0">
                        <p className="font-medium">{servico.cliente.nome}</p>
-                       <p className="text-sm text-muted-foreground">{servico.cliente.telefone}</p>
+                       <p className="text-sm text-muted-foreground">{formatPhoneBR(servico.cliente.telefone) || servico.cliente.telefone}</p>
                      </CardContent>
                    </Card>
                  )}

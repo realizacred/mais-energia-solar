@@ -16,6 +16,7 @@ import { User, Phone, Plus, Link2, Check, AlertTriangle } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import type { LeadSimplified } from "@/types/orcamento";
+import { formatPhoneBR } from "@/lib/formatters";
 
 interface DuplicateLeadWarningProps {
   open: boolean;
@@ -148,7 +149,7 @@ export function DuplicateLeadWarning({
                   <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground mt-1">
                     <div className="flex items-center gap-1">
                       <Phone className="h-3 w-3 shrink-0" />
-                      <span className="text-xs sm:text-sm">{lead.telefone}</span>
+                      <span className="text-xs sm:text-sm">{formatPhoneBR(lead.telefone) || lead.telefone}</span>
                     </div>
                     <span className="text-xs">• Cadastrado em {createdDate}</span>
                   </div>

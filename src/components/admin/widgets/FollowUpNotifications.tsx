@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { Lead } from "@/types/lead";
+import { formatPhoneBR } from "@/lib/formatters";
 
 interface FollowUpNotificationsProps {
   onLeadClick?: (lead: Lead) => void;
@@ -231,7 +232,7 @@ export function FollowUpNotifications({
                     <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
                       <span className="flex items-center gap-1">
                         <Phone className="h-2.5 w-2.5" />
-                        {lead.telefone}
+                        {formatPhoneBR(lead.telefone) || lead.telefone}
                       </span>
                       {lead.consultor && (
                         <span className="truncate">• {lead.consultor}</span>

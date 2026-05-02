@@ -16,6 +16,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import type { Lead, LeadStatus } from "@/types/lead";
+import { formatPhoneBR } from "@/lib/formatters";
 
 interface VendorPendingDocumentationProps {
   leads: Lead[];
@@ -206,7 +207,7 @@ export function VendorPendingDocumentation({
                               </span>
                               <span className="flex items-center gap-1">
                                 <Phone className="h-3 w-3 shrink-0" />
-                                {lead.telefone}
+                                {formatPhoneBR(lead.telefone) || lead.telefone}
                               </span>
                             </div>
                           </div>

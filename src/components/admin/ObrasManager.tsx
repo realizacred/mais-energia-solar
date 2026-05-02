@@ -24,6 +24,7 @@ import { InlineLoader } from "@/components/loading/InlineLoader";
 import { Spinner } from "@/components/ui-kit/Spinner";
 import { PageHeader, EmptyState } from "@/components/ui-kit";
 import { ESTADOS_BRASIL } from "@/lib/validations";
+import { formatPhoneBR } from "@/lib/formatters";
 import { useCidadesPorEstado } from "@/hooks/useCidadesPorEstado";
 import {
   useObras,
@@ -466,7 +467,7 @@ export function ObrasManager() {
                   <SelectContent className="bg-popover z-50 max-h-60">
                     <SelectItem value="_none">Nenhum</SelectItem>
                     {clientes.map((c) => (
-                      <SelectItem key={c.id} value={c.id}>{c.nome} ({c.telefone})</SelectItem>
+                      <SelectItem key={c.id} value={c.id}>{c.nome} ({formatPhoneBR(c.telefone) || c.telefone})</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>

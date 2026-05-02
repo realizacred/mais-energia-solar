@@ -23,6 +23,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Spinner } from "@/components/ui-kit/Spinner";
 import { PageHeader } from "@/components/ui-kit";
 import { differenceInDays, parseISO } from "date-fns";
+import { formatPhoneBR } from "@/lib/formatters";
 
 // FollowUpItem imported from hook
 
@@ -207,7 +208,7 @@ export default function FollowUpManager({ diasAlerta = 3 }: FollowUpManagerProps
                     </TableCell>
                     <TableCell>
                       <a href={`tel:${item.telefone}`} className="flex items-center gap-1 text-primary hover:underline text-sm">
-                        <Phone className="w-3 h-3" />{item.telefone}
+                        <Phone className="w-3 h-3" />{formatPhoneBR(item.telefone) || item.telefone}
                       </a>
                     </TableCell>
                     <TableCell className="text-sm text-foreground">{item.consultor || "-"}</TableCell>

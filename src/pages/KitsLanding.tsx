@@ -19,7 +19,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { formatBRL } from "@/lib/formatters";
+import { formatBRL, formatPhoneBR } from "@/lib/formatters";
 import { cn } from "@/lib/utils";
 import { useGrupoKitPublic } from "@/hooks/usePropostaGrupoToken";
 import { normalizeProposalSnapshot, type NormalizedProposalSnapshot } from "@/domain/proposal/normalizeProposalSnapshot";
@@ -253,7 +253,7 @@ export default function KitsLanding() {
           </p>
           {tenant && (
             <p className="text-sm text-muted-foreground">
-              {tenant.nome} • {tenant.telefone}
+              {tenant.nome} • {formatPhoneBR(tenant.telefone) || tenant.telefone}
             </p>
           )}
         </motion.div>

@@ -15,6 +15,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
+import { formatPhoneBR } from "@/lib/formatters";
 
 interface PendingLead {
   id: string;
@@ -215,7 +216,7 @@ export function PendingDocumentationWidget({
                           </span>
                           <span className="flex items-center gap-1">
                             <Phone className="h-2.5 w-2.5" />
-                            {lead.telefone}
+                            {formatPhoneBR(lead.telefone) || lead.telefone}
                           </span>
                         </div>
                       </div>
