@@ -1,0 +1,258 @@
+// ──────────────────────────────────────────────────────────────────────────────
+// Motor de Cálculo Grupo B — 2026
+// Regras: Lei 14.300 (GD I/II/III) com escalonamento Fio B conforme ANEEL
+// Todas as regras aqui são DETERMINÍSTICAS e auditáveis.
+// ──────────────────────────────────────────────────────────────────────────────
+
+export type RegraGD = "GD_I" | "GD_II" | "GD_III";
+export type TipoFase = "monofasico" | "bifasico" | "trifasico";
+export type NivelPrecisao = "exato" | "estimado";
+
+/** Percentual do Fio B COBRADO por ano (Lei 14.300 — escalonamento ANEEL)
+ *  Compensado = 1 - cobrado. Ex: 2026 = 60% cobrado → 40% compensado.
+ *  A partir de 2029 entra nova regra (não modelada aqui). */
+export const GD_FIO_B_PERCENT_BY_YEAR: Record<number, number> = {
+  2023: 0.15,
+  2024: 0.30,
+  2025: 0.45,
+  2026: 0.60,
+  2027: 0.75,
+  2028: 0.90,
+  // 2029+: nova regra — tratado em getFioBCobranca()
+};
+
+/** Percentual do Fio B que é COBRADO (não compensado).
+ *  2029+ retorna null → regra nova não modelada. */
+export function getFioBCobranca(ano = 2026): number | null {
+  if (ano >= 2029) return null; // regra nova — não modelada
+  return GD_FIO_B_PERCENT_BY_YEAR[ano] ?? 0.60;
+}
+
+/** Verifica se o ano tem regra GD II modelada */
+export function isRegraModelada(ano: number): boolean {
+  return ano < 2029;
+}
+
+export interface TariffComponentes {
+  te_kwh: number;               // Tarifa de Energia (R$/kWh)
+  tusd_fio_b_kwh: number;       // Fio B real (R$/kWh) — quando disponível
+  tusd_total_kwh?: number;      // TUSD total — usado como proxy se Fio B não existir
+  tusd_fio_a_kwh?: number;      // Fio A — apenas GD III
+  tfsee_kwh?: number;           // TFSEE — apenas GD III
+  pnd_kwh?: number;             // P&D — apenas GD III
+  vigencia_inicio?: string;     // Data de vigência
+  origem?: string;              // "ANEEL" | "manual" | "premissa"
+  validation_status?: string;
+  precisao?: NivelPrecisao;     // Nível de precisão do Fio B
+}
+
+export interface CustoDisponibilidade {
+  monofasico: number;   // kWh/mês cobrados mesmo sem consumir
+  bifasico: number;
+  trifasico: number;
+}
+
+export interface CalcGrupoBInput {
+  regra: RegraGD;
+  fase: TipoFase;
+  geracao_mensal_kwh: number;
+  consumo_mensal_kwh: number;
+  tariff: TariffComponentes;
+  custo_disponibilidade: CustoDisponibilidade;
+  ano?: number; // default 2026
+}
+
+export interface CalcGrupoBResult {
+  // Inputs reprocessados
+  geracao_kwh: number;
+  consumo_kwh: number;
+  // Custo de disponibilidade
+  custo_disponibilidade_kwh: number;
+  // Compensação
+  consumo_compensavel_kwh: number;
+  energia_compensada_kwh: number;
+  // Tarifação
+  regra_aplicada: RegraGD;
+  fio_b_percent_cobrado: number | null; // null = regra 2029+ não modelada
+  valor_credito_kwh: number;        // R$/kWh do crédito
+  valor_credito_breakdown: {
+    te: number;
+    fio_b_compensado: number;
+    fio_b_fonte: 'real' | 'tusd_proxy';  // origem do Fio B usado
+    fio_a?: number;
+    tfsee?: number;
+    pnd?: number;
+  };
+  // Precisão
+  precisao: NivelPrecisao;
+  precisao_motivo: string;
+  // Resultado
+  economia_mensal_rs: number;
+  // Auditoria
+  vigencia_tariff?: string;
+  origem_tariff: string;
+  incompleto_gd3: boolean;
+  regra_nao_modelada: boolean;  // true se ano >= 2029
+  alertas: string[];
+}
+
+/**
+ * Determina o Fio B a usar e o nível de precisão.
+ * - Se tusd_fio_b_kwh > 0: EXATO (Fio B real da ANEEL)
+ * - Se não: usa tusd_total_kwh como proxy → ESTIMADO
+ */
+function resolveFioB(tariff: TariffComponentes): {
+  fio_b_kwh: number;
+  precisao: NivelPrecisao;
+  fonte: 'real' | 'tusd_proxy';
+  motivo: string;
+} {
+  // Verificar se já vem com precisão explícita do tariff_versions
+  if (tariff.tusd_fio_b_kwh > 0) {
+    return {
+      fio_b_kwh: tariff.tusd_fio_b_kwh,
+      precisao: tariff.precisao ?? 'exato',
+      fonte: 'real',
+      motivo: 'Fio B disponível. Regra GD aplicada com componente correto.',
+    };
+  }
+
+  // Fallback: usar TUSD total como proxy
+  if (tariff.tusd_total_kwh && tariff.tusd_total_kwh > 0) {
+    return {
+      fio_b_kwh: tariff.tusd_total_kwh,
+      precisao: 'estimado',
+      fonte: 'tusd_proxy',
+      motivo: 'Fio B não disponível na fonte atual; usamos TUSD total como aproximação. Economia pode variar.',
+    };
+  }
+
+  return {
+    fio_b_kwh: 0,
+    precisao: 'estimado',
+    fonte: 'tusd_proxy',
+    motivo: 'Fio B e TUSD total não disponíveis — economia calculada apenas com TE.',
+  };
+}
+
+/**
+ * Calcula a economia mensal de um prosumidor Grupo B.
+ * Função pura, determinística, auditável.
+ */
+export function calcGrupoB(input: CalcGrupoBInput): CalcGrupoBResult {
+  const { regra, fase, geracao_mensal_kwh, consumo_mensal_kwh, tariff, custo_disponibilidade, ano = 2026 } = input;
+  const alertas: string[] = [];
+  let incompleto_gd3 = false;
+
+  // 1. Custo de disponibilidade (kWh/mês mínimos cobrados pela distribuidora)
+  const custo_disp_kwh =
+    fase === "monofasico" ? custo_disponibilidade.monofasico :
+    fase === "bifasico"  ? custo_disponibilidade.bifasico :
+    custo_disponibilidade.trifasico;
+
+  // 2. Consumo compensável (consumo acima do custo mínimo)
+  const consumo_compensavel_kwh = Math.max(consumo_mensal_kwh - custo_disp_kwh, 0);
+
+  // 3. Energia efetivamente compensada (limitada ao que foi gerado)
+  // @TODO: Injeção de energia (Créditos futuros) não contemplada, refinar usando saldo de crédito mensal equivalente a calcSeries25
+  const energia_compensada_kwh = Math.min(geracao_mensal_kwh, consumo_compensavel_kwh);
+
+  // 4. Resolver Fio B e nível de precisão
+  const fioBResolvido = resolveFioB(tariff);
+  const fioBCobranca = getFioBCobranca(ano);
+  const regraNaoModelada = fioBCobranca === null;
+  const fioBCobrancaEfetivo = fioBCobranca ?? 0.90; // fallback conservador para 2029+
+  const fioBCompensado = 1 - fioBCobrancaEfetivo;
+
+  if (regraNaoModelada) {
+    alertas.push(`⚠️ Ano ${ano}: regra GD II pós-2028 não modelada — usando 90% cobrado como fallback conservador. Confirme antes de gerar proposta.`);
+  }
+
+  let valor_credito_kwh = 0;
+  const breakdown = {
+    te: 0,
+    fio_b_compensado: 0,
+    fio_b_fonte: fioBResolvido.fonte,
+    fio_a: undefined as number | undefined,
+    tfsee: undefined as number | undefined,
+    pnd: undefined as number | undefined,
+  };
+
+  if (regra === "GD_I") {
+    // GD I: 100% compensável (TUSD + TE) — regime antigo ainda em transição
+    valor_credito_kwh = tariff.te_kwh + fioBResolvido.fio_b_kwh;
+    breakdown.te = tariff.te_kwh;
+    breakdown.fio_b_compensado = fioBResolvido.fio_b_kwh;
+    alertas.push("GD I — regime de compensação integral (sem escalonamento Fio B)");
+
+  } else if (regra === "GD_II") {
+    // GD II: TE + (1 - cobrança%) × FioB
+    const fioB_compensado_kwh = fioBResolvido.fio_b_kwh * fioBCompensado;
+    valor_credito_kwh = tariff.te_kwh + fioB_compensado_kwh;
+    breakdown.te = tariff.te_kwh;
+    breakdown.fio_b_compensado = fioB_compensado_kwh;
+    if (fioBCompensado === 0) alertas.push("Atenção: Fio B 100% cobrado neste ano — sem compensação Fio B");
+
+  } else if (regra === "GD_III") {
+    // GD III: TE + 1.0×FioB + 0.40×FioA + TFSEE + P&D
+    const fioA = tariff.tusd_fio_a_kwh ?? 0;
+    const tfsee = tariff.tfsee_kwh ?? 0;
+    const pnd = tariff.pnd_kwh ?? 0;
+
+    if (!tariff.tusd_fio_a_kwh) {
+      incompleto_gd3 = true;
+      alertas.push("GD III incompleto: Fio A não disponível — economia estimada sem este componente");
+    }
+    if (!tariff.tfsee_kwh) alertas.push("TFSEE não disponível — usando zero");
+    if (!tariff.pnd_kwh) alertas.push("P&D não disponível — usando zero");
+
+    const fioB_compensado_kwh = fioBResolvido.fio_b_kwh; // GD III: 100% Fio B compensado
+    const fioA_parcial = fioA * 0.40; // 40% do Fio A
+    valor_credito_kwh = tariff.te_kwh + fioB_compensado_kwh + fioA_parcial + tfsee + pnd;
+    breakdown.te = tariff.te_kwh;
+    breakdown.fio_b_compensado = fioB_compensado_kwh;
+    breakdown.fio_a = fioA_parcial;
+    breakdown.tfsee = tfsee;
+    breakdown.pnd = pnd;
+  }
+
+  // 5. Economia mensal
+  const economia_mensal_rs = Math.round(energia_compensada_kwh * valor_credito_kwh * 100) / 100;
+
+  // Alertas adicionais
+  if (tariff.validation_status === 'atencao') alertas.push("Tarifa com dados suspeitos — revisar com distribuidora");
+  if (!tariff.te_kwh || tariff.te_kwh <= 0) alertas.push("TE não configurada — resultado pode estar incorreto");
+  if (fioBResolvido.fonte === 'tusd_proxy') {
+    alertas.push(fioBResolvido.motivo);
+  }
+
+  return {
+    geracao_kwh: geracao_mensal_kwh,
+    consumo_kwh: consumo_mensal_kwh,
+    custo_disponibilidade_kwh: custo_disp_kwh,
+    consumo_compensavel_kwh,
+    energia_compensada_kwh,
+    regra_aplicada: regra,
+    fio_b_percent_cobrado: fioBCobranca,
+    valor_credito_kwh: Math.round(valor_credito_kwh * 1000000) / 1000000,
+    valor_credito_breakdown: breakdown,
+    precisao: fioBResolvido.precisao,
+    precisao_motivo: fioBResolvido.motivo,
+    economia_mensal_rs,
+    vigencia_tariff: tariff.vigencia_inicio,
+    origem_tariff: tariff.origem || 'desconhecida',
+    incompleto_gd3,
+    regra_nao_modelada: regraNaoModelada,
+    alertas,
+  };
+}
+
+/** Formata origem para badge de auditoria */
+export function formatOrigem(origem: string): { label: string; variant: "default" | "secondary" | "outline" | "destructive" } {
+  switch (origem) {
+    case 'ANEEL':     return { label: 'ANEEL', variant: 'default' };
+    case 'premissa':  return { label: 'Premissa', variant: 'secondary' };
+    case 'manual':    return { label: 'Editado', variant: 'outline' };
+    default:          return { label: origem, variant: 'outline' };
+  }
+}
