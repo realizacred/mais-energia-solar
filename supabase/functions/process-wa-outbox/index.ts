@@ -85,13 +85,31 @@ Deno.serve(async (req) => {
 
     // ── Step 2: Process each instance (no advisory lock — atomic claim per item) ──
     for (const inst of shuffled) {
-      // Fetch pending items for THIS instance only
+      // SAFETY GUARD (RB): never resend items older than 24h — close them out
+      const cutoff24h = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+      const { data: expired } = await supabase
+        .from("wa_outbox")
+        .update({
+          status: "failed_final",
+          error_message: "erro_antigo_nao_reenviado_por_segurança (>24h)",
+          updated_at: new Date().toISOString(),
+        })
+        .eq("instance_id", inst.id)
+        .in("status", ["pending"])
+        .lt("created_at", cutoff24h)
+        .select("id");
+      if (expired && expired.length > 0) {
+        console.log(`[process-wa-outbox] Closed ${expired.length} expired (>24h) items for instance=${inst.id}`);
+      }
+
+      // Fetch pending items for THIS instance only (only recent ones)
       const { data: items, error: fetchError } = await supabase
         .from("wa_outbox")
         .select("*")
         .eq("instance_id", inst.id)
         .eq("status", "pending")
         .lte("scheduled_at", new Date().toISOString())
+        .gte("created_at", cutoff24h)
         .lt("retry_count", 3)
         .order("created_at", { ascending: true })
         .limit(ITEMS_PER_INSTANCE);
