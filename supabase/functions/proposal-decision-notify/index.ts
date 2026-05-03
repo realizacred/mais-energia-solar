@@ -136,6 +136,10 @@ Deno.serve(async (req) => {
 
 
     // ── 3. Send push notifications ──
+    // TODO(tech-debt): integração com send-push-notification usa hack
+    // (direction:"in" + _proposalNotification) porque aquela função foi
+    // desenhada para mensagens de WA. Refatorar send-push-notification
+    // para aceitar payloads genéricos (title/body/url) e remover esse hack.
     const isAccepted = decisao === "aceita";
     const pushTitle = isAccepted
       ? `✅ Proposta Aceita!`
