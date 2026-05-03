@@ -4,13 +4,14 @@
  * via toolbar. Modo avançado (HTML) continua disponível como fallback.
  */
 import { useEffect, useRef, useState } from "react";
-import { Bold, Italic, Underline, Link as LinkIcon, Code2, Variable } from "lucide-react";
+import { Bold, Italic, Underline, Link as LinkIcon, Code2, Variable, Image as ImageIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
+import { ImagePicker } from "./ImagePicker";
 
 interface Props {
   value: string;
@@ -86,6 +87,22 @@ export function SimpleContentEditor({ value, onChange }: Props) {
     if (url) exec("createLink", url);
   };
 
+  const insertImage = (url: string) => {
+    ref.current?.focus();
+    const html = `<img src="${url}" alt="" style="max-width:100%;height:auto;border-radius:6px;margin:8px 0;" />`;
+    if (!document.execCommand("insertHTML", false, html)) {
+      const sel = window.getSelection();
+      if (sel && sel.rangeCount > 0) {
+        const range = sel.getRangeAt(0);
+        const div = document.createElement("div");
+        div.innerHTML = html;
+        const node = div.firstChild;
+        if (node) range.insertNode(node);
+      }
+    }
+    handleInput();
+  };
+
   if (advanced) {
     return (
       <div className="space-y-2">
@@ -121,6 +138,23 @@ export function SimpleContentEditor({ value, onChange }: Props) {
         <ToolbarButton icon={Italic} title="Itálico" onClick={() => exec("italic")} />
         <ToolbarButton icon={Underline} title="Sublinhado" onClick={() => exec("underline")} />
         <ToolbarButton icon={LinkIcon} title="Inserir link" onClick={insertLink} />
+
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon-sm"
+              className="h-7 w-7"
+              title="Inserir imagem"
+            >
+              <ImageIcon className="h-3.5 w-3.5" />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-3" align="start">
+            <ImagePicker onSelect={insertImage} compact />
+          </PopoverContent>
+        </Popover>
 
         <div className="h-4 w-px bg-border mx-1" />
 

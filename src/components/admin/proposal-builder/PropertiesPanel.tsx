@@ -17,6 +17,7 @@ import type { TemplateBlock, BlockStyle } from "./types";
 import { cn } from "@/lib/utils";
 import { SEMANTIC_BLOCK_LABELS, isSemanticProposalBlock } from "./semanticBlockLabels";
 import { SimpleContentEditor } from "./SimpleContentEditor";
+import { ImagePicker } from "./ImagePicker";
 
 interface PropertiesPanelProps {
   block: TemplateBlock;
@@ -111,14 +112,21 @@ export function PropertiesPanel({ block, onUpdate }: PropertiesPanelProps) {
                 />
               </Field>
             ) : block.type === "image" ? (
-              <Field label="URL da Imagem">
-                <Input
+              <div className="space-y-2">
+                {block.content && (
+                  <div className="rounded-md border bg-muted/30 p-2">
+                    <img
+                      src={block.content}
+                      alt="Preview"
+                      className="w-full h-24 object-contain rounded"
+                    />
+                  </div>
+                )}
+                <ImagePicker
                   value={block.content}
-                  onChange={e => onUpdate({ content: e.target.value })}
-                  className="text-xs"
-                  placeholder="https://..."
+                  onSelect={(url) => onUpdate({ content: url })}
                 />
-              </Field>
+              </div>
             ) : block.type === "button" ? (
               <Field label="Texto do Botão">
                 <Input
