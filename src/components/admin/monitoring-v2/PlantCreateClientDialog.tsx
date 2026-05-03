@@ -65,6 +65,7 @@ export function PlantCreateClientDialog({ open, onOpenChange, plantId }: Props) 
           telefone: telefone.trim(),
           email: email.trim() || null,
           cpf_cnpj: cpfCnpj.trim() || null,
+          data_nascimento: dataNascimento || null,
         } as any)
         .select("id")
         .single();
