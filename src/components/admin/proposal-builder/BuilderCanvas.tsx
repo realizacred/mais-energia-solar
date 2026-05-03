@@ -10,6 +10,7 @@ import { buildTree } from "./treeUtils";
 import type { BuilderState, TemplateBlock } from "./types";
 import { cn } from "@/lib/utils";
 import { useBrandSettings } from "@/hooks/useBrandSettings";
+import { useTenantSettings } from "@/hooks/useTenantSettings";
 import { TemplateFinalPreview } from "@/components/proposal-landing/TemplateFinalPreview";
 import { VARIABLES_CATALOG } from "@/lib/variablesCatalog";
 import { createDefaultTemplateBlocks } from "./defaultTemplateBlocks";
@@ -31,7 +32,7 @@ const DEVICE_WIDTHS = {
   mobile: "390px",
 };
 
-const PREVIEW_VARIABLES: Record<string, string> = VARIABLES_CATALOG.reduce<Record<string, string>>((acc, variable) => {
+const BASE_PREVIEW_VARIABLES: Record<string, string> = VARIABLES_CATALOG.reduce<Record<string, string>>((acc, variable) => {
   acc[variable.legacyKey] = variable.example;
   acc[variable.canonicalKey] = variable.example;
 
@@ -43,7 +44,6 @@ const PREVIEW_VARIABLES: Record<string, string> = VARIABLES_CATALOG.reduce<Recor
   cliente_nome: "João Silva",
   cliente_cidade: "Belo Horizonte",
   cliente_estado: "MG",
-  empresa_nome: "Mais Energia Solar",
   potencia_kwp: "8,20",
   economia_percentual: "93",
   geracao_media_mensal: "1.120",
@@ -67,6 +67,20 @@ const PREVIEW_VARIABLES: Record<string, string> = VARIABLES_CATALOG.reduce<Recor
 
 export function BuilderCanvas({ state, onSelect, onHover, onDropBlock, onDeleteBlock, onDuplicateBlock, onSwapOrder, onUpdateBlock }: BuilderCanvasProps) {
   const { settings: brandSettings } = useBrandSettings();
+  const { tenant } = useTenantSettings();
+
+  const companyName = tenant?.nome || "Sua Empresa";
+  const companyLogo = brandSettings?.logo_url || brandSettings?.logo_white_url || "";
+
+  const previewVariables = useMemo<Record<string, string>>(() => ({
+    ...BASE_PREVIEW_VARIABLES,
+    empresa_nome: companyName,
+    empresa_logo_url: companyLogo,
+    empresa_cidade: tenant?.cidade || BASE_PREVIEW_VARIABLES.cliente_cidade,
+    empresa_estado: tenant?.estado || BASE_PREVIEW_VARIABLES.cliente_estado,
+    empresa_cnpj_cpf: tenant?.documento || "",
+  }), [companyName, companyLogo, tenant?.cidade, tenant?.estado, tenant?.documento]);
+
   const tree = useMemo(
     () => buildTree(state.blocks.filter(b => b._proposalType === state.proposalType)),
     [state.blocks, state.proposalType]
@@ -143,10 +157,10 @@ export function BuilderCanvas({ state, onSelect, onHover, onDropBlock, onDeleteB
                   const filtered = state.blocks.filter((b) => b._proposalType === state.proposalType && b.isVisible !== false);
                   return filtered.length > 0 ? filtered : createDefaultTemplateBlocks(state.proposalType);
                 })()}
-                variables={PREVIEW_VARIABLES}
+                variables={previewVariables}
                 theme={2}
-                logoUrl={brandSettings?.logo_url || brandSettings?.logo_white_url}
-                companyName="Mais Energia Solar"
+                logoUrl={companyLogo || undefined}
+                companyName={companyName}
               />
             ) : tree.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-[400px] text-muted-foreground gap-3">

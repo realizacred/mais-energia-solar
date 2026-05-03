@@ -16,6 +16,7 @@ import { ChevronDown, Eye, EyeOff, Type, Palette, Box, Layout } from "lucide-rea
 import type { TemplateBlock, BlockStyle } from "./types";
 import { cn } from "@/lib/utils";
 import { SEMANTIC_BLOCK_LABELS, isSemanticProposalBlock } from "./semanticBlockLabels";
+import { SimpleContentEditor } from "./SimpleContentEditor";
 
 interface PropertiesPanelProps {
   block: TemplateBlock;
@@ -103,13 +104,10 @@ export function PropertiesPanel({ block, onUpdate }: PropertiesPanelProps) {
         {!isContainer && !isSemantic && (
           <Section title="Conteúdo" icon={Type}>
             {block.type === "editor" ? (
-              <Field label="HTML">
-                <Textarea
+              <Field label="Texto">
+                <SimpleContentEditor
                   value={block.content}
-                  onChange={e => onUpdate({ content: e.target.value })}
-                  rows={6}
-                  className="text-xs font-mono"
-                  placeholder="<p>Seu conteúdo HTML...</p>"
+                  onChange={(next) => onUpdate({ content: next })}
                 />
               </Field>
             ) : block.type === "image" ? (
