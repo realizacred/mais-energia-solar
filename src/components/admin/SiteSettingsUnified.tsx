@@ -412,7 +412,12 @@ export function SiteSettingsUnified() {
                   </div>
                   <div className="space-y-2">
                     <Label>Estado</Label>
-                    <Input value={siteSettings.estado || ""} onChange={(e) => updateSite("estado", e.target.value)} maxLength={2} />
+                    <Select value={siteSettings.estado || ""} onValueChange={(v) => updateSite("estado", v)}>
+                      <SelectTrigger><SelectValue placeholder="UF" /></SelectTrigger>
+                      <SelectContent>
+                        {BRAZIL_STATES.map(uf => <SelectItem key={uf.value} value={uf.value}>{uf.value}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
                   </div>
                   <div className="space-y-2">
                     <Label>Horário de Atendimento</Label>
