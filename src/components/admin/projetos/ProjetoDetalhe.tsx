@@ -445,6 +445,9 @@ function ProjetoDetalheContent() {
         </CardContent>
       </Card>
 
+      {/* ── Tipo de projeto solar — alerta de adaptação (Fase C) ── */}
+      <TipoProjetoSolarAlert projetoId={projetoId ?? deal.id} />
+
       {/* ── Multi-Pipeline Manager ── */}
       {activeTab === "gerenciamento" && (
         <Card className="mb-2">
