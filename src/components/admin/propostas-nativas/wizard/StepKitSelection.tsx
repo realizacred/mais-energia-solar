@@ -71,6 +71,8 @@ interface Props {
   consumoTotal?: number;
   manualKits?: { card: KitCardData; itens: KitItemRow[]; meta?: KitMeta }[];
   onManualKitsChange?: (kits: { card: KitCardData; itens: KitItemRow[]; meta?: KitMeta }[]) => void;
+  selectedManualIdx?: number | null;
+  onSelectedManualIdxChange?: (idx: number | null) => void;
   irradiacao?: number;
   latitude?: number | null;
   ghiSeries?: Record<string, number> | null;
@@ -123,7 +125,7 @@ function kitItemsToCardData(itens: KitItemRow[], topologia?: string, custoOverri
 
 // Mock kits removed — manual mode only for now
 
-export function StepKitSelection({ itens, onItensChange, modulos, inversores, otimizadores = [], baterias = [], loadingEquip, potenciaKwp, layouts = [], onLayoutsChange, preDimensionamento: pd, onPreDimensionamentoChange: setPd, consumoTotal: consumoTotalProp = 0, manualKits: manualKitsProp = [], onManualKitsChange, irradiacao, latitude, ghiSeries, somenteGhi, custoKitOverride, ibgeCodigo }: Props) {
+export function StepKitSelection({ itens, onItensChange, modulos, inversores, otimizadores = [], baterias = [], loadingEquip, potenciaKwp, layouts = [], onLayoutsChange, preDimensionamento: pd, onPreDimensionamentoChange: setPd, consumoTotal: consumoTotalProp = 0, manualKits: manualKitsProp = [], onManualKitsChange, selectedManualIdx: selectedManualIdxProp, onSelectedManualIdxChange, irradiacao, latitude, ghiSeries, somenteGhi, custoKitOverride, ibgeCodigo }: Props) {
   // If returning to this step with a kit already restored, auto-switch to "customizado" tab
   const [tab, setTab] = useState<TabType>(() => {
     if (manualKitsProp.length > 0) return "customizado";
@@ -150,14 +152,18 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
   }, [persistedManualKits, itens, pd?.topologias, custoKitOverride]);
   const setManualKits = onManualKitsChange || setLocalManualKits;
   const [editingKitIndex, setEditingKitIndex] = useState<number | null>(null);
-  const [selectedManualIdx, setSelectedManualIdx] = useState<number | null>(() => {
-    // If returning with itens already set from a manual kit, detect which one
+  const [localSelectedManualIdx, setLocalSelectedManualIdx] = useState<number | null>(() => {
     if (manualKitsProp.length > 0 && itens.length > 0) {
       const idx = manualKitsProp.findIndex(mk => mk.itens.length === itens.length && mk.itens.every((mi, i) => mi.modelo === itens[i]?.modelo));
       return idx >= 0 ? idx : null;
     }
     return null;
   });
+  const selectedManualIdx = onSelectedManualIdxChange ? (selectedManualIdxProp ?? null) : localSelectedManualIdx;
+  const setSelectedManualIdx = (idx: number | null) => {
+    if (onSelectedManualIdxChange) onSelectedManualIdxChange(idx);
+    else setLocalSelectedManualIdx(idx);
+  };
   const [showEditKitFechado, setShowEditKitFechado] = useState(false);
   const [showEditLayout, setShowEditLayout] = useState(false);
   const [showPremissas, setShowPremissas] = useState(false);

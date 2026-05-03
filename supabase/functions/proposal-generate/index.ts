@@ -1141,6 +1141,7 @@ Inclua: análise do perfil de consumo, adequação técnica do sistema, retorno 
     // Kit + itens
     const kitTipoSistema = body.kit?.tipo_sistema ?? "on_grid";
     const kitTopologia = body.kit?.topologia ?? "tradicional";
+    console.log("[kit-debug]", { kitTipoSistema, kitTopologia, bodyKit: body.kit });
     granularOps.push(
       adminClient.from("proposta_kits").insert({
         tenant_id: tenantId, versao_id: versaoId,

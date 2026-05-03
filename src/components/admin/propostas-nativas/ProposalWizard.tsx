@@ -215,6 +215,7 @@ export function ProposalWizard() {
     { id: crypto.randomUUID(), descricao: "", fabricante: "", modelo: "", potencia_w: 0, quantidade: 1, preco_unitario: 0, categoria: "modulo", avulso: false },
   ]);
   const [manualKits, setManualKits] = useState<{ card: any; itens: KitItemRow[] }[]>([]);
+  const [selectedManualIdx, setSelectedManualIdx] = useState<number | null>(null);
 
   // Layouts
   const [layouts, setLayouts] = useState<LayoutArranjo[]>([]);
@@ -2290,7 +2291,7 @@ export function ProposalWizard() {
         aceite_estimativa: enforcement.aceiteEstimativa || undefined,
         // Sistema/topologia derivados do kit selecionado pelo usuário (defaults no servidor).
         kit: (() => {
-          const meta = (manualKits[0] as any)?.meta;
+          const meta = (manualKits[(selectedManualIdx ?? 0) as number] as any)?.meta;
           if (!meta) return undefined;
           const topoRaw = (meta.topologia || "").toString().toLowerCase();
           const topologia = topoRaw === "microinversor"
@@ -2820,7 +2821,7 @@ export function ProposalWizard() {
         const kitVal = validateKit(itens, potenciaKwp, venda.custo_kit_override);
         return wrap("kit", (
           <div className="space-y-4">
-            <StepKitSelection itens={itens} onItensChange={setItens} modulos={modulos} inversores={inversores} otimizadores={otimizadores} baterias={baterias} loadingEquip={loadingEquip} potenciaKwp={potenciaKwp} preDimensionamento={preDimensionamento} onPreDimensionamentoChange={setPreDimensionamento} consumoTotal={consumoTotal} manualKits={manualKits} onManualKitsChange={setManualKits} irradiacao={locIrradiacao} latitude={locLatitude} ghiSeries={locGhiSeries} somenteGhi={locSkipPoa} custoKitOverride={venda.custo_kit_override} ibgeCodigo={clienteMunicipioIbgeCodigo ?? solarPremises?.solaryum_ibge_fallback ?? null} />
+            <StepKitSelection itens={itens} onItensChange={setItens} modulos={modulos} inversores={inversores} otimizadores={otimizadores} baterias={baterias} loadingEquip={loadingEquip} potenciaKwp={potenciaKwp} preDimensionamento={preDimensionamento} onPreDimensionamentoChange={setPreDimensionamento} consumoTotal={consumoTotal} manualKits={manualKits} onManualKitsChange={setManualKits} selectedManualIdx={selectedManualIdx} onSelectedManualIdxChange={setSelectedManualIdx} irradiacao={locIrradiacao} latitude={locLatitude} ghiSeries={locGhiSeries} somenteGhi={locSkipPoa} custoKitOverride={venda.custo_kit_override} ibgeCodigo={clienteMunicipioIbgeCodigo ?? solarPremises?.solaryum_ibge_fallback ?? null} />
             {(kitVal?.warnings ?? []).length > 0 && (
               <div className="rounded-lg border border-warning/40 bg-warning/5 p-3 space-y-1">
                 {(kitVal?.warnings ?? []).map((w, i) => (
