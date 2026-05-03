@@ -98,6 +98,7 @@ export interface ProposalResolverContext {
   consultorCodigo?: string;
   empresaNome?: string;
   empresaTelefone?: string;
+  empresaLogo?: string;
   // Extra overrides
   extras?: Record<string, string | number>;
   // Final snapshot (SSOT for finalized versions — inputs + outputs)
