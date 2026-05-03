@@ -204,7 +204,7 @@ export function PropertiesPanel({ block, onUpdate }: PropertiesPanelProps) {
         )}
 
         {/* Typography */}
-        {!isContainer && block.type !== "divider" && block.type !== "image" && (
+        {!isContainer && !isSemantic && block.type !== "divider" && block.type !== "image" && (
           <Section title="Tipografia" icon={Type} defaultOpen={false}>
             <Field label="Família">
               <Select
