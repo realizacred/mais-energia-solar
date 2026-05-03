@@ -1,4 +1,4 @@
-import { Search, Users, UserCheck, FolderKanban, Package, Cpu, Loader2, X } from "lucide-react";
+import { Search, Users, UserCheck, FolderKanban, Package, Cpu, FileText, Loader2, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
