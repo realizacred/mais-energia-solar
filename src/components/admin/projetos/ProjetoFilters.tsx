@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/select";
 import type { ProjetoFunil, ProjetoEtiqueta } from "@/hooks/useProjetoPipeline";
 import { cn } from "@/lib/utils";
+import { TIPO_PROJETO_SOLAR_OPTIONS } from "@/lib/tipoProjetoSolar";
 import { useUserFunnelOrder } from "@/hooks/useUserFunnelOrder";
 import {
   DndContext,
