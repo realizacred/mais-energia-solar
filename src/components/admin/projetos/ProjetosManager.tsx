@@ -247,6 +247,9 @@ export function ProjetosManager() {
     if (storedPrefs.consultorId && storedPrefs.consultorId !== "todos" && filters.consultorId !== storedPrefs.consultorId) {
       updates.consultorId = storedPrefs.consultorId;
     }
+    if (storedPrefs.tipoProjetoSolar && storedPrefs.tipoProjetoSolar !== "todos" && filters.tipoProjetoSolar !== storedPrefs.tipoProjetoSolar) {
+      updates.tipoProjetoSolar = storedPrefs.tipoProjetoSolar;
+    }
     // Só aplica funilId se: (a) view não for por consultor; (b) funil ainda existe no tenant.
     const funilExiste = !!funis.find((f) => f.id === storedPrefs.funilId);
     if (
