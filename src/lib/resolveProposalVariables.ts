@@ -186,6 +186,32 @@ function resolveFromContext(
     }
   }
 
+  // ── Customizada (campos custom não-vc_) ──
+  // Lê de snapshot.customFieldValues[subkey] preservando prefixos cap_/pre_/pos_.
+  if (key.startsWith("customizada.") && !key.startsWith("customizada.vc_")) {
+    const sub = key.substring("customizada.".length);
+    const fs = ctx.finalSnapshot as any;
+    const cfv = fs?.customFieldValues ?? fs?.custom_field_values;
+    if (cfv && typeof cfv === "object") {
+      // 1. lookup direto
+      let val = cfv[sub];
+      // 2. fallback: tentar com prefixos comuns se subkey não vier prefixado
+      if (val == null && !/^(cap|pre|pos)_/.test(sub)) {
+        val = cfv[`pos_${sub}`] ?? cfv[`pre_${sub}`] ?? cfv[`cap_${sub}`];
+      }
+      // 3. fallback: tentar sem prefixo se subkey vier prefixado
+      if (val == null && /^(cap|pre|pos)_/.test(sub)) {
+        val = cfv[sub.replace(/^(cap|pre|pos)_/, "")];
+      }
+      if (val != null && val !== "") {
+        if (typeof val === "number") return fmtNumber(val);
+        if (Array.isArray(val)) return val.join(", ");
+        return String(val);
+      }
+    }
+    // continua para handlers vc_* legados (vc_nome, vc_a_vista, etc.) — sem early return
+  }
+
   // ── Tabelas (HTML inline) ──
   if (key.startsWith("tabelas.")) {
     const baseSnap = (fsCanon ?? ctx.finalSnapshot ?? {}) as Record<string, unknown>;
