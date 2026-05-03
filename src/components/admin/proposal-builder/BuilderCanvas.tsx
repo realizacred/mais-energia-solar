@@ -10,6 +10,7 @@ import { buildTree } from "./treeUtils";
 import type { BuilderState, TemplateBlock } from "./types";
 import { cn } from "@/lib/utils";
 import { useBrandSettings } from "@/hooks/useBrandSettings";
+import { useTenantSettings } from "@/hooks/useTenantSettings";
 import { TemplateFinalPreview } from "@/components/proposal-landing/TemplateFinalPreview";
 import { VARIABLES_CATALOG } from "@/lib/variablesCatalog";
 import { createDefaultTemplateBlocks } from "./defaultTemplateBlocks";
