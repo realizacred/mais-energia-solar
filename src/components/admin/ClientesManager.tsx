@@ -151,6 +151,10 @@ export function ClientesManager({ onSelectCliente }: ClientesManagerProps) {
     comprovante_endereco_urls: string[];
     comprovante_beneficiaria_urls: string[];
   }>({ identidade_urls: [], comprovante_endereco_urls: [], comprovante_beneficiaria_urls: [] });
+  const [duplicateWarning, setDuplicateWarning] = useState<{
+    err: DuplicateClienteError;
+    pendingData: Record<string, any>;
+  } | null>(null);
 
   // ── Filters ─────────────────────────────────────────────
   const [filterTipo, setFilterTipo] = useState("todos");
