@@ -52,16 +52,32 @@ export function useClientes() {
   return useQuery({
     queryKey: [QUERY_KEY],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("clientes")
-        .select("id, nome, telefone, email, empresa, cpf_cnpj, data_nascimento, cep, estado, cidade, bairro, rua, numero, complemento, potencia_kwp, valor_projeto, data_instalacao, numero_placas, modelo_inversor, observacoes, lead_id, localizacao, ativo, created_at, identidade_urls, comprovante_endereco_urls, comprovante_beneficiaria_urls, disjuntor_id, transformador_id")
-        .order("created_at", { ascending: false });
-      if (error) throw error;
-      return (data || []) as ClienteRow[];
+      const PAGE = 1000;
+      const cols =
+        "id, nome, telefone, email, empresa, cpf_cnpj, data_nascimento, cep, estado, cidade, bairro, rua, numero, complemento, potencia_kwp, valor_projeto, data_instalacao, numero_placas, modelo_inversor, observacoes, lead_id, localizacao, ativo, created_at, identidade_urls, comprovante_endereco_urls, comprovante_beneficiaria_urls, disjuntor_id, transformador_id";
+      const all: ClienteRow[] = [];
+      let from = 0;
+      // Paginate to bypass Supabase's default 1000-row cap
+      // eslint-disable-next-line no-constant-condition
+      while (true) {
+        const to = from + PAGE - 1;
+        const { data, error } = await supabase
+          .from("clientes")
+          .select(cols)
+          .order("created_at", { ascending: false })
+          .range(from, to);
+        if (error) throw error;
+        const chunk = (data || []) as ClienteRow[];
+        all.push(...chunk);
+        if (chunk.length < PAGE) break;
+        from += PAGE;
+      }
+      return all;
     },
     staleTime: STALE_TIME,
   });
 }
+
 
 export function useLeadsForClientes() {
   return useQuery({
