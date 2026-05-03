@@ -17444,6 +17444,7 @@ export type Database = {
         Row: {
           created_at: string
           id: string
+          is_ampliacao: boolean
           kit_fechado_ref: string | null
           tenant_id: string
           tipo_kit: string
@@ -17454,6 +17455,7 @@ export type Database = {
         Insert: {
           created_at?: string
           id?: string
+          is_ampliacao?: boolean
           kit_fechado_ref?: string | null
           tenant_id: string
           tipo_kit?: string
@@ -17464,6 +17466,7 @@ export type Database = {
         Update: {
           created_at?: string
           id?: string
+          is_ampliacao?: boolean
           kit_fechado_ref?: string | null
           tenant_id?: string
           tipo_kit?: string
