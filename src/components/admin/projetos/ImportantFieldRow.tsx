@@ -105,7 +105,7 @@ export function ImportantFieldRow({ field, value, dealId, onSaved, showSeparator
 
       if (field.field_type === "boolean") {
         payload.value_boolean = draftBool;
-      } else if (field.field_type === "number" || field.field_type === "currency") {
+      } else if (field.field_type === "number" || field.field_type === "currency" || field.field_type === "percent") {
         payload.value_number = draft ? parseFloat(draft) : null;
       } else if (field.field_type === "date") {
         payload.value_date = draft || null;
