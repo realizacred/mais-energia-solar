@@ -255,6 +255,7 @@ export function NovoProjetoModal({
             email: values.clienteEmail?.trim() || null,
             empresa: values.clienteEmpresa?.trim() || null,
             cpf_cnpj: values.clienteCpfCnpj?.trim() || null,
+            data_nascimento: values.clienteDataNascimento?.trim() || null,
             cep: values.cep?.trim() || null,
             estado: values.estado?.trim() || null,
             cidade: values.cidade?.trim() || null,
