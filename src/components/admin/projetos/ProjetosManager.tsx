@@ -313,6 +313,9 @@ export function ProjetosManager() {
     } else if (key === "status") {
       applyFilters({ status: value });
       savePrefs({ status: value });
+    } else if (key === "tipoProjetoSolar") {
+      applyFilters({ tipoProjetoSolar: value });
+      savePrefs({ tipoProjetoSolar: value });
     } else if (key === "search") {
       applyFilters({ search: value });
     }
