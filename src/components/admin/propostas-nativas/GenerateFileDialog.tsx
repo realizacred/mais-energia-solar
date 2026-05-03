@@ -151,6 +151,9 @@ export function GenerateFileDialog({
         onGenerated(null);
       } else {
         const result = await renderProposal(versaoId);
+        // Dev-only: detectar placeholders não resolvidos no HTML final
+        const { warnUnresolvedPlaceholders } = await import("@/lib/detectUnresolvedPlaceholders");
+        warnUnresolvedPlaceholders(result.html, "renderProposal");
         toast({ title: "Proposta renderizada!" });
         onGenerated(result.html);
       }
