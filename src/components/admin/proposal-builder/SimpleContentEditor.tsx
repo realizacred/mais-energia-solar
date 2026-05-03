@@ -87,6 +87,22 @@ export function SimpleContentEditor({ value, onChange }: Props) {
     if (url) exec("createLink", url);
   };
 
+  const insertImage = (url: string) => {
+    ref.current?.focus();
+    const html = `<img src="${url}" alt="" style="max-width:100%;height:auto;border-radius:6px;margin:8px 0;" />`;
+    if (!document.execCommand("insertHTML", false, html)) {
+      const sel = window.getSelection();
+      if (sel && sel.rangeCount > 0) {
+        const range = sel.getRangeAt(0);
+        const div = document.createElement("div");
+        div.innerHTML = html;
+        const node = div.firstChild;
+        if (node) range.insertNode(node);
+      }
+    }
+    handleInput();
+  };
+
   if (advanced) {
     return (
       <div className="space-y-2">
