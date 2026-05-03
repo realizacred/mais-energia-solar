@@ -582,6 +582,15 @@ function resolveFromContext(
     return null;
   }
 
+  // ── Valor bruto / Preço de lista (derivados de valor_total + desconto) ──
+  // valor_bruto = valor_total / (1 - desconto/100); se desconto=0 → valor_bruto = valor_total
+  if (key === "financeiro.valor_bruto" || key === "financeiro.preco_lista") {
+    if (ctx.precoTotal == null) return null;
+    const dpb = Number((ctx.venda as any)?.desconto_percentual ?? 0);
+    const valorBruto = dpb > 0 && dpb < 100 ? ctx.precoTotal / (1 - dpb / 100) : ctx.precoTotal;
+    return fmtCurrency(Math.round(valorBruto * 100) / 100);
+  }
+
   // ── Desconto (D1, QW4) ──
   if (key === "financeiro.desconto_percentual") {
     const dp = Number((ctx.venda as any)?.desconto_percentual ?? 0);
