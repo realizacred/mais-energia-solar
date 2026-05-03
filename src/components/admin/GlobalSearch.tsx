@@ -10,7 +10,7 @@ import {
   CommandGroup,
   CommandItem,
 } from "@/components/ui/command";
-import { Users, UserCheck, FolderKanban, Package, Cpu } from "lucide-react";
+import { Users, UserCheck, FolderKanban, Package, Cpu, FileText } from "lucide-react";
 import { formatPhoneBR } from "@/lib/formatters";
 
 const STALE_TIME = 1000 * 30;
