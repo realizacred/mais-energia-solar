@@ -31,6 +31,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { BRAZIL_STATES } from "@/data/brazil-states-cities";
+import { useCepLookup, formatCep } from "@/hooks/useCepLookup";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
@@ -97,6 +98,24 @@ export function FornecedoresManager() {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
   const [importOpen, setImportOpen] = useState(false);
+  const { fetchCep, loading: cepLoading } = useCepLookup();
+
+  const handleCepChange = useCallback(async (raw: string) => {
+    const masked = formatCep(raw);
+    setForm(p => ({ ...p, cep: masked }));
+    const digits = masked.replace(/\D/g, "");
+    if (digits.length === 8) {
+      const addr = await fetchCep(masked);
+      if (addr) {
+        setForm(p => ({
+          ...p,
+          cidade: p.cidade || addr.cidade,
+          estado: p.estado || addr.estado,
+          endereco: p.endereco || [addr.rua, addr.bairro].filter(Boolean).join(", "),
+        }));
+      }
+    }
+  }, [fetchCep]);
 
 
   /* ─── Derived lists ─── */
@@ -692,7 +711,13 @@ export function FornecedoresManager() {
                 </div>
                 <div className="w-full sm:w-32 space-y-1.5 mt-4">
                   <Label>CEP</Label>
-                  <Input value={form.cep} onChange={e => setForm(p => ({ ...p, cep: e.target.value }))} placeholder="00000-000" />
+                  <Input
+                    value={form.cep}
+                    onChange={e => handleCepChange(e.target.value)}
+                    placeholder="00000-000"
+                    maxLength={9}
+                    disabled={cepLoading}
+                  />
                 </div>
               </SectionCard>
 
