@@ -775,10 +775,20 @@ function resolveFromContext(
   if (key === "sistema_solar.potencia" || key === "customizada.potencia") {
     return ctx.potenciaKwp ? fmtNumber(ctx.potenciaKwp, 2) : null;
   }
-  if (key === "comercial.data_hoje" || key === "customizada.data_hoje") {
+  if (
+    key === "comercial.data_hoje" ||
+    key === "customizada.data_hoje" ||
+    key === "documento.data_hoje"
+  ) {
     return new Date().toLocaleDateString("pt-BR", {
       timeZone: "America/Sao_Paulo",
       day: "2-digit", month: "2-digit", year: "numeric"
+    });
+  }
+  if (key === "documento.data_hoje_extenso") {
+    return new Date().toLocaleDateString("pt-BR", {
+      timeZone: "America/Sao_Paulo",
+      day: "numeric", month: "long", year: "numeric"
     });
   }
   if (key === "comercial.descricao" || key === "customizada.descricao") {
