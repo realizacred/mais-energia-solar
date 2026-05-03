@@ -192,42 +192,69 @@ export function ClientesManager({ onSelectCliente }: ClientesManagerProps) {
     lead_id: "",
   });
 
+  const persistCliente = async (clienteData: Record<string, any>, allowSmDuplicate = false) => {
+    await salvarCliente.mutateAsync({
+      id: editingCliente?.id,
+      data: clienteData,
+      allowSmDuplicate,
+    });
+    toast({ title: editingCliente ? "Cliente atualizado!" : "Cliente cadastrado!" });
+    setDialogOpen(false);
+    resetForm();
+    setDuplicateWarning(null);
+  };
+
   const handleSubmit = async () => {
     setSaving(true);
 
+    const clienteData = {
+      nome: formData.nome,
+      telefone: formData.telefone,
+      email: formData.email || null,
+      cpf_cnpj: formData.cpf_cnpj || null,
+      data_nascimento: formData.data_nascimento || null,
+      cep: formData.cep || null,
+      estado: formData.estado || null,
+      cidade: formData.cidade || null,
+      bairro: formData.bairro || null,
+      rua: formData.rua || null,
+      numero: formData.numero || null,
+      complemento: formData.complemento || null,
+      potencia_kwp: formData.potencia_kwp ? parseFloat(formData.potencia_kwp) : null,
+      valor_projeto: formData.valor_projeto ? parseFloat(formData.valor_projeto) : null,
+      data_instalacao: formData.data_instalacao || null,
+      numero_placas: formData.numero_placas ? parseInt(formData.numero_placas) : null,
+      modelo_inversor: formData.modelo_inversor || null,
+      observacoes: formData.observacoes || null,
+      lead_id: formData.lead_id || null,
+    };
+
     try {
-      const clienteData = {
-        nome: formData.nome,
-        telefone: formData.telefone,
-        email: formData.email || null,
-        cpf_cnpj: formData.cpf_cnpj || null,
-        data_nascimento: formData.data_nascimento || null,
-        cep: formData.cep || null,
-        estado: formData.estado || null,
-        cidade: formData.cidade || null,
-        bairro: formData.bairro || null,
-        rua: formData.rua || null,
-        numero: formData.numero || null,
-        complemento: formData.complemento || null,
-        potencia_kwp: formData.potencia_kwp ? parseFloat(formData.potencia_kwp) : null,
-        valor_projeto: formData.valor_projeto ? parseFloat(formData.valor_projeto) : null,
-        data_instalacao: formData.data_instalacao || null,
-        numero_placas: formData.numero_placas ? parseInt(formData.numero_placas) : null,
-        modelo_inversor: formData.modelo_inversor || null,
-        observacoes: formData.observacoes || null,
-        lead_id: formData.lead_id || null,
-      };
-
-      await salvarCliente.mutateAsync({
-        id: editingCliente?.id,
-        data: clienteData,
-      });
-
-      toast({ title: editingCliente ? "Cliente atualizado!" : "Cliente cadastrado!" });
-      setDialogOpen(false);
-      resetForm();
+      await persistCliente(clienteData);
     } catch (error) {
+      if (error instanceof DuplicateClienteError) {
+        setDuplicateWarning({ err: error, pendingData: clienteData });
+        setSaving(false);
+        return;
+      }
       const appError = handleSupabaseError(error, editingCliente ? "update_cliente" : "create_cliente");
+      toast({
+        title: "Erro ao salvar cliente",
+        description: appError.userMessage,
+        variant: "destructive",
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleConfirmSmDuplicate = async () => {
+    if (!duplicateWarning) return;
+    setSaving(true);
+    try {
+      await persistCliente(duplicateWarning.pendingData, true);
+    } catch (error) {
+      const appError = handleSupabaseError(error, "create_cliente");
       toast({
         title: "Erro ao salvar cliente",
         description: appError.userMessage,
