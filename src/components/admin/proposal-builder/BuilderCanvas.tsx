@@ -67,6 +67,20 @@ const BASE_PREVIEW_VARIABLES: Record<string, string> = VARIABLES_CATALOG.reduce<
 
 export function BuilderCanvas({ state, onSelect, onHover, onDropBlock, onDeleteBlock, onDuplicateBlock, onSwapOrder, onUpdateBlock }: BuilderCanvasProps) {
   const { settings: brandSettings } = useBrandSettings();
+  const { tenant } = useTenantSettings();
+
+  const companyName = tenant?.nome || "Sua Empresa";
+  const companyLogo = brandSettings?.logo_url || brandSettings?.logo_white_url || "";
+
+  const previewVariables = useMemo<Record<string, string>>(() => ({
+    ...BASE_PREVIEW_VARIABLES,
+    empresa_nome: companyName,
+    empresa_logo_url: companyLogo,
+    empresa_cidade: tenant?.cidade || BASE_PREVIEW_VARIABLES.cliente_cidade,
+    empresa_estado: tenant?.estado || BASE_PREVIEW_VARIABLES.cliente_estado,
+    empresa_cnpj_cpf: tenant?.documento || "",
+  }), [companyName, companyLogo, tenant?.cidade, tenant?.estado, tenant?.documento]);
+
   const tree = useMemo(
     () => buildTree(state.blocks.filter(b => b._proposalType === state.proposalType)),
     [state.blocks, state.proposalType]
