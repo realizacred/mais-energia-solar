@@ -14,6 +14,7 @@ import { useCidadesPorEstado } from "@/hooks/useCidadesPorEstado";
 import { toast } from "@/hooks/use-toast";
 import { type LeadSelection, type ClienteData, UF_LIST } from "./types";
 import { formatPhoneBR } from "@/lib/formatters";
+import { formatCpfCnpj } from "@/lib/cpfCnpjUtils";
 
 interface Props {
   selectedLead: LeadSelection | null;
@@ -75,7 +76,7 @@ function ClienteSummary({ cliente }: { cliente: ClienteData }) {
         )}
         {cliente.cnpj_cpf && (
           <span className="flex items-center gap-1.5">
-            <FileText className="h-3 w-3" /> {cliente.cnpj_cpf}
+            <FileText className="h-3 w-3" /> {formatCpfCnpj(cliente.cnpj_cpf)}
           </span>
         )}
         {endereco && (
