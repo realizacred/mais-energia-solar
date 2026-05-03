@@ -33,6 +33,7 @@ export interface ClienteData {
   cnpj_cpf: string;
   email: string;
   celular: string;
+  data_nascimento: string;
   cep: string;
   endereco: string;
   numero: string;
