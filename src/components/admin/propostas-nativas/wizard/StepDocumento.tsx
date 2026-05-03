@@ -747,7 +747,7 @@ export function StepDocumento({
             <Label className="text-xs text-muted-foreground">Template</Label>
             <Select value={templateSelecionado} onValueChange={onTemplateSelecionado}>
               <SelectTrigger className="h-9 text-sm">
-                <SelectValue />
+                <SelectValue placeholder="Selecione um modelo" />
               </SelectTrigger>
               <SelectContent>
                 <SelectGroup>
