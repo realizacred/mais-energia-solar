@@ -359,10 +359,13 @@ export function resolveClienteComercial(
   }
 
   // ── Premissas ──
+  // SSOT: snapshot.premissas.{k} (objeto consolidado).
+  // Fallback: snapshot.{k} para compatibilidade com snapshots antigos.
+  const premissasObj = safeObj(snap.premissas);
   for (const k of ["inflacao_energetica", "inflacao_ipca", "imposto", "vpl_taxa_desconto",
-    "perda_eficiencia_anual", "troca_inversor", "troca_inversor_custo",
+    "perda_eficiencia_anual", "troca_inversor", "troca_inversor_anos", "troca_inversor_custo",
     "sobredimensionamento", "vida_util_sistema"]) {
-    set(k, snap[k]);
+    set(k, premissasObj[k] ?? snap[k]);
   }
 
   // ── Observações ──
