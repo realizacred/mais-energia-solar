@@ -18,6 +18,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Spinner } from "@/components/ui-kit/Spinner";
 import type { WaConversation } from "@/hooks/useWaInbox";
+import { formatBRLInteger } from "@/lib/formatters";
 
 interface WaCRMSidebarProps {
   conversation: WaConversation;
@@ -311,7 +312,7 @@ function ScoreValueCards({ leadScore, estimatedValue }: { leadScore: number | nu
             <span className="text-[9px] text-muted-foreground font-medium">Valor</span>
           </div>
           <span className="text-sm font-bold text-foreground">
-            {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 }).format(estimatedValue)}
+            {formatBRLInteger(estimatedValue)}
           </span>
         </div>
       )}

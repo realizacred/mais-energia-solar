@@ -3,7 +3,7 @@
  * Shows GD allocation info if UC is beneficiary or generator.
  */
 import { useState } from "react";
-import { formatDecimalBR } from "@/lib/formatters";
+import { formatDecimalBR, formatBRL } from "@/lib/formatters";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -96,7 +96,7 @@ export function UCEnergySummary({ ucId }: Props) {
                 <p className="text-xs text-muted-foreground flex items-center gap-1"><DollarSign className="w-3 h-3" /> Economia Est.</p>
                 <p className="text-sm font-bold font-mono">
                   {asBeneficiary.estimated_savings_brl != null
-                    ? Number(asBeneficiary.estimated_savings_brl).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })
+                    ? formatBRL(Number(asBeneficiary.estimated_savings_brl))
                     : "—"}
                 </p>
               </div>

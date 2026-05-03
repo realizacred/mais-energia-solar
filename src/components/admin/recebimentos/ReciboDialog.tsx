@@ -1,4 +1,5 @@
- import { Dialog, DialogContent } from "@/components/ui/dialog";
+
+import { formatBRL } from "@/lib/formatters"; import { Dialog, DialogContent } from "@/components/ui/dialog";
  import { Button } from "@/components/ui/button";
  import { Printer, X } from "lucide-react";
  import { format } from "date-fns";
@@ -124,10 +125,7 @@
    const reciboRef = useRef<HTMLDivElement>(null);
  
    const formatCurrency = (value: number) => {
-     return new Intl.NumberFormat("pt-BR", {
-       style: "currency",
-       currency: "BRL",
-     }).format(value);
+     return formatBRL(value);
    };
  
    const handlePrint = () => {

@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DollarSign, TrendingUp, Target, Flame, ThermometerSun, Snowflake } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from "recharts";
 import type { RevenueForecast as RevenueForecastType } from "@/hooks/useLeadScoring";
+import { formatBRLInteger } from "@/lib/formatters";
 
 interface RevenueForecastProps {
   forecast: RevenueForecastType | null;
@@ -11,7 +12,7 @@ interface RevenueForecastProps {
 }
 
 const formatCurrency = (value: number) =>
-  new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 }).format(value);
+  formatBRLInteger(value);
 
 export function RevenueForecast({ forecast, ticketMedio }: RevenueForecastProps) {
   const chartData = useMemo(() => {

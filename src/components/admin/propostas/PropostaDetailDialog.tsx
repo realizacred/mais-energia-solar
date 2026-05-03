@@ -27,6 +27,7 @@ import {
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import type { Proposta } from "@/hooks/usePropostas";
+import { formatBRLInteger } from "@/lib/formatters";
 
 const STATUS_OPTIONS = [
   { value: "rascunho", label: "Rascunho", color: "bg-muted text-muted-foreground" },
@@ -39,12 +40,7 @@ const STATUS_OPTIONS = [
 
 function formatCurrency(value: number | null) {
   if (!value) return "—";
-  return new Intl.NumberFormat("pt-BR", {
-    style: "currency",
-    currency: "BRL",
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(value);
+  return formatBRLInteger(value);
 }
 
 interface PropostaDetailDialogProps {

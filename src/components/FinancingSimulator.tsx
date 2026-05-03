@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { CreditCard, TrendingUp, Calculator, Check } from "lucide-react";
 import { Spinner } from "@/components/ui-kit/Spinner";
 import { calcularTotalFinanciamento } from "@/services/paymentComposition/financingMath";
+import { formatBRLInteger } from "@/lib/formatters";
 
 interface FinancingSimulatorProps {
   investimento: number;
@@ -56,12 +57,7 @@ export default function FinancingSimulator({ investimento, economia }: Financing
   }, []);
 
   const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('pt-BR', {
-      style: 'currency',
-      currency: 'BRL',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(value);
+    return formatBRLInteger(value);
   };
 
   const calculations = useMemo(() => {

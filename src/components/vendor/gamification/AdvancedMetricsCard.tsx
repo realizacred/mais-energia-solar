@@ -1,4 +1,5 @@
- import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+
+import { formatBRLInteger } from "@/lib/formatters"; import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
  import { Progress } from "@/components/ui/progress";
  import { Badge } from "@/components/ui/badge";
  import {
@@ -56,11 +57,7 @@
       },
       {
         label: "Ticket Médio",
-        value: new Intl.NumberFormat("pt-BR", {
-          style: "currency",
-          currency: "BRL",
-          maximumFractionDigits: 0,
-        }).format(metrics.ticket_medio),
+        value: formatBRLInteger(metrics.ticket_medio),
         icon: DollarSign,
         description: "Valor médio por conversão",
         color: "text-secondary",

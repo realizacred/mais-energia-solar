@@ -20,6 +20,7 @@ import {
 import { useState } from "react";
 import type { PaybackResult } from "@/hooks/usePaybackEngine";
 import { PaybackFioBChart } from "./PaybackFioBChart";
+import { formatBRLInteger, formatBRL } from "@/lib/formatters";
 
 interface PaybackProfessionalResultsProps {
   result: PaybackResult;
@@ -29,20 +30,10 @@ interface PaybackProfessionalResultsProps {
 }
 
 const fmt = (v: number) =>
-  new Intl.NumberFormat("pt-BR", {
-    style: "currency",
-    currency: "BRL",
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(v);
+  formatBRLInteger(v);
 
 const fmtDecimal = (v: number) =>
-  new Intl.NumberFormat("pt-BR", {
-    style: "currency",
-    currency: "BRL",
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(v);
+  formatBRL(v);
 
 export function PaybackProfessionalResults({
   result,

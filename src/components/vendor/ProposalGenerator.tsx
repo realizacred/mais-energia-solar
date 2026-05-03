@@ -13,6 +13,7 @@ import { toast } from "@/hooks/use-toast";
 import { useLogo } from "@/hooks/useLogo";
 import type { Lead } from "@/types/lead";
 import type { OrcamentoDisplayItem } from "@/types/orcamento";
+import { formatBRLInteger } from "@/lib/formatters";
 
 interface ProposalGeneratorProps {
   lead?: Lead;
@@ -45,12 +46,7 @@ const CONFIG = {
 };
 
 function formatCurrency(value: number): string {
-  return new Intl.NumberFormat("pt-BR", {
-    style: "currency",
-    currency: "BRL",
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(value);
+  return formatBRLInteger(value);
 }
 
 export function ProposalGenerator({ lead, orcamento, vendedorNome }: ProposalGeneratorProps) {

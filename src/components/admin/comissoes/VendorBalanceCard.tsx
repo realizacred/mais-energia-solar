@@ -1,6 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { TrendingUp, TrendingDown, Wallet } from "lucide-react";
+import { formatBRL } from "@/lib/formatters";
 
 interface VendorBalance {
   vendedor_id: string;
@@ -15,10 +16,7 @@ interface VendorBalanceCardProps {
 }
 
 const formatCurrency = (value: number) => {
-  return new Intl.NumberFormat("pt-BR", {
-    style: "currency",
-    currency: "BRL",
-  }).format(value);
+  return formatBRL(value);
 };
 
 export function VendorBalanceCard({ balances }: VendorBalanceCardProps) {

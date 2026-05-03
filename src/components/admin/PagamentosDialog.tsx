@@ -44,6 +44,7 @@ import {
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { formatBRL } from "@/lib/formatters";
 
 interface Pagamento {
   id: string;
@@ -90,10 +91,7 @@ const FORMAS_PAGAMENTO = [
 ];
 
 const formatCurrency = (value: number) => {
-  return new Intl.NumberFormat("pt-BR", {
-    style: "currency",
-    currency: "BRL",
-  }).format(value);
+  return formatBRL(value);
 };
 
 export function PagamentosDialog({

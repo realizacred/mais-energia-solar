@@ -6,7 +6,7 @@ import { TrendingUp } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
 import { format, addMonths } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { formatBRL } from "@/lib/formatters";
+import { formatBRL, formatBRLCompact } from "@/lib/formatters";
 
 interface PipelineLead {
   id: string;
@@ -122,7 +122,7 @@ export function RevenueForecastWidget() {
             <CardTitle className="text-base">Forecast de Receita</CardTitle>
           </div>
           <Badge variant="outline" className="text-xs">
-            {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", notation: "compact" }).format(totalForecast)}
+            {formatBRLCompact(totalForecast)}
           </Badge>
         </div>
         <CardDescription className="text-xs">
@@ -138,7 +138,7 @@ export function RevenueForecastWidget() {
               <XAxis dataKey="mes" tick={{ fontSize: 11 }} />
               <YAxis
                 tick={{ fontSize: 11 }}
-                tickFormatter={v => new Intl.NumberFormat("pt-BR", { notation: "compact", currency: "BRL", style: "currency" }).format(v)}
+                tickFormatter={v => formatBRLCompact(v)}
               />
               <Tooltip
                 formatter={(v: number) => formatBRL(v)}
