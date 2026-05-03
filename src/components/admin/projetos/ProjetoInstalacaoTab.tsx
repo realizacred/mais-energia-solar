@@ -54,8 +54,11 @@ const STATUS_MAP: Record<string, { label: string; className: string }> = {
   agendado: { label: "Agendado", className: "bg-info/10 text-info border-info/30" },
   em_andamento: { label: "Em andamento", className: "bg-primary/10 text-primary border-primary/30" },
   concluido: { label: "Concluído", className: "bg-success/10 text-success border-success/30" },
+  finalizado: { label: "Concluído", className: "bg-success/10 text-success border-success/30" },
   cancelado: { label: "Cancelado", className: "bg-destructive/10 text-destructive border-destructive/30" },
 };
+
+const FINAL_STATUSES = new Set(["concluido", "finalizado"]);
 
 const TIPO_CONFIG: Record<string, {
   label: string;
