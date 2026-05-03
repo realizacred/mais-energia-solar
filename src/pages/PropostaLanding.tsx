@@ -381,16 +381,36 @@ export default function PropostaLanding() {
     </div>
   );
 
-  // ─── If Visual Editor template exists, render it ───
-  if (templateBlocks && templateBlocks.length > 0) {
+  // ─── SSOT: somente renderiza se houver template do editor vinculado à versão ───
+  // Fallback hardcoded removido (auditoria CRÍTICA): editor e landing devem usar o mesmo motor.
+  if (!templateBlocks || templateBlocks.length === 0) {
     return (
-      <div className="pl-landing" style={{ minHeight: "100vh" }}>
-        <style>{LANDING_STYLES}</style>
-        <TemplateHtmlRenderer blocks={templateBlocks} variables={templateVariables} />
+      <div style={{ minHeight: "100vh", background: "#0F172A", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
+        <div style={{ maxWidth: 480, textAlign: "center", fontFamily: "'Open Sans', sans-serif" }}>
+          <AlertTriangle style={{ width: 48, height: 48, margin: "0 auto 16px", color: "#F59E0B" }} />
+          <h1 style={{ fontFamily: "Montserrat, sans-serif", fontSize: "1.4rem", fontWeight: 800, margin: "0 0 12px" }}>
+            Proposta indisponível
+          </h1>
+          <p style={{ fontSize: "0.95rem", opacity: 0.8, margin: "0 0 8px" }}>
+            Esta proposta ainda não tem um modelo visual vinculado.
+          </p>
+          <p style={{ fontSize: "0.85rem", opacity: 0.6 }}>
+            Entre em contato com o consultor responsável para gerar uma nova versão.
+          </p>
+        </div>
       </div>
     );
   }
 
+  return (
+    <div className="pl-landing" style={{ minHeight: "100vh" }}>
+      <style>{LANDING_STYLES}</style>
+      <TemplateHtmlRenderer blocks={templateBlocks} variables={templateVariables} />
+    </div>
+  );
+
+  // ─── [DEAD CODE — preservado para referência; não removido nesta correção mínima] ───
+  // eslint-disable-next-line no-unreachable
   // ─── Premium Landing Page (high-conversion) ───
   return (
     <div style={{ minHeight: "100vh", fontFamily: "'Open Sans', sans-serif", background: "#0F172A" }}>
