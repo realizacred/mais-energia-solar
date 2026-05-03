@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Phone, Eye, Trash2, ShoppingCart, UserCheck, MessageSquare, History, UserPlus, Pencil, MoreHorizontal, UserRound, RotateCcw, ScrollText, Loader2, FolderOpen } from "lucide-react";
 import { usePropostaRapidaLead } from "@/hooks/usePropostaRapidaLead";
 import type { QuickLeadData } from "@/hooks/usePropostaRapidaLead";
+import { DuplicateOpenDealModal } from "@/components/leads/DuplicateOpenDealModal";
 import { useReopenLead } from "@/hooks/useReopenLead";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
