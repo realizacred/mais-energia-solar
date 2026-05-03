@@ -1558,6 +1558,9 @@ export function ProposalWizard() {
     return 'estimado';
   }, [ucs]);
 
+  const { settings: brandSettings } = useBrandSettings();
+  const empresaLogoUrl = brandSettings?.logo_url || undefined;
+
   const resolverContext = useMemo<ProposalResolverContext>(() => ({
     cliente: {
       nome: cliente.nome || selectedLead?.nome,
@@ -1579,6 +1582,7 @@ export function ProposalWizard() {
     geracaoMensal: geracaoMensalEstimada > 0 ? geracaoMensalEstimada : undefined,
     precoTotal: precoFinal ?? 0,
     consultorNome: undefined, // filled by backend
+    empresaLogo: empresaLogoUrl,
     tariffVersion: {
       precisao: precisaoFrontend,
       te_kwh: 0,
@@ -1586,7 +1590,7 @@ export function ProposalWizard() {
       fio_b_real_kwh: null,
       origem: 'frontend_uc',
     } satisfies TariffVersionContext,
-  }), [cliente, selectedLead, ucs, premissas, potenciaKwp, geracaoMensalEstimada, precoFinal, locCidade, locEstado, precisaoFrontend]);
+  }), [cliente, selectedLead, ucs, premissas, potenciaKwp, geracaoMensalEstimada, precoFinal, locCidade, locEstado, precisaoFrontend, empresaLogoUrl]);
 
   const enforcement = useProposalEnforcement(resolverContext);
 
