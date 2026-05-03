@@ -58,7 +58,11 @@ export function TipoProjetoSolarBadge({ projetoId, readOnly }: Props) {
     onSuccess: (next) => {
       qc.setQueryData(["projeto-tipo-solar", projetoId], next);
       qc.invalidateQueries({ queryKey: ["projeto-detalhe"] });
-      toast({ title: "Tipo de projeto atualizado", description: getTipoProjetoSolarLabel(next) });
+      toast({
+        title: `Tipo alterado para ${getTipoProjetoSolarLabel(next)}`,
+        description:
+          "O tipo de sistema foi alterado. Os cálculos e equipamentos podem não refletir esse tipo ainda.",
+      });
       setOpen(false);
     },
     onError: (err: any) => {
