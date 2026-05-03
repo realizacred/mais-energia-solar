@@ -23,6 +23,7 @@ import { useProposalTemplates } from "@/hooks/useProposalTemplates";
 import { cn } from "@/lib/utils";
 import { useSolarPremises } from "@/hooks/useSolarPremises";
 import { useProposalEnforcement } from "@/hooks/useProposalEnforcement";
+import { useBrandSettings } from "@/hooks/useBrandSettings";
 import {
   useEquipmentCatalog, useBancosCatalog, useSolarBrainSync,
   useTenantTarifas, useCustomFieldsAvailability, applyTenantTarifasToUC,
