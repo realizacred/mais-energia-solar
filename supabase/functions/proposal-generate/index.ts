@@ -1139,11 +1139,13 @@ Inclua: análise do perfil de consumo, adequação técnica do sistema, retorno 
     );
 
     // Kit + itens
+    const kitTipoSistema = body.kit?.tipo_sistema ?? "on_grid";
+    const kitTopologia = body.kit?.topologia ?? "tradicional";
     granularOps.push(
       adminClient.from("proposta_kits").insert({
         tenant_id: tenantId, versao_id: versaoId,
-        tipo_kit: "customizado", tipo_sistema: "on_grid",
-        topologia: "tradicional", custo_total: round2(custoKit),
+        tipo_kit: "customizado", tipo_sistema: kitTipoSistema,
+        topologia: kitTopologia, custo_total: round2(custoKit),
       }).select("id").single().then(async ({ data: kit }) => {
         if (kit && body.itens.length > 0) {
           await adminClient.from("proposta_kit_itens").insert(
