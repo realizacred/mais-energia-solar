@@ -48,6 +48,7 @@ const schema = z.object({
   clienteEmpresa: z.string().trim().max(150, "Nome da empresa deve ter no máximo 150 caracteres").optional(),
   clienteCpfCnpj: z.string().trim().max(18, "CPF/CNPJ inválido").optional(),
   clienteTelefone: z.string().trim().min(10, "Telefone celular é obrigatório").max(11, "Telefone inválido"),
+  clienteDataNascimento: z.string().trim().optional().or(z.literal("")),
   valor: z.number().min(0).optional(),
   cep: z.string().trim().max(9, "CEP inválido").optional().or(z.literal("")),
   rua: z.string().trim().max(150, "Logradouro deve ter no máximo 150 caracteres").optional().or(z.literal("")),
