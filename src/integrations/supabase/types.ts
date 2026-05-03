@@ -21110,6 +21110,60 @@ export type Database = {
           },
         ]
       }
+      sm_custom_field_mapping_backup_20260503: {
+        Row: {
+          action: string | null
+          created_at: string | null
+          created_by: string | null
+          crm_field_context: string | null
+          crm_field_id: string | null
+          crm_field_name_input: string | null
+          crm_field_type: string | null
+          crm_native_target: string | null
+          id: string | null
+          sm_field_key: string | null
+          sm_field_label: string | null
+          sm_field_type: string | null
+          sm_topic: string | null
+          tenant_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          action?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          crm_field_context?: string | null
+          crm_field_id?: string | null
+          crm_field_name_input?: string | null
+          crm_field_type?: string | null
+          crm_native_target?: string | null
+          id?: string | null
+          sm_field_key?: string | null
+          sm_field_label?: string | null
+          sm_field_type?: string | null
+          sm_topic?: string | null
+          tenant_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          action?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          crm_field_context?: string | null
+          crm_field_id?: string | null
+          crm_field_name_input?: string | null
+          crm_field_type?: string | null
+          crm_native_target?: string | null
+          id?: string | null
+          sm_field_key?: string | null
+          sm_field_label?: string | null
+          sm_field_type?: string | null
+          sm_topic?: string | null
+          tenant_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       sm_custom_fields_raw: {
         Row: {
           created_at: string
