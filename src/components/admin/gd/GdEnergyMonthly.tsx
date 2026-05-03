@@ -295,7 +295,7 @@ export function GdEnergyMonthly({ groupId }: Props) {
                         </TableCell>
                         <TableCell className="text-right font-mono text-sm">
                           {a.estimated_savings_brl != null
-                            ? NumberformatBRL((a.estimated_savings_brl))
+                            ? formatBRL(Number(a.estimated_savings_brl))
                             : "—"}
                         </TableCell>
                       </TableRow>
