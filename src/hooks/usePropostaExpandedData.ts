@@ -102,12 +102,21 @@ export function usePropostaAuditLogs(propostaId: string | null, versaoIds: strin
       if (!propostaId) return [];
       const { data, error } = await supabase
         .from("audit_logs")
-        .select("id, acao, tabela, user_email, created_at")
+        .select("id, acao, tabela, user_email, user_id, created_at")
         .or(`and(tabela.eq.propostas_nativas,registro_id.eq.${propostaId}),and(tabela.eq.proposta_versoes,registro_id.in.(${versaoIds.join(",")}))`)
         .order("created_at", { ascending: false })
-        .limit(50);
+        .limit(100);
       if (error) throw error;
-      return (data as Array<{ id: string; acao: string; tabela: string; user_email: string | null; created_at: string }>) || [];
+      const rows = (data as Array<{ id: string; acao: string; tabela: string; user_email: string | null; user_id: string | null; created_at: string }>) || [];
+      // Filtrar eventos automáticos do sistema (triggers, jobs, migrações SM).
+      // Critério: sem user_id E email vazio/'sistema'. Eventos de negócio reais
+      // (envio, aceite, expiração) vêm de proposal_events, não daqui.
+      return rows
+        .filter((r) => {
+          const isSystem = !r.user_id && (!r.user_email || r.user_email === "sistema");
+          return !isSystem;
+        })
+        .slice(0, 50);
     },
     staleTime: STALE_TIME,
     enabled: !!propostaId && versaoIds.length > 0 && enabled,
