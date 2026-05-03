@@ -328,6 +328,26 @@ export function ProjetoFilters({
             </Select>
           </div>
 
+          {/* Tipo de projeto solar */}
+          {onFilterTipoProjetoSolarChange && (
+            <div className="flex flex-col gap-1">
+              <label className="flex items-center gap-1 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
+                Tipo solar
+              </label>
+              <Select value={filterTipoProjetoSolar} onValueChange={onFilterTipoProjetoSolarChange}>
+                <SelectTrigger className="w-full xl:w-[140px] h-9 text-xs border-border/60 bg-card">
+                  <SelectValue placeholder="Todos" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todos">Todos</SelectItem>
+                  {TIPO_PROJETO_SOLAR_OPTIONS.map((o) => (
+                    <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
           {/* Etiquetas */}
           <div className="flex flex-col gap-1">
             <label className="flex items-center gap-1 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
