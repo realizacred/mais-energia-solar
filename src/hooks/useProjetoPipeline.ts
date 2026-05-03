@@ -72,6 +72,7 @@ export interface ProjetoFiltersState {
   status: string;
   etiquetaIds: string[];
   search: string;
+  tipoProjetoSolar?: string; // "todos" | on_grid | hibrido | off_grid | ampliacao | bombeamento
 }
 
 const PROJETOS_FETCH_BATCH_SIZE = 1000;
