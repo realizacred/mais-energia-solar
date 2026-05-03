@@ -16728,6 +16728,7 @@ export type Database = {
           aceite_ip: string | null
           aceite_nome: string | null
           aceite_observacoes: string | null
+          aceite_payload_hash: string | null
           aceite_user_agent: string | null
           assinatura_url: string | null
           cenario_aceito_id: string | null
@@ -16745,6 +16746,7 @@ export type Database = {
           proposta_id: string
           recusa_at: string | null
           recusa_motivo: string | null
+          snapshot_hash: string | null
           tenant_id: string
           tipo: string
           token: string
@@ -16757,6 +16759,7 @@ export type Database = {
           aceite_ip?: string | null
           aceite_nome?: string | null
           aceite_observacoes?: string | null
+          aceite_payload_hash?: string | null
           aceite_user_agent?: string | null
           assinatura_url?: string | null
           cenario_aceito_id?: string | null
@@ -16774,6 +16777,7 @@ export type Database = {
           proposta_id: string
           recusa_at?: string | null
           recusa_motivo?: string | null
+          snapshot_hash?: string | null
           tenant_id: string
           tipo?: string
           token?: string
@@ -16786,6 +16790,7 @@ export type Database = {
           aceite_ip?: string | null
           aceite_nome?: string | null
           aceite_observacoes?: string | null
+          aceite_payload_hash?: string | null
           aceite_user_agent?: string | null
           assinatura_url?: string | null
           cenario_aceito_id?: string | null
@@ -16803,6 +16808,7 @@ export type Database = {
           proposta_id?: string
           recusa_at?: string | null
           recusa_motivo?: string | null
+          snapshot_hash?: string | null
           tenant_id?: string
           tipo?: string
           token?: string

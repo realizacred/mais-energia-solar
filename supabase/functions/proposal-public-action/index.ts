@@ -16,7 +16,14 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-// Mirror of proposal-transition state machine
+// SHA-256 helper (Web Crypto)
+async function sha256Hex(input: string): Promise<string> {
+  const data = new TextEncoder().encode(input);
+  const buf = await crypto.subtle.digest("SHA-256", data);
+  return Array.from(new Uint8Array(buf))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+}
 const VALID_TRANSITIONS: Record<string, string[]> = {
   rascunho: ["gerada"],
   gerada: ["enviada", "aceita", "recusada", "cancelada"],
@@ -319,13 +326,35 @@ Deno.serve(async (req) => {
         .eq("status", "pendente");
     }
 
-    // 7. Mark token as used + persist real IP / UA
+    // 7. Compute integrity hashes (only on accept) and persist token state
+    let snapshotHash: string | null = null;
+    let aceitePayloadHash: string | null = null;
+
+    if (newStatus === "aceita") {
+      try {
+        const [{ data: versaoRow }, { data: tokRow }] = await Promise.all([
+          admin.from("proposta_versoes").select("snapshot").eq("id", tokenData.versao_id).maybeSingle(),
+          admin.from("proposta_aceite_tokens").select("aceite_nome, aceite_documento").eq("id", tokenData.id).maybeSingle(),
+        ]);
+        if (versaoRow?.snapshot) {
+          snapshotHash = await sha256Hex(JSON.stringify(versaoRow.snapshot));
+        }
+        const nome = (tokRow?.aceite_nome ?? "").toString();
+        const doc = (tokRow?.aceite_documento ?? "").toString();
+        aceitePayloadHash = await sha256Hex(`${nome}|${doc}|${now}|${snapshotHash ?? ""}`);
+      } catch (hashErr) {
+        console.error("[proposal-public-action] Hash error:", hashErr);
+      }
+    }
+
     await admin
       .from("proposta_aceite_tokens")
       .update({
         used_at: now,
         aceite_ip: ip_address || null,
         aceite_user_agent: user_agent || null,
+        snapshot_hash: snapshotHash,
+        aceite_payload_hash: aceitePayloadHash,
       })
       .eq("id", tokenData.id);
 
