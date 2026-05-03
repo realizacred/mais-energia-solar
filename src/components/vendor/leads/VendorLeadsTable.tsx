@@ -57,7 +57,15 @@ export function VendorLeadsTable({
   const [whatsappDialogOpen, setWhatsappDialogOpen] = useState(false);
   const [selectedLeadForWhatsapp, setSelectedLeadForWhatsapp] = useState<Lead | null>(null);
   const { reopenLead, reopening } = useReopenLead();
-  const { quickConvertToProposal, loading: quickLoading, loadingLeadId } = usePropostaRapidaLead();
+  const {
+    quickConvertToProposal,
+    loading: quickLoading,
+    loadingLeadId,
+    duplicateGuard,
+    confirmCreateAnyway,
+    openExistingDeal,
+    cancelDuplicateGuard,
+  } = usePropostaRapidaLead();
 
   const handleWhatsappClick = (lead: Lead) => {
     setSelectedLeadForWhatsapp(lead);
