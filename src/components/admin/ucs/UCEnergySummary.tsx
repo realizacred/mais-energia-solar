@@ -96,7 +96,7 @@ export function UCEnergySummary({ ucId }: Props) {
                 <p className="text-xs text-muted-foreground flex items-center gap-1"><DollarSign className="w-3 h-3" /> Economia Est.</p>
                 <p className="text-sm font-bold font-mono">
                   {asBeneficiary.estimated_savings_brl != null
-                    ? NumberformatBRL((asBeneficiary.estimated_savings_brl))
+                    ? formatBRL(Number(asBeneficiary.estimated_savings_brl))
                     : "—"}
                 </p>
               </div>
