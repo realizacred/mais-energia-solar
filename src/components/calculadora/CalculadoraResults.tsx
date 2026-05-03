@@ -20,6 +20,7 @@ import type { PaybackResult } from "@/hooks/usePaybackEngine";
 import { PaybackProfessionalResults } from "@/components/payback/PaybackProfessionalResults";
 import { EconomiaAcumuladaChart } from "./EconomiaAcumuladaChart";
 import { useAnimatedCounter } from "@/hooks/useAnimatedCounter";
+import { formatBRLInteger } from "@/lib/formatters";
 
 interface CalculadoraResultsProps {
   consumoMensal: number;
@@ -42,12 +43,7 @@ function AnimatedCurrency({ value, className }: { value: number; className?: str
   const animated = useAnimatedCounter(value, 1800);
   return (
     <span className={className}>
-      {new Intl.NumberFormat("pt-BR", {
-        style: "currency",
-        currency: "BRL",
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 0,
-      }).format(animated)}
+      {formatBRLInteger(animated)}
     </span>
   );
 }
@@ -100,12 +96,7 @@ export function CalculadoraResults({
   const percentEconomia = contaAtual > 0 ? (economiaMensal / contaAtual) * 100 : 0;
 
   const fmt = (v: number) =>
-    new Intl.NumberFormat("pt-BR", {
-      style: "currency",
-      currency: "BRL",
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(v);
+    formatBRLInteger(v);
 
   const handleShare = async () => {
     const text = `☀️ Simulei minha economia com energia solar!\n\n💰 Economia mensal estimada: ${fmt(economiaMensal)}\n📊 Investimento estimado: ${fmt(investimentoTotal)}\n🌱 ${co2Anual.toFixed(1)} ton CO₂/ano evitados\n💵 Economia estimada em 25 anos: ${fmt(economia25AnosComposta)}\n\nSimule a sua: ${getPublicUrl()}/calculadora`;
@@ -379,7 +370,7 @@ function StatsGrid({ kWp, co2Anual, economiaMensal, economiaAnual, arvoresEquiva
 
 function WhatsAppCTA({ economiaMensal }: { economiaMensal: number }) {
   const fmt = (v: number) =>
-    new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(v);
+    formatBRLInteger(v);
 
   const message = encodeURIComponent(
     `Olá! Fiz uma simulação e minha economia seria de ${fmt(economiaMensal)}/mês. Gostaria de saber mais sobre energia solar.`

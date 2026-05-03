@@ -13,6 +13,7 @@ import {
 } from "recharts";
 import { TrendingUp, Calendar } from "lucide-react";
 import { motion } from "framer-motion";
+import { formatBRLInteger } from "@/lib/formatters";
 
 interface EconomiaAcumuladaChartProps {
   investimento: number;
@@ -30,12 +31,7 @@ interface AnoData {
 }
 
 const fmt = (v: number) =>
-  new Intl.NumberFormat("pt-BR", {
-    style: "currency",
-    currency: "BRL",
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(v);
+  formatBRLInteger(v);
 
 export function EconomiaAcumuladaChart({
   investimento,

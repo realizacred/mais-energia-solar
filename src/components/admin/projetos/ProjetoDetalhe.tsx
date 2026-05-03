@@ -1,7 +1,7 @@
 import { EmptyState } from "@/components/ui-kit/EmptyState";
 import { PhoneInput } from "@/components/ui-kit/inputs/PhoneInput";
 import { CpfCnpjInput } from "@/components/shared/CpfCnpjInput";
-import { formatBRLInteger as formatBRL, formatPhoneBR } from "@/lib/formatters";
+import { formatBRLInteger as formatBRL, formatPhoneBR, formatBRLInteger } from "@/lib/formatters";
 import { useClienteHasRecebimento, useClienteRecebimentoDetalhes } from "@/hooks/useClienteRecebimento";
 import { formatPropostaLabel } from "@/lib/format-entity-labels";
 import { formatPhone } from "@/lib/validations";
@@ -1103,7 +1103,7 @@ function GerenciamentoTab({
               const from = parseFloat(e.from_value);
               const to = parseFloat(e.to_value);
               if (!isNaN(from) && !isNaN(to)) {
-                const fmt = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: 0, maximumFractionDigits: 0 });
+                const fmt = (v: number) => formatBRLInteger(v);
                 return `${fmt(from)} → ${fmt(to)}`;
               }
             }

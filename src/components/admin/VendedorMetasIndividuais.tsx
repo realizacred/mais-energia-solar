@@ -1,6 +1,7 @@
 import { useState, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useVendedorMetasData, useRefreshVendedorMetas } from "@/hooks/useVendedorMetas";
+import { formatBRLInteger } from "@/lib/formatters";
  import { useToast } from "@/hooks/use-toast";
  import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
  import { Input } from "@/components/ui/input";
@@ -222,15 +223,9 @@ export function VendedorMetasIndividuais() {
                            : globalConfig?.meta_conversoes_mensal ?? "-"}
                        </TableCell>
                        <TableCell className="text-right">
-                         {new Intl.NumberFormat("pt-BR", {
-                           style: "currency",
-                           currency: "BRL",
-                           maximumFractionDigits: 0,
-                         }).format(
-                           usaIndividual && meta?.meta_valor != null
+                         {formatBRLInteger(usaIndividual && meta?.meta_valor != null
                              ? meta.meta_valor
-                             : globalConfig?.meta_valor_mensal ?? 0
-                         )}
+                             : globalConfig?.meta_valor_mensal ?? 0)}
                        </TableCell>
                        <TableCell className="text-center">
                          {usaIndividual && meta?.comissao_percent != null

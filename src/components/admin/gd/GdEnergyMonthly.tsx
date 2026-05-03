@@ -16,6 +16,7 @@ import { useGdMonthlySnapshot, useGdMonthlyAllocations, useCalculateGdMonth } fr
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { formatBRL } from "@/lib/formatters";
 
 interface Props {
   groupId: string;
@@ -218,7 +219,7 @@ export function GdEnergyMonthly({ groupId }: Props) {
                 </div>
                 <div>
                   <p className="text-lg font-bold text-foreground leading-none">
-                    {allocations.reduce((s, a) => s + Number(a.estimated_savings_brl || 0), 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                    {allocations.reduceformatBRL(((s, a) => s + Number(a.estimated_savings_brl || 0), 0))}
                   </p>
                   <p className="text-xs text-muted-foreground mt-0.5">Economia Est.</p>
                 </div>
@@ -294,7 +295,7 @@ export function GdEnergyMonthly({ groupId }: Props) {
                         </TableCell>
                         <TableCell className="text-right font-mono text-sm">
                           {a.estimated_savings_brl != null
-                            ? Number(a.estimated_savings_brl).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })
+                            ? NumberformatBRL((a.estimated_savings_brl))
                             : "—"}
                         </TableCell>
                       </TableRow>

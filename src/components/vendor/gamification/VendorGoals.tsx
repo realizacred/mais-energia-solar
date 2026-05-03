@@ -1,4 +1,5 @@
- import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+
+import { formatBRLInteger } from "@/lib/formatters"; import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
  import { Progress } from "@/components/ui/progress";
  import { Badge } from "@/components/ui/badge";
  import { Target, CheckCircle2, TrendingUp } from "lucide-react";
@@ -11,11 +12,7 @@
  export function VendorGoals({ goals }: VendorGoalsProps) {
    const formatValue = (type: string, value: number) => {
      if (type === "valor") {
-       return new Intl.NumberFormat("pt-BR", {
-         style: "currency",
-         currency: "BRL",
-         maximumFractionDigits: 0,
-       }).format(value);
+       return formatBRLInteger(value);
      }
      return value.toString();
    };

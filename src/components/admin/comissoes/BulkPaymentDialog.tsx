@@ -25,6 +25,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { DollarSign, AlertTriangle, TrendingUp, TrendingDown, Upload, X } from "lucide-react";
 import { Spinner } from "@/components/ui-kit/Spinner";
 import { getCurrentTenantId, tenantPath } from "@/lib/storagePaths";
+import { formatBRL } from "@/lib/formatters";
 
 interface Comissao {
   id: string;
@@ -51,10 +52,7 @@ const FORMAS_PAGAMENTO = [
 ];
 
 const formatCurrency = (value: number) => {
-  return new Intl.NumberFormat("pt-BR", {
-    style: "currency",
-    currency: "BRL",
-  }).format(value);
+  return formatBRL(value);
 };
 
 export function BulkPaymentDialog({

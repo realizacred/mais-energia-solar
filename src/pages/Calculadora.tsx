@@ -55,6 +55,7 @@ import {
 } from "@/components/ui/tooltip";
 import { Link } from "react-router-dom";
 import { Spinner } from "@/components/ui-kit/Spinner";
+import { formatBRLInteger } from "@/lib/formatters";
 
 // ─── Schemas ────────────────────────────────────────────────────
 const phoneRegex = /^\(\d{2}\) \d{4,5}-\d{4}$/;
@@ -723,7 +724,7 @@ export default function Calculadora() {
                   <div className="p-4 bg-destructive/5 rounded-lg border border-destructive/20">
                     <p className="text-xs text-muted-foreground mb-1">Sua conta atual estimada</p>
                     <p className="text-2xl font-bold text-destructive">
-                      {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 }).format(consumoMensal * tarifaKwh)}
+                      {formatBRLInteger(consumoMensal * tarifaKwh)}
                       <span className="text-sm font-normal text-muted-foreground">/mês</span>
                     </p>
                   </div>

@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { formatBRL } from "@/lib/formatters";
+import { formatBRL, formatBRLInteger } from "@/lib/formatters";
 import {
   Calendar,
   Zap,
@@ -128,12 +128,7 @@ function derivePriority(proposta: Proposta, summary: ProposalSummary): PriorityT
 
 function fmtCurrency(v: number | null | undefined): string {
   if (v == null) return "—";
-  return new Intl.NumberFormat("pt-BR", {
-    style: "currency",
-    currency: "BRL",
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(v);
+  return formatBRLInteger(v);
 }
 
 function fmtNumber(v: number | null | undefined, suffix?: string): string {

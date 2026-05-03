@@ -1,5 +1,5 @@
 import { useState, useCallback, useMemo } from "react";
-import { formatBRL } from "@/lib/formatters";
+import { formatBRL, formatBRLInteger } from "@/lib/formatters";
 import {
   FileText, Plus, Search, Zap, DollarSign,
   SunMedium, FileX, Download, X, SlidersHorizontal,
@@ -65,12 +65,7 @@ const STATUS_MAP: Record<string, { label: string }> = {
 
 function formatCurrency(value: number | null) {
   if (!value) return "—";
-  return new Intl.NumberFormat("pt-BR", {
-    style: "currency",
-    currency: "BRL",
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(value);
+  return formatBRLInteger(value);
 }
 
 export function PropostasManager() {

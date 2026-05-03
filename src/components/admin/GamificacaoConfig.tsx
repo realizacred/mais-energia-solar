@@ -33,6 +33,7 @@
  } from "lucide-react";
 import { InlineLoader } from "@/components/loading/InlineLoader";
 import { Spinner } from "@/components/ui-kit/Spinner";
+import { formatBRL } from "@/lib/formatters";
  import { format, startOfMonth, endOfMonth } from "date-fns";
  import { ptBR } from "date-fns/locale";
  import { VendedorMetasIndividuais } from "./VendedorMetasIndividuais";
@@ -290,10 +291,7 @@ import { Spinner } from "@/components/ui-kit/Spinner";
                            <TableCell className="text-center">{entry.total_orcamentos}</TableCell>
                            <TableCell className="text-center">{entry.total_conversoes}</TableCell>
                            <TableCell className="text-right">
-                             {new Intl.NumberFormat("pt-BR", {
-                               style: "currency",
-                               currency: "BRL",
-                             }).format(entry.valor_total_vendas)}
+                             {formatBRL(entry.valor_total_vendas)}
                            </TableCell>
                            <TableCell className="text-right font-semibold">
                              {entry.pontuacao_total}

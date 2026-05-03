@@ -12,6 +12,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { formatBRL } from "@/lib/formatters";
 import {
   Table,
   TableBody,
@@ -105,10 +106,7 @@ function sumPricing(payload: any): string {
     0,
   );
   if (!total) return "—";
-  return total.toLocaleString("pt-BR", {
-    style: "currency",
-    currency: "BRL",
-  });
+  return formatBRL(total);
 }
 
 const COLUMNS: Record<SmStagingTableName, ColumnDef[]> = {
