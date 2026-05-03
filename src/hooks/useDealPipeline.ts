@@ -513,7 +513,7 @@ export function useDealPipeline() {
       .from("pipelines")
       .insert({ name, kind } as any)
       .select("id, tenant_id, name, kind, version, is_active, created_at")
-      .single();
+      .maybeSingle();
     if (error) { toast({ title: "Erro", description: error.message, variant: "destructive" }); return null; }
 
     const pipeline = data as Pipeline;
@@ -621,7 +621,7 @@ export function useDealPipeline() {
       .from("pipeline_stages")
       .insert({ pipeline_id: pipelineId, name, position, probability, is_closed, is_won } as any)
       .select("id, tenant_id, pipeline_id, name, position, probability, is_closed, is_won")
-      .single();
+      .maybeSingle();
     if (error) { toast({ title: "Erro", description: error.message, variant: "destructive" }); return null; }
     setStages(prev => [...prev, data as PipelineStage]);
     return data;
@@ -880,7 +880,7 @@ export function useDealPipeline() {
         notas: params.notas || null,
       } as any)
       .select("id")
-      .single();
+      .maybeSingle();
 
     if (error) {
       toast({ title: "Erro ao criar projeto", description: error.message, variant: "destructive" });
@@ -899,7 +899,7 @@ export function useDealPipeline() {
           status: "criado",
         } as any)
         .select("id")
-        .single();
+        .maybeSingle();
 
       if (projeto?.id) {
         await supabase

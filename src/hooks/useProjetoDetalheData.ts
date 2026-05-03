@@ -114,7 +114,7 @@ export function useProjetoDetalheData(dealId: string) {
                   tenant_id: tenantId,
                 } as any)
                 .select("id")
-                .single();
+                .maybeSingle();
               if (!dealErr && newDeal) {
                 await supabase
                   .from("projetos")
@@ -133,7 +133,7 @@ export function useProjetoDetalheData(dealId: string) {
           .from("deals")
           .select("id, title, value, kwp, status, created_at, updated_at, owner_id, pipeline_id, stage_id, customer_id, projeto_id, expected_close_date, motivo_perda_id, motivo_perda_obs, deal_num")
           .eq("id", resolvedDealId)
-          .single(),
+          .maybeSingle(),
         supabase
           .from("deal_stage_history")
           .select("id, deal_id, from_stage_id, to_stage_id, moved_at, moved_by, metadata")
@@ -170,9 +170,9 @@ export function useProjetoDetalheData(dealId: string) {
               .from("clientes")
               .select("nome, telefone, email, cpf_cnpj, empresa, rua, numero, bairro, cidade, estado, cep")
               .eq("id", d.customer_id)
-              .single()
+              .maybeSingle()
           : Promise.resolve({ data: null }),
-        supabase.from("consultores").select("nome").eq("id", d.owner_id).single(),
+        supabase.from("consultores").select("nome").eq("id", d.owner_id).maybeSingle(),
         supabase.from("pipelines").select("id, name").eq("is_active", true).order("name"),
         supabase
           .from("pipeline_stages")
@@ -229,7 +229,7 @@ export function useProjetoDetalheData(dealId: string) {
         .from("profiles")
         .select("tenant_id")
         .limit(1)
-        .single();
+        .maybeSingle();
       if (profile) {
         const { data: files } = await supabase.storage
           .from("projeto-documentos")

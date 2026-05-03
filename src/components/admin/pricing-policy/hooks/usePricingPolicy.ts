@@ -83,7 +83,7 @@ export function usePricingPolicy() {
       .from("pricing_policies")
       .insert({ name } as any)
       .select("id, name, description")
-      .single();
+      .maybeSingle();
 
     if (error) {
       toast({ title: "Erro ao criar política", description: error.message, variant: "destructive" });
@@ -104,7 +104,7 @@ export function usePricingPolicy() {
       .from("pricing_policy_versions")
       .insert({ policy_id: selectedPolicyId, version_number: nextNumber } as any)
       .select("id, policy_id, version_number, status, published_at, notes, created_at")
-      .single();
+      .maybeSingle();
 
     if (error) {
       toast({ title: "Erro ao criar versão", description: error.message, variant: "destructive" });
@@ -212,7 +212,7 @@ export function usePricingPolicy() {
       .from("pricing_policies")
       .insert({ name: "Política Solar Padrão", description: "Política de precificação padrão para sistemas fotovoltaicos residenciais e comerciais." } as any)
       .select("id, name, description")
-      .single();
+      .maybeSingle();
     if (pErr || !policy) {
       toast({ title: "Erro ao criar política", description: pErr?.message, variant: "destructive" });
       return;
@@ -223,7 +223,7 @@ export function usePricingPolicy() {
       .from("pricing_policy_versions")
       .insert({ policy_id: (policy as any).id, version_number: 1, notes: "Template solar padrão com custos típicos do mercado brasileiro." } as any)
       .select("id")
-      .single();
+      .maybeSingle();
     if (vErr || !version) {
       toast({ title: "Erro ao criar versão", description: vErr?.message, variant: "destructive" });
       return;

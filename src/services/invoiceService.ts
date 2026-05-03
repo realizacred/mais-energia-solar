@@ -107,7 +107,7 @@ export const invoiceService = {
   async create(input: Partial<UnitInvoice>) {
     const { tenantId } = await getCurrentTenantId();
     const payload = { ...input, tenant_id: tenantId };
-    const { data, error } = await supabase.from("unit_invoices").insert(payload as any).select(INVOICE_COLS).single();
+    const { data, error } = await supabase.from("unit_invoices").insert(payload as any).select(INVOICE_COLS).maybeSingle();
     if (error) throw error;
     return data as UnitInvoice;
   },
@@ -135,7 +135,7 @@ export const invoiceService = {
         .update(safeInput)
         .eq("id", existing.id)
         .select(BILLING_COLS)
-        .single();
+        .maybeSingle();
       if (error) throw error;
       result = data as BillingEmailSettings;
     } else {
@@ -144,7 +144,7 @@ export const invoiceService = {
         .from(BILLING_TABLE)
         .insert({ ...safeInput, unit_id: unitId, tenant_id: tenantId } as any)
         .select(BILLING_COLS)
-        .single();
+        .maybeSingle();
       if (error) throw error;
       result = data as BillingEmailSettings;
     }
@@ -166,7 +166,7 @@ export const invoiceService = {
       .update(input as any)
       .eq("id", invoiceId)
       .select(INVOICE_COLS)
-      .single();
+      .maybeSingle();
     if (error) throw error;
     return data as UnitInvoice;
   },

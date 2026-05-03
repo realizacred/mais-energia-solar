@@ -654,13 +654,13 @@ export function useWaMessages(conversationId?: string) {
           .from("wa_conversations")
           .select("instance_id, remote_jid, tenant_id")
           .eq("id", conversationId)
-          .single(),
+          .maybeSingle(),
         user?.id
           ? supabase
               .from("profiles")
               .select("nome")
               .eq("user_id", user.id)
-              .single()
+              .maybeSingle()
           : Promise.resolve({ data: null }),
       ]);
 
@@ -676,7 +676,7 @@ export function useWaMessages(conversationId?: string) {
           .from("wa_messages")
           .select("evolution_message_id")
           .eq("id", quotedMessageId)
-          .single();
+          .maybeSingle();
         quotedEvolutionId = quotedMsg?.evolution_message_id || null;
       }
 
@@ -698,7 +698,7 @@ export function useWaMessages(conversationId?: string) {
           queued_at: new Date().toISOString(),
         } as any)
         .select()
-        .single();
+        .maybeSingle();
 
       if (msgError) throw msgError;
 
@@ -777,7 +777,7 @@ export function useWaMessages(conversationId?: string) {
         .from("wa_conversations")
         .select("instance_id, remote_jid, tenant_id")
         .eq("id", conversationId)
-        .single();
+        .maybeSingle();
       if (!conv) throw new Error("Conversation not found");
 
       // Reset the SAME message record to pending (reuse, don't duplicate)
@@ -811,7 +811,7 @@ export function useWaMessages(conversationId?: string) {
           .from("profiles")
           .select("nome")
           .eq("user_id", user.id)
-          .single();
+          .maybeSingle();
         senderName = profile?.nome || null;
       }
 

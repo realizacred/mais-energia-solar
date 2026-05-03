@@ -117,7 +117,7 @@ function useTeamMembers() {
         .from("profiles")
         .select("tenant_id")
         .eq("user_id", user!.id)
-        .single();
+        .maybeSingle();
 
       const tenantId = myProfile?.tenant_id;
 
@@ -338,7 +338,7 @@ function ChatView({
         .from("profiles")
         .select("tenant_id")
         .eq("user_id", user!.id)
-        .single();
+        .maybeSingle();
       return data?.tenant_id || null;
     },
   });
@@ -690,14 +690,14 @@ export function InternalChat() {
         .from("profiles")
         .select("tenant_id")
         .eq("user_id", user!.id)
-        .single();
+        .maybeSingle();
       const tid = myProfile!.tenant_id;
 
       const { data: chat, error: chatError } = await supabase
         .from("internal_chats")
         .insert({ chat_type: "direct", created_by: user!.id, tenant_id: tid })
         .select("id")
-        .single();
+        .maybeSingle();
       if (chatError) throw chatError;
 
       // Add both members

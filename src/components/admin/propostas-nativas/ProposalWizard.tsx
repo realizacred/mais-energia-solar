@@ -883,7 +883,7 @@ export function ProposalWizard() {
           .from("proposta_versoes")
           .select("id, proposta_id, snapshot, potencia_kwp, valor_total, status, grupo, output_pdf_path, output_docx_path")
           .eq("id", versaoIdFromUrl)
-          .single();
+          .maybeSingle();
 
         if (!versao?.snapshot) {
           console.warn("[ProposalWizard] No snapshot found for versao", versaoIdFromUrl);
@@ -1223,7 +1223,7 @@ export function ProposalWizard() {
             .from("propostas_nativas")
             .select("lead_id, deal_id, projeto_id, cliente_id, status")
             .eq("id", propostaIdFromUrl)
-            .single();
+            .maybeSingle();
 
           // Detect if proposal was already sent/generated — will branch new version on save
           const SENT_STATUSES = ["enviada", "vista", "aceita", "gerada"];
@@ -1249,7 +1249,7 @@ export function ProposalWizard() {
                 .from("leads")
                 .select("*")
                 .eq("id", propostaMeta.lead_id)
-                .single();
+                .maybeSingle();
               if (lead) {
                 setSelectedLead(lead as any);
                 if (lead.municipio_ibge_codigo) setClienteMunicipioIbgeCodigo(lead.municipio_ibge_codigo);
@@ -1267,7 +1267,7 @@ export function ProposalWizard() {
                   .from("leads")
                   .select("*")
                   .eq("id", cli.lead_id)
-                  .single();
+                  .maybeSingle();
                 if (lead) {
                   setSelectedLead(lead as any);
                   if (lead.municipio_ibge_codigo) setClienteMunicipioIbgeCodigo(lead.municipio_ibge_codigo);
@@ -1676,7 +1676,7 @@ export function ProposalWizard() {
           .from("clientes")
           .select("id, nome, telefone, email, cpf_cnpj, empresa, cep, rua, numero, complemento, bairro, cidade, estado, lead_id, municipio_ibge_codigo")
           .eq("id", customerIdFromUrl)
-          .single();
+          .maybeSingle();
         if (cancelled || !cli) return;
 
         setCliente({
@@ -1708,7 +1708,7 @@ export function ProposalWizard() {
             .from("leads")
             .select("id, nome, telefone, lead_code, estado, cidade, media_consumo, tipo_telhado, municipio_ibge_codigo")
             .eq("id", cli.lead_id)
-            .single();
+            .maybeSingle();
           if (!cancelled && lead) {
             const mappedTelhado = mapLeadTipoTelhadoToProposal(lead.tipo_telhado);
             setSelectedLead({
@@ -1898,7 +1898,7 @@ export function ProposalWizard() {
           .from("leads")
           .select("id, nome, telefone, lead_code, estado, cidade, media_consumo, consumo_previsto, tipo_telhado, rede_atendimento, bairro, cep, rua, numero, complemento, valor_estimado, observacoes, area, municipio_ibge_codigo")
           .eq("id", leadIdFromUrl)
-          .single();
+          .maybeSingle();
         if (cancelled || !lead) return;
 
         setSelectedLead({
@@ -1964,7 +1964,7 @@ export function ProposalWizard() {
           .from("orcamentos")
           .select("id, orc_code, lead_id, media_consumo, consumo_previsto, tipo_telhado, rede_atendimento, estado, cidade, area, observacoes")
           .eq("id", orcIdFromUrl)
-          .single();
+          .maybeSingle();
         if (cancelled || !orc) return;
 
         // Pre-fill location from ORC (with tipo_telhado mapping)
@@ -2001,7 +2001,7 @@ export function ProposalWizard() {
             .from("leads")
             .select("id, nome, telefone, lead_code, estado, cidade, media_consumo, tipo_telhado, municipio_ibge_codigo")
             .eq("id", orc.lead_id)
-            .single();
+            .maybeSingle();
           if (!cancelled && lead) {
             setSelectedLead({
               id: lead.id, nome: lead.nome, telefone: lead.telefone,

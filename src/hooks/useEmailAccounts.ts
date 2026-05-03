@@ -102,7 +102,7 @@ export function useEmailAccountById(id: string | null) {
         .from("email_accounts")
         .select("*")
         .eq("id", id)
-        .single();
+        .maybeSingle();
       if (error) throw error;
       return data as EmailAccount;
     },
@@ -122,7 +122,7 @@ export function useSaveEmailAccount() {
           .update({ ...rest, updated_at: new Date().toISOString() })
           .eq("id", id)
           .select()
-          .single();
+          .maybeSingle();
         if (error) throw error;
         return data;
       } else {
@@ -130,7 +130,7 @@ export function useSaveEmailAccount() {
           .from("email_accounts")
           .insert(rest)
           .select()
-          .single();
+          .maybeSingle();
         if (error) throw error;
         return data;
       }
@@ -204,7 +204,7 @@ export function useSaveIngestionRule() {
           .update(rest)
           .eq("id", id)
           .select()
-          .single();
+          .maybeSingle();
         if (error) throw error;
         return data;
       } else {
@@ -212,7 +212,7 @@ export function useSaveIngestionRule() {
           .from("email_ingestion_rules")
           .insert(rest)
           .select()
-          .single();
+          .maybeSingle();
         if (error) throw error;
         return data;
       }
