@@ -1098,6 +1098,9 @@ export const VARIABLES_CATALOG: CatalogVariable[] = [
   v("comercial", "comercial.empresa_razao_social", "empresa_razao_social", "Razão Social", "Razão social completa da empresa integradora", "-", "Mais Energia Solar Ltda"),
   v("comercial", "comercial.empresa_nome_fantasia", "empresa_nome_fantasia", "Nome Fantasia", "Nome fantasia da empresa integradora", "-", "Mais Energia Solar"),
   v("comercial", "comercial.empresa_cnpj_cpf", "empresa_cnpj_cpf", "CNPJ/CPF do integrador", "CNPJ ou CPF da empresa", "-", "44.490.706/0001-54"),
+  v("comercial", "comercial.empresa_cnpj", "empresa_cnpj", "CNPJ do integrador", "CNPJ da empresa (resolvido no edge — alias preferido para contratos)", "-", "44.490.706/0001-54"),
+  v("comercial", "comercial.projeto_estado_instalacao", "projeto_estado_instalacao", "UF de Instalação", "UF do local de instalação (resolvido no edge — fallback projeto.uf_instalacao → lead.estado → cliente.estado)", "-", "MG"),
+  v("comercial", "comercial.vc_observacao", "vc_observacao", "Observação Comercial", "Observação livre da proposta/lead (resolvido no edge — string vazia se ausente)", "-", "Cliente prefere instalação no fim de semana"),
   v("comercial", "comercial.empresa_cidade", "empresa_cidade", "Cidade do integrador", "Cidade da empresa", "-", "Belo Horizonte"),
   v("comercial", "comercial.empresa_estado", "empresa_estado", "Estado do integrador", "Estado da empresa", "-", "MG"),
   v("comercial", "comercial.empresa_endereco", "empresa_endereco", "Endereço do integrador", "Endereço completo da empresa", "-", "Rua Solar, 100"),
@@ -1312,27 +1315,13 @@ export const VARIABLES_CATALOG: CatalogVariable[] = [
   v("tabelas", "tabelas.parcelas", "tabela_parcelas", "Tabela parcelas", "Parcelas do financiamento", "", "[{num,valor,vencimento}]", "BT e MT", { isSeries: true }),
 
   // ──────────────────────────────────────────────────────────────
-  // SÉRIES (projeções anuais 0-24)
+  // SÉRIES (projeções anuais 0-24) — REMOVIDO 2026-05-03
+  // Grupo `series.*` (18 vars) removido do catálogo:
+  //  - 0% implementado no resolver (FE) e no flatten (BE)
+  //  - 0 templates ativos consumiam {{series.*}} (validado via SQL)
+  //  - Substituído pelas séries anuais `_0..._25` em `financeiro.*` (RB regra global de variáveis)
   // ──────────────────────────────────────────────────────────────
-  v("series", "series.economia_anual", "s_economia_anual", "Economia anual (série)", "Série de economia anual por 25 anos", "R$", "{0:10200,...,24:28500}", "BT e MT", { isSeries: true }),
-  v("series", "series.geracao_anual", "s_geracao_anual", "Geração anual (série)", "Série de geração anual por 25 anos", "kWh", "{0:13200,...,24:11880}", "BT e MT", { isSeries: true }),
-  v("series", "series.geracao_mensal", "s_geracao_mensal", "Geração mensal (série)", "Série de geração mensal por 25 anos", "kWh", "{0:1100,...,24:990}", "BT e MT", { isSeries: true }),
-  v("series", "series.investimento_anual", "s_investimento_anual", "Investimento anual (série)", "Série de investimento acumulado por ano", "R$", "{0:45000,...,24:45000}", "BT e MT", { isSeries: true }),
-  v("series", "series.fluxo_caixa_acumulado", "s_fluxo_caixa_acumulado_anual", "Fluxo de caixa acum. (série)", "Série de fluxo de caixa acumulado anual", "R$", "{0:-34800,...,24:210000}", "BT e MT", { isSeries: true }),
-  v("series", "series.tarifa_distribuidora", "s_tarifa_distribuidora_anual", "Tarifa distribuidora (série)", "Série de tarifa projetada por ano", "R$/kWh", "{0:0.95,...,24:2.10}", "BT e MT", { isSeries: true }),
-  v("series", "series.consumo_mensal", "s_consumo_mensal", "Consumo mensal (série)", "Série de consumo mensal projetado", "kWh", "{jan:500,...,dez:490}", "BT e MT", { isSeries: true }),
-  v("series", "series.creditos_mensal", "s_creditos_mensal", "Créditos mensal (série)", "Série de créditos de energia mensais", "kWh", "{jan:650,...,dez:710}", "BT e MT", { isSeries: true }),
-  v("series", "series.creditos_gerados", "s_creditos_gerados", "Créditos gerados (série)", "Série de créditos gerados mensais", "kWh", "{jan:700,...,dez:710}", "BT e MT", { isSeries: true }),
-  v("series", "series.creditos_alocados", "s_creditos_alocados", "Créditos alocados (série)", "Série de créditos alocados mensais", "kWh", "800", "BT e MT", { isSeries: true }),
-  v("series", "series.creditos_alocados_uc1", "s_creditos_alocados_uc1", "Créditos alocados UC # (série)", "Série de créditos alocados por UC", "kWh", "800", "BT e MT", { isSeries: true }),
-  // UC-specific series
-  v("series", "series.consumo_mensal_uc1", "s_consumo_mensal_uc1", "Consumo mensal UC # (série)", "Série de consumo mensal por UC", "kWh", "{jan:350,...,dez:380}", "BT e MT", { isSeries: true }),
-  v("series", "series.creditos_mensal_uc1", "s_creditos_mensal_uc1", "Saldo créditos mensal UC # (série)", "Série de saldo de créditos mensal por UC", "kWh", "{jan:300,...,dez:330}", "BT e MT", { isSeries: true }),
-  v("series", "series.economia_anual_uc1", "s_economia_anual_uc1", "Economia anual UC # (série)", "Série de economia anual por UC", "R$", "{0:8500,...,24:23000}", "BT e MT", { isSeries: true }),
-  v("series", "series.fluxo_caixa_acumulado_uc1", "s_fluxo_caixa_acumulado_anual_uc1", "Fluxo caixa acum. UC # (série)", "Série de fluxo de caixa acumulado por UC", "R$", "{0:-30000,...,24:180000}", "BT e MT", { isSeries: true }),
-  v("series", "series.geracao_anual_uc1", "s_geracao_anual_uc1", "Geração anual UC # (série)", "Série de geração anual por UC", "kWh", "{0:11000,...,24:9900}", "BT e MT", { isSeries: true }),
-  v("series", "series.investimento_anual_uc1", "s_investimento_anual_uc1", "Investimento anual UC # (série)", "Série de investimento acumulado por UC", "R$", "{0:38000,...,24:38000}", "BT e MT", { isSeries: true }),
-  v("series", "series.tarifa_distribuidora_uc1", "s_tarifa_distribuidora_anual_uc1", "Tarifa distribuidora UC # (série)", "Série de tarifa projetada por UC", "R$/kWh", "{0:0.95,...,24:2.10}", "BT e MT", { isSeries: true }),
+
 
   // ──────────────────────────────────────────────────────────────
   // PREMISSAS
@@ -1390,20 +1379,12 @@ export const VARIABLES_CATALOG: CatalogVariable[] = [
   v("calculo", "alerta.estimado.texto_pdf", "alerta_estimado_texto_pdf", "Alerta Estimado (PDF)", "Bloco de texto padrão para inclusão no PDF quando cálculo é ESTIMADO", "-", "ATENÇÃO: Economia estimada. Fio B real indisponível; usamos TUSD total como proxy. Economia pode variar."),
 
   // ──────────────────────────────────────────────────────────────
-  // CAMPOS DOS DISTRIBUIDORES (CDD)
+  // CAMPOS DOS DISTRIBUIDORES (CDD) — REMOVIDO 2026-05-03
+  // Grupo `cdd.*` (12 vars) removido do catálogo:
+  //  - 100% marcado como notImplemented (sem resolver no FE/BE)
+  //  - 0 templates ativos consumiam {{cdd.*}} (validado via SQL)
+  //  - Será reintroduzido caso o domínio CDD volte ao roadmap
   // ──────────────────────────────────────────────────────────────
-  v("cdd", "cdd.tipo_estrutura", "cdd_tipo_estrutura", "Tipo de estrutura", "Tipo de Telhado / Tipo de Estrutura — ECORI, GENYX, WEG SOLAR, NEOSOLAR, BLUESUN, SOLARMARKET", "", "Solo", "BT e MT", { notImplemented: true }),
-  v("cdd", "cdd.marca_estrutura", "cdd_marca_estrutura", "Solução Estrutural", "Solução Estrutural / Marca da estrutura — ECORI", "", "Romagnole", "BT e MT", { notImplemented: true }),
-  v("cdd", "cdd.comunicador", "cdd_comunicador", "Utiliza Comunicador?", "Tipo de comunicador de dados — ECORI", "", "Wi-Fi", "BT e MT", { notImplemented: true }),
-  v("cdd", "cdd.tipo_sustentacao", "cdd_tipo_sustentacao", "Tipo de Sustentação", "Tipo de sustentação — GENYX", "", "Laje", "BT e MT", { notImplemented: true }),
-  v("cdd", "cdd.tipo_telhado", "cdd_tipo_telhado", "Tipo de telhado utilizado", "Tipo de telhado utilizado / Onde será instalado — NEXEN, GTSOLAR", "", "Cerâmico", "BT e MT", { notImplemented: true }),
-  v("cdd", "cdd.nivel", "cdd_nivel", "Nível da estrutura", "Nível do distribuidor — BLUESUN, SOLARMARKET", "", "Gold", "BT e MT", { notImplemented: true }),
-  v("cdd", "cdd.orientacao", "cdd_orientacao", "Orientação", "Orientação dos módulos — BLUESUN, SOLARMARKET", "", "Norte", "BT e MT", { notImplemented: true }),
-  v("cdd", "cdd.string_config", "cdd_string", "Adicionar StringBox CC?", "StringBox CC / Deseja Incluir StringBox — BLUESUN, SOLARMARKET", "", "2x8", "BT e MT", { notImplemented: true }),
-  v("cdd", "cdd.string_ca", "cdd_sting_ca", "Adicionar StringBox CA?", "Configuração de strings CA — BLUESUN, SOLARMARKET", "", "1x1", "BT e MT", { notImplemented: true }),
-  v("cdd", "cdd.telhado", "cdd_telhado", "Tipo de Telhado", "Tipo de telhado no cadastro — SOLARMARKET", "", "Cerâmico", "BT e MT", { notImplemented: true }),
-  v("cdd", "cdd.estrutura", "cdd_estrutura", "Estrutura", "Estrutura / Estrutura do Telhado — A.DIAS SOLAR, SOPRANO, SOLARMARKET, BLUESUN, FORTLEV, ALDO", "", "Fibrocimento", "BT e MT", { notImplemented: true }),
-  v("cdd", "cdd.tipo_perfil", "cdd_tipo_perfil", "Tipo de Perfil", "Tipo de perfil da estrutura — WEG SOLAR", "", "Perfil", "BT e MT", { notImplemented: true }),
 
   // ──────────────────────────────────────────────────────────────
   // VARIÁVEIS CUSTOMIZADAS (vc_*)
