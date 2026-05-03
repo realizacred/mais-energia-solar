@@ -1,0 +1,1 @@
+ALTER TABLE public.proposta_aceite_tokens ADD COLUMN IF NOT EXISTS termo_aceite_pdf_url text;

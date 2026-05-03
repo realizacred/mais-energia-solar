@@ -16748,6 +16748,7 @@ export type Database = {
           recusa_motivo: string | null
           snapshot_hash: string | null
           tenant_id: string
+          termo_aceite_pdf_url: string | null
           tipo: string
           token: string
           used_at: string | null
@@ -16779,6 +16780,7 @@ export type Database = {
           recusa_motivo?: string | null
           snapshot_hash?: string | null
           tenant_id: string
+          termo_aceite_pdf_url?: string | null
           tipo?: string
           token?: string
           used_at?: string | null
@@ -16810,6 +16812,7 @@ export type Database = {
           recusa_motivo?: string | null
           snapshot_hash?: string | null
           tenant_id?: string
+          termo_aceite_pdf_url?: string | null
           tipo?: string
           token?: string
           used_at?: string | null
