@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
-import { Check, X, Pencil, Type, Hash, ToggleLeft, Calendar, List, DollarSign, FileText, AlignLeft, Paperclip, Wifi, Package, Zap, MapPin, Settings, icons } from "lucide-react";
+import { Check, X, Pencil, Type, Hash, ToggleLeft, Calendar, List, DollarSign, Percent, FileText, AlignLeft, Paperclip, Wifi, Package, Zap, MapPin, Settings, icons } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
