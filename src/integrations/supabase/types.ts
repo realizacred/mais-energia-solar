@@ -2284,6 +2284,63 @@ export type Database = {
           },
         ]
       }
+      comissoes_transacional: {
+        Row: {
+          consultor_id: string | null
+          created_at: string
+          id: string
+          observacoes: string | null
+          percentual: number
+          status: string
+          tenant_id: string
+          updated_at: string
+          valor_base: number
+          valor_comissao: number
+          venda_id: string
+        }
+        Insert: {
+          consultor_id?: string | null
+          created_at?: string
+          id?: string
+          observacoes?: string | null
+          percentual?: number
+          status?: string
+          tenant_id: string
+          updated_at?: string
+          valor_base?: number
+          valor_comissao?: number
+          venda_id: string
+        }
+        Update: {
+          consultor_id?: string | null
+          created_at?: string
+          id?: string
+          observacoes?: string | null
+          percentual?: number
+          status?: string
+          tenant_id?: string
+          updated_at?: string
+          valor_base?: number
+          valor_comissao?: number
+          venda_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "comissoes_transacional_consultor_id_fkey"
+            columns: ["consultor_id"]
+            isOneToOne: false
+            referencedRelation: "consultores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "comissoes_transacional_venda_id_fkey"
+            columns: ["venda_id"]
+            isOneToOne: true
+            referencedRelation: "vendas_transacional"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       commission_plans: {
         Row: {
           commission_type: Database["public"]["Enums"]["commission_plan_type"]
@@ -27732,6 +27789,10 @@ export type Database = {
       create_client_portal_user: {
         Args: { p_email: string; p_password: string; p_unit_id: string }
         Returns: Json
+      }
+      create_comissao_from_venda: {
+        Args: { p_venda_id: string }
+        Returns: string
       }
       create_irradiance_version: {
         Args: { _dataset_code: string; _metadata?: Json; _version_tag: string }
