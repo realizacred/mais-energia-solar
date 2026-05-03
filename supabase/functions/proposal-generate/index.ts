@@ -131,6 +131,12 @@ interface GenerateRequestV2 {
   idempotency_key: string;
   variaveis_custom?: boolean;
   aceite_estimativa?: boolean;
+  /** Metadados do kit (sistema/topologia). Defaults: on_grid / tradicional. */
+  kit?: {
+    tipo_sistema?: "on_grid" | "hibrido" | "off_grid";
+    topologia?: "tradicional" | "microinversor" | "otimizador";
+    is_ampliacao?: boolean;
+  };
   /** Wizard-specific state for edit round-trip (passthrough, not used by engine) */
   _wizard_state?: Record<string, unknown>;
 }
