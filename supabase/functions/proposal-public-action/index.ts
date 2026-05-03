@@ -571,6 +571,31 @@ Deno.serve(async (req) => {
       })
       .eq("id", tokenData.id);
 
+    // 7b. Generate Termo de Aceite PDF (non-blocking)
+    if (newStatus === "aceita") {
+      try {
+        const pdfUrl = await generateTermoAceitePdf(admin, {
+          tenantId,
+          tokenId: tokenData.id,
+          propostaId,
+          versaoId: tokenData.versao_id,
+          aceiteAt: now,
+          aceiteIp: ip_address || "unknown",
+          aceiteUserAgent: user_agent || "unknown",
+          snapshotHash,
+          payloadHash: aceitePayloadHash,
+        });
+        if (pdfUrl) {
+          await admin
+            .from("proposta_aceite_tokens")
+            .update({ termo_aceite_pdf_url: pdfUrl })
+            .eq("id", tokenData.id);
+        }
+      } catch (pdfErr) {
+        console.error("[proposal-public-action] Termo PDF error (non-blocking):", pdfErr);
+      }
+    }
+
     // 8. Log event
     const eventType = newStatus === "aceita" ? "proposta_aceita" : "proposta_recusada";
     try {
