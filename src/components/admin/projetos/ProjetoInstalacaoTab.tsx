@@ -127,9 +127,24 @@ export function ProjetoInstalacaoTab({ dealId }: Props) {
   }
 
   // Determine which templates still need to be started
-  const availableTemplates = templates.filter(
-    t => !checklists.some(c => c.template_id === t.id && c.status !== "cancelado")
-  );
+  // Regra: Pós-Instalação só libera quando existir Pré-Instalação CONCLUÍDA
+  const preConcluida = checklists.some(c => {
+    const tpl = templates.find(t => t.id === c.template_id);
+    return tpl?.tipo === "pre_instalacao" && FINAL_STATUSES.has(c.status);
+  });
+
+  const availableTemplates = templates.filter(t => {
+    const jaIniciado = checklists.some(c => c.template_id === t.id && c.status !== "cancelado");
+    if (jaIniciado) return false;
+    if (t.tipo === "pos_instalacao" && !preConcluida) return false;
+    return true;
+  });
+
+  // Templates de Pós que estão bloqueados (sem pré concluída) — exibir como "locked"
+  const lockedTemplates = templates.filter(t => {
+    const jaIniciado = checklists.some(c => c.template_id === t.id && c.status !== "cancelado");
+    return !jaIniciado && t.tipo === "pos_instalacao" && !preConcluida;
+  });
 
   // Enrich checklists with template info
   const enrichedChecklists = checklists.map(c => {
