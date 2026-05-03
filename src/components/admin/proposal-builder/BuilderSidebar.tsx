@@ -102,75 +102,94 @@ export function BuilderSidebar({ proposalType, onAddBlock, onInsertBlocks }: Bui
 
   return (
     <div className="w-[260px] border-r border-border bg-card flex flex-col h-full">
-      {/* Search */}
-      <div className="p-3 border-b border-border">
-        <div className="relative">
-          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-          <Input
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            placeholder="Pesquisar widget..."
-            className="pl-8 h-8 text-xs"
-          />
-        </div>
-      </div>
+      <Tabs defaultValue="blocks" className="flex flex-col h-full">
+        <TabsList className="grid grid-cols-2 m-2 mb-0 h-8">
+          <TabsTrigger value="blocks" className="text-xs gap-1.5">
+            <Blocks className="h-3.5 w-3.5" />
+            Blocos
+          </TabsTrigger>
+          <TabsTrigger value="variables" className="text-xs gap-1.5">
+            <Braces className="h-3.5 w-3.5" />
+            Variáveis
+          </TabsTrigger>
+        </TabsList>
 
-      {/* Widget List */}
-      <ScrollArea className="flex-1">
-        <div className="p-2 space-y-1">
-          {WIDGET_CATEGORIES.map(cat => {
-            const widgets = filteredWidgets.filter(w => w.category === cat.key);
-            if (widgets.length === 0) return null;
+        <TabsContent value="blocks" className="flex-1 flex flex-col mt-0 overflow-hidden">
+          {/* Search */}
+          <div className="p-3 border-b border-border">
+            <div className="relative">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+              <Input
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                placeholder="Pesquisar bloco..."
+                className="pl-8 h-8 text-xs"
+              />
+            </div>
+          </div>
 
-            return (
-              <Collapsible
-                key={cat.key}
-                open={search.trim() ? true : openCategories[cat.key]}
-                onOpenChange={() => !search.trim() && toggleCategory(cat.key)}
-              >
-                <CollapsibleTrigger className="flex items-center justify-between w-full px-2 py-1.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground hover:text-foreground transition-colors">
-                  <span>{cat.label}</span>
-                  <ChevronDown className={cn("h-3 w-3 transition-transform", openCategories[cat.key] ? "" : "-rotate-90")} />
-                </CollapsibleTrigger>
-                <CollapsibleContent>
-                  <div className="grid grid-cols-2 gap-1.5 px-1 pb-2">
-                    {widgets.map((w, i) => (
-                      <button
-                        key={`${w.key}-${w.label}-${i}`}
-                        draggable
-                        onDragStart={(e) => handleDragStart(e, w)}
-                        className="flex flex-col items-center justify-center gap-1.5 p-3 rounded-lg border border-border/50 bg-background hover:border-primary/40 hover:bg-primary/5 transition-all cursor-grab active:cursor-grabbing text-center group"
-                      >
-                        {getIcon(w.icon)}
-                        <span className="text-[10px] font-medium text-muted-foreground group-hover:text-foreground leading-tight">
-                          {w.label}
-                        </span>
-                      </button>
-                    ))}
-                  </div>
-                </CollapsibleContent>
-              </Collapsible>
-            );
-          })}
-          {/* Section Templates */}
-          {onInsertBlocks && !search.trim() && (
-            <Collapsible
-              open={openCategories["templates"]}
-              onOpenChange={() => toggleCategory("templates")}
-            >
-              <CollapsibleTrigger className="flex items-center justify-between w-full px-2 py-1.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground hover:text-foreground transition-colors">
-                <span className="flex items-center gap-1"><Sparkles className="h-3 w-3" /> SEÇÕES PRÉ-PRONTAS</span>
-                <ChevronDown className={cn("h-3 w-3 transition-transform", openCategories["templates"] ? "" : "-rotate-90")} />
-              </CollapsibleTrigger>
-              <CollapsibleContent>
-                <div className="px-1 pb-2">
-                  <SectionTemplates proposalType={proposalType} onInsertBlocks={onInsertBlocks} />
-                </div>
-              </CollapsibleContent>
-            </Collapsible>
-          )}
-        </div>
-      </ScrollArea>
+          {/* Widget List */}
+          <ScrollArea className="flex-1">
+            <div className="p-2 space-y-1">
+              {WIDGET_CATEGORIES.map(cat => {
+                const widgets = filteredWidgets.filter(w => w.category === cat.key);
+                if (widgets.length === 0) return null;
+
+                return (
+                  <Collapsible
+                    key={cat.key}
+                    open={search.trim() ? true : openCategories[cat.key]}
+                    onOpenChange={() => !search.trim() && toggleCategory(cat.key)}
+                  >
+                    <CollapsibleTrigger className="flex items-center justify-between w-full px-2 py-1.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground hover:text-foreground transition-colors">
+                      <span>{cat.label}</span>
+                      <ChevronDown className={cn("h-3 w-3 transition-transform", openCategories[cat.key] ? "" : "-rotate-90")} />
+                    </CollapsibleTrigger>
+                    <CollapsibleContent>
+                      <div className="grid grid-cols-2 gap-1.5 px-1 pb-2">
+                        {widgets.map((w, i) => (
+                          <button
+                            key={`${w.key}-${w.label}-${i}`}
+                            draggable
+                            onDragStart={(e) => handleDragStart(e, w)}
+                            className="flex flex-col items-center justify-center gap-1.5 p-3 rounded-lg border border-border/50 bg-background hover:border-primary/40 hover:bg-primary/5 transition-all cursor-grab active:cursor-grabbing text-center group"
+                          >
+                            {getIcon(w.icon)}
+                            <span className="text-[10px] font-medium text-muted-foreground group-hover:text-foreground leading-tight">
+                              {w.label}
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                    </CollapsibleContent>
+                  </Collapsible>
+                );
+              })}
+              {/* Section Templates */}
+              {onInsertBlocks && !search.trim() && (
+                <Collapsible
+                  open={openCategories["templates"]}
+                  onOpenChange={() => toggleCategory("templates")}
+                >
+                  <CollapsibleTrigger className="flex items-center justify-between w-full px-2 py-1.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground hover:text-foreground transition-colors">
+                    <span className="flex items-center gap-1"><Sparkles className="h-3 w-3" /> SEÇÕES PRÉ-PRONTAS</span>
+                    <ChevronDown className={cn("h-3 w-3 transition-transform", openCategories["templates"] ? "" : "-rotate-90")} />
+                  </CollapsibleTrigger>
+                  <CollapsibleContent>
+                    <div className="px-1 pb-2">
+                      <SectionTemplates proposalType={proposalType} onInsertBlocks={onInsertBlocks} />
+                    </div>
+                  </CollapsibleContent>
+                </Collapsible>
+              )}
+            </div>
+          </ScrollArea>
+        </TabsContent>
+
+        <TabsContent value="variables" className="flex-1 mt-0 overflow-hidden">
+          <VariablesPanel />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
