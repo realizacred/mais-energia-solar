@@ -92,6 +92,16 @@ export interface GenerateProposalPayload {
   customFieldValues?: Record<string, any>;
   idempotency_key: string;
   aceite_estimativa?: boolean;
+  /**
+   * Metadados do kit selecionado no wizard.
+   * Persistidos em `proposta_kits.tipo_sistema` / `proposta_kits.topologia`.
+   * Defaults aplicados no servidor: on_grid / tradicional.
+   */
+  kit?: {
+    tipo_sistema?: "on_grid" | "hibrido" | "off_grid";
+    topologia?: "tradicional" | "microinversor" | "otimizador";
+    is_ampliacao?: boolean;
+  };
   /** Wizard-specific state preserved for edit round-trip (not used by engine) */
   _wizard_state?: Record<string, any>;
 }
