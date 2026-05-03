@@ -141,10 +141,11 @@ export function ProjetoFilters({
     let count = 0;
     if (filterConsultor !== "todos") count++;
     if (filterStatus !== "todos") count++;
+    if (filterTipoProjetoSolar && filterTipoProjetoSolar !== "todos") count++;
     if (filterEtiquetas.length > 0) count++;
     if (searchTerm.length > 0) count++;
     return count;
-  }, [filterConsultor, filterStatus, filterEtiquetas, searchTerm]);
+  }, [filterConsultor, filterStatus, filterTipoProjetoSolar, filterEtiquetas, searchTerm]);
 
   const hasActive = activeFilterCount > 0;
 
