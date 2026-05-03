@@ -356,6 +356,7 @@ export function PropertiesPanel({ block, onUpdate }: PropertiesPanelProps) {
             )}
           </Field>
         </Section>
+        )}
 
         {/* Spacing */}
         <Section title="Espaçamento" icon={Box} defaultOpen={false}>
