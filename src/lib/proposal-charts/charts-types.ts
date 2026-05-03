@@ -91,7 +91,7 @@ export const DEFAULT_CHARTS: Omit<ProposalChart, "id" | "tenant_id" | "created_a
     value_field: "valor",
     title: "Consumo de Energia",
     subtitle: "kWh por mês",
-    colors: ["#ef4444"],
+    colors: ["#144C8C"],
     chart_options: {},
     width: 1600,
     height: 900,
