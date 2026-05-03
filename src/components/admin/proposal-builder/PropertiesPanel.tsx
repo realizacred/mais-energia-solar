@@ -286,6 +286,7 @@ export function PropertiesPanel({ block, onUpdate }: PropertiesPanelProps) {
         )}
 
         {/* Background & Colors */}
+        {!isSemantic && (
         <Section title="Cores e Fundo" icon={Palette} defaultOpen={false}>
           <Field label="Cor de fundo">
             <div className="flex gap-2 items-center">
