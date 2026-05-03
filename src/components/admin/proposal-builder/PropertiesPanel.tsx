@@ -103,13 +103,10 @@ export function PropertiesPanel({ block, onUpdate }: PropertiesPanelProps) {
         {!isContainer && !isSemantic && (
           <Section title="Conteúdo" icon={Type}>
             {block.type === "editor" ? (
-              <Field label="HTML">
-                <Textarea
+              <Field label="Texto">
+                <SimpleContentEditor
                   value={block.content}
-                  onChange={e => onUpdate({ content: e.target.value })}
-                  rows={6}
-                  className="text-xs font-mono"
-                  placeholder="<p>Seu conteúdo HTML...</p>"
+                  onChange={(next) => onUpdate({ content: next })}
                 />
               </Field>
             ) : block.type === "image" ? (
