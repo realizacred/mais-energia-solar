@@ -28855,6 +28855,10 @@ export type Database = {
         Returns: Database["public"]["Enums"]["papel_funil"]
       }
       sync_concessionarias_from_subgrupos: { Args: never; Returns: Json }
+      sync_proposta_to_projeto_deal: {
+        Args: { p_proposta_id: string }
+        Returns: undefined
+      }
       tenant_and_user_active: { Args: never; Returns: boolean }
       tenant_is_active: { Args: { _tenant_id?: string }; Returns: boolean }
       tenant_of_projeto: { Args: { _projeto_id: string }; Returns: string }
