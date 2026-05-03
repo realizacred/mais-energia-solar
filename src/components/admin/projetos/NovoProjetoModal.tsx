@@ -275,6 +275,7 @@ export function NovoProjetoModal({
         descricao: values.descricao?.trim() || "",
         etiqueta: values.etiquetaId || "",
         notas: "",
+        tipoProjetoSolar: values.tipoProjetoSolar || DEFAULT_TIPO_PROJETO_SOLAR,
         cliente: {
           nome: values.clienteNome.trim(),
           email: values.clienteEmail?.trim() || "",
