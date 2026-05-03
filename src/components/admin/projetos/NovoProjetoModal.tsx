@@ -31,12 +31,18 @@ import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useClientes, useSalvarCliente, type ClienteRow } from "@/hooks/useClientes";
 import { useClienteProjetoAberto } from "@/hooks/useProjetoCreateForm";
+import {
+  TIPO_PROJETO_SOLAR_OPTIONS,
+  DEFAULT_TIPO_PROJETO_SOLAR,
+  type TipoProjetoSolar,
+} from "@/lib/tipoProjetoSolar";
 
 const schema = z.object({
   nomeProjeto: z.string().trim().max(150, "Nome do projeto deve ter no máximo 150 caracteres").optional(),
   descricao: z.string().trim().max(1000, "Descrição deve ter no máximo 1000 caracteres").optional(),
   consultorId: z.string().trim().min(1, "Consultor responsável é obrigatório"),
   etiquetaId: z.string().optional(),
+  tipoProjetoSolar: z.enum(["on_grid", "hibrido", "off_grid", "ampliacao", "bombeamento"]).default("on_grid"),
   clienteNome: z.string().trim().min(2, "Nome do cliente é obrigatório").max(150, "Nome do cliente deve ter no máximo 150 caracteres"),
   clienteEmail: z.union([z.literal(""), z.string().trim().email("E-mail inválido").max(255, "E-mail deve ter no máximo 255 caracteres")]),
   clienteEmpresa: z.string().trim().max(150, "Nome da empresa deve ter no máximo 150 caracteres").optional(),
@@ -64,6 +70,7 @@ export interface NovoProjetoData {
   descricao: string;
   etiqueta: string;
   notas: string;
+  tipoProjetoSolar: TipoProjetoSolar;
   cliente: {
     nome: string;
     email: string;
@@ -119,6 +126,7 @@ export function NovoProjetoModal({
       descricao: "",
       consultorId: defaultConsultorId || "",
       etiquetaId: "",
+      tipoProjetoSolar: DEFAULT_TIPO_PROJETO_SOLAR,
       clienteNome: "",
       clienteEmail: "",
       clienteEmpresa: "",
@@ -143,6 +151,7 @@ export function NovoProjetoModal({
       descricao: "",
       consultorId: defaultConsultorId || "",
       etiquetaId: "",
+      tipoProjetoSolar: DEFAULT_TIPO_PROJETO_SOLAR,
       clienteNome: "",
       clienteEmail: "",
       clienteEmpresa: "",
@@ -266,6 +275,7 @@ export function NovoProjetoModal({
         descricao: values.descricao?.trim() || "",
         etiqueta: values.etiquetaId || "",
         notas: "",
+        tipoProjetoSolar: values.tipoProjetoSolar || DEFAULT_TIPO_PROJETO_SOLAR,
         cliente: {
           nome: values.clienteNome.trim(),
           email: values.clienteEmail?.trim() || "",
@@ -397,6 +407,31 @@ export function NovoProjetoModal({
                       />
                     </div>
                   )}
+
+                  <div className="space-y-1">
+                    <Label className="text-[11px] font-medium text-muted-foreground">Tipo de projeto solar</Label>
+                    <Controller
+                      control={form.control}
+                      name="tipoProjetoSolar"
+                      render={({ field }) => (
+                        <Select value={field.value} onValueChange={field.onChange}>
+                          <SelectTrigger className="h-8 text-sm">
+                            <SelectValue placeholder="Selecione" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {TIPO_PROJETO_SOLAR_OPTIONS.map((o) => (
+                              <SelectItem key={o.value} value={o.value}>
+                                <div className="flex flex-col">
+                                  <span>{o.label}</span>
+                                  <span className="text-[10px] text-muted-foreground">{o.description}</span>
+                                </div>
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      )}
+                    />
+                  </div>
 
                   <div className="space-y-1">
                     <Label className="text-[11px] font-medium text-muted-foreground">Valor estimado (opcional)</Label>

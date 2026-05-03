@@ -70,6 +70,7 @@ import {
 } from "@/contexts/ProjetoDetalheContext";
 import { formatDateTime, formatDate, formatTime, formatDateShort } from "@/lib/dateUtils";
 import { ClienteEditModal } from "./ClienteEditModal";
+import { TipoProjetoSolarBadge } from "./TipoProjetoSolarBadge";
 
 // ─── Types (local to sub-components) ────────────
 interface PropostaNativa {
@@ -397,6 +398,7 @@ function ProjetoDetalheContent() {
                 <UserCircle className="h-3.5 w-3.5" />
                 {ownerName || "Sem consultor"}
               </Badge>
+              <TipoProjetoSolarBadge projetoId={projetoId ?? deal.id} />
               {deal.status !== "won" && deal.status !== "lost" && (
                 <Button size="sm" onClick={() => {
                   const params = new URLSearchParams({ deal_id: dealId });

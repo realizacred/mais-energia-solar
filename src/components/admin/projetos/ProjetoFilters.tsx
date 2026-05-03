@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/select";
 import type { ProjetoFunil, ProjetoEtiqueta } from "@/hooks/useProjetoPipeline";
 import { cn } from "@/lib/utils";
+import { TIPO_PROJETO_SOLAR_OPTIONS } from "@/lib/tipoProjetoSolar";
 import { useUserFunnelOrder } from "@/hooks/useUserFunnelOrder";
 import {
   DndContext,
@@ -100,6 +101,8 @@ interface Props {
   consultores: ConsultorOption[];
   filterStatus: string;
   onFilterStatusChange: (v: string) => void;
+  filterTipoProjetoSolar?: string;
+  onFilterTipoProjetoSolarChange?: (v: string) => void;
   etiquetas: ProjetoEtiqueta[];
   filterEtiquetas: string[];
   onFilterEtiquetasChange: (ids: string[]) => void;
@@ -127,6 +130,7 @@ export function ProjetoFilters({
   funis, filterFunil, onFilterFunilChange,
   filterConsultor, onFilterConsultorChange, consultores,
   filterStatus, onFilterStatusChange,
+  filterTipoProjetoSolar = "todos", onFilterTipoProjetoSolarChange,
   etiquetas, filterEtiquetas, onFilterEtiquetasChange,
   viewMode, onViewModeChange,
   onClearFilters,
@@ -137,10 +141,11 @@ export function ProjetoFilters({
     let count = 0;
     if (filterConsultor !== "todos") count++;
     if (filterStatus !== "todos") count++;
+    if (filterTipoProjetoSolar && filterTipoProjetoSolar !== "todos") count++;
     if (filterEtiquetas.length > 0) count++;
     if (searchTerm.length > 0) count++;
     return count;
-  }, [filterConsultor, filterStatus, filterEtiquetas, searchTerm]);
+  }, [filterConsultor, filterStatus, filterTipoProjetoSolar, filterEtiquetas, searchTerm]);
 
   const hasActive = activeFilterCount > 0;
 
@@ -322,6 +327,26 @@ export function ProjetoFilters({
               </SelectContent>
             </Select>
           </div>
+
+          {/* Tipo de projeto solar */}
+          {onFilterTipoProjetoSolarChange && (
+            <div className="flex flex-col gap-1">
+              <label className="flex items-center gap-1 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
+                Tipo solar
+              </label>
+              <Select value={filterTipoProjetoSolar} onValueChange={onFilterTipoProjetoSolarChange}>
+                <SelectTrigger className="w-full xl:w-[140px] h-9 text-xs border-border/60 bg-card">
+                  <SelectValue placeholder="Todos" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todos">Todos</SelectItem>
+                  {TIPO_PROJETO_SOLAR_OPTIONS.map((o) => (
+                    <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
 
           {/* Etiquetas */}
           <div className="flex flex-col gap-1">

@@ -159,9 +159,16 @@ export function ProjetosManager() {
 
   const statusFiltered = useMemo(() => {
     const status = filters.status;
-    if (!status || status === "todos") return validProjetos;
-    return validProjetos.filter(p => resolveProjetoStatus(p) === status);
-  }, [validProjetos, filters.status, resolveProjetoStatus]);
+    const tipoSolar = filters.tipoProjetoSolar;
+    return validProjetos.filter((p) => {
+      if (status && status !== "todos" && resolveProjetoStatus(p) !== status) return false;
+      if (tipoSolar && tipoSolar !== "todos") {
+        const t = (p.tipo_projeto_solar || "on_grid").toString();
+        if (t !== tipoSolar) return false;
+      }
+      return true;
+    });
+  }, [validProjetos, filters.status, filters.tipoProjetoSolar, resolveProjetoStatus]);
 
   const adaptedDeals = useMemo(
     () => statusFiltered.map(p => projetoToCard(p, etapaMap)),
@@ -174,11 +181,16 @@ export function ProjetosManager() {
       projetos: c.projetos.filter(p => {
         if (!p.etapa_id || !existingEtapaIds.has(p.etapa_id)) return false;
         const status = filters.status;
-        if (!status || status === "todos") return true;
-        return resolveProjetoStatus(p) === status;
+        if (status && status !== "todos" && resolveProjetoStatus(p) !== status) return false;
+        const tipoSolar = filters.tipoProjetoSolar;
+        if (tipoSolar && tipoSolar !== "todos") {
+          const t = (p.tipo_projeto_solar || "on_grid").toString();
+          if (t !== tipoSolar) return false;
+        }
+        return true;
       }),
     })).map(c => consultorColumnToOwner(c, etapaMap)),
-    [consultorColumns, etapaMap, existingEtapaIds, filters.status, resolveProjetoStatus]
+    [consultorColumns, etapaMap, existingEtapaIds, filters.status, filters.tipoProjetoSolar, resolveProjetoStatus]
   );
 
   // ── Persistent filter storage ──
@@ -193,6 +205,7 @@ export function ProjetosManager() {
         funilId?: string | null;
         consultorId?: string;
         status?: string;
+        tipoProjetoSolar?: string;
       };
     } catch { return null; }
   }, []);
@@ -233,6 +246,9 @@ export function ProjetosManager() {
     }
     if (storedPrefs.consultorId && storedPrefs.consultorId !== "todos" && filters.consultorId !== storedPrefs.consultorId) {
       updates.consultorId = storedPrefs.consultorId;
+    }
+    if (storedPrefs.tipoProjetoSolar && storedPrefs.tipoProjetoSolar !== "todos" && filters.tipoProjetoSolar !== storedPrefs.tipoProjetoSolar) {
+      updates.tipoProjetoSolar = storedPrefs.tipoProjetoSolar;
     }
     // Só aplica funilId se: (a) view não for por consultor; (b) funil ainda existe no tenant.
     const funilExiste = !!funis.find((f) => f.id === storedPrefs.funilId);
@@ -301,6 +317,9 @@ export function ProjetosManager() {
     } else if (key === "status") {
       applyFilters({ status: value });
       savePrefs({ status: value });
+    } else if (key === "tipoProjetoSolar") {
+      applyFilters({ tipoProjetoSolar: value });
+      savePrefs({ tipoProjetoSolar: value });
     } else if (key === "search") {
       applyFilters({ search: value });
     }
@@ -343,7 +362,7 @@ export function ProjetosManager() {
   }, [funis, selectedFunilId, activeFunis, defaultFunilApplied]);
 
   const clearFilters = () => {
-    applyFilters({ funilId: null, consultorId: "todos", status: "todos", search: "" });
+    applyFilters({ funilId: null, consultorId: "todos", status: "todos", search: "", tipoProjetoSolar: "todos" });
     setSelectedFunilId(null);
     try { localStorage.removeItem(STORAGE_KEY); } catch { /* ignore */ }
   };
@@ -510,6 +529,7 @@ export function ProjetosManager() {
                 valor_total: data.valor || 0,
                 observacoes: data.descricao || null,
                 status: "criado" as any,
+                tipo_projeto_solar: data.tipoProjetoSolar || "on_grid",
               } as any)
               .select("id")
               .single();
@@ -668,6 +688,8 @@ export function ProjetosManager() {
                   consultores={consultoresFilter}
                   filterStatus={filters.status}
                   onFilterStatusChange={(v) => handleFilterChange("status", v)}
+                  filterTipoProjetoSolar={filters.tipoProjetoSolar || "todos"}
+                  onFilterTipoProjetoSolarChange={(v) => handleFilterChange("tipoProjetoSolar", v)}
                   etiquetas={dynamicEtiquetas.map(e => ({ id: e.id, nome: e.nome, cor: e.cor, tenant_id: "" }))}
                   filterEtiquetas={filters.etiquetaIds || []}
                   onFilterEtiquetasChange={(ids) => applyFilters({ etiquetaIds: ids })}
