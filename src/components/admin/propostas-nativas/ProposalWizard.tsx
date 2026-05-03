@@ -1323,6 +1323,7 @@ export function ProposalWizard() {
                 celular: prev.celular || cliEnrich.telefone || "",
                 email: prev.email || cliEnrich.email || "",
                 cnpj_cpf: prev.cnpj_cpf || cliEnrich.cpf_cnpj || "",
+                data_nascimento: prev.data_nascimento || (cliEnrich as any).data_nascimento || "",
                 empresa: prev.empresa || cliEnrich.empresa || "",
                 cep: prev.cep || cliEnrich.cep || "",
                 endereco: prev.endereco || cliEnrich.rua || "",
