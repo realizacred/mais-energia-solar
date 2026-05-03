@@ -8,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import {
   Zap, ClipboardList, CheckCircle, CheckCircle2,
   AlertCircle, AlertTriangle, ChevronDown, ChevronUp, Camera, X,
-  MessageSquare, FileDown, Loader2, Check,
+  MessageSquare, FileDown, Loader2, Check, MoreVertical, Lock, RotateCcw, XCircle, User, CalendarClock,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -25,6 +25,9 @@ import {
   useSalvarObservacao,
   useUploadFotoItem,
   useFinalizarChecklist,
+  useCancelarChecklist,
+  useReabrirChecklist,
+  useServicoDoProjeto,
   type ChecklistInstalador,
 } from "@/hooks/useChecklistInstalador";
 import {
@@ -34,6 +37,12 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface Props {
@@ -45,8 +54,11 @@ const STATUS_MAP: Record<string, { label: string; className: string }> = {
   agendado: { label: "Agendado", className: "bg-info/10 text-info border-info/30" },
   em_andamento: { label: "Em andamento", className: "bg-primary/10 text-primary border-primary/30" },
   concluido: { label: "Concluído", className: "bg-success/10 text-success border-success/30" },
+  finalizado: { label: "Concluído", className: "bg-success/10 text-success border-success/30" },
   cancelado: { label: "Cancelado", className: "bg-destructive/10 text-destructive border-destructive/30" },
 };
+
+const FINAL_STATUSES = new Set(["concluido", "finalizado"]);
 
 const TIPO_CONFIG: Record<string, {
   label: string;
@@ -115,9 +127,24 @@ export function ProjetoInstalacaoTab({ dealId }: Props) {
   }
 
   // Determine which templates still need to be started
-  const availableTemplates = templates.filter(
-    t => !checklists.some(c => c.template_id === t.id && c.status !== "cancelado")
-  );
+  // Regra: Pós-Instalação só libera quando existir Pré-Instalação CONCLUÍDA
+  const preConcluida = checklists.some(c => {
+    const tpl = templates.find(t => t.id === c.template_id);
+    return tpl?.tipo === "pre_instalacao" && FINAL_STATUSES.has(c.status);
+  });
+
+  const availableTemplates = templates.filter(t => {
+    const jaIniciado = checklists.some(c => c.template_id === t.id && c.status !== "cancelado");
+    if (jaIniciado) return false;
+    if (t.tipo === "pos_instalacao" && !preConcluida) return false;
+    return true;
+  });
+
+  // Templates de Pós que estão bloqueados (sem pré concluída) — exibir como "locked"
+  const lockedTemplates = templates.filter(t => {
+    const jaIniciado = checklists.some(c => c.template_id === t.id && c.status !== "cancelado");
+    return !jaIniciado && t.tipo === "pos_instalacao" && !preConcluida;
+  });
 
   // Enrich checklists with template info
   const enrichedChecklists = checklists.map(c => {
@@ -193,7 +220,34 @@ export function ProjetoInstalacaoTab({ dealId }: Props) {
         </div>
       )}
 
-      {/* CHECKLISTS INICIADOS */}
+      {/* CARDS BLOQUEADOS — Pós sem Pré concluída */}
+      {lockedTemplates.length > 0 && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {lockedTemplates.map(t => {
+            const cfg = TIPO_CONFIG[t.tipo] || TIPO_CONFIG.pos_instalacao;
+            const IconComp = cfg.Icon;
+            return (
+              <div
+                key={t.id}
+                className="flex flex-col items-start gap-3 p-5 rounded-lg border border-dashed border-border bg-muted/30 text-left opacity-70"
+              >
+                <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center">
+                  <Lock className="w-4 h-4 text-muted-foreground" />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-muted-foreground">{cfg.label}</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Conclua a <strong>Pré-Instalação</strong> para liberar esta etapa.
+                  </p>
+                </div>
+                <Badge variant="outline" className="text-xs bg-muted text-muted-foreground border-border">
+                  Bloqueado
+                </Badge>
+              </div>
+            );
+          })}
+        </div>
+      )}
       {enrichedChecklists.length > 0 && (
         <div className="space-y-4">
           {enrichedChecklists.map(checklist => (
@@ -257,7 +311,22 @@ function ChecklistCard({
   const totalItems = items.length;
   const doneItems = respostas.filter(r => r.valor_boolean === true).length;
   const progress = totalItems > 0 ? Math.round((doneItems / totalItems) * 100) : 0;
-  const isConcluido = checklist.status === "concluido";
+  const isConcluido = FINAL_STATUSES.has(checklist.status);
+  const isCancelado = checklist.status === "cancelado";
+
+  const cancelar = useCancelarChecklist();
+  const reabrir = useReabrirChecklist();
+  const { data: servico } = useServicoDoProjeto(dealId);
+
+  const handleCancelar = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!confirm("Cancelar este checklist? Você poderá iniciar um novo depois.")) return;
+    cancelar.mutate({ checklistId: checklist.id, projetoId: dealId });
+  };
+  const handleReabrir = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    reabrir.mutate({ checklistId: checklist.id, projetoId: dealId });
+  };
 
   const handleDownloadReport = async () => {
     setDownloading(true);
@@ -318,9 +387,50 @@ function ChecklistCard({
                 {progress}%
               </Badge>
             )}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                <Button variant="ghost" size="icon" className="h-7 w-7">
+                  <MoreVertical className="h-4 w-4 text-muted-foreground" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+                {isConcluido && (
+                  <DropdownMenuItem onClick={handleReabrir} disabled={reabrir.isPending}>
+                    <RotateCcw className="h-4 w-4 mr-2" /> Reabrir checklist
+                  </DropdownMenuItem>
+                )}
+                {!isCancelado && (
+                  <DropdownMenuItem onClick={handleCancelar} disabled={cancelar.isPending} className="text-destructive focus:text-destructive">
+                    <XCircle className="h-4 w-4 mr-2" /> Cancelar checklist
+                  </DropdownMenuItem>
+                )}
+                {isCancelado && (
+                  <DropdownMenuItem onClick={handleReabrir} disabled={reabrir.isPending}>
+                    <RotateCcw className="h-4 w-4 mr-2" /> Reativar
+                  </DropdownMenuItem>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
             {isExpanded ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
           </div>
         </div>
+        {/* Linha de serviço vinculado (instalador + agendamento) */}
+        {(servico?.instalador_nome || servico?.data_agendada) && (
+          <div className="flex items-center gap-3 px-4 pb-3 -mt-2 text-xs text-muted-foreground">
+            {servico?.instalador_nome && (
+              <span className="inline-flex items-center gap-1">
+                <User className="h-3 w-3" /> {servico.instalador_nome}
+              </span>
+            )}
+            {servico?.data_agendada && (
+              <span className="inline-flex items-center gap-1">
+                <CalendarClock className="h-3 w-3" />
+                {formatDateTime(servico.data_agendada, { day: "2-digit", month: "2-digit", year: "2-digit", timeZone: "America/Sao_Paulo" })}
+                {servico.hora_inicio ? ` • ${String(servico.hora_inicio).slice(0,5)}` : ""}
+              </span>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Progress bar */}
