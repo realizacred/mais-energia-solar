@@ -31,12 +31,18 @@ import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useClientes, useSalvarCliente, type ClienteRow } from "@/hooks/useClientes";
 import { useClienteProjetoAberto } from "@/hooks/useProjetoCreateForm";
+import {
+  TIPO_PROJETO_SOLAR_OPTIONS,
+  DEFAULT_TIPO_PROJETO_SOLAR,
+  type TipoProjetoSolar,
+} from "@/lib/tipoProjetoSolar";
 
 const schema = z.object({
   nomeProjeto: z.string().trim().max(150, "Nome do projeto deve ter no máximo 150 caracteres").optional(),
   descricao: z.string().trim().max(1000, "Descrição deve ter no máximo 1000 caracteres").optional(),
   consultorId: z.string().trim().min(1, "Consultor responsável é obrigatório"),
   etiquetaId: z.string().optional(),
+  tipoProjetoSolar: z.enum(["on_grid", "hibrido", "off_grid", "ampliacao", "bombeamento"]).default("on_grid"),
   clienteNome: z.string().trim().min(2, "Nome do cliente é obrigatório").max(150, "Nome do cliente deve ter no máximo 150 caracteres"),
   clienteEmail: z.union([z.literal(""), z.string().trim().email("E-mail inválido").max(255, "E-mail deve ter no máximo 255 caracteres")]),
   clienteEmpresa: z.string().trim().max(150, "Nome da empresa deve ter no máximo 150 caracteres").optional(),
