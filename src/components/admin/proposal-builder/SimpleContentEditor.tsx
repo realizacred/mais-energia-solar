@@ -4,13 +4,14 @@
  * via toolbar. Modo avançado (HTML) continua disponível como fallback.
  */
 import { useEffect, useRef, useState } from "react";
-import { Bold, Italic, Underline, Link as LinkIcon, Code2, Variable } from "lucide-react";
+import { Bold, Italic, Underline, Link as LinkIcon, Code2, Variable, Image as ImageIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
+import { ImagePicker } from "./ImagePicker";
 
 interface Props {
   value: string;
