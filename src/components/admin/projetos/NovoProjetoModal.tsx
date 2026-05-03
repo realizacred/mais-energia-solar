@@ -70,6 +70,7 @@ export interface NovoProjetoData {
   descricao: string;
   etiqueta: string;
   notas: string;
+  tipoProjetoSolar: TipoProjetoSolar;
   cliente: {
     nome: string;
     email: string;
