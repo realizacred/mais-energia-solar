@@ -219,7 +219,7 @@ export function GdEnergyMonthly({ groupId }: Props) {
                 </div>
                 <div>
                   <p className="text-lg font-bold text-foreground leading-none">
-                    {allocations.reduceformatBRL(((s, a) => s + Number(a.estimated_savings_brl || 0), 0))}
+                    {formatBRL(allocations.reduce((s, a) => s + Number(a.estimated_savings_brl || 0), 0))}
                   </p>
                   <p className="text-xs text-muted-foreground mt-0.5">Economia Est.</p>
                 </div>
