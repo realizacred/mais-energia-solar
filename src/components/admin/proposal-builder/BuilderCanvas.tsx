@@ -112,6 +112,16 @@ export function BuilderCanvas({ state, onSelect, onHover, onDropBlock, onDeleteB
 
   return (
     <div className="flex-1 bg-muted/20 overflow-hidden flex flex-col">
+      {state.mode === "edit" && (
+        <div className="shrink-0 px-6 pt-4">
+          <div className="rounded-lg border border-primary/20 bg-primary/5 px-4 py-2.5 flex items-start gap-2 text-xs">
+            <span className="text-base leading-none">💡</span>
+            <div className="text-muted-foreground leading-relaxed">
+              Esta proposta usa <strong className="text-foreground">dados reais do cliente</strong>. Tudo que aparecer entre <code className="px-1 py-0.5 rounded bg-muted text-foreground font-mono text-[10px]">{`{{...}}`}</code> será preenchido automaticamente quando o cliente abrir. Use <strong className="text-foreground">"Ver como cliente"</strong> no topo para visualizar com dados de exemplo.
+            </div>
+          </div>
+        </div>
+      )}
       <ScrollArea className="flex-1">
         <div className="flex justify-center p-6 min-h-full">
           <div
