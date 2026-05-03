@@ -73,6 +73,7 @@ export default function PropostaLanding() {
   const [consultorNome, setConsultorNome] = useState<string | null>(null);
   const [consultorTelefone, setConsultorTelefone] = useState<string | null>(null);
   const [templateBlocks, setTemplateBlocks] = useState<TemplateBlock[] | null>(null);
+  const [isLegacyMigrated, setIsLegacyMigrated] = useState(false);
 
   const [submitting, setSubmitting] = useState(false);
   const [showReject, setShowReject] = useState(false);
@@ -127,7 +128,7 @@ export default function PropostaLanding() {
           .select("id, ordem, nome, tipo, is_default, preco_final, entrada_valor, num_parcelas, valor_parcela, taxa_juros_mensal, payback_meses, tir_anual, roi_25_anos, economia_primeiro_ano")
           .eq("versao_id", td.versao_id).order("ordem"),
         (supabase as any).from("propostas_nativas")
-          .select("tenant_id, consultor_id, titulo, proposta_num, created_at")
+          .select("tenant_id, consultor_id, titulo, proposta_num, created_at, external_source")
           .eq("id", td.proposta_id).maybeSingle(),
       ]);
 
@@ -162,6 +163,8 @@ export default function PropostaLanding() {
 
       if (propostaRes.data?.tenant_id) {
         const tenantId = propostaRes.data.tenant_id;
+        const src = (propostaRes.data as any).external_source;
+        setIsLegacyMigrated(src === "solarmarket" || src === "solar_market");
         const [brandRes, tenantRes, consultorRes] = await Promise.all([
           supabase.from("brand_settings")
             .select("logo_url, logo_white_url")
@@ -381,9 +384,22 @@ export default function PropostaLanding() {
     </div>
   );
 
-  // ─── SSOT: somente renderiza se houver template do editor vinculado à versão ───
-  // Fallback hardcoded removido (auditoria CRÍTICA): editor e landing devem usar o mesmo motor.
-  if (!templateBlocks || templateBlocks.length === 0) {
+  // ─── Regra de compatibilidade (revisada) ───
+  // 1) Se houver template WEB vinculado → SSOT (editor = landing)
+  // 2) Senão, se proposta é LEGADA migrada do SolarMarket → fallback hardcoded
+  //    (preserva links públicos antigos, não quebra histórico)
+  // 3) Senão (proposta nativa sem template WEB) → erro explícito,
+  //    forçando seleção de modelo no editor.
+  if (templateBlocks && templateBlocks.length > 0) {
+    return (
+      <div className="pl-landing" style={{ minHeight: "100vh" }}>
+        <style>{LANDING_STYLES}</style>
+        <TemplateHtmlRenderer blocks={templateBlocks} variables={templateVariables} />
+      </div>
+    );
+  }
+
+  if (!isLegacyMigrated) {
     return (
       <div style={{ minHeight: "100vh", background: "#0F172A", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
         <div style={{ maxWidth: 480, textAlign: "center", fontFamily: "'Open Sans', sans-serif" }}>
@@ -392,20 +408,112 @@ export default function PropostaLanding() {
             Proposta indisponível
           </h1>
           <p style={{ fontSize: "0.95rem", opacity: 0.8, margin: "0 0 8px" }}>
-            Esta proposta ainda não tem um modelo visual vinculado.
+            Esta proposta nativa ainda não tem um modelo WEB vinculado.
           </p>
           <p style={{ fontSize: "0.85rem", opacity: 0.6 }}>
-            Entre em contato com o consultor responsável para gerar uma nova versão.
+            Selecione um modelo no editor (/admin/proposta-comercial?tab=modelos-proposta) e gere uma nova versão.
           </p>
         </div>
       </div>
     );
   }
 
+  // ─── Fallback legado (somente propostas migradas do SolarMarket) ───
   return (
-    <div className="pl-landing" style={{ minHeight: "100vh" }}>
-      <style>{LANDING_STYLES}</style>
-      <TemplateHtmlRenderer blocks={templateBlocks} variables={templateVariables} />
+    <div style={{ minHeight: "100vh", fontFamily: "'Open Sans', sans-serif", background: "#0F172A" }}>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800;900&family=Open+Sans:wght@300;400;500;600&display=swap');
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        * { box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+      `}</style>
+
+      <ProposalHeroSection {...sectionProps} onScrollDown={scrollToCTA} activeCenario={activeCenario} />
+      <ProposalProblemSection {...sectionProps} activeCenario={activeCenario} />
+      <ProposalSolutionSection {...sectionProps} />
+      <ProposalEquipmentSection {...sectionProps} />
+      <TemplateInterativo {...sectionProps} />
+      <ProposalFinancialSection {...sectionProps} activeCenario={activeCenario} />
+      <ProposalAuthoritySection {...sectionProps} />
+      <ProposalSecuritySection {...sectionProps} />
+      <ProposalPaymentSection
+        {...sectionProps}
+        cenarios={cenarios}
+        selectedCenario={selectedCenario}
+        onSelectCenario={setSelectedCenario}
+      />
+      <div ref={ctaRef}>
+        <ProposalCTASection
+          {...sectionProps}
+          acceptForm={acceptForm}
+          onAcceptFormChange={setAcceptForm}
+          onAccept={handleAccept}
+          onReject={() => setShowReject(true)}
+          submitting={submitting}
+        />
+      </div>
+
+      <PropostaChatSection propostaData={templateVariables} />
+
+      <footer style={{
+        background: "#060A14", color: "rgba(255,255,255,0.3)", textAlign: "center",
+        padding: "2rem 1.5rem", fontSize: "0.75rem",
+        borderTop: "1px solid rgba(255,255,255,0.04)",
+      }}>
+        {brand?.logo_white_url && <img src={brand.logo_white_url} alt="" style={{ height: 32, objectFit: "contain", opacity: 0.3, marginBottom: 12 }} />}
+        <p style={{ margin: 0, fontFamily: "'Open Sans', sans-serif" }}>
+          © {new Date().getFullYear()} {tenantNome || "Energia Solar"} — Todos os direitos reservados
+        </p>
+      </footer>
+
+      {showReject && (
+        <div style={{
+          position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", zIndex: 100,
+          display: "flex", alignItems: "center", justifyContent: "center", padding: 16,
+        }}>
+          <div style={{ background: "#fff", borderRadius: 16, padding: 24, width: "90vw", maxWidth: 400 }}>
+            <h3 style={{ fontFamily: "Montserrat, sans-serif", fontWeight: 800, color: "#1B3A8C", fontSize: "1.1rem", margin: "0 0 12px" }}>
+              Recusar Proposta
+            </h3>
+            <p style={{ fontSize: "0.85rem", color: "#64748B", marginBottom: 12 }}>
+              Por favor, nos conte o motivo para que possamos melhorar:
+            </p>
+            <textarea
+              value={rejectMotivo}
+              onChange={e => setRejectMotivo(e.target.value)}
+              placeholder="Motivo da recusa..."
+              rows={3}
+              style={{
+                width: "100%", border: "1px solid #e2e8f0", borderRadius: 8, padding: "10px 14px",
+                fontSize: "0.85rem", outline: "none", resize: "none", fontFamily: "Open Sans, sans-serif",
+              }}
+            />
+            <div style={{ display: "flex", gap: 10, marginTop: 16, justifyContent: "flex-end" }}>
+              <button
+                onClick={() => setShowReject(false)}
+                style={{
+                  background: "transparent", border: "1px solid #e2e8f0", borderRadius: 8,
+                  padding: "8px 16px", cursor: "pointer", fontSize: "0.85rem", color: "#64748B",
+                }}
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleReject}
+                disabled={submitting}
+                style={{
+                  background: "#ef4444", color: "#fff", border: "none", borderRadius: 8,
+                  padding: "8px 16px", cursor: submitting ? "not-allowed" : "pointer",
+                  fontSize: "0.85rem", opacity: submitting ? 0.6 : 1,
+                }}
+              >
+                {submitting ? "Enviando..." : "Confirmar Recusa"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 
