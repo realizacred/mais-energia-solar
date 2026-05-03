@@ -736,6 +736,7 @@ export function ConvertLeadToClientDialog({
         telefone: data.telefone,
         email: data.email || null,
         cpf_cnpj: data.cpf_cnpj || null,
+        data_nascimento: data.data_nascimento || null,
         cep: data.cep || null,
         estado: data.estado,
         cidade: data.cidade,
