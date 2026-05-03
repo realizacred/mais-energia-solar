@@ -10,6 +10,7 @@ import { BarChart3, TrendingUp, DollarSign, Zap, ArrowDownUp } from "lucide-reac
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Bar, BarChart } from "recharts";
 import { useGdGroupEnergyHistory, type MonthlyReportRow } from "@/hooks/useGdEnergyReport";
 import { useGdCreditBalance } from "@/hooks/useGdEnergyEngine";
+import { formatBRL } from "@/lib/formatters";
 
 interface Props {
   groupId: string;
@@ -133,7 +134,7 @@ export function GdEnergyReport({ groupId }: Props) {
             </div>
             <div>
               <p className="text-sm font-bold text-foreground leading-none">
-                {totalSavings.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                {formatBRL(totalSavings)}
               </p>
               <p className="text-[10px] text-muted-foreground mt-0.5">Economia Total</p>
             </div>
@@ -220,7 +221,7 @@ export function GdEnergyReport({ groupId }: Props) {
                 </TableCell>
                 <TableCell className="text-right font-mono text-sm">
                   {r.estimated_savings_brl > 0
-                    ? r.estimated_savings_brl.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })
+                    ? formatBRL(r.estimated_savings_brl)
                     : "—"}
                 </TableCell>
                 <TableCell>

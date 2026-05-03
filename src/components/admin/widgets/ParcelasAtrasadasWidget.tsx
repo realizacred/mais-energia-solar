@@ -1,3 +1,4 @@
+import { formatBRL } from "@/lib/formatters";
  import { useState, useEffect } from "react";
  import { supabase } from "@/integrations/supabase/client";
  import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -60,7 +61,7 @@
    };
  
    const formatCurrency = (value: number) => {
-     return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value);
+     return formatBRL(value);
    };
  
    const getDiasAtraso = (dataVencimento: string) => {

@@ -6,6 +6,7 @@ import { TrendingUp } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
 import { format, addMonths } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { formatBRL } from "@/lib/formatters";
 
 interface PipelineLead {
   id: string;
@@ -140,7 +141,7 @@ export function RevenueForecastWidget() {
                 tickFormatter={v => new Intl.NumberFormat("pt-BR", { notation: "compact", currency: "BRL", style: "currency" }).format(v)}
               />
               <Tooltip
-                formatter={(v: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v)}
+                formatter={(v: number) => formatBRL(v)}
                 labelFormatter={l => `Mês: ${l}`}
               />
               <Bar dataKey="valor" radius={[4, 4, 0, 0]}>

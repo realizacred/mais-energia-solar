@@ -1,8 +1,9 @@
 // jsPDF + autoTable loaded via dynamic import to reduce initial bundle
 import type { EstoqueSaldo, EstoqueMovimento } from "@/hooks/useEstoque";
+import { formatBRL } from "@/lib/formatters";
 
 function formatCurrency(value: number) {
-  return value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+  return formatBRL(value);
 }
 
 function formatDate(iso: string) {
