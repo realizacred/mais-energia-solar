@@ -338,6 +338,7 @@ export function ConvertLeadToClientDialog({
           telefone: lead.telefone || "",
           email: "",
           cpf_cnpj: "",
+          data_nascimento: "",
           cep: lead.cep || "",
           estado: lead.estado || "",
           cidade: lead.cidade || "",
