@@ -319,6 +319,31 @@ export function GlobalSearch() {
             ))}
           </CommandGroup>
         )}
+
+        {(results.propostas?.length ?? 0) > 0 && (
+          <CommandGroup heading="Propostas">
+            {results.propostas!.map((p: any) => (
+              <CommandItem
+                key={p.id}
+                value={`proposta-${p.id}-${p.titulo ?? ""}-${p.codigo ?? ""}`}
+                onSelect={() =>
+                  go(p.projeto_id ? `/admin/projetos?projeto=${p.projeto_id}` : `/admin/propostas`)
+                }
+                className="flex items-center gap-2 cursor-pointer"
+              >
+                <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-foreground truncate">
+                    {p.titulo || p.codigo || "Proposta"}
+                  </p>
+                  <p className="text-xs text-muted-foreground truncate">
+                    {[p.codigo, p.status].filter(Boolean).join(" · ")}
+                  </p>
+                </div>
+              </CommandItem>
+            ))}
+          </CommandGroup>
+        )}
       </CommandList>
     </CommandDialog>
   );
