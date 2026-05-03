@@ -30,9 +30,6 @@ export interface ProposalClientSummaryData {
   }>;
 }
 
-function formatBRL(v: number) {
-  return formatBRL(v);
-}
 
 /**
  * Reusable commercial summary for the client.
