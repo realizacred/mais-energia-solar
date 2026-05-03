@@ -98,6 +98,7 @@ export function TipoProjetoSolarBadge({ projetoId, readOnly }: Props) {
   }
 
   return (
+    <div className="flex items-center gap-1.5 flex-wrap">
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <button
