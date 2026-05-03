@@ -293,7 +293,31 @@ function resolveFromContext(
     return s(str);
   }
 
-   // ── Comercial ──
+  // ── Projeto (endereço de instalação — fallback para cliente) ──
+  if (key === "projeto.cidade") {
+    const fs = ctx.finalSnapshot as any;
+    return s(fs?.cliente?.cidade ?? fs?.projeto_cidade ?? fs?.cidade_instalacao ?? ctx.cliente?.cidade);
+  }
+  if (key === "projeto.estado" || key === "projeto.uf") {
+    const fs = ctx.finalSnapshot as any;
+    return s(fs?.cliente?.estado ?? fs?.projeto_estado ?? fs?.uf_instalacao ?? ctx.cliente?.estado);
+  }
+  if (key === "projeto.bairro") {
+    const fs = ctx.finalSnapshot as any;
+    return s(fs?.cliente?.bairro ?? fs?.projeto_bairro ?? fs?.bairro_instalacao ?? ctx.cliente?.bairro);
+  }
+  if (key === "projeto.cep") {
+    const fs = ctx.finalSnapshot as any;
+    return s(fs?.cliente?.cep ?? fs?.projeto_cep ?? fs?.cep_instalacao ?? ctx.cliente?.cep);
+  }
+  if (key === "projeto.endereco") {
+    const fs = ctx.finalSnapshot as any;
+    return s(
+      fs?.cliente?.rua ?? fs?.cliente?.endereco
+      ?? fs?.projeto_endereco ?? fs?.rua_instalacao
+      ?? ctx.cliente?.endereco
+    );
+  }
   if (key === "comercial.responsavel_nome") return s(ctx.comercial?.responsavel_nome);
   if (key === "comercial.responsavel_email") return s(ctx.comercial?.responsavel_email);
   if (key === "comercial.responsavel_celular") return s(ctx.comercial?.responsavel_celular);
