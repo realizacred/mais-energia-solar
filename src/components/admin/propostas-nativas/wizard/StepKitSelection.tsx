@@ -152,14 +152,18 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
   }, [persistedManualKits, itens, pd?.topologias, custoKitOverride]);
   const setManualKits = onManualKitsChange || setLocalManualKits;
   const [editingKitIndex, setEditingKitIndex] = useState<number | null>(null);
-  const [selectedManualIdx, setSelectedManualIdx] = useState<number | null>(() => {
-    // If returning with itens already set from a manual kit, detect which one
+  const [localSelectedManualIdx, setLocalSelectedManualIdx] = useState<number | null>(() => {
     if (manualKitsProp.length > 0 && itens.length > 0) {
       const idx = manualKitsProp.findIndex(mk => mk.itens.length === itens.length && mk.itens.every((mi, i) => mi.modelo === itens[i]?.modelo));
       return idx >= 0 ? idx : null;
     }
     return null;
   });
+  const selectedManualIdx = onSelectedManualIdxChange ? (selectedManualIdxProp ?? null) : localSelectedManualIdx;
+  const setSelectedManualIdx = (idx: number | null) => {
+    if (onSelectedManualIdxChange) onSelectedManualIdxChange(idx);
+    else setLocalSelectedManualIdx(idx);
+  };
   const [showEditKitFechado, setShowEditKitFechado] = useState(false);
   const [showEditLayout, setShowEditLayout] = useState(false);
   const [showPremissas, setShowPremissas] = useState(false);
