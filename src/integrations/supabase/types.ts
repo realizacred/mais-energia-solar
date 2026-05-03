@@ -2062,7 +2062,7 @@ export type Database = {
           potencia_kwp: number | null
           rua: string | null
           simulacao_aceita_id: string | null
-          telefone: string
+          telefone: string | null
           telefone_normalized: string | null
           tenant_id: string
           transformador_id: string | null
@@ -2107,7 +2107,7 @@ export type Database = {
           potencia_kwp?: number | null
           rua?: string | null
           simulacao_aceita_id?: string | null
-          telefone: string
+          telefone?: string | null
           telefone_normalized?: string | null
           tenant_id?: string
           transformador_id?: string | null
@@ -2152,7 +2152,7 @@ export type Database = {
           potencia_kwp?: number | null
           rua?: string | null
           simulacao_aceita_id?: string | null
-          telefone?: string
+          telefone?: string | null
           telefone_normalized?: string | null
           tenant_id?: string
           transformador_id?: string | null
