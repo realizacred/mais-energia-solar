@@ -162,20 +162,22 @@ function resolveFromContext(
   ctx: ProposalResolverContext
 ): string | null {
   // ── Priority 1: final_snapshot (SSOT for finalized versions) ──
-  if (ctx.finalSnapshot) {
+  // Adapter SM legacy → chaves canônicas (idempotente, não muta originais).
+  const fsCanon = ctx.finalSnapshot ? canonicalizeSnapshot(ctx.finalSnapshot as Record<string, unknown>) : null;
+  if (fsCanon) {
     // Try direct key match in final_snapshot
-    const fsVal = deepGet(ctx.finalSnapshot, key);
+    const fsVal = deepGet(fsCanon, key);
     if (fsVal != null && fsVal !== "") {
       if (typeof fsVal === "number") return fmtNumber(fsVal);
       return String(fsVal);
     }
     // Try outputs.{key} and inputs.{key}
-    const outVal = deepGet(ctx.finalSnapshot, `outputs.${key}`);
+    const outVal = deepGet(fsCanon, `outputs.${key}`);
     if (outVal != null && outVal !== "") {
       if (typeof outVal === "number") return fmtNumber(outVal);
       return String(outVal);
     }
-    const inVal = deepGet(ctx.finalSnapshot, `inputs.${key}`);
+    const inVal = deepGet(fsCanon, `inputs.${key}`);
     if (inVal != null && inVal !== "") {
       if (typeof inVal === "number") return fmtNumber(inVal);
       return String(inVal);
