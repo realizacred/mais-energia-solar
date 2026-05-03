@@ -28603,6 +28603,10 @@ export type Database = {
       normalize_remote_jid: { Args: { raw_jid: string }; Returns: string }
       normalize_wa_jid: { Args: { raw_jid: string }; Returns: string }
       preview_seed_data: { Args: never; Returns: Json }
+      process_proposta_aceita: {
+        Args: { p_proposta_id: string }
+        Returns: Json
+      }
       proposal_clone: {
         Args: {
           p_source_proposta_id: string
