@@ -101,6 +101,40 @@ Deno.serve(async (req) => {
 
     const targets = Array.from(targetUserIds);
 
+    // ── VISUALIZAÇÃO: caminho enxuto (apenas WA ao consultor) ──
+    if (decisao === "visualizada") {
+      let waSent = false;
+      if (tokenData.created_by) {
+        try {
+          const { data: consultant } = await supabase
+            .from("profiles")
+            .select("telefone")
+            .eq("user_id", tokenData.created_by)
+            .eq("tenant_id", tenantId)
+            .maybeSingle();
+
+          if (consultant?.telefone) {
+            const mensagem = `👀 ${clienteNome} abriu sua proposta agora! Acesse o sistema para acompanhar.`;
+            const { error: waErr } = await supabase.functions.invoke("send-whatsapp-message", {
+              body: {
+                telefone: consultant.telefone,
+                mensagem,
+                tenant_id: tenantId,
+                tipo: "automatico",
+              },
+            });
+            waSent = !waErr;
+            if (waErr) console.warn("[proposal-decision-notify] WA visualização falhou:", waErr);
+          }
+        } catch (e) {
+          console.warn("[proposal-decision-notify] WA visualização erro:", e);
+        }
+      }
+      console.log(`[proposal-decision-notify] visualizada wa=${waSent}`);
+      return jsonOk({ notified: waSent ? 1 : 0, whatsapp_sent: waSent, decisao });
+    }
+
+
     // ── 3. Send push notifications ──
     const isAccepted = decisao === "aceita";
     const pushTitle = isAccepted
