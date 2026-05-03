@@ -350,23 +350,21 @@ export function CustomFieldEditModal({
           {/* ── Step 2: Config ── */}
           {wizardStep === "config" && (
             <>
-              {/* Back / Change type */}
-              <Button variant="ghost" type="button" onClick={() => setWizardStep("type")}
-                className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors">
-                <ChevronLeft className="h-4 w-4" />
-                {editingField ? "Alterar tipo" : "Voltar"}
-              </Button>
-
-              {/* Selected type indicator */}
-              <div className="flex justify-center py-1">
+              {/* Header row: back + selected type chip */}
+              <div className="flex items-center justify-between gap-3">
+                <Button variant="ghost" type="button" onClick={() => setWizardStep("type")}
+                  className="h-8 px-2 flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground">
+                  <ChevronLeft className="h-3.5 w-3.5" />
+                  {editingField ? "Alterar tipo" : "Voltar"}
+                </Button>
                 {(() => {
                   const nft = normalizeFieldType(form.field_type);
                   const Icon = FIELD_TYPE_ICONS[nft] || Type;
                   const colors = FIELD_TYPE_COLORS[nft] || FIELD_TYPE_COLORS.text;
                   return (
-                    <div className="flex flex-col items-center gap-1.5 px-6 py-3 rounded-xl border bg-card shadow-sm">
-                      <div className={cn("w-12 h-12 rounded-xl flex items-center justify-center shadow-sm ring-1", colors.bg, colors.ring)}>
-                        <Icon className={cn("h-6 w-6", colors.text)} />
+                    <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg border bg-card shadow-sm">
+                      <div className={cn("w-7 h-7 rounded-md flex items-center justify-center ring-1", colors.bg, colors.ring)}>
+                        <Icon className={cn("h-4 w-4", colors.text)} />
                       </div>
                       <span className="text-xs font-semibold text-foreground">{FIELD_TYPE_LABELS[nft]}</span>
                     </div>
