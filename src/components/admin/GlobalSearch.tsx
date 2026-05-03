@@ -28,7 +28,7 @@ function digitsOnly(s: string): string {
  * - Kits (solar_kit_catalog): name, fabricante, marca
  * - Inversores (inversores_catalogo): fabricante, modelo
  */
-function useGlobalSearchResults(rawTerm: string) {
+export function useGlobalSearchResults(rawTerm: string) {
   const term = rawTerm.trim();
   const enabled = term.length >= MIN_CHARS;
   const digits = digitsOnly(term);
