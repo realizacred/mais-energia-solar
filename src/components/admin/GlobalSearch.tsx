@@ -10,7 +10,7 @@ import {
   CommandGroup,
   CommandItem,
 } from "@/components/ui/command";
-import { Users, UserCheck, FolderKanban, Package, Cpu } from "lucide-react";
+import { Users, UserCheck, FolderKanban, Package, Cpu, FileText } from "lucide-react";
 import { formatPhoneBR } from "@/lib/formatters";
 
 const STALE_TIME = 1000 * 30;
@@ -77,7 +77,12 @@ export function useGlobalSearchResults(rawTerm: string) {
         `modelo.ilike.${like}`,
       ].join(",");
 
-      const [leadsRes, clientesRes, projetosRes, kitsRes, inversoresRes] =
+      const propostaOr = [
+        `titulo.ilike.${like}`,
+        `codigo.ilike.${like}`,
+      ].join(",");
+
+      const [leadsRes, clientesRes, projetosRes, kitsRes, inversoresRes, propostasRes] =
         await Promise.all([
           supabase
             .from("leads")
@@ -109,6 +114,12 @@ export function useGlobalSearchResults(rawTerm: string) {
             .eq("ativo", true)
             .or(inversorOr)
             .limit(PER_GROUP_LIMIT),
+          supabase
+            .from("propostas_nativas")
+            .select("id, titulo, codigo, status, projeto_id, cliente_id")
+            .is("deleted_at", null)
+            .or(propostaOr)
+            .limit(PER_GROUP_LIMIT),
         ]);
 
       return {
@@ -117,6 +128,7 @@ export function useGlobalSearchResults(rawTerm: string) {
         projetos: projetosRes.data ?? [],
         kits: kitsRes.data ?? [],
         inversores: inversoresRes.data ?? [],
+        propostas: propostasRes.data ?? [],
       };
     },
   });
@@ -162,14 +174,15 @@ export function GlobalSearch() {
     [navigate]
   );
 
-  const results = data ?? { leads: [], clientes: [], projetos: [], kits: [], inversores: [] };
+  const results = data ?? { leads: [], clientes: [], projetos: [], kits: [], inversores: [], propostas: [] };
   const hasAny = useMemo(
     () =>
       results.leads.length +
         results.clientes.length +
         results.projetos.length +
         results.kits.length +
-        results.inversores.length >
+        results.inversores.length +
+        (results.propostas?.length ?? 0) >
       0,
     [results]
   );
@@ -300,6 +313,31 @@ export function GlobalSearch() {
                   <p className="text-xs text-muted-foreground truncate">
                     {inv.potencia_nominal_kw ? `${inv.potencia_nominal_kw} kW` : ""}
                     {inv.fases ? ` · ${inv.fases}` : ""}
+                  </p>
+                </div>
+              </CommandItem>
+            ))}
+          </CommandGroup>
+        )}
+
+        {(results.propostas?.length ?? 0) > 0 && (
+          <CommandGroup heading="Propostas">
+            {results.propostas!.map((p: any) => (
+              <CommandItem
+                key={p.id}
+                value={`proposta-${p.id}-${p.titulo ?? ""}-${p.codigo ?? ""}`}
+                onSelect={() =>
+                  go(p.projeto_id ? `/admin/projetos?projeto=${p.projeto_id}` : `/admin/propostas`)
+                }
+                className="flex items-center gap-2 cursor-pointer"
+              >
+                <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-foreground truncate">
+                    {p.titulo || p.codigo || "Proposta"}
+                  </p>
+                  <p className="text-xs text-muted-foreground truncate">
+                    {[p.codigo, p.status].filter(Boolean).join(" · ")}
                   </p>
                 </div>
               </CommandItem>
