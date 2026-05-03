@@ -48,6 +48,7 @@ const schema = z.object({
   clienteEmpresa: z.string().trim().max(150, "Nome da empresa deve ter no máximo 150 caracteres").optional(),
   clienteCpfCnpj: z.string().trim().max(18, "CPF/CNPJ inválido").optional(),
   clienteTelefone: z.string().trim().min(10, "Telefone celular é obrigatório").max(11, "Telefone inválido"),
+  clienteDataNascimento: z.string().trim().optional().or(z.literal("")),
   valor: z.number().min(0).optional(),
   cep: z.string().trim().max(9, "CEP inválido").optional().or(z.literal("")),
   rua: z.string().trim().max(150, "Logradouro deve ter no máximo 150 caracteres").optional().or(z.literal("")),
@@ -132,6 +133,7 @@ export function NovoProjetoModal({
       clienteEmpresa: "",
       clienteCpfCnpj: "",
       clienteTelefone: "",
+      clienteDataNascimento: "",
       valor: 0,
       cep: "",
       rua: "",
@@ -157,6 +159,7 @@ export function NovoProjetoModal({
       clienteEmpresa: "",
       clienteCpfCnpj: "",
       clienteTelefone: "",
+      clienteDataNascimento: "",
       valor: 0,
       cep: "",
       rua: "",
@@ -221,6 +224,7 @@ export function NovoProjetoModal({
       clienteEmpresa: cliente.empresa || "",
       clienteCpfCnpj: cliente.cpf_cnpj || "",
       clienteTelefone: cliente.telefone || "",
+      clienteDataNascimento: (cliente as any).data_nascimento || "",
       valor: form.getValues("valor") || 0,
       cep: cliente.cep || "",
       rua: cliente.rua || "",
@@ -251,6 +255,7 @@ export function NovoProjetoModal({
             email: values.clienteEmail?.trim() || null,
             empresa: values.clienteEmpresa?.trim() || null,
             cpf_cnpj: values.clienteCpfCnpj?.trim() || null,
+            data_nascimento: values.clienteDataNascimento?.trim() || null,
             cep: values.cep?.trim() || null,
             estado: values.estado?.trim() || null,
             cidade: values.cidade?.trim() || null,
@@ -502,6 +507,11 @@ export function NovoProjetoModal({
                       )}
                     />
                     {form.formState.errors.clienteTelefone && <p className="text-xs text-destructive">{form.formState.errors.clienteTelefone.message}</p>}
+                  </div>
+
+                  <div className="space-y-1">
+                    <Label className="text-[11px] font-medium text-muted-foreground">Data de nascimento</Label>
+                    <Input type="date" className="h-8 text-sm" {...form.register("clienteDataNascimento")} />
                   </div>
                 </div>
 
