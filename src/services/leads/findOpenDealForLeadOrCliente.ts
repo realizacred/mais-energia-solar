@@ -96,17 +96,17 @@ export async function findOpenDealForLeadOrCliente(
       ? supabase.from("consultores").select("id, nome").in("id", ownerIds)
       : Promise.resolve({ data: [] as any[] }),
     pipelineIds.length
-      ? supabase.from("pipelines").select("id, nome").in("id", pipelineIds)
+      ? supabase.from("pipelines").select("id, name").in("id", pipelineIds)
       : Promise.resolve({ data: [] as any[] }),
     stageIds.length
-      ? supabase.from("pipeline_stages").select("id, nome").in("id", stageIds)
+      ? supabase.from("pipeline_stages").select("id, name").in("id", stageIds)
       : Promise.resolve({ data: [] as any[] }),
   ]);
 
   const clientesMap = new Map((clientesRes.data || []).map((x: any) => [x.id, x.nome]));
   const ownersMap = new Map((ownersRes.data || []).map((x: any) => [x.id, x.nome]));
-  const pipelinesMap = new Map((pipelinesRes.data || []).map((x: any) => [x.id, x.nome]));
-  const stagesMap = new Map((stagesRes.data || []).map((x: any) => [x.id, x.nome]));
+  const pipelinesMap = new Map((pipelinesRes.data || []).map((x: any) => [x.id, x.name]));
+  const stagesMap = new Map((stagesRes.data || []).map((x: any) => [x.id, x.name]));
 
   return deals.map((d: any) => ({
     deal_id: d.id,
