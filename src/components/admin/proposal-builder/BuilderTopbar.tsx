@@ -24,9 +24,9 @@ interface BuilderTopbarProps {
 }
 
 const PROPOSAL_TYPES: { value: ProposalType; label: string; icon: React.ElementType }[] = [
-  { value: "grid", label: "On-Grid", icon: Zap },
-  { value: "hybrid", label: "Híbrido", icon: Battery },
-  { value: "dual", label: "Dual", icon: Repeat },
+  { value: "grid", label: "Solar tradicional", icon: Zap },
+  { value: "hybrid", label: "Com bateria", icon: Battery },
+  { value: "dual", label: "Comparativo", icon: Repeat },
 ];
 
 const DEVICES: { value: DevicePreview; icon: React.ElementType; label: string }[] = [
