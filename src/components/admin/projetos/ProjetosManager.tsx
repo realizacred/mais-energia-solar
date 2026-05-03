@@ -688,6 +688,8 @@ export function ProjetosManager() {
                   consultores={consultoresFilter}
                   filterStatus={filters.status}
                   onFilterStatusChange={(v) => handleFilterChange("status", v)}
+                  filterTipoProjetoSolar={filters.tipoProjetoSolar || "todos"}
+                  onFilterTipoProjetoSolarChange={(v) => handleFilterChange("tipoProjetoSolar", v)}
                   etiquetas={dynamicEtiquetas.map(e => ({ id: e.id, nome: e.nome, cor: e.cor, tenant_id: "" }))}
                   filterEtiquetas={filters.etiquetaIds || []}
                   onFilterEtiquetasChange={(ids) => applyFilters({ etiquetaIds: ids })}
