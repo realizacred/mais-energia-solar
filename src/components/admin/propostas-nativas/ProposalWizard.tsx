@@ -1313,7 +1313,7 @@ export function ProposalWizard() {
           if (!s.cliente?.nome && propostaMeta?.cliente_id) {
             const { data: cliEnrich } = await supabase
               .from("clientes")
-              .select("nome, telefone, email, cpf_cnpj, empresa, cep, rua, numero, complemento, bairro, cidade, estado")
+              .select("nome, telefone, email, cpf_cnpj, data_nascimento, empresa, cep, rua, numero, complemento, bairro, cidade, estado")
               .eq("id", propostaMeta.cliente_id)
               .maybeSingle();
             if (cliEnrich?.nome) {
@@ -1323,6 +1323,7 @@ export function ProposalWizard() {
                 celular: prev.celular || cliEnrich.telefone || "",
                 email: prev.email || cliEnrich.email || "",
                 cnpj_cpf: prev.cnpj_cpf || cliEnrich.cpf_cnpj || "",
+                data_nascimento: prev.data_nascimento || (cliEnrich as any).data_nascimento || "",
                 empresa: prev.empresa || cliEnrich.empresa || "",
                 cep: prev.cep || cliEnrich.cep || "",
                 endereco: prev.endereco || cliEnrich.rua || "",
@@ -1675,7 +1676,7 @@ export function ProposalWizard() {
       try {
         const { data: cli } = await supabase
           .from("clientes")
-          .select("id, nome, telefone, email, cpf_cnpj, empresa, cep, rua, numero, complemento, bairro, cidade, estado, lead_id, municipio_ibge_codigo")
+          .select("id, nome, telefone, email, cpf_cnpj, data_nascimento, empresa, cep, rua, numero, complemento, bairro, cidade, estado, lead_id, municipio_ibge_codigo")
           .eq("id", customerIdFromUrl)
           .maybeSingle();
         if (cancelled || !cli) return;
@@ -1683,6 +1684,7 @@ export function ProposalWizard() {
         setCliente({
           nome: cli.nome || "", empresa: cli.empresa || "", cnpj_cpf: cli.cpf_cnpj || "",
           email: cli.email || "", celular: cli.telefone || "",
+          data_nascimento: (cli as any).data_nascimento || "",
           cep: cli.cep || "", endereco: cli.rua || "", numero: cli.numero || "",
           complemento: cli.complemento || "", bairro: cli.bairro || "",
           cidade: cli.cidade || "", estado: cli.estado || "",

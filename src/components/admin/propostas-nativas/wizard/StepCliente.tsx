@@ -561,6 +561,15 @@ function StepClienteForm({
             <EmailInput value={cliente.email} onChange={v => update("email", v)} className="h-9" />
           </div>
           <div className="space-y-1.5">
+            <Label className="text-xs">Data de nascimento</Label>
+            <Input
+              type="date"
+              value={cliente.data_nascimento}
+              onChange={e => update("data_nascimento", e.target.value)}
+              className="h-9"
+            />
+          </div>
+          <div className="space-y-1.5">
             <Label className="text-xs">Celular *</Label>
             <PhoneInput
               value={cliente.celular}

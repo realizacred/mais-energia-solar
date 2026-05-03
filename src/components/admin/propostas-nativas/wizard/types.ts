@@ -33,6 +33,7 @@ export interface ClienteData {
   cnpj_cpf: string;
   email: string;
   celular: string;
+  data_nascimento: string;
   cep: string;
   endereco: string;
   numero: string;
@@ -405,7 +406,7 @@ export interface WizardState {
 // ─── Defaults ──────────────────────────────────────────────
 
 export const EMPTY_CLIENTE: ClienteData = {
-  nome: "", empresa: "", cnpj_cpf: "", email: "", celular: "",
+  nome: "", empresa: "", cnpj_cpf: "", email: "", celular: "", data_nascimento: "",
   cep: "", endereco: "", numero: "", complemento: "", bairro: "", cidade: "", estado: "",
 };
 

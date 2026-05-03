@@ -73,6 +73,7 @@ const formSchema = z.object({
   telefone: z.string().min(10, "Telefone é obrigatório"),
   email: z.string().min(1, "E-mail é obrigatório").email("E-mail inválido"),
   cpf_cnpj: z.string().min(11, "CPF/CNPJ é obrigatório"),
+  data_nascimento: z.string().optional(),
   cep: z.string().optional(),
   estado: z.string().min(2, "Estado é obrigatório"),
   cidade: z.string().min(2, "Cidade é obrigatória"),
@@ -151,6 +152,7 @@ export function ConvertLeadToClientDialog({
       telefone: "",
       email: "",
       cpf_cnpj: "",
+      data_nascimento: "",
       cep: "",
       estado: "",
       cidade: "",
@@ -294,6 +296,7 @@ export function ConvertLeadToClientDialog({
           telefone: savedData.formData.telefone || lead.telefone || "",
           email: savedData.formData.email || "",
           cpf_cnpj: savedData.formData.cpf_cnpj || "",
+          data_nascimento: savedData.formData.data_nascimento || "",
           cep: savedData.formData.cep || lead.cep || "",
           estado: savedData.formData.estado || lead.estado || "",
           cidade: savedData.formData.cidade || lead.cidade || "",
@@ -335,6 +338,7 @@ export function ConvertLeadToClientDialog({
           telefone: lead.telefone || "",
           email: "",
           cpf_cnpj: "",
+          data_nascimento: "",
           cep: lead.cep || "",
           estado: lead.estado || "",
           cidade: lead.cidade || "",
@@ -732,6 +736,7 @@ export function ConvertLeadToClientDialog({
         telefone: data.telefone,
         email: data.email || null,
         cpf_cnpj: data.cpf_cnpj || null,
+        data_nascimento: data.data_nascimento || null,
         cep: data.cep || null,
         estado: data.estado,
         cidade: data.cidade,
@@ -1140,6 +1145,17 @@ export function ConvertLeadToClientDialog({
                           <FormItem>
                             <FormLabel>CPF/CNPJ *</FormLabel>
                             <FormControl><CpfCnpjInput value={field.value || ""} onChange={field.onChange} label="" /></FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="data_nascimento"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Data de nascimento</FormLabel>
+                            <FormControl><Input type="date" value={field.value || ""} onChange={field.onChange} /></FormControl>
                             <FormMessage />
                           </FormItem>
                         )}
