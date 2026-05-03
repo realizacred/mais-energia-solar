@@ -148,7 +148,7 @@ export const DEFAULT_CHARTS: Omit<ProposalChart, "id" | "tenant_id" | "created_a
     value_field: "valor",
     title: "Comparação de Custos",
     subtitle: "Antes e Depois da Energia Solar",
-    colors: ["#ef4444", "#3b82f6", "#f59e0b", "#8b5cf6", "#06b6d4"],
+    colors: ["#144C8C", "#FF6A00", "#16A34A", "#3F6FCC", "#F59E0B"],
     chart_options: {},
     width: 1600,
     height: 900,
