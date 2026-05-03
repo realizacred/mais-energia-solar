@@ -12731,6 +12731,44 @@ export type Database = {
           },
         ]
       }
+      obras_transacional: {
+        Row: {
+          created_at: string
+          id: string
+          projeto_id: string | null
+          status: string
+          tenant_id: string
+          updated_at: string
+          venda_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          projeto_id?: string | null
+          status?: string
+          tenant_id: string
+          updated_at?: string
+          venda_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          projeto_id?: string | null
+          status?: string
+          tenant_id?: string
+          updated_at?: string
+          venda_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "obras_transacional_venda_id_fkey"
+            columns: ["venda_id"]
+            isOneToOne: true
+            referencedRelation: "vendas_transacional"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       orcamentos: {
         Row: {
           area: string
@@ -24502,6 +24540,69 @@ export type Database = {
           },
         ]
       }
+      vendas_transacional: {
+        Row: {
+          cliente_id: string | null
+          created_at: string
+          created_by: string | null
+          deal_id: string | null
+          id: string
+          potencia_kwp: number | null
+          projeto_id: string | null
+          proposta_id: string
+          status: string
+          tenant_id: string
+          updated_at: string
+          valor_total: number | null
+          versao_id: string
+        }
+        Insert: {
+          cliente_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          deal_id?: string | null
+          id?: string
+          potencia_kwp?: number | null
+          projeto_id?: string | null
+          proposta_id: string
+          status?: string
+          tenant_id: string
+          updated_at?: string
+          valor_total?: number | null
+          versao_id: string
+        }
+        Update: {
+          cliente_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          deal_id?: string | null
+          id?: string
+          potencia_kwp?: number | null
+          projeto_id?: string | null
+          proposta_id?: string
+          status?: string
+          tenant_id?: string
+          updated_at?: string
+          valor_total?: number | null
+          versao_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vendas_transacional_proposta_id_fkey"
+            columns: ["proposta_id"]
+            isOneToOne: false
+            referencedRelation: "propostas_nativas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vendas_transacional_versao_id_fkey"
+            columns: ["versao_id"]
+            isOneToOne: true
+            referencedRelation: "proposta_versoes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       vendor_invites: {
         Row: {
           consultor_id: string
@@ -27636,6 +27737,7 @@ export type Database = {
         Args: { _dataset_code: string; _metadata?: Json; _version_tag: string }
         Returns: string
       }
+      create_obra_from_venda: { Args: { p_venda_id: string }; Returns: string }
       create_proposta_nativa_atomic: {
         Args: {
           p_cliente_bairro?: string
@@ -27673,6 +27775,10 @@ export type Database = {
           p_valor_total: number
         }
         Returns: Json
+      }
+      create_venda_from_proposta: {
+        Args: { p_versao_id: string }
+        Returns: string
       }
       current_tenant_id: { Args: never; Returns: string }
       decrypt_secret: { Args: { enc: string; secret: string }; Returns: string }
