@@ -363,7 +363,7 @@ export default function PropostaPublica() {
         body: {
           token: tokenData.token,
           action: "aceitar",
-          ip_address: "client",
+          // ip_address resolvido server-side pela edge
           user_agent: navigator.userAgent,
         },
       });
