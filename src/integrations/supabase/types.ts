@@ -27706,6 +27706,22 @@ export type Database = {
         Returns: Json
       }
       check_phone_duplicate: { Args: { _telefone: string }; Returns: boolean }
+      check_proposta_projeto_deal_consistency: {
+        Args: never
+        Returns: {
+          deal_divergente: boolean
+          deal_id: string
+          deal_kwp: number
+          deal_value: number
+          projeto_divergente: boolean
+          projeto_id: string
+          projeto_kwp: number
+          projeto_valor: number
+          proposta_id: string
+          src_kwp: number
+          src_valor: number
+        }[]
+      }
       check_rate_limit: {
         Args: {
           _function_name: string
