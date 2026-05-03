@@ -8,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import {
   Zap, ClipboardList, CheckCircle, CheckCircle2,
   AlertCircle, AlertTriangle, ChevronDown, ChevronUp, Camera, X,
-  MessageSquare, FileDown, Loader2, Check,
+  MessageSquare, FileDown, Loader2, Check, MoreVertical, Lock, RotateCcw, XCircle, User, CalendarClock,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -25,6 +25,9 @@ import {
   useSalvarObservacao,
   useUploadFotoItem,
   useFinalizarChecklist,
+  useCancelarChecklist,
+  useReabrirChecklist,
+  useServicoDoProjeto,
   type ChecklistInstalador,
 } from "@/hooks/useChecklistInstalador";
 import {
@@ -34,6 +37,12 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface Props {
