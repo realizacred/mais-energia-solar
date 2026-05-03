@@ -145,7 +145,7 @@ export function BuilderTopbar({
 
         <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs" onClick={onRestoreDefault}>
           <RotateCcw className="h-3.5 w-3.5" />
-          Restaurar Padrão
+          Voltar ao modelo original
         </Button>
 
         <Tooltip>
