@@ -82,7 +82,7 @@ export function useGlobalSearchResults(rawTerm: string) {
         `codigo.ilike.${like}`,
       ].join(",");
 
-      const [leadsRes, clientesRes, projetosRes, kitsRes, inversoresRes, propostasRes] =
+      const [leadsRes, clientesRes, projetosDiretos, kitsRes, inversoresRes, propostasDiretas] =
         await Promise.all([
           supabase
             .from("leads")
@@ -99,7 +99,7 @@ export function useGlobalSearchResults(rawTerm: string) {
           supabase
             .from("projetos")
             .select(
-              "id, codigo, status, potencia_kwp, cidade_instalacao, modelo_modulos, modelo_inversor"
+              "id, codigo, status, potencia_kwp, cidade_instalacao, modelo_modulos, modelo_inversor, cliente_id"
             )
             .or(projetoOr)
             .limit(PER_GROUP_LIMIT),
@@ -122,13 +122,39 @@ export function useGlobalSearchResults(rawTerm: string) {
             .limit(PER_GROUP_LIMIT),
         ]);
 
+      // Busca por nome do cliente: incluir projetos e propostas vinculados aos clientes encontrados
+      const clienteIds = (clientesRes.data ?? []).map((c: any) => c.id);
+      const [projetosPorCliente, propostasPorCliente] = clienteIds.length
+        ? await Promise.all([
+            supabase
+              .from("projetos")
+              .select(
+                "id, codigo, status, potencia_kwp, cidade_instalacao, modelo_modulos, modelo_inversor, cliente_id"
+              )
+              .in("cliente_id", clienteIds)
+              .limit(PER_GROUP_LIMIT),
+            supabase
+              .from("propostas_nativas")
+              .select("id, titulo, codigo, status, projeto_id, cliente_id")
+              .is("deleted_at", null)
+              .in("cliente_id", clienteIds)
+              .limit(PER_GROUP_LIMIT),
+          ])
+        : [{ data: [] as any[] }, { data: [] as any[] }];
+
+      const dedupById = (arr: any[]) => {
+        const map = new Map<string, any>();
+        for (const item of arr) if (item?.id && !map.has(item.id)) map.set(item.id, item);
+        return Array.from(map.values()).slice(0, PER_GROUP_LIMIT);
+      };
+
       return {
         leads: leadsRes.data ?? [],
         clientes: clientesRes.data ?? [],
-        projetos: projetosRes.data ?? [],
+        projetos: dedupById([...(projetosDiretos.data ?? []), ...(projetosPorCliente.data ?? [])]),
         kits: kitsRes.data ?? [],
         inversores: inversoresRes.data ?? [],
-        propostas: propostasRes.data ?? [],
+        propostas: dedupById([...(propostasDiretas.data ?? []), ...(propostasPorCliente.data ?? [])]),
       };
     },
   });
