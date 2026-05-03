@@ -159,9 +159,16 @@ export function ProjetosManager() {
 
   const statusFiltered = useMemo(() => {
     const status = filters.status;
-    if (!status || status === "todos") return validProjetos;
-    return validProjetos.filter(p => resolveProjetoStatus(p) === status);
-  }, [validProjetos, filters.status, resolveProjetoStatus]);
+    const tipoSolar = filters.tipoProjetoSolar;
+    return validProjetos.filter((p) => {
+      if (status && status !== "todos" && resolveProjetoStatus(p) !== status) return false;
+      if (tipoSolar && tipoSolar !== "todos") {
+        const t = (p.tipo_projeto_solar || "on_grid").toString();
+        if (t !== tipoSolar) return false;
+      }
+      return true;
+    });
+  }, [validProjetos, filters.status, filters.tipoProjetoSolar, resolveProjetoStatus]);
 
   const adaptedDeals = useMemo(
     () => statusFiltered.map(p => projetoToCard(p, etapaMap)),
