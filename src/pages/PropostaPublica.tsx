@@ -387,12 +387,45 @@ export default function PropostaPublica() {
       if (transitionErr) throw transitionErr;
 
       setDecision("aceita");
+      // Buscar termo PDF + consultor para tela pós-aceite (com pequeno delay para PDF)
+      setTimeout(() => loadPostDecisionInfo(tokenData.id, tokenData.proposta_id), 2500);
       toast({ title: "Proposta aceita com sucesso!" });
     } catch (e: any) {
       toast({ title: "Erro ao aceitar", description: e.message, variant: "destructive" });
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const loadPostDecisionInfo = async (tokenId: string, propostaId: string) => {
+    try {
+      const { data: tok } = await (supabase as any)
+        .from("proposta_aceite_tokens")
+        .select("termo_aceite_pdf_url")
+        .eq("id", tokenId)
+        .maybeSingle();
+      const { data: prop } = await (supabase as any)
+        .from("propostas_nativas")
+        .select("consultor_id, tenant_id")
+        .eq("id", propostaId)
+        .maybeSingle();
+      let consultorNome: string | null = null;
+      let consultorTelefone: string | null = null;
+      if (prop?.consultor_id) {
+        const { data: cons } = await (supabase as any)
+          .from("profiles")
+          .select("nome, telefone")
+          .eq("user_id", prop.consultor_id)
+          .maybeSingle();
+        consultorNome = cons?.nome ?? null;
+        consultorTelefone = cons?.telefone ?? null;
+      }
+      setPostDecisionInfo({
+        termoUrl: tok?.termo_aceite_pdf_url ?? null,
+        consultorNome,
+        consultorTelefone,
+      });
+    } catch { /* best-effort */ }
   };
 
   const handleReject = async () => {
