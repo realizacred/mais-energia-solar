@@ -1,7 +1,7 @@
 import { EmptyState } from "@/components/ui-kit/EmptyState";
 import { PhoneInput } from "@/components/ui-kit/inputs/PhoneInput";
 import { CpfCnpjInput } from "@/components/shared/CpfCnpjInput";
-import { formatBRLInteger as formatBRL, formatPhoneBR, formatBRLInteger } from "@/lib/formatters";
+import { formatBRLInteger as formatBRL, formatBRLInteger, formatPhoneBR } from "@/lib/formatters";
 import { useClienteHasRecebimento, useClienteRecebimentoDetalhes } from "@/hooks/useClienteRecebimento";
 import { formatPropostaLabel } from "@/lib/format-entity-labels";
 import { formatPhone } from "@/lib/validations";
