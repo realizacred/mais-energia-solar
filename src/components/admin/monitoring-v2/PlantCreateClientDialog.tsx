@@ -146,6 +146,15 @@ export function PlantCreateClientDialog({ open, onOpenChange, plantId }: Props) 
                 onChange={setCpfCnpj}
               />
             </div>
+
+            <div className="space-y-1.5">
+              <Label className="text-sm font-medium">Data de nascimento</Label>
+              <Input
+                type="date"
+                value={dataNascimento}
+                onChange={(e) => setDataNascimento(e.target.value)}
+              />
+            </div>
           </div>
         </ScrollArea>
 
