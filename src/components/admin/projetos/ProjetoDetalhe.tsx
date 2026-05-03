@@ -1258,6 +1258,8 @@ function GerenciamentoTab({
     return bgMap[entry.type] || "bg-card border-border text-muted-foreground";
   };
 
+      {/* ── Tipo de projeto solar — alerta de adaptação ── */}
+      <TipoProjetoSolarAlert projetoId={projetoId ?? deal.id} />
 
   const activityTypeLabels: Record<string, string> = {
     task: "Tarefa",
