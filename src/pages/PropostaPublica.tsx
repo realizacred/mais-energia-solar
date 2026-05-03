@@ -264,6 +264,7 @@ export default function PropostaPublica() {
       if (td.used_at) {
         setDecision(td.decisao || "aceita");
         setTokenData(td);
+        loadPostDecisionInfo(td.id, td.proposta_id);
         setLoading(false);
         return;
       }
