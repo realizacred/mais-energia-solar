@@ -157,10 +157,10 @@ export function BuilderCanvas({ state, onSelect, onHover, onDropBlock, onDeleteB
                   const filtered = state.blocks.filter((b) => b._proposalType === state.proposalType && b.isVisible !== false);
                   return filtered.length > 0 ? filtered : createDefaultTemplateBlocks(state.proposalType);
                 })()}
-                variables={PREVIEW_VARIABLES}
+                variables={previewVariables}
                 theme={2}
-                logoUrl={brandSettings?.logo_url || brandSettings?.logo_white_url}
-                companyName="Mais Energia Solar"
+                logoUrl={companyLogo || undefined}
+                companyName={companyName}
               />
             ) : tree.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-[400px] text-muted-foreground gap-3">
