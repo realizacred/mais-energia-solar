@@ -70,6 +70,7 @@ import {
 } from "@/contexts/ProjetoDetalheContext";
 import { formatDateTime, formatDate, formatTime, formatDateShort } from "@/lib/dateUtils";
 import { ClienteEditModal } from "./ClienteEditModal";
+import { TipoProjetoSolarBadge } from "./TipoProjetoSolarBadge";
 
 // ─── Types (local to sub-components) ────────────
 interface PropostaNativa {
