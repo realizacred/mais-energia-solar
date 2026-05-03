@@ -1379,20 +1379,12 @@ export const VARIABLES_CATALOG: CatalogVariable[] = [
   v("calculo", "alerta.estimado.texto_pdf", "alerta_estimado_texto_pdf", "Alerta Estimado (PDF)", "Bloco de texto padrão para inclusão no PDF quando cálculo é ESTIMADO", "-", "ATENÇÃO: Economia estimada. Fio B real indisponível; usamos TUSD total como proxy. Economia pode variar."),
 
   // ──────────────────────────────────────────────────────────────
-  // CAMPOS DOS DISTRIBUIDORES (CDD)
+  // CAMPOS DOS DISTRIBUIDORES (CDD) — REMOVIDO 2026-05-03
+  // Grupo `cdd.*` (12 vars) removido do catálogo:
+  //  - 100% marcado como notImplemented (sem resolver no FE/BE)
+  //  - 0 templates ativos consumiam {{cdd.*}} (validado via SQL)
+  //  - Será reintroduzido caso o domínio CDD volte ao roadmap
   // ──────────────────────────────────────────────────────────────
-  v("cdd", "cdd.tipo_estrutura", "cdd_tipo_estrutura", "Tipo de estrutura", "Tipo de Telhado / Tipo de Estrutura — ECORI, GENYX, WEG SOLAR, NEOSOLAR, BLUESUN, SOLARMARKET", "", "Solo", "BT e MT", { notImplemented: true }),
-  v("cdd", "cdd.marca_estrutura", "cdd_marca_estrutura", "Solução Estrutural", "Solução Estrutural / Marca da estrutura — ECORI", "", "Romagnole", "BT e MT", { notImplemented: true }),
-  v("cdd", "cdd.comunicador", "cdd_comunicador", "Utiliza Comunicador?", "Tipo de comunicador de dados — ECORI", "", "Wi-Fi", "BT e MT", { notImplemented: true }),
-  v("cdd", "cdd.tipo_sustentacao", "cdd_tipo_sustentacao", "Tipo de Sustentação", "Tipo de sustentação — GENYX", "", "Laje", "BT e MT", { notImplemented: true }),
-  v("cdd", "cdd.tipo_telhado", "cdd_tipo_telhado", "Tipo de telhado utilizado", "Tipo de telhado utilizado / Onde será instalado — NEXEN, GTSOLAR", "", "Cerâmico", "BT e MT", { notImplemented: true }),
-  v("cdd", "cdd.nivel", "cdd_nivel", "Nível da estrutura", "Nível do distribuidor — BLUESUN, SOLARMARKET", "", "Gold", "BT e MT", { notImplemented: true }),
-  v("cdd", "cdd.orientacao", "cdd_orientacao", "Orientação", "Orientação dos módulos — BLUESUN, SOLARMARKET", "", "Norte", "BT e MT", { notImplemented: true }),
-  v("cdd", "cdd.string_config", "cdd_string", "Adicionar StringBox CC?", "StringBox CC / Deseja Incluir StringBox — BLUESUN, SOLARMARKET", "", "2x8", "BT e MT", { notImplemented: true }),
-  v("cdd", "cdd.string_ca", "cdd_sting_ca", "Adicionar StringBox CA?", "Configuração de strings CA — BLUESUN, SOLARMARKET", "", "1x1", "BT e MT", { notImplemented: true }),
-  v("cdd", "cdd.telhado", "cdd_telhado", "Tipo de Telhado", "Tipo de telhado no cadastro — SOLARMARKET", "", "Cerâmico", "BT e MT", { notImplemented: true }),
-  v("cdd", "cdd.estrutura", "cdd_estrutura", "Estrutura", "Estrutura / Estrutura do Telhado — A.DIAS SOLAR, SOPRANO, SOLARMARKET, BLUESUN, FORTLEV, ALDO", "", "Fibrocimento", "BT e MT", { notImplemented: true }),
-  v("cdd", "cdd.tipo_perfil", "cdd_tipo_perfil", "Tipo de Perfil", "Tipo de perfil da estrutura — WEG SOLAR", "", "Perfil", "BT e MT", { notImplemented: true }),
 
   // ──────────────────────────────────────────────────────────────
   // VARIÁVEIS CUSTOMIZADAS (vc_*)
