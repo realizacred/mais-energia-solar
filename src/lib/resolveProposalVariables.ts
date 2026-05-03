@@ -35,6 +35,7 @@
 
 import { VARIABLES_CATALOG, type CatalogVariable } from "./variablesCatalog";
 import { canonicalizeSnapshot } from "./canonicalizeSnapshot";
+import { renderTableVariable } from "./renderTableVariable";
 import type { CalcGrupoBResult } from "./calcGrupoB";
 import type {
   WizardState,
@@ -183,6 +184,21 @@ function resolveFromContext(
       if (typeof inVal === "number") return fmtNumber(inVal);
       return String(inVal);
     }
+  }
+
+  // ── Tabelas (HTML inline) ──
+  if (key.startsWith("tabelas.")) {
+    const baseSnap = (fsCanon ?? ctx.finalSnapshot ?? {}) as Record<string, unknown>;
+    // Enriquece com dados de contexto que podem não estar no snapshot
+    const merged: Record<string, any> = {
+      ...baseSnap,
+      ucs: (baseSnap as any).ucs ?? ctx.ucs,
+      kit: (baseSnap as any).kit ?? ctx.kit,
+      pagamentoOpcoes: (baseSnap as any).pagamentoOpcoes ?? ctx.pagamentoOpcoes,
+      economia_mensal: (baseSnap as any).economia_mensal ?? ctx.economiaMensal,
+      geracao_anual: (baseSnap as any).geracao_anual ?? (ctx.geracaoMensal ? ctx.geracaoMensal * 12 : undefined),
+    };
+    return renderTableVariable(key, merged);
   }
 
   const uc1 = ctx.ucs?.[0];
