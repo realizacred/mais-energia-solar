@@ -477,6 +477,14 @@ export function OrcamentosTable({
           onSuccess={onRefresh}
         />
       )}
+      <DuplicateOpenDealModal
+        open={duplicateGuard.open}
+        matches={duplicateGuard.matches}
+        onOpenExisting={openExistingDeal}
+        onCreateAnyway={confirmCreateAnyway}
+        onCancel={cancelDuplicateGuard}
+        loading={quickLoading}
+      />
     </div>
   );
 }
