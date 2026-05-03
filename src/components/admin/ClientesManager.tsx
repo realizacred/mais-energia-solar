@@ -62,7 +62,7 @@ import {
 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatPhone } from "@/lib/validations";
-import { formatPhoneBR } from "@/lib/formatters";
+import { formatPhoneBR, formatBRL } from "@/lib/formatters";
 import { CpfCnpjInput } from "@/components/shared/CpfCnpjInput";
 import { AddressFields, type AddressData } from "@/components/shared/AddressFields";
 import { PhoneInput } from "@/components/ui-kit/inputs/PhoneInput";
@@ -437,7 +437,7 @@ export function ClientesManager({ onSelectCliente }: ClientesManagerProps) {
 
   const formatCurrency = (value: number | null) => {
     if (!value) return "—";
-    return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value);
+    return formatBRL(value);
   };
 
   return (

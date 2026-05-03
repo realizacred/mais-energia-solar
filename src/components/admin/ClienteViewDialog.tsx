@@ -22,7 +22,7 @@ import {
   TrendingDown, Send, ChevronRight, Sun,
 } from "lucide-react";
 import { formatDate, formatDateTime } from "@/lib/dateUtils";
-import { formatPhoneBR } from "@/lib/formatters";
+import { formatPhoneBR, formatBRL } from "@/lib/formatters";
 import {
   useClienteProjetos,
   useClientePropostas,
@@ -79,7 +79,7 @@ function getSignedUrl(path: string): Promise<string | null> {
 }
 
 const formatCurrency = (val: number | null) =>
-  val ? new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(val) : "—";
+  val ? formatBRL(val) : "—";
 
 function InfoField({ label, value }: { label: string; value: string | null | undefined }) {
   if (!value) return null;

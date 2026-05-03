@@ -1,6 +1,7 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { formatBRL } from "@/lib/formatters";
 import {
   SunMedium, Zap, DollarSign, TrendingUp, CreditCard, Calendar, MapPin,
 } from "lucide-react";
@@ -30,7 +31,7 @@ export interface ProposalClientSummaryData {
 }
 
 function formatBRL(v: number) {
-  return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v);
+  return formatBRL(v);
 }
 
 /**

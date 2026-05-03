@@ -8,6 +8,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { VARIABLES_CATALOG } from "@/lib/variablesCatalog";
 import { formatDate } from "@/lib/dateUtils";
+import { formatBRL } from "@/lib/formatters";
 
 const STALE_TIME = 1000 * 60 * 5;
 
@@ -50,7 +51,7 @@ export async function buildPropostaContext(proposta: PropostaOption): Promise<Re
   };
 
   const fmtCurrency = (v: number) =>
-    new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v);
+    formatBRL(v);
   const now = new Date();
 
   // Fetch all related data in parallel

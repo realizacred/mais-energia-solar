@@ -12,6 +12,7 @@
  import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from "recharts";
 import { Download, FileSpreadsheet, TrendingUp } from "lucide-react";
 import { InlineLoader } from "@/components/loading/InlineLoader";
+import { formatBRL } from "@/lib/formatters";
  import { format, startOfMonth, endOfMonth, subMonths } from "date-fns";
  import { ptBR } from "date-fns/locale";
  
@@ -144,7 +145,7 @@ import { InlineLoader } from "@/components/loading/InlineLoader";
    };
  
    const formatCurrency = (value: number) => {
-     return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value);
+     return formatBRL(value);
    };
  
    const exportToCSV = () => {

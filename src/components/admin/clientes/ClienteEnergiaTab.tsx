@@ -12,6 +12,7 @@ import { useClienteEnergiaResumo } from "@/hooks/useGdEnergyEngine";
 import { useClienteCreditBalance } from "@/hooks/useGdEnergyReport";
 import { useClienteReconciliationSummary } from "@/hooks/useGdReconciliation";
 import { ReconciliationStatusBadge } from "@/components/admin/gd/GdReconciliationCard";
+import { formatBRL } from "@/lib/formatters";
 
 interface Props {
   clienteId: string;
@@ -144,7 +145,7 @@ export function ClienteEnergiaTab({ clienteId }: Props) {
               </div>
               <div>
                 <p className="text-lg font-bold text-foreground leading-none">
-                  {energiaResumo.totalSavings.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                  {formatBRL(energiaResumo.totalSavings)}
                 </p>
                 <p className="text-xs text-muted-foreground mt-0.5">Economia Est.</p>
               </div>

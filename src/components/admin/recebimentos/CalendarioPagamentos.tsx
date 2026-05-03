@@ -6,6 +6,7 @@
  import { ScrollArea } from "@/components/ui/scroll-area";
 import { Calendar as CalendarIcon, ChevronLeft, ChevronRight } from "lucide-react";
 import { InlineLoader } from "@/components/loading/InlineLoader";
+import { formatBRL } from "@/lib/formatters";
  import {
    format,
    startOfMonth,
@@ -74,7 +75,7 @@ import { InlineLoader } from "@/components/loading/InlineLoader";
    };
  
    const formatCurrency = (value: number) => {
-     return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value);
+     return formatBRL(value);
    };
  
    const parcelasPorDia = useMemo(() => {

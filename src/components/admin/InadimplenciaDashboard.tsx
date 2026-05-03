@@ -18,9 +18,10 @@ import { useParcelasAtrasadas, useRefreshInadimplencia } from "@/hooks/useInadim
 import type { ParcelaComCliente, InadimplenciaStats } from "@/hooks/useInadimplencia";
 import { PageHeader, SearchInput } from "@/components/ui-kit";
 import { StatCard } from "@/components/ui-kit/StatCard";
+import { formatBRL } from "@/lib/formatters";
 
 const formatCurrency = (value: number) =>
-  new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value);
+  formatBRL(value);
 
 export function InadimplenciaDashboard() {
   const { data: parcelas = [], isLoading } = useParcelasAtrasadas();

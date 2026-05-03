@@ -6,6 +6,7 @@ import { Clock, DollarSign, User, ArrowRight, CheckCircle } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { usePendingValidations } from "@/hooks/usePendingValidations";
+import { formatBRL } from "@/lib/formatters";
 
 interface PendingValidationWidgetProps {
   onNavigate?: () => void;
@@ -24,7 +25,7 @@ export function PendingValidationWidget({ onNavigate }: PendingValidationWidgetP
   };
 
   const formatCurrency = (value: number) =>
-    new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value);
+    formatBRL(value);
 
   const totalValue = pendingItems.reduce(
     (acc, c) => acc + (c.simulacoes?.investimento_estimado || c.valor_projeto || 0),
