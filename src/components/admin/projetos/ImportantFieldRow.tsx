@@ -74,7 +74,7 @@ export function ImportantFieldRow({ field, value, dealId, onSaved, showSeparator
   function startEdit() {
     if (field.field_type === "boolean") {
       setDraftBool(value?.value_boolean ?? false);
-    } else if (field.field_type === "number" || field.field_type === "currency") {
+    } else if (field.field_type === "number" || field.field_type === "currency" || field.field_type === "percent") {
       setDraft(value?.value_number != null ? String(value.value_number) : "");
     } else if (field.field_type === "date") {
       setDraft(value?.value_date ?? "");
