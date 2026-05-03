@@ -16158,6 +16158,7 @@ export type Database = {
           status: Database["public"]["Enums"]["projeto_status"]
           tenant_id: string
           tipo_instalacao: string | null
+          tipo_projeto_solar: string
           uf_instalacao: string | null
           updated_at: string
           valor_entrada: number | null
@@ -16214,6 +16215,7 @@ export type Database = {
           status?: Database["public"]["Enums"]["projeto_status"]
           tenant_id?: string
           tipo_instalacao?: string | null
+          tipo_projeto_solar?: string
           uf_instalacao?: string | null
           updated_at?: string
           valor_entrada?: number | null
@@ -16270,6 +16272,7 @@ export type Database = {
           status?: Database["public"]["Enums"]["projeto_status"]
           tenant_id?: string
           tipo_instalacao?: string | null
+          tipo_projeto_solar?: string
           uf_instalacao?: string | null
           updated_at?: string
           valor_entrada?: number | null
@@ -18721,6 +18724,7 @@ export type Database = {
           tarifa_distribuidora: number | null
           template_id_used: string | null
           tenant_id: string
+          tipo_projeto_solar: string
           tir: number | null
           updated_at: string
           usuario_editou_em: string | null
@@ -18780,6 +18784,7 @@ export type Database = {
           tarifa_distribuidora?: number | null
           template_id_used?: string | null
           tenant_id: string
+          tipo_projeto_solar?: string
           tir?: number | null
           updated_at?: string
           usuario_editou_em?: string | null
@@ -18839,6 +18844,7 @@ export type Database = {
           tarifa_distribuidora?: number | null
           template_id_used?: string | null
           tenant_id?: string
+          tipo_projeto_solar?: string
           tir?: number | null
           updated_at?: string
           usuario_editou_em?: string | null
