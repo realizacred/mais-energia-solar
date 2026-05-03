@@ -681,7 +681,12 @@ export function FornecedoresManager() {
                   </div>
                   <div className="space-y-1.5">
                     <Label>UF</Label>
-                    <Input value={form.estado} onChange={e => setForm(p => ({ ...p, estado: e.target.value }))} maxLength={2} />
+                    <Select value={form.estado || ""} onValueChange={(v) => setForm(p => ({ ...p, estado: v }))}>
+                      <SelectTrigger><SelectValue placeholder="UF" /></SelectTrigger>
+                      <SelectContent>
+                        {BRAZIL_STATES.map(uf => <SelectItem key={uf.value} value={uf.value}>{uf.value}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
                   </div>
                 </div>
                 <div className="w-full sm:w-32 space-y-1.5 mt-4">
