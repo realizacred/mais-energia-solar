@@ -15,6 +15,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { ChevronDown, Eye, EyeOff, Type, Palette, Box, Layout } from "lucide-react";
 import type { TemplateBlock, BlockStyle } from "./types";
 import { cn } from "@/lib/utils";
+import { SEMANTIC_BLOCK_LABELS, isSemanticProposalBlock } from "./semanticBlockLabels";
 
 interface PropertiesPanelProps {
   block: TemplateBlock;
