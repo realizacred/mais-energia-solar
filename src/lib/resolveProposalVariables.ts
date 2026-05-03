@@ -243,6 +243,21 @@ function resolveFromContext(
   if (key === "cliente.estado") return s(ctx.cliente?.estado);
   if (key === "cliente.bairro") return s(ctx.cliente?.bairro);
   if (key === "cliente.cep") return s(ctx.cliente?.cep);
+  if (key === "cliente.data_nascimento") {
+    const raw = (ctx.cliente as any)?.data_nascimento;
+    if (!raw) return null;
+    const str = String(raw);
+    // ISO YYYY-MM-DD → DD/MM/AAAA
+    const m = str.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (m) return `${m[3]}/${m[2]}/${m[1]}`;
+    const d = new Date(str);
+    if (!isNaN(d.getTime())) {
+      const dd = String(d.getUTCDate()).padStart(2, "0");
+      const mm = String(d.getUTCMonth() + 1).padStart(2, "0");
+      return `${dd}/${mm}/${d.getUTCFullYear()}`;
+    }
+    return s(str);
+  }
 
    // ── Comercial ──
   if (key === "comercial.responsavel_nome") return s(ctx.comercial?.responsavel_nome);
