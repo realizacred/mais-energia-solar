@@ -24,9 +24,9 @@ interface BuilderTopbarProps {
 }
 
 const PROPOSAL_TYPES: { value: ProposalType; label: string; icon: React.ElementType }[] = [
-  { value: "grid", label: "On-Grid", icon: Zap },
-  { value: "hybrid", label: "Híbrido", icon: Battery },
-  { value: "dual", label: "Dual", icon: Repeat },
+  { value: "grid", label: "Solar tradicional", icon: Zap },
+  { value: "hybrid", label: "Com bateria", icon: Battery },
+  { value: "dual", label: "Comparativo", icon: Repeat },
 ];
 
 const DEVICES: { value: DevicePreview; icon: React.ElementType; label: string }[] = [
@@ -145,7 +145,7 @@ export function BuilderTopbar({
 
         <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs" onClick={onRestoreDefault}>
           <RotateCcw className="h-3.5 w-3.5" />
-          Restaurar Padrão
+          Voltar ao modelo original
         </Button>
 
         <Tooltip>
