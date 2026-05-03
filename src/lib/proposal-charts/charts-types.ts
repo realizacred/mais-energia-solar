@@ -110,7 +110,7 @@ export const DEFAULT_CHARTS: Omit<ProposalChart, "id" | "tenant_id" | "created_a
     value_field: "valor",
     title: "Geração Mensal Estimada",
     subtitle: "kWh por mês",
-    colors: ["#3b82f6"],
+    colors: ["#FF6A00"],
     chart_options: {},
     width: 1600,
     height: 900,
