@@ -159,6 +159,7 @@ export function NovoProjetoModal({
       clienteEmpresa: "",
       clienteCpfCnpj: "",
       clienteTelefone: "",
+      clienteDataNascimento: "",
       valor: 0,
       cep: "",
       rua: "",
