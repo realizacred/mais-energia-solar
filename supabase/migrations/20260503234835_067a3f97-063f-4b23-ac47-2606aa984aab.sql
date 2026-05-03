@@ -1,0 +1,3 @@
+ALTER TABLE public.deal_custom_fields DROP CONSTRAINT IF EXISTS deal_custom_fields_field_type_check;
+ALTER TABLE public.deal_custom_fields ADD CONSTRAINT deal_custom_fields_field_type_check
+  CHECK (field_type = ANY (ARRAY['text'::text, 'textarea'::text, 'number'::text, 'currency'::text, 'percent'::text, 'date'::text, 'datetime'::text, 'select'::text, 'multi_select'::text, 'boolean'::text, 'file'::text]));
