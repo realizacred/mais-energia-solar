@@ -128,7 +128,7 @@ export function GlobalSearch() {
   const navigate = useNavigate();
   const { data, isFetching } = useGlobalSearchResults(term);
 
-  // ⌘K / Ctrl+K shortcut
+  // ⌘K / Ctrl+K shortcut + custom event para abrir via UI
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
       if ((e.metaKey || e.ctrlKey) && e.key === "k") {
@@ -136,8 +136,17 @@ export function GlobalSearch() {
         setOpen((prev) => !prev);
       }
     }
+    function onOpenEvent(e: Event) {
+      const detail = (e as CustomEvent<{ term?: string }>).detail;
+      if (detail?.term) setTerm(detail.term);
+      setOpen(true);
+    }
     window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
+    window.addEventListener("global-search:open", onOpenEvent as EventListener);
+    return () => {
+      window.removeEventListener("keydown", onKeyDown);
+      window.removeEventListener("global-search:open", onOpenEvent as EventListener);
+    };
   }, []);
 
   // Reset term ao abrir/fechar para evitar resultado obsoleto
