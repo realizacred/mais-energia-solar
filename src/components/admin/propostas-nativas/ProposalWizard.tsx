@@ -2290,7 +2290,7 @@ export function ProposalWizard() {
         aceite_estimativa: enforcement.aceiteEstimativa || undefined,
         // Sistema/topologia derivados do kit selecionado pelo usuário (defaults no servidor).
         kit: (() => {
-          const meta = (manualKits[0] as any)?.meta;
+          const meta = (manualKits[(selectedManualIdx ?? 0) as number] as any)?.meta;
           if (!meta) return undefined;
           const topoRaw = (meta.topologia || "").toString().toLowerCase();
           const topologia = topoRaw === "microinversor"
