@@ -11,6 +11,7 @@ import {
   DEFAULT_TIPO_PROJETO_SOLAR,
   getTipoProjetoSolarBadgeClass,
   getTipoProjetoSolarLabel,
+  isTipoProjetoEmAdaptacao,
   type TipoProjetoSolar,
 } from "@/lib/tipoProjetoSolar";
 
