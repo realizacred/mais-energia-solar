@@ -69,7 +69,15 @@ export function VendorOrcamentosTable({
   const [editOpen, setEditOpen] = useState(false);
   const [editOrcamento, setEditOrcamento] = useState<OrcamentoVendedor | null>(null);
   const isMobile = useIsMobile();
-  const { quickConvertToProposal, loading: quickLoading, loadingLeadId } = usePropostaRapidaLead();
+  const {
+    quickConvertToProposal,
+    loading: quickLoading,
+    loadingLeadId,
+    duplicateGuard,
+    confirmCreateAnyway,
+    openExistingDeal,
+    cancelDuplicateGuard,
+  } = usePropostaRapidaLead();
 
   const orcToQuickLead = (orc: OrcamentoVendedor) => ({
     id: orc.lead_id,
