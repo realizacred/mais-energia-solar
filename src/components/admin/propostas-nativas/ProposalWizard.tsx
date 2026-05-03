@@ -2288,6 +2288,24 @@ export function ProposalWizard() {
         observacoes: venda.observacoes || undefined,
         customFieldValues: customFieldValues ?? {},
         aceite_estimativa: enforcement.aceiteEstimativa || undefined,
+        // Sistema/topologia derivados do kit selecionado pelo usuário (defaults no servidor).
+        kit: (() => {
+          const meta = manualKits[0]?.meta;
+          if (!meta) return undefined;
+          const topoRaw = (meta.topologia || "").toString().toLowerCase();
+          const topologia = topoRaw === "microinversor"
+            ? "microinversor" as const
+            : topoRaw.startsWith("otimizador")
+              ? "otimizador" as const
+              : topoRaw === "tradicional"
+                ? "tradicional" as const
+                : undefined;
+          const tipo_sistema = (meta.sistema === "hibrido" || meta.sistema === "off_grid" || meta.sistema === "on_grid")
+            ? meta.sistema
+            : undefined;
+          if (!topologia && !tipo_sistema) return undefined;
+          return { tipo_sistema, topologia };
+        })(),
         // Wizard-specific state for edit round-trip (engine passes through, not used for calc)
         _wizard_state: {
           selectedLead,
