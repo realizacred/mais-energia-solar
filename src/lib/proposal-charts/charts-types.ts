@@ -129,7 +129,7 @@ export const DEFAULT_CHARTS: Omit<ProposalChart, "id" | "tenant_id" | "created_a
     value_field: "valor",
     title: "Economia Mensal Estimada",
     subtitle: "Economia em R$",
-    colors: ["#10b981"],
+    colors: ["#16A34A"],
     chart_options: {},
     width: 1600,
     height: 900,
