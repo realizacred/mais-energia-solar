@@ -17957,6 +17957,39 @@ export type Database = {
           },
         ]
       }
+      proposta_sync_audit_log: {
+        Row: {
+          deals_updated: number | null
+          divergent_after: number | null
+          id: string
+          mode: string
+          notes: string | null
+          projetos_updated: number | null
+          ran_at: string
+          total_principais: number | null
+        }
+        Insert: {
+          deals_updated?: number | null
+          divergent_after?: number | null
+          id?: string
+          mode: string
+          notes?: string | null
+          projetos_updated?: number | null
+          ran_at?: string
+          total_principais?: number | null
+        }
+        Update: {
+          deals_updated?: number | null
+          divergent_after?: number | null
+          id?: string
+          mode?: string
+          notes?: string | null
+          projetos_updated?: number | null
+          ran_at?: string
+          total_principais?: number | null
+        }
+        Relationships: []
+      }
       proposta_templates: {
         Row: {
           ativo: boolean
@@ -27684,6 +27717,7 @@ export type Database = {
         }
         Returns: string
       }
+      assert_proposta_status_enum_labels: { Args: never; Returns: undefined }
       assign_wa_conversation_by_phone: {
         Args: { _phone_digits: string }
         Returns: string
