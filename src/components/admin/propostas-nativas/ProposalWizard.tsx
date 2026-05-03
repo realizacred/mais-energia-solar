@@ -215,6 +215,7 @@ export function ProposalWizard() {
     { id: crypto.randomUUID(), descricao: "", fabricante: "", modelo: "", potencia_w: 0, quantidade: 1, preco_unitario: 0, categoria: "modulo", avulso: false },
   ]);
   const [manualKits, setManualKits] = useState<{ card: any; itens: KitItemRow[] }[]>([]);
+  const [selectedManualIdx, setSelectedManualIdx] = useState<number | null>(null);
 
   // Layouts
   const [layouts, setLayouts] = useState<LayoutArranjo[]>([]);
