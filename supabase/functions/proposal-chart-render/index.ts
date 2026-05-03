@@ -61,75 +61,109 @@ Deno.serve(async (req) => {
 
     // ── 3. BUILD CHART.JS CONFIG ────────────────────────────
     const chartJsType = mapChartType(chart_config.chart_type);
+    const isPie = chartJsType === "pie" || chartJsType === "doughnut";
+    const isArea = chart_config.chart_type === "area";
+    const palette: string[] =
+      Array.isArray(chart_config.colors) && chart_config.colors.length
+        ? chart_config.colors
+        : ["#FF6A00", "#144C8C", "#3F6FCC", "#16A34A", "#F59E0B", "#64748B"];
+
     const quickChartConfig = {
       type: chartJsType,
       data: {
         labels: dataset.labels,
-        datasets: dataset.datasets.map((ds: any) => ({
-          label: ds.label ?? "",
-          data: ds.data,
-          backgroundColor: ds.backgroundColor ?? "#3b82f6",
-          borderColor: ds.borderColor ?? "transparent",
-          borderWidth: ds.borderWidth ?? 0,
-          borderRadius: chartJsType === "bar" ? 4 : undefined,
-        })),
+        datasets: dataset.datasets.map((ds: any, dsIdx: number) => {
+          // For pie/doughnut: spread palette across slices
+          // For bar single-series: use first palette color (or per-bar if 1 dataset)
+          const baseColor = palette[dsIdx % palette.length];
+          const bg = isPie
+            ? dataset.labels.map((_: unknown, i: number) => palette[i % palette.length])
+            : ds.backgroundColor ?? baseColor;
+          return {
+            label: ds.label ?? "",
+            data: ds.data,
+            backgroundColor: isArea ? hexToRgba(baseColor, 0.18) : bg,
+            borderColor: ds.borderColor ?? (isArea || chartJsType === "line" ? baseColor : "transparent"),
+            borderWidth: ds.borderWidth ?? (chartJsType === "line" || isArea ? 3 : 0),
+            borderRadius: chartJsType === "bar" ? 6 : undefined,
+            tension: chartJsType === "line" || isArea ? 0.35 : undefined,
+            fill: isArea ? true : undefined,
+            pointRadius: chartJsType === "line" || isArea ? 3 : undefined,
+            pointBackgroundColor: baseColor,
+          };
+        }),
       },
       options: {
         responsive: false,
         animation: false,
+        layout: { padding: { top: 24, right: 24, bottom: 16, left: 16 } },
         plugins: {
           title: {
             display: !!chart_config.title,
             text: chart_config.title ?? "",
-            font: { size: 22, weight: "bold", family: "Inter, sans-serif" },
-            color: "#1f2937",
-            padding: { bottom: chart_config.subtitle ? 4 : 16 },
+            font: { size: 26, weight: "bold", family: "Inter, sans-serif" },
+            color: "#0F172A",
+            padding: { bottom: chart_config.subtitle ? 4 : 20 },
           },
           subtitle: {
             display: !!chart_config.subtitle,
             text: chart_config.subtitle ?? "",
-            font: { size: 14, family: "Inter, sans-serif" },
-            color: "#6b7280",
-            padding: { bottom: 16 },
+            font: { size: 15, family: "Inter, sans-serif" },
+            color: "#64748B",
+            padding: { bottom: 20 },
           },
           legend: {
             display: chart_config.show_legend ?? true,
             position: "bottom" as const,
             labels: {
-              font: { size: 12, family: "Inter, sans-serif" },
-              color: "#374151",
-              padding: 16,
+              font: { size: 13, family: "Inter, sans-serif" },
+              color: "#334155",
+              padding: 18,
               usePointStyle: true,
+              boxWidth: 8,
+              boxHeight: 8,
             },
           },
           datalabels: chart_config.show_labels
             ? {
                 display: true,
-                color: "#374151",
-                font: { size: 11, weight: "bold", family: "Inter, sans-serif" },
-                anchor: "end" as const,
-                align: "top" as const,
+                color: isPie ? "#FFFFFF" : "#1E293B",
+                font: { size: 12, weight: "600", family: "Inter, sans-serif" },
+                anchor: isPie ? "center" : ("end" as const),
+                align: isPie ? "center" : ("top" as const),
                 formatter: (value: number) => {
+                  if (value === 0) return "";
                   if (Math.abs(value) >= 1000) return `${(value / 1000).toFixed(1)}k`;
-                  return value.toLocaleString("pt-BR");
+                  return value.toLocaleString("pt-BR", { maximumFractionDigits: 1 });
                 },
               }
             : { display: false },
         },
-        scales:
-          chartJsType === "pie" || chartJsType === "doughnut"
-            ? undefined
-            : {
-                x: {
-                  grid: { display: chart_config.show_grid ?? true, color: "#e5e7eb" },
-                  ticks: { font: { size: 11, family: "Inter, sans-serif" }, color: "#6b7280" },
-                },
-                y: {
-                  grid: { display: chart_config.show_grid ?? true, color: "#e5e7eb" },
-                  ticks: { font: { size: 11, family: "Inter, sans-serif" }, color: "#6b7280" },
-                  beginAtZero: true,
-                },
+        scales: isPie
+          ? undefined
+          : {
+              x: {
+                grid: { display: false },
+                ticks: { font: { size: 12, family: "Inter, sans-serif" }, color: "#64748B" },
               },
+              y: {
+                grid: {
+                  display: chart_config.show_grid ?? true,
+                  color: "#E2E8F0",
+                  drawBorder: false,
+                },
+                ticks: {
+                  font: { size: 12, family: "Inter, sans-serif" },
+                  color: "#64748B",
+                  callback: function (value: any) {
+                    const n = Number(value);
+                    if (Math.abs(n) >= 1000) return `${(n / 1000).toFixed(0)}k`;
+                    return n.toLocaleString("pt-BR");
+                  },
+                },
+                beginAtZero: true,
+              },
+            },
       },
     };
 
@@ -230,4 +264,13 @@ function jsonResponse(data: Record<string, unknown>, status = 200) {
     status,
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
+}
+
+function hexToRgba(hex: string, alpha: number): string {
+  const h = hex.replace("#", "");
+  const full = h.length === 3 ? h.split("").map((c) => c + c).join("") : h;
+  const r = parseInt(full.substring(0, 2), 16);
+  const g = parseInt(full.substring(2, 4), 16);
+  const b = parseInt(full.substring(4, 6), 16);
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 }

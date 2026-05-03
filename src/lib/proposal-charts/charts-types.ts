@@ -64,16 +64,19 @@ export interface RenderChartResponse {
 export type ProposalChartInsert = Omit<ProposalChart, "id" | "created_at" | "updated_at">;
 export type ProposalChartUpdate = Partial<Omit<ProposalChart, "id" | "tenant_id" | "created_at" | "updated_at">>;
 
-/** Default chart colors (semantic) */
+/**
+ * Paleta padrão alinhada à marca (laranja + azul corporativo).
+ * Ordem pensada para boa legibilidade em pizza/rosca/barras.
+ */
 export const DEFAULT_CHART_COLORS = [
-  "#3b82f6", // blue
-  "#f59e0b", // amber
-  "#10b981", // emerald
-  "#ef4444", // red
-  "#8b5cf6", // violet
-  "#06b6d4", // cyan
-  "#f97316", // orange
-  "#84cc16", // lime
+  "#FF6A00", // brand orange (primary)
+  "#144C8C", // brand blue (secondary)
+  "#3F6FCC", // brand blue light
+  "#16A34A", // emerald (economia/positivo)
+  "#F59E0B", // amber (atenção)
+  "#64748B", // slate (neutro)
+  "#0EA5E9", // sky (apoio)
+  "#9333EA", // violet (apoio)
 ];
 
 /** Default charts to seed per tenant */
@@ -88,7 +91,7 @@ export const DEFAULT_CHARTS: Omit<ProposalChart, "id" | "tenant_id" | "created_a
     value_field: "valor",
     title: "Consumo de Energia",
     subtitle: "kWh por mês",
-    colors: ["#ef4444"],
+    colors: ["#144C8C"],
     chart_options: {},
     width: 1600,
     height: 900,
@@ -107,7 +110,7 @@ export const DEFAULT_CHARTS: Omit<ProposalChart, "id" | "tenant_id" | "created_a
     value_field: "valor",
     title: "Geração Mensal Estimada",
     subtitle: "kWh por mês",
-    colors: ["#3b82f6"],
+    colors: ["#FF6A00"],
     chart_options: {},
     width: 1600,
     height: 900,
@@ -126,7 +129,7 @@ export const DEFAULT_CHARTS: Omit<ProposalChart, "id" | "tenant_id" | "created_a
     value_field: "valor",
     title: "Economia Mensal Estimada",
     subtitle: "Economia em R$",
-    colors: ["#10b981"],
+    colors: ["#16A34A"],
     chart_options: {},
     width: 1600,
     height: 900,
@@ -145,7 +148,7 @@ export const DEFAULT_CHARTS: Omit<ProposalChart, "id" | "tenant_id" | "created_a
     value_field: "valor",
     title: "Comparação de Custos",
     subtitle: "Antes e Depois da Energia Solar",
-    colors: ["#ef4444", "#3b82f6", "#f59e0b", "#8b5cf6", "#06b6d4"],
+    colors: ["#144C8C", "#FF6A00", "#16A34A", "#3F6FCC", "#F59E0B"],
     chart_options: {},
     width: 1600,
     height: 900,
@@ -164,8 +167,8 @@ export const DEFAULT_CHARTS: Omit<ProposalChart, "id" | "tenant_id" | "created_a
     value_field: "valor",
     title: "Retorno do Investimento",
     subtitle: "Fluxo de caixa acumulado",
-    colors: ["#f59e0b", "#3b82f6"],
-    chart_options: { negativeColor: "#f59e0b", positiveColor: "#3b82f6" },
+    colors: ["#FF6A00", "#144C8C"],
+    chart_options: { negativeColor: "#FF6A00", positiveColor: "#16A34A" },
     width: 1600,
     height: 900,
     show_legend: true,
