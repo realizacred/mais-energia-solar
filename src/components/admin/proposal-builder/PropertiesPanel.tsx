@@ -15,6 +15,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { ChevronDown, Eye, EyeOff, Type, Palette, Box, Layout } from "lucide-react";
 import type { TemplateBlock, BlockStyle } from "./types";
 import { cn } from "@/lib/utils";
+import { SEMANTIC_BLOCK_LABELS, isSemanticProposalBlock } from "./semanticBlockLabels";
 
 interface PropertiesPanelProps {
   block: TemplateBlock;
@@ -60,13 +61,17 @@ export function PropertiesPanel({ block, onUpdate }: PropertiesPanelProps) {
   }, [block.style, onUpdate]);
 
   const isContainer = ["section", "column", "inner_section"].includes(block.type);
+  const isSemantic = isSemanticProposalBlock(block.type);
+  const semanticMeta = isSemantic ? SEMANTIC_BLOCK_LABELS[block.type] : null;
 
   return (
     <div className="w-[280px] border-l border-border bg-card flex flex-col h-full">
       {/* Header */}
       <div className="px-4 py-3 border-b border-border flex items-center justify-between">
-        <div>
-          <p className="text-xs font-semibold text-foreground capitalize">{block.type}</p>
+        <div className="min-w-0">
+          <p className="text-xs font-semibold text-foreground capitalize truncate">
+            {semanticMeta?.label ?? block.type}
+          </p>
           <p className="text-[10px] text-muted-foreground mt-0.5 truncate max-w-[180px]">
             {block.id}
           </p>
@@ -82,8 +87,20 @@ export function PropertiesPanel({ block, onUpdate }: PropertiesPanelProps) {
       </div>
 
       <ScrollArea className="flex-1">
+        {/* Semantic block notice — content is automatic */}
+        {isSemantic && (
+          <div className="m-3 p-3 rounded-lg border border-primary/20 bg-primary/5">
+            <p className="text-xs font-semibold text-foreground mb-1">
+              Conteúdo automático
+            </p>
+            <p className="text-[11px] text-muted-foreground leading-relaxed">
+              {semanticMeta?.description} Os dados são preenchidos automaticamente a partir da proposta. Você pode reordenar ou ocultar este bloco.
+            </p>
+          </div>
+        )}
+
         {/* Content */}
-        {!isContainer && (
+        {!isContainer && !isSemantic && (
           <Section title="Conteúdo" icon={Type}>
             {block.type === "editor" ? (
               <Field label="HTML">
@@ -187,7 +204,7 @@ export function PropertiesPanel({ block, onUpdate }: PropertiesPanelProps) {
         )}
 
         {/* Typography */}
-        {!isContainer && block.type !== "divider" && block.type !== "image" && (
+        {!isContainer && !isSemantic && block.type !== "divider" && block.type !== "image" && (
           <Section title="Tipografia" icon={Type} defaultOpen={false}>
             <Field label="Família">
               <Select
@@ -269,6 +286,7 @@ export function PropertiesPanel({ block, onUpdate }: PropertiesPanelProps) {
         )}
 
         {/* Background & Colors */}
+        {!isSemantic && (
         <Section title="Cores e Fundo" icon={Palette} defaultOpen={false}>
           <Field label="Cor de fundo">
             <div className="flex gap-2 items-center">
@@ -338,6 +356,7 @@ export function PropertiesPanel({ block, onUpdate }: PropertiesPanelProps) {
             )}
           </Field>
         </Section>
+        )}
 
         {/* Spacing */}
         <Section title="Espaçamento" icon={Box} defaultOpen={false}>
