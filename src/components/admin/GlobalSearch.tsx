@@ -174,14 +174,15 @@ export function GlobalSearch() {
     [navigate]
   );
 
-  const results = data ?? { leads: [], clientes: [], projetos: [], kits: [], inversores: [] };
+  const results = data ?? { leads: [], clientes: [], projetos: [], kits: [], inversores: [], propostas: [] };
   const hasAny = useMemo(
     () =>
       results.leads.length +
         results.clientes.length +
         results.projetos.length +
         results.kits.length +
-        results.inversores.length >
+        results.inversores.length +
+        (results.propostas?.length ?? 0) >
       0,
     [results]
   );
