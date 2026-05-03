@@ -17611,66 +17611,6 @@ export type Database = {
           },
         ]
       }
-      proposta_premissas: {
-        Row: {
-          created_at: string
-          id: string
-          imposto: number | null
-          inflacao_energetica: number | null
-          inflacao_ipca: number | null
-          perda_eficiencia_anual: number | null
-          sobredimensionamento: number | null
-          tenant_id: string
-          troca_inversor_anos: number | null
-          troca_inversor_custo: number | null
-          versao_id: string
-          vpl_taxa_desconto: number | null
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          imposto?: number | null
-          inflacao_energetica?: number | null
-          inflacao_ipca?: number | null
-          perda_eficiencia_anual?: number | null
-          sobredimensionamento?: number | null
-          tenant_id: string
-          troca_inversor_anos?: number | null
-          troca_inversor_custo?: number | null
-          versao_id: string
-          vpl_taxa_desconto?: number | null
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          imposto?: number | null
-          inflacao_energetica?: number | null
-          inflacao_ipca?: number | null
-          perda_eficiencia_anual?: number | null
-          sobredimensionamento?: number | null
-          tenant_id?: string
-          troca_inversor_anos?: number | null
-          troca_inversor_custo?: number | null
-          versao_id?: string
-          vpl_taxa_desconto?: number | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "proposta_premissas_tenant_id_fkey"
-            columns: ["tenant_id"]
-            isOneToOne: false
-            referencedRelation: "tenants"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "proposta_premissas_versao_id_fkey"
-            columns: ["versao_id"]
-            isOneToOne: true
-            referencedRelation: "proposta_versoes"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       proposta_renders: {
         Row: {
           created_at: string
