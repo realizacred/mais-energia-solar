@@ -139,6 +139,23 @@ export function SimpleContentEditor({ value, onChange }: Props) {
         <ToolbarButton icon={Underline} title="Sublinhado" onClick={() => exec("underline")} />
         <ToolbarButton icon={LinkIcon} title="Inserir link" onClick={insertLink} />
 
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon-sm"
+              className="h-7 w-7"
+              title="Inserir imagem"
+            >
+              <ImageIcon className="h-3.5 w-3.5" />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-3" align="start">
+            <ImagePicker onSelect={insertImage} compact />
+          </PopoverContent>
+        </Popover>
+
         <div className="h-4 w-px bg-border mx-1" />
 
         <Popover>
