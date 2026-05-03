@@ -22561,6 +22561,54 @@ export type Database = {
         }
         Relationships: []
       }
+      tenant_equipment_images: {
+        Row: {
+          category: Database["public"]["Enums"]["equipment_image_category"]
+          created_at: string
+          created_by: string | null
+          fabricante: string | null
+          id: string
+          image_url: string
+          is_active: boolean
+          label: string | null
+          modelo: string | null
+          ordem: number
+          storage_path: string | null
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          category: Database["public"]["Enums"]["equipment_image_category"]
+          created_at?: string
+          created_by?: string | null
+          fabricante?: string | null
+          id?: string
+          image_url: string
+          is_active?: boolean
+          label?: string | null
+          modelo?: string | null
+          ordem?: number
+          storage_path?: string | null
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          category?: Database["public"]["Enums"]["equipment_image_category"]
+          created_at?: string
+          created_by?: string | null
+          fabricante?: string | null
+          id?: string
+          image_url?: string
+          is_active?: boolean
+          label?: string | null
+          modelo?: string | null
+          ordem?: number
+          storage_path?: string | null
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       tenant_feature_overrides: {
         Row: {
           created_at: string
@@ -28918,6 +28966,14 @@ export type Database = {
         | "visit"
         | "follow_up"
         | "other"
+      equipment_image_category:
+        | "modulo"
+        | "inversor"
+        | "stringbox"
+        | "cabo"
+        | "estrutura"
+        | "otimizador"
+        | "outro"
       extraction_run_status: "success" | "partial" | "failed" | "needs_ocr"
       extraction_strategy_mode: "native" | "provider" | "auto"
       forma_pagamento_enum:
@@ -29244,6 +29300,15 @@ export const Constants = {
         "visit",
         "follow_up",
         "other",
+      ],
+      equipment_image_category: [
+        "modulo",
+        "inversor",
+        "stringbox",
+        "cabo",
+        "estrutura",
+        "otimizador",
+        "outro",
       ],
       extraction_run_status: ["success", "partial", "failed", "needs_ocr"],
       extraction_strategy_mode: ["native", "provider", "auto"],

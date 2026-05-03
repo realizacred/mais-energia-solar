@@ -1,5 +1,5 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Variable, FileText, Mail, Settings, BarChart3, FlaskConical, FolderOpen } from "lucide-react";
+import { Variable, FileText, Mail, Settings, BarChart3, FlaskConical, FolderOpen, ImageIcon } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
 import { VariaveisDisponiveisPage } from "./VariaveisDisponiveisPage";
 import { ModelosPropostaUnified } from "@/components/admin/propostas-nativas/ModelosPropostaUnified";
@@ -8,8 +8,9 @@ import { EmailTemplatesPage } from "./EmailTemplatesPage";
 import { PropostaConfigPage } from "./PropostaConfigPage";
 import { ProposalChartsManager } from "./ProposalChartsManager";
 import { VariableTester } from "./VariableTester";
+import { EquipmentGalleryPage } from "./EquipmentGalleryPage";
 
-const COMMERCIAL_TABS = ["variaveis", "testador", "modelos-proposta", "modelos-documento", "modelos-email", "configuracoes", "graficos"] as const;
+const COMMERCIAL_TABS = ["variaveis", "testador", "modelos-proposta", "galeria-equipamentos", "modelos-documento", "modelos-email", "configuracoes", "graficos"] as const;
 
 export function PropostaComercialPage() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -48,6 +49,11 @@ export function PropostaComercialPage() {
             <span className="hidden sm:inline">Modelos de Proposta</span>
             <span className="sm:hidden">Propostas</span>
           </TabsTrigger>
+          <TabsTrigger value="galeria-equipamentos" className="gap-1.5 text-xs sm:text-sm shrink-0 whitespace-nowrap">
+            <ImageIcon className="h-4 w-4" />
+            <span className="hidden sm:inline">Galeria de Equipamentos</span>
+            <span className="sm:hidden">Fotos</span>
+          </TabsTrigger>
           <TabsTrigger value="modelos-documento" className="gap-1.5 text-xs sm:text-sm shrink-0 whitespace-nowrap">
             <FolderOpen className="h-4 w-4" />
             <span className="hidden sm:inline">Modelos de Documento</span>
@@ -78,6 +84,9 @@ export function PropostaComercialPage() {
         </TabsContent>
         <TabsContent value="modelos-proposta">
           <ModelosPropostaUnified />
+        </TabsContent>
+        <TabsContent value="galeria-equipamentos">
+          <EquipmentGalleryPage />
         </TabsContent>
         <TabsContent value="modelos-documento">
           <DocumentTemplatesTab />
