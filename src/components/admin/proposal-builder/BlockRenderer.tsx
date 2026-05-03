@@ -5,6 +5,7 @@
 import { useMemo } from "react";
 import type { TreeNode, DevicePreview, EditorMode, BlockStyle } from "./types";
 import { cn } from "@/lib/utils";
+import { SEMANTIC_BLOCK_LABELS, isSemanticProposalBlock } from "./semanticBlockLabels";
 
 interface BlockRendererProps {
   node: TreeNode;
