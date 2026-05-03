@@ -23,14 +23,15 @@ export function HeaderSearch({ className }: HeaderSearchProps) {
   const navigate = useNavigate();
   const { data, isFetching } = useGlobalSearchResults(term);
 
-  const results = data ?? { leads: [], clientes: [], projetos: [], kits: [], inversores: [] };
+  const results = data ?? { leads: [], clientes: [], projetos: [], kits: [], inversores: [], propostas: [] };
   const total = useMemo(
     () =>
       results.leads.length +
       results.clientes.length +
       results.projetos.length +
       results.kits.length +
-      results.inversores.length,
+      results.inversores.length +
+      (results.propostas?.length ?? 0),
     [results]
   );
 
