@@ -80,6 +80,11 @@ export default function PropostaPublica() {
   const [versaoData, setVersaoData] = useState<any>(null);
   const [cenarios, setCenarios] = useState<CenarioData[]>([]);
   const [selectedCenario, setSelectedCenario] = useState<string | null>(null);
+  const [postDecisionInfo, setPostDecisionInfo] = useState<{
+    termoUrl: string | null;
+    consultorNome: string | null;
+    consultorTelefone: string | null;
+  } | null>(null);
 
   // Accept fields
   const [nome, setNome] = useState("");
