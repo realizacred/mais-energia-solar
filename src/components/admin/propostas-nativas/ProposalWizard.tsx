@@ -1675,7 +1675,7 @@ export function ProposalWizard() {
       try {
         const { data: cli } = await supabase
           .from("clientes")
-          .select("id, nome, telefone, email, cpf_cnpj, empresa, cep, rua, numero, complemento, bairro, cidade, estado, lead_id, municipio_ibge_codigo")
+          .select("id, nome, telefone, email, cpf_cnpj, data_nascimento, empresa, cep, rua, numero, complemento, bairro, cidade, estado, lead_id, municipio_ibge_codigo")
           .eq("id", customerIdFromUrl)
           .maybeSingle();
         if (cancelled || !cli) return;
@@ -1683,6 +1683,7 @@ export function ProposalWizard() {
         setCliente({
           nome: cli.nome || "", empresa: cli.empresa || "", cnpj_cpf: cli.cpf_cnpj || "",
           email: cli.email || "", celular: cli.telefone || "",
+          data_nascimento: (cli as any).data_nascimento || "",
           cep: cli.cep || "", endereco: cli.rua || "", numero: cli.numero || "",
           complemento: cli.complemento || "", bairro: cli.bairro || "",
           cidade: cli.cidade || "", estado: cli.estado || "",
