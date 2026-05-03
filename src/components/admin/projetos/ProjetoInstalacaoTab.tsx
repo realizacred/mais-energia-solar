@@ -220,7 +220,34 @@ export function ProjetoInstalacaoTab({ dealId }: Props) {
         </div>
       )}
 
-      {/* CHECKLISTS INICIADOS */}
+      {/* CARDS BLOQUEADOS — Pós sem Pré concluída */}
+      {lockedTemplates.length > 0 && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {lockedTemplates.map(t => {
+            const cfg = TIPO_CONFIG[t.tipo] || TIPO_CONFIG.pos_instalacao;
+            const IconComp = cfg.Icon;
+            return (
+              <div
+                key={t.id}
+                className="flex flex-col items-start gap-3 p-5 rounded-lg border border-dashed border-border bg-muted/30 text-left opacity-70"
+              >
+                <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center">
+                  <Lock className="w-4 h-4 text-muted-foreground" />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-muted-foreground">{cfg.label}</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Conclua a <strong>Pré-Instalação</strong> para liberar esta etapa.
+                  </p>
+                </div>
+                <Badge variant="outline" className="text-xs bg-muted text-muted-foreground border-border">
+                  Bloqueado
+                </Badge>
+              </div>
+            );
+          })}
+        </div>
+      )}
       {enrichedChecklists.length > 0 && (
         <div className="space-y-4">
           {enrichedChecklists.map(checklist => (
