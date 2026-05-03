@@ -39,6 +39,7 @@ const TYPE_ICON_MAP: Record<string, typeof Type> = {
   textarea: AlignLeft,
   number: Hash,
   currency: DollarSign,
+  percent: Percent,
   boolean: ToggleLeft,
   date: Calendar,
   select: List,
