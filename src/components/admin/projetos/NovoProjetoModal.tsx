@@ -151,6 +151,7 @@ export function NovoProjetoModal({
       descricao: "",
       consultorId: defaultConsultorId || "",
       etiquetaId: "",
+      tipoProjetoSolar: DEFAULT_TIPO_PROJETO_SOLAR,
       clienteNome: "",
       clienteEmail: "",
       clienteEmpresa: "",
