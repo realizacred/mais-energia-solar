@@ -526,7 +526,8 @@ export function useProjetoPipeline() {
     // em memória no ProjetosManager para nunca enviar "aberto" ao PostgREST como
     // `projeto_status`.
     const changedKeys = Object.keys(newFilters);
-    if (changedKeys.length === 1 && changedKeys[0] === "status") return;
+    const clientOnlyKeys = new Set(["status", "tipoProjetoSolar"]);
+    if (changedKeys.length > 0 && changedKeys.every((k) => clientOnlyKeys.has(k))) return;
 
     setLoading(true);
     try {
