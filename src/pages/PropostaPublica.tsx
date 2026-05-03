@@ -80,6 +80,11 @@ export default function PropostaPublica() {
   const [versaoData, setVersaoData] = useState<any>(null);
   const [cenarios, setCenarios] = useState<CenarioData[]>([]);
   const [selectedCenario, setSelectedCenario] = useState<string | null>(null);
+  const [postDecisionInfo, setPostDecisionInfo] = useState<{
+    termoUrl: string | null;
+    consultorNome: string | null;
+    consultorTelefone: string | null;
+  } | null>(null);
 
   // Accept fields
   const [nome, setNome] = useState("");
@@ -259,6 +264,7 @@ export default function PropostaPublica() {
       if (td.used_at) {
         setDecision(td.decisao || "aceita");
         setTokenData(td);
+        loadPostDecisionInfo(td.id, td.proposta_id);
         setLoading(false);
         return;
       }
@@ -381,12 +387,45 @@ export default function PropostaPublica() {
       if (transitionErr) throw transitionErr;
 
       setDecision("aceita");
+      // Buscar termo PDF + consultor para tela pós-aceite (com pequeno delay para PDF)
+      setTimeout(() => loadPostDecisionInfo(tokenData.id, tokenData.proposta_id), 2500);
       toast({ title: "Proposta aceita com sucesso!" });
     } catch (e: any) {
       toast({ title: "Erro ao aceitar", description: e.message, variant: "destructive" });
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const loadPostDecisionInfo = async (tokenId: string, propostaId: string) => {
+    try {
+      const { data: tok } = await (supabase as any)
+        .from("proposta_aceite_tokens")
+        .select("termo_aceite_pdf_url")
+        .eq("id", tokenId)
+        .maybeSingle();
+      const { data: prop } = await (supabase as any)
+        .from("propostas_nativas")
+        .select("consultor_id, tenant_id")
+        .eq("id", propostaId)
+        .maybeSingle();
+      let consultorNome: string | null = null;
+      let consultorTelefone: string | null = null;
+      if (prop?.consultor_id) {
+        const { data: cons } = await (supabase as any)
+          .from("profiles")
+          .select("nome, telefone")
+          .eq("user_id", prop.consultor_id)
+          .maybeSingle();
+        consultorNome = cons?.nome ?? null;
+        consultorTelefone = cons?.telefone ?? null;
+      }
+      setPostDecisionInfo({
+        termoUrl: tok?.termo_aceite_pdf_url ?? null,
+        consultorNome,
+        consultorTelefone,
+      });
+    } catch { /* best-effort */ }
   };
 
   const handleReject = async () => {
@@ -540,29 +579,99 @@ export default function PropostaPublica() {
   // ── DECISION MADE ─────────────────────────────────────
   if (decision) {
     const isAccepted = decision === "aceita";
+    const primeiroNome = (tokenData?.aceite_nome || "").split(" ")[0];
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background p-4">
-        <Card className="max-w-md w-full">
-          <CardContent className="flex flex-col items-center gap-4 py-8">
-            {isAccepted ? (
-              <>
-                <CheckCircle2 className="h-14 w-14 text-success" />
-                <h2 className="text-xl font-semibold">Proposta Aceita!</h2>
-                <p className="text-sm text-muted-foreground text-center">
-                  {tokenData?.aceite_nome ? `Obrigado, ${tokenData.aceite_nome}!` : "Obrigado!"} Sua aceitação foi registrada com sucesso.
-                </p>
-              </>
-            ) : (
-              <>
+      <div className="min-h-screen bg-background p-4 py-8">
+        <div className="max-w-2xl mx-auto space-y-6">
+          {isAccepted ? (
+            <>
+              <Card>
+                <CardContent className="flex flex-col items-center gap-3 py-8 text-center">
+                  <div className="h-16 w-16 rounded-full bg-success/10 flex items-center justify-center">
+                    <CheckCircle2 className="h-9 w-9 text-success" />
+                  </div>
+                  <h2 className="text-2xl font-bold">
+                    Parabéns{primeiroNome ? `, ${primeiroNome}` : ""}! 🎉
+                  </h2>
+                  <p className="text-sm text-muted-foreground max-w-md">
+                    Sua aceitação foi registrada com sucesso. Estamos muito felizes
+                    em começar essa jornada de economia e energia limpa com você.
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardContent className="py-6">
+                  <h3 className="font-semibold mb-4 text-center">Próximos passos</h3>
+                  <div className="grid sm:grid-cols-3 gap-3">
+                    {[
+                      { icon: Building2, title: "Visita técnica", prazo: "Em até 5 dias úteis", desc: "Avaliação do local da instalação" },
+                      { icon: Zap, title: "Instalação", prazo: "15 a 30 dias", desc: "Montagem do sistema fotovoltaico" },
+                      { icon: Sun, title: "Ativação", prazo: "Após vistoria da concessionária", desc: "Sistema gerando energia" },
+                    ].map((step, idx) => (
+                      <div key={idx} className="rounded-lg border bg-card p-4 flex flex-col items-center text-center gap-2">
+                        <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+                          <step.icon className="h-5 w-5 text-primary" />
+                        </div>
+                        <div className="font-medium text-sm">{step.title}</div>
+                        <div className="text-xs text-primary font-semibold">{step.prazo}</div>
+                        <div className="text-xs text-muted-foreground">{step.desc}</div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+
+              {(postDecisionInfo?.consultorNome || postDecisionInfo?.consultorTelefone) && (
+                <Card>
+                  <CardContent className="py-5">
+                    <h3 className="font-semibold mb-3 text-sm">Seu consultor</h3>
+                    <div className="flex items-center gap-3">
+                      <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center">
+                        <MessageCircle className="h-5 w-5 text-muted-foreground" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        {postDecisionInfo.consultorNome && (
+                          <div className="font-medium text-sm">{postDecisionInfo.consultorNome}</div>
+                        )}
+                        {postDecisionInfo.consultorTelefone && (
+                          <a
+                            href={`https://wa.me/${postDecisionInfo.consultorTelefone.replace(/\D/g, "")}`}
+                            target="_blank" rel="noreferrer"
+                            className="text-sm text-primary hover:underline"
+                          >
+                            {postDecisionInfo.consultorTelefone}
+                          </a>
+                        )}
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {postDecisionInfo?.termoUrl && (
+                <div className="flex justify-center">
+                  <Button asChild size="lg">
+                    <a href={postDecisionInfo.termoUrl} target="_blank" rel="noreferrer" download>
+                      <FileText className="h-4 w-4 mr-2" />
+                      Baixar comprovante de aceite
+                    </a>
+                  </Button>
+                </div>
+              )}
+            </>
+          ) : (
+            <Card className="max-w-md w-full mx-auto">
+              <CardContent className="flex flex-col items-center gap-4 py-8 text-center">
                 <XCircle className="h-14 w-14 text-destructive" />
                 <h2 className="text-xl font-semibold">Proposta Recusada</h2>
-                <p className="text-sm text-muted-foreground text-center">
+                <p className="text-sm text-muted-foreground">
                   Sua resposta foi registrada. A equipe comercial será notificada.
                 </p>
-              </>
-            )}
-          </CardContent>
-        </Card>
+              </CardContent>
+            </Card>
+          )}
+        </div>
       </div>
     );
   }

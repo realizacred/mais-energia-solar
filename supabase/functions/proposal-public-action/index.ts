@@ -590,6 +590,55 @@ Deno.serve(async (req) => {
             .from("proposta_aceite_tokens")
             .update({ termo_aceite_pdf_url: pdfUrl })
             .eq("id", tokenData.id);
+
+          // 7c. Enviar termo ao cliente via WhatsApp (non-blocking)
+          try {
+            const { data: prop } = await admin
+              .from("propostas_nativas")
+              .select("cliente_id")
+              .eq("id", propostaId)
+              .maybeSingle();
+            const clienteId = prop?.cliente_id;
+            if (clienteId) {
+              const { data: cli } = await admin
+                .from("clientes")
+                .select("nome, telefone")
+                .eq("id", clienteId)
+                .maybeSingle();
+              const rawPhone = (cli?.telefone || "").replace(/\D/g, "");
+              if (rawPhone && rawPhone.length >= 10) {
+                const phone = rawPhone.startsWith("55") ? rawPhone : `55${rawPhone}`;
+                const remoteJid = `${phone}@s.whatsapp.net`;
+                const { data: waInstance } = await admin
+                  .from("wa_instances")
+                  .select("id")
+                  .eq("tenant_id", tenantId)
+                  .eq("status", "connected")
+                  .limit(1)
+                  .maybeSingle();
+                if (waInstance?.id) {
+                  const primeiroNome = (cli?.nome || "").split(" ")[0] || "cliente";
+                  const mensagem =
+                    `Olá ${primeiroNome}! 🎉 Recebemos seu aceite da proposta solar.\n\n` +
+                    `Segue seu comprovante de aceite:\n${pdfUrl}\n\n` +
+                    `Em breve nossa equipe entrará em contato. Obrigado pela confiança!`;
+                  const { error: enqErr } = await admin.rpc("enqueue_wa_outbox_item", {
+                    p_tenant_id: tenantId,
+                    p_instance_id: waInstance.id,
+                    p_remote_jid: remoteJid,
+                    p_message_type: "text",
+                    p_content: mensagem,
+                    p_idempotency_key: `termo-aceite-${tokenData.id}`,
+                  });
+                  if (enqErr) {
+                    console.warn("[proposal-public-action] WA termo enqueue falhou:", enqErr.message);
+                  }
+                }
+              }
+            }
+          } catch (waErr) {
+            console.warn("[proposal-public-action] Envio WA termo falhou (non-blocking):", waErr);
+          }
         }
       } catch (pdfErr) {
         console.error("[proposal-public-action] Termo PDF error (non-blocking):", pdfErr);
