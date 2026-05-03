@@ -129,6 +129,7 @@ export function ProjetoFilters({
   funis, filterFunil, onFilterFunilChange,
   filterConsultor, onFilterConsultorChange, consultores,
   filterStatus, onFilterStatusChange,
+  filterTipoProjetoSolar = "todos", onFilterTipoProjetoSolarChange,
   etiquetas, filterEtiquetas, onFilterEtiquetasChange,
   viewMode, onViewModeChange,
   onClearFilters,
