@@ -197,10 +197,11 @@ export function resolveClienteComercial(
   const propostaNum = str(proposta.numero) ?? (str(proposta.id) ? String(proposta.id).substring(0, 8) : undefined);
   set("proposta_num", propostaNum);
 
-  // ── Premissas da proposta ──
-  set("proposta_inflacao_energetica", snap.inflacao_energetica);
-  set("proposta_perda_eficiencia_anual", snap.perda_eficiencia_anual);
-  set("proposta_sobredimensionamento", snap.sobredimensionamento);
+  // ── Premissas da proposta (snapshot.premissas.* > snapshot.* fallback) ──
+  const premissasTop = safeObj(snap.premissas);
+  set("proposta_inflacao_energetica", premissasTop.inflacao_energetica ?? snap.inflacao_energetica);
+  set("proposta_perda_eficiencia_anual", premissasTop.perda_eficiencia_anual ?? snap.perda_eficiencia_anual);
+  set("proposta_sobredimensionamento", premissasTop.sobredimensionamento ?? snap.sobredimensionamento);
 
   // ── Empresa (tenants → brand_settings fallback) ──
   set("empresa_razao_social", ext?.tenantNome);
@@ -359,10 +360,13 @@ export function resolveClienteComercial(
   }
 
   // ── Premissas ──
+  // SSOT: snapshot.premissas.{k} (objeto consolidado).
+  // Fallback: snapshot.{k} para compatibilidade com snapshots antigos.
+  const premissasObj = safeObj(snap.premissas);
   for (const k of ["inflacao_energetica", "inflacao_ipca", "imposto", "vpl_taxa_desconto",
-    "perda_eficiencia_anual", "troca_inversor", "troca_inversor_custo",
+    "perda_eficiencia_anual", "troca_inversor", "troca_inversor_anos", "troca_inversor_custo",
     "sobredimensionamento", "vida_util_sistema"]) {
-    set(k, snap[k]);
+    set(k, premissasObj[k] ?? snap[k]);
   }
 
   // ── Observações ──
