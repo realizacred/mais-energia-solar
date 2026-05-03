@@ -98,6 +98,24 @@ export function FornecedoresManager() {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
   const [importOpen, setImportOpen] = useState(false);
+  const { fetchCep, loading: cepLoading } = useCepLookup();
+
+  const handleCepChange = useCallback(async (raw: string) => {
+    const masked = formatCep(raw);
+    setForm(p => ({ ...p, cep: masked }));
+    const digits = masked.replace(/\D/g, "");
+    if (digits.length === 8) {
+      const addr = await fetchCep(masked);
+      if (addr) {
+        setForm(p => ({
+          ...p,
+          cidade: p.cidade || addr.cidade,
+          estado: p.estado || addr.estado,
+          endereco: p.endereco || [addr.rua, addr.bairro].filter(Boolean).join(", "),
+        }));
+      }
+    }
+  }, [fetchCep]);
 
 
   /* ─── Derived lists ─── */
