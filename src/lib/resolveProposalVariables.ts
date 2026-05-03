@@ -309,6 +309,16 @@ function resolveFromContext(
   if (key === "comercial.empresa_nome") return s(ctx.comercial?.empresa_nome ?? ctx.empresaNome);
   if (key === "comercial.empresa_razao_social") return s(ctx.empresaNome);
   if (key === "comercial.empresa_nome_fantasia") return s(ctx.empresaNome);
+  if (key === "comercial.empresa_cnpj") {
+    return s(ctx.comercial?.empresa_cnpj_cpf ?? (ctx.finalSnapshot as any)?.empresa_cnpj);
+  }
+  if (key === "comercial.empresa_telefone") {
+    return s(ctx.empresaTelefone ?? (ctx.finalSnapshot as any)?.empresa_telefone);
+  }
+  if (key === "comercial.empresa_logo") {
+    // vazia real — fonte ausente no ctx (logo do tenant não é injetado no resolver FE)
+    return s((ctx.finalSnapshot as any)?.empresa_logo);
+  }
   if (key === "comercial.consultor_codigo") return s(ctx.consultorCodigo);
 
   // proposta_link (FE parity with BE)

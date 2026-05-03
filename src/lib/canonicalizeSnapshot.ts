@@ -196,7 +196,7 @@ export function canonicalizeSnapshot<T extends AnyObj | null | undefined>(
   setIfEmpty(out, "comercial.projeto_estado_instalacao", projeto.estado ?? cliente?.endereco?.estado ?? sm.estado ?? sm.Estado);
   setIfEmpty(out, "comercial.projeto_cidade_instalacao", projeto.cidade ?? cliente?.endereco?.cidade ?? sm.cidade ?? sm.Cidade);
 
-  // ── cliente.* (achatar cliente.endereco.*) ────────────────
+  // ── cliente.* (achatar cliente.endereco.* + fallback sm_variables) ─
   if (isObj(cliente.endereco)) {
     setIfEmpty(out, "cliente.cep", cliente.endereco.cep);
     setIfEmpty(out, "cliente.rua", cliente.endereco.rua);
@@ -206,6 +206,13 @@ export function canonicalizeSnapshot<T extends AnyObj | null | undefined>(
     setIfEmpty(out, "cliente.cidade", cliente.endereco.cidade);
     setIfEmpty(out, "cliente.estado", cliente.endereco.estado);
   }
+  // Fallback: sm_variables tem cidade/estado quando endereco do cliente é null
+  setIfEmpty(out, "cliente.cidade", sm.cidade ?? sm.Cidade);
+  setIfEmpty(out, "cliente.estado", sm.estado ?? sm.Estado);
+  setIfEmpty(out, "cliente.nome", cliente.nome);
+  setIfEmpty(out, "cliente.email", cliente.email);
+  setIfEmpty(out, "cliente.telefone", cliente.telefone);
+  setIfEmpty(out, "cliente.cpf_cnpj", cliente.cpf_cnpj);
 
   out.__canonicalized = true;
   return out as T;
