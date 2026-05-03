@@ -79,8 +79,10 @@ import {
   useCheckClienteDependencies,
   useDeletarCliente,
   useClientesRealtime,
+  DuplicateClienteError,
   type ClienteRow,
 } from "@/hooks/useClientes";
+import { AlertTriangle } from "lucide-react";
 
 type Cliente = ClienteRow;
 
