@@ -224,6 +224,7 @@ export function NovoProjetoModal({
       clienteEmpresa: cliente.empresa || "",
       clienteCpfCnpj: cliente.cpf_cnpj || "",
       clienteTelefone: cliente.telefone || "",
+      clienteDataNascimento: (cliente as any).data_nascimento || "",
       valor: form.getValues("valor") || 0,
       cep: cliente.cep || "",
       rua: cliente.rua || "",
