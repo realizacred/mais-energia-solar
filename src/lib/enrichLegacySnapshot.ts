@@ -1,138 +1,222 @@
 /**
- * enrichLegacySnapshot.ts
+ * ═══════════════════════════════════════════════════════════════
+ * ENRICH LEGACY SNAPSHOT — Adapter SM → Canônico
+ * ═══════════════════════════════════════════════════════════════
  *
- * Service para enriquecer snapshots de propostas migradas (SolarMarket)
- * com dados nativos do tenant: premissas, distribuidora, irradiação, geocoding.
+ * Propostas migradas do SolarMarket têm snapshot em formato legacy:
+ *   { cliente, kit, financeiro, geracao, garantias, pagamento,
+ *     proposta, projeto, raw_sm, sm_variables }
  *
- * §16: Queries imperativas em services — não em componentes.
- * Chamado por normalizeLegacySnapshot no ProposalWizard.
+ * O catálogo de variáveis (variablesCatalog.ts) e os templates web
+ * esperam chaves canônicas: sistema_solar.*, comercial.*, conta_energia.*,
+ * financeiro.*, entrada.*, etc.
+ *
+ * Este adapter PRESERVA o snapshot original e adiciona caminhos
+ * canônicos derivados das estruturas legacy. Idempotente:
+ * se a chave canônica já existe (snapshot nativo), NÃO sobrescreve.
+ *
+ * Decisão arquitetural: enriquecer no momento do resolve, não na
+ * gravação. Snapshots são imutáveis (DA proposals/lifecycle).
+ *
+ * Uso:
+ *   const enriched = enrichLegacySnapshot(rawSnapshot);
+ *   resolveProposalVariables({ finalSnapshot: enriched, ... })
  */
 
-import { supabase } from "@/integrations/supabase/client";
+type AnyObj = Record<string, any>;
 
-export interface LegacyEnrichmentResult {
-  premissas: Record<string, any> | null;
-  distribuidoraId: string | null;
-  distribuidoraNome: string | null;
-  tarifaEnergia: number | null;
-  irradiacaoEstimada: number | null;
-  irradiacaoTenant: number | null;
-  lat: number | null;
-  lon: number | null;
+function isObj(v: unknown): v is AnyObj {
+  return v != null && typeof v === "object" && !Array.isArray(v);
 }
 
-interface EnrichParams {
-  existingPremissas: Record<string, any> | null;
-  distribuidoraNome: string;
-  locIrradiacao: number;
-  geracaoMensal: number;
-  potenciaKwp: number;
-  cidade: string;
-  estado: string;
-  hasLatitude: boolean;
+/** Atribui apenas se destino estiver vazio (null/undefined/""/0-string). */
+function setIfEmpty(obj: AnyObj, path: string, value: unknown) {
+  if (value == null || value === "") return;
+  const parts = path.split(".");
+  let cur: AnyObj = obj;
+  for (let i = 0; i < parts.length - 1; i++) {
+    const k = parts[i];
+    if (!isObj(cur[k])) cur[k] = {};
+    cur = cur[k];
+  }
+  const last = parts[parts.length - 1];
+  const existing = cur[last];
+  if (existing == null || existing === "") cur[last] = value;
 }
 
-export async function enrichLegacySnapshot(params: EnrichParams): Promise<LegacyEnrichmentResult> {
-  const result: LegacyEnrichmentResult = {
-    premissas: null,
-    distribuidoraId: null,
-    distribuidoraNome: null,
-    tarifaEnergia: null,
-    irradiacaoEstimada: null,
-    irradiacaoTenant: null,
-    lat: null,
-    lon: null,
-  };
+function firstWord(s: unknown): string | null {
+  if (typeof s !== "string" || !s.trim()) return null;
+  return s.trim().split(/\s+/)[0];
+}
 
-  try {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return result;
+function toNum(v: unknown): number | null {
+  if (v == null || v === "") return null;
+  const n = typeof v === "number" ? v : parseFloat(String(v).replace(/[^\d.\-]/g, ""));
+  return Number.isFinite(n) ? n : null;
+}
 
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("tenant_id")
-      .eq("user_id", user.id)
-      .maybeSingle();
+/**
+ * Adapter principal. Não muta o input.
+ */
+export function enrichLegacySnapshot<T extends AnyObj | null | undefined>(
+  snapshot: T
+): T {
+  if (!isObj(snapshot)) return snapshot;
+  // Marca para evitar reprocessar
+  if ((snapshot as AnyObj).__legacy_enriched) return snapshot;
 
-    const tenantId = profile?.tenant_id;
-    if (!tenantId) return result;
-
-    // ── Premissas nativas ──
-    const { data: premissasNativas } = await (supabase as any)
-      .from("premissas_tecnicas")
-      .select("degradacao_anual_percent, reajuste_tarifa_anual_percent, performance_ratio, vida_util_anos, horas_sol_pico, irradiacao_media_kwh_m2, fator_perdas_percent")
-      .eq("tenant_id", tenantId)
-      .maybeSingle();
-
-    if (premissasNativas) {
-      const ep = params.existingPremissas || {};
-      result.premissas = {
-        ...ep,
-        perda_eficiencia_anual: premissasNativas.degradacao_anual_percent ?? ep.perda_eficiencia_anual ?? 0.5,
-        inflacao_energetica: premissasNativas.reajuste_tarifa_anual_percent ?? ep.inflacao_energetica ?? 6,
-        performance_ratio: premissasNativas.performance_ratio ?? ep.performance_ratio,
-        vida_util: premissasNativas.vida_util_anos ?? ep.vida_util,
-        horas_sol_pico: premissasNativas.horas_sol_pico ?? ep.horas_sol_pico,
-      };
-    }
-
-    // ── Distribuidora vinculada ──
-    if (params.distribuidoraNome) {
-      const { data: concessionaria } = await supabase
-        .from("concessionarias")
-        .select("id, nome, tarifa_energia")
-        .ilike("nome", `%${params.distribuidoraNome}%`)
-        .eq("tenant_id", tenantId)
-        .eq("ativo", true)
-        .limit(1)
-        .maybeSingle();
-
-      if (concessionaria) {
-        result.distribuidoraId = concessionaria.id;
-        result.distribuidoraNome = concessionaria.nome;
-        if (concessionaria.tarifa_energia) {
-          result.tarifaEnergia = Number(concessionaria.tarifa_energia);
-        }
-      }
-    }
-
-    // ── Irradiação estimada da geração SM ──
-    const pr = Number(result.premissas?.performance_ratio ?? params.existingPremissas?.performance_ratio) || 0.78;
-    if (!params.locIrradiacao && params.geracaoMensal > 0 && params.potenciaKwp > 0) {
-      const est = params.geracaoMensal / (params.potenciaKwp * pr * 30);
-      if (est > 0 && est < 10) {
-        result.irradiacaoEstimada = Math.round(est * 100) / 100;
-      }
-    }
-    // Fallback: irradiação média do tenant
-    if (!params.locIrradiacao && !result.irradiacaoEstimada && premissasNativas?.irradiacao_media_kwh_m2) {
-      result.irradiacaoTenant = Number(premissasNativas.irradiacao_media_kwh_m2);
-    }
-
-    // ── Geocoding via Nominatim ──
-    if (params.cidade && !params.hasLatitude) {
-      try {
-        const query = encodeURIComponent(`${params.cidade}, ${params.estado}, Brasil`);
-        const resp = await fetch(
-          `https://nominatim.openstreetmap.org/search?q=${query}&format=json&limit=1&countrycodes=br`,
-          { headers: { "User-Agent": "MaisEnergiaSolar/1.0" } }
-        );
-        const results = await resp.json();
-        if (results?.[0]) {
-          const lat = parseFloat(results[0].lat);
-          const lon = parseFloat(results[0].lon);
-          if (!isNaN(lat) && !isNaN(lon)) {
-            result.lat = lat;
-            result.lon = lon;
-          }
-        }
-      } catch {
-        // Geocoding is best-effort
-      }
-    }
-  } catch {
-    // Enrichment is best-effort — legacy snapshot still usable without it
+  // Clone raso top-level + clones rasos dos blocos que tocamos
+  const out: AnyObj = { ...snapshot };
+  for (const k of [
+    "sistema_solar",
+    "comercial",
+    "conta_energia",
+    "financeiro",
+    "entrada",
+    "pagamento",
+    "cliente",
+    "kit",
+    "geracao",
+    "garantias",
+    "projeto",
+    "proposta",
+  ]) {
+    if (isObj(out[k])) out[k] = { ...out[k] };
   }
 
-  return result;
+  const kit = isObj(out.kit) ? out.kit : {};
+  const itens: any[] = Array.isArray(kit.itens) ? kit.itens : [];
+  const geracao = isObj(out.geracao) ? out.geracao : {};
+  const garantias = isObj(out.garantias) ? out.garantias : {};
+  const financeiroSrc = isObj(out.financeiro) ? out.financeiro : {};
+  const pagamentoSrc = isObj(out.pagamento) ? out.pagamento : {};
+  const proposta = isObj(out.proposta) ? out.proposta : {};
+  const projeto = isObj(out.projeto) ? out.projeto : {};
+  const cliente = isObj(out.cliente) ? out.cliente : {};
+  const sm: AnyObj = isObj(out.sm_variables) ? out.sm_variables : {};
+
+  // ── sistema_solar.* ───────────────────────────────────────
+  // Potência
+  setIfEmpty(out, "sistema_solar.potencia_kwp", geracao.potencia_kwp ?? toNum(sm.potencia_sistema));
+  setIfEmpty(out, "sistema_solar.geracao_mensal", geracao.geracao_mensal ?? toNum(sm.geracao_mensal));
+  setIfEmpty(out, "sistema_solar.geracao_anual", geracao.geracao_anual ?? toNum(sm.geracao_anual));
+
+  // Itens do kit por categoria (case-insensitive)
+  const byCat = (cat: string) =>
+    itens.filter((i: any) => String(i?.category ?? "").toLowerCase() === cat.toLowerCase());
+  const modulos = byCat("Módulo").concat(byCat("Modulo"));
+  const inversores = byCat("Inversor");
+  const baterias = byCat("Bateria");
+
+  if (modulos.length) {
+    const m = modulos[0];
+    const totalQnt = modulos.reduce((s: number, x: any) => s + (toNum(x?.qnt) ?? 0), 0);
+    setIfEmpty(out, "sistema_solar.modulo_quantidade", totalQnt || toNum(m?.qnt));
+    setIfEmpty(out, "sistema_solar.modulo_modelo", m?.item);
+    setIfEmpty(out, "sistema_solar.modulo_marca", firstWord(m?.item) ?? sm.modulo_fabricante);
+  }
+  if (inversores.length) {
+    const inv = inversores[0];
+    const totalQnt = inversores.reduce((s: number, x: any) => s + (toNum(x?.qnt) ?? 0), 0);
+    setIfEmpty(out, "sistema_solar.inversor_quantidade", totalQnt || toNum(inv?.qnt));
+    setIfEmpty(out, "sistema_solar.inversor_modelo", inv?.item);
+    setIfEmpty(out, "sistema_solar.inversor_marca", firstWord(inv?.item) ?? sm.inversor_fabricante);
+  }
+  if (baterias.length) {
+    const b = baterias[0];
+    setIfEmpty(out, "sistema_solar.bateria_quantidade", toNum(b?.qnt));
+    setIfEmpty(out, "sistema_solar.bateria_modelo", b?.item);
+  }
+
+  // SM variables → sistema_solar
+  setIfEmpty(out, "sistema_solar.area_util", toNum(sm.area_util));
+  setIfEmpty(out, "sistema_solar.topologia", sm.topologia ?? sm.Topologia);
+  setIfEmpty(out, "sistema_solar.fornecedor", sm.fornecedor ?? sm.Fornecedor);
+  setIfEmpty(out, "sistema_solar.inclinacao", toNum(sm.inclinacao));
+  setIfEmpty(out, "sistema_solar.distancia", toNum(sm.distancia ?? sm.Distância));
+  setIfEmpty(out, "sistema_solar.kit_codigo", sm.kit_codigo);
+  setIfEmpty(out, "sistema_solar.kit_nome", kit.nome);
+  setIfEmpty(out, "sistema_solar.tipo_kit", sm.tipo_kit ?? sm["Tipo de Kit"]);
+
+  // Garantias
+  setIfEmpty(out, "sistema_solar.garantia_modulo", garantias.modulo_sm ?? sm.capo_m);
+  setIfEmpty(out, "sistema_solar.garantia_inversor", garantias.inversor_sm ?? sm.capo_i);
+  setIfEmpty(out, "sistema_solar.garantia_microinversor", garantias.microinversor_sm ?? sm.capo_mi);
+
+  // ── financeiro.* ──────────────────────────────────────────
+  setIfEmpty(out, "financeiro.valor_total", financeiroSrc.valor_total ?? pagamentoSrc.valor_total ?? toNum(sm.preco));
+  setIfEmpty(out, "financeiro.valor_kit", toNum(sm.preco_kits));
+  setIfEmpty(out, "financeiro.valor_a_vista", toNum(sm.vc_a_vista));
+  setIfEmpty(out, "financeiro.tir", toNum(sm.tir));
+  setIfEmpty(out, "financeiro.vpl", toNum(sm.vpl));
+  setIfEmpty(out, "financeiro.payback", sm.payback ?? sm.Payback);
+  setIfEmpty(out, "financeiro.economia_25_anos", toNum(sm.solar_25));
+  setIfEmpty(out, "financeiro.renda_25_anos", toNum(sm.renda_25));
+  setIfEmpty(out, "financeiro.aumento_tarifa", toNum(sm.vc_aumento));
+  setIfEmpty(out, "financeiro.imposto", toNum(sm.imposto ?? sm.Imposto));
+
+  // ── conta_energia.* ───────────────────────────────────────
+  setIfEmpty(out, "conta_energia.consumo_mensal", toNum(sm.vc_consumo));
+  setIfEmpty(out, "conta_energia.consumo_abatido", toNum(sm.vc_consumo));
+  // Consumo mensal por mês (consumo_jan..consumo_dez existem em sm)
+  for (const mes of ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"]) {
+    setIfEmpty(out, `conta_energia.consumo_${mes}`, toNum(sm[`consumo_${mes}`]));
+  }
+
+  // ── entrada.* / pagamento.* ───────────────────────────────
+  // SM tem f_nome_N / f_taxa_N / f_prazo_N / f_valor_N (até 28 opções)
+  // Mapeamos os primeiros como entrada.opcao_N e pagamento.financiamento_N
+  const opcoes: Array<{ nome: string; taxa: number | null; prazo: number | null; valor: number | null }> = [];
+  for (let i = 1; i <= 28; i++) {
+    const nome = sm[`f_nome_${i}`];
+    if (!nome) continue;
+    opcoes.push({
+      nome: String(nome),
+      taxa: toNum(sm[`f_taxa_${i}`]),
+      prazo: toNum(sm[`f_prazo_${i}`]),
+      valor: toNum(sm[`f_valor_${i}`]),
+    });
+  }
+  if (opcoes.length) {
+    setIfEmpty(out, "pagamento.opcoes_count", opcoes.length);
+    opcoes.slice(0, 9).forEach((op, idx) => {
+      const n = idx + 1;
+      setIfEmpty(out, `pagamento.opcao_${n}_nome`, op.nome);
+      setIfEmpty(out, `pagamento.opcao_${n}_taxa`, op.taxa);
+      setIfEmpty(out, `pagamento.opcao_${n}_prazo`, op.prazo);
+      setIfEmpty(out, `pagamento.opcao_${n}_valor`, op.valor);
+    });
+    // Valor à vista padrão
+    setIfEmpty(out, "pagamento.valor_a_vista", toNum(sm.vc_a_vista) ?? pagamentoSrc.valor_total);
+    setIfEmpty(out, "pagamento.condicao", pagamentoSrc.condicao ?? sm.vc_nome);
+  }
+
+  // ── comercial.* ───────────────────────────────────────────
+  setIfEmpty(out, "comercial.titulo", proposta.titulo);
+  setIfEmpty(out, "comercial.proposta_titulo", proposta.titulo);
+  setIfEmpty(out, "comercial.proposta_link_pdf", proposta.link_pdf);
+  setIfEmpty(out, "comercial.proposta_link", proposta.link_pdf);
+  setIfEmpty(out, "comercial.proposta_data", proposta.generated_at);
+  setIfEmpty(out, "comercial.proposta_data_envio", proposta.sent_at);
+  setIfEmpty(out, "comercial.proposta_aceito_em", proposta.accepted_at);
+  setIfEmpty(out, "comercial.proposta_aceita_at", proposta.accepted_at);
+  setIfEmpty(out, "comercial.proposta_validade", proposta.expires_at);
+  setIfEmpty(out, "comercial.proposta_valido_ate", proposta.expires_at);
+  setIfEmpty(out, "comercial.proposta_status", proposta.status_source);
+  setIfEmpty(out, "comercial.projeto_estado_instalacao", projeto.estado ?? cliente?.endereco?.estado ?? sm.estado ?? sm.Estado);
+  setIfEmpty(out, "comercial.projeto_cidade_instalacao", projeto.cidade ?? cliente?.endereco?.cidade ?? sm.cidade ?? sm.Cidade);
+
+  // ── cliente.* (campos de endereço em snapshot.cliente.endereco.*) ──
+  if (isObj(cliente.endereco)) {
+    setIfEmpty(out, "cliente.cep", cliente.endereco.cep);
+    setIfEmpty(out, "cliente.rua", cliente.endereco.rua);
+    setIfEmpty(out, "cliente.numero", cliente.endereco.numero);
+    setIfEmpty(out, "cliente.complemento", cliente.endereco.complemento);
+    setIfEmpty(out, "cliente.bairro", cliente.endereco.bairro);
+    setIfEmpty(out, "cliente.cidade", cliente.endereco.cidade);
+    setIfEmpty(out, "cliente.estado", cliente.endereco.estado);
+  }
+
+  out.__legacy_enriched = true;
+  return out as T;
 }
