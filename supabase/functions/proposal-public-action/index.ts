@@ -16,7 +16,14 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-// Mirror of proposal-transition state machine
+// SHA-256 helper (Web Crypto)
+async function sha256Hex(input: string): Promise<string> {
+  const data = new TextEncoder().encode(input);
+  const buf = await crypto.subtle.digest("SHA-256", data);
+  return Array.from(new Uint8Array(buf))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+}
 const VALID_TRANSITIONS: Record<string, string[]> = {
   rascunho: ["gerada"],
   gerada: ["enviada", "aceita", "recusada", "cancelada"],
