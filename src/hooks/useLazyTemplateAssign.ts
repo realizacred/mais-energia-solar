@@ -1,18 +1,17 @@
 /**
- * useLazyTemplateAssign — On-demand template assignment for migrated SM proposals.
+ * useLazyTemplateAssign — DEPRECATED após auditoria CRÍTICA de templates.
  *
- * When a migrated proposal (template_id_used IS NULL) is opened,
- * this hook assigns a default WEB template to the version and proposal,
- * enabling proper rendering via the unified semantic block pipeline.
+ * Antes atribuía um DEFAULT_TEMPLATE_ID hardcoded a versões de propostas
+ * migradas que estavam sem template_id_used. Isso quebrava o critério de
+ * verdade "template ativo no editor = template usado em /pl/:slug".
  *
- * §16: Query in hook. §23: staleTime mandatory.
- * Rules: no background batch, no interruption to migration, on-demand only.
+ * Agora é um no-op: nenhuma atribuição automática é feita.
+ * O template_id_used só pode ser definido explicitamente via Wizard.
+ *
+ * Mantido como shim para não quebrar consumidores existentes.
  */
 
-import { useCallback, useRef, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
-
-const DEFAULT_TEMPLATE_ID = "a1b2c3d4-e5f6-7890-abcd-ef1234567890"; // "Alta Conversão" (html)
+import { useCallback, useState } from "react";
 
 interface LazyAssignResult {
   success: boolean;
@@ -20,94 +19,21 @@ interface LazyAssignResult {
   error?: string;
 }
 
-/**
- * Returns a function `assignIfNeeded(versaoId, propostaId)` that:
- * 1. Checks if versao already has template_id_used
- * 2. If NULL → assigns default template to both versao and proposta
- * 3. Returns the assigned template ID
- *
- * Idempotent: multiple calls for same versaoId are no-ops after first assignment.
- */
 export function useLazyTemplateAssign() {
-  const [assigning, setAssigning] = useState(false);
-  const assignedCache = useRef(new Set<string>());
+  const [assigning] = useState(false);
 
   const assignIfNeeded = useCallback(
     async (
-      versaoId: string | null | undefined,
-      propostaId: string | null | undefined
+      _versaoId: string | null | undefined,
+      _propostaId: string | null | undefined
     ): Promise<LazyAssignResult> => {
-      if (!versaoId) return { success: false, templateId: null, error: "No versaoId" };
-
-      // Already assigned in this session — skip
-      if (assignedCache.current.has(versaoId)) {
-        return { success: true, templateId: DEFAULT_TEMPLATE_ID };
-      }
-
-      try {
-        setAssigning(true);
-
-        // 1. Check current state
-        const { data: versao, error: fetchErr } = await supabase
-          .from("proposta_versoes")
-          .select("template_id_used, snapshot")
-          .eq("id", versaoId)
-          .single();
-
-        if (fetchErr) return { success: false, templateId: null, error: fetchErr.message };
-
-        // Already has template — no-op
-        if (versao.template_id_used) {
-          assignedCache.current.add(versaoId);
-          return { success: true, templateId: versao.template_id_used };
-        }
-
-        // 2. Validate snapshot exists (don't assign template to empty version)
-        const snap = versao.snapshot;
-        if (!snap || (typeof snap === "object" && Object.keys(snap as object).length === 0)) {
-          return { success: false, templateId: null, error: "Snapshot vazio — não é possível atribuir template" };
-        }
-
-        // 3. Verify default template exists
-        const { data: tmpl, error: tmplErr } = await supabase
-          .from("proposta_templates")
-          .select("id")
-          .eq("id", DEFAULT_TEMPLATE_ID)
-          .eq("ativo", true)
-          .maybeSingle();
-
-        if (tmplErr || !tmpl) {
-          return { success: false, templateId: null, error: "Template padrão não encontrado" };
-        }
-
-        // 4. Update version
-        const { error: verUpd } = await supabase
-          .from("proposta_versoes")
-          .update({ template_id_used: DEFAULT_TEMPLATE_ID } as any)
-          .eq("id", versaoId);
-
-        if (verUpd) {
-          return { success: false, templateId: null, error: verUpd.message };
-        }
-
-        // 5. Update proposal (if provided)
-        if (propostaId) {
-          await supabase
-            .from("propostas_nativas")
-            .update({ template_id: DEFAULT_TEMPLATE_ID } as any)
-            .eq("id", propostaId)
-            .then(({ error }) => {
-              if (error) console.error("[useLazyTemplateAssign] proposta update error:", error.message);
-            });
-        }
-
-        assignedCache.current.add(versaoId);
-        return { success: true, templateId: DEFAULT_TEMPLATE_ID };
-      } catch (err: any) {
-        return { success: false, templateId: null, error: err.message || "Erro desconhecido" };
-      } finally {
-        setAssigning(false);
-      }
+      // No-op: atribuição automática desativada.
+      // Editor é a única fonte de verdade para template_id_used.
+      return {
+        success: false,
+        templateId: null,
+        error: "Atribuição automática de template desativada. Selecione um modelo no editor.",
+      };
     },
     []
   );
