@@ -508,6 +508,11 @@ export function NovoProjetoModal({
                     />
                     {form.formState.errors.clienteTelefone && <p className="text-xs text-destructive">{form.formState.errors.clienteTelefone.message}</p>}
                   </div>
+
+                  <div className="space-y-1">
+                    <Label className="text-[11px] font-medium text-muted-foreground">Data de nascimento</Label>
+                    <Input type="date" className="h-8 text-sm" {...form.register("clienteDataNascimento")} />
+                  </div>
                 </div>
 
                 {/* ── Coluna 3: Clientes similares ── */}
