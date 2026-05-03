@@ -100,6 +100,8 @@ interface Props {
   consultores: ConsultorOption[];
   filterStatus: string;
   onFilterStatusChange: (v: string) => void;
+  filterTipoProjetoSolar?: string;
+  onFilterTipoProjetoSolarChange?: (v: string) => void;
   etiquetas: ProjetoEtiqueta[];
   filterEtiquetas: string[];
   onFilterEtiquetasChange: (ids: string[]) => void;
