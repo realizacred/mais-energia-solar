@@ -64,16 +64,19 @@ export interface RenderChartResponse {
 export type ProposalChartInsert = Omit<ProposalChart, "id" | "created_at" | "updated_at">;
 export type ProposalChartUpdate = Partial<Omit<ProposalChart, "id" | "tenant_id" | "created_at" | "updated_at">>;
 
-/** Default chart colors (semantic) */
+/**
+ * Paleta padrão alinhada à marca (laranja + azul corporativo).
+ * Ordem pensada para boa legibilidade em pizza/rosca/barras.
+ */
 export const DEFAULT_CHART_COLORS = [
-  "#3b82f6", // blue
-  "#f59e0b", // amber
-  "#10b981", // emerald
-  "#ef4444", // red
-  "#8b5cf6", // violet
-  "#06b6d4", // cyan
-  "#f97316", // orange
-  "#84cc16", // lime
+  "#FF6A00", // brand orange (primary)
+  "#144C8C", // brand blue (secondary)
+  "#3F6FCC", // brand blue light
+  "#16A34A", // emerald (economia/positivo)
+  "#F59E0B", // amber (atenção)
+  "#64748B", // slate (neutro)
+  "#0EA5E9", // sky (apoio)
+  "#9333EA", // violet (apoio)
 ];
 
 /** Default charts to seed per tenant */
