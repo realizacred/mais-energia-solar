@@ -396,6 +396,7 @@ export function CustomFieldEditModal({
                             ...(!editingField && slug ? { field_key: `${prefix}_${slug}` } : {}),
                           }));
                         }}
+                        className="h-9"
                         placeholder="Exemplo: Wifi" />
                     </div>
                     <div className="space-y-1.5">
