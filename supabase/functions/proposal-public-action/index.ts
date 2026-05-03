@@ -620,9 +620,8 @@ Deno.serve(async (req) => {
     try {
       await admin.functions.invoke("proposal-decision-notify", {
         body: {
-          proposta_id: propostaId,
-          action: newStatus,
-          motivo: motivo || null,
+          token_id: tokenData.id,
+          decisao: newStatus, // "aceita" | "recusada"
         },
       });
     } catch {

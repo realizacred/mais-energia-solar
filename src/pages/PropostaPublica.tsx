@@ -177,6 +177,17 @@ export default function PropostaPublica() {
         p_device_type: deviceType,
         p_screen_width: sw,
       });
+
+      // Notificar consultor SOMENTE no primeiro acesso (view_count vem ANTES do increment)
+      if ((td.view_count ?? 0) === 0) {
+        try {
+          await supabase.functions.invoke("proposal-decision-notify", {
+            body: { token_id: td.id, decisao: "visualizada" },
+          });
+        } catch {
+          // Silent — notify é best-effort, não pode travar a abertura
+        }
+      }
     } catch {
       // Silent — view tracking is best-effort
     }
