@@ -11,6 +11,7 @@ import {
   DEFAULT_TIPO_PROJETO_SOLAR,
   getTipoProjetoSolarBadgeClass,
   getTipoProjetoSolarLabel,
+  isTipoProjetoEmAdaptacao,
   type TipoProjetoSolar,
 } from "@/lib/tipoProjetoSolar";
 
@@ -57,7 +58,11 @@ export function TipoProjetoSolarBadge({ projetoId, readOnly }: Props) {
     onSuccess: (next) => {
       qc.setQueryData(["projeto-tipo-solar", projetoId], next);
       qc.invalidateQueries({ queryKey: ["projeto-detalhe"] });
-      toast({ title: "Tipo de projeto atualizado", description: getTipoProjetoSolarLabel(next) });
+      toast({
+        title: `Tipo alterado para ${getTipoProjetoSolarLabel(next)}`,
+        description:
+          "O tipo de sistema foi alterado. Os cálculos e equipamentos podem não refletir esse tipo ainda.",
+      });
       setOpen(false);
     },
     onError: (err: any) => {
@@ -68,17 +73,32 @@ export function TipoProjetoSolarBadge({ projetoId, readOnly }: Props) {
   const current = tipo || DEFAULT_TIPO_PROJETO_SOLAR;
   const badgeClass = getTipoProjetoSolarBadgeClass(current);
   const label = getTipoProjetoSolarLabel(current);
+  const emAdaptacao = isTipoProjetoEmAdaptacao(current);
+
+  const adaptacaoBadge = emAdaptacao ? (
+    <Badge
+      variant="outline"
+      className="text-[10px] shrink-0 gap-1 bg-warning/10 text-warning border-warning/30 px-1.5 h-[22px]"
+      title="Engine de cálculo, kit e template ainda não totalmente adaptados a este tipo."
+    >
+      Em adaptação
+    </Badge>
+  ) : null;
 
   if (readOnly || !projetoId) {
     return (
-      <Badge variant="outline" className={cn("text-xs shrink-0 gap-1.5", badgeClass)}>
-        <Sun className="h-3 w-3" />
-        {label}
-      </Badge>
+      <div className="flex items-center gap-1.5 flex-wrap">
+        <Badge variant="outline" className={cn("text-xs shrink-0 gap-1.5", badgeClass)}>
+          <Sun className="h-3 w-3" />
+          {label}
+        </Badge>
+        {adaptacaoBadge}
+      </div>
     );
   }
 
   return (
+    <div className="flex items-center gap-1.5 flex-wrap">
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <button
@@ -124,5 +144,7 @@ export function TipoProjetoSolarBadge({ projetoId, readOnly }: Props) {
         </div>
       </PopoverContent>
     </Popover>
+    {adaptacaoBadge}
+    </div>
   );
 }

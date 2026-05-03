@@ -51,6 +51,35 @@ export const TIPO_PROJETO_SOLAR_OPTIONS: {
 
 export const DEFAULT_TIPO_PROJETO_SOLAR: TipoProjetoSolar = "on_grid";
 
+/**
+ * Tipos cujo engine de cálculo / kit / template ainda NÃO foi totalmente
+ * adaptado. UI deve sinalizar com badge "Em adaptação" e avisos.
+ * (Fase C — apenas UX informativo, não bloqueia uso.)
+ */
+const TIPOS_EM_ADAPTACAO: ReadonlySet<TipoProjetoSolar> = new Set([
+  "hibrido",
+  "off_grid",
+  "ampliacao",
+  "bombeamento",
+]);
+
+export function isTipoProjetoEmAdaptacao(value?: string | null): boolean {
+  return !!value && TIPOS_EM_ADAPTACAO.has(value as TipoProjetoSolar);
+}
+
+/**
+ * Tipos com impacto financeiro ainda não suportado pelo engine on-grid.
+ * Exibir alerta dedicado sobre cálculo financeiro.
+ */
+const TIPOS_FINANCEIRO_PENDENTE: ReadonlySet<TipoProjetoSolar> = new Set([
+  "hibrido",
+  "off_grid",
+]);
+
+export function isTipoProjetoFinanceiroPendente(value?: string | null): boolean {
+  return !!value && TIPOS_FINANCEIRO_PENDENTE.has(value as TipoProjetoSolar);
+}
+
 export function getTipoProjetoSolarLabel(value?: string | null): string {
   return (
     TIPO_PROJETO_SOLAR_OPTIONS.find((o) => o.value === value)?.label || "On-grid"
