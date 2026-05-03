@@ -923,6 +923,57 @@ export function ClientesManager({ onSelectCliente }: ClientesManagerProps) {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <AlertDialog open={!!duplicateWarning} onOpenChange={(open) => !open && setDuplicateWarning(null)}>
+        <AlertDialogContent className="w-[90vw] max-w-md">
+          <AlertDialogHeader>
+            <div className="flex items-center gap-2">
+              <div className="w-9 h-9 rounded-lg bg-amber-500/10 text-amber-600 flex items-center justify-center shrink-0">
+                <AlertTriangle className="w-5 h-5" />
+              </div>
+              <AlertDialogTitle>
+                {duplicateWarning?.err.kind === "block" ? "Cliente já cadastrado" : "Possível duplicata (SolarMarket)"}
+              </AlertDialogTitle>
+            </div>
+            <AlertDialogDescription asChild>
+              <div className="space-y-3 pt-2">
+                <p className="text-sm text-foreground">{duplicateWarning?.err.message}</p>
+                {duplicateWarning && (
+                  <div className="rounded-md border border-border bg-muted/40 p-3 text-sm">
+                    <div className="font-medium text-foreground">{duplicateWarning.err.existing.nome}</div>
+                    {duplicateWarning.err.existing.cpf_cnpj && (
+                      <div className="text-muted-foreground text-xs mt-1">
+                        CPF/CNPJ: {duplicateWarning.err.existing.cpf_cnpj}
+                      </div>
+                    )}
+                    {duplicateWarning.err.existing.email && (
+                      <div className="text-muted-foreground text-xs">
+                        E-mail: {duplicateWarning.err.existing.email}
+                      </div>
+                    )}
+                    {duplicateWarning.err.existing.is_sm_migrado && (
+                      <Badge variant="outline" className="mt-2 text-[10px] border-amber-500/40 text-amber-600">
+                        Migrado do SolarMarket
+                      </Badge>
+                    )}
+                  </div>
+                )}
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={saving}>
+              {duplicateWarning?.err.kind === "block" ? "Voltar e corrigir" : "Cancelar"}
+            </AlertDialogCancel>
+            {duplicateWarning?.err.kind === "sm-warning" && (
+              <AlertDialogAction onClick={handleConfirmSmDuplicate} disabled={saving}>
+                Cadastrar mesmo assim
+              </AlertDialogAction>
+            )}
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
     </motion.div>
   );
 }
