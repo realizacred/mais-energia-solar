@@ -49,6 +49,7 @@ export interface ProjetoItem {
   created_at: string;
   updated_at: string;
   proposta_status?: string | null;
+  tipo_projeto_solar?: string | null;
   // Joined
   cliente?: { nome: string; telefone: string } | null;
   consultor?: { nome: string } | null;
