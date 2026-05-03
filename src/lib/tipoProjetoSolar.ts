@@ -92,3 +92,44 @@ export function getTipoProjetoSolarBadgeClass(value?: string | null): string {
     "bg-info/10 text-info border-info/20"
   );
 }
+
+/**
+ * Mapeia o enum comercial `tipo_projeto_solar` (projetos / proposta_versoes)
+ * para o enum técnico `tipo_sistema` usado em `proposta_kits`.
+ *
+ * - ampliacao  → on_grid + flag is_ampliacao = true
+ * - bombeamento → off_grid
+ * - on_grid / hibrido / off_grid → 1:1
+ *
+ * Não altera engine financeira; serve apenas para coerência de gravação
+ * do kit quando o projeto carrega um tipo derivado.
+ */
+export type KitTipoSistema = "on_grid" | "hibrido" | "off_grid";
+
+export function mapTipoProjetoToKitTipoSistema(
+  value?: string | null
+): { tipo_sistema: KitTipoSistema; is_ampliacao: boolean } {
+  switch (value) {
+    case "hibrido":
+      return { tipo_sistema: "hibrido", is_ampliacao: false };
+    case "off_grid":
+    case "bombeamento":
+      return { tipo_sistema: "off_grid", is_ampliacao: false };
+    case "ampliacao":
+      return { tipo_sistema: "on_grid", is_ampliacao: true };
+    case "on_grid":
+    default:
+      return { tipo_sistema: "on_grid", is_ampliacao: false };
+  }
+}
+
+/** Normaliza label de topologia ("Tradicional"/"Microinversor"/"Otimizador") para o enum DB. */
+export type KitTopologia = "tradicional" | "microinversor" | "otimizador";
+
+export function normalizeKitTopologia(value?: string | null): KitTopologia {
+  const v = (value ?? "").toString().trim().toLowerCase();
+  if (v === "microinversor" || v === "micro") return "microinversor";
+  if (v === "otimizador" || v === "otimizador de potência" || v === "otimizador de potencia") return "otimizador";
+  return "tradicional";
+}
+
