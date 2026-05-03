@@ -41,12 +41,14 @@ export function PlantCreateClientDialog({ open, onOpenChange, plantId }: Props) 
   const [email, setEmail] = useState("");
   const [telefone, setTelefone] = useState("");
   const [cpfCnpj, setCpfCnpj] = useState("");
+  const [dataNascimento, setDataNascimento] = useState("");
 
   const resetForm = () => {
     setNome("");
     setEmail("");
     setTelefone("");
     setCpfCnpj("");
+    setDataNascimento("");
   };
 
   const mutation = useMutation({
