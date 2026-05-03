@@ -311,7 +311,22 @@ function ChecklistCard({
   const totalItems = items.length;
   const doneItems = respostas.filter(r => r.valor_boolean === true).length;
   const progress = totalItems > 0 ? Math.round((doneItems / totalItems) * 100) : 0;
-  const isConcluido = checklist.status === "concluido";
+  const isConcluido = FINAL_STATUSES.has(checklist.status);
+  const isCancelado = checklist.status === "cancelado";
+
+  const cancelar = useCancelarChecklist();
+  const reabrir = useReabrirChecklist();
+  const { data: servico } = useServicoDoProjeto(dealId);
+
+  const handleCancelar = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!confirm("Cancelar este checklist? Você poderá iniciar um novo depois.")) return;
+    cancelar.mutate({ checklistId: checklist.id, projetoId: dealId });
+  };
+  const handleReabrir = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    reabrir.mutate({ checklistId: checklist.id, projetoId: dealId });
+  };
 
   const handleDownloadReport = async () => {
     setDownloading(true);
