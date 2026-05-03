@@ -27,8 +27,8 @@ Deno.serve(async (req) => {
       return jsonError("token_id e decisao obrigatórios", 400);
     }
 
-    if (!["aceita", "recusada"].includes(decisao)) {
-      return jsonError("decisao deve ser 'aceita' ou 'recusada'", 400);
+    if (!["aceita", "recusada", "visualizada"].includes(decisao)) {
+      return jsonError("decisao deve ser 'aceita', 'recusada' ou 'visualizada'", 400);
     }
 
     const supabase = createClient(
