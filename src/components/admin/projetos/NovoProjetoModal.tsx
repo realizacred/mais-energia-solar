@@ -409,6 +409,31 @@ export function NovoProjetoModal({
                   )}
 
                   <div className="space-y-1">
+                    <Label className="text-[11px] font-medium text-muted-foreground">Tipo de projeto solar</Label>
+                    <Controller
+                      control={form.control}
+                      name="tipoProjetoSolar"
+                      render={({ field }) => (
+                        <Select value={field.value} onValueChange={field.onChange}>
+                          <SelectTrigger className="h-8 text-sm">
+                            <SelectValue placeholder="Selecione" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {TIPO_PROJETO_SOLAR_OPTIONS.map((o) => (
+                              <SelectItem key={o.value} value={o.value}>
+                                <div className="flex flex-col">
+                                  <span>{o.label}</span>
+                                  <span className="text-[10px] text-muted-foreground">{o.description}</span>
+                                </div>
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      )}
+                    />
+                  </div>
+
+                  <div className="space-y-1">
                     <Label className="text-[11px] font-medium text-muted-foreground">Valor estimado (opcional)</Label>
                     <Controller
                       control={form.control}
