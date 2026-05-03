@@ -2,6 +2,7 @@ import { useState } from "react";
 import { formatBRL } from "@/lib/formatters";
 import { Phone, Eye, Trash2, ShoppingCart, UserCheck, Zap, TrendingUp, MessageSquare, AlertTriangle, CheckCircle2, Clock, RotateCcw, ScrollText } from "lucide-react";
 import { usePropostaRapidaLead } from "@/hooks/usePropostaRapidaLead";
+import { DuplicateOpenDealModal } from "@/components/leads/DuplicateOpenDealModal";
 import { ButtonLoader } from "@/components/loading/ButtonLoader";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -32,7 +33,15 @@ interface LeadsTableProps {
 
 export function LeadsTable({ leads, statuses = [], onToggleVisto, onView, onDelete, onConvert }: LeadsTableProps) {
   const { reopenLead, reopening } = useReopenLead();
-  const { quickConvertToProposal, loading: quickLoading, loadingLeadId } = usePropostaRapidaLead();
+  const {
+    quickConvertToProposal,
+    loading: quickLoading,
+    loadingLeadId,
+    duplicateGuard,
+    confirmCreateAnyway,
+    openExistingDeal,
+    cancelDuplicateGuard,
+  } = usePropostaRapidaLead();
 
   if (leads.length === 0) {
     return (
@@ -295,6 +304,14 @@ export function LeadsTable({ leads, statuses = [], onToggleVisto, onView, onDele
           })}
         </TableBody>
       </Table>
+      <DuplicateOpenDealModal
+        open={duplicateGuard.open}
+        matches={duplicateGuard.matches}
+        onOpenExisting={openExistingDeal}
+        onCreateAnyway={confirmCreateAnyway}
+        onCancel={cancelDuplicateGuard}
+        loading={quickLoading}
+      />
     </div>
   );
 }

@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Phone, Eye, Trash2, ShoppingCart, UserCheck, MessageSquare, History, UserPlus, Pencil, MoreHorizontal, UserRound, RotateCcw, ScrollText, Loader2, FolderOpen } from "lucide-react";
 import { usePropostaRapidaLead } from "@/hooks/usePropostaRapidaLead";
 import type { QuickLeadData } from "@/hooks/usePropostaRapidaLead";
+import { DuplicateOpenDealModal } from "@/components/leads/DuplicateOpenDealModal";
 import { useReopenLead } from "@/hooks/useReopenLead";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -68,7 +69,15 @@ export function OrcamentosTable({
 
   const groupedOrcamentos = useGroupedOrcamentos(orcamentos, sortOption);
   const { reopenLead, reopening } = useReopenLead(onRefresh);
-  const { quickConvertToProposal, loading: quickLoading, loadingLeadId } = usePropostaRapidaLead();
+  const {
+    quickConvertToProposal,
+    loading: quickLoading,
+    loadingLeadId,
+    duplicateGuard,
+    confirmCreateAnyway,
+    openExistingDeal,
+    cancelDuplicateGuard,
+  } = usePropostaRapidaLead();
 
   const handleQuickProposal = (orc: OrcamentoDisplayItem) => {
     const leadData: QuickLeadData = {
@@ -468,6 +477,14 @@ export function OrcamentosTable({
           onSuccess={onRefresh}
         />
       )}
+      <DuplicateOpenDealModal
+        open={duplicateGuard.open}
+        matches={duplicateGuard.matches}
+        onOpenExisting={openExistingDeal}
+        onCreateAnyway={confirmCreateAnyway}
+        onCancel={cancelDuplicateGuard}
+        loading={quickLoading}
+      />
     </div>
   );
 }

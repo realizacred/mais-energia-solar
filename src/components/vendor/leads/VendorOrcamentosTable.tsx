@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Phone, Eye, Trash2, ShoppingCart, UserCheck, MessageSquare, History, Pencil, ScrollText } from "lucide-react";
 import { usePropostaRapidaLead } from "@/hooks/usePropostaRapidaLead";
+import { DuplicateOpenDealModal } from "@/components/leads/DuplicateOpenDealModal";
 import { ButtonLoader } from "@/components/loading/ButtonLoader";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -68,7 +69,15 @@ export function VendorOrcamentosTable({
   const [editOpen, setEditOpen] = useState(false);
   const [editOrcamento, setEditOrcamento] = useState<OrcamentoVendedor | null>(null);
   const isMobile = useIsMobile();
-  const { quickConvertToProposal, loading: quickLoading, loadingLeadId } = usePropostaRapidaLead();
+  const {
+    quickConvertToProposal,
+    loading: quickLoading,
+    loadingLeadId,
+    duplicateGuard,
+    confirmCreateAnyway,
+    openExistingDeal,
+    cancelDuplicateGuard,
+  } = usePropostaRapidaLead();
 
   const orcToQuickLead = (orc: OrcamentoVendedor) => ({
     id: orc.lead_id,
@@ -511,6 +520,14 @@ export function VendorOrcamentosTable({
           onSuccess={onRefresh}
         />
       )}
+      <DuplicateOpenDealModal
+        open={duplicateGuard.open}
+        matches={duplicateGuard.matches}
+        onOpenExisting={openExistingDeal}
+        onCreateAnyway={confirmCreateAnyway}
+        onCancel={cancelDuplicateGuard}
+        loading={quickLoading}
+      />
     </>
   );
 }
