@@ -206,12 +206,14 @@ export function ImportantFieldRow({ field, value, dealId, onSaved, showSeparator
             ) : (
               <Input
                 ref={inputRef as React.RefObject<HTMLInputElement>}
-                type={field.field_type === "number" || field.field_type === "currency" ? "number" : field.field_type === "date" ? "date" : "text"}
+                type={field.field_type === "number" || field.field_type === "currency" || field.field_type === "percent" ? "number" : field.field_type === "date" ? "date" : "text"}
                 value={draft}
                 onChange={e => setDraft(e.target.value)}
                 onKeyDown={handleKeyDown}
                 className="h-8 text-sm w-full min-w-0"
-                step={field.field_type === "currency" ? "0.01" : undefined}
+                step={field.field_type === "currency" || field.field_type === "percent" ? "0.01" : undefined}
+                min={field.field_type === "percent" ? 0 : undefined}
+                max={field.field_type === "percent" ? 100 : undefined}
               />
             )}
             <Button variant="ghost" size="icon" onClick={save} disabled={saving} className="h-7 w-7 shrink-0 hover:bg-primary/10 text-primary transition-colors">
