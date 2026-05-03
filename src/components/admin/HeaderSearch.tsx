@@ -201,6 +201,22 @@ export function HeaderSearch({ className }: HeaderSearchProps) {
                   />
                 )}
               />
+              <ResultGroup
+                heading="Propostas"
+                icon={FileText}
+                items={results.propostas ?? []}
+                renderItem={(p: any) => (
+                  <ResultRow
+                    key={p.id}
+                    icon={FileText}
+                    title={p.titulo || p.codigo || "Proposta"}
+                    subtitle={[p.codigo, p.status].filter(Boolean).join(" · ")}
+                    onClick={() =>
+                      go(p.projeto_id ? `/admin/projetos?projeto=${p.projeto_id}` : `/admin/propostas`)
+                    }
+                  />
+                )}
+              />
             </div>
           )}
         </div>
