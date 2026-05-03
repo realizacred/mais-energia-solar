@@ -35,6 +35,7 @@
 
 import { VARIABLES_CATALOG, type CatalogVariable } from "./variablesCatalog";
 import { canonicalizeSnapshot } from "./canonicalizeSnapshot";
+import { renderTableVariable } from "./renderTableVariable";
 import type { CalcGrupoBResult } from "./calcGrupoB";
 import type {
   WizardState,
