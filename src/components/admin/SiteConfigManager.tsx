@@ -10,6 +10,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { BRAZIL_STATES } from "@/data/brazil-states-cities";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { extractColorsFromImage } from "@/lib/colorExtractor";
@@ -226,7 +228,12 @@ export function SiteConfigManager() {
                 </div>
                 <div className="space-y-2">
                   <Label>Estado</Label>
-                  <Input value={settings.estado || ""} onChange={(e) => update("estado", e.target.value)} maxLength={2} />
+                  <Select value={settings.estado || ""} onValueChange={(v) => update("estado", v)}>
+                    <SelectTrigger><SelectValue placeholder="UF" /></SelectTrigger>
+                    <SelectContent>
+                      {BRAZIL_STATES.map(uf => <SelectItem key={uf.value} value={uf.value}>{uf.value}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div className="space-y-2">
                   <Label>Horário de Atendimento</Label>

@@ -15,6 +15,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { BRAZIL_STATES } from "@/data/brazil-states-cities";
 import { toast } from "@/hooks/use-toast";
 import { useSiteSettings } from "@/hooks/useSiteSettings";
 import { extractColorsFromImage } from "@/lib/colorExtractor";
@@ -411,7 +412,12 @@ export function SiteSettingsUnified() {
                   </div>
                   <div className="space-y-2">
                     <Label>Estado</Label>
-                    <Input value={siteSettings.estado || ""} onChange={(e) => updateSite("estado", e.target.value)} maxLength={2} />
+                    <Select value={siteSettings.estado || ""} onValueChange={(v) => updateSite("estado", v)}>
+                      <SelectTrigger><SelectValue placeholder="UF" /></SelectTrigger>
+                      <SelectContent>
+                        {BRAZIL_STATES.map(uf => <SelectItem key={uf.value} value={uf.value}>{uf.value}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
                   </div>
                   <div className="space-y-2">
                     <Label>Horário de Atendimento</Label>
