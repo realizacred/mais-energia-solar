@@ -659,7 +659,9 @@ export function CriarKitManualModal({ open, onOpenChange, modulos, inversores, o
     }
 
     const meta: KitMeta = {
-      distribuidorNome, nomeKit, codigoKit, topologia, custo, sistema, custosEmbutidos,
+      distribuidorNome, nomeKit, codigoKit,
+      topologia: topologia.toLowerCase().replace("otimizador de potência", "otimizador"),
+      custo, sistema, custosEmbutidos,
     };
     onKitCreated(itens, meta);
     onOpenChange(false);
