@@ -397,6 +397,7 @@ function ProjetoDetalheContent() {
                 <UserCircle className="h-3.5 w-3.5" />
                 {ownerName || "Sem consultor"}
               </Badge>
+              <TipoProjetoSolarBadge projetoId={projetoId ?? deal.id} />
               {deal.status !== "won" && deal.status !== "lost" && (
                 <Button size="sm" onClick={() => {
                   const params = new URLSearchParams({ deal_id: dealId });
