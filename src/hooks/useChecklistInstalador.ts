@@ -386,3 +386,74 @@ export function useFinalizarChecklist() {
     },
   });
 }
+
+// ── Cancelar checklist (desfazer) ──
+export function useCancelarChecklist() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ checklistId, projetoId }: { checklistId: string; projetoId: string }) => {
+      const { error } = await supabase
+        .from("checklists_instalador")
+        .update({ status: "cancelado" } as any)
+        .eq("id", checklistId);
+      if (error) throw error;
+      return { projetoId };
+    },
+    onSuccess: (_d, vars) => {
+      qc.invalidateQueries({ queryKey: [QK, "projeto", vars.projetoId] });
+      toast({ title: "Checklist cancelado", description: "Você pode iniciar um novo a qualquer momento." });
+    },
+    onError: (err: Error) => {
+      toast({ title: "Erro ao cancelar", description: err.message, variant: "destructive" });
+    },
+  });
+}
+
+// ── Reabrir checklist (volta para em_andamento) ──
+export function useReabrirChecklist() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ checklistId, projetoId }: { checklistId: string; projetoId: string }) => {
+      const { error } = await supabase
+        .from("checklists_instalador")
+        .update({ status: "em_andamento", data_fim: null } as any)
+        .eq("id", checklistId);
+      if (error) throw error;
+      return { projetoId };
+    },
+    onSuccess: (_d, vars) => {
+      qc.invalidateQueries({ queryKey: [QK, "projeto", vars.projetoId] });
+      toast({ title: "Checklist reaberto", description: "Continue editando os itens normalmente." });
+    },
+    onError: (err: Error) => {
+      toast({ title: "Erro ao reabrir", description: err.message, variant: "destructive" });
+    },
+  });
+}
+
+// ── Serviço agendado vinculado ao projeto (instalador + data) ──
+export function useServicoDoProjeto(dealId: string) {
+  return useQuery({
+    queryKey: [QK, "servico-projeto", dealId],
+    queryFn: async () => {
+      const projetoId = await resolveProjetoId(dealId);
+      const { data, error } = await supabase
+        .from("servicos_agendados")
+        .select("id, tipo, status, data_agendada, hora_inicio, instalador_id")
+        .eq("projeto_id", projetoId)
+        .order("data_agendada", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (error) throw error;
+      if (!data?.instalador_id) return data ? { ...data, instalador_nome: null } : null;
+      const { data: prof } = await supabase
+        .from("profiles")
+        .select("nome")
+        .eq("user_id", data.instalador_id)
+        .maybeSingle();
+      return { ...data, instalador_nome: prof?.nome ?? null };
+    },
+    staleTime: STALE,
+    enabled: !!dealId,
+  });
+}
