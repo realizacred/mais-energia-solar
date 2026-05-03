@@ -711,7 +711,13 @@ export function FornecedoresManager() {
                 </div>
                 <div className="w-full sm:w-32 space-y-1.5 mt-4">
                   <Label>CEP</Label>
-                  <Input value={form.cep} onChange={e => setForm(p => ({ ...p, cep: e.target.value }))} placeholder="00000-000" />
+                  <Input
+                    value={form.cep}
+                    onChange={e => handleCepChange(e.target.value)}
+                    placeholder="00000-000"
+                    maxLength={9}
+                    disabled={cepLoading}
+                  />
                 </div>
               </SectionCard>
 
