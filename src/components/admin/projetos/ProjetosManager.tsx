@@ -205,6 +205,7 @@ export function ProjetosManager() {
         funilId?: string | null;
         consultorId?: string;
         status?: string;
+        tipoProjetoSolar?: string;
       };
     } catch { return null; }
   }, []);
