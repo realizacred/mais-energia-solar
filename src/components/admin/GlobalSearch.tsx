@@ -77,7 +77,12 @@ export function useGlobalSearchResults(rawTerm: string) {
         `modelo.ilike.${like}`,
       ].join(",");
 
-      const [leadsRes, clientesRes, projetosRes, kitsRes, inversoresRes] =
+      const propostaOr = [
+        `titulo.ilike.${like}`,
+        `codigo.ilike.${like}`,
+      ].join(",");
+
+      const [leadsRes, clientesRes, projetosRes, kitsRes, inversoresRes, propostasRes] =
         await Promise.all([
           supabase
             .from("leads")
@@ -109,6 +114,12 @@ export function useGlobalSearchResults(rawTerm: string) {
             .eq("ativo", true)
             .or(inversorOr)
             .limit(PER_GROUP_LIMIT),
+          supabase
+            .from("propostas_nativas")
+            .select("id, titulo, codigo, status, projeto_id, cliente_id")
+            .is("deleted_at", null)
+            .or(propostaOr)
+            .limit(PER_GROUP_LIMIT),
         ]);
 
       return {
@@ -117,6 +128,7 @@ export function useGlobalSearchResults(rawTerm: string) {
         projetos: projetosRes.data ?? [],
         kits: kitsRes.data ?? [],
         inversores: inversoresRes.data ?? [],
+        propostas: propostasRes.data ?? [],
       };
     },
   });
