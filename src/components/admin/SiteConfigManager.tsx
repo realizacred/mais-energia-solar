@@ -228,7 +228,12 @@ export function SiteConfigManager() {
                 </div>
                 <div className="space-y-2">
                   <Label>Estado</Label>
-                  <Input value={settings.estado || ""} onChange={(e) => update("estado", e.target.value)} maxLength={2} />
+                  <Select value={settings.estado || ""} onValueChange={(v) => update("estado", v)}>
+                    <SelectTrigger><SelectValue placeholder="UF" /></SelectTrigger>
+                    <SelectContent>
+                      {BRAZIL_STATES.map(uf => <SelectItem key={uf.value} value={uf.value}>{uf.value}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div className="space-y-2">
                   <Label>Horário de Atendimento</Label>
