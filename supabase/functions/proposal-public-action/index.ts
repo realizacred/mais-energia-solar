@@ -35,7 +35,12 @@ Deno.serve(async (req) => {
 
   try {
     const body = await req.json();
-    const { token, action, motivo, ip_address, user_agent } = body;
+    const { token, action, motivo, user_agent } = body;
+
+    // Resolve real IP from request headers (RB: never trust client-sent IP)
+    const xff = req.headers.get("x-forwarded-for");
+    const realIp = xff ? xff.split(",")[0].trim() : (req.headers.get("x-real-ip") || "unknown");
+    const ip_address = realIp;
 
     if (!token || !action) {
       return new Response(
