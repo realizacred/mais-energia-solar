@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   Settings2, ChevronLeft, Loader2, Copy, HelpCircle, Sliders, Layers,
-  Type, Hash, DollarSign, Calendar, CalendarClock, ListChecks, CheckSquare,
+  Type, Hash, DollarSign, Percent, Calendar, CalendarClock, ListChecks, CheckSquare,
   FileText, GripVertical, Plus, Trash2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -34,6 +34,7 @@ export const FIELD_TYPE_LABELS: Record<string, string> = {
   textarea: "Texto Maior",
   number: "Numérico",
   currency: "Monetário",
+  percent: "Percentual (%)",
   multi_select: "Opções Múltiplas",
   select: "Opção Única",
   date: "Data",
@@ -43,7 +44,7 @@ export const FIELD_TYPE_LABELS: Record<string, string> = {
 };
 
 const FIELD_TYPE_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
-  text: Type, textarea: Type, number: Hash, currency: DollarSign,
+  text: Type, textarea: Type, number: Hash, currency: DollarSign, percent: Percent,
   multi_select: ListChecks, select: CheckSquare, date: Calendar,
   datetime: CalendarClock, file: FileText, boolean: CheckSquare,
 };
@@ -53,6 +54,7 @@ const FIELD_TYPE_COLORS: Record<string, { bg: string; text: string; ring: string
   textarea:     { bg: "bg-info/15",        text: "text-info",        ring: "ring-info/30" },
   number:       { bg: "bg-primary/15",     text: "text-primary",     ring: "ring-primary/30" },
   currency:     { bg: "bg-success/15",     text: "text-success",     ring: "ring-success/30" },
+  percent:      { bg: "bg-warning/15",     text: "text-warning",     ring: "ring-warning/30" },
   multi_select: { bg: "bg-secondary/15",   text: "text-secondary",   ring: "ring-secondary/30" },
   select:       { bg: "bg-accent/15",      text: "text-accent-foreground", ring: "ring-accent/30" },
   date:         { bg: "bg-warning/15",     text: "text-warning",     ring: "ring-warning/30" },

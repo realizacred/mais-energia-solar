@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
-import { Check, X, Pencil, Type, Hash, ToggleLeft, Calendar, List, DollarSign, FileText, AlignLeft, Paperclip, Wifi, Package, Zap, MapPin, Settings, icons } from "lucide-react";
+import { Check, X, Pencil, Type, Hash, ToggleLeft, Calendar, List, DollarSign, Percent, FileText, AlignLeft, Paperclip, Wifi, Package, Zap, MapPin, Settings, icons } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
@@ -39,6 +39,7 @@ const TYPE_ICON_MAP: Record<string, typeof Type> = {
   textarea: AlignLeft,
   number: Hash,
   currency: DollarSign,
+  percent: Percent,
   boolean: ToggleLeft,
   date: Calendar,
   select: List,
@@ -73,7 +74,7 @@ export function ImportantFieldRow({ field, value, dealId, onSaved, showSeparator
   function startEdit() {
     if (field.field_type === "boolean") {
       setDraftBool(value?.value_boolean ?? false);
-    } else if (field.field_type === "number" || field.field_type === "currency") {
+    } else if (field.field_type === "number" || field.field_type === "currency" || field.field_type === "percent") {
       setDraft(value?.value_number != null ? String(value.value_number) : "");
     } else if (field.field_type === "date") {
       setDraft(value?.value_date ?? "");
@@ -104,7 +105,7 @@ export function ImportantFieldRow({ field, value, dealId, onSaved, showSeparator
 
       if (field.field_type === "boolean") {
         payload.value_boolean = draftBool;
-      } else if (field.field_type === "number" || field.field_type === "currency") {
+      } else if (field.field_type === "number" || field.field_type === "currency" || field.field_type === "percent") {
         payload.value_number = draft ? parseFloat(draft) : null;
       } else if (field.field_type === "date") {
         payload.value_date = draft || null;
@@ -205,12 +206,14 @@ export function ImportantFieldRow({ field, value, dealId, onSaved, showSeparator
             ) : (
               <Input
                 ref={inputRef as React.RefObject<HTMLInputElement>}
-                type={field.field_type === "number" || field.field_type === "currency" ? "number" : field.field_type === "date" ? "date" : "text"}
+                type={field.field_type === "number" || field.field_type === "currency" || field.field_type === "percent" ? "number" : field.field_type === "date" ? "date" : "text"}
                 value={draft}
                 onChange={e => setDraft(e.target.value)}
                 onKeyDown={handleKeyDown}
                 className="h-8 text-sm w-full min-w-0"
-                step={field.field_type === "currency" ? "0.01" : undefined}
+                step={field.field_type === "currency" || field.field_type === "percent" ? "0.01" : undefined}
+                min={field.field_type === "percent" ? 0 : undefined}
+                max={field.field_type === "percent" ? 100 : undefined}
               />
             )}
             <Button variant="ghost" size="icon" onClick={save} disabled={saving} className="h-7 w-7 shrink-0 hover:bg-primary/10 text-primary transition-colors">
@@ -254,6 +257,7 @@ function getDisplayValue(field: FieldDef, val: FieldValue | undefined): string {
   if (!val) return "—";
   if (field.field_type === "boolean") return val.value_boolean ? "Sim" : "Não";
   if (field.field_type === "number" || field.field_type === "currency") return val.value_number != null ? String(val.value_number) : "—";
+  if (field.field_type === "percent") return val.value_number != null ? `${val.value_number}%` : "—";
   if (field.field_type === "date") return val.value_date ? formatDate(val.value_date) : "—";
   return val.value_text || "—";
 }

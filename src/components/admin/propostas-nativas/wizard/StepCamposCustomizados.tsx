@@ -160,6 +160,25 @@ function CustomFieldInput({ field, value, onChange }: {
         </div>
       );
 
+    case "percent":
+      return (
+        <div className="space-y-1.5">
+          <Label className="text-xs">{label}</Label>
+          <div className="relative">
+            <Input
+              type="number"
+              step="0.01"
+              min={0}
+              max={100}
+              value={value ?? ""}
+              onChange={e => onChange(e.target.value === "" ? null : Number(e.target.value))}
+              className="h-9 text-xs pr-7"
+            />
+            <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground pointer-events-none">%</span>
+          </div>
+        </div>
+      );
+
     case "number":
       return (
         <div className="space-y-1.5">
