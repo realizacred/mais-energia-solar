@@ -293,7 +293,31 @@ function resolveFromContext(
     return s(str);
   }
 
-   // ── Comercial ──
+  // ── Projeto (endereço de instalação — fallback para cliente) ──
+  if (key === "projeto.cidade") {
+    const fs = ctx.finalSnapshot as any;
+    return s(fs?.cliente?.cidade ?? fs?.projeto_cidade ?? fs?.cidade_instalacao ?? ctx.cliente?.cidade);
+  }
+  if (key === "projeto.estado" || key === "projeto.uf") {
+    const fs = ctx.finalSnapshot as any;
+    return s(fs?.cliente?.estado ?? fs?.projeto_estado ?? fs?.uf_instalacao ?? ctx.cliente?.estado);
+  }
+  if (key === "projeto.bairro") {
+    const fs = ctx.finalSnapshot as any;
+    return s(fs?.cliente?.bairro ?? fs?.projeto_bairro ?? fs?.bairro_instalacao ?? ctx.cliente?.bairro);
+  }
+  if (key === "projeto.cep") {
+    const fs = ctx.finalSnapshot as any;
+    return s(fs?.cliente?.cep ?? fs?.projeto_cep ?? fs?.cep_instalacao ?? ctx.cliente?.cep);
+  }
+  if (key === "projeto.endereco") {
+    const fs = ctx.finalSnapshot as any;
+    return s(
+      fs?.cliente?.rua ?? fs?.cliente?.endereco
+      ?? fs?.projeto_endereco ?? fs?.rua_instalacao
+      ?? ctx.cliente?.endereco
+    );
+  }
   if (key === "comercial.responsavel_nome") return s(ctx.comercial?.responsavel_nome);
   if (key === "comercial.responsavel_email") return s(ctx.comercial?.responsavel_email);
   if (key === "comercial.responsavel_celular") return s(ctx.comercial?.responsavel_celular);
@@ -775,10 +799,20 @@ function resolveFromContext(
   if (key === "sistema_solar.potencia" || key === "customizada.potencia") {
     return ctx.potenciaKwp ? fmtNumber(ctx.potenciaKwp, 2) : null;
   }
-  if (key === "comercial.data_hoje" || key === "customizada.data_hoje") {
+  if (
+    key === "comercial.data_hoje" ||
+    key === "customizada.data_hoje" ||
+    key === "documento.data_hoje"
+  ) {
     return new Date().toLocaleDateString("pt-BR", {
       timeZone: "America/Sao_Paulo",
       day: "2-digit", month: "2-digit", year: "numeric"
+    });
+  }
+  if (key === "documento.data_hoje_extenso") {
+    return new Date().toLocaleDateString("pt-BR", {
+      timeZone: "America/Sao_Paulo",
+      day: "numeric", month: "long", year: "numeric"
     });
   }
   if (key === "comercial.descricao" || key === "customizada.descricao") {
