@@ -95,10 +95,44 @@ export function useLeadsForClientes() {
   });
 }
 
+/**
+ * Erro de duplicidade detectado antes do INSERT.
+ * - kind="block": cliente nativo já existe — bloqueia
+ * - kind="sm-warning": duplicata vem de cliente migrado do SolarMarket — UI deve
+ *   confirmar e reenviar com `allowSmDuplicate: true`
+ */
+export class DuplicateClienteError extends Error {
+  kind: "block" | "sm-warning";
+  field: "cpf_cnpj" | "email";
+  existing: { id: string; nome: string; cpf_cnpj: string | null; email: string | null; is_sm_migrado: boolean };
+  constructor(
+    kind: "block" | "sm-warning",
+    field: "cpf_cnpj" | "email",
+    existing: DuplicateClienteError["existing"],
+    message: string,
+  ) {
+    super(message);
+    this.name = "DuplicateClienteError";
+    this.kind = kind;
+    this.field = field;
+    this.existing = existing;
+  }
+}
+
+const onlyDigits = (v: string) => v.replace(/\D/g, "");
+
 export function useSalvarCliente() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async ({ id, data }: { id?: string; data: Record<string, any> }) => {
+    mutationFn: async ({
+      id,
+      data,
+      allowSmDuplicate = false,
+    }: {
+      id?: string;
+      data: Record<string, any>;
+      allowSmDuplicate?: boolean;
+    }) => {
       if (id) {
         const { data: updated, error } = await supabase
           .from("clientes")
@@ -108,15 +142,67 @@ export function useSalvarCliente() {
           .single();
         if (error) throw error;
         return updated;
-      } else {
-        const { data: created, error } = await supabase
-          .from("clientes")
-          .insert(data as any)
-          .select()
-          .single();
-        if (error) throw error;
-        return created;
       }
+
+      // ---- Dedup check (apenas em INSERT) ----
+      const cpfDigits = data.cpf_cnpj ? onlyDigits(String(data.cpf_cnpj)) : "";
+      const emailNorm = data.email ? String(data.email).trim().toLowerCase() : "";
+
+      if (cpfDigits || emailNorm) {
+        const { data: candidates, error: dupErr } = await supabase
+          .from("clientes")
+          .select("id, nome, cpf_cnpj, email, is_sm_migrado")
+          .or(
+            [
+              cpfDigits ? `cpf_cnpj.ilike.%${cpfDigits.slice(-11)}%` : null,
+              emailNorm ? `email.ilike.${emailNorm}` : null,
+            ]
+              .filter(Boolean)
+              .join(","),
+          )
+          .limit(20);
+        if (dupErr) throw dupErr;
+
+        const matches = (candidates || []).filter((c: any) => {
+          const cCpf = c.cpf_cnpj ? onlyDigits(c.cpf_cnpj) : "";
+          const cEmail = c.email ? String(c.email).trim().toLowerCase() : "";
+          return (cpfDigits && cCpf && cCpf === cpfDigits) || (emailNorm && cEmail === emailNorm);
+        });
+
+        if (matches.length > 0) {
+          const nativeDup = matches.find((m: any) => !m.is_sm_migrado);
+          if (nativeDup) {
+            const field: "cpf_cnpj" | "email" =
+              cpfDigits && onlyDigits(nativeDup.cpf_cnpj || "") === cpfDigits ? "cpf_cnpj" : "email";
+            throw new DuplicateClienteError(
+              "block",
+              field,
+              nativeDup as any,
+              `Já existe um cliente cadastrado com este ${field === "cpf_cnpj" ? "CPF/CNPJ" : "e-mail"}: ${nativeDup.nome}.`,
+            );
+          }
+          // Só duplicatas SM — exige confirmação explícita
+          if (!allowSmDuplicate) {
+            const sm = matches[0];
+            const field: "cpf_cnpj" | "email" =
+              cpfDigits && onlyDigits(sm.cpf_cnpj || "") === cpfDigits ? "cpf_cnpj" : "email";
+            throw new DuplicateClienteError(
+              "sm-warning",
+              field,
+              sm as any,
+              `Já existe um cliente com este ${field === "cpf_cnpj" ? "CPF/CNPJ" : "e-mail"} migrado do SolarMarket — verifique se é a mesma pessoa.`,
+            );
+          }
+        }
+      }
+
+      const { data: created, error } = await supabase
+        .from("clientes")
+        .insert(data as any)
+        .select()
+        .single();
+      if (error) throw error;
+      return created;
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: [QUERY_KEY] });

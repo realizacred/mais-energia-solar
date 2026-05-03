@@ -2048,6 +2048,7 @@ export type Database = {
           id: string
           identidade_url: string | null
           identidade_urls: string[] | null
+          is_sm_migrado: boolean
           lead_id: string | null
           localizacao: string | null
           modelo_inversor: string | null
@@ -2092,6 +2093,7 @@ export type Database = {
           id?: string
           identidade_url?: string | null
           identidade_urls?: string[] | null
+          is_sm_migrado?: boolean
           lead_id?: string | null
           localizacao?: string | null
           modelo_inversor?: string | null
@@ -2136,6 +2138,7 @@ export type Database = {
           id?: string
           identidade_url?: string | null
           identidade_urls?: string[] | null
+          is_sm_migrado?: boolean
           lead_id?: string | null
           localizacao?: string | null
           modelo_inversor?: string | null

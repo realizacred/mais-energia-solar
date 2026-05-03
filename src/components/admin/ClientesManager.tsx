@@ -79,8 +79,10 @@ import {
   useCheckClienteDependencies,
   useDeletarCliente,
   useClientesRealtime,
+  DuplicateClienteError,
   type ClienteRow,
 } from "@/hooks/useClientes";
+import { AlertTriangle } from "lucide-react";
 
 type Cliente = ClienteRow;
 
@@ -149,6 +151,10 @@ export function ClientesManager({ onSelectCliente }: ClientesManagerProps) {
     comprovante_endereco_urls: string[];
     comprovante_beneficiaria_urls: string[];
   }>({ identidade_urls: [], comprovante_endereco_urls: [], comprovante_beneficiaria_urls: [] });
+  const [duplicateWarning, setDuplicateWarning] = useState<{
+    err: DuplicateClienteError;
+    pendingData: Record<string, any>;
+  } | null>(null);
 
   // ── Filters ─────────────────────────────────────────────
   const [filterTipo, setFilterTipo] = useState("todos");
@@ -186,42 +192,69 @@ export function ClientesManager({ onSelectCliente }: ClientesManagerProps) {
     lead_id: "",
   });
 
+  const persistCliente = async (clienteData: Record<string, any>, allowSmDuplicate = false) => {
+    await salvarCliente.mutateAsync({
+      id: editingCliente?.id,
+      data: clienteData,
+      allowSmDuplicate,
+    });
+    toast({ title: editingCliente ? "Cliente atualizado!" : "Cliente cadastrado!" });
+    setDialogOpen(false);
+    resetForm();
+    setDuplicateWarning(null);
+  };
+
   const handleSubmit = async () => {
     setSaving(true);
 
+    const clienteData = {
+      nome: formData.nome,
+      telefone: formData.telefone,
+      email: formData.email || null,
+      cpf_cnpj: formData.cpf_cnpj || null,
+      data_nascimento: formData.data_nascimento || null,
+      cep: formData.cep || null,
+      estado: formData.estado || null,
+      cidade: formData.cidade || null,
+      bairro: formData.bairro || null,
+      rua: formData.rua || null,
+      numero: formData.numero || null,
+      complemento: formData.complemento || null,
+      potencia_kwp: formData.potencia_kwp ? parseFloat(formData.potencia_kwp) : null,
+      valor_projeto: formData.valor_projeto ? parseFloat(formData.valor_projeto) : null,
+      data_instalacao: formData.data_instalacao || null,
+      numero_placas: formData.numero_placas ? parseInt(formData.numero_placas) : null,
+      modelo_inversor: formData.modelo_inversor || null,
+      observacoes: formData.observacoes || null,
+      lead_id: formData.lead_id || null,
+    };
+
     try {
-      const clienteData = {
-        nome: formData.nome,
-        telefone: formData.telefone,
-        email: formData.email || null,
-        cpf_cnpj: formData.cpf_cnpj || null,
-        data_nascimento: formData.data_nascimento || null,
-        cep: formData.cep || null,
-        estado: formData.estado || null,
-        cidade: formData.cidade || null,
-        bairro: formData.bairro || null,
-        rua: formData.rua || null,
-        numero: formData.numero || null,
-        complemento: formData.complemento || null,
-        potencia_kwp: formData.potencia_kwp ? parseFloat(formData.potencia_kwp) : null,
-        valor_projeto: formData.valor_projeto ? parseFloat(formData.valor_projeto) : null,
-        data_instalacao: formData.data_instalacao || null,
-        numero_placas: formData.numero_placas ? parseInt(formData.numero_placas) : null,
-        modelo_inversor: formData.modelo_inversor || null,
-        observacoes: formData.observacoes || null,
-        lead_id: formData.lead_id || null,
-      };
-
-      await salvarCliente.mutateAsync({
-        id: editingCliente?.id,
-        data: clienteData,
-      });
-
-      toast({ title: editingCliente ? "Cliente atualizado!" : "Cliente cadastrado!" });
-      setDialogOpen(false);
-      resetForm();
+      await persistCliente(clienteData);
     } catch (error) {
+      if (error instanceof DuplicateClienteError) {
+        setDuplicateWarning({ err: error, pendingData: clienteData });
+        setSaving(false);
+        return;
+      }
       const appError = handleSupabaseError(error, editingCliente ? "update_cliente" : "create_cliente");
+      toast({
+        title: "Erro ao salvar cliente",
+        description: appError.userMessage,
+        variant: "destructive",
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleConfirmSmDuplicate = async () => {
+    if (!duplicateWarning) return;
+    setSaving(true);
+    try {
+      await persistCliente(duplicateWarning.pendingData, true);
+    } catch (error) {
+      const appError = handleSupabaseError(error, "create_cliente");
       toast({
         title: "Erro ao salvar cliente",
         description: appError.userMessage,
@@ -890,6 +923,57 @@ export function ClientesManager({ onSelectCliente }: ClientesManagerProps) {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <AlertDialog open={!!duplicateWarning} onOpenChange={(open) => !open && setDuplicateWarning(null)}>
+        <AlertDialogContent className="w-[90vw] max-w-md">
+          <AlertDialogHeader>
+            <div className="flex items-center gap-2">
+              <div className="w-9 h-9 rounded-lg bg-amber-500/10 text-amber-600 flex items-center justify-center shrink-0">
+                <AlertTriangle className="w-5 h-5" />
+              </div>
+              <AlertDialogTitle>
+                {duplicateWarning?.err.kind === "block" ? "Cliente já cadastrado" : "Possível duplicata (SolarMarket)"}
+              </AlertDialogTitle>
+            </div>
+            <AlertDialogDescription asChild>
+              <div className="space-y-3 pt-2">
+                <p className="text-sm text-foreground">{duplicateWarning?.err.message}</p>
+                {duplicateWarning && (
+                  <div className="rounded-md border border-border bg-muted/40 p-3 text-sm">
+                    <div className="font-medium text-foreground">{duplicateWarning.err.existing.nome}</div>
+                    {duplicateWarning.err.existing.cpf_cnpj && (
+                      <div className="text-muted-foreground text-xs mt-1">
+                        CPF/CNPJ: {duplicateWarning.err.existing.cpf_cnpj}
+                      </div>
+                    )}
+                    {duplicateWarning.err.existing.email && (
+                      <div className="text-muted-foreground text-xs">
+                        E-mail: {duplicateWarning.err.existing.email}
+                      </div>
+                    )}
+                    {duplicateWarning.err.existing.is_sm_migrado && (
+                      <Badge variant="outline" className="mt-2 text-[10px] border-amber-500/40 text-amber-600">
+                        Migrado do SolarMarket
+                      </Badge>
+                    )}
+                  </div>
+                )}
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={saving}>
+              {duplicateWarning?.err.kind === "block" ? "Voltar e corrigir" : "Cancelar"}
+            </AlertDialogCancel>
+            {duplicateWarning?.err.kind === "sm-warning" && (
+              <AlertDialogAction onClick={handleConfirmSmDuplicate} disabled={saving}>
+                Cadastrar mesmo assim
+              </AlertDialogAction>
+            )}
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
     </motion.div>
   );
 }
