@@ -125,7 +125,7 @@ function kitItemsToCardData(itens: KitItemRow[], topologia?: string, custoOverri
 
 // Mock kits removed — manual mode only for now
 
-export function StepKitSelection({ itens, onItensChange, modulos, inversores, otimizadores = [], baterias = [], loadingEquip, potenciaKwp, layouts = [], onLayoutsChange, preDimensionamento: pd, onPreDimensionamentoChange: setPd, consumoTotal: consumoTotalProp = 0, manualKits: manualKitsProp = [], onManualKitsChange, irradiacao, latitude, ghiSeries, somenteGhi, custoKitOverride, ibgeCodigo }: Props) {
+export function StepKitSelection({ itens, onItensChange, modulos, inversores, otimizadores = [], baterias = [], loadingEquip, potenciaKwp, layouts = [], onLayoutsChange, preDimensionamento: pd, onPreDimensionamentoChange: setPd, consumoTotal: consumoTotalProp = 0, manualKits: manualKitsProp = [], onManualKitsChange, selectedManualIdx: selectedManualIdxProp, onSelectedManualIdxChange, irradiacao, latitude, ghiSeries, somenteGhi, custoKitOverride, ibgeCodigo }: Props) {
   // If returning to this step with a kit already restored, auto-switch to "customizado" tab
   const [tab, setTab] = useState<TabType>(() => {
     if (manualKitsProp.length > 0) return "customizado";
