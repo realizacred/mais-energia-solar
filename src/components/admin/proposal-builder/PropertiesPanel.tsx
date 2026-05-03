@@ -17,6 +17,7 @@ import type { TemplateBlock, BlockStyle } from "./types";
 import { cn } from "@/lib/utils";
 import { SEMANTIC_BLOCK_LABELS, isSemanticProposalBlock } from "./semanticBlockLabels";
 import { SimpleContentEditor } from "./SimpleContentEditor";
+import { ImagePicker } from "./ImagePicker";
 
 interface PropertiesPanelProps {
   block: TemplateBlock;
