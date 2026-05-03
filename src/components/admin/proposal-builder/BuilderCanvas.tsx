@@ -32,7 +32,7 @@ const DEVICE_WIDTHS = {
   mobile: "390px",
 };
 
-const PREVIEW_VARIABLES: Record<string, string> = VARIABLES_CATALOG.reduce<Record<string, string>>((acc, variable) => {
+const BASE_PREVIEW_VARIABLES: Record<string, string> = VARIABLES_CATALOG.reduce<Record<string, string>>((acc, variable) => {
   acc[variable.legacyKey] = variable.example;
   acc[variable.canonicalKey] = variable.example;
 
@@ -44,7 +44,6 @@ const PREVIEW_VARIABLES: Record<string, string> = VARIABLES_CATALOG.reduce<Recor
   cliente_nome: "João Silva",
   cliente_cidade: "Belo Horizonte",
   cliente_estado: "MG",
-  empresa_nome: "Mais Energia Solar",
   potencia_kwp: "8,20",
   economia_percentual: "93",
   geracao_media_mensal: "1.120",
