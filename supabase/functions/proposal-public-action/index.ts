@@ -319,10 +319,14 @@ Deno.serve(async (req) => {
         .eq("status", "pendente");
     }
 
-    // 7. Mark token as used
+    // 7. Mark token as used + persist real IP / UA
     await admin
       .from("proposta_aceite_tokens")
-      .update({ used_at: now })
+      .update({
+        used_at: now,
+        aceite_ip: ip_address || null,
+        aceite_user_agent: user_agent || null,
+      })
       .eq("id", tokenData.id);
 
     // 8. Log event
