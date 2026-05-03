@@ -73,6 +73,7 @@ const formSchema = z.object({
   telefone: z.string().min(10, "Telefone é obrigatório"),
   email: z.string().min(1, "E-mail é obrigatório").email("E-mail inválido"),
   cpf_cnpj: z.string().min(11, "CPF/CNPJ é obrigatório"),
+  data_nascimento: z.string().optional(),
   cep: z.string().optional(),
   estado: z.string().min(2, "Estado é obrigatório"),
   cidade: z.string().min(2, "Cidade é obrigatória"),
