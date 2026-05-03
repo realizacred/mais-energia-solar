@@ -197,10 +197,11 @@ export function resolveClienteComercial(
   const propostaNum = str(proposta.numero) ?? (str(proposta.id) ? String(proposta.id).substring(0, 8) : undefined);
   set("proposta_num", propostaNum);
 
-  // ── Premissas da proposta ──
-  set("proposta_inflacao_energetica", snap.inflacao_energetica);
-  set("proposta_perda_eficiencia_anual", snap.perda_eficiencia_anual);
-  set("proposta_sobredimensionamento", snap.sobredimensionamento);
+  // ── Premissas da proposta (snapshot.premissas.* > snapshot.* fallback) ──
+  const premissasTop = safeObj(snap.premissas);
+  set("proposta_inflacao_energetica", premissasTop.inflacao_energetica ?? snap.inflacao_energetica);
+  set("proposta_perda_eficiencia_anual", premissasTop.perda_eficiencia_anual ?? snap.perda_eficiencia_anual);
+  set("proposta_sobredimensionamento", premissasTop.sobredimensionamento ?? snap.sobredimensionamento);
 
   // ── Empresa (tenants → brand_settings fallback) ──
   set("empresa_razao_social", ext?.tenantNome);
