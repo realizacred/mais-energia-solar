@@ -1315,27 +1315,13 @@ export const VARIABLES_CATALOG: CatalogVariable[] = [
   v("tabelas", "tabelas.parcelas", "tabela_parcelas", "Tabela parcelas", "Parcelas do financiamento", "", "[{num,valor,vencimento}]", "BT e MT", { isSeries: true }),
 
   // ──────────────────────────────────────────────────────────────
-  // SÉRIES (projeções anuais 0-24)
+  // SÉRIES (projeções anuais 0-24) — REMOVIDO 2026-05-03
+  // Grupo `series.*` (18 vars) removido do catálogo:
+  //  - 0% implementado no resolver (FE) e no flatten (BE)
+  //  - 0 templates ativos consumiam {{series.*}} (validado via SQL)
+  //  - Substituído pelas séries anuais `_0..._25` em `financeiro.*` (RB regra global de variáveis)
   // ──────────────────────────────────────────────────────────────
-  v("series", "series.economia_anual", "s_economia_anual", "Economia anual (série)", "Série de economia anual por 25 anos", "R$", "{0:10200,...,24:28500}", "BT e MT", { isSeries: true }),
-  v("series", "series.geracao_anual", "s_geracao_anual", "Geração anual (série)", "Série de geração anual por 25 anos", "kWh", "{0:13200,...,24:11880}", "BT e MT", { isSeries: true }),
-  v("series", "series.geracao_mensal", "s_geracao_mensal", "Geração mensal (série)", "Série de geração mensal por 25 anos", "kWh", "{0:1100,...,24:990}", "BT e MT", { isSeries: true }),
-  v("series", "series.investimento_anual", "s_investimento_anual", "Investimento anual (série)", "Série de investimento acumulado por ano", "R$", "{0:45000,...,24:45000}", "BT e MT", { isSeries: true }),
-  v("series", "series.fluxo_caixa_acumulado", "s_fluxo_caixa_acumulado_anual", "Fluxo de caixa acum. (série)", "Série de fluxo de caixa acumulado anual", "R$", "{0:-34800,...,24:210000}", "BT e MT", { isSeries: true }),
-  v("series", "series.tarifa_distribuidora", "s_tarifa_distribuidora_anual", "Tarifa distribuidora (série)", "Série de tarifa projetada por ano", "R$/kWh", "{0:0.95,...,24:2.10}", "BT e MT", { isSeries: true }),
-  v("series", "series.consumo_mensal", "s_consumo_mensal", "Consumo mensal (série)", "Série de consumo mensal projetado", "kWh", "{jan:500,...,dez:490}", "BT e MT", { isSeries: true }),
-  v("series", "series.creditos_mensal", "s_creditos_mensal", "Créditos mensal (série)", "Série de créditos de energia mensais", "kWh", "{jan:650,...,dez:710}", "BT e MT", { isSeries: true }),
-  v("series", "series.creditos_gerados", "s_creditos_gerados", "Créditos gerados (série)", "Série de créditos gerados mensais", "kWh", "{jan:700,...,dez:710}", "BT e MT", { isSeries: true }),
-  v("series", "series.creditos_alocados", "s_creditos_alocados", "Créditos alocados (série)", "Série de créditos alocados mensais", "kWh", "800", "BT e MT", { isSeries: true }),
-  v("series", "series.creditos_alocados_uc1", "s_creditos_alocados_uc1", "Créditos alocados UC # (série)", "Série de créditos alocados por UC", "kWh", "800", "BT e MT", { isSeries: true }),
-  // UC-specific series
-  v("series", "series.consumo_mensal_uc1", "s_consumo_mensal_uc1", "Consumo mensal UC # (série)", "Série de consumo mensal por UC", "kWh", "{jan:350,...,dez:380}", "BT e MT", { isSeries: true }),
-  v("series", "series.creditos_mensal_uc1", "s_creditos_mensal_uc1", "Saldo créditos mensal UC # (série)", "Série de saldo de créditos mensal por UC", "kWh", "{jan:300,...,dez:330}", "BT e MT", { isSeries: true }),
-  v("series", "series.economia_anual_uc1", "s_economia_anual_uc1", "Economia anual UC # (série)", "Série de economia anual por UC", "R$", "{0:8500,...,24:23000}", "BT e MT", { isSeries: true }),
-  v("series", "series.fluxo_caixa_acumulado_uc1", "s_fluxo_caixa_acumulado_anual_uc1", "Fluxo caixa acum. UC # (série)", "Série de fluxo de caixa acumulado por UC", "R$", "{0:-30000,...,24:180000}", "BT e MT", { isSeries: true }),
-  v("series", "series.geracao_anual_uc1", "s_geracao_anual_uc1", "Geração anual UC # (série)", "Série de geração anual por UC", "kWh", "{0:11000,...,24:9900}", "BT e MT", { isSeries: true }),
-  v("series", "series.investimento_anual_uc1", "s_investimento_anual_uc1", "Investimento anual UC # (série)", "Série de investimento acumulado por UC", "R$", "{0:38000,...,24:38000}", "BT e MT", { isSeries: true }),
-  v("series", "series.tarifa_distribuidora_uc1", "s_tarifa_distribuidora_anual_uc1", "Tarifa distribuidora UC # (série)", "Série de tarifa projetada por UC", "R$/kWh", "{0:0.95,...,24:2.10}", "BT e MT", { isSeries: true }),
+
 
   // ──────────────────────────────────────────────────────────────
   // PREMISSAS
