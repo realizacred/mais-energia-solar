@@ -181,11 +181,16 @@ export function ProjetosManager() {
       projetos: c.projetos.filter(p => {
         if (!p.etapa_id || !existingEtapaIds.has(p.etapa_id)) return false;
         const status = filters.status;
-        if (!status || status === "todos") return true;
-        return resolveProjetoStatus(p) === status;
+        if (status && status !== "todos" && resolveProjetoStatus(p) !== status) return false;
+        const tipoSolar = filters.tipoProjetoSolar;
+        if (tipoSolar && tipoSolar !== "todos") {
+          const t = (p.tipo_projeto_solar || "on_grid").toString();
+          if (t !== tipoSolar) return false;
+        }
+        return true;
       }),
     })).map(c => consultorColumnToOwner(c, etapaMap)),
-    [consultorColumns, etapaMap, existingEtapaIds, filters.status, resolveProjetoStatus]
+    [consultorColumns, etapaMap, existingEtapaIds, filters.status, filters.tipoProjetoSolar, resolveProjetoStatus]
   );
 
   // ── Persistent filter storage ──
