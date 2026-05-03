@@ -2,12 +2,20 @@
  * usePropostaRapidaLead — Fluxo rápido Lead → Cliente → Projeto → Wizard
  * RB-50: Atalho sem burocracia para gerar proposta direto do lead.
  * §16: Query em hook. §23: staleTime obrigatório (N/A — mutation only).
+ *
+ * Anti-duplicação (2026-05): antes de criar projeto/deal, detecta deal `open`
+ * existente para o mesmo cliente_id ou telefone_normalized. Se encontrar,
+ * abre modal exigindo decisão explícita (abrir existente OU justificar override).
  */
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { getCurrentTenantId } from "@/lib/getCurrentTenantId";
 import { resolveDefaultCommercialPipeline } from "@/services/pipelines/resolveDefaultCommercialPipeline";
+import {
+  findOpenDealForLeadOrCliente,
+  type OpenDealMatch,
+} from "@/services/leads/findOpenDealForLeadOrCliente";
 import { toast } from "sonner";
 import type { Lead } from "@/types/lead";
 
@@ -25,9 +33,20 @@ export interface QuickLeadData {
   valor_estimado?: number | null;
 }
 
+export interface DuplicateGuardState {
+  open: boolean;
+  matches: OpenDealMatch[];
+  pendingLead: QuickLeadData | null;
+}
+
 export function usePropostaRapidaLead() {
   const [loading, setLoading] = useState(false);
   const [loadingLeadId, setLoadingLeadId] = useState<string | null>(null);
+  const [duplicateGuard, setDuplicateGuard] = useState<DuplicateGuardState>({
+    open: false,
+    matches: [],
+    pendingLead: null,
+  });
   const navigate = useNavigate();
 
   async function markLeadAsViewed(leadId: string, tenantId: string) {
