@@ -349,7 +349,7 @@ export default function PropostaPublica() {
           aceite_documento: documento || null,
           aceite_observacoes: observacoes || null,
           assinatura_url: assinaturaUrl,
-          aceite_ip: "client",
+          // aceite_ip será gravado pela edge proposal-public-action (IP real do header)
           aceite_user_agent: navigator.userAgent,
           cenario_aceito_id: selectedCenario || null,
           forma_pagamento_escolhida: formaParaSalvar ? JSON.stringify(formaParaSalvar) : null,
@@ -363,7 +363,7 @@ export default function PropostaPublica() {
         body: {
           token: tokenData.token,
           action: "aceitar",
-          ip_address: "client",
+          // ip_address resolvido server-side pela edge
           user_agent: navigator.userAgent,
         },
       });

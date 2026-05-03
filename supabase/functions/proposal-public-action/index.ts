@@ -35,7 +35,12 @@ Deno.serve(async (req) => {
 
   try {
     const body = await req.json();
-    const { token, action, motivo, ip_address, user_agent } = body;
+    const { token, action, motivo, user_agent } = body;
+
+    // Resolve real IP from request headers (RB: never trust client-sent IP)
+    const xff = req.headers.get("x-forwarded-for");
+    const realIp = xff ? xff.split(",")[0].trim() : (req.headers.get("x-real-ip") || "unknown");
+    const ip_address = realIp;
 
     if (!token || !action) {
       return new Response(
@@ -314,10 +319,14 @@ Deno.serve(async (req) => {
         .eq("status", "pendente");
     }
 
-    // 7. Mark token as used
+    // 7. Mark token as used + persist real IP / UA
     await admin
       .from("proposta_aceite_tokens")
-      .update({ used_at: now })
+      .update({
+        used_at: now,
+        aceite_ip: ip_address || null,
+        aceite_user_agent: user_agent || null,
+      })
       .eq("id", tokenData.id);
 
     // 8. Log event
