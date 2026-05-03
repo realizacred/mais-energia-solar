@@ -163,21 +163,24 @@ export function BuilderTopbar({
         </Tooltip>
 
         {/* Edit/Preview toggle */}
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              variant={state.mode === "edit" ? "default" : "outline"}
-              size="icon"
-              className="h-8 w-8"
-              onClick={() => onModeChange(state.mode === "edit" ? "preview" : "edit")}
-            >
-              {state.mode === "edit" ? <Eye className="h-4 w-4" /> : <Edit3 className="h-4 w-4" />}
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent side="bottom" className="text-xs">
-            {state.mode === "edit" ? "Modo Preview" : "Modo Edição"}
-          </TooltipContent>
-        </Tooltip>
+        <Button
+          variant={state.mode === "edit" ? "default" : "outline"}
+          size="sm"
+          className="h-8 gap-1.5 text-xs"
+          onClick={() => onModeChange(state.mode === "edit" ? "preview" : "edit")}
+        >
+          {state.mode === "edit" ? (
+            <>
+              <Eye className="h-3.5 w-3.5" />
+              Ver como cliente
+            </>
+          ) : (
+            <>
+              <Edit3 className="h-3.5 w-3.5" />
+              Voltar a editar
+            </>
+          )}
+        </Button>
       </div>
     </div>
   );
