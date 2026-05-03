@@ -1,4 +1,4 @@
-import { Search, Users, UserCheck, FolderKanban, Package, Cpu, Loader2, X } from "lucide-react";
+import { Search, Users, UserCheck, FolderKanban, Package, Cpu, FileText, Loader2, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
@@ -23,14 +23,15 @@ export function HeaderSearch({ className }: HeaderSearchProps) {
   const navigate = useNavigate();
   const { data, isFetching } = useGlobalSearchResults(term);
 
-  const results = data ?? { leads: [], clientes: [], projetos: [], kits: [], inversores: [] };
+  const results = data ?? { leads: [], clientes: [], projetos: [], kits: [], inversores: [], propostas: [] };
   const total = useMemo(
     () =>
       results.leads.length +
       results.clientes.length +
       results.projetos.length +
       results.kits.length +
-      results.inversores.length,
+      results.inversores.length +
+      (results.propostas?.length ?? 0),
     [results]
   );
 
@@ -197,6 +198,22 @@ export function HeaderSearch({ className }: HeaderSearchProps) {
                       .filter(Boolean)
                       .join(" · ")}
                     onClick={() => go(`/admin/catalogo-inversores`)}
+                  />
+                )}
+              />
+              <ResultGroup
+                heading="Propostas"
+                icon={FileText}
+                items={results.propostas ?? []}
+                renderItem={(p: any) => (
+                  <ResultRow
+                    key={p.id}
+                    icon={FileText}
+                    title={p.titulo || p.codigo || "Proposta"}
+                    subtitle={[p.codigo, p.status].filter(Boolean).join(" · ")}
+                    onClick={() =>
+                      go(p.projeto_id ? `/admin/projetos?projeto=${p.projeto_id}` : `/admin/propostas`)
+                    }
                   />
                 )}
               />
