@@ -71,6 +71,8 @@ interface Props {
   consumoTotal?: number;
   manualKits?: { card: KitCardData; itens: KitItemRow[]; meta?: KitMeta }[];
   onManualKitsChange?: (kits: { card: KitCardData; itens: KitItemRow[]; meta?: KitMeta }[]) => void;
+  selectedManualIdx?: number | null;
+  onSelectedManualIdxChange?: (idx: number | null) => void;
   irradiacao?: number;
   latitude?: number | null;
   ghiSeries?: Record<string, number> | null;
