@@ -387,9 +387,50 @@ function ChecklistCard({
                 {progress}%
               </Badge>
             )}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                <Button variant="ghost" size="icon" className="h-7 w-7">
+                  <MoreVertical className="h-4 w-4 text-muted-foreground" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+                {isConcluido && (
+                  <DropdownMenuItem onClick={handleReabrir} disabled={reabrir.isPending}>
+                    <RotateCcw className="h-4 w-4 mr-2" /> Reabrir checklist
+                  </DropdownMenuItem>
+                )}
+                {!isCancelado && (
+                  <DropdownMenuItem onClick={handleCancelar} disabled={cancelar.isPending} className="text-destructive focus:text-destructive">
+                    <XCircle className="h-4 w-4 mr-2" /> Cancelar checklist
+                  </DropdownMenuItem>
+                )}
+                {isCancelado && (
+                  <DropdownMenuItem onClick={handleReabrir} disabled={reabrir.isPending}>
+                    <RotateCcw className="h-4 w-4 mr-2" /> Reativar
+                  </DropdownMenuItem>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
             {isExpanded ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
           </div>
         </div>
+        {/* Linha de serviço vinculado (instalador + agendamento) */}
+        {(servico?.instalador_nome || servico?.data_agendada) && (
+          <div className="flex items-center gap-3 px-4 pb-3 -mt-2 text-xs text-muted-foreground">
+            {servico?.instalador_nome && (
+              <span className="inline-flex items-center gap-1">
+                <User className="h-3 w-3" /> {servico.instalador_nome}
+              </span>
+            )}
+            {servico?.data_agendada && (
+              <span className="inline-flex items-center gap-1">
+                <CalendarClock className="h-3 w-3" />
+                {formatDateTime(servico.data_agendada, { day: "2-digit", month: "2-digit", year: "2-digit", timeZone: "America/Sao_Paulo" })}
+                {servico.hora_inicio ? ` • ${String(servico.hora_inicio).slice(0,5)}` : ""}
+              </span>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Progress bar */}
