@@ -140,7 +140,7 @@ async function resolveTenantId(userId: string): Promise<string> {
     .from("profiles")
     .select("tenant_id")
     .eq("user_id", userId)
-    .single();
+    .maybeSingle();
   if (!profile) throw new Error("Perfil não encontrado");
   return profile.tenant_id;
 }
@@ -289,7 +289,7 @@ export function useCreateEstoqueItem() {
       const { data, error } = await (supabase as any)
         .from("estoque_itens")
         .insert({ ...item, tenant_id: tenantId })
-        .select().single();
+        .select().maybeSingle();
       if (error) throw error;
       return data;
     },
@@ -470,7 +470,7 @@ export function useCreateEstoqueLocal() {
       const { data, error } = await (supabase as any)
         .from("estoque_locais")
         .insert({ ...local, tenant_id: tenantId })
-        .select().single();
+        .select().maybeSingle();
       if (error) throw error;
       return data;
     },
@@ -489,7 +489,7 @@ export function useUpdateEstoqueLocal() {
         .from("estoque_locais")
         .update(updates)
         .eq("id", id)
-        .select().single();
+        .select().maybeSingle();
       if (error) throw error;
       return data;
     },

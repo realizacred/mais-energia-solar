@@ -727,7 +727,7 @@ function GerenciamentoTab({
       .from("clientes")
       .select("cep, rua, numero, complemento, bairro, cidade, estado")
       .eq("id", deal.customer_id)
-      .single();
+      .maybeSingle();
     if (data) {
       setAddressData({
         cep: data.cep || "",
@@ -850,13 +850,13 @@ function GerenciamentoTab({
       const { data: userData } = await supabase.auth.getUser();
       const userId = userData?.user?.id;
       if (!userId) throw new Error("Usuário não autenticado");
-      const { data: profile } = await supabase.from("profiles").select("tenant_id").eq("user_id", userId).limit(1).single();
+      const { data: profile } = await supabase.from("profiles").select("tenant_id").eq("user_id", userId).limit(1).maybeSingle();
       const { data, error } = await supabase.from("deal_notes").insert({
         deal_id: deal.id,
         content: noteText.trim(),
         tenant_id: (profile as any)?.tenant_id,
         created_by: userId,
-      } as any).select("id, content, created_at, created_by").single();
+      } as any).select("id, content, created_at, created_by").maybeSingle();
       if (error) throw error;
       if (data) {
         queryClient.invalidateQueries({ queryKey: ["deal-notes", deal.id] });
@@ -876,7 +876,7 @@ function GerenciamentoTab({
       const { data: userData } = await supabase.auth.getUser();
       const userId = userData?.user?.id;
       if (!userId) return;
-      const { data: profile } = await supabase.from("profiles").select("tenant_id").eq("user_id", userId).limit(1).single();
+      const { data: profile } = await supabase.from("profiles").select("tenant_id").eq("user_id", userId).limit(1).maybeSingle();
       if (!profile) return;
       const { data: members } = await supabase
         .from("profiles")
@@ -897,7 +897,7 @@ function GerenciamentoTab({
       const { data: userData } = await supabase.auth.getUser();
       const userId = userData?.user?.id;
       if (!userId) throw new Error("Usuário não autenticado");
-      const { data: profile } = await supabase.from("profiles").select("tenant_id").eq("user_id", userId).limit(1).single();
+      const { data: profile } = await supabase.from("profiles").select("tenant_id").eq("user_id", userId).limit(1).maybeSingle();
 
       if (editingActivityId) {
         // Update existing activity
@@ -907,7 +907,7 @@ function GerenciamentoTab({
           activity_type: activityType as any,
           due_date: activityDueDate || null,
           assigned_to: activityAssignedTo || null,
-        } as any).eq("id", editingActivityId).select("id, title, description, activity_type, due_date, status, created_at, assigned_to").single();
+        } as any).eq("id", editingActivityId).select("id, title, description, activity_type, due_date, status, created_at, assigned_to").maybeSingle();
         if (error) throw error;
         if (data) {
           queryClient.invalidateQueries({ queryKey: ["deal-activities", deal.id] });
@@ -924,7 +924,7 @@ function GerenciamentoTab({
           assigned_to: activityAssignedTo || null,
           tenant_id: (profile as any)?.tenant_id,
           created_by: userId,
-        } as any).select("id, title, description, activity_type, due_date, status, created_at, assigned_to").single();
+        } as any).select("id, title, description, activity_type, due_date, status, created_at, assigned_to").maybeSingle();
         if (error) throw error;
         if (data) {
           queryClient.invalidateQueries({ queryKey: ["deal-activities", deal.id] });
@@ -989,7 +989,7 @@ function GerenciamentoTab({
   useEffect(() => {
     async function loadDocEntries() {
       try {
-        const { data: profile } = await supabase.from("profiles").select("tenant_id").limit(1).single();
+        const { data: profile } = await supabase.from("profiles").select("tenant_id").limit(1).maybeSingle();
         if (!profile) return;
         const path = `${(profile as any).tenant_id}/deals/${deal.id}`;
         const { data } = await supabase.storage
@@ -1290,7 +1290,7 @@ function GerenciamentoTab({
                       .from("clientes")
                       .select("*")
                       .eq("id", deal.customer_id)
-                      .single();
+                      .maybeSingle();
                     if (data) {
                       setFichaClienteData(data);
                       setFichaDialogOpen(true);
@@ -2028,7 +2028,7 @@ function PropostasTab({ customerId, dealId, dealTitle, navigate, isClosed, dealS
           .from("clientes")
           .select("telefone, telefone_normalized, lead_id")
           .eq("id", customerId)
-          .single();
+          .maybeSingle();
         if (!cliente?.telefone) { setLoadingLeads(false); return; }
 
         const digits = (cliente.telefone_normalized || cliente.telefone).replace(/\D/g, "");
