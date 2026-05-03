@@ -362,7 +362,7 @@ export function ProjetosManager() {
   }, [funis, selectedFunilId, activeFunis, defaultFunilApplied]);
 
   const clearFilters = () => {
-    applyFilters({ funilId: null, consultorId: "todos", status: "todos", search: "" });
+    applyFilters({ funilId: null, consultorId: "todos", status: "todos", search: "", tipoProjetoSolar: "todos" });
     setSelectedFunilId(null);
     try { localStorage.removeItem(STORAGE_KEY); } catch { /* ignore */ }
   };
