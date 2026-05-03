@@ -16,6 +16,7 @@ import { ChevronDown, Eye, EyeOff, Type, Palette, Box, Layout } from "lucide-rea
 import type { TemplateBlock, BlockStyle } from "./types";
 import { cn } from "@/lib/utils";
 import { SEMANTIC_BLOCK_LABELS, isSemanticProposalBlock } from "./semanticBlockLabels";
+import { SimpleContentEditor } from "./SimpleContentEditor";
 
 interface PropertiesPanelProps {
   block: TemplateBlock;
