@@ -296,6 +296,7 @@ export function ConvertLeadToClientDialog({
           telefone: savedData.formData.telefone || lead.telefone || "",
           email: savedData.formData.email || "",
           cpf_cnpj: savedData.formData.cpf_cnpj || "",
+          data_nascimento: savedData.formData.data_nascimento || "",
           cep: savedData.formData.cep || lead.cep || "",
           estado: savedData.formData.estado || lead.estado || "",
           cidade: savedData.formData.cidade || lead.cidade || "",
