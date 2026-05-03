@@ -194,7 +194,7 @@ export function BlockRenderer({ node, device, mode, selectedId, hoveredId, onSel
       {/* Type label in edit mode */}
       {mode === "edit" && (isSelected || isHovered) && (
         <div className="absolute -top-4 left-1 z-10 bg-primary text-primary-foreground px-1.5 py-0.5 rounded-t text-[8px] font-semibold uppercase">
-          {block.type}
+          {isSemanticProposalBlock(block.type) ? (SEMANTIC_BLOCK_LABELS[block.type]?.label ?? block.type) : block.type}
         </div>
       )}
 
