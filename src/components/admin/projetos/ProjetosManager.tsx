@@ -510,6 +510,7 @@ export function ProjetosManager() {
                 valor_total: data.valor || 0,
                 observacoes: data.descricao || null,
                 status: "criado" as any,
+                tipo_projeto_solar: data.tipoProjetoSolar || "on_grid",
               } as any)
               .select("id")
               .single();
