@@ -152,6 +152,7 @@ export function ConvertLeadToClientDialog({
       telefone: "",
       email: "",
       cpf_cnpj: "",
+      data_nascimento: "",
       cep: "",
       estado: "",
       cidade: "",
