@@ -190,6 +190,36 @@ function resolveFromContext(
   const s = (v: string | number | null | undefined): string | null =>
     v != null && v !== "" ? String(v) : null;
 
+  // ── Premissas (handler explícito — RB regra global de variáveis) ──
+  // Lê de finalSnapshot.premissas.{chave} → finalSnapshot.{chave} → ctx.premissas.{chave}
+  const PREMISSAS_KEYS = [
+    "vpl_taxa_desconto",
+    "inflacao_energetica",
+    "inflacao_ipca",
+    "perda_eficiencia_anual",
+    "sobredimensionamento",
+    "troca_inversor_anos",
+    "troca_inversor_custo",
+    "imposto",
+    "vida_util_sistema",
+  ] as const;
+  if (key.startsWith("premissas.")) {
+    const sub = key.substring("premissas.".length);
+    if ((PREMISSAS_KEYS as readonly string[]).includes(sub)) {
+      const fs = ctx.finalSnapshot as Record<string, any> | undefined;
+      const fromPremissas = fs?.premissas?.[sub];
+      const fromRoot = fs?.[sub];
+      // Aliases conhecidos: premissas.troca_inversor_anos ↔ snapshot.troca_inversor (anos)
+      const aliasFromRoot = sub === "troca_inversor_anos" ? fs?.troca_inversor : undefined;
+      const fromCtx = (ctx.premissas as Record<string, any> | undefined)?.[sub];
+      const val = fromPremissas ?? fromRoot ?? aliasFromRoot ?? fromCtx;
+      if (val != null && val !== "") {
+        return typeof val === "number" ? fmtNumber(val) : String(val);
+      }
+      return null;
+    }
+  }
+
   // ── Tarifa ──
   if (key === "tarifa.te_kwh") return t ? fmtNumber(t.te_kwh, 6) : null;
   if (key === "tarifa.tusd_total_kwh") return t ? fmtNumber(t.tusd_total_kwh, 6) : null;
