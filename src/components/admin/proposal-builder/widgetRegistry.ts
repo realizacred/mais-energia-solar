@@ -7,10 +7,10 @@
 import type { WidgetRegistryEntry, WidgetCategory, BlockType } from "./types";
 
 export const WIDGET_CATEGORIES: { key: WidgetCategory; label: string }[] = [
-  { key: "layout", label: "LAYOUT" },
-  { key: "basic", label: "BÁSICO" },
+  { key: "layout", label: "ESTRUTURA" },
+  { key: "basic", label: "ELEMENTOS LIVRES" },
   { key: "advanced", label: "AVANÇADO" },
-  { key: "system", label: "SISTEMA" },
+  { key: "system", label: "DADOS DA PROPOSTA" },
 ];
 
 const defaultStyle = {
