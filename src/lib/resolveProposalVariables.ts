@@ -98,6 +98,7 @@ export interface ProposalResolverContext {
   consultorCodigo?: string;
   empresaNome?: string;
   empresaTelefone?: string;
+  empresaLogo?: string;
   // Extra overrides
   extras?: Record<string, string | number>;
   // Final snapshot (SSOT for finalized versions — inputs + outputs)
@@ -316,8 +317,7 @@ function resolveFromContext(
     return s(ctx.empresaTelefone ?? (ctx.finalSnapshot as any)?.empresa_telefone);
   }
   if (key === "comercial.empresa_logo") {
-    // vazia real — fonte ausente no ctx (logo do tenant não é injetado no resolver FE)
-    return s((ctx.finalSnapshot as any)?.empresa_logo);
+    return s(ctx.empresaLogo ?? (ctx.finalSnapshot as any)?.empresa_logo);
   }
   if (key === "comercial.consultor_codigo") return s(ctx.consultorCodigo);
 
