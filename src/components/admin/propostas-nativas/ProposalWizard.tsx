@@ -1313,7 +1313,7 @@ export function ProposalWizard() {
           if (!s.cliente?.nome && propostaMeta?.cliente_id) {
             const { data: cliEnrich } = await supabase
               .from("clientes")
-              .select("nome, telefone, email, cpf_cnpj, empresa, cep, rua, numero, complemento, bairro, cidade, estado")
+              .select("nome, telefone, email, cpf_cnpj, data_nascimento, empresa, cep, rua, numero, complemento, bairro, cidade, estado")
               .eq("id", propostaMeta.cliente_id)
               .maybeSingle();
             if (cliEnrich?.nome) {
