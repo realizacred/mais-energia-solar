@@ -144,5 +144,7 @@ export function TipoProjetoSolarBadge({ projetoId, readOnly }: Props) {
         </div>
       </PopoverContent>
     </Popover>
+    {adaptacaoBadge}
+    </div>
   );
 }
