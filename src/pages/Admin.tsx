@@ -682,6 +682,7 @@ export default function Admin() {
                 <Route path="equipamentos" element={<EquipamentosManager />} />
                 <Route path="modulos" element={<ModulosManager />} />
                 <Route path="inversores-cadastro" element={<InversoresManager />} />
+                <Route path="inversores-auditoria" element={<InversoresAuditPage />} />
                 <Route path="baterias" element={<BateriasManager />} />
                 <Route path="otimizadores" element={<OtimizadoresManager />} />
                 <Route path="fornecedores" element={<FornecedoresManager />} />
