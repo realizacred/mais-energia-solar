@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 
 export type FollowupQueueItem = {
   id: string;
+  tenant_id: string;
   status: string;
   tentativa: number;
   scheduled_at: string;
@@ -15,8 +16,17 @@ export type FollowupQueueItem = {
   responded_at: string | null;
   assigned_to: string | null;
   mensagem_enviada: string | null;
+  mensagem_sugerida: string | null;
+  ai_confidence: number | null;
+  ai_reason: string | null;
+  cenario: string | null;
+  proposta_id: string | null;
+  versao_id: string | null;
+  proposal_context: Record<string, any> | null;
+  metadata: Record<string, any> | null;
   conversation_id: string;
   created_at: string;
+  updated_at: string;
   rule: {
     nome: string;
     cenario: string;
