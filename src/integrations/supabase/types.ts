@@ -4545,6 +4545,72 @@ export type Database = {
         }
         Relationships: []
       }
+      equipment_enrichment_jobs: {
+        Row: {
+          created_at: string
+          created_by: string
+          dual_count: number
+          equipment_ids: string[]
+          equipment_type: string
+          failed: number
+          finished_at: string | null
+          id: string
+          last_error: string | null
+          last_heartbeat_at: string | null
+          last_model: string | null
+          last_processed_index: number
+          processed: number
+          started_at: string | null
+          status: string
+          success: number
+          tenant_id: string
+          total: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          dual_count?: number
+          equipment_ids: string[]
+          equipment_type: string
+          failed?: number
+          finished_at?: string | null
+          id?: string
+          last_error?: string | null
+          last_heartbeat_at?: string | null
+          last_model?: string | null
+          last_processed_index?: number
+          processed?: number
+          started_at?: string | null
+          status?: string
+          success?: number
+          tenant_id: string
+          total?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          dual_count?: number
+          equipment_ids?: string[]
+          equipment_type?: string
+          failed?: number
+          finished_at?: string | null
+          id?: string
+          last_error?: string | null
+          last_heartbeat_at?: string | null
+          last_model?: string | null
+          last_processed_index?: number
+          processed?: number
+          started_at?: string | null
+          status?: string
+          success?: number
+          tenant_id?: string
+          total?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       estoque_categorias: {
         Row: {
           ativo: boolean | null

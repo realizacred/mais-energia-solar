@@ -349,3 +349,7 @@ verify_jwt = false
 [functions.wa-ai-suggest-link]
 verify_jwt = true
 
+
+[functions.equipment-enrichment-worker]
+verify_jwt = false
+wall_clock_limit = 300
