@@ -181,6 +181,8 @@ serve(async (req) => {
     );
   } catch (e) {
     console.error("[worker] fatal:", e);
+    // Garante release do lock em caso de erro
+    try { await admin.rpc("eej_unlock", { p_key: LOCK_KEY }); } catch { /* ignore */ }
     return new Response(JSON.stringify({ ok: false, error: String(e) }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
