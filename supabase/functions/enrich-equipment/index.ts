@@ -266,25 +266,51 @@ async function callAIProvider(
 function mergeResults(
   r1: Record<string, unknown> | null,
   r2: Record<string, unknown> | null,
-): Record<string, unknown> {
-  if (!r1 && !r2) return {};
-  if (!r1) return r2!;
-  if (!r2) return r1;
+): { merged: Record<string, unknown>; consensus_fields: string[]; conflict_fields: string[] } {
+  if (!r1 && !r2) return { merged: {}, consensus_fields: [], conflict_fields: [] };
+  if (!r1) return { merged: r2!, consensus_fields: [], conflict_fields: [] };
+  if (!r2) return { merged: r1, consensus_fields: [], conflict_fields: [] };
 
   const count1 = countFilledFields(r1);
   const count2 = countFilledFields(r2);
-  // Primary = the one with more filled fields
   const primary = count1 >= count2 ? r1 : r2;
   const secondary = count1 >= count2 ? r2 : r1;
 
-  const merged: Record<string, unknown> = { ...primary };
-  // Fill gaps from secondary
-  for (const [key, value] of Object.entries(secondary)) {
-    if ((merged[key] === null || merged[key] === undefined) && value !== null && value !== undefined) {
-      merged[key] = value;
+  const merged: Record<string, unknown> = {};
+  const consensus: string[] = [];
+  const conflict: string[] = [];
+  const allKeys = new Set([...Object.keys(primary), ...Object.keys(secondary)]);
+
+  for (const key of allKeys) {
+    const v1 = primary[key];
+    const v2 = secondary[key];
+    const has1 = v1 !== null && v1 !== undefined && v1 !== "";
+    const has2 = v2 !== null && v2 !== undefined && v2 !== "";
+
+    if (has1 && has2) {
+      // Compare numerically with 5% tolerance, or string-equal (case-insensitive)
+      const sameNum = typeof v1 === "number" && typeof v2 === "number"
+        && Math.abs(v1 - v2) <= Math.max(Math.abs(v1), Math.abs(v2)) * 0.05;
+      const sameStr = typeof v1 === "string" && typeof v2 === "string"
+        && v1.trim().toLowerCase() === v2.trim().toLowerCase();
+      const sameBool = typeof v1 === "boolean" && v1 === v2;
+
+      if (sameNum || sameStr || sameBool) {
+        consensus.push(key);
+        merged[key] = v1; // both agree
+      } else {
+        conflict.push(key);
+        merged[key] = v1; // keep primary (more filled overall)
+      }
+    } else if (has1) {
+      merged[key] = v1;
+    } else if (has2) {
+      merged[key] = v2;
+    } else {
+      merged[key] = null;
     }
   }
-  return merged;
+  return { merged, consensus_fields: consensus, conflict_fields: conflict };
 }
 
 // ── Datasheet validation & download ──────────────────────────────
@@ -450,38 +476,27 @@ serve(async (req) => {
     const apiKey = Deno.env.get("LOVABLE_API_KEY");
     if (!apiKey) throw new Error("LOVABLE_API_KEY não configurada");
 
-    // console.log(`[enrich-equipment] Buscando specs para ${equipment.fabricante} ${equipment.modelo} (${equipment_type}) — dual AI`);
-
-    // Primary: Gemini Flash (fast, cheap)
-    const primary = await callAIProvider("gemini", "google/gemini-2.5-flash", system, user, apiKey);
+    // Run both providers IN PARALLEL (team work — consensus strategy)
+    const [primary, secondary] = await Promise.all([
+      callAIProvider("gemini", "google/gemini-2.5-flash", system, user, apiKey),
+      callAIProvider("openai", "openai/gpt-5-mini", system, user, apiKey),
+    ]);
+    const usedDual = true;
     const primaryFilled = countFilledFields(primary.parsed);
+    const secondaryFilled = countFilledFields(secondary.parsed);
 
-    // console.log(`[enrich-equipment] Primary (gemini-2.5-flash): ${primaryFilled} campos, error=${primary.error || "none"}`);
-
-    let secondary: AICallResult | null = null;
-    let usedDual = false;
-
-    // If primary failed or returned < 3 fields, try secondary
-    if (primary.error || primaryFilled < 3) {
-      // console.log(`[enrich-equipment] Primary insufficient (${primaryFilled} campos), trying secondary (gpt-5-mini)...`);
-      secondary = await callAIProvider("openai", "openai/gpt-5-mini", system, user, apiKey);
-      const secondaryFilled = countFilledFields(secondary.parsed);
-      // console.log(`[enrich-equipment] Secondary (gpt-5-mini): ${secondaryFilled} campos, error=${secondary.error || "none"}`);
-      usedDual = true;
-    }
-
-    // 5. Merge results
-    const rawMerged = mergeResults(primary.parsed, secondary?.parsed || null);
+    // 5. Merge with consensus tracking
+    const { merged: rawMerged, consensus_fields, conflict_fields } = mergeResults(
+      primary.parsed,
+      secondary.parsed,
+    );
 
     if (Object.keys(rawMerged).length === 0) {
       throw new Error("Nenhum provider retornou dados válidos");
     }
 
-    // console.log(`[enrich-equipment] Merged RAW:`, JSON.stringify(rawMerged));
-
     // 6. Validate
     const validated = validateSpecs(rawMerged, equipment_type);
-    // console.log(`[enrich-equipment] VALIDADO:`, JSON.stringify(validated));
 
     // 7. Count filled fields
     const fieldsFilled = countFilledFields(validated);
@@ -587,8 +602,8 @@ serve(async (req) => {
       is_fallback: false,
     });
 
-    // Log secondary if used
-    if (secondary && !secondary.error) {
+    // Log secondary (always — runs in parallel)
+    if (!secondary.error) {
       await supabase.from("ai_usage_logs").insert({
         tenant_id,
         user_id: userId,
@@ -599,13 +614,11 @@ serve(async (req) => {
         completion_tokens: secondary.usage.completion_tokens,
         total_tokens: secondary.usage.total_tokens,
         estimated_cost_usd: (secondary.usage.prompt_tokens / 1000) * 0.00015 + (secondary.usage.completion_tokens / 1000) * 0.0006,
-        is_fallback: true,
+        is_fallback: false,
       });
     }
 
-    const winnerProvider = usedDual
-      ? (countFilledFields(primary.parsed) >= countFilledFields(secondary?.parsed || null) ? primary.model : secondary?.model || primary.model)
-      : primary.model;
+    const winnerProvider = primaryFilled >= secondaryFilled ? primary.model : secondary.model;
 
     // console.log(`[enrich-equipment] Sucesso: ${fieldsFilled} campos preenchidos para ${equipment.fabricante} ${equipment.modelo}, dual=${usedDual}, winner=${winnerProvider}, datasheet_downloaded=${datasheet_downloaded}`);
 
@@ -616,6 +629,14 @@ serve(async (req) => {
         equipment: `${equipment.fabricante} ${equipment.modelo}`,
         dual_ai_used: usedDual,
         winner_model: winnerProvider,
+        team: {
+          gemini: { filled: primaryFilled, error: primary.error || null },
+          openai: { filled: secondaryFilled, error: secondary.error || null },
+          consensus_fields,
+          conflict_fields,
+          consensus_count: consensus_fields.length,
+          conflict_count: conflict_fields.length,
+        },
         datasheet_downloaded,
         datasheet_path,
       }),
