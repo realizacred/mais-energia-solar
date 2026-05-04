@@ -8643,9 +8643,45 @@ export type Database = {
           },
         ]
       }
+      inversores_audit_log: {
+        Row: {
+          acao: string
+          campo: string | null
+          created_at: string | null
+          id: string
+          inversor_id: string | null
+          motivo: string | null
+          valor_antes: Json | null
+          valor_depois: Json | null
+        }
+        Insert: {
+          acao: string
+          campo?: string | null
+          created_at?: string | null
+          id?: string
+          inversor_id?: string | null
+          motivo?: string | null
+          valor_antes?: Json | null
+          valor_depois?: Json | null
+        }
+        Update: {
+          acao?: string
+          campo?: string | null
+          created_at?: string | null
+          id?: string
+          inversor_id?: string | null
+          motivo?: string | null
+          valor_antes?: Json | null
+          valor_depois?: Json | null
+        }
+        Relationships: []
+      }
       inversores_catalogo: {
         Row: {
           ativo: boolean
+          audit_notes: string | null
+          audit_status: string | null
+          audited_at: string | null
           corrente_entrada_max_a: number | null
           corrente_saida_a: number | null
           created_at: string
@@ -8655,12 +8691,14 @@ export type Database = {
           dimensoes_mm: string | null
           eficiencia_max_percent: number | null
           fabricante: string
+          fabricante_original: string | null
           fases: string
           fator_potencia: number | null
           garantia_anos: number | null
           id: string
           ip_protection: string | null
           modelo: string
+          modelo_original: string | null
           mppt_count: number | null
           peso_kg: number | null
           potencia_maxima_kw: number | null
@@ -8678,6 +8716,9 @@ export type Database = {
         }
         Insert: {
           ativo?: boolean
+          audit_notes?: string | null
+          audit_status?: string | null
+          audited_at?: string | null
           corrente_entrada_max_a?: number | null
           corrente_saida_a?: number | null
           created_at?: string
@@ -8687,12 +8728,14 @@ export type Database = {
           dimensoes_mm?: string | null
           eficiencia_max_percent?: number | null
           fabricante: string
+          fabricante_original?: string | null
           fases?: string
           fator_potencia?: number | null
           garantia_anos?: number | null
           id?: string
           ip_protection?: string | null
           modelo: string
+          modelo_original?: string | null
           mppt_count?: number | null
           peso_kg?: number | null
           potencia_maxima_kw?: number | null
@@ -8710,6 +8753,9 @@ export type Database = {
         }
         Update: {
           ativo?: boolean
+          audit_notes?: string | null
+          audit_status?: string | null
+          audited_at?: string | null
           corrente_entrada_max_a?: number | null
           corrente_saida_a?: number | null
           created_at?: string
@@ -8719,12 +8765,14 @@ export type Database = {
           dimensoes_mm?: string | null
           eficiencia_max_percent?: number | null
           fabricante?: string
+          fabricante_original?: string | null
           fases?: string
           fator_potencia?: number | null
           garantia_anos?: number | null
           id?: string
           ip_protection?: string | null
           modelo?: string
+          modelo_original?: string | null
           mppt_count?: number | null
           peso_kg?: number | null
           potencia_maxima_kw?: number | null
@@ -28603,6 +28651,13 @@ export type Database = {
         Returns: number
       }
       normalize_br_phone: { Args: { phone: string }; Returns: string }
+      normalize_inverter_brand: {
+        Args: { fab: string }
+        Returns: {
+          brand: string
+          series: string
+        }[]
+      }
       normalize_phone: { Args: { p: string }; Returns: string }
       normalize_phone_e164: { Args: { raw: string }; Returns: string }
       normalize_proposta_snapshot: { Args: { p_snapshot: Json }; Returns: Json }
