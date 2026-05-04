@@ -101,30 +101,48 @@ export function InversoresAuditPage() {
       setEnriching(true);
       setProgress({ done: 0, total: ids.length, ok: 0, fail: 0 });
       let ok = 0, fail = 0;
+      let totalConsensus = 0, totalConflict = 0;
       for (let i = 0; i < ids.length; i++) {
+        const id = ids[i];
         try {
-          const { error } = await supabase.functions.invoke("enrich-equipment", {
-            body: { equipment_type: "inversor", equipment_id: ids[i], tenant_id, force_refresh: true },
+          const { data, error } = await supabase.functions.invoke("enrich-equipment", {
+            body: { equipment_type: "inversor", equipment_id: id, tenant_id, force_refresh: true },
           });
           if (error) throw error;
-          // Marcar como enriquecido
+          if (data?.team) {
+            totalConsensus += data.team.consensus_count || 0;
+            totalConflict += data.team.conflict_count || 0;
+          }
           await supabase.from("inversores_catalogo")
             .update({ audit_status: "enriquecido", audited_at: new Date().toISOString() } as never)
-            .eq("id", ids[i]);
+            .eq("id", id);
           ok++;
+          // Real-time UI: marca como enriquecido em cache + tira da seleção
+          queryClient.setQueryData(["inversores-audit-status"], (old: any) => {
+            const next = { ...(old || {}) };
+            next[id] = { ...(next[id] || {}), audit_status: "enriquecido", audited_at: new Date().toISOString() };
+            return next;
+          });
+          setSelected((prev) => {
+            if (!prev.has(id)) return prev;
+            const n = new Set(prev);
+            n.delete(id);
+            return n;
+          });
         } catch (e) {
           fail++;
-          console.warn("[audit-inv] falhou", ids[i], e);
+          console.warn("[audit-inv] falhou", id, e);
         }
         setProgress({ done: i + 1, total: ids.length, ok, fail });
       }
-      return { ok, fail };
+      return { ok, fail, totalConsensus, totalConflict };
     },
-    onSuccess: ({ ok, fail }) => {
-      toast.success(`Auditoria concluída: ${ok} ok, ${fail} falhas`);
+    onSuccess: ({ ok, fail, totalConsensus, totalConflict }) => {
+      toast.success(
+        `Auditoria concluída: ${ok} ok, ${fail} falhas — Equipe IA: ${totalConsensus} consensos, ${totalConflict} conflitos`,
+      );
       queryClient.invalidateQueries({ queryKey: ["inversores-catalogo"] });
       queryClient.invalidateQueries({ queryKey: ["inversores-audit-status"] });
-      setSelected(new Set());
     },
     onError: (e: any) => toast.error(`Erro: ${e.message}`),
     onSettled: () => setEnriching(false),
