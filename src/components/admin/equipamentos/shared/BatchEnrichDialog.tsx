@@ -184,7 +184,7 @@ export function BatchEnrichDialog({ open, onOpenChange, equipmentType, draftIds 
 
   const handleMinimize = () => {
     if (job) {
-      toastIdRef.current = toast.loading(`🔄 Buscando specs... ${job.processed} de ${job.total}`, {
+      toastIdRef.current = toast.loading(`Buscando specs... ${job.processed} de ${job.total}`, {
         duration: Infinity,
         dismissible: false,
       });
