@@ -140,6 +140,16 @@ export function WaFollowupQueuePage() {
         </div>
       )}
 
+      {/* Safety banner: revisão humana de proposta */}
+      {showProposalBanner && (
+        <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-warning/10 border border-warning/30">
+          <ShieldAlert className="h-4 w-4 text-warning shrink-0" />
+          <p className="text-xs text-warning-foreground">
+            Modo seguro: sugestões de follow-up por proposta precisam de revisão humana. Nenhuma mensagem é enviada automaticamente.
+          </p>
+        </div>
+      )}
+
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <StatCard label="Pendentes" value={stats.pendentes} icon={Clock} color="warning" />
