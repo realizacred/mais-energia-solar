@@ -1,6 +1,8 @@
 /**
  * Modal de enriquecimento em lote de equipamentos via IA.
- * Suporta minimização — processamento continua em background com toast persistente.
+ * Cria um JOB PERSISTENTE no banco; o processamento roda numa edge function em background
+ * (auto-reagendada + cron de safety net). Funciona com a aba fechada / PC dormindo.
+ * A UI apenas cria o job e faz polling do progresso.
  */
 import { useState, useRef, useCallback, useEffect } from "react";
 import { Wand2, Loader2, Minimize2, X, Brain } from "lucide-react";
@@ -36,13 +38,15 @@ const QUERY_KEY_MAP: Record<string, string[]> = {
   bateria: ["baterias"],
 };
 
-interface BatchProgress {
-  processed: number;
+interface JobRow {
+  id: string;
+  status: "pending" | "running" | "completed" | "cancelled" | "failed";
   total: number;
+  processed: number;
   success: number;
   failed: number;
-  lastModel?: string;
-  dualCount?: number;
+  dual_count: number | null;
+  last_model: string | null;
 }
 
 const MODEL_LABELS: Record<string, string> = {
@@ -53,7 +57,7 @@ const MODEL_LABELS: Record<string, string> = {
   "google/gemini-3-flash-preview": "Gemini 3 Flash",
 };
 
-function formatModelName(model?: string): string {
+function formatModelName(model?: string | null): string {
   if (!model) return "IA";
   return MODEL_LABELS[model] || model.split("/").pop() || "IA";
 }
@@ -61,176 +65,144 @@ function formatModelName(model?: string): string {
 export function BatchEnrichDialog({ open, onOpenChange, equipmentType, draftIds }: BatchEnrichDialogProps) {
   const queryClient = useQueryClient();
 
-  // Refs survive modal close
-  const processingRef = useRef(false);
-  const progressRef = useRef<BatchProgress>({ processed: 0, total: 0, success: 0, failed: 0, dualCount: 0 });
+  const [jobId, setJobId] = useState<string | null>(null);
+  const [job, setJob] = useState<JobRow | null>(null);
+  const [starting, setStarting] = useState(false);
   const toastIdRef = useRef<string | number | null>(null);
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const lastInvalidatedRef = useRef(0);
 
-  // Local state for modal UI only
-  const [isRunning, setIsRunning] = useState(false);
-  const [progress, setProgress] = useState<BatchProgress>({ processed: 0, total: 0, success: 0, failed: 0 });
-  const [result, setResult] = useState<BatchProgress | null>(null);
+  const isRunning = !!job && (job.status === "pending" || job.status === "running");
+  const isFinished = !!job && (job.status === "completed" || job.status === "cancelled" || job.status === "failed");
 
-  // Sync ref → state while modal is open
-  const syncInterval = useRef<ReturnType<typeof setInterval> | null>(null);
-
+  // Polling do job (a cada 2s) — sobrevive ao fechamento do modal pq jobId fica em memória do componente pai? não.
+  // Estratégia: enquanto o componente estiver montado polling roda. Quando minimizado, o toast indica progresso via re-poll também.
   useEffect(() => {
-    if (open && processingRef.current) {
-      // Resuming view of an ongoing process
-      setIsRunning(true);
-      setResult(null);
-      syncInterval.current = setInterval(() => {
-        setProgress({ ...progressRef.current });
-        if (!processingRef.current) {
-          // Finished while modal was open
-          setIsRunning(false);
-          setResult({ ...progressRef.current });
-          if (syncInterval.current) clearInterval(syncInterval.current);
-        }
-      }, 500);
-    }
-    return () => {
-      if (syncInterval.current) clearInterval(syncInterval.current);
-    };
-  }, [open]);
+    if (!jobId) return;
+    let cancelled = false;
+    const tick = async () => {
+      const { data, error } = await supabase
+        .from("equipment_enrichment_jobs")
+        .select("id,status,total,processed,success,failed,dual_count,last_model")
+        .eq("id", jobId)
+        .maybeSingle();
+      if (cancelled || error || !data) return;
+      setJob(data as JobRow);
 
-  const runBatch = useCallback(async (ids: string[]) => {
-    processingRef.current = true;
-    progressRef.current = { processed: 0, total: ids.length, success: 0, failed: 0, dualCount: 0 };
-    setIsRunning(true);
-    setResult(null);
-    setProgress({ ...progressRef.current });
-
-    const { tenantId } = await getCurrentTenantId();
-
-    // Start polling ref → state
-    syncInterval.current = setInterval(() => {
-      setProgress({ ...progressRef.current });
-    }, 500);
-
-    for (let i = 0; i < ids.length; i++) {
-      if (!processingRef.current) break; // cancelled
-
-      let retries = 0;
-      const MAX_RETRIES = 3;
-      let success = false;
-
-      while (retries <= MAX_RETRIES && !success && processingRef.current) {
-        try {
-          const { data, error } = await supabase.functions.invoke("enrich-equipment", {
-            body: { equipment_type: equipmentType, equipment_id: ids[i], tenant_id: tenantId },
-          });
-
-          if (error) {
-            // Check for rate limit (429) or server error (500) — retry
-            const isRetryable = error.message?.includes("429") || error.message?.includes("500");
-            if (isRetryable && retries < MAX_RETRIES) {
-              retries++;
-              const backoff = Math.min(2000 * Math.pow(2, retries), 30000);
-              console.warn(`[batch-enrich] Retry ${retries}/${MAX_RETRIES} for ${ids[i]} in ${backoff}ms`);
-              await new Promise((r) => setTimeout(r, backoff));
-              continue;
-            }
-            progressRef.current.failed++;
-          } else if (data?.error) {
-            progressRef.current.failed++;
-          } else {
-            progressRef.current.success++;
-            if (data?.winner_model) progressRef.current.lastModel = data.winner_model;
-            if (data?.dual_ai_used) progressRef.current.dualCount = (progressRef.current.dualCount || 0) + 1;
-          }
-          success = true;
-        } catch {
-          if (retries < MAX_RETRIES) {
-            retries++;
-            const backoff = Math.min(2000 * Math.pow(2, retries), 30000);
-            await new Promise((r) => setTimeout(r, backoff));
-            continue;
-          }
-          progressRef.current.failed++;
-          success = true; // exit retry loop
-        }
+      // invalida queries periodicamente p/ refletir specs novas na tela
+      const now = Date.now();
+      if (now - lastInvalidatedRef.current > 5000) {
+        queryClient.invalidateQueries({ queryKey: QUERY_KEY_MAP[equipmentType] });
+        lastInvalidatedRef.current = now;
       }
 
-      progressRef.current.processed++;
-
-      // Update persistent toast if minimized
+      // toast minimizado
       if (toastIdRef.current != null) {
-        const p = progressRef.current;
-        toast.loading(`🔄 Buscando specs... ${p.processed} de ${p.total}`, {
-          id: toastIdRef.current,
-          dismissible: false,
-        });
+        if (data.status === "completed") {
+          toast.success(
+            `✅ ${data.success} de ${data.total} ${TYPE_LABELS[equipmentType]} enriquecidos${data.failed > 0 ? ` (${data.failed} falharam)` : ""}`,
+            { id: toastIdRef.current, duration: 6000 },
+          );
+          toastIdRef.current = null;
+        } else if (data.status === "cancelled") {
+          toast.warning(`⏹ Cancelado em ${data.processed} de ${data.total}`, {
+            id: toastIdRef.current,
+            duration: 6000,
+          });
+          toastIdRef.current = null;
+        } else {
+          toast.loading(`🔄 Buscando specs... ${data.processed} de ${data.total}`, {
+            id: toastIdRef.current,
+            dismissible: false,
+          });
+        }
       }
 
-      // Rate limiting: 2.5s between calls to avoid 429
-      if (i < ids.length - 1 && processingRef.current) {
-        await new Promise((r) => setTimeout(r, 2500));
+      if (data.status === "completed" || data.status === "cancelled" || data.status === "failed") {
+        if (pollRef.current) clearInterval(pollRef.current);
+        queryClient.invalidateQueries({ queryKey: QUERY_KEY_MAP[equipmentType] });
       }
+    };
+    tick();
+    pollRef.current = setInterval(tick, 2000);
+    return () => {
+      cancelled = true;
+      if (pollRef.current) clearInterval(pollRef.current);
+    };
+  }, [jobId, equipmentType, queryClient]);
+
+  const startJob = useCallback(async (limit?: number) => {
+    setStarting(true);
+    try {
+      const ids = limit ? draftIds.slice(0, limit) : draftIds;
+      const { tenantId } = await getCurrentTenantId();
+      const { data: userResp } = await supabase.auth.getUser();
+      const userId = userResp?.user?.id;
+      if (!tenantId || !userId) {
+        toast.error("Sessão inválida. Faça login novamente.");
+        return;
+      }
+
+      // Cria job
+      const { data: created, error } = await supabase
+        .from("equipment_enrichment_jobs")
+        .insert({
+          tenant_id: tenantId,
+          created_by: userId,
+          equipment_type: equipmentType,
+          equipment_ids: ids,
+          total: ids.length,
+          status: "pending",
+        })
+        .select("id,status,total,processed,success,failed,dual_count,last_model")
+        .single();
+      if (error || !created) {
+        toast.error(`Erro ao criar job: ${error?.message ?? "desconhecido"}`);
+        return;
+      }
+      setJobId(created.id);
+      setJob(created as JobRow);
+
+      // Dispara worker imediatamente (fire-and-forget)
+      supabase.functions
+        .invoke("equipment-enrichment-worker", { body: {} })
+        .catch((e) => console.warn("[batch-enrich] worker kick failed:", e));
+
+      toast.info("Enriquecimento iniciado em background. Pode fechar esta aba.", { duration: 4000 });
+    } finally {
+      setStarting(false);
     }
+  }, [draftIds, equipmentType]);
 
-    // Done
-    const finalProgress = { ...progressRef.current };
-    processingRef.current = false;
-
-    if (syncInterval.current) clearInterval(syncInterval.current);
-    setIsRunning(false);
-    setProgress(finalProgress);
-    setResult(finalProgress);
-
-    // Invalidate queries
-    queryClient.invalidateQueries({ queryKey: QUERY_KEY_MAP[equipmentType] });
-
-    // Update toast to completion
-    if (toastIdRef.current != null) {
-      const p = finalProgress;
-      if (p.processed === p.total) {
-        toast.success(`✅ ${p.success} de ${p.total} ${TYPE_LABELS[equipmentType]} enriquecidos${p.failed > 0 ? ` (${p.failed} falharam)` : ""}`, {
-          id: toastIdRef.current,
-          duration: 6000,
-        });
-      } else {
-        toast.warning(`⏹ Cancelado em ${p.processed} de ${p.total} (${p.success} enriquecidos)`, {
-          id: toastIdRef.current,
-          duration: 6000,
-        });
-      }
-      toastIdRef.current = null;
-    }
-  }, [equipmentType, queryClient]);
-
-  const handleEnrich = (limit?: number) => {
-    const ids = limit ? draftIds.slice(0, limit) : draftIds;
-    runBatch(ids);
-  };
+  const cancelJob = useCallback(async () => {
+    if (!jobId) return;
+    await supabase
+      .from("equipment_enrichment_jobs")
+      .update({ status: "cancelled", finished_at: new Date().toISOString() })
+      .eq("id", jobId);
+  }, [jobId]);
 
   const handleMinimize = () => {
-    // Show persistent toast and close modal
-    const p = progressRef.current;
-    toastIdRef.current = toast.loading(`🔄 Buscando specs... ${p.processed} de ${p.total}`, {
-      duration: Infinity,
-      dismissible: false,
-    });
-    if (syncInterval.current) clearInterval(syncInterval.current);
+    if (job) {
+      toastIdRef.current = toast.loading(`🔄 Buscando specs... ${job.processed} de ${job.total}`, {
+        duration: Infinity,
+        dismissible: false,
+      });
+    }
     onOpenChange(false);
-  };
-
-  const handleCancel = () => {
-    processingRef.current = false;
   };
 
   const handleClose = () => {
     if (isRunning) {
-      // Minimize instead of blocking
       handleMinimize();
       return;
     }
-    setResult(null);
-    setProgress({ processed: 0, total: 0, success: 0, failed: 0 });
+    setJob(null);
+    setJobId(null);
     onOpenChange(false);
   };
 
-  const pct = progress.total > 0 ? (progress.processed / progress.total) * 100 : 0;
+  const pct = job && job.total > 0 ? (job.processed / job.total) * 100 : 0;
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
@@ -244,13 +216,13 @@ export function BatchEnrichDialog({ open, onOpenChange, equipmentType, draftIds 
               Buscar specs em lote
             </DialogTitle>
             <p className="text-xs text-muted-foreground mt-0.5">
-              Enriquecer {TYPE_LABELS[equipmentType]} via IA
+              Enriquecer {TYPE_LABELS[equipmentType]} via IA — roda em background
             </p>
           </div>
         </DialogHeader>
 
         <div className="p-5 space-y-4">
-          {!isRunning && !result && (
+          {!job && (
             <>
               <p className="text-sm text-muted-foreground">
                 <span className="font-semibold text-foreground">{draftIds.length}</span>{" "}
@@ -261,15 +233,15 @@ export function BatchEnrichDialog({ open, onOpenChange, equipmentType, draftIds 
                 <span>Dual IA: <span className="font-medium text-foreground">Gemini 2.5 Flash</span> + fallback <span className="font-medium text-foreground">GPT-5 Mini</span></span>
               </div>
               <p className="text-xs text-muted-foreground">
-                A IA buscará as specs de cada equipamento na internet. Isso pode levar alguns minutos.
+                O processamento roda no servidor — você pode fechar esta aba ou desligar a tela. Pode reabrir o modal para ver o progresso.
               </p>
             </>
           )}
 
-          {isRunning && (
+          {job && isRunning && (
             <div className="space-y-3">
               <p className="text-sm text-muted-foreground">
-                Processando {progress.processed} de {progress.total}...
+                Processando {job.processed} de {job.total}...
               </p>
               <Progress value={pct} className="h-2" />
               <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
@@ -279,29 +251,29 @@ export function BatchEnrichDialog({ open, onOpenChange, equipmentType, draftIds 
                 </span>
               </div>
               <p className="text-xs text-muted-foreground">
-                Você pode minimizar esta janela — o processamento continua em background.
+                Roda em background no servidor — pode fechar a aba.
               </p>
             </div>
           )}
 
-          {result && !isRunning && (
+          {job && isFinished && (
             <div className="space-y-2">
               <p className="text-sm font-medium text-foreground">
-                {result.processed === result.total ? "Concluído!" : "Cancelado"}
+                {job.status === "completed" ? "Concluído!" : job.status === "cancelled" ? "Cancelado" : "Falhou"}
               </p>
               <div className="text-sm text-muted-foreground space-y-1">
-                <p>✅ Enriquecidos: <span className="font-semibold text-foreground">{result.success}</span></p>
-                {result.failed > 0 && (
-                  <p>❌ Falharam: <span className="font-semibold text-destructive">{result.failed}</span></p>
+                <p>✅ Enriquecidos: <span className="font-semibold text-foreground">{job.success}</span></p>
+                {job.failed > 0 && (
+                  <p>❌ Falharam: <span className="font-semibold text-destructive">{job.failed}</span></p>
                 )}
-                <p>Total processado: {result.processed}</p>
-                {result.lastModel && (
+                <p>Total processado: {job.processed}</p>
+                {job.last_model && (
                   <div className="flex items-center gap-1.5 pt-1">
                     <Brain className="w-3.5 h-3.5 text-primary" />
                     <span>
-                      Modelo: <span className="font-medium text-foreground">{formatModelName(result.lastModel)}</span>
-                      {(result.dualCount || 0) > 0 && (
-                        <span className="text-muted-foreground"> · {result.dualCount} usaram Dual IA</span>
+                      Modelo: <span className="font-medium text-foreground">{formatModelName(job.last_model)}</span>
+                      {(job.dual_count || 0) > 0 && (
+                        <span className="text-muted-foreground"> · {job.dual_count} usaram Dual IA</span>
                       )}
                     </span>
                   </div>
@@ -312,28 +284,28 @@ export function BatchEnrichDialog({ open, onOpenChange, equipmentType, draftIds 
         </div>
 
         <DialogFooter className="flex justify-end gap-2 p-4 border-t border-border bg-muted/30 shrink-0">
-          {!isRunning && !result && (
+          {!job && (
             <>
-              <Button variant="ghost" onClick={handleClose}>
+              <Button variant="ghost" onClick={handleClose} disabled={starting}>
                 Cancelar
               </Button>
               {draftIds.length > 10 && (
-                <Button variant="outline" onClick={() => handleEnrich(10)}>
+                <Button variant="outline" onClick={() => startJob(10)} disabled={starting}>
                   Buscar 10 agora
                 </Button>
               )}
-              <Button onClick={() => handleEnrich()} disabled={draftIds.length === 0}>
+              <Button onClick={() => startJob()} disabled={draftIds.length === 0 || starting}>
+                {starting && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
                 {draftIds.length > 10
                   ? `Buscar todos (${draftIds.length})`
-                  : `Buscar ${draftIds.length}`
-                }
+                  : `Buscar ${draftIds.length}`}
               </Button>
             </>
           )}
 
-          {isRunning && (
+          {job && isRunning && (
             <div className="flex gap-2">
-              <Button variant="outline" onClick={handleCancel}>
+              <Button variant="outline" onClick={cancelJob}>
                 <X className="w-4 h-4 mr-1" />
                 Cancelar
               </Button>
@@ -343,12 +315,12 @@ export function BatchEnrichDialog({ open, onOpenChange, equipmentType, draftIds 
               </Button>
               <Button disabled>
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                Processando...
+                Em background
               </Button>
             </div>
           )}
 
-          {result && !isRunning && (
+          {job && isFinished && (
             <Button onClick={handleClose}>Fechar</Button>
           )}
         </DialogFooter>
