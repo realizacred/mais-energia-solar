@@ -321,12 +321,10 @@ export function ModuloTableView({ modulos, onView, onEdit, onDelete, onToggle }:
                       <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => onEdit(m)}>
                         <Pencil className="w-3.5 h-3.5" />
                       </Button>
-                      {!global && (
-                        <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive"
-                          onClick={() => onDelete(m)}>
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </Button>
-                      )}
+                      <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive"
+                        onClick={() => onDelete(m)}>
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </Button>
                     </div>
                   </TableCell>
                 </TableRow>
