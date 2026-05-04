@@ -255,7 +255,16 @@ Deno.serve(async (req) => {
 
   try {
     const body = await req.json();
-    const { token, action, motivo, user_agent } = body;
+    const {
+      token, action, motivo, user_agent,
+      // RB-47: dados do aceite enviados pelo frontend público (substitui UPDATE direto)
+      nome: aceiteNome,
+      documento: aceiteDocumento,
+      observacoes: aceiteObservacoes,
+      cenario_id: cenarioAceitoId,
+      forma_pagamento_escolhida: formaPagamentoEscolhida,
+      assinatura_url: assinaturaUrl,
+    } = body;
 
     // Resolve real IP from request headers (RB: never trust client-sent IP)
     const xff = req.headers.get("x-forwarded-for");
