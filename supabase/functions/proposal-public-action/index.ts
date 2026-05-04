@@ -317,6 +317,50 @@ Deno.serve(async (req) => {
       );
     }
 
+    // RB-47: anti-replay — token usado não pode ser reutilizado
+    if (tokenData.used_at) {
+      return new Response(
+        JSON.stringify({
+          success: true,
+          idempotent: true,
+          message: "Esta ação já foi registrada.",
+        }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // RB-47: gravar dados do aceite informados pelo cliente ANTES de prosseguir
+    // (substitui o UPDATE direto que o frontend público fazia)
+    {
+      const aceiteFields: Record<string, unknown> = {
+        aceite_user_agent: user_agent || null,
+      };
+      if (action === "aceitar") {
+        aceiteFields.decisao = "aceita";
+        if (aceiteNome != null) aceiteFields.aceite_nome = String(aceiteNome);
+        if (aceiteDocumento != null) aceiteFields.aceite_documento = String(aceiteDocumento) || null;
+        if (aceiteObservacoes != null) aceiteFields.aceite_observacoes = String(aceiteObservacoes) || null;
+        if (cenarioAceitoId != null) aceiteFields.cenario_aceito_id = cenarioAceitoId || null;
+        if (assinaturaUrl != null) aceiteFields.assinatura_url = assinaturaUrl || null;
+        if (formaPagamentoEscolhida != null) {
+          aceiteFields.forma_pagamento_escolhida =
+            typeof formaPagamentoEscolhida === "string"
+              ? formaPagamentoEscolhida
+              : JSON.stringify(formaPagamentoEscolhida);
+        }
+      } else {
+        aceiteFields.decisao = "recusada";
+        if (motivo != null) aceiteFields.recusa_motivo = String(motivo) || null;
+      }
+      const { error: stampErr } = await admin
+        .from("proposta_aceite_tokens")
+        .update(aceiteFields)
+        .eq("id", tokenData.id);
+      if (stampErr) {
+        console.error("[proposal-public-action] Falha ao gravar aceite no token:", stampErr);
+      }
+    }
+
     const propostaId = tokenData.proposta_id;
     const tenantId = tokenData.tenant_id;
     const newStatus = action === "aceitar" ? "aceita" : "recusada";
