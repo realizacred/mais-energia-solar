@@ -28189,6 +28189,20 @@ export type Database = {
       decrypt_secret: { Args: { enc: string; secret: string }; Returns: string }
       delete_seed_data: { Args: never; Returns: Json }
       delete_uc_permanently: { Args: { p_unit_id: string }; Returns: Json }
+      detect_proposal_followup_candidates: {
+        Args: { p_tenant_id: string }
+        Returns: {
+          assigned_to: string
+          cenario: string
+          conversation_id: string
+          proposal_context: Json
+          proposta_id: string
+          rule_id: string
+          scheduled_at: string
+          tenant_id: string
+          versao_id: string
+        }[]
+      }
       detect_proposal_followups: { Args: never; Returns: Json }
       eej_try_lock: { Args: { p_key: number }; Returns: boolean }
       eej_unlock: { Args: { p_key: number }; Returns: boolean }
