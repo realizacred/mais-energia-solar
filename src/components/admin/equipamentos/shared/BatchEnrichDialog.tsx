@@ -5,7 +5,7 @@
  * A UI apenas cria o job e faz polling do progresso.
  */
 import { useState, useRef, useCallback, useEffect } from "react";
-import { Wand2, Loader2, Minimize2, X, Brain } from "lucide-react";
+import { Wand2, Loader2, Minimize2, X, Brain, CheckCircle2, XCircle, AlertCircle } from "lucide-react";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
