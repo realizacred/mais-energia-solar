@@ -90,15 +90,26 @@ export function useFollowupQueue(params: {
   statusFilter: string;
   isAdmin: boolean;
   userId: string | undefined;
+  kindFilter?: "all" | "propostas" | "conversas";
+  cenarioFilter?: string;
 }) {
   return useQuery({
-    queryKey: [QUEUE_KEY, params.statusFilter, params.isAdmin, params.userId],
+    queryKey: [
+      QUEUE_KEY,
+      params.statusFilter,
+      params.isAdmin,
+      params.userId,
+      params.kindFilter ?? "all",
+      params.cenarioFilter ?? "all",
+    ],
     queryFn: async () => {
       let query = supabase
         .from("wa_followup_queue")
         .select(`
-          id, status, tentativa, scheduled_at, sent_at, responded_at,
-          assigned_to, mensagem_enviada, conversation_id, created_at,
+          id, tenant_id, status, tentativa, scheduled_at, sent_at, responded_at,
+          assigned_to, mensagem_enviada, mensagem_sugerida, ai_confidence, ai_reason,
+          cenario, proposta_id, versao_id, proposal_context, metadata,
+          conversation_id, created_at, updated_at,
           rule:wa_followup_rules(nome, cenario, prioridade, prazo_minutos)
         `)
         .order("scheduled_at", { ascending: true })
@@ -106,6 +117,16 @@ export function useFollowupQueue(params: {
 
       if (params.statusFilter !== "all") {
         query = query.eq("status", params.statusFilter);
+      }
+
+      if (params.kindFilter === "propostas") {
+        query = query.not("proposta_id", "is", null);
+      } else if (params.kindFilter === "conversas") {
+        query = query.is("proposta_id", null);
+      }
+
+      if (params.cenarioFilter && params.cenarioFilter !== "all") {
+        query = query.eq("cenario", params.cenarioFilter);
       }
 
       if (!params.isAdmin && params.userId) {
