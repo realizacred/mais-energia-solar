@@ -415,7 +415,7 @@ serve(async (req) => {
     }
 
     if (!TABLE_MAP[equipment_type]) {
-      throw new Error(`equipment_type '${equipment_type}' não suportado. Tipos válidos: modulo, inversor, otimizador. Bateria ainda não é suportada para enriquecimento automático.`);
+      throw new Error(`equipment_type '${equipment_type}' não suportado. Tipos válidos: modulo, inversor, otimizador, bateria.`);
     }
 
     const supabase = createClient(
