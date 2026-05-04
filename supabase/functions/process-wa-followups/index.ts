@@ -322,6 +322,7 @@ async function logFollowup(
     });
   } catch (e: any) {
     console.error(`[followup] LOG_ERROR action=${action} conv=${c.conversation_id}`, e.message);
+  }
 }
 
 // =====================================================================
