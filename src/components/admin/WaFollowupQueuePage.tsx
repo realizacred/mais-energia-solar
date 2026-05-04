@@ -374,6 +374,11 @@ export function WaFollowupQueuePage() {
             </div>
           )}
 
+          {/* Proposal AI suggestion review (only for proposal-linked items) */}
+          {selectedItem?.proposta_id && (
+            <ProposalSuggestionReview item={selectedItem} />
+          )}
+
           {/* Messages */}
           <ScrollArea className="flex-1">
             <div className="p-4 space-y-2">
