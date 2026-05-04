@@ -22,6 +22,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { ProposalSuggestionReview } from "@/components/admin/followup/ProposalSuggestionReview";
 
 // ─── Types ──────────────────────────────────────────────────
 // Types imported from useWaFollowup hook
