@@ -602,8 +602,8 @@ serve(async (req) => {
       is_fallback: false,
     });
 
-    // Log secondary if used
-    if (secondary && !secondary.error) {
+    // Log secondary (always — runs in parallel)
+    if (!secondary.error) {
       await supabase.from("ai_usage_logs").insert({
         tenant_id,
         user_id: userId,
@@ -614,13 +614,11 @@ serve(async (req) => {
         completion_tokens: secondary.usage.completion_tokens,
         total_tokens: secondary.usage.total_tokens,
         estimated_cost_usd: (secondary.usage.prompt_tokens / 1000) * 0.00015 + (secondary.usage.completion_tokens / 1000) * 0.0006,
-        is_fallback: true,
+        is_fallback: false,
       });
     }
 
-    const winnerProvider = usedDual
-      ? (countFilledFields(primary.parsed) >= countFilledFields(secondary?.parsed || null) ? primary.model : secondary?.model || primary.model)
-      : primary.model;
+    const winnerProvider = primaryFilled >= secondaryFilled ? primary.model : secondary.model;
 
     // console.log(`[enrich-equipment] Sucesso: ${fieldsFilled} campos preenchidos para ${equipment.fabricante} ${equipment.modelo}, dual=${usedDual}, winner=${winnerProvider}, datasheet_downloaded=${datasheet_downloaded}`);
 
