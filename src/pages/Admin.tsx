@@ -54,6 +54,7 @@ const EquipamentosManager = lazy(() => import("@/components/admin/EquipamentosMa
 const FornecedoresManager = lazy(() => import("@/components/admin/FornecedoresManager").then(m => ({ default: m.FornecedoresManager })));
 const ModulosManager = lazy(() => import("@/components/admin/equipamentos").then(m => ({ default: m.ModulosManager })));
 const InversoresManager = lazy(() => import("@/components/admin/equipamentos").then(m => ({ default: m.InversoresManager })));
+const InversoresAuditPage = lazy(() => import("@/components/admin/equipamentos/inversores/InversoresAuditPage").then(m => ({ default: m.InversoresAuditPage })));
 const BateriasManager = lazy(() => import("@/components/admin/equipamentos").then(m => ({ default: m.BateriasManager })));
 const OtimizadoresManager = lazy(() => import("@/components/admin/equipamentos").then(m => ({ default: m.OtimizadoresManager })));
 const ConcessionariasManager = lazy(() => import("@/components/admin/ConcessionariasManager").then(m => ({ default: m.ConcessionariasManager })));
@@ -681,6 +682,7 @@ export default function Admin() {
                 <Route path="equipamentos" element={<EquipamentosManager />} />
                 <Route path="modulos" element={<ModulosManager />} />
                 <Route path="inversores-cadastro" element={<InversoresManager />} />
+                <Route path="inversores-auditoria" element={<InversoresAuditPage />} />
                 <Route path="baterias" element={<BateriasManager />} />
                 <Route path="otimizadores" element={<OtimizadoresManager />} />
                 <Route path="fornecedores" element={<FornecedoresManager />} />
