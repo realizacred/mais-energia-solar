@@ -16,23 +16,33 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    // Auth: resolve tenant from JWT
-    const authHeader = req.headers.get("authorization");
-    if (!authHeader) return error("Unauthorized", 401);
+    const authHeader = req.headers.get("authorization") || "";
+    const token = authHeader.replace("Bearer ", "");
+    const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-    const { data: { user }, error: authErr } = await sb.auth.getUser(
-      authHeader.replace("Bearer ", "")
-    );
-    if (authErr || !user) return error("Unauthorized", 401);
+    const bodyRaw = await req.json();
+    const isService = token && token === serviceKey;
 
-    const { data: profile } = await sb
-      .from("profiles")
-      .select("tenant_id")
-      .eq("user_id", user.id)
-      .single();
-    if (!profile?.tenant_id) return error("Tenant not found", 403);
+    let tenantId: string;
+    let user: any = null;
 
-    const tenantId = profile.tenant_id;
+    if (isService) {
+      // Server-to-server (process-wa-followups). tenant_id must be in body.
+      if (!bodyRaw?.tenant_id) return error("tenant_id required for service calls", 400);
+      tenantId = bodyRaw.tenant_id;
+    } else {
+      if (!authHeader) return error("Unauthorized", 401);
+      const { data: { user: u }, error: authErr } = await sb.auth.getUser(token);
+      if (authErr || !u) return error("Unauthorized", 401);
+      user = u;
+      const { data: profile } = await sb
+        .from("profiles")
+        .select("tenant_id")
+        .eq("user_id", u.id)
+        .single();
+      if (!profile?.tenant_id) return error("Tenant not found", 403);
+      tenantId = profile.tenant_id;
+    }
 
     // Check plan feature
     const { data: sub } = await sb
