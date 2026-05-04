@@ -395,3 +395,141 @@ async function processProposalDetectors(sb: any) {
 
   console.log("[followup] proposal_detectors", JSON.stringify({ detected, inserted, skipped_cooldown, skipped_dedupe }));
 }
+
+// =====================================================================
+// Proposal followup AI suggestions — NO send, NO status change
+// Reads pendente_revisao items (proposta_id NOT NULL, no mensagem_sugerida),
+// invokes ai-followup-intelligence (server-to-server) and persists suggestion.
+// Fallback to rule mensagem_template when AI fails.
+// Idempotent via metadata.ai_generated.
+// =====================================================================
+const SUGGEST_MAX_PER_RUN = 10;
+
+async function generateProposalFollowupSuggestions(sb: any) {
+  const { data: items } = await sb
+    .from("wa_followup_queue")
+    .select("id, tenant_id, rule_id, conversation_id, proposta_id, versao_id, cenario, proposal_context, metadata")
+    .eq("status", "pendente_revisao")
+    .not("proposta_id", "is", null)
+    .is("mensagem_sugerida", null)
+    .not("proposal_context", "is", null)
+    .order("created_at", { ascending: true })
+    .limit(SUGGEST_MAX_PER_RUN);
+
+  if (!items?.length) return;
+
+  // Idempotency guard via metadata.ai_generated
+  const pending = items.filter((it: any) => !(it.metadata && it.metadata.ai_generated === true));
+  if (!pending.length) return;
+
+  const ruleIds = [...new Set(pending.map((it: any) => it.rule_id).filter(Boolean))];
+  const { data: rules } = await sb
+    .from("wa_followup_rules")
+    .select("id, tenant_id, usar_ia, mensagem_template, cenario")
+    .in("id", ruleIds);
+  const ruleMap = new Map<string, any>((rules || []).map((r: any) => [r.id, r]));
+
+  const fnUrl = `${Deno.env.get("SUPABASE_URL")}/functions/v1/ai-followup-intelligence`;
+  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+
+  let processed = 0, ai_ok = 0, fallback = 0, errors = 0;
+
+  for (const it of pending) {
+    processed++;
+    const rule = ruleMap.get(it.rule_id);
+    let mensagem_sugerida: string | null = null;
+    let ai_confidence: number | null = null;
+    let ai_reason: string | null = null;
+    const meta: Record<string, any> = { ...(it.metadata || {}) };
+    let ai_success = false;
+    let used_fallback = false;
+    let risco: string = "baixo";
+
+    if (rule?.usar_ia) {
+      try {
+        const r = await fetch(fnUrl, {
+          method: "POST",
+          headers: { Authorization: `Bearer ${serviceKey}`, "Content-Type": "application/json" },
+          body: JSON.stringify({
+            type: "proposal_followup",
+            tenant_id: it.tenant_id,
+            cenario: it.cenario,
+            proposal_context: it.proposal_context,
+          }),
+        });
+        if (r.ok) {
+          const d = await r.json();
+          mensagem_sugerida = (d.mensagem_sugerida || "").trim() || null;
+          ai_reason = d.motivo || null;
+          ai_confidence = d.nivel_urgencia === "alto" ? 90 : d.nivel_urgencia === "medio" ? 60 : 30;
+          risco = d.risco || "baixo";
+          meta.ai_generated = true;
+          meta.risco = risco;
+          meta.nivel_urgencia = d.nivel_urgencia || null;
+          meta.precisa_revisao_humana = d.precisa_revisao_humana !== false;
+          ai_success = !!mensagem_sugerida;
+        } else {
+          const txt = await r.text();
+          console.error("[followup] proposal_ai HTTP", r.status, txt.slice(0, 200));
+        }
+      } catch (e: any) {
+        console.error("[followup] proposal_ai err", e?.message);
+      }
+    }
+
+    if (!mensagem_sugerida && rule?.mensagem_template) {
+      const { resolveWaTemplate } = await import("../_shared/resolveWaTemplate.ts");
+      const ctx: any = it.proposal_context || {};
+      mensagem_sugerida = resolveWaTemplate(rule.mensagem_template as string, {
+        nome: ctx.cliente_nome || "",
+        vendedor: "",
+        consultor: "",
+      });
+      meta.ai_fallback = true;
+      meta.ai_generated = true; // mark to enforce idempotency
+      used_fallback = true;
+      ai_reason = ai_reason || "fallback_template";
+    }
+
+    if (!mensagem_sugerida) {
+      errors++;
+      continue;
+    }
+
+    const { error: ue } = await sb
+      .from("wa_followup_queue")
+      .update({
+        mensagem_sugerida,
+        ai_confidence,
+        ai_reason,
+        metadata: meta,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", it.id)
+      .eq("status", "pendente_revisao"); // guard: don't touch if status changed
+
+    if (ue) { errors++; console.error("[followup] proposal_ai update err", ue.message); continue; }
+
+    if (ai_success) ai_ok++;
+    if (used_fallback) fallback++;
+
+    // Structured log (no PII beyond what's in queue)
+    try {
+      await sb.from("wa_followup_logs").insert({
+        tenant_id: it.tenant_id,
+        conversation_id: it.conversation_id,
+        rule_id: it.rule_id,
+        queue_id: it.id,
+        proposta_id: it.proposta_id,
+        versao_id: it.versao_id,
+        cenario: it.cenario,
+        action: ai_success ? "proposal_ai_suggested" : "proposal_ai_fallback",
+        ai_confidence,
+        ai_reason,
+        metadata: { risco, fallback: used_fallback },
+      });
+    } catch {}
+  }
+
+  console.log("[followup] proposal_suggestions", JSON.stringify({ processed, ai_ok, fallback, errors }));
+}
