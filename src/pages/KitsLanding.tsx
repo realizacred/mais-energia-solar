@@ -160,13 +160,10 @@ export default function KitsLanding() {
 
     setSubmitting(true);
     try {
-      // Get or create token for this proposta
-      const { data: tokenData } = await (supabase as any)
-        .from("proposta_aceite_tokens")
-        .select("token")
-        .eq("proposta_id", selectedKit.proposta_id)
-        .limit(1)
-        .single();
+      // SEC: SELECT anon revogado em proposta_aceite_tokens — usa RPC SECURITY DEFINER
+      const { data: latestRows } = await (supabase as any)
+        .rpc("get_latest_valid_token_for_proposta", { p_proposta_id: selectedKit.proposta_id });
+      const tokenData = Array.isArray(latestRows) ? latestRows[0] : latestRows;
 
       if (tokenData?.token) {
         // RB-47: Use proposal-public-action

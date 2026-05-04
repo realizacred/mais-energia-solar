@@ -201,11 +201,10 @@ export default function PropostaPublica() {
   const loadProposal = async () => {
     setLoading(true);
     try {
-      const { data: td, error: tdErr } = await (supabase as any)
-        .from("proposta_aceite_tokens")
-        .select("id, token, proposta_id, versao_id, expires_at, used_at, aceite_nome, decisao, view_count, first_viewed_at, invalidado_em, motivo_invalidacao, tipo")
-        .eq("token", token!)
-        .maybeSingle();
+      // SEC: SELECT anon revogado em proposta_aceite_tokens — usa RPC SECURITY DEFINER
+      const { data: tdRows, error: tdErr } = await (supabase as any)
+        .rpc("get_proposta_token_by_value", { p_token: token! });
+      const td = Array.isArray(tdRows) ? tdRows[0] : tdRows;
 
       if (tdErr || !td) { setError("Link inválido ou expirado."); setLoading(false); return; }
 
@@ -221,15 +220,9 @@ export default function PropostaPublica() {
           let latestTokenUrl: string | null = null;
           // Only look for latest token if invalidated by new version (not deletion)
           if (td.motivo_invalidacao === 'nova_versao_criada') {
-            const { data: latestToken } = await (supabase as any)
-              .from("proposta_aceite_tokens")
-              .select("token")
-              .eq("proposta_id", td.proposta_id)
-              .is("invalidado_em", null)
-              .is("used_at", null)
-              .order("created_at", { ascending: false })
-              .limit(1)
-              .maybeSingle();
+            const { data: latestRows } = await (supabase as any)
+              .rpc("get_latest_valid_token_for_proposta", { p_proposta_id: td.proposta_id });
+            const latestToken = Array.isArray(latestRows) ? latestRows[0] : latestRows;
             if (latestToken?.token) {
               latestTokenUrl = `/proposta/${latestToken.token}`;
             }
