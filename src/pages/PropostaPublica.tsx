@@ -201,11 +201,10 @@ export default function PropostaPublica() {
   const loadProposal = async () => {
     setLoading(true);
     try {
-      const { data: td, error: tdErr } = await (supabase as any)
-        .from("proposta_aceite_tokens")
-        .select("id, token, proposta_id, versao_id, expires_at, used_at, aceite_nome, decisao, view_count, first_viewed_at, invalidado_em, motivo_invalidacao, tipo")
-        .eq("token", token!)
-        .maybeSingle();
+      // SEC: SELECT anon revogado em proposta_aceite_tokens — usa RPC SECURITY DEFINER
+      const { data: tdRows, error: tdErr } = await (supabase as any)
+        .rpc("get_proposta_token_by_value", { p_token: token! });
+      const td = Array.isArray(tdRows) ? tdRows[0] : tdRows;
 
       if (tdErr || !td) { setError("Link inválido ou expirado."); setLoading(false); return; }
 
