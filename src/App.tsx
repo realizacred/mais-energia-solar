@@ -121,6 +121,17 @@ const App = () => (
               {/* Protected routes — tenant guard active */}
               <Route path="/portal" element={<TenantGuardGate><PortalSelector /></TenantGuardGate>} />
               <Route path="/admin/*" element={<TenantGuardGate><Admin /></TenantGuardGate>} />
+              {/* Aliases funcionais — renderizam o mesmo Admin shell. /admin/* permanece canônico.
+                  Permite URLs por área (Comercial / Comunicação / Energia / Automações / Operações /
+                  Financeiro / Configurações / Integrações) sem alterar permissões, navRegistry ou backend. */}
+              <Route path="/comercial/*" element={<TenantGuardGate><Admin /></TenantGuardGate>} />
+              <Route path="/comunicacao/*" element={<TenantGuardGate><Admin /></TenantGuardGate>} />
+              <Route path="/energia/*" element={<TenantGuardGate><Admin /></TenantGuardGate>} />
+              <Route path="/automacoes/*" element={<TenantGuardGate><Admin /></TenantGuardGate>} />
+              <Route path="/operacoes/*" element={<TenantGuardGate><Admin /></TenantGuardGate>} />
+              <Route path="/financeiro/*" element={<TenantGuardGate><Admin /></TenantGuardGate>} />
+              <Route path="/configuracoes/*" element={<TenantGuardGate><Admin /></TenantGuardGate>} />
+              <Route path="/integracoes/*" element={<TenantGuardGate><Admin /></TenantGuardGate>} />
               <Route path="/super-admin" element={<SuperAdmin />} />
               <Route path="/consultor/*" element={<TenantGuardGate><VendedorPortal /></TenantGuardGate>} />
               <Route path="/vendedor/*" element={<TenantGuardGate><VendedorPortal /></TenantGuardGate>} />
