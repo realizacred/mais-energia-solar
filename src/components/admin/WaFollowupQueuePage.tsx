@@ -157,17 +157,42 @@ export function WaFollowupQueuePage() {
               <span className="text-sm font-medium">Filtros:</span>
             </div>
             <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-[160px]">
+              <SelectTrigger className="w-[170px]">
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Todos</SelectItem>
+                <SelectItem value="all">Todos status</SelectItem>
                 <SelectItem value="pendente">Pendentes</SelectItem>
+                <SelectItem value="pendente_revisao">Pendente revisão</SelectItem>
                 <SelectItem value="enviado">Enviados</SelectItem>
                 <SelectItem value="respondido">Respondidos</SelectItem>
+                <SelectItem value="cancelado">Cancelados</SelectItem>
                 <SelectItem value="falhou">Falhou</SelectItem>
               </SelectContent>
             </Select>
+            <Select value={kindFilter} onValueChange={(v) => setKindFilter(v as any)}>
+              <SelectTrigger className="w-[150px]">
+                <SelectValue placeholder="Tipo" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos</SelectItem>
+                <SelectItem value="propostas">Propostas</SelectItem>
+                <SelectItem value="conversas">Conversas</SelectItem>
+              </SelectContent>
+            </Select>
+            {cenariosDisponiveis.length > 0 && (
+              <Select value={cenarioFilter} onValueChange={setCenarioFilter}>
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue placeholder="Cenário" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos cenários</SelectItem>
+                  {cenariosDisponiveis.map((c) => (
+                    <SelectItem key={c} value={c} className="capitalize">{c.replace(/_/g, " ")}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
             {/* Filtro de consultor só para admins */}
             {isAdmin && (
               <Select value={vendedorFilter} onValueChange={setVendedorFilter}>
