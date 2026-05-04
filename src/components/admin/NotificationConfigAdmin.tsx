@@ -270,6 +270,9 @@ export function NotificationConfigAdmin() {
         </motion.div>
       ))}
 
+      {/* Resumo Semanal WhatsApp */}
+      <WeeklySummaryConfig />
+
       {/* Info — Como funciona */}
       <Card className="bg-info/5 border-info/20">
         <CardContent className="p-4 space-y-3">
