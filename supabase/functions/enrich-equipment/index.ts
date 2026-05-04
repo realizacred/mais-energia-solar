@@ -8,7 +8,7 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-type EquipmentType = "modulo" | "inversor" | "otimizador";
+type EquipmentType = "modulo" | "inversor" | "otimizador" | "bateria";
 
 interface RequestBody {
   equipment_type: EquipmentType;
@@ -21,6 +21,7 @@ const TABLE_MAP: Record<EquipmentType, string> = {
   modulo: "modulos_solares",
   inversor: "inversores_catalogo",
   otimizador: "otimizadores_catalogo",
+  bateria: "baterias",
 };
 
 // ── Prompts ──────────────────────────────────────────────────────
@@ -86,6 +87,19 @@ function buildPrompt(type: EquipmentType, fabricante: string, modelo: string): {
   "garantia_anos": number,
   "datasheet_url": string
 }`,
+    bateria: `{
+  "tipo_bateria": string,
+  "energia_kwh": number,
+  "tensao_nominal_v": number,
+  "tensao_carga_v": number,
+  "tensao_operacao_v": string,
+  "potencia_max_saida_kw": number,
+  "corrente_max_descarga_a": number,
+  "corrente_max_carga_a": number,
+  "dimensoes_mm": string,
+  "garantia_anos": number,
+  "datasheet_url": string
+}`,
   };
 
   const user = `Fabricante: ${fabricante}\nModelo: ${modelo}\n\nRetorne JSON com exatamente estas chaves (null se não encontrar):\n${specs[type]}`;
@@ -120,6 +134,7 @@ const GENERATED_COLUMNS: Record<EquipmentType, string[]> = {
   modulo: ["area_m2"],
   inversor: [],
   otimizador: [],
+  bateria: [],
 };
 
 const INVERSOR_RANGES: Record<string, Range> = {
@@ -149,10 +164,21 @@ const OTIMIZADOR_RANGES: Record<string, Range> = {
   garantia_anos: { min: 5, max: 30 },
 };
 
+const BATERIA_RANGES: Record<string, Range> = {
+  energia_kwh: { min: 0.5, max: 500 },
+  tensao_nominal_v: { min: 12, max: 1000 },
+  tensao_carga_v: { min: 12, max: 1000 },
+  potencia_max_saida_kw: { min: 0.3, max: 250 },
+  corrente_max_descarga_a: { min: 1, max: 500 },
+  corrente_max_carga_a: { min: 1, max: 500 },
+  garantia_anos: { min: 1, max: 25 },
+};
+
 const RANGES_MAP: Record<EquipmentType, Record<string, Range>> = {
   modulo: MODULO_RANGES,
   inversor: INVERSOR_RANGES,
   otimizador: OTIMIZADOR_RANGES,
+  bateria: BATERIA_RANGES,
 };
 
 function validateSpecs(specs: Record<string, unknown>, type: EquipmentType): Record<string, unknown> {
@@ -389,7 +415,7 @@ serve(async (req) => {
     }
 
     if (!TABLE_MAP[equipment_type]) {
-      throw new Error(`equipment_type '${equipment_type}' não suportado. Tipos válidos: modulo, inversor, otimizador. Bateria ainda não é suportada para enriquecimento automático.`);
+      throw new Error(`equipment_type '${equipment_type}' não suportado. Tipos válidos: modulo, inversor, otimizador, bateria.`);
     }
 
     const supabase = createClient(

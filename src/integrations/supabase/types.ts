@@ -779,16 +779,23 @@ export type Database = {
       baterias: {
         Row: {
           ativo: boolean
+          audit_notes: string | null
+          audit_original: Json | null
+          audit_status: string | null
+          audited_at: string | null
           corrente_max_carga_a: number | null
           corrente_max_descarga_a: number | null
           correntes_recomendadas_a: string | null
           created_at: string
+          datasheet_url: string | null
           dimensoes_mm: string | null
           energia_kwh: number | null
           fabricante: string
+          garantia_anos: number | null
           id: string
           modelo: string
           potencia_max_saida_kw: number | null
+          status: string | null
           tenant_id: string
           tensao_carga_v: number | null
           tensao_nominal_v: number | null
@@ -798,16 +805,23 @@ export type Database = {
         }
         Insert: {
           ativo?: boolean
+          audit_notes?: string | null
+          audit_original?: Json | null
+          audit_status?: string | null
+          audited_at?: string | null
           corrente_max_carga_a?: number | null
           corrente_max_descarga_a?: number | null
           correntes_recomendadas_a?: string | null
           created_at?: string
+          datasheet_url?: string | null
           dimensoes_mm?: string | null
           energia_kwh?: number | null
           fabricante: string
+          garantia_anos?: number | null
           id?: string
           modelo: string
           potencia_max_saida_kw?: number | null
+          status?: string | null
           tenant_id?: string
           tensao_carga_v?: number | null
           tensao_nominal_v?: number | null
@@ -817,16 +831,23 @@ export type Database = {
         }
         Update: {
           ativo?: boolean
+          audit_notes?: string | null
+          audit_original?: Json | null
+          audit_status?: string | null
+          audited_at?: string | null
           corrente_max_carga_a?: number | null
           corrente_max_descarga_a?: number | null
           correntes_recomendadas_a?: string | null
           created_at?: string
+          datasheet_url?: string | null
           dimensoes_mm?: string | null
           energia_kwh?: number | null
           fabricante?: string
+          garantia_anos?: number | null
           id?: string
           modelo?: string
           potencia_max_saida_kw?: number | null
+          status?: string | null
           tenant_id?: string
           tensao_carga_v?: number | null
           tensao_nominal_v?: number | null
@@ -4484,6 +4505,45 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      equipamentos_audit_log: {
+        Row: {
+          action: string
+          equipment_id: string
+          equipment_type: string
+          field_name: string | null
+          id: string
+          new_value: string | null
+          old_value: string | null
+          performed_at: string | null
+          performed_by: string | null
+          reason: string | null
+        }
+        Insert: {
+          action: string
+          equipment_id: string
+          equipment_type: string
+          field_name?: string | null
+          id?: string
+          new_value?: string | null
+          old_value?: string | null
+          performed_at?: string | null
+          performed_by?: string | null
+          reason?: string | null
+        }
+        Update: {
+          action?: string
+          equipment_id?: string
+          equipment_type?: string
+          field_name?: string | null
+          id?: string
+          new_value?: string | null
+          old_value?: string | null
+          performed_at?: string | null
+          performed_by?: string | null
+          reason?: string | null
+        }
+        Relationships: []
       }
       estoque_categorias: {
         Row: {
@@ -11392,6 +11452,10 @@ export type Database = {
         Row: {
           area_m2: number | null
           ativo: boolean
+          audit_notes: string | null
+          audit_original: Json | null
+          audit_status: string | null
+          audited_at: string | null
           bifacial: boolean
           comprimento_mm: number | null
           created_at: string
@@ -11425,6 +11489,10 @@ export type Database = {
         Insert: {
           area_m2?: number | null
           ativo?: boolean
+          audit_notes?: string | null
+          audit_original?: Json | null
+          audit_status?: string | null
+          audited_at?: string | null
           bifacial?: boolean
           comprimento_mm?: number | null
           created_at?: string
@@ -11458,6 +11526,10 @@ export type Database = {
         Update: {
           area_m2?: number | null
           ativo?: boolean
+          audit_notes?: string | null
+          audit_original?: Json | null
+          audit_status?: string | null
+          audited_at?: string | null
           bifacial?: boolean
           comprimento_mm?: number | null
           created_at?: string
@@ -13385,6 +13457,10 @@ export type Database = {
       otimizadores_catalogo: {
         Row: {
           ativo: boolean
+          audit_notes: string | null
+          audit_original: Json | null
+          audit_status: string | null
+          audited_at: string | null
           compatibilidade: string | null
           corrente_entrada_max_a: number | null
           corrente_saida_max_a: number | null
@@ -13409,6 +13485,10 @@ export type Database = {
         }
         Insert: {
           ativo?: boolean
+          audit_notes?: string | null
+          audit_original?: Json | null
+          audit_status?: string | null
+          audited_at?: string | null
           compatibilidade?: string | null
           corrente_entrada_max_a?: number | null
           corrente_saida_max_a?: number | null
@@ -13433,6 +13513,10 @@ export type Database = {
         }
         Update: {
           ativo?: boolean
+          audit_notes?: string | null
+          audit_original?: Json | null
+          audit_status?: string | null
+          audited_at?: string | null
           compatibilidade?: string | null
           corrente_entrada_max_a?: number | null
           corrente_saida_max_a?: number | null
