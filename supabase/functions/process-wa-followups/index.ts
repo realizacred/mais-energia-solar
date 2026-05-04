@@ -50,6 +50,8 @@ Deno.serve(async (req) => {
 
       // Proposal followup detectors (insert-only, status=pendente_revisao, no send/AI)
       try { await processProposalDetectors(sb); } catch (e: any) { console.error("[followup] PROPOSAL_DETECTOR_ERROR", e.message); }
+      // Proposal followup AI suggestions (no send, no status change)
+      try { await generateProposalFollowupSuggestions(sb); } catch (e: any) { console.error("[followup] PROPOSAL_SUGGEST_ERROR", e.message); }
 
       t = Date.now();
       const { data: cands, error: ce } = await sb.rpc("claim_followup_candidates", { _limit: 200 });
