@@ -132,20 +132,34 @@ async function processJob(admin: ReturnType<typeof createClient>, job: any) {
   return { done: false, cancelled: false };
 }
 
+// Advisory lock global para garantir 1 worker ativo por vez
+const LOCK_KEY = 918273645; // qualquer int estável
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   const admin = createClient(SUPABASE_URL, SERVICE_ROLE);
 
   try {
+    // Tenta adquirir advisory lock — se já há outro worker rodando, sai
+    const { data: lockResp } = await admin.rpc("pg_try_advisory_lock", { key: LOCK_KEY }) as any;
+    const acquired = Array.isArray(lockResp) ? lockResp[0]?.pg_try_advisory_lock : lockResp;
+    if (!acquired) {
+      return new Response(JSON.stringify({ ok: true, picked: false, reason: "locked" }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const job = await pickJob(admin);
     if (!job) {
+      await admin.rpc("pg_advisory_unlock", { key: LOCK_KEY }).catch(() => {});
       return new Response(JSON.stringify({ ok: true, picked: false }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
     const result = await processJob(admin, job);
+    await admin.rpc("pg_advisory_unlock", { key: LOCK_KEY }).catch(() => {});
 
     // Auto-reagenda se ainda não terminou
     if (!result.done) {
