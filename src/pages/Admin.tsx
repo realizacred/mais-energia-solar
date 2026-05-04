@@ -60,6 +60,7 @@ const BateriasAuditPage = lazy(() => import("@/components/admin/equipamentos/bat
 const OtimizadoresManager = lazy(() => import("@/components/admin/equipamentos").then(m => ({ default: m.OtimizadoresManager })));
 const OtimizadoresAuditPage = lazy(() => import("@/components/admin/equipamentos/otimizadores/OtimizadoresAuditPage").then(m => ({ default: m.OtimizadoresAuditPage })));
 const ModulosAuditPage = lazy(() => import("@/components/admin/equipamentos/modulos/ModulosAuditPage").then(m => ({ default: m.ModulosAuditPage })));
+const EquipmentTabs = lazy(() => import("@/components/admin/equipamentos/shared/EquipmentTabs").then(m => ({ default: m.EquipmentTabs })));
 const ConcessionariasManager = lazy(() => import("@/components/admin/ConcessionariasManager").then(m => ({ default: m.ConcessionariasManager })));
 const DicionarioAneelPage = lazy(() => import("@/components/admin/concessionarias/DicionarioAneelPage").then(m => ({ default: m.DicionarioAneelPage })));
 const TarifaVersoesPage = lazy(() => import("@/components/admin/concessionarias/TarifaVersoesPage").then(m => ({ default: m.TarifaVersoesPage })));
