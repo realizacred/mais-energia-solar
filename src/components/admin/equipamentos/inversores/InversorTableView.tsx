@@ -254,7 +254,7 @@ export function InversorTableView({ inversores, onView, onEdit, onDelete, onTogg
                       <EnrichButton equipmentType="inversor" equipmentId={inv.id} />
                       {onView && <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => onView(inv)}><Eye className="w-4 h-4" /></Button>}
                       <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => onEdit(inv)}><Pencil className="w-4 h-4" /></Button>
-                      {!global && <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => onDelete(inv)}><Trash2 className="w-4 h-4" /></Button>}
+                      <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => onDelete(inv)}><Trash2 className="w-4 h-4" /></Button>
                     </div>
                   </TableCell>
                 </TableRow>
