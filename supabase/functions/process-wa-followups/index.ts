@@ -392,4 +392,3 @@ async function processProposalDetectors(sb: any) {
 
   console.log("[followup] proposal_detectors", JSON.stringify({ detected, inserted, skipped_cooldown, skipped_dedupe }));
 }
-}
