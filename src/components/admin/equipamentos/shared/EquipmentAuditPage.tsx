@@ -114,28 +114,48 @@ export function EquipmentAuditPage({ config }: { config: EquipmentAuditConfig })
       setEnriching(true);
       setProgress({ done: 0, total: ids.length, ok: 0, fail: 0 });
       let ok = 0, fail = 0;
+      let totalConsensus = 0, totalConflict = 0;
       for (let i = 0; i < ids.length; i++) {
+        const id = ids[i];
         try {
-          const { error } = await supabase.functions.invoke("enrich-equipment", {
-            body: { equipment_type: config.equipmentType, equipment_id: ids[i], tenant_id, force_refresh: true },
+          const { data, error } = await supabase.functions.invoke("enrich-equipment", {
+            body: { equipment_type: config.equipmentType, equipment_id: id, tenant_id, force_refresh: true },
           });
           if (error) throw error;
+          if (data?.team) {
+            totalConsensus += data.team.consensus_count || 0;
+            totalConflict += data.team.conflict_count || 0;
+          }
           await supabase.from(config.tableName as any)
             .update({ audit_status: "enriquecido", audited_at: new Date().toISOString() } as never)
-            .eq("id", ids[i]);
+            .eq("id", id);
           ok++;
+          // Real-time UI update: mark this row as enriched in cache
+          // so the current tab (e.g. "Sem datasheet") drops it immediately.
+          queryClient.setQueryData(queryKey, (old: any[] | undefined) => {
+            if (!old) return old;
+            return old.map((r) => r.id === id ? { ...r, audit_status: "enriquecido", audited_at: new Date().toISOString() } : r);
+          });
+          // Also drop from selection set
+          setSelected((prev) => {
+            if (!prev.has(id)) return prev;
+            const next = new Set(prev);
+            next.delete(id);
+            return next;
+          });
         } catch (e) {
           fail++;
-          console.warn(`[audit-${config.equipmentType}] falhou`, ids[i], e);
+          console.warn(`[audit-${config.equipmentType}] falhou`, id, e);
         }
         setProgress({ done: i + 1, total: ids.length, ok, fail });
       }
-      return { ok, fail };
+      return { ok, fail, totalConsensus, totalConflict };
     },
-    onSuccess: ({ ok, fail }) => {
-      toast.success(`Auditoria concluída: ${ok} ok, ${fail} falhas`);
+    onSuccess: ({ ok, fail, totalConsensus, totalConflict }) => {
+      toast.success(
+        `Auditoria concluída: ${ok} ok, ${fail} falhas — Equipe IA: ${totalConsensus} consensos, ${totalConflict} conflitos`,
+      );
       queryClient.invalidateQueries({ queryKey });
-      setSelected(new Set());
     },
     onError: (e: any) => toast.error(`Erro: ${e.message}`),
     onSettled: () => setEnriching(false),
