@@ -225,11 +225,11 @@ export function ProposalSuggestionReview({ item }: Props) {
         )}
         <Button
           size="sm"
-          variant="ghost"
-          disabled
-          title="Envio será liberado no próximo PR."
+          onClick={handleApprove}
+          disabled={!canApprove || approveMut.isPending}
+          title={!canApprove ? "Item não está pronto para envio" : "Aprovar e enviar pelo WhatsApp"}
         >
-          Aprovar e enviar
+          {approveMut.isPending ? "Enviando..." : "Aprovar e enviar"}
         </Button>
       </div>
 
