@@ -258,13 +258,28 @@ export function BatchEnrichDialog({ open, onOpenChange, equipmentType, draftIds 
 
           {job && isFinished && (
             <div className="space-y-2">
-              <p className="text-sm font-medium text-foreground">
-                {job.status === "completed" ? "Concluído!" : job.status === "cancelled" ? "Cancelado" : "Falhou"}
-              </p>
-              <div className="text-sm text-muted-foreground space-y-1">
-                <p>✅ Enriquecidos: <span className="font-semibold text-foreground">{job.success}</span></p>
+              <div className="flex items-center gap-2">
+                {job.status === "completed" ? (
+                  <CheckCircle2 className="w-4 h-4 text-success" />
+                ) : job.status === "cancelled" ? (
+                  <AlertCircle className="w-4 h-4 text-warning" />
+                ) : (
+                  <XCircle className="w-4 h-4 text-destructive" />
+                )}
+                <p className="text-sm font-medium text-foreground">
+                  {job.status === "completed" ? "Concluído" : job.status === "cancelled" ? "Cancelado" : "Falhou"}
+                </p>
+              </div>
+              <div className="text-sm text-muted-foreground space-y-1 pl-6">
+                <p className="flex items-center gap-1.5">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-success" />
+                  Enriquecidos: <span className="font-semibold text-foreground">{job.success}</span>
+                </p>
                 {job.failed > 0 && (
-                  <p>❌ Falharam: <span className="font-semibold text-destructive">{job.failed}</span></p>
+                  <p className="flex items-center gap-1.5">
+                    <XCircle className="w-3.5 h-3.5 text-destructive" />
+                    Falharam: <span className="font-semibold text-destructive">{job.failed}</span>
+                  </p>
                 )}
                 <p>Total processado: {job.processed}</p>
                 {job.last_model && (
