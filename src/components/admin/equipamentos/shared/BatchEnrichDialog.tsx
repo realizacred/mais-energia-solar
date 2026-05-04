@@ -5,7 +5,7 @@
  * A UI apenas cria o job e faz polling do progresso.
  */
 import { useState, useRef, useCallback, useEffect } from "react";
-import { Wand2, Loader2, Minimize2, X, Brain } from "lucide-react";
+import { Wand2, Loader2, Minimize2, X, Brain, CheckCircle2, XCircle, AlertCircle } from "lucide-react";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
@@ -100,18 +100,18 @@ export function BatchEnrichDialog({ open, onOpenChange, equipmentType, draftIds 
       if (toastIdRef.current != null) {
         if (data.status === "completed") {
           toast.success(
-            `✅ ${data.success} de ${data.total} ${TYPE_LABELS[equipmentType]} enriquecidos${data.failed > 0 ? ` (${data.failed} falharam)` : ""}`,
+            `${data.success} de ${data.total} ${TYPE_LABELS[equipmentType]} enriquecidos${data.failed > 0 ? ` (${data.failed} falharam)` : ""}`,
             { id: toastIdRef.current, duration: 6000 },
           );
           toastIdRef.current = null;
         } else if (data.status === "cancelled") {
-          toast.warning(`⏹ Cancelado em ${data.processed} de ${data.total}`, {
+          toast.warning(`Cancelado em ${data.processed} de ${data.total}`, {
             id: toastIdRef.current,
             duration: 6000,
           });
           toastIdRef.current = null;
         } else {
-          toast.loading(`🔄 Buscando specs... ${data.processed} de ${data.total}`, {
+          toast.loading(`Buscando specs... ${data.processed} de ${data.total}`, {
             id: toastIdRef.current,
             dismissible: false,
           });
@@ -184,7 +184,7 @@ export function BatchEnrichDialog({ open, onOpenChange, equipmentType, draftIds 
 
   const handleMinimize = () => {
     if (job) {
-      toastIdRef.current = toast.loading(`🔄 Buscando specs... ${job.processed} de ${job.total}`, {
+      toastIdRef.current = toast.loading(`Buscando specs... ${job.processed} de ${job.total}`, {
         duration: Infinity,
         dismissible: false,
       });
@@ -258,13 +258,28 @@ export function BatchEnrichDialog({ open, onOpenChange, equipmentType, draftIds 
 
           {job && isFinished && (
             <div className="space-y-2">
-              <p className="text-sm font-medium text-foreground">
-                {job.status === "completed" ? "Concluído!" : job.status === "cancelled" ? "Cancelado" : "Falhou"}
-              </p>
-              <div className="text-sm text-muted-foreground space-y-1">
-                <p>✅ Enriquecidos: <span className="font-semibold text-foreground">{job.success}</span></p>
+              <div className="flex items-center gap-2">
+                {job.status === "completed" ? (
+                  <CheckCircle2 className="w-4 h-4 text-success" />
+                ) : job.status === "cancelled" ? (
+                  <AlertCircle className="w-4 h-4 text-warning" />
+                ) : (
+                  <XCircle className="w-4 h-4 text-destructive" />
+                )}
+                <p className="text-sm font-medium text-foreground">
+                  {job.status === "completed" ? "Concluído" : job.status === "cancelled" ? "Cancelado" : "Falhou"}
+                </p>
+              </div>
+              <div className="text-sm text-muted-foreground space-y-1 pl-6">
+                <p className="flex items-center gap-1.5">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-success" />
+                  Enriquecidos: <span className="font-semibold text-foreground">{job.success}</span>
+                </p>
                 {job.failed > 0 && (
-                  <p>❌ Falharam: <span className="font-semibold text-destructive">{job.failed}</span></p>
+                  <p className="flex items-center gap-1.5">
+                    <XCircle className="w-3.5 h-3.5 text-destructive" />
+                    Falharam: <span className="font-semibold text-destructive">{job.failed}</span>
+                  </p>
                 )}
                 <p>Total processado: {job.processed}</p>
                 {job.last_model && (
