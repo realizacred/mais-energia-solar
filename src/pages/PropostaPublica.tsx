@@ -220,15 +220,9 @@ export default function PropostaPublica() {
           let latestTokenUrl: string | null = null;
           // Only look for latest token if invalidated by new version (not deletion)
           if (td.motivo_invalidacao === 'nova_versao_criada') {
-            const { data: latestToken } = await (supabase as any)
-              .from("proposta_aceite_tokens")
-              .select("token")
-              .eq("proposta_id", td.proposta_id)
-              .is("invalidado_em", null)
-              .is("used_at", null)
-              .order("created_at", { ascending: false })
-              .limit(1)
-              .maybeSingle();
+            const { data: latestRows } = await (supabase as any)
+              .rpc("get_latest_valid_token_for_proposta", { p_proposta_id: td.proposta_id });
+            const latestToken = Array.isArray(latestRows) ? latestRows[0] : latestRows;
             if (latestToken?.token) {
               latestTokenUrl = `/proposta/${latestToken.token}`;
             }
