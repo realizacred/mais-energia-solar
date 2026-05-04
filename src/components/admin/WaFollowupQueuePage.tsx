@@ -22,6 +22,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { ProposalSuggestionReview } from "@/components/admin/followup/ProposalSuggestionReview";
 
 // ─── Types ──────────────────────────────────────────────────
 // Types imported from useWaFollowup hook
@@ -29,8 +30,12 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 // ─── Constants ──────────────────────────────────────────────
 const STATUS_CONFIG = {
   pendente: { label: "Pendente", icon: Clock, color: "bg-warning/10 text-warning border-warning/30" },
+  pendente_revisao: { label: "Pendente revisão", icon: ShieldAlert, color: "bg-warning/10 text-warning border-warning/30" },
   enviado: { label: "Enviado", icon: MessageCircle, color: "bg-info/10 text-info border-info/30" },
   respondido: { label: "Respondido", icon: CheckCircle2, color: "bg-success/10 text-success border-success/30" },
+  cancelado: { label: "Cancelado", icon: AlertTriangle, color: "bg-muted text-muted-foreground border-border" },
+  expirado: { label: "Expirado", icon: AlertTriangle, color: "bg-muted text-muted-foreground border-border" },
+  bloqueado_ia: { label: "Bloqueado IA", icon: ShieldAlert, color: "bg-destructive/10 text-destructive border-destructive/30" },
   falhou: { label: "Falhou", icon: AlertTriangle, color: "bg-destructive/10 text-destructive border-destructive/30" },
 } as const;
 
@@ -47,15 +52,18 @@ export function WaFollowupQueuePage() {
   const { isAdmin } = useUserPermissions();
   const [statusFilter, setStatusFilter] = useState("pendente");
   const [vendedorFilter, setVendedorFilter] = useState("all");
+  const [kindFilter, setKindFilter] = useState<"all" | "propostas" | "conversas">("all");
+  const [cenarioFilter, setCenarioFilter] = useState<string>("all");
   const [selectedItem, setSelectedItem] = useState<FollowupQueueItem | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
 
-  // ─── Data Queries ───────────────────────────────────────
   // ─── Data Queries (hooks from useWaFollowup) ─────────────
   const { data: items = [], isLoading } = useFollowupQueue({
     statusFilter,
     isAdmin,
     userId: user?.id,
+    kindFilter,
+    cenarioFilter,
   });
 
   const { data: vendedores = [] } = useFollowupVendedores();
@@ -84,11 +92,19 @@ export function WaFollowupQueuePage() {
 
   // Stats
   const stats = useMemo(() => ({
-    pendentes: items.filter((i) => i.status === "pendente").length,
+    pendentes: items.filter((i) => i.status === "pendente" || i.status === "pendente_revisao").length,
     urgentes: items.filter((i) => i.rule?.prioridade === "urgente" || i.rule?.prioridade === "alta").length,
     enviados: items.filter((i) => i.status === "enviado").length,
     respondidos: items.filter((i) => i.status === "respondido").length,
   }), [items]);
+
+  const cenariosDisponiveis = useMemo(() => {
+    const set = new Set<string>();
+    items.forEach((i) => { if (i.cenario) set.add(i.cenario); });
+    return Array.from(set).sort();
+  }, [items]);
+
+  const showProposalBanner = kindFilter === "propostas" || items.some((i) => i.proposta_id);
 
   // ─── Drawer: conversation messages ─────────────────────
   const { data: drawerMessages = [], isLoading: loadingMessages } = useFollowupDrawerMessages(
@@ -124,6 +140,16 @@ export function WaFollowupQueuePage() {
         </div>
       )}
 
+      {/* Safety banner: revisão humana de proposta */}
+      {showProposalBanner && (
+        <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-warning/10 border border-warning/30">
+          <ShieldAlert className="h-4 w-4 text-warning shrink-0" />
+          <p className="text-xs text-warning-foreground">
+            Modo seguro: sugestões de follow-up por proposta precisam de revisão humana. Nenhuma mensagem é enviada automaticamente.
+          </p>
+        </div>
+      )}
+
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <StatCard label="Pendentes" value={stats.pendentes} icon={Clock} color="warning" />
@@ -141,17 +167,42 @@ export function WaFollowupQueuePage() {
               <span className="text-sm font-medium">Filtros:</span>
             </div>
             <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-[160px]">
+              <SelectTrigger className="w-[170px]">
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Todos</SelectItem>
+                <SelectItem value="all">Todos status</SelectItem>
                 <SelectItem value="pendente">Pendentes</SelectItem>
+                <SelectItem value="pendente_revisao">Pendente revisão</SelectItem>
                 <SelectItem value="enviado">Enviados</SelectItem>
                 <SelectItem value="respondido">Respondidos</SelectItem>
+                <SelectItem value="cancelado">Cancelados</SelectItem>
                 <SelectItem value="falhou">Falhou</SelectItem>
               </SelectContent>
             </Select>
+            <Select value={kindFilter} onValueChange={(v) => setKindFilter(v as any)}>
+              <SelectTrigger className="w-[150px]">
+                <SelectValue placeholder="Tipo" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos</SelectItem>
+                <SelectItem value="propostas">Propostas</SelectItem>
+                <SelectItem value="conversas">Conversas</SelectItem>
+              </SelectContent>
+            </Select>
+            {cenariosDisponiveis.length > 0 && (
+              <Select value={cenarioFilter} onValueChange={setCenarioFilter}>
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue placeholder="Cenário" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos cenários</SelectItem>
+                  {cenariosDisponiveis.map((c) => (
+                    <SelectItem key={c} value={c} className="capitalize">{c.replace(/_/g, " ")}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
             {/* Filtro de consultor só para admins */}
             {isAdmin && (
               <Select value={vendedorFilter} onValueChange={setVendedorFilter}>
@@ -321,6 +372,11 @@ export function WaFollowupQueuePage() {
                 <div><strong>SLA:</strong> {selectedItem.rule?.prazo_minutos ? `${selectedItem.rule.prazo_minutos} min` : "—"}</div>
               </div>
             </div>
+          )}
+
+          {/* Proposal AI suggestion review (only for proposal-linked items) */}
+          {selectedItem?.proposta_id && (
+            <ProposalSuggestionReview item={selectedItem} />
           )}
 
           {/* Messages */}
