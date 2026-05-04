@@ -350,30 +350,17 @@ export default function PropostaPublica() {
           ? { tipo: "financiamento_bancario", banco_nome: bancoEscolhido }
           : null;
 
-      const { error: updateErr } = await (supabase as any)
-        .from("proposta_aceite_tokens")
-        .update({
-          used_at: new Date().toLocaleString("en-US", { timeZone: "America/Sao_Paulo" }),
-          decisao: "aceita",
-          aceite_nome: nome,
-          aceite_documento: documento || null,
-          aceite_observacoes: observacoes || null,
-          assinatura_url: assinaturaUrl,
-          // aceite_ip será gravado pela edge proposal-public-action (IP real do header)
-          aceite_user_agent: navigator.userAgent,
-          cenario_aceito_id: selectedCenario || null,
-          forma_pagamento_escolhida: formaParaSalvar ? JSON.stringify(formaParaSalvar) : null,
-        })
-        .eq("id", tokenData.id);
-
-      if (updateErr) throw updateErr;
-
-      // RB-47: Use proposal-public-action edge function instead of direct UPDATE
+      // RB-47: aceite vai TODO pela edge (sem UPDATE anon direto em proposta_aceite_tokens)
       const { error: transitionErr } = await supabase.functions.invoke("proposal-public-action", {
         body: {
           token: tokenData.token,
           action: "aceitar",
-          // ip_address resolvido server-side pela edge
+          nome,
+          documento: documento || null,
+          observacoes: observacoes || null,
+          cenario_id: selectedCenario || null,
+          assinatura_url: assinaturaUrl,
+          forma_pagamento_escolhida: formaParaSalvar,
           user_agent: navigator.userAgent,
         },
       });
@@ -426,20 +413,7 @@ export default function PropostaPublica() {
 
     setSubmitting(true);
     try {
-      const { error: updateErr } = await (supabase as any)
-        .from("proposta_aceite_tokens")
-        .update({
-          used_at: new Date().toISOString(),
-          decisao: "recusada",
-          recusa_motivo: recusaMotivo || null,
-          recusa_at: new Date().toISOString(),
-          aceite_user_agent: navigator.userAgent,
-        })
-        .eq("id", tokenData.id);
-
-      if (updateErr) throw updateErr;
-
-      // RB-47: Use proposal-public-action edge function instead of direct UPDATE
+      // RB-47: recusa vai TODA pela edge (sem UPDATE anon direto em proposta_aceite_tokens)
       const { error: transitionErr } = await supabase.functions.invoke("proposal-public-action", {
         body: {
           token: tokenData.token,

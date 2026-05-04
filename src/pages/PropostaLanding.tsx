@@ -197,17 +197,18 @@ export default function PropostaLanding() {
     if (!tokenId || !acceptForm.nome.trim()) return;
     setSubmitting(true);
     try {
-      await (supabase as any).from("proposta_aceite_tokens").update({
-        used_at: new Date().toISOString(), decisao: "aceita",
-        aceite_nome: acceptForm.nome, aceite_documento: acceptForm.documento || null,
-        aceite_observacoes: acceptForm.obs || null, aceite_user_agent: navigator.userAgent,
-        cenario_aceito_id: selectedCenario || null,
-      }).eq("id", tokenId);
-
-      // RB-47: Use proposal-public-action edge function instead of direct UPDATE
+      // RB-47: aceite vai TODO pela edge (sem UPDATE anon direto)
       if (token) {
         const { error: transitionErr } = await supabase.functions.invoke("proposal-public-action", {
-          body: { token, action: "aceitar", user_agent: navigator.userAgent },
+          body: {
+            token,
+            action: "aceitar",
+            nome: acceptForm.nome,
+            documento: acceptForm.documento || null,
+            observacoes: acceptForm.obs || null,
+            cenario_id: selectedCenario || null,
+            user_agent: navigator.userAgent,
+          },
         });
         if (transitionErr) throw transitionErr;
       }
@@ -219,16 +220,15 @@ export default function PropostaLanding() {
     if (!tokenId) return;
     setSubmitting(true);
     try {
-      await (supabase as any).from("proposta_aceite_tokens").update({
-        used_at: new Date().toISOString(), decisao: "recusada",
-        recusa_motivo: rejectMotivo || null, recusa_at: new Date().toISOString(),
-        aceite_user_agent: navigator.userAgent,
-      }).eq("id", tokenId);
-
-      // RB-47: Use proposal-public-action edge function instead of direct UPDATE
+      // RB-47: recusa vai TODA pela edge (sem UPDATE anon direto)
       if (token) {
         const { error: transitionErr } = await supabase.functions.invoke("proposal-public-action", {
-          body: { token, action: "recusar", motivo: rejectMotivo || null, user_agent: navigator.userAgent },
+          body: {
+            token,
+            action: "recusar",
+            motivo: rejectMotivo || null,
+            user_agent: navigator.userAgent,
+          },
         });
         if (transitionErr) throw transitionErr;
       }

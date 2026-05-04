@@ -255,7 +255,16 @@ Deno.serve(async (req) => {
 
   try {
     const body = await req.json();
-    const { token, action, motivo, user_agent } = body;
+    const {
+      token, action, motivo, user_agent,
+      // RB-47: dados do aceite enviados pelo frontend público (substitui UPDATE direto)
+      nome: aceiteNome,
+      documento: aceiteDocumento,
+      observacoes: aceiteObservacoes,
+      cenario_id: cenarioAceitoId,
+      forma_pagamento_escolhida: formaPagamentoEscolhida,
+      assinatura_url: assinaturaUrl,
+    } = body;
 
     // Resolve real IP from request headers (RB: never trust client-sent IP)
     const xff = req.headers.get("x-forwarded-for");
@@ -306,6 +315,50 @@ Deno.serve(async (req) => {
         JSON.stringify({ error: "Token expirado" }),
         { status: 410, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
+    }
+
+    // RB-47: anti-replay — token usado não pode ser reutilizado
+    if (tokenData.used_at) {
+      return new Response(
+        JSON.stringify({
+          success: true,
+          idempotent: true,
+          message: "Esta ação já foi registrada.",
+        }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // RB-47: gravar dados do aceite informados pelo cliente ANTES de prosseguir
+    // (substitui o UPDATE direto que o frontend público fazia)
+    {
+      const aceiteFields: Record<string, unknown> = {
+        aceite_user_agent: user_agent || null,
+      };
+      if (action === "aceitar") {
+        aceiteFields.decisao = "aceita";
+        if (aceiteNome != null) aceiteFields.aceite_nome = String(aceiteNome);
+        if (aceiteDocumento != null) aceiteFields.aceite_documento = String(aceiteDocumento) || null;
+        if (aceiteObservacoes != null) aceiteFields.aceite_observacoes = String(aceiteObservacoes) || null;
+        if (cenarioAceitoId != null) aceiteFields.cenario_aceito_id = cenarioAceitoId || null;
+        if (assinaturaUrl != null) aceiteFields.assinatura_url = assinaturaUrl || null;
+        if (formaPagamentoEscolhida != null) {
+          aceiteFields.forma_pagamento_escolhida =
+            typeof formaPagamentoEscolhida === "string"
+              ? formaPagamentoEscolhida
+              : JSON.stringify(formaPagamentoEscolhida);
+        }
+      } else {
+        aceiteFields.decisao = "recusada";
+        if (motivo != null) aceiteFields.recusa_motivo = String(motivo) || null;
+      }
+      const { error: stampErr } = await admin
+        .from("proposta_aceite_tokens")
+        .update(aceiteFields)
+        .eq("id", tokenData.id);
+      if (stampErr) {
+        console.error("[proposal-public-action] Falha ao gravar aceite no token:", stampErr);
+      }
     }
 
     const propostaId = tokenData.proposta_id;
