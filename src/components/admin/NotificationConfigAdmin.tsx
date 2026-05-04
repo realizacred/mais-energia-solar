@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { Spinner } from "@/components/ui-kit/Spinner";
 import { motion } from "framer-motion";
+import { WeeklySummaryConfig } from "./WeeklySummaryConfig";
 
 interface NotificationConfig {
   id?: string;
