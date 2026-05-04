@@ -18,6 +18,7 @@ import {
   useEditProposalSuggestion,
   useRejectProposalSuggestion,
   usePostponeProposalSuggestion,
+  useApproveProposalFollowup,
 } from "@/hooks/useWaFollowup";
 import { formatDateTime, formatDate } from "@/lib/dateUtils";
 
