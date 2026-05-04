@@ -60,6 +60,7 @@ const BateriasAuditPage = lazy(() => import("@/components/admin/equipamentos/bat
 const OtimizadoresManager = lazy(() => import("@/components/admin/equipamentos").then(m => ({ default: m.OtimizadoresManager })));
 const OtimizadoresAuditPage = lazy(() => import("@/components/admin/equipamentos/otimizadores/OtimizadoresAuditPage").then(m => ({ default: m.OtimizadoresAuditPage })));
 const ModulosAuditPage = lazy(() => import("@/components/admin/equipamentos/modulos/ModulosAuditPage").then(m => ({ default: m.ModulosAuditPage })));
+const EquipmentTabs = lazy(() => import("@/components/admin/equipamentos/shared/EquipmentTabs").then(m => ({ default: m.EquipmentTabs })));
 const ConcessionariasManager = lazy(() => import("@/components/admin/ConcessionariasManager").then(m => ({ default: m.ConcessionariasManager })));
 const DicionarioAneelPage = lazy(() => import("@/components/admin/concessionarias/DicionarioAneelPage").then(m => ({ default: m.DicionarioAneelPage })));
 const TarifaVersoesPage = lazy(() => import("@/components/admin/concessionarias/TarifaVersoesPage").then(m => ({ default: m.TarifaVersoesPage })));
@@ -683,14 +684,14 @@ export default function Admin() {
                 <Route path="vendedores" element={<VendedoresManager />} />
                 <Route path="usuarios" element={<UsuariosManager />} />
                 <Route path="equipamentos" element={<EquipamentosManager />} />
-                <Route path="modulos" element={<ModulosManager />} />
-                <Route path="modulos-auditoria" element={<ModulosAuditPage />} />
-                <Route path="inversores-cadastro" element={<InversoresManager />} />
-                <Route path="inversores-auditoria" element={<InversoresAuditPage />} />
-                <Route path="baterias" element={<BateriasManager />} />
-                <Route path="baterias-auditoria" element={<BateriasAuditPage />} />
-                <Route path="otimizadores" element={<OtimizadoresManager />} />
-                <Route path="otimizadores-auditoria" element={<OtimizadoresAuditPage />} />
+                <Route path="modulos" element={<EquipmentTabs cadastro={<ModulosManager />} auditoria={<ModulosAuditPage />} />} />
+                <Route path="modulos-auditoria" element={<Navigate to="/admin/modulos?tab=auditoria" replace />} />
+                <Route path="inversores-cadastro" element={<EquipmentTabs cadastro={<InversoresManager />} auditoria={<InversoresAuditPage />} />} />
+                <Route path="inversores-auditoria" element={<Navigate to="/admin/inversores-cadastro?tab=auditoria" replace />} />
+                <Route path="baterias" element={<EquipmentTabs cadastro={<BateriasManager />} auditoria={<BateriasAuditPage />} />} />
+                <Route path="baterias-auditoria" element={<Navigate to="/admin/baterias?tab=auditoria" replace />} />
+                <Route path="otimizadores" element={<EquipmentTabs cadastro={<OtimizadoresManager />} auditoria={<OtimizadoresAuditPage />} />} />
+                <Route path="otimizadores-auditoria" element={<Navigate to="/admin/otimizadores?tab=auditoria" replace />} />
                 <Route path="fornecedores" element={<FornecedoresManager />} />
                 <Route path="concessionarias" element={<ConcessionariasManager />} />
                 <Route path="dicionario-aneel" element={<DicionarioAneelPage />} />
