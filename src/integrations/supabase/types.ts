@@ -26150,6 +26150,8 @@ export type Database = {
       }
       wa_followup_queue: {
         Row: {
+          ai_confidence: number | null
+          ai_reason: string | null
           assigned_to: string | null
           cenario: string | null
           conversation_id: string
@@ -26157,6 +26159,8 @@ export type Database = {
           google_calendar_event_id: string | null
           id: string
           mensagem_enviada: string | null
+          mensagem_sugerida: string | null
+          metadata: Json
           proposal_context: Json | null
           proposta_id: string | null
           responded_at: string | null
@@ -26170,6 +26174,8 @@ export type Database = {
           versao_id: string | null
         }
         Insert: {
+          ai_confidence?: number | null
+          ai_reason?: string | null
           assigned_to?: string | null
           cenario?: string | null
           conversation_id: string
@@ -26177,6 +26183,8 @@ export type Database = {
           google_calendar_event_id?: string | null
           id?: string
           mensagem_enviada?: string | null
+          mensagem_sugerida?: string | null
+          metadata?: Json
           proposal_context?: Json | null
           proposta_id?: string | null
           responded_at?: string | null
@@ -26190,6 +26198,8 @@ export type Database = {
           versao_id?: string | null
         }
         Update: {
+          ai_confidence?: number | null
+          ai_reason?: string | null
           assigned_to?: string | null
           cenario?: string | null
           conversation_id?: string
@@ -26197,6 +26207,8 @@ export type Database = {
           google_calendar_event_id?: string | null
           id?: string
           mensagem_enviada?: string | null
+          mensagem_sugerida?: string | null
+          metadata?: Json
           proposal_context?: Json | null
           proposta_id?: string | null
           responded_at?: string | null
