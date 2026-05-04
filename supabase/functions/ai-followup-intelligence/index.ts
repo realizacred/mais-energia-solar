@@ -64,8 +64,13 @@ Deno.serve(async (req) => {
       }
     }
 
-    const body = await req.json();
-    const { action, conversation_id } = body;
+    const body = bodyRaw;
+    const { action, conversation_id, type } = body;
+
+    // ---- NEW: proposal_followup mode (no conversation lookup) ----
+    if (type === "proposal_followup") {
+      return await handleProposalFollowup(sb, tenantId, body, user?.id || null);
+    }
 
     if (!conversation_id) return error("conversation_id required", 400);
 
