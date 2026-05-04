@@ -307,7 +307,7 @@ export function BatchEnrichDialog({ open, onOpenChange, equipmentType, draftIds 
           )}
         </div>
 
-        <DialogFooter className="flex justify-end gap-2 p-4 border-t border-border bg-muted/30 shrink-0">
+        <DialogFooter>
           {!isRunning && !result && (
             <>
               <Button variant="ghost" onClick={handleClose}>
