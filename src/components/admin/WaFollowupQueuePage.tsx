@@ -30,8 +30,12 @@ import { ProposalSuggestionReview } from "@/components/admin/followup/ProposalSu
 // ─── Constants ──────────────────────────────────────────────
 const STATUS_CONFIG = {
   pendente: { label: "Pendente", icon: Clock, color: "bg-warning/10 text-warning border-warning/30" },
+  pendente_revisao: { label: "Pendente revisão", icon: ShieldAlert, color: "bg-warning/10 text-warning border-warning/30" },
   enviado: { label: "Enviado", icon: MessageCircle, color: "bg-info/10 text-info border-info/30" },
   respondido: { label: "Respondido", icon: CheckCircle2, color: "bg-success/10 text-success border-success/30" },
+  cancelado: { label: "Cancelado", icon: AlertTriangle, color: "bg-muted text-muted-foreground border-border" },
+  expirado: { label: "Expirado", icon: AlertTriangle, color: "bg-muted text-muted-foreground border-border" },
+  bloqueado_ia: { label: "Bloqueado IA", icon: ShieldAlert, color: "bg-destructive/10 text-destructive border-destructive/30" },
   falhou: { label: "Falhou", icon: AlertTriangle, color: "bg-destructive/10 text-destructive border-destructive/30" },
 } as const;
 
