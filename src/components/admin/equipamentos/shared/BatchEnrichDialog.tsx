@@ -22,16 +22,18 @@ interface BatchEnrichDialogProps {
   draftIds: string[];
 }
 
-const TYPE_LABELS = {
+const TYPE_LABELS: Record<string, string> = {
   modulo: "módulos",
   inversor: "inversores",
   otimizador: "otimizadores",
+  bateria: "baterias",
 };
 
 const QUERY_KEY_MAP: Record<string, string[]> = {
   modulo: ["modulos-solares"],
   inversor: ["inversores-catalogo"],
   otimizador: ["otimizadores-catalogo"],
+  bateria: ["baterias"],
 };
 
 interface BatchProgress {
