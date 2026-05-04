@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { Spinner } from "@/components/ui-kit/Spinner";
 import { motion } from "framer-motion";
+import { WeeklySummaryConfig } from "./WeeklySummaryConfig";
 
 interface NotificationConfig {
   id?: string;
@@ -268,6 +269,9 @@ export function NotificationConfigAdmin() {
           </Card>
         </motion.div>
       ))}
+
+      {/* Resumo Semanal WhatsApp */}
+      <WeeklySummaryConfig />
 
       {/* Info — Como funciona */}
       <Card className="bg-info/5 border-info/20">

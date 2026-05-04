@@ -27471,6 +27471,39 @@ export type Database = {
           },
         ]
       }
+      weekly_summary_config: {
+        Row: {
+          created_at: string
+          day_of_week: number
+          enabled: boolean
+          hour_local: number
+          id: string
+          template: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          day_of_week?: number
+          enabled?: boolean
+          hour_local?: number
+          id?: string
+          template?: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          day_of_week?: number
+          enabled?: boolean
+          hour_local?: number
+          id?: string
+          template?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       whatsapp_automation_config: {
         Row: {
           api_token: string | null
