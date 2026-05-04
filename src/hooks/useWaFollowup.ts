@@ -316,3 +316,134 @@ export function useToggleFollowupRule() {
     },
   });
 }
+
+// ─── Proposal Suggestion Review Mutations ───────────────────
+// Revisão humana de sugestões de IA para follow-up por proposta.
+// Reaproveita wa_followup_queue + wa_followup_logs. NÃO envia mensagens.
+
+async function getTenantContext() {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user?.id) throw new Error("Não autenticado");
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("tenant_id")
+    .eq("user_id", user.id)
+    .maybeSingle();
+  if (!profile?.tenant_id) throw new Error("Tenant não encontrado");
+  return { tenantId: profile.tenant_id as string, userId: user.id };
+}
+
+async function logProposalAction(params: {
+  tenantId: string;
+  item: FollowupQueueItem;
+  action: string;
+  metadata?: Record<string, any>;
+}) {
+  try {
+    await supabase.from("wa_followup_logs").insert({
+      tenant_id: params.tenantId,
+      conversation_id: params.item.conversation_id,
+      rule_id: (params.item as any).rule_id ?? null,
+      queue_id: params.item.id,
+      action: params.action,
+      cenario: params.item.cenario,
+      tentativa: params.item.tentativa,
+      assigned_to: params.item.assigned_to,
+      proposta_id: params.item.proposta_id,
+      versao_id: params.item.versao_id,
+      proposal_context: params.item.proposal_context as any,
+      mensagem_original: params.item.mensagem_sugerida,
+      metadata: params.metadata ?? {},
+    });
+  } catch {
+    // log é best-effort — nunca bloquear ação de revisão
+  }
+}
+
+export function useEditProposalSuggestion() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (params: { item: FollowupQueueItem; mensagem: string }) => {
+      const { tenantId } = await getTenantContext();
+      const meta = { ...(params.item.metadata || {}), human_edited: true, edited_at: new Date().toISOString() };
+      const { data, error } = await supabase
+        .from("wa_followup_queue")
+        .update({ mensagem_sugerida: params.mensagem, metadata: meta })
+        .eq("id", params.item.id)
+        .eq("tenant_id", tenantId)
+        .select("id")
+        .single();
+      if (error) throw error;
+      if (!data) throw new Error("Item não encontrado");
+      await logProposalAction({
+        tenantId, item: params.item, action: "proposal_suggestion_edited",
+        metadata: { edited_at: meta.edited_at },
+      });
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: [QUEUE_KEY] });
+    },
+  });
+}
+
+export function useRejectProposalSuggestion() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (params: { item: FollowupQueueItem; reason?: string }) => {
+      const { tenantId } = await getTenantContext();
+      const meta = {
+        ...(params.item.metadata || {}),
+        rejected_at: new Date().toISOString(),
+        rejected_reason: params.reason || null,
+      };
+      // Status seguro do CHECK: 'cancelado'
+      const { data, error } = await supabase
+        .from("wa_followup_queue")
+        .update({ status: "cancelado", metadata: meta })
+        .eq("id", params.item.id)
+        .eq("tenant_id", tenantId)
+        .select("id")
+        .single();
+      if (error) throw error;
+      if (!data) throw new Error("Item não encontrado");
+      await logProposalAction({
+        tenantId, item: params.item, action: "proposal_suggestion_rejected",
+        metadata: { rejected_reason: params.reason || null },
+      });
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: [QUEUE_KEY] });
+      qc.invalidateQueries({ queryKey: [QUEUE_STATS_KEY] });
+    },
+  });
+}
+
+export function usePostponeProposalSuggestion() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (params: { item: FollowupQueueItem; scheduledAt: string; reason?: string }) => {
+      const { tenantId } = await getTenantContext();
+      const meta = {
+        ...(params.item.metadata || {}),
+        postponed_at: new Date().toISOString(),
+        postponed_reason: params.reason || null,
+      };
+      const { data, error } = await supabase
+        .from("wa_followup_queue")
+        .update({ scheduled_at: params.scheduledAt, metadata: meta })
+        .eq("id", params.item.id)
+        .eq("tenant_id", tenantId)
+        .select("id")
+        .single();
+      if (error) throw error;
+      if (!data) throw new Error("Item não encontrado");
+      await logProposalAction({
+        tenantId, item: params.item, action: "proposal_suggestion_postponed",
+        metadata: { scheduled_at: params.scheduledAt, postponed_reason: params.reason || null },
+      });
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: [QUEUE_KEY] });
+    },
+  });
+}
