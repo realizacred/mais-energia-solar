@@ -6,11 +6,38 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+const DEFAULT_TEMPLATE = `Bom dia, {{primeiro_nome}}! 👋☀️
+
+Aqui está seu resumo semanal:
+
+📊 *Seus leads esta semana:*
+• Total: {{total_leads}} leads
+• 🔥 Hot (alta prioridade): {{hot_leads}}
+• ⚠️ Sem classificação: {{sem_status}}
+• ⏰ Follow-ups atrasados: {{followups_atrasados}}
+
+{{cta_hot}}{{cta_sem_status}}
+Bom trabalho! 💪
+Mais Energia Solar 🌞`;
+
 function normalizePhone(raw: string): string | null {
   const digits = raw.replace(/\D/g, "");
   if (digits.length < 10) return null;
   const withCountry = digits.startsWith("55") ? digits : `55${digits}`;
   return `${withCountry}@s.whatsapp.net`;
+}
+
+/** Hora atual em Brasília (UTC-3, sem DST) */
+function brtNow(): { hour: number; dow: number } {
+  const now = new Date();
+  const brt = new Date(now.getTime() - 3 * 3600000);
+  return { hour: brt.getUTCHours(), dow: brt.getUTCDay() };
+}
+
+function renderTemplate(tpl: string, vars: Record<string, string | number>): string {
+  return tpl.replace(/\{\{(\w+)\}\}/g, (_, k) =>
+    vars[k] !== undefined ? String(vars[k]) : ""
+  );
 }
 
 Deno.serve(async (req) => {
@@ -22,24 +49,53 @@ Deno.serve(async (req) => {
   const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
   const admin = createClient(supabaseUrl, serviceRoleKey);
 
-  const stats = { consultores: 0, enviados: 0, skipped: 0, errors: 0 };
+  const stats = { tenants: 0, consultores: 0, enviados: 0, skipped: 0, errors: 0 };
 
   try {
-    // ── 1. Buscar consultores ativos com telefone válido ─────
+    const url = new URL(req.url);
+    const force = url.searchParams.get("force") === "true";
+    const forceTenant = url.searchParams.get("tenant_id");
+
+    const { hour, dow } = brtNow();
+
+    // ── 1. Tenants com config ativa para ESTE horário/dia ─────
+    let configQuery = admin
+      .from("weekly_summary_config")
+      .select("tenant_id, enabled, day_of_week, hour_local, template")
+      .eq("enabled", true);
+
+    if (!force) {
+      configQuery = configQuery.eq("day_of_week", dow).eq("hour_local", hour);
+    }
+    if (forceTenant) {
+      configQuery = configQuery.eq("tenant_id", forceTenant);
+    }
+
+    const { data: configs, error: cfgErr } = await configQuery;
+    if (cfgErr) throw cfgErr;
+
+    if (!configs?.length) {
+      return jsonOk({ ...stats, message: "No tenant scheduled for this hour" });
+    }
+
+    stats.tenants = configs.length;
+    const cfgByTenant = new Map(configs.map((c) => [c.tenant_id, c]));
+    const tenantIds = configs.map((c) => c.tenant_id);
+
+    // ── 2. Consultores ativos desses tenants ──────────────────
     const { data: consultores, error: cErr } = await admin
       .from("consultores")
       .select("id, nome, telefone, tenant_id")
       .eq("ativo", true)
-      .not("telefone", "is", null);
+      .not("telefone", "is", null)
+      .in("tenant_id", tenantIds);
 
     if (cErr) throw cErr;
     if (!consultores?.length) {
-      // console.log("[notify-weekly] No active consultores found");
-      return jsonOk({ ...stats, message: "No consultores" });
+      return jsonOk({ ...stats, message: "No consultores in scheduled tenants" });
     }
 
-    // ── 2. Buscar instâncias WA por tenant ──────────────────
-    const tenantIds = [...new Set(consultores.map((c) => c.tenant_id))];
+    // ── 3. Instâncias WA conectadas por tenant ────────────────
     const { data: instances } = await admin
       .from("wa_instances")
       .select("id, tenant_id")
@@ -53,23 +109,16 @@ Deno.serve(async (req) => {
       }
     }
 
-    // ── 3. Para cada consultor, calcular e enviar ───────────
+    // ── 4. Para cada consultor, calcular e enviar ─────────────
     for (const consultor of consultores) {
       stats.consultores++;
 
       const jid = normalizePhone(consultor.telefone || "");
-      if (!jid) {
-        stats.skipped++;
-        continue;
-      }
+      if (!jid) { stats.skipped++; continue; }
 
       const instanceId = instanceByTenant[consultor.tenant_id];
-      if (!instanceId) {
-        stats.skipped++;
-        continue;
-      }
+      if (!instanceId) { stats.skipped++; continue; }
 
-      // Dedup: já enviou esta semana?
       const idempKey = `weekly-${consultor.id}-${isoWeek()}`;
       const { data: existing } = await admin
         .from("wa_outbox")
@@ -77,45 +126,37 @@ Deno.serve(async (req) => {
         .eq("idempotency_key", idempKey)
         .maybeSingle();
 
-      if (existing) {
-        stats.skipped++;
-        continue;
-      }
+      if (existing && !force) { stats.skipped++; continue; }
 
-      // ── Métricas do consultor (paralelo) ──────────────────
+      // Métricas
       const [leadsRes, hotRes, followupsRes] = await Promise.all([
         admin.rpc("get_consultant_lead_metrics", {
           p_consultor_nome: consultor.nome,
           p_tenant_id: consultor.tenant_id,
         }).maybeSingle(),
-        admin
-          .from("lead_scores")
+        admin.from("lead_scores")
           .select("id", { count: "exact", head: true })
           .eq("tenant_id", consultor.tenant_id)
           .eq("nivel", "hot")
           .gt("calculado_em", new Date(Date.now() - 7 * 86400000).toISOString()),
-        admin
-          .from("lead_atividades")
+        admin.from("lead_atividades")
           .select("id", { count: "exact", head: true })
           .eq("tenant_id", consultor.tenant_id)
           .eq("concluido", false)
           .lt("data_agendada", new Date().toISOString()),
       ]);
 
-      // Fallback: if RPC doesn't exist, use simple counts
       let totalLeads = 0, semStatus = 0;
       if (leadsRes.data) {
         totalLeads = (leadsRes.data as any).total_leads || 0;
         semStatus = (leadsRes.data as any).sem_status || 0;
       } else {
-        // Direct query fallback
         const { count: tCount } = await admin
           .from("leads")
           .select("id", { count: "exact", head: true })
           .eq("tenant_id", consultor.tenant_id)
           .eq("consultor", consultor.nome);
         totalLeads = tCount || 0;
-
         const { count: sCount } = await admin
           .from("leads")
           .select("id", { count: "exact", head: true })
@@ -128,31 +169,20 @@ Deno.serve(async (req) => {
       const hotLeads = hotRes.count || 0;
       const followupsAtrasados = followupsRes.count || 0;
 
-      // ── Montar mensagem ───────────────────────────────────
-      const lines: string[] = [
-        `Bom dia, ${consultor.nome?.split(" ")[0]}! 👋☀️`,
-        "",
-        "Aqui está seu resumo semanal:",
-        "",
-        "📊 *Seus leads esta semana:*",
-        `• Total: ${totalLeads} leads`,
-        `• 🔥 Hot (alta prioridade): ${hotLeads}`,
-        `• ⚠️ Sem classificação: ${semStatus}`,
-        `• ⏰ Follow-ups atrasados: ${followupsAtrasados}`,
-      ];
+      const cfg = cfgByTenant.get(consultor.tenant_id)!;
+      const template = cfg.template || DEFAULT_TEMPLATE;
 
-      if (hotLeads > 0) {
-        lines.push("", "🎯 Você tem leads quentes — entre em contato hoje!");
-      }
-      if (semStatus > 0) {
-        lines.push("", "📋 Classifique seus leads no sistema para ativar automações.");
-      }
+      const mensagem = renderTemplate(template, {
+        primeiro_nome: consultor.nome?.split(" ")[0] || "",
+        nome: consultor.nome || "",
+        total_leads: totalLeads,
+        hot_leads: hotLeads,
+        sem_status: semStatus,
+        followups_atrasados: followupsAtrasados,
+        cta_hot: hotLeads > 0 ? "🎯 Você tem leads quentes — entre em contato hoje!\n\n" : "",
+        cta_sem_status: semStatus > 0 ? "📋 Classifique seus leads no sistema para ativar automações.\n\n" : "",
+      }).trim();
 
-      lines.push("", "Bom trabalho! 💪", "Mais Energia Solar 🌞");
-
-      const mensagem = lines.join("\n");
-
-      // ── Enfileirar wa_outbox ──────────────────────────────
       const { error: insertErr } = await admin.from("wa_outbox").insert({
         tenant_id: consultor.tenant_id,
         instance_id: instanceId,
@@ -160,7 +190,7 @@ Deno.serve(async (req) => {
         message_type: "text",
         content: mensagem,
         status: "pending",
-        idempotency_key: idempKey,
+        idempotency_key: force ? `${idempKey}-${Date.now()}` : idempKey,
       });
 
       if (insertErr) {
@@ -171,7 +201,6 @@ Deno.serve(async (req) => {
       }
     }
 
-    // console.log("[notify-weekly] Done:", JSON.stringify(stats));
     return jsonOk(stats);
   } catch (err: any) {
     console.error("[notify-weekly] Error:", err);
@@ -182,7 +211,6 @@ Deno.serve(async (req) => {
   }
 });
 
-/** Returns ISO week string like "2026-W12" for dedup */
 function isoWeek(): string {
   const d = new Date();
   d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7));
