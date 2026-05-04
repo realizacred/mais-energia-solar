@@ -52,15 +52,18 @@ export function WaFollowupQueuePage() {
   const { isAdmin } = useUserPermissions();
   const [statusFilter, setStatusFilter] = useState("pendente");
   const [vendedorFilter, setVendedorFilter] = useState("all");
+  const [kindFilter, setKindFilter] = useState<"all" | "propostas" | "conversas">("all");
+  const [cenarioFilter, setCenarioFilter] = useState<string>("all");
   const [selectedItem, setSelectedItem] = useState<FollowupQueueItem | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
 
-  // ─── Data Queries ───────────────────────────────────────
   // ─── Data Queries (hooks from useWaFollowup) ─────────────
   const { data: items = [], isLoading } = useFollowupQueue({
     statusFilter,
     isAdmin,
     userId: user?.id,
+    kindFilter,
+    cenarioFilter,
   });
 
   const { data: vendedores = [] } = useFollowupVendedores();
