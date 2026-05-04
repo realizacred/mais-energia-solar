@@ -48,6 +48,9 @@ Deno.serve(async (req) => {
       m.reconciled = await reconcile(sb);
       m.timing.reconcile_ms = Date.now() - t;
 
+      // Proposal followup detectors (insert-only, status=pendente_revisao, no send/AI)
+      try { await processProposalDetectors(sb); } catch (e: any) { console.error("[followup] PROPOSAL_DETECTOR_ERROR", e.message); }
+
       t = Date.now();
       const { data: cands, error: ce } = await sb.rpc("claim_followup_candidates", { _limit: 200 });
       m.timing.rpc_ms = Date.now() - t;
