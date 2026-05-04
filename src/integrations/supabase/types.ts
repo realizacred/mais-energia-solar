@@ -28530,6 +28530,17 @@ export type Database = {
         }
         Returns: Json
       }
+      get_latest_valid_token_for_proposta: {
+        Args: { p_proposta_id: string }
+        Returns: {
+          expires_at: string
+          id: string
+          invalidado_em: string
+          proposta_id: string
+          token: string
+          versao_id: string
+        }[]
+      }
       get_my_calendar_token: {
         Args: never
         Returns: {
@@ -28602,6 +28613,26 @@ export type Database = {
       get_proposal_funnel_metrics: { Args: { p_days?: number }; Returns: Json }
       get_proposal_workspace: { Args: { p_versao_id: string }; Returns: Json }
       get_proposals_by_vendor: { Args: { p_days?: number }; Returns: Json }
+      get_proposta_token_by_value: {
+        Args: { p_token: string }
+        Returns: {
+          aceite_nome: string
+          decisao: string
+          expires_at: string
+          first_viewed_at: string
+          id: string
+          invalidado_em: string
+          motivo_invalidacao: string
+          proposta_id: string
+          tenant_id: string
+          termo_aceite_pdf_url: string
+          tipo: string
+          token: string
+          used_at: string
+          versao_id: string
+          view_count: number
+        }[]
+      }
       get_roof_types_by_consultor: {
         Args: { p_consultor_code: string }
         Returns: {
