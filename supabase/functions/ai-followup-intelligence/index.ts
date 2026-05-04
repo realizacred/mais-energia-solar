@@ -367,3 +367,148 @@ function error(msg: string, status: number) {
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
 }
+
+// ============================================================
+// Proposal follow-up suggestion (server-to-server)
+// Strict whitelist of inputs, no invention of values, JSON output.
+// ============================================================
+const PROPOSAL_ALLOWED_KEYS = [
+  "cliente_nome",
+  "valor_total",
+  "potencia_kwp",
+  "economia_mensal",
+  "status_proposta",
+  "enviado_em",
+  "viewed_at",
+  "valido_ate",
+  "dias_sem_resposta",
+];
+
+async function handleProposalFollowup(sb: any, tenantId: string, body: any, userId: string | null) {
+  const cenario = String(body.cenario || "").slice(0, 60);
+  const ctxRaw = body.proposal_context || {};
+  if (!cenario) return error("cenario required", 400);
+
+  const ctx: Record<string, any> = {};
+  for (const k of PROPOSAL_ALLOWED_KEYS) if (ctxRaw[k] !== undefined && ctxRaw[k] !== null) ctx[k] = ctxRaw[k];
+
+  // Resolve OpenAI key + model (mesma lógica das outras actions)
+  const { data: keyData } = await sb
+    .from("integration_configs")
+    .select("api_key")
+    .eq("tenant_id", tenantId)
+    .eq("service_key", "openai")
+    .eq("is_active", true)
+    .single();
+  if (!keyData?.api_key) return error("Chave OpenAI não configurada.", 400);
+
+  let activeModel = "gpt-4o-mini";
+  let activeProvider = "openai";
+  try {
+    const { data: providerConfig } = await sb
+      .from("ai_provider_config")
+      .select("active_provider, active_model")
+      .eq("tenant_id", tenantId)
+      .maybeSingle();
+    if (providerConfig?.active_model) activeModel = providerConfig.active_model;
+    if (providerConfig?.active_provider) activeProvider = providerConfig.active_provider;
+  } catch {}
+
+  const { data: aiSettings } = await sb
+    .from("wa_ai_settings")
+    .select("modelo_preferido, temperature")
+    .eq("tenant_id", tenantId)
+    .maybeSingle();
+  const model = aiSettings?.modelo_preferido || activeModel;
+  const temperature = aiSettings?.temperature ?? 0.4;
+
+  const sys = `Você é um consultor de energia solar. Gere UMA mensagem curta de WhatsApp para follow-up de PROPOSTA.
+
+REGRAS ABSOLUTAS:
+- Use APENAS os dados fornecidos no contexto. NUNCA invente valor, desconto, prazo, economia, capacidade ou qualquer número.
+- NUNCA prometa instalação, aprovação, financiamento ou prazo.
+- Tom humano, consultivo, sem pressão. Sem emojis excessivos (máx 1).
+- Máx 3 frases curtas. Adequado a WhatsApp.
+- Se faltar dado essencial, gere mensagem neutra ("podemos conversar sobre a proposta?").
+- Se houver risco (ex.: proposta vencida, dias_sem_resposta alto, status delicado), marque precisa_revisao_humana=true e risco "alto".
+
+OUTPUT (JSON estrito, sem texto fora):
+{
+  "deve_fazer_followup": boolean,
+  "nivel_urgencia": "baixo"|"medio"|"alto",
+  "motivo": "string curta",
+  "mensagem_sugerida": "string curta",
+  "risco": "baixo"|"medio"|"alto",
+  "precisa_revisao_humana": boolean
+}`;
+
+  const usr = `Cenário: ${cenario}\nContexto (somente estes dados podem ser usados):\n${JSON.stringify(ctx)}`;
+
+  const ac = new AbortController();
+  const to = setTimeout(() => ac.abort(), AI_TIMEOUT);
+  let aiUsage: any = {};
+  let parsed: any = null;
+  try {
+    const r = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${keyData.api_key}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model,
+        messages: [{ role: "system", content: sys }, { role: "user", content: usr }],
+        max_tokens: 350,
+        temperature,
+        response_format: { type: "json_object" },
+      }),
+      signal: ac.signal,
+    });
+    clearTimeout(to);
+    if (!r.ok) {
+      const t = await r.text();
+      console.error("[ai-followup-intelligence] proposal HTTP", r.status, t.slice(0, 200));
+      return error(`OpenAI HTTP ${r.status}`, 502);
+    }
+    const d = await r.json();
+    aiUsage = d.usage || {};
+    const raw = d.choices?.[0]?.message?.content?.trim();
+    if (!raw) return error("Empty AI response", 502);
+    const cleaned = raw.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
+    parsed = JSON.parse(cleaned);
+  } catch (e: any) {
+    clearTimeout(to);
+    if (e?.name === "AbortError") return error("AI timeout", 504);
+    console.error("[ai-followup-intelligence] proposal err", e?.message);
+    return error(e?.message || "AI error", 500);
+  }
+
+  // Sanitize / clamp output
+  const result = {
+    deve_fazer_followup: !!parsed.deve_fazer_followup,
+    nivel_urgencia: ["baixo", "medio", "alto"].includes(parsed.nivel_urgencia) ? parsed.nivel_urgencia : "baixo",
+    motivo: String(parsed.motivo || "").slice(0, 280),
+    mensagem_sugerida: String(parsed.mensagem_sugerida || "").slice(0, 600),
+    risco: ["baixo", "medio", "alto"].includes(parsed.risco) ? parsed.risco : "baixo",
+    precisa_revisao_humana: parsed.precisa_revisao_humana !== false,
+  };
+
+  // Usage logging (best-effort)
+  try {
+    const promptTokens = aiUsage.prompt_tokens || 0;
+    const completionTokens = aiUsage.completion_tokens || 0;
+    const totalTokens = aiUsage.total_tokens || (promptTokens + completionTokens);
+    const estimatedCost = (promptTokens / 1000) * 0.00015 + (completionTokens / 1000) * 0.0006;
+    await sb.from("ai_usage_logs").insert({
+      tenant_id: tenantId,
+      user_id: userId,
+      function_name: "ai-followup-intelligence",
+      provider: activeProvider,
+      model,
+      prompt_tokens: promptTokens,
+      completion_tokens: completionTokens,
+      total_tokens: totalTokens,
+      estimated_cost_usd: estimatedCost,
+      is_fallback: false,
+    });
+  } catch {}
+
+  return json(result);
+}
