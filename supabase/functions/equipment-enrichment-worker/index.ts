@@ -142,8 +142,7 @@ serve(async (req) => {
 
   try {
     // Tenta adquirir advisory lock — se já há outro worker rodando, sai
-    const { data: lockResp } = await admin.rpc("pg_try_advisory_lock", { key: LOCK_KEY }) as any;
-    const acquired = Array.isArray(lockResp) ? lockResp[0]?.pg_try_advisory_lock : lockResp;
+    const { data: acquired } = await admin.rpc("eej_try_lock", { p_key: LOCK_KEY });
     if (!acquired) {
       return new Response(JSON.stringify({ ok: true, picked: false, reason: "locked" }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -152,14 +151,14 @@ serve(async (req) => {
 
     const job = await pickJob(admin);
     if (!job) {
-      await admin.rpc("pg_advisory_unlock", { key: LOCK_KEY }).catch(() => {});
+      await admin.rpc("eej_unlock", { p_key: LOCK_KEY });
       return new Response(JSON.stringify({ ok: true, picked: false }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
     const result = await processJob(admin, job);
-    await admin.rpc("pg_advisory_unlock", { key: LOCK_KEY }).catch(() => {});
+    await admin.rpc("eej_unlock", { p_key: LOCK_KEY });
 
     // Auto-reagenda se ainda não terminou
     if (!result.done) {
