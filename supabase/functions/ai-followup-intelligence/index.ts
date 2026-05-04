@@ -286,7 +286,7 @@ ${histText || "(vazio)"}`,
 
       await sb.from("ai_usage_logs").insert({
         tenant_id: tenantId,
-        user_id: user.id,
+        user_id: user?.id || null,
         function_name: "ai-followup-intelligence",
         provider: activeProvider,
         model: activeModel,
