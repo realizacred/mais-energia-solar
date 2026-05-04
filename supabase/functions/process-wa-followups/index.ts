@@ -48,6 +48,9 @@ Deno.serve(async (req) => {
       m.reconciled = await reconcile(sb);
       m.timing.reconcile_ms = Date.now() - t;
 
+      // Proposal followup detectors (insert-only, status=pendente_revisao, no send/AI)
+      try { await processProposalDetectors(sb); } catch (e: any) { console.error("[followup] PROPOSAL_DETECTOR_ERROR", e.message); }
+
       t = Date.now();
       const { data: cands, error: ce } = await sb.rpc("claim_followup_candidates", { _limit: 200 });
       m.timing.rpc_ms = Date.now() - t;
@@ -320,4 +323,73 @@ async function logFollowup(
   } catch (e: any) {
     console.error(`[followup] LOG_ERROR action=${action} conv=${c.conversation_id}`, e.message);
   }
+}
+
+// =====================================================================
+// Proposal followup detectors — DETECT-ONLY, NO send, NO AI
+// Reuses wa_followup_rules + RPC detect_proposal_followup_candidates
+// Inserts into wa_followup_queue with status='pendente_revisao'
+// Idempotent via unique (proposta_id, rule_id, tentativa)
+// Respects cooldown_horas via wa_followup_logs lookup
+// =====================================================================
+async function processProposalDetectors(sb: any) {
+  // Active proposal rules grouped by tenant
+  const { data: rules } = await sb
+    .from("wa_followup_rules")
+    .select("id, tenant_id, cenario, cooldown_horas")
+    .like("cenario", "proposta_%")
+    .eq("ativo", true);
+  if (!rules?.length) return;
+
+  const tenants = [...new Set(rules.map((r: any) => r.tenant_id))];
+  let detected = 0, inserted = 0, skipped_cooldown = 0, skipped_dedupe = 0;
+
+  for (const tid of tenants) {
+    const { data: cands, error } = await sb.rpc("detect_proposal_followup_candidates", { p_tenant_id: tid });
+    if (error) { console.error("[followup] detect rpc err", tid, error.message); continue; }
+    if (!cands?.length) continue;
+    detected += cands.length;
+
+    for (const c of cands) {
+      const rule = rules.find((r: any) => r.id === c.rule_id);
+      const cooldownH = rule?.cooldown_horas ?? 24;
+
+      // Cooldown check via wa_followup_logs (last action for this proposta+rule)
+      if (cooldownH > 0) {
+        const since = new Date(Date.now() - cooldownH * 3600 * 1000).toISOString();
+        const { count: recent } = await sb
+          .from("wa_followup_logs")
+          .select("id", { count: "exact", head: true })
+          .eq("tenant_id", c.tenant_id)
+          .eq("rule_id", c.rule_id)
+          .eq("proposta_id", c.proposta_id)
+          .gte("created_at", since);
+        if ((recent ?? 0) > 0) { skipped_cooldown++; continue; }
+      }
+
+      const row = {
+        tenant_id: c.tenant_id,
+        rule_id: c.rule_id,
+        conversation_id: c.conversation_id,
+        proposta_id: c.proposta_id,
+        versao_id: c.versao_id,
+        cenario: c.cenario,
+        proposal_context: c.proposal_context,
+        status: "pendente_revisao",
+        tentativa: 1,
+        scheduled_at: c.scheduled_at || new Date().toISOString(),
+        assigned_to: c.assigned_to,
+      };
+
+      const { error: ie } = await sb.from("wa_followup_queue").insert(row);
+      if (ie) {
+        if (ie.code === "23505") { skipped_dedupe++; continue; }
+        console.error("[followup] proposal insert err", ie.message);
+        continue;
+      }
+      inserted++;
+    }
+  }
+
+  console.log("[followup] proposal_detectors", JSON.stringify({ detected, inserted, skipped_cooldown, skipped_dedupe }));
 }
