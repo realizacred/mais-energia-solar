@@ -92,11 +92,19 @@ export function WaFollowupQueuePage() {
 
   // Stats
   const stats = useMemo(() => ({
-    pendentes: items.filter((i) => i.status === "pendente").length,
+    pendentes: items.filter((i) => i.status === "pendente" || i.status === "pendente_revisao").length,
     urgentes: items.filter((i) => i.rule?.prioridade === "urgente" || i.rule?.prioridade === "alta").length,
     enviados: items.filter((i) => i.status === "enviado").length,
     respondidos: items.filter((i) => i.status === "respondido").length,
   }), [items]);
+
+  const cenariosDisponiveis = useMemo(() => {
+    const set = new Set<string>();
+    items.forEach((i) => { if (i.cenario) set.add(i.cenario); });
+    return Array.from(set).sort();
+  }, [items]);
+
+  const showProposalBanner = kindFilter === "propostas" || items.some((i) => i.proposta_id);
 
   // ─── Drawer: conversation messages ─────────────────────
   const { data: drawerMessages = [], isLoading: loadingMessages } = useFollowupDrawerMessages(
