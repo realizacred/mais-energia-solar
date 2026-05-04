@@ -418,6 +418,35 @@ export function useRejectProposalSuggestion() {
   });
 }
 
+export function useApproveProposalFollowup() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (params: { item: FollowupQueueItem }) => {
+      const { data, error } = await supabase.functions.invoke("approve-proposal-followup", {
+        body: { queue_id: params.item.id },
+      });
+      if (error) {
+        // Try to extract real message from edge function response
+        const ctx: any = (error as any).context;
+        let msg = error.message || "Erro ao enviar";
+        try {
+          if (ctx?.clone) {
+            const j = await ctx.clone().json();
+            if (j?.error) msg = j.error;
+          }
+        } catch { /* ignore */ }
+        throw new Error(msg);
+      }
+      if (data && (data as any).error) throw new Error((data as any).error);
+      return data;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: [QUEUE_KEY] });
+      qc.invalidateQueries({ queryKey: [QUEUE_STATS_KEY] });
+    },
+  });
+}
+
 export function usePostponeProposalSuggestion() {
   const qc = useQueryClient();
   return useMutation({

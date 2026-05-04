@@ -18,6 +18,7 @@ import {
   useEditProposalSuggestion,
   useRejectProposalSuggestion,
   usePostponeProposalSuggestion,
+  useApproveProposalFollowup,
 } from "@/hooks/useWaFollowup";
 import { formatDateTime, formatDate } from "@/lib/dateUtils";
 
@@ -55,6 +56,25 @@ export function ProposalSuggestionReview({ item }: Props) {
   const editMut = useEditProposalSuggestion();
   const rejectMut = useRejectProposalSuggestion();
   const postponeMut = usePostponeProposalSuggestion();
+  const approveMut = useApproveProposalFollowup();
+
+  const canApprove =
+    item.status === "pendente_revisao" &&
+    !!item.mensagem_sugerida?.trim() &&
+    !!item.conversation_id &&
+    !!item.proposta_id;
+
+  const handleApprove = () => {
+    if (!canApprove) return;
+    if (!confirm("Enviar esta mensagem ao cliente agora?")) return;
+    approveMut.mutate(
+      { item },
+      {
+        onSuccess: () => toast.success("Mensagem enviada"),
+        onError: (e: any) => toast.error(e?.message || "Erro ao enviar"),
+      },
+    );
+  };
 
   const handleCopy = async () => {
     if (!item.mensagem_sugerida) return;
@@ -205,11 +225,11 @@ export function ProposalSuggestionReview({ item }: Props) {
         )}
         <Button
           size="sm"
-          variant="ghost"
-          disabled
-          title="Envio será liberado no próximo PR."
+          onClick={handleApprove}
+          disabled={!canApprove || approveMut.isPending}
+          title={!canApprove ? "Item não está pronto para envio" : "Aprovar e enviar pelo WhatsApp"}
         >
-          Aprovar e enviar
+          {approveMut.isPending ? "Enviando..." : "Aprovar e enviar"}
         </Button>
       </div>
 
