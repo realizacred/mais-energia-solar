@@ -132,20 +132,33 @@ async function processJob(admin: ReturnType<typeof createClient>, job: any) {
   return { done: false, cancelled: false };
 }
 
+// Advisory lock global para garantir 1 worker ativo por vez
+const LOCK_KEY = 918273645; // qualquer int estável
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   const admin = createClient(SUPABASE_URL, SERVICE_ROLE);
 
   try {
+    // Tenta adquirir advisory lock — se já há outro worker rodando, sai
+    const { data: acquired } = await admin.rpc("eej_try_lock", { p_key: LOCK_KEY });
+    if (!acquired) {
+      return new Response(JSON.stringify({ ok: true, picked: false, reason: "locked" }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const job = await pickJob(admin);
     if (!job) {
+      await admin.rpc("eej_unlock", { p_key: LOCK_KEY });
       return new Response(JSON.stringify({ ok: true, picked: false }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
     const result = await processJob(admin, job);
+    await admin.rpc("eej_unlock", { p_key: LOCK_KEY });
 
     // Auto-reagenda se ainda não terminou
     if (!result.done) {
@@ -168,6 +181,8 @@ serve(async (req) => {
     );
   } catch (e) {
     console.error("[worker] fatal:", e);
+    // Garante release do lock em caso de erro
+    try { await admin.rpc("eej_unlock", { p_key: LOCK_KEY }); } catch { /* ignore */ }
     return new Response(JSON.stringify({ ok: false, error: String(e) }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },

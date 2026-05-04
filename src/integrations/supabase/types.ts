@@ -28157,6 +28157,8 @@ export type Database = {
       delete_seed_data: { Args: never; Returns: Json }
       delete_uc_permanently: { Args: { p_unit_id: string }; Returns: Json }
       detect_proposal_followups: { Args: never; Returns: Json }
+      eej_try_lock: { Args: { p_key: number }; Returns: boolean }
+      eej_unlock: { Args: { p_key: number }; Returns: boolean }
       encrypt_secret: {
         Args: { plain: string; secret: string }
         Returns: string
