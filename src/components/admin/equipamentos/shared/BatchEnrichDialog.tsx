@@ -234,22 +234,18 @@ export function BatchEnrichDialog({ open, onOpenChange, equipmentType, draftIds 
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="w-[90vw] max-w-md p-0 gap-0 overflow-hidden flex flex-col">
-        <DialogHeader className="flex flex-row items-center gap-3 p-5 pb-4 border-b border-border shrink-0">
-          <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-            <Wand2 className="w-5 h-5 text-primary" />
-          </div>
-          <div className="flex-1">
-            <DialogTitle className="text-base font-semibold text-foreground">
-              Buscar specs em lote
-            </DialogTitle>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              Enriquecer {TYPE_LABELS[equipmentType]} via IA
-            </p>
-          </div>
+      <DialogContent className="w-[90vw] max-w-lg">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Wand2 className="w-4 h-4 text-primary" />
+            Buscar specs em lote
+          </DialogTitle>
+          <p className="text-sm text-muted-foreground">
+            Enriquecer {TYPE_LABELS[equipmentType]} via IA
+          </p>
         </DialogHeader>
 
-        <div className="p-5 space-y-4">
+        <div className="space-y-4">
           {!isRunning && !result && (
             <>
               <p className="text-sm text-muted-foreground">
