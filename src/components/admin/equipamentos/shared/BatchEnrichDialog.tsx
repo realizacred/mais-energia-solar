@@ -100,18 +100,18 @@ export function BatchEnrichDialog({ open, onOpenChange, equipmentType, draftIds 
       if (toastIdRef.current != null) {
         if (data.status === "completed") {
           toast.success(
-            `✅ ${data.success} de ${data.total} ${TYPE_LABELS[equipmentType]} enriquecidos${data.failed > 0 ? ` (${data.failed} falharam)` : ""}`,
+            `${data.success} de ${data.total} ${TYPE_LABELS[equipmentType]} enriquecidos${data.failed > 0 ? ` (${data.failed} falharam)` : ""}`,
             { id: toastIdRef.current, duration: 6000 },
           );
           toastIdRef.current = null;
         } else if (data.status === "cancelled") {
-          toast.warning(`⏹ Cancelado em ${data.processed} de ${data.total}`, {
+          toast.warning(`Cancelado em ${data.processed} de ${data.total}`, {
             id: toastIdRef.current,
             duration: 6000,
           });
           toastIdRef.current = null;
         } else {
-          toast.loading(`🔄 Buscando specs... ${data.processed} de ${data.total}`, {
+          toast.loading(`Buscando specs... ${data.processed} de ${data.total}`, {
             id: toastIdRef.current,
             dismissible: false,
           });
