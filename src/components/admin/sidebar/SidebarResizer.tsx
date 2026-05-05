@@ -38,7 +38,7 @@ export function SidebarResizer({ min = 220, max = 480 }: SidebarResizerProps) {
     document.body.style.cursor = "col-resize";
     document.body.style.userSelect = "none";
 
-    const wrapper = document.querySelector<HTMLElement>("[data-sidebar-wrapper]");
+    const wrapper = document.querySelector<HTMLElement>(".group\\/sidebar-wrapper");
 
     const onMove = (ev: PointerEvent) => {
       if (!draggingRef.current) return;
