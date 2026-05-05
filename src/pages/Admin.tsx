@@ -3,6 +3,7 @@ import { useNavigate, Routes, Route, Navigate, useLocation, useSearchParams } fr
 import { Menu, ShieldAlert } from "lucide-react";
 import { SistemaInstallBanner } from "@/components/pwa/SistemaInstallBanner";
 import { AdminBreadcrumb } from "@/components/admin/AdminBreadcrumb";
+import { AdminRouteBoundary } from "@/components/admin/AdminRouteBoundary";
 import { LoadingState } from "@/components/ui-kit/LoadingState";
 import { useAuth } from "@/hooks/useAuth";
 import { usePendingValidations } from "@/hooks/usePendingValidations";
