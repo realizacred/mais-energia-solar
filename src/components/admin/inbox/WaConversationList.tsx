@@ -621,6 +621,8 @@ export function WaConversationList({
                       hiddenIds={hiddenIds}
                       followupConvIds={followupConvIds}
                       crossInstanceCount={crossInstanceMap.get(conv.cliente_telefone)}
+                      isPinned={pinnedIds?.has(conv.id)}
+                      onContextMenu={onContextMenuConv}
                     />
                   ))}
                 </div>
