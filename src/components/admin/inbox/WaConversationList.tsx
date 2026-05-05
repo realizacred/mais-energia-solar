@@ -371,8 +371,11 @@ function ConversationItem({
           </div>
           <div className="flex items-center gap-1 shrink-0">
             {crossInstanceCount && crossInstanceCount > 1 && (
-              <span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded border border-border">
-                {crossInstanceCount} inst.
+              <span
+                className="text-[10px] text-warning bg-warning/10 px-1.5 py-0.5 rounded border border-warning/30"
+                title={`${crossInstanceCount} conversas deste contato foram agrupadas. Use 'Ver separadas' para listar todas.`}
+              >
+                {crossInstanceCount} instâncias
               </span>
             )}
             {hasUnread && (
