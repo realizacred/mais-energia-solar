@@ -573,6 +573,7 @@ export default function Admin() {
           <UpsellBanner />
           <FeatureDiscoveryLayer />
           <main className={`flex-1 admin-content overflow-x-hidden animate-fade-in ${isInboxLayout ? "min-h-0 overflow-y-hidden" : ""}`}>
+            <AdminRouteBoundary>
             <Suspense fallback={<LoadingSpinner />}>
               <Routes>
                 {/* Default redirect */}
@@ -819,6 +820,7 @@ export default function Admin() {
                 <Route path="*" element={<Navigate to="leads" replace />} />
               </Routes>
             </Suspense>
+            </AdminRouteBoundary>
           </main>
         </SidebarInset>
         <HelpCenterDrawer open={helpOpen} onOpenChange={setHelpOpen} />
