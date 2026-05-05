@@ -20246,6 +20246,98 @@ export type Database = {
           },
         ]
       }
+      recibos_emitidos: {
+        Row: {
+          cliente_id: string
+          created_at: string
+          created_by: string | null
+          dados_preenchidos: Json
+          deal_id: string | null
+          deleted_at: string | null
+          descricao: string | null
+          emitido_em: string
+          id: string
+          numero: string | null
+          pdf_path: string | null
+          projeto_id: string | null
+          status: string
+          template_id: string
+          tenant_id: string
+          updated_at: string
+          updated_by: string | null
+          valor: number
+        }
+        Insert: {
+          cliente_id: string
+          created_at?: string
+          created_by?: string | null
+          dados_preenchidos?: Json
+          deal_id?: string | null
+          deleted_at?: string | null
+          descricao?: string | null
+          emitido_em?: string
+          id?: string
+          numero?: string | null
+          pdf_path?: string | null
+          projeto_id?: string | null
+          status?: string
+          template_id: string
+          tenant_id?: string
+          updated_at?: string
+          updated_by?: string | null
+          valor?: number
+        }
+        Update: {
+          cliente_id?: string
+          created_at?: string
+          created_by?: string | null
+          dados_preenchidos?: Json
+          deal_id?: string | null
+          deleted_at?: string | null
+          descricao?: string | null
+          emitido_em?: string
+          id?: string
+          numero?: string | null
+          pdf_path?: string | null
+          projeto_id?: string | null
+          status?: string
+          template_id?: string
+          tenant_id?: string
+          updated_at?: string
+          updated_by?: string | null
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recibos_emitidos_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recibos_emitidos_deal_id_fkey"
+            columns: ["deal_id"]
+            isOneToOne: false
+            referencedRelation: "deals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recibos_emitidos_projeto_id_fkey"
+            columns: ["projeto_id"]
+            isOneToOne: false
+            referencedRelation: "projetos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recibos_emitidos_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "document_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       release_checklists: {
         Row: {
           ambiente: string
