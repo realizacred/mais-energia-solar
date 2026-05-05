@@ -168,8 +168,10 @@ Deno.serve(async (req) => {
         const isGroup = remoteJid.endsWith("@g.us");
         const phone = remoteJid.replace("@s.whatsapp.net", "").replace("@g.us", "");
         const rawContactName = chat.name || chat.pushName || chat.contact?.pushName || chat.contact?.name || null;
-        // Sanitize: if contact name is just a phone number, ignore it
-        const contactName = rawContactName && !isPushNameJustPhone(rawContactName, remoteJid) ? rawContactName : null;
+        // Sanitize: ignore phone-like names AND names that match the instance's own profile_name (self-chat / group bug)
+        const instanceProfileName = (instance as any).profile_name?.trim().toLowerCase() || null;
+        const matchesInstanceProfile = !!(rawContactName && instanceProfileName && rawContactName.trim().toLowerCase() === instanceProfileName);
+        const contactName = rawContactName && !isPushNameJustPhone(rawContactName, remoteJid) && !matchesInstanceProfile ? rawContactName : null;
         const altJids = getAltJids(remoteJid);
 
         // Check if conversation already exists
