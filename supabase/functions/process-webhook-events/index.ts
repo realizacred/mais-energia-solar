@@ -426,24 +426,57 @@ async function reconcileOutboundEcho(
 }
 
 /**
- * Resolve conversation using canonical JID normalization.
- * Tries all JID variants to prevent duplicate conversations.
+ * Canonical phone digits for (tenant_id, telefone_normalized) lookup.
+ * Mirrors src/utils/phone/toCanonicalPhoneDigits.ts (BR celular = 11 dígitos com 9º).
+ */
+function canonicalPhoneFromJid(remoteJid: string): string | null {
+  if (!remoteJid || remoteJid.endsWith("@g.us")) return null;
+  const beforeAt = remoteJid.split("@")[0];
+  let digits = beforeAt.replace(/\D/g, "");
+  if (!digits) return null;
+  if (digits.length === 13 && digits.startsWith("55")) digits = digits.slice(2);
+  if (digits.length === 12 && digits.startsWith("55")) digits = digits.slice(2);
+  if (digits.length !== 10 && digits.length !== 11) return null;
+  const ddd = digits.slice(0, 2);
+  const rest = digits.slice(2);
+  if (rest.length === 8 && /^[89]/.test(rest)) return `${ddd}9${rest}`;
+  return digits;
+}
+
+/**
+ * Resolve conversation. Strategy (post 2026-05 dedup):
+ *  1. Lookup by (tenant_id, telefone_normalized, is_group) — new SSOT.
+ *  2. Fallback by (instance_id, remote_jid variants) for legacy/edge cases.
  */
 async function resolveConversation(
   supabase: any,
   instanceId: string,
+  tenantId: string,
   remoteJid: string,
 ): Promise<{ id: string; unread_count: number; status: string; is_group: boolean; cliente_nome: string | null; profile_picture_url: string | null; last_message_at: string | null } | null> {
+  const isGroup = remoteJid.endsWith("@g.us");
+  const phone = canonicalPhoneFromJid(remoteJid);
+
+  if (!isGroup && phone) {
+    const { data } = await supabase
+      .from("wa_conversations")
+      .select("id, unread_count, status, is_group, cliente_nome, profile_picture_url, updated_at, last_message_at")
+      .eq("tenant_id", tenantId)
+      .eq("telefone_normalized", phone)
+      .eq("is_group", false)
+      .limit(1)
+      .maybeSingle();
+    if (data) return data;
+  }
+
   const altJids = getAltJids(remoteJid);
-  
   const { data } = await supabase
     .from("wa_conversations")
     .select("id, unread_count, status, is_group, cliente_nome, profile_picture_url, updated_at, last_message_at")
-    .eq("instance_id", instanceId)
+    .eq("tenant_id", tenantId)
     .in("remote_jid", altJids)
     .limit(1)
     .maybeSingle();
-  
   return data;
 }
 
@@ -505,7 +538,7 @@ async function handleMessageUpsert(
 
     // ── STEP 1: Resolve/upsert conversation using canonical JID ──
     const t0_conv = Date.now();
-    const existingConv = await resolveConversation(supabase, instanceId, remoteJid);
+    const existingConv = await resolveConversation(supabase, instanceId, tenantId, remoteJid);
 
     let conversationId: string;
 
@@ -612,37 +645,42 @@ async function handleMessageUpsert(
       
       const canonicalJid = isGroup ? remoteJid : normalizeJid(remoteJid);
       
+      // INSERT with race-condition fallback (partial UNIQUE index can't be used as onConflict target)
+      const insertPayload = {
+        instance_id: instanceId,
+        tenant_id: tenantId,
+        remote_jid: canonicalJid,
+        cliente_telefone: phone,
+        cliente_nome: displayName,
+        is_group: isGroup,
+        status: "open",
+        last_message_at: eventDate.toISOString(),
+        last_message_preview: buildConversationPreview({
+          messageType, content, isGroup, participantName,
+        }).substring(0, 100),
+        last_message_direction: direction,
+        unread_count: fromMe ? 0 : 1,
+        profile_picture_url: null,
+      };
+
       const { data: newConv, error: convError } = await supabase
         .from("wa_conversations")
-        .upsert({
-          instance_id: instanceId,
-          tenant_id: tenantId,
-          remote_jid: canonicalJid,
-          cliente_telefone: phone,
-          cliente_nome: displayName,
-          is_group: isGroup,
-          status: "open",
-          last_message_at: eventDate.toISOString(),
-          last_message_preview: buildConversationPreview({
-            messageType,
-            content,
-            isGroup,
-            participantName,
-          }).substring(0, 100),
-          last_message_direction: direction,
-          unread_count: fromMe ? 0 : 1,
-         profile_picture_url: null,
-        }, { onConflict: "instance_id,remote_jid", ignoreDuplicates: false })
+        .insert(insertPayload)
         .select("id")
         .single();
 
-      // Immediately enqueue profile_pic job for new conversations
-
       if (convError) {
-        console.error("[process-webhook-events] Error upserting conversation:", convError);
-        throw convError;
+        // Race: another webhook created it concurrently. Re-resolve and reuse.
+        const retried = await resolveConversation(supabase, instanceId, tenantId, remoteJid);
+        if (retried) {
+          conversationId = retried.id;
+        } else {
+          console.error("[process-webhook-events] Error inserting conversation:", convError);
+          throw convError;
+        }
+      } else {
+        conversationId = newConv.id;
       }
-      conversationId = newConv.id;
 
       if (!isGroup) {
         try {
