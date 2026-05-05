@@ -465,6 +465,8 @@ export function useProjetoPipeline() {
     }
   }, [toast, selectedFunilId, filters, fetchMetadata, fetchProjetos]);
 
+  // Mount-only: filters/funil mudanças têm efeitos próprios. Adicionar fetchAll causaria loop de refetch.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { fetchAll(); }, []);
 
   // ⚠️ HARDENING: Realtime subscription + polling fallback for cross-user sync

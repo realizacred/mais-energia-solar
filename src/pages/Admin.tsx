@@ -271,10 +271,10 @@ class ProposalWizardErrorBoundary extends React.Component<
             {this.state.error?.stack?.slice(0, 500)}
           </pre>
           <button
-            onClick={() => { this.setState({ hasError: false, error: null }); window.location.reload(); }}
+            onClick={() => this.setState({ hasError: false, error: null })}
             className="text-sm text-primary underline"
           >
-            Recarregar página
+            Tentar novamente
           </button>
         </div>
       );

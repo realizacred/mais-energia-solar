@@ -203,9 +203,8 @@ export default function MigracaoSolarmarket() {
       });
       setResetOpen(false);
       setResetConfirmText("");
+      // Invalidar todo o cache do React Query para garantir estado limpo (sem reload total).
       await queryClient.invalidateQueries();
-      // Recarregar a página para garantir estado limpo.
-      setTimeout(() => window.location.reload(), 600);
     } catch (e: any) {
       toast({
         title: "Falha ao resetar",

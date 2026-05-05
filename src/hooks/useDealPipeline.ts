@@ -424,6 +424,8 @@ export function useDealPipeline() {
     }
   }, [toast, filters, fetchMetadata, fetchDeals]);
 
+  // Mount-only: filters/metadata mudanças têm efeitos próprios. Adicionar fetchAll causaria loop de refetch.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { fetchAll(); }, []);
 
   // ⚠️ HARDENING: Realtime subscription for cross-user sync on deals/stages
