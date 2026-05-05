@@ -623,8 +623,20 @@ export function WaConversationList({
               </span>
             </label>
           )}
+          <label
+            className="flex items-center gap-1.5 cursor-pointer"
+            title="Exibe cada conversa do mesmo contato separadamente (sem agrupar duplicatas por telefone)."
+          >
+            <Switch
+              checked={!mergeDuplicates}
+              onCheckedChange={(v) => handleMergeChange(!v)}
+              className="h-4 w-7 [&>span]:h-3 [&>span]:w-3"
+            />
+            <span className="text-[10px] text-muted-foreground flex items-center gap-0.5">
+              <GitBranch className="h-3 w-3" /> Ver separadas
+            </span>
+          </label>
         </div>
-      </div>
 
       {/* Conversations */}
       <div className="flex-1 min-h-0 overflow-hidden">
