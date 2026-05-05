@@ -127,64 +127,27 @@ export function useProjetoDetalheData(dealId: string) {
         }
       }
 
-      // 1. Deal + history
-      const [dealRes, historyRes] = await Promise.all([
-        supabase
-          .from("deals")
-          .select("id, title, value, kwp, status, created_at, updated_at, owner_id, pipeline_id, stage_id, customer_id, projeto_id, expected_close_date, motivo_perda_id, motivo_perda_obs, deal_num")
-          .eq("id", resolvedDealId)
-          .maybeSingle(),
-        supabase
-          .from("deal_stage_history")
-          .select("id, deal_id, from_stage_id, to_stage_id, moved_at, moved_by, metadata")
-          .eq("deal_id", resolvedDealId)
-          .order("moved_at", { ascending: false }),
-      ]);
+      // Fase 2c: 1 RPC consolidada substitui ~9 queries.
+      const { data: rpcData, error: rpcErr } = await (supabase as any).rpc(
+        "get_projeto_detalhe",
+        { _deal_id: resolvedDealId }
+      );
+      if (rpcErr) throw rpcErr;
+      if (!rpcData) throw new Error("Projeto não encontrado");
 
-      if (dealRes.error) throw dealRes.error;
-      const d = dealRes.data as DealDetail;
-      const historyData = (historyRes.data || []) as StageHistory[];
+      const d = rpcData.deal as DealDetail;
+      const historyData = (rpcData.history || []) as StageHistory[];
 
-      // 2. User names from history
-      const movedByIds = [...new Set(historyData.map(h => h.moved_by).filter(Boolean))] as string[];
+      // User names from history
       const userNamesMap = new Map<string, string>();
-      if (movedByIds.length > 0) {
-        const { data: profiles } = await supabase
-          .from("profiles")
-          .select("user_id, nome")
-          .in("user_id", movedByIds);
-        if (profiles) {
-          (profiles as any[]).forEach(p => userNamesMap.set(p.user_id, p.nome));
-        }
-      }
-
-      // 3. Parallel: stages, customer, owner, pipelines, allStages
-      const [stagesRes, customerRes, ownerRes, pipelinesRes, allStagesRes] = await Promise.all([
-        supabase
-          .from("pipeline_stages")
-          .select("id, name, position, is_closed, is_won, probability")
-          .eq("pipeline_id", d.pipeline_id)
-          .order("position"),
-        d.customer_id
-          ? supabase
-              .from("clientes")
-              .select("nome, telefone, email, cpf_cnpj, empresa, rua, numero, bairro, cidade, estado, cep")
-              .eq("id", d.customer_id)
-              .maybeSingle()
-          : Promise.resolve({ data: null }),
-        supabase.from("consultores").select("nome").eq("id", d.owner_id).maybeSingle(),
-        supabase.from("pipelines").select("id, name").eq("is_active", true).order("name"),
-        supabase
-          .from("pipeline_stages")
-          .select("id, name, position, pipeline_id, is_closed, is_won, probability")
-          .order("position"),
-      ]);
+      const namesObj = (rpcData.user_names || {}) as Record<string, string>;
+      Object.entries(namesObj).forEach(([uid, nome]) => userNamesMap.set(uid, nome));
 
       // Customer
       let customerName = "", customerPhone = "", customerEmail = "";
       let customerCpfCnpj = "", customerAddress = "", customerEmpresa = "";
-      if (customerRes.data) {
-        const c = customerRes.data as any;
+      if (rpcData.customer) {
+        const c = rpcData.customer as any;
         customerName = c.nome;
         customerPhone = c.telefone || "";
         customerEmail = c.email || "";
@@ -200,59 +163,47 @@ export function useProjetoDetalheData(dealId: string) {
         customerAddress = parts.join(", ");
       }
 
-      // Owner
-      const ownerName = (ownerRes.data as any)?.nome || "";
-
-      // Pipelines
-      const pipelines = (pipelinesRes.data || []) as PipelineInfo[];
+      const ownerName = (rpcData.owner_name as string) || "";
+      const pipelines = (rpcData.pipelines || []) as PipelineInfo[];
 
       // All stages map
       const allStagesMap = new Map<string, StageInfo[]>();
-      if (allStagesRes.data) {
-        (allStagesRes.data as any[]).forEach(s => {
-          const arr = allStagesMap.get(s.pipeline_id) || [];
-          arr.push({
-            id: s.id,
-            name: s.name,
-            position: s.position,
-            is_closed: s.is_closed,
-            is_won: s.is_won,
-            probability: s.probability,
-          });
-          allStagesMap.set(s.pipeline_id, arr);
+      ((rpcData.all_stages || []) as any[]).forEach(s => {
+        const arr = allStagesMap.get(s.pipeline_id) || [];
+        arr.push({
+          id: s.id,
+          name: s.name,
+          position: s.position,
+          is_closed: s.is_closed,
+          is_won: s.is_won,
+          probability: s.probability,
         });
-      }
+        allStagesMap.set(s.pipeline_id, arr);
+      });
 
-      // Docs count: storage files + generated documents
-      // RB/Segurança: filtrar perfil por auth.uid() — limit(1) sem filtro pode
-      // retornar perfil de outro tenant sob RLS permissiva e quebrar paths.
-      let docsCount = 0;
+      // Docs count: storage files + generated documents (RPC já trouxe generated)
+      let docsCount = (rpcData.generated_docs_count as number) || 0;
       const { data: authData } = await supabase.auth.getUser();
       const uid = authData?.user?.id;
-      const { data: profile } = uid
-        ? await supabase
-            .from("profiles")
-            .select("tenant_id")
-            .eq("user_id", uid)
-            .maybeSingle()
-        : { data: null as any };
-      if (profile) {
-        const { data: files } = await supabase.storage
-          .from("projeto-documentos")
-          .list(`${(profile as any).tenant_id}/deals/${d.id}`, { limit: 100 });
-        docsCount += files?.length || 0;
+      if (uid) {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("tenant_id")
+          .eq("user_id", uid)
+          .maybeSingle();
+        if (profile) {
+          const { data: files } = await supabase.storage
+            .from("projeto-documentos")
+            .list(`${(profile as any).tenant_id}/deals/${d.id}`, { limit: 100 });
+          docsCount += files?.length || 0;
+        }
       }
-      const { count: genDocsCount } = await supabase
-        .from("generated_documents")
-        .select("id", { count: "exact", head: true })
-        .eq("deal_id", d.id);
-      docsCount += genDocsCount || 0;
 
       return {
         deal: d,
         projetoId: d.projeto_id ?? null,
         history: historyData,
-        stages: (stagesRes.data || []) as StageInfo[],
+        stages: (rpcData.stages || []) as StageInfo[],
         customerName,
         customerPhone,
         customerEmail,
