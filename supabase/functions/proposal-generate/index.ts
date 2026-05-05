@@ -4,6 +4,7 @@ import {
   evaluateExpression, round2,
   type CalcInputs, type CenarioInput, type FioBStep,
 } from "../_shared/calc-engine.ts";
+import { callAi } from "../_shared/aiCallNoLovable.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
