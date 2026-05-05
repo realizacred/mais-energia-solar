@@ -137,60 +137,25 @@ ${mensagensFormatadas.map((m) => `[${m.quando}] ${m.quem}: "${m.texto}"`).join("
 
 ANALISE E RESPONDA EM JSON VÁLIDO:`;
 
-    // 5. Call Lovable AI Gateway
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) {
-      throw new Error("LOVABLE_API_KEY not configured");
-    }
+    // 5. Call AI (Gemini direto / OpenAI fallback)
+    const tier: "flash" | "pro" = config.ia_provedor === "openai" ? "flash" : "flash";
 
-    // Map provider preference to gateway model
-    const modelMap: Record<string, string> = {
-      openai: "openai/gpt-5-mini",
-      gemini: "google/gemini-2.5-flash",
-      local: "google/gemini-2.5-flash-lite",
-    };
-    const model = modelMap[config.ia_provedor || "gemini"] || "google/gemini-2.5-flash";
-
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), config.ia_timeout_ms || 10000);
-
-    let aiResponse: Response;
+    let aiData;
     try {
-      aiResponse = await fetch(LOVABLE_GATEWAY, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${LOVABLE_API_KEY}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model,
-          messages: [
-            { role: "system", content: systemPrompt },
-            { role: "user", content: userPrompt },
-          ],
-          temperature: config.ia_temperatura || 0.7,
-          max_tokens: config.ia_max_tokens || 500,
-        }),
-        signal: controller.signal,
+      aiData = await callAi({
+        tier,
+        temperature: config.ia_temperatura || 0.7,
+        maxTokens: config.ia_max_tokens || 500,
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userPrompt },
+        ],
       });
-    } finally {
-      clearTimeout(timeout);
+    } catch (err) {
+      console.error("[v2] AI error:", (err as Error).message);
+      throw err;
     }
 
-    if (!aiResponse.ok) {
-      const errText = await aiResponse.text();
-      console.error("[v2] AI Gateway error:", aiResponse.status, errText);
-
-      if (aiResponse.status === 429) {
-        throw new Error("Rate limit exceeded on AI Gateway");
-      }
-      if (aiResponse.status === 402) {
-        throw new Error("AI Gateway credits exhausted");
-      }
-      throw new Error(`AI Gateway error: ${aiResponse.status}`);
-    }
-
-    const aiData = await aiResponse.json();
     const rawContent = aiData.choices?.[0]?.message?.content || "";
     const tokensUsed = aiData.usage?.total_tokens || 0;
     const promptTokens = aiData.usage?.prompt_tokens || 0;
