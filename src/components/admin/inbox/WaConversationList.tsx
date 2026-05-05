@@ -244,7 +244,14 @@ function ConversationItem({
     // RB-03-exception: chat micro-interaction — conversation card with onContextMenu and complex layout
     <button
       onClick={() => onSelect(conv)}
-      onContextMenu={(e) => e.preventDefault()}
+      onContextMenu={(e) => {
+        if (onContextMenu) {
+          e.preventDefault();
+          onContextMenu(e, conv);
+        } else {
+          e.preventDefault();
+        }
+      }}
       aria-selected={isSelected}
       className={cn(
         "relative w-full text-left flex gap-2 items-stretch p-[10px_12px] bg-card",
@@ -254,6 +261,7 @@ function ConversationItem({
         isSelected && "bg-primary/[0.06] ring-1 ring-primary/20",
         hasUnread && !isSelected && "bg-primary/[0.03]",
         isMuted && "opacity-60",
+        isPinned && "ring-1 ring-warning/30",
       )}
     >
       {/* Left urgency bar with tooltip */}
