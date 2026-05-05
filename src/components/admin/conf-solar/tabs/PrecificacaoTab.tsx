@@ -78,7 +78,7 @@ export function PrecificacaoTab() {
   ];
 
   return (
-    <Card className="border-border/60">
+    <Card className="border-border/60 border-l-4 border-l-primary">
       <CardHeader className="pb-4">
         <CardTitle className="text-sm font-semibold flex items-center gap-2">
           <DollarSign className="h-4 w-4 text-primary" />
