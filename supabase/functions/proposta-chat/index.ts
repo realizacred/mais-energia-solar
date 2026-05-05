@@ -8,6 +8,8 @@
  * Página pública — sem AuthGuard (exceção RB-02).
  */
 
+import { callAi } from "../_shared/aiCallNoLovable.ts";
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
