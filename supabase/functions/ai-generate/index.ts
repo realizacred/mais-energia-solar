@@ -35,27 +35,7 @@ interface RequestBody {
   tenantId: string;
 }
 
-async function callLovableGateway(model: string, system: string, user: string): Promise<AIResponse> {
-  const apiKey = Deno.env.get("LOVABLE_API_KEY");
-  if (!apiKey) throw new Error("LOVABLE_API_KEY não configurada");
-  const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-    method: "POST",
-    headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
-    body: JSON.stringify({
-      model,
-      messages: [
-        { role: "system", content: system },
-        { role: "user", content: user },
-      ],
-    }),
-  });
-  if (!res.ok) throw new Error(`Lovable Gateway error: ${res.status} - ${await res.text()}`);
-  const data = await res.json();
-  return {
-    content: data.choices[0]?.message?.content || "",
-    usage: data.usage || { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 },
-  };
-}
+// Lovable Gateway removido — apenas Gemini direto e OpenAI direto.
 
 async function callGemini(model: string, system: string, user: string): Promise<AIResponse> {
   const apiKey = Deno.env.get("GEMINI_API_KEY");
