@@ -707,19 +707,33 @@ Deno.serve(async (req) => {
           profilePicUrl = await fetchProfilePicture(supabaseAdmin, resolvedInstance.id, remoteJid);
         } catch (_) { /* ignore */ }
 
-        // Check if conversation already exists using ALL possible JID formats
-        // This prevents duplicate conversations from phone number normalization differences
-        const { data: existingConv } = await supabaseAdmin
-          .from("wa_conversations")
-          .select("id, assigned_to, profile_picture_url, remote_jid")
-          .eq("instance_id", resolvedInstance.id)
-          .in("remote_jid", altJids)
-          .limit(1)
-          .maybeSingle();
+        // Lookup conversation. SSOT post-2026-05: (tenant_id, telefone_normalized, is_group).
+        // Fallback to (tenant_id, remote_jid variants) for legacy rows.
+        const phoneCanon = canonicalPhoneFromJid(remoteJid);
+        let existingConv: { id: string; assigned_to: string | null; profile_picture_url: string | null; remote_jid: string } | null = null;
+        if (phoneCanon) {
+          const { data } = await supabaseAdmin
+            .from("wa_conversations")
+            .select("id, assigned_to, profile_picture_url, remote_jid")
+            .eq("tenant_id", tenantIdResolved)
+            .eq("telefone_normalized", phoneCanon)
+            .eq("is_group", false)
+            .limit(1)
+            .maybeSingle();
+          existingConv = data;
+        }
+        if (!existingConv) {
+          const { data } = await supabaseAdmin
+            .from("wa_conversations")
+            .select("id, assigned_to, profile_picture_url, remote_jid")
+            .eq("tenant_id", tenantIdResolved)
+            .in("remote_jid", altJids)
+            .limit(1)
+            .maybeSingle();
+          existingConv = data;
+        }
 
         if (existingConv) {
-          // P0-4: UPDATE existing — automation NEVER reassigns (removed shouldForceAssignToLeadOwner)
-          // Only fill empty assigned_to, never overwrite existing assignment
           createdConvId = existingConv.id;
           const updates: Record<string, unknown> = {
             status: "open",
@@ -728,26 +742,19 @@ Deno.serve(async (req) => {
             last_message_direction: "out",
             updated_at: new Date().toISOString(),
           };
-
-          // P0-4: Only assign if currently unassigned — never overwrite
-          if (!existingConv.assigned_to && assignedTo) {
-            updates.assigned_to = assignedTo;
-          }
-
+          if (!existingConv.assigned_to && assignedTo) updates.assigned_to = assignedTo;
           if (lead_id) updates.lead_id = lead_id;
           if (clienteNome) updates.cliente_nome = clienteNome;
           if (profilePicUrl && profilePicUrl !== existingConv.profile_picture_url) {
             updates.profile_picture_url = profilePicUrl;
           }
-
           await supabaseAdmin.from("wa_conversations").update(updates).eq("id", existingConv.id);
-          console.log(`[send-wa] Conversation updated (existing): ${existingConv.id}`);
           convCreatedOrUpdated = true;
         } else {
-          // P0-3: UPSERT new conversation — onConflict(instance_id,remote_jid) WITHOUT assigned_to
+          // INSERT with race-condition fallback (partial UNIQUE can't be onConflict target)
           const { data: newConv, error: convErr } = await supabaseAdmin
             .from("wa_conversations")
-            .upsert({
+            .insert({
               tenant_id: tenantIdResolved,
               instance_id: resolvedInstance.id,
               remote_jid: remoteJid,
@@ -761,12 +768,26 @@ Deno.serve(async (req) => {
               is_group: false,
               canal: "whatsapp",
               profile_picture_url: profilePicUrl,
-            }, { onConflict: "instance_id,remote_jid", ignoreDuplicates: false })
+            })
             .select("id")
             .single();
 
           if (convErr || !newConv) {
-            console.error("[ALERT] Conv upsert failed — outbound message may be orphaned:", convErr);
+            // Race: another caller created it concurrently. Re-resolve and reuse.
+            const { data: retried } = await supabaseAdmin
+              .from("wa_conversations")
+              .select("id")
+              .eq("tenant_id", tenantIdResolved)
+              .eq("telefone_normalized", phoneCanon || "")
+              .eq("is_group", false)
+              .limit(1)
+              .maybeSingle();
+            if (retried) {
+              createdConvId = retried.id;
+              convCreatedOrUpdated = true;
+            } else {
+              console.error("[ALERT] Conv insert failed — outbound message may be orphaned:", convErr);
+            }
           } else {
             createdConvId = newConv.id;
             convCreatedOrUpdated = true;
