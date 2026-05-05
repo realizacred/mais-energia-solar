@@ -287,8 +287,6 @@ Deno.serve(async (req) => {
  * be deferred to a later time, or be skipped entirely.
  */
 async function classifyConversationForSla(
-  apiKey: string,
-  isOpenAI: boolean,
   clienteName: string | null,
   messageHistory: string,
   minutesSinceLastResponse: number
@@ -310,39 +308,26 @@ Tempo sem resposta do atendente: ${minutesSinceLastResponse} minutos
 Últimas mensagens:
 ${messageHistory || "(sem histórico)"}`;
 
-  const url = isOpenAI
-    ? "https://api.openai.com/v1/chat/completions"
-    : "https://ai.gateway.lovable.dev/v1/chat/completions";
-
-  const model = isOpenAI ? "gpt-4o-mini" : "google/gemini-2.5-flash-lite";
-
   try {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 8000);
 
-    const r = await fetch(url, {
-      method: "POST",
-      headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model,
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: userPrompt },
-        ],
-        max_tokens: 200,
-        temperature: 0.1,
-      }),
+    const data = await callAi({
+      tier: "flash",
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userPrompt },
+      ],
+      maxTokens: 200,
+      temperature: 0.1,
       signal: controller.signal,
     });
-
     clearTimeout(timeout);
-    if (!r.ok) return null;
+    console.log("[ai] provider:", data.provider, "model:", data.model);
 
-    const data = await r.json();
     const raw = data.choices?.[0]?.message?.content?.trim();
     if (!raw) return null;
 
-    // Extract JSON from response (handle markdown code blocks)
     const jsonMatch = raw.match(/\{[\s\S]*\}/);
     if (!jsonMatch) return null;
 
