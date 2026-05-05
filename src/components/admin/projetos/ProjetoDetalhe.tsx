@@ -139,8 +139,6 @@ function SinalReciboCTA({
   setActiveTab: (t: TabId) => void;
 }) {
   const [emitirOpen, setEmitirOpen] = useState(false);
-  // Lazy import hook to avoid circulars
-  const { useRecibos } = require("@/hooks/useRecibos") as typeof import("@/hooks/useRecibos");
   const { data: recibos } = useRecibos({ deal_id: dealId });
   const hasSinal = (recibos ?? []).some((r) =>
     (r.descricao ?? "").toLowerCase().includes("sinal") ||
