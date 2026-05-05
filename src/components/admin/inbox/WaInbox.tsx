@@ -398,10 +398,39 @@ export function WaInbox({ vendorMode = false, vendorUserId, showCompactStats = f
     }
   }, [allConversations, convsLoading]);
 
+  // Sync filters → URL (preserve other params, only push when changed)
+  useEffect(() => {
+    if (!urlEnabled) return;
+    const next = new URLSearchParams(searchParams);
+    const setOrDel = (k: string, v: string, def: string) => {
+      if (v && v !== def) next.set(k, v); else next.delete(k);
+    };
+    setOrDel("status", filterStatus, "open");
+    setOrDel("assigned", filterAssigned, "all");
+    setOrDel("instance", filterInstance, "all");
+    setOrDel("tag", filterTag, "all");
+    if (filterUnread) next.set("unread", "1"); else next.delete("unread");
+    if (next.toString() !== searchParams.toString()) {
+      setSearchParams(next, { replace: true });
+    }
+  }, [filterStatus, filterAssigned, filterInstance, filterTag, filterUnread, urlEnabled]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // KPI click handler
+  const handleKpiSelect = useCallback((key: "open" | "pending" | "unread" | "resolved") => {
+    if (key === "unread") {
+      setFilterUnread((v) => !v);
+      return;
+    }
+    setFilterUnread(false);
+    setFilterStatus((prev) => (prev === key ? "all" : key));
+  }, []);
+
   // Single source of truth: filter client-side for status, unassigned, and tags
   const filteredConvs = allConversations.filter((c) => {
     // Status filter
     if (filterStatus !== "all" && c.status !== filterStatus) return false;
+    // Unread filter
+    if (filterUnread && !(c.unread_count > 0)) return false;
     // Unassigned filter
     if (filterAssigned === "unassigned" && c.assigned_to) return false;
     // Tag filter
