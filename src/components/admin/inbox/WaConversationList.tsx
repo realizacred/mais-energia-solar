@@ -205,6 +205,8 @@ function ConversationItem({
   hiddenIds,
   followupConvIds,
   crossInstanceCount,
+  isPinned,
+  onContextMenu,
 }: {
   conv: WaConversation;
   isSelected: boolean;
@@ -216,6 +218,8 @@ function ConversationItem({
   hiddenIds?: Set<string>;
   followupConvIds?: Set<string>;
   crossInstanceCount?: number;
+  isPinned?: boolean;
+  onContextMenu?: (e: React.MouseEvent, conv: WaConversation) => void;
 }) {
   const st = statusConfig[conv.status] || statusConfig.open;
   const isMuted = mutedIds?.has(conv.id);
