@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { callAi } from "../_shared/aiCallNoLovable.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -143,21 +144,10 @@ Deno.serve(async (req) => {
         const existingSet = new Set((existingAlerts || []).map((a: any) => a.conversation_id));
         const newViolations = violations.filter((v: any) => !existingSet.has(v.id));
 
-        // Get AI API key for this tenant (used for summary + classification)
-        let aiApiKey: string | null = null;
-        if (cfg.gerar_resumo_ia) {
-          const { data: keyRow } = await sb
-            .from("integration_configs")
-            .select("api_key")
-            .eq("tenant_id", cfg.tenant_id)
-            .eq("service_key", "openai")
-            .eq("is_active", true)
-            .single();
-          aiApiKey = keyRow?.api_key || null;
-        }
-
-        // Also try Lovable AI as fallback
-        const lovableKey = Deno.env.get("LOVABLE_API_KEY");
+        // AI is now resolved internally by callAi() (Gemini direct → OpenAI fallback).
+        // We only need to know if AI features are enabled per tenant config.
+        const aiEnabled = !!cfg.gerar_resumo_ia &&
+          (!!Deno.env.get("GEMINI_API_KEY") || !!Deno.env.get("OPENAI_API_KEY"));
 
         // Create new alerts
         for (const v of newViolations) {
@@ -180,12 +170,9 @@ Deno.serve(async (req) => {
             .join("\n");
 
           // AI classification: should we alert now, defer, or skip?
-          const effectiveKey = aiApiKey || lovableKey;
-          if (effectiveKey && cfg.gerar_resumo_ia) {
+          if (aiEnabled) {
             try {
               const classification = await classifyConversationForSla(
-                effectiveKey,
-                !!aiApiKey, // true = OpenAI, false = Lovable gateway
                 v.cliente_nome,
                 hist,
                 v.tempo_sem_resposta_minutos
@@ -196,7 +183,6 @@ Deno.serve(async (req) => {
                 if (aiSummary) metrics.ai_summaries++;
 
                 if (classification.action === "defer" && classification.defer_hours) {
-                  // Pause SLA for this conversation until the suggested time
                   const pauseUntil = new Date(Date.now() + classification.defer_hours * 3600 * 1000).toISOString();
                   await sb
                     .from("wa_conversations")
@@ -209,11 +195,9 @@ Deno.serve(async (req) => {
                   shouldAlert = false;
                   console.log(`[sla] Skipped alert for conv=${v.id}: ${classification.reason}`);
                 }
-                // action === "alert" → proceed normally
               }
             } catch (e: any) {
               console.warn(`[sla] AI classification failed for conv=${v.id}:`, e.message);
-              // Fallback: alert anyway
             }
           }
 
@@ -303,8 +287,6 @@ Deno.serve(async (req) => {
  * be deferred to a later time, or be skipped entirely.
  */
 async function classifyConversationForSla(
-  apiKey: string,
-  isOpenAI: boolean,
   clienteName: string | null,
   messageHistory: string,
   minutesSinceLastResponse: number
@@ -326,39 +308,26 @@ Tempo sem resposta do atendente: ${minutesSinceLastResponse} minutos
 Últimas mensagens:
 ${messageHistory || "(sem histórico)"}`;
 
-  const url = isOpenAI
-    ? "https://api.openai.com/v1/chat/completions"
-    : "https://ai.gateway.lovable.dev/v1/chat/completions";
-
-  const model = isOpenAI ? "gpt-4o-mini" : "google/gemini-2.5-flash-lite";
-
   try {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 8000);
 
-    const r = await fetch(url, {
-      method: "POST",
-      headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model,
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: userPrompt },
-        ],
-        max_tokens: 200,
-        temperature: 0.1,
-      }),
+    const data = await callAi({
+      tier: "flash",
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userPrompt },
+      ],
+      maxTokens: 200,
+      temperature: 0.1,
       signal: controller.signal,
     });
-
     clearTimeout(timeout);
-    if (!r.ok) return null;
+    console.log("[ai] provider:", data.provider, "model:", data.model);
 
-    const data = await r.json();
     const raw = data.choices?.[0]?.message?.content?.trim();
     if (!raw) return null;
 
-    // Extract JSON from response (handle markdown code blocks)
     const jsonMatch = raw.match(/\{[\s\S]*\}/);
     if (!jsonMatch) return null;
 
