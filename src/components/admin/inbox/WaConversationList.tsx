@@ -459,8 +459,59 @@ export function WaConversationList({
   onContextMenuConv,
 }: WaConversationListProps) {
   // Lista única ordenada por última mensagem (já vem ordenada do hook).
-  // Removido o split unassigned/assigned para garantir que conversas atribuídas
-  // com mensagens recentes apareçam no topo (comportamento estilo WhatsApp).
+
+  // ── Dedup por contato (telefone canônico) ─────────────
+  // Evita exibir o mesmo contato repetido quando há múltiplas conversas
+  // (instâncias diferentes ou variações de JID com/sem 9º dígito).
+  const [mergeDuplicates, setMergeDuplicates] = useState<boolean>(() => {
+    if (typeof window === "undefined") return true;
+    return window.localStorage.getItem("wa-inbox-merge-duplicates") !== "0";
+  });
+  const handleMergeChange = (v: boolean) => {
+    setMergeDuplicates(v);
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem("wa-inbox-merge-duplicates", v ? "1" : "0");
+    }
+  };
+
+  const { displayedConversations, duplicateCountByConvId } = useMemo(() => {
+    const dupCount = new Map<string, number>();
+    if (!mergeDuplicates) {
+      return { displayedConversations: conversations, duplicateCountByConvId: dupCount };
+    }
+    const buckets = new Map<string, WaConversation[]>();
+    const passthrough: WaConversation[] = [];
+    for (const c of conversations) {
+      if (c.is_group) {
+        passthrough.push(c);
+        continue;
+      }
+      const canonical = toCanonicalPhoneDigits(c.cliente_telefone || c.remote_jid || "");
+      const key = canonical || `__raw:${(c.cliente_telefone || c.remote_jid || c.id).trim()}`;
+      const arr = buckets.get(key);
+      if (arr) arr.push(c);
+      else buckets.set(key, [c]);
+    }
+    const winners: WaConversation[] = [];
+    for (const arr of buckets.values()) {
+      arr.sort((a, b) => {
+        const ta = a.last_message_at ? new Date(a.last_message_at).getTime() : 0;
+        const tb = b.last_message_at ? new Date(b.last_message_at).getTime() : 0;
+        return tb - ta;
+      });
+      const winner = arr[0];
+      // Soma unread_count de todas as duplicatas no vencedor para não perder badge
+      const totalUnread = arr.reduce((s, c) => s + (c.unread_count || 0), 0);
+      winners.push({ ...winner, unread_count: totalUnread });
+      if (arr.length > 1) dupCount.set(winner.id, arr.length);
+    }
+    const merged = [...winners, ...passthrough].sort((a, b) => {
+      const ta = a.last_message_at ? new Date(a.last_message_at).getTime() : 0;
+      const tb = b.last_message_at ? new Date(b.last_message_at).getTime() : 0;
+      return tb - ta;
+    });
+    return { displayedConversations: merged, duplicateCountByConvId: dupCount };
+  }, [conversations, mergeDuplicates]);
 
   return (
     <div className="flex h-full min-h-0 w-full min-w-0 flex-col overflow-hidden border-r border-border/30 bg-card/50">
