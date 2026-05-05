@@ -268,12 +268,13 @@ Deno.serve(async (req) => {
       return jsonOk(quickResult);
     }
 
-    // ── FULL mode: AI analysis ──────────────────────────────
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) {
+    // ── FULL mode: AI analysis (Gemini direto / OpenAI fallback) ──────────
+    const hasGemini = !!Deno.env.get("GEMINI_API_KEY");
+    const hasOpenAI = !!Deno.env.get("OPENAI_API_KEY");
+    if (!hasGemini && !hasOpenAI) {
       return jsonOk({
         ...quickResult,
-        analise_ia: "LOVABLE_API_KEY não configurada. Análise com IA indisponível.",
+        analise_ia: "Nenhuma API key de IA configurada (GEMINI_API_KEY ou OPENAI_API_KEY). Análise indisponível.",
         prompt_lovable: null,
       });
     }
