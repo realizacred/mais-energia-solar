@@ -105,7 +105,7 @@ Deno.serve(async (req) => {
     // Get instance details
     const { data: instance, error: instErr } = await supabase
       .from("wa_instances")
-      .select("id, tenant_id, evolution_api_url, evolution_instance_key, api_key")
+      .select("id, tenant_id, evolution_api_url, evolution_instance_key, api_key, profile_name")
       .eq("id", instance_id)
       .single();
 
