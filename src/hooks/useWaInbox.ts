@@ -448,7 +448,7 @@ export function useWaMessages(conversationId?: string) {
       const requestedConvId = conversationId;
       const { data, error } = await supabase
         .from("wa_messages")
-        .select("id, conversation_id, content, direction, message_type, status, source, media_url, media_mime_type, media_status, media_error_message, file_name, file_size, quoted_message_id, sent_by_user_id, is_internal_note, participant_jid, participant_name, evolution_message_id, correlation_id, error_message, error_code, metadata, created_at, queued_at, sent_at, delivered_at, read_at, failed_at")
+        .select("id, conversation_id, content, direction, message_type, status, source, media_url, storage_path, media_mime_type, media_status, media_error_message, file_name, file_size, quoted_message_id, sent_by_user_id, is_internal_note, participant_jid, participant_name, evolution_message_id, correlation_id, error_message, error_code, metadata, created_at, queued_at, sent_at, delivered_at, read_at, failed_at")
         .eq("conversation_id", requestedConvId)
         .order("created_at", { ascending: false })
         .order("id", { ascending: false })
@@ -505,7 +505,7 @@ export function useWaMessages(conversationId?: string) {
       const oldest = allMessages[0];
       const { data, error } = await supabase
         .from("wa_messages")
-        .select("id, conversation_id, content, direction, message_type, status, source, media_url, media_mime_type, media_status, media_error_message, file_name, file_size, quoted_message_id, sent_by_user_id, is_internal_note, participant_jid, participant_name, evolution_message_id, correlation_id, error_message, error_code, metadata, created_at, queued_at, sent_at, delivered_at, read_at, failed_at")
+        .select("id, conversation_id, content, direction, message_type, status, source, media_url, storage_path, media_mime_type, media_status, media_error_message, file_name, file_size, quoted_message_id, sent_by_user_id, is_internal_note, participant_jid, participant_name, evolution_message_id, correlation_id, error_message, error_code, metadata, created_at, queued_at, sent_at, delivered_at, read_at, failed_at")
         .eq("conversation_id", conversationId)
         .or(`created_at.lt.${oldest.created_at},and(created_at.eq.${oldest.created_at},id.lt.${oldest.id})`)
         .order("created_at", { ascending: false })
@@ -610,7 +610,7 @@ export function useWaMessages(conversationId?: string) {
           if (!latest) return;
           const { data, error } = await supabase
             .from("wa_messages")
-            .select("id, conversation_id, content, direction, message_type, status, source, media_url, media_mime_type, media_status, media_error_message, file_name, file_size, quoted_message_id, sent_by_user_id, is_internal_note, participant_jid, participant_name, evolution_message_id, correlation_id, error_message, error_code, metadata, created_at, queued_at, sent_at, delivered_at, read_at, failed_at")
+            .select("id, conversation_id, content, direction, message_type, status, source, media_url, storage_path, media_mime_type, media_status, media_error_message, file_name, file_size, quoted_message_id, sent_by_user_id, is_internal_note, participant_jid, participant_name, evolution_message_id, correlation_id, error_message, error_code, metadata, created_at, queued_at, sent_at, delivered_at, read_at, failed_at")
             .eq("conversation_id", conversationId)
             .or(`created_at.gt.${latest.created_at},and(created_at.eq.${latest.created_at},id.gt.${latest.id})`)
             .order("created_at", { ascending: true })
