@@ -473,7 +473,7 @@ export function useProjetoPipeline() {
   useEffect(() => {
     let debounceTimer: ReturnType<typeof setTimeout> | null = null;
 
-    const refreshProjetos = () => {
+    const refreshProjetos = (delayMs = 1500) => {
       if (debounceTimer) clearTimeout(debounceTimer);
       debounceTimer = setTimeout(async () => {
         try {
@@ -482,27 +482,28 @@ export function useProjetoPipeline() {
         } catch (e) {
           console.error("Realtime projetos refresh:", e);
         }
-      }, 500);
+      }, delayMs);
     };
 
+    const onChange = () => refreshProjetos(1500);
+    // Subscribes únicos por tabela (RB-71/Realtime gov): 1 channel, sem listener duplicado.
     const channel = supabase
       .channel('projetos-pipeline-realtime')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'projetos' }, refreshProjetos)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'projeto_etapas' }, refreshProjetos)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'projeto_funis' }, refreshProjetos)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'projeto_etapas' }, refreshProjetos)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'pipelines' }, refreshProjetos)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'pipeline_stages' }, refreshProjetos)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'propostas_nativas' }, refreshProjetos)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'clientes' }, refreshProjetos)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'deals' }, refreshProjetos)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'projetos' }, onChange)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'projeto_etapas' }, onChange)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'projeto_funis' }, onChange)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'pipelines' }, onChange)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'pipeline_stages' }, onChange)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'propostas_nativas' }, onChange)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'clientes' }, onChange)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'deals' }, onChange)
       .subscribe();
 
     // Polling fallback (30s) — catches service_role inserts missed by Realtime
-    const pollInterval = setInterval(refreshProjetos, 30_000);
+    const pollInterval = setInterval(() => refreshProjetos(100), 30_000);
 
     const handleVisibility = () => {
-      if (document.visibilityState === 'visible') refreshProjetos();
+      if (document.visibilityState === 'visible') refreshProjetos(300);
     };
 
     document.addEventListener('visibilitychange', handleVisibility);
