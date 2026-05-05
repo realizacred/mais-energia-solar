@@ -7,6 +7,7 @@ import { Switch } from "@/components/ui/switch";
 import { toast } from "@/hooks/use-toast";
 import { Plus, Trash2, Save, Loader2, Building2 } from "lucide-react";
 import { useFinanciamentoBancos, useSaveFinanciamentoBancos, type BancoRow } from "@/hooks/useFinanciamentoBancos";
+import { LoadingState } from "@/components/ui-kit";
 
 export function FinanciamentosTab() {
   const { data: loadedBancos, isLoading: loading } = useFinanciamentoBancos();
@@ -41,11 +42,11 @@ export function FinanciamentosTab() {
   }
 
   if (loading) {
-    return <div className="flex items-center justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>;
+    return <LoadingState context="config" />;
   }
 
   return (
-    <Card className="border-border/60">
+    <Card className="border-border/60 border-l-4 border-l-primary">
       <CardHeader className="pb-4 flex flex-row items-center justify-between">
         <CardTitle className="text-sm font-semibold flex items-center gap-2">
           <Building2 className="h-4 w-4 text-primary" />

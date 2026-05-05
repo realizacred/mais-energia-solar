@@ -8,6 +8,7 @@ import { Switch } from "@/components/ui/switch";
 import { toast } from "@/hooks/use-toast";
 import { Save, Loader2, DollarSign } from "lucide-react";
 import { usePricingConfig, useRefreshPricingConfig } from "@/hooks/useConfSolar";
+import { LoadingState } from "@/components/ui-kit";
 
 interface PricingRow {
   id: string;
@@ -61,7 +62,7 @@ export function PrecificacaoTab() {
   }
 
   if (loading) {
-    return <div className="flex items-center justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>;
+    return <LoadingState context="config" />;
   }
 
   const NUMERIC_FIELDS: { key: keyof Omit<PricingRow, "id" | "requer_aprovacao_desconto">; label: string; suffix: string }[] = [
@@ -77,7 +78,7 @@ export function PrecificacaoTab() {
   ];
 
   return (
-    <Card className="border-border/60">
+    <Card className="border-border/60 border-l-4 border-l-primary">
       <CardHeader className="pb-4">
         <CardTitle className="text-sm font-semibold flex items-center gap-2">
           <DollarSign className="h-4 w-4 text-primary" />

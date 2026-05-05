@@ -36,6 +36,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
+import { PageHeader, LoadingState } from "@/components/ui-kit";
 import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
@@ -198,12 +199,8 @@ function ProposalMessageConfigPageInner() {
 
   if (isLoading || rolesLoading) {
     return (
-      <div className="p-4 md:p-6 space-y-6">
-        <Skeleton className="h-10 w-64" />
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <Skeleton className="h-96 w-full" />
-          <Skeleton className="h-96 w-full" />
-        </div>
+      <div className="p-4 md:p-6">
+        <LoadingState context="config" message="Carregando configuração de mensagens..." />
       </div>
     );
   }
@@ -224,17 +221,13 @@ function ProposalMessageConfigPageInner() {
 
   return (
     <div className="p-4 md:p-6 space-y-6">
-      {/* Header — §26 */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-primary/10 text-primary">
-            <MessageCircle className="w-5 h-5" />
-          </div>
-          <div>
-            <h1 className="text-xl font-bold text-foreground">Mensagens da Proposta</h1>
-            <p className="text-sm text-muted-foreground">Configure templates, blocos e padrões por tenant</p>
-          </div>
-        </div>
+      {/* Header padronizado §26 — PageHeader */}
+      <div className="flex items-start justify-between gap-4 flex-wrap">
+        <PageHeader
+          icon={MessageCircle}
+          title="Mensagens da Proposta"
+          description="Configure templates, blocos e padrões por tenant"
+        />
         <div className="flex items-center gap-2">
           <AlertDialog>
             <AlertDialogTrigger asChild>
@@ -290,7 +283,7 @@ function ProposalMessageConfigPageInner() {
         <TabsContent value="templates" className="space-y-4">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Editor */}
-            <Card>
+            <Card className="border-l-4 border-l-primary">
               <CardHeader className="pb-3">
                 <CardTitle className="text-sm font-semibold flex items-center gap-2">
                   <Settings2 className="h-4 w-4 text-primary" />
@@ -348,7 +341,7 @@ function ProposalMessageConfigPageInner() {
             </Card>
 
             {/* Preview */}
-            <Card>
+            <Card className="border-l-4 border-l-primary">
               <CardHeader className="pb-3">
                 <CardTitle className="text-sm font-semibold flex items-center gap-2">
                   <Eye className="h-4 w-4 text-primary" />
@@ -400,7 +393,7 @@ function ProposalMessageConfigPageInner() {
 
         {/* ═══ BLOCKS TAB ═══ */}
         <TabsContent value="blocks" className="space-y-4">
-          <Card>
+          <Card className="border-l-4 border-l-primary">
             <CardHeader className="pb-3">
               <CardTitle className="text-sm font-semibold flex items-center gap-2">
                 <ToggleLeft className="h-4 w-4 text-primary" />
@@ -452,7 +445,7 @@ function ProposalMessageConfigPageInner() {
 
         {/* ═══ DEFAULTS TAB ═══ */}
         <TabsContent value="defaults" className="space-y-4">
-          <Card>
+          <Card className="border-l-4 border-l-primary">
             <CardHeader className="pb-3">
               <CardTitle className="text-sm font-semibold flex items-center gap-2">
                 <Sliders className="h-4 w-4 text-primary" />
@@ -548,7 +541,7 @@ function ProposalMessageConfigPageInner() {
 
         {/* ═══ VARIABLES TAB ═══ */}
         <TabsContent value="variables" className="space-y-4">
-          <Card>
+          <Card className="border-l-4 border-l-primary">
             <CardHeader className="pb-3">
               <CardTitle className="text-sm font-semibold flex items-center gap-2">
                 <Variable className="h-4 w-4 text-primary" />
