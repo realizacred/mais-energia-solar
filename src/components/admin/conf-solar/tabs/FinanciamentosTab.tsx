@@ -79,11 +79,7 @@ export function FinanciamentosTab() {
               icon={Building2}
               title="Nenhum financiador cadastrado"
               description='Clique em "Adicionar financiador" para começar a configurar os bancos disponíveis.'
-              action={
-                <Button onClick={addBanco} className="gap-2">
-                  <Plus className="h-4 w-4" /> Adicionar financiador
-                </Button>
-              }
+              action={{ label: "Adicionar financiador", onClick: addBanco, icon: Plus }}
             />
           </CardContent>
         </Card>
