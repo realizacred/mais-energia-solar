@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useSiteSettings } from "@/hooks/useSiteSettings";
 import { MessageCircle, WifiOff, QrCode } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
