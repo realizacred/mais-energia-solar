@@ -510,6 +510,16 @@ export function ClienteViewDialog({ cliente, open, onOpenChange }: ClienteViewDi
                 )}
               </TabsContent>
 
+              {/* ABA — Recibos */}
+              <TabsContent value="recibos" className="mt-0">
+                <ProjetoRecibosTab
+                  filters={{ cliente_id: cliente.id }}
+                  defaultClienteId={cliente.id}
+                  title="Recibos do cliente"
+                  emptyDescription="Nenhum recibo emitido para este cliente."
+                />
+              </TabsContent>
+
               {/* ABA 6 — WhatsApp */}
               <TabsContent value="whatsapp" className="mt-0">
                 {loadingWa ? (
