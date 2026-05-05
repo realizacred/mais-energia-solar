@@ -283,7 +283,7 @@ function ProposalMessageConfigPageInner() {
         <TabsContent value="templates" className="space-y-4">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Editor */}
-            <Card>
+            <Card className="border-l-4 border-l-primary">
               <CardHeader className="pb-3">
                 <CardTitle className="text-sm font-semibold flex items-center gap-2">
                   <Settings2 className="h-4 w-4 text-primary" />
@@ -341,7 +341,7 @@ function ProposalMessageConfigPageInner() {
             </Card>
 
             {/* Preview */}
-            <Card>
+            <Card className="border-l-4 border-l-primary">
               <CardHeader className="pb-3">
                 <CardTitle className="text-sm font-semibold flex items-center gap-2">
                   <Eye className="h-4 w-4 text-primary" />
@@ -393,7 +393,7 @@ function ProposalMessageConfigPageInner() {
 
         {/* ═══ BLOCKS TAB ═══ */}
         <TabsContent value="blocks" className="space-y-4">
-          <Card>
+          <Card className="border-l-4 border-l-primary">
             <CardHeader className="pb-3">
               <CardTitle className="text-sm font-semibold flex items-center gap-2">
                 <ToggleLeft className="h-4 w-4 text-primary" />
@@ -445,7 +445,7 @@ function ProposalMessageConfigPageInner() {
 
         {/* ═══ DEFAULTS TAB ═══ */}
         <TabsContent value="defaults" className="space-y-4">
-          <Card>
+          <Card className="border-l-4 border-l-primary">
             <CardHeader className="pb-3">
               <CardTitle className="text-sm font-semibold flex items-center gap-2">
                 <Sliders className="h-4 w-4 text-primary" />
@@ -541,7 +541,7 @@ function ProposalMessageConfigPageInner() {
 
         {/* ═══ VARIABLES TAB ═══ */}
         <TabsContent value="variables" className="space-y-4">
-          <Card>
+          <Card className="border-l-4 border-l-primary">
             <CardHeader className="pb-3">
               <CardTitle className="text-sm font-semibold flex items-center gap-2">
                 <Variable className="h-4 w-4 text-primary" />
