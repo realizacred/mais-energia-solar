@@ -123,25 +123,11 @@ const TEMPLATE_KEYS = [
 
 // ─── Component ──────────────────────────────────────
 
-export default function ProposalMessageConfigPage() {
+function ProposalMessageConfigPageInner() {
   const { user } = useAuth();
 
-  // Check admin role
-  const { data: userRoles = [], isLoading: rolesLoading } = useQuery({
-    queryKey: ["user-roles-config-page", user?.id],
-    queryFn: async () => {
-      if (!user?.id) return [];
-      const { data } = await supabase
-        .from("user_roles")
-        .select("role")
-        .eq("user_id", user.id);
-      return (data ?? []).map((r) => r.role);
-    },
-    staleTime: 1000 * 60 * 15,
-    enabled: !!user?.id,
-  });
-
-  const isAdmin = userRoles.includes("admin");
+  // Check admin role (hook centralizado, sem query inline)
+  const { isAdmin, isLoading: rolesLoading } = useUserRoles();
 
   const { data: tenantCtx } = useQuery({
     queryKey: ["current-tenant-id"],
@@ -162,19 +148,21 @@ export default function ProposalMessageConfigPage() {
   const [previewStyle, setPreviewStyle] = useState<MessageStyle>("completa");
   const [copiedPlaceholder, setCopiedPlaceholder] = useState<string | null>(null);
 
-  // Initialize from config
-  if (config && !initialized) {
-    setTemplates(config.templates);
-    setBlocks(config.blocks_config);
-    setDefaults(config.defaults);
-    setInitialized(true);
-  }
+  // Initialize from config (sem setState durante render)
+  useEffect(() => {
+    if (config && !initialized) {
+      setTemplates(config.templates);
+      setBlocks(config.blocks_config);
+      setDefaults(config.defaults);
+      setInitialized(true);
+    }
+  }, [config, initialized]);
 
-  // Preview
+  // Preview — depende de templates + blocks + defaults para reagir a edições e toggles
   const previewText = useMemo(() => {
     const customTemplate = templates[`${previewMode}_${previewStyle}`] || undefined;
     return generateProposalMessage(MOCK_CONTEXT, previewMode, previewStyle, { customTemplate, blocksConfig: blocks });
-  }, [previewMode, previewStyle, templates]);
+  }, [previewMode, previewStyle, templates, blocks, defaults]);
 
   // Handlers
   const handleSave = useCallback(async () => {
