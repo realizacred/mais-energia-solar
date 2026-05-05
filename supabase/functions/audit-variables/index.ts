@@ -327,52 +327,28 @@ Forneça:
     let promptLovable = "";
 
     try {
-      const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${LOVABLE_API_KEY}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: "google/gemini-3-flash-preview",
-          messages: [
-            { role: "system", content: systemPrompt },
-            { role: "user", content: userPrompt },
-          ],
-        }),
+      const aiData = await callAi({
+        tier: "flash",
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userPrompt },
+        ],
       });
+      const fullText = aiData.choices?.[0]?.message?.content ?? "";
 
-      if (aiResponse.ok) {
-        const aiData = await aiResponse.json();
-        const fullText = aiData.choices?.[0]?.message?.content ?? "";
+      const analiseMatch = fullText.match(/(?:ANÁLISE|ANALISE|1\.\s*ANÁLISE)[:\s]*([\s\S]*?)(?=(?:PROMPT_LOVABLE|2\.\s*PROMPT)|$)/i);
+      const promptMatch = fullText.match(/(?:PROMPT_LOVABLE|2\.\s*PROMPT)[:\s]*([\s\S]*?)$/i);
 
-        // Parse sections
-        const analiseMatch = fullText.match(/(?:ANÁLISE|ANALISE|1\.\s*ANÁLISE)[:\s]*([\s\S]*?)(?=(?:PROMPT_LOVABLE|2\.\s*PROMPT)|$)/i);
-        const promptMatch = fullText.match(/(?:PROMPT_LOVABLE|2\.\s*PROMPT)[:\s]*([\s\S]*?)$/i);
+      analiseIa = analiseMatch?.[1]?.trim() || fullText;
+      promptLovable = promptMatch?.[1]?.trim() || "";
 
-        analiseIa = analiseMatch?.[1]?.trim() || fullText;
-        promptLovable = promptMatch?.[1]?.trim() || "";
-
-        // Clean markdown code blocks from prompt
-        promptLovable = promptLovable
-          .replace(/^```[a-z]*\n?/gm, "")
-          .replace(/```$/gm, "")
-          .trim();
-      } else {
-        const errText = await aiResponse.text();
-        console.error("[audit-variables] AI error:", aiResponse.status, errText);
-
-        if (aiResponse.status === 429) {
-          analiseIa = "Rate limit excedido. Tente novamente em alguns minutos.";
-        } else if (aiResponse.status === 402) {
-          analiseIa = "Créditos de IA insuficientes. Adicione créditos em Settings → Workspace → Usage.";
-        } else {
-          analiseIa = "Erro ao consultar IA. Tente novamente.";
-        }
-      }
+      promptLovable = promptLovable
+        .replace(/^```[a-z]*\n?/gm, "")
+        .replace(/```$/gm, "")
+        .trim();
     } catch (aiErr) {
       console.error("[audit-variables] AI call failed:", aiErr);
-      analiseIa = "Erro de conexão com o serviço de IA.";
+      analiseIa = "Erro ao consultar IA: " + ((aiErr as Error)?.message ?? "desconhecido");
     }
 
     const fullResult = {
