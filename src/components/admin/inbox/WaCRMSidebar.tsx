@@ -23,9 +23,17 @@ import { formatBRLInteger } from "@/lib/formatters";
 interface WaCRMSidebarProps {
   conversation: WaConversation;
   onClose: () => void;
+  /** Open dialog to search & link an existing lead/cliente */
+  onOpenLinkLead?: () => void;
+  /** Create a new lead pre-filled with this conversation's phone */
+  onCreateLead?: () => void;
+  /** Create a new cliente pre-filled with this conversation's phone */
+  onCreateCliente?: () => void;
+  /** Quick-link to an existing lead found by phone (auto-suggestion) */
+  onQuickLink?: (args: { leadId?: string | null; clienteId?: string | null }) => void;
 }
 
-export function WaCRMSidebar({ conversation, onClose }: WaCRMSidebarProps) {
+export function WaCRMSidebar({ conversation, onClose, onOpenLinkLead, onCreateLead, onCreateCliente, onQuickLink }: WaCRMSidebarProps) {
   const leadId = conversation.lead_id;
   const clienteId = conversation.cliente_id;
 
