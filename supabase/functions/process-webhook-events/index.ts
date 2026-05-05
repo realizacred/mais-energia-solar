@@ -1084,8 +1084,9 @@ async function handleContactsUpsert(
           updates.profile_picture_url = profilePicUrl;
         }
 
-        // Sanitize pushName: reject phone-like names to preserve CRM data
-        if (name && !isPushNameJustPhone(name, jid) && (conversation.is_group || isTechnicalConversationName(conversation.cliente_nome, conversation.remote_jid))) {
+        // Sanitize: reject phone-like names AND names matching the instance's own profile_name
+        const isInstanceSelfName = !!(name && instanceProfileName && name.trim().toLowerCase() === instanceProfileName);
+        if (name && !isPushNameJustPhone(name, jid) && !isInstanceSelfName && (conversation.is_group || isTechnicalConversationName(conversation.cliente_nome, conversation.remote_jid))) {
           updates.cliente_nome = name;
         }
 
