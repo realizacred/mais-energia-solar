@@ -637,8 +637,10 @@ export function WaConversationList({
             </span>
           </label>
         </div>
+      </div>
 
       {/* Conversations */}
+
       <div className="flex-1 min-h-0 overflow-hidden">
         <div className="h-full min-h-0 overflow-y-auto wa-conversation-list p-1.5">
           {loading ? (
