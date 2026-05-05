@@ -199,12 +199,8 @@ function ProposalMessageConfigPageInner() {
 
   if (isLoading || rolesLoading) {
     return (
-      <div className="p-4 md:p-6 space-y-6">
-        <Skeleton className="h-10 w-64" />
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <Skeleton className="h-96 w-full" />
-          <Skeleton className="h-96 w-full" />
-        </div>
+      <div className="p-4 md:p-6">
+        <LoadingState context="config" message="Carregando configuração de mensagens..." />
       </div>
     );
   }
