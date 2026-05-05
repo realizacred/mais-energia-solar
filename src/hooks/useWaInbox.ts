@@ -46,6 +46,7 @@ export interface WaMessage {
   message_type: string;
   content: string | null;
   media_url: string | null;
+  storage_path: string | null;
   media_mime_type: string | null;
   media_status: string | null;
   media_error_message: string | null;
@@ -433,8 +434,33 @@ export function useWaMessages(conversationId?: string) {
         }
       }
     }
-    return msgs.map((m: any) => ({
+
+    // Onda 1 hardening: bucket wa-attachments is PRIVATE.
+    // Resolve a fresh signed URL from storage_path for inbound media.
+    // Legacy rows that still carry a public media_url are kept as fallback
+    // (they may 403 silently — UI shows pending/failed states gracefully).
+    const signed = await Promise.all(
+      msgs.map(async (m: any) => {
+        if (!m.storage_path) return m.media_url ?? null;
+        try {
+          const { data, error } = await supabase.storage
+            .from("wa-attachments")
+            .createSignedUrl(m.storage_path, 60 * 60);
+          if (error || !data?.signedUrl) {
+            console.warn("[useWaMessages] signed url failed", { id: m.id, error: error?.message });
+            return m.media_url ?? null;
+          }
+          return data.signedUrl;
+        } catch (err: any) {
+          console.warn("[useWaMessages] signed url exception", { id: m.id, error: err?.message });
+          return m.media_url ?? null;
+        }
+      })
+    );
+
+    return msgs.map((m: any, i) => ({
       ...m,
+      media_url: signed[i],
       sent_by_name: m.sent_by_user_id ? namesCache.current[m.sent_by_user_id] || null : null,
     }));
   }, []);
@@ -447,7 +473,7 @@ export function useWaMessages(conversationId?: string) {
       const requestedConvId = conversationId;
       const { data, error } = await supabase
         .from("wa_messages")
-        .select("id, conversation_id, content, direction, message_type, status, source, media_url, media_mime_type, media_status, media_error_message, file_name, file_size, quoted_message_id, sent_by_user_id, is_internal_note, participant_jid, participant_name, evolution_message_id, correlation_id, error_message, error_code, metadata, created_at, queued_at, sent_at, delivered_at, read_at, failed_at")
+        .select("id, conversation_id, content, direction, message_type, status, source, media_url, storage_path, media_mime_type, media_status, media_error_message, file_name, file_size, quoted_message_id, sent_by_user_id, is_internal_note, participant_jid, participant_name, evolution_message_id, correlation_id, error_message, error_code, metadata, created_at, queued_at, sent_at, delivered_at, read_at, failed_at")
         .eq("conversation_id", requestedConvId)
         .order("created_at", { ascending: false })
         .order("id", { ascending: false })
@@ -504,7 +530,7 @@ export function useWaMessages(conversationId?: string) {
       const oldest = allMessages[0];
       const { data, error } = await supabase
         .from("wa_messages")
-        .select("id, conversation_id, content, direction, message_type, status, source, media_url, media_mime_type, media_status, media_error_message, file_name, file_size, quoted_message_id, sent_by_user_id, is_internal_note, participant_jid, participant_name, evolution_message_id, correlation_id, error_message, error_code, metadata, created_at, queued_at, sent_at, delivered_at, read_at, failed_at")
+        .select("id, conversation_id, content, direction, message_type, status, source, media_url, storage_path, media_mime_type, media_status, media_error_message, file_name, file_size, quoted_message_id, sent_by_user_id, is_internal_note, participant_jid, participant_name, evolution_message_id, correlation_id, error_message, error_code, metadata, created_at, queued_at, sent_at, delivered_at, read_at, failed_at")
         .eq("conversation_id", conversationId)
         .or(`created_at.lt.${oldest.created_at},and(created_at.eq.${oldest.created_at},id.lt.${oldest.id})`)
         .order("created_at", { ascending: false })
@@ -570,15 +596,33 @@ export function useWaMessages(conversationId?: string) {
           table: "wa_messages",
           filter: `conversation_id=eq.${conversationId}`,
         },
-        (payload) => {
+        async (payload) => {
           const updated = payload.new as any;
           // ⚠️ Guard against cross-conversation leak from late realtime events
           if (updated.conversation_id !== activeConvIdRef.current) return;
+
+          // Onda 1 hardening: if storage_path arrived (media became ready),
+          // mint a fresh signed URL so the bubble can render the private file.
+          let signedUrl: string | null | undefined;
+          if (updated.storage_path) {
+            try {
+              const { data, error } = await supabase.storage
+                .from("wa-attachments")
+                .createSignedUrl(updated.storage_path, 60 * 60);
+              if (!error) signedUrl = data?.signedUrl ?? undefined;
+              else console.warn("[useWaMessages] realtime signed url failed", { id: updated.id, error: error.message });
+            } catch (err: any) {
+              console.warn("[useWaMessages] realtime signed url exception", { id: updated.id, error: err?.message });
+            }
+          }
+
           // Safe merge: only apply non-null/non-undefined fields to prevent
           // Realtime payloads with null values from wiping existing data
           const safeFields = Object.fromEntries(
             Object.entries(updated).filter(([_, v]) => v !== null && v !== undefined)
           );
+          if (signedUrl) (safeFields as any).media_url = signedUrl;
+          if (activeConvIdRef.current !== updated.conversation_id) return;
           setAllMessages(prev =>
             prev.map(m => {
               // Match by id or correlation_id for optimistic update reconciliation
@@ -609,7 +653,7 @@ export function useWaMessages(conversationId?: string) {
           if (!latest) return;
           const { data, error } = await supabase
             .from("wa_messages")
-            .select("id, conversation_id, content, direction, message_type, status, source, media_url, media_mime_type, media_status, media_error_message, file_name, file_size, quoted_message_id, sent_by_user_id, is_internal_note, participant_jid, participant_name, evolution_message_id, correlation_id, error_message, error_code, metadata, created_at, queued_at, sent_at, delivered_at, read_at, failed_at")
+            .select("id, conversation_id, content, direction, message_type, status, source, media_url, storage_path, media_mime_type, media_status, media_error_message, file_name, file_size, quoted_message_id, sent_by_user_id, is_internal_note, participant_jid, participant_name, evolution_message_id, correlation_id, error_message, error_code, metadata, created_at, queued_at, sent_at, delivered_at, read_at, failed_at")
             .eq("conversation_id", conversationId)
             .or(`created_at.gt.${latest.created_at},and(created_at.eq.${latest.created_at},id.gt.${latest.id})`)
             .order("created_at", { ascending: true })

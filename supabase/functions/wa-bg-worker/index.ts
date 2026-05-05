@@ -248,25 +248,19 @@ async function jobMediaFetch(supabase: any, instanceId: string, tenantId: string
 
   if (uploadError) throw new Error(`Upload error: ${uploadError.message}`);
 
-  const { data: publicUrl } = supabase.storage
-    .from("wa-attachments")
-    .getPublicUrl(storagePath);
-
-  const mediaUrl = publicUrl?.publicUrl || null;
-  if (mediaUrl) {
-    // Transition: fetching → ready (with all metadata)
-    await supabase.from("wa_messages")
-      .update({ 
-        media_url: mediaUrl,
-        media_status: "ready",
-        storage_path: storagePath,
-        media_mime_type: mediaMime,
-        file_name: p.file_name || `${messageId}.${ext}`,
-        file_size: bytes.length,
-      })
-      .eq("evolution_message_id", messageId);
-    console.log(`[wa-bg-worker] Media stored: ${messageType} -> ${storagePath} (${bytes.length} bytes)`);
-  }
+  // Onda 1 hardening: bucket wa-attachments é PRIVADO. NUNCA salvar URL pública.
+  // Frontend resolve via getSignedMediaUrl(storage_path) on demand.
+  await supabase.from("wa_messages")
+    .update({
+      media_url: null,
+      media_status: "ready",
+      storage_path: storagePath,
+      media_mime_type: mediaMime,
+      file_name: p.file_name || `${messageId}.${ext}`,
+      file_size: bytes.length,
+    })
+    .eq("evolution_message_id", messageId);
+  console.log(`[wa-bg-worker] Media stored (private): ${messageType} -> ${storagePath} (${bytes.length} bytes)`);
 }
 
 // ── JOB: Group Name ──
