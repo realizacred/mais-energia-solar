@@ -68,7 +68,7 @@ export function SidebarResizer({ min = 220, max = 480 }: SidebarResizerProps) {
       aria-label="Redimensionar menu"
       onPointerDown={onPointerDown}
       onDoubleClick={() => {
-        const wrapper = document.querySelector<HTMLElement>("[data-sidebar-wrapper]");
+        const wrapper = document.querySelector<HTMLElement>(".group\\/sidebar-wrapper");
         wrapper?.style.setProperty("--sidebar-width", "18rem");
         localStorage.removeItem("admin:sidebar-width");
       }}
