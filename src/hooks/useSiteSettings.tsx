@@ -79,20 +79,9 @@ function useSiteSettingsInternal(): SiteSettingsContextType {
         return;
       }
 
-      // Anon path: resolve tenant of the institutional site (the only public site_settings owner)
-      // and fetch via secure RPC that excludes OAuth credentials.
-      const { data: tenantRow } = await supabase
-        .from("site_settings")
-        .select("tenant_id") // RLS will block — fall back to RPC w/o tenant if needed
-        .limit(1)
-        .maybeSingle();
-      const _tenant_id = tenantRow?.tenant_id ?? null;
-      if (!_tenant_id) {
-        // No anon access to discover tenant_id — institutional site is rendered without DB overrides.
-        return;
-      }
-      const { data: pub, error: rpcErr } = await supabase
-        .rpc("get_public_site_settings", { _tenant_id });
+      // Anon path: secure RPC returns only public-safe fields (no OAuth credentials).
+      const { data: pub, error: rpcErr } = await (supabase as any)
+        .rpc("get_public_site_settings");
       if (rpcErr) {
         console.warn("Could not load public site settings:", rpcErr.message);
         return;
