@@ -311,6 +311,7 @@ function ConversationItem({
             )}>
               {displayName}
             </span>
+            {isPinned && <Pin className="h-3 w-3 text-warning shrink-0" />}
             {isMuted && <BellOff className="h-3 w-3 text-muted-foreground/50 shrink-0" />}
             {isHidden && <EyeOff className="h-3 w-3 text-muted-foreground/50 shrink-0" />}
             {isFollowup && <Bell className="h-3 w-3 text-warning shrink-0 animate-pulse" />}
