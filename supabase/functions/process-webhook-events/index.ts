@@ -665,7 +665,7 @@ async function handleMessageUpsert(
           last_message_direction: direction,
           unread_count: fromMe ? 0 : 1,
          profile_picture_url: null,
-        }, { onConflict: "instance_id,remote_jid", ignoreDuplicates: false })
+        }, { onConflict: "tenant_id,telefone_normalized,is_group", ignoreDuplicates: false })
         .select("id")
         .single();
 
