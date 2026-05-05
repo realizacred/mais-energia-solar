@@ -596,15 +596,33 @@ export function useWaMessages(conversationId?: string) {
           table: "wa_messages",
           filter: `conversation_id=eq.${conversationId}`,
         },
-        (payload) => {
+        async (payload) => {
           const updated = payload.new as any;
           // ⚠️ Guard against cross-conversation leak from late realtime events
           if (updated.conversation_id !== activeConvIdRef.current) return;
+
+          // Onda 1 hardening: if storage_path arrived (media became ready),
+          // mint a fresh signed URL so the bubble can render the private file.
+          let signedUrl: string | null | undefined;
+          if (updated.storage_path) {
+            try {
+              const { data, error } = await supabase.storage
+                .from("wa-attachments")
+                .createSignedUrl(updated.storage_path, 60 * 60);
+              if (!error) signedUrl = data?.signedUrl ?? undefined;
+              else console.warn("[useWaMessages] realtime signed url failed", { id: updated.id, error: error.message });
+            } catch (err: any) {
+              console.warn("[useWaMessages] realtime signed url exception", { id: updated.id, error: err?.message });
+            }
+          }
+
           // Safe merge: only apply non-null/non-undefined fields to prevent
           // Realtime payloads with null values from wiping existing data
           const safeFields = Object.fromEntries(
             Object.entries(updated).filter(([_, v]) => v !== null && v !== undefined)
           );
+          if (signedUrl) (safeFields as any).media_url = signedUrl;
+          if (activeConvIdRef.current !== updated.conversation_id) return;
           setAllMessages(prev =>
             prev.map(m => {
               // Match by id or correlation_id for optimistic update reconciliation
