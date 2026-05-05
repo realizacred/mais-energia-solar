@@ -5,7 +5,20 @@
  * Configurações > Mensagens da Proposta
  */
 
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { PageErrorBoundary } from "@/components/common/PageErrorBoundary";
+import { useUserRoles } from "@/hooks/useUserRoles";
 import {
   MessageCircle, Settings2, Save, RotateCcw, Eye, Variable,
   ToggleLeft, Sliders, Copy, CheckCircle, ShieldAlert
@@ -26,8 +39,6 @@ import { Separator } from "@/components/ui/separator";
 import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/hooks/useAuth";
 import { getCurrentTenantId } from "@/lib/getCurrentTenantId";
 import {
   useProposalMessageConfig,
@@ -110,25 +121,9 @@ const TEMPLATE_KEYS = [
 
 // ─── Component ──────────────────────────────────────
 
-export default function ProposalMessageConfigPage() {
-  const { user } = useAuth();
-
-  // Check admin role
-  const { data: userRoles = [], isLoading: rolesLoading } = useQuery({
-    queryKey: ["user-roles-config-page", user?.id],
-    queryFn: async () => {
-      if (!user?.id) return [];
-      const { data } = await supabase
-        .from("user_roles")
-        .select("role")
-        .eq("user_id", user.id);
-      return (data ?? []).map((r) => r.role);
-    },
-    staleTime: 1000 * 60 * 15,
-    enabled: !!user?.id,
-  });
-
-  const isAdmin = userRoles.includes("admin");
+function ProposalMessageConfigPageInner() {
+  // Check admin role (hook centralizado, sem query inline)
+  const { isAdmin, isLoading: rolesLoading } = useUserRoles();
 
   const { data: tenantCtx } = useQuery({
     queryKey: ["current-tenant-id"],
@@ -149,19 +144,21 @@ export default function ProposalMessageConfigPage() {
   const [previewStyle, setPreviewStyle] = useState<MessageStyle>("completa");
   const [copiedPlaceholder, setCopiedPlaceholder] = useState<string | null>(null);
 
-  // Initialize from config
-  if (config && !initialized) {
-    setTemplates(config.templates);
-    setBlocks(config.blocks_config);
-    setDefaults(config.defaults);
-    setInitialized(true);
-  }
+  // Initialize from config (sem setState durante render)
+  useEffect(() => {
+    if (config && !initialized) {
+      setTemplates(config.templates);
+      setBlocks(config.blocks_config);
+      setDefaults(config.defaults);
+      setInitialized(true);
+    }
+  }, [config, initialized]);
 
-  // Preview
+  // Preview — depende de templates + blocks + defaults para reagir a edições e toggles
   const previewText = useMemo(() => {
     const customTemplate = templates[`${previewMode}_${previewStyle}`] || undefined;
     return generateProposalMessage(MOCK_CONTEXT, previewMode, previewStyle, { customTemplate, blocksConfig: blocks });
-  }, [previewMode, previewStyle, templates]);
+  }, [previewMode, previewStyle, templates, blocks, defaults]);
 
   // Handlers
   const handleSave = useCallback(async () => {
@@ -239,10 +236,28 @@ export default function ProposalMessageConfigPage() {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={handleReset} className="gap-1.5">
-            <RotateCcw className="h-3.5 w-3.5" />
-            Restaurar padrão
-          </Button>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="outline" size="sm" className="gap-1.5">
+                <RotateCcw className="h-3.5 w-3.5" />
+                Restaurar padrão
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Restaurar para o padrão do sistema?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Esta ação é destrutiva: todas as customizações de templates, blocos
+                  e padrões locais serão descartadas e substituídas pelos valores
+                  padrão. Você ainda precisará clicar em "Salvar" para persistir.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                <AlertDialogAction onClick={handleReset}>Restaurar</AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
           <Button size="sm" onClick={handleSave} disabled={saveMutation.isPending} className="gap-1.5">
             <Save className="h-3.5 w-3.5" />
             {saveMutation.isPending ? "Salvando..." : "Salvar"}
@@ -595,3 +610,12 @@ export default function ProposalMessageConfigPage() {
     </div>
   );
 }
+
+export default function ProposalMessageConfigPage() {
+  return (
+    <PageErrorBoundary title="Não foi possível carregar a página">
+      <ProposalMessageConfigPageInner />
+    </PageErrorBoundary>
+  );
+}
+
