@@ -545,6 +545,7 @@ export default function Admin() {
           onSignOut={handleSignOut}
           badgeCounts={badgeCounts}
         />
+        <SidebarResizer min={220} max={480} />
         
         <SidebarInset className={`${isInboxLayout ? "h-[100dvh] overflow-hidden" : ""} flex-1 min-w-0 bg-background`}>
           <header className="sticky top-0 z-50 flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 bg-background/80 backdrop-blur-md border-b border-border/40">
