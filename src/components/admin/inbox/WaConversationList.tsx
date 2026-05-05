@@ -189,6 +189,8 @@ interface WaConversationListProps {
   mutedIds?: Set<string>;
   hiddenIds?: Set<string>;
   followupConvIds?: Set<string>;
+  pinnedIds?: Set<string>;
+  onContextMenuConv?: (e: React.MouseEvent, conv: WaConversation) => void;
 }
 
 // ── Conversation Item (redesigned) ─────────────────────
