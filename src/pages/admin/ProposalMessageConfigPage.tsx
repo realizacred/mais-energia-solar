@@ -5,7 +5,20 @@
  * Configurações > Mensagens da Proposta
  */
 
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { PageErrorBoundary } from "@/components/common/PageErrorBoundary";
+import { useUserRoles } from "@/hooks/useUserRoles";
 import {
   MessageCircle, Settings2, Save, RotateCcw, Eye, Variable,
   ToggleLeft, Sliders, Copy, CheckCircle, ShieldAlert
