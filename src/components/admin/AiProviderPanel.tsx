@@ -161,11 +161,6 @@ export function AiProviderPanel() {
               >
                 <div className="flex items-center justify-between mb-1">
                   <span className="text-sm font-semibold text-foreground">{info.name}</span>
-                  {key === "lovable_gateway" && (
-                    <Badge variant="outline" className="text-[10px] border-primary text-primary">
-                      Incluído
-                    </Badge>
-                  )}
                   {isActive && <CheckCircle2 className="w-4 h-4 text-primary" />}
                 </div>
                 <p className="text-xs text-muted-foreground">{info.description}</p>
