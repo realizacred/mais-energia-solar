@@ -25,6 +25,7 @@ import { WaSettingsDialog } from "./WaSettingsDialog";
 import { WaStartConversationDialog } from "./WaStartConversationDialog";
 import { WaPreContactCard } from "./WaPreContactCard";
 import { WaInboxHeader } from "./WaInboxHeader";
+import { WaInboxNotificationBanner } from "@/components/notifications/WaInboxNotificationBanner";
 import { Button } from "@/components/ui/button";
 import type { WaConversation } from "@/hooks/useWaInbox";
 
@@ -618,6 +619,9 @@ export function WaInbox({ vendorMode = false, vendorUserId, showCompactStats = f
           />
         </div>
       )}
+
+      {/* Push notification activation / status banner */}
+      <WaInboxNotificationBanner />
 
       {/* Stats + SLA Alert — same row to save vertical space */}
       <div className="shrink-0 mb-2 flex flex-wrap items-center gap-2">
