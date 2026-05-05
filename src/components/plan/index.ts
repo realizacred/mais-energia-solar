@@ -1,4 +1,5 @@
 export { TrialBanner } from "./TrialBanner";
+export { PlanStatusBadge } from "./PlanStatusBadge";
 export { UpsellBanner } from "./UpsellBanner";
 export { LimitReachedDialog } from "./LimitReachedDialog";
 export { usePlanGuard } from "./PlanGuard";

@@ -97,6 +97,39 @@ Deno.serve(async (req) => {
       }
     }
 
+    // ── SaaS subscription sync (public.subscriptions) ──
+    // Match by Asaas subscription id (payment.subscription) → subscriptions.external_id
+    const asaasSubId = payment.subscription;
+    if (asaasSubId) {
+      const { data: saasSub } = await sb
+        .from("subscriptions")
+        .select("id, tenant_id, current_period_end")
+        .eq("external_id", asaasSubId)
+        .maybeSingle();
+
+      if (saasSub) {
+        const updates: Record<string, unknown> = {
+          status: newStatus,
+          updated_at: new Date().toISOString(),
+        };
+        if (eventType === "PAYMENT_RECEIVED" || eventType === "PAYMENT_CONFIRMED") {
+          // Roll period forward 30 days on each confirmed payment
+          const newEnd = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+          updates.current_period_start = new Date().toISOString();
+          updates.current_period_end = newEnd.toISOString();
+        }
+        await sb.from("subscriptions").update(updates).eq("id", (saasSub as any).id);
+
+        // Mark related billing_charges as paid
+        if (eventType === "PAYMENT_RECEIVED" || eventType === "PAYMENT_CONFIRMED") {
+          await sb.from("billing_charges").update({
+            status: "paid",
+            paid_at: new Date().toISOString(),
+          }).eq("asaas_charge_id", payment.id);
+        }
+      }
+    }
+
     await sb.from("billing_webhook_events").update({ status: "processed", processed_at: new Date().toISOString() })
       .eq("provider", "asaas").eq("provider_event_id", eventId);
 

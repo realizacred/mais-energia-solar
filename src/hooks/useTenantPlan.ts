@@ -6,7 +6,7 @@ export interface TenantSubscription {
   subscription_id: string;
   plan_code: string;
   plan_name: string;
-  status: "trialing" | "active" | "past_due" | "canceled" | "expired";
+  status: "trialing" | "active" | "past_due" | "suspended" | "canceled" | "expired";
   trial_ends_at: string | null;
   current_period_start: string;
   current_period_end: string;

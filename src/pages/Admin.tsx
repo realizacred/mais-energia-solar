@@ -16,7 +16,7 @@ import { Button } from "@/components/ui/button";
 
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { GlobalSearch } from "@/components/admin/GlobalSearch";
-import { TrialBanner, UpsellBanner } from "@/components/plan";
+import { TrialBanner, UpsellBanner, PlanStatusBadge } from "@/components/plan";
 import { FeatureDiscoveryLayer } from "@/components/FeatureDiscoveryLayer";
 import { HelpCenterDrawer } from "@/components/help/HelpCenterDrawer";
 import { HeaderSearch } from "@/components/admin/HeaderSearch";
@@ -561,6 +561,7 @@ export default function Admin() {
             {/* Right-aligned actions — hide less important on mobile */}
             <div className="flex items-center gap-0.5 sm:gap-1 shrink-0">
               <span className="hidden md:inline-flex"><HeaderSearch /></span>
+              <PlanStatusBadge />
               <HelpDropdown onOpenHelpCenter={() => setHelpOpen(true)} />
               <NotificationsDropdown />
               <AgendaSheet />
