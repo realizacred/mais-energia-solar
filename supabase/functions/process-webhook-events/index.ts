@@ -645,37 +645,42 @@ async function handleMessageUpsert(
       
       const canonicalJid = isGroup ? remoteJid : normalizeJid(remoteJid);
       
+      // INSERT with race-condition fallback (partial UNIQUE index can't be used as onConflict target)
+      const insertPayload = {
+        instance_id: instanceId,
+        tenant_id: tenantId,
+        remote_jid: canonicalJid,
+        cliente_telefone: phone,
+        cliente_nome: displayName,
+        is_group: isGroup,
+        status: "open",
+        last_message_at: eventDate.toISOString(),
+        last_message_preview: buildConversationPreview({
+          messageType, content, isGroup, participantName,
+        }).substring(0, 100),
+        last_message_direction: direction,
+        unread_count: fromMe ? 0 : 1,
+        profile_picture_url: null,
+      };
+
       const { data: newConv, error: convError } = await supabase
         .from("wa_conversations")
-        .upsert({
-          instance_id: instanceId,
-          tenant_id: tenantId,
-          remote_jid: canonicalJid,
-          cliente_telefone: phone,
-          cliente_nome: displayName,
-          is_group: isGroup,
-          status: "open",
-          last_message_at: eventDate.toISOString(),
-          last_message_preview: buildConversationPreview({
-            messageType,
-            content,
-            isGroup,
-            participantName,
-          }).substring(0, 100),
-          last_message_direction: direction,
-          unread_count: fromMe ? 0 : 1,
-         profile_picture_url: null,
-        }, { onConflict: "tenant_id,telefone_normalized,is_group", ignoreDuplicates: false })
+        .insert(insertPayload)
         .select("id")
         .single();
 
-      // Immediately enqueue profile_pic job for new conversations
-
       if (convError) {
-        console.error("[process-webhook-events] Error upserting conversation:", convError);
-        throw convError;
+        // Race: another webhook created it concurrently. Re-resolve and reuse.
+        const retried = await resolveConversation(supabase, instanceId, tenantId, remoteJid);
+        if (retried) {
+          conversationId = retried.id;
+        } else {
+          console.error("[process-webhook-events] Error inserting conversation:", convError);
+          throw convError;
+        }
+      } else {
+        conversationId = newConv.id;
       }
-      conversationId = newConv.id;
 
       if (!isGroup) {
         try {
