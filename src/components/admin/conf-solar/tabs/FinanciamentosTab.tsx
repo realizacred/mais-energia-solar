@@ -7,6 +7,7 @@ import { Switch } from "@/components/ui/switch";
 import { toast } from "@/hooks/use-toast";
 import { Plus, Trash2, Save, Loader2, Building2 } from "lucide-react";
 import { useFinanciamentoBancos, useSaveFinanciamentoBancos, type BancoRow } from "@/hooks/useFinanciamentoBancos";
+import { LoadingState } from "@/components/ui-kit";
 
 export function FinanciamentosTab() {
   const { data: loadedBancos, isLoading: loading } = useFinanciamentoBancos();
