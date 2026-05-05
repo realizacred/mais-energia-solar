@@ -996,6 +996,9 @@ export function WaChatPanel({
         <WaCRMSidebar
           conversation={conversation}
           onClose={() => setShowCRMSidebar(false)}
+          onOpenLinkLead={onLinkLead}
+          onCreateLead={handleCreateLead}
+          onCreateCliente={handleCreateCliente}
         />
       )}
       {isMobileDevice && (
@@ -1006,6 +1009,9 @@ export function WaChatPanel({
               <WaCRMSidebar
                 conversation={conversation}
                 onClose={() => setShowCRMSidebar(false)}
+                onOpenLinkLead={onLinkLead}
+                onCreateLead={handleCreateLead}
+                onCreateCliente={handleCreateCliente}
               />
             )}
           </SheetContent>
