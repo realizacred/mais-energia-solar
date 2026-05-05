@@ -662,8 +662,22 @@ export function WaInbox({ vendorMode = false, vendorUserId, showCompactStats = f
 
       {/* Stats + SLA Alert — same row to save vertical space */}
       <div className="shrink-0 mb-2 flex flex-wrap items-center gap-2">
-        {!vendorMode && <WaInboxStats conversations={allConversations} compact />}
-        {vendorMode && showCompactStats && <WaInboxStats conversations={allConversations} compact />}
+        {!vendorMode && (
+          <WaInboxStats
+            conversations={allConversations}
+            compact
+            onSelect={handleKpiSelect}
+            activeKey={filterUnread ? "unread" : (filterStatus as any)}
+          />
+        )}
+        {vendorMode && showCompactStats && (
+          <WaInboxStats
+            conversations={allConversations}
+            compact
+            onSelect={handleKpiSelect}
+            activeKey={filterUnread ? "unread" : (filterStatus as any)}
+          />
+        )}
         {slaEnabled && (
           <WaSlaAlertBanner
             alerts={isAdminUser ? slaAlerts : mySlaAlerts}
