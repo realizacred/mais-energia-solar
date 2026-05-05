@@ -50,7 +50,6 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     // Build context string from proposal data
     const ctx = buildProposalContext(proposta_data);
 
