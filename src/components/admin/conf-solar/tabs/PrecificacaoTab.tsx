@@ -8,6 +8,7 @@ import { Switch } from "@/components/ui/switch";
 import { toast } from "@/hooks/use-toast";
 import { Save, Loader2, DollarSign } from "lucide-react";
 import { usePricingConfig, useRefreshPricingConfig } from "@/hooks/useConfSolar";
+import { LoadingState } from "@/components/ui-kit";
 
 interface PricingRow {
   id: string;
