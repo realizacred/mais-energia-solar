@@ -151,6 +151,55 @@ export async function getReciboSignedUrl(pdfPath: string, expiresIn = 60 * 5): P
   return data.signedUrl;
 }
 
+/** Envia recibo via WhatsApp (gera PDF se necessário, atualiza status, registra log). */
+export function useEnviarReciboWa() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: { recibo_id: string; telefone?: string; mensagem?: string }) => {
+      const { data, error } = await supabase.functions.invoke("enviar-recibo-wa", {
+        body: input,
+      });
+      if (error) throw error;
+      if ((data as any)?.error) throw new Error((data as any).error);
+      return data as { success: boolean; link_pdf: string };
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: [QUERY_KEY] });
+      qc.invalidateQueries({ queryKey: ["recibo_logs"] });
+      toast.success("Recibo enviado por WhatsApp");
+    },
+    onError: (e: Error) => toast.error(e.message || "Erro ao enviar recibo"),
+  });
+}
+
+export interface ReciboLog {
+  id: string;
+  recibo_id: string;
+  tipo: string;
+  canal: string | null;
+  destino: string | null;
+  mensagem: string | null;
+  meta: Record<string, unknown>;
+  created_at: string;
+}
+
+export function useReciboLogs(reciboId: string | null | undefined) {
+  return useQuery({
+    queryKey: ["recibo_logs", reciboId],
+    enabled: !!reciboId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("recibo_logs" as any)
+        .select("id, recibo_id, tipo, canal, destino, mensagem, meta, created_at")
+        .eq("recibo_id", reciboId)
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return (data ?? []) as unknown as ReciboLog[];
+    },
+    staleTime: STALE_TIME,
+  });
+}
+
 export function useDeleteRecibo() {
   const qc = useQueryClient();
   return useMutation({
