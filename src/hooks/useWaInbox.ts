@@ -113,8 +113,9 @@ export function useWaConversations(filters?: {
           status, assigned_to, lead_id, cliente_id, last_message_at, last_message_preview,
           last_message_direction,
           unread_count, canal, profile_picture_url, is_group, created_at, updated_at,
-          wa_instances(nome, consultores(nome, user_id)),
-          leads(nome, telefone)
+          wa_instances(nome, profile_name, consultores(nome, user_id)),
+          leads(nome, telefone),
+          clientes(nome)
         `)
         .order("last_message_at", { ascending: false });
 
