@@ -26,8 +26,8 @@ interface Props {
 const CATS: { value: DocumentCategory; label: string }[] = [
   { value: "contrato", label: "Contratos" },
   { value: "procuracao", label: "Procurações" },
-  { value: "proposta", label: "Propostas" },
   { value: "termo", label: "Termos" },
+  { value: "recibo", label: "Recibos" },
 ];
 
 const DEFAULT_SIGNER_ROLES = ["Contratante", "Testemunha 1", "Testemunha 2", "Empresa"];
