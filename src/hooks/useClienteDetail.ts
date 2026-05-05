@@ -11,6 +11,8 @@ export interface ClienteProjeto {
   potencia_kwp: number | null;
   valor_total: number | null;
   deal_id: string | null;
+  numero_modulos: number | null;
+  modelo_inversor: string | null;
 }
 
 export interface ClientePropostaNativa {
