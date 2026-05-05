@@ -241,6 +241,7 @@ export function SiteSettingsUnified() {
             {savingSite ? <Spinner size="sm" /> : <Save className="h-4 w-4" />}
             Salvar Conteúdo
           </Button>
+          </div>
         </div>
       </div>
 
