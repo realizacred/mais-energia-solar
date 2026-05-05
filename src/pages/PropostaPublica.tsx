@@ -238,7 +238,7 @@ export default function PropostaPublica() {
             setInvalidatedInfo({
               invalidado_em: td.invalidado_em,
               empresaNome: tenantRes.data?.nome || null,
-              empresaLogo: brandRes.data?.logo_url || null,
+              empresaLogo: (brandRow as any)?.logo_url || null,
               empresaTelefone: consultorRes.data?.telefone || null,
               motivo_invalidacao: td.motivo_invalidacao || null,
               latestTokenUrl,
