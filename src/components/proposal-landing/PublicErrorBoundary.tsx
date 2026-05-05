@@ -62,7 +62,7 @@ export class PublicErrorBoundary extends Component<Props, State> {
               Por favor, tente novamente ou entre em contato com a empresa.
             </p>
             <button
-              onClick={() => window.location.reload()}
+              onClick={() => this.setState({ hasError: false, errorMessage: null })}
               style={{
                 display: "inline-flex", alignItems: "center", gap: 8,
                 padding: "10px 24px", borderRadius: 8,
