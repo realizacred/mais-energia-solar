@@ -28779,6 +28779,7 @@ export type Database = {
       get_proposal_funnel_metrics: { Args: { p_days?: number }; Returns: Json }
       get_proposal_workspace: { Args: { p_versao_id: string }; Returns: Json }
       get_proposals_by_vendor: { Args: { p_days?: number }; Returns: Json }
+      get_proposta_grupo_by_token: { Args: { p_token: string }; Returns: Json }
       get_proposta_token_by_value: {
         Args: { p_token: string }
         Returns: {
@@ -29254,6 +29255,10 @@ export type Database = {
       }
       set_billing_pdf_password: {
         Args: { p_password: string; p_unit_id: string }
+        Returns: undefined
+      }
+      set_grupo_kit_aceito: {
+        Args: { p_kit_id: string; p_token: string }
         Returns: undefined
       }
       set_projeto_principal: {
