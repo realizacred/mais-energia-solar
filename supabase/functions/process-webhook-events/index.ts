@@ -538,7 +538,7 @@ async function handleMessageUpsert(
 
     // ── STEP 1: Resolve/upsert conversation using canonical JID ──
     const t0_conv = Date.now();
-    const existingConv = await resolveConversation(supabase, instanceId, remoteJid);
+    const existingConv = await resolveConversation(supabase, instanceId, tenantId, remoteJid);
 
     let conversationId: string;
 
