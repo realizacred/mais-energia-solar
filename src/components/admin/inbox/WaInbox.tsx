@@ -959,6 +959,44 @@ export function WaInbox({ vendorMode = false, vendorUserId, showCompactStats = f
           await queryClient.invalidateQueries({ queryKey: ["wa-conversations"] });
         }}
       />
+      <WaConversationContextMenu
+        state={convContextMenu}
+        onClose={() => setConvContextMenu(null)}
+        isPinned={convContextMenu ? pinnedIds.has(convContextMenu.conversation.id) : false}
+        onTogglePin={() => convContextMenu && togglePin(convContextMenu.conversation.id)}
+        onAssignToMe={() => {
+          if (!convContextMenu || !user?.id) return;
+          assignConversation({ conversationId: convContextMenu.conversation.id, userId: user.id });
+        }}
+        hasUnread={(convContextMenu?.conversation.unread_count ?? 0) > 0}
+        onToggleRead={() => {
+          if (!convContextMenu) return;
+          const c = convContextMenu.conversation;
+          const next = c.unread_count > 0 ? 0 : 1;
+          updateConversation({ id: c.id, updates: { unread_count: next } as any });
+        }}
+        tags={tags}
+        appliedTagIds={
+          new Set((convContextMenu?.conversation.tags || []).map((t) => t.tag_id))
+        }
+        onToggleTag={(tagId) => {
+          if (!convContextMenu) return;
+          const c = convContextMenu.conversation;
+          const applied = (c.tags || []).some((t) => t.tag_id === tagId);
+          toggleConversationTag({ conversationId: c.id, tagId, add: !applied });
+        }}
+        isResolved={convContextMenu?.conversation.status === "resolved"}
+        onResolve={() => convContextMenu && resolveConversation(convContextMenu.conversation.id)}
+        onReopen={() => convContextMenu && reopenConversation(convContextMenu.conversation.id)}
+        onCreateLead={() => {
+          const phone = convContextMenu?.conversation.cliente_telefone || "";
+          window.open(`/admin?tab=leads&phone=${encodeURIComponent(phone)}`, "_blank");
+        }}
+        onCreateCliente={() => {
+          const phone = convContextMenu?.conversation.cliente_telefone || "";
+          window.open(`/admin?tab=clientes&phone=${encodeURIComponent(phone)}`, "_blank");
+        }}
+      />
     </div>
   );
 }
