@@ -72,6 +72,8 @@ import { formatDateTime, formatDate, formatTime, formatDateShort } from "@/lib/d
 import { ClienteEditModal } from "./ClienteEditModal";
 import { TipoProjetoSolarBadge } from "./TipoProjetoSolarBadge";
 import { TipoProjetoSolarAlert } from "./TipoProjetoSolarAlert";
+import { ProjetoRecibosTab } from "./ProjetoRecibosTab";
+import { EmitirReciboModal } from "@/components/admin/documentos/EmitirReciboModal";
 
 // ─── Types (local to sub-components) ────────────
 interface PropostaNativa {
