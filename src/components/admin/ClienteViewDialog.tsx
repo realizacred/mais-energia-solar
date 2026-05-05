@@ -207,6 +207,18 @@ export function ClienteViewDialog({ cliente, open, onOpenChange }: ClienteViewDi
 
   if (!cliente) return null;
 
+  // Fallbacks: dados podem estar NULL no cliente; derivar do projeto/versão mais recente
+  const projetoMaisRecente = projetos[0];
+  const versaoMaisRecente = versoes[0];
+  const valorProjetoEfetivo =
+    cliente.valor_projeto ?? projetoMaisRecente?.valor_total ?? versaoMaisRecente?.valor_total ?? null;
+  const potenciaEfetiva =
+    cliente.potencia_kwp ?? projetoMaisRecente?.potencia_kwp ?? versaoMaisRecente?.potencia_kwp ?? null;
+  const inversorEfetivo =
+    cliente.modelo_inversor ?? (projetoMaisRecente as any)?.modelo_inversor ?? null;
+  const numeroPlacasEfetivo =
+    cliente.numero_placas ?? (projetoMaisRecente as any)?.numero_modulos ?? null;
+
   const endereco = [cliente.rua, cliente.numero, cliente.complemento, cliente.bairro].filter(Boolean).join(", ");
   const cidadeEstado = [cliente.cidade, cliente.estado].filter(Boolean).join(" - ");
   const googleMapsQuery = [cliente.rua, cliente.numero, cliente.bairro, cliente.cidade, cliente.estado].filter(Boolean).join(", ");
