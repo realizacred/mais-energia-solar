@@ -16,7 +16,7 @@ import { Button } from "@/components/ui/button";
 
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { GlobalSearch } from "@/components/admin/GlobalSearch";
-import { TrialBanner, UpsellBanner } from "@/components/plan";
+import { TrialBanner, UpsellBanner, PlanStatusBadge } from "@/components/plan";
 import { FeatureDiscoveryLayer } from "@/components/FeatureDiscoveryLayer";
 import { HelpCenterDrawer } from "@/components/help/HelpCenterDrawer";
 import { HeaderSearch } from "@/components/admin/HeaderSearch";
