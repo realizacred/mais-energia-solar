@@ -26237,6 +26237,87 @@ export type Database = {
           },
         ]
       }
+      wa_conversations_backup_premerge: {
+        Row: {
+          assigned_to: string | null
+          backed_up_at: string | null
+          canal: string | null
+          cliente_id: string | null
+          cliente_nome: string | null
+          cliente_telefone: string | null
+          created_at: string | null
+          id: string | null
+          instance_id: string | null
+          is_group: boolean | null
+          last_message_at: string | null
+          last_message_direction: string | null
+          last_message_id: string | null
+          last_message_preview: string | null
+          lead_id: string | null
+          profile_picture_url: string | null
+          remote_jid: string | null
+          sla_paused_until: string | null
+          status: string | null
+          telefone_normalized: string | null
+          tenant_id: string | null
+          unread_count: number | null
+          updated_at: string | null
+          version: number | null
+        }
+        Insert: {
+          assigned_to?: string | null
+          backed_up_at?: string | null
+          canal?: string | null
+          cliente_id?: string | null
+          cliente_nome?: string | null
+          cliente_telefone?: string | null
+          created_at?: string | null
+          id?: string | null
+          instance_id?: string | null
+          is_group?: boolean | null
+          last_message_at?: string | null
+          last_message_direction?: string | null
+          last_message_id?: string | null
+          last_message_preview?: string | null
+          lead_id?: string | null
+          profile_picture_url?: string | null
+          remote_jid?: string | null
+          sla_paused_until?: string | null
+          status?: string | null
+          telefone_normalized?: string | null
+          tenant_id?: string | null
+          unread_count?: number | null
+          updated_at?: string | null
+          version?: number | null
+        }
+        Update: {
+          assigned_to?: string | null
+          backed_up_at?: string | null
+          canal?: string | null
+          cliente_id?: string | null
+          cliente_nome?: string | null
+          cliente_telefone?: string | null
+          created_at?: string | null
+          id?: string | null
+          instance_id?: string | null
+          is_group?: boolean | null
+          last_message_at?: string | null
+          last_message_direction?: string | null
+          last_message_id?: string | null
+          last_message_preview?: string | null
+          lead_id?: string | null
+          profile_picture_url?: string | null
+          remote_jid?: string | null
+          sla_paused_until?: string | null
+          status?: string | null
+          telefone_normalized?: string | null
+          tenant_id?: string | null
+          unread_count?: number | null
+          updated_at?: string | null
+          version?: number | null
+        }
+        Relationships: []
+      }
       wa_followup_logs: {
         Row: {
           action: string
@@ -26775,6 +26856,57 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      wa_merge_audit_log: {
+        Row: {
+          canonical_id: string
+          canonical_instance_id: string | null
+          duplicate_cliente_id: string | null
+          duplicate_id: string
+          duplicate_instance_id: string | null
+          duplicate_lead_id: string | null
+          duplicate_status: string | null
+          executed_at: string
+          id: string
+          is_group: boolean | null
+          msgs_moved: number
+          notes: string | null
+          telefone_normalized: string | null
+          tenant_id: string
+        }
+        Insert: {
+          canonical_id: string
+          canonical_instance_id?: string | null
+          duplicate_cliente_id?: string | null
+          duplicate_id: string
+          duplicate_instance_id?: string | null
+          duplicate_lead_id?: string | null
+          duplicate_status?: string | null
+          executed_at?: string
+          id?: string
+          is_group?: boolean | null
+          msgs_moved?: number
+          notes?: string | null
+          telefone_normalized?: string | null
+          tenant_id: string
+        }
+        Update: {
+          canonical_id?: string
+          canonical_instance_id?: string | null
+          duplicate_cliente_id?: string | null
+          duplicate_id?: string
+          duplicate_instance_id?: string | null
+          duplicate_lead_id?: string | null
+          duplicate_status?: string | null
+          executed_at?: string
+          id?: string
+          is_group?: boolean | null
+          msgs_moved?: number
+          notes?: string | null
+          telefone_normalized?: string | null
+          tenant_id?: string
+        }
+        Relationships: []
       }
       wa_message_hidden: {
         Row: {
