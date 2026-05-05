@@ -69,7 +69,7 @@ import { PhoneInput } from "@/components/ui-kit/inputs/PhoneInput";
 import { WhatsAppSendDialog } from "./WhatsAppSendDialog";
 import { ClienteViewDialog } from "./ClienteViewDialog";
 import { ClienteDocumentUpload } from "./ClienteDocumentUpload";
-import { PageHeader, EmptyState, LoadingState, SearchInput, Spinner } from "@/components/ui-kit";
+import { PageHeader, EmptyState, LoadingState, SearchInput, Spinner, TableSkeleton } from "@/components/ui-kit";
 import { TablePagination } from "@/components/ui-kit/TablePagination";
 import { useUserPermissions } from "@/hooks/useUserPermissions";
 import {
@@ -712,11 +712,7 @@ export function ClientesManager({ onSelectCliente }: ClientesManagerProps) {
 
       {/* Table */}
       {loading ? (
-        <div className="space-y-2">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <Skeleton key={i} className="h-14 w-full rounded-lg" />
-          ))}
-        </div>
+        <TableSkeleton rows={8} columns={6} />
       ) : filteredClientes.length === 0 ? (
         <EmptyState
           icon={Users}
