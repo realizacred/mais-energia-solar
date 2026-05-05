@@ -6,6 +6,7 @@
 // Parser version: 3.0.2
 // ──────────────────────────────────────────────────────────────────────────────
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+import { callAi } from "../_shared/aiCallNoLovable.ts";
 
 const PARSER_VERSION = "3.2.0";
 
