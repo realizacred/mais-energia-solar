@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 import { useUserPermissions } from "@/hooks/useUserPermissions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { PageHeader, LoadingState } from "@/components/ui-kit";
+import { PageHeader, TableSkeleton, EmptyState } from "@/components/ui-kit";
 import { Users, Download, UserPlus, TrendingUp, ShoppingCart, Upload } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -304,7 +304,22 @@ export function LeadsView() {
         </CardHeader>
         <CardContent>
           {loading ? (
-            <LoadingState message="Carregando orçamentos..." className="py-12" />
+            <TableSkeleton rows={8} columns={6} className="py-4" />
+          ) : filteredOrcamentos.length === 0 ? (
+            <EmptyState
+              icon={Users}
+              title="Nenhum lead encontrado"
+              description={
+                searchTerm || filterVisto !== "todos" || filterVendedor !== "todos" || filterEstado !== "todos" || filterStatus !== "todos"
+                  ? "Ajuste os filtros para ver mais resultados."
+                  : "Importe leads ou aguarde novos orçamentos chegarem."
+              }
+              action={{
+                label: "Importar leads",
+                onClick: () => setIsImportOpen(true),
+                icon: Upload,
+              }}
+            />
           ) : (
             <OrcamentosTable
               orcamentos={filteredOrcamentos}
