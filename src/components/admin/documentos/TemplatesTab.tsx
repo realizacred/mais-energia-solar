@@ -14,7 +14,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { format } from "date-fns";
 
-const ALL_CATS: (DocumentCategory | "all")[] = ["all", "contrato", "procuracao", "proposta", "termo"];
+const ALL_CATS: (DocumentCategory | "all")[] = ["all", "contrato", "procuracao", "termo"];
+const VISIBLE_CATEGORIES: DocumentCategory[] = ["contrato", "procuracao", "termo"];
 
 export function TemplatesTab() {
   const [catFilter, setCatFilter] = useState<DocumentCategory | "all">("all");
