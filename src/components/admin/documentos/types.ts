@@ -2,13 +2,14 @@
 // Document Module — Canonical Types
 // ═══════════════════════════════════════════════
 
-export type DocumentCategory = "contrato" | "procuracao" | "proposta" | "termo";
+export type DocumentCategory = "contrato" | "procuracao" | "proposta" | "termo" | "recibo";
 
 export const CATEGORY_LABELS: Record<DocumentCategory, string> = {
   contrato: "Contratos",
   procuracao: "Procurações",
   proposta: "Propostas",
   termo: "Termos",
+  recibo: "Recibos",
 };
 
 export type TemplateStatus = "active" | "archived";
