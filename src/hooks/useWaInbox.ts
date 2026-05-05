@@ -434,8 +434,33 @@ export function useWaMessages(conversationId?: string) {
         }
       }
     }
-    return msgs.map((m: any) => ({
+
+    // Onda 1 hardening: bucket wa-attachments is PRIVATE.
+    // Resolve a fresh signed URL from storage_path for inbound media.
+    // Legacy rows that still carry a public media_url are kept as fallback
+    // (they may 403 silently — UI shows pending/failed states gracefully).
+    const signed = await Promise.all(
+      msgs.map(async (m: any) => {
+        if (!m.storage_path) return m.media_url ?? null;
+        try {
+          const { data, error } = await supabase.storage
+            .from("wa-attachments")
+            .createSignedUrl(m.storage_path, 60 * 60);
+          if (error || !data?.signedUrl) {
+            console.warn("[useWaMessages] signed url failed", { id: m.id, error: error?.message });
+            return m.media_url ?? null;
+          }
+          return data.signedUrl;
+        } catch (err: any) {
+          console.warn("[useWaMessages] signed url exception", { id: m.id, error: err?.message });
+          return m.media_url ?? null;
+        }
+      })
+    );
+
+    return msgs.map((m: any, i) => ({
       ...m,
+      media_url: signed[i],
       sent_by_name: m.sent_by_user_id ? namesCache.current[m.sent_by_user_id] || null : null,
     }));
   }, []);
