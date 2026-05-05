@@ -290,7 +290,24 @@ async function syncMissedMessages(
         }
 
         const msgsData = await msgsRes.json();
-        const messages = Array.isArray(msgsData) ? msgsData : (msgsData.data || msgsData.messages || []);
+        // Defensive parser: Evolution may return array OR { messages: { records: [] } } OR { data: [] } etc.
+        const pickArray = (v: any): any[] => {
+          if (Array.isArray(v)) return v;
+          if (v && typeof v === "object") {
+            if (Array.isArray(v.records)) return v.records;
+            if (Array.isArray(v.data)) return v.data;
+            if (Array.isArray(v.messages)) return v.messages;
+          }
+          return [];
+        };
+        let messages = pickArray(msgsData);
+        if (messages.length === 0 && msgsData && typeof msgsData === "object") {
+          messages = pickArray(msgsData.messages) || pickArray(msgsData.data);
+        }
+        if (!Array.isArray(messages)) {
+          console.warn(`[wa-watchdog] syncMissedMessages: non-array payload for ${remoteJid}, skipping`);
+          messages = [];
+        }
 
         for (const msg of messages) {
           const key = msg.key || {};
