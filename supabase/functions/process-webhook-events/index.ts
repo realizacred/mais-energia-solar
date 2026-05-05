@@ -492,8 +492,8 @@ async function handleMessageUpsert(
     const participantJid = isGroup ? (key.participant || msg.participant || null) : null;
     const participantName = isGroup ? (msg.pushName || null) : null;
     const rawContactName = isGroup ? null : (msg.pushName || msg.verifiedBizName || null);
-    // Sanitize pushName: if it's just a phone number, ignore it to preserve CRM names
-    const contactName = rawContactName && !isPushNameJustPhone(rawContactName, remoteJid) ? rawContactName : null;
+    // Sanitize pushName: ignore phone-like names AND names matching the instance's own profile_name
+    const contactName = rawContactName && !isPushNameJustPhone(rawContactName, remoteJid) && !matchesInstanceName(rawContactName) ? rawContactName : null;
     const phone = remoteJid.replace("@s.whatsapp.net", "").replace("@g.us", "");
     
     const groupSubject: string | null = isGroup
