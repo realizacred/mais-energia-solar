@@ -4098,6 +4098,60 @@ export type Database = {
           },
         ]
       }
+      dunning_attempts: {
+        Row: {
+          attempt_number: number
+          attempted_at: string
+          channel: string
+          charge_id: string | null
+          created_at: string
+          error_message: string | null
+          id: string
+          status: string
+          subscription_id: string
+          tenant_id: string
+        }
+        Insert: {
+          attempt_number?: number
+          attempted_at?: string
+          channel?: string
+          charge_id?: string | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          status?: string
+          subscription_id: string
+          tenant_id: string
+        }
+        Update: {
+          attempt_number?: number
+          attempted_at?: string
+          channel?: string
+          charge_id?: string | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          status?: string
+          subscription_id?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dunning_attempts_charge_id_fkey"
+            columns: ["charge_id"]
+            isOneToOne: false
+            referencedRelation: "billing_charges"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dunning_attempts_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "subscriptions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       edge_rate_limits: {
         Row: {
           function_name: string
@@ -29703,6 +29757,7 @@ export type Database = {
         | "past_due"
         | "canceled"
         | "expired"
+        | "suspended"
       tenant_status: "active" | "suspended" | "disabled" | "pending"
       tipo_parcela_enum: "entrada" | "regular" | "intermediaria" | "final"
       tipo_sistema_inversor: "ON_GRID" | "HIBRIDO" | "OFF_GRID"
@@ -30049,6 +30104,7 @@ export const Constants = {
         "past_due",
         "canceled",
         "expired",
+        "suspended",
       ],
       tenant_status: ["active", "suspended", "disabled", "pending"],
       tipo_parcela_enum: ["entrada", "regular", "intermediaria", "final"],
