@@ -174,6 +174,25 @@ export function WaInbox({ vendorMode = false, vendorUserId, showCompactStats = f
 
   const { tags, createTag, deleteTag, toggleConversationTag } = useWaTags();
   const { mutedIds, hiddenIds, isMuted, isHidden, toggleMute, toggleHide } = useWaConversationPreferences();
+  const { pinnedIds, togglePin } = useWaPinnedConversations();
+  const [convContextMenu, setConvContextMenu] = useState<WaConvContextMenuState | null>(null);
+
+  const handleContextMenuConv = useCallback((e: React.MouseEvent, conv: WaConversation) => {
+    setConvContextMenu({ x: e.clientX, y: e.clientY, conversation: conv });
+  }, []);
+
+  // Sort pinned first
+  const sortPinned = useCallback(
+    (list: WaConversation[]) => {
+      if (!pinnedIds.size) return list;
+      return [...list].sort((a, b) => {
+        const ap = pinnedIds.has(a.id) ? 1 : 0;
+        const bp = pinnedIds.has(b.id) ? 1 : 0;
+        return bp - ap;
+      });
+    },
+    [pinnedIds],
+  );
 
   // SLA Alerts
   const {
