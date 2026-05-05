@@ -8,3 +8,4 @@ export { LoadingState } from "./LoadingState";
 export { Spinner } from "./Spinner";
 export { SearchInput } from "./SearchInput";
 export { FormModalTemplate, FormSection, FormGrid } from "./FormModalTemplate";
+export { TableSkeleton } from "./TableSkeleton";
