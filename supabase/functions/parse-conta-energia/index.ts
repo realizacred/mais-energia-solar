@@ -1720,19 +1720,17 @@ async function tryAiEnrichment(
     .eq('is_active', true)
     .maybeSingle();
 
-  // Fallback to LOVABLE_API_KEY if no tenant Gemini key or if tenant provider fails
-  const lovableKey = Deno.env.get('LOVABLE_API_KEY');
-  const useGeminiDirect = !!keyRow?.api_key;
-  const apiKey = keyRow?.api_key || lovableKey;
+  // Tenant key opcional (Gemini direto). Caso ausente, callAi() usa GEMINI_API_KEY/OPENAI_API_KEY do ambiente.
+  const tenantGeminiKey = keyRow?.api_key || null;
+  const hasEnvAi = !!Deno.env.get('GEMINI_API_KEY') || !!Deno.env.get('OPENAI_API_KEY');
 
-  if (!apiKey) {
+  if (!tenantGeminiKey && !hasEnvAi) {
     console.log('[parse-conta-energia] AI fallback skipped: no API key available');
     return data;
   }
 
-  console.log(`[parse-conta-energia] AI fallback: enriching ${missing.length} fields via ${useGeminiDirect ? 'Gemini Direct' : 'Lovable Gateway'}`);
+  console.log(`[parse-conta-energia] AI fallback: enriching ${missing.length} fields (tenant_gemini=${!!tenantGeminiKey})`);
 
-  // Truncate text for AI (first 4000 chars is enough)
   const truncatedText = text.length > 4000 ? text.substring(0, 4000) : text;
 
   const systemPrompt = `Você é um extrator de dados de faturas de energia elétrica brasileiras.
@@ -1772,60 +1770,13 @@ Responda APENAS com JSON válido, sem explicações.`;
         : null;
     };
 
-    const callLovableGateway = async () => {
-      if (!lovableKey) {
-        console.log('[parse-conta-energia] AI fallback skipped: LOVABLE_API_KEY unavailable for gateway fallback');
-        return false;
-      }
-
-      modelUsed = 'google/gemini-2.5-flash';
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 15000);
-
-      try {
-        const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${lovableKey}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            model: modelUsed,
-            messages: [
-              { role: 'system', content: systemPrompt },
-              { role: 'user', content: userPrompt },
-            ],
-            temperature: 0.1,
-            max_tokens: 500,
-          }),
-          signal: controller.signal,
-        });
-
-        if (!response.ok) {
-          const errBody = await response.text();
-          console.error(`[parse-conta-energia] Gateway error ${response.status}: ${errBody.substring(0, 200)}`);
-          return false;
-        }
-
-        const gwData = await response.json();
-        const content = gwData.choices?.[0]?.message?.content;
-        if (!content) return false;
-
-        aiResult = parseAiJson(content);
-        return !!aiResult;
-      } finally {
-        clearTimeout(timeout);
-      }
-    };
-
-    if (useGeminiDirect) {
-      // Direct Gemini API call
+    // 1) Tentar Gemini com chave do tenant (preferencial)
+    if (tenantGeminiKey) {
       modelUsed = 'gemini-2.5-flash';
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 15000);
-
       try {
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelUsed}:generateContent?key=${apiKey}`;
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelUsed}:generateContent?key=${tenantGeminiKey}`;
         const response = await fetch(url, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -1840,30 +1791,43 @@ Responda APENAS com JSON válido, sem explicações.`;
           }),
           signal: controller.signal,
         });
-
-        if (!response.ok) {
-          const errBody = await response.text();
-          console.error(`[parse-conta-energia] Gemini error ${response.status}: ${errBody.substring(0, 200)}`);
-          const recovered = await callLovableGateway();
-          if (!recovered) return data;
-        } else {
+        if (response.ok) {
           const geminiData = await response.json();
           const content = geminiData.candidates?.[0]?.content?.parts?.[0]?.text;
-          if (content) {
-            aiResult = parseAiJson(content);
-          }
-          if (!aiResult) {
-            const recovered = await callLovableGateway();
-            if (!recovered) return data;
-          }
+          if (content) aiResult = parseAiJson(content);
+          console.log("[ai] provider: gemini-tenant model:", modelUsed);
+        } else {
+          const errBody = await response.text();
+          console.error(`[parse-conta-energia] Gemini tenant error ${response.status}: ${errBody.substring(0, 200)}`);
         }
       } finally {
         clearTimeout(timeout);
       }
-    } else {
-      const recovered = await callLovableGateway();
-      if (!recovered) return data;
     }
+
+    // 2) Fallback: helper compartilhado (Gemini env → OpenAI env)
+    if (!aiResult && hasEnvAi) {
+      try {
+        const ai = await callAi({
+          tier: "flash",
+          jsonMode: true,
+          temperature: 0.1,
+          maxTokens: 500,
+          messages: [
+            { role: "system", content: systemPrompt },
+            { role: "user", content: userPrompt },
+          ],
+        });
+        console.log("[ai] provider:", ai.provider, "model:", ai.model);
+        modelUsed = ai.model;
+        const content = ai.choices?.[0]?.message?.content;
+        if (content) aiResult = parseAiJson(content);
+      } catch (err: any) {
+        console.error('[parse-conta-energia] callAi fallback error:', err?.message);
+      }
+    }
+
+    if (!aiResult) return data;
 
     if (!aiResult || typeof aiResult !== 'object') {
       console.log('[parse-conta-energia] AI fallback: no valid result');
