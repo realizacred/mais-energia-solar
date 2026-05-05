@@ -298,8 +298,21 @@ function ConversationItem({
         />
         {conv.status === "open" && (
           <div className="absolute bottom-0.5 right-0.5 w-2.5 h-2.5 rounded-full bg-success border-2 border-card" />
-        )}
-      </div>
+          )}
+          <label
+            className="flex items-center gap-1.5 cursor-pointer"
+            title="Quando ligado, exibe cada conversa do mesmo contato separadamente (sem agrupar duplicatas)."
+          >
+            <Switch
+              checked={!mergeDuplicates}
+              onCheckedChange={(v) => handleMergeChange(!v)}
+              className="h-4 w-7 [&>span]:h-3 [&>span]:w-3"
+            />
+            <span className="text-[10px] text-muted-foreground flex items-center gap-0.5">
+              <GitBranch className="h-3 w-3" /> Ver separadas
+            </span>
+          </label>
+        </div>
 
       {/* Body */}
       <div className="flex-1 min-w-0 flex flex-col gap-[3px] pl-1.5">
