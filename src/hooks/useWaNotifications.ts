@@ -55,9 +55,11 @@ export function useWaNotifications() {
   const { data: snapshot } = useQuery({
     queryKey: ["wa-notification-poll", user?.id],
     queryFn: async () => {
+      // Notify on unassigned conversations too — admins/atendentes need to see them.
+      // Backend RPC already enforces visibility rules per role.
       const { data, error } = await supabase.rpc("get_user_unread_conversations", {
         _limit: 50,
-        _only_assigned: true,
+        _only_assigned: false,
       });
       if (error) throw error;
       return (data || []) as Array<{
@@ -70,8 +72,9 @@ export function useWaNotifications() {
       }>;
     },
     enabled: !!user && enabled,
-    staleTime: 30_000,
-    refetchInterval: 60_000,
+    staleTime: 10_000,
+    refetchInterval: 20_000,
+    refetchIntervalInBackground: true,
   });
 
   // Detect new messages by comparing snapshots
