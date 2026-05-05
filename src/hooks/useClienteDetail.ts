@@ -11,6 +11,8 @@ export interface ClienteProjeto {
   potencia_kwp: number | null;
   valor_total: number | null;
   deal_id: string | null;
+  numero_modulos: number | null;
+  modelo_inversor: string | null;
 }
 
 export interface ClientePropostaNativa {
@@ -51,7 +53,7 @@ export function useClienteProjetos(clienteId: string | null) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("projetos")
-        .select("id, codigo, status, created_at, potencia_kwp, valor_total, deal_id")
+        .select("id, codigo, status, created_at, potencia_kwp, valor_total, deal_id, numero_modulos, modelo_inversor")
         .eq("cliente_id", clienteId!)
         .order("created_at", { ascending: false });
       if (error) throw error;

@@ -207,6 +207,18 @@ export function ClienteViewDialog({ cliente, open, onOpenChange }: ClienteViewDi
 
   if (!cliente) return null;
 
+  // Fallbacks: dados podem estar NULL no cliente; derivar do projeto/versão mais recente
+  const projetoMaisRecente = projetos[0];
+  const versaoMaisRecente = versoes[0];
+  const valorProjetoEfetivo =
+    cliente.valor_projeto ?? projetoMaisRecente?.valor_total ?? versaoMaisRecente?.valor_total ?? null;
+  const potenciaEfetiva =
+    cliente.potencia_kwp ?? projetoMaisRecente?.potencia_kwp ?? versaoMaisRecente?.potencia_kwp ?? null;
+  const inversorEfetivo =
+    cliente.modelo_inversor ?? (projetoMaisRecente as any)?.modelo_inversor ?? null;
+  const numeroPlacasEfetivo =
+    cliente.numero_placas ?? (projetoMaisRecente as any)?.numero_modulos ?? null;
+
   const endereco = [cliente.rua, cliente.numero, cliente.complemento, cliente.bairro].filter(Boolean).join(", ");
   const cidadeEstado = [cliente.cidade, cliente.estado].filter(Boolean).join(" - ");
   const googleMapsQuery = [cliente.rua, cliente.numero, cliente.bairro, cliente.cidade, cliente.estado].filter(Boolean).join(", ");
@@ -270,14 +282,14 @@ export function ClienteViewDialog({ cliente, open, onOpenChange }: ClienteViewDi
             <KpiCard
               icon={DollarSign}
               label="Valor do projeto"
-              value={formatCurrency(cliente.valor_projeto)}
+              value={formatCurrency(valorProjetoEfetivo)}
               borderColor="border-l-primary"
               iconBg="bg-primary/10 text-primary"
             />
             <KpiCard
               icon={Zap}
               label="Potência"
-              value={cliente.potencia_kwp ? `${cliente.potencia_kwp} kWp` : "—"}
+              value={potenciaEfetiva ? `${Number(potenciaEfetiva).toFixed(2)} kWp` : "—"}
               borderColor="border-l-warning"
               iconBg="bg-warning/10 text-warning"
             />
@@ -357,16 +369,16 @@ export function ClienteViewDialog({ cliente, open, onOpenChange }: ClienteViewDi
                 </div>
 
                 {/* Projeto solar */}
-                {cliente.potencia_kwp && (
+                {potenciaEfetiva && (
                   <div className="space-y-3">
                     <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground flex items-center gap-1.5">
                       <Zap className="w-3 h-3" /> Projeto solar
                     </p>
                     <div className="p-3 rounded-lg bg-muted/50 border border-border">
                       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                        <InfoField label="Potência" value={`${cliente.potencia_kwp} kWp`} />
-                        <InfoField label="Placas" value={cliente.numero_placas?.toString() || null} />
-                        <InfoField label="Inversor" value={cliente.modelo_inversor} />
+                        <InfoField label="Potência" value={`${Number(potenciaEfetiva).toFixed(2)} kWp`} />
+                        <InfoField label="Placas" value={numeroPlacasEfetivo?.toString() || null} />
+                        <InfoField label="Inversor" value={inversorEfetivo} />
                         <InfoField label="Instalação" value={cliente.data_instalacao ? formatDate(cliente.data_instalacao + "T12:00:00") : null} />
                       </div>
                     </div>
