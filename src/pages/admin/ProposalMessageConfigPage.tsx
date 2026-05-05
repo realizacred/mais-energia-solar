@@ -221,17 +221,13 @@ function ProposalMessageConfigPageInner() {
 
   return (
     <div className="p-4 md:p-6 space-y-6">
-      {/* Header — §26 */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-primary/10 text-primary">
-            <MessageCircle className="w-5 h-5" />
-          </div>
-          <div>
-            <h1 className="text-xl font-bold text-foreground">Mensagens da Proposta</h1>
-            <p className="text-sm text-muted-foreground">Configure templates, blocos e padrões por tenant</p>
-          </div>
-        </div>
+      {/* Header padronizado §26 — PageHeader */}
+      <div className="flex items-start justify-between gap-4 flex-wrap">
+        <PageHeader
+          icon={MessageCircle}
+          title="Mensagens da Proposta"
+          description="Configure templates, blocos e padrões por tenant"
+        />
         <div className="flex items-center gap-2">
           <AlertDialog>
             <AlertDialogTrigger asChild>
