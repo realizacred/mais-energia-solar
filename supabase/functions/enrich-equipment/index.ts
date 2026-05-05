@@ -233,33 +233,59 @@ async function callAIProvider(
   user: string,
   apiKey: string,
 ): Promise<AICallResult> {
-  const providerLabel = provider === "gemini" ? "lovable_gateway" : "lovable_gateway";
   try {
-    const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model,
-        messages: [
-          { role: "system", content: system },
-          { role: "user", content: user },
-        ],
-      }),
-    });
+    let rawContent = "";
+    let usage = { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 };
 
-    if (!res.ok) {
-      const errorText = await res.text();
-      return { parsed: null, provider: providerLabel, model, usage: { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 }, error: `${res.status} - ${errorText}` };
+    if (provider === "gemini") {
+      const res = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            systemInstruction: { parts: [{ text: system }] },
+            contents: [{ role: "user", parts: [{ text: user }] }],
+            generationConfig: { temperature: 0.2, responseMimeType: "application/json" },
+          }),
+        },
+      );
+      if (!res.ok) {
+        return { parsed: null, provider, model, usage, error: `${res.status} - ${(await res.text()).slice(0,200)}` };
+      }
+      const data = await res.json();
+      rawContent = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+      const meta = data.usageMetadata || {};
+      usage = {
+        prompt_tokens: meta.promptTokenCount || 0,
+        completion_tokens: meta.candidatesTokenCount || 0,
+        total_tokens: meta.totalTokenCount || 0,
+      };
+    } else {
+      const res = await fetch("https://api.openai.com/v1/chat/completions", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model,
+          messages: [
+            { role: "system", content: system },
+            { role: "user", content: user },
+          ],
+          response_format: { type: "json_object" },
+        }),
+      });
+      if (!res.ok) {
+        return { parsed: null, provider, model, usage, error: `${res.status} - ${(await res.text()).slice(0,200)}` };
+      }
+      const data = await res.json();
+      rawContent = data.choices?.[0]?.message?.content || "";
+      usage = data.usage || usage;
     }
 
-    const data = await res.json();
-    const rawContent = data.choices?.[0]?.message?.content || "";
-    const usage = data.usage || { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 };
     const parsed = extractJSON(rawContent);
-
-    return { parsed, provider: providerLabel, model, usage };
+    return { parsed, provider, model, usage };
   } catch (err: any) {
-    return { parsed: null, provider: providerLabel, model, usage: { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 }, error: err.message };
+    return { parsed: null, provider, model, usage: { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 }, error: err.message };
   }
 }
 
@@ -472,16 +498,20 @@ serve(async (req) => {
     // 3. Build prompt
     const { system, user } = buildPrompt(equipment_type, equipment.fabricante, equipment.modelo);
 
-    // 4. Call AI — Dual provider strategy
-    const apiKey = Deno.env.get("LOVABLE_API_KEY");
-    if (!apiKey) throw new Error("LOVABLE_API_KEY não configurada");
+    // 4. Call AI — Dual provider strategy (Gemini direto + OpenAI direto em paralelo)
+    const geminiKey = Deno.env.get("GEMINI_API_KEY");
+    const openaiKey = Deno.env.get("OPENAI_API_KEY");
+    if (!geminiKey && !openaiKey) {
+      throw new Error("Nenhuma API key de IA configurada (GEMINI_API_KEY ou OPENAI_API_KEY)");
+    }
 
-    // Run both providers IN PARALLEL (team work — consensus strategy)
-    const [primary, secondary] = await Promise.all([
-      callAIProvider("gemini", "google/gemini-2.5-flash", system, user, apiKey),
-      callAIProvider("openai", "openai/gpt-5-mini", system, user, apiKey),
-    ]);
-    const usedDual = true;
+    const calls: Promise<AICallResult>[] = [];
+    if (geminiKey) calls.push(callAIProvider("gemini", "gemini-2.0-flash", system, user, geminiKey));
+    if (openaiKey) calls.push(callAIProvider("openai", "gpt-4o-mini", system, user, openaiKey));
+    const results = await Promise.all(calls);
+    const primary = results[0];
+    const secondary = results[1] ?? { parsed: null, provider: "gemini" as const, model: "", usage: { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 } };
+    const usedDual = results.length === 2;
     const primaryFilled = countFilledFields(primary.parsed);
     const secondaryFilled = countFilledFields(secondary.parsed);
 
@@ -593,7 +623,7 @@ serve(async (req) => {
       tenant_id,
       user_id: userId,
       function_name: "enrich-equipment",
-      provider: "lovable_gateway",
+      provider: primary.provider,
       model: primary.model,
       prompt_tokens: primary.usage.prompt_tokens,
       completion_tokens: primary.usage.completion_tokens,
@@ -608,7 +638,7 @@ serve(async (req) => {
         tenant_id,
         user_id: userId,
         function_name: "enrich-equipment",
-        provider: "lovable_gateway",
+        provider: primary.provider,
         model: secondary.model,
         prompt_tokens: secondary.usage.prompt_tokens,
         completion_tokens: secondary.usage.completion_tokens,

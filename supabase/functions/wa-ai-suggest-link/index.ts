@@ -119,9 +119,9 @@ Deno.serve(async (req) => {
       confidence = 0.92;
       reason = "Telefone confere (últimos 10 dígitos) — match único.";
     } else {
-      // Pede IA pra escolher (Lovable AI Gateway)
-      const apiKey = Deno.env.get("LOVABLE_API_KEY");
-      if (apiKey) {
+      // Pede IA pra escolher (Gemini direto / OpenAI fallback)
+      const hasAi = !!Deno.env.get("GEMINI_API_KEY") || !!Deno.env.get("OPENAI_API_KEY");
+      if (hasAi) {
         const prompt = `Você analisa candidatos de CRM para vincular a uma conversa de WhatsApp órfã.
 Conversa:
 - Telefone: ${conv.cliente_telefone || conv.remote_jid}
@@ -134,24 +134,18 @@ Escolha 1 candidato OU diga "nenhum". Responda APENAS JSON:
 {"index": <1-based ou 0>, "confidence": <0..1>, "reason": "<motivo curto>"}`;
 
         try {
-          const aiRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-            method: "POST",
-            headers: { "Authorization": `Bearer ${apiKey}`, "Content-Type": "application/json" },
-            body: JSON.stringify({
-              model: "google/gemini-2.5-flash",
-              messages: [{ role: "user", content: prompt }],
-              response_format: { type: "json_object" },
-            }),
+          const { callAi } = await import("../_shared/aiCallNoLovable.ts");
+          const data = await callAi({
+            tier: "flash",
+            jsonMode: true,
+            messages: [{ role: "user", content: prompt }],
           });
-          if (aiRes.ok) {
-            const data = await aiRes.json();
-            const parsed = JSON.parse(data.choices?.[0]?.message?.content ?? "{}");
-            if (parsed.index && parsed.index > 0 && parsed.index <= uniqueCandidates.length) {
-              chosen = uniqueCandidates[parsed.index - 1];
-              confidence = Math.max(0, Math.min(1, Number(parsed.confidence) || 0.5));
-              reason = parsed.reason || "Sugestão IA";
-              method = "ai";
-            }
+          const parsed = JSON.parse(data.choices?.[0]?.message?.content ?? "{}");
+          if (parsed.index && parsed.index > 0 && parsed.index <= uniqueCandidates.length) {
+            chosen = uniqueCandidates[parsed.index - 1];
+            confidence = Math.max(0, Math.min(1, Number(parsed.confidence) || 0.5));
+            reason = parsed.reason || "Sugestão IA";
+            method = "ai";
           }
         } catch (e: any) {
           console.warn("[wa-ai-suggest-link] AI fallback:", e?.message);

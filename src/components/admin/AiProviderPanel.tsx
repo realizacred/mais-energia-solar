@@ -32,15 +32,14 @@ export function AiProviderPanel() {
   const { config, isLoading: configLoading, updateConfig, providerInfo, hasOpenAIKey, hasGeminiKey } = useAIProviderConfig();
   const { logs, summary, isLoading: logsLoading } = useAIUsageLogs({ limit: 50 });
 
-  const activeProvider = (config?.active_provider || "lovable_gateway") as keyof typeof AVAILABLE_MODELS;
-  const activeModel = config?.active_model || "google/gemini-2.5-flash";
+  const activeProvider = (config?.active_provider || "gemini") as keyof typeof AVAILABLE_MODELS;
+  const activeModel = config?.active_model || "gemini-2.0-flash";
   const fallbackEnabled = config?.fallback_enabled ?? true;
 
-  // Auto-switch to gateway if active provider has no key
-  const effectiveProvider = (
-    (activeProvider === "openai" && !hasOpenAIKey) ||
-    (activeProvider === "gemini" && !hasGeminiKey)
-  ) ? "lovable_gateway" as keyof typeof AVAILABLE_MODELS : activeProvider;
+  // Auto-switch entre Gemini ↔ OpenAI conforme chaves disponíveis
+  let effectiveProvider: keyof typeof AVAILABLE_MODELS = activeProvider;
+  if (activeProvider === "openai" && !hasOpenAIKey && hasGeminiKey) effectiveProvider = "gemini";
+  if (activeProvider === "gemini" && !hasGeminiKey && hasOpenAIKey) effectiveProvider = "openai";
 
   const models = [...AVAILABLE_MODELS[effectiveProvider]];
   const showModelWarning = effectiveProvider !== activeProvider;
@@ -162,11 +161,6 @@ export function AiProviderPanel() {
               >
                 <div className="flex items-center justify-between mb-1">
                   <span className="text-sm font-semibold text-foreground">{info.name}</span>
-                  {key === "lovable_gateway" && (
-                    <Badge variant="outline" className="text-[10px] border-primary text-primary">
-                      Incluído
-                    </Badge>
-                  )}
                   {isActive && <CheckCircle2 className="w-4 h-4 text-primary" />}
                 </div>
                 <p className="text-xs text-muted-foreground">{info.description}</p>

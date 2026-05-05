@@ -5,7 +5,7 @@ import { toast } from "sonner";
 export interface AIProviderConfig {
   id: string;
   tenant_id: string;
-  active_provider: "lovable_gateway" | "gemini" | "openai";
+  active_provider: "gemini" | "openai";
   active_model: string;
   fallback_enabled: boolean;
   updated_at: string;
@@ -13,12 +13,6 @@ export interface AIProviderConfig {
 }
 
 export const AVAILABLE_MODELS = {
-  lovable_gateway: [
-    { id: "google/gemini-2.5-flash", name: "Gemini 2.5 Flash (padrão)" },
-    { id: "google/gemini-2.5-pro", name: "Gemini 2.5 Pro" },
-    { id: "openai/gpt-5", name: "GPT-5" },
-    { id: "openai/gpt-5-mini", name: "GPT-5 Mini" },
-  ],
   gemini: [
     { id: "gemini-2.0-flash", name: "Gemini 2.0 Flash" },
     { id: "gemini-1.5-pro", name: "Gemini 1.5 Pro" },
@@ -32,11 +26,6 @@ export const AVAILABLE_MODELS = {
 } as const;
 
 export const PROVIDER_INFO = {
-  lovable_gateway: {
-    name: "Lovable Gateway",
-    description: "Gateway padrão incluído no plano. Acesso a Gemini e GPT sem API key própria.",
-    requiresKey: false,
-  },
   gemini: {
     name: "Google Gemini",
     description: "API direta do Google. Requer GEMINI_API_KEY configurada.",

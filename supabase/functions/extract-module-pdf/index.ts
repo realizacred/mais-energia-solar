@@ -42,10 +42,10 @@ Deno.serve(async (req) => {
       );
     }
 
-    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
-    if (!LOVABLE_API_KEY) {
+    const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY');
+    if (!GEMINI_API_KEY) {
       return new Response(
-        JSON.stringify({ success: false, error: 'LOVABLE_API_KEY não configurada' }),
+        JSON.stringify({ success: false, error: 'GEMINI_API_KEY não configurada' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -55,99 +55,64 @@ Extraia TODOS os dados técnicos disponíveis do PDF e retorne como JSON estrutu
 Se um campo não for encontrado, retorne null.
 Não invente valores — extraia APENAS o que está no documento.`;
 
-    const userPrompt = `Extraia os dados técnicos deste datasheet de módulo fotovoltaico${fabricante ? ` (${fabricante} ${modelo || ''})` : ''}.
+    const userPrompt = `Extraia os dados técnicos deste datasheet de módulo fotovoltaico${fabricante ? ` (${fabricante} ${modelo || ''})` : ''}. Retorne APENAS o JSON solicitado.`;
 
-Retorne APENAS o JSON no formato abaixo, sem explicações:`;
-
-    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
-        'Content-Type': 'application/json',
+    const responseSchema = {
+      type: 'object',
+      properties: {
+        fabricante: { type: 'string' },
+        modelo: { type: 'string' },
+        potencia_wp: { type: 'number' },
+        tipo_celula: { type: 'string' },
+        num_celulas: { type: 'number' },
+        tensao_sistema: { type: 'string' },
+        eficiencia_percent: { type: 'number' },
+        comprimento_mm: { type: 'number' },
+        largura_mm: { type: 'number' },
+        profundidade_mm: { type: 'number' },
+        peso_kg: { type: 'number' },
+        bifacial: { type: 'boolean' },
+        vmp_v: { type: 'number' },
+        imp_a: { type: 'number' },
+        voc_v: { type: 'number' },
+        isc_a: { type: 'number' },
+        temp_coeff_pmax: { type: 'number' },
+        temp_coeff_voc: { type: 'number' },
+        temp_coeff_isc: { type: 'number' },
+        garantia_produto_anos: { type: 'number' },
+        garantia_performance_anos: { type: 'number' },
       },
-      body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
-        messages: [
-          { role: 'system', content: systemPrompt },
-          {
-            role: 'user',
-            content: [
-              {
-                type: 'text',
-                text: userPrompt,
-              },
-              {
-                type: 'image_url',
-                image_url: {
-                  url: `data:application/pdf;base64,${pdf_base64}`,
-                },
-              },
-            ],
-          },
-        ],
-        tools: [
-          {
-            type: 'function',
-            function: {
-              name: 'extract_module_specs',
-              description: 'Extrai especificações técnicas de um módulo fotovoltaico a partir de um datasheet PDF',
-              parameters: {
-                type: 'object',
-                properties: {
-                  fabricante: { type: 'string', description: 'Nome do fabricante' },
-                  modelo: { type: 'string', description: 'Modelo do módulo' },
-                  potencia_wp: { type: 'number', description: 'Potência máxima em Wp (STC)' },
-                  tipo_celula: {
-                    type: 'string',
-                    enum: ['Mono PERC', 'N-Type TOPCon', 'N-Type HJT', 'N-Type HPBC', 'Policristalino'],
-                    description: 'Tipo de célula fotovoltaica',
-                  },
-                  num_celulas: { type: 'number', description: 'Número de células' },
-                  tensao_sistema: {
-                    type: 'string', enum: ['1000V', '1500V'],
-                    description: 'Tensão máxima do sistema',
-                  },
-                  eficiencia_percent: { type: 'number', description: 'Eficiência do módulo em %' },
-                  comprimento_mm: { type: 'number', description: 'Comprimento em mm' },
-                  largura_mm: { type: 'number', description: 'Largura em mm' },
-                  profundidade_mm: { type: 'number', description: 'Profundidade/espessura em mm' },
-                  peso_kg: { type: 'number', description: 'Peso em kg' },
-                  bifacial: { type: 'boolean', description: 'Se o módulo é bifacial' },
-                  vmp_v: { type: 'number', description: 'Tensão de máxima potência Vmp (V)' },
-                  imp_a: { type: 'number', description: 'Corrente de máxima potência Imp (A)' },
-                  voc_v: { type: 'number', description: 'Tensão de circuito aberto Voc (V)' },
-                  isc_a: { type: 'number', description: 'Corrente de curto-circuito Isc (A)' },
-                  temp_coeff_pmax: { type: 'number', description: 'Coeficiente de temperatura Pmax (%/°C)' },
-                  temp_coeff_voc: { type: 'number', description: 'Coeficiente de temperatura Voc (%/°C)' },
-                  temp_coeff_isc: { type: 'number', description: 'Coeficiente de temperatura Isc (%/°C)' },
-                  garantia_produto_anos: { type: 'number', description: 'Garantia do produto em anos' },
-                  garantia_performance_anos: { type: 'number', description: 'Garantia de performance em anos' },
-                },
-                required: ['fabricante', 'modelo', 'potencia_wp'],
-                additionalProperties: false,
-              },
+      required: ['fabricante', 'modelo', 'potencia_wp'],
+    };
+
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          systemInstruction: { parts: [{ text: systemPrompt }] },
+          contents: [
+            {
+              role: 'user',
+              parts: [
+                { text: userPrompt },
+                { inlineData: { mimeType: 'application/pdf', data: pdf_base64 } },
+              ],
             },
+          ],
+          generationConfig: {
+            temperature: 0.1,
+            responseMimeType: 'application/json',
+            responseSchema,
           },
-        ],
-        tool_choice: { type: 'function', function: { name: 'extract_module_specs' } },
-      }),
-    });
+        }),
+      }
+    );
 
     if (!response.ok) {
-      if (response.status === 429) {
-        return new Response(
-          JSON.stringify({ success: false, error: 'Rate limit excedido. Tente novamente em alguns segundos.' }),
-          { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
-      if (response.status === 402) {
-        return new Response(
-          JSON.stringify({ success: false, error: 'Créditos insuficientes. Adicione créditos ao workspace.' }),
-          { status: 402, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
       const errorText = await response.text();
-      console.error('AI gateway error:', response.status, errorText);
+      console.error('Gemini error:', response.status, errorText.slice(0, 300));
       return new Response(
         JSON.stringify({ success: false, error: `Erro na extração: ${response.status}` }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -155,10 +120,9 @@ Retorne APENAS o JSON no formato abaixo, sem explicações:`;
     }
 
     const data = await response.json();
-    const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
+    const content = data.candidates?.[0]?.content?.parts?.[0]?.text;
 
-    if (!toolCall || toolCall.function?.name !== 'extract_module_specs') {
-      console.error('Unexpected AI response:', JSON.stringify(data));
+    if (!content) {
       return new Response(
         JSON.stringify({ success: false, error: 'Não foi possível extrair dados do PDF.' }),
         { status: 422, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -167,7 +131,7 @@ Retorne APENAS o JSON no formato abaixo, sem explicações:`;
 
     let specs: Record<string, unknown>;
     try {
-      specs = JSON.parse(toolCall.function.arguments);
+      specs = JSON.parse(content);
     } catch {
       return new Response(
         JSON.stringify({ success: false, error: 'Resposta da IA inválida.' }),
@@ -175,12 +139,11 @@ Retorne APENAS o JSON no formato abaixo, sem explicações:`;
       );
     }
 
-    console.log('Extracted specs:', JSON.stringify(specs));
-
     return new Response(
       JSON.stringify({ success: true, data: specs }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
+
   } catch (error) {
     console.error('Error extracting PDF:', error);
     return new Response(
