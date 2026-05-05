@@ -46,6 +46,7 @@ export interface WaMessage {
   message_type: string;
   content: string | null;
   media_url: string | null;
+  storage_path: string | null;
   media_mime_type: string | null;
   media_status: string | null;
   media_error_message: string | null;
