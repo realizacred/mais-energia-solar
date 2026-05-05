@@ -614,3 +614,12 @@ function ProposalMessageConfigPageInner() {
     </div>
   );
 }
+
+export default function ProposalMessageConfigPage() {
+  return (
+    <PageErrorBoundary title="Não foi possível carregar a página">
+      <ProposalMessageConfigPageInner />
+    </PageErrorBoundary>
+  );
+}
+
