@@ -19,8 +19,9 @@ import {
 import {
   User, Phone, Mail, MapPin, Zap, DollarSign, Calendar, FileText,
   ExternalLink, Eye, FolderOpen, MessageSquare, Clock, ArrowRight,
-  TrendingDown, Send, ChevronRight, Sun,
+  TrendingDown, Send, ChevronRight, Sun, Receipt,
 } from "lucide-react";
+import { ProjetoRecibosTab } from "./projetos/ProjetoRecibosTab";
 import { formatDate, formatDateTime } from "@/lib/dateUtils";
 import { formatPhoneBR, formatBRL } from "@/lib/formatters";
 import {
