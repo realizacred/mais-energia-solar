@@ -111,43 +111,48 @@ serve(async (req) => {
       .eq("tenant_id", tenantId)
       .maybeSingle();
 
-    let provider = providerConfig?.active_provider || "lovable_gateway";
-    let model = providerConfig?.active_model || "google/gemini-2.5-flash";
+    let provider: "gemini" | "openai" =
+      (providerConfig?.active_provider as "gemini" | "openai") || "gemini";
+    if (provider !== "gemini" && provider !== "openai") provider = "gemini";
+    let model = providerConfig?.active_model || "gemini-2.0-flash";
     const fallbackEnabled = providerConfig?.fallback_enabled ?? true;
     let isFallback = false;
 
     // 2. Verificar se API key existe para o provedor
     const hasKey = (p: string) => {
-      if (p === "lovable_gateway") return !!Deno.env.get("LOVABLE_API_KEY");
       if (p === "gemini") return !!Deno.env.get("GEMINI_API_KEY");
       if (p === "openai") return !!Deno.env.get("OPENAI_API_KEY");
       return false;
     };
 
-    if (provider !== "lovable_gateway" && !hasKey(provider)) {
-      if (fallbackEnabled) {
-        console.log(`[ai-generate] API key ausente para ${provider} — usando fallback`);
-        provider = "lovable_gateway";
-        model = "google/gemini-2.5-flash";
+    if (!hasKey(provider)) {
+      const other = provider === "gemini" ? "openai" : "gemini";
+      if (fallbackEnabled && hasKey(other)) {
+        console.log(`[ai-generate] API key ausente para ${provider} — fallback para ${other}`);
+        provider = other;
+        model = other === "gemini" ? "gemini-2.0-flash" : "gpt-4o-mini";
         isFallback = true;
       } else {
         throw new Error(`API key não configurada para ${provider}`);
       }
     }
 
-    // 3. Chamar provedor com fallback automático
+    // 3. Chamar provedor com fallback automático Gemini ↔ OpenAI
     let result: AIResponse;
     try {
-      if (provider === "gemini") result = await callGemini(model, systemPrompt, userPrompt);
-      else if (provider === "openai") result = await callOpenAI(model, systemPrompt, userPrompt);
-      else result = await callLovableGateway(model, systemPrompt, userPrompt);
+      result = provider === "gemini"
+        ? await callGemini(model, systemPrompt, userPrompt)
+        : await callOpenAI(model, systemPrompt, userPrompt);
     } catch (err) {
-      if (fallbackEnabled && provider !== "lovable_gateway") {
-        console.log(`[ai-generate] Erro em ${provider} — fallback para Lovable Gateway:`, err);
-        provider = "lovable_gateway";
-        model = "google/gemini-2.5-flash";
+      const other = provider === "gemini" ? "openai" : "gemini";
+      if (fallbackEnabled && hasKey(other)) {
+        console.log(`[ai-generate] Erro em ${provider} — fallback para ${other}:`, err);
+        provider = other;
+        model = other === "gemini" ? "gemini-2.0-flash" : "gpt-4o-mini";
         isFallback = true;
-        result = await callLovableGateway(model, systemPrompt, userPrompt);
+        result = provider === "gemini"
+          ? await callGemini(model, systemPrompt, userPrompt)
+          : await callOpenAI(model, systemPrompt, userPrompt);
       } else {
         throw err;
       }
