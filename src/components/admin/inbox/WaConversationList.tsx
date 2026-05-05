@@ -277,7 +277,7 @@ function ConversationItem({
         <WaProfileAvatar
           profilePictureUrl={conv.profile_picture_url}
           isGroup={conv.is_group}
-          name={conv.cliente_nome}
+          name={displayName}
           size="md"
           colorByName
         />
