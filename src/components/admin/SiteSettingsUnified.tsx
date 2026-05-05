@@ -211,18 +211,20 @@ export function SiteSettingsUnified() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-            <Paintbrush className="w-5 h-5 text-primary" />
+      {/* Hero Header — SaaS Premium */}
+      <div className="relative overflow-hidden rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/10 via-primary/5 to-transparent p-6">
+        <div className="absolute inset-0 bg-grid-white/[0.02] [mask-image:radial-gradient(ellipse_at_top,white,transparent_70%)]" />
+        <div className="relative flex items-center justify-between flex-wrap gap-4">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-xl bg-primary/15 ring-1 ring-primary/20 flex items-center justify-center shadow-sm">
+              <Paintbrush className="w-6 h-6 text-primary" />
+            </div>
+            <div>
+              <h2 className="text-2xl font-bold tracking-tight">Configurações do Site</h2>
+              <p className="text-sm text-muted-foreground mt-0.5">Conteúdo, visual, banners e identidade da marca</p>
+            </div>
           </div>
-          <div>
-            <h2 className="text-xl font-bold">Configurações do Site</h2>
-            <p className="text-sm text-muted-foreground">Conteúdo, visual, banners e identidade da marca</p>
-          </div>
-        </div>
-        <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex items-center gap-2 flex-wrap">
           {brandHasChanges && (
             <Badge variant="outline" className="gap-1 text-warning border-warning/30">
               <Eye className="h-3 w-3" /> Alterações visuais pendentes
@@ -239,6 +241,7 @@ export function SiteSettingsUnified() {
             {savingSite ? <Spinner size="sm" /> : <Save className="h-4 w-4" />}
             Salvar Conteúdo
           </Button>
+          </div>
         </div>
       </div>
 
@@ -277,7 +280,7 @@ export function SiteSettingsUnified() {
         {/* ═══ EMPRESA ═══ */}
         <TabsContent value="empresa">
           {siteSettings && (
-            <Card>
+            <Card className="border-l-4 border-l-primary hover:shadow-md transition-shadow">
               <CardHeader>
                 <CardTitle className="text-base">Dados da Empresa</CardTitle>
                 <CardDescription>Informações institucionais exibidas no site</CardDescription>
@@ -316,7 +319,7 @@ export function SiteSettingsUnified() {
           )}
 
           {/* Representante Legal — salva em brand_settings */}
-          <Card>
+          <Card className="border-l-4 border-l-info hover:shadow-md transition-shadow">
             <CardHeader>
               <div className="flex items-center gap-2.5">
                 <UserCheck className="w-4 h-4 text-primary" />
@@ -374,7 +377,7 @@ export function SiteSettingsUnified() {
         {/* ═══ CONTATO ═══ */}
         <TabsContent value="contato">
           {siteSettings && (
-            <Card>
+            <Card className="border-l-4 border-l-secondary hover:shadow-md transition-shadow">
               <CardHeader>
                 <CardTitle className="text-base">Contato & Redes Sociais</CardTitle>
               </CardHeader>
@@ -456,7 +459,7 @@ export function SiteSettingsUnified() {
         <TabsContent value="hero">
           {siteSettings && (
             <div className="space-y-4">
-              <Card>
+              <Card className="border-l-4 border-l-primary hover:shadow-md transition-shadow">
                 <CardHeader>
                   <CardTitle className="text-base">Banner Principal (Hero)</CardTitle>
                 </CardHeader>
@@ -485,7 +488,7 @@ export function SiteSettingsUnified() {
                   </div>
                 </CardContent>
               </Card>
-              <Card>
+              <Card className="border-l-4 border-l-warning hover:shadow-md transition-shadow">
                 <CardHeader>
                   <CardTitle className="text-base">Seção Financiamento (CTA)</CardTitle>
                 </CardHeader>
@@ -512,7 +515,7 @@ export function SiteSettingsUnified() {
         {/* ═══ CORES ═══ */}
         <TabsContent value="cores" className="space-y-6">
           {/* Color extraction */}
-          <Card>
+          <Card className="border-l-4 border-l-primary hover:shadow-md transition-shadow">
             <CardHeader className="pb-3">
               <CardTitle className="text-base flex items-center gap-2">
                 <Sparkles className="w-4 h-4 text-primary" /> Extração Automática
@@ -537,7 +540,7 @@ export function SiteSettingsUnified() {
           </Card>
 
           <div className="grid md:grid-cols-2 gap-6">
-            <Card>
+            <Card className="border-l-4 border-l-primary hover:shadow-md transition-shadow">
               <CardHeader className="pb-4">
                 <CardTitle className="text-base">Cores Principais</CardTitle>
               </CardHeader>
@@ -548,7 +551,7 @@ export function SiteSettingsUnified() {
                 <ColorField label="Secundária (texto)" hslValue={brandDraft.color_secondary_foreground || ""} onChange={(v) => handleBrandChange("color_secondary_foreground", v)} />
               </CardContent>
             </Card>
-            <Card>
+            <Card className="border-l-4 border-l-secondary hover:shadow-md transition-shadow">
               <CardHeader className="pb-4">
                 <CardTitle className="text-base">Interface</CardTitle>
               </CardHeader>
@@ -561,7 +564,7 @@ export function SiteSettingsUnified() {
                 <ColorField label="Muted (texto)" hslValue={brandDraft.color_muted_foreground || ""} onChange={(v) => handleBrandChange("color_muted_foreground", v)} />
               </CardContent>
             </Card>
-            <Card>
+            <Card className="border-l-4 border-l-success hover:shadow-md transition-shadow">
               <CardHeader className="pb-4">
                 <CardTitle className="text-base">Status</CardTitle>
               </CardHeader>
@@ -572,7 +575,7 @@ export function SiteSettingsUnified() {
                 <ColorField label="Info" hslValue={brandDraft.color_info || ""} onChange={(v) => handleBrandChange("color_info", v)} />
               </CardContent>
             </Card>
-            <Card>
+            <Card className="border-l-4 border-l-foreground/40 hover:shadow-md transition-shadow">
               <CardHeader className="pb-4">
                 <CardTitle className="text-base flex items-center gap-2"><Moon className="h-4 w-4" /> Modo Escuro</CardTitle>
               </CardHeader>
@@ -587,7 +590,7 @@ export function SiteSettingsUnified() {
           </div>
 
           {/* Preview */}
-          <Card>
+          <Card className="border-l-4 border-l-info hover:shadow-md transition-shadow">
             <CardHeader className="pb-3">
               <CardTitle className="text-base flex items-center gap-2"><Eye className="h-4 w-4" /> Preview</CardTitle>
             </CardHeader>
@@ -619,7 +622,7 @@ export function SiteSettingsUnified() {
         {/* ═══ FONTES ═══ */}
         <TabsContent value="fontes" className="space-y-6">
           <div className="grid md:grid-cols-2 gap-6">
-            <Card>
+            <Card className="border-l-4 border-l-primary hover:shadow-md transition-shadow">
               <CardHeader className="pb-4">
                 <CardTitle className="text-base">Tipografia</CardTitle>
               </CardHeader>
@@ -665,7 +668,7 @@ export function SiteSettingsUnified() {
                 </div>
               </CardContent>
             </Card>
-            <Card>
+            <Card className="border-l-4 border-l-muted-foreground hover:shadow-md transition-shadow">
               <CardHeader className="pb-4">
                 <CardTitle className="text-base">Preview de Tipografia</CardTitle>
               </CardHeader>
@@ -688,7 +691,7 @@ export function SiteSettingsUnified() {
         {/* ═══ LOGOS ═══ */}
         <TabsContent value="logos" className="space-y-6">
           <div className="grid md:grid-cols-2 gap-6">
-            <Card>
+            <Card className="border-l-4 border-l-primary hover:shadow-md transition-shadow">
               <CardHeader className="pb-4">
                 <CardTitle className="text-base">Logos</CardTitle>
                 <CardDescription>Upload ou cole uma URL externa</CardDescription>
@@ -701,7 +704,7 @@ export function SiteSettingsUnified() {
                 <BrandLogoUpload label="Imagem do Login" description="Imagem decorativa exibida na tela de login" value={brandDraft.login_image_url || null} onChange={(url) => handleBrandChange("login_image_url", url)} folder="login" previewHeight="h-16" />
               </CardContent>
             </Card>
-            <Card>
+            <Card className="border-l-4 border-l-success hover:shadow-md transition-shadow">
               <CardHeader className="pb-4">
                 <CardTitle className="text-base flex items-center gap-2">
                   <CheckCircle2 className="h-4 w-4 text-success" /> Onde aparecem
@@ -724,7 +727,7 @@ export function SiteSettingsUnified() {
         {/* ═══ TEMA ═══ */}
         <TabsContent value="tema" className="space-y-6">
           <div className="grid md:grid-cols-2 gap-6">
-            <Card>
+            <Card className="border-l-4 border-l-primary hover:shadow-md transition-shadow">
               <CardHeader className="pb-4">
                 <CardTitle className="text-base">Preferências de Tema</CardTitle>
               </CardHeader>
@@ -749,7 +752,7 @@ export function SiteSettingsUnified() {
                 </div>
               </CardContent>
             </Card>
-            <Card>
+            <Card className="border-l-4 border-l-secondary hover:shadow-md transition-shadow">
               <CardHeader className="pb-4">
                 <CardTitle className="text-base">Aparência</CardTitle>
               </CardHeader>
@@ -785,7 +788,7 @@ export function SiteSettingsUnified() {
         {/* ═══ ESTATÍSTICAS ═══ */}
         <TabsContent value="stats">
           {siteSettings && (
-            <Card>
+            <Card className="border-l-4 border-l-primary hover:shadow-md transition-shadow">
               <CardHeader>
                 <CardTitle className="text-base">Estatísticas do Hero</CardTitle>
                 <CardDescription>Números exibidos no banner principal</CardDescription>
