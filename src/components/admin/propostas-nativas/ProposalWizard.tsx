@@ -3009,6 +3009,20 @@ export function ProposalWizard() {
                 </div>
               </div>
             )}
+            {!!(selectedLead as any)?.geracao_estimada_kwh && (
+              <div
+                className="hidden md:flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-warning/40 bg-warning/5"
+                title="Geração prevista informada pelo cliente no lead (referência visual)"
+              >
+                <SunMedium className="h-3.5 w-3.5 text-warning" />
+                <div className="text-right">
+                  <p className="text-[9px] text-muted-foreground leading-none">Cliente quer (Geração Prev.)</p>
+                  <p className="text-xs font-bold text-foreground">
+                    {formatNumberBR(Math.round(Number((selectedLead as any).geracao_estimada_kwh) || 0))} kWh
+                  </p>
+                </div>
+              </div>
+            )}
             {geracaoMensalEstimada > 0 && (
               <div className="hidden md:flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-border/50 bg-muted/30">
                 <SunMedium className="h-3.5 w-3.5 text-warning" />
