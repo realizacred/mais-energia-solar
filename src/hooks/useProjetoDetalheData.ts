@@ -224,12 +224,18 @@ export function useProjetoDetalheData(dealId: string) {
       }
 
       // Docs count: storage files + generated documents
+      // RB/Segurança: filtrar perfil por auth.uid() — limit(1) sem filtro pode
+      // retornar perfil de outro tenant sob RLS permissiva e quebrar paths.
       let docsCount = 0;
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("tenant_id")
-        .limit(1)
-        .maybeSingle();
+      const { data: authData } = await supabase.auth.getUser();
+      const uid = authData?.user?.id;
+      const { data: profile } = uid
+        ? await supabase
+            .from("profiles")
+            .select("tenant_id")
+            .eq("user_id", uid)
+            .maybeSingle()
+        : { data: null as any };
       if (profile) {
         const { data: files } = await supabase.storage
           .from("projeto-documentos")
