@@ -1053,6 +1053,14 @@ async function handleContactsUpsert(
 ): Promise<number> {
   const contacts = payload.data || payload.contacts || [];
   let jobsEnqueued = 0;
+
+  // Load instance profile_name to filter out self-named contacts
+  const { data: instanceMeta } = await supabase
+    .from("wa_instances")
+    .select("profile_name")
+    .eq("id", instanceId)
+    .maybeSingle();
+  const instanceProfileName = instanceMeta?.profile_name?.trim().toLowerCase() || null;
   
   for (const contact of Array.isArray(contacts) ? contacts : [contacts]) {
     const jid = contact.id || contact.jid;
