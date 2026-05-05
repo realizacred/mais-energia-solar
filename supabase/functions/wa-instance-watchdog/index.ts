@@ -55,14 +55,22 @@ Deno.serve(async (req) => {
 
     const GLOBAL_API_KEY = Deno.env.get("EVOLUTION_API_KEY") || "";
 
-    // Step 1: Find all instances that need attention
-    const { data: instances } = await supabaseAdmin
+    // Step 1: Fetch ALL instances. We revalidate connected ones too (cooldown 15min)
+    // to close the divergence window when webhook events get stuck/lost.
+    const CONNECTED_REVALIDATE_MS = 15 * 60 * 1000;
+    const { data: allInstances } = await supabaseAdmin
       .from("wa_instances")
-      .select("id, tenant_id, nome, status, evolution_api_url, evolution_instance_key, api_key, last_seen_at, updated_at")
-      .in("status", ["disconnected", "error", "connecting"]);
+      .select("id, tenant_id, nome, status, evolution_api_url, evolution_instance_key, api_key, last_seen_at, updated_at");
 
-    if (!instances || instances.length === 0) {
-      console.log("[wa-watchdog] All instances healthy, nothing to do");
+    const instances = (allInstances || []).filter((i: any) => {
+      if (["disconnected", "error", "connecting"].includes(i.status)) return true;
+      // connected: revalidate only if not seen recently
+      const lastSeenMs = i.last_seen_at ? new Date(i.last_seen_at).getTime() : 0;
+      return Date.now() - lastSeenMs > CONNECTED_REVALIDATE_MS;
+    });
+
+    if (instances.length === 0) {
+      console.log("[wa-watchdog] All instances healthy and recently seen, nothing to do");
       return jsonRes({ success: true, message: "all_healthy", reconnected: 0, messages_synced: 0 });
     }
 

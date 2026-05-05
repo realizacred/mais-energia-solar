@@ -48,7 +48,9 @@ export function WaConnectionCard() {
 
       return instance;
     },
-    staleTime: 5 * 60 * 1000,
+    staleTime: 30 * 1000,
+    refetchInterval: 60 * 1000,
+    refetchOnWindowFocus: true,
   });
 
   if (isLoading) {
