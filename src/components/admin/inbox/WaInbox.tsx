@@ -497,11 +497,14 @@ export function WaInbox({ vendorMode = false, vendorUserId, showCompactStats = f
       
       if (uploadError) throw uploadError;
       
-      const { data: urlData } = supabase.storage
+      // Bucket is private — generate a long-lived signed URL (1 year).
+      const { data: urlData, error: signErr } = await supabase.storage
         .from("wa-attachments")
-        .getPublicUrl(filePath);
-      
-      const mediaUrl = urlData.publicUrl;
+        .createSignedUrl(filePath, 60 * 60 * 24 * 365);
+      if (signErr || !urlData?.signedUrl) {
+        throw signErr ?? new Error("Falha ao gerar URL assinada para o anexo");
+      }
+      const mediaUrl = urlData.signedUrl;
       let messageType = "document";
       if (file.type.startsWith("image/")) messageType = "image";
       else if (file.type.startsWith("video/")) messageType = "video";

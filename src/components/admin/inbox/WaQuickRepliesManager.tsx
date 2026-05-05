@@ -298,10 +298,13 @@ export function WaQuickRepliesManager() {
           .from("wa-attachments")
           .upload(filePath, mediaFile);
         if (uploadError) throw uploadError;
-        const { data: urlData } = supabase.storage
+        const { data: urlData, error: signErr } = await supabase.storage
           .from("wa-attachments")
-          .getPublicUrl(filePath);
-        mediaUrl = urlData.publicUrl;
+          .createSignedUrl(filePath, 60 * 60 * 24 * 365);
+        if (signErr || !urlData?.signedUrl) {
+          throw signErr ?? new Error("Falha ao gerar URL assinada para o anexo");
+        }
+        mediaUrl = urlData.signedUrl;
         mediaFilename = mediaFile.name;
       } catch (err: any) {
         toast({ title: "Erro ao enviar arquivo", description: err.message, variant: "destructive" });

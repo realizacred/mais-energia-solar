@@ -231,13 +231,14 @@ export default function PropostaPublica() {
           if (proposta?.tenant_id) {
             const [tenantRes, brandRes, consultorRes] = await Promise.all([
               supabase.from("tenants").select("nome").eq("id", proposta.tenant_id).maybeSingle(),
-              supabase.from("brand_settings").select("logo_url").eq("tenant_id", proposta.tenant_id).maybeSingle(),
+              (supabase as any).rpc("get_public_brand_settings", { _tenant_id: proposta.tenant_id }),
               (supabase as any).from("consultores").select("telefone").eq("tenant_id", proposta.tenant_id).eq("ativo", true).limit(1).maybeSingle(),
             ]);
+            const brandRow = Array.isArray(brandRes.data) ? brandRes.data[0] : brandRes.data;
             setInvalidatedInfo({
               invalidado_em: td.invalidado_em,
               empresaNome: tenantRes.data?.nome || null,
-              empresaLogo: brandRes.data?.logo_url || null,
+              empresaLogo: (brandRow as any)?.logo_url || null,
               empresaTelefone: consultorRes.data?.telefone || null,
               motivo_invalidacao: td.motivo_invalidacao || null,
               latestTokenUrl,

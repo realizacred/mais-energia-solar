@@ -61,17 +61,33 @@ function useSiteSettingsInternal(): SiteSettingsContextType {
 
   const fetchSettings = useCallback(async () => {
     try {
-      const { data, error } = await supabase
-        .from("site_settings")
-        .select("id, tenant_id, nome_empresa, slogan, texto_sobre, texto_sobre_resumido, meta_title, meta_description, telefone, whatsapp, whatsapp_mensagem_padrao, email, cidade, estado, horario_atendimento, endereco_completo, instagram_url, facebook_url, linkedin_url, youtube_url, tiktok_url, hero_titulo, hero_subtitulo, hero_badge_texto, hero_cta_texto, hero_cta_whatsapp_texto, cta_titulo, cta_subtitulo, stat_projetos_realizados, stat_economia_percentual, stat_anos_experiencia, site_url, dominio_customizado, instrucoes_dns, google_maps_url, rua, bairro, cep, coordenadas_lat, coordenadas_lng, google_client_id, google_client_secret, google_redirect_uri, created_at, updated_at")
-        .limit(1)
-        .single();
+      // Authenticated path: direct table read (admin/editor needs full row including OAuth fields)
+      const { data: { user } } = await supabase.auth.getUser();
 
-      if (error) {
-        console.warn("Could not load site settings:", error.message);
+      if (user) {
+        const { data, error } = await supabase
+          .from("site_settings")
+          .select("id, tenant_id, nome_empresa, slogan, texto_sobre, texto_sobre_resumido, meta_title, meta_description, telefone, whatsapp, whatsapp_mensagem_padrao, email, cidade, estado, horario_atendimento, endereco_completo, instagram_url, facebook_url, linkedin_url, youtube_url, tiktok_url, hero_titulo, hero_subtitulo, hero_badge_texto, hero_cta_texto, hero_cta_whatsapp_texto, cta_titulo, cta_subtitulo, stat_projetos_realizados, stat_economia_percentual, stat_anos_experiencia, site_url, dominio_customizado, instrucoes_dns, google_maps_url, rua, bairro, cep, coordenadas_lat, coordenadas_lng, google_client_id, google_client_secret, google_redirect_uri, created_at, updated_at")
+          .limit(1)
+          .maybeSingle();
+        if (error) {
+          console.warn("Could not load site settings:", error.message);
+        } else if (data) {
+          setSettings(data);
+        }
+        setLoading(false);
         return;
       }
-      if (data) setSettings(data);
+
+      // Anon path: secure RPC returns only public-safe fields (no OAuth credentials).
+      const { data: pub, error: rpcErr } = await (supabase as any)
+        .rpc("get_public_site_settings");
+      if (rpcErr) {
+        console.warn("Could not load public site settings:", rpcErr.message);
+        return;
+      }
+      const row = Array.isArray(pub) ? pub[0] : pub;
+      if (row) setSettings(row as SiteSettingsRow);
     } catch (err) {
       console.warn("Site settings fetch error:", err);
     } finally {
