@@ -473,7 +473,7 @@ export function useProjetoPipeline() {
   useEffect(() => {
     let debounceTimer: ReturnType<typeof setTimeout> | null = null;
 
-    const refreshProjetos = () => {
+    const refreshProjetos = (delayMs = 1500) => {
       if (debounceTimer) clearTimeout(debounceTimer);
       debounceTimer = setTimeout(async () => {
         try {
@@ -482,7 +482,7 @@ export function useProjetoPipeline() {
         } catch (e) {
           console.error("Realtime projetos refresh:", e);
         }
-      }, 500);
+      }, delayMs);
     };
 
     // Subscribes únicos por tabela (RB-71/Realtime gov): 1 channel, sem listener duplicado.
