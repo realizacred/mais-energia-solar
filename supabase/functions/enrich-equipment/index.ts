@@ -498,16 +498,20 @@ serve(async (req) => {
     // 3. Build prompt
     const { system, user } = buildPrompt(equipment_type, equipment.fabricante, equipment.modelo);
 
-    // 4. Call AI — Dual provider strategy
-    const apiKey = Deno.env.get("LOVABLE_API_KEY");
-    if (!apiKey) throw new Error("LOVABLE_API_KEY não configurada");
+    // 4. Call AI — Dual provider strategy (Gemini direto + OpenAI direto em paralelo)
+    const geminiKey = Deno.env.get("GEMINI_API_KEY");
+    const openaiKey = Deno.env.get("OPENAI_API_KEY");
+    if (!geminiKey && !openaiKey) {
+      throw new Error("Nenhuma API key de IA configurada (GEMINI_API_KEY ou OPENAI_API_KEY)");
+    }
 
-    // Run both providers IN PARALLEL (team work — consensus strategy)
-    const [primary, secondary] = await Promise.all([
-      callAIProvider("gemini", "google/gemini-2.5-flash", system, user, apiKey),
-      callAIProvider("openai", "openai/gpt-5-mini", system, user, apiKey),
-    ]);
-    const usedDual = true;
+    const calls: Promise<AICallResult>[] = [];
+    if (geminiKey) calls.push(callAIProvider("gemini", "gemini-2.0-flash", system, user, geminiKey));
+    if (openaiKey) calls.push(callAIProvider("openai", "gpt-4o-mini", system, user, openaiKey));
+    const results = await Promise.all(calls);
+    const primary = results[0];
+    const secondary = results[1] ?? { parsed: null, provider: "gemini" as const, model: "", usage: { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 } };
+    const usedDual = results.length === 2;
     const primaryFilled = countFilledFields(primary.parsed);
     const secondaryFilled = countFilledFields(secondary.parsed);
 
