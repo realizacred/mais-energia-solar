@@ -144,21 +144,10 @@ Deno.serve(async (req) => {
         const existingSet = new Set((existingAlerts || []).map((a: any) => a.conversation_id));
         const newViolations = violations.filter((v: any) => !existingSet.has(v.id));
 
-        // Get AI API key for this tenant (used for summary + classification)
-        let aiApiKey: string | null = null;
-        if (cfg.gerar_resumo_ia) {
-          const { data: keyRow } = await sb
-            .from("integration_configs")
-            .select("api_key")
-            .eq("tenant_id", cfg.tenant_id)
-            .eq("service_key", "openai")
-            .eq("is_active", true)
-            .single();
-          aiApiKey = keyRow?.api_key || null;
-        }
-
-        // Also try Lovable AI as fallback
-        const lovableKey = Deno.env.get("LOVABLE_API_KEY");
+        // AI is now resolved internally by callAi() (Gemini direct → OpenAI fallback).
+        // We only need to know if AI features are enabled per tenant config.
+        const aiEnabled = !!cfg.gerar_resumo_ia &&
+          (!!Deno.env.get("GEMINI_API_KEY") || !!Deno.env.get("OPENAI_API_KEY"));
 
         // Create new alerts
         for (const v of newViolations) {
@@ -181,12 +170,9 @@ Deno.serve(async (req) => {
             .join("\n");
 
           // AI classification: should we alert now, defer, or skip?
-          const effectiveKey = aiApiKey || lovableKey;
-          if (effectiveKey && cfg.gerar_resumo_ia) {
+          if (aiEnabled) {
             try {
               const classification = await classifyConversationForSla(
-                effectiveKey,
-                !!aiApiKey, // true = OpenAI, false = Lovable gateway
                 v.cliente_nome,
                 hist,
                 v.tempo_sem_resposta_minutos
@@ -197,7 +183,6 @@ Deno.serve(async (req) => {
                 if (aiSummary) metrics.ai_summaries++;
 
                 if (classification.action === "defer" && classification.defer_hours) {
-                  // Pause SLA for this conversation until the suggested time
                   const pauseUntil = new Date(Date.now() + classification.defer_hours * 3600 * 1000).toISOString();
                   await sb
                     .from("wa_conversations")
@@ -210,11 +195,9 @@ Deno.serve(async (req) => {
                   shouldAlert = false;
                   console.log(`[sla] Skipped alert for conv=${v.id}: ${classification.reason}`);
                 }
-                // action === "alert" → proceed normally
               }
             } catch (e: any) {
               console.warn(`[sla] AI classification failed for conv=${v.id}:`, e.message);
-              // Fallback: alert anyway
             }
           }
 
