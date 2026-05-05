@@ -3,9 +3,10 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
   User, Phone, MapPin, Zap, ExternalLink,
-  DollarSign, Target, Calendar, Clock, 
+  DollarSign, Target, Calendar, Clock,
   FileText, TrendingUp, X, Mail, CreditCard,
   Home, Sun, Building2, Ruler, Image,
+  Link2, UserPlus, Sparkles,
 } from "lucide-react";
 import { WaContactEditor } from "./WaContactEditor";
 import { useQuery } from "@tanstack/react-query";
@@ -23,9 +24,17 @@ import { formatBRLInteger } from "@/lib/formatters";
 interface WaCRMSidebarProps {
   conversation: WaConversation;
   onClose: () => void;
+  /** Open dialog to search & link an existing lead/cliente */
+  onOpenLinkLead?: () => void;
+  /** Create a new lead pre-filled with this conversation's phone */
+  onCreateLead?: () => void;
+  /** Create a new cliente pre-filled with this conversation's phone */
+  onCreateCliente?: () => void;
+  /** Quick-link to an existing lead found by phone (auto-suggestion) */
+  onQuickLink?: (args: { leadId?: string | null; clienteId?: string | null }) => void;
 }
 
-export function WaCRMSidebar({ conversation, onClose }: WaCRMSidebarProps) {
+export function WaCRMSidebar({ conversation, onClose, onOpenLinkLead, onCreateLead, onCreateCliente, onQuickLink }: WaCRMSidebarProps) {
   const leadId = conversation.lead_id;
   const clienteId = conversation.cliente_id;
 
@@ -116,17 +125,117 @@ export function WaCRMSidebar({ conversation, onClose }: WaCRMSidebarProps) {
 
   const leadScore = lead ? calculateLeadScore(lead) : null;
 
+  // Auto-suggest a lead/cliente by phone (when nothing is linked)
+  const phoneDigits = (conversation.cliente_telefone || conversation.remote_jid || "")
+    .replace(/\D/g, "")
+    .slice(-11);
+  const suggestionEnabled = !leadId && !clienteId && phoneDigits.length >= 10;
+  const { data: suggestion } = useQuery({
+    queryKey: ["wa-crm-suggest", phoneDigits],
+    queryFn: async () => {
+      const last10 = phoneDigits.slice(-10);
+      const [{ data: leadsByPhone }, { data: clientesByPhone }] = await Promise.all([
+        supabase
+          .from("leads")
+          .select("id, nome, telefone, lead_code")
+          .ilike("telefone", `%${last10}%`)
+          .limit(1),
+        supabase
+          .from("clientes")
+          .select("id, nome, telefone, lead_id")
+          .ilike("telefone", `%${last10}%`)
+          .limit(1),
+      ]);
+      return {
+        lead: leadsByPhone?.[0] || null,
+        cliente: clientesByPhone?.[0] || null,
+      };
+    },
+    enabled: suggestionEnabled,
+    staleTime: 60 * 1000,
+  });
+
   if (!leadId && !clienteId) {
+    const sLead = suggestion?.lead;
+    const sCliente = suggestion?.cliente;
+    const hasSuggestion = !!(sLead || sCliente);
+
     return (
       <div className="w-full md:w-80 border-l border-border/40 bg-card/50 flex flex-col h-full min-h-0 overflow-hidden">
         <SidebarHeader onClose={onClose} />
-        <div className="flex-1 flex items-center justify-center p-6 text-center">
-          <div>
-            <User className="h-8 w-8 text-muted-foreground/30 mx-auto mb-2" />
-            <p className="text-xs text-muted-foreground">Nenhum lead ou cliente vinculado</p>
-            <p className="text-[10px] text-muted-foreground/60 mt-1">Vincule um lead para ver dados comerciais</p>
+        <ScrollArea className="flex-1">
+          <div className="p-4 space-y-4">
+            <div className="text-center pt-2">
+              <User className="h-8 w-8 text-muted-foreground/30 mx-auto mb-2" />
+              <p className="text-xs text-muted-foreground font-medium">Nenhum lead ou cliente vinculado</p>
+              <p className="text-[10px] text-muted-foreground/60 mt-1">
+                Vincule, crie ou aceite a sugestão abaixo
+              </p>
+            </div>
+
+            {hasSuggestion && (
+              <div className="rounded-lg border border-primary/30 bg-primary/5 p-3 space-y-2">
+                <div className="flex items-center gap-1.5 text-[11px] font-medium text-primary">
+                  <Sparkles className="h-3.5 w-3.5" />
+                  Encontramos um {sLead ? "lead" : "cliente"} com este telefone
+                </div>
+                <div className="text-xs text-foreground font-semibold truncate">
+                  {(sLead?.nome || sCliente?.nome) ?? "—"}
+                </div>
+                <div className="text-[10px] text-muted-foreground truncate">
+                  {sLead?.telefone || sCliente?.telefone}
+                </div>
+                <Button
+                  size="sm"
+                  className="w-full h-7 text-xs gap-1.5 mt-1"
+                  onClick={() =>
+                    onQuickLink?.({
+                      leadId: sLead?.id ?? sCliente?.lead_id ?? null,
+                      clienteId: sCliente?.id ?? null,
+                    })
+                  }
+                  disabled={!onQuickLink}
+                >
+                  <Link2 className="h-3 w-3" />
+                  Vincular
+                </Button>
+              </div>
+            )}
+
+            <div className="space-y-2">
+              <Button
+                size="sm"
+                variant="outline"
+                className="w-full h-8 text-xs gap-1.5"
+                onClick={onOpenLinkLead}
+                disabled={!onOpenLinkLead}
+              >
+                <Link2 className="h-3.5 w-3.5" />
+                Vincular lead existente
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                className="w-full h-8 text-xs gap-1.5"
+                onClick={onCreateLead}
+                disabled={!onCreateLead}
+              >
+                <UserPlus className="h-3.5 w-3.5" />
+                Criar lead
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                className="w-full h-8 text-xs gap-1.5"
+                onClick={onCreateCliente}
+                disabled={!onCreateCliente}
+              >
+                <UserPlus className="h-3.5 w-3.5" />
+                Criar cliente
+              </Button>
+            </div>
           </div>
-        </div>
+        </ScrollArea>
       </div>
     );
   }

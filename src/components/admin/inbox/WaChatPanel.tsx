@@ -405,11 +405,25 @@ export function WaChatPanel({
     );
   };
 
+  // Helpers for empty CRM sidebar
+  const phoneForCreate = (conversation?.cliente_telefone || conversation?.remote_jid || "").replace(/\D/g, "");
+  const handleCreateLead = () => {
+    const url = `/admin?tab=leads${phoneForCreate ? `&new=1&phone=${encodeURIComponent(phoneForCreate)}` : "&new=1"}`;
+    window.open(url, "_blank");
+  };
+  const handleCreateCliente = () => {
+    const url = `/admin?tab=clientes${phoneForCreate ? `&new=1&phone=${encodeURIComponent(phoneForCreate)}` : "&new=1"}`;
+    window.open(url, "_blank");
+  };
+
   // CRM Sidebar content (shared between desktop panel and mobile sheet)
   const crmSidebarContent = showCRMSidebar && (
     <WaCRMSidebar
       conversation={conversation}
       onClose={() => setShowCRMSidebar(false)}
+      onOpenLinkLead={onLinkLead}
+      onCreateLead={handleCreateLead}
+      onCreateCliente={handleCreateCliente}
     />
   );
 
@@ -479,20 +493,7 @@ export function WaChatPanel({
             </div>
             {/* Top action icons */}
             <div className="flex items-center gap-0.5 shrink-0">
-              {!conversation.assigned_to && onAccept && (
-                <Button
-                  size="sm"
-                  className="h-7 gap-1 bg-success hover:bg-success/90 text-white text-xs px-2.5"
-                  onClick={onAccept}
-                  disabled={isAccepting}
-                >
-                  {isAccepting ? (
-                    <span className="h-3 w-3 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                  ) : (
-                    <><CheckCircle2 className="h-3.5 w-3.5" /> Aceitar</>
-                  )}
-                </Button>
-              )}
+              {/* Header "Aceitar" removed — now exclusively shown as a prominent banner above the composer (showAcceptBanner). */}
 
               {/* Bell: unanswered incoming messages */}
               {(() => {
@@ -995,6 +996,9 @@ export function WaChatPanel({
         <WaCRMSidebar
           conversation={conversation}
           onClose={() => setShowCRMSidebar(false)}
+          onOpenLinkLead={onLinkLead}
+          onCreateLead={handleCreateLead}
+          onCreateCliente={handleCreateCliente}
         />
       )}
       {isMobileDevice && (
@@ -1005,6 +1009,9 @@ export function WaChatPanel({
               <WaCRMSidebar
                 conversation={conversation}
                 onClose={() => setShowCRMSidebar(false)}
+                onOpenLinkLead={onLinkLead}
+                onCreateLead={handleCreateLead}
+                onCreateCliente={handleCreateCliente}
               />
             )}
           </SheetContent>

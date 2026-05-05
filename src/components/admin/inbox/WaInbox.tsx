@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useSiteSettings } from "@/hooks/useSiteSettings";
 import { MessageCircle, WifiOff, QrCode } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
@@ -53,12 +54,19 @@ interface WaInboxProps {
 export function WaInbox({ vendorMode = false, vendorUserId, showCompactStats = false, initialConversationId }: WaInboxProps) {
   const { get: getSiteSetting } = useSiteSettings();
   const nomeEmpresa = getSiteSetting("nome_empresa") || "nossa empresa";
+  // URL sync (only outside vendor mode to avoid conflicts with impersonation views)
+  const [searchParams, setSearchParams] = useSearchParams();
+  const urlEnabled = !vendorMode;
+  const initFrom = (key: string, fallback: string) =>
+    (urlEnabled && searchParams.get(key)) || fallback;
+
   // Filters
   const [search, setSearch] = useState("");
-  const [filterStatus, setFilterStatus] = useState("open");
-  const [filterAssigned, setFilterAssigned] = useState("all");
-  const [filterInstance, setFilterInstance] = useState("all");
-  const [filterTag, setFilterTag] = useState("all");
+  const [filterStatus, setFilterStatus] = useState(() => initFrom("status", "open"));
+  const [filterAssigned, setFilterAssigned] = useState(() => initFrom("assigned", "all"));
+  const [filterInstance, setFilterInstance] = useState(() => initFrom("instance", "all"));
+  const [filterTag, setFilterTag] = useState(() => initFrom("tag", "all"));
+  const [filterUnread, setFilterUnread] = useState(() => urlEnabled && searchParams.get("unread") === "1");
   // In vendor mode with impersonation, check permissions of the target vendor, not the admin
   const permissionTargetId = vendorMode && vendorUserId ? vendorUserId : undefined;
   const { hasPermission, isAdmin: isAdminUser, loading: permissionsLoading } = useUserPermissions(permissionTargetId);
@@ -390,10 +398,39 @@ export function WaInbox({ vendorMode = false, vendorUserId, showCompactStats = f
     }
   }, [allConversations, convsLoading]);
 
+  // Sync filters → URL (preserve other params, only push when changed)
+  useEffect(() => {
+    if (!urlEnabled) return;
+    const next = new URLSearchParams(searchParams);
+    const setOrDel = (k: string, v: string, def: string) => {
+      if (v && v !== def) next.set(k, v); else next.delete(k);
+    };
+    setOrDel("status", filterStatus, "open");
+    setOrDel("assigned", filterAssigned, "all");
+    setOrDel("instance", filterInstance, "all");
+    setOrDel("tag", filterTag, "all");
+    if (filterUnread) next.set("unread", "1"); else next.delete("unread");
+    if (next.toString() !== searchParams.toString()) {
+      setSearchParams(next, { replace: true });
+    }
+  }, [filterStatus, filterAssigned, filterInstance, filterTag, filterUnread, urlEnabled]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // KPI click handler
+  const handleKpiSelect = useCallback((key: "open" | "pending" | "unread" | "resolved") => {
+    if (key === "unread") {
+      setFilterUnread((v) => !v);
+      return;
+    }
+    setFilterUnread(false);
+    setFilterStatus((prev) => (prev === key ? "all" : key));
+  }, []);
+
   // Single source of truth: filter client-side for status, unassigned, and tags
   const filteredConvs = allConversations.filter((c) => {
     // Status filter
     if (filterStatus !== "all" && c.status !== filterStatus) return false;
+    // Unread filter
+    if (filterUnread && !(c.unread_count > 0)) return false;
     // Unassigned filter
     if (filterAssigned === "unassigned" && c.assigned_to) return false;
     // Tag filter
@@ -625,8 +662,22 @@ export function WaInbox({ vendorMode = false, vendorUserId, showCompactStats = f
 
       {/* Stats + SLA Alert — same row to save vertical space */}
       <div className="shrink-0 mb-2 flex flex-wrap items-center gap-2">
-        {!vendorMode && <WaInboxStats conversations={allConversations} compact />}
-        {vendorMode && showCompactStats && <WaInboxStats conversations={allConversations} compact />}
+        {!vendorMode && (
+          <WaInboxStats
+            conversations={allConversations}
+            compact
+            onSelect={handleKpiSelect}
+            activeKey={filterUnread ? "unread" : (filterStatus as any)}
+          />
+        )}
+        {vendorMode && showCompactStats && (
+          <WaInboxStats
+            conversations={allConversations}
+            compact
+            onSelect={handleKpiSelect}
+            activeKey={filterUnread ? "unread" : (filterStatus as any)}
+          />
+        )}
         {slaEnabled && (
           <WaSlaAlertBanner
             alerts={isAdminUser ? slaAlerts : mySlaAlerts}
