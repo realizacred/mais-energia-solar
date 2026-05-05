@@ -181,17 +181,10 @@ export default function KitsLanding() {
         if (transitionErr) throw transitionErr;
       }
 
-      // Update grupo with accepted kit
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-      const anonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
-      await fetch(`${supabaseUrl}/rest/v1/proposta_grupo_tokens?id=eq.${grupo.id}`, {
-        method: "PATCH",
-        headers: {
-          apikey: anonKey,
-          "Content-Type": "application/json",
-          Prefer: "return=minimal",
-        },
-        body: JSON.stringify({ kit_aceito_id: selectedKit.proposta_id }),
+      // Update grupo with accepted kit (via SECURITY DEFINER RPC; anon SELECT removido por segurança)
+      await supabase.rpc("set_grupo_kit_aceito" as any, {
+        p_token: grupo.token,
+        p_kit_id: selectedKit.proposta_id,
       });
 
       setAccepted(true);
