@@ -458,6 +458,16 @@ async function handleMessageUpsert(
   const t0_total = Date.now();
   let jobsEnqueued = 0;
 
+  // Load instance profile_name once to filter self-named conversations
+  const { data: instanceMeta } = await supabase
+    .from("wa_instances")
+    .select("profile_name")
+    .eq("id", instanceId)
+    .maybeSingle();
+  const instanceProfileName = instanceMeta?.profile_name?.trim().toLowerCase() || null;
+  const matchesInstanceName = (n: string | null | undefined) =>
+    !!(n && instanceProfileName && n.trim().toLowerCase() === instanceProfileName);
+
   const messages = payload.data || payload.messages || (payload.key ? [payload] : []);
   
   for (const msg of Array.isArray(messages) ? messages : [messages]) {
@@ -482,8 +492,8 @@ async function handleMessageUpsert(
     const participantJid = isGroup ? (key.participant || msg.participant || null) : null;
     const participantName = isGroup ? (msg.pushName || null) : null;
     const rawContactName = isGroup ? null : (msg.pushName || msg.verifiedBizName || null);
-    // Sanitize pushName: if it's just a phone number, ignore it to preserve CRM names
-    const contactName = rawContactName && !isPushNameJustPhone(rawContactName, remoteJid) ? rawContactName : null;
+    // Sanitize pushName: ignore phone-like names AND names matching the instance's own profile_name
+    const contactName = rawContactName && !isPushNameJustPhone(rawContactName, remoteJid) && !matchesInstanceName(rawContactName) ? rawContactName : null;
     const phone = remoteJid.replace("@s.whatsapp.net", "").replace("@g.us", "");
     
     const groupSubject: string | null = isGroup
@@ -1043,6 +1053,14 @@ async function handleContactsUpsert(
 ): Promise<number> {
   const contacts = payload.data || payload.contacts || [];
   let jobsEnqueued = 0;
+
+  // Load instance profile_name to filter out self-named contacts
+  const { data: instanceMeta } = await supabase
+    .from("wa_instances")
+    .select("profile_name")
+    .eq("id", instanceId)
+    .maybeSingle();
+  const instanceProfileName = instanceMeta?.profile_name?.trim().toLowerCase() || null;
   
   for (const contact of Array.isArray(contacts) ? contacts : [contacts]) {
     const jid = contact.id || contact.jid;
@@ -1066,8 +1084,9 @@ async function handleContactsUpsert(
           updates.profile_picture_url = profilePicUrl;
         }
 
-        // Sanitize pushName: reject phone-like names to preserve CRM data
-        if (name && !isPushNameJustPhone(name, jid) && (conversation.is_group || isTechnicalConversationName(conversation.cliente_nome, conversation.remote_jid))) {
+        // Sanitize: reject phone-like names AND names matching the instance's own profile_name
+        const isInstanceSelfName = !!(name && instanceProfileName && name.trim().toLowerCase() === instanceProfileName);
+        if (name && !isPushNameJustPhone(name, jid) && !isInstanceSelfName && (conversation.is_group || isTechnicalConversationName(conversation.cliente_nome, conversation.remote_jid))) {
           updates.cliente_nome = name;
         }
 
