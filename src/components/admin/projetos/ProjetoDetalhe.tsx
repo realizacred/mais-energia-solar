@@ -128,6 +128,66 @@ const TABS = [
   { id: "recibos" as TabId, label: "Recibos", icon: Receipt, color: "text-primary" },
 ] as const;
 
+// ─── CTA: Sinal pendente? (won deals sem recibo) ────────────
+function SinalReciboCTA({
+  dealId, customerId, projetoId, setActiveTab,
+}: {
+  dealId: string;
+  customerId: string | null;
+  projetoId: string | null;
+  setActiveTab: (t: TabId) => void;
+}) {
+  const [emitirOpen, setEmitirOpen] = useState(false);
+  // Lazy import hook to avoid circulars
+  const { useRecibos } = require("@/hooks/useRecibos") as typeof import("@/hooks/useRecibos");
+  const { data: recibos } = useRecibos({ deal_id: dealId });
+  const hasSinal = (recibos ?? []).some((r) =>
+    (r.descricao ?? "").toLowerCase().includes("sinal") ||
+    (r.template?.nome ?? "").toLowerCase().includes("sinal")
+  );
+  if (hasSinal) return null;
+
+  return (
+    <>
+      <Card className="mb-2 border-l-[3px] border-l-warning">
+        <CardContent className="flex items-center gap-4 p-4">
+          <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-warning/10 text-warning shrink-0">
+            <Receipt className="w-5 h-5" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-semibold text-foreground">Sinal pendente?</p>
+            <p className="text-xs text-muted-foreground">
+              Emita um recibo de entrada agora ou veja todos os recibos do projeto.
+            </p>
+          </div>
+          <Button
+            size="sm"
+            variant="outline"
+            className="shrink-0 gap-1.5"
+            onClick={() => setActiveTab("recibos")}
+          >
+            <Eye className="h-3.5 w-3.5" /> Ver
+          </Button>
+          <Button
+            size="sm"
+            className="shrink-0 gap-1.5"
+            onClick={() => setEmitirOpen(true)}
+          >
+            <Plus className="h-3.5 w-3.5" /> Emitir Recibo de Entrada
+          </Button>
+        </CardContent>
+      </Card>
+      <EmitirReciboModal
+        open={emitirOpen}
+        onOpenChange={setEmitirOpen}
+        defaultClienteId={customerId ?? undefined}
+        defaultProjetoId={projetoId ?? undefined}
+        defaultDealId={dealId}
+      />
+    </>
+  );
+}
+
 // ─── Recebimento CTA (won deals) ────────────
 function RecebimentoCTA({ dealId, customerId, customerName, navigate }: {
   dealId: string; customerId: string | null; customerName: string; navigate: ReturnType<typeof useNavigate>;
