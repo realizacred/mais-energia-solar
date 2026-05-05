@@ -405,11 +405,25 @@ export function WaChatPanel({
     );
   };
 
+  // Helpers for empty CRM sidebar
+  const phoneForCreate = (conversation?.cliente_telefone || conversation?.remote_jid || "").replace(/\D/g, "");
+  const handleCreateLead = () => {
+    const url = `/admin?tab=leads${phoneForCreate ? `&new=1&phone=${encodeURIComponent(phoneForCreate)}` : "&new=1"}`;
+    window.open(url, "_blank");
+  };
+  const handleCreateCliente = () => {
+    const url = `/admin?tab=clientes${phoneForCreate ? `&new=1&phone=${encodeURIComponent(phoneForCreate)}` : "&new=1"}`;
+    window.open(url, "_blank");
+  };
+
   // CRM Sidebar content (shared between desktop panel and mobile sheet)
   const crmSidebarContent = showCRMSidebar && (
     <WaCRMSidebar
       conversation={conversation}
       onClose={() => setShowCRMSidebar(false)}
+      onOpenLinkLead={onLinkLead}
+      onCreateLead={handleCreateLead}
+      onCreateCliente={handleCreateCliente}
     />
   );
 
