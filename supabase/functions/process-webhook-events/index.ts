@@ -458,6 +458,16 @@ async function handleMessageUpsert(
   const t0_total = Date.now();
   let jobsEnqueued = 0;
 
+  // Load instance profile_name once to filter self-named conversations
+  const { data: instanceMeta } = await supabase
+    .from("wa_instances")
+    .select("profile_name")
+    .eq("id", instanceId)
+    .maybeSingle();
+  const instanceProfileName = instanceMeta?.profile_name?.trim().toLowerCase() || null;
+  const matchesInstanceName = (n: string | null | undefined) =>
+    !!(n && instanceProfileName && n.trim().toLowerCase() === instanceProfileName);
+
   const messages = payload.data || payload.messages || (payload.key ? [payload] : []);
   
   for (const msg of Array.isArray(messages) ? messages : [messages]) {
