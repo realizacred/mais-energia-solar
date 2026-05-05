@@ -479,20 +479,7 @@ export function WaChatPanel({
             </div>
             {/* Top action icons */}
             <div className="flex items-center gap-0.5 shrink-0">
-              {!conversation.assigned_to && onAccept && (
-                <Button
-                  size="sm"
-                  className="h-7 gap-1 bg-success hover:bg-success/90 text-white text-xs px-2.5"
-                  onClick={onAccept}
-                  disabled={isAccepting}
-                >
-                  {isAccepting ? (
-                    <span className="h-3 w-3 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                  ) : (
-                    <><CheckCircle2 className="h-3.5 w-3.5" /> Aceitar</>
-                  )}
-                </Button>
-              )}
+              {/* Header "Aceitar" removed — now exclusively shown as a prominent banner above the composer (showAcceptBanner). */}
 
               {/* Bell: unanswered incoming messages */}
               {(() => {
