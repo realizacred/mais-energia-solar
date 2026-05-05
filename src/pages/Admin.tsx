@@ -9,6 +9,7 @@ import { usePendingValidations } from "@/hooks/usePendingValidations";
 import { supabase } from "@/integrations/supabase/client";
 import { SidebarProvider, SidebarTrigger, SidebarInset } from "@/components/ui/sidebar";
 import { AdminSidebar } from "@/components/admin/sidebar/AdminSidebar";
+import { SidebarResizer } from "@/components/admin/sidebar/SidebarResizer";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
