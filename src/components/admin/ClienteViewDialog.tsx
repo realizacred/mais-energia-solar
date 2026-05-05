@@ -326,6 +326,9 @@ export function ClienteViewDialog({ cliente, open, onOpenChange }: ClienteViewDi
               <TabsTrigger value="docs" className="flex-1 text-xs">
                 Docs {totalDocs > 0 && <Badge variant="secondary" className="ml-1 text-[10px] px-1">{totalDocs}</Badge>}
               </TabsTrigger>
+              <TabsTrigger value="recibos" className="flex-1 text-xs">
+                <Receipt className="w-3 h-3 mr-1" /> Recibos
+              </TabsTrigger>
               <TabsTrigger value="whatsapp" className="flex-1 text-xs">
                 WhatsApp {conversas.length > 0 && <Badge variant="secondary" className="ml-1 text-[10px] px-1">{conversas.length}</Badge>}
               </TabsTrigger>
