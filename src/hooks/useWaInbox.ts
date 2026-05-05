@@ -30,9 +30,11 @@ export interface WaConversation {
   // joined
   tags?: WaConversationTag[];
   instance_name?: string;
+  instance_profile_name?: string | null;
   vendedor_nome?: string;
   lead_nome?: string;
   lead_telefone?: string;
+  cliente_nome_real?: string | null;
 }
 
 export interface WaMessage {
