@@ -3,9 +3,10 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
   User, Phone, MapPin, Zap, ExternalLink,
-  DollarSign, Target, Calendar, Clock, 
+  DollarSign, Target, Calendar, Clock,
   FileText, TrendingUp, X, Mail, CreditCard,
   Home, Sun, Building2, Ruler, Image,
+  Link2, UserPlus, Sparkles,
 } from "lucide-react";
 import { WaContactEditor } from "./WaContactEditor";
 import { useQuery } from "@tanstack/react-query";
