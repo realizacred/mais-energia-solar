@@ -54,12 +54,19 @@ interface WaInboxProps {
 export function WaInbox({ vendorMode = false, vendorUserId, showCompactStats = false, initialConversationId }: WaInboxProps) {
   const { get: getSiteSetting } = useSiteSettings();
   const nomeEmpresa = getSiteSetting("nome_empresa") || "nossa empresa";
+  // URL sync (only outside vendor mode to avoid conflicts with impersonation views)
+  const [searchParams, setSearchParams] = useSearchParams();
+  const urlEnabled = !vendorMode;
+  const initFrom = (key: string, fallback: string) =>
+    (urlEnabled && searchParams.get(key)) || fallback;
+
   // Filters
   const [search, setSearch] = useState("");
-  const [filterStatus, setFilterStatus] = useState("open");
-  const [filterAssigned, setFilterAssigned] = useState("all");
-  const [filterInstance, setFilterInstance] = useState("all");
-  const [filterTag, setFilterTag] = useState("all");
+  const [filterStatus, setFilterStatus] = useState(() => initFrom("status", "open"));
+  const [filterAssigned, setFilterAssigned] = useState(() => initFrom("assigned", "all"));
+  const [filterInstance, setFilterInstance] = useState(() => initFrom("instance", "all"));
+  const [filterTag, setFilterTag] = useState(() => initFrom("tag", "all"));
+  const [filterUnread, setFilterUnread] = useState(() => urlEnabled && searchParams.get("unread") === "1");
   // In vendor mode with impersonation, check permissions of the target vendor, not the admin
   const permissionTargetId = vendorMode && vendorUserId ? vendorUserId : undefined;
   const { hasPermission, isAdmin: isAdminUser, loading: permissionsLoading } = useUserPermissions(permissionTargetId);
