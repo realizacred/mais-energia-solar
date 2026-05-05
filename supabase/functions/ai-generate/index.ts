@@ -10,12 +10,6 @@ const corsHeaders = {
 
 // Tabela de preços USD por 1K tokens
 const PRICING: Record<string, Record<string, { input: number; output: number }>> = {
-  lovable_gateway: {
-    "google/gemini-2.5-flash": { input: 0.00015, output: 0.0006 },
-    "google/gemini-2.5-pro": { input: 0.00125, output: 0.005 },
-    "openai/gpt-5": { input: 0.005, output: 0.015 },
-    "openai/gpt-5-mini": { input: 0.00015, output: 0.0006 },
-  },
   gemini: {
     "gemini-2.0-flash": { input: 0.0001, output: 0.0004 },
     "gemini-1.5-pro": { input: 0.00125, output: 0.005 },
