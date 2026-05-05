@@ -233,33 +233,59 @@ async function callAIProvider(
   user: string,
   apiKey: string,
 ): Promise<AICallResult> {
-  const providerLabel = provider === "gemini" ? "lovable_gateway" : "lovable_gateway";
   try {
-    const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model,
-        messages: [
-          { role: "system", content: system },
-          { role: "user", content: user },
-        ],
-      }),
-    });
+    let rawContent = "";
+    let usage = { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 };
 
-    if (!res.ok) {
-      const errorText = await res.text();
-      return { parsed: null, provider: providerLabel, model, usage: { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 }, error: `${res.status} - ${errorText}` };
+    if (provider === "gemini") {
+      const res = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            systemInstruction: { parts: [{ text: system }] },
+            contents: [{ role: "user", parts: [{ text: user }] }],
+            generationConfig: { temperature: 0.2, responseMimeType: "application/json" },
+          }),
+        },
+      );
+      if (!res.ok) {
+        return { parsed: null, provider, model, usage, error: `${res.status} - ${(await res.text()).slice(0,200)}` };
+      }
+      const data = await res.json();
+      rawContent = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+      const meta = data.usageMetadata || {};
+      usage = {
+        prompt_tokens: meta.promptTokenCount || 0,
+        completion_tokens: meta.candidatesTokenCount || 0,
+        total_tokens: meta.totalTokenCount || 0,
+      };
+    } else {
+      const res = await fetch("https://api.openai.com/v1/chat/completions", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model,
+          messages: [
+            { role: "system", content: system },
+            { role: "user", content: user },
+          ],
+          response_format: { type: "json_object" },
+        }),
+      });
+      if (!res.ok) {
+        return { parsed: null, provider, model, usage, error: `${res.status} - ${(await res.text()).slice(0,200)}` };
+      }
+      const data = await res.json();
+      rawContent = data.choices?.[0]?.message?.content || "";
+      usage = data.usage || usage;
     }
 
-    const data = await res.json();
-    const rawContent = data.choices?.[0]?.message?.content || "";
-    const usage = data.usage || { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 };
     const parsed = extractJSON(rawContent);
-
-    return { parsed, provider: providerLabel, model, usage };
+    return { parsed, provider, model, usage };
   } catch (err: any) {
-    return { parsed: null, provider: providerLabel, model, usage: { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 }, error: err.message };
+    return { parsed: null, provider, model, usage: { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 }, error: err.message };
   }
 }
 
