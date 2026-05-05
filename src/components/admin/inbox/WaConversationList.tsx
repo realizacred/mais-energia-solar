@@ -454,6 +454,8 @@ export function WaConversationList({
   mutedIds,
   hiddenIds,
   followupConvIds,
+  pinnedIds,
+  onContextMenuConv,
 }: WaConversationListProps) {
   // Lista única ordenada por última mensagem (já vem ordenada do hook).
   // Removido o split unassigned/assigned para garantir que conversas atribuídas
