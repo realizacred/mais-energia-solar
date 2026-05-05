@@ -426,24 +426,57 @@ async function reconcileOutboundEcho(
 }
 
 /**
- * Resolve conversation using canonical JID normalization.
- * Tries all JID variants to prevent duplicate conversations.
+ * Canonical phone digits for (tenant_id, telefone_normalized) lookup.
+ * Mirrors src/utils/phone/toCanonicalPhoneDigits.ts (BR celular = 11 dígitos com 9º).
+ */
+function canonicalPhoneFromJid(remoteJid: string): string | null {
+  if (!remoteJid || remoteJid.endsWith("@g.us")) return null;
+  const beforeAt = remoteJid.split("@")[0];
+  let digits = beforeAt.replace(/\D/g, "");
+  if (!digits) return null;
+  if (digits.length === 13 && digits.startsWith("55")) digits = digits.slice(2);
+  if (digits.length === 12 && digits.startsWith("55")) digits = digits.slice(2);
+  if (digits.length !== 10 && digits.length !== 11) return null;
+  const ddd = digits.slice(0, 2);
+  const rest = digits.slice(2);
+  if (rest.length === 8 && /^[89]/.test(rest)) return `${ddd}9${rest}`;
+  return digits;
+}
+
+/**
+ * Resolve conversation. Strategy (post 2026-05 dedup):
+ *  1. Lookup by (tenant_id, telefone_normalized, is_group) — new SSOT.
+ *  2. Fallback by (instance_id, remote_jid variants) for legacy/edge cases.
  */
 async function resolveConversation(
   supabase: any,
   instanceId: string,
+  tenantId: string,
   remoteJid: string,
 ): Promise<{ id: string; unread_count: number; status: string; is_group: boolean; cliente_nome: string | null; profile_picture_url: string | null; last_message_at: string | null } | null> {
+  const isGroup = remoteJid.endsWith("@g.us");
+  const phone = canonicalPhoneFromJid(remoteJid);
+
+  if (!isGroup && phone) {
+    const { data } = await supabase
+      .from("wa_conversations")
+      .select("id, unread_count, status, is_group, cliente_nome, profile_picture_url, updated_at, last_message_at")
+      .eq("tenant_id", tenantId)
+      .eq("telefone_normalized", phone)
+      .eq("is_group", false)
+      .limit(1)
+      .maybeSingle();
+    if (data) return data;
+  }
+
   const altJids = getAltJids(remoteJid);
-  
   const { data } = await supabase
     .from("wa_conversations")
     .select("id, unread_count, status, is_group, cliente_nome, profile_picture_url, updated_at, last_message_at")
-    .eq("instance_id", instanceId)
+    .eq("tenant_id", tenantId)
     .in("remote_jid", altJids)
     .limit(1)
     .maybeSingle();
-  
   return data;
 }
 
