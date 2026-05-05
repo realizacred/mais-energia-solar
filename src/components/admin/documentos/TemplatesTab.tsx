@@ -28,6 +28,8 @@ export function TemplatesTab() {
   );
 
   const filtered = (templates ?? []).filter((t) => {
+    // Excluir 'proposta' e 'recibo' — domínios dedicados em outras áreas/abas
+    if (t.categoria === "proposta" || t.categoria === "recibo") return false;
     if (search && !t.nome.toLowerCase().includes(search.toLowerCase())) return false;
     return true;
   });
