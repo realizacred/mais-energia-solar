@@ -51,13 +51,6 @@ Deno.serve(async (req: Request) => {
     }
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) {
-      return new Response(
-        JSON.stringify({ error: "LOVABLE_API_KEY não configurada" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
     // Build context string from proposal data
     const ctx = buildProposalContext(proposta_data);
 
@@ -78,47 +71,23 @@ REGRAS:
     // Build messages array (limit to last 10 messages for context window)
     const recentHistory = historico.slice(-10);
     const messages = [
-      { role: "system", content: systemPrompt },
+      { role: "system" as const, content: systemPrompt },
       ...recentHistory.map((m) => ({ role: m.role, content: m.content })),
-      { role: "user", content: mensagem },
+      { role: "user" as const, content: mensagem },
     ];
 
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "openai/gpt-5-mini",
-        messages,
-        stream: false,
-      }),
-    });
-
-    if (!response.ok) {
-      if (response.status === 429) {
-        return new Response(
-          JSON.stringify({ error: "Muitas perguntas em sequência. Aguarde um momento e tente novamente." }),
-          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-      if (response.status === 402) {
-        return new Response(
-          JSON.stringify({ error: "Serviço temporariamente indisponível." }),
-          { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-      const errText = await response.text();
-      console.error("[proposta-chat] AI gateway error:", response.status, errText);
+    let reply = "Desculpe, não consegui gerar uma resposta.";
+    try {
+      const data = await callAi({ tier: "flash", messages });
+      reply = data.choices?.[0]?.message?.content || reply;
+    } catch (aiErr: unknown) {
+      const m = aiErr instanceof Error ? aiErr.message : "AI error";
+      console.error("[proposta-chat] AI error:", m);
       return new Response(
         JSON.stringify({ error: "Erro ao processar sua pergunta. Tente novamente." }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
-
-    const data = await response.json();
-    const reply = data.choices?.[0]?.message?.content || "Desculpe, não consegui gerar uma resposta.";
 
     return new Response(
       JSON.stringify({ resposta: reply }),
