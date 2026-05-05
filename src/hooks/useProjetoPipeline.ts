@@ -485,12 +485,12 @@ export function useProjetoPipeline() {
       }, 500);
     };
 
+    // Subscribes únicos por tabela (RB-71/Realtime gov): 1 channel, sem listener duplicado.
     const channel = supabase
       .channel('projetos-pipeline-realtime')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'projetos' }, refreshProjetos)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'projeto_etapas' }, refreshProjetos)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'projeto_funis' }, refreshProjetos)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'projeto_etapas' }, refreshProjetos)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'pipelines' }, refreshProjetos)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'pipeline_stages' }, refreshProjetos)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'propostas_nativas' }, refreshProjetos)
