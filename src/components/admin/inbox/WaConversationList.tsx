@@ -662,7 +662,7 @@ export function WaConversationList({
                 </div>
               ))}
             </div>
-          ) : conversations.length === 0 ? (
+          ) : displayedConversations.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 text-center px-6">
               <div className="w-14 h-14 rounded-2xl bg-muted/50 flex items-center justify-center mb-4">
                 <MessageCircle className="h-7 w-7 text-muted-foreground/40" />
@@ -671,26 +671,29 @@ export function WaConversationList({
               <p className="text-xs text-muted-foreground/60 mt-1">Ajuste os filtros ou aguarde novas mensagens.</p>
             </div>
           ) : (
-            <CrossInstanceWrapper conversations={conversations}>
+            <CrossInstanceWrapper conversations={displayedConversations}>
               {(crossInstanceMap) => (
                 <div role="listbox">
-                  {conversations.map((conv) => (
-                    <ConversationItem
-                      key={conv.id}
-                      conv={conv}
-                      isSelected={conv.id === selectedId}
-                      hasUnread={conv.unread_count > 0}
-                      onSelect={onSelect}
-                      vendedores={vendedores}
-                      instances={instances}
-                      mutedIds={mutedIds}
-                      hiddenIds={hiddenIds}
-                      followupConvIds={followupConvIds}
-                      crossInstanceCount={crossInstanceMap.get(conv.cliente_telefone)}
-                      isPinned={pinnedIds?.has(conv.id)}
-                      onContextMenu={onContextMenuConv}
-                    />
-                  ))}
+                  {displayedConversations.map((conv) => {
+                    const dup = duplicateCountByConvId.get(conv.id);
+                    return (
+                      <ConversationItem
+                        key={conv.id}
+                        conv={conv}
+                        isSelected={conv.id === selectedId}
+                        hasUnread={conv.unread_count > 0}
+                        onSelect={onSelect}
+                        vendedores={vendedores}
+                        instances={instances}
+                        mutedIds={mutedIds}
+                        hiddenIds={hiddenIds}
+                        followupConvIds={followupConvIds}
+                        crossInstanceCount={dup ?? crossInstanceMap.get(conv.cliente_telefone)}
+                        isPinned={pinnedIds?.has(conv.id)}
+                        onContextMenu={onContextMenuConv}
+                      />
+                    );
+                  })}
                 </div>
               )}
             </CrossInstanceWrapper>
@@ -700,7 +703,12 @@ export function WaConversationList({
 
       {/* Footer count */}
       <div className="shrink-0 p-2 border-t border-border/40 text-center">
-        <p className="text-[10px] text-muted-foreground font-medium">{conversations.length} conversas</p>
+        <p className="text-[10px] text-muted-foreground font-medium">
+          {displayedConversations.length} conversas
+          {mergeDuplicates && conversations.length !== displayedConversations.length
+            ? ` · ${conversations.length - displayedConversations.length} duplicadas agrupadas`
+            : ""}
+        </p>
       </div>
     </div>
   );
