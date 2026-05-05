@@ -561,6 +561,7 @@ export default function Admin() {
             {/* Right-aligned actions — hide less important on mobile */}
             <div className="flex items-center gap-0.5 sm:gap-1 shrink-0">
               <span className="hidden md:inline-flex"><HeaderSearch /></span>
+              <PlanStatusBadge />
               <HelpDropdown onOpenHelpCenter={() => setHelpOpen(true)} />
               <NotificationsDropdown />
               <AgendaSheet />
