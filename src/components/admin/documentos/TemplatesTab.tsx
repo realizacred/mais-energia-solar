@@ -14,7 +14,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { format } from "date-fns";
 
-const ALL_CATS: (DocumentCategory | "all")[] = ["all", "contrato", "procuracao", "proposta", "termo"];
+const ALL_CATS: (DocumentCategory | "all")[] = ["all", "contrato", "procuracao", "termo"];
+const VISIBLE_CATEGORIES: DocumentCategory[] = ["contrato", "procuracao", "termo"];
 
 export function TemplatesTab() {
   const [catFilter, setCatFilter] = useState<DocumentCategory | "all">("all");
@@ -27,6 +28,8 @@ export function TemplatesTab() {
   );
 
   const filtered = (templates ?? []).filter((t) => {
+    // Excluir 'proposta' e 'recibo' — domínios dedicados em outras áreas/abas
+    if (t.categoria === "proposta" || t.categoria === "recibo") return false;
     if (search && !t.nome.toLowerCase().includes(search.toLowerCase())) return false;
     return true;
   });
@@ -49,8 +52,8 @@ export function TemplatesTab() {
         <Tabs value={catFilter} onValueChange={(v) => setCatFilter(v as any)}>
           <TabsList className="h-8">
             <TabsTrigger value="all" className="text-xs h-7 px-3">Todos</TabsTrigger>
-            {(Object.entries(CATEGORY_LABELS) as [DocumentCategory, string][]).map(([k, v]) => (
-              <TabsTrigger key={k} value={k} className="text-xs h-7 px-3">{v}</TabsTrigger>
+            {VISIBLE_CATEGORIES.map((k) => (
+              <TabsTrigger key={k} value={k} className="text-xs h-7 px-3">{CATEGORY_LABELS[k]}</TabsTrigger>
             ))}
           </TabsList>
         </Tabs>
