@@ -203,9 +203,11 @@ export function useWaConversations(filters?: {
       return filtered.map((c: any) => ({
         ...c,
         instance_name: c.wa_instances?.nome || "—",
+        instance_profile_name: c.wa_instances?.profile_name || null,
         vendedor_nome: c.wa_instances?.consultores?.nome || null,
         lead_nome: c.leads?.nome || null,
         lead_telefone: c.leads?.telefone || null,
+        cliente_nome_real: c.clientes?.nome || null,
         tags: tagsMap[c.id] || [],
       })) as WaConversation[];
     },
