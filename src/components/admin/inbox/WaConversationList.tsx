@@ -189,6 +189,8 @@ interface WaConversationListProps {
   mutedIds?: Set<string>;
   hiddenIds?: Set<string>;
   followupConvIds?: Set<string>;
+  pinnedIds?: Set<string>;
+  onContextMenuConv?: (e: React.MouseEvent, conv: WaConversation) => void;
 }
 
 // ── Conversation Item (redesigned) ─────────────────────
@@ -203,6 +205,8 @@ function ConversationItem({
   hiddenIds,
   followupConvIds,
   crossInstanceCount,
+  isPinned,
+  onContextMenu,
 }: {
   conv: WaConversation;
   isSelected: boolean;
@@ -214,6 +218,8 @@ function ConversationItem({
   hiddenIds?: Set<string>;
   followupConvIds?: Set<string>;
   crossInstanceCount?: number;
+  isPinned?: boolean;
+  onContextMenu?: (e: React.MouseEvent, conv: WaConversation) => void;
 }) {
   const st = statusConfig[conv.status] || statusConfig.open;
   const isMuted = mutedIds?.has(conv.id);
@@ -238,7 +244,14 @@ function ConversationItem({
     // RB-03-exception: chat micro-interaction — conversation card with onContextMenu and complex layout
     <button
       onClick={() => onSelect(conv)}
-      onContextMenu={(e) => e.preventDefault()}
+      onContextMenu={(e) => {
+        if (onContextMenu) {
+          e.preventDefault();
+          onContextMenu(e, conv);
+        } else {
+          e.preventDefault();
+        }
+      }}
       aria-selected={isSelected}
       className={cn(
         "relative w-full text-left flex gap-2 items-stretch p-[10px_12px] bg-card",
@@ -248,6 +261,7 @@ function ConversationItem({
         isSelected && "bg-primary/[0.06] ring-1 ring-primary/20",
         hasUnread && !isSelected && "bg-primary/[0.03]",
         isMuted && "opacity-60",
+        isPinned && "ring-1 ring-warning/30",
       )}
     >
       {/* Left urgency bar with tooltip */}
@@ -297,6 +311,7 @@ function ConversationItem({
             )}>
               {displayName}
             </span>
+            {isPinned && <Pin className="h-3 w-3 text-warning shrink-0" />}
             {isMuted && <BellOff className="h-3 w-3 text-muted-foreground/50 shrink-0" />}
             {isHidden && <EyeOff className="h-3 w-3 text-muted-foreground/50 shrink-0" />}
             {isFollowup && <Bell className="h-3 w-3 text-warning shrink-0 animate-pulse" />}
@@ -439,6 +454,8 @@ export function WaConversationList({
   mutedIds,
   hiddenIds,
   followupConvIds,
+  pinnedIds,
+  onContextMenuConv,
 }: WaConversationListProps) {
   // Lista única ordenada por última mensagem (já vem ordenada do hook).
   // Removido o split unassigned/assigned para garantir que conversas atribuídas
@@ -604,6 +621,8 @@ export function WaConversationList({
                       hiddenIds={hiddenIds}
                       followupConvIds={followupConvIds}
                       crossInstanceCount={crossInstanceMap.get(conv.cliente_telefone)}
+                      isPinned={pinnedIds?.has(conv.id)}
+                      onContextMenu={onContextMenuConv}
                     />
                   ))}
                 </div>

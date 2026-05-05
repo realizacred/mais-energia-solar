@@ -9,6 +9,8 @@ import { useWaFollowupPending } from "@/hooks/useWaFollowupPending";
 import { useWaConversations, useWaMessages, useWaTags, useWaReadTracking } from "@/hooks/useWaInbox";
 import { useWaInstances } from "@/hooks/useWaInstances";
 import { useWaConversationPreferences } from "@/hooks/useWaConversationPreferences";
+import { useWaPinnedConversations } from "@/hooks/useWaPinnedConversations";
+import { WaConversationContextMenu, type WaConvContextMenuState } from "./WaConversationContextMenu";
 import { useAuth } from "@/hooks/useAuth";
 import { useUserPermissions } from "@/hooks/useUserPermissions";
 import { useToast } from "@/hooks/use-toast";
@@ -172,6 +174,25 @@ export function WaInbox({ vendorMode = false, vendorUserId, showCompactStats = f
 
   const { tags, createTag, deleteTag, toggleConversationTag } = useWaTags();
   const { mutedIds, hiddenIds, isMuted, isHidden, toggleMute, toggleHide } = useWaConversationPreferences();
+  const { pinnedIds, togglePin } = useWaPinnedConversations();
+  const [convContextMenu, setConvContextMenu] = useState<WaConvContextMenuState | null>(null);
+
+  const handleContextMenuConv = useCallback((e: React.MouseEvent, conv: WaConversation) => {
+    setConvContextMenu({ x: e.clientX, y: e.clientY, conversation: conv });
+  }, []);
+
+  // Sort pinned first
+  const sortPinned = useCallback(
+    (list: WaConversation[]) => {
+      if (!pinnedIds.size) return list;
+      return [...list].sort((a, b) => {
+        const ap = pinnedIds.has(a.id) ? 1 : 0;
+        const bp = pinnedIds.has(b.id) ? 1 : 0;
+        return bp - ap;
+      });
+    },
+    [pinnedIds],
+  );
 
   // SLA Alerts
   const {
@@ -426,26 +447,28 @@ export function WaInbox({ vendorMode = false, vendorUserId, showCompactStats = f
   }, []);
 
   // Single source of truth: filter client-side for status, unassigned, and tags
-  const filteredConvs = allConversations.filter((c) => {
-    // Status filter
-    if (filterStatus !== "all" && c.status !== filterStatus) return false;
-    // Unread filter
-    if (filterUnread && !(c.unread_count > 0)) return false;
-    // Unassigned filter
-    if (filterAssigned === "unassigned" && c.assigned_to) return false;
-    // Tag filter
-    if (filterTag !== "all") {
-      const hasTag = c.tags?.some((ct) => ct.tag_id === filterTag);
-      if (!hasTag) return false;
-    }
-    // Group filter - if user has no permission, always hide groups
-    if (!canViewGroups && c.is_group) return false;
-    if (canViewGroups && !showGroups && c.is_group) return false;
-    // Hidden filter - if user has no permission, always hide
-    if (!canViewHidden && hiddenIds.has(c.id)) return false;
-    if (canViewHidden && !showHidden && hiddenIds.has(c.id)) return false;
-    return true;
-  });
+  const filteredConvs = sortPinned(
+    allConversations.filter((c) => {
+      // Status filter
+      if (filterStatus !== "all" && c.status !== filterStatus) return false;
+      // Unread filter
+      if (filterUnread && !(c.unread_count > 0)) return false;
+      // Unassigned filter
+      if (filterAssigned === "unassigned" && c.assigned_to) return false;
+      // Tag filter
+      if (filterTag !== "all") {
+        const hasTag = c.tags?.some((ct) => ct.tag_id === filterTag);
+        if (!hasTag) return false;
+      }
+      // Group filter - if user has no permission, always hide groups
+      if (!canViewGroups && c.is_group) return false;
+      if (canViewGroups && !showGroups && c.is_group) return false;
+      // Hidden filter - if user has no permission, always hide
+      if (!canViewHidden && hiddenIds.has(c.id)) return false;
+      if (canViewHidden && !showHidden && hiddenIds.has(c.id)) return false;
+      return true;
+    }),
+  );
 
   const handleSelectConversation = (conv: WaConversation) => {
     lastSyncedConvRef.current = JSON.stringify(conv);
@@ -766,6 +789,8 @@ export function WaInbox({ vendorMode = false, vendorUserId, showCompactStats = f
               mutedIds={mutedIds}
               hiddenIds={hiddenIds}
               followupConvIds={followupConvIds}
+              pinnedIds={pinnedIds}
+              onContextMenuConv={handleContextMenuConv}
             />
           </div>
 
@@ -863,6 +888,8 @@ export function WaInbox({ vendorMode = false, vendorUserId, showCompactStats = f
                 mutedIds={mutedIds}
                 hiddenIds={hiddenIds}
                 followupConvIds={followupConvIds}
+                pinnedIds={pinnedIds}
+                onContextMenuConv={handleContextMenuConv}
               />
             )}
           </div>
@@ -930,6 +957,44 @@ export function WaInbox({ vendorMode = false, vendorUserId, showCompactStats = f
           setShowStartChat(false);
           setPendingNewConvId(convId);
           await queryClient.invalidateQueries({ queryKey: ["wa-conversations"] });
+        }}
+      />
+      <WaConversationContextMenu
+        state={convContextMenu}
+        onClose={() => setConvContextMenu(null)}
+        isPinned={convContextMenu ? pinnedIds.has(convContextMenu.conversation.id) : false}
+        onTogglePin={() => convContextMenu && togglePin(convContextMenu.conversation.id)}
+        onAssignToMe={() => {
+          if (!convContextMenu || !user?.id) return;
+          assignConversation({ conversationId: convContextMenu.conversation.id, userId: user.id });
+        }}
+        hasUnread={(convContextMenu?.conversation.unread_count ?? 0) > 0}
+        onToggleRead={() => {
+          if (!convContextMenu) return;
+          const c = convContextMenu.conversation;
+          const next = c.unread_count > 0 ? 0 : 1;
+          updateConversation({ id: c.id, updates: { unread_count: next } as any });
+        }}
+        tags={tags}
+        appliedTagIds={
+          new Set((convContextMenu?.conversation.tags || []).map((t) => t.tag_id))
+        }
+        onToggleTag={(tagId) => {
+          if (!convContextMenu) return;
+          const c = convContextMenu.conversation;
+          const applied = (c.tags || []).some((t) => t.tag_id === tagId);
+          toggleConversationTag({ conversationId: c.id, tagId, add: !applied });
+        }}
+        isResolved={convContextMenu?.conversation.status === "resolved"}
+        onResolve={() => convContextMenu && resolveConversation(convContextMenu.conversation.id)}
+        onReopen={() => convContextMenu && reopenConversation(convContextMenu.conversation.id)}
+        onCreateLead={() => {
+          const phone = convContextMenu?.conversation.cliente_telefone || "";
+          window.open(`/admin?tab=leads&phone=${encodeURIComponent(phone)}`, "_blank");
+        }}
+        onCreateCliente={() => {
+          const phone = convContextMenu?.conversation.cliente_telefone || "";
+          window.open(`/admin?tab=clientes&phone=${encodeURIComponent(phone)}`, "_blank");
         }}
       />
     </div>
