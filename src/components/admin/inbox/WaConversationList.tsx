@@ -30,6 +30,7 @@ import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/comp
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import type { WaConversation, WaTag } from "@/hooks/useWaInbox";
+import { toCanonicalPhoneDigits } from "@/utils/phone/toCanonicalPhoneDigits";
 import { deriveConversationStatus, DERIVED_STATUS_CONFIG } from "./useConversationStatus";
 import type { WaInstance } from "@/hooks/useWaInstances";
 
