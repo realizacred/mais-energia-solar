@@ -62,7 +62,7 @@ export function PrecificacaoTab() {
   }
 
   if (loading) {
-    return <div className="flex items-center justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>;
+    return <LoadingState context="config" />;
   }
 
   const NUMERIC_FIELDS: { key: keyof Omit<PricingRow, "id" | "requer_aprovacao_desconto">; label: string; suffix: string }[] = [
