@@ -515,6 +515,16 @@ function ProjetoDetalheContent() {
           {activeTab === "concessionaria" && (
             <ProjetoConcessionariaTab dealId={deal.id} />
           )}
+          {activeTab === "recibos" && (
+            <ProjetoRecibosTab
+              filters={{ deal_id: deal.id }}
+              defaultClienteId={deal.customer_id ?? undefined}
+              defaultProjetoId={projetoId ?? undefined}
+              defaultDealId={deal.id}
+              title="Recibos do projeto"
+              emptyDescription="Nenhum recibo emitido para este projeto. Use 'Emitir recibo' para registrar sinal, parcela ou quitação."
+            />
+          )}
         </motion.div>
       </AnimatePresence>
 
