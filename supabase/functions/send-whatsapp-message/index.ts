@@ -43,8 +43,19 @@ function getAltJids(remoteJid: string): string[] {
   return [...new Set(jids)];
 }
 
-/**
- * AUTH MODEL: "auth required" — NOT a public webhook.
+// Canonical phone digits for (tenant_id, telefone_normalized) lookup (post 2026-05 dedup).
+function canonicalPhoneFromJid(remoteJid: string): string | null {
+  if (!remoteJid || remoteJid.endsWith("@g.us")) return null;
+  const beforeAt = remoteJid.split("@")[0];
+  let digits = beforeAt.replace(/\D/g, "");
+  if (!digits) return null;
+  if (digits.length === 13 && digits.startsWith("55")) digits = digits.slice(2);
+  if (digits.length === 12 && digits.startsWith("55")) digits = digits.slice(2);
+  if (digits.length !== 10 && digits.length !== 11) return null;
+  const ddd = digits.slice(0, 2);
+  const rest = digits.slice(2);
+  if (rest.length === 8 && /^[89]/.test(rest)) return `${ddd}9${rest}`;
+  return digits;
  * - Regular users: JWT validated via getClaims(), tenant resolved from profiles (NEVER from payload)
  * - Internal callers (automations): service_role key accepted, tenant_id MUST be in body
  * 
