@@ -20246,6 +20246,53 @@ export type Database = {
           },
         ]
       }
+      recibo_logs: {
+        Row: {
+          canal: string | null
+          created_at: string
+          created_by: string | null
+          destino: string | null
+          id: string
+          mensagem: string | null
+          meta: Json
+          recibo_id: string
+          tenant_id: string
+          tipo: string
+        }
+        Insert: {
+          canal?: string | null
+          created_at?: string
+          created_by?: string | null
+          destino?: string | null
+          id?: string
+          mensagem?: string | null
+          meta?: Json
+          recibo_id: string
+          tenant_id?: string
+          tipo: string
+        }
+        Update: {
+          canal?: string | null
+          created_at?: string
+          created_by?: string | null
+          destino?: string | null
+          id?: string
+          mensagem?: string | null
+          meta?: Json
+          recibo_id?: string
+          tenant_id?: string
+          tipo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recibo_logs_recibo_id_fkey"
+            columns: ["recibo_id"]
+            isOneToOne: false
+            referencedRelation: "recibos_emitidos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       recibos_emitidos: {
         Row: {
           cliente_id: string

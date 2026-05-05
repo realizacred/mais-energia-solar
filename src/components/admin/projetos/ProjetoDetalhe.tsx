@@ -19,7 +19,7 @@ import {
   Upload, Trash2, Download, Eye, Plus, ExternalLink, Phone, StickyNote, Filter,
   MoreVertical, Trophy, XCircle, UserCircle, Mail, MapPin, Hash, Check,
   AlertCircle, CheckCircle, Building, Paperclip, Copy, Pencil, Send, Activity,
-  ChevronDown, SunMedium, Bell, Users, Tag, Link2, ShoppingCart, Landmark
+  ChevronDown, SunMedium, Bell, Users, Tag, Link2, ShoppingCart, Landmark, Receipt
 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
@@ -72,6 +72,9 @@ import { formatDateTime, formatDate, formatTime, formatDateShort } from "@/lib/d
 import { ClienteEditModal } from "./ClienteEditModal";
 import { TipoProjetoSolarBadge } from "./TipoProjetoSolarBadge";
 import { TipoProjetoSolarAlert } from "./TipoProjetoSolarAlert";
+import { ProjetoRecibosTab } from "./ProjetoRecibosTab";
+import { EmitirReciboModal } from "@/components/admin/documentos/EmitirReciboModal";
+import { useRecibos } from "@/hooks/useRecibos";
 
 // ─── Types (local to sub-components) ────────────
 interface PropostaNativa {
@@ -123,7 +126,66 @@ const TABS = [
   { id: "instalacao" as TabId, label: "Instalação", icon: Zap, color: "text-success" },
   { id: "suprimentos" as TabId, label: "Suprimentos", icon: ShoppingCart, color: "text-info" },
   { id: "concessionaria" as TabId, label: "Concessionária", icon: Landmark, color: "text-primary" },
+  { id: "recibos" as TabId, label: "Recibos", icon: Receipt, color: "text-primary" },
 ] as const;
+
+// ─── CTA: Sinal pendente? (won deals sem recibo) ────────────
+function SinalReciboCTA({
+  dealId, customerId, projetoId, setActiveTab,
+}: {
+  dealId: string;
+  customerId: string | null;
+  projetoId: string | null;
+  setActiveTab: (t: TabId) => void;
+}) {
+  const [emitirOpen, setEmitirOpen] = useState(false);
+  const { data: recibos } = useRecibos({ deal_id: dealId });
+  const hasSinal = (recibos ?? []).some((r) =>
+    (r.descricao ?? "").toLowerCase().includes("sinal") ||
+    (r.template?.nome ?? "").toLowerCase().includes("sinal")
+  );
+  if (hasSinal) return null;
+
+  return (
+    <>
+      <Card className="mb-2 border-l-[3px] border-l-warning">
+        <CardContent className="flex items-center gap-4 p-4">
+          <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-warning/10 text-warning shrink-0">
+            <Receipt className="w-5 h-5" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-semibold text-foreground">Sinal pendente?</p>
+            <p className="text-xs text-muted-foreground">
+              Emita um recibo de entrada agora ou veja todos os recibos do projeto.
+            </p>
+          </div>
+          <Button
+            size="sm"
+            variant="outline"
+            className="shrink-0 gap-1.5"
+            onClick={() => setActiveTab("recibos")}
+          >
+            <Eye className="h-3.5 w-3.5" /> Ver
+          </Button>
+          <Button
+            size="sm"
+            className="shrink-0 gap-1.5"
+            onClick={() => setEmitirOpen(true)}
+          >
+            <Plus className="h-3.5 w-3.5" /> Emitir Recibo de Entrada
+          </Button>
+        </CardContent>
+      </Card>
+      <EmitirReciboModal
+        open={emitirOpen}
+        onOpenChange={setEmitirOpen}
+        defaultClienteId={customerId ?? undefined}
+        defaultProjetoId={projetoId ?? undefined}
+        defaultDealId={dealId}
+      />
+    </>
+  );
+}
 
 // ─── Recebimento CTA (won deals) ────────────
 function RecebimentoCTA({ dealId, customerId, customerName, navigate }: {
@@ -467,7 +529,15 @@ function ProjetoDetalheContent() {
 
       {/* ── Recebimento CTA for won deals ── */}
       {deal.status === "won" && activeTab === "gerenciamento" && (
-        <RecebimentoCTA dealId={deal.id} customerId={deal.customer_id} customerName={customerName} navigate={navigate} />
+        <>
+          <RecebimentoCTA dealId={deal.id} customerId={deal.customer_id} customerName={customerName} navigate={navigate} />
+          <SinalReciboCTA
+            dealId={deal.id}
+            customerId={deal.customer_id}
+            projetoId={projetoId ?? null}
+            setActiveTab={setActiveTab}
+          />
+        </>
       )}
 
       {/* ── Tab Content ── */}
@@ -511,6 +581,16 @@ function ProjetoDetalheContent() {
           )}
           {activeTab === "concessionaria" && (
             <ProjetoConcessionariaTab dealId={deal.id} />
+          )}
+          {activeTab === "recibos" && (
+            <ProjetoRecibosTab
+              filters={{ deal_id: deal.id }}
+              defaultClienteId={deal.customer_id ?? undefined}
+              defaultProjetoId={projetoId ?? undefined}
+              defaultDealId={deal.id}
+              title="Recibos do projeto"
+              emptyDescription="Nenhum recibo emitido para este projeto. Use 'Emitir recibo' para registrar sinal, parcela ou quitação."
+            />
           )}
         </motion.div>
       </AnimatePresence>
