@@ -189,13 +189,28 @@ Deno.serve(async (req) => {
         const contactName = rawContactName && !isPushNameJustPhone(rawContactName, remoteJid) && !matchesInstanceProfile ? rawContactName : null;
         const altJids = getAltJids(remoteJid);
 
-        // Check if conversation already exists
-        const { data: existingConv } = await supabase
-          .from("wa_conversations")
-          .select("id")
-          .eq("instance_id", instance.id)
-          .in("remote_jid", altJids)
-          .maybeSingle();
+        // Lookup conversation. SSOT post-2026-05: (tenant_id, telefone_normalized).
+        const phoneCanon = canonicalPhoneFromJid(remoteJid);
+        let existingConv: { id: string } | null = null;
+        if (!isGroup && phoneCanon) {
+          const { data } = await supabase
+            .from("wa_conversations")
+            .select("id")
+            .eq("tenant_id", instance.tenant_id)
+            .eq("telefone_normalized", phoneCanon)
+            .eq("is_group", false)
+            .maybeSingle();
+          existingConv = data;
+        }
+        if (!existingConv) {
+          const { data } = await supabase
+            .from("wa_conversations")
+            .select("id")
+            .eq("tenant_id", instance.tenant_id)
+            .in("remote_jid", altJids)
+            .maybeSingle();
+          existingConv = data;
+        }
 
         let conversationId: string;
 
@@ -206,10 +221,10 @@ Deno.serve(async (req) => {
             ? (chat.subject || chat.name || `Grupo ${phone.substring(0, 12)}...`)
             : contactName;
 
-          // Skip profile pic fetch to save time — it will be fetched later on demand
+          // INSERT with race fallback (partial UNIQUE can't be onConflict target)
           const { data: newConv, error: convErr } = await supabase
             .from("wa_conversations")
-            .upsert({
+            .insert({
               instance_id: instance.id,
               tenant_id: instance.tenant_id,
               remote_jid: remoteJid,
@@ -218,16 +233,34 @@ Deno.serve(async (req) => {
               is_group: isGroup,
               status: "resolved",
               unread_count: 0,
-            }, { onConflict: "instance_id,remote_jid", ignoreDuplicates: true })
+            })
             .select("id")
             .single();
 
           if (convErr) {
-            errors.push(`Conv ${phone}: ${convErr.message}`);
-            continue;
+            // Race: re-resolve and reuse
+            if (!isGroup && phoneCanon) {
+              const { data: retried } = await supabase
+                .from("wa_conversations")
+                .select("id")
+                .eq("tenant_id", instance.tenant_id)
+                .eq("telefone_normalized", phoneCanon)
+                .eq("is_group", false)
+                .maybeSingle();
+              if (retried) {
+                conversationId = retried.id;
+              } else {
+                errors.push(`Conv ${phone}: ${convErr.message}`);
+                continue;
+              }
+            } else {
+              errors.push(`Conv ${phone}: ${convErr.message}`);
+              continue;
+            }
+          } else {
+            conversationId = newConv.id;
+            totalConversations++;
           }
-          conversationId = newConv.id;
-          totalConversations++;
         }
 
         // Step 2: Fetch messages for this chat
