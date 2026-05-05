@@ -46,7 +46,7 @@ export function EmitirReciboModal({
   onEmitted,
 }: EmitirReciboModalProps) {
   const { data: templates, isLoading: loadingTpls } = useDocumentTemplates("recibo");
-  const { clientes, isLoading: loadingClientes } = useClientes();
+  const { data: clientes, isLoading: loadingClientes } = useClientes();
   const emitir = useEmitirRecibo();
 
   const [templateId, setTemplateId] = useState<string>("");
