@@ -28800,6 +28800,61 @@ export type Database = {
           view_count: number
         }[]
       }
+      get_public_brand_settings: {
+        Args: { _tenant_id: string }
+        Returns: {
+          color_primary: string
+          color_secondary: string
+          favicon_url: string
+          logo_small_url: string
+          logo_url: string
+          logo_white_url: string
+          nome_fantasia: string
+          tenant_id: string
+        }[]
+      }
+      get_public_site_settings: {
+        Args: { _tenant_id: string }
+        Returns: {
+          bairro: string
+          cep: string
+          cidade: string
+          coordenadas_lat: number
+          coordenadas_lng: number
+          cta_subtitulo: string
+          cta_titulo: string
+          email: string
+          endereco_completo: string
+          estado: string
+          facebook_url: string
+          google_maps_url: string
+          hero_badge_texto: string
+          hero_cta_texto: string
+          hero_cta_whatsapp_texto: string
+          hero_subtitulo: string
+          hero_titulo: string
+          horario_atendimento: string
+          instagram_url: string
+          linkedin_url: string
+          meta_description: string
+          meta_title: string
+          nome_empresa: string
+          rua: string
+          site_url: string
+          slogan: string
+          stat_anos_experiencia: number
+          stat_economia_percentual: number
+          stat_projetos_realizados: number
+          telefone: string
+          tenant_id: string
+          texto_sobre: string
+          texto_sobre_resumido: string
+          tiktok_url: string
+          whatsapp: string
+          whatsapp_mensagem_padrao: string
+          youtube_url: string
+        }[]
+      }
       get_roof_types_by_consultor: {
         Args: { p_consultor_code: string }
         Returns: {
