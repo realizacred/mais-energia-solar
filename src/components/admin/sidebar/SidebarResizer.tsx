@@ -25,8 +25,8 @@ export function SidebarResizer({ min = 220, max = 480 }: SidebarResizerProps) {
     if (isMobile) return;
     const saved = Number(localStorage.getItem("admin:sidebar-width"));
     if (saved && saved >= min && saved <= max) {
-      const wrapper = document.querySelector<HTMLElement>("[data-sidebar-wrapper]");
-      wrapper?.style.setProperty("--sidebar-width", `${saved}px`);
+    const wrapper = document.querySelector<HTMLElement>(".group\\/sidebar-wrapper");
+    wrapper?.style.setProperty("--sidebar-width", `${saved}px`);
     }
   }, [isMobile, min, max]);
 
