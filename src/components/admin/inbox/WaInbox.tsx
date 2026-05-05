@@ -9,6 +9,8 @@ import { useWaFollowupPending } from "@/hooks/useWaFollowupPending";
 import { useWaConversations, useWaMessages, useWaTags, useWaReadTracking } from "@/hooks/useWaInbox";
 import { useWaInstances } from "@/hooks/useWaInstances";
 import { useWaConversationPreferences } from "@/hooks/useWaConversationPreferences";
+import { useWaPinnedConversations } from "@/hooks/useWaPinnedConversations";
+import { WaConversationContextMenu, type WaConvContextMenuState } from "./WaConversationContextMenu";
 import { useAuth } from "@/hooks/useAuth";
 import { useUserPermissions } from "@/hooks/useUserPermissions";
 import { useToast } from "@/hooks/use-toast";
