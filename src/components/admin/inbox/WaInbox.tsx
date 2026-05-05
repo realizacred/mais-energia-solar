@@ -447,26 +447,28 @@ export function WaInbox({ vendorMode = false, vendorUserId, showCompactStats = f
   }, []);
 
   // Single source of truth: filter client-side for status, unassigned, and tags
-  const filteredConvs = allConversations.filter((c) => {
-    // Status filter
-    if (filterStatus !== "all" && c.status !== filterStatus) return false;
-    // Unread filter
-    if (filterUnread && !(c.unread_count > 0)) return false;
-    // Unassigned filter
-    if (filterAssigned === "unassigned" && c.assigned_to) return false;
-    // Tag filter
-    if (filterTag !== "all") {
-      const hasTag = c.tags?.some((ct) => ct.tag_id === filterTag);
-      if (!hasTag) return false;
-    }
-    // Group filter - if user has no permission, always hide groups
-    if (!canViewGroups && c.is_group) return false;
-    if (canViewGroups && !showGroups && c.is_group) return false;
-    // Hidden filter - if user has no permission, always hide
-    if (!canViewHidden && hiddenIds.has(c.id)) return false;
-    if (canViewHidden && !showHidden && hiddenIds.has(c.id)) return false;
-    return true;
-  });
+  const filteredConvs = sortPinned(
+    allConversations.filter((c) => {
+      // Status filter
+      if (filterStatus !== "all" && c.status !== filterStatus) return false;
+      // Unread filter
+      if (filterUnread && !(c.unread_count > 0)) return false;
+      // Unassigned filter
+      if (filterAssigned === "unassigned" && c.assigned_to) return false;
+      // Tag filter
+      if (filterTag !== "all") {
+        const hasTag = c.tags?.some((ct) => ct.tag_id === filterTag);
+        if (!hasTag) return false;
+      }
+      // Group filter - if user has no permission, always hide groups
+      if (!canViewGroups && c.is_group) return false;
+      if (canViewGroups && !showGroups && c.is_group) return false;
+      // Hidden filter - if user has no permission, always hide
+      if (!canViewHidden && hiddenIds.has(c.id)) return false;
+      if (canViewHidden && !showHidden && hiddenIds.has(c.id)) return false;
+      return true;
+    }),
+  );
 
   const handleSelectConversation = (conv: WaConversation) => {
     lastSyncedConvRef.current = JSON.stringify(conv);
