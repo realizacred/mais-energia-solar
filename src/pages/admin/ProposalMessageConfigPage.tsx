@@ -124,8 +124,6 @@ const TEMPLATE_KEYS = [
 // ─── Component ──────────────────────────────────────
 
 function ProposalMessageConfigPageInner() {
-  const { user } = useAuth();
-
   // Check admin role (hook centralizado, sem query inline)
   const { isAdmin, isLoading: rolesLoading } = useUserRoles();
 
