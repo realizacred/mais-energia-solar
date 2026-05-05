@@ -30,6 +30,7 @@ import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/comp
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import type { WaConversation, WaTag } from "@/hooks/useWaInbox";
+import { toCanonicalPhoneDigits } from "@/utils/phone/toCanonicalPhoneDigits";
 import { deriveConversationStatus, DERIVED_STATUS_CONFIG } from "./useConversationStatus";
 import type { WaInstance } from "@/hooks/useWaInstances";
 
@@ -370,8 +371,11 @@ function ConversationItem({
           </div>
           <div className="flex items-center gap-1 shrink-0">
             {crossInstanceCount && crossInstanceCount > 1 && (
-              <span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded border border-border">
-                {crossInstanceCount} inst.
+              <span
+                className="text-[10px] text-warning bg-warning/10 px-1.5 py-0.5 rounded border border-warning/30"
+                title={`${crossInstanceCount} conversas deste contato foram agrupadas. Use 'Ver separadas' para listar todas.`}
+              >
+                {crossInstanceCount} instâncias
               </span>
             )}
             {hasUnread && (
@@ -458,8 +462,59 @@ export function WaConversationList({
   onContextMenuConv,
 }: WaConversationListProps) {
   // Lista única ordenada por última mensagem (já vem ordenada do hook).
-  // Removido o split unassigned/assigned para garantir que conversas atribuídas
-  // com mensagens recentes apareçam no topo (comportamento estilo WhatsApp).
+
+  // ── Dedup por contato (telefone canônico) ─────────────
+  // Evita exibir o mesmo contato repetido quando há múltiplas conversas
+  // (instâncias diferentes ou variações de JID com/sem 9º dígito).
+  const [mergeDuplicates, setMergeDuplicates] = useState<boolean>(() => {
+    if (typeof window === "undefined") return true;
+    return window.localStorage.getItem("wa-inbox-merge-duplicates") !== "0";
+  });
+  const handleMergeChange = (v: boolean) => {
+    setMergeDuplicates(v);
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem("wa-inbox-merge-duplicates", v ? "1" : "0");
+    }
+  };
+
+  const { displayedConversations, duplicateCountByConvId } = useMemo(() => {
+    const dupCount = new Map<string, number>();
+    if (!mergeDuplicates) {
+      return { displayedConversations: conversations, duplicateCountByConvId: dupCount };
+    }
+    const buckets = new Map<string, WaConversation[]>();
+    const passthrough: WaConversation[] = [];
+    for (const c of conversations) {
+      if (c.is_group) {
+        passthrough.push(c);
+        continue;
+      }
+      const canonical = toCanonicalPhoneDigits(c.cliente_telefone || c.remote_jid || "");
+      const key = canonical || `__raw:${(c.cliente_telefone || c.remote_jid || c.id).trim()}`;
+      const arr = buckets.get(key);
+      if (arr) arr.push(c);
+      else buckets.set(key, [c]);
+    }
+    const winners: WaConversation[] = [];
+    for (const arr of buckets.values()) {
+      arr.sort((a, b) => {
+        const ta = a.last_message_at ? new Date(a.last_message_at).getTime() : 0;
+        const tb = b.last_message_at ? new Date(b.last_message_at).getTime() : 0;
+        return tb - ta;
+      });
+      const winner = arr[0];
+      // Soma unread_count de todas as duplicatas no vencedor para não perder badge
+      const totalUnread = arr.reduce((s, c) => s + (c.unread_count || 0), 0);
+      winners.push({ ...winner, unread_count: totalUnread });
+      if (arr.length > 1) dupCount.set(winner.id, arr.length);
+    }
+    const merged = [...winners, ...passthrough].sort((a, b) => {
+      const ta = a.last_message_at ? new Date(a.last_message_at).getTime() : 0;
+      const tb = b.last_message_at ? new Date(b.last_message_at).getTime() : 0;
+      return tb - ta;
+    });
+    return { displayedConversations: merged, duplicateCountByConvId: dupCount };
+  }, [conversations, mergeDuplicates]);
 
   return (
     <div className="flex h-full min-h-0 w-full min-w-0 flex-col overflow-hidden border-r border-border/30 bg-card/50">
@@ -571,10 +626,24 @@ export function WaConversationList({
               </span>
             </label>
           )}
+          <label
+            className="flex items-center gap-1.5 cursor-pointer"
+            title="Exibe cada conversa do mesmo contato separadamente (sem agrupar duplicatas por telefone)."
+          >
+            <Switch
+              checked={!mergeDuplicates}
+              onCheckedChange={(v) => handleMergeChange(!v)}
+              className="h-4 w-7 [&>span]:h-3 [&>span]:w-3"
+            />
+            <span className="text-[10px] text-muted-foreground flex items-center gap-0.5">
+              <GitBranch className="h-3 w-3" /> Ver separadas
+            </span>
+          </label>
         </div>
       </div>
 
       {/* Conversations */}
+
       <div className="flex-1 min-h-0 overflow-hidden">
         <div className="h-full min-h-0 overflow-y-auto wa-conversation-list p-1.5">
           {loading ? (
@@ -596,7 +665,7 @@ export function WaConversationList({
                 </div>
               ))}
             </div>
-          ) : conversations.length === 0 ? (
+          ) : displayedConversations.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 text-center px-6">
               <div className="w-14 h-14 rounded-2xl bg-muted/50 flex items-center justify-center mb-4">
                 <MessageCircle className="h-7 w-7 text-muted-foreground/40" />
@@ -605,26 +674,29 @@ export function WaConversationList({
               <p className="text-xs text-muted-foreground/60 mt-1">Ajuste os filtros ou aguarde novas mensagens.</p>
             </div>
           ) : (
-            <CrossInstanceWrapper conversations={conversations}>
+            <CrossInstanceWrapper conversations={displayedConversations}>
               {(crossInstanceMap) => (
                 <div role="listbox">
-                  {conversations.map((conv) => (
-                    <ConversationItem
-                      key={conv.id}
-                      conv={conv}
-                      isSelected={conv.id === selectedId}
-                      hasUnread={conv.unread_count > 0}
-                      onSelect={onSelect}
-                      vendedores={vendedores}
-                      instances={instances}
-                      mutedIds={mutedIds}
-                      hiddenIds={hiddenIds}
-                      followupConvIds={followupConvIds}
-                      crossInstanceCount={crossInstanceMap.get(conv.cliente_telefone)}
-                      isPinned={pinnedIds?.has(conv.id)}
-                      onContextMenu={onContextMenuConv}
-                    />
-                  ))}
+                  {displayedConversations.map((conv) => {
+                    const dup = duplicateCountByConvId.get(conv.id);
+                    return (
+                      <ConversationItem
+                        key={conv.id}
+                        conv={conv}
+                        isSelected={conv.id === selectedId}
+                        hasUnread={conv.unread_count > 0}
+                        onSelect={onSelect}
+                        vendedores={vendedores}
+                        instances={instances}
+                        mutedIds={mutedIds}
+                        hiddenIds={hiddenIds}
+                        followupConvIds={followupConvIds}
+                        crossInstanceCount={dup ?? crossInstanceMap.get(conv.cliente_telefone)}
+                        isPinned={pinnedIds?.has(conv.id)}
+                        onContextMenu={onContextMenuConv}
+                      />
+                    );
+                  })}
                 </div>
               )}
             </CrossInstanceWrapper>
@@ -634,7 +706,12 @@ export function WaConversationList({
 
       {/* Footer count */}
       <div className="shrink-0 p-2 border-t border-border/40 text-center">
-        <p className="text-[10px] text-muted-foreground font-medium">{conversations.length} conversas</p>
+        <p className="text-[10px] text-muted-foreground font-medium">
+          {displayedConversations.length} conversas
+          {mergeDuplicates && conversations.length !== displayedConversations.length
+            ? ` · ${conversations.length - displayedConversations.length} duplicadas agrupadas`
+            : ""}
+        </p>
       </div>
     </div>
   );
