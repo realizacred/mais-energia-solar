@@ -240,10 +240,28 @@ function ProposalMessageConfigPageInner() {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={handleReset} className="gap-1.5">
-            <RotateCcw className="h-3.5 w-3.5" />
-            Restaurar padrão
-          </Button>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="outline" size="sm" className="gap-1.5">
+                <RotateCcw className="h-3.5 w-3.5" />
+                Restaurar padrão
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Restaurar para o padrão do sistema?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Esta ação é destrutiva: todas as customizações de templates, blocos
+                  e padrões locais serão descartadas e substituídas pelos valores
+                  padrão. Você ainda precisará clicar em "Salvar" para persistir.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                <AlertDialogAction onClick={handleReset}>Restaurar</AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
           <Button size="sm" onClick={handleSave} disabled={saveMutation.isPending} className="gap-1.5">
             <Save className="h-3.5 w-3.5" />
             {saveMutation.isPending ? "Salvando..." : "Salvar"}
