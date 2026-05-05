@@ -1,6 +1,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import JSZip from "npm:jszip@3.10.1";
 import { flattenSnapshot } from "../_shared/flattenSnapshot.ts";
+import { callAi } from "../_shared/aiCallNoLovable.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
