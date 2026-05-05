@@ -52,8 +52,8 @@ export function TemplatesTab() {
         <Tabs value={catFilter} onValueChange={(v) => setCatFilter(v as any)}>
           <TabsList className="h-8">
             <TabsTrigger value="all" className="text-xs h-7 px-3">Todos</TabsTrigger>
-            {(Object.entries(CATEGORY_LABELS) as [DocumentCategory, string][]).map(([k, v]) => (
-              <TabsTrigger key={k} value={k} className="text-xs h-7 px-3">{v}</TabsTrigger>
+            {VISIBLE_CATEGORIES.map((k) => (
+              <TabsTrigger key={k} value={k} className="text-xs h-7 px-3">{CATEGORY_LABELS[k]}</TabsTrigger>
             ))}
           </TabsList>
         </Tabs>
