@@ -30,9 +30,11 @@ export interface WaConversation {
   // joined
   tags?: WaConversationTag[];
   instance_name?: string;
+  instance_profile_name?: string | null;
   vendedor_nome?: string;
   lead_nome?: string;
   lead_telefone?: string;
+  cliente_nome_real?: string | null;
 }
 
 export interface WaMessage {
@@ -111,8 +113,9 @@ export function useWaConversations(filters?: {
           status, assigned_to, lead_id, cliente_id, last_message_at, last_message_preview,
           last_message_direction,
           unread_count, canal, profile_picture_url, is_group, created_at, updated_at,
-          wa_instances(nome, consultores(nome, user_id)),
-          leads(nome, telefone)
+          wa_instances(nome, profile_name, consultores(nome, user_id)),
+          leads(nome, telefone),
+          clientes(nome)
         `)
         .order("last_message_at", { ascending: false });
 
@@ -200,9 +203,11 @@ export function useWaConversations(filters?: {
       return filtered.map((c: any) => ({
         ...c,
         instance_name: c.wa_instances?.nome || "—",
+        instance_profile_name: c.wa_instances?.profile_name || null,
         vendedor_nome: c.wa_instances?.consultores?.nome || null,
         lead_nome: c.leads?.nome || null,
         lead_telefone: c.leads?.telefone || null,
+        cliente_nome_real: c.clientes?.nome || null,
         tags: tagsMap[c.id] || [],
       })) as WaConversation[];
     },

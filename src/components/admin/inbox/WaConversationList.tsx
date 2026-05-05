@@ -57,8 +57,25 @@ function getHoursAgo(lastMessageAt: string | null): number | null {
   return (Date.now() - new Date(lastMessageAt).getTime()) / 1000 / 60 / 60;
 }
 // ── Display name helper ────────────────────────────────
-function formatWaDisplayName(conv: { cliente_nome?: string | null; cliente_telefone?: string | null; remote_jid?: string | null }): string {
-  if (conv.cliente_nome?.trim()) return conv.cliente_nome.trim();
+// Precedência: clientes.nome > leads.nome > cliente_nome (se ≠ profile_name da instância) > telefone
+function formatWaDisplayName(conv: {
+  cliente_nome?: string | null;
+  cliente_telefone?: string | null;
+  remote_jid?: string | null;
+  cliente_nome_real?: string | null;
+  lead_nome?: string | null;
+  instance_profile_name?: string | null;
+  is_group?: boolean;
+}): string {
+  if (conv.cliente_nome_real?.trim()) return conv.cliente_nome_real.trim();
+  if (conv.lead_nome?.trim()) return conv.lead_nome.trim();
+
+  const raw = conv.cliente_nome?.trim();
+  const profileName = conv.instance_profile_name?.trim().toLowerCase();
+  // Bloqueia o nome da empresa vazando como nome do contato (apenas em conversas 1:1)
+  if (raw && (conv.is_group || !profileName || raw.toLowerCase() !== profileName)) {
+    return raw;
+  }
 
   const rawPhone = conv.cliente_telefone || conv.remote_jid || "";
   const cleanPhone = rawPhone
@@ -260,7 +277,7 @@ function ConversationItem({
         <WaProfileAvatar
           profilePictureUrl={conv.profile_picture_url}
           isGroup={conv.is_group}
-          name={conv.cliente_nome}
+          name={displayName}
           size="md"
           colorByName
         />
