@@ -43,14 +43,6 @@ Deno.serve(async (req) => {
       });
     }
 
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) {
-      return new Response(JSON.stringify({ error: "LOVABLE_API_KEY not configured" }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
     const varsListStr = (available_variables || []).slice(0, 80).join(", ");
 
     const systemPrompt = `Você é um especialista em criar fórmulas matemáticas para propostas de energia solar fotovoltaica.
@@ -71,45 +63,23 @@ Regras:
 
 Variáveis disponíveis: ${varsListStr}`;
 
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
+    let formula = "";
+    try {
+      const aiData = await callAi({
+        tier: "flash",
         messages: [
           { role: "system", content: systemPrompt },
           { role: "user", content: `Crie uma fórmula que: ${description}` },
         ],
-      }),
-    });
-
-    if (!response.ok) {
-      const status = response.status;
-      if (status === 429) {
-        return new Response(JSON.stringify({ error: "Limite de requisições excedido. Tente novamente em instantes." }), {
-          status: 429,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      if (status === 402) {
-        return new Response(JSON.stringify({ error: "Créditos de IA insuficientes." }), {
-          status: 402,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      const t = await response.text();
-      console.error("AI gateway error:", status, t);
+      });
+      formula = aiData?.choices?.[0]?.message?.content?.trim() || "";
+    } catch (aiErr) {
+      console.error("[suggest-formula] AI error:", aiErr);
       return new Response(JSON.stringify({ error: "Erro no serviço de IA" }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-
-    const aiData = await response.json();
-    const formula = aiData?.choices?.[0]?.message?.content?.trim() || "";
 
     return new Response(
       JSON.stringify({ formula }),
