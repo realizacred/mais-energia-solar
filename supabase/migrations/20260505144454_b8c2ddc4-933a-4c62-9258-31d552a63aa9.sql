@@ -1,0 +1,1 @@
+DROP POLICY IF EXISTS rls_concessionarias_select_anon ON public.concessionarias;
