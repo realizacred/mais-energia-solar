@@ -56,6 +56,10 @@ function canonicalPhoneFromJid(remoteJid: string): string | null {
   const rest = digits.slice(2);
   if (rest.length === 8 && /^[89]/.test(rest)) return `${ddd}9${rest}`;
   return digits;
+}
+
+/**
+ * AUTH MODEL: "auth required" — NOT a public webhook.
  * - Regular users: JWT validated via getClaims(), tenant resolved from profiles (NEVER from payload)
  * - Internal callers (automations): service_role key accepted, tenant_id MUST be in body
  * 
