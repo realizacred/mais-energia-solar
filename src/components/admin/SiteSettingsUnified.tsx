@@ -211,18 +211,20 @@ export function SiteSettingsUnified() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-            <Paintbrush className="w-5 h-5 text-primary" />
+      {/* Hero Header — SaaS Premium */}
+      <div className="relative overflow-hidden rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/10 via-primary/5 to-transparent p-6">
+        <div className="absolute inset-0 bg-grid-white/[0.02] [mask-image:radial-gradient(ellipse_at_top,white,transparent_70%)]" />
+        <div className="relative flex items-center justify-between flex-wrap gap-4">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-xl bg-primary/15 ring-1 ring-primary/20 flex items-center justify-center shadow-sm">
+              <Paintbrush className="w-6 h-6 text-primary" />
+            </div>
+            <div>
+              <h2 className="text-2xl font-bold tracking-tight">Configurações do Site</h2>
+              <p className="text-sm text-muted-foreground mt-0.5">Conteúdo, visual, banners e identidade da marca</p>
+            </div>
           </div>
-          <div>
-            <h2 className="text-xl font-bold">Configurações do Site</h2>
-            <p className="text-sm text-muted-foreground">Conteúdo, visual, banners e identidade da marca</p>
-          </div>
-        </div>
-        <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex items-center gap-2 flex-wrap">
           {brandHasChanges && (
             <Badge variant="outline" className="gap-1 text-warning border-warning/30">
               <Eye className="h-3 w-3" /> Alterações visuais pendentes
