@@ -789,6 +789,8 @@ export function WaInbox({ vendorMode = false, vendorUserId, showCompactStats = f
               mutedIds={mutedIds}
               hiddenIds={hiddenIds}
               followupConvIds={followupConvIds}
+              pinnedIds={pinnedIds}
+              onContextMenuConv={handleContextMenuConv}
             />
           </div>
 
