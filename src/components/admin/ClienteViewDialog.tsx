@@ -282,14 +282,14 @@ export function ClienteViewDialog({ cliente, open, onOpenChange }: ClienteViewDi
             <KpiCard
               icon={DollarSign}
               label="Valor do projeto"
-              value={formatCurrency(cliente.valor_projeto)}
+              value={formatCurrency(valorProjetoEfetivo)}
               borderColor="border-l-primary"
               iconBg="bg-primary/10 text-primary"
             />
             <KpiCard
               icon={Zap}
               label="Potência"
-              value={cliente.potencia_kwp ? `${cliente.potencia_kwp} kWp` : "—"}
+              value={potenciaEfetiva ? `${Number(potenciaEfetiva).toFixed(2)} kWp` : "—"}
               borderColor="border-l-warning"
               iconBg="bg-warning/10 text-warning"
             />
