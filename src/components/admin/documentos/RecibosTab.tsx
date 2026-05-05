@@ -98,30 +98,31 @@ export function RecibosTab() {
           {isLoading ? (
             <LoadingState context="config" message="Carregando templates de recibo..." />
           ) : (templates ?? []).length === 0 ? (
-            <EmptyState
-              icon={Receipt}
-              title="Nenhum template de recibo"
-              description="Crie os templates pré-configurados (Sinal, Parcela e Quitação) ou adicione um manualmente."
-              action={
-                <div className="flex gap-2">
-                  <Button size="sm" onClick={handleSeed} disabled={seeding} className="gap-1.5">
-                    <Sparkles className="h-3.5 w-3.5" />
-                    {seeding ? "Criando..." : "Usar templates prontos"}
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => {
-                      setEditing(null);
-                      setModalOpen(true);
-                    }}
-                    className="gap-1.5"
-                  >
-                    <Plus className="h-3.5 w-3.5" /> Em branco
-                  </Button>
-                </div>
-              }
-            />
+            <div className="space-y-3">
+              <EmptyState
+                icon={Receipt}
+                title="Nenhum template de recibo"
+                description="Crie os templates pré-configurados (Sinal, Parcela e Quitação) ou adicione um manualmente."
+                action={{
+                  label: seeding ? "Criando..." : "Usar templates prontos",
+                  onClick: handleSeed,
+                  icon: Sparkles,
+                }}
+              />
+              <div className="flex justify-center">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    setEditing(null);
+                    setModalOpen(true);
+                  }}
+                  className="gap-1.5"
+                >
+                  <Plus className="h-3.5 w-3.5" /> Criar em branco
+                </Button>
+              </div>
+            </div>
           ) : (
             <Card className="border-l-4 border-l-primary">
               <CardHeader className="pb-3 flex flex-row items-center justify-between">
