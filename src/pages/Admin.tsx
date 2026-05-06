@@ -383,6 +383,7 @@ const TAB_TITLES: Record<string, string> = {
   "pos-venda-checklists": "Checklists pós-venda",
 
   "payment-gateway": "Pagamentos (Asaas)",
+  "meu-plano": "Meu Plano & Uso",
   "ai-config": "Configuração de IA",
   "proposta-comercial": "Proposta Comercial",
   changelog: "Atualizações do sistema",
