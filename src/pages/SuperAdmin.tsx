@@ -100,18 +100,9 @@ export default function SuperAdmin() {
         <Route
           path="webhooks"
           element={
-            <SuperAdminPlaceholderPage
-              icon={Webhook}
-              title="Webhooks"
-              description="Eventos recebidos e replay manual"
-              phase="PR-4"
-              scope={[
-                "Asaas / Evolution / outros providers",
-                "Status (received / processed / failed)",
-                "Replay individual",
-                "Filtro por tenant",
-              ]}
-            />
+            <Suspense fallback={<PageFallback />}>
+              <WebhooksPage />
+            </Suspense>
           }
         />
         <Route
