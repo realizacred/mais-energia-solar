@@ -300,13 +300,7 @@ export default function MeuPlanoPage() {
               : undefined
           }
         />
-        <StatCard
-          icon={Gauge}
-          label="Consumo crítico"
-          value={<UsageCriticalCount />}
-          color="warning"
-          subtitle="Métricas ≥ 80% do limite"
-        />
+        <UsageCriticalCard />
         <StatCard
           icon={Activity}
           label="Recursos ativos"
