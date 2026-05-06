@@ -68,6 +68,7 @@ import { WaOrcamentosDrawer } from "./WaOrcamentosDrawer";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useQuery } from "@tanstack/react-query";
 import { formatDateTime, formatDate, formatTime, formatDateShort } from "@/lib/dateUtils";
+import { resolveWaDisplayName } from "@/lib/wa/resolveDisplayName";
 
 function formatPhone(phone: string | null | undefined): string {
   if (!phone) return "";
@@ -443,14 +444,14 @@ export function WaChatPanel({
               <WaProfileAvatar
                 profilePictureUrl={conversation.profile_picture_url}
                 isGroup={conversation.is_group}
-                name={conversation.cliente_nome}
+                name={resolveWaDisplayName(conversation as any)}
                 size="sm"
                 className="bg-gradient-to-br from-primary/15 to-primary/5 border border-primary/10 text-primary"
               />
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-1.5">
                   <span className="text-xs font-semibold text-foreground truncate">
-                    {conversation.cliente_nome || formatPhone(conversation.cliente_telefone)}
+                    {resolveWaDisplayName(conversation as any)}
                   </span>
                   <Tooltip>
                     <TooltipTrigger asChild>
