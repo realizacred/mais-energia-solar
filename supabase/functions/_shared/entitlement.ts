@@ -265,14 +265,26 @@ export async function enforceUsageLimit(
   corsHeaders: Record<string, string>,
   options?: { userId?: string; delta?: number },
 ): Promise<Response | null> {
-  // Delegates to atomic consumption — replaces old check+increment race.
-  return enforceTenantAccess(supabase, tenantId, corsHeaders, {
-    metricKey,
-    delta: options?.delta ?? 1,
-    operation: "write",
-    userId: options?.userId,
-    source: "legacy_enforce",
-  });
+  // Read-only gate (legacy two-step pattern: enforce then trackUsage).
+  // For new code use enforceTenantAccess (atomic consume).
+  const result = await checkUsageLimit(supabase, tenantId, metricKey, options?.delta ?? 1);
+  if (result.allowed) return null;
+  try {
+    await supabase.from("audit_feature_access_log").insert({
+      tenant_id: tenantId,
+      user_id: options?.userId ?? null,
+      feature_key: metricKey,
+      access_result: "limit_exceeded",
+      reason: `${result.current_value}/${result.limit_value}`,
+    });
+  } catch (_) { /* noop */ }
+  return new Response(JSON.stringify({
+    error: "limit_exceeded",
+    message: "Limite do plano atingido",
+    metric_key: metricKey,
+    current: result.current_value,
+    limit: result.limit_value,
+  }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 }
 
 /**
