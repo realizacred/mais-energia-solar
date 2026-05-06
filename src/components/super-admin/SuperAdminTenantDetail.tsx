@@ -107,7 +107,9 @@ export function SuperAdminTenantDetail({ tenantId, onBack }: Props) {
   const handleSaveEdit = async () => {
     setSaving(true);
     try {
-      await callSuperAdminAction({ action: "edit_tenant", tenant_id: tenantId, ...editForm });
+      // PR-1: plano não é mais editável via tenant.plano (SSOT = subscriptions).
+      const { plano: _ignored, ...editable } = editForm;
+      await callSuperAdminAction({ action: "edit_tenant", tenant_id: tenantId, ...editable });
       toast.success("Tenant atualizado");
       setEditOpen(false);
       load();
