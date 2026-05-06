@@ -411,12 +411,15 @@ export function LeadEditDialog({
 
       {/* Origem do Lead */}
       <FormSection title="Origem">
-        <Select value={leadOrigemId} onValueChange={setLeadOrigemId}>
+        <Select
+          value={leadOrigemId || "__none__"}
+          onValueChange={(v) => setLeadOrigemId(v === "__none__" ? "" : v)}
+        >
           <SelectTrigger className="w-full bg-background">
             <SelectValue placeholder="Selecione a origem..." />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">Nenhuma</SelectItem>
+            <SelectItem value="__none__">Nenhuma</SelectItem>
             {origens.map((o) => (
               <SelectItem key={o.id} value={o.id}>{o.nome}</SelectItem>
             ))}
