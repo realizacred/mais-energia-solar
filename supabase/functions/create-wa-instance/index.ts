@@ -74,6 +74,15 @@ Deno.serve(async (req) => {
       });
     }
 
+    // PR-4: lock_state + multi_instance_wa feature gate
+    const denyEnforce = await enforceTenantAccess(supabaseAdmin, profile.tenant_id, corsHeaders, {
+      featureKey: "multi_instance_wa",
+      operation: "write",
+      userId: user.id,
+      source: "create-wa-instance",
+    });
+    if (denyEnforce) return denyEnforce;
+
     const { instance_name, api_url, api_key, number, groups_ignore, reject_call, always_online, consultor_ids, register_only, evolution_instance_key, api_flavor } = await req.json();
     const flavor: WaApiFlavor = api_flavor === "go" ? "go" : "classic";
 
