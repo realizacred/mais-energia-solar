@@ -234,11 +234,19 @@ export function SuperAdminTenantDetail({ tenantId, onBack }: Props) {
             <Activity className="h-4 w-4" />
             <span className="hidden sm:inline">Integrações</span>
           </TabsTrigger>
+          <TabsTrigger value="billing" className="gap-2">
+            <Crown className="h-4 w-4" />
+            <span className="hidden sm:inline">Billing</span>
+          </TabsTrigger>
           <TabsTrigger value="audit" className="gap-2">
             <History className="h-4 w-4" />
             <span className="hidden sm:inline">Audit Log</span>
           </TabsTrigger>
         </TabsList>
+
+        <TabsContent value="billing" className="mt-6">
+          <SuperAdminTenantBillingTab tenantId={tenantId} />
+        </TabsContent>
 
         {/* Overview */}
         <TabsContent value="overview" className="space-y-6 mt-6">
