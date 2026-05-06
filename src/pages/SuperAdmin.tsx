@@ -20,6 +20,8 @@ import { SuperAdminPlaceholderPage } from "./super-admin/SuperAdminPlaceholderPa
 const OverviewPage = lazy(() => import("./super-admin/SuperAdminOverviewPage"));
 const TenantsPage = lazy(() => import("./super-admin/SuperAdminTenantsPage"));
 const TenantDetailPage = lazy(() => import("./super-admin/SuperAdminTenantDetailPage"));
+const BillingPage = lazy(() => import("./super-admin/SuperAdminBillingPage"));
+const WebhooksPage = lazy(() => import("./super-admin/SuperAdminWebhooksPage"));
 
 function PageFallback() {
   return <LoadingState message="Carregando..." />;
@@ -56,19 +58,9 @@ export default function SuperAdmin() {
         <Route
           path="billing"
           element={
-            <SuperAdminPlaceholderPage
-              icon={CreditCard}
-              title="Billing"
-              description="Visão global de assinaturas, MRR e dunning"
-              phase="PR-2"
-              scope={[
-                "Lista de assinaturas com filtros (status, plano)",
-                "MRR / Churn / Trial-to-paid",
-                "Cobranças em atraso e fila de dunning",
-                "Replay de webhook Asaas",
-                "Reenvio de cobrança",
-              ]}
-            />
+            <Suspense fallback={<PageFallback />}>
+              <BillingPage />
+            </Suspense>
           }
         />
         <Route
@@ -108,18 +100,9 @@ export default function SuperAdmin() {
         <Route
           path="webhooks"
           element={
-            <SuperAdminPlaceholderPage
-              icon={Webhook}
-              title="Webhooks"
-              description="Eventos recebidos e replay manual"
-              phase="PR-4"
-              scope={[
-                "Asaas / Evolution / outros providers",
-                "Status (received / processed / failed)",
-                "Replay individual",
-                "Filtro por tenant",
-              ]}
-            />
+            <Suspense fallback={<PageFallback />}>
+              <WebhooksPage />
+            </Suspense>
           }
         />
         <Route

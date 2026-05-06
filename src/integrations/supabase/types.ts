@@ -29695,6 +29695,30 @@ export type Database = {
         Args: { p_nome: string }
         Returns: Database["public"]["Enums"]["papel_funil"]
       }
+      super_admin_change_subscription: {
+        Args: {
+          _cancel_at_period_end?: boolean
+          _current_period_end?: string
+          _plan_code?: string
+          _reason?: string
+          _status?: Database["public"]["Enums"]["subscription_status"]
+          _tenant_id: string
+          _trial_ends_at?: string
+        }
+        Returns: Json
+      }
+      super_admin_get_tenant_billing: {
+        Args: { _tenant_id: string }
+        Returns: Json
+      }
+      super_admin_list_subscriptions: {
+        Args: { _limit?: number; _status?: string }
+        Returns: Json
+      }
+      super_admin_list_webhook_events: {
+        Args: { _limit?: number; _provider?: string; _status?: string }
+        Returns: Json
+      }
       sync_concessionarias_from_subgrupos: { Args: never; Returns: Json }
       sync_proposta_to_projeto_deal: {
         Args: { p_proposta_id: string }

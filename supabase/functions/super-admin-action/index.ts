@@ -57,7 +57,12 @@ Deno.serve(async (req) => {
     if (!isSuperAdmin) return err("Forbidden: super_admin required", 403);
 
     const body = await req.json();
-    const { action, tenant_id, reason, target_user_id, new_email, new_role, new_password } = body;
+    const {
+      action, tenant_id, reason, target_user_id, new_email, new_role, new_password,
+      // billing inputs (PR-2)
+      plan_code, status: new_status, trial_ends_at, current_period_end,
+      cancel_at_period_end, charge_id, webhook_event_id, days,
+    } = body;
 
     if (!action) return err("Missing action");
 
@@ -505,6 +510,109 @@ Deno.serve(async (req) => {
         }));
 
         return json({ users: usersWithRoles });
+      }
+
+      // ── Billing (PR-2) ──
+      case "change_subscription": {
+        if (!tenant_id) throw new Error("tenant_id required");
+        const { data, error } = await supabaseAdmin.rpc("super_admin_change_subscription", {
+          _tenant_id: tenant_id,
+          _plan_code: plan_code ?? null,
+          _status: new_status ?? null,
+          _trial_ends_at: trial_ends_at ?? null,
+          _current_period_end: current_period_end ?? null,
+          _cancel_at_period_end: cancel_at_period_end ?? null,
+          _reason: reason ?? null,
+        });
+        if (error) throw error;
+        return json(data);
+      }
+
+      case "extend_trial": {
+        if (!tenant_id) throw new Error("tenant_id required");
+        const addDays = Number(days) > 0 ? Number(days) : 14;
+        const { data: sub } = await supabaseAdmin
+          .from("subscriptions").select("trial_ends_at").eq("tenant_id", tenant_id).maybeSingle();
+        const base = sub?.trial_ends_at && new Date(sub.trial_ends_at) > new Date()
+          ? new Date(sub.trial_ends_at) : new Date();
+        const newEnd = new Date(base.getTime() + addDays * 86400000).toISOString();
+        const { data, error } = await supabaseAdmin.rpc("super_admin_change_subscription", {
+          _tenant_id: tenant_id, _status: "trialing", _trial_ends_at: newEnd, _reason: reason ?? `Trial estendido em ${addDays} dias`,
+        });
+        if (error) throw error;
+        return json(data);
+      }
+
+      case "suspend_subscription": {
+        if (!tenant_id) throw new Error("tenant_id required");
+        const { data, error } = await supabaseAdmin.rpc("super_admin_change_subscription", {
+          _tenant_id: tenant_id, _status: "suspended", _reason: reason ?? "Suspensão administrativa",
+        });
+        if (error) throw error;
+        return json(data);
+      }
+
+      case "reactivate_subscription": {
+        if (!tenant_id) throw new Error("tenant_id required");
+        const { data, error } = await supabaseAdmin.rpc("super_admin_change_subscription", {
+          _tenant_id: tenant_id, _status: "active", _cancel_at_period_end: false, _reason: reason ?? "Reativação",
+        });
+        if (error) throw error;
+        return json(data);
+      }
+
+      case "cancel_subscription": {
+        if (!tenant_id) throw new Error("tenant_id required");
+        const { data, error } = await supabaseAdmin.rpc("super_admin_change_subscription", {
+          _tenant_id: tenant_id, _status: "canceled", _cancel_at_period_end: true, _reason: reason ?? "Cancelamento",
+        });
+        if (error) throw error;
+        return json(data);
+      }
+
+      case "mark_payment_paid": {
+        if (!charge_id) throw new Error("charge_id required");
+        const { data: charge, error: cErr } = await supabaseAdmin
+          .from("billing_charges").update({
+            status: "paid", paid_at: new Date().toISOString(), updated_at: new Date().toISOString(),
+          }).eq("id", charge_id).select().single();
+        if (cErr) throw cErr;
+        await logAction({ charge_id, manual: true, valor: charge?.valor });
+        result = { success: true, charge };
+        break;
+      }
+
+      case "retry_charge": {
+        if (!charge_id) throw new Error("charge_id required");
+        const { data: charge } = await supabaseAdmin.from("billing_charges").select("*").eq("id", charge_id).single();
+        if (!charge) throw new Error("Charge não encontrada");
+        // Re-invoca billing-create-charge (idempotente por subscription)
+        const { data, error } = await supabaseAdmin.functions.invoke("billing-create-charge", {
+          body: { plan_id: charge.plan_id, tenant_id: charge.tenant_id, force: true },
+        });
+        if (error) throw error;
+        await logAction({ charge_id, retry_result: data });
+        result = { success: true, retry: data };
+        break;
+      }
+
+      case "replay_webhook": {
+        if (!webhook_event_id) throw new Error("webhook_event_id required");
+        const { data: evt, error: e1 } = await supabaseAdmin
+          .from("billing_webhook_events").select("*").eq("id", webhook_event_id).single();
+        if (e1) throw e1;
+        const fnName = evt.provider === "asaas" ? "billing-webhook-asaas"
+          : evt.provider === "stripe" ? "billing-webhook-stripe"
+          : evt.provider === "mercadopago" ? "billing-webhook-mercadopago"
+          : "billing-webhook";
+        const { data, error } = await supabaseAdmin.functions.invoke(fnName, { body: evt.payload });
+        if (error) throw error;
+        await supabaseAdmin.from("billing_webhook_events").update({
+          status: "replayed", processed_at: new Date().toISOString(), error_message: null,
+        }).eq("id", webhook_event_id);
+        await logAction({ webhook_event_id, provider: evt.provider, replay_result: data });
+        result = { success: true, replay: data };
+        break;
       }
 
       default:
