@@ -255,6 +255,28 @@ export default function DevSeedPage() {
         stageId = firstStage?.id || null;
       }
 
+      // Create projeto first (deals.projeto_id is NOT NULL)
+      const { data: projetoCreated, error: projetoCreateErr } = await supabase
+        .from("projetos")
+        .insert({
+          codigo: `SEED-${runId}`,
+          cliente_id: seedResult.clienteId,
+          tipo_projeto_solar: "on_grid",
+          is_principal: true,
+        } as any)
+        .select("id")
+        .single();
+
+      if (projetoCreateErr || !projetoCreated) {
+        const msg = projetoCreateErr?.message || "Insert projeto retornou null";
+        console.error("[Seed] Projeto error:", projetoCreateErr);
+        updateStep(3, { status: "error", message: msg });
+        toast({ title: "Erro no seed", description: `Projeto: ${msg}`, variant: "destructive" });
+        setRunning(false);
+        return;
+      }
+      seedResult.projetoId = projetoCreated.id;
+
       const { data: dealRow, error: dealErr } = await supabase
         .from("deals")
         .insert({
@@ -263,6 +285,7 @@ export default function DevSeedPage() {
           stage_id: stageId,
           owner_id: consultorId,
           customer_id: seedResult.clienteId,
+          projeto_id: projetoCreated.id,
           value: 25000,
           status: "open",
         } as any)
@@ -286,15 +309,7 @@ export default function DevSeedPage() {
       // ─── Step E: Criar proposta nativa ───
       updateStep(4, { status: "running" });
 
-      // We need the projeto_id that corresponds to this deal
-      // The projetos table may auto-create via trigger, or we need to find it
-      const { data: projetoRow } = await supabase
-        .from("projetos")
-        .select("id")
-        .eq("deal_id", seedResult.dealId)
-        .maybeSingle();
-
-      const projetoIdForProposta = projetoRow?.id || null;
+      const projetoIdForProposta = seedResult.projetoId;
 
       //   projetoId: projetoIdForProposta,
       //   dealId: seedResult.dealId,
