@@ -394,8 +394,8 @@ export default function MeuPlanoPage() {
   );
 }
 
-/** Conta quantas métricas rastreadas estão ≥80% (chama hooks reais, não mock). */
-function UsageCriticalCount() {
+/** Card "Consumo crítico" — usa hooks reais, sem mock. */
+function UsageCriticalCard() {
   const m1 = useUsageLimit("max_wa_messages_month");
   const m2 = useUsageLimit("max_ai_insights_month");
   const m3 = useUsageLimit("max_proposals_month");
@@ -403,5 +403,14 @@ function UsageCriticalCount() {
   const m5 = useUsageLimit("max_users");
   const all = [m1, m2, m3, m4, m5];
   const count = all.filter((m) => !m.isLoading && !m.isUnlimited && m.isNearLimit).length;
-  return <Badge variant={count > 0 ? "destructive" : "secondary"}>{count}</Badge>;
+  const color = count > 0 ? "warning" : "success";
+  return (
+    <StatCard
+      icon={Gauge}
+      label="Consumo crítico"
+      value={count}
+      color={color}
+      subtitle="Métricas ≥ 80% do limite"
+    />
+  );
 }
