@@ -9,6 +9,7 @@ const DevResetImportedTab = lazy(() => import("./DevResetImportedPage"));
 const DevResetMigratedTab = lazy(() => import("./DevResetMigratedPage"));
 const DevResetNativeTab = lazy(() => import("./DevResetNativePage"));
 const DevResetProjectAreaTab = lazy(() => import("./DevResetProjectAreaPage"));
+const DevResetSmTotalTab = lazy(() => import("./DevResetSmTotalPage"));
 
 export default function DevToolsPage() {
   return (
@@ -42,8 +43,11 @@ export default function DevToolsPage() {
           <TabsTrigger value="reset-native" className="flex-1 gap-2 shrink-0 whitespace-nowrap">
             <User className="h-4 w-4" /> Reset Nativos
           </TabsTrigger>
+          <TabsTrigger value="reset-project-area" className="flex-1 gap-2 shrink-0 whitespace-nowrap">
+            <FolderX className="h-4 w-4" /> Reset Área Projeto
+          </TabsTrigger>
           <TabsTrigger value="reset-all" className="flex-1 gap-2 shrink-0 whitespace-nowrap">
-            <FolderX className="h-4 w-4" /> Reset Total
+            <Trash2 className="h-4 w-4" /> Reset Total
           </TabsTrigger>
         </TabsList>
 
@@ -62,8 +66,11 @@ export default function DevToolsPage() {
         <TabsContent value="reset-native">
           <Suspense fallback={<LoadingSpinner />}><DevResetNativeTab /></Suspense>
         </TabsContent>
-        <TabsContent value="reset-all">
+        <TabsContent value="reset-project-area">
           <Suspense fallback={<LoadingSpinner />}><DevResetProjectAreaTab /></Suspense>
+        </TabsContent>
+        <TabsContent value="reset-all">
+          <Suspense fallback={<LoadingSpinner />}><DevResetSmTotalTab /></Suspense>
         </TabsContent>
       </Tabs>
     </div>
