@@ -197,6 +197,7 @@ const CronJobsPage = lazy(() => import("@/components/admin/CronJobsPage"));
 const AsaasIntegrationPage = lazy(() => import("@/pages/admin/AsaasIntegrationPage"));
 const PlanoServicoManager = lazy(() => import("@/components/admin/PlanoServicoManager"));
 const ClientPlansPage = lazy(() => import("@/pages/admin/ClientPlansPage"));
+const MeuPlanoPage = lazy(() => import("@/pages/admin/MeuPlanoPage"));
 const AsaasConversionPage = lazy(() => import("@/pages/admin/AsaasConversionPage"));
 const EdeltecIntegrationPage = lazy(() => import("@/pages/admin/EdeltecIntegrationPage"));
 const PricingDashboardPage = lazy(() => import("@/pages/admin/PricingDashboardPage"));
@@ -382,6 +383,7 @@ const TAB_TITLES: Record<string, string> = {
   "pos-venda-checklists": "Checklists pós-venda",
 
   "payment-gateway": "Pagamentos (Asaas)",
+  "meu-plano": "Meu Plano & Uso",
   "ai-config": "Configuração de IA",
   "proposta-comercial": "Proposta Comercial",
   changelog: "Atualizações do sistema",
@@ -767,6 +769,7 @@ export default function Admin() {
                 <Route path="permissoes" element={<RolePermissionsManager />} />
                 <Route path="planos-features" element={<BillingFeaturesPage />} />
                 <Route path="planos" element={<ClientPlansPage />} />
+                <Route path="meu-plano" element={<MeuPlanoPage />} />
                 <Route path="planos-servico" element={<PlanoServicoManager />} />
                 <Route path="dashboard-comercial" element={<CommercialDashboardPage />} />
                 <Route path="funil-propostas" element={<ProposalFunnelDashboard />} />
