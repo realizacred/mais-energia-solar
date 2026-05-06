@@ -1,6 +1,8 @@
 import { useState, useCallback } from "react";
 import { LimitReachedDialog } from "./LimitReachedDialog";
-import { useTenantPlan, PlanLimitError } from "@/hooks/useTenantPlan";
+import { useTenantPlan } from "@/hooks/useTenantPlan";
+import { useTenantLockState, isOperationAllowed } from "@/hooks/useTenantLockState";
+import { toast } from "sonner";
 
 interface PlanGuardState {
   open: boolean;
