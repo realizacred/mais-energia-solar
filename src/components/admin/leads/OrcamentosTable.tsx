@@ -131,7 +131,7 @@ export function OrcamentosTable({
             <TableHead className="w-[155px] min-w-[155px]">Telefone</TableHead>
             <TableHead className="hidden lg:table-cell">Consultor</TableHead>
             <TableHead className="hidden sm:table-cell">Localização</TableHead>
-            <TableHead className="hidden sm:table-cell">Consumo</TableHead>
+            <TableHead className="hidden sm:table-cell">Consumo / Geração</TableHead>
             <TableHead className="hidden sm:table-cell">Data</TableHead>
             <TableHead className="w-[60px] lg:w-[220px]" />
           </TableRow>
