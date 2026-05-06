@@ -427,30 +427,88 @@ export default function MigracaoSolarmarket() {
 
             {/* Estado: importando / pronto */}
             {isImporting && runningJob ? (
-              <div className="space-y-4 pt-2">
-                <div className="flex items-center justify-between gap-3">
-                  <div className="flex items-center gap-2 min-w-0">
-                    <Loader2 className="w-4 h-4 animate-spin text-primary shrink-0" />
-                    <span className="text-sm font-medium text-foreground truncate">
-                      Etapa atual: {stepLabel}
-                    </span>
+              (() => {
+                const updatedAt = new Date(runningJob.updated_at).getTime();
+                const idleSec = Math.max(0, Math.floor((Date.now() - updatedAt) / 1000));
+                const isAlive = idleSec < 90; // cron retoma após 5min; >90s já é suspeito
+                const liveItems: Array<{ label: string; value: number }> = [
+                  { label: "Funis", value: Number(runningJob.total_funis ?? 0) },
+                  { label: "Clientes", value: Number(runningJob.total_clientes ?? 0) },
+                  { label: "Projetos", value: Number(runningJob.total_projetos ?? 0) },
+                  { label: "Vínculos projeto-funil", value: Number(runningJob.total_projeto_funis ?? 0) },
+                  { label: "Propostas", value: Number(runningJob.total_propostas ?? 0) },
+                  { label: "Custom fields", value: Number(runningJob.total_custom_fields ?? 0) },
+                ];
+                return (
+                  <div className="space-y-4 pt-2">
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <Loader2 className="w-4 h-4 animate-spin text-primary shrink-0" />
+                        <span className="text-sm font-medium text-foreground truncate">
+                          Etapa atual: {stepLabel}
+                        </span>
+                      </div>
+                      <span className="text-sm font-semibold text-foreground tabular-nums">
+                        {progressPct}%
+                      </span>
+                    </div>
+                    <ProgressBar value={progressPct} />
+
+                    {/* Heartbeat + mensagem de background */}
+                    <div className="flex flex-wrap items-center gap-2 text-xs">
+                      <span
+                        className={cn(
+                          "inline-flex items-center gap-1.5 px-2 py-1 rounded-full border",
+                          isAlive
+                            ? "bg-success/10 text-success border-success/30"
+                            : "bg-warning/10 text-warning border-warning/30",
+                        )}
+                      >
+                        <span
+                          className={cn(
+                            "w-1.5 h-1.5 rounded-full",
+                            isAlive ? "bg-success animate-pulse" : "bg-warning",
+                          )}
+                        />
+                        {isAlive
+                          ? `Atividade há ${idleSec}s`
+                          : `Sem atividade há ${idleSec}s — retomada automática em até 5 min`}
+                      </span>
+                      <span className="text-muted-foreground">
+                        Pode fechar esta aba — a importação continua em segundo plano.
+                      </span>
+                    </div>
+
+                    {/* Contadores ao vivo por entidade */}
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                      {liveItems.map((it) => (
+                        <div
+                          key={it.label}
+                          className="px-3 py-2 rounded-lg bg-muted/30 border border-border"
+                        >
+                          <div className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                            {it.label}
+                          </div>
+                          <div className="text-sm font-semibold text-foreground tabular-nums">
+                            {it.value.toLocaleString("pt-BR")}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="flex justify-end">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleCancel}
+                        className="border-destructive/40 text-destructive hover:bg-destructive/10"
+                      >
+                        <Ban className="w-4 h-4" /> Cancelar importação
+                      </Button>
+                    </div>
                   </div>
-                  <span className="text-sm font-semibold text-foreground tabular-nums">
-                    {progressPct}%
-                  </span>
-                </div>
-                <ProgressBar value={progressPct} />
-                <div className="flex justify-end">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleCancel}
-                    className="border-destructive/40 text-destructive hover:bg-destructive/10"
-                  >
-                    <Ban className="w-4 h-4" /> Cancelar importação
-                  </Button>
-                </div>
-              </div>
+                );
+              })()
             ) : (
               <div className="flex justify-center pt-2">
                 <Button
