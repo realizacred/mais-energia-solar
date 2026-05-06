@@ -121,6 +121,17 @@ Deno.serve(async (req) => {
       },
     });
 
+    // PR-4: enforce user limit + lock_state before creating
+    if (tenantId) {
+      const denyEnforce = await enforceTenantAccess(adminClient, tenantId, corsHeaders, {
+        metricKey: "max_users",
+        operation: "write",
+        userId: requestingUserId,
+        source: "create-vendedor-user",
+      });
+      if (denyEnforce) return denyEnforce;
+    }
+
     // Create the user using Admin API
     const { data: newUser, error: createError } = await adminClient.auth.admin.createUser({
       email,
