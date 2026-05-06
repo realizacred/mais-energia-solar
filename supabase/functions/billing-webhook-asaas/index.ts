@@ -56,7 +56,24 @@ Deno.serve(async (req) => {
       PAYMENT_OVERDUE: "past_due",
       PAYMENT_DELETED: "canceled",
       PAYMENT_REFUNDED: "canceled",
+      SUBSCRIPTION_DELETED: "canceled",
+      SUBSCRIPTION_INACTIVATED: "suspended",
     };
+
+    // ── Handle SUBSCRIPTION_* events directly (no payment.id) ──
+    const subEvent = event.subscription;
+    if (eventType?.startsWith("SUBSCRIPTION_") && subEvent?.id) {
+      const subStatus = statusMap[eventType] ?? null;
+      if (subStatus) {
+        await sb.from("subscriptions")
+          .update({ status: subStatus, updated_at: new Date().toISOString() })
+          .eq("external_id", subEvent.id);
+      }
+      await sb.from("billing_webhook_events")
+        .update({ status: "processed", processed_at: new Date().toISOString() })
+        .eq("provider", "asaas").eq("provider_event_id", eventId);
+      return jsonRes({ received: true, subscription: subEvent.id, status: subStatus });
+    }
 
     const newStatus = statusMap[eventType];
     if (!newStatus) {
