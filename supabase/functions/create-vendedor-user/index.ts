@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+import { enforceTenantAccess } from "../_shared/entitlement.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -119,6 +120,17 @@ Deno.serve(async (req) => {
         persistSession: false,
       },
     });
+
+    // PR-4: enforce user limit + lock_state before creating
+    if (tenantId) {
+      const denyEnforce = await enforceTenantAccess(adminClient, tenantId, corsHeaders, {
+        metricKey: "max_users",
+        operation: "write",
+        userId: requestingUserId,
+        source: "create-vendedor-user",
+      });
+      if (denyEnforce) return denyEnforce;
+    }
 
     // Create the user using Admin API
     const { data: newUser, error: createError } = await adminClient.auth.admin.createUser({

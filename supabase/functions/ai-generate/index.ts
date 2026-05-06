@@ -1,6 +1,7 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { enforceTenantAccess } from "../_shared/entitlement.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -103,6 +104,17 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
+
+    // PR-4: Enforce tenant access (lock + feature + ai limit) atomically.
+    const denial = await enforceTenantAccess(supabase, tenantId, corsHeaders, {
+      featureKey: "ai_insights",
+      metricKey: "max_ai_insights_month",
+      operation: "ai",
+      userId,
+      source: `ai-generate:${functionName}`,
+      metadata: { function: functionName },
+    });
+    if (denial) return denial;
 
     // 1. Buscar configuração do tenant
     const { data: providerConfig } = await supabase

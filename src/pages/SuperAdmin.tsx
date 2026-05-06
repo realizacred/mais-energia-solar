@@ -23,6 +23,7 @@ const TenantDetailPage = lazy(() => import("./super-admin/SuperAdminTenantDetail
 const BillingPage = lazy(() => import("./super-admin/SuperAdminBillingPage"));
 const WebhooksPage = lazy(() => import("./super-admin/SuperAdminWebhooksPage"));
 const HealthPage = lazy(() => import("./super-admin/SuperAdminHealthPage"));
+const UsagePage = lazy(() => import("./super-admin/SuperAdminUsagePage"));
 
 function PageFallback() {
   return <LoadingState message="Carregando..." />;
@@ -111,6 +112,14 @@ export default function SuperAdmin() {
           element={
             <Suspense fallback={<PageFallback />}>
               <HealthPage />
+            </Suspense>
+          }
+        />
+        <Route
+          path="usage"
+          element={
+            <Suspense fallback={<PageFallback />}>
+              <UsagePage />
             </Suspense>
           }
         />

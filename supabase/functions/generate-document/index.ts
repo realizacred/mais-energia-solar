@@ -8,6 +8,7 @@
  * Document-only vars (contrato, assinatura) are added as isolated enrichment.
  */
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+import { enforceTenantAccess } from "../_shared/entitlement.ts";
 import { processXmlContent, shouldProcessXmlFile } from "../_shared/docxProcessor.ts";
 import { resolveGotenbergUrl } from "../_shared/resolveGotenbergUrl.ts";
 import { flattenSnapshot } from "../_shared/flattenSnapshot.ts";
@@ -310,6 +311,16 @@ Deno.serve(async (req) => {
         { status: 401, headers: jsonHeaders },
       );
     }
+
+    // PR-4: lock_state + report PDF limit (DOCX gen counts as report)
+    const denyEnforce = await enforceTenantAccess(supabase, tenantId, corsHeaders, {
+      metricKey: "max_reports_pdf_month",
+      operation: "write",
+      userId: userId ?? undefined,
+      source: "generate-document",
+      metadata: { template_id, deal_id },
+    });
+    if (denyEnforce) return denyEnforce;
 
     // 1. Load template metadata
     const { data: template, error: tplErr } = await supabase

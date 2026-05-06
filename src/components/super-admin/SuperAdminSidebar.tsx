@@ -12,6 +12,7 @@ import {
   Webhook,
   History,
   Activity,
+  TrendingUp,
 } from "lucide-react";
 import {
   Sidebar,
@@ -36,6 +37,7 @@ const PLATFORM_NAV = [
   { title: "Jobs & Crons", url: "/super-admin/jobs", icon: Briefcase },
   { title: "Webhooks", url: "/super-admin/webhooks", icon: Webhook },
   { title: "Health", url: "/super-admin/health", icon: Activity },
+  { title: "Consumo", url: "/super-admin/usage", icon: TrendingUp },
   { title: "Audit Log", url: "/super-admin/audit", icon: History },
 ];
 

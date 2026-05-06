@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { enforceTenantAccess } from "../_shared/entitlement.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -238,6 +239,16 @@ Deno.serve(async (req) => {
         { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
+
+    // PR-4: ai_followup feature + ai limit + lock_state
+    const denyEnforce = await enforceTenantAccess(supabaseServiceCheck, tenantId, corsHeaders, {
+      featureKey: "ai_followup",
+      metricKey: "max_ai_insights_month",
+      operation: "ai",
+      userId: user?.id,
+      source: "writing-assistant",
+    });
+    if (denyEnforce) return denyEnforce;
 
     // ── Resolve preferred model: ai_provider_config > wa_ai_settings > default ──
     let primaryModel = DEFAULT_MODEL;

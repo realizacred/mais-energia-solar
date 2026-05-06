@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+import { enforceTenantAccess } from "../_shared/entitlement.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -242,6 +243,15 @@ Deno.serve(async (req) => {
         { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
+
+    // PR-4: lock_state + WA limit (atomic). operation=send → soft lock allows critical WA, hard blocks.
+    const denyEnforce = await enforceTenantAccess(supabaseAdmin, tenantIdResolved, corsHeaders, {
+      metricKey: "max_wa_messages_month",
+      operation: "send",
+      userId: userId ?? undefined,
+      source: `send-wa:${body.tipo ?? "manual"}`,
+    });
+    if (denyEnforce) return denyEnforce;
 
     // ── FETCH CONFIG (scoped by resolved tenant) ──────────────
     const { data: config, error: configError } = await supabaseAdmin
