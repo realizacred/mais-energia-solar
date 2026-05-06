@@ -182,6 +182,14 @@ export default function MigracaoSolarmarket() {
   const runningJob = runningJobFromHook ?? runningJobFromMigracao ?? null;
   const isImporting = !!runningJob;
 
+  // Heartbeat: re-renderiza a cada 1s para atualizar "atividade há Xs".
+  const [, setTick] = useState(0);
+  useEffect(() => {
+    if (!isImporting) return;
+    const id = setInterval(() => setTick((n) => n + 1), 1000);
+    return () => clearInterval(id);
+  }, [isImporting]);
+
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const [resetConfirmText, setResetConfirmText] = useState("");
   const [resetOpen, setResetOpen] = useState(false);
