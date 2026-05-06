@@ -69,18 +69,9 @@ export default function SuperAdmin() {
         <Route
           path="plans"
           element={
-            <SuperAdminPlaceholderPage
-              icon={Package}
-              title="Planos & Features"
-              description="Catálogo de planos, features e limites"
-              phase="PR-3"
-              scope={[
-                "Catálogo de plans (preços, ciclos)",
-                "plan_features por plano",
-                "plan_limits por plano",
-                "Sincronização com Asaas",
-              ]}
-            />
+            <Suspense fallback={<PageFallback />}>
+              <PlansPage />
+            </Suspense>
           }
         />
         <Route
