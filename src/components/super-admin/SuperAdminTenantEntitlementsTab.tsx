@@ -119,13 +119,13 @@ export function SuperAdminTenantEntitlementsTab({ tenantId }: Props) {
           icon={Heart}
           label="Health Score"
           value={`${data.health.score}/100`}
-          variant={data.health.score >= 80 ? "success" : data.health.score >= 50 ? "warning" : "destructive"}
+          color={data.health.score >= 80 ? "success" : data.health.score >= 50 ? "warning" : "destructive"}
         />
         <StatCard
           icon={ShieldCheck}
           label="Lock Level"
           value={data.lock_state.level.toUpperCase()}
-          variant={LOCK_VARIANT[data.lock_state.level] ?? "muted"}
+          color={data.lock_state.level === "none" ? "success" : data.lock_state.level === "soft" ? "warning" : "destructive"}
           subtitle={data.lock_state.reason}
         />
         <StatCard
