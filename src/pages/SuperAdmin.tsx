@@ -20,6 +20,8 @@ import { SuperAdminPlaceholderPage } from "./super-admin/SuperAdminPlaceholderPa
 const OverviewPage = lazy(() => import("./super-admin/SuperAdminOverviewPage"));
 const TenantsPage = lazy(() => import("./super-admin/SuperAdminTenantsPage"));
 const TenantDetailPage = lazy(() => import("./super-admin/SuperAdminTenantDetailPage"));
+const BillingPage = lazy(() => import("./super-admin/SuperAdminBillingPage"));
+const WebhooksPage = lazy(() => import("./super-admin/SuperAdminWebhooksPage"));
 
 function PageFallback() {
   return <LoadingState message="Carregando..." />;
