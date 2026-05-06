@@ -312,6 +312,16 @@ Deno.serve(async (req) => {
       );
     }
 
+    // PR-4: lock_state + report PDF limit (DOCX gen counts as report)
+    const denyEnforce = await enforceTenantAccess(supabase, tenantId, corsHeaders, {
+      metricKey: "max_reports_pdf_month",
+      operation: "write",
+      userId: userId ?? undefined,
+      source: "generate-document",
+      metadata: { template_id, deal_id },
+    });
+    if (denyEnforce) return denyEnforce;
+
     // 1. Load template metadata
     const { data: template, error: tplErr } = await supabase
       .from("document_templates")
