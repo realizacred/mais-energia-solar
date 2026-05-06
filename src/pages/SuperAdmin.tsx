@@ -116,6 +116,14 @@ export default function SuperAdmin() {
           }
         />
         <Route
+          path="usage"
+          element={
+            <Suspense fallback={<PageFallback />}>
+              <UsagePage />
+            </Suspense>
+          }
+        />
+        <Route
           path="audit"
           element={
             <SuperAdminPlaceholderPage
