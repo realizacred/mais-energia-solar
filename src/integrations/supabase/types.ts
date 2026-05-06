@@ -1288,6 +1288,36 @@ export type Database = {
           },
         ]
       }
+      cascade_deletion_log: {
+        Row: {
+          actor_user_id: string | null
+          counts: Json
+          created_at: string
+          entity_id: string
+          entity_type: string
+          id: string
+          tenant_id: string
+        }
+        Insert: {
+          actor_user_id?: string | null
+          counts?: Json
+          created_at?: string
+          entity_id: string
+          entity_type: string
+          id?: string
+          tenant_id: string
+        }
+        Update: {
+          actor_user_id?: string | null
+          counts?: Json
+          created_at?: string
+          entity_id?: string
+          entity_type?: string
+          id?: string
+          tenant_id?: string
+        }
+        Relationships: []
+      }
       catalog_provider_registry: {
         Row: {
           base_url: string | null
