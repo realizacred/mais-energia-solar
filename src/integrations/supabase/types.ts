@@ -29587,6 +29587,7 @@ export type Database = {
         }
         Returns: Json
       }
+      run_subscription_lifecycle: { Args: never; Returns: Json }
       save_payment_composition: {
         Args: { p_itens?: Json; p_observacoes?: string; p_venda_id: string }
         Returns: string
