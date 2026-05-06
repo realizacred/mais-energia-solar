@@ -35,7 +35,7 @@ export function useTenantLockState() {
       if (!tid) return { level: "none", reason: null, since: null };
       const { data, error } = await supabase.rpc("tenant_lock_state", { _tenant_id: tid });
       if (error) return { level: "none", reason: null, since: null };
-      return (data ?? { level: "none", reason: null, since: null }) as TenantLockState;
+      return (data ?? { level: "none", reason: null, since: null }) as unknown as TenantLockState;
     },
     enabled: !!user,
     staleTime: STALE,
