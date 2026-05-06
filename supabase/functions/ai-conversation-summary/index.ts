@@ -43,6 +43,16 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: "tenant_inactive" }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
+    // PR-4: ai_followup + ai limit + lock state
+    const denyEnforce = await enforceTenantAccess(adminClient, tenantId, corsHeaders, {
+      featureKey: "ai_followup",
+      metricKey: "max_ai_insights_month",
+      operation: "ai",
+      userId: user.id,
+      source: "ai-conversation-summary",
+    });
+    if (denyEnforce) return denyEnforce;
+
     // Get AI provider config
     let activeProvider = "openai";
     let activeModel = "gpt-4o-mini";
