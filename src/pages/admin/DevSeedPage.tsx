@@ -309,15 +309,7 @@ export default function DevSeedPage() {
       // ─── Step E: Criar proposta nativa ───
       updateStep(4, { status: "running" });
 
-      // We need the projeto_id that corresponds to this deal
-      // The projetos table may auto-create via trigger, or we need to find it
-      const { data: projetoRow } = await supabase
-        .from("projetos")
-        .select("id")
-        .eq("deal_id", seedResult.dealId)
-        .maybeSingle();
-
-      const projetoIdForProposta = projetoRow?.id || null;
+      const projetoIdForProposta = seedResult.projetoId;
 
       //   projetoId: projetoIdForProposta,
       //   dealId: seedResult.dealId,
