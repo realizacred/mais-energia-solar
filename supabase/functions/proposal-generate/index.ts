@@ -417,6 +417,15 @@ Deno.serve(async (req) => {
       .from("tenants").select("id, status, nome, estado").eq("id", tenantId).single();
     if (!tenant || tenant.status !== "active") return jsonError("Tenant suspenso ou inativo", 403);
 
+    // PR-4: lock_state + proposal limit (atomic). Soft lock blocks new proposals; hard blocks all.
+    const denyEnforce = await enforceTenantAccess(adminClient, tenantId, corsHeaders, {
+      metricKey: "max_proposals_month",
+      operation: "write",
+      userId,
+      source: "proposal-generate",
+    });
+    if (denyEnforce) return denyEnforce;
+
     // ── 2. PARSE PAYLOAD ────────────────────────────────────
     const body: GenerateRequestV2 = await req.json();
 
