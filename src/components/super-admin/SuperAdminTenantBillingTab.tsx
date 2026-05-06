@@ -56,7 +56,7 @@ export function SuperAdminTenantBillingTab({ tenantId }: Props) {
   const replay = useBillingAction("replay_webhook", "Webhook reprocessado", tenantId);
 
   if (isLoading) return <LoadingState message="Carregando billing..." />;
-  if (error) return <EmptyState title="Erro" description={String((error as any).message)} />;
+  if (error) return <EmptyState icon={AlertTriangle} title="Erro" description={String((error as any).message)} />;
   if (!data) return null;
 
   const sub = data.subscription;
@@ -130,7 +130,7 @@ export function SuperAdminTenantBillingTab({ tenantId }: Props) {
         }
       >
         {!sub ? (
-          <EmptyState title="Sem assinatura" description="Tenant não possui subscription registrada." />
+          <EmptyState icon={CreditCard} title="Sem assinatura" description="Tenant não possui subscription registrada." />
         ) : (
           <div className="grid md:grid-cols-2 gap-4 text-sm">
             <Row label="Plano" value={`${sub.plan_name} (${sub.plan_code})`} />
@@ -150,7 +150,7 @@ export function SuperAdminTenantBillingTab({ tenantId }: Props) {
       {/* Cobranças */}
       <SectionCard icon={DollarSign} title={`Cobranças (${data.charges.length})`}>
         {data.charges.length === 0 ? (
-          <EmptyState title="Sem cobranças" description="Nenhuma cobrança registrada para este tenant." />
+          <EmptyState icon={DollarSign} title="Sem cobranças" description="Nenhuma cobrança registrada para este tenant." />
         ) : (
           <Table>
             <TableHeader>
@@ -206,7 +206,7 @@ export function SuperAdminTenantBillingTab({ tenantId }: Props) {
         actions={failedHooks > 0 ? <StatusBadge variant="destructive">{failedHooks} falhas</StatusBadge> : undefined}
       >
         {data.webhook_events.length === 0 ? (
-          <EmptyState title="Sem eventos" description="Nenhum webhook recebido ainda." />
+          <EmptyState icon={WebhookIcon} title="Sem eventos" description="Nenhum webhook recebido ainda." />
         ) : (
           <Table>
             <TableHeader>
@@ -243,7 +243,7 @@ export function SuperAdminTenantBillingTab({ tenantId }: Props) {
       {/* Timeline */}
       <SectionCard icon={History} title="Timeline de billing">
         {data.audit.length === 0 ? (
-          <EmptyState title="Sem histórico" description="Nenhuma ação de billing executada." />
+          <EmptyState icon={History} title="Sem histórico" description="Nenhuma ação de billing executada." />
         ) : (
           <ol className="space-y-3">
             {data.audit.map((a) => (
