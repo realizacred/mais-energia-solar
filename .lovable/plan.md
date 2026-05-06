@@ -1,30 +1,34 @@
+## Unificação SSOT de Billing SaaS
 
+Baseado na auditoria anterior, vou executar a unificação em 4 fases. Como o escopo é grande e envolve dados de produção + triggers críticos, preciso confirmar antes de começar.
 
-# Plano: Permitir deletar o funil "Comercial" vazio
+### Fase 1 — Consolidar SSOT (Banco)
+1. **Backfill `subscriptions`**: garantir que todo `tenant` tem 1 row em `subscriptions` espelhando `tenants.plano` (legacy text).
+2. **Trigger de sync `subscriptions.status` → `tenants.status`**: quando subscription vira `suspended`/`canceled`/`expired`, marcar tenant como `suspended` (dispara `TenantSuspended` UI).
+3. **Trigger reverso na UI Super Admin**: quando admin muda plano via UI antiga (`tenants.plano`), propagar para `subscriptions.plan_id`.
+4. **Deprecar `tenants.plano`** como fonte: marcar como legacy via comment; `useTenantPlan` continua sendo SSOT.
 
-## Problema
-O código tem uma proteção hardcoded que impede desativar/deletar o funil "Comercial" (`useProjetoPipeline.ts`, linha 474). O funil atualmente tem **0 projetos** e apenas 4 etapas genéricas, mas não pode ser removido.
+### Fase 2 — Lifecycle automático
+5. **Cron `expire-trials`** (pg_cron, diário às 03:00 UTC): subscriptions com `status='trialing'` e `trial_ends_at < now()` → `status='past_due'` (grace) ou `expired` se >7 dias.
+6. **Cron `expire-periods`**: subscriptions `active` com `current_period_end < now()` e sem renovação Asaas → `past_due`.
+7. **Cron `suspend-overdue`**: `past_due` há mais de 7 dias → `suspended`.
 
-Além disso, o `onDeletePipeline` em `ProjetosManager.tsx` apenas chama `toggleFunilAtivo(id, false)` — ou seja, desativa em vez de deletar de verdade.
+### Fase 3 — Webhook Asaas funcional
+8. Garantir `subscriptions.external_id` é populado no momento do checkout (edge function `create-asaas-subscription`).
+9. `billing-webhook-asaas` deve mapear eventos: `PAYMENT_CONFIRMED` → `active`, `PAYMENT_OVERDUE` → `past_due`, `SUBSCRIPTION_DELETED` → `canceled`.
 
-## Dados atuais do funil
-- **ID:** `42c215c2-7bee-47c9-a296-f4ab033a531a`
-- **Projetos vinculados:** 0
-- **Etapas:** Novo, Em Andamento, Ganho, Perdido
+### Fase 4 — Enforcement real
+10. Plugar `enforce_limit_or_throw('max_leads_month')` no INSERT de leads (trigger DB).
+11. Plugar `enforce_limit_or_throw('max_wa_messages_month')` na edge `enqueue_wa_outbox_item`.
+12. Plugar `enforce_limit_or_throw('max_storage_mb')` em uploads de Storage (edge function `validate-upload`).
 
-## Correção (2 alterações mínimas)
+### Riscos
+- **Suspensão automática pode bloquear tenants reais** se o backfill não popular `external_id` corretamente. Mitigação: rodar Fase 2 só **após** Fase 3 estar validada.
+- **Trigger de sync bidirecional** pode criar loop. Mitigação: usar `pg_trigger_depth() = 0` como guard.
+- **Asaas webhook**: se `external_id` não estiver populado em tenants atuais, eventos não casam. Mitigação: edge function de backfill manual.
 
-### 1. `src/hooks/useProjetoPipeline.ts` — Relaxar proteção
-Alterar a lógica de proteção para permitir desativação/deleção quando o funil "Comercial" não tem projetos vinculados. Antes de bloquear, verificar se há projetos no funil. Se estiver vazio, permitir a operação.
+### Ordem de execução proposta
+Fase 1 → Fase 4 → Fase 3 → Fase 2 (deixar suspensão automática por último, já que é a mais perigosa).
 
-### 2. `src/components/admin/projetos/ProjetosManager.tsx` — Deletar de verdade
-Alterar o `onDeletePipeline` para efetivamente deletar o funil (etapas + registro) em vez de apenas desativar, seguindo o padrão já existente em `useDealPipeline.ts` (`deletePipeline`). Criar uma função `deleteFunil` no hook que:
-1. Deleta as `projeto_etapas` do funil
-2. Deleta o registro em `projeto_funis`
-3. Atualiza o estado local
-
-## Impacto
-- Alteração em 2 arquivos apenas
-- Sem risco: funil tem 0 projetos
-- Comportamento existente preservado para funis com projetos
-
+### Confirmar antes de começar
+Posso prosseguir com a Fase 1 (consolidação SSOT no banco) agora? É a mudança mais segura e habilita as próximas. Os crons e enforcement automático ficam para depois de você validar a Fase 1.

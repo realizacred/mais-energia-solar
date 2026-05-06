@@ -28579,6 +28579,10 @@ export type Database = {
         Args: { plain: string; secret: string }
         Returns: string
       }
+      enforce_limit_for_tenant: {
+        Args: { _delta?: number; _metric_key: string; _tenant_id: string }
+        Returns: undefined
+      }
       enforce_limit_or_throw: {
         Args: { _delta?: number; _metric_key: string }
         Returns: undefined
@@ -29283,6 +29287,10 @@ export type Database = {
         Args: { _delta?: number; _metric_key: string; _source?: string }
         Returns: undefined
       }
+      increment_usage_for_tenant: {
+        Args: { _delta?: number; _metric_key: string; _tenant_id: string }
+        Returns: undefined
+      }
       irradiance_nearest_point: {
         Args: {
           p_lat: number
@@ -29579,6 +29587,7 @@ export type Database = {
         }
         Returns: Json
       }
+      run_subscription_lifecycle: { Args: never; Returns: Json }
       save_payment_composition: {
         Args: { p_itens?: Json; p_observacoes?: string; p_venda_id: string }
         Returns: string
