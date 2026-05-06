@@ -90,26 +90,14 @@ function invalidate(qc: ReturnType<typeof useQueryClient>, tenantId?: string) {
   qc.invalidateQueries({ queryKey: ["super-admin-tenant", tenantId] });
 }
 
-export function useBillingActions(tenantId?: string) {
+export function useBillingAction(action: string, successMsg: string, tenantId?: string) {
   const qc = useQueryClient();
-
-  const run = (action: string, successMsg: string) =>
-    useMutation({
-      mutationFn: async (extra: Record<string, any> = {}) => {
-        return await callSuperAdminAction({ action, tenant_id: tenantId, ...extra });
-      },
-      onSuccess: () => { toast.success(successMsg); invalidate(qc, tenantId); },
-      onError: (e: any) => toast.error(e.message ?? "Erro"),
-    });
-
-  return {
-    changeSubscription: run("change_subscription", "Assinatura atualizada"),
-    extendTrial: run("extend_trial", "Trial estendido"),
-    suspend: run("suspend_subscription", "Assinatura suspensa"),
-    reactivate: run("reactivate_subscription", "Assinatura reativada"),
-    cancel: run("cancel_subscription", "Assinatura cancelada"),
-    markPaid: run("mark_payment_paid", "Pagamento registrado"),
-    retryCharge: run("retry_charge", "Cobrança reenviada"),
-    replayWebhook: run("replay_webhook", "Webhook reprocessado"),
-  };
+  return useMutation({
+    mutationFn: async (extra: Record<string, any> = {}) => {
+      return await callSuperAdminAction({ action, tenant_id: tenantId, ...extra });
+    },
+    onSuccess: () => { toast.success(successMsg); invalidate(qc, tenantId); },
+    onError: (e: any) => toast.error(e.message ?? "Erro"),
+  });
 }
+
