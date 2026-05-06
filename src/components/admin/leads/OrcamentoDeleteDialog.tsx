@@ -34,12 +34,14 @@ export function OrcamentoDeleteDialog({
             <div className="w-9 h-9 rounded-lg bg-destructive/10 flex items-center justify-center shrink-0">
               <Trash2 className="w-5 h-5 text-destructive" />
             </div>
-            <AlertDialogTitle>Excluir Orçamento</AlertDialogTitle>
+            <AlertDialogTitle>Excluir Lead/Orçamento</AlertDialogTitle>
           </div>
           <AlertDialogDescription>
-            Tem certeza que deseja excluir o orçamento{" "}
-            <strong>{orcamento.orc_code || orcamento.id}</strong> de{" "}
-            <strong>{orcamento.nome}</strong>? Esta ação não pode ser desfeita.
+            Tem certeza que deseja excluir <strong>{orcamento.orc_code || orcamento.id}</strong> de{" "}
+            <strong>{orcamento.nome}</strong>?
+            <br /><br />
+            Esta ação <strong>remove em cascata</strong>: lead, cliente vinculado, projetos,
+            propostas, deals e demais ramificações. Não pode ser desfeito.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>

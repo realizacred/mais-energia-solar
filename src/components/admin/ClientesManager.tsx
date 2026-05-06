@@ -301,19 +301,11 @@ export function ClientesManager({ onSelectCliente }: ClientesManagerProps) {
     if (!deleteTarget) return;
     setDeleting(true);
     try {
-      const blocking = await checkDeps.mutateAsync(deleteTarget.id);
-
-      if (blocking.length > 0) {
-        toast({
-          title: "Não é possível excluir este cliente",
-          description: `Existem registros vinculados: ${blocking.join(", ")}. Remova ou desassocie esses registros primeiro.`,
-          variant: "destructive",
-        });
-        return;
-      }
-
       await deletarCliente.mutateAsync(deleteTarget.id);
-      toast({ title: "Cliente excluído!" });
+      toast({
+        title: "Cliente excluído!",
+        description: "Cliente e todos os vínculos (projetos, propostas, deals) foram removidos.",
+      });
     } catch (error) {
       const appError = handleSupabaseError(error, "delete_cliente", { entityId: deleteTarget.id });
       toast({

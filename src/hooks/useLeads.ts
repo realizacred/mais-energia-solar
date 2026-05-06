@@ -110,38 +110,19 @@ export function useLeads({ autoFetch = true, pageSize = PAGE_SIZE }: UseLeadsOpt
 
   const archiveLead = useCallback(async (leadId: string) => {
     try {
-      // Busca o status "Arquivado" do tenant
-      const { data: arquivadoStatus, error: statusError } = await supabase
-        .from("lead_status")
-        .select("id")
-        .eq("nome", "Arquivado")
-        .single();
-
-      if (statusError || !arquivadoStatus) {
-        toast({
-          title: "Erro",
-          description: "Status 'Arquivado' não encontrado. Contate o administrador.",
-          variant: "destructive",
-        });
-        return false;
-      }
-
-      const { error } = await supabase
-        .from("leads")
-        .update({ status_id: arquivadoStatus.id })
-        .eq("id", leadId);
-
+      // Cascata total: remove lead + cliente vinculado + projetos + propostas + deals + orçamentos
+      const { error } = await supabase.rpc("delete_lead_cascade", { p_lead_id: leadId });
       if (error) throw error;
 
       setLeads((prev) => prev.filter((l) => l.id !== leadId));
       setTotalCount((prev) => prev - 1);
       toast({
-        title: "Lead arquivado",
-        description: "O lead foi movido para o status 'Arquivado'.",
+        title: "Lead excluído",
+        description: "Lead e todos os vínculos (cliente, projetos, propostas, deals) foram removidos.",
       });
       return true;
     } catch (error) {
-      const appError = handleSupabaseError(error, "archive_lead", { entityId: leadId });
+      const appError = handleSupabaseError(error, "delete_lead", { entityId: leadId });
       toast({
         title: "Erro",
         description: appError.userMessage,

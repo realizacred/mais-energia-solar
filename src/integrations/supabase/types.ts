@@ -28524,6 +28524,8 @@ export type Database = {
       }
       current_tenant_id: { Args: never; Returns: string }
       decrypt_secret: { Args: { enc: string; secret: string }; Returns: string }
+      delete_cliente_cascade: { Args: { p_cliente_id: string }; Returns: Json }
+      delete_lead_cascade: { Args: { p_lead_id: string }; Returns: Json }
       delete_seed_data: { Args: never; Returns: Json }
       delete_uc_permanently: { Args: { p_unit_id: string }; Returns: Json }
       detect_proposal_followup_candidates: {
