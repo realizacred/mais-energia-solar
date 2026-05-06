@@ -132,7 +132,7 @@ const App = () => (
               <Route path="/financeiro/*" element={<TenantGuardGate><Admin /></TenantGuardGate>} />
               <Route path="/configuracoes/*" element={<TenantGuardGate><Admin /></TenantGuardGate>} />
               <Route path="/integracoes/*" element={<TenantGuardGate><Admin /></TenantGuardGate>} />
-              <Route path="/super-admin" element={<SuperAdmin />} />
+              <Route path="/super-admin/*" element={<SuperAdmin />} />
               <Route path="/consultor/*" element={<TenantGuardGate><VendedorPortal /></TenantGuardGate>} />
               <Route path="/vendedor/*" element={<TenantGuardGate><VendedorPortal /></TenantGuardGate>} />
               <Route path="/instalador" element={<TenantGuardGate><Instalador /></TenantGuardGate>} />
