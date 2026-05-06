@@ -147,8 +147,9 @@ Deno.serve(async (req) => {
 
 
   } catch (e: any) {
+    console.error("[reset-tenant-data] FATAL:", e?.message, e?.stack);
     return new Response(
-      JSON.stringify({ error: e?.message ?? "Erro inesperado." }),
+      JSON.stringify({ error: e?.message ?? "Erro inesperado.", stack: e?.stack }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
