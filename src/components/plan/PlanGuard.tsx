@@ -29,6 +29,7 @@ interface PlanGuardState {
  */
 export function usePlanGuard() {
   const { checkLimit } = useTenantPlan();
+  const { data: lockState } = useTenantLockState();
   const [state, setState] = useState<PlanGuardState>({
     open: false,
     metricKey: "",
@@ -36,8 +37,25 @@ export function usePlanGuard() {
     limitValue: 0,
   });
 
+  const guardLock = useCallback(
+    (operation: "read" | "write" | "ai" | "automation" | "send" = "write"): boolean => {
+      const level = lockState?.level ?? "none";
+      if (!isOperationAllowed(level, operation)) {
+        const msg = level === "hard"
+          ? "Conta suspensa. Regularize o pagamento para liberar o sistema."
+          : "Conta com pendência financeira: novos recursos bloqueados temporariamente.";
+        toast.error(msg);
+        return false;
+      }
+      return true;
+    },
+    [lockState?.level]
+  );
+
   const guardLimit = useCallback(
-    async (metricKey: string, delta = 1): Promise<boolean> => {
+    async (metricKey: string, delta = 1, operation: "read" | "write" | "ai" | "automation" | "send" = "write"): Promise<boolean> => {
+      // PR-4: lock_state first
+      if (!guardLock(operation)) return false;
       try {
         const result = await checkLimit(metricKey, delta);
         if (!result.allowed) {
@@ -51,16 +69,15 @@ export function usePlanGuard() {
         }
         return true;
       } catch {
-        // If check fails (no subscription, etc.), allow by default
         return true;
       }
     },
-    [checkLimit]
+    [checkLimit, guardLock]
   );
 
   const guardFeature = useCallback(
     (featureKey: string, features: Record<string, boolean>): boolean => {
-      return features[featureKey] !== false; // undefined = allowed
+      return features[featureKey] !== false;
     },
     []
   );
@@ -75,5 +92,5 @@ export function usePlanGuard() {
     />
   );
 
-  return { guardLimit, guardFeature, LimitDialog };
+  return { guardLimit, guardFeature, guardLock, lockLevel: lockState?.level ?? "none", LimitDialog };
 }
