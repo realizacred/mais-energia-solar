@@ -1,93 +1,161 @@
-import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import { useAuth } from "@/hooks/useAuth";
-import { supabase } from "@/integrations/supabase/client";
-import { ShieldAlert, LogOut, Building2 } from "lucide-react";
-import { PageHeader, LoadingState } from "@/components/ui-kit";
-import { PortalSwitcher } from "@/components/layout/PortalSwitcher";
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { SuperAdminTenantList } from "@/components/super-admin/SuperAdminTenantList";
-import { SuperAdminTenantDetail } from "@/components/super-admin/SuperAdminTenantDetail";
+/**
+ * SuperAdmin — Entry point do módulo. Apenas roteamento interno.
+ * Toda lógica de guard e shell está em SuperAdminLayout.
+ * Páginas em src/pages/super-admin/.
+ */
+import { Routes, Route, Navigate } from "react-router-dom";
+import { lazy, Suspense } from "react";
+import {
+  CreditCard,
+  Package,
+  Briefcase,
+  Webhook,
+  History,
+  Activity,
+} from "lucide-react";
+import { LoadingState } from "@/components/ui-kit";
+import { SuperAdminLayout } from "@/components/super-admin/SuperAdminLayout";
+import { SuperAdminPlaceholderPage } from "./super-admin/SuperAdminPlaceholderPage";
+
+const OverviewPage = lazy(() => import("./super-admin/SuperAdminOverviewPage"));
+const TenantsPage = lazy(() => import("./super-admin/SuperAdminTenantsPage"));
+const TenantDetailPage = lazy(() => import("./super-admin/SuperAdminTenantDetailPage"));
+
+function PageFallback() {
+  return <LoadingState message="Carregando..." />;
+}
 
 export default function SuperAdmin() {
-  const { user, signOut, loading: authLoading } = useAuth();
-  const navigate = useNavigate();
-  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
-  const [checking, setChecking] = useState(true);
-  const [selectedTenantId, setSelectedTenantId] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!authLoading && !user) {
-      navigate("/auth?from=super-admin", { replace: true });
-      return;
-    }
-    if (user) checkSuperAdmin();
-  }, [user, authLoading]);
-
-  const checkSuperAdmin = async () => {
-    if (!user) return;
-    const { data } = await supabase.from("user_roles").select("role").eq("user_id", user.id);
-    const has = data?.some((r) => r.role === "super_admin");
-    setIsSuperAdmin(!!has);
-    setChecking(false);
-  };
-
-  if (authLoading || checking) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <LoadingState message="Verificando acesso..." />
-      </div>
-    );
-  }
-
-  if (!isSuperAdmin) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <Card className="w-full max-w-md border-destructive/20">
-          <CardContent className="flex flex-col items-center gap-4 py-8">
-            <ShieldAlert className="w-10 h-10 text-destructive" />
-            <h2 className="text-xl font-bold">Acesso Restrito</h2>
-            <p className="text-sm text-muted-foreground text-center">
-              Apenas Super Admins podem acessar esta área.
-            </p>
-            <Button onClick={() => navigate("/admin")} variant="ghost">Voltar ao Admin</Button>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
   return (
-    <div className="min-h-screen bg-muted/30">
-      <header className="sticky top-0 z-50 bg-background border-b px-4 py-3 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <Building2 className="w-6 h-6 text-primary" />
-          <h1 className="text-xl font-bold font-display">Super Admin</h1>
-          <Badge variant="outline" className="text-xs">Platform Governance</Badge>
-        </div>
-        <div className="flex items-center gap-2">
-          <span className="text-sm text-muted-foreground hidden sm:block">{user?.email}</span>
-          <PortalSwitcher />
-          <Button variant="ghost" size="icon" onClick={() => signOut()} aria-label="Sair">
-            <LogOut className="w-4 h-4" />
-          </Button>
-        </div>
-      </header>
-
-      <main className="w-full max-w-none p-4 md:p-6">
-        {selectedTenantId ? (
-          <SuperAdminTenantDetail
-            tenantId={selectedTenantId}
-            onBack={() => setSelectedTenantId(null)}
-          />
-        ) : (
-          <SuperAdminTenantList
-            onSelectTenant={(id) => setSelectedTenantId(id)}
-          />
-        )}
-      </main>
-    </div>
+    <Routes>
+      <Route element={<SuperAdminLayout />}>
+        <Route
+          index
+          element={
+            <Suspense fallback={<PageFallback />}>
+              <OverviewPage />
+            </Suspense>
+          }
+        />
+        <Route
+          path="tenants"
+          element={
+            <Suspense fallback={<PageFallback />}>
+              <TenantsPage />
+            </Suspense>
+          }
+        />
+        <Route
+          path="tenants/:tenantId"
+          element={
+            <Suspense fallback={<PageFallback />}>
+              <TenantDetailPage />
+            </Suspense>
+          }
+        />
+        <Route
+          path="billing"
+          element={
+            <SuperAdminPlaceholderPage
+              icon={CreditCard}
+              title="Billing"
+              description="Visão global de assinaturas, MRR e dunning"
+              phase="PR-2"
+              scope={[
+                "Lista de assinaturas com filtros (status, plano)",
+                "MRR / Churn / Trial-to-paid",
+                "Cobranças em atraso e fila de dunning",
+                "Replay de webhook Asaas",
+                "Reenvio de cobrança",
+              ]}
+            />
+          }
+        />
+        <Route
+          path="plans"
+          element={
+            <SuperAdminPlaceholderPage
+              icon={Package}
+              title="Planos & Features"
+              description="Catálogo de planos, features e limites"
+              phase="PR-3"
+              scope={[
+                "Catálogo de plans (preços, ciclos)",
+                "plan_features por plano",
+                "plan_limits por plano",
+                "Sincronização com Asaas",
+              ]}
+            />
+          }
+        />
+        <Route
+          path="jobs"
+          element={
+            <SuperAdminPlaceholderPage
+              icon={Briefcase}
+              title="Jobs & Crons"
+              description="Monitoramento de cron jobs, filas e dead-letters"
+              phase="PR-4"
+              scope={[
+                "Lista de pg_cron jobs e última execução",
+                "Filas (wa_outbox, processamentos)",
+                "Dead-letter queue",
+                "Replay manual",
+              ]}
+            />
+          }
+        />
+        <Route
+          path="webhooks"
+          element={
+            <SuperAdminPlaceholderPage
+              icon={Webhook}
+              title="Webhooks"
+              description="Eventos recebidos e replay manual"
+              phase="PR-4"
+              scope={[
+                "Asaas / Evolution / outros providers",
+                "Status (received / processed / failed)",
+                "Replay individual",
+                "Filtro por tenant",
+              ]}
+            />
+          }
+        />
+        <Route
+          path="health"
+          element={
+            <SuperAdminPlaceholderPage
+              icon={Activity}
+              title="Health"
+              description="Score de saúde por tenant e por integração"
+              phase="PR-4"
+              scope={[
+                "Health score consolidado por tenant",
+                "Drill-down por categoria (billing, WA, IA, jobs)",
+                "Tenants em risco",
+              ]}
+            />
+          }
+        />
+        <Route
+          path="audit"
+          element={
+            <SuperAdminPlaceholderPage
+              icon={History}
+              title="Audit Log Global"
+              description="Todas as ações de Super Admin executadas na plataforma"
+              phase="PR-4"
+              scope={[
+                "Filtro por super admin, tenant, ação",
+                "Detalhe de payload",
+                "Export CSV",
+              ]}
+            />
+          }
+        />
+        <Route path="*" element={<Navigate to="/super-admin" replace />} />
+      </Route>
+    </Routes>
   );
 }
