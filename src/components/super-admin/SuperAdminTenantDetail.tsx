@@ -28,6 +28,8 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { formatPhoneBR } from "@/lib/formatters";
 import { SuperAdminTenantBillingTab } from "./SuperAdminTenantBillingTab";
+import { SuperAdminTenantEntitlementsTab } from "./SuperAdminTenantEntitlementsTab";
+import { ShieldCheck } from "lucide-react";
 
 const HEALTH_VARIANT: Record<string, "success" | "warning" | "destructive" | "muted"> = {
   healthy: "success",
@@ -239,6 +241,10 @@ export function SuperAdminTenantDetail({ tenantId, onBack }: Props) {
             <Crown className="h-4 w-4" />
             <span className="hidden sm:inline">Billing</span>
           </TabsTrigger>
+          <TabsTrigger value="entitlements" className="gap-2">
+            <ShieldCheck className="h-4 w-4" />
+            <span className="hidden sm:inline">Entitlements</span>
+          </TabsTrigger>
           <TabsTrigger value="audit" className="gap-2">
             <History className="h-4 w-4" />
             <span className="hidden sm:inline">Audit Log</span>
@@ -247,6 +253,10 @@ export function SuperAdminTenantDetail({ tenantId, onBack }: Props) {
 
         <TabsContent value="billing" className="mt-6">
           <SuperAdminTenantBillingTab tenantId={tenantId} />
+        </TabsContent>
+
+        <TabsContent value="entitlements" className="mt-6">
+          <SuperAdminTenantEntitlementsTab tenantId={tenantId} />
         </TabsContent>
 
         {/* Overview */}

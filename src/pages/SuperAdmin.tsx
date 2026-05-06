@@ -22,6 +22,7 @@ const TenantsPage = lazy(() => import("./super-admin/SuperAdminTenantsPage"));
 const TenantDetailPage = lazy(() => import("./super-admin/SuperAdminTenantDetailPage"));
 const BillingPage = lazy(() => import("./super-admin/SuperAdminBillingPage"));
 const WebhooksPage = lazy(() => import("./super-admin/SuperAdminWebhooksPage"));
+const HealthPage = lazy(() => import("./super-admin/SuperAdminHealthPage"));
 
 function PageFallback() {
   return <LoadingState message="Carregando..." />;
@@ -108,17 +109,9 @@ export default function SuperAdmin() {
         <Route
           path="health"
           element={
-            <SuperAdminPlaceholderPage
-              icon={Activity}
-              title="Health"
-              description="Score de saúde por tenant e por integração"
-              phase="PR-4"
-              scope={[
-                "Health score consolidado por tenant",
-                "Drill-down por categoria (billing, WA, IA, jobs)",
-                "Tenants em risco",
-              ]}
-            />
+            <Suspense fallback={<PageFallback />}>
+              <HealthPage />
+            </Suspense>
           }
         />
         <Route
