@@ -57,7 +57,12 @@ Deno.serve(async (req) => {
     if (!isSuperAdmin) return err("Forbidden: super_admin required", 403);
 
     const body = await req.json();
-    const { action, tenant_id, reason, target_user_id, new_email, new_role, new_password } = body;
+    const {
+      action, tenant_id, reason, target_user_id, new_email, new_role, new_password,
+      // billing inputs (PR-2)
+      plan_code, status: new_status, trial_ends_at, current_period_end,
+      cancel_at_period_end, charge_id, webhook_event_id, days,
+    } = body;
 
     if (!action) return err("Missing action");
 
