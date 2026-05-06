@@ -107,7 +107,9 @@ export function SuperAdminTenantDetail({ tenantId, onBack }: Props) {
   const handleSaveEdit = async () => {
     setSaving(true);
     try {
-      await callSuperAdminAction({ action: "edit_tenant", tenant_id: tenantId, ...editForm });
+      // PR-1: plano não é mais editável via tenant.plano (SSOT = subscriptions).
+      const { plano: _ignored, ...editable } = editForm;
+      await callSuperAdminAction({ action: "edit_tenant", tenant_id: tenantId, ...editable });
       toast.success("Tenant atualizado");
       setEditOpen(false);
       load();
@@ -515,13 +517,18 @@ export function SuperAdminTenantDetail({ tenantId, onBack }: Props) {
             <div><Label>Documento (CNPJ/CPF)</Label><CpfCnpjInput value={editForm.documento} onChange={(v) => setEditForm(f => ({ ...f, documento: v }))} label="" /></div>
             <div><Label>Domínio Customizado</Label><Input value={editForm.dominio_customizado} onChange={(e) => setEditForm(f => ({ ...f, dominio_customizado: e.target.value }))} /></div>
             <div>
-              <Label>Plano</Label>
-              <Select value={editForm.plano} onValueChange={(v) => setEditForm(f => ({ ...f, plano: v }))}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+              <Label>Plano (somente leitura)</Label>
+              <Select value={editForm.plano} disabled>
+                <SelectTrigger>
+                  <SelectValue placeholder="Definido via aba Billing" />
+                </SelectTrigger>
                 <SelectContent>
                   {plans.map(p => <SelectItem key={p.code} value={p.code}>{p.name}</SelectItem>)}
                 </SelectContent>
               </Select>
+              <p className="text-[11px] text-muted-foreground mt-1">
+                A SSOT do plano é a tabela <code>subscriptions</code>. Para alterar, use a aba Billing (PR-2).
+              </p>
             </div>
           </div>
           <DialogFooter>
