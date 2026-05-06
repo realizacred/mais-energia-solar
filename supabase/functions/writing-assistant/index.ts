@@ -240,6 +240,16 @@ Deno.serve(async (req) => {
       );
     }
 
+    // PR-4: ai_followup feature + ai limit + lock_state
+    const denyEnforce = await enforceTenantAccess(supabaseServiceCheck, tenantId, corsHeaders, {
+      featureKey: "ai_followup",
+      metricKey: "max_ai_insights_month",
+      operation: "ai",
+      userId: user?.id,
+      source: "writing-assistant",
+    });
+    if (denyEnforce) return denyEnforce;
+
     // ── Resolve preferred model: ai_provider_config > wa_ai_settings > default ──
     let primaryModel = DEFAULT_MODEL;
     let configProvider: string | null = null;
