@@ -192,10 +192,10 @@ export default function SuperAdminPlansPage() {
 
       {/* KPIs */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <StatCard label="Planos ativos" value={activePlans.length} icon={Package} variant="default" />
-        <StatCard label="Assinaturas ativas" value={totalSubs} icon={Users} variant="success" />
-        <StatCard label="MRR estimado" value={fmtBRL(mrr)} icon={DollarSign} variant="success" />
-        <StatCard label="Features no catálogo" value={catalog.length} icon={CheckCircle2} variant="default" />
+        <StatCard label="Planos ativos" value={activePlans.length} icon={Package} color="primary" />
+        <StatCard label="Assinaturas ativas" value={totalSubs} icon={Users} color="success" />
+        <StatCard label="MRR estimado" value={fmtBRL(mrr)} icon={DollarSign} color="success" />
+        <StatCard label="Features no catálogo" value={catalog.length} icon={CheckCircle2} color="info" />
       </div>
 
       {/* Cards de planos */}
