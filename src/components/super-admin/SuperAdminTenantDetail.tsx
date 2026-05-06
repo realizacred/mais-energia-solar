@@ -27,6 +27,7 @@ import { toast } from "sonner";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { formatPhoneBR } from "@/lib/formatters";
+import { SuperAdminTenantBillingTab } from "./SuperAdminTenantBillingTab";
 
 const HEALTH_VARIANT: Record<string, "success" | "warning" | "destructive" | "muted"> = {
   healthy: "success",
