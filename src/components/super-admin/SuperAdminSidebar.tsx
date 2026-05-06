@@ -12,6 +12,7 @@ import {
   Webhook,
   History,
   Activity,
+  TrendingUp,
 } from "lucide-react";
 import {
   Sidebar,
