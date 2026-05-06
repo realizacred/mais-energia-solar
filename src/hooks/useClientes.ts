@@ -249,11 +249,16 @@ export function useDeletarCliente() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("clientes").delete().eq("id", id);
+      // Cascata server-side: remove projetos, propostas, deals, vendas, recibos, etc.
+      const { data, error } = await supabase.rpc("delete_cliente_cascade", { p_cliente_id: id });
       if (error) throw error;
+      return data;
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: [QUERY_KEY] });
+      qc.invalidateQueries({ queryKey: ["projetos"] });
+      qc.invalidateQueries({ queryKey: ["propostas"] });
+      qc.invalidateQueries({ queryKey: ["deals"] });
     },
   });
 }
