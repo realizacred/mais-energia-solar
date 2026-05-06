@@ -32,20 +32,22 @@ export function LeadDeleteDialog({
             <div className="w-9 h-9 rounded-lg bg-destructive/10 flex items-center justify-center shrink-0">
               <Trash2 className="w-5 h-5 text-destructive" />
             </div>
-            <AlertDialogTitle>Arquivar Lead</AlertDialogTitle>
+            <AlertDialogTitle>Excluir Lead</AlertDialogTitle>
           </div>
           <AlertDialogDescription>
-            Tem certeza que deseja arquivar o lead de {lead?.nome}? 
-            O status será alterado para "Arquivado" e ele poderá ser reativado depois.
+            Tem certeza que deseja excluir o lead de <strong>{lead?.nome}</strong>?
+            <br /><br />
+            Esta ação <strong>remove em cascata</strong>: cliente vinculado, projetos,
+            propostas, deals, orçamentos e demais ramificações. Não pode ser desfeito.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel>Cancelar</AlertDialogCancel>
           <AlertDialogAction
             onClick={onConfirm}
-            className="bg-warning text-warning-foreground hover:bg-warning/90"
+            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
           >
-            Arquivar
+            Excluir tudo
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
