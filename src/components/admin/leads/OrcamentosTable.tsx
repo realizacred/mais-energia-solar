@@ -131,7 +131,7 @@ export function OrcamentosTable({
             <TableHead className="w-[155px] min-w-[155px]">Telefone</TableHead>
             <TableHead className="hidden lg:table-cell">Consultor</TableHead>
             <TableHead className="hidden sm:table-cell">Localização</TableHead>
-            <TableHead className="hidden sm:table-cell">Consumo</TableHead>
+            <TableHead className="hidden sm:table-cell">Consumo / Geração</TableHead>
             <TableHead className="hidden sm:table-cell">Data</TableHead>
             <TableHead className="w-[60px] lg:w-[220px]" />
           </TableRow>
@@ -238,7 +238,14 @@ export function OrcamentosTable({
                   </Badge>
                 </TableCell>
                 <TableCell className="hidden sm:table-cell text-sm align-middle">
-                  {orc.media_consumo} kWh
+                  <div className="flex flex-col gap-0.5">
+                    <span className="font-medium">{orc.media_consumo} kWh</span>
+                    {orc.consumo_previsto != null && (
+                      <span className="text-xs text-muted-foreground">
+                        Geração: {orc.consumo_previsto} kWh
+                      </span>
+                    )}
+                  </div>
                 </TableCell>
                 <TableCell className="hidden sm:table-cell text-sm text-muted-foreground align-middle">
                   {format(new Date(orc.created_at), "dd/MM/yyyy", { locale: ptBR })}
