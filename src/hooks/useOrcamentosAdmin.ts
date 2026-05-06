@@ -242,18 +242,27 @@ export function useOrcamentosAdmin({ autoFetch = true, pageSize = PAGE_SIZE }: U
 
   const deleteOrcamento = useCallback(async (orcamentoId: string) => {
     try {
-      const { error } = await supabase
+      // Busca o lead pai e cascateia: lead → cliente → projetos → propostas → deals → orçamentos
+      const { data: orc, error: orcErr } = await supabase
         .from("orcamentos")
-        .delete()
-        .eq("id", orcamentoId);
+        .select("lead_id")
+        .eq("id", orcamentoId)
+        .maybeSingle();
+      if (orcErr) throw orcErr;
 
-      if (error) throw error;
+      if (orc?.lead_id) {
+        const { error } = await supabase.rpc("delete_lead_cascade", { p_lead_id: orc.lead_id });
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from("orcamentos").delete().eq("id", orcamentoId);
+        if (error) throw error;
+      }
 
       setOrcamentos((prev) => prev.filter((o) => o.id !== orcamentoId));
       setTotalCount((prev) => prev - 1);
       toast({
-        title: "Orçamento excluído",
-        description: "O orçamento foi excluído com sucesso.",
+        title: "Lead excluído",
+        description: "Lead, orçamento e vínculos (cliente, projetos, propostas, deals) foram removidos.",
       });
       return true;
     } catch (error) {
