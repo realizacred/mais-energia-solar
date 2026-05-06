@@ -7,6 +7,7 @@ import {
   setWebhookRequest,
   type WaApiFlavor,
 } from "../_shared/wa-provider.ts";
+import { enforceTenantAccess } from "../_shared/entitlement.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
