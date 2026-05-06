@@ -9,6 +9,7 @@ const DevResetImportedTab = lazy(() => import("./DevResetImportedPage"));
 const DevResetMigratedTab = lazy(() => import("./DevResetMigratedPage"));
 const DevResetNativeTab = lazy(() => import("./DevResetNativePage"));
 const DevResetProjectAreaTab = lazy(() => import("./DevResetProjectAreaPage"));
+const DevResetSmTotalTab = lazy(() => import("./DevResetSmTotalPage"));
 
 export default function DevToolsPage() {
   return (
