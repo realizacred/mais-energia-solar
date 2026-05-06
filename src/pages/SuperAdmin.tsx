@@ -58,19 +58,9 @@ export default function SuperAdmin() {
         <Route
           path="billing"
           element={
-            <SuperAdminPlaceholderPage
-              icon={CreditCard}
-              title="Billing"
-              description="Visão global de assinaturas, MRR e dunning"
-              phase="PR-2"
-              scope={[
-                "Lista de assinaturas com filtros (status, plano)",
-                "MRR / Churn / Trial-to-paid",
-                "Cobranças em atraso e fila de dunning",
-                "Replay de webhook Asaas",
-                "Reenvio de cobrança",
-              ]}
-            />
+            <Suspense fallback={<PageFallback />}>
+              <BillingPage />
+            </Suspense>
           }
         />
         <Route
