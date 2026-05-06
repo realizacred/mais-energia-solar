@@ -22632,6 +22632,9 @@ export type Database = {
           current_period_start: string
           external_id: string | null
           id: string
+          lock_level: string
+          overdue_grace_until: string | null
+          overdue_since: string | null
           plan_id: string
           status: Database["public"]["Enums"]["subscription_status"]
           tenant_id: string
@@ -22646,6 +22649,9 @@ export type Database = {
           current_period_start?: string
           external_id?: string | null
           id?: string
+          lock_level?: string
+          overdue_grace_until?: string | null
+          overdue_since?: string | null
           plan_id: string
           status?: Database["public"]["Enums"]["subscription_status"]
           tenant_id: string
@@ -22660,6 +22666,9 @@ export type Database = {
           current_period_start?: string
           external_id?: string | null
           id?: string
+          lock_level?: string
+          overdue_grace_until?: string | null
+          overdue_since?: string | null
           plan_id?: string
           status?: Database["public"]["Enums"]["subscription_status"]
           tenant_id?: string
@@ -23081,28 +23090,37 @@ export type Database = {
       tenant_feature_overrides: {
         Row: {
           created_at: string
+          created_by: string | null
           enabled: boolean
+          expires_at: string | null
           feature_id: string
           id: string
           reason: string | null
+          source: string
           tenant_id: string
           updated_at: string
         }
         Insert: {
           created_at?: string
+          created_by?: string | null
           enabled: boolean
+          expires_at?: string | null
           feature_id: string
           id?: string
           reason?: string | null
+          source?: string
           tenant_id: string
           updated_at?: string
         }
         Update: {
           created_at?: string
+          created_by?: string | null
           enabled?: boolean
+          expires_at?: string | null
           feature_id?: string
           id?: string
           reason?: string | null
+          source?: string
           tenant_id?: string
           updated_at?: string
         }
@@ -23246,6 +23264,42 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      tenant_limit_overrides: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          expires_at: string | null
+          id: string
+          limit_key: string
+          limit_value: number
+          override_reason: string | null
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          expires_at?: string | null
+          id?: string
+          limit_key: string
+          limit_value: number
+          override_reason?: string | null
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          expires_at?: string | null
+          id?: string
+          limit_key?: string
+          limit_value?: number
+          override_reason?: string | null
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       tenant_premises: {
         Row: {
@@ -28478,6 +28532,17 @@ export type Database = {
         Args: { p_from_versao_id: string }
         Returns: Json
       }
+      consume_tenant_limit: {
+        Args: {
+          _delta?: number
+          _metadata?: Json
+          _metric_key: string
+          _source?: string
+          _tenant_id: string
+          _user_id?: string
+        }
+        Returns: Json
+      }
       create_appointment_idempotent: {
         Args: {
           _all_day?: boolean
@@ -29711,6 +29776,15 @@ export type Database = {
         Args: { _tenant_id: string }
         Returns: Json
       }
+      super_admin_get_tenant_entitlements: {
+        Args: { _tenant_id: string }
+        Returns: Json
+      }
+      super_admin_get_tenant_usage_events: {
+        Args: { _limit?: number; _tenant_id: string }
+        Returns: Json
+      }
+      super_admin_global_health: { Args: never; Returns: Json }
       super_admin_list_subscriptions: {
         Args: { _limit?: number; _status?: string }
         Returns: Json
@@ -29719,13 +29793,40 @@ export type Database = {
         Args: { _limit?: number; _provider?: string; _status?: string }
         Returns: Json
       }
+      super_admin_reset_usage: {
+        Args: { _metric_key: string; _tenant_id: string }
+        Returns: Json
+      }
+      super_admin_set_feature_override: {
+        Args: {
+          _enabled: boolean
+          _expires_at?: string
+          _feature_key: string
+          _reason?: string
+          _source?: string
+          _tenant_id: string
+        }
+        Returns: Json
+      }
+      super_admin_set_limit_override: {
+        Args: {
+          _expires_at?: string
+          _limit_key: string
+          _limit_value: number
+          _reason?: string
+          _tenant_id: string
+        }
+        Returns: Json
+      }
       sync_concessionarias_from_subgrupos: { Args: never; Returns: Json }
       sync_proposta_to_projeto_deal: {
         Args: { p_proposta_id: string }
         Returns: undefined
       }
       tenant_and_user_active: { Args: never; Returns: boolean }
+      tenant_health_score: { Args: { _tenant_id: string }; Returns: Json }
       tenant_is_active: { Args: { _tenant_id?: string }; Returns: boolean }
+      tenant_lock_state: { Args: { _tenant_id: string }; Returns: Json }
       tenant_of_projeto: { Args: { _projeto_id: string }; Returns: string }
       touch_contact_last_interaction: {
         Args: { p_at: string; p_phone_e164: string; p_tenant_id: string }
@@ -29764,6 +29865,10 @@ export type Database = {
         }[]
       }
       validate_phone_quality: { Args: { _phone: string }; Returns: boolean }
+      validate_plan_transition: {
+        Args: { _tenant_id: string; _to_plan_id: string }
+        Returns: Json
+      }
     }
     Enums: {
       achievement_type:
