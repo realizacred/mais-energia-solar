@@ -349,6 +349,17 @@ function ProposalMessageConfigPageInner() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
+                {/* Banner: preview com dados fictícios — F1 transparência */}
+                <div className="flex items-start gap-2 rounded-md border border-amber-300/60 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-800/60 p-2.5">
+                  <ShieldAlert className="h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+                  <div className="text-[11px] leading-snug text-amber-900 dark:text-amber-200">
+                    <strong>Pré-visualização com dados de exemplo.</strong> Os valores
+                    abaixo (cliente "João Silva", R$ 42.500, PROP-2026-0042…) são fictícios
+                    e servem só para ver o layout do template. A mensagem real é gerada na
+                    proposta com dados verdadeiros do cliente.
+                  </div>
+                </div>
+
                 <div className="flex items-center gap-2">
                   <Select
                     value={previewMode}
@@ -374,6 +385,10 @@ function ProposalMessageConfigPageInner() {
                       <SelectItem value="completa">Completa</SelectItem>
                     </SelectContent>
                   </Select>
+                  <Badge variant="outline" className="text-[9px] gap-1 ml-auto">
+                    <Eye className="h-3 w-3" />
+                    Dados de exemplo
+                  </Badge>
                 </div>
 
                 <ScrollArea className="h-[350px]">
@@ -381,11 +396,6 @@ function ProposalMessageConfigPageInner() {
                     {previewText}
                   </div>
                 </ScrollArea>
-
-                <p className="text-[10px] text-muted-foreground flex items-center gap-1">
-                  <Eye className="h-3 w-3" />
-                  Preview com dados de exemplo — não representa uma proposta real
-                </p>
               </CardContent>
             </Card>
           </div>
