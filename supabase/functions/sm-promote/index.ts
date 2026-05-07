@@ -691,6 +691,95 @@ function canonicalizePhoneForDedup(raw: string): string {
   return d;
 }
 
+/**
+ * Similaridade aproximada entre nomes (primeiro token + Jaccard de tokens).
+ * Retorna número entre 0 e 1. Usada para detectar homônimos com o mesmo
+ * telefone (ex.: telefone reciclado por outra pessoa).
+ */
+function nameSimilarity(a: string | null | undefined, b: string | null | undefined): number {
+  const norm = (s: string) =>
+    s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^a-z0-9 ]+/g, " ").trim().split(/\s+/).filter(Boolean);
+  const ta = norm(a ?? "");
+  const tb = norm(b ?? "");
+  if (!ta.length || !tb.length) return 0;
+  // Primeiro nome diferente já é forte sinal de pessoa diferente.
+  const firstA = ta[0];
+  const firstB = tb[0];
+  if (firstA && firstB && firstA !== firstB && !firstA.startsWith(firstB) && !firstB.startsWith(firstA)) {
+    return 0;
+  }
+  const sa = new Set(ta);
+  const sb = new Set(tb);
+  let inter = 0;
+  for (const t of sa) if (sb.has(t)) inter++;
+  return inter / new Set([...ta, ...tb]).size;
+}
+
+/** Erro semântico — propaga manual_review sem virar PROMOTE_FAILED genérico. */
+class ManualReviewRequired extends Error {
+  reason: string;
+  conflictEntityType: string;
+  conflictEntityId: string;
+  details: Record<string, unknown>;
+  constructor(reason: string, conflictEntityType: string, conflictEntityId: string, details: Record<string, unknown> = {}) {
+    super(`MANUAL_REVIEW:${reason}`);
+    this.name = "ManualReviewRequired";
+    this.reason = reason;
+    this.conflictEntityType = conflictEntityType;
+    this.conflictEntityId = conflictEntityId;
+    this.details = details;
+  }
+}
+
+async function isInManualReview(
+  admin: SupabaseClient, tenantId: string, sourceEntityType: string, sourceEntityId: string,
+): Promise<{ id: string; reason: string; attempts: number; conflict_entity_id: string | null } | null> {
+  const { data } = await admin
+    .from("sm_manual_review")
+    .select("id, reason, attempts, conflict_entity_id")
+    .eq("tenant_id", tenantId)
+    .eq("source", "solarmarket")
+    .eq("source_entity_type", sourceEntityType)
+    .eq("source_entity_id", sourceEntityId)
+    .is("resolved_at", null)
+    .maybeSingle();
+  return (data as any) ?? null;
+}
+
+async function upsertManualReview(
+  admin: SupabaseClient, tenantId: string,
+  sourceEntityType: string, sourceEntityId: string,
+  reason: string,
+  conflict: { entityType?: string; entityId?: string | null; metadata?: Record<string, unknown> } = {},
+): Promise<void> {
+  // Tenta increment via RPC simples (select + upsert)
+  const existing = await isInManualReview(admin, tenantId, sourceEntityType, sourceEntityId);
+  if (existing) {
+    await admin.from("sm_manual_review")
+      .update({
+        attempts: (existing.attempts ?? 0) + 1,
+        reason,
+        conflict_entity_type: conflict.entityType ?? null,
+        conflict_entity_id: conflict.entityId ?? null,
+        conflict_metadata: conflict.metadata ?? {},
+      })
+      .eq("id", existing.id);
+    return;
+  }
+  await admin.from("sm_manual_review").insert({
+    tenant_id: tenantId,
+    source: "solarmarket",
+    source_entity_type: sourceEntityType,
+    source_entity_id: sourceEntityId,
+    reason,
+    attempts: 1,
+    conflict_entity_type: conflict.entityType ?? null,
+    conflict_entity_id: conflict.entityId ?? null,
+    conflict_metadata: conflict.metadata ?? {},
+  });
+}
+
 function normalizeSmClient(raw: AnyObj) {
   const c = raw?.client ?? raw ?? {};
   // Dígitos para lookups/UNIQUE; formatado para gravação visível.
