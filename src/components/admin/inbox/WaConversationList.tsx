@@ -33,6 +33,7 @@ import type { WaConversation, WaTag } from "@/hooks/useWaInbox";
 import { toCanonicalPhoneDigits } from "@/utils/phone/toCanonicalPhoneDigits";
 import { deriveConversationStatus, DERIVED_STATUS_CONFIG } from "./useConversationStatus";
 import type { WaInstance } from "@/hooks/useWaInstances";
+import { resolveWaDisplayName } from "@/lib/wa/resolveDisplayName";
 
 // ── Urgency style by time since last message ──────────
 function getUrgencyStyle(lastMessageAt: string | null, status: string): { background: string } {
