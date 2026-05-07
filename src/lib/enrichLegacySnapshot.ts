@@ -57,12 +57,26 @@ export async function enrichLegacySnapshot(params: EnrichParams): Promise<Legacy
     const tenantId = profile?.tenant_id;
     if (!tenantId) return result;
 
-    // ── Premissas nativas ──
-    const { data: premissasNativas } = await (supabase as any)
-      .from("premissas_tecnicas")
-      .select("degradacao_anual_percent, reajuste_tarifa_anual_percent, performance_ratio, vida_util_anos, horas_sol_pico, irradiacao_media_kwh_m2, fator_perdas_percent")
+    // ── Premissas nativas (SSOT: tenant_premises) ──
+    // Campos sem equivalente em tenant_premises ficam null e usam fallback do snapshot:
+    //   performance_ratio, horas_sol_pico, degradacao_anual_percent, fator_perdas_percent
+    const { data: tp } = await (supabase as any)
+      .from("tenant_premises")
+      .select("inflacao_energetica, vida_util_sistema, base_irradiancia")
       .eq("tenant_id", tenantId)
       .maybeSingle();
+
+    const premissasNativas = tp
+      ? {
+          degradacao_anual_percent: null as number | null,
+          reajuste_tarifa_anual_percent: tp.inflacao_energetica ?? null,
+          performance_ratio: null as number | null,
+          vida_util_anos: tp.vida_util_sistema ?? null,
+          horas_sol_pico: null as number | null,
+          irradiacao_media_kwh_m2: tp.base_irradiancia ?? null,
+          fator_perdas_percent: null as number | null,
+        }
+      : null;
 
     if (premissasNativas) {
       const ep = params.existingPremissas || {};

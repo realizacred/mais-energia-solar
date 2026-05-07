@@ -48,36 +48,19 @@ interface TenantConfig {
 }
 
 async function getTenantConfig(): Promise<TenantConfig> {
-  // Try tenant_premises first (SSOT)
+  // SSOT: tenant_premises (fallback removido — calculadora_config deprecated)
   const { data: tp } = await supabase
     .from("tenant_premises")
     .select("tarifa, kg_co2_por_kwh, shading_loss_percent, soiling_loss_percent, other_losses_percent")
     .limit(1)
     .maybeSingle();
 
-  if (tp) {
-    return {
-      tarifa_kwh: (tp as any)?.tarifa ?? 0.85,
-      kg_co2_per_kwh: (tp as any)?.kg_co2_por_kwh ?? 0.084,
-      shading_loss_percent: (tp as any)?.shading_loss_percent ?? 8,
-      soiling_loss_percent: (tp as any)?.soiling_loss_percent ?? 5,
-      other_losses_percent: (tp as any)?.other_losses_percent ?? 12,
-    };
-  }
-
-  // Fallback to calculadora_config
-  const { data } = await supabase
-    .from("calculadora_config")
-    .select("tarifa_media_kwh, kg_co2_por_kwh")
-    .limit(1)
-    .maybeSingle();
-
   return {
-    tarifa_kwh: (data as any)?.tarifa_media_kwh ?? 0.85,
-    kg_co2_per_kwh: (data as any)?.kg_co2_por_kwh ?? 0.084,
-    shading_loss_percent: 8,
-    soiling_loss_percent: 5,
-    other_losses_percent: 12,
+    tarifa_kwh: (tp as any)?.tarifa ?? 0.85,
+    kg_co2_per_kwh: (tp as any)?.kg_co2_por_kwh ?? 0.084,
+    shading_loss_percent: (tp as any)?.shading_loss_percent ?? 8,
+    soiling_loss_percent: (tp as any)?.soiling_loss_percent ?? 5,
+    other_losses_percent: (tp as any)?.other_losses_percent ?? 12,
   };
 }
 

@@ -109,21 +109,21 @@ export function UCEconomyReportTab({ unitId }: Props) {
     staleTime: 1000 * 60 * 5,
   });
 
-  // Fetch tenant tariff from calculadora_config
+  // Fetch tenant tariff (SSOT: tenant_premises.tarifa)
   const { data: calcConfig } = useQuery({
-    queryKey: ["calc_config_tariff"],
+    queryKey: ["tenant-premises", "tariff"],
     queryFn: async () => {
-      const { data } = await supabase
-        .from("calculadora_config")
-        .select("tarifa_media_kwh")
+      const { data } = await (supabase as any)
+        .from("tenant_premises")
+        .select("tarifa")
         .limit(1)
         .maybeSingle();
-      return data as { tarifa_media_kwh: number } | null;
+      return data as { tarifa: number } | null;
     },
     staleTime: 1000 * 60 * 15,
   });
 
-  const tariff = calcConfig?.tarifa_media_kwh || DEFAULT_TARIFF;
+  const tariff = calcConfig?.tarifa || DEFAULT_TARIFF;
 
   // Available years from invoices
   const years = useMemo(() => {

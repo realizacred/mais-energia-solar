@@ -26,17 +26,44 @@ export function useRefreshPricingConfig() {
 }
 
 // ── Premissas Tecnicas ───────────────────────────────────────
+/**
+ * @deprecated Migrado para `tenant_premises` (SSOT). Mantido por compat
+ * de assinatura. Lê de `tenant_premises` e mapeia para o shape antigo.
+ * Campos sem equivalente em tenant_premises retornam null:
+ *   - degradacao_anual_percent
+ *   - performance_ratio
+ *   - horas_sol_pico
+ *   - fator_perdas_percent
+ *   - custo_disponibilidade_*, taxas_fixas_mensais
+ * Use diretamente `useTenantPremises` / `useSolarPremises` em código novo.
+ */
 export function usePremissasTecnicas() {
   return useQuery({
     queryKey: ["premissas-tecnicas"],
     queryFn: async () => {
       const { data, error } = await (supabase as any)
-        .from("premissas_tecnicas")
-        .select("id, irradiacao_media_kwh_m2, performance_ratio, degradacao_anual_percent, vida_util_anos, fator_perdas_percent, horas_sol_pico, reajuste_tarifa_anual_percent, taxa_selic_anual, ipca_anual, custo_disponibilidade_mono, custo_disponibilidade_bi, custo_disponibilidade_tri, taxas_fixas_mensais")
+        .from("tenant_premises")
+        .select("id, base_irradiancia, vida_util_sistema, inflacao_energetica")
         .limit(1)
         .maybeSingle();
       if (error) throw error;
-      return data ?? null;
+      if (!data) return null;
+      return {
+        id: data.id,
+        irradiacao_media_kwh_m2: data.base_irradiancia ?? null,
+        performance_ratio: null,
+        degradacao_anual_percent: null,
+        vida_util_anos: data.vida_util_sistema ?? null,
+        fator_perdas_percent: null,
+        horas_sol_pico: null,
+        reajuste_tarifa_anual_percent: data.inflacao_energetica ?? null,
+        taxa_selic_anual: null,
+        ipca_anual: null,
+        custo_disponibilidade_mono: null,
+        custo_disponibilidade_bi: null,
+        custo_disponibilidade_tri: null,
+        taxas_fixas_mensais: null,
+      };
     },
     staleTime: STALE_CONFIG,
   });
@@ -44,7 +71,11 @@ export function usePremissasTecnicas() {
 
 export function useRefreshPremissasTecnicas() {
   const qc = useQueryClient();
-  return () => qc.invalidateQueries({ queryKey: ["premissas-tecnicas"] });
+  return () => {
+    qc.invalidateQueries({ queryKey: ["premissas-tecnicas"] });
+    qc.invalidateQueries({ queryKey: ["tenant-premises"] });
+    qc.invalidateQueries({ queryKey: ["solar-premises"] });
+  };
 }
 
 // ── Proposta Templates ───────────────────────────────────────

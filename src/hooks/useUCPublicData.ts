@@ -88,12 +88,13 @@ export function useUCPublicTarifa(tenantId: string | undefined) {
   return useQuery({
     queryKey: ["public_tarifa", tenantId],
     queryFn: async () => {
-      const { data } = await supabase
-        .from("calculadora_config")
-        .select("tarifa_media_kwh")
+      // SSOT: tenant_premises.tarifa (substitui calculadora_config.tarifa_media_kwh)
+      const { data } = await (supabase as any)
+        .from("tenant_premises")
+        .select("tarifa")
         .eq("tenant_id", tenantId!)
         .maybeSingle();
-      return data?.tarifa_media_kwh ?? 0.85;
+      return (data as any)?.tarifa ?? 0.85;
     },
     enabled: !!tenantId,
     staleTime: 1000 * 60 * 15,

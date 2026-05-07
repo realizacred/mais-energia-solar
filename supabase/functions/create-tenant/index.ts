@@ -115,8 +115,8 @@ Deno.serve(async (req) => {
     // 6. Create default brand_settings
     await adminClient.from("brand_settings").insert({ tenant_id: tenant.id });
 
-    // 7. Create default calculadora_config
-    await adminClient.from("calculadora_config").insert({ tenant_id: tenant.id });
+    // 7. Create default tenant_premises (SSOT — substitui calculadora_config legado)
+    await adminClient.from("tenant_premises").insert({ tenant_id: tenant.id });
 
     // 8. Seed default proposal_charts
     const defaultCharts = [
