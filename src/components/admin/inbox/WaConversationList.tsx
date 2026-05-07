@@ -246,11 +246,10 @@ function ConversationItem({
     <button
       onClick={() => onSelect(conv)}
       onContextMenu={(e) => {
+        e.preventDefault();
         if (onContextMenu) {
-          e.preventDefault();
+          e.stopPropagation();
           onContextMenu(e, conv);
-        } else {
-          e.preventDefault();
         }
       }}
       aria-selected={isSelected}

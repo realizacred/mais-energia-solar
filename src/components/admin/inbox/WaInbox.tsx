@@ -999,6 +999,22 @@ export function WaInbox({ vendorMode = false, vendorUserId, showCompactStats = f
           const phone = convContextMenu?.conversation.cliente_telefone || "";
           window.open(`/admin?tab=clientes&phone=${encodeURIComponent(phone)}`, "_blank");
         }}
+        onOpenConversation={() => {
+          if (!convContextMenu) return;
+          setSelectedConv(convContextMenu.conversation);
+        }}
+        onCopyPhone={() => {
+          const phone = convContextMenu?.conversation.cliente_telefone || "";
+          if (!phone) return;
+          navigator.clipboard?.writeText(phone).then(
+            () => toast({ title: "Telefone copiado", description: phone }),
+            () => toast({ title: "Falha ao copiar", variant: "destructive" }),
+          );
+        }}
+        isMuted={convContextMenu ? mutedIds.has(convContextMenu.conversation.id) : false}
+        onToggleMute={() => convContextMenu && toggleMute(convContextMenu.conversation.id)}
+        isHidden={convContextMenu ? hiddenIds.has(convContextMenu.conversation.id) : false}
+        onToggleHide={() => convContextMenu && toggleHide(convContextMenu.conversation.id)}
       />
     </div>
   );

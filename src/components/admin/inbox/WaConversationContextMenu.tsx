@@ -15,6 +15,12 @@ import {
   UserPlus,
   Building2,
   ChevronRight,
+  MessageSquare,
+  Copy,
+  BellOff,
+  Bell,
+  EyeOff,
+  Eye,
 } from "lucide-react";
 import type { WaConversation, WaTag } from "@/hooks/useWaInbox";
 
@@ -40,6 +46,12 @@ interface Props {
   onReopen: () => void;
   onCreateLead: () => void;
   onCreateCliente: () => void;
+  onOpenConversation?: () => void;
+  onCopyPhone?: () => void;
+  isMuted?: boolean;
+  onToggleMute?: () => void;
+  isHidden?: boolean;
+  onToggleHide?: () => void;
 }
 
 export function WaConversationContextMenu({
@@ -58,6 +70,12 @@ export function WaConversationContextMenu({
   onReopen,
   onCreateLead,
   onCreateCliente,
+  onOpenConversation,
+  onCopyPhone,
+  isMuted,
+  onToggleMute,
+  isHidden,
+  onToggleHide,
 }: Props) {
   const ref = useRef<HTMLDivElement>(null);
   const [tagsOpen, setTagsOpen] = useState(false);
@@ -69,10 +87,15 @@ export function WaConversationContextMenu({
     }
     const handler = () => onClose();
     const esc = (e: KeyboardEvent) => e.key === "Escape" && onClose();
-    window.addEventListener("click", handler);
-    window.addEventListener("contextmenu", handler);
-    window.addEventListener("keydown", esc);
+    // Defer attaching listeners so the same contextmenu/click event that
+    // opened the menu does not immediately close it via window bubbling.
+    const timer = window.setTimeout(() => {
+      window.addEventListener("click", handler);
+      window.addEventListener("contextmenu", handler);
+      window.addEventListener("keydown", esc);
+    }, 0);
     return () => {
+      window.clearTimeout(timer);
       window.removeEventListener("click", handler);
       window.removeEventListener("contextmenu", handler);
       window.removeEventListener("keydown", esc);
@@ -103,6 +126,12 @@ export function WaConversationContextMenu({
       onClick={(e) => e.stopPropagation()}
       onContextMenu={(e) => e.preventDefault()}
     >
+      {onOpenConversation && (
+        <button className={item} onClick={run(onOpenConversation)}>
+          <MessageSquare className="h-4 w-4 text-muted-foreground" />
+          Abrir conversa
+        </button>
+      )}
       <button className={item} onClick={run(onTogglePin)}>
         {isPinned ? <PinOff className="h-4 w-4 text-muted-foreground" /> : <Pin className="h-4 w-4 text-muted-foreground" />}
         {isPinned ? "Desafixar" : "Fixar conversa"}
@@ -158,6 +187,26 @@ export function WaConversationContextMenu({
       </div>
 
       <div className="h-px bg-border/50 mx-2 my-1" />
+
+      {onToggleMute && (
+        <button className={item} onClick={run(onToggleMute)}>
+          {isMuted ? <Bell className="h-4 w-4 text-muted-foreground" /> : <BellOff className="h-4 w-4 text-muted-foreground" />}
+          {isMuted ? "Ativar notificações" : "Silenciar conversa"}
+        </button>
+      )}
+      {onToggleHide && (
+        <button className={item} onClick={run(onToggleHide)}>
+          {isHidden ? <Eye className="h-4 w-4 text-muted-foreground" /> : <EyeOff className="h-4 w-4 text-muted-foreground" />}
+          {isHidden ? "Reexibir conversa" : "Ocultar conversa"}
+        </button>
+      )}
+      {onCopyPhone && (
+        <button className={item} onClick={run(onCopyPhone)}>
+          <Copy className="h-4 w-4 text-muted-foreground" />
+          Copiar telefone
+        </button>
+      )}
+
 
       {isResolved ? (
         <button className={item} onClick={run(onReopen)}>
