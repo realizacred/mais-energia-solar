@@ -670,10 +670,32 @@ function isPlaceholderPhone(digits: string): boolean {
   return false;
 }
 
+/**
+ * Canonicaliza telefone BR para alinhar com a trigger DB `canonical_phone_digits`.
+ * Adiciona 9º dígito em celulares antigos (10d começando com 8/9 após DDD) — caso
+ * contrário o lookup `telefone_normalized = X` falha contra clientes existentes
+ * gravados com 11d, e o INSERT explode em uq_clientes_tenant_telefone porque a
+ * trigger BEFORE INSERT canoniza para 11d na hora de gravar (ver propostas
+ * 74/89/884/925 — bug histórico de PROMOTE_FAILED).
+ */
+function canonicalizePhoneForDedup(raw: string): string {
+  let d = raw;
+  if (d.length === 13 && d.startsWith("55")) d = d.slice(2);
+  if (d.length === 12 && d.startsWith("55")) d = d.slice(2);
+  if (d.length !== 10 && d.length !== 11) return raw;
+  const ddd = d.slice(0, 2);
+  const rest = d.slice(2);
+  const dddNum = Number(ddd);
+  if (dddNum < 11 || dddNum > 99) return raw;
+  if (rest.length === 8 && /^[89]/.test(rest)) return `${ddd}9${rest}`;
+  return d;
+}
+
 function normalizeSmClient(raw: AnyObj) {
   const c = raw?.client ?? raw ?? {};
   // Dígitos para lookups/UNIQUE; formatado para gravação visível.
-  const phoneDigitsRaw = onlyDigits(c.primaryPhone ?? c.phone ?? c.telefone) ?? "";
+  const phoneDigitsRawUncanon = onlyDigits(c.primaryPhone ?? c.phone ?? c.telefone) ?? "";
+  const phoneDigitsRaw = phoneDigitsRawUncanon ? canonicalizePhoneForDedup(phoneDigitsRawUncanon) : "";
   const docDigits = onlyDigits(c.cnpjCpf ?? c.cpfCnpj ?? c.cpf_cnpj) ?? "";
   const cepDigits = onlyDigits(c.zipCode ?? c.cep) ?? "";
   const phoneFmt = fmtPhoneBR(phoneDigitsRaw);
