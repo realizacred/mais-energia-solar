@@ -190,6 +190,17 @@ function ConversationItem({
   const isNote = conv.last_message_preview?.startsWith("[Nota interna]") || conv.last_message_preview?.startsWith("[Nota]");
   const displayName = formatWaDisplayName(conv);
 
+  // Identity divergence: nome canônico (lead/cliente) ≠ pushName do WhatsApp
+  const crmName = conv.cliente_nome_real || conv.lead_nome || null;
+  const pushName = conv.cliente_nome?.trim() || null;
+  const hasIdentityDivergence = !!(
+    crmName &&
+    pushName &&
+    !conv.is_group &&
+    crmName.trim().toLowerCase() !== pushName.toLowerCase() &&
+    pushName.toLowerCase() !== conv.instance_profile_name?.trim().toLowerCase()
+  );
+
   const responsible = vendedores.find((v) => v.user_id === conv.assigned_to);
 
   // Urgency bar (inline style for reliable rendering)
