@@ -79,6 +79,7 @@ import {
   useCheckClienteDependencies,
   useDeletarCliente,
   useClientesRealtime,
+  useClientesProjetosCount,
   DuplicateClienteError,
   type ClienteRow,
 } from "@/hooks/useClientes";
