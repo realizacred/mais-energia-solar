@@ -79,7 +79,51 @@ export function WaSaveContactModal({
   const [telefone, setTelefone] = useState("");
   const [email, setEmail] = useState("");
   const [cpfCnpj, setCpfCnpj] = useState("");
+  const [cep, setCep] = useState("");
+  const [estado, setEstado] = useState("");
+  const [cidade, setCidade] = useState("");
+  const [bairro, setBairro] = useState("");
+  const [rua, setRua] = useState("");
+  const [numero, setNumero] = useState("");
+  const [observacoes, setObservacoes] = useState("");
+  const [linkedLeadId, setLinkedLeadId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+
+  // Carrega lead já vinculado na conversa para pré-preencher e manter o vínculo
+  useEffect(() => {
+    if (!open || !conversationId) return;
+    let cancelled = false;
+    (async () => {
+      const { data: conv } = await supabase
+        .from("wa_conversations")
+        .select("lead_id")
+        .eq("id", conversationId)
+        .maybeSingle();
+      const leadId = (conv as any)?.lead_id ?? null;
+      if (!leadId || cancelled) return;
+      const { data: lead } = await supabase
+        .from("leads")
+        .select("id, nome, telefone, email, cep, estado, cidade, bairro, rua, numero, observacoes")
+        .eq("id", leadId)
+        .maybeSingle();
+      if (cancelled || !lead) return;
+      const l = lead as any;
+      setLinkedLeadId(l.id);
+      if (l.nome && !initialName?.trim()) setNome(l.nome);
+      if (l.telefone && !initialPhone) setTelefone(stripCountry(l.telefone));
+      if (l.email) setEmail(l.email);
+      if (l.cep) setCep(l.cep);
+      if (l.estado) setEstado(l.estado);
+      if (l.cidade) setCidade(l.cidade);
+      if (l.bairro) setBairro(l.bairro);
+      if (l.rua) setRua(l.rua);
+      if (l.numero) setNumero(l.numero);
+      if (l.observacoes) setObservacoes(l.observacoes);
+      // Se a conversa já está vinculada a um lead, sugerir criação como cliente
+      setMode("cliente");
+    })();
+    return () => { cancelled = true; };
+  }, [open, conversationId, initialName, initialPhone]);
 
   useEffect(() => {
     if (!open) return;
@@ -87,6 +131,9 @@ export function WaSaveContactModal({
     setTelefone(stripCountry(initialPhone || ""));
     setEmail("");
     setCpfCnpj("");
+    setCep(""); setEstado(""); setCidade(""); setBairro(""); setRua(""); setNumero("");
+    setObservacoes("");
+    setLinkedLeadId(null);
     setMode("lead");
   }, [open, initialPhone, initialName]);
 
@@ -142,7 +189,12 @@ export function WaSaveContactModal({
   });
 
   const cpfValid = !cpfCnpj || isValidCpfCnpj(cpfCnpj);
-  const canSave = nome.trim().length >= 2 && phoneDigits.length >= 10 && cpfValid && !saving;
+  // RB-63: exige nome + ao menos 1 contato (telefone OU email OU CPF/CNPJ válido)
+  const hasContact =
+    phoneDigits.length >= 10 ||
+    email.trim().length >= 5 ||
+    (onlyDigits(cpfCnpj).length >= 11 && cpfValid);
+  const canSave = nome.trim().length >= 2 && hasContact && cpfValid && !saving;
 
   const linkConversation = async (link: { leadId: string | null; clienteId: string | null }) => {
     if (conversationId) {
@@ -185,13 +237,23 @@ export function WaSaveContactModal({
             telefone: telefone.trim(),
             email: email.trim() || null,
             cpf_cnpj: cpfCnpj.trim() || null,
+            cep: cep.trim() || null,
+            estado: estado.trim() || null,
+            cidade: cidade.trim() || null,
+            bairro: bairro.trim() || null,
+            rua: rua.trim() || null,
+            numero: numero.trim() || null,
+            observacoes: observacoes.trim() || null,
+            origem: "WhatsApp",
+            lead_id: linkedLeadId,
             cliente_code: `CLI-${Date.now()}`,
           } as any)
           .select("id")
           .single();
         if (error) throw error;
         await queryClient.invalidateQueries({ queryKey: ["clientes_list"] });
-        await linkConversation({ leadId: null, clienteId: data.id });
+        await queryClient.invalidateQueries({ queryKey: ["clientes"] });
+        await linkConversation({ leadId: linkedLeadId, clienteId: data.id });
         toast({ title: "Cliente criado", description: `${nome} cadastrado e vinculado.` });
       } else {
         // Lead — campos NOT NULL: estado, cidade, area, tipo_telhado, rede_atendimento,
@@ -202,8 +264,13 @@ export function WaSaveContactModal({
             nome: nome.trim(),
             telefone: telefone.trim(),
             email: email.trim() || null,
-            estado: "—",
-            cidade: "—",
+            estado: estado.trim() || "—",
+            cidade: cidade.trim() || "—",
+            cep: cep.trim() || null,
+            bairro: bairro.trim() || null,
+            rua: rua.trim() || null,
+            numero: numero.trim() || null,
+            observacoes: observacoes.trim() || null,
             area: 0,
             tipo_telhado: "—",
             rede_atendimento: "—",
@@ -300,7 +367,7 @@ export function WaSaveContactModal({
                 <Input value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Nome completo" autoFocus />
               </div>
               <div className="space-y-1">
-                <Label className="text-[11px]">Telefone *</Label>
+                <Label className="text-[11px]">Telefone</Label>
                 <PhoneInput value={telefone} onChange={setTelefone} />
               </div>
               <div className="space-y-1">
@@ -316,12 +383,41 @@ export function WaSaveContactModal({
                   )}
                 </div>
               )}
+              <div className="space-y-1">
+                <Label className="text-[11px]">CEP</Label>
+                <Input value={cep} onChange={(e) => setCep(e.target.value)} placeholder="00000-000" />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-[11px]">Cidade / UF</Label>
+                <div className="flex gap-1.5">
+                  <Input value={cidade} onChange={(e) => setCidade(e.target.value)} placeholder="Cidade" />
+                  <Input value={estado} onChange={(e) => setEstado(e.target.value.toUpperCase().slice(0,2))} placeholder="UF" className="w-14" />
+                </div>
+              </div>
+              <div className="space-y-1 sm:col-span-2">
+                <Label className="text-[11px]">Rua / Nº / Bairro</Label>
+                <div className="flex gap-1.5">
+                  <Input value={rua} onChange={(e) => setRua(e.target.value)} placeholder="Rua" className="flex-1" />
+                  <Input value={numero} onChange={(e) => setNumero(e.target.value)} placeholder="Nº" className="w-16" />
+                  <Input value={bairro} onChange={(e) => setBairro(e.target.value)} placeholder="Bairro" className="flex-1" />
+                </div>
+              </div>
+              <div className="space-y-1 sm:col-span-2">
+                <Label className="text-[11px]">Observações</Label>
+                <Input value={observacoes} onChange={(e) => setObservacoes(e.target.value)} placeholder="Notas internas" />
+              </div>
             </div>
 
-            {mode === "lead" && (
-              <p className="text-[10px] text-muted-foreground flex items-start gap-1.5">
-                <Search className="w-3 h-3 mt-0.5 shrink-0" />
-                Campos adicionais (cidade, consumo, área) podem ser preenchidos depois no cadastro do lead.
+            {!hasContact && nome.trim().length >= 2 && (
+              <p className="text-[10px] text-destructive flex items-start gap-1.5">
+                <AlertTriangle className="w-3 h-3 mt-0.5 shrink-0" />
+                Informe ao menos um contato: telefone, e-mail ou CPF/CNPJ.
+              </p>
+            )}
+            {linkedLeadId && (
+              <p className="text-[10px] text-success flex items-start gap-1.5">
+                <CheckCircle2 className="w-3 h-3 mt-0.5 shrink-0" />
+                Dados pré-preenchidos a partir do lead vinculado a esta conversa.
               </p>
             )}
           </div>

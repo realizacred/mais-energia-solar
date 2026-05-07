@@ -2,7 +2,7 @@
 // §23: staleTime obrigatório
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
 const STALE_TIME = 1000 * 60 * 5;
@@ -285,4 +285,36 @@ export function useClientesRealtime() {
       supabase.removeChannel(channel);
     };
   }, [qc]);
+}
+
+/**
+ * Conta projetos + deals reais por cliente (apenas para os IDs visíveis).
+ * Evita N+1: 2 queries agregadas por página da listagem.
+ */
+export function useClientesProjetosCount(clienteIds: string[]) {
+  const ids = useMemo(() => Array.from(new Set(clienteIds)).filter(Boolean), [clienteIds]);
+  return useQuery({
+    queryKey: ["clientes-projetos-count", ids],
+    enabled: ids.length > 0,
+    staleTime: 60 * 1000,
+    queryFn: async () => {
+      const counts = new Map<string, { projetos: number; deals: number }>();
+      ids.forEach((id) => counts.set(id, { projetos: 0, deals: 0 }));
+      const [projRes, dealRes] = await Promise.all([
+        supabase.from("projetos").select("cliente_id").in("cliente_id", ids),
+        supabase.from("deals").select("customer_id").in("customer_id", ids),
+      ]);
+      for (const r of (projRes.data || []) as any[]) {
+        const id = r.cliente_id as string;
+        const cur = counts.get(id);
+        if (cur) cur.projetos += 1;
+      }
+      for (const r of (dealRes.data || []) as any[]) {
+        const id = r.customer_id as string;
+        const cur = counts.get(id);
+        if (cur) cur.deals += 1;
+      }
+      return counts;
+    },
+  });
 }
