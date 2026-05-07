@@ -1016,6 +1016,21 @@ export function WaInbox({ vendorMode = false, vendorUserId, showCompactStats = f
         isHidden={convContextMenu ? hiddenIds.has(convContextMenu.conversation.id) : false}
         onToggleHide={() => convContextMenu && toggleHide(convContextMenu.conversation.id)}
       />
+      <WaSaveContactModal
+        open={!!saveContactFor}
+        onOpenChange={(o) => { if (!o) setSaveContactFor(null); }}
+        conversationId={saveContactFor?.id ?? null}
+        initialPhone={saveContactFor?.cliente_telefone ?? saveContactFor?.remote_jid ?? null}
+        initialName={saveContactFor?.cliente_nome ?? null}
+        onLinked={({ leadId, clienteId }) => {
+          if (saveContactFor) {
+            // Atualiza estado local da conversa selecionada caso seja a mesma
+            if (selectedConv?.id === saveContactFor.id) {
+              setSelectedConv({ ...selectedConv, lead_id: leadId, cliente_id: clienteId });
+            }
+          }
+        }}
+      />
     </div>
   );
 }
