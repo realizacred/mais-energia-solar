@@ -2877,7 +2877,7 @@ async function promoteOneProposalRow(
       message: cli.created ? "Cliente criado." : "Cliente já existia (link reutilizado).",
       sourceEntityType: "cliente", sourceEntityId: pickStr(rawCliente.id),
       canonicalEntityType: "cliente", canonicalEntityId: cli.id,
-      errorCode: cli.created ? undefined : (cli.matchedBy === "telefone_dup_recovered" ? "CLIENT_DUPLICATE_RECOVERED" : "CLIENT_REUSED"),
+      errorCode: cli.created ? undefined : "CLIENT_REUSED",
       details: { matched_by: cli.matchedBy },
     });
 
