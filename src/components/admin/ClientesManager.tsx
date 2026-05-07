@@ -755,19 +755,35 @@ export function ClientesManager({ onSelectCliente }: ClientesManagerProps) {
                     </div>
                   </TableCell>
                   <TableCell>
-                    {cliente.potencia_kwp ? (
-                      <div className="text-sm">
-                        <Badge variant="outline" className="bg-primary/5 text-primary border-primary/30 gap-1 text-xs">
-                          <Sun className="h-3 w-3" />
-                          {cliente.potencia_kwp} kWp
-                        </Badge>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          {formatCurrency(cliente.valor_projeto)}
-                        </p>
-                      </div>
-                    ) : (
-                      <span className="text-muted-foreground">—</span>
-                    )}
+                    {(() => {
+                      const counts = projetosCountMap?.get(cliente.id);
+                      const totalProj = counts?.projetos ?? 0;
+                      const totalDeals = counts?.deals ?? 0;
+                      const hasKwp = !!cliente.potencia_kwp;
+                      if (!totalProj && !totalDeals && !hasKwp) {
+                        return <span className="text-muted-foreground">—</span>;
+                      }
+                      return (
+                        <div className="text-sm space-y-1">
+                          {hasKwp && (
+                            <Badge variant="outline" className="bg-primary/5 text-primary border-primary/30 gap-1 text-xs">
+                              <Sun className="h-3 w-3" />
+                              {cliente.potencia_kwp} kWp
+                            </Badge>
+                          )}
+                          {(totalProj > 0 || totalDeals > 0) && (
+                            <p className="text-xs text-muted-foreground">
+                              {totalProj > 0 && `${totalProj} projeto${totalProj > 1 ? "s" : ""}`}
+                              {totalProj > 0 && totalDeals > 0 && " · "}
+                              {totalDeals > 0 && `${totalDeals} negociaç${totalDeals > 1 ? "ões" : "ão"}`}
+                            </p>
+                          )}
+                          {hasKwp && cliente.valor_projeto && (
+                            <p className="text-xs text-muted-foreground">{formatCurrency(cliente.valor_projeto)}</p>
+                          )}
+                        </div>
+                      );
+                    })()}
                   </TableCell>
                   <TableCell>
                     {(() => {
