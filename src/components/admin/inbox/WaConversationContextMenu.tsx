@@ -70,6 +70,12 @@ export function WaConversationContextMenu({
   onReopen,
   onCreateLead,
   onCreateCliente,
+  onOpenConversation,
+  onCopyPhone,
+  isMuted,
+  onToggleMute,
+  isHidden,
+  onToggleHide,
 }: Props) {
   const ref = useRef<HTMLDivElement>(null);
   const [tagsOpen, setTagsOpen] = useState(false);
