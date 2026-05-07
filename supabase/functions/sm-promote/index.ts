@@ -1263,11 +1263,35 @@ async function promoteCliente(
 
       const found =
         (await tryFind("external_id", norm.external_id, "external_id_race")) ??
-        (await tryFind("telefone_normalized", norm.telefone_digits, "telefone_race")) ??
         (await tryFind("cpf_cnpj", norm.cpf_cnpj_digits, "cpf_cnpj_digits_race")) ??
         (await tryFind("cpf_cnpj", norm.cpf_cnpj, "cpf_cnpj_race")) ??
         (await tryFind("cliente_code", clienteCode, "cliente_code_race"));
       if (found) return found;
+
+      // Telefone com 23505 não-resolvido por external_id/CPF/code → manual_review.
+      // Não fazemos `tryFind("telefone_normalized", ...)` direto: pode ser homônimo.
+      if (norm.telefone_digits) {
+        const { data: phoneRow } = await admin
+          .from("clientes").select("id, nome, external_id")
+          .eq("tenant_id", tenantId).eq("telefone_normalized", norm.telefone_digits)
+          .order("created_at", { ascending: true }).limit(1).maybeSingle();
+        if (phoneRow?.id) {
+          const sim = nameSimilarity((phoneRow as any).nome, norm.nome);
+          if (sim >= 0.34) {
+            // Mesma pessoa: reconcilia (CLIENT_DUPLICATE_RECOVERED).
+            if (externalIdSafe) {
+              await upsertLink(admin, tenantId, jobId, "cliente", phoneRow.id as string, "cliente", externalIdSafe, { matched_by: "telefone_dup_recovered", name_similarity: sim });
+            }
+            return { id: phoneRow.id as string, created: false, matchedBy: "telefone_dup_recovered" };
+          }
+          throw new ManualReviewRequired(
+            "phone_collision_diff_name", "cliente", phoneRow.id as string,
+            { sm_name: norm.nome, sm_phone_canonical: norm.telefone_digits,
+              crm_existing_name: (phoneRow as any).nome,
+              crm_existing_external_id: (phoneRow as any).external_id, name_similarity: sim },
+          );
+        }
+      }
     }
     throw new Error(`insert cliente: ${message}`);
   }
