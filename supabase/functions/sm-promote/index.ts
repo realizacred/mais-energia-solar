@@ -3162,6 +3162,29 @@ async function promoteOneProposalRow(
     return "promoted";
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
+    if (e instanceof ManualReviewRequired) {
+      // Quarentena: para o retry infinito; não conta como erro recorrente.
+      state.counters.skipped++;
+      const clientExtIdLocal = pickStr(rawCliente?.id);
+      if (clientExtIdLocal) {
+        await upsertManualReview(admin, tenantId, "cliente", clientExtIdLocal, e.reason, {
+          entityType: e.conflictEntityType, entityId: e.conflictEntityId,
+          metadata: { ...e.details, related_propostas: [propExtId] },
+        });
+      }
+      await upsertManualReview(admin, tenantId, "proposta", propExtId, e.reason, {
+        entityType: e.conflictEntityType, entityId: e.conflictEntityId,
+        metadata: e.details,
+      });
+      logEventBuffered(state, admin, {
+        jobId, tenantId, severity: "warning", step: "promote.cliente", status: "skipped",
+        message: `Cliente em revisão manual: ${e.reason}`,
+        sourceEntityType: "proposta", sourceEntityId: propExtId,
+        errorCode: "CLIENT_MANUAL_REVIEW", errorOrigin: MODULE,
+        details: { reason: e.reason, conflict_entity_id: e.conflictEntityId, ...e.details },
+      });
+      return "skipped";
+    }
     state.counters.errors++;
     logEventBuffered(state, admin, {
       jobId, tenantId, severity: "error", step: "promote", status: "error",
