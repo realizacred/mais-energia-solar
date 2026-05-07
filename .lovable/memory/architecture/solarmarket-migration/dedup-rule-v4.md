@@ -1,39 +1,36 @@
 ---
-name: SM Dedup Rule V4 (locked)
-description: Regra DEFINITIVA de deduplicação na migração SolarMarket — só CPF/CNPJ válido OU telefone REAL (não-placeholder). Email NUNCA dedupa.
+name: SM Migration is 1:1 (NO dedup by phone/CPF/email)
+description: Migração SolarMarket é 1:1. Identidade do cliente migrado é apenas external_entity_links (source=solarmarket, source_entity_type=cliente, source_entity_id=sm_client_id). Telefone/CPF/email NÃO deduplicam.
 type: constraint
 ---
 
-# Dedup SolarMarket — REGRA TRAVADA com usuário
+# Migração SolarMarket — 1:1 (regra travada com usuário)
 
-## Causa do bug histórico (corrigido)
-80 clientes foram colapsados em 5 registros porque o motor `sm-promote` usava
-telefones placeholder (`32999999999`, `99999999999`, etc) como chave de match.
-Ex: 48 clientes diferentes (CPFs distintos) viraram 1 só "Jailton".
+A migração NÃO faz deduplicação inteligente. Cada `sm_clientes_raw` vira UM cliente próprio no CRM, salvo se já houver `external_entity_links` para o mesmo `sm_client_id`.
 
-## Regra definitiva
-Cliente SM dedupa com cliente CRM existente APENAS se:
+## Identidade da migração
+- `source = solarmarket`
+- `source_entity_type = cliente`
+- `source_entity_id = sm_client_id`
+- `tenant_id`
 
-1. **CPF/CNPJ igual** (length normalizado IN (11, 14)), **OU**
-2. **Telefone REAL igual** (length 10 ou 11 E não-placeholder)
+## Ordem de lookup em `promoteCliente` (sm-promote)
+1. `findLink(...)` por external_entity_links → reutiliza
+2. Cache do chunk apenas por `external_id` / `cliente_code`
+3. SELECT em `clientes` apenas por `external_id` (LEGACY_SM_SOURCES) ou `cliente_code` (`SM-{id}`)
+4. Caso contrário: INSERT novo cliente + upsertLink
 
-### Telefone é PLACEHOLDER quando:
-- length não é 10 nem 11 dígitos
-- todo dígito repetido (regex `^(\d)\1+$`)
-- termina em 6+ noves ou 6+ zeros (regex `(9{6,}|0{6,})$`)
-- está na lista `KNOWN_PLACEHOLDER_PHONES` (ex: `99999999999`, `00000000000`)
+## NUNCA fazer
+- ❌ Buscar/reutilizar cliente CRM por telefone, CPF/CNPJ ou email
+- ❌ Quarentenar (`sm_manual_review`) por `phone_collision_diff_name`
+- ❌ Usar `nameSimilarity` para decidir reuso de cliente
+- ❌ Vincular `cliente.lead_id` automaticamente por telefone
+- ❌ Race recovery por telefone/CPF/email (apenas external_id e cliente_code)
 
-### Email NUNCA dedupa
-Removido do fluxo. Email fica como dado, não como chave.
+## Telefone
+Telefone fica gravado (`telefone`, `telefone_normalized`) apenas para busca/exibição. Não é unique e não dedupa. Família, empresa e responsável compartilham livremente.
 
-## Implementação canônica
-- Helper `isPlaceholderPhone(digits)` em `supabase/functions/sm-promote/index.ts` (perto da linha 554)
-- `normalizeSmClient` zera `telefone_digits` se placeholder antes de qualquer dedup
-- Cache de chunk (`ClienteCache.byPhone`) e queries paralelas (`byPhoneRes`) automaticamente respeitam isso porque só ativam com `telefone_digits` não-vazio
-- Dedup por `byEmailRes` neutralizado com `void byEmailRes`
+## Manual review
+`sm_manual_review` segue existindo APENAS para conflitos reais de link/payload — nunca para telefone/CPF/email repetidos.
 
-## NUNCA mais
-- ❌ Adicionar match por email
-- ❌ Aceitar telefone com 6+ dígitos repetidos no final
-- ❌ Reduzir a lista `KNOWN_PLACEHOLDER_PHONES`
-- ❌ Mudar a ordem de prioridade: external_id > cliente_code > CPF > telefone real
+**Why:** Usuário pediu migração 1:1 explícita. Dedup por telefone causou colapso histórico de clientes (ex.: 48 CPFs distintos virando 1 "Jailton") e travamento de propostas 74/89/884/925.
