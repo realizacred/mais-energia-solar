@@ -13,6 +13,7 @@ import {
   History,
   Activity,
   TrendingUp,
+  ShieldAlert,
 } from "lucide-react";
 import {
   Sidebar,
@@ -39,6 +40,7 @@ const PLATFORM_NAV = [
   { title: "Health", url: "/super-admin/health", icon: Activity },
   { title: "Consumo", url: "/super-admin/usage", icon: TrendingUp },
   { title: "Audit Log", url: "/super-admin/audit", icon: History },
+  { title: "SM Manual Review", url: "/super-admin/solarmarket/manual-review", icon: ShieldAlert },
 ];
 
 export function SuperAdminSidebar() {

@@ -25,6 +25,7 @@ const WebhooksPage = lazy(() => import("./super-admin/SuperAdminWebhooksPage"));
 const HealthPage = lazy(() => import("./super-admin/SuperAdminHealthPage"));
 const UsagePage = lazy(() => import("./super-admin/SuperAdminUsagePage"));
 const PlansPage = lazy(() => import("./super-admin/SuperAdminPlansPage"));
+const SmManualReviewPage = lazy(() => import("./super-admin/SuperAdminSmManualReviewPage"));
 
 function PageFallback() {
   return <LoadingState message="Carregando..." />;
@@ -129,6 +130,14 @@ export default function SuperAdmin() {
                 "Export CSV",
               ]}
             />
+          }
+        />
+        <Route
+          path="solarmarket/manual-review"
+          element={
+            <Suspense fallback={<PageFallback />}>
+              <SmManualReviewPage />
+            </Suspense>
           }
         />
         <Route path="*" element={<Navigate to="/super-admin" replace />} />
