@@ -15,6 +15,12 @@ import {
   UserPlus,
   Building2,
   ChevronRight,
+  MessageSquare,
+  Copy,
+  BellOff,
+  Bell,
+  EyeOff,
+  Eye,
 } from "lucide-react";
 import type { WaConversation, WaTag } from "@/hooks/useWaInbox";
 
@@ -40,6 +46,12 @@ interface Props {
   onReopen: () => void;
   onCreateLead: () => void;
   onCreateCliente: () => void;
+  onOpenConversation?: () => void;
+  onCopyPhone?: () => void;
+  isMuted?: boolean;
+  onToggleMute?: () => void;
+  isHidden?: boolean;
+  onToggleHide?: () => void;
 }
 
 export function WaConversationContextMenu({
