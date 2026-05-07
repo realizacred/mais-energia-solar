@@ -117,6 +117,7 @@ interface WaChatPanelProps {
   onOpenTags: () => void;
   onOpenAssign: () => void;
   onLinkLead: () => void;
+  onSaveContact?: () => void;
   onAccept?: () => void;
   onRelease?: () => void;
   isAccepting?: boolean;
@@ -153,6 +154,7 @@ export function WaChatPanel({
   onOpenTags,
   onOpenAssign,
   onLinkLead,
+  onSaveContact,
   onAccept,
   onRelease,
   isAccepting,
@@ -408,15 +410,9 @@ export function WaChatPanel({
   };
 
   // Helpers for empty CRM sidebar
-  const phoneForCreate = (conversation?.cliente_telefone || conversation?.remote_jid || "").replace(/\D/g, "");
-  const handleCreateLead = () => {
-    const url = `/admin?tab=leads${phoneForCreate ? `&new=1&phone=${encodeURIComponent(phoneForCreate)}` : "&new=1"}`;
-    window.open(url, "_blank");
-  };
-  const handleCreateCliente = () => {
-    const url = `/admin?tab=clientes${phoneForCreate ? `&new=1&phone=${encodeURIComponent(phoneForCreate)}` : "&new=1"}`;
-    window.open(url, "_blank");
-  };
+  // Salvar contato — usa modal centralizado do WaInbox (SSOT, dedup, sem window.open).
+  const handleCreateLead = () => onSaveContact?.();
+  const handleCreateCliente = () => onSaveContact?.();
 
   // CRM Sidebar content (shared between desktop panel and mobile sheet)
   const crmSidebarContent = showCRMSidebar && (

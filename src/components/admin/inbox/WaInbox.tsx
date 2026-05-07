@@ -20,6 +20,7 @@ import { WaConversationList } from "./WaConversationList";
 import { WaChatPanel } from "./WaChatPanel";
 import { WaTransferDialog, WaAssignDialog, WaTagsDialog } from "./WaInboxDialogs";
 import { WaLinkLeadSearch } from "./WaLinkLeadSearch";
+import { WaSaveContactModal } from "./WaSaveContactModal";
 import { WaInboxStats } from "./WaInboxStats";
 import { WaResolveDialog } from "./WaResolveDialog";
 import { WaSlaAlertBanner } from "./WaSlaAlertBanner";
@@ -109,6 +110,7 @@ export function WaInbox({ vendorMode = false, vendorUserId, showCompactStats = f
   const [showResolve, setShowResolve] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [showStartChat, setShowStartChat] = useState(false);
+  const [saveContactFor, setSaveContactFor] = useState<WaConversation | null>(null);
   const [pendingNewConvId, setPendingNewConvId] = useState<string | null>(null);
   const [prefillMessage, setPrefillMessage] = useState<string | null>(null);
   const [preContactData, setPreContactData] = useState<LeadAutoOpenData | null>(null);
@@ -840,6 +842,7 @@ export function WaInbox({ vendorMode = false, vendorUserId, showCompactStats = f
                   onOpenTags={() => setShowTags(true)}
                   onOpenAssign={() => setShowAssign(true)}
                   onLinkLead={() => setShowLinkLead(true)}
+                  onSaveContact={() => selectedConv && setSaveContactFor(selectedConv)}
                   onAccept={handleAccept}
                   onRelease={handleRelease}
                   isAccepting={isAccepting}
@@ -924,6 +927,7 @@ export function WaInbox({ vendorMode = false, vendorUserId, showCompactStats = f
                 onOpenTags={() => setShowTags(true)}
                 onOpenAssign={() => setShowAssign(true)}
                 onLinkLead={() => setShowLinkLead(true)}
+                onSaveContact={() => selectedConv && setSaveContactFor(selectedConv)}
                 onAccept={handleAccept}
                 onRelease={handleRelease}
                 isAccepting={isAccepting}
@@ -992,12 +996,10 @@ export function WaInbox({ vendorMode = false, vendorUserId, showCompactStats = f
         onResolve={() => convContextMenu && resolveConversation(convContextMenu.conversation.id)}
         onReopen={() => convContextMenu && reopenConversation(convContextMenu.conversation.id)}
         onCreateLead={() => {
-          const phone = convContextMenu?.conversation.cliente_telefone || "";
-          window.open(`/admin?tab=leads&phone=${encodeURIComponent(phone)}`, "_blank");
+          if (convContextMenu) setSaveContactFor(convContextMenu.conversation);
         }}
         onCreateCliente={() => {
-          const phone = convContextMenu?.conversation.cliente_telefone || "";
-          window.open(`/admin?tab=clientes&phone=${encodeURIComponent(phone)}`, "_blank");
+          if (convContextMenu) setSaveContactFor(convContextMenu.conversation);
         }}
         onOpenConversation={() => {
           if (!convContextMenu) return;
@@ -1015,6 +1017,21 @@ export function WaInbox({ vendorMode = false, vendorUserId, showCompactStats = f
         onToggleMute={() => convContextMenu && toggleMute(convContextMenu.conversation.id)}
         isHidden={convContextMenu ? hiddenIds.has(convContextMenu.conversation.id) : false}
         onToggleHide={() => convContextMenu && toggleHide(convContextMenu.conversation.id)}
+      />
+      <WaSaveContactModal
+        open={!!saveContactFor}
+        onOpenChange={(o) => { if (!o) setSaveContactFor(null); }}
+        conversationId={saveContactFor?.id ?? null}
+        initialPhone={saveContactFor?.cliente_telefone ?? saveContactFor?.remote_jid ?? null}
+        initialName={saveContactFor?.cliente_nome ?? null}
+        onLinked={({ leadId, clienteId }) => {
+          if (saveContactFor) {
+            // Atualiza estado local da conversa selecionada caso seja a mesma
+            if (selectedConv?.id === saveContactFor.id) {
+              setSelectedConv({ ...selectedConv, lead_id: leadId, cliente_id: clienteId });
+            }
+          }
+        }}
       />
     </div>
   );
