@@ -52,26 +52,9 @@ export function StepPremissas({ premissas, onPremissasChange, isEditMode }: Prop
           troca_inversor_custo: d.custo_troca_inversor_tradicional ?? premissas.troca_inversor_custo,
         });
         setSource("tenant");
-      } else {
-        // Fallback to legacy premissas_tecnicas
-        const { data } = await supabase
-          .from("premissas_tecnicas")
-          .select("reajuste_tarifa_anual_percent, ipca_anual, degradacao_anual_percent, taxa_selic_anual")
-          .limit(1)
-          .maybeSingle();
-
-        if (data) {
-          const d = data as any;
-          onPremissasChange({
-            ...premissas,
-            inflacao_energetica: d.reajuste_tarifa_anual_percent ?? premissas.inflacao_energetica,
-            inflacao_ipca: d.ipca_anual ?? premissas.inflacao_ipca,
-            perda_eficiencia_anual: d.degradacao_anual_percent ?? premissas.perda_eficiencia_anual,
-            vpl_taxa_desconto: d.taxa_selic_anual ?? premissas.vpl_taxa_desconto,
-          });
-          setSource("tenant");
-        }
       }
+      // Fallback legacy premissas_tecnicas removido (F1 SSOT consolidation).
+      // tenant_premises é a única fonte; defaults da própria UI cobrem ausência.
     } catch (e) {
       console.warn("Falha ao carregar premissas do tenant:", e);
     } finally {
