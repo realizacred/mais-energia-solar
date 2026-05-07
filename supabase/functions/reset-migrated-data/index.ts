@@ -176,6 +176,15 @@ Deno.serve(async (req) => {
         if (error) return jsonResponse({ error: `recebimentos: ${error.message}` }, 500);
         counts.recebimentos += data?.length ?? 0;
       }
+      // vendas_transacional (FK -> proposta_versoes.versao_id) precisa sair antes
+      for (const ids of chunk(propostaIds)) {
+        const { error } = await admin
+          .from("vendas_transacional")
+          .delete()
+          .eq("tenant_id", tenantId)
+          .in("proposta_id", ids);
+        if (error) return jsonResponse({ error: `vendas_transacional: ${error.message}` }, 500);
+      }
       // proposta_versoes
       for (const ids of chunk(propostaIds)) {
         const { data, error } = await admin
