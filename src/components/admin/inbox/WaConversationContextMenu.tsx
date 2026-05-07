@@ -126,6 +126,12 @@ export function WaConversationContextMenu({
       onClick={(e) => e.stopPropagation()}
       onContextMenu={(e) => e.preventDefault()}
     >
+      {onOpenConversation && (
+        <button className={item} onClick={run(onOpenConversation)}>
+          <MessageSquare className="h-4 w-4 text-muted-foreground" />
+          Abrir conversa
+        </button>
+      )}
       <button className={item} onClick={run(onTogglePin)}>
         {isPinned ? <PinOff className="h-4 w-4 text-muted-foreground" /> : <Pin className="h-4 w-4 text-muted-foreground" />}
         {isPinned ? "Desafixar" : "Fixar conversa"}
