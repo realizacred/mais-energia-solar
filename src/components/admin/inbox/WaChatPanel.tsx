@@ -477,10 +477,15 @@ export function WaChatPanel({
                   )}
                 </div>
                 <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
-                  {assignedConsultor && <span className="truncate max-w-[80px]">{assignedConsultor.nome}</span>}
+                  {conversation.cliente_telefone && (
+                    <span className="font-mono text-foreground/70 truncate">
+                      {formatPhoneBR(conversation.cliente_telefone)}
+                    </span>
+                  )}
+                  {assignedConsultor && <span className="truncate max-w-[80px]">{conversation.cliente_telefone ? " · " : ""}{assignedConsultor.nome}</span>}
                   {conversation.lead_id && (
                     <Button variant="link" onClick={() => setShowLeadInfo(true)} className="text-primary/70 hover:text-primary transition-colors truncate max-w-[70px] h-auto p-0 text-[10px]">
-                      {assignedConsultor ? " · " : ""}{conversation.lead_nome || "Lead"}
+                      {(assignedConsultor || conversation.cliente_telefone) ? " · " : ""}{conversation.lead_nome || "Lead"}
                     </Button>
                   )}
                   {currentNotification && (
