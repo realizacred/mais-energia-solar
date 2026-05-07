@@ -189,7 +189,12 @@ export function WaSaveContactModal({
   });
 
   const cpfValid = !cpfCnpj || isValidCpfCnpj(cpfCnpj);
-  const canSave = nome.trim().length >= 2 && phoneDigits.length >= 10 && cpfValid && !saving;
+  // RB-63: exige nome + ao menos 1 contato (telefone OU email OU CPF/CNPJ válido)
+  const hasContact =
+    phoneDigits.length >= 10 ||
+    email.trim().length >= 5 ||
+    (onlyDigits(cpfCnpj).length >= 11 && cpfValid);
+  const canSave = nome.trim().length >= 2 && hasContact && cpfValid && !saving;
 
   const linkConversation = async (link: { leadId: string | null; clienteId: string | null }) => {
     if (conversationId) {
@@ -232,13 +237,23 @@ export function WaSaveContactModal({
             telefone: telefone.trim(),
             email: email.trim() || null,
             cpf_cnpj: cpfCnpj.trim() || null,
+            cep: cep.trim() || null,
+            estado: estado.trim() || null,
+            cidade: cidade.trim() || null,
+            bairro: bairro.trim() || null,
+            rua: rua.trim() || null,
+            numero: numero.trim() || null,
+            observacoes: observacoes.trim() || null,
+            origem: "WhatsApp",
+            lead_id: linkedLeadId,
             cliente_code: `CLI-${Date.now()}`,
           } as any)
           .select("id")
           .single();
         if (error) throw error;
         await queryClient.invalidateQueries({ queryKey: ["clientes_list"] });
-        await linkConversation({ leadId: null, clienteId: data.id });
+        await queryClient.invalidateQueries({ queryKey: ["clientes"] });
+        await linkConversation({ leadId: linkedLeadId, clienteId: data.id });
         toast({ title: "Cliente criado", description: `${nome} cadastrado e vinculado.` });
       } else {
         // Lead — campos NOT NULL: estado, cidade, area, tipo_telhado, rede_atendimento,
@@ -249,8 +264,13 @@ export function WaSaveContactModal({
             nome: nome.trim(),
             telefone: telefone.trim(),
             email: email.trim() || null,
-            estado: "—",
-            cidade: "—",
+            estado: estado.trim() || "—",
+            cidade: cidade.trim() || "—",
+            cep: cep.trim() || null,
+            bairro: bairro.trim() || null,
+            rua: rua.trim() || null,
+            numero: numero.trim() || null,
+            observacoes: observacoes.trim() || null,
             area: 0,
             tipo_telhado: "—",
             rede_atendimento: "—",
