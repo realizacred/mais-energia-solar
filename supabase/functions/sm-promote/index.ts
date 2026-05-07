@@ -2992,8 +2992,6 @@ async function promoteOneProposalRow(
       errorCode: cli.created ? undefined : (cli.matchedBy === "telefone_dup_recovered" ? "CLIENT_DUPLICATE_RECOVERED" : "CLIENT_REUSED"),
       details: { matched_by: cli.matchedBy },
     });
-      canonicalEntityType: "cliente", canonicalEntityId: cli.id,
-    });
 
     // Scope=cliente: encerra aqui sem criar projeto/proposta
     if (scope === "cliente") {
