@@ -1121,18 +1121,6 @@ async function promoteCliente(
   // 6) Não existe — inserir novo (RB-62: campos formatados; telefone_normalized só dígitos)
   // RB-MIG-1:1 — NÃO vincular lead automaticamente. Telefone repete livremente.
   const leadIdLink: string | null = null;
-  if (norm.telefone_digits) {
-    const { data: leadRow } = await admin
-      .from("leads")
-      .select("id")
-      .eq("tenant_id", tenantId)
-      .eq("telefone_normalized", norm.telefone_digits)
-      .is("deleted_at", null)
-      .order("created_at", { ascending: true })
-      .limit(1)
-      .maybeSingle();
-    if (leadRow?.id) leadIdLink = leadRow.id as string;
-  }
 
   const { data, error } = await admin
     .from("clientes")
@@ -1162,15 +1150,13 @@ async function promoteCliente(
     .single();
   if (error || !data?.id) {
     const message = error?.message ?? "sem id";
-    // Tratamento robusto de race condition entre promoções paralelas (PARALLEL_CHUNK=5):
-    // 5 propostas com o mesmo cliente leem reconciliação NULL ao mesmo tempo, todas tentam INSERT,
-    // uma vence as constraints (telefone, cpf_cnpj, cliente_code) e as outras morrem.
-    // Em vez de jogar throw, re-procuramos pelos índices únicos conhecidos.
+    // RB-MIG-1:1 — race recovery APENAS por external_id/cliente_code.
+    // Telefone/CPF/email NÃO são identidade da migração e NÃO devem reconciliar.
     const isDup = /duplicate key value|unique constraint/i.test(message);
     if (isDup) {
       const externalIdSafe = norm.external_id ?? "";
       const tryFind = async (
-        column: "telefone_normalized" | "cpf_cnpj" | "cliente_code" | "external_id",
+        column: "cliente_code" | "external_id",
         value: string | null | undefined,
         matchedBy: string,
       ): Promise<{ id: string; created: false; matchedBy: string } | null> => {
@@ -1192,31 +1178,8 @@ async function promoteCliente(
 
       const found =
         (await tryFind("external_id", norm.external_id, "external_id_race")) ??
-        (await tryFind("cpf_cnpj", norm.cpf_cnpj_digits, "cpf_cnpj_digits_race")) ??
-        (await tryFind("cpf_cnpj", norm.cpf_cnpj, "cpf_cnpj_race")) ??
         (await tryFind("cliente_code", clienteCode, "cliente_code_race"));
       if (found) return found;
-
-      // Telefone com 23505 não-resolvido por external_id/CPF/code:
-      // como telefone deixou de ser único (RB-DEDUP-V5), só recupera quando
-      // nome é claramente o mesmo (race entre 2 promoções do MESMO cliente).
-      if (norm.telefone_digits) {
-        const { data: phoneRow } = await admin
-          .from("clientes").select("id, nome, external_id")
-          .eq("tenant_id", tenantId).eq("telefone_normalized", norm.telefone_digits)
-          .order("created_at", { ascending: true }).limit(1).maybeSingle();
-        if (phoneRow?.id) {
-          const sim = nameSimilarity((phoneRow as any).nome, norm.nome);
-          if (sim >= 0.6) {
-            if (externalIdSafe) {
-              await upsertLink(admin, tenantId, jobId, "cliente", phoneRow.id as string, "cliente", externalIdSafe, { matched_by: "telefone_dup_recovered", name_similarity: sim });
-            }
-            return { id: phoneRow.id as string, created: false, matchedBy: "telefone_dup_recovered" };
-          }
-          // Nome diferente: NÃO criar manual_review por causa de telefone.
-          // O 23505 nesse cenário só ocorreria por outras constraints — segue para throw padrão.
-        }
-      }
     }
     throw new Error(`insert cliente: ${message}`);
   }
