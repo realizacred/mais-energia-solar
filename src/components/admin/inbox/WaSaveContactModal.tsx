@@ -322,7 +322,9 @@ export function WaSaveContactModal({
                     <AlertTriangle className="w-4 h-4 shrink-0" />
                   )}
                   <span className="text-xs font-medium">
-                    {dedupLoading ? "Buscando contatos existentes..." : "Possíveis correspondências"}
+                    {dedupLoading
+                      ? "Buscando contatos existentes..."
+                      : "Possíveis correspondências (telefone pode ser compartilhado — você pode reutilizar ou criar um novo cliente mesmo assim)"}
                   </span>
                 </div>
                 {!dedupLoading && matches.slice(0, 6).map((m) => (
