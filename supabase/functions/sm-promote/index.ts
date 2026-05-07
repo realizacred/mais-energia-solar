@@ -1071,31 +1071,23 @@ async function promoteCliente(
   const existing = await findLink(admin, tenantId, "cliente", norm.external_id, "cliente");
   if (existing) return { id: existing, created: false, matchedBy: "link" };
 
-  // 1.5) PERFORMANCE (Fase B): consulta cache do chunk antes de SELECTs.
-  // RB-DEDUP-V4: cache só hit por external_id, cliente_code, CPF/CNPJ e telefone REAL.
-  // Email FORA do dedup (regra travada com usuário).
-  if (cache) {
-    const docKey = norm.cpf_cnpj_digits || norm.cpf_cnpj || "";
+  // 1.5) Cache do chunk (idempotência intra-batch SOMENTE por external_id/cliente_code).
+  // RB-MIG-1:1 — NUNCA reutilizar cliente CRM por telefone, CPF ou email.
+  // Cliente SM só reutiliza CRM existente quando há link pelo mesmo sm_client_id.
+  if (cache && norm.external_id) {
     const cachedId =
-      (norm.external_id && cache.byExternalId.get(norm.external_id)) ||
+      cache.byExternalId.get(norm.external_id) ||
       cache.byCode.get(clienteCode) ||
-      (docKey && cache.byDoc.get(docKey)) ||
-      (norm.telefone_digits && cache.byPhone.get(norm.telefone_digits)) ||
       null;
     if (cachedId) {
-      await upsertLink(admin, tenantId, jobId, "cliente", cachedId, "cliente", norm.external_id, { matched_by: "cache" });
-      return { id: cachedId, created: false, matchedBy: "cache" };
+      await upsertLink(admin, tenantId, jobId, "cliente", cachedId, "cliente", norm.external_id, { matched_by: "cache_external_id" });
+      return { id: cachedId, created: false, matchedBy: "cache_external_id" };
     }
   }
 
-  // 2-5) PERFORMANCE (Fase A): paraleliza os 5 lookups de dedup independentes.
-  // Antes: 5 SELECTs sequenciais (~250ms). Depois: 5 em paralelo (~50ms).
-  // Mantém EXATAMENTE a mesma ordem de prioridade ao avaliar resultados:
-  //   external_id (legado) > cliente_code > CPF/CNPJ > telefone > email.
-  // Lógica, dedup, idempotência e formatação permanecem intactas (RB-62/RB-64).
-  const docLookup = norm.cpf_cnpj_digits || norm.cpf_cnpj;
-
-  const [byExtRes, byCodeRes, byDocRes, byPhoneRes, byEmailRes] = await Promise.all([
+  // 2) Lookup canônico por external_id (clientes promovidos antes do link existir).
+  // RB-MIG-1:1 — APENAS external_id/cliente_code. NÃO consultar telefone/CPF/email.
+  const [byExtRes, byCodeRes] = await Promise.all([
     admin
       .from("clientes")
       .select("id")
@@ -1113,39 +1105,8 @@ async function promoteCliente(
       .order("created_at", { ascending: true })
       .limit(1)
       .maybeSingle(),
-    docLookup
-      ? admin
-          .from("clientes")
-          .select("id")
-          .eq("tenant_id", tenantId)
-          .eq("cpf_cnpj", docLookup)
-          .order("created_at", { ascending: true })
-          .limit(1)
-          .maybeSingle()
-      : Promise.resolve({ data: null } as { data: { id: string } | null }),
-    norm.telefone_digits
-      ? admin
-          .from("clientes")
-          .select("id")
-          .eq("tenant_id", tenantId)
-          .eq("telefone_normalized", norm.telefone_digits)
-          .order("created_at", { ascending: true })
-          .limit(1)
-          .maybeSingle()
-      : Promise.resolve({ data: null } as { data: { id: string } | null }),
-    norm.email
-      ? admin
-          .from("clientes")
-          .select("id")
-          .eq("tenant_id", tenantId)
-          .ilike("email", norm.email)
-          .order("created_at", { ascending: true })
-          .limit(1)
-          .maybeSingle()
-      : Promise.resolve({ data: null } as { data: { id: string } | null }),
   ]);
 
-  // Avalia na MESMA ordem de prioridade da implementação sequencial original.
   if (byExtRes.data?.id) {
     const id = byExtRes.data.id as string;
     await upsertLink(admin, tenantId, jobId, "cliente", id, "cliente", norm.external_id, { matched_by: "external_id" });
@@ -1156,47 +1117,10 @@ async function promoteCliente(
     await upsertLink(admin, tenantId, jobId, "cliente", id, "cliente", norm.external_id, { matched_by: "cliente_code" });
     return { id, created: false, matchedBy: "cliente_code" };
   }
-  if (byDocRes.data?.id) {
-    const id = byDocRes.data.id as string;
-    await upsertLink(admin, tenantId, jobId, "cliente", id, "cliente", norm.external_id, { matched_by: "cpf_cnpj_digits" });
-    return { id, created: false, matchedBy: "cpf_cnpj" };
-  }
-  if (byPhoneRes.data?.id) {
-    const id = byPhoneRes.data.id as string;
-    // Telefone deixou de ser identidade rígida (RB-DEDUP-V5).
-    // Só reconcilia quando nome é claramente o mesmo. Caso contrário,
-    // segue o fluxo normal e cria um novo cliente (família/empresa/responsável).
-    const { data: existRow } = await admin
-      .from("clientes").select("nome, external_id").eq("id", id).maybeSingle();
-    const existingName = (existRow as any)?.nome as string | undefined;
-    const sim = nameSimilarity(existingName, norm.nome);
-    if (sim >= 0.6) {
-      await upsertLink(admin, tenantId, jobId, "cliente", id, "cliente", norm.external_id, { matched_by: "telefone", name_similarity: sim });
-      return { id, created: false, matchedBy: "telefone" };
-    }
-    // Nome diferente → cai no INSERT abaixo. Telefone agora pode repetir.
-  }
-  // RB-DEDUP-V4: dedup por EMAIL DESATIVADO. Apenas CPF/CNPJ válido e telefone REAL
-  // (não-placeholder) podem agrupar clientes. Email fica disponível como dado, não chave.
-  // (Bloco mantido como no-op para preservar a estrutura do diff e facilitar rollback.)
-  void byEmailRes;
 
   // 6) Não existe — inserir novo (RB-62: campos formatados; telefone_normalized só dígitos)
-  // RB-59 (paridade nativa): se houver lead com mesmo telefone_normalized no tenant,
-  // vincular cliente.lead_id ao lead — espelha ConvertLeadToClientDialog.
-  let leadIdLink: string | null = null;
-  if (norm.telefone_digits) {
-    const { data: leadRow } = await admin
-      .from("leads")
-      .select("id")
-      .eq("tenant_id", tenantId)
-      .eq("telefone_normalized", norm.telefone_digits)
-      .is("deleted_at", null)
-      .order("created_at", { ascending: true })
-      .limit(1)
-      .maybeSingle();
-    if (leadRow?.id) leadIdLink = leadRow.id as string;
-  }
+  // RB-MIG-1:1 — NÃO vincular lead automaticamente. Telefone repete livremente.
+  const leadIdLink: string | null = null;
 
   const { data, error } = await admin
     .from("clientes")
@@ -1226,15 +1150,13 @@ async function promoteCliente(
     .single();
   if (error || !data?.id) {
     const message = error?.message ?? "sem id";
-    // Tratamento robusto de race condition entre promoções paralelas (PARALLEL_CHUNK=5):
-    // 5 propostas com o mesmo cliente leem reconciliação NULL ao mesmo tempo, todas tentam INSERT,
-    // uma vence as constraints (telefone, cpf_cnpj, cliente_code) e as outras morrem.
-    // Em vez de jogar throw, re-procuramos pelos índices únicos conhecidos.
+    // RB-MIG-1:1 — race recovery APENAS por external_id/cliente_code.
+    // Telefone/CPF/email NÃO são identidade da migração e NÃO devem reconciliar.
     const isDup = /duplicate key value|unique constraint/i.test(message);
     if (isDup) {
       const externalIdSafe = norm.external_id ?? "";
       const tryFind = async (
-        column: "telefone_normalized" | "cpf_cnpj" | "cliente_code" | "external_id",
+        column: "cliente_code" | "external_id",
         value: string | null | undefined,
         matchedBy: string,
       ): Promise<{ id: string; created: false; matchedBy: string } | null> => {
@@ -1256,31 +1178,8 @@ async function promoteCliente(
 
       const found =
         (await tryFind("external_id", norm.external_id, "external_id_race")) ??
-        (await tryFind("cpf_cnpj", norm.cpf_cnpj_digits, "cpf_cnpj_digits_race")) ??
-        (await tryFind("cpf_cnpj", norm.cpf_cnpj, "cpf_cnpj_race")) ??
         (await tryFind("cliente_code", clienteCode, "cliente_code_race"));
       if (found) return found;
-
-      // Telefone com 23505 não-resolvido por external_id/CPF/code:
-      // como telefone deixou de ser único (RB-DEDUP-V5), só recupera quando
-      // nome é claramente o mesmo (race entre 2 promoções do MESMO cliente).
-      if (norm.telefone_digits) {
-        const { data: phoneRow } = await admin
-          .from("clientes").select("id, nome, external_id")
-          .eq("tenant_id", tenantId).eq("telefone_normalized", norm.telefone_digits)
-          .order("created_at", { ascending: true }).limit(1).maybeSingle();
-        if (phoneRow?.id) {
-          const sim = nameSimilarity((phoneRow as any).nome, norm.nome);
-          if (sim >= 0.6) {
-            if (externalIdSafe) {
-              await upsertLink(admin, tenantId, jobId, "cliente", phoneRow.id as string, "cliente", externalIdSafe, { matched_by: "telefone_dup_recovered", name_similarity: sim });
-            }
-            return { id: phoneRow.id as string, created: false, matchedBy: "telefone_dup_recovered" };
-          }
-          // Nome diferente: NÃO criar manual_review por causa de telefone.
-          // O 23505 nesse cenário só ocorreria por outras constraints — segue para throw padrão.
-        }
-      }
     }
     throw new Error(`insert cliente: ${message}`);
   }
@@ -2978,7 +2877,7 @@ async function promoteOneProposalRow(
       message: cli.created ? "Cliente criado." : "Cliente já existia (link reutilizado).",
       sourceEntityType: "cliente", sourceEntityId: pickStr(rawCliente.id),
       canonicalEntityType: "cliente", canonicalEntityId: cli.id,
-      errorCode: cli.created ? undefined : (cli.matchedBy === "telefone_dup_recovered" ? "CLIENT_DUPLICATE_RECOVERED" : "CLIENT_REUSED"),
+      errorCode: cli.created ? undefined : "CLIENT_REUSED",
       details: { matched_by: cli.matchedBy },
     });
 
