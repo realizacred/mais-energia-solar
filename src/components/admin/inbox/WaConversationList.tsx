@@ -59,48 +59,8 @@ function getHoursAgo(lastMessageAt: string | null): number | null {
   return (Date.now() - new Date(lastMessageAt).getTime()) / 1000 / 60 / 60;
 }
 // ── Display name helper ────────────────────────────────
-// Precedência: clientes.nome > leads.nome > cliente_nome (se ≠ profile_name da instância) > telefone
-function formatWaDisplayName(conv: {
-  cliente_nome?: string | null;
-  cliente_telefone?: string | null;
-  remote_jid?: string | null;
-  cliente_nome_real?: string | null;
-  lead_nome?: string | null;
-  instance_profile_name?: string | null;
-  is_group?: boolean;
-}): string {
-  if (conv.cliente_nome_real?.trim()) return conv.cliente_nome_real.trim();
-  if (conv.lead_nome?.trim()) return conv.lead_nome.trim();
-
-  const raw = conv.cliente_nome?.trim();
-  const profileName = conv.instance_profile_name?.trim().toLowerCase();
-  // Bloqueia o nome da empresa vazando como nome do contato (apenas em conversas 1:1)
-  if (raw && (conv.is_group || !profileName || raw.toLowerCase() !== profileName)) {
-    return raw;
-  }
-
-  const rawPhone = conv.cliente_telefone || conv.remote_jid || "";
-  const cleanPhone = rawPhone
-    .replace(/@lid$/, "")
-    .replace(/@s\.whatsapp\.net$/, "")
-    .replace(/@g\.us$/, "")
-    .trim();
-
-  if (!cleanPhone) return "Contato desconhecido";
-
-  if (/^\d+$/.test(cleanPhone)) {
-    const digits = cleanPhone.replace(/^55/, "");
-    if (digits.length === 11) {
-      return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
-    }
-    if (digits.length === 10) {
-      return `(${digits.slice(0, 2)}) ${digits.slice(2, 6)}-${digits.slice(6)}`;
-    }
-    return `+${cleanPhone}`;
-  }
-
-  return cleanPhone;
-}
+// SSOT: src/lib/wa/resolveDisplayName.ts
+const formatWaDisplayName = resolveWaDisplayName;
 
 // ── Message preview helper ─────────────────────────────
 function getMessagePreview(type: string | null | undefined, body: string | null | undefined): string {
