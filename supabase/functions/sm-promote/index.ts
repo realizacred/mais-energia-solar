@@ -1163,7 +1163,24 @@ async function promoteCliente(
   }
   if (byPhoneRes.data?.id) {
     const id = byPhoneRes.data.id as string;
-    await upsertLink(admin, tenantId, jobId, "cliente", id, "cliente", norm.external_id, { matched_by: "telefone" });
+    // Gate de homônimo: telefone igual + nome divergente → manual_review.
+    const { data: existRow } = await admin
+      .from("clientes").select("nome, external_id").eq("id", id).maybeSingle();
+    const existingName = (existRow as any)?.nome as string | undefined;
+    const sim = nameSimilarity(existingName, norm.nome);
+    if (sim < 0.34) {
+      throw new ManualReviewRequired(
+        "phone_collision_diff_name", "cliente", id,
+        {
+          sm_name: norm.nome,
+          sm_phone_canonical: norm.telefone_digits,
+          crm_existing_name: existingName,
+          crm_existing_external_id: (existRow as any)?.external_id,
+          name_similarity: sim,
+        },
+      );
+    }
+    await upsertLink(admin, tenantId, jobId, "cliente", id, "cliente", norm.external_id, { matched_by: "telefone", name_similarity: sim });
     return { id, created: false, matchedBy: "telefone" };
   }
   // RB-DEDUP-V4: dedup por EMAIL DESATIVADO. Apenas CPF/CNPJ válido e telefone REAL
