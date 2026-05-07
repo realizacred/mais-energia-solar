@@ -69,10 +69,15 @@ export function WaConversationContextMenu({
     }
     const handler = () => onClose();
     const esc = (e: KeyboardEvent) => e.key === "Escape" && onClose();
-    window.addEventListener("click", handler);
-    window.addEventListener("contextmenu", handler);
-    window.addEventListener("keydown", esc);
+    // Defer attaching listeners so the same contextmenu/click event that
+    // opened the menu does not immediately close it via window bubbling.
+    const timer = window.setTimeout(() => {
+      window.addEventListener("click", handler);
+      window.addEventListener("contextmenu", handler);
+      window.addEventListener("keydown", esc);
+    }, 0);
     return () => {
+      window.clearTimeout(timer);
       window.removeEventListener("click", handler);
       window.removeEventListener("contextmenu", handler);
       window.removeEventListener("keydown", esc);
