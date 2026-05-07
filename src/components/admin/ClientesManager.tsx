@@ -419,6 +419,10 @@ export function ClientesManager({ onSelectCliente }: ClientesManagerProps) {
     return filteredClientes.slice(start, start + pageSize);
   }, [filteredClientes, page, pageSize]);
 
+  // Contagem real de projetos/deals para os clientes visíveis
+  const visibleIds = useMemo(() => paginatedClientes.map((c) => c.id), [paginatedClientes]);
+  const { data: projetosCountMap } = useClientesProjetosCount(visibleIds);
+
   // ── KPIs ────────────────────────────────────────────────
   const kpis = useMemo(() => {
     const total = clientes.length;
