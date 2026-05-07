@@ -79,7 +79,51 @@ export function WaSaveContactModal({
   const [telefone, setTelefone] = useState("");
   const [email, setEmail] = useState("");
   const [cpfCnpj, setCpfCnpj] = useState("");
+  const [cep, setCep] = useState("");
+  const [estado, setEstado] = useState("");
+  const [cidade, setCidade] = useState("");
+  const [bairro, setBairro] = useState("");
+  const [rua, setRua] = useState("");
+  const [numero, setNumero] = useState("");
+  const [observacoes, setObservacoes] = useState("");
+  const [linkedLeadId, setLinkedLeadId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+
+  // Carrega lead já vinculado na conversa para pré-preencher e manter o vínculo
+  useEffect(() => {
+    if (!open || !conversationId) return;
+    let cancelled = false;
+    (async () => {
+      const { data: conv } = await supabase
+        .from("wa_conversations")
+        .select("lead_id")
+        .eq("id", conversationId)
+        .maybeSingle();
+      const leadId = (conv as any)?.lead_id ?? null;
+      if (!leadId || cancelled) return;
+      const { data: lead } = await supabase
+        .from("leads")
+        .select("id, nome, telefone, email, cep, estado, cidade, bairro, rua, numero, observacoes")
+        .eq("id", leadId)
+        .maybeSingle();
+      if (cancelled || !lead) return;
+      const l = lead as any;
+      setLinkedLeadId(l.id);
+      if (l.nome && !initialName?.trim()) setNome(l.nome);
+      if (l.telefone && !initialPhone) setTelefone(stripCountry(l.telefone));
+      if (l.email) setEmail(l.email);
+      if (l.cep) setCep(l.cep);
+      if (l.estado) setEstado(l.estado);
+      if (l.cidade) setCidade(l.cidade);
+      if (l.bairro) setBairro(l.bairro);
+      if (l.rua) setRua(l.rua);
+      if (l.numero) setNumero(l.numero);
+      if (l.observacoes) setObservacoes(l.observacoes);
+      // Se a conversa já está vinculada a um lead, sugerir criação como cliente
+      setMode("cliente");
+    })();
+    return () => { cancelled = true; };
+  }, [open, conversationId, initialName, initialPhone]);
 
   useEffect(() => {
     if (!open) return;
@@ -87,6 +131,9 @@ export function WaSaveContactModal({
     setTelefone(stripCountry(initialPhone || ""));
     setEmail("");
     setCpfCnpj("");
+    setCep(""); setEstado(""); setCidade(""); setBairro(""); setRua(""); setNumero("");
+    setObservacoes("");
+    setLinkedLeadId(null);
     setMode("lead");
   }, [open, initialPhone, initialName]);
 
