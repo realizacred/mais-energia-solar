@@ -691,6 +691,95 @@ function canonicalizePhoneForDedup(raw: string): string {
   return d;
 }
 
+/**
+ * Similaridade aproximada entre nomes (primeiro token + Jaccard de tokens).
+ * Retorna número entre 0 e 1. Usada para detectar homônimos com o mesmo
+ * telefone (ex.: telefone reciclado por outra pessoa).
+ */
+function nameSimilarity(a: string | null | undefined, b: string | null | undefined): number {
+  const norm = (s: string) =>
+    s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^a-z0-9 ]+/g, " ").trim().split(/\s+/).filter(Boolean);
+  const ta = norm(a ?? "");
+  const tb = norm(b ?? "");
+  if (!ta.length || !tb.length) return 0;
+  // Primeiro nome diferente já é forte sinal de pessoa diferente.
+  const firstA = ta[0];
+  const firstB = tb[0];
+  if (firstA && firstB && firstA !== firstB && !firstA.startsWith(firstB) && !firstB.startsWith(firstA)) {
+    return 0;
+  }
+  const sa = new Set(ta);
+  const sb = new Set(tb);
+  let inter = 0;
+  for (const t of sa) if (sb.has(t)) inter++;
+  return inter / new Set([...ta, ...tb]).size;
+}
+
+/** Erro semântico — propaga manual_review sem virar PROMOTE_FAILED genérico. */
+class ManualReviewRequired extends Error {
+  reason: string;
+  conflictEntityType: string;
+  conflictEntityId: string;
+  details: Record<string, unknown>;
+  constructor(reason: string, conflictEntityType: string, conflictEntityId: string, details: Record<string, unknown> = {}) {
+    super(`MANUAL_REVIEW:${reason}`);
+    this.name = "ManualReviewRequired";
+    this.reason = reason;
+    this.conflictEntityType = conflictEntityType;
+    this.conflictEntityId = conflictEntityId;
+    this.details = details;
+  }
+}
+
+async function isInManualReview(
+  admin: SupabaseClient, tenantId: string, sourceEntityType: string, sourceEntityId: string,
+): Promise<{ id: string; reason: string; attempts: number; conflict_entity_id: string | null } | null> {
+  const { data } = await admin
+    .from("sm_manual_review")
+    .select("id, reason, attempts, conflict_entity_id")
+    .eq("tenant_id", tenantId)
+    .eq("source", "solarmarket")
+    .eq("source_entity_type", sourceEntityType)
+    .eq("source_entity_id", sourceEntityId)
+    .is("resolved_at", null)
+    .maybeSingle();
+  return (data as any) ?? null;
+}
+
+async function upsertManualReview(
+  admin: SupabaseClient, tenantId: string,
+  sourceEntityType: string, sourceEntityId: string,
+  reason: string,
+  conflict: { entityType?: string; entityId?: string | null; metadata?: Record<string, unknown> } = {},
+): Promise<void> {
+  // Tenta increment via RPC simples (select + upsert)
+  const existing = await isInManualReview(admin, tenantId, sourceEntityType, sourceEntityId);
+  if (existing) {
+    await admin.from("sm_manual_review")
+      .update({
+        attempts: (existing.attempts ?? 0) + 1,
+        reason,
+        conflict_entity_type: conflict.entityType ?? null,
+        conflict_entity_id: conflict.entityId ?? null,
+        conflict_metadata: conflict.metadata ?? {},
+      })
+      .eq("id", existing.id);
+    return;
+  }
+  await admin.from("sm_manual_review").insert({
+    tenant_id: tenantId,
+    source: "solarmarket",
+    source_entity_type: sourceEntityType,
+    source_entity_id: sourceEntityId,
+    reason,
+    attempts: 1,
+    conflict_entity_type: conflict.entityType ?? null,
+    conflict_entity_id: conflict.entityId ?? null,
+    conflict_metadata: conflict.metadata ?? {},
+  });
+}
+
 function normalizeSmClient(raw: AnyObj) {
   const c = raw?.client ?? raw ?? {};
   // Dígitos para lookups/UNIQUE; formatado para gravação visível.
@@ -1074,7 +1163,24 @@ async function promoteCliente(
   }
   if (byPhoneRes.data?.id) {
     const id = byPhoneRes.data.id as string;
-    await upsertLink(admin, tenantId, jobId, "cliente", id, "cliente", norm.external_id, { matched_by: "telefone" });
+    // Gate de homônimo: telefone igual + nome divergente → manual_review.
+    const { data: existRow } = await admin
+      .from("clientes").select("nome, external_id").eq("id", id).maybeSingle();
+    const existingName = (existRow as any)?.nome as string | undefined;
+    const sim = nameSimilarity(existingName, norm.nome);
+    if (sim < 0.34) {
+      throw new ManualReviewRequired(
+        "phone_collision_diff_name", "cliente", id,
+        {
+          sm_name: norm.nome,
+          sm_phone_canonical: norm.telefone_digits,
+          crm_existing_name: existingName,
+          crm_existing_external_id: (existRow as any)?.external_id,
+          name_similarity: sim,
+        },
+      );
+    }
+    await upsertLink(admin, tenantId, jobId, "cliente", id, "cliente", norm.external_id, { matched_by: "telefone", name_similarity: sim });
     return { id, created: false, matchedBy: "telefone" };
   }
   // RB-DEDUP-V4: dedup por EMAIL DESATIVADO. Apenas CPF/CNPJ válido e telefone REAL
@@ -1157,11 +1263,35 @@ async function promoteCliente(
 
       const found =
         (await tryFind("external_id", norm.external_id, "external_id_race")) ??
-        (await tryFind("telefone_normalized", norm.telefone_digits, "telefone_race")) ??
         (await tryFind("cpf_cnpj", norm.cpf_cnpj_digits, "cpf_cnpj_digits_race")) ??
         (await tryFind("cpf_cnpj", norm.cpf_cnpj, "cpf_cnpj_race")) ??
         (await tryFind("cliente_code", clienteCode, "cliente_code_race"));
       if (found) return found;
+
+      // Telefone com 23505 não-resolvido por external_id/CPF/code → manual_review.
+      // Não fazemos `tryFind("telefone_normalized", ...)` direto: pode ser homônimo.
+      if (norm.telefone_digits) {
+        const { data: phoneRow } = await admin
+          .from("clientes").select("id, nome, external_id")
+          .eq("tenant_id", tenantId).eq("telefone_normalized", norm.telefone_digits)
+          .order("created_at", { ascending: true }).limit(1).maybeSingle();
+        if (phoneRow?.id) {
+          const sim = nameSimilarity((phoneRow as any).nome, norm.nome);
+          if (sim >= 0.34) {
+            // Mesma pessoa: reconcilia (CLIENT_DUPLICATE_RECOVERED).
+            if (externalIdSafe) {
+              await upsertLink(admin, tenantId, jobId, "cliente", phoneRow.id as string, "cliente", externalIdSafe, { matched_by: "telefone_dup_recovered", name_similarity: sim });
+            }
+            return { id: phoneRow.id as string, created: false, matchedBy: "telefone_dup_recovered" };
+          }
+          throw new ManualReviewRequired(
+            "phone_collision_diff_name", "cliente", phoneRow.id as string,
+            { sm_name: norm.nome, sm_phone_canonical: norm.telefone_digits,
+              crm_existing_name: (phoneRow as any).nome,
+              crm_existing_external_id: (phoneRow as any).external_id, name_similarity: sim },
+          );
+        }
+      }
     }
     throw new Error(`insert cliente: ${message}`);
   }
@@ -2768,6 +2898,19 @@ async function promoteOneProposalRow(
     return "error";
   }
 
+  // GATE manual_review: pula propostas/clientes já em quarentena (governança de retry).
+  const reviewProp = await isInManualReview(admin, tenantId, "proposta", propExtId);
+  if (reviewProp) {
+    state.counters.skipped++;
+    logEventBuffered(state, admin, {
+      jobId, tenantId, severity: "warning", step: "manual_review_gate", status: "skipped",
+      message: `Proposta em revisão manual (${reviewProp.reason}, ${reviewProp.attempts} tentativas) — não retentar.`,
+      sourceEntityType: "proposta", sourceEntityId: propExtId,
+      errorCode: "CLIENT_MANUAL_REVIEW", errorOrigin: MODULE,
+    });
+    return "skipped";
+  }
+
   // 1) Resolver projeto e cliente do staging
   const projectExtId = pickStr(propostaPayload.project?.id);
   if (!projectExtId) {
@@ -2823,6 +2966,21 @@ async function promoteOneProposalRow(
   }
 
   try {
+    // GATE manual_review por cliente SM (interrompe retry de cliente conflitante).
+    const clientExtIdGate = pickStr(rawCliente.id);
+    if (clientExtIdGate) {
+      const reviewCli = await isInManualReview(admin, tenantId, "cliente", clientExtIdGate);
+      if (reviewCli) {
+        state.counters.skipped++;
+        logEventBuffered(state, admin, {
+          jobId, tenantId, severity: "warning", step: "manual_review_gate", status: "skipped",
+          message: `Cliente SM ${clientExtIdGate} em revisão manual (${reviewCli.reason}) — proposta ${propExtId} pulada.`,
+          sourceEntityType: "proposta", sourceEntityId: propExtId,
+          errorCode: "CLIENT_MANUAL_REVIEW", errorOrigin: MODULE,
+        });
+        return "skipped";
+      }
+    }
     // 2) Cliente
     const cli = await promoteCliente(admin, tenantId, jobId, rawCliente, clienteCache);
     logEventBuffered(state, admin, {
@@ -2831,6 +2989,8 @@ async function promoteOneProposalRow(
       message: cli.created ? "Cliente criado." : "Cliente já existia (link reutilizado).",
       sourceEntityType: "cliente", sourceEntityId: pickStr(rawCliente.id),
       canonicalEntityType: "cliente", canonicalEntityId: cli.id,
+      errorCode: cli.created ? undefined : (cli.matchedBy === "telefone_dup_recovered" ? "CLIENT_DUPLICATE_RECOVERED" : "CLIENT_REUSED"),
+      details: { matched_by: cli.matchedBy },
     });
 
     // Scope=cliente: encerra aqui sem criar projeto/proposta
@@ -3032,6 +3192,29 @@ async function promoteOneProposalRow(
     return "promoted";
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
+    if (e instanceof ManualReviewRequired) {
+      // Quarentena: para o retry infinito; não conta como erro recorrente.
+      state.counters.skipped++;
+      const clientExtIdLocal = pickStr(rawCliente?.id);
+      if (clientExtIdLocal) {
+        await upsertManualReview(admin, tenantId, "cliente", clientExtIdLocal, e.reason, {
+          entityType: e.conflictEntityType, entityId: e.conflictEntityId,
+          metadata: { ...e.details, related_propostas: [propExtId] },
+        });
+      }
+      await upsertManualReview(admin, tenantId, "proposta", propExtId, e.reason, {
+        entityType: e.conflictEntityType, entityId: e.conflictEntityId,
+        metadata: e.details,
+      });
+      logEventBuffered(state, admin, {
+        jobId, tenantId, severity: "warning", step: "promote.cliente", status: "skipped",
+        message: `Cliente em revisão manual: ${e.reason}`,
+        sourceEntityType: "proposta", sourceEntityId: propExtId,
+        errorCode: "CLIENT_MANUAL_REVIEW", errorOrigin: MODULE,
+        details: { reason: e.reason, conflict_entity_id: e.conflictEntityId, ...e.details },
+      });
+      return "skipped";
+    }
     state.counters.errors++;
     logEventBuffered(state, admin, {
       jobId, tenantId, severity: "error", step: "promote", status: "error",

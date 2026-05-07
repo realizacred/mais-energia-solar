@@ -21687,6 +21687,68 @@ export type Database = {
         }
         Relationships: []
       }
+      sm_manual_review: {
+        Row: {
+          attempts: number
+          conflict_entity_id: string | null
+          conflict_entity_type: string | null
+          conflict_metadata: Json
+          created_at: string
+          id: string
+          reason: string
+          resolution_notes: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+          source: string
+          source_entity_id: string
+          source_entity_type: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          attempts?: number
+          conflict_entity_id?: string | null
+          conflict_entity_type?: string | null
+          conflict_metadata?: Json
+          created_at?: string
+          id?: string
+          reason: string
+          resolution_notes?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          source?: string
+          source_entity_id: string
+          source_entity_type: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          attempts?: number
+          conflict_entity_id?: string | null
+          conflict_entity_type?: string | null
+          conflict_metadata?: Json
+          created_at?: string
+          id?: string
+          reason?: string
+          resolution_notes?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          source?: string
+          source_entity_id?: string
+          source_entity_type?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sm_manual_review_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sm_projeto_funis_raw: {
         Row: {
           created_at: string
