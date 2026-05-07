@@ -41,6 +41,7 @@ const PLATFORM_NAV = [
   { title: "Consumo", url: "/super-admin/usage", icon: TrendingUp },
   { title: "Audit Log", url: "/super-admin/audit", icon: History },
   { title: "SM Manual Review", url: "/super-admin/solarmarket/manual-review", icon: ShieldAlert },
+  { title: "SM Split Absorbed", url: "/super-admin/solarmarket/split-absorbed", icon: ShieldAlert },
 ];
 
 export function SuperAdminSidebar() {

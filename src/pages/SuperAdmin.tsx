@@ -26,6 +26,7 @@ const HealthPage = lazy(() => import("./super-admin/SuperAdminHealthPage"));
 const UsagePage = lazy(() => import("./super-admin/SuperAdminUsagePage"));
 const PlansPage = lazy(() => import("./super-admin/SuperAdminPlansPage"));
 const SmManualReviewPage = lazy(() => import("./super-admin/SuperAdminSmManualReviewPage"));
+const SmSplitAbsorbedPage = lazy(() => import("./super-admin/SuperAdminSmSplitAbsorbedPage"));
 
 function PageFallback() {
   return <LoadingState message="Carregando..." />;
@@ -137,6 +138,14 @@ export default function SuperAdmin() {
           element={
             <Suspense fallback={<PageFallback />}>
               <SmManualReviewPage />
+            </Suspense>
+          }
+        />
+        <Route
+          path="solarmarket/split-absorbed"
+          element={
+            <Suspense fallback={<PageFallback />}>
+              <SmSplitAbsorbedPage />
             </Suspense>
           }
         />
