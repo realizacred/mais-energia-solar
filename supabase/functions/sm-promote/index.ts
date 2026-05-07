@@ -2898,6 +2898,19 @@ async function promoteOneProposalRow(
     return "error";
   }
 
+  // GATE manual_review: pula propostas/clientes já em quarentena (governança de retry).
+  const reviewProp = await isInManualReview(admin, tenantId, "proposta", propExtId);
+  if (reviewProp) {
+    state.counters.skipped++;
+    logEventBuffered(state, admin, {
+      jobId, tenantId, severity: "warning", step: "manual_review_gate", status: "skipped",
+      message: `Proposta em revisão manual (${reviewProp.reason}, ${reviewProp.attempts} tentativas) — não retentar.`,
+      sourceEntityType: "proposta", sourceEntityId: propExtId,
+      errorCode: "CLIENT_MANUAL_REVIEW", errorOrigin: MODULE,
+    });
+    return "skipped";
+  }
+
   // 1) Resolver projeto e cliente do staging
   const projectExtId = pickStr(propostaPayload.project?.id);
   if (!projectExtId) {
