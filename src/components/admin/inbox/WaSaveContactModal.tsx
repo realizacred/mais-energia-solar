@@ -367,7 +367,7 @@ export function WaSaveContactModal({
                 <Input value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Nome completo" autoFocus />
               </div>
               <div className="space-y-1">
-                <Label className="text-[11px]">Telefone *</Label>
+                <Label className="text-[11px]">Telefone</Label>
                 <PhoneInput value={telefone} onChange={setTelefone} />
               </div>
               <div className="space-y-1">
@@ -383,12 +383,41 @@ export function WaSaveContactModal({
                   )}
                 </div>
               )}
+              <div className="space-y-1">
+                <Label className="text-[11px]">CEP</Label>
+                <Input value={cep} onChange={(e) => setCep(e.target.value)} placeholder="00000-000" />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-[11px]">Cidade / UF</Label>
+                <div className="flex gap-1.5">
+                  <Input value={cidade} onChange={(e) => setCidade(e.target.value)} placeholder="Cidade" />
+                  <Input value={estado} onChange={(e) => setEstado(e.target.value.toUpperCase().slice(0,2))} placeholder="UF" className="w-14" />
+                </div>
+              </div>
+              <div className="space-y-1 sm:col-span-2">
+                <Label className="text-[11px]">Rua / Nº / Bairro</Label>
+                <div className="flex gap-1.5">
+                  <Input value={rua} onChange={(e) => setRua(e.target.value)} placeholder="Rua" className="flex-1" />
+                  <Input value={numero} onChange={(e) => setNumero(e.target.value)} placeholder="Nº" className="w-16" />
+                  <Input value={bairro} onChange={(e) => setBairro(e.target.value)} placeholder="Bairro" className="flex-1" />
+                </div>
+              </div>
+              <div className="space-y-1 sm:col-span-2">
+                <Label className="text-[11px]">Observações</Label>
+                <Input value={observacoes} onChange={(e) => setObservacoes(e.target.value)} placeholder="Notas internas" />
+              </div>
             </div>
 
-            {mode === "lead" && (
-              <p className="text-[10px] text-muted-foreground flex items-start gap-1.5">
-                <Search className="w-3 h-3 mt-0.5 shrink-0" />
-                Campos adicionais (cidade, consumo, área) podem ser preenchidos depois no cadastro do lead.
+            {!hasContact && nome.trim().length >= 2 && (
+              <p className="text-[10px] text-destructive flex items-start gap-1.5">
+                <AlertTriangle className="w-3 h-3 mt-0.5 shrink-0" />
+                Informe ao menos um contato: telefone, e-mail ou CPF/CNPJ.
+              </p>
+            )}
+            {linkedLeadId && (
+              <p className="text-[10px] text-success flex items-start gap-1.5">
+                <CheckCircle2 className="w-3 h-3 mt-0.5 shrink-0" />
+                Dados pré-preenchidos a partir do lead vinculado a esta conversa.
               </p>
             )}
           </div>
