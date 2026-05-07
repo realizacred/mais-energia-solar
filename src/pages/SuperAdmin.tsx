@@ -141,6 +141,14 @@ export default function SuperAdmin() {
             </Suspense>
           }
         />
+        <Route
+          path="solarmarket/split-absorbed"
+          element={
+            <Suspense fallback={<PageFallback />}>
+              <SmSplitAbsorbedPage />
+            </Suspense>
+          }
+        />
         <Route path="*" element={<Navigate to="/super-admin" replace />} />
       </Route>
     </Routes>
