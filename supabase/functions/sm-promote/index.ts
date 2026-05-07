@@ -1163,25 +1163,18 @@ async function promoteCliente(
   }
   if (byPhoneRes.data?.id) {
     const id = byPhoneRes.data.id as string;
-    // Gate de homônimo: telefone igual + nome divergente → manual_review.
+    // Telefone deixou de ser identidade rígida (RB-DEDUP-V5).
+    // Só reconcilia quando nome é claramente o mesmo. Caso contrário,
+    // segue o fluxo normal e cria um novo cliente (família/empresa/responsável).
     const { data: existRow } = await admin
       .from("clientes").select("nome, external_id").eq("id", id).maybeSingle();
     const existingName = (existRow as any)?.nome as string | undefined;
     const sim = nameSimilarity(existingName, norm.nome);
-    if (sim < 0.34) {
-      throw new ManualReviewRequired(
-        "phone_collision_diff_name", "cliente", id,
-        {
-          sm_name: norm.nome,
-          sm_phone_canonical: norm.telefone_digits,
-          crm_existing_name: existingName,
-          crm_existing_external_id: (existRow as any)?.external_id,
-          name_similarity: sim,
-        },
-      );
+    if (sim >= 0.6) {
+      await upsertLink(admin, tenantId, jobId, "cliente", id, "cliente", norm.external_id, { matched_by: "telefone", name_similarity: sim });
+      return { id, created: false, matchedBy: "telefone" };
     }
-    await upsertLink(admin, tenantId, jobId, "cliente", id, "cliente", norm.external_id, { matched_by: "telefone", name_similarity: sim });
-    return { id, created: false, matchedBy: "telefone" };
+    // Nome diferente → cai no INSERT abaixo. Telefone agora pode repetir.
   }
   // RB-DEDUP-V4: dedup por EMAIL DESATIVADO. Apenas CPF/CNPJ válido e telefone REAL
   // (não-placeholder) podem agrupar clientes. Email fica disponível como dado, não chave.
@@ -1268,8 +1261,9 @@ async function promoteCliente(
         (await tryFind("cliente_code", clienteCode, "cliente_code_race"));
       if (found) return found;
 
-      // Telefone com 23505 não-resolvido por external_id/CPF/code → manual_review.
-      // Não fazemos `tryFind("telefone_normalized", ...)` direto: pode ser homônimo.
+      // Telefone com 23505 não-resolvido por external_id/CPF/code:
+      // como telefone deixou de ser único (RB-DEDUP-V5), só recupera quando
+      // nome é claramente o mesmo (race entre 2 promoções do MESMO cliente).
       if (norm.telefone_digits) {
         const { data: phoneRow } = await admin
           .from("clientes").select("id, nome, external_id")
@@ -1277,19 +1271,14 @@ async function promoteCliente(
           .order("created_at", { ascending: true }).limit(1).maybeSingle();
         if (phoneRow?.id) {
           const sim = nameSimilarity((phoneRow as any).nome, norm.nome);
-          if (sim >= 0.34) {
-            // Mesma pessoa: reconcilia (CLIENT_DUPLICATE_RECOVERED).
+          if (sim >= 0.6) {
             if (externalIdSafe) {
               await upsertLink(admin, tenantId, jobId, "cliente", phoneRow.id as string, "cliente", externalIdSafe, { matched_by: "telefone_dup_recovered", name_similarity: sim });
             }
             return { id: phoneRow.id as string, created: false, matchedBy: "telefone_dup_recovered" };
           }
-          throw new ManualReviewRequired(
-            "phone_collision_diff_name", "cliente", phoneRow.id as string,
-            { sm_name: norm.nome, sm_phone_canonical: norm.telefone_digits,
-              crm_existing_name: (phoneRow as any).nome,
-              crm_existing_external_id: (phoneRow as any).external_id, name_similarity: sim },
-          );
+          // Nome diferente: NÃO criar manual_review por causa de telefone.
+          // O 23505 nesse cenário só ocorreria por outras constraints — segue para throw padrão.
         }
       }
     }
