@@ -2966,6 +2966,21 @@ async function promoteOneProposalRow(
   }
 
   try {
+    // GATE manual_review por cliente SM (interrompe retry de cliente conflitante).
+    const clientExtIdGate = pickStr(rawCliente.id);
+    if (clientExtIdGate) {
+      const reviewCli = await isInManualReview(admin, tenantId, "cliente", clientExtIdGate);
+      if (reviewCli) {
+        state.counters.skipped++;
+        logEventBuffered(state, admin, {
+          jobId, tenantId, severity: "warning", step: "manual_review_gate", status: "skipped",
+          message: `Cliente SM ${clientExtIdGate} em revisão manual (${reviewCli.reason}) — proposta ${propExtId} pulada.`,
+          sourceEntityType: "proposta", sourceEntityId: propExtId,
+          errorCode: "CLIENT_MANUAL_REVIEW", errorOrigin: MODULE,
+        });
+        return "skipped";
+      }
+    }
     // 2) Cliente
     const cli = await promoteCliente(admin, tenantId, jobId, rawCliente, clienteCache);
     logEventBuffered(state, admin, {
@@ -2973,6 +2988,10 @@ async function promoteOneProposalRow(
       status: cli.created ? "created" : "linked",
       message: cli.created ? "Cliente criado." : "Cliente já existia (link reutilizado).",
       sourceEntityType: "cliente", sourceEntityId: pickStr(rawCliente.id),
+      canonicalEntityType: "cliente", canonicalEntityId: cli.id,
+      errorCode: cli.created ? undefined : (cli.matchedBy === "telefone_dup_recovered" ? "CLIENT_DUPLICATE_RECOVERED" : "CLIENT_REUSED"),
+      details: { matched_by: cli.matchedBy },
+    });
       canonicalEntityType: "cliente", canonicalEntityId: cli.id,
     });
 
