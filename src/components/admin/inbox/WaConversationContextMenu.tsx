@@ -188,6 +188,26 @@ export function WaConversationContextMenu({
 
       <div className="h-px bg-border/50 mx-2 my-1" />
 
+      {onToggleMute && (
+        <button className={item} onClick={run(onToggleMute)}>
+          {isMuted ? <Bell className="h-4 w-4 text-muted-foreground" /> : <BellOff className="h-4 w-4 text-muted-foreground" />}
+          {isMuted ? "Ativar notificações" : "Silenciar conversa"}
+        </button>
+      )}
+      {onToggleHide && (
+        <button className={item} onClick={run(onToggleHide)}>
+          {isHidden ? <Eye className="h-4 w-4 text-muted-foreground" /> : <EyeOff className="h-4 w-4 text-muted-foreground" />}
+          {isHidden ? "Reexibir conversa" : "Ocultar conversa"}
+        </button>
+      )}
+      {onCopyPhone && (
+        <button className={item} onClick={run(onCopyPhone)}>
+          <Copy className="h-4 w-4 text-muted-foreground" />
+          Copiar telefone
+        </button>
+      )}
+
+
       {isResolved ? (
         <button className={item} onClick={run(onReopen)}>
           <RotateCcw className="h-4 w-4 text-muted-foreground" />
