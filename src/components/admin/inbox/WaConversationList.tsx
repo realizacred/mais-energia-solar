@@ -287,6 +287,24 @@ function ConversationItem({
             {isMuted && <BellOff className="h-3 w-3 text-muted-foreground/50 shrink-0" />}
             {isHidden && <EyeOff className="h-3 w-3 text-muted-foreground/50 shrink-0" />}
             {isFollowup && <Bell className="h-3 w-3 text-warning shrink-0 animate-pulse" />}
+            {hasIdentityDivergence && (
+              <TooltipProvider delayDuration={300}>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span className="text-warning text-[11px] font-bold shrink-0 cursor-help leading-none">⚠</span>
+                  </TooltipTrigger>
+                  <TooltipContent side="top">
+                    <p className="text-xs">
+                      Identidade divergente
+                      <br />
+                      WhatsApp: <span className="font-medium">{pushName}</span>
+                      <br />
+                      CRM: <span className="font-medium">{crmName}</span>
+                    </p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            )}
           </div>
           <span className={cn(
             "text-[11px] shrink-0",
