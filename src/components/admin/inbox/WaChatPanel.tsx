@@ -117,6 +117,7 @@ interface WaChatPanelProps {
   onOpenTags: () => void;
   onOpenAssign: () => void;
   onLinkLead: () => void;
+  onSaveContact?: () => void;
   onAccept?: () => void;
   onRelease?: () => void;
   isAccepting?: boolean;
