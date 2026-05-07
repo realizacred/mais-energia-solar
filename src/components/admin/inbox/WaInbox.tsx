@@ -842,6 +842,7 @@ export function WaInbox({ vendorMode = false, vendorUserId, showCompactStats = f
                   onOpenTags={() => setShowTags(true)}
                   onOpenAssign={() => setShowAssign(true)}
                   onLinkLead={() => setShowLinkLead(true)}
+                  onSaveContact={() => selectedConv && setSaveContactFor(selectedConv)}
                   onAccept={handleAccept}
                   onRelease={handleRelease}
                   isAccepting={isAccepting}
@@ -926,6 +927,7 @@ export function WaInbox({ vendorMode = false, vendorUserId, showCompactStats = f
                 onOpenTags={() => setShowTags(true)}
                 onOpenAssign={() => setShowAssign(true)}
                 onLinkLead={() => setShowLinkLead(true)}
+                onSaveContact={() => selectedConv && setSaveContactFor(selectedConv)}
                 onAccept={handleAccept}
                 onRelease={handleRelease}
                 isAccepting={isAccepting}
