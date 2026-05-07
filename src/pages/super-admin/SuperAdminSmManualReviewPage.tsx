@@ -57,7 +57,7 @@ export default function SuperAdminSmManualReviewPage() {
         icon={ShieldAlert}
         title="Manual Review — Migração SolarMarket"
         description="Resolva conflitos de promoção (homônimos, telefones colidentes) sem SQL manual"
-        action={
+        actions={
           <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isRefetching}>
             <RefreshCw className={`w-4 h-4 mr-2 ${isRefetching ? "animate-spin" : ""}`} />
             Atualizar
