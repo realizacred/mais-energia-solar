@@ -68,6 +68,7 @@ import { WaOrcamentosDrawer } from "./WaOrcamentosDrawer";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useQuery } from "@tanstack/react-query";
 import { formatDateTime, formatDate, formatTime, formatDateShort } from "@/lib/dateUtils";
+import { formatPhoneBR } from "@/lib/formatters";
 import { resolveWaDisplayName } from "@/lib/wa/resolveDisplayName";
 
 function formatPhone(phone: string | null | undefined): string {
