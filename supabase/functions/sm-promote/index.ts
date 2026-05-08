@@ -26,6 +26,7 @@ const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const SM_MIGRATE_CHUNK_URL = `${SUPABASE_URL}/functions/v1/sm-migrate-chunk`;
+const INTERNAL_CALL_SECRET = "sm-resume-cron-v1";
 
 const SOURCE = "solarmarket";
 const LEGACY_SM_SOURCES = [SOURCE, "solar_market"] as const;
@@ -149,6 +150,7 @@ async function resolveUserContext(
   internalCallHeader?: string | null,
   internalTenantId?: string | null,
   apiKeyHeader?: string | null,
+  internalSecretHeader?: string | null,
 ) {
   if (!authHeader) return null;
 
@@ -160,7 +162,11 @@ async function resolveUserContext(
   if (
     internalCallHeader === "sm-migrate-chunk-v1" &&
     internalTenantId &&
-    (bearerToken === SUPABASE_SERVICE_ROLE_KEY || apiKey === SUPABASE_SERVICE_ROLE_KEY)
+    (
+      internalSecretHeader === INTERNAL_CALL_SECRET ||
+      bearerToken === SUPABASE_SERVICE_ROLE_KEY ||
+      apiKey === SUPABASE_SERVICE_ROLE_KEY
+    )
   ) {
     return {
       userId: null as string | null,
@@ -3756,6 +3762,7 @@ Deno.serve(async (req: Request) => {
       req.headers.get("x-sm-internal-call"),
       internalTenantId,
       req.headers.get("apikey"),
+      req.headers.get("x-sm-cron-secret"),
     );
     if (!ctx) return jsonResponse({ ok: false, error: "Não autenticado" }, 401);
     state.userId = ctx.userId;
