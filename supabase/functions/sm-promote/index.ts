@@ -152,6 +152,17 @@ async function resolveUserContext(
   apiKeyHeader?: string | null,
   internalSecretHeader?: string | null,
 ) {
+  if (
+    internalCallHeader === "sm-migrate-chunk-v1" &&
+    internalTenantId &&
+    internalSecretHeader === INTERNAL_CALL_SECRET
+  ) {
+    return {
+      userId: null as string | null,
+      tenantId: internalTenantId,
+    };
+  }
+
   if (!authHeader) return null;
 
   // Bypass para chamadas internas (sm-migrate-chunk em modo cron_resume).
@@ -163,7 +174,6 @@ async function resolveUserContext(
     internalCallHeader === "sm-migrate-chunk-v1" &&
     internalTenantId &&
     (
-      internalSecretHeader === INTERNAL_CALL_SECRET ||
       bearerToken === SUPABASE_SERVICE_ROLE_KEY ||
       apiKey === SUPABASE_SERVICE_ROLE_KEY
     )
