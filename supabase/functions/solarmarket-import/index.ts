@@ -1139,6 +1139,7 @@ async function runImportJob(
     const { data: projects, count: totalProjects, error: pjErr } = await state.supabase
       .from("sm_projetos_raw")
       .select("external_id", { count: "exact" })
+        .eq("tenant_id", state.tenantId)
       .order("external_id", { ascending: true })
       .range(from, to);
 
@@ -1161,6 +1162,7 @@ async function runImportJob(
       const { data: jaProcessados } = await state.supabase
         .from("sm_projeto_funis_raw")
         .select("sm_project_id")
+        .eq("tenant_id", state.tenantId)
         .in("sm_project_id", projectIds);
 
       const processedSet = new Set(
