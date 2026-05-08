@@ -26,6 +26,7 @@ const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const SM_MIGRATE_CHUNK_URL = `${SUPABASE_URL}/functions/v1/sm-migrate-chunk`;
+const INTERNAL_CALL_SECRET = "sm-resume-cron-v1";
 
 const SOURCE = "solarmarket";
 const LEGACY_SM_SOURCES = [SOURCE, "solar_market"] as const;
@@ -148,15 +149,34 @@ async function resolveUserContext(
   authHeader: string | null,
   internalCallHeader?: string | null,
   internalTenantId?: string | null,
+  apiKeyHeader?: string | null,
+  internalSecretHeader?: string | null,
 ) {
+  if (
+    internalCallHeader === "sm-migrate-chunk-v1" &&
+    internalTenantId &&
+    internalSecretHeader === INTERNAL_CALL_SECRET
+  ) {
+    return {
+      userId: null as string | null,
+      tenantId: internalTenantId,
+    };
+  }
+
   if (!authHeader) return null;
 
   // Bypass para chamadas internas (sm-migrate-chunk em modo cron_resume).
-  // Aceita se: header especial + Authorization com service role key + tenant_id explícito.
+  // Aceita se: header especial + tenant_id explícito + credencial service-role
+  // no Authorization OU apikey. O gateway pode normalizar/remover um dos headers.
+  const bearerToken = authHeader.replace(/^Bearer\s+/i, "").trim();
+  const apiKey = String(apiKeyHeader ?? "").trim();
   if (
     internalCallHeader === "sm-migrate-chunk-v1" &&
-    authHeader === `Bearer ${SUPABASE_SERVICE_ROLE_KEY}` &&
-    internalTenantId
+    internalTenantId &&
+    (
+      bearerToken === SUPABASE_SERVICE_ROLE_KEY ||
+      apiKey === SUPABASE_SERVICE_ROLE_KEY
+    )
   ) {
     return {
       userId: null as string | null,
@@ -3675,7 +3695,7 @@ async function runChainedPhase(
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
-          apikey: SUPABASE_SERVICE_ROLE_KEY,
+          apikey: SUPABASE_ANON_KEY,
         },
         body: JSON.stringify({ action, payload: { ...basePayload, offset } }),
       });
@@ -3751,6 +3771,8 @@ Deno.serve(async (req: Request) => {
       req.headers.get("Authorization"),
       req.headers.get("x-sm-internal-call"),
       internalTenantId,
+      req.headers.get("apikey"),
+      req.headers.get("x-sm-cron-secret"),
     );
     if (!ctx) return jsonResponse({ ok: false, error: "Não autenticado" }, 401);
     state.userId = ctx.userId;

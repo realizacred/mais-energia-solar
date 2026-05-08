@@ -69,6 +69,9 @@ function isGatewayTimeoutLike(error: string | undefined): boolean {
 function isRecoverableChunkFailure(error: string | undefined): boolean {
   const message = String(error ?? "").toLowerCase();
   return isGatewayTimeoutLike(message)
+    || message.includes("http 401")
+    || message.includes("não autenticado")
+    || message.includes("nao autenticado")
     || message.includes("falha ao processar chunk adaptativo")
     || message.includes("chunk falhou: falha ao processar chunk adaptativo");
 }
@@ -257,10 +260,11 @@ async function callSmPromoteOnce(
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
-        apikey: SUPABASE_SERVICE_ROLE_KEY,
+        Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+        apikey: SUPABASE_ANON_KEY,
         "x-sm-tenant-override": tenantId,
         "x-sm-internal-call": "sm-migrate-chunk-v1",
+        "x-sm-cron-secret": CRON_SECRET,
       },
       body: JSON.stringify({
         action: "promote-all",
@@ -319,10 +323,11 @@ async function runPostPhaseUntilDone(
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
-        apikey: SUPABASE_SERVICE_ROLE_KEY,
+        Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+        apikey: SUPABASE_ANON_KEY,
         "x-sm-tenant-override": tenantId,
         "x-sm-internal-call": "sm-migrate-chunk-v1",
+        "x-sm-cron-secret": CRON_SECRET,
       },
       body: JSON.stringify({
         action,
