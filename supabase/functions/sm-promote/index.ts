@@ -148,15 +148,19 @@ async function resolveUserContext(
   authHeader: string | null,
   internalCallHeader?: string | null,
   internalTenantId?: string | null,
+  apiKeyHeader?: string | null,
 ) {
   if (!authHeader) return null;
 
   // Bypass para chamadas internas (sm-migrate-chunk em modo cron_resume).
-  // Aceita se: header especial + Authorization com service role key + tenant_id explícito.
+  // Aceita se: header especial + tenant_id explícito + credencial service-role
+  // no Authorization OU apikey. O gateway pode normalizar/remover um dos headers.
+  const bearerToken = authHeader.replace(/^Bearer\s+/i, "").trim();
+  const apiKey = String(apiKeyHeader ?? "").trim();
   if (
     internalCallHeader === "sm-migrate-chunk-v1" &&
-    authHeader === `Bearer ${SUPABASE_SERVICE_ROLE_KEY}` &&
-    internalTenantId
+    internalTenantId &&
+    (bearerToken === SUPABASE_SERVICE_ROLE_KEY || apiKey === SUPABASE_SERVICE_ROLE_KEY)
   ) {
     return {
       userId: null as string | null,
@@ -3751,6 +3755,7 @@ Deno.serve(async (req: Request) => {
       req.headers.get("Authorization"),
       req.headers.get("x-sm-internal-call"),
       internalTenantId,
+      req.headers.get("apikey"),
     );
     if (!ctx) return jsonResponse({ ok: false, error: "Não autenticado" }, 401);
     state.userId = ctx.userId;
