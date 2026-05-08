@@ -1400,7 +1400,8 @@ async function runImportJob(
     try {
       const { count } = await adminClient
         .from(table)
-        .select("id", { count: "exact", head: true });
+        .select("id", { count: "exact", head: true })
+        .eq("tenant_id", state.tenantId);
       realCounts[field] = count ?? 0;
     } catch {
       realCounts[field] = 0;
