@@ -1617,7 +1617,7 @@ Deno.serve(async (req) => {
       state.jobId = String((job as any)?.id ?? "");
       if (!state.jobId) throw new Error("Falha ao criar job de importação.");
 
-      fetch(`${SUPABASE_URL}/functions/v1/solarmarket-import`, {
+      const dispatchPromise = fetch(`${SUPABASE_URL}/functions/v1/solarmarket-import`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -1631,6 +1631,7 @@ Deno.serve(async (req) => {
           triggered_by: userId,
         }),
       }).catch((e) => console.error("[solarmarket-import] fire-and-forget error:", e?.message ?? String(e)));
+      (globalThis as any).EdgeRuntime?.waitUntil?.(dispatchPromise);
 
       return new Response(
         JSON.stringify({
