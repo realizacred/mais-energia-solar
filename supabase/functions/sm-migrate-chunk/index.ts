@@ -69,6 +69,8 @@ function isGatewayTimeoutLike(error: string | undefined): boolean {
 function isRecoverableChunkFailure(error: string | undefined): boolean {
   const message = String(error ?? "").toLowerCase();
   return isGatewayTimeoutLike(message)
+    || message.includes("não autenticado")
+    || message.includes("nao autenticado")
     || message.includes("falha ao processar chunk adaptativo")
     || message.includes("chunk falhou: falha ao processar chunk adaptativo");
 }
