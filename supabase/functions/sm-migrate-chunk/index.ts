@@ -263,6 +263,7 @@ async function callSmPromoteOnce(
         apikey: SUPABASE_ANON_KEY,
         "x-sm-tenant-override": tenantId,
         "x-sm-internal-call": "sm-migrate-chunk-v1",
+        "x-sm-cron-secret": CRON_SECRET,
       },
       body: JSON.stringify({
         action: "promote-all",
@@ -325,6 +326,7 @@ async function runPostPhaseUntilDone(
         apikey: SUPABASE_ANON_KEY,
         "x-sm-tenant-override": tenantId,
         "x-sm-internal-call": "sm-migrate-chunk-v1",
+        "x-sm-cron-secret": CRON_SECRET,
       },
       body: JSON.stringify({
         action,
