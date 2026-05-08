@@ -258,7 +258,7 @@ async function callSmPromoteOnce(
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
-        apikey: SUPABASE_SERVICE_ROLE_KEY,
+        apikey: SUPABASE_ANON_KEY,
         "x-sm-tenant-override": tenantId,
         "x-sm-internal-call": "sm-migrate-chunk-v1",
       },
@@ -320,7 +320,7 @@ async function runPostPhaseUntilDone(
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
-        apikey: SUPABASE_SERVICE_ROLE_KEY,
+        apikey: SUPABASE_ANON_KEY,
         "x-sm-tenant-override": tenantId,
         "x-sm-internal-call": "sm-migrate-chunk-v1",
       },
