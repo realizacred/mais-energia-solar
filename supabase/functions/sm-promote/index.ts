@@ -1198,7 +1198,8 @@ async function promoteCliente(
 
       const found =
         (await tryFind("external_id", norm.external_id, "external_id_race")) ??
-        (await tryFind("cliente_code", clienteCode, "cliente_code_race"));
+        (await tryFind("cliente_code", clienteCode, "cliente_code_race")) ??
+        (await tryFind("cpf_cnpj", norm.cpf_cnpj, "cpf_cnpj_race"));
       if (found) return found;
     }
     throw new Error(`insert cliente: ${message}`);
