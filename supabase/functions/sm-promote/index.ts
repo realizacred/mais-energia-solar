@@ -1176,7 +1176,7 @@ async function promoteCliente(
     if (isDup) {
       const externalIdSafe = norm.external_id ?? "";
       const tryFind = async (
-        column: "cliente_code" | "external_id",
+        column: "cliente_code" | "external_id" | "cpf_cnpj",
         value: string | null | undefined,
         matchedBy: string,
       ): Promise<{ id: string; created: false; matchedBy: string } | null> => {
