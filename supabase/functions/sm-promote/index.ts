@@ -1176,7 +1176,7 @@ async function promoteCliente(
     if (isDup) {
       const externalIdSafe = norm.external_id ?? "";
       const tryFind = async (
-        column: "cliente_code" | "external_id",
+        column: "cliente_code" | "external_id" | "cpf_cnpj",
         value: string | null | undefined,
         matchedBy: string,
       ): Promise<{ id: string; created: false; matchedBy: string } | null> => {
@@ -1198,7 +1198,8 @@ async function promoteCliente(
 
       const found =
         (await tryFind("external_id", norm.external_id, "external_id_race")) ??
-        (await tryFind("cliente_code", clienteCode, "cliente_code_race"));
+        (await tryFind("cliente_code", clienteCode, "cliente_code_race")) ??
+        (await tryFind("cpf_cnpj", norm.cpf_cnpj, "cpf_cnpj_race"));
       if (found) return found;
     }
     throw new Error(`insert cliente: ${message}`);
