@@ -540,17 +540,33 @@ export default function SolarmarketLogsPage() {
               ) : (
                 <div className="divide-y">
                   {alerts.map(a => (
-                    <div key={a.id} className="p-4 flex items-start gap-3 hover:bg-muted/30 transition-colors">
-                      {a.type === 'error' ? <AlertCircle className="h-4 w-4 text-destructive shrink-0 mt-0.5" /> : <AlertTriangle className="h-4 w-4 text-warning shrink-0 mt-0.5" />}
-                      <div className="flex-1 space-y-1">
-                        <p className="text-xs font-semibold leading-none">{a.msg}</p>
-                        <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
+                    <div key={a.id} className="p-4 flex items-start gap-4 hover:bg-muted/30 transition-colors">
+                      {a.type === 'error' ? <AlertCircle className="h-5 w-5 text-destructive shrink-0 mt-0.5" /> : <AlertTriangle className="h-5 w-5 text-warning shrink-0 mt-0.5" />}
+                      <div className="flex-1 space-y-2">
+                        <div className="flex items-center gap-2">
+                          <p className="text-xs font-bold leading-none">{a.msg}</p>
+                          <Badge variant="outline" className={cn("text-[8px] h-4 uppercase font-bold", a.type === 'error' ? "border-destructive/30 text-destructive bg-destructive/5" : "border-warning/30 text-warning bg-warning/5")}>
+                            {a.category}
+                          </Badge>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className="space-y-1">
+                            <p className="text-[10px] uppercase font-bold text-muted-foreground flex items-center gap-1">
+                              <Target className="h-3 w-3" /> Impacto
+                            </p>
+                            <p className="text-[11px] leading-relaxed">{a.impact}</p>
+                          </div>
+                          <div className="space-y-1">
+                            <p className="text-[10px] uppercase font-bold text-muted-foreground flex items-center gap-1">
+                              <ShieldCheck className="h-3 w-3" /> Mitigação Sugerida
+                            </p>
+                            <p className="text-[11px] leading-relaxed text-primary/80">{a.mitigation}</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2 text-[10px] text-muted-foreground pt-1">
                           <Clock className="h-3 w-3" /> {fmt(a.date)}
                         </div>
                       </div>
-                      <Badge variant="outline" className={cn("text-[8px] uppercase font-bold", a.type === 'error' ? "border-destructive/30 text-destructive" : "border-warning/30 text-warning")}>
-                        {a.type === 'error' ? 'CRITICAL' : 'WARNING'}
-                      </Badge>
                     </div>
                   ))}
                 </div>
