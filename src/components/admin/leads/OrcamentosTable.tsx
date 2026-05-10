@@ -66,6 +66,8 @@ export function OrcamentosTable({
   const [assignOrcamento, setAssignOrcamento] = useState<OrcamentoDisplayItem | null>(null);
   const [editOpen, setEditOpen] = useState(false);
   const [editOrcamento, setEditOrcamento] = useState<OrcamentoDisplayItem | null>(null);
+  const [vincularOpen, setVincularOpen] = useState(false);
+  const [vincularOrc, setVincularOrc] = useState<OrcamentoDisplayItem | null>(null);
   const navigate = useNavigate();
 
   const groupedOrcamentos = useGroupedOrcamentos(orcamentos, sortOption);
