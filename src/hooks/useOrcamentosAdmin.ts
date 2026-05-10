@@ -16,6 +16,7 @@ const ORC_ADMIN_SELECT = `
   observacoes, arquivos_urls, consultor, consultor_id, visto, visto_admin,
   status_id, ultimo_contato, proxima_acao, data_proxima_acao, created_at, updated_at,
   lead_nome, lead_telefone, lead_telefone_normalized, lead_email, lead_code,
+  matched_cliente_id, matched_projeto_id,
   proposal_count, project_count, lead_status_nome,
   orc_consultores:consultor_id(id, nome)
 `;
