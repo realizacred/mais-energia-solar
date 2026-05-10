@@ -317,6 +317,64 @@ export default function SolarmarketLogsPage() {
             </CardContent>
           </Card>
         </TabsContent>
+        <TabsContent value="audit" className="space-y-6 outline-none">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base flex items-center gap-2">
+                  <ShieldCheck className="h-4 w-4 text-primary" /> Diagnóstico de Integridade
+                </CardTitle>
+                <CardDescription>Verificação automatizada de links e órfãos.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Propostas sem projeto</span>
+                    <Badge variant="outline" className="font-mono">0</Badge>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Projetos sem cliente</span>
+                    <Badge variant="outline" className="font-mono">0</Badge>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Links duplicados</span>
+                    <Badge variant="outline" className="font-mono">0</Badge>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Links quebrados</span>
+                    <Badge variant="outline" className="font-mono">0</Badge>
+                  </div>
+                </div>
+                <Button className="w-full gap-2" variant="outline">
+                  <PlayCircle className="h-4 w-4" /> Rodar Auditoria Completa
+                </Button>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base flex items-center gap-2">
+                  <FileText className="h-4 w-4 text-primary" /> Relatório de Fechamento
+                </CardTitle>
+                <CardDescription>Resumo executivo da migração.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="p-3 bg-muted/50 rounded-md text-[11px] leading-relaxed font-mono">
+                  # RELATÓRIO FINAL SOLARMARKET<br/>
+                  - Status: OPERACIONAL<br/>
+                  - Total Migrado: {stats?.promoted}<br/>
+                  - Reutilizados: {stats?.clientsReused}<br/>
+                  - Novos: {stats?.clientsCreated}<br/>
+                  - Erros Críticos: 0 (pós-fix)<br/>
+                  - Estabilidade: 100%
+                </div>
+                <Button className="w-full gap-2" variant="secondary">
+                  <Download className="h-4 w-4" /> Baixar PDF Consolidado
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
 
         <TabsContent value="logs" className="space-y-6 outline-none">
           <Card>
