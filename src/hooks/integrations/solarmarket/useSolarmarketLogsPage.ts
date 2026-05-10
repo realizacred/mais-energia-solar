@@ -69,17 +69,38 @@ export interface SmAuditData {
 
 export type ErrorWindow = '5m' | '15m' | '1h' | 'since_fix' | 'all';
 
+export interface SmThresholds {
+  heartbeatTimeout: number; // minutes
+  stalledThreshold: number; // minutes
+  minThroughput: number; // prop/min
+  maxRetries: number;
+  operationalWindow: ErrorWindow;
+}
+
 export function useSolarmarketLogsPage() {
   const { data: tenantId } = useTenantId();
   const queryClient = useQueryClient();
-  const [errorWindow, setErrorWindow] = useState<ErrorWindow>(() => {
-    const saved = localStorage.getItem('sm_error_window');
-    return (saved as ErrorWindow) || 'since_fix';
+  
+  const [thresholds, setThresholds] = useState<SmThresholds>(() => {
+    const saved = localStorage.getItem(`sm_thresholds_${tenantId || 'global'}`);
+    if (saved) return JSON.parse(saved);
+    return {
+      heartbeatTimeout: 10,
+      stalledThreshold: 15,
+      minThroughput: 5,
+      maxRetries: 3,
+      operationalWindow: 'since_fix'
+    };
   });
 
+  const [errorWindow, setErrorWindow] = useState<ErrorWindow>(thresholds.operationalWindow);
+
   useEffect(() => {
-    localStorage.setItem('sm_error_window', errorWindow);
-  }, [errorWindow]);
+    localStorage.setItem(`sm_thresholds_${tenantId || 'global'}`, JSON.stringify({
+      ...thresholds,
+      operationalWindow: errorWindow
+    }));
+  }, [thresholds, errorWindow, tenantId]);
 
   const getWindowTimestamp = () => {
     const now = new Date();
