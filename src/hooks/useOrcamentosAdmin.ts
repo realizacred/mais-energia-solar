@@ -193,6 +193,10 @@ export function useOrcamentosAdmin({
         for (const r of (enrichRows || []) as any[]) {
           enrichMap.set(r.id, {
             projeto_id: r.matched_projeto_id ?? null,
+            // NOTE: tem_proposta controla apenas a COR do ícone (verde/vermelho).
+            // Semanticamente = "cliente matchado tem alguma proposta", NÃO
+            // "este projeto tem proposta". A existência do ícone é gated por
+            // projeto_id (matched_projeto_id), alinhado aos contadores.
             tem_proposta: (r.proposal_count ?? 0) > 0,
           });
         }
