@@ -25,16 +25,34 @@ import type { OrcamentoDisplayItem } from "@/types/orcamento";
 import type { Lead } from "@/types/lead";
 
 export function LeadsView() {
-  const { orcamentos, statuses, loading, toggleVisto, deleteOrcamento, filters, fetchOrcamentos, page, setPage, totalCount, totalPages } = useOrcamentosAdmin();
-  const { hasPermission } = useUserPermissions();
-  const canDeleteLeads = hasPermission("delete_leads");
-  const { sortOption, updateSort } = useOrcamentoSort("admin_leads");
-  const [filteredOrcamentos, setFilteredOrcamentos] = useState<OrcamentoDisplayItem[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterVisto, setFilterVisto] = useState("nao_visto");
   const [filterVendedor, setFilterVendedor] = useState("todos");
   const [filterEstado, setFilterEstado] = useState("todos");
   const [filterStatus, setFilterStatus] = useState("todos");
+  const [filterConversao, setFilterConversao] = useState("todos");
+
+  const { 
+    orcamentos, 
+    statuses, 
+    loading, 
+    toggleVisto, 
+    deleteOrcamento, 
+    filters, 
+    fetchOrcamentos, 
+    page, 
+    setPage, 
+    totalCount, 
+    totalPages,
+    stats: hookStats
+  } = useOrcamentosAdmin({
+    searchTerm,
+    filterVisto,
+    filterVendedor,
+    filterEstado,
+    filterStatus,
+    filterConversao
+  });
   const [selectedOrcamento, setSelectedOrcamento] = useState<OrcamentoDisplayItem | null>(null);
   const [isViewOpen, setIsViewOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
