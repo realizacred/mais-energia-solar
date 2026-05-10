@@ -140,7 +140,7 @@ function ProgressiveStageCards({
   useInfiniteSentinel(sentinelRef, remaining > 0, loadMore);
 
   return (
-    <div className="px-2 pb-2 min-h-[60px] space-y-0 flex-1 min-h-0 overflow-y-auto divide-y divide-border/40">
+    <div className="px-2 pb-2 min-h-[60px] space-y-0 flex-1 min-h-0 overflow-y-auto scrollbar-premium divide-y divide-border/40">
       {deals.length === 0 && (
         <div className="flex items-center justify-center h-16 text-xs text-muted-foreground/40 italic">
           Arraste projetos aqui
