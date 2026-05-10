@@ -98,12 +98,14 @@ export default function SolarmarketLogsPage() {
   const { 
     promotionJobs, importJobs, recentErrors, historicalSummary, 
     activeSummary, migrationStats, resumeMigration, exportLogs, 
-    auditData, runAudit, errorWindow, setErrorWindow 
+    auditData, runAudit, errorWindow, setErrorWindow,
+    thresholds, setThresholds, timeSeriesData
   } = useSolarmarketLogsPage();
   const [openJobId, setOpenJobId] = useState<string | null>(null);
   const [showHistorical, setShowHistorical] = useState(false);
   const [isConfirmingResume, setIsConfirmingResume] = useState(false);
   const [activeTab, setActiveTab] = useState("dashboard");
+  const [isExportingPDF, setIsExportingPDF] = useState(false);
 
   const allLogs = recentErrors.data ?? [];
   const currentLogs = allLogs.filter((l) => !isHistoricalLog(l.created_at));
@@ -111,16 +113,16 @@ export default function SolarmarketLogsPage() {
   const latestJob = promotionJobs.data?.[0];
   const stats = migrationStats.data;
   
-  // Heartbeat check (10 mins)
+  // Heartbeat check (using thresholds)
   const lastHeartbeat = latestJob ? new Date(latestJob.updated_at).getTime() : 0;
-  const isHeartbeatLost = latestJob && latestJob.status === "running" && (Date.now() - lastHeartbeat > 10 * 60 * 1000);
+  const isHeartbeatLost = latestJob && latestJob.status === "running" && (Date.now() - lastHeartbeat > thresholds.heartbeatTimeout * 60 * 1000);
   
-  // Stalled rule
+  // Stalled rule (using thresholds)
   const isStalled = latestJob && (
     latestJob.status === "failed" || 
     latestJob.status === "cancelled" || 
     isHeartbeatLost ||
-    (latestJob.status === "running" && (stats?.throughput || 0) === 0 && (stats?.remaining || 0) > 0)
+    (latestJob.status === "running" && (stats?.throughput || 0) < 1 && (stats?.remaining || 0) > 0)
   );
 
   const totals = {
@@ -128,18 +130,27 @@ export default function SolarmarketLogsPage() {
     errors: activeSummary.data?.total_errors ?? 0,
     warnings: activeSummary.data?.total_warnings ?? 0,
     historicalErrors: historicalSummary.data?.total_errors ?? 0,
+    historicalWarnings: historicalSummary.data?.total_warnings ?? 0,
   };
+
+  // Success Rate calculation
+  const successRate = useMemo(() => {
+    if (!stats || stats.promoted === 0) return 100;
+    const totalProcessed = stats.promoted + totals.errors;
+    if (totalProcessed === 0) return 100;
+    return Math.round((stats.promoted / totalProcessed) * 100);
+  }, [stats, totals.errors]);
 
   // Health Calculation
   const healthStatus = useMemo(() => {
     if (!latestJob) return "UNKNOWN";
     if (latestJob.status === "completed") return "CONCLUDED";
-    if (totals.errors > 0) return "FAILED";
+    if (totals.errors > thresholds.maxRetries) return "FAILED";
     if (isStalled) return "STALLED";
     if (isHeartbeatLost) return "DEGRADED";
-    if ((stats?.throughput || 0) < 5 && (stats?.remaining || 0) > 0) return "DEGRADED";
+    if ((stats?.throughput || 0) < thresholds.minThroughput && (stats?.remaining || 0) > 0) return "DEGRADED";
     return "HEALTHY";
-  }, [latestJob, totals.errors, isStalled, isHeartbeatLost, stats?.throughput, stats?.remaining]);
+  }, [latestJob, totals.errors, isStalled, isHeartbeatLost, stats?.throughput, stats?.remaining, thresholds]);
 
   // Operational Alerts
   const alerts = useMemo(() => {
