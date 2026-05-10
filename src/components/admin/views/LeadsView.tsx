@@ -69,44 +69,7 @@ export function LeadsView() {
   // Reset page when filters change
   useEffect(() => {
     setPage(0);
-  }, [searchTerm, filterVisto, filterVendedor, filterEstado, filterStatus, setPage]);
-
-  useEffect(() => {
-    let filtered = orcamentos.filter(
-      (orc) =>
-        orc.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        orc.telefone.includes(searchTerm) ||
-        orc.cidade.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        orc.estado.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (orc.email && orc.email.toLowerCase().includes(searchTerm.toLowerCase())) ||
-        (orc.orc_code && orc.orc_code.toLowerCase().includes(searchTerm.toLowerCase())) ||
-        (orc.lead_code && orc.lead_code.toLowerCase().includes(searchTerm.toLowerCase())) ||
-        (orc.vendedor_nome && orc.vendedor_nome.toLowerCase().includes(searchTerm.toLowerCase())) ||
-        (orc.vendedor && orc.vendedor.toLowerCase().includes(searchTerm.toLowerCase()))
-    );
-
-    if (filterVisto === "visto") {
-      filtered = filtered.filter((orc) => orc.visto_admin);
-    } else if (filterVisto === "nao_visto") {
-      filtered = filtered.filter((orc) => !orc.visto_admin);
-    }
-
-    if (filterVendedor === "sem_vendedor") {
-      filtered = filtered.filter((orc) => !orc.vendedor_id);
-    } else if (filterVendedor !== "todos") {
-      filtered = filtered.filter((orc) => orc.vendedor_id === filterVendedor);
-    }
-
-    if (filterEstado !== "todos") {
-      filtered = filtered.filter((orc) => orc.estado === filterEstado);
-    }
-
-    if (filterStatus !== "todos") {
-      filtered = filtered.filter((orc) => orc.status_id === filterStatus);
-    }
-
-    setFilteredOrcamentos(filtered);
-  }, [searchTerm, orcamentos, filterVisto, filterVendedor, filterEstado, filterStatus]);
+  }, [searchTerm, filterVisto, filterVendedor, filterEstado, filterStatus, filterConversao, setPage]);
 
   // KPI calculations from local data
   const kpis = useMemo(() => {
