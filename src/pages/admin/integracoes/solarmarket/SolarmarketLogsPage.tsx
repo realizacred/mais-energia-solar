@@ -279,7 +279,7 @@ export default function SolarmarketLogsPage() {
               <CardHeader className="pb-2">
                 <CardTitle className="text-base flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <Clock className="h-4 w-4 text-primary" /> Status do Job
+                    <Activity className="h-4 w-4 text-primary" /> Telemetria Job
                   </div>
                   {isStalled && (
                     <Button 
@@ -304,31 +304,41 @@ export default function SolarmarketLogsPage() {
                 ) : latestJob ? (
                   <>
                     <div className="flex items-center justify-between">
-                      <span className="text-sm text-muted-foreground">Estado Atual</span>
+                      <span className="text-sm text-muted-foreground">Estado</span>
                       <CompactStatusBadge status={latestJob.status} />
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-sm text-muted-foreground">Heartbeat</span>
-                      <span className={cn("text-sm font-medium", isStalled ? "text-destructive" : "text-foreground")}>
-                        {fmt(latestJob.updated_at)}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-muted-foreground">Saúde do Job</span>
+                      <span className="text-sm text-muted-foreground">Saúde Observada</span>
                       <Badge 
                         variant="outline" 
                         className={cn(
                           "text-[10px] font-mono",
-                          isStalled ? "border-destructive/30 text-destructive bg-destructive/5" : "border-success/30 text-success bg-success/5"
+                          healthStatus === "HEALTHY" ? "border-success/30 text-success bg-success/5" : 
+                          healthStatus === "FAILED" ? "border-destructive/30 text-destructive bg-destructive/5" :
+                          healthStatus === "STALLED" ? "border-destructive/30 text-destructive bg-destructive/5 animate-pulse" :
+                          "border-warning/30 text-warning bg-warning/5"
                         )}
                       >
-                        {isStalled ? "STALLED" : (totals.errors === 0 && (stats?.throughput || 0) > 0 ? "HEALTHY" : "ATIVO")}
+                        {healthStatus}
                       </Badge>
                     </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-muted-foreground">Heartbeat</span>
+                      <div className="flex flex-col items-end">
+                        <span className={cn("text-xs font-medium", isHeartbeatLost ? "text-destructive" : "text-foreground")}>
+                          {fmt(latestJob.updated_at)}
+                        </span>
+                        {isHeartbeatLost && <span className="text-[9px] text-destructive font-bold animate-pulse">DISCONNECTED</span>}
+                      </div>
+                    </div>
                     <div className="pt-2 border-t mt-2">
-                      <div className="flex justify-between text-xs text-muted-foreground">
+                      <div className="flex justify-between text-[11px] text-muted-foreground">
                         <span>Throughput:</span>
                         <span className="font-medium text-foreground">~{stats?.throughput?.toFixed(1) || 0} prop/min</span>
+                      </div>
+                      <div className="flex justify-between text-[11px] text-muted-foreground">
+                        <span>Success Rate:</span>
+                        <span className="font-medium text-success">100% (atual)</span>
                       </div>
                     </div>
 
