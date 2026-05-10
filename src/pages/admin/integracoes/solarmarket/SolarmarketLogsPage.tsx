@@ -378,37 +378,43 @@ export default function SolarmarketLogsPage() {
           </div>
           
           <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-base">
-                <AlertTriangle className="h-4 w-4 text-warning" /> Alertas Atuais
+            <CardHeader className="pb-3 border-b bg-muted/20">
+              <CardTitle className="flex items-center gap-2 text-sm">
+                <AlertOctagon className="h-4 w-4 text-primary" /> Alertas Operacionais
               </CardTitle>
             </CardHeader>
             <CardContent className="p-0">
-              {!currentLogs.length ? (
-                <EmptyState icon={CheckCircle2} title="Tudo limpo" description="Nenhum alerta recente detectado." className="py-8" />
+              {!alerts.length ? (
+                <EmptyState icon={CheckCircle2} title="Sistema Nominal" description="Nenhum alerta crítico ativo." className="py-8" />
               ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Quando</TableHead>
-                      <TableHead>Mensagem</TableHead>
-                      <TableHead>Ações</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {currentLogs.slice(0, 5).map(l => (
-                      <TableRow key={l.id}>
-                        <TableCell className="text-xs text-muted-foreground whitespace-nowrap">{fmt(l.created_at)}</TableCell>
-                        <TableCell className="text-xs truncate max-w-[300px]" title={l.message || ''}>{l.message}</TableCell>
-                        <TableCell>
-                          <Button size="sm" variant="ghost" onClick={() => l.job_id && setOpenJobId(l.job_id)}>Ver Job</Button>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                <div className="divide-y">
+                  {alerts.map(a => (
+                    <div key={a.id} className="p-4 flex items-start gap-3 hover:bg-muted/30 transition-colors">
+                      {a.type === 'error' ? <AlertCircle className="h-4 w-4 text-destructive shrink-0 mt-0.5" /> : <AlertTriangle className="h-4 w-4 text-warning shrink-0 mt-0.5" />}
+                      <div className="flex-1 space-y-1">
+                        <p className="text-xs font-semibold leading-none">{a.msg}</p>
+                        <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
+                          <Clock className="h-3 w-3" /> {fmt(a.date)}
+                        </div>
+                      </div>
+                      <Badge variant="outline" className={cn("text-[8px] uppercase font-bold", a.type === 'error' ? "border-destructive/30 text-destructive" : "border-warning/30 text-warning")}>
+                        {a.type === 'error' ? 'CRITICAL' : 'WARNING'}
+                      </Badge>
+                    </div>
+                  ))}
+                </div>
               )}
             </CardContent>
+            {alerts.length > 0 && (
+              <div className="px-4 py-3 bg-muted/10 border-t flex justify-between items-center">
+                <span className="text-[10px] text-muted-foreground italic flex items-center gap-1">
+                  <Info className="h-3 w-3" /> Clique para ver logs detalhados
+                </span>
+                <Button size="sm" variant="ghost" className="h-6 text-[10px] uppercase font-bold" onClick={() => setActiveTab('logs')}>
+                  Ver Logs
+                </Button>
+              </div>
+            )}
           </Card>
         </TabsContent>
         <TabsContent value="audit" className="space-y-6 outline-none">
