@@ -7,83 +7,7 @@ import { playIncomingMessageAlert } from "@/services/incomingMessageAlert";
 
 // ── Types ─────────────────────────────────────────────
 
-export interface WaConversation {
-  id: string;
-  tenant_id: string;
-  instance_id: string;
-  remote_jid: string;
-  cliente_nome: string | null;
-  cliente_telefone: string;
-  status: "open" | "pending" | "resolved";
-  assigned_to: string | null;
-  lead_id: string | null;
-  cliente_id: string | null;
-  last_message_at: string | null;
-  last_message_preview: string | null;
-  last_message_direction: "in" | "out" | null;
-  unread_count: number;
-  canal: string;
-  profile_picture_url: string | null;
-  is_group: boolean;
-  created_at: string;
-  updated_at: string;
-  // joined
-  tags?: WaConversationTag[];
-  instance_name?: string;
-  instance_profile_name?: string | null;
-  vendedor_nome?: string;
-  lead_nome?: string;
-  lead_telefone?: string;
-  cliente_nome_real?: string | null;
-}
-
-export interface WaMessage {
-  id: string;
-  conversation_id: string;
-  evolution_message_id: string | null;
-  correlation_id: string | null;
-  direction: "in" | "out";
-  message_type: string;
-  content: string | null;
-  media_url: string | null;
-  storage_path: string | null;
-  media_mime_type: string | null;
-  media_status: string | null;
-  media_error_message: string | null;
-  file_name: string | null;
-  file_size: number | null;
-  quoted_message_id: string | null;
-  sent_by_user_id: string | null;
-  is_internal_note: boolean;
-  status: string | null;
-  error_message: string | null;
-  error_code: string | null;
-  metadata: any;
-  participant_jid: string | null;
-  participant_name: string | null;
-  created_at: string;
-  // timestamps
-  queued_at: string | null;
-  sent_at: string | null;
-  delivered_at: string | null;
-  read_at: string | null;
-  failed_at: string | null;
-  // joined
-  sent_by_name?: string | null;
-}
-
-export interface WaTag {
-  id: string;
-  name: string;
-  color: string;
-}
-
-export interface WaConversationTag {
-  id: string;
-  conversation_id: string;
-  tag_id: string;
-  tag?: WaTag;
-}
+export type { WaConversation, WaMessage, WaTag, WaConversationTag } from "@/types";
 
 // ── Conversations Hook ────────────────────────────────
 
@@ -114,9 +38,12 @@ export function useWaConversations(filters?: {
           status, assigned_to, lead_id, cliente_id, last_message_at, last_message_preview,
           last_message_direction,
           unread_count, canal, profile_picture_url, is_group, created_at, updated_at,
+          projeto_id, proposta_id, ai_context, ai_context_updated_at,
           wa_instances(nome, profile_name, consultores(nome, user_id)),
           leads(nome, telefone),
-          clientes(nome)
+          clientes(nome),
+          projeto:projetos(id, nome, valor_total, etapa_id),
+          proposta:propostas_nativas(id, titulo)
         `)
         .order("last_message_at", { ascending: false });
 

@@ -53,13 +53,15 @@ export function deriveConversationStatus(
   followupConvIds?: Set<string>,
 ): ConversationDerivedStatus {
   // 1. Resolved
-  if (conv.status === "resolved") return "resolvida";
+  if (conv.status === "resolved" || conv.ai_context === 'closed') return "resolvida";
 
   // 2. SLA estourado (follow-up pending)
   if (followupConvIds?.has(conv.id)) return "sla_estourado";
 
-  // 3. IA Ativa (check tags)
-  if (conv.tags?.some((t) => {
+  // 3. IA Ativa (Prioridade: ai_context -> Tags)
+  if (conv.ai_context) {
+    if (conv.ai_context === 'ai_active') return "ia_ativa";
+  } else if (conv.tags?.some((t) => {
     const name = t.tag?.name?.toLowerCase();
     return name === "ia ativa" || name === "ia_ativa" || name === "ia atendendo";
   })) {

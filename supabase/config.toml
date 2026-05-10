@@ -29,7 +29,7 @@ verify_jwt = false
 
 [functions.sync-tarifas-aneel]
 verify_jwt = false
-wall_clock_limit = 300
+# wall_clock_limit = 300
 
 [functions.wa-bg-worker]
 verify_jwt = false
@@ -218,11 +218,11 @@ verify_jwt = false
 
 [functions.monitoring-sync]
 verify_jwt = false
-wall_clock_limit = 300
+# wall_clock_limit = 300
 
 [functions.monitor-alert-engine]
 verify_jwt = false
-wall_clock_limit = 120
+# wall_clock_limit = 120
 
 [functions.billing-create-checkout]
 verify_jwt = false
@@ -241,7 +241,7 @@ verify_jwt = false
 
 [functions.mppt-string-engine]
 verify_jwt = false
-wall_clock_limit = 120
+# wall_clock_limit = 120
 
 [functions.meta-ads-sync]
 verify_jwt = false
@@ -266,7 +266,7 @@ verify_jwt = false
 
 [functions.docx-to-pdf]
 verify_jwt = false
-wall_clock_limit = 120
+# wall_clock_limit = 120
 
 [functions.gotenberg-health]
 verify_jwt = false
@@ -276,7 +276,7 @@ verify_jwt = false
 
 [functions.tenant-backup]
 verify_jwt = false
-wall_clock_limit = 300
+# wall_clock_limit = 300
 
 [functions.ai-generate]
 verify_jwt = false
@@ -325,23 +325,23 @@ verify_jwt = false
 
 [functions.sm-promote]
 verify_jwt = false
-wall_clock_limit = 300
+# wall_clock_limit = 300
 
 [functions.sm-migrate-chunk]
 verify_jwt = false
-wall_clock_limit = 60
+# wall_clock_limit = 60
 
 [functions.sm-promote-custom-fields]
 verify_jwt = false
-wall_clock_limit = 300
+# wall_clock_limit = 300
 
 [functions.sm-enrich-versoes]
 verify_jwt = false
-wall_clock_limit = 300
+# wall_clock_limit = 300
 
 [functions.reprocess-sm-financial-metrics]
 verify_jwt = false
-wall_clock_limit = 120
+# wall_clock_limit = 120
 
 [functions.wa-resolve-conversation]
 verify_jwt = false
@@ -352,4 +352,4 @@ verify_jwt = true
 
 [functions.equipment-enrichment-worker]
 verify_jwt = false
-wall_clock_limit = 300
+# wall_clock_limit = 300
