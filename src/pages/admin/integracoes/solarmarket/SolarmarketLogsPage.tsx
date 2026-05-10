@@ -87,7 +87,11 @@ function CompactStatusBadge({ status }: { status?: string }) {
 }
 
 export default function SolarmarketLogsPage() {
-  const { promotionJobs, importJobs, recentErrors, historicalSummary, activeSummary, migrationStats, resumeMigration, exportLogs, auditData, runAudit } = useSolarmarketLogsPage();
+  const { 
+    promotionJobs, importJobs, recentErrors, historicalSummary, 
+    activeSummary, migrationStats, resumeMigration, exportLogs, 
+    auditData, runAudit, errorWindow, setErrorWindow 
+  } = useSolarmarketLogsPage();
   const [openJobId, setOpenJobId] = useState<string | null>(null);
   const [showHistorical, setShowHistorical] = useState(false);
   const [isConfirmingResume, setIsConfirmingResume] = useState(false);
@@ -95,12 +99,22 @@ export default function SolarmarketLogsPage() {
 
   const allLogs = recentErrors.data ?? [];
   const currentLogs = allLogs.filter((l) => !isHistoricalLog(l.created_at));
-  const visibleLogs = showHistorical ? allLogs : currentLogs;
-
+  
   const latestJob = promotionJobs.data?.[0];
-  const isStalled = latestJob && (latestJob.status === "failed" || latestJob.status === "cancelled" || (latestJob.status === "running" && new Date().getTime() - new Date(latestJob.updated_at).getTime() > 10 * 60 * 1000));
-
   const stats = migrationStats.data;
+  
+  // Heartbeat check (10 mins)
+  const lastHeartbeat = latestJob ? new Date(latestJob.updated_at).getTime() : 0;
+  const isHeartbeatLost = latestJob && latestJob.status === "running" && (Date.now() - lastHeartbeat > 10 * 60 * 1000);
+  
+  // Stalled rule
+  const isStalled = latestJob && (
+    latestJob.status === "failed" || 
+    latestJob.status === "cancelled" || 
+    isHeartbeatLost ||
+    (latestJob.status === "running" && (stats?.throughput || 0) === 0 && (stats?.remaining || 0) > 0)
+  );
+
   const totals = {
     promotion: promotionJobs.data?.length ?? 0,
     errors: activeSummary.data?.total_errors ?? 0,
@@ -108,22 +122,65 @@ export default function SolarmarketLogsPage() {
     historicalErrors: historicalSummary.data?.total_errors ?? 0,
   };
 
+  // Health Calculation
+  const healthStatus = useMemo(() => {
+    if (!latestJob) return "UNKNOWN";
+    if (latestJob.status === "completed") return "CONCLUDED";
+    if (totals.errors > 0) return "FAILED";
+    if (isStalled) return "STALLED";
+    if (isHeartbeatLost) return "DEGRADED";
+    if ((stats?.throughput || 0) < 5 && (stats?.remaining || 0) > 0) return "DEGRADED";
+    return "HEALTHY";
+  }, [latestJob, totals.errors, isStalled, isHeartbeatLost, stats?.throughput, stats?.remaining]);
+
+  // Operational Alerts
+  const alerts = useMemo(() => {
+    const list: Array<{ id: string; type: 'error' | 'warning' | 'info'; msg: string; date: string }> = [];
+    if (isStalled) list.push({ id: 'stalled', type: 'error', msg: 'Job interrompido ou sem progresso.', date: latestJob?.updated_at || '' });
+    if (isHeartbeatLost) list.push({ id: 'heartbeat', type: 'warning', msg: 'Heartbeat do orquestrador perdido há > 10min.', date: latestJob?.updated_at || '' });
+    if (totals.errors > 0) list.push({ id: 'errors', type: 'error', msg: `${totals.errors} novos erros detectados na janela operacional.`, date: new Date().toISOString() });
+    if ((stats?.throughput || 0) === 0 && (stats?.remaining || 0) > 0 && latestJob?.status === 'running') {
+      list.push({ id: 'throughput', type: 'warning', msg: 'Throughput zerado com propostas pendentes.', date: new Date().toISOString() });
+    }
+    return list;
+  }, [isStalled, isHeartbeatLost, totals.errors, stats?.throughput, stats?.remaining, latestJob?.updated_at]);
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between gap-4 flex-wrap">
-        <PageHeader
-          icon={ScrollText}
-          title="Monitoramento SolarMarket"
-          description="Acompanhamento operacional e auditoria da migração."
-          className="m-0 p-0 border-0 bg-transparent"
-        />
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={() => exportLogs('json')} className="h-8 text-[11px] gap-2">
-            <Download className="h-3.5 w-3.5" /> JSON
-          </Button>
-          <Button variant="outline" size="sm" onClick={() => exportLogs('csv')} className="h-8 text-[11px] gap-2">
-            <Download className="h-3.5 w-3.5" /> CSV
-          </Button>
+        <div className="flex flex-col gap-1">
+          <PageHeader
+            icon={ScrollText}
+            title="Monitoramento SolarMarket"
+            description="Acompanhamento operacional e observabilidade da migração."
+            className="m-0 p-0 border-0 bg-transparent"
+          />
+        </div>
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 bg-background border rounded-md px-2 py-1">
+            <span className="text-[10px] text-muted-foreground uppercase font-bold px-1">Janela:</span>
+            <Select value={errorWindow} onValueChange={(v) => setErrorWindow(v as ErrorWindow)}>
+              <SelectTrigger className="h-7 border-0 bg-transparent text-xs w-[140px] focus:ring-0">
+                <SelectValue placeholder="Janela" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="5m">Últimos 5 min</SelectItem>
+                <SelectItem value="15m">Últimos 15 min</SelectItem>
+                <SelectItem value="1h">Última 1 hora</SelectItem>
+                <SelectItem value="since_fix">Desde último fix</SelectItem>
+                <SelectItem value="all">Todo histórico</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="h-8 w-px bg-border hidden sm:block mx-1" />
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={() => exportLogs('json')} className="h-8 text-[11px] gap-2">
+              <Download className="h-3.5 w-3.5" /> JSON
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => exportLogs('csv')} className="h-8 text-[11px] gap-2">
+              <Download className="h-3.5 w-3.5" /> CSV
+            </Button>
+          </div>
         </div>
       </div>
 
