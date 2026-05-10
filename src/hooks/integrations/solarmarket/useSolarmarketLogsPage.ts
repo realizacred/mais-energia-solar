@@ -8,7 +8,8 @@
  * "históricos" (anteriores ao deploy do último fix). Os contadores principais
  * da UI usam apenas "atuais"; os históricos ficam acessíveis sob badge.
  */
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useTenantId } from "@/hooks/useTenantId";
 
@@ -161,11 +162,11 @@ export function useSolarmarketLogsPage() {
   const migrationStats = useQuery({
     queryKey: ["sm-migration-stats", tenantId],
     enabled: !!tenantId,
-    refetchInterval: 30 * 1000,
+    refetchInterval: 15 * 1000,
     queryFn: async () => {
       const [{ count: totalStaging }, { data: links }] = await Promise.all([
         (supabase as any).from("sm_propostas_raw").select("*", { count: "exact", head: true }).eq("tenant_id", tenantId!),
-        (supabase as any).from("external_entity_links").select("entity_type").eq("source", "solarmarket").eq("tenant_id", tenantId!)
+        (supabase as any).from("external_entity_links").select("entity_type, created_at").eq("source", "solarmarket").eq("tenant_id", tenantId!)
       ]);
 
       const counts = (links ?? []).reduce((acc: any, curr: any) => {
@@ -173,17 +174,57 @@ export function useSolarmarketLogsPage() {
         return acc;
       }, {});
 
+      // Calcula throughput nos últimos 15 min
+      const fifteenMinsAgo = new Date(Date.now() - 15 * 60 * 1000).toISOString();
+      const recentPromoted = (links ?? []).filter(l => l.entity_type === 'proposta' && l.created_at >= fifteenMinsAgo).length;
+      const tpm = recentPromoted / 15;
+
+      const remaining = (totalStaging || 0) - (counts.proposta || 0);
+      const etaMinutes = tpm > 0 ? Math.ceil(remaining / tpm) : null;
+
       return {
         total: totalStaging || 0,
         promoted: counts.proposta || 0,
         clients: counts.cliente || 0,
         projects: counts.projeto || 0,
-        remaining: (totalStaging || 0) - (counts.proposta || 0)
+        remaining: Math.max(0, remaining),
+        throughput: tpm,
+        etaMinutes
       };
     }
   });
 
-  return { promotionJobs, importJobs, recentErrors, historicalSummary, migrationStats, tenantId };
+  const queryClient = useQueryClient();
+
+  const resumeMigration = useMutation({
+    mutationFn: async () => {
+      // Primeiro delegamos ao chunked se existir
+      const { data, error } = await supabase.functions.invoke("sm-promote", {
+        body: { action: "start", payload: {} }
+      });
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      toast.success("Comando de retomada enviado com sucesso");
+      queryClient.invalidateQueries({ queryKey: ["sm-logs-page"] });
+      queryClient.invalidateQueries({ queryKey: ["sm-migration-stats"] });
+    },
+    onError: (err: any) => {
+      console.error("Erro ao retomar:", err);
+      toast.error(`Falha ao retomar: ${err.message || "Erro desconhecido"}`);
+    }
+  });
+
+  return { 
+    promotionJobs, 
+    importJobs, 
+    recentErrors, 
+    historicalSummary, 
+    migrationStats, 
+    resumeMigration,
+    tenantId 
+  };
 }
 
 /** Reduz mensagens semelhantes a uma causa única para agrupamento. */
