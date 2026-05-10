@@ -9,29 +9,51 @@ import { normalizeBrazilianPhone } from "@/utils/phone/normalizeBrazilianPhone";
 
 const PAGE_SIZE = 25;
 
-// ⚠️ HARDENING: Explicit columns — never SELECT * on hot paths
+// ⚠️ HARDENING: Use the new commercial view for advanced filtering and counts
 const ORC_ADMIN_SELECT = `
   id, orc_code, lead_id, cep, estado, cidade, bairro, rua, numero, complemento,
   area, tipo_telhado, rede_atendimento, media_consumo, consumo_previsto,
   observacoes, arquivos_urls, consultor, consultor_id, visto, visto_admin,
   status_id, ultimo_contato, proxima_acao, data_proxima_acao, created_at, updated_at,
-  leads!inner (
-    id, lead_code, nome, telefone, telefone_normalized, email,
-    consultor_id, consultor,
-    consultores:consultor_id(id, nome)
-  ),
+  lead_nome, lead_telefone, lead_telefone_normalized, lead_email, lead_code,
+  proposal_count, project_count, lead_status_nome,
   orc_consultores:consultor_id(id, nome)
 `;
+
+export interface ConversionStats {
+  total: number;
+  sem_proposta: number;
+  com_proposta: number;
+  sem_projeto: number;
+  convertidos: number;
+  perdidos: number;
+}
 
 interface UseOrcamentosAdminOptions {
   autoFetch?: boolean;
   pageSize?: number;
+  searchTerm?: string;
+  filterVisto?: string;
+  filterVendedor?: string;
+  filterEstado?: string;
+  filterStatus?: string;
+  filterConversao?: string;
 }
 
-export function useOrcamentosAdmin({ autoFetch = true, pageSize = PAGE_SIZE }: UseOrcamentosAdminOptions = {}) {
+export function useOrcamentosAdmin({ 
+  autoFetch = true, 
+  pageSize = PAGE_SIZE,
+  searchTerm = "",
+  filterVisto = "todos",
+  filterVendedor = "todos",
+  filterEstado = "todos",
+  filterStatus = "todos",
+  filterConversao = "todos"
+}: UseOrcamentosAdminOptions = {}) {
   const [orcamentos, setOrcamentos] = useState<OrcamentoDisplayItem[]>([]);
   const [statuses, setStatuses] = useState<LeadStatus[]>([]);
   const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState<ConversionStats | null>(null);
   const [page, setPage] = useState(0);
   const [totalCount, setTotalCount] = useState(0);
   const { toast } = useToast();
