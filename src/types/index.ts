@@ -25,13 +25,61 @@ export interface WaConversation {
   ai_context_updated_at?: string | null;
   ai_context_reason?: string | null;
   // joined
-  tags?: any[];
+  tags?: WaConversationTag[];
   instance_name?: string;
   instance_profile_name?: string | null;
   vendedor_nome?: string;
   lead_nome?: string;
   lead_telefone?: string;
   cliente_nome_real?: string | null;
+}
+
+export interface WaMessage {
+  id: string;
+  conversation_id: string;
+  evolution_message_id: string | null;
+  correlation_id: string | null;
+  direction: "in" | "out";
+  message_type: string;
+  content: string | null;
+  media_url: string | null;
+  storage_path: string | null;
+  media_mime_type: string | null;
+  media_status: string | null;
+  media_error_message: string | null;
+  file_name: string | null;
+  file_size: number | null;
+  quoted_message_id: string | null;
+  sent_by_user_id: string | null;
+  is_internal_note: boolean;
+  status: string | null;
+  error_message: string | null;
+  error_code: string | null;
+  metadata: any;
+  participant_jid: string | null;
+  participant_name: string | null;
+  created_at: string;
+  // timestamps
+  queued_at: string | null;
+  sent_at: string | null;
+  delivered_at: string | null;
+  read_at: string | null;
+  failed_at: string | null;
+  // joined
+  sent_by_name?: string | null;
+}
+
+export interface WaTag {
+  id: string;
+  name: string;
+  color: string;
+}
+
+export interface WaConversationTag {
+  id: string;
+  conversation_id: string;
+  tag_id: string;
+  tag?: WaTag;
 }
 
 export interface WaContextEvent {
