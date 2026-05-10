@@ -85,14 +85,20 @@ export function PromotionLogsDialog({
   onOpenChange,
   jobId,
   initialFilter = "all",
+  initialScope = "active",
   warningsCount = 0,
   errorsCount = 0,
+  activeWarnings,
+  activeErrors,
+  historicalWarnings,
+  historicalErrors,
 }: PromotionLogsDialogProps) {
   const [filter, setFilter] = useState<LogsFilter>(initialFilter);
+  const [scope, setScope] = useState<LogsScope>(initialScope);
   const [limit, setLimit] = useState(PAGE_SIZE);
 
   // Reset limit/filter quando reabre
-  const queryKey = ["sm-promotion-logs", jobId, filter, limit] as const;
+  const queryKey = ["sm-promotion-logs", jobId, filter, scope, limit] as const;
 
   const { data, isLoading, isFetching } = useQuery({
     queryKey,
@@ -122,7 +128,7 @@ export function PromotionLogsDialog({
 
       const allJobIds = Array.from(new Set<string>([jobId, ...subJobIds]));
 
-      const { data: rows, error, count } = await supabase
+      let q = supabase
         .from("solarmarket_promotion_logs")
         .select(
           "id, created_at, severity, source_entity_type, source_entity_id, error_code, message, details",
@@ -132,6 +138,12 @@ export function PromotionLogsDialog({
         .in("severity", severities)
         .order("created_at", { ascending: false })
         .limit(limit);
+
+      q = scope === "active"
+        ? q.gte("created_at", LAST_FIX_DEPLOY_AT)
+        : q.lt("created_at", LAST_FIX_DEPLOY_AT);
+
+      const { data: rows, error, count } = await q;
 
       if (error) throw error;
       return { rows: (rows ?? []) as LogRow[], total: count ?? 0 };
