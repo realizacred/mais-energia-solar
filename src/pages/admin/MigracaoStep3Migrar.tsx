@@ -730,8 +730,13 @@ export default function MigracaoStep3Migrar() {
         onOpenChange={setLogsOpen}
         jobId={job?.id ?? null}
         initialFilter={logsFilter}
+        initialScope={logsScope}
         warningsCount={job?.items_with_warnings ?? 0}
         errorsCount={job?.items_with_errors ?? 0}
+        activeWarnings={activeWarnings}
+        activeErrors={activeErrors}
+        historicalWarnings={historicalWarnings}
+        historicalErrors={historicalErrors}
       />
     </MigrationLayout>
   );
