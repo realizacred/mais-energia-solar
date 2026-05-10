@@ -102,10 +102,12 @@ export function LeadsView() {
   }, [orcamentos, statuses, totalCount]);
 
   const handleClearFilters = () => {
+    setSearchTerm("");
     setFilterVisto("todos");
     setFilterVendedor("todos");
     setFilterEstado("todos");
     setFilterStatus("todos");
+    setFilterConversao("todos");
   };
 
   const handleDelete = async () => {
