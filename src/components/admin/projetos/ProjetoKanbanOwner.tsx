@@ -130,7 +130,7 @@ export function ProjetoKanbanOwner({ columns, onMoveProjeto, onViewProjeto, onCr
           );
         })}
       </div>
-      <ScrollBar orientation="horizontal" />
+      <ScrollBar orientation="horizontal" className="h-1.5" />
     </ScrollArea>
   );
 }
