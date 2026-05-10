@@ -1472,8 +1472,23 @@ async function insertVersao(
     })
     .select("id")
     .single();
-  if (error || !data?.id) throw new Error(`insert versao: ${error?.message}`);
-  return data.id as string;
+  if (!error && data?.id) return data.id as string;
+
+  // RB-MIG idempotente — race entre execuções concorrentes ou retomada de job:
+  // versão 1 da proposta já existe. Em vez de propagar erro, recuperamos o id.
+  const message = error?.message ?? "sem id";
+  const isDup = /uq_proposta_versao|duplicate key value|unique constraint/i.test(message);
+  if (isDup) {
+    const { data: existing } = await admin
+      .from("proposta_versoes")
+      .select("id")
+      .eq("tenant_id", tenantId)
+      .eq("proposta_id", propostaId)
+      .eq("versao_numero", 1)
+      .maybeSingle();
+    if (existing?.id) return existing.id as string;
+  }
+  throw new Error(`insert versao: ${message}`);
 }
 
 // ─── Resolver de pipeline / etapa (DA-40: sem hardcode) ─────────────────────
