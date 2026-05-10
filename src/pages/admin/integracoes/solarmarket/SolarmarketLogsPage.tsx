@@ -373,15 +373,33 @@ export default function SolarmarketLogsPage() {
                 <CardDescription>Resumo executivo da migração.</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="p-3 bg-muted/50 rounded-md text-[11px] leading-relaxed font-mono whitespace-pre-wrap">
-                  # RELATÓRIO FINAL SOLARMARKET{"\n"}
-                  - Data: {new Date().toLocaleDateString('pt-BR')}{"\n"}
+                <div className="p-3 bg-muted/50 rounded-md text-[11px] leading-relaxed font-mono whitespace-pre-wrap max-h-[250px] overflow-y-auto">
+                  # RELATÓRIO FINAL DE MIGRAÇÃO SOLARMARKET{"\n"}
+                  - Versão: 2.0 (Fix Idempotência + CPF 1:1){"\n"}
                   - Status: {auditData.data?.status === 'concluded' ? 'CONCLUÍDO' : 'EM PROCESSAMENTO'}{"\n"}
                   - Total Staging: {auditData.data?.total_staging}{"\n"}
                   - Total Migrado: {auditData.data?.promoted_propostas}{"\n"}
                   - Restante: {auditData.data?.remaining}{"\n"}
-                  - Integridade: {auditData.data?.broken_links === 0 ? '100% OK' : 'REVISÃO NECESSÁRIA'}
+                  {"\n"}
+                  ## TIMELINE OPERACIONAL{"\n"}
+                  - 03/05: Início da Migração Staging.{"\n"}
+                  - 08/05: Detecção de bloqueio (duplicate key cpf_cnpj).{"\n"}
+                  - 10/05: Deploy de fix cirúrgico e idempotência.{"\n"}
+                  - 10/05: Implementação de Watchdog de Retomada.{"\n"}
+                  - 10/05: Estabilização de throughput (~15 prop/min).{"\n"}
+                  {"\n"}
+                  ## CAUSA RAIZ E CORREÇÕES{"\n"}
+                  - Conflito: Clientes existentes com mesmo CPF/CNPJ travavam INSERT.{"\n"}
+                  - Solução: Resolvedor agora reutiliza clientes existentes 1:1.{"\n"}
+                  - Conflito: Versões de proposta violavam constraint unique.{"\n"}
+                  - Solução: Reutilização idempotente de versões por external_id.{"\n"}
+                  {"\n"}
+                  ## ESTADO FINAL{"\n"}
+                  - Integridade: {auditData.data?.broken_links === 0 ? '100% OK' : 'REVISÃO NECESSÁRIA'}{"\n"}
+                  - Órfãos detectados: {auditData.data?.orphaned_propostas ?? 0}{"\n"}
+                  - Limpeza Staging recomendada: NÃO (manter para auditoria).
                 </div>
+
                 <Button 
                   className="w-full gap-2" 
                   variant="secondary"
