@@ -357,6 +357,7 @@ export function useOrcamentosAdmin({
       total: totalCount,
       totalKwh,
       uniqueEstados,
+      conversion: stats,
     },
     filters: {
       vendedores: uniqueVendedores,
