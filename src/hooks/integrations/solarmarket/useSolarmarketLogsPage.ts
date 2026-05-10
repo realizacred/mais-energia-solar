@@ -407,6 +407,58 @@ export function useSolarmarketLogsPage() {
     toast.success(`Exportação ${format.toUpperCase()} iniciada`);
   };
 
+  const timeSeriesData = useQuery({
+    queryKey: ["sm-timeseries", tenantId],
+    enabled: !!tenantId,
+    staleTime: 60 * 1000,
+    queryFn: async () => {
+      const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+      
+      const { data: links } = await (supabase as any)
+        .from("external_entity_links")
+        .select("created_at")
+        .eq("source", "solarmarket")
+        .eq("tenant_id", tenantId!)
+        .eq("entity_type", "proposta")
+        .gte("created_at", oneHourAgo)
+        .order("created_at", { ascending: true });
+
+      const { data: logs } = await (supabase as any)
+        .from("solarmarket_promotion_logs")
+        .select("created_at, severity")
+        .eq("tenant_id", tenantId!)
+        .gte("created_at", oneHourAgo)
+        .order("created_at", { ascending: true });
+
+      // Agrupar por blocos de 5 min para o gráfico
+      const data: any[] = [];
+      const now = new Date();
+      for (let i = 12; i >= 0; i--) {
+        const time = new Date(now.getTime() - i * 5 * 60 * 1000);
+        const timeStr = time.toLocaleTimeString("pt-BR", { hour: '2-digit', minute: '2-digit' });
+        const start = time.getTime();
+        const end = start + 5 * 60 * 1000;
+
+        const throughput = (links || []).filter((l: any) => {
+          const t = new Date(l.created_at).getTime();
+          return t >= start && t < end;
+        }).length;
+
+        const errors = (logs || []).filter((l: any) => {
+          const t = new Date(l.created_at).getTime();
+          return t >= start && t < end && l.severity === 'error';
+        }).length;
+
+        data.push({
+          time: timeStr,
+          throughput: throughput / 5, // prop/min
+          errors
+        });
+      }
+      return data;
+    }
+  });
+
   return { 
     promotionJobs, 
     importJobs, 
@@ -420,7 +472,10 @@ export function useSolarmarketLogsPage() {
     runAudit,
     tenantId,
     errorWindow,
-    setErrorWindow
+    setErrorWindow,
+    thresholds,
+    setThresholds,
+    timeSeriesData
   };
 }
 
