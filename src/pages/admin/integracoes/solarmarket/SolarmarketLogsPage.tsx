@@ -6,7 +6,7 @@
  * RB-76 / DA-48 — somente leitura, sem motor novo.
  */
 import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import {
   Table,
   TableBody,
@@ -20,7 +20,9 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { PageHeader, StatCard, EmptyState, StatusBadge } from "@/components/ui-kit";
-import { ScrollText, AlertTriangle, AlertCircle, CheckCircle2, ListChecks, Cloud, ExternalLink, Archive, PlayCircle, Clock, Zap } from "lucide-react";
+import { ScrollText, AlertTriangle, AlertCircle, CheckCircle2, ListChecks, Cloud, ExternalLink, Archive, PlayCircle, Clock, Zap, Download, FileText, ShieldCheck, Database, LayoutDashboard } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+
 import { cn } from "@/lib/utils";
 import {
   useSolarmarketLogsPage,
