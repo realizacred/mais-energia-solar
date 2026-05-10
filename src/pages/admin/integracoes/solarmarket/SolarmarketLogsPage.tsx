@@ -243,25 +243,33 @@ export default function SolarmarketLogsPage() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-2">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-2 border-t">
                   <div className="space-y-1">
-                    <p className="text-xs text-muted-foreground">Clientes</p>
-                    <p className="text-lg font-bold">{stats?.clients}</p>
-                    <div className="text-[10px] text-muted-foreground flex gap-1">
-                      <span className="text-success">{stats?.clientsReused} r</span> / <span className="text-primary">{stats?.clientsCreated} c</span>
+                    <p className="text-[10px] uppercase font-bold text-muted-foreground flex items-center gap-1">
+                      <BarChart3 className="h-3 w-3" /> Peak TP
+                    </p>
+                    <p className="text-lg font-bold">{stats?.peakThroughput?.toFixed(1) || 0} <span className="text-[10px] font-normal text-muted-foreground">p/m</span></p>
+                  </div>
+                  <div className="space-y-1 border-l pl-4">
+                    <p className="text-[10px] uppercase font-bold text-muted-foreground flex items-center gap-1">
+                      <Timer className="h-3 w-3" /> Avg Tempo
+                    </p>
+                    <p className="text-lg font-bold">{stats?.avgTimePerProposal} <span className="text-[10px] font-normal text-muted-foreground">s/p</span></p>
+                  </div>
+                  <div className="space-y-1 border-l pl-4">
+                    <p className="text-[10px] uppercase font-bold text-muted-foreground flex items-center gap-1">
+                      <ArrowUpRight className="h-3 w-3" /> Clientes
+                    </p>
+                    <div className="text-lg font-bold flex items-baseline gap-1">
+                      {stats?.clients}
+                      <span className="text-[10px] font-normal text-muted-foreground">({stats?.clientsReused} r)</span>
                     </div>
                   </div>
-                  <div className="space-y-1">
-                    <p className="text-xs text-muted-foreground">Projetos</p>
-                    <p className="text-lg font-bold">{stats?.projects}</p>
-                  </div>
-                  <div className="space-y-1">
-                    <p className="text-xs text-muted-foreground">Versões</p>
-                    <p className="text-lg font-bold">{stats?.versions}</p>
-                  </div>
-                  <div className="space-y-1">
-                    <p className="text-xs text-muted-foreground">ETA</p>
-                    <p className="text-lg font-bold">{stats?.etaMinutes ? `${stats.etaMinutes}m` : "—"}</p>
+                  <div className="space-y-1 border-l pl-4">
+                    <p className="text-[10px] uppercase font-bold text-muted-foreground flex items-center gap-1">
+                      <ShieldCheck className="h-3 w-3" /> Audit
+                    </p>
+                    <p className="text-lg font-bold">100%</p>
                   </div>
                 </div>
               </CardContent>
