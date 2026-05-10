@@ -185,7 +185,41 @@ export function PromotionLogsDialog({
           </DialogTitle>
           <DialogDescription>
             Avisos e erros emitidos durante a última execução do <code>sm-promote</code>.
+            {scope === "active"
+              ? " Exibindo janela operacional ativa (pós-fix)."
+              : " Exibindo arquivo histórico pré-fix."}
           </DialogDescription>
+
+          <div className="flex items-center gap-2 pt-2">
+            <ToggleGroup
+              type="single"
+              value={scope}
+              onValueChange={(v) => {
+                if (v) {
+                  setScope(v as LogsScope);
+                  setLimit(PAGE_SIZE);
+                }
+              }}
+              size="sm"
+            >
+              <ToggleGroupItem value="active" className="text-xs gap-1.5 data-[state=on]:bg-success/15 data-[state=on]:text-success">
+                Ativos
+                {(activeErrors !== undefined || activeWarnings !== undefined) && (
+                  <Badge variant="outline" className="font-mono text-[10px] h-4 px-1.5 border-success/30 text-success">
+                    {(activeErrors ?? 0) + (activeWarnings ?? 0)}
+                  </Badge>
+                )}
+              </ToggleGroupItem>
+              <ToggleGroupItem value="historical" className="text-xs gap-1.5 data-[state=on]:bg-muted data-[state=on]:text-muted-foreground">
+                Histórico
+                {(historicalErrors !== undefined || historicalWarnings !== undefined) && (
+                  <Badge variant="outline" className="font-mono text-[10px] h-4 px-1.5 border-muted-foreground/30 text-muted-foreground">
+                    {((historicalErrors ?? 0) + (historicalWarnings ?? 0)).toLocaleString("pt-BR")}
+                  </Badge>
+                )}
+              </ToggleGroupItem>
+            </ToggleGroup>
+          </div>
 
           <div className="flex items-center justify-between gap-3 flex-wrap pt-2">
             <ToggleGroup
@@ -201,9 +235,6 @@ export function PromotionLogsDialog({
             >
               <ToggleGroupItem value="all" className="text-xs gap-1.5">
                 Todos
-                <Badge variant="outline" className="font-mono text-[10px] h-4 px-1.5">
-                  {warningsCount + errorsCount}
-                </Badge>
               </ToggleGroupItem>
               <ToggleGroupItem
                 value="warning"
@@ -214,7 +245,9 @@ export function PromotionLogsDialog({
                   variant="outline"
                   className="font-mono text-[10px] h-4 px-1.5 border-warning/30 text-warning"
                 >
-                  {warningsCount}
+                  {scope === "active"
+                    ? (activeWarnings ?? warningsCount)
+                    : (historicalWarnings ?? warningsCount)}
                 </Badge>
               </ToggleGroupItem>
               <ToggleGroupItem
@@ -226,7 +259,9 @@ export function PromotionLogsDialog({
                   variant="outline"
                   className="font-mono text-[10px] h-4 px-1.5 border-destructive/30 text-destructive"
                 >
-                  {errorsCount}
+                  {scope === "active"
+                    ? (activeErrors ?? errorsCount)
+                    : (historicalErrors ?? errorsCount)}
                 </Badge>
               </ToggleGroupItem>
             </ToggleGroup>
