@@ -1,0 +1,1 @@
+ALTER FUNCTION public.get_orcamentos_comercial_stats(uuid, text, uuid, uuid, text) SET search_path = public;

@@ -23,9 +23,19 @@ interface LeadFiltersProps {
   onFilterEstadoChange: (value: string) => void;
   filterStatus: string;
   onFilterStatusChange: (value: string) => void;
+  filterConversao: string;
+  onFilterConversaoChange: (value: string) => void;
   vendedores: VendedorFilter[];
   estados: string[];
   statuses: LeadStatus[];
+  conversionStats?: {
+    total: number;
+    sem_proposta: number;
+    com_proposta: number;
+    sem_projeto: number;
+    convertidos: number;
+    perdidos: number;
+  } | null;
   onClearFilters: () => void;
 }
 
@@ -40,9 +50,12 @@ export function LeadFilters({
   onFilterEstadoChange,
   filterStatus,
   onFilterStatusChange,
+  filterConversao,
+  onFilterConversaoChange,
   vendedores,
   estados,
   statuses,
+  conversionStats,
   onClearFilters,
 }: LeadFiltersProps) {
   const activeCount = [
@@ -50,6 +63,7 @@ export function LeadFilters({
     filterVendedor !== "todos" ? 1 : 0,
     filterEstado !== "todos" ? 1 : 0,
     filterStatus !== "todos" ? 1 : 0,
+    filterConversao !== "todos" ? 1 : 0,
   ].reduce((a, b) => a + b, 0);
 
   return (
@@ -103,6 +117,30 @@ export function LeadFilters({
                 </div>
               </SelectItem>
             ))}
+          </SelectContent>
+        </Select>
+
+        <Select value={filterConversao} onValueChange={onFilterConversaoChange}>
+          <SelectTrigger className="w-[170px] h-9">
+            <SelectValue placeholder="Conversão" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="todos">Todos (Conversão)</SelectItem>
+            <SelectItem value="sem_proposta">
+              Sem proposta {conversionStats ? `(${conversionStats.sem_proposta})` : ""}
+            </SelectItem>
+            <SelectItem value="com_proposta">
+              Com proposta {conversionStats ? `(${conversionStats.com_proposta})` : ""}
+            </SelectItem>
+            <SelectItem value="sem_projeto">
+              Sem projeto {conversionStats ? `(${conversionStats.sem_projeto})` : ""}
+            </SelectItem>
+            <SelectItem value="convertidos">
+              Convertidos {conversionStats ? `(${conversionStats.convertidos})` : ""}
+            </SelectItem>
+            <SelectItem value="perdidos">
+              Perdidos {conversionStats ? `(${conversionStats.perdidos})` : ""}
+            </SelectItem>
           </SelectContent>
         </Select>
 

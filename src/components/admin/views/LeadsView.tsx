@@ -25,16 +25,38 @@ import type { OrcamentoDisplayItem } from "@/types/orcamento";
 import type { Lead } from "@/types/lead";
 
 export function LeadsView() {
-  const { orcamentos, statuses, loading, toggleVisto, deleteOrcamento, filters, fetchOrcamentos, page, setPage, totalCount, totalPages } = useOrcamentosAdmin();
-  const { hasPermission } = useUserPermissions();
-  const canDeleteLeads = hasPermission("delete_leads");
-  const { sortOption, updateSort } = useOrcamentoSort("admin_leads");
-  const [filteredOrcamentos, setFilteredOrcamentos] = useState<OrcamentoDisplayItem[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterVisto, setFilterVisto] = useState("nao_visto");
   const [filterVendedor, setFilterVendedor] = useState("todos");
   const [filterEstado, setFilterEstado] = useState("todos");
   const [filterStatus, setFilterStatus] = useState("todos");
+  const [filterConversao, setFilterConversao] = useState("todos");
+
+  const { 
+    orcamentos, 
+    statuses, 
+    loading, 
+    toggleVisto, 
+    deleteOrcamento, 
+    filters, 
+    fetchOrcamentos, 
+    page, 
+    setPage, 
+    totalCount, 
+    totalPages,
+    stats: hookStats
+  } = useOrcamentosAdmin({
+    searchTerm,
+    filterVisto,
+    filterVendedor,
+    filterEstado,
+    filterStatus,
+    filterConversao
+  });
+  const { hasPermission } = useUserPermissions();
+  const canDeleteLeads = hasPermission("delete_leads");
+  const { sortOption, updateSort } = useOrcamentoSort("admin_leads");
+  const filteredOrcamentos = orcamentos; // Now filtered in backend
   const [selectedOrcamento, setSelectedOrcamento] = useState<OrcamentoDisplayItem | null>(null);
   const [isViewOpen, setIsViewOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
@@ -47,80 +69,42 @@ export function LeadsView() {
   // Reset page when filters change
   useEffect(() => {
     setPage(0);
-  }, [searchTerm, filterVisto, filterVendedor, filterEstado, filterStatus, setPage]);
+  }, [searchTerm, filterVisto, filterVendedor, filterEstado, filterStatus, filterConversao, setPage]);
 
-  useEffect(() => {
-    let filtered = orcamentos.filter(
-      (orc) =>
-        orc.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        orc.telefone.includes(searchTerm) ||
-        orc.cidade.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        orc.estado.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (orc.email && orc.email.toLowerCase().includes(searchTerm.toLowerCase())) ||
-        (orc.orc_code && orc.orc_code.toLowerCase().includes(searchTerm.toLowerCase())) ||
-        (orc.lead_code && orc.lead_code.toLowerCase().includes(searchTerm.toLowerCase())) ||
-        (orc.vendedor_nome && orc.vendedor_nome.toLowerCase().includes(searchTerm.toLowerCase())) ||
-        (orc.vendedor && orc.vendedor.toLowerCase().includes(searchTerm.toLowerCase()))
-    );
-
-    if (filterVisto === "visto") {
-      filtered = filtered.filter((orc) => orc.visto_admin);
-    } else if (filterVisto === "nao_visto") {
-      filtered = filtered.filter((orc) => !orc.visto_admin);
-    }
-
-    if (filterVendedor === "sem_vendedor") {
-      filtered = filtered.filter((orc) => !orc.vendedor_id);
-    } else if (filterVendedor !== "todos") {
-      filtered = filtered.filter((orc) => orc.vendedor_id === filterVendedor);
-    }
-
-    if (filterEstado !== "todos") {
-      filtered = filtered.filter((orc) => orc.estado === filterEstado);
-    }
-
-    if (filterStatus !== "todos") {
-      filtered = filtered.filter((orc) => orc.status_id === filterStatus);
-    }
-
-    setFilteredOrcamentos(filtered);
-  }, [searchTerm, orcamentos, filterVisto, filterVendedor, filterEstado, filterStatus]);
-
-  // KPI calculations from local data
+  // KPI calculations — Prefer backend stats if available for accurate tenant-wide numbers
   const kpis = useMemo(() => {
-    const now = new Date();
-    const currentMonth = now.getMonth();
-    const currentYear = now.getFullYear();
+    // If we have conversion stats from the backend, use them for global numbers
+    if (hookStats?.conversion) {
+      return {
+        total: totalCount,
+        novosEsteMes: hookStats.conversion.novos_mes,
+        emNegociacao: hookStats.conversion.com_proposta - hookStats.conversion.convertidos,
+        convertidos: hookStats.conversion.convertidos,
+      };
+    }
 
-    const novosEsteMes = orcamentos.filter((orc) => {
-      const d = new Date(orc.created_at);
-      return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
-    }).length;
-
+    // Fallback to local calculation (less accurate with pagination)
     const convertidoStatus = statuses.find(s => s.nome === "Convertido");
     const aguardandoStatus = statuses.find(s => s.nome === "Aguardando Validação");
-    const convertidos = orcamentos.filter(
+    const convertidosCount = orcamentos.filter(
       (orc) => (convertidoStatus && orc.status_id === convertidoStatus.id) || (aguardandoStatus && orc.status_id === aguardandoStatus.id)
     ).length;
 
-    const emNegociacaoStatus = statuses.find(s => s.nome === "Em Negociação" || s.nome === "Em negociação");
-    const emNegociacao = emNegociacaoStatus
-      ? orcamentos.filter((orc) => orc.status_id === emNegociacaoStatus.id).length
-      : 0;
-
     return {
       total: totalCount,
-      novosEsteMes,
-      emNegociacao,
-      convertidos,
+      novosEsteMes: 0,
+      emNegociacao: 0,
+      convertidos: convertidosCount,
     };
-  }, [orcamentos, statuses, totalCount]);
+  }, [hookStats, orcamentos, statuses, totalCount]);
 
   const handleClearFilters = () => {
+    setSearchTerm("");
     setFilterVisto("todos");
     setFilterVendedor("todos");
     setFilterEstado("todos");
     setFilterStatus("todos");
+    setFilterConversao("todos");
   };
 
   const handleDelete = async () => {
@@ -296,9 +280,12 @@ export function LeadsView() {
             onFilterEstadoChange={setFilterEstado}
             filterStatus={filterStatus}
             onFilterStatusChange={setFilterStatus}
+            filterConversao={filterConversao}
+            onFilterConversaoChange={setFilterConversao}
             vendedores={filters.vendedores}
             estados={filters.estados}
             statuses={statuses}
+            conversionStats={hookStats?.conversion}
             onClearFilters={handleClearFilters}
           />
         </CardHeader>
