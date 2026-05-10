@@ -15,10 +15,7 @@ const ORC_ADMIN_SELECT = `
   area, tipo_telhado, rede_atendimento, media_consumo, consumo_previsto,
   observacoes, arquivos_urls, consultor, consultor_id, visto, visto_admin,
   status_id, ultimo_contato, proxima_acao, data_proxima_acao, created_at, updated_at,
-  lead_nome, lead_telefone, lead_telefone_normalized, lead_email, lead_code,
-  matched_cliente_id, matched_projeto_id,
-  proposal_count, project_count, lead_status_nome,
-  orc_consultores:consultor_id(id, nome)
+  leads!inner (id, lead_code, nome, telefone, telefone_normalized, email)
 `;
 
 export interface ConversionStats {
@@ -67,15 +64,22 @@ export function useOrcamentosAdmin({
       const to = from + pageSize - 1;
       
       const { data: tenantId } = await supabase.rpc("get_user_tenant_id");
-      if (!tenantId) return;
 
       let query = supabase
-        .from("vw_orcamentos_comercial")
+        .from("orcamentos")
         .select(ORC_ADMIN_SELECT, { count: "exact" });
 
       // Apply standard filters
       if (searchTerm) {
-        query = query.or(`lead_nome.ilike.%${searchTerm}%,orc_code.ilike.%${searchTerm}%,lead_code.ilike.%${searchTerm}%,lead_telefone.ilike.%${searchTerm}%`);
+        const { data: matchingLeads } = await supabase
+          .from("leads")
+          .select("id")
+          .or(`nome.ilike.%${searchTerm}%,lead_code.ilike.%${searchTerm}%,telefone.ilike.%${searchTerm}%,email.ilike.%${searchTerm}%`)
+          .limit(500);
+        const leadIds = (matchingLeads || []).map((lead) => lead.id);
+        query = leadIds.length > 0
+          ? query.or(`orc_code.ilike.%${searchTerm}%,lead_id.in.(${leadIds.join(",")})`)
+          : query.ilike("orc_code", `%${searchTerm}%`);
       }
 
       if (filterVisto === "visto") {
@@ -98,23 +102,10 @@ export function useOrcamentosAdmin({
         query = query.eq("status_id", filterStatus);
       }
 
-      // Apply conversion stage filters
-      if (filterConversao === "sem_proposta") {
-        query = query.eq("proposal_count", 0).neq("lead_status_nome", "Perdido");
-      } else if (filterConversao === "com_proposta") {
-        query = query.gt("proposal_count", 0);
-      } else if (filterConversao === "sem_projeto") {
-        query = query.gt("proposal_count", 0).eq("project_count", 0).neq("lead_status_nome", "Perdido");
-      } else if (filterConversao === "convertidos") {
-        query = query.gt("project_count", 0);
-      } else if (filterConversao === "perdidos") {
-        query = query.eq("lead_status_nome", "Perdido");
-      }
-
       // ⚠️ HARDENING: Separate stats fetch from main query to avoid global failure
       let statsRes: { data: any; error: any } = { data: null, error: null };
       
-      try {
+      if (tenantId) try {
         const statsPromise = supabase.rpc("get_orcamentos_comercial_stats", {
           p_tenant_id: tenantId,
           p_search: searchTerm,
@@ -157,10 +148,10 @@ export function useOrcamentosAdmin({
           id: orc.id,
           orc_code: orc.orc_code,
           lead_id: orc.lead_id,
-          lead_code: orc.lead_code,
-          nome: orc.lead_nome || "",
-          telefone: orc.lead_telefone || "",
-          email: orc.lead_email || null,
+          lead_code: orc.leads?.lead_code || null,
+          nome: orc.leads?.nome || "",
+          telefone: orc.leads?.telefone || "",
+          email: orc.leads?.email || null,
           cep: orc.cep,
           estado: orc.estado,
           cidade: orc.cidade,
@@ -177,7 +168,7 @@ export function useOrcamentosAdmin({
           observacoes: orc.observacoes,
           vendedor: orc.consultor,
           vendedor_id: orc.consultor_id,
-          vendedor_nome: orc.orc_consultores?.nome || orc.consultor || null,
+          vendedor_nome: orc.consultor || null,
           status_id: orc.status_id,
           visto: orc.visto,
           visto_admin: orc.visto_admin,
@@ -186,8 +177,8 @@ export function useOrcamentosAdmin({
           data_proxima_acao: orc.data_proxima_acao,
           created_at: orc.created_at,
           updated_at: orc.updated_at,
-          projeto_id: orc.matched_projeto_id,
-          projeto_tem_proposta: orc.proposal_count > 0,
+          projeto_id: null,
+          projeto_tem_proposta: false,
         };
       });
 
