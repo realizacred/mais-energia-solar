@@ -355,10 +355,15 @@ export function OrcamentosTable({
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end" className="w-48">
-                        {orc.projeto_id && (
+                        {orc.projeto_id ? (
                           <DropdownMenuItem onClick={() => navigate(`/admin/projetos?projeto=${orc.projeto_id}`)}>
                             <FolderOpen className={`w-4 h-4 mr-2 ${orc.projeto_tem_proposta ? "text-success" : "text-destructive"}`} />
                             {orc.projeto_tem_proposta ? "Abrir projeto" : "Abrir projeto (sem proposta)"}
+                          </DropdownMenuItem>
+                        ) : (
+                          <DropdownMenuItem onClick={() => { setVincularOrc(orc); setVincularOpen(true); }}>
+                            <Link2 className="w-4 h-4 mr-2 text-primary" />
+                            Vincular a cliente existente
                           </DropdownMenuItem>
                         )}
                         <DropdownMenuItem onClick={() => onView(orc)}>
