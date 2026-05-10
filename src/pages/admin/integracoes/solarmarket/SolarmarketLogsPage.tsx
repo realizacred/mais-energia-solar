@@ -330,23 +330,37 @@ export default function SolarmarketLogsPage() {
                 <div className="space-y-2">
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Propostas sem projeto</span>
-                    <Badge variant="outline" className="font-mono">0</Badge>
+                    <Badge variant={auditData.data?.orphaned_propostas > 0 ? "destructive" : "outline"} className="font-mono">
+                      {auditData.data?.orphaned_propostas ?? 0}
+                    </Badge>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Projetos sem cliente</span>
-                    <Badge variant="outline" className="font-mono">0</Badge>
+                    <Badge variant={auditData.data?.orphaned_projetos > 0 ? "destructive" : "outline"} className="font-mono">
+                      {auditData.data?.orphaned_projetos ?? 0}
+                    </Badge>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Links duplicados</span>
-                    <Badge variant="outline" className="font-mono">0</Badge>
+                    <Badge variant={auditData.data?.duplicate_links > 0 ? "destructive" : "outline"} className="font-mono">
+                      {auditData.data?.duplicate_links ?? 0}
+                    </Badge>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Links quebrados</span>
-                    <Badge variant="outline" className="font-mono">0</Badge>
+                    <Badge variant={auditData.data?.broken_links > 0 ? "destructive" : "outline"} className="font-mono">
+                      {auditData.data?.broken_links ?? 0}
+                    </Badge>
                   </div>
                 </div>
-                <Button className="w-full gap-2" variant="outline">
-                  <PlayCircle className="h-4 w-4" /> Rodar Auditoria Completa
+                <Button 
+                  className="w-full gap-2" 
+                  variant="outline" 
+                  onClick={() => runAudit.mutate()}
+                  disabled={runAudit.isPending}
+                >
+                  <PlayCircle className="h-4 w-4" /> 
+                  {runAudit.isPending ? "Rodando..." : "Rodar Auditoria Completa"}
                 </Button>
               </CardContent>
             </Card>
@@ -359,22 +373,34 @@ export default function SolarmarketLogsPage() {
                 <CardDescription>Resumo executivo da migração.</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="p-3 bg-muted/50 rounded-md text-[11px] leading-relaxed font-mono">
-                  # RELATÓRIO FINAL SOLARMARKET<br/>
-                  - Status: OPERACIONAL<br/>
-                  - Total Migrado: {stats?.promoted}<br/>
-                  - Reutilizados: {stats?.clientsReused}<br/>
-                  - Novos: {stats?.clientsCreated}<br/>
-                  - Erros Críticos: 0 (pós-fix)<br/>
-                  - Estabilidade: 100%
+                <div className="p-3 bg-muted/50 rounded-md text-[11px] leading-relaxed font-mono whitespace-pre-wrap">
+                  # RELATÓRIO FINAL SOLARMARKET{"\n"}
+                  - Data: {new Date().toLocaleDateString('pt-BR')}{"\n"}
+                  - Status: {auditData.data?.status === 'concluded' ? 'CONCLUÍDO' : 'EM PROCESSAMENTO'}{"\n"}
+                  - Total Staging: {auditData.data?.total_staging}{"\n"}
+                  - Total Migrado: {auditData.data?.promoted_propostas}{"\n"}
+                  - Restante: {auditData.data?.remaining}{"\n"}
+                  - Integridade: {auditData.data?.broken_links === 0 ? '100% OK' : 'REVISÃO NECESSÁRIA'}
                 </div>
-                <Button className="w-full gap-2" variant="secondary">
-                  <Download className="h-4 w-4" /> Baixar PDF Consolidado
+                <Button 
+                  className="w-full gap-2" 
+                  variant="secondary"
+                  onClick={() => {
+                    const blob = new Blob([JSON.stringify(auditData.data, null, 2)], { type: 'application/json' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `sm-audit-report-${new Date().toISOString()}.json`;
+                    a.click();
+                  }}
+                >
+                  <Download className="h-4 w-4" /> Exportar Relatório Técnico (JSON)
                 </Button>
               </CardContent>
             </Card>
           </div>
         </TabsContent>
+
 
         <TabsContent value="logs" className="space-y-6 outline-none">
           <Card>
