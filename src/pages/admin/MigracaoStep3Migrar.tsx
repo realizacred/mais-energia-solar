@@ -248,6 +248,11 @@ export default function MigracaoStep3Migrar() {
 
   const totals = progress?.totals;
   const job = progress?.job;
+  const activeCounters = useActiveJobCounters(job?.id ?? null);
+  const activeErrors = activeCounters.data?.activeErrors ?? 0;
+  const activeWarnings = activeCounters.data?.activeWarnings ?? 0;
+  const historicalErrors = activeCounters.data?.historicalErrors ?? Math.max(0, (job?.items_with_errors ?? 0) - activeErrors);
+  const historicalWarnings = activeCounters.data?.historicalWarnings ?? Math.max(0, (job?.items_with_warnings ?? 0) - activeWarnings);
   const isRunning = !!progress?.isRunning;
   const isComplete = !!progress?.isComplete;
   const isResumable = !!progress?.isResumable;
