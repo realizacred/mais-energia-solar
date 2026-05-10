@@ -148,10 +148,10 @@ export function useOrcamentosAdmin({
           id: orc.id,
           orc_code: orc.orc_code,
           lead_id: orc.lead_id,
-          lead_code: orc.lead_code,
-          nome: orc.lead_nome || "",
-          telefone: orc.lead_telefone || "",
-          email: orc.lead_email || null,
+          lead_code: orc.leads?.lead_code || null,
+          nome: orc.leads?.nome || "",
+          telefone: orc.leads?.telefone || "",
+          email: orc.leads?.email || null,
           cep: orc.cep,
           estado: orc.estado,
           cidade: orc.cidade,
@@ -177,8 +177,8 @@ export function useOrcamentosAdmin({
           data_proxima_acao: orc.data_proxima_acao,
           created_at: orc.created_at,
           updated_at: orc.updated_at,
-          projeto_id: orc.matched_projeto_id,
-          projeto_tem_proposta: orc.proposal_count > 0,
+          projeto_id: null,
+          projeto_tem_proposta: false,
         };
       });
 
