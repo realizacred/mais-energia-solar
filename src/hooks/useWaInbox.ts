@@ -7,7 +7,8 @@ import { playIncomingMessageAlert } from "@/services/incomingMessageAlert";
 
 // ── Types ─────────────────────────────────────────────
 
-export type { WaConversation, WaMessage, WaTag, WaConversationTag } from "@/types";
+import type { WaConversation, WaMessage, WaTag, WaConversationTag } from "@/types";
+export type { WaConversation, WaMessage, WaTag, WaConversationTag };
 
 // ── Conversations Hook ────────────────────────────────
 
