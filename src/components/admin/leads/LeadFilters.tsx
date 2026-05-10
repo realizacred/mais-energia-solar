@@ -23,9 +23,19 @@ interface LeadFiltersProps {
   onFilterEstadoChange: (value: string) => void;
   filterStatus: string;
   onFilterStatusChange: (value: string) => void;
+  filterConversao: string;
+  onFilterConversaoChange: (value: string) => void;
   vendedores: VendedorFilter[];
   estados: string[];
   statuses: LeadStatus[];
+  conversionStats?: {
+    total: number;
+    sem_proposta: number;
+    com_proposta: number;
+    sem_projeto: number;
+    convertidos: number;
+    perdidos: number;
+  } | null;
   onClearFilters: () => void;
 }
 
