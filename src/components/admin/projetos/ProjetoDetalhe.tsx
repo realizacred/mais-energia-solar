@@ -644,7 +644,7 @@ function ProjetoDetalheContent() {
               </p>
             </div>
           </DialogHeader>
-          <div className="p-5 space-y-4 overflow-y-auto max-h-[70vh]">
+          <div className="p-5 space-y-4 overflow-y-auto scrollbar-premium max-h-[70vh]">
             <div>
               <Label>Motivo de Perda *</Label>
               {loadingMotivos ? (
