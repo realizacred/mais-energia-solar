@@ -129,6 +129,12 @@ export function WaInbox({ vendorMode = false, vendorUserId, showCompactStats = f
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [activeTab, setActiveTab] = useState<'inbox' | 'followup'>('inbox');
+  const { data: followUpItems = [] } = useFollowUpQueue();
+  
+  const needsAttentionCount = useMemo(() => 
+    followUpItems.filter(item => item.ai_context === 'needs_human_review').length
+  , [followUpItems]);
 
   // Determine the effective user for vendor mode
   const effectiveUserId = vendorUserId || (vendorMode ? user?.id : undefined);
