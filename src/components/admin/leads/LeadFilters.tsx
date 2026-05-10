@@ -120,6 +120,30 @@ export function LeadFilters({
           </SelectContent>
         </Select>
 
+        <Select value={filterConversao} onValueChange={onFilterConversaoChange}>
+          <SelectTrigger className="w-[170px] h-9">
+            <SelectValue placeholder="Conversão" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="todos">Todos (Conversão)</SelectItem>
+            <SelectItem value="sem_proposta">
+              Sem proposta {conversionStats ? `(${conversionStats.sem_proposta})` : ""}
+            </SelectItem>
+            <SelectItem value="com_proposta">
+              Com proposta {conversionStats ? `(${conversionStats.com_proposta})` : ""}
+            </SelectItem>
+            <SelectItem value="sem_projeto">
+              Sem projeto {conversionStats ? `(${conversionStats.sem_projeto})` : ""}
+            </SelectItem>
+            <SelectItem value="convertidos">
+              Convertidos {conversionStats ? `(${conversionStats.convertidos})` : ""}
+            </SelectItem>
+            <SelectItem value="perdidos">
+              Perdidos {conversionStats ? `(${conversionStats.perdidos})` : ""}
+            </SelectItem>
+          </SelectContent>
+        </Select>
+
         <Select value={filterVendedor} onValueChange={onFilterVendedorChange}>
           <SelectTrigger className="w-[160px] h-9">
             <SelectValue placeholder="Consultor" />
