@@ -107,7 +107,6 @@ export function useOrcamentosAdmin({
       // canonical there) and constrain the main query before pagination.
       // HARDENING: isolated try/catch — failure here must NOT break the
       // main listing nor trigger a generic error toast.
-      let conversionFilterFailed = false;
       if (filterConversao !== "todos" && tenantId) {
         try {
           let viewQ = supabase
@@ -130,17 +129,11 @@ export function useOrcamentosAdmin({
           const { data: idsRows, error: idsErr } = await viewQ.limit(5000);
           if (idsErr) throw idsErr;
           const ids = (idsRows || []).map((r: any) => r.id);
-          if (ids.length === 0) {
-            setOrcamentos([]);
-            setTotalCount(0);
-            setLoading(false);
-            return;
-          }
-          query = query.in("id", ids);
+          // Use a sentinel UUID when empty to force zero rows without breaking the query
+          query = query.in("id", ids.length > 0 ? ids : ["00000000-0000-0000-0000-000000000000"]);
         } catch (convErr) {
           // Non-blocking: log and proceed with unfiltered listing
           console.warn("[useOrcamentosAdmin] conversion pre-filter failed (non-blocking):", convErr);
-          conversionFilterFailed = true;
         }
       }
 
