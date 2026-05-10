@@ -114,6 +114,7 @@ function consultorColumnToOwner(c: ProjetoConsultorColumn, etapaMap: Map<string,
 
 export function ProjetosManager() {
   const { toast } = useToast();
+  const { user } = useAuth();
   const {
     funis, etapas, etiquetas, projetos, consultores, loading,
     selectedFunilId, setSelectedFunilId,
