@@ -28,6 +28,7 @@ export interface ConversionStats {
   sem_projeto: number;
   convertidos: number;
   perdidos: number;
+  novos_mes: number;
 }
 
 interface UseOrcamentosAdminOptions {
