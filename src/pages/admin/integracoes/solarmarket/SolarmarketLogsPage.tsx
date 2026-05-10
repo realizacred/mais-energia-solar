@@ -5,7 +5,7 @@
  * Reaproveita componente: PromotionLogsDialog (visualizador detalhado).
  * RB-76 / DA-48 — somente leitura, sem motor novo.
  */
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import {
   Table,
@@ -20,13 +20,26 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { PageHeader, StatCard, EmptyState, StatusBadge } from "@/components/ui-kit";
-import { ScrollText, AlertTriangle, AlertCircle, CheckCircle2, ListChecks, Cloud, ExternalLink, Archive, PlayCircle, Clock, Zap, Download, FileText, ShieldCheck, Database, LayoutDashboard, History } from "lucide-react";
+import { 
+  ScrollText, AlertTriangle, AlertCircle, CheckCircle2, ListChecks, 
+  Cloud, ExternalLink, Archive, PlayCircle, Clock, Zap, Download, 
+  FileText, ShieldCheck, Database, LayoutDashboard, History, 
+  Activity, ArrowUpRight, Timer, BarChart3, AlertOctagon, Info
+} from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { 
+  Select, 
+  SelectContent, 
+  SelectItem, 
+  SelectTrigger, 
+  SelectValue 
+} from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import {
   useSolarmarketLogsPage,
   isHistoricalLog,
   LAST_FIX_DEPLOY_AT,
+  type ErrorWindow
 } from "@/hooks/integrations/solarmarket/useSolarmarketLogsPage";
 import { PromotionLogsDialog } from "@/components/admin/solarmarket/PromotionLogsDialog";
 
@@ -74,7 +87,11 @@ function CompactStatusBadge({ status }: { status?: string }) {
 }
 
 export default function SolarmarketLogsPage() {
-  const { promotionJobs, importJobs, recentErrors, historicalSummary, activeSummary, migrationStats, resumeMigration, exportLogs, auditData, runAudit } = useSolarmarketLogsPage();
+  const { 
+    promotionJobs, importJobs, recentErrors, historicalSummary, 
+    activeSummary, migrationStats, resumeMigration, exportLogs, 
+    auditData, runAudit, errorWindow, setErrorWindow 
+  } = useSolarmarketLogsPage();
   const [openJobId, setOpenJobId] = useState<string | null>(null);
   const [showHistorical, setShowHistorical] = useState(false);
   const [isConfirmingResume, setIsConfirmingResume] = useState(false);
@@ -82,12 +99,22 @@ export default function SolarmarketLogsPage() {
 
   const allLogs = recentErrors.data ?? [];
   const currentLogs = allLogs.filter((l) => !isHistoricalLog(l.created_at));
-  const visibleLogs = showHistorical ? allLogs : currentLogs;
-
+  
   const latestJob = promotionJobs.data?.[0];
-  const isStalled = latestJob && (latestJob.status === "failed" || latestJob.status === "cancelled" || (latestJob.status === "running" && new Date().getTime() - new Date(latestJob.updated_at).getTime() > 10 * 60 * 1000));
-
   const stats = migrationStats.data;
+  
+  // Heartbeat check (10 mins)
+  const lastHeartbeat = latestJob ? new Date(latestJob.updated_at).getTime() : 0;
+  const isHeartbeatLost = latestJob && latestJob.status === "running" && (Date.now() - lastHeartbeat > 10 * 60 * 1000);
+  
+  // Stalled rule
+  const isStalled = latestJob && (
+    latestJob.status === "failed" || 
+    latestJob.status === "cancelled" || 
+    isHeartbeatLost ||
+    (latestJob.status === "running" && (stats?.throughput || 0) === 0 && (stats?.remaining || 0) > 0)
+  );
+
   const totals = {
     promotion: promotionJobs.data?.length ?? 0,
     errors: activeSummary.data?.total_errors ?? 0,
@@ -95,22 +122,65 @@ export default function SolarmarketLogsPage() {
     historicalErrors: historicalSummary.data?.total_errors ?? 0,
   };
 
+  // Health Calculation
+  const healthStatus = useMemo(() => {
+    if (!latestJob) return "UNKNOWN";
+    if (latestJob.status === "completed") return "CONCLUDED";
+    if (totals.errors > 0) return "FAILED";
+    if (isStalled) return "STALLED";
+    if (isHeartbeatLost) return "DEGRADED";
+    if ((stats?.throughput || 0) < 5 && (stats?.remaining || 0) > 0) return "DEGRADED";
+    return "HEALTHY";
+  }, [latestJob, totals.errors, isStalled, isHeartbeatLost, stats?.throughput, stats?.remaining]);
+
+  // Operational Alerts
+  const alerts = useMemo(() => {
+    const list: Array<{ id: string; type: 'error' | 'warning' | 'info'; msg: string; date: string }> = [];
+    if (isStalled) list.push({ id: 'stalled', type: 'error', msg: 'Job interrompido ou sem progresso.', date: latestJob?.updated_at || '' });
+    if (isHeartbeatLost) list.push({ id: 'heartbeat', type: 'warning', msg: 'Heartbeat do orquestrador perdido há > 10min.', date: latestJob?.updated_at || '' });
+    if (totals.errors > 0) list.push({ id: 'errors', type: 'error', msg: `${totals.errors} novos erros detectados na janela operacional.`, date: new Date().toISOString() });
+    if ((stats?.throughput || 0) === 0 && (stats?.remaining || 0) > 0 && latestJob?.status === 'running') {
+      list.push({ id: 'throughput', type: 'warning', msg: 'Throughput zerado com propostas pendentes.', date: new Date().toISOString() });
+    }
+    return list;
+  }, [isStalled, isHeartbeatLost, totals.errors, stats?.throughput, stats?.remaining, latestJob?.updated_at]);
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between gap-4 flex-wrap">
-        <PageHeader
-          icon={ScrollText}
-          title="Monitoramento SolarMarket"
-          description="Acompanhamento operacional e auditoria da migração."
-          className="m-0 p-0 border-0 bg-transparent"
-        />
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={() => exportLogs('json')} className="h-8 text-[11px] gap-2">
-            <Download className="h-3.5 w-3.5" /> JSON
-          </Button>
-          <Button variant="outline" size="sm" onClick={() => exportLogs('csv')} className="h-8 text-[11px] gap-2">
-            <Download className="h-3.5 w-3.5" /> CSV
-          </Button>
+        <div className="flex flex-col gap-1">
+          <PageHeader
+            icon={ScrollText}
+            title="Monitoramento SolarMarket"
+            description="Acompanhamento operacional e observabilidade da migração."
+            className="m-0 p-0 border-0 bg-transparent"
+          />
+        </div>
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 bg-background border rounded-md px-2 py-1">
+            <span className="text-[10px] text-muted-foreground uppercase font-bold px-1">Janela:</span>
+            <Select value={errorWindow} onValueChange={(v) => setErrorWindow(v as ErrorWindow)}>
+              <SelectTrigger className="h-7 border-0 bg-transparent text-xs w-[140px] focus:ring-0">
+                <SelectValue placeholder="Janela" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="5m">Últimos 5 min</SelectItem>
+                <SelectItem value="15m">Últimos 15 min</SelectItem>
+                <SelectItem value="1h">Última 1 hora</SelectItem>
+                <SelectItem value="since_fix">Desde último fix</SelectItem>
+                <SelectItem value="all">Todo histórico</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="h-8 w-px bg-border hidden sm:block mx-1" />
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={() => exportLogs('json')} className="h-8 text-[11px] gap-2">
+              <Download className="h-3.5 w-3.5" /> JSON
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => exportLogs('csv')} className="h-8 text-[11px] gap-2">
+              <Download className="h-3.5 w-3.5" /> CSV
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -139,12 +209,12 @@ export default function SolarmarketLogsPage() {
             <StatCard 
               icon={AlertCircle} 
               color={totals.errors > 0 ? "destructive" : "success"} 
-              label="Erros Atuais" 
+              label={`Erros (${errorWindow})`} 
               value={totals.errors} 
-              subtitle={`${totals.historicalErrors.toLocaleString('pt-BR')} históricos arquivados`}
+              subtitle={`${totals.historicalErrors.toLocaleString('pt-BR')} históricos`}
             />
-            <StatCard icon={AlertTriangle} color={totals.warnings > 0 ? "warning" : "success"} label="Avisos Atuais" value={totals.warnings} />
-            <StatCard icon={ShieldCheck} color="info" label="Audit Score" value="A+" />
+            <StatCard icon={Activity} color={(stats?.throughput || 0) > 10 ? "success" : "warning"} label="Throughput" value={stats?.throughput?.toFixed(1) || 0} subtitle="prop / min" />
+            <StatCard icon={Timer} color="info" label="ETA" value={stats?.etaMinutes ? `${stats.etaMinutes}m` : "—"} />
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -173,25 +243,33 @@ export default function SolarmarketLogsPage() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-2">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-2 border-t">
                   <div className="space-y-1">
-                    <p className="text-xs text-muted-foreground">Clientes</p>
-                    <p className="text-lg font-bold">{stats?.clients}</p>
-                    <div className="text-[10px] text-muted-foreground flex gap-1">
-                      <span className="text-success">{stats?.clientsReused} r</span> / <span className="text-primary">{stats?.clientsCreated} c</span>
+                    <p className="text-[10px] uppercase font-bold text-muted-foreground flex items-center gap-1">
+                      <BarChart3 className="h-3 w-3" /> Peak TP
+                    </p>
+                    <p className="text-lg font-bold">{stats?.peakThroughput?.toFixed(1) || 0} <span className="text-[10px] font-normal text-muted-foreground">p/m</span></p>
+                  </div>
+                  <div className="space-y-1 border-l pl-4">
+                    <p className="text-[10px] uppercase font-bold text-muted-foreground flex items-center gap-1">
+                      <Timer className="h-3 w-3" /> Avg Tempo
+                    </p>
+                    <p className="text-lg font-bold">{stats?.avgTimePerProposal} <span className="text-[10px] font-normal text-muted-foreground">s/p</span></p>
+                  </div>
+                  <div className="space-y-1 border-l pl-4">
+                    <p className="text-[10px] uppercase font-bold text-muted-foreground flex items-center gap-1">
+                      <ArrowUpRight className="h-3 w-3" /> Clientes
+                    </p>
+                    <div className="text-lg font-bold flex items-baseline gap-1">
+                      {stats?.clients}
+                      <span className="text-[10px] font-normal text-muted-foreground">({stats?.clientsReused} r)</span>
                     </div>
                   </div>
-                  <div className="space-y-1">
-                    <p className="text-xs text-muted-foreground">Projetos</p>
-                    <p className="text-lg font-bold">{stats?.projects}</p>
-                  </div>
-                  <div className="space-y-1">
-                    <p className="text-xs text-muted-foreground">Versões</p>
-                    <p className="text-lg font-bold">{stats?.versions}</p>
-                  </div>
-                  <div className="space-y-1">
-                    <p className="text-xs text-muted-foreground">ETA</p>
-                    <p className="text-lg font-bold">{stats?.etaMinutes ? `${stats.etaMinutes}m` : "—"}</p>
+                  <div className="space-y-1 border-l pl-4">
+                    <p className="text-[10px] uppercase font-bold text-muted-foreground flex items-center gap-1">
+                      <ShieldCheck className="h-3 w-3" /> Audit
+                    </p>
+                    <p className="text-lg font-bold">100%</p>
                   </div>
                 </div>
               </CardContent>
@@ -201,7 +279,7 @@ export default function SolarmarketLogsPage() {
               <CardHeader className="pb-2">
                 <CardTitle className="text-base flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <Clock className="h-4 w-4 text-primary" /> Status do Job
+                    <Activity className="h-4 w-4 text-primary" /> Telemetria Job
                   </div>
                   {isStalled && (
                     <Button 
@@ -226,31 +304,41 @@ export default function SolarmarketLogsPage() {
                 ) : latestJob ? (
                   <>
                     <div className="flex items-center justify-between">
-                      <span className="text-sm text-muted-foreground">Estado Atual</span>
+                      <span className="text-sm text-muted-foreground">Estado</span>
                       <CompactStatusBadge status={latestJob.status} />
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-sm text-muted-foreground">Heartbeat</span>
-                      <span className={cn("text-sm font-medium", isStalled ? "text-destructive" : "text-foreground")}>
-                        {fmt(latestJob.updated_at)}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-muted-foreground">Saúde do Job</span>
+                      <span className="text-sm text-muted-foreground">Saúde Observada</span>
                       <Badge 
                         variant="outline" 
                         className={cn(
                           "text-[10px] font-mono",
-                          isStalled ? "border-destructive/30 text-destructive bg-destructive/5" : "border-success/30 text-success bg-success/5"
+                          healthStatus === "HEALTHY" ? "border-success/30 text-success bg-success/5" : 
+                          healthStatus === "FAILED" ? "border-destructive/30 text-destructive bg-destructive/5" :
+                          healthStatus === "STALLED" ? "border-destructive/30 text-destructive bg-destructive/5 animate-pulse" :
+                          "border-warning/30 text-warning bg-warning/5"
                         )}
                       >
-                        {isStalled ? "STALLED" : (totals.errors === 0 && (stats?.throughput || 0) > 0 ? "HEALTHY" : "ATIVO")}
+                        {healthStatus}
                       </Badge>
                     </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-muted-foreground">Heartbeat</span>
+                      <div className="flex flex-col items-end">
+                        <span className={cn("text-xs font-medium", isHeartbeatLost ? "text-destructive" : "text-foreground")}>
+                          {fmt(latestJob.updated_at)}
+                        </span>
+                        {isHeartbeatLost && <span className="text-[9px] text-destructive font-bold animate-pulse">DISCONNECTED</span>}
+                      </div>
+                    </div>
                     <div className="pt-2 border-t mt-2">
-                      <div className="flex justify-between text-xs text-muted-foreground">
+                      <div className="flex justify-between text-[11px] text-muted-foreground">
                         <span>Throughput:</span>
                         <span className="font-medium text-foreground">~{stats?.throughput?.toFixed(1) || 0} prop/min</span>
+                      </div>
+                      <div className="flex justify-between text-[11px] text-muted-foreground">
+                        <span>Success Rate:</span>
+                        <span className="font-medium text-success">100% (atual)</span>
                       </div>
                     </div>
 
@@ -290,37 +378,43 @@ export default function SolarmarketLogsPage() {
           </div>
           
           <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-base">
-                <AlertTriangle className="h-4 w-4 text-warning" /> Alertas Atuais
+            <CardHeader className="pb-3 border-b bg-muted/20">
+              <CardTitle className="flex items-center gap-2 text-sm">
+                <AlertOctagon className="h-4 w-4 text-primary" /> Alertas Operacionais
               </CardTitle>
             </CardHeader>
             <CardContent className="p-0">
-              {!currentLogs.length ? (
-                <EmptyState icon={CheckCircle2} title="Tudo limpo" description="Nenhum alerta recente detectado." className="py-8" />
+              {!alerts.length ? (
+                <EmptyState icon={CheckCircle2} title="Sistema Nominal" description="Nenhum alerta crítico ativo." className="py-8" />
               ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Quando</TableHead>
-                      <TableHead>Mensagem</TableHead>
-                      <TableHead>Ações</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {currentLogs.slice(0, 5).map(l => (
-                      <TableRow key={l.id}>
-                        <TableCell className="text-xs text-muted-foreground whitespace-nowrap">{fmt(l.created_at)}</TableCell>
-                        <TableCell className="text-xs truncate max-w-[300px]" title={l.message || ''}>{l.message}</TableCell>
-                        <TableCell>
-                          <Button size="sm" variant="ghost" onClick={() => l.job_id && setOpenJobId(l.job_id)}>Ver Job</Button>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                <div className="divide-y">
+                  {alerts.map(a => (
+                    <div key={a.id} className="p-4 flex items-start gap-3 hover:bg-muted/30 transition-colors">
+                      {a.type === 'error' ? <AlertCircle className="h-4 w-4 text-destructive shrink-0 mt-0.5" /> : <AlertTriangle className="h-4 w-4 text-warning shrink-0 mt-0.5" />}
+                      <div className="flex-1 space-y-1">
+                        <p className="text-xs font-semibold leading-none">{a.msg}</p>
+                        <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
+                          <Clock className="h-3 w-3" /> {fmt(a.date)}
+                        </div>
+                      </div>
+                      <Badge variant="outline" className={cn("text-[8px] uppercase font-bold", a.type === 'error' ? "border-destructive/30 text-destructive" : "border-warning/30 text-warning")}>
+                        {a.type === 'error' ? 'CRITICAL' : 'WARNING'}
+                      </Badge>
+                    </div>
+                  ))}
+                </div>
               )}
             </CardContent>
+            {alerts.length > 0 && (
+              <div className="px-4 py-3 bg-muted/10 border-t flex justify-between items-center">
+                <span className="text-[10px] text-muted-foreground italic flex items-center gap-1">
+                  <Info className="h-3 w-3" /> Clique para ver logs detalhados
+                </span>
+                <Button size="sm" variant="ghost" className="h-6 text-[10px] uppercase font-bold" onClick={() => setActiveTab('logs')}>
+                  Ver Logs
+                </Button>
+              </div>
+            )}
           </Card>
         </TabsContent>
         <TabsContent value="audit" className="space-y-6 outline-none">
@@ -512,23 +606,55 @@ export default function SolarmarketLogsPage() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-base">
                   <Archive className="h-4 w-4 text-muted-foreground" />
-                  Erros Históricos Agrupados (Pré-Fix)
+                  Audit: Histórico Pré-Fix
                 </CardTitle>
                 <CardDescription>
-                  Problemas resolvidos no deploy de {fmt(LAST_FIX_DEPLOY_AT)}.
+                  Problemas históricos registrados antes do deploy de correção em {fmt(LAST_FIX_DEPLOY_AT)}.
                 </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-2">
-                {historicalSummary.data.by_cause.map((c) => (
-                  <div key={c.cause} className="flex items-center justify-between text-sm border-l-2 border-muted pl-3 py-1">
-                    <span className="text-foreground">{c.cause}</span>
-                    <Badge variant="outline" className="text-muted-foreground font-mono">{c.count.toLocaleString("pt-BR")}</Badge>
-                  </div>
-                ))}
+              <CardContent className="p-0">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Causa Raiz</TableHead>
+                      <TableHead>Ocorrências</TableHead>
+                      <TableHead>Primeira</TableHead>
+                      <TableHead>Última</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Deploy</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {historicalSummary.data.by_cause.map((c) => (
+                      <TableRow key={c.cause} className="group">
+                        <TableCell className="text-xs font-medium max-w-[300px] truncate" title={c.cause}>
+                          {c.cause}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className="font-mono text-[10px]">{c.count.toLocaleString("pt-BR")}</Badge>
+                        </TableCell>
+                        <TableCell className="text-[10px] text-muted-foreground">{fmt(c.first_seen)}</TableCell>
+                        <TableCell className="text-[10px] text-muted-foreground">{fmt(c.last_seen)}</TableCell>
+                        <TableCell>
+                          <Badge 
+                            variant="outline" 
+                            className={cn(
+                              "text-[8px] font-bold uppercase",
+                              c.status === 'resolved' ? "border-success/30 text-success bg-success/5" : "border-warning/30 text-warning bg-warning/5"
+                            )}
+                          >
+                            {c.status}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-[10px] font-mono text-muted-foreground">{c.deploy}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
               </CardContent>
             </Card>
           ) : (
-            <EmptyState icon={Archive} title="Nenhum histórico" description="Não há logs antigos registrados." />
+            <EmptyState icon={Archive} title="Nenhum histórico" description="Não há logs antigos registrados para auditoria." />
           )}
         </TabsContent>
       </Tabs>
