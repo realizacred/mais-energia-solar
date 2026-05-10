@@ -75,20 +75,19 @@ function CompactStatusBadge({ status }: { status?: string }) {
 }
 
 export default function SolarmarketLogsPage() {
-  const { promotionJobs, importJobs, recentErrors, historicalSummary, migrationStats, resumeMigration } = useSolarmarketLogsPage();
+  const { promotionJobs, importJobs, recentErrors, historicalSummary, migrationStats, resumeMigration, exportLogs } = useSolarmarketLogsPage();
   const [openJobId, setOpenJobId] = useState<string | null>(null);
   const [showHistorical, setShowHistorical] = useState(false);
   const [isConfirmingResume, setIsConfirmingResume] = useState(false);
+  const [activeTab, setActiveTab] = useState("dashboard");
 
-  // RB-MIG-LOG-PARTITION: separa logs em "atuais" (>= último fix) e "históricos".
-  // Contadores principais usam apenas atuais para refletir saúde da migração agora.
   const allLogs = recentErrors.data ?? [];
   const currentLogs = allLogs.filter((l) => !isHistoricalLog(l.created_at));
-  const visibleLogs = showHistorical ? allLogs : currentLogs;
-
+  
   const latestJob = promotionJobs.data?.[0];
   const isStalled = latestJob && (latestJob.status === "failed" || latestJob.status === "cancelled" || (latestJob.status === "running" && new Date().getTime() - new Date(latestJob.updated_at).getTime() > 10 * 60 * 1000));
 
+  const stats = migrationStats.data;
   const totals = {
     promotion: promotionJobs.data?.length ?? 0,
     errors: currentLogs.filter((l) => l.severity === "error").length,
@@ -98,38 +97,46 @@ export default function SolarmarketLogsPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader
-        icon={ScrollText}
-        title="Logs SolarMarket"
-        description="Histórico de jobs de importação, promoção e eventos recentes."
-      />
-
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard
-          icon={Cloud}
-          color="info"
-          label="Jobs de promoção (últimos 20)"
-          value={totals.promotion}
+      <div className="flex items-center justify-between gap-4 flex-wrap">
+        <PageHeader
+          icon={ScrollText}
+          title="Monitoramento SolarMarket"
+          description="Acompanhamento operacional e auditoria da migração."
+          className="m-0 p-0 border-0 bg-transparent"
         />
-        <StatCard
-          icon={AlertTriangle}
-          color={totals.warnings > 0 ? "warning" : "success"}
-          label="Avisos atuais"
-          value={totals.warnings}
-        />
-        <StatCard
-          icon={AlertCircle}
-          color={totals.errors > 0 ? "destructive" : "success"}
-          label="Erros atuais"
-          value={totals.errors}
-        />
-        <StatCard
-          icon={Archive}
-          color="muted"
-          label={`Histórico (antes de ${fmt(LAST_FIX_DEPLOY_AT)})`}
-          value={totals.historicalErrors}
-        />
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={() => exportLogs('json')} className="h-8 text-[11px] gap-2">
+            <Download className="h-3.5 w-3.5" /> JSON
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => exportLogs('csv')} className="h-8 text-[11px] gap-2">
+            <Download className="h-3.5 w-3.5" /> CSV
+          </Button>
+        </div>
       </div>
+
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+        <TabsList className="bg-background border h-10 p-1">
+          <TabsTrigger value="dashboard" className="gap-2 text-xs">
+            <LayoutDashboard className="h-3.5 w-3.5" /> Dashboard
+          </TabsTrigger>
+          <TabsTrigger value="logs" className="gap-2 text-xs">
+            <ScrollText className="h-3.5 w-3.5" /> Logs e Jobs
+          </TabsTrigger>
+          <TabsTrigger value="audit" className="gap-2 text-xs">
+            <ShieldCheck className="h-3.5 w-3.5" /> Auditoria Final
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="dashboard" className="space-y-6 outline-none">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+            <StatCard icon={Database} color="info" label="Staging Total" value={stats?.total || 0} />
+            <StatCard icon={CheckCircle2} color="success" label="Promovidos" value={stats?.promoted || 0} />
+            <StatCard icon={Clock} color="muted" label="Restantes" value={stats?.remaining || 0} />
+            <StatCard icon={AlertCircle} color={totals.errors > 0 ? "destructive" : "success"} label="Erros Atuais" value={totals.errors} />
+            <StatCard icon={AlertTriangle} color={totals.warnings > 0 ? "warning" : "success"} label="Avisos Atuais" value={totals.warnings} />
+            <StatCard icon={Archive} color="muted" label="Histórico" value={totals.historicalErrors} />
+          </div>
+
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <Card className="lg:col-span-2">
