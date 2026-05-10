@@ -73,15 +73,19 @@ function CompactStatusBadge({ status }: { status?: string }) {
 }
 
 export default function SolarmarketLogsPage() {
-  const { promotionJobs, importJobs, recentErrors, historicalSummary, migrationStats } = useSolarmarketLogsPage();
+  const { promotionJobs, importJobs, recentErrors, historicalSummary, migrationStats, resumeMigration } = useSolarmarketLogsPage();
   const [openJobId, setOpenJobId] = useState<string | null>(null);
   const [showHistorical, setShowHistorical] = useState(false);
+  const [isConfirmingResume, setIsConfirmingResume] = useState(false);
 
   // RB-MIG-LOG-PARTITION: separa logs em "atuais" (>= último fix) e "históricos".
   // Contadores principais usam apenas atuais para refletir saúde da migração agora.
   const allLogs = recentErrors.data ?? [];
   const currentLogs = allLogs.filter((l) => !isHistoricalLog(l.created_at));
   const visibleLogs = showHistorical ? allLogs : currentLogs;
+
+  const latestJob = promotionJobs.data?.[0];
+  const isStalled = latestJob && (latestJob.status === "failed" || latestJob.status === "cancelled" || (latestJob.status === "running" && new Date().getTime() - new Date(latestJob.updated_at).getTime() > 10 * 60 * 1000));
 
   const totals = {
     promotion: promotionJobs.data?.length ?? 0,
@@ -174,32 +178,102 @@ export default function SolarmarketLogsPage() {
 
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-base flex items-center gap-2">
-              <Clock className="h-4 w-4 text-primary" /> Status do Job
+            <CardTitle className="text-base flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Clock className="h-4 w-4 text-primary" /> Status do Job
+              </div>
+              {isStalled && (
+                <Button 
+                  size="sm" 
+                  variant="outline" 
+                  className="h-7 text-[10px] gap-1 border-primary/30 hover:bg-primary/10"
+                  onClick={() => setIsConfirmingResume(true)}
+                  disabled={resumeMigration.isPending}
+                >
+                  <PlayCircle className="h-3 w-3" /> RETOMAR
+                </Button>
+              )}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            {promotionJobs.data?.[0] ? (
+            {promotionJobs.isLoading ? (
+              <div className="space-y-3">
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-4 w-3/4" />
+                <Skeleton className="h-4 w-1/2" />
+              </div>
+            ) : latestJob ? (
               <>
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-muted-foreground">Estado Atual</span>
-                  <CompactStatusBadge status={promotionJobs.data[0].status} />
+                  <CompactStatusBadge status={latestJob.status} />
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-muted-foreground">Último Heartbeat</span>
-                  <span className="text-sm font-medium">{fmt(promotionJobs.data[0].updated_at)}</span>
+                  <span className={cn("text-sm font-medium", isStalled ? "text-destructive" : "text-foreground")}>
+                    {fmt(latestJob.updated_at)}
+                  </span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-muted-foreground">Watchdog</span>
-                  <Badge variant="outline" className="text-[10px] font-mono border-success/30 text-success">ATIVO</Badge>
+                  <Badge 
+                    variant="outline" 
+                    className={cn(
+                      "text-[10px] font-mono",
+                      isStalled ? "border-destructive/30 text-destructive" : "border-success/30 text-success"
+                    )}
+                  >
+                    {isStalled ? "STALLED" : "ATIVO"}
+                  </Badge>
                 </div>
                 <div className="pt-2 border-t mt-2">
-                  <p className="text-xs text-muted-foreground mb-1">Throughput estimado: ~5 prop/min</p>
-                  <p className="text-xs text-muted-foreground">ETA: {migrationStats.data?.remaining && migrationStats.data.remaining > 0 ? `${Math.ceil(migrationStats.data.remaining / 5)} min` : "Finalizado"}</p>
+                  <div className="flex justify-between text-xs text-muted-foreground mb-1">
+                    <span>Throughput:</span>
+                    <span className="font-medium text-foreground">~{migrationStats.data?.throughput?.toFixed(1) || 0} prop/min</span>
+                  </div>
+                  <div className="flex justify-between text-xs text-muted-foreground">
+                    <span>ETA:</span>
+                    <span className="font-medium text-foreground">
+                      {migrationStats.data?.etaMinutes ? `${migrationStats.data.etaMinutes} min` : (migrationStats.data?.remaining === 0 ? "Finalizado" : "Calculando...")}
+                    </span>
+                  </div>
                 </div>
+
+                {isConfirmingResume && (
+                  <div className="mt-4 p-3 rounded-lg bg-primary/5 border border-primary/20 space-y-3">
+                    <p className="text-[11px] leading-relaxed">
+                      Deseja forçar a retomada da migração? Isso disparará o orquestrador para processar o próximo lote de {migrationStats.data?.remaining} propostas.
+                    </p>
+                    <div className="flex gap-2">
+                      <Button 
+                        size="sm" 
+                        className="h-8 flex-1 text-xs"
+                        onClick={() => {
+                          resumeMigration.mutate();
+                          setIsConfirmingResume(false);
+                        }}
+                      >
+                        Confirmar
+                      </Button>
+                      <Button 
+                        size="sm" 
+                        variant="ghost" 
+                        className="h-8 flex-1 text-xs"
+                        onClick={() => setIsConfirmingResume(false)}
+                      >
+                        Cancelar
+                      </Button>
+                    </div>
+                  </div>
+                )}
               </>
             ) : (
-              <p className="text-sm text-muted-foreground">Nenhum job em execução.</p>
+              <EmptyState
+                icon={Clock}
+                title="Sem jobs"
+                description="Aguardando início."
+                className="py-4"
+              />
             )}
           </CardContent>
         </Card>
