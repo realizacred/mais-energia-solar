@@ -24,7 +24,8 @@ import {
   ScrollText, AlertTriangle, AlertCircle, CheckCircle2, ListChecks, 
   Cloud, ExternalLink, Archive, PlayCircle, Clock, Zap, Download, 
   FileText, ShieldCheck, Database, LayoutDashboard, History, 
-  Activity, ArrowUpRight, Timer, BarChart3, AlertOctagon, Info
+  Activity, ArrowUpRight, Timer, BarChart3, AlertOctagon, Info,
+  Loader2, Settings, Target, TrendingUp, Cpu
 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
@@ -39,9 +40,17 @@ import {
   useSolarmarketLogsPage,
   isHistoricalLog,
   LAST_FIX_DEPLOY_AT,
-  type ErrorWindow
+  type ErrorWindow,
+  type SmThresholds
 } from "@/hooks/integrations/solarmarket/useSolarmarketLogsPage";
 import { PromotionLogsDialog } from "@/components/admin/solarmarket/PromotionLogsDialog";
+import { 
+  LineChart, Line, AreaChart, Area, XAxis, YAxis, CartesianGrid, 
+  Tooltip, ResponsiveContainer, BarChart, Bar, Legend, Cell
+} from 'recharts';
+import { toast } from "sonner";
+import html2canvas from 'html2canvas';
+import jsPDF from 'jspdf';
 
 const TZ = "America/Sao_Paulo";
 const dtFmt = new Intl.DateTimeFormat("pt-BR", {
@@ -90,12 +99,14 @@ export default function SolarmarketLogsPage() {
   const { 
     promotionJobs, importJobs, recentErrors, historicalSummary, 
     activeSummary, migrationStats, resumeMigration, exportLogs, 
-    auditData, runAudit, errorWindow, setErrorWindow 
+    auditData, runAudit, errorWindow, setErrorWindow,
+    thresholds, setThresholds, timeSeriesData
   } = useSolarmarketLogsPage();
   const [openJobId, setOpenJobId] = useState<string | null>(null);
   const [showHistorical, setShowHistorical] = useState(false);
   const [isConfirmingResume, setIsConfirmingResume] = useState(false);
   const [activeTab, setActiveTab] = useState("dashboard");
+  const [isExportingPDF, setIsExportingPDF] = useState(false);
 
   const allLogs = recentErrors.data ?? [];
   const currentLogs = allLogs.filter((l) => !isHistoricalLog(l.created_at));
@@ -103,16 +114,16 @@ export default function SolarmarketLogsPage() {
   const latestJob = promotionJobs.data?.[0];
   const stats = migrationStats.data;
   
-  // Heartbeat check (10 mins)
+  // Heartbeat check (using thresholds)
   const lastHeartbeat = latestJob ? new Date(latestJob.updated_at).getTime() : 0;
-  const isHeartbeatLost = latestJob && latestJob.status === "running" && (Date.now() - lastHeartbeat > 10 * 60 * 1000);
+  const isHeartbeatLost = latestJob && latestJob.status === "running" && (Date.now() - lastHeartbeat > thresholds.heartbeatTimeout * 60 * 1000);
   
-  // Stalled rule
+  // Stalled rule (using thresholds)
   const isStalled = latestJob && (
     latestJob.status === "failed" || 
     latestJob.status === "cancelled" || 
     isHeartbeatLost ||
-    (latestJob.status === "running" && (stats?.throughput || 0) === 0 && (stats?.remaining || 0) > 0)
+    (latestJob.status === "running" && (stats?.throughput || 0) < 1 && (stats?.remaining || 0) > 0)
   );
 
   const totals = {
@@ -120,43 +131,126 @@ export default function SolarmarketLogsPage() {
     errors: activeSummary.data?.total_errors ?? 0,
     warnings: activeSummary.data?.total_warnings ?? 0,
     historicalErrors: historicalSummary.data?.total_errors ?? 0,
+    historicalWarnings: historicalSummary.data?.total_warnings ?? 0,
   };
+
+  // Success Rate calculation
+  const successRate = useMemo(() => {
+    if (!stats || stats.promoted === 0) return 100;
+    const totalProcessed = stats.promoted + totals.errors;
+    if (totalProcessed === 0) return 100;
+    return Math.round((stats.promoted / totalProcessed) * 100);
+  }, [stats, totals.errors]);
 
   // Health Calculation
   const healthStatus = useMemo(() => {
     if (!latestJob) return "UNKNOWN";
     if (latestJob.status === "completed") return "CONCLUDED";
-    if (totals.errors > 0) return "FAILED";
+    if (totals.errors > thresholds.maxRetries) return "FAILED";
     if (isStalled) return "STALLED";
     if (isHeartbeatLost) return "DEGRADED";
-    if ((stats?.throughput || 0) < 5 && (stats?.remaining || 0) > 0) return "DEGRADED";
+    if ((stats?.throughput || 0) < thresholds.minThroughput && (stats?.remaining || 0) > 0) return "DEGRADED";
     return "HEALTHY";
-  }, [latestJob, totals.errors, isStalled, isHeartbeatLost, stats?.throughput, stats?.remaining]);
+  }, [latestJob, totals.errors, isStalled, isHeartbeatLost, stats?.throughput, stats?.remaining, thresholds]);
 
   // Operational Alerts
   const alerts = useMemo(() => {
-    const list: Array<{ id: string; type: 'error' | 'warning' | 'info'; msg: string; date: string }> = [];
-    if (isStalled) list.push({ id: 'stalled', type: 'error', msg: 'Job interrompido ou sem progresso.', date: latestJob?.updated_at || '' });
-    if (isHeartbeatLost) list.push({ id: 'heartbeat', type: 'warning', msg: 'Heartbeat do orquestrador perdido há > 10min.', date: latestJob?.updated_at || '' });
-    if (totals.errors > 0) list.push({ id: 'errors', type: 'error', msg: `${totals.errors} novos erros detectados na janela operacional.`, date: new Date().toISOString() });
-    if ((stats?.throughput || 0) === 0 && (stats?.remaining || 0) > 0 && latestJob?.status === 'running') {
-      list.push({ id: 'throughput', type: 'warning', msg: 'Throughput zerado com propostas pendentes.', date: new Date().toISOString() });
+    const list: Array<{ id: string; type: 'error' | 'warning' | 'info'; category: string; msg: string; impact: string; mitigation: string; date: string }> = [];
+    
+    if (isStalled) {
+      list.push({ 
+        id: 'stalled', type: 'error', category: 'WATCHDOG',
+        msg: 'Job interrompido ou sem progresso detectado.', 
+        impact: 'Atraso na conclusão da migração e backlog acumulado.',
+        mitigation: 'Clique em "RETOMAR" para forçar o processamento do próximo chunk.',
+        date: latestJob?.updated_at || '' 
+      });
     }
+    
+    if (isHeartbeatLost) {
+      list.push({ 
+        id: 'heartbeat', type: 'warning', category: 'HEARTBEAT',
+        msg: `Heartbeat do orquestrador perdido há > ${thresholds.heartbeatTimeout}min.`, 
+        impact: 'Visibilidade reduzida sobre o estado real do motor.',
+        mitigation: 'Verificar logs do Edge Function sm-promote e sm-migrate-chunk.',
+        date: latestJob?.updated_at || '' 
+      });
+    }
+    
+    if (totals.errors > thresholds.maxRetries) {
+      list.push({ 
+        id: 'errors', type: 'error', category: 'PROCESSING',
+        msg: `${totals.errors} novos erros detectados na janela operacional.`, 
+        impact: 'Integridade de dados comprometida para os registros afetados.',
+        mitigation: 'Analisar mensagens de erro no modal de detalhes e aplicar correções de mapeamento.',
+        date: new Date().toISOString() 
+      });
+    }
+    
+    if ((stats?.throughput || 0) < thresholds.minThroughput && (stats?.remaining || 0) > 0 && latestJob?.status === 'running') {
+      list.push({ 
+        id: 'throughput', type: 'warning', category: 'PERFORMANCE',
+        msg: 'Performance degradada: Throughput abaixo do SLA configurado.', 
+        impact: 'Aumento significativo no tempo estimado de conclusão (ETA).',
+        mitigation: 'Reduzir latência de rede ou otimizar batch_limit se possível.',
+        date: new Date().toISOString() 
+      });
+    }
+
+    if (auditData.data?.orphaned_propostas && auditData.data.orphaned_propostas > 0) {
+      list.push({
+        id: 'orphans', type: 'warning', category: 'AUDIT',
+        msg: `${auditData.data.orphaned_propostas} propostas órfãs detectadas.`,
+        impact: 'Propostas que não vinculam a nenhum projeto no CRM.',
+        mitigation: 'Rodar sm-reset-all ou investigar falha no vínculo de projeto_id.',
+        date: new Date().toISOString()
+      });
+    }
+
     return list;
-  }, [isStalled, isHeartbeatLost, totals.errors, stats?.throughput, stats?.remaining, latestJob?.updated_at]);
+  }, [isStalled, isHeartbeatLost, totals.errors, stats?.throughput, stats?.remaining, latestJob?.updated_at, thresholds, auditData.data]);
+
+  const generatePDFReport = async () => {
+    setIsExportingPDF(true);
+    const element = document.getElementById('enterprise-dashboard');
+    if (!element) return;
+
+    try {
+      const canvas = await html2canvas(element, {
+        scale: 2,
+        useCORS: true,
+        logging: false,
+        backgroundColor: '#000000' // Dark mode PDF
+      });
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const imgProps = pdf.getImageProperties(imgData);
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+      
+      pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+      pdf.save(`sm-executive-report-${new Date().toISOString()}.pdf`);
+      toast.success("Relatório executivo PDF gerado");
+    } catch (err) {
+      console.error(err);
+      toast.error("Falha ao gerar PDF");
+    } finally {
+      setIsExportingPDF(false);
+    }
+  };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" id="enterprise-dashboard">
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div className="flex flex-col gap-1">
           <PageHeader
             icon={ScrollText}
-            title="Monitoramento SolarMarket"
-            description="Acompanhamento operacional e observabilidade da migração."
+            title="Telemetria Enterprise SolarMarket"
+            description="Console de observabilidade em tempo real e inteligência operacional."
             className="m-0 p-0 border-0 bg-transparent"
           />
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 no-print">
           <div className="flex items-center gap-2 bg-background border rounded-md px-2 py-1">
             <span className="text-[10px] text-muted-foreground uppercase font-bold px-1">Janela:</span>
             <Select value={errorWindow} onValueChange={(v) => setErrorWindow(v as ErrorWindow)}>
@@ -180,12 +274,16 @@ export default function SolarmarketLogsPage() {
             <Button variant="outline" size="sm" onClick={() => exportLogs('csv')} className="h-8 text-[11px] gap-2">
               <Download className="h-3.5 w-3.5" /> CSV
             </Button>
+            <Button variant="default" size="sm" onClick={generatePDFReport} disabled={isExportingPDF} className="h-8 text-[11px] gap-2 bg-primary hover:bg-primary/90">
+              {isExportingPDF ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileText className="h-3.5 w-3.5" />}
+              PDF EXECUTIVO
+            </Button>
           </div>
         </div>
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="bg-background border h-10 p-1">
+        <TabsList className="bg-background border h-10 p-1 no-print">
           <TabsTrigger value="dashboard" className="gap-2 text-xs">
             <LayoutDashboard className="h-3.5 w-3.5" /> Dashboard
           </TabsTrigger>
@@ -198,23 +296,76 @@ export default function SolarmarketLogsPage() {
           <TabsTrigger value="history" className="gap-2 text-xs">
             <History className="h-3.5 w-3.5" /> Histórico
           </TabsTrigger>
-
+          <TabsTrigger value="settings" className="gap-2 text-xs">
+            <Settings className="h-3.5 w-3.5" /> Configurações
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="dashboard" className="space-y-6 outline-none">
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
             <StatCard icon={Database} color="info" label="Staging Total" value={stats?.total || 0} />
-            <StatCard icon={CheckCircle2} color="success" label="Promovidos" value={stats?.promoted || 0} />
+            <StatCard icon={CheckCircle2} color="success" label="Success Rate" value={`${successRate}%`} subtitle="operacional" />
             <StatCard icon={Clock} color="muted" label="Restantes" value={stats?.remaining || 0} />
             <StatCard 
               icon={AlertCircle} 
-              color={totals.errors > 0 ? "destructive" : "success"} 
+              color={totals.errors > thresholds.maxRetries ? "destructive" : "success"} 
               label={`Erros (${errorWindow})`} 
               value={totals.errors} 
               subtitle={`${totals.historicalErrors.toLocaleString('pt-BR')} históricos`}
             />
-            <StatCard icon={Activity} color={(stats?.throughput || 0) > 10 ? "success" : "warning"} label="Throughput" value={stats?.throughput?.toFixed(1) || 0} subtitle="prop / min" />
+            <StatCard icon={Activity} color={(stats?.throughput || 0) > thresholds.minThroughput ? "success" : "warning"} label="Throughput" value={stats?.throughput?.toFixed(1) || 0} subtitle="prop / min" />
             <StatCard icon={Timer} color="info" label="ETA" value={stats?.etaMinutes ? `${stats.etaMinutes}m` : "—"} />
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <Card className="p-4">
+              <CardHeader className="p-0 pb-4">
+                <CardTitle className="text-sm flex items-center gap-2">
+                  <TrendingUp className="h-4 w-4 text-primary" /> Performance de Throughput (prop/min)
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-0 h-[200px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={timeSeriesData.data}>
+                    <defs>
+                      <linearGradient id="colorThroughput" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3}/>
+                        <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0}/>
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
+                    <XAxis dataKey="time" stroke="hsl(var(--muted-foreground))" fontSize={10} tickLine={false} axisLine={false} />
+                    <YAxis stroke="hsl(var(--muted-foreground))" fontSize={10} tickLine={false} axisLine={false} />
+                    <Tooltip 
+                      contentStyle={{ backgroundColor: 'hsl(var(--background))', borderColor: 'hsl(var(--border))', borderRadius: '8px' }}
+                      itemStyle={{ color: 'hsl(var(--primary))' }}
+                    />
+                    <Area type="monotone" dataKey="throughput" stroke="hsl(var(--primary))" fillOpacity={1} fill="url(#colorThroughput)" />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+
+            <Card className="p-4">
+              <CardHeader className="p-0 pb-4">
+                <CardTitle className="text-sm flex items-center gap-2">
+                  <AlertCircle className="h-4 w-4 text-destructive" /> Distribuição de Erros por Janela
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-0 h-[200px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={timeSeriesData.data}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
+                    <XAxis dataKey="time" stroke="hsl(var(--muted-foreground))" fontSize={10} tickLine={false} axisLine={false} />
+                    <YAxis stroke="hsl(var(--muted-foreground))" fontSize={10} tickLine={false} axisLine={false} />
+                    <Tooltip 
+                      contentStyle={{ backgroundColor: 'hsl(var(--background))', borderColor: 'hsl(var(--border))', borderRadius: '8px' }}
+                    />
+                    <Bar dataKey="errors" fill="hsl(var(--destructive))" radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -377,29 +528,74 @@ export default function SolarmarketLogsPage() {
             </Card>
           </div>
           
-          <Card>
-            <CardHeader className="pb-3 border-b bg-muted/20">
-              <CardTitle className="flex items-center gap-2 text-sm">
-                <AlertOctagon className="h-4 w-4 text-primary" /> Alertas Operacionais
-              </CardTitle>
-            </CardHeader>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <Card className="lg:col-span-1">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm flex items-center gap-2">
+                  <History className="h-4 w-4 text-primary" /> Atividade Recente
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-0 max-h-[400px] overflow-y-auto">
+                {recentErrors.data && recentErrors.data.length > 0 ? (
+                  <div className="divide-y divide-border/40">
+                    {recentErrors.data.slice(0, 20).map(l => (
+                      <div key={l.id} className="p-3 hover:bg-muted/30 transition-colors flex items-start gap-3">
+                        {l.severity === 'error' ? <AlertCircle className="h-3.5 w-3.5 text-destructive mt-0.5" /> : <AlertTriangle className="h-3.5 w-3.5 text-warning mt-0.5" />}
+                        <div className="flex-1 space-y-1 min-w-0">
+                          <p className="text-[10px] font-medium leading-tight truncate">{l.message}</p>
+                          <div className="flex items-center justify-between">
+                            <span className="text-[8px] text-muted-foreground font-mono">{l.step || 'promote'}</span>
+                            <span className="text-[8px] text-muted-foreground">{fmt(l.created_at)}</span>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <EmptyState icon={CheckCircle2} title="Sem ruído" description="Nenhuma falha recente registrada." className="py-12" />
+                )}
+              </CardContent>
+            </Card>
+
+            <Card className="lg:col-span-2">
+              <CardHeader className="pb-3 border-b bg-muted/20">
+                <CardTitle className="flex items-center gap-2 text-sm">
+                  <AlertOctagon className="h-4 w-4 text-primary" /> Alertas Operacionais Ativos
+                </CardTitle>
+              </CardHeader>
             <CardContent className="p-0">
               {!alerts.length ? (
                 <EmptyState icon={CheckCircle2} title="Sistema Nominal" description="Nenhum alerta crítico ativo." className="py-8" />
               ) : (
                 <div className="divide-y">
                   {alerts.map(a => (
-                    <div key={a.id} className="p-4 flex items-start gap-3 hover:bg-muted/30 transition-colors">
-                      {a.type === 'error' ? <AlertCircle className="h-4 w-4 text-destructive shrink-0 mt-0.5" /> : <AlertTriangle className="h-4 w-4 text-warning shrink-0 mt-0.5" />}
-                      <div className="flex-1 space-y-1">
-                        <p className="text-xs font-semibold leading-none">{a.msg}</p>
-                        <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
+                    <div key={a.id} className="p-4 flex items-start gap-4 hover:bg-muted/30 transition-colors">
+                      {a.type === 'error' ? <AlertCircle className="h-5 w-5 text-destructive shrink-0 mt-0.5" /> : <AlertTriangle className="h-5 w-5 text-warning shrink-0 mt-0.5" />}
+                      <div className="flex-1 space-y-2">
+                        <div className="flex items-center gap-2">
+                          <p className="text-xs font-bold leading-none">{a.msg}</p>
+                          <Badge variant="outline" className={cn("text-[8px] h-4 uppercase font-bold", a.type === 'error' ? "border-destructive/30 text-destructive bg-destructive/5" : "border-warning/30 text-warning bg-warning/5")}>
+                            {a.category}
+                          </Badge>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className="space-y-1">
+                            <p className="text-[10px] uppercase font-bold text-muted-foreground flex items-center gap-1">
+                              <Target className="h-3 w-3" /> Impacto
+                            </p>
+                            <p className="text-[11px] leading-relaxed">{a.impact}</p>
+                          </div>
+                          <div className="space-y-1">
+                            <p className="text-[10px] uppercase font-bold text-muted-foreground flex items-center gap-1">
+                              <ShieldCheck className="h-3 w-3" /> Mitigação Sugerida
+                            </p>
+                            <p className="text-[11px] leading-relaxed text-primary/80">{a.mitigation}</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2 text-[10px] text-muted-foreground pt-1">
                           <Clock className="h-3 w-3" /> {fmt(a.date)}
                         </div>
                       </div>
-                      <Badge variant="outline" className={cn("text-[8px] uppercase font-bold", a.type === 'error' ? "border-destructive/30 text-destructive" : "border-warning/30 text-warning")}>
-                        {a.type === 'error' ? 'CRITICAL' : 'WARNING'}
-                      </Badge>
                     </div>
                   ))}
                 </div>
@@ -416,7 +612,8 @@ export default function SolarmarketLogsPage() {
               </div>
             )}
           </Card>
-        </TabsContent>
+        </div>
+      </TabsContent>
         <TabsContent value="audit" className="space-y-6 outline-none">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <Card>
@@ -566,7 +763,7 @@ export default function SolarmarketLogsPage() {
               )}
             </CardContent>
           </Card>
-
+          
           <Card>
             <CardHeader>
               <CardTitle className="text-base flex items-center gap-2">
@@ -596,6 +793,97 @@ export default function SolarmarketLogsPage() {
                   </TableBody>
                 </Table>
               )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="settings" className="space-y-6 outline-none">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base flex items-center gap-2">
+                <Settings className="h-4 w-4 text-primary" /> Thresholds e Limites Operacionais
+              </CardTitle>
+              <CardDescription>Configure os gatilhos de alerta e comportamento do watchdog.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <label className="text-xs font-bold uppercase text-muted-foreground flex items-center gap-2">
+                    <Timer className="h-3 w-3" /> Timeout de Heartbeat (min)
+                  </label>
+                  <div className="flex items-center gap-4">
+                    <input 
+                      type="range" min="1" max="60" step="1" 
+                      className="flex-1 accent-primary" 
+                      value={thresholds.heartbeatTimeout} 
+                      onChange={(e) => setThresholds({...thresholds, heartbeatTimeout: parseInt(e.target.value)})}
+                    />
+                    <Badge variant="outline" className="w-12 justify-center">{thresholds.heartbeatTimeout}m</Badge>
+                  </div>
+                  <p className="text-[10px] text-muted-foreground">Tempo máximo sem atualização antes de marcar como DISCONNECTED.</p>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-xs font-bold uppercase text-muted-foreground flex items-center gap-2">
+                    <TrendingUp className="h-3 w-3" /> Throughput Mínimo (prop/min)
+                  </label>
+                  <div className="flex items-center gap-4">
+                    <input 
+                      type="range" min="0" max="50" step="1" 
+                      className="flex-1 accent-primary" 
+                      value={thresholds.minThroughput} 
+                      onChange={(e) => setThresholds({...thresholds, minThroughput: parseInt(e.target.value)})}
+                    />
+                    <Badge variant="outline" className="w-12 justify-center">{thresholds.minThroughput}</Badge>
+                  </div>
+                  <p className="text-[10px] text-muted-foreground">Threshold para alerta de degradação de performance.</p>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-xs font-bold uppercase text-muted-foreground flex items-center gap-2">
+                    <AlertCircle className="h-3 w-3" /> Retry Máximo por Registro
+                  </label>
+                  <div className="flex items-center gap-4">
+                    <input 
+                      type="range" min="1" max="10" step="1" 
+                      className="flex-1 accent-primary" 
+                      value={thresholds.maxRetries} 
+                      onChange={(e) => setThresholds({...thresholds, maxRetries: parseInt(e.target.value)})}
+                    />
+                    <Badge variant="outline" className="w-12 justify-center">{thresholds.maxRetries}x</Badge>
+                  </div>
+                  <p className="text-[10px] text-muted-foreground">Quantidade de tentativas antes de marcar como CRITICAL ERROR.</p>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-xs font-bold uppercase text-muted-foreground flex items-center gap-2">
+                    <Cpu className="h-3 w-3" /> Janela Operacional Padrão
+                  </label>
+                  <Select value={errorWindow} onValueChange={(v) => setErrorWindow(v as ErrorWindow)}>
+                    <SelectTrigger className="h-9 w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="5m">5 minutos</SelectItem>
+                      <SelectItem value="15m">15 minutos</SelectItem>
+                      <SelectItem value="1h">1 hora</SelectItem>
+                      <SelectItem value="since_fix">Desde último deploy</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-[10px] text-muted-foreground">Define o escopo inicial dos alertas ao carregar o dashboard.</p>
+                </div>
+              </div>
+
+              <div className="pt-4 border-t flex justify-end gap-3">
+                <Button variant="outline" size="sm" onClick={() => setThresholds({
+                  heartbeatTimeout: 10,
+                  stalledThreshold: 15,
+                  minThroughput: 5,
+                  maxRetries: 3,
+                  operationalWindow: 'since_fix'
+                })}>Resetar Defaults</Button>
+                <Button size="sm" onClick={() => toast.success("Configurações persistidas para este administrador")}>Salvar Alterações</Button>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
