@@ -545,6 +545,52 @@ Deno.serve(async (req) => {
       }
     }
 
+    // G4: AI Context Gating (Final Line of Defense)
+    if (tipo === "automatico" || (body as any).source === "followup") {
+      try {
+        const phoneDigits = telefone.replace(/\D/g, "");
+        const normalized = canonicalPhoneFromJid(`${phoneDigits}@s.whatsapp.net`);
+        
+        if (normalized) {
+          const { data: conv } = await supabaseAdmin
+            .from("wa_conversations")
+            .select("id, ai_context")
+            .eq("tenant_id", tenantIdResolved)
+            .eq("telefone_normalized", normalized)
+            .maybeSingle();
+
+          if (conv) {
+            const ctx = conv.ai_context || 'ai_active';
+            if (!['ai_active', 'waiting_customer'].includes(ctx)) {
+              console.log(`[send-wa] GATE BLOCKED: context ${ctx} for phone ${phoneDigits}`);
+              
+              // Log event for audit
+              await supabaseAdmin.from("wa_context_events").insert({
+                tenant_id: tenantIdResolved,
+                conversation_id: conv.id,
+                evento: `envio_bloqueado_contexto_${ctx}`,
+                origem: 'sistema',
+                context_anterior: ctx,
+                context_novo: ctx,
+                criado_em: new Date().toISOString()
+              });
+
+              return new Response(JSON.stringify({ 
+                success: false, 
+                error: "context_blocked", 
+                message: `Mensagem bloqueada pelo contexto da conversa: ${ctx}` 
+              }), {
+                status: 200, // Return 200 to avoid retries if the caller is a worker
+                headers: { ...corsHeaders, "Content-Type": "application/json" }
+              });
+            }
+          }
+        }
+      } catch (gateErr) {
+        console.warn("[send-wa] Context gate check failed, proceeding anyway:", gateErr);
+      }
+    }
+
     // ── SEND MESSAGE ──────────────────────────────────────────
     let formattedPhone = telefone.replace(/\D/g, "");
     if (!formattedPhone.startsWith("55")) {
