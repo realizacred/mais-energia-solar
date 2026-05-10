@@ -509,6 +509,13 @@ export function OrcamentosTable({
         onCancel={cancelDuplicateGuard}
         loading={quickLoading}
       />
+      <VincularClienteDialog
+        open={vincularOpen}
+        onOpenChange={setVincularOpen}
+        leadId={vincularOrc?.lead_id ?? null}
+        leadNome={vincularOrc?.nome ?? null}
+        onSuccess={onRefresh}
+      />
     </div>
   );
 }
