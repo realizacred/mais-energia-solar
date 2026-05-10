@@ -17,8 +17,7 @@ const ORC_ADMIN_SELECT = `
   status_id, ultimo_contato, proxima_acao, data_proxima_acao, created_at, updated_at,
   lead_nome, lead_telefone, lead_telefone_normalized, lead_email, lead_code,
   matched_cliente_id, matched_projeto_id,
-  proposal_count, project_count, lead_status_nome,
-  orc_consultores:consultor_id(id, nome)
+  proposal_count, project_count, lead_status_nome
 `;
 
 export interface ConversionStats {
@@ -177,7 +176,7 @@ export function useOrcamentosAdmin({
           observacoes: orc.observacoes,
           vendedor: orc.consultor,
           vendedor_id: orc.consultor_id,
-          vendedor_nome: orc.orc_consultores?.nome || orc.consultor || null,
+          vendedor_nome: orc.consultor || null,
           status_id: orc.status_id,
           visto: orc.visto,
           visto_admin: orc.visto_admin,
