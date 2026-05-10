@@ -430,6 +430,40 @@
   .scrollbar-thin::-webkit-scrollbar-thumb { background-color: hsl(var(--muted-foreground) / 0.2); border-radius: 3px; }
   .scrollbar-thin::-webkit-scrollbar-thumb:hover { background-color: hsl(var(--muted-foreground) / 0.4); }
 
+  /* Premium Ultra-thin Scrollbar — HubSpot/Notion style */
+  .scrollbar-premium {
+    scrollbar-width: thin;
+    scrollbar-color: transparent transparent;
+    transition: scrollbar-color 0.3s ease;
+  }
+
+  .scrollbar-premium:hover {
+    scrollbar-color: hsl(var(--muted-foreground) / 0.2) transparent;
+  }
+
+  .scrollbar-premium::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+  }
+
+  .scrollbar-premium::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .scrollbar-premium::-webkit-scrollbar-thumb {
+    background: transparent;
+    border-radius: 20px;
+    transition: background 0.3s ease;
+  }
+
+  .scrollbar-premium:hover::-webkit-scrollbar-thumb {
+    background: hsl(var(--muted-foreground) / 0.15);
+  }
+
+  .scrollbar-premium::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--muted-foreground) / 0.3);
+  }
+
   /* Card variants — Solid Depth system */
   .card-interactive {
     @apply rounded-xl border border-border bg-card transition-all duration-200 ease-in-out;
