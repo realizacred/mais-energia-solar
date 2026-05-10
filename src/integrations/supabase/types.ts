@@ -28442,6 +28442,7 @@ export type Database = {
         Args: { _phone_digits: string }
         Returns: string
       }
+      audit_sm_migration: { Args: { p_tenant_id: string }; Returns: Json }
       auto_mark_missed_appointments: { Args: never; Returns: undefined }
       backfill_projetos_funil_etapa: {
         Args: { p_tenant_id: string }
