@@ -64,10 +64,53 @@ export function useOrcamentosAdmin({
       const from = page * pageSize;
       const to = from + pageSize - 1;
       
-      const [orcamentosRes, statusesRes] = await Promise.all([
-        supabase
-          .from("orcamentos")
-          .select(ORC_ADMIN_SELECT, { count: "exact" })
+      const { data: tenantId } = await supabase.rpc("get_user_tenant_id");
+      if (!tenantId) return;
+
+      let query = supabase
+        .from("vw_orcamentos_comercial")
+        .select(ORC_ADMIN_SELECT, { count: "exact" });
+
+      // Apply standard filters
+      if (searchTerm) {
+        query = query.or(`lead_nome.ilike.%${searchTerm}%,orc_code.ilike.%${searchTerm}%,lead_code.ilike.%${searchTerm}%,lead_telefone.ilike.%${searchTerm}%`);
+      }
+
+      if (filterVisto === "visto") {
+        query = query.eq("visto_admin", true);
+      } else if (filterVisto === "nao_visto") {
+        query = query.eq("visto_admin", false);
+      }
+
+      if (filterVendedor === "sem_vendedor") {
+        query = query.is("consultor_id", null);
+      } else if (filterVendedor !== "todos") {
+        query = query.eq("consultor_id", filterVendedor);
+      }
+
+      if (filterEstado !== "todos") {
+        query = query.eq("estado", filterEstado);
+      }
+
+      if (filterStatus !== "todos") {
+        query = query.eq("status_id", filterStatus);
+      }
+
+      // Apply conversion stage filters
+      if (filterConversao === "sem_proposta") {
+        query = query.eq("proposal_count", 0).neq("lead_status_nome", "Perdido");
+      } else if (filterConversao === "com_proposta") {
+        query = query.gt("proposal_count", 0);
+      } else if (filterConversao === "sem_projeto") {
+        query = query.gt("proposal_count", 0).eq("project_count", 0).neq("lead_status_nome", "Perdido");
+      } else if (filterConversao === "convertidos") {
+        query = query.gt("project_count", 0);
+      } else if (filterConversao === "perdidos") {
+        query = query.eq("lead_status_nome", "Perdido");
+      }
+
+      const [orcamentosRes, statusesRes, statsRes] = await Promise.all([
+        query
           .order("created_at", { ascending: false })
           .order("id", { ascending: false })
           .range(from, to),
@@ -75,118 +118,27 @@ export function useOrcamentosAdmin({
           .from("lead_status")
           .select("id, nome, ordem, cor")
           .order("ordem"),
+        supabase.rpc("get_orcamentos_comercial_stats", {
+          p_tenant_id: tenantId,
+          p_search: searchTerm,
+          p_vendedor_id: filterVendedor !== "todos" && filterVendedor !== "sem_vendedor" ? filterVendedor : null,
+          p_status_id: filterStatus !== "todos" ? filterStatus : null,
+          p_estado: filterEstado
+        })
       ]);
 
       if (orcamentosRes.error) throw orcamentosRes.error;
 
-      // Buscar projetos vinculados via cliente (telefone_normalized OU email).
-      // Observação: projetos.lead_id está sempre NULL nesta base — o vínculo
-      // canônico lead↔projeto acontece através de clientes (SSOT do cadastro).
-      // Auditoria 2026-04-30: 34% dos leads não casavam com clientes migrados
-      // por divergência do 9º dígito (lead salvo com 10d, cliente SM com 11d).
-      // Usamos normalizeBrazilianPhone para gerar variantes (com/sem 9) e
-      // recuperar 53% dos casos órfãos. Email permanece como fallback secundário.
-      const leadsForLookup = (orcamentosRes.data || [])
-        .map((o: any) => {
-          const tn = (o.leads?.telefone_normalized as string | null) || null;
-          const norm = normalizeBrazilianPhone(tn || o.leads?.telefone || null);
-          return {
-            lead_id: o.lead_id as string | null,
-            telefone_normalized: tn,
-            phone_variants: norm?.variants || (tn ? [tn] : []),
-            email: (o.leads?.email as string | null)?.toLowerCase() || null,
-          };
-        })
-        .filter((l) => l.lead_id);
-
-      const phones = Array.from(
-        new Set(leadsForLookup.flatMap((l) => l.phone_variants))
-      ).filter(Boolean);
-      const emails = Array.from(
-        new Set(leadsForLookup.map((l) => l.email).filter(Boolean) as string[])
-      );
-
-      const projetoByLead = new Map<string, string>();
-      const projetoTemProposta = new Map<string, boolean>();
-      if (phones.length > 0 || emails.length > 0) {
-        // 1) clientes que casam por telefone (variantes) OU email
-        const orParts: string[] = [];
-        if (phones.length > 0) orParts.push(`telefone_normalized.in.(${phones.join(",")})`);
-        if (emails.length > 0) {
-          const safeEmails = emails.map((e) => `"${e.replace(/"/g, '\\"')}"`).join(",");
-          orParts.push(`email.in.(${safeEmails})`);
-        }
-        const { data: clientesData } = await supabase
-          .from("clientes")
-          .select("id, telefone_normalized, email")
-          .or(orParts.join(","));
-
-        const clienteIds = (clientesData || []).map((c: any) => c.id);
-        if (clienteIds.length > 0) {
-          const { data: projsData } = await supabase
-            .from("projetos")
-            .select("id, cliente_id, proposta_id, created_at")
-            .in("cliente_id", clienteIds)
-            .order("created_at", { ascending: false });
-
-          // cliente_id -> projeto mais recente (id + tem_proposta)
-          const projetoByCliente = new Map<string, { id: string; tem_proposta: boolean }>();
-          for (const p of (projsData || []) as any[]) {
-            if (p.cliente_id && !projetoByCliente.has(p.cliente_id)) {
-              projetoByCliente.set(p.cliente_id, {
-                id: p.id,
-                tem_proposta: !!p.proposta_id,
-              });
-            }
-          }
-
-          // Indexar clientes por telefone (todas as variantes do próprio cliente) e email
-          const clienteByPhone = new Map<string, string>();
-          const clienteByEmail = new Map<string, string>();
-          for (const c of (clientesData || []) as any[]) {
-            if (c.telefone_normalized) {
-              const cNorm = normalizeBrazilianPhone(c.telefone_normalized);
-              const variants = cNorm?.variants || [c.telefone_normalized];
-              for (const v of variants) {
-                if (!clienteByPhone.has(v)) clienteByPhone.set(v, c.id);
-              }
-            }
-            if (c.email) clienteByEmail.set(String(c.email).toLowerCase(), c.id);
-          }
-
-          for (const l of leadsForLookup) {
-            if (!l.lead_id) continue;
-            let cid: string | null = null;
-            for (const v of l.phone_variants) {
-              const found = clienteByPhone.get(v);
-              if (found) {
-                cid = found;
-                break;
-              }
-            }
-            if (!cid && l.email) cid = clienteByEmail.get(l.email) || null;
-            const proj = cid ? projetoByCliente.get(cid) : null;
-            if (proj) {
-              projetoByLead.set(l.lead_id, proj.id);
-              projetoTemProposta.set(l.lead_id, proj.tem_proposta);
-            }
-          }
-        }
-      }
-
       // Transform to flat display format
       const displayItems: OrcamentoDisplayItem[] = (orcamentosRes.data || []).map((orc: any) => {
-        const leadVendedorNome = orc.orc_consultores?.nome || orc.leads?.consultores?.nome || orc.leads?.consultor || orc.consultor || null;
-        const leadVendedorId = orc.consultor_id || orc.leads?.consultor_id || null;
-
         return {
           id: orc.id,
           orc_code: orc.orc_code,
           lead_id: orc.lead_id,
-          lead_code: orc.leads?.lead_code || null,
-          nome: orc.leads?.nome || "",
-          telefone: orc.leads?.telefone || "",
-          email: orc.leads?.email || null,
+          lead_code: orc.lead_code,
+          nome: orc.lead_nome || "",
+          telefone: orc.lead_telefone || "",
+          email: orc.lead_email || null,
           cep: orc.cep,
           estado: orc.estado,
           cidade: orc.cidade,
@@ -201,9 +153,9 @@ export function useOrcamentosAdmin({
           consumo_previsto: orc.consumo_previsto,
           arquivos_urls: orc.arquivos_urls,
           observacoes: orc.observacoes,
-          vendedor: orc.consultor, // keep text for backward compat
-          vendedor_id: leadVendedorId,
-          vendedor_nome: leadVendedorNome,
+          vendedor: orc.consultor,
+          vendedor_id: orc.consultor_id,
+          vendedor_nome: orc.orc_consultores?.nome || orc.consultor || null,
           status_id: orc.status_id,
           visto: orc.visto,
           visto_admin: orc.visto_admin,
@@ -212,13 +164,14 @@ export function useOrcamentosAdmin({
           data_proxima_acao: orc.data_proxima_acao,
           created_at: orc.created_at,
           updated_at: orc.updated_at,
-          projeto_id: orc.lead_id ? projetoByLead.get(orc.lead_id) ?? null : null,
-          projeto_tem_proposta: orc.lead_id ? projetoTemProposta.get(orc.lead_id) ?? false : false,
+          projeto_id: orc.project_count > 0 ? "EXISTS" : null, // Marker for UI
+          projeto_tem_proposta: orc.proposal_count > 0,
         };
       });
 
       setOrcamentos(displayItems);
       setTotalCount(orcamentosRes.count || 0);
+      setStats(statsRes.data as ConversionStats);
       
       if (statusesRes.data) {
         setStatuses(statusesRes.data);
