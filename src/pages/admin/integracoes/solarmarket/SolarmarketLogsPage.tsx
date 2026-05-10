@@ -74,7 +74,7 @@ function CompactStatusBadge({ status }: { status?: string }) {
 }
 
 export default function SolarmarketLogsPage() {
-  const { promotionJobs, importJobs, recentErrors, historicalSummary, migrationStats, resumeMigration, exportLogs, auditData, runAudit } = useSolarmarketLogsPage();
+  const { promotionJobs, importJobs, recentErrors, historicalSummary, activeSummary, migrationStats, resumeMigration, exportLogs, auditData, runAudit } = useSolarmarketLogsPage();
   const [openJobId, setOpenJobId] = useState<string | null>(null);
   const [showHistorical, setShowHistorical] = useState(false);
   const [isConfirmingResume, setIsConfirmingResume] = useState(false);
@@ -90,8 +90,8 @@ export default function SolarmarketLogsPage() {
   const stats = migrationStats.data;
   const totals = {
     promotion: promotionJobs.data?.length ?? 0,
-    errors: currentLogs.filter((l) => l.severity === "error").length,
-    warnings: currentLogs.filter((l) => l.severity === "warning").length,
+    errors: activeSummary.data?.total_errors ?? 0,
+    warnings: activeSummary.data?.total_warnings ?? 0,
     historicalErrors: historicalSummary.data?.total_errors ?? 0,
   };
 
