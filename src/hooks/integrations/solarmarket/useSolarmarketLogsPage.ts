@@ -238,6 +238,40 @@ export function useSolarmarketLogsPage() {
     }
   });
 
+  const exportLogs = async (format: 'csv' | 'json') => {
+    const { data, error } = await (supabase as any)
+      .from("solarmarket_promotion_logs")
+      .select("*")
+      .eq("tenant_id", tenantId!)
+      .order("created_at", { ascending: false });
+    
+    if (error) {
+      toast.error("Erro ao exportar logs");
+      return;
+    }
+
+    if (format === 'json') {
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `sm-migration-logs-${new Date().toISOString()}.json`;
+      a.click();
+    } else {
+      const headers = Object.keys(data[0] || {}).join(',');
+      const rows = (data || []).map((r: any) => 
+        Object.values(r).map(v => typeof v === 'object' ? `"${JSON.stringify(v).replace(/"/g, '""')}"` : `"${v}"`).join(',')
+      ).join('\n');
+      const blob = new Blob([`${headers}\n${rows}`], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `sm-migration-logs-${new Date().toISOString()}.csv`;
+      a.click();
+    }
+    toast.success(`Exportação ${format.toUpperCase()} iniciada`);
+  };
+
   return { 
     promotionJobs, 
     importJobs, 
@@ -245,6 +279,7 @@ export function useSolarmarketLogsPage() {
     historicalSummary, 
     migrationStats, 
     resumeMigration,
+    exportLogs,
     tenantId 
   };
 }
