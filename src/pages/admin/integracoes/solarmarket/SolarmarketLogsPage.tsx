@@ -672,6 +672,103 @@ export default function SolarmarketLogsPage() {
               )}
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="settings" className="space-y-6 outline-none">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base flex items-center gap-2">
+                <Settings className="h-4 w-4 text-primary" /> Thresholds e Limites Operacionais
+              </CardTitle>
+              <CardDescription>Configure os gatilhos de alerta e comportamento do watchdog.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <label className="text-xs font-bold uppercase text-muted-foreground flex items-center gap-2">
+                    <Timer className="h-3 w-3" /> Timeout de Heartbeat (min)
+                  </label>
+                  <div className="flex items-center gap-4">
+                    <input 
+                      type="range" min="1" max="60" step="1" 
+                      className="flex-1 accent-primary" 
+                      value={thresholds.heartbeatTimeout} 
+                      onChange={(e) => setThresholds({...thresholds, heartbeatTimeout: parseInt(e.target.value)})}
+                    />
+                    <Badge variant="outline" className="w-12 justify-center">{thresholds.heartbeatTimeout}m</Badge>
+                  </div>
+                  <p className="text-[10px] text-muted-foreground">Tempo máximo sem atualização antes de marcar como DISCONNECTED.</p>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-xs font-bold uppercase text-muted-foreground flex items-center gap-2">
+                    <TrendingUp className="h-3 w-3" /> Throughput Mínimo (prop/min)
+                  </label>
+                  <div className="flex items-center gap-4">
+                    <input 
+                      type="range" min="0" max="50" step="1" 
+                      className="flex-1 accent-primary" 
+                      value={thresholds.minThroughput} 
+                      onChange={(e) => setThresholds({...thresholds, minThroughput: parseInt(e.target.value)})}
+                    />
+                    <Badge variant="outline" className="w-12 justify-center">{thresholds.minThroughput}</Badge>
+                  </div>
+                  <p className="text-[10px] text-muted-foreground">Threshold para alerta de degradação de performance.</p>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-xs font-bold uppercase text-muted-foreground flex items-center gap-2">
+                    <AlertCircle className="h-3 w-3" /> Retry Máximo por Registro
+                  </label>
+                  <div className="flex items-center gap-4">
+                    <input 
+                      type="range" min="1" max="10" step="1" 
+                      className="flex-1 accent-primary" 
+                      value={thresholds.maxRetries} 
+                      onChange={(e) => setThresholds({...thresholds, maxRetries: parseInt(e.target.value)})}
+                    />
+                    <Badge variant="outline" className="w-12 justify-center">{thresholds.maxRetries}x</Badge>
+                  </div>
+                  <p className="text-[10px] text-muted-foreground">Quantidade de tentativas antes de marcar como CRITICAL ERROR.</p>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-xs font-bold uppercase text-muted-foreground flex items-center gap-2">
+                    <Cpu className="h-3 w-3" /> Janela Operacional Padrão
+                  </label>
+                  <Select value={thresholds.operationalWindow} onValueChange={(v) => setThresholds({...thresholds, operationalWindow: v as ErrorWindow})}>
+                    <SelectTrigger className="h-9 w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="5m">5 minutos</SelectItem>
+                      <SelectItem value="15m">15 minutos</SelectItem>
+                      <SelectItem value="1h">1 hora</SelectItem>
+                      <SelectItem value="since_fix">Desde último deploy</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-[10px] text-muted-foreground">Define o escopo inicial dos alertas ao carregar o dashboard.</p>
+                </div>
+              </div>
+
+              <div className="pt-4 border-t flex justify-end gap-3">
+                <Button variant="outline" size="sm" onClick={() => setThresholds({
+                  heartbeatTimeout: 10,
+                  stalledThreshold: 15,
+                  minThroughput: 5,
+                  maxRetries: 3,
+                  operationalWindow: 'since_fix'
+                })}>Resetar Defaults</Button>
+                <Button size="sm" onClick={() => toast.success("Configurações persistidas para este administrador")}>Salvar Alterações</Button>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+                  </TableBody>
+                </Table>
+              )}
+            </CardContent>
+          </Card>
 
           <Card>
             <CardHeader>
