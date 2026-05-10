@@ -259,16 +259,16 @@ export default function SolarmarketLogsPage() {
         <TabsContent value="dashboard" className="space-y-6 outline-none">
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
             <StatCard icon={Database} color="info" label="Staging Total" value={stats?.total || 0} />
-            <StatCard icon={CheckCircle2} color="success" label="Promovidos" value={stats?.promoted || 0} />
+            <StatCard icon={CheckCircle2} color="success" label="Success Rate" value={`${successRate}%`} subtitle="operacional" />
             <StatCard icon={Clock} color="muted" label="Restantes" value={stats?.remaining || 0} />
             <StatCard 
               icon={AlertCircle} 
-              color={totals.errors > 0 ? "destructive" : "success"} 
+              color={totals.errors > thresholds.maxRetries ? "destructive" : "success"} 
               label={`Erros (${errorWindow})`} 
               value={totals.errors} 
               subtitle={`${totals.historicalErrors.toLocaleString('pt-BR')} históricos`}
             />
-            <StatCard icon={Activity} color={(stats?.throughput || 0) > 10 ? "success" : "warning"} label="Throughput" value={stats?.throughput?.toFixed(1) || 0} subtitle="prop / min" />
+            <StatCard icon={Activity} color={(stats?.throughput || 0) > thresholds.minThroughput ? "success" : "warning"} label="Throughput" value={stats?.throughput?.toFixed(1) || 0} subtitle="prop / min" />
             <StatCard icon={Timer} color="info" label="ETA" value={stats?.etaMinutes ? `${stats.etaMinutes}m` : "—"} />
           </div>
 
