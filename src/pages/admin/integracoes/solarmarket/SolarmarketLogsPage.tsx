@@ -122,9 +122,13 @@ export default function SolarmarketLogsPage() {
           <TabsTrigger value="logs" className="gap-2 text-xs">
             <ScrollText className="h-3.5 w-3.5" /> Logs e Jobs
           </TabsTrigger>
+          <TabsTrigger value="audit" className="gap-2 text-xs">
+            <ShieldCheck className="h-3.5 w-3.5" /> Auditoria
+          </TabsTrigger>
           <TabsTrigger value="history" className="gap-2 text-xs">
             <History className="h-3.5 w-3.5" /> Histórico
           </TabsTrigger>
+
         </TabsList>
 
         <TabsContent value="dashboard" className="space-y-6 outline-none">
