@@ -51,9 +51,10 @@ import { useChunkedMigration } from "@/hooks/useChunkedMigration";
 import { useResetMigratedData } from "@/hooks/useResetMigratedData";
 import { useTenantId } from "@/hooks/useTenantId";
 import { toast } from "@/hooks/use-toast";
-import { PromotionLogsDialog, type LogsFilter } from "@/components/admin/solarmarket/PromotionLogsDialog";
+import { PromotionLogsDialog, type LogsFilter, type LogsScope } from "@/components/admin/solarmarket/PromotionLogsDialog";
 import { CustomFieldsMappingSummary } from "@/components/admin/solarmarket/migracao/CustomFieldsMappingSummary";
 import { MigrationFinalReport } from "@/components/admin/solarmarket/migracao/MigrationFinalReport";
+import { useActiveJobCounters } from "@/hooks/integrations/solarmarket/useActiveJobCounters";
 
 function formatRelativeTimestamp(value: string | null) {
   if (!value) return "sem atividade registrada";
