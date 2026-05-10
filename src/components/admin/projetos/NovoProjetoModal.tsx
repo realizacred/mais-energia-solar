@@ -522,7 +522,7 @@ export function NovoProjetoModal({
                   {similares.length === 0 ? (
                     <p className="text-xs text-muted-foreground py-1">Nenhum cliente similar</p>
                   ) : (
-                    <div className="space-y-1.5 max-h-[200px] overflow-y-auto pr-1">
+                    <div className="space-y-1.5 max-h-[200px] overflow-y-auto scrollbar-premium pr-1">
                       {similares.map((c) => (
                         <Button
                           key={c.id}
