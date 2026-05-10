@@ -209,12 +209,12 @@ export default function SolarmarketLogsPage() {
             <StatCard 
               icon={AlertCircle} 
               color={totals.errors > 0 ? "destructive" : "success"} 
-              label="Erros Atuais" 
+              label={`Erros (${errorWindow})`} 
               value={totals.errors} 
-              subtitle={`${totals.historicalErrors.toLocaleString('pt-BR')} históricos arquivados`}
+              subtitle={`${totals.historicalErrors.toLocaleString('pt-BR')} históricos`}
             />
-            <StatCard icon={AlertTriangle} color={totals.warnings > 0 ? "warning" : "success"} label="Avisos Atuais" value={totals.warnings} />
-            <StatCard icon={ShieldCheck} color="info" label="Audit Score" value="A+" />
+            <StatCard icon={Activity} color={(stats?.throughput || 0) > 10 ? "success" : "warning"} label="Throughput" value={stats?.throughput?.toFixed(1) || 0} subtitle="prop / min" />
+            <StatCard icon={Timer} color="info" label="ETA" value={stats?.etaMinutes ? `${stats.etaMinutes}m` : "—"} />
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
