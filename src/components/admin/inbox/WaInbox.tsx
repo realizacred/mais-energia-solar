@@ -32,6 +32,10 @@ import { WaInboxHeader } from "./WaInboxHeader";
 import { WaInboxNotificationBanner } from "@/components/notifications/WaInboxNotificationBanner";
 import { Button } from "@/components/ui/button";
 import type { WaConversation } from "@/hooks/useWaInbox";
+import { FollowUpIAView } from "./FollowUpIAView";
+import { useFollowUpQueue } from "@/hooks/useFollowUpQueue";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Sparkles } from "lucide-react";
 
 interface LeadAutoOpenData {
   phone: string;
