@@ -195,6 +195,7 @@ export default function MigracaoStep3Migrar() {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [logsOpen, setLogsOpen] = useState(false);
   const [logsFilter, setLogsFilter] = useState<LogsFilter>("all");
+  const [logsScope, setLogsScope] = useState<LogsScope>("active");
 
   const handleStart = async () => {
     try {
