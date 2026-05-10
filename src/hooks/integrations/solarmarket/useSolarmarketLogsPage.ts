@@ -221,7 +221,7 @@ export function useSolarmarketLogsPage() {
     queryFn: async () => {
       const { data, error } = await supabase.rpc('audit_sm_migration', { p_tenant_id: tenantId });
       if (error) throw error;
-      return data as SmAuditData;
+      return (data as unknown) as SmAuditData;
     },
     staleTime: 60 * 1000,
   });
@@ -230,7 +230,8 @@ export function useSolarmarketLogsPage() {
     mutationFn: async () => {
       const { data, error } = await supabase.rpc('audit_sm_migration', { p_tenant_id: tenantId });
       if (error) throw error;
-      return data as SmAuditData;
+      return (data as unknown) as SmAuditData;
+
     },
     onSuccess: () => {
       toast.success("Auditoria concluída com sucesso");
