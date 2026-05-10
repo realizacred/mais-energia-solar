@@ -172,6 +172,36 @@ export function useSolarmarketLogsPage() {
     },
   });
 
+  const activeSummary = useQuery<{
+    total_errors: number;
+    total_warnings: number;
+  }>({
+    queryKey: ["sm-logs-page", "active-summary", tenantId, LAST_FIX_DEPLOY_AT],
+    enabled: !!tenantId,
+    staleTime: 30 * 1000,
+    refetchInterval: 30 * 1000,
+    queryFn: async () => {
+      const [{ count: errors }, { count: warnings }] = await Promise.all([
+        (supabase as any)
+          .from("solarmarket_promotion_logs")
+          .select("*", { count: "exact", head: true })
+          .eq("tenant_id", tenantId!)
+          .eq("severity", "error")
+          .gte("created_at", LAST_FIX_DEPLOY_AT),
+        (supabase as any)
+          .from("solarmarket_promotion_logs")
+          .select("*", { count: "exact", head: true })
+          .eq("tenant_id", tenantId!)
+          .eq("severity", "warning")
+          .gte("created_at", LAST_FIX_DEPLOY_AT),
+      ]);
+      return {
+        total_errors: errors || 0,
+        total_warnings: warnings || 0,
+      };
+    },
+  });
+
   const migrationStats = useQuery({
     queryKey: ["sm-migration-stats", tenantId],
     enabled: !!tenantId,
