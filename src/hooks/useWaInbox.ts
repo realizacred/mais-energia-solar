@@ -7,35 +7,7 @@ import { playIncomingMessageAlert } from "@/services/incomingMessageAlert";
 
 // ── Types ─────────────────────────────────────────────
 
-export interface WaConversation {
-  id: string;
-  tenant_id: string;
-  instance_id: string;
-  remote_jid: string;
-  cliente_nome: string | null;
-  cliente_telefone: string;
-  status: "open" | "pending" | "resolved";
-  assigned_to: string | null;
-  lead_id: string | null;
-  cliente_id: string | null;
-  last_message_at: string | null;
-  last_message_preview: string | null;
-  last_message_direction: "in" | "out" | null;
-  unread_count: number;
-  canal: string;
-  profile_picture_url: string | null;
-  is_group: boolean;
-  created_at: string;
-  updated_at: string;
-  // joined
-  tags?: WaConversationTag[];
-  instance_name?: string;
-  instance_profile_name?: string | null;
-  vendedor_nome?: string;
-  lead_nome?: string;
-  lead_telefone?: string;
-  cliente_nome_real?: string | null;
-}
+export type { WaConversation, WaMessage, WaTag, WaConversationTag } from "@/types";
 
 export interface WaMessage {
   id: string;
@@ -114,9 +86,12 @@ export function useWaConversations(filters?: {
           status, assigned_to, lead_id, cliente_id, last_message_at, last_message_preview,
           last_message_direction,
           unread_count, canal, profile_picture_url, is_group, created_at, updated_at,
+          projeto_id, proposta_id, ai_context, ai_context_updated_at,
           wa_instances(nome, profile_name, consultores(nome, user_id)),
           leads(nome, telefone),
-          clientes(nome)
+          clientes(nome),
+          projeto:projetos(id, nome, valor_total, etapa_id),
+          proposta:propostas_nativas(id, titulo)
         `)
         .order("last_message_at", { ascending: false });
 
