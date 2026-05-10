@@ -106,6 +106,86 @@ export default function SolarmarketLogsPage() {
         />
       </div>
 
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <Card className="lg:col-span-2">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base flex items-center gap-2">
+              <Zap className="h-4 w-4 text-primary" /> Painel de Migração
+              {migrationStats.data?.remaining === 0 && migrationStats.data?.total > 0 && (
+                <Badge variant="outline" className="bg-success/10 text-success border-success/20 ml-2">100% Concluído</Badge>
+              )}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="space-y-2">
+              <div className="flex justify-between text-sm mb-1">
+                <span className="text-muted-foreground">Progresso Geral (Propostas)</span>
+                <span className="font-medium">{migrationStats.data?.promoted} de {migrationStats.data?.total}</span>
+              </div>
+              <Progress 
+                value={migrationStats.data?.total ? (migrationStats.data.promoted * 100 / migrationStats.data.total) : 0} 
+                className="h-2"
+              />
+              <div className="flex justify-between text-[10px] text-muted-foreground uppercase tracking-wider font-semibold pt-1">
+                <div className="flex items-center gap-1"><div className="w-2.5 h-2.5 rounded-full bg-primary" /> Promovidas: {migrationStats.data?.promoted}</div>
+                <div className="flex items-center gap-1"><div className="w-2.5 h-2.5 rounded-full bg-muted" /> Restantes: {migrationStats.data?.remaining}</div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-2">
+              <div className="space-y-1">
+                <p className="text-xs text-muted-foreground">Clientes</p>
+                <p className="text-lg font-bold">{migrationStats.data?.clients}</p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-xs text-muted-foreground">Projetos</p>
+                <p className="text-lg font-bold">{migrationStats.data?.projects}</p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-xs text-muted-foreground">Erros Atuais</p>
+                <p className={cn("text-lg font-bold", totals.errors > 0 ? "text-destructive" : "text-foreground")}>{totals.errors}</p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-xs text-muted-foreground">Avisos Atuais</p>
+                <p className={cn("text-lg font-bold", totals.warnings > 0 ? "text-warning" : "text-foreground")}>{totals.warnings}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base flex items-center gap-2">
+              <Clock className="h-4 w-4 text-primary" /> Status do Job
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {promotionJobs.data?.[0] ? (
+              <>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">Estado Atual</span>
+                  <StatusBadge status={promotionJobs.data[0].status} size="sm" />
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">Último Heartbeat</span>
+                  <span className="text-sm font-medium">{fmt(promotionJobs.data[0].updated_at)}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">Watchdog</span>
+                  <Badge variant="outline" className="text-[10px] font-mono border-success/30 text-success">ATIVO</Badge>
+                </div>
+                <div className="pt-2 border-t mt-2">
+                  <p className="text-xs text-muted-foreground mb-1">Throughput estimado: ~5 prop/min</p>
+                  <p className="text-xs text-muted-foreground">ETA: {migrationStats.data?.remaining && migrationStats.data.remaining > 0 ? `${Math.ceil(migrationStats.data.remaining / 5)} min` : "Finalizado"}</p>
+                </div>
+              </>
+            ) : (
+              <p className="text-sm text-muted-foreground">Nenhum job em execução.</p>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
       {historicalSummary.data && historicalSummary.data.by_cause.length > 0 ? (
         <Card>
           <CardHeader>
