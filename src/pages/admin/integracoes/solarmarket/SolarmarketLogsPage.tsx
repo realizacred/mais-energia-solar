@@ -238,7 +238,7 @@ export default function SolarmarketLogsPage() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="bg-background border h-10 p-1">
+        <TabsList className="bg-background border h-10 p-1 no-print">
           <TabsTrigger value="dashboard" className="gap-2 text-xs">
             <LayoutDashboard className="h-3.5 w-3.5" /> Dashboard
           </TabsTrigger>
@@ -251,7 +251,9 @@ export default function SolarmarketLogsPage() {
           <TabsTrigger value="history" className="gap-2 text-xs">
             <History className="h-3.5 w-3.5" /> Histórico
           </TabsTrigger>
-
+          <TabsTrigger value="settings" className="gap-2 text-xs">
+            <Settings className="h-3.5 w-3.5" /> Configurações
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="dashboard" className="space-y-6 outline-none">
