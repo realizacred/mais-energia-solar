@@ -606,23 +606,55 @@ export default function SolarmarketLogsPage() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-base">
                   <Archive className="h-4 w-4 text-muted-foreground" />
-                  Erros Históricos Agrupados (Pré-Fix)
+                  Audit: Histórico Pré-Fix
                 </CardTitle>
                 <CardDescription>
-                  Problemas resolvidos no deploy de {fmt(LAST_FIX_DEPLOY_AT)}.
+                  Problemas históricos registrados antes do deploy de correção em {fmt(LAST_FIX_DEPLOY_AT)}.
                 </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-2">
-                {historicalSummary.data.by_cause.map((c) => (
-                  <div key={c.cause} className="flex items-center justify-between text-sm border-l-2 border-muted pl-3 py-1">
-                    <span className="text-foreground">{c.cause}</span>
-                    <Badge variant="outline" className="text-muted-foreground font-mono">{c.count.toLocaleString("pt-BR")}</Badge>
-                  </div>
-                ))}
+              <CardContent className="p-0">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Causa Raiz</TableHead>
+                      <TableHead>Ocorrências</TableHead>
+                      <TableHead>Primeira</TableHead>
+                      <TableHead>Última</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Deploy</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {historicalSummary.data.by_cause.map((c) => (
+                      <TableRow key={c.cause} className="group">
+                        <TableCell className="text-xs font-medium max-w-[300px] truncate" title={c.cause}>
+                          {c.cause}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className="font-mono text-[10px]">{c.count.toLocaleString("pt-BR")}</Badge>
+                        </TableCell>
+                        <TableCell className="text-[10px] text-muted-foreground">{fmt(c.first_seen)}</TableCell>
+                        <TableCell className="text-[10px] text-muted-foreground">{fmt(c.last_seen)}</TableCell>
+                        <TableCell>
+                          <Badge 
+                            variant="outline" 
+                            className={cn(
+                              "text-[8px] font-bold uppercase",
+                              c.status === 'resolved' ? "border-success/30 text-success bg-success/5" : "border-warning/30 text-warning bg-warning/5"
+                            )}
+                          >
+                            {c.status}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-[10px] font-mono text-muted-foreground">{c.deploy}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
               </CardContent>
             </Card>
           ) : (
-            <EmptyState icon={Archive} title="Nenhum histórico" description="Não há logs antigos registrados." />
+            <EmptyState icon={Archive} title="Nenhum histórico" description="Não há logs antigos registrados para auditoria." />
           )}
         </TabsContent>
       </Tabs>
