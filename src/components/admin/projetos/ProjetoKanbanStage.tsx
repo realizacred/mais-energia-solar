@@ -493,7 +493,7 @@ export function ProjetoKanbanStage({ stages, deals, onMoveToStage, onViewProjeto
             />
           ))}
         </div>
-        <ScrollBar orientation="horizontal" />
+        <ScrollBar orientation="horizontal" className="h-1.5" />
       </ScrollArea>
 
       <AutomationDialog
