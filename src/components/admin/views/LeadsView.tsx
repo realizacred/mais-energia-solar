@@ -77,7 +77,7 @@ export function LeadsView() {
     if (hookStats?.conversion) {
       return {
         total: totalCount,
-        novosEsteMes: 0, // Need backend support for this specific KPI to be accurate
+        novosEsteMes: hookStats.conversion.novos_mes,
         emNegociacao: hookStats.conversion.com_proposta - hookStats.conversion.convertidos,
         convertidos: hookStats.conversion.convertidos,
       };
