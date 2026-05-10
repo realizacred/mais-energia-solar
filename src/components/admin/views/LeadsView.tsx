@@ -71,35 +71,32 @@ export function LeadsView() {
     setPage(0);
   }, [searchTerm, filterVisto, filterVendedor, filterEstado, filterStatus, filterConversao, setPage]);
 
-  // KPI calculations from local data
+  // KPI calculations — Prefer backend stats if available for accurate tenant-wide numbers
   const kpis = useMemo(() => {
-    const now = new Date();
-    const currentMonth = now.getMonth();
-    const currentYear = now.getFullYear();
+    // If we have conversion stats from the backend, use them for global numbers
+    if (hookStats?.conversion) {
+      return {
+        total: totalCount,
+        novosEsteMes: 0, // Need backend support for this specific KPI to be accurate
+        emNegociacao: hookStats.conversion.com_proposta - hookStats.conversion.convertidos,
+        convertidos: hookStats.conversion.convertidos,
+      };
+    }
 
-    const novosEsteMes = orcamentos.filter((orc) => {
-      const d = new Date(orc.created_at);
-      return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
-    }).length;
-
+    // Fallback to local calculation (less accurate with pagination)
     const convertidoStatus = statuses.find(s => s.nome === "Convertido");
     const aguardandoStatus = statuses.find(s => s.nome === "Aguardando Validação");
-    const convertidos = orcamentos.filter(
+    const convertidosCount = orcamentos.filter(
       (orc) => (convertidoStatus && orc.status_id === convertidoStatus.id) || (aguardandoStatus && orc.status_id === aguardandoStatus.id)
     ).length;
 
-    const emNegociacaoStatus = statuses.find(s => s.nome === "Em Negociação" || s.nome === "Em negociação");
-    const emNegociacao = emNegociacaoStatus
-      ? orcamentos.filter((orc) => orc.status_id === emNegociacaoStatus.id).length
-      : 0;
-
     return {
       total: totalCount,
-      novosEsteMes,
-      emNegociacao,
-      convertidos,
+      novosEsteMes: 0,
+      emNegociacao: 0,
+      convertidos: convertidosCount,
     };
-  }, [orcamentos, statuses, totalCount]);
+  }, [hookStats, orcamentos, statuses, totalCount]);
 
   const handleClearFilters = () => {
     setSearchTerm("");
