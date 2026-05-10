@@ -84,6 +84,30 @@ Deno.serve(async (req) => {
 
     if (!conv) return error("Conversation not found", 404);
 
+    // G4: AI Context Gating
+    const ctx = conv.ai_context || 'ai_active';
+    if (!['ai_active', 'waiting_customer'].includes(ctx)) {
+      console.log(`[ai-intelligence] GATE: blocked by context ${ctx} for conv ${conversation_id}`);
+      
+      // Log event for audit
+      await sb.from("wa_context_events").insert({
+        tenant_id: tenantId,
+        conversation_id: conversation_id,
+        evento: `geracao_ia_bloqueada_contexto_${ctx}`,
+        origem: 'sistema',
+        context_anterior: ctx,
+        context_novo: ctx,
+        criado_em: new Date().toISOString()
+      });
+
+      return json({ 
+        message: null, 
+        deve_fazer_followup: false, 
+        gating_blocked: true, 
+        reason: `IA desativada para este contexto: ${ctx}` 
+      });
+    }
+
     // Load conversation history
     const { data: msgs = [] } = await sb
       .from("wa_messages")
