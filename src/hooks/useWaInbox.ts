@@ -43,7 +43,7 @@ export function useWaConversations(filters?: {
           wa_instances(nome, profile_name, consultores(nome, user_id)),
           leads(nome, telefone),
           clientes(nome),
-          projeto:projetos(id, nome, valor_total, etapa_id),
+          projeto:projetos(id, codigo, valor_total, etapa_id),
           proposta:propostas_nativas(id, titulo)
         `)
         .order("last_message_at", { ascending: false });
