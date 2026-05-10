@@ -28463,6 +28463,86 @@ export type Database = {
         }
         Relationships: []
       }
+      vw_orcamentos_comercial: {
+        Row: {
+          area: string | null
+          arquivos_urls: string[] | null
+          bairro: string | null
+          cep: string | null
+          cidade: string | null
+          complemento: string | null
+          concessionaria_id: string | null
+          consultor: string | null
+          consultor_id: string | null
+          consumo_previsto: number | null
+          created_at: string | null
+          data_proxima_acao: string | null
+          estado: string | null
+          id: string | null
+          lead_code: string | null
+          lead_email: string | null
+          lead_id: string | null
+          lead_nome: string | null
+          lead_status_nome: string | null
+          lead_telefone: string | null
+          lead_telefone_normalized: string | null
+          media_consumo: number | null
+          numero: string | null
+          observacoes: string | null
+          orc_code: string | null
+          project_count: number | null
+          proposal_count: number | null
+          proxima_acao: string | null
+          rede_atendimento: string | null
+          regime_compensacao: string | null
+          rua: string | null
+          status_id: string | null
+          tenant_id: string | null
+          tipo_ligacao: string | null
+          tipo_telhado: string | null
+          ultimo_contato: string | null
+          updated_at: string | null
+          visto: boolean | null
+          visto_admin: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "orcamentos_concessionaria_id_fkey"
+            columns: ["concessionaria_id"]
+            isOneToOne: false
+            referencedRelation: "concessionarias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orcamentos_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orcamentos_status_id_fkey"
+            columns: ["status_id"]
+            isOneToOne: false
+            referencedRelation: "lead_status"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orcamentos_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orcamentos_vendedor_id_fkey"
+            columns: ["consultor_id"]
+            isOneToOne: false
+            referencedRelation: "consultores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       vw_wa_integrity_audit: {
         Row: {
           erro: string | null
@@ -29142,6 +29222,16 @@ export type Database = {
       }
       get_or_create_verificar_dados_stage: {
         Args: { _tenant_id: string }
+        Returns: Json
+      }
+      get_orcamentos_comercial_stats: {
+        Args: {
+          p_estado?: string
+          p_search?: string
+          p_status_id?: string
+          p_tenant_id: string
+          p_vendedor_id?: string
+        }
         Returns: Json
       }
       get_payback_config: {
