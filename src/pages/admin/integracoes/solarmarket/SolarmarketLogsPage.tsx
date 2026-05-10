@@ -612,7 +612,8 @@ export default function SolarmarketLogsPage() {
               </div>
             )}
           </Card>
-        </TabsContent>
+        </div>
+      </TabsContent>
         <TabsContent value="audit" className="space-y-6 outline-none">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <Card>
