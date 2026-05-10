@@ -17,6 +17,7 @@ import { PageHeader, LoadingState } from "@/components/ui-kit";
 import { supabase } from "@/integrations/supabase/client";
 import { getCurrentTenantId } from "@/lib/getCurrentTenantId";
 import { useEnsureDefaultProjectPipeline } from "@/hooks/useDefaultPipeline";
+import { useAuth } from "@/hooks/useAuth";
 import { resolveDefaultCommercialPipeline } from "@/services/pipelines/resolveDefaultCommercialPipeline";
 
 import { ProjetoFilters } from "./ProjetoFilters";
