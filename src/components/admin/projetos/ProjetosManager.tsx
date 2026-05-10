@@ -17,6 +17,7 @@ import { PageHeader, LoadingState } from "@/components/ui-kit";
 import { supabase } from "@/integrations/supabase/client";
 import { getCurrentTenantId } from "@/lib/getCurrentTenantId";
 import { useEnsureDefaultProjectPipeline } from "@/hooks/useDefaultPipeline";
+import { useAuth } from "@/hooks/useAuth";
 import { resolveDefaultCommercialPipeline } from "@/services/pipelines/resolveDefaultCommercialPipeline";
 
 import { ProjetoFilters } from "./ProjetoFilters";
@@ -113,6 +114,7 @@ function consultorColumnToOwner(c: ProjetoConsultorColumn, etapaMap: Map<string,
 
 export function ProjetosManager() {
   const { toast } = useToast();
+  const { user } = useAuth();
   const {
     funis, etapas, etiquetas, projetos, consultores, loading,
     selectedFunilId, setSelectedFunilId,
@@ -193,9 +195,12 @@ export function ProjetosManager() {
     [consultorColumns, etapaMap, existingEtapaIds, filters.status, filters.tipoProjetoSolar, resolveProjetoStatus]
   );
 
-  // ── Persistent filter storage ──
-  const STORAGE_KEY = "projetos_kanban_prefs";
-  
+  // ── Persistent filter storage (per user) ──
+  const STORAGE_KEY = useMemo(
+    () => `projetos_kanban_prefs:${user?.id ?? "anon"}`,
+    [user?.id]
+  );
+
   const getStoredPrefs = useCallback(() => {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
@@ -206,18 +211,20 @@ export function ProjetosManager() {
         consultorId?: string;
         status?: string;
         tipoProjetoSolar?: string;
+        etiquetaIds?: string[];
       };
     } catch { return null; }
-  }, []);
+  }, [STORAGE_KEY]);
 
   const savePrefs = useCallback((prefs: Record<string, any>) => {
     try {
-      const current = getStoredPrefs() || {};
+      const raw = localStorage.getItem(STORAGE_KEY);
+      const current = raw ? JSON.parse(raw) : {};
       localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...current, ...prefs }));
     } catch { /* ignore */ }
-  }, [getStoredPrefs]);
+  }, [STORAGE_KEY]);
 
-  const storedPrefs = useMemo(() => getStoredPrefs(), []);
+  const storedPrefs = useMemo(() => getStoredPrefs(), [getStoredPrefs]);
   
   const [viewMode, setViewModeRaw] = useState<"kanban-etapa" | "kanban-consultor" | "lista">(
     (storedPrefs?.viewMode as any) || "kanban-consultor"
@@ -249,6 +256,11 @@ export function ProjetosManager() {
     }
     if (storedPrefs.tipoProjetoSolar && storedPrefs.tipoProjetoSolar !== "todos" && filters.tipoProjetoSolar !== storedPrefs.tipoProjetoSolar) {
       updates.tipoProjetoSolar = storedPrefs.tipoProjetoSolar;
+    }
+    if (Array.isArray(storedPrefs.etiquetaIds) && storedPrefs.etiquetaIds.length > 0) {
+      const current = filters.etiquetaIds || [];
+      const same = current.length === storedPrefs.etiquetaIds.length && current.every((id) => storedPrefs.etiquetaIds!.includes(id));
+      if (!same) updates.etiquetaIds = storedPrefs.etiquetaIds;
     }
     // Só aplica funilId se: (a) view não for por consultor; (b) funil ainda existe no tenant.
     const funilExiste = !!funis.find((f) => f.id === storedPrefs.funilId);
@@ -692,7 +704,7 @@ export function ProjetosManager() {
                   onFilterTipoProjetoSolarChange={(v) => handleFilterChange("tipoProjetoSolar", v)}
                   etiquetas={dynamicEtiquetas.map(e => ({ id: e.id, nome: e.nome, cor: e.cor, tenant_id: "" }))}
                   filterEtiquetas={filters.etiquetaIds || []}
-                  onFilterEtiquetasChange={(ids) => applyFilters({ etiquetaIds: ids })}
+                  onFilterEtiquetasChange={(ids) => { applyFilters({ etiquetaIds: ids }); savePrefs({ etiquetaIds: ids }); }}
                   viewMode={viewMode}
                   onViewModeChange={setViewMode}
                   onClearFilters={clearFilters}
