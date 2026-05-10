@@ -24,7 +24,8 @@ import {
   ScrollText, AlertTriangle, AlertCircle, CheckCircle2, ListChecks, 
   Cloud, ExternalLink, Archive, PlayCircle, Clock, Zap, Download, 
   FileText, ShieldCheck, Database, LayoutDashboard, History, 
-  Activity, ArrowUpRight, Timer, BarChart3, AlertOctagon, Info
+  Activity, ArrowUpRight, Timer, BarChart3, AlertOctagon, Info,
+  Loader2, Settings, Target, TrendingUp, Cpu
 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
