@@ -528,12 +528,41 @@ export default function SolarmarketLogsPage() {
             </Card>
           </div>
           
-          <Card>
-            <CardHeader className="pb-3 border-b bg-muted/20">
-              <CardTitle className="flex items-center gap-2 text-sm">
-                <AlertOctagon className="h-4 w-4 text-primary" /> Alertas Operacionais
-              </CardTitle>
-            </CardHeader>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <Card className="lg:col-span-1">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm flex items-center gap-2">
+                  <History className="h-4 w-4 text-primary" /> Atividade Recente
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-0 max-h-[400px] overflow-y-auto">
+                {recentErrors.data && recentErrors.data.length > 0 ? (
+                  <div className="divide-y divide-border/40">
+                    {recentErrors.data.slice(0, 20).map(l => (
+                      <div key={l.id} className="p-3 hover:bg-muted/30 transition-colors flex items-start gap-3">
+                        {l.severity === 'error' ? <AlertCircle className="h-3.5 w-3.5 text-destructive mt-0.5" /> : <AlertTriangle className="h-3.5 w-3.5 text-warning mt-0.5" />}
+                        <div className="flex-1 space-y-1 min-w-0">
+                          <p className="text-[10px] font-medium leading-tight truncate">{l.message}</p>
+                          <div className="flex items-center justify-between">
+                            <span className="text-[8px] text-muted-foreground font-mono">{l.step || 'promote'}</span>
+                            <span className="text-[8px] text-muted-foreground">{fmt(l.created_at)}</span>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <EmptyState icon={CheckCircle2} title="Sem ruído" description="Nenhuma falha recente registrada." className="py-12" />
+                )}
+              </CardContent>
+            </Card>
+
+            <Card className="lg:col-span-2">
+              <CardHeader className="pb-3 border-b bg-muted/20">
+                <CardTitle className="flex items-center gap-2 text-sm">
+                  <AlertOctagon className="h-4 w-4 text-primary" /> Alertas Operacionais Ativos
+                </CardTitle>
+              </CardHeader>
             <CardContent className="p-0">
               {!alerts.length ? (
                 <EmptyState icon={CheckCircle2} title="Sistema Nominal" description="Nenhum alerta crítico ativo." className="py-8" />
