@@ -672,6 +672,38 @@ export default function SolarmarketLogsPage() {
               )}
             </CardContent>
           </Card>
+          
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base flex items-center gap-2">
+                <ListChecks className="h-4 w-4 text-primary" /> Histórico de Importação (SolarMarket Raw)
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-0">
+              {importJobs.isLoading ? <TableSkeleton /> : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Criado</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Etapa</TableHead>
+                      <TableHead>Progresso</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {importJobs.data?.map(j => (
+                      <TableRow key={j.id}>
+                        <TableCell className="text-xs text-muted-foreground">{fmt(j.created_at)}</TableCell>
+                        <TableCell><CompactStatusBadge status={j.status} /></TableCell>
+                        <TableCell className="text-xs font-mono">{j.current_step}</TableCell>
+                        <TableCell className="text-xs">{j.progress_pct}%</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </CardContent>
+          </Card>
         </TabsContent>
 
         <TabsContent value="settings" className="space-y-6 outline-none">
@@ -736,7 +768,7 @@ export default function SolarmarketLogsPage() {
                   <label className="text-xs font-bold uppercase text-muted-foreground flex items-center gap-2">
                     <Cpu className="h-3 w-3" /> Janela Operacional Padrão
                   </label>
-                  <Select value={thresholds.operationalWindow} onValueChange={(v) => setThresholds({...thresholds, operationalWindow: v as ErrorWindow})}>
+                  <Select value={errorWindow} onValueChange={(v) => setErrorWindow(v as ErrorWindow)}>
                     <SelectTrigger className="h-9 w-full">
                       <SelectValue />
                     </SelectTrigger>
@@ -764,6 +796,74 @@ export default function SolarmarketLogsPage() {
             </CardContent>
           </Card>
         </TabsContent>
+
+        <TabsContent value="history" className="space-y-6 outline-none">
+          {historicalSummary.data && historicalSummary.data.by_cause.length > 0 ? (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <Archive className="h-4 w-4 text-muted-foreground" />
+                  Audit: Histórico Pré-Fix
+                </CardTitle>
+                <CardDescription>
+                  Problemas históricos registrados antes do deploy de correção em {fmt(LAST_FIX_DEPLOY_AT)}.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="p-0">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Causa Raiz</TableHead>
+                      <TableHead>Ocorrências</TableHead>
+                      <TableHead>Primeira</TableHead>
+                      <TableHead>Última</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Deploy</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {historicalSummary.data.by_cause.map((c) => (
+                      <TableRow key={c.cause} className="group">
+                        <TableCell className="text-xs font-medium max-w-[300px] truncate" title={c.cause}>
+                          {c.cause}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className="font-mono text-[10px]">{c.count.toLocaleString("pt-BR")}</Badge>
+                        </TableCell>
+                        <TableCell className="text-[10px] text-muted-foreground">{fmt(c.first_seen)}</TableCell>
+                        <TableCell className="text-[10px] text-muted-foreground">{fmt(c.last_seen)}</TableCell>
+                        <TableCell>
+                          <Badge 
+                            variant="outline" 
+                            className={cn(
+                              "text-[8px] font-bold uppercase",
+                              c.status === 'resolved' ? "border-success/30 text-success bg-success/5" : "border-warning/30 text-warning bg-warning/5"
+                            )}
+                          >
+                            {c.status}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-[10px] font-mono text-muted-foreground">{c.deploy}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          ) : (
+            <EmptyState icon={Archive} title="Nenhum histórico" description="Não há logs antigos registrados para auditoria." />
+          )}
+        </TabsContent>
+      </Tabs>
+
+      <PromotionLogsDialog
+        open={!!openJobId}
+        onOpenChange={(open) => !open && setOpenJobId(null)}
+        jobId={openJobId}
+      />
+    </div>
+  );
+}
                   </TableBody>
                 </Table>
               )}
