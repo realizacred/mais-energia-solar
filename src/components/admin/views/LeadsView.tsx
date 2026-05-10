@@ -281,9 +281,12 @@ export function LeadsView() {
             onFilterEstadoChange={setFilterEstado}
             filterStatus={filterStatus}
             onFilterStatusChange={setFilterStatus}
+            filterConversao={filterConversao}
+            onFilterConversaoChange={setFilterConversao}
             vendedores={filters.vendedores}
             estados={filters.estados}
             statuses={statuses}
+            conversionStats={hookStats?.conversion}
             onClearFilters={handleClearFilters}
           />
         </CardHeader>
