@@ -53,6 +53,19 @@ export interface SmLogRow {
   created_at: string;
 }
 
+export interface SmAuditData {
+  total_staging: number;
+  promoted_propostas: number;
+  remaining: number;
+  orphaned_propostas: number;
+  orphaned_projetos: number;
+  duplicate_links: number;
+  broken_links: number;
+  status: 'concluded' | 'in_progress';
+  timestamp: string;
+}
+
+
 export function useSolarmarketLogsPage() {
   const { data: tenantId } = useTenantId();
 
