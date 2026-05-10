@@ -65,7 +65,7 @@ export function useFollowUpQueue() {
           remote_jid,
           projeto_id,
           proposta_id,
-          projeto:projetos(id, nome),
+          projeto:projetos(id, nome:codigo),
           proposta:propostas_nativas(id, titulo),
           queue_items:wa_followup_queue!conversation_id(
             id,
