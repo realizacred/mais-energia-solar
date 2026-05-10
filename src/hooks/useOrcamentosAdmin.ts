@@ -105,39 +105,35 @@ export function useOrcamentosAdmin({
       // ⚠️ Conversion pre-filter: derive eligible orcamento ids from the
       // commercial view (proposal_count/project_count/lead_status_nome are
       // canonical there) and constrain the main query before pagination.
+      // HARDENING: isolated try/catch — failure here must NOT break the
+      // main listing nor trigger a generic error toast.
       if (filterConversao !== "todos" && tenantId) {
-        let viewQ = supabase
-          .from("vw_orcamentos_comercial")
-          .select("id")
-          .eq("tenant_id", tenantId);
+        try {
+          let viewQ = supabase
+            .from("vw_orcamentos_comercial")
+            .select("id")
+            .eq("tenant_id", tenantId);
 
-        if (filterConversao === "sem_proposta") {
-          // Semântica alinhada ao ícone de pasta: lead sem projeto vinculado
-          viewQ = viewQ
-            .is("matched_projeto_id", null)
-            .or("lead_status_nome.is.null,lead_status_nome.not.eq.Perdido");
-        } else if (filterConversao === "com_proposta") {
-          viewQ = viewQ.not("matched_projeto_id", "is", null);
-        } else if (filterConversao === "sem_projeto") {
-          // Alias de "sem_proposta" — mesma definição (sem projeto vinculado)
-          viewQ = viewQ
-            .is("matched_projeto_id", null)
-            .or("lead_status_nome.is.null,lead_status_nome.not.eq.Perdido");
-        } else if (filterConversao === "convertidos") {
-          viewQ = viewQ.not("matched_projeto_id", "is", null);
-        } else if (filterConversao === "perdidos") {
-          viewQ = viewQ.eq("lead_status_nome", "Perdido");
-        }
+          if (filterConversao === "sem_proposta" || filterConversao === "sem_projeto") {
+            // Semântica alinhada ao ícone de pasta: lead sem projeto vinculado
+            // NULL-safe: lead_status_nome != 'Perdido' OR lead_status_nome IS NULL
+            viewQ = viewQ
+              .is("matched_projeto_id", null)
+              .or("lead_status_nome.is.null,lead_status_nome.not.eq.Perdido");
+          } else if (filterConversao === "com_proposta" || filterConversao === "convertidos") {
+            viewQ = viewQ.not("matched_projeto_id", "is", null);
+          } else if (filterConversao === "perdidos") {
+            viewQ = viewQ.eq("lead_status_nome", "Perdido");
+          }
 
-        const { data: idsRows, error: idsErr } = await viewQ.limit(5000);
-        if (idsErr) throw idsErr;
-        const ids = (idsRows || []).map((r: any) => r.id);
-        if (ids.length === 0) {
-          setOrcamentos([]);
-          setTotalCount(0);
-          // still fetch stats below
-        } else {
-          query = query.in("id", ids);
+          const { data: idsRows, error: idsErr } = await viewQ.limit(5000);
+          if (idsErr) throw idsErr;
+          const ids = (idsRows || []).map((r: any) => r.id);
+          // Use a sentinel UUID when empty to force zero rows without breaking the query
+          query = query.in("id", ids.length > 0 ? ids : ["00000000-0000-0000-0000-000000000000"]);
+        } catch (convErr) {
+          // Non-blocking: log and proceed with unfiltered listing
+          console.warn("[useOrcamentosAdmin] conversion pre-filter failed (non-blocking):", convErr);
         }
       }
 
