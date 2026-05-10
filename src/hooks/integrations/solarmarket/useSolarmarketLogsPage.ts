@@ -202,17 +202,29 @@ export function useSolarmarketLogsPage() {
       };
     }
   });
+  const auditData = useQuery({
+    queryKey: ["sm-audit", tenantId],
+    enabled: !!tenantId,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('audit_sm_migration', { p_tenant_id: tenantId });
+      if (error) throw error;
+      return data;
+    },
+    staleTime: 60 * 1000,
+  });
+
   const runAudit = useMutation({
     mutationFn: async () => {
       const { data, error } = await supabase.rpc('audit_sm_migration', { p_tenant_id: tenantId });
       if (error) throw error;
       return data;
     },
-    onSuccess: (data) => {
+    onSuccess: () => {
       toast.success("Auditoria concluída com sucesso");
-      return data;
+      queryClient.invalidateQueries({ queryKey: ["sm-audit"] });
     }
   });
+
 
 
   const queryClient = useQueryClient();
