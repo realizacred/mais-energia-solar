@@ -13633,6 +13633,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "os_instalacao_proposta_id_fkey"
+            columns: ["proposta_id"]
+            isOneToOne: false
+            referencedRelation: "vw_proposal_followup_inbox"
+            referencedColumns: ["proposta_id"]
+          },
+          {
             foreignKeyName: "os_instalacao_supervisor_id_fkey"
             columns: ["supervisor_id"]
             isOneToOne: false
@@ -13652,6 +13659,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "proposta_versoes"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "os_instalacao_versao_id_fkey"
+            columns: ["versao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_proposal_followup_inbox"
+            referencedColumns: ["versao_id"]
           },
         ]
       }
@@ -16669,6 +16683,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "projetos_proposta_id_fkey"
+            columns: ["proposta_id"]
+            isOneToOne: false
+            referencedRelation: "vw_proposal_followup_inbox"
+            referencedColumns: ["proposta_id"]
+          },
+          {
             foreignKeyName: "projetos_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
@@ -16757,6 +16778,110 @@ export type Database = {
           },
         ]
       }
+      proposal_commercial_memory: {
+        Row: {
+          classified_at: string | null
+          created_at: string
+          id: string
+          notas_ia: Json
+          objecao_principal: string | null
+          proposta_id: string
+          proxima_acao_em: string | null
+          proxima_acao_sugerida: string | null
+          score_recuperacao: number
+          temperatura: string
+          tenant_id: string
+          ultima_justificativa: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          classified_at?: string | null
+          created_at?: string
+          id?: string
+          notas_ia?: Json
+          objecao_principal?: string | null
+          proposta_id: string
+          proxima_acao_em?: string | null
+          proxima_acao_sugerida?: string | null
+          score_recuperacao?: number
+          temperatura?: string
+          tenant_id: string
+          ultima_justificativa?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          classified_at?: string | null
+          created_at?: string
+          id?: string
+          notas_ia?: Json
+          objecao_principal?: string | null
+          proposta_id?: string
+          proxima_acao_em?: string | null
+          proxima_acao_sugerida?: string | null
+          score_recuperacao?: number
+          temperatura?: string
+          tenant_id?: string
+          ultima_justificativa?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "proposal_commercial_memory_proposta_id_fkey"
+            columns: ["proposta_id"]
+            isOneToOne: true
+            referencedRelation: "propostas_nativas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "proposal_commercial_memory_proposta_id_fkey"
+            columns: ["proposta_id"]
+            isOneToOne: true
+            referencedRelation: "vw_proposal_followup_inbox"
+            referencedColumns: ["proposta_id"]
+          },
+        ]
+      }
+      proposal_communication_optout: {
+        Row: {
+          category: string
+          channel: string
+          cliente_id: string
+          created_by: string | null
+          opted_out_at: string
+          reason: string | null
+          tenant_id: string
+        }
+        Insert: {
+          category?: string
+          channel: string
+          cliente_id: string
+          created_by?: string | null
+          opted_out_at?: string
+          reason?: string | null
+          tenant_id: string
+        }
+        Update: {
+          category?: string
+          channel?: string
+          cliente_id?: string
+          created_by?: string | null
+          opted_out_at?: string
+          reason?: string | null
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "proposal_communication_optout_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       proposal_events: {
         Row: {
           created_at: string
@@ -16794,11 +16919,239 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "proposal_events_proposta_id_fkey"
+            columns: ["proposta_id"]
+            isOneToOne: false
+            referencedRelation: "vw_proposal_followup_inbox"
+            referencedColumns: ["proposta_id"]
+          },
+          {
             foreignKeyName: "proposal_events_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
             referencedColumns: ["id"]
+          },
+        ]
+      }
+      proposal_followup_attempts: {
+        Row: {
+          ai_generated: boolean
+          ai_model: string | null
+          ai_prompt_id: string | null
+          approved_by: string | null
+          attempt_number: number
+          channel: string
+          client_response_at: string | null
+          consultor_id: string | null
+          created_at: string
+          delivery_error: string | null
+          delivery_status: string
+          id: string
+          message_text: string | null
+          mode: string
+          outcome: string | null
+          proposta_id: string
+          scheduled_for: string | null
+          sent_at: string | null
+          template_id: string | null
+          tenant_id: string
+          updated_at: string
+          versao_id: string | null
+        }
+        Insert: {
+          ai_generated?: boolean
+          ai_model?: string | null
+          ai_prompt_id?: string | null
+          approved_by?: string | null
+          attempt_number?: number
+          channel: string
+          client_response_at?: string | null
+          consultor_id?: string | null
+          created_at?: string
+          delivery_error?: string | null
+          delivery_status?: string
+          id?: string
+          message_text?: string | null
+          mode: string
+          outcome?: string | null
+          proposta_id: string
+          scheduled_for?: string | null
+          sent_at?: string | null
+          template_id?: string | null
+          tenant_id: string
+          updated_at?: string
+          versao_id?: string | null
+        }
+        Update: {
+          ai_generated?: boolean
+          ai_model?: string | null
+          ai_prompt_id?: string | null
+          approved_by?: string | null
+          attempt_number?: number
+          channel?: string
+          client_response_at?: string | null
+          consultor_id?: string | null
+          created_at?: string
+          delivery_error?: string | null
+          delivery_status?: string
+          id?: string
+          message_text?: string | null
+          mode?: string
+          outcome?: string | null
+          proposta_id?: string
+          scheduled_for?: string | null
+          sent_at?: string | null
+          template_id?: string | null
+          tenant_id?: string
+          updated_at?: string
+          versao_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "proposal_followup_attempts_proposta_id_fkey"
+            columns: ["proposta_id"]
+            isOneToOne: false
+            referencedRelation: "propostas_nativas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "proposal_followup_attempts_proposta_id_fkey"
+            columns: ["proposta_id"]
+            isOneToOne: false
+            referencedRelation: "vw_proposal_followup_inbox"
+            referencedColumns: ["proposta_id"]
+          },
+          {
+            foreignKeyName: "proposal_followup_attempts_versao_id_fkey"
+            columns: ["versao_id"]
+            isOneToOne: false
+            referencedRelation: "proposta_versoes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "proposal_followup_attempts_versao_id_fkey"
+            columns: ["versao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_proposal_followup_inbox"
+            referencedColumns: ["versao_id"]
+          },
+        ]
+      }
+      proposal_followup_cadence_rules: {
+        Row: {
+          active: boolean
+          ai_enabled: boolean
+          channel: string
+          cooldown_hours: number
+          created_at: string
+          created_by: string | null
+          daily_cap: number
+          description: string | null
+          excluded_status: string[]
+          hour_window: Json
+          id: string
+          max_attempts: number
+          mode: string
+          name: string
+          required_status: string[]
+          template_id: string | null
+          tenant_id: string
+          trigger_after_days: number
+          updated_at: string
+          weekday_mask: number
+        }
+        Insert: {
+          active?: boolean
+          ai_enabled?: boolean
+          channel?: string
+          cooldown_hours?: number
+          created_at?: string
+          created_by?: string | null
+          daily_cap?: number
+          description?: string | null
+          excluded_status?: string[]
+          hour_window?: Json
+          id?: string
+          max_attempts?: number
+          mode?: string
+          name: string
+          required_status?: string[]
+          template_id?: string | null
+          tenant_id: string
+          trigger_after_days: number
+          updated_at?: string
+          weekday_mask?: number
+        }
+        Update: {
+          active?: boolean
+          ai_enabled?: boolean
+          channel?: string
+          cooldown_hours?: number
+          created_at?: string
+          created_by?: string | null
+          daily_cap?: number
+          description?: string | null
+          excluded_status?: string[]
+          hour_window?: Json
+          id?: string
+          max_attempts?: number
+          mode?: string
+          name?: string
+          required_status?: string[]
+          template_id?: string | null
+          tenant_id?: string
+          trigger_after_days?: number
+          updated_at?: string
+          weekday_mask?: number
+        }
+        Relationships: []
+      }
+      proposal_followup_locks: {
+        Row: {
+          channel: string
+          created_at: string
+          last_message_hash: string | null
+          locked_until: string
+          proposta_id: string
+          reason: string | null
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          channel: string
+          created_at?: string
+          last_message_hash?: string | null
+          locked_until: string
+          proposta_id: string
+          reason?: string | null
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          channel?: string
+          created_at?: string
+          last_message_hash?: string | null
+          locked_until?: string
+          proposta_id?: string
+          reason?: string | null
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "proposal_followup_locks_proposta_id_fkey"
+            columns: ["proposta_id"]
+            isOneToOne: false
+            referencedRelation: "propostas_nativas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "proposal_followup_locks_proposta_id_fkey"
+            columns: ["proposta_id"]
+            isOneToOne: false
+            referencedRelation: "vw_proposal_followup_inbox"
+            referencedColumns: ["proposta_id"]
           },
         ]
       }
@@ -16840,6 +17193,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "propostas_nativas"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "proposal_followup_queue_proposta_id_fkey"
+            columns: ["proposta_id"]
+            isOneToOne: false
+            referencedRelation: "vw_proposal_followup_inbox"
+            referencedColumns: ["proposta_id"]
           },
           {
             foreignKeyName: "proposal_followup_queue_tenant_id_fkey"
@@ -17168,6 +17528,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "proposta_aceite_tokens_proposta_id_fkey"
+            columns: ["proposta_id"]
+            isOneToOne: false
+            referencedRelation: "vw_proposal_followup_inbox"
+            referencedColumns: ["proposta_id"]
+          },
+          {
             foreignKeyName: "proposta_aceite_tokens_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
@@ -17218,6 +17585,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "proposta_versoes"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "proposta_campos_distribuidora_versao_id_fkey"
+            columns: ["versao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_proposal_followup_inbox"
+            referencedColumns: ["versao_id"]
           },
         ]
       }
@@ -17349,6 +17723,13 @@ export type Database = {
             referencedRelation: "proposta_versoes"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "proposta_cenarios_versao_id_fkey"
+            columns: ["versao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_proposal_followup_inbox"
+            referencedColumns: ["versao_id"]
+          },
         ]
       }
       proposta_comercial: {
@@ -17417,6 +17798,13 @@ export type Database = {
             isOneToOne: true
             referencedRelation: "proposta_versoes"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "proposta_comercial_versao_id_fkey"
+            columns: ["versao_id"]
+            isOneToOne: true
+            referencedRelation: "vw_proposal_followup_inbox"
+            referencedColumns: ["versao_id"]
           },
         ]
       }
@@ -17598,6 +17986,13 @@ export type Database = {
             referencedRelation: "proposta_versoes"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "proposta_envios_versao_id_fkey"
+            columns: ["versao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_proposal_followup_inbox"
+            referencedColumns: ["versao_id"]
+          },
         ]
       }
       proposta_grupo_tokens: {
@@ -17656,6 +18051,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "proposta_grupo_tokens_kit_aceito_id_fkey"
+            columns: ["kit_aceito_id"]
+            isOneToOne: false
+            referencedRelation: "vw_proposal_followup_inbox"
+            referencedColumns: ["proposta_id"]
+          },
+          {
             foreignKeyName: "proposta_grupo_tokens_projeto_id_fkey"
             columns: ["projeto_id"]
             isOneToOne: false
@@ -17709,6 +18111,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "propostas_nativas"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "proposta_historico_proposta_id_fkey"
+            columns: ["proposta_id"]
+            isOneToOne: false
+            referencedRelation: "vw_proposal_followup_inbox"
+            referencedColumns: ["proposta_id"]
           },
           {
             foreignKeyName: "proposta_historico_tenant_id_fkey"
@@ -17834,6 +18243,13 @@ export type Database = {
             referencedRelation: "proposta_versoes"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "proposta_kits_versao_id_fkey"
+            columns: ["versao_id"]
+            isOneToOne: true
+            referencedRelation: "vw_proposal_followup_inbox"
+            referencedColumns: ["versao_id"]
+          },
         ]
       }
       proposta_layout_modulos: {
@@ -17954,6 +18370,13 @@ export type Database = {
             referencedRelation: "proposta_versoes"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "proposta_pagamento_opcoes_versao_id_fkey"
+            columns: ["versao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_proposal_followup_inbox"
+            referencedColumns: ["versao_id"]
+          },
         ]
       }
       proposta_renders: {
@@ -18007,6 +18430,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "proposta_versoes"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "proposta_renders_versao_id_fkey"
+            columns: ["versao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_proposal_followup_inbox"
+            referencedColumns: ["versao_id"]
           },
         ]
       }
@@ -18141,6 +18571,13 @@ export type Database = {
             referencedRelation: "proposta_versoes"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "proposta_resultados_energia_versao_id_fkey"
+            columns: ["versao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_proposal_followup_inbox"
+            referencedColumns: ["versao_id"]
+          },
         ]
       }
       proposta_series: {
@@ -18188,6 +18625,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "proposta_versoes"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "proposta_series_versao_id_fkey"
+            columns: ["versao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_proposal_followup_inbox"
+            referencedColumns: ["versao_id"]
           },
         ]
       }
@@ -18239,6 +18683,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "proposta_versoes"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "proposta_servicos_versao_id_fkey"
+            columns: ["versao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_proposal_followup_inbox"
+            referencedColumns: ["versao_id"]
           },
         ]
       }
@@ -18518,6 +18969,13 @@ export type Database = {
             referencedRelation: "proposta_versoes"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "proposta_ucs_versao_id_fkey"
+            columns: ["versao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_proposal_followup_inbox"
+            referencedColumns: ["versao_id"]
+          },
         ]
       }
       proposta_variaveis: {
@@ -18690,6 +19148,13 @@ export type Database = {
             referencedRelation: "proposta_versoes"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "proposta_venda_versao_id_fkey"
+            columns: ["versao_id"]
+            isOneToOne: true
+            referencedRelation: "vw_proposal_followup_inbox"
+            referencedColumns: ["versao_id"]
+          },
         ]
       }
       proposta_versao_series: {
@@ -18772,6 +19237,13 @@ export type Database = {
             referencedRelation: "proposta_versoes"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "proposta_versao_series_versao_id_fkey"
+            columns: ["versao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_proposal_followup_inbox"
+            referencedColumns: ["versao_id"]
+          },
         ]
       }
       proposta_versao_servicos: {
@@ -18828,6 +19300,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "proposta_versoes"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "proposta_versao_servicos_versao_id_fkey"
+            columns: ["versao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_proposal_followup_inbox"
+            referencedColumns: ["versao_id"]
           },
         ]
       }
@@ -18935,6 +19414,13 @@ export type Database = {
             referencedRelation: "proposta_versoes"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "proposta_versao_ucs_versao_id_fkey"
+            columns: ["versao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_proposal_followup_inbox"
+            referencedColumns: ["versao_id"]
+          },
         ]
       }
       proposta_versao_variaveis: {
@@ -18992,6 +19478,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "proposta_versoes"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "proposta_versao_variaveis_versao_id_fkey"
+            columns: ["versao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_proposal_followup_inbox"
+            referencedColumns: ["versao_id"]
           },
         ]
       }
@@ -19192,11 +19685,25 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "proposta_versoes_proposta_id_fkey"
+            columns: ["proposta_id"]
+            isOneToOne: false
+            referencedRelation: "vw_proposal_followup_inbox"
+            referencedColumns: ["proposta_id"]
+          },
+          {
             foreignKeyName: "proposta_versoes_substituida_por_fkey"
             columns: ["substituida_por"]
             isOneToOne: false
             referencedRelation: "proposta_versoes"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "proposta_versoes_substituida_por_fkey"
+            columns: ["substituida_por"]
+            isOneToOne: false
+            referencedRelation: "vw_proposal_followup_inbox"
+            referencedColumns: ["versao_id"]
           },
           {
             foreignKeyName: "proposta_versoes_template_id_used_fkey"
@@ -19450,6 +19957,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "propostas_nativas"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "proposta_views_proposta_id_fkey"
+            columns: ["proposta_id"]
+            isOneToOne: false
+            referencedRelation: "vw_proposal_followup_inbox"
+            referencedColumns: ["proposta_id"]
           },
           {
             foreignKeyName: "proposta_views_tenant_id_fkey"
@@ -20364,6 +20878,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "propostas_nativas"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recebimentos_proposta_id_fkey"
+            columns: ["proposta_id"]
+            isOneToOne: false
+            referencedRelation: "vw_proposal_followup_inbox"
+            referencedColumns: ["proposta_id"]
           },
           {
             foreignKeyName: "recebimentos_tenant_id_fkey"
@@ -25390,11 +25911,25 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "vendas_transacional_proposta_id_fkey"
+            columns: ["proposta_id"]
+            isOneToOne: false
+            referencedRelation: "vw_proposal_followup_inbox"
+            referencedColumns: ["proposta_id"]
+          },
+          {
             foreignKeyName: "vendas_transacional_versao_id_fkey"
             columns: ["versao_id"]
             isOneToOne: true
             referencedRelation: "proposta_versoes"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vendas_transacional_versao_id_fkey"
+            columns: ["versao_id"]
+            isOneToOne: true
+            referencedRelation: "vw_proposal_followup_inbox"
+            referencedColumns: ["versao_id"]
           },
         ]
       }
@@ -26112,6 +26647,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "wa_context_events_proposta_id_fkey"
+            columns: ["proposta_id"]
+            isOneToOne: false
+            referencedRelation: "vw_proposal_followup_inbox"
+            referencedColumns: ["proposta_id"]
+          },
+          {
             foreignKeyName: "wa_context_events_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
@@ -26578,6 +27120,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "propostas_nativas"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wa_conversations_proposta_id_fkey"
+            columns: ["proposta_id"]
+            isOneToOne: false
+            referencedRelation: "vw_proposal_followup_inbox"
+            referencedColumns: ["proposta_id"]
           },
           {
             foreignKeyName: "wa_conversations_tenant_id_fkey"
@@ -28711,6 +29260,87 @@ export type Database = {
           },
         ]
       }
+      vw_proposal_followup_inbox: {
+        Row: {
+          aceita_at: string | null
+          bloqueado_ate: string | null
+          classe_followup: string | null
+          cliente_email: string | null
+          cliente_id: string | null
+          cliente_nome: string | null
+          codigo: string | null
+          consultor_id: string | null
+          deal_id: string | null
+          dias_parado: number | null
+          enviada_at: string | null
+          is_principal: boolean | null
+          lead_id: string | null
+          objecao_principal: string | null
+          potencia_kwp: number | null
+          primeiro_acesso_em: string | null
+          proposta_id: string | null
+          proxima_acao_em: string | null
+          qtd_followups: number | null
+          recusada_at: string | null
+          score_ia: number | null
+          status: string | null
+          status_visualizacao: string | null
+          sugestao_ia: string | null
+          telefone_normalized: string | null
+          temperatura: string | null
+          tenant_id: string | null
+          titulo: string | null
+          total_aberturas: number | null
+          ultima_atividade_em: string | null
+          ultima_mensagem: string | null
+          ultimo_acesso_em: string | null
+          ultimo_canal: string | null
+          ultimo_followup_em: string | null
+          ultimo_outcome: string | null
+          valido_ate: string | null
+          valor_total: number | null
+          versao_id: string | null
+          versao_numero: number | null
+          versao_viewed_at: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_propostas_cliente"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "propostas_nativas_consultor_id_fkey"
+            columns: ["consultor_id"]
+            isOneToOne: false
+            referencedRelation: "consultores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "propostas_nativas_deal_id_fkey"
+            columns: ["deal_id"]
+            isOneToOne: false
+            referencedRelation: "deals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "propostas_nativas_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "propostas_nativas_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       vw_wa_integrity_audit: {
         Row: {
           erro: string | null
@@ -29324,6 +29954,7 @@ export type Database = {
           percentual_nao_compensado: number
         }[]
       }
+      get_followup_kpis: { Args: never; Returns: Json }
       get_hot_proposals: { Args: { p_limit?: number }; Returns: Json }
       get_integration_key: {
         Args: { _service_key: string; _tenant_id?: string }
