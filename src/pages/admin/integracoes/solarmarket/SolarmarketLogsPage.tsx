@@ -39,9 +39,17 @@ import {
   useSolarmarketLogsPage,
   isHistoricalLog,
   LAST_FIX_DEPLOY_AT,
-  type ErrorWindow
+  type ErrorWindow,
+  type SmThresholds
 } from "@/hooks/integrations/solarmarket/useSolarmarketLogsPage";
 import { PromotionLogsDialog } from "@/components/admin/solarmarket/PromotionLogsDialog";
+import { 
+  LineChart, Line, AreaChart, Area, XAxis, YAxis, CartesianGrid, 
+  Tooltip, ResponsiveContainer, BarChart, Bar, Legend, Cell
+} from 'recharts';
+import { toast } from "sonner";
+import html2canvas from 'html2canvas';
+import jsPDF from 'jspdf';
 
 const TZ = "America/Sao_Paulo";
 const dtFmt = new Intl.DateTimeFormat("pt-BR", {
