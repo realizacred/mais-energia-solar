@@ -26201,6 +26201,77 @@ export type Database = {
           },
         ]
       }
+      wa_context_events: {
+        Row: {
+          context_anterior: string | null
+          context_novo: string | null
+          conversation_id: string
+          criado_em: string | null
+          evento: string
+          id: string
+          origem: string | null
+          projeto_id: string | null
+          proposta_id: string | null
+          tenant_id: string
+          usuario_id: string | null
+        }
+        Insert: {
+          context_anterior?: string | null
+          context_novo?: string | null
+          conversation_id: string
+          criado_em?: string | null
+          evento: string
+          id?: string
+          origem?: string | null
+          projeto_id?: string | null
+          proposta_id?: string | null
+          tenant_id: string
+          usuario_id?: string | null
+        }
+        Update: {
+          context_anterior?: string | null
+          context_novo?: string | null
+          conversation_id?: string
+          criado_em?: string | null
+          evento?: string
+          id?: string
+          origem?: string | null
+          projeto_id?: string | null
+          proposta_id?: string | null
+          tenant_id?: string
+          usuario_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wa_context_events_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "wa_conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wa_context_events_projeto_id_fkey"
+            columns: ["projeto_id"]
+            isOneToOne: false
+            referencedRelation: "projetos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wa_context_events_proposta_id_fkey"
+            columns: ["proposta_id"]
+            isOneToOne: false
+            referencedRelation: "propostas_nativas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wa_context_events_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       wa_conversation_participants: {
         Row: {
           added_by: string | null
@@ -26528,6 +26599,9 @@ export type Database = {
       }
       wa_conversations: {
         Row: {
+          ai_context: string
+          ai_context_reason: string | null
+          ai_context_updated_at: string | null
           assigned_to: string | null
           canal: string
           cliente_id: string | null
@@ -26543,6 +26617,8 @@ export type Database = {
           last_message_preview: string | null
           lead_id: string | null
           profile_picture_url: string | null
+          projeto_id: string | null
+          proposta_id: string | null
           remote_jid: string
           sla_paused_until: string | null
           status: string
@@ -26553,6 +26629,9 @@ export type Database = {
           version: number
         }
         Insert: {
+          ai_context?: string
+          ai_context_reason?: string | null
+          ai_context_updated_at?: string | null
           assigned_to?: string | null
           canal?: string
           cliente_id?: string | null
@@ -26568,6 +26647,8 @@ export type Database = {
           last_message_preview?: string | null
           lead_id?: string | null
           profile_picture_url?: string | null
+          projeto_id?: string | null
+          proposta_id?: string | null
           remote_jid: string
           sla_paused_until?: string | null
           status?: string
@@ -26578,6 +26659,9 @@ export type Database = {
           version?: number
         }
         Update: {
+          ai_context?: string
+          ai_context_reason?: string | null
+          ai_context_updated_at?: string | null
           assigned_to?: string | null
           canal?: string
           cliente_id?: string | null
@@ -26593,6 +26677,8 @@ export type Database = {
           last_message_preview?: string | null
           lead_id?: string | null
           profile_picture_url?: string | null
+          projeto_id?: string | null
+          proposta_id?: string | null
           remote_jid?: string
           sla_paused_until?: string | null
           status?: string
@@ -26636,6 +26722,20 @@ export type Database = {
             columns: ["lead_id"]
             isOneToOne: false
             referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wa_conversations_projeto_id_fkey"
+            columns: ["projeto_id"]
+            isOneToOne: false
+            referencedRelation: "projetos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wa_conversations_proposta_id_fkey"
+            columns: ["proposta_id"]
+            isOneToOne: false
+            referencedRelation: "propostas_nativas"
             referencedColumns: ["id"]
           },
           {
@@ -26840,11 +26940,14 @@ export type Database = {
           cenario: string | null
           conversation_id: string
           created_at: string
+          gatilho: string | null
           google_calendar_event_id: string | null
           id: string
+          max_tentativas: number
           mensagem_enviada: string | null
           mensagem_sugerida: string | null
           metadata: Json
+          motivo_followup: string | null
           proposal_context: Json | null
           proposta_id: string | null
           responded_at: string | null
@@ -26854,6 +26957,8 @@ export type Database = {
           status: string
           tenant_id: string
           tentativa: number
+          tentativas: number
+          ultimo_erro: string | null
           updated_at: string
           versao_id: string | null
         }
@@ -26864,11 +26969,14 @@ export type Database = {
           cenario?: string | null
           conversation_id: string
           created_at?: string
+          gatilho?: string | null
           google_calendar_event_id?: string | null
           id?: string
+          max_tentativas?: number
           mensagem_enviada?: string | null
           mensagem_sugerida?: string | null
           metadata?: Json
+          motivo_followup?: string | null
           proposal_context?: Json | null
           proposta_id?: string | null
           responded_at?: string | null
@@ -26878,6 +26986,8 @@ export type Database = {
           status?: string
           tenant_id: string
           tentativa?: number
+          tentativas?: number
+          ultimo_erro?: string | null
           updated_at?: string
           versao_id?: string | null
         }
@@ -26888,11 +26998,14 @@ export type Database = {
           cenario?: string | null
           conversation_id?: string
           created_at?: string
+          gatilho?: string | null
           google_calendar_event_id?: string | null
           id?: string
+          max_tentativas?: number
           mensagem_enviada?: string | null
           mensagem_sugerida?: string | null
           metadata?: Json
+          motivo_followup?: string | null
           proposal_context?: Json | null
           proposta_id?: string | null
           responded_at?: string | null
@@ -26902,6 +27015,8 @@ export type Database = {
           status?: string
           tenant_id?: string
           tentativa?: number
+          tentativas?: number
+          ultimo_erro?: string | null
           updated_at?: string
           versao_id?: string | null
         }
