@@ -135,7 +135,7 @@ export function GrupoKitsModal({ open, onOpenChange, projetoId, propostas }: Gru
             {/* Propostas */}
             <div className="space-y-2">
               <Label>Selecione as propostas (mínimo 2)</Label>
-              <div className="space-y-2 max-h-[200px] overflow-y-auto">
+              <div className="space-y-2 max-h-[200px] overflow-y-auto scrollbar-premium">
                 {validPropostas.length === 0 ? (
                   <p className="text-sm text-muted-foreground py-4 text-center">
                     Nenhuma proposta disponível
