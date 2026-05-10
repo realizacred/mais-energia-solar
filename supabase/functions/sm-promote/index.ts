@@ -1142,41 +1142,57 @@ async function promoteCliente(
   // RB-MIG-1:1 — NÃO vincular lead automaticamente. Telefone repete livremente.
   const leadIdLink: string | null = null;
 
-  const { data, error } = await admin
+  const baseInsert = {
+    tenant_id: tenantId,
+    cliente_code: clienteCode,
+    nome: norm.nome,
+    telefone: norm.telefone || "",
+    telefone_normalized: norm.telefone_digits || null,
+    email: norm.email,
+    cpf_cnpj: norm.cpf_cnpj,
+    cep: norm.cep,
+    estado: norm.estado,
+    cidade: norm.cidade,
+    bairro: norm.bairro,
+    rua: norm.rua,
+    numero: norm.numero,
+    complemento: norm.complemento,
+    empresa: norm.empresa,
+    origem: SOURCE,
+    external_source: SOURCE,
+    external_id: norm.external_id,
+    lead_id: leadIdLink,
+    ativo: true,
+  } as Record<string, unknown>;
+
+  let { data, error } = await admin
     .from("clientes")
-    .insert({
-      tenant_id: tenantId,
-      cliente_code: clienteCode,
-      nome: norm.nome,
-      telefone: norm.telefone || "",
-      telefone_normalized: norm.telefone_digits || null,
-      email: norm.email,
-      cpf_cnpj: norm.cpf_cnpj,
-      cep: norm.cep,
-      estado: norm.estado,
-      cidade: norm.cidade,
-      bairro: norm.bairro,
-      rua: norm.rua,
-      numero: norm.numero,
-      complemento: norm.complemento,
-      empresa: norm.empresa,
-      origem: SOURCE,
-      external_source: SOURCE,
-      external_id: norm.external_id,
-      lead_id: leadIdLink,
-      ativo: true,
-    })
+    .insert(baseInsert)
     .select("id")
     .single();
+
+  // RB-MIG-1:1 — duplicidade de CPF/CNPJ NÃO reusa cliente existente.
+  // O índice único parcial idx_clientes_tenant_cpf_cnpj_unique permite NULL,
+  // então preservamos o CPF bruto em observacoes e gravamos cpf_cnpj=NULL.
+  if (error && /idx_clientes_tenant_cpf_cnpj_unique|cpf_cnpj/i.test(error.message ?? "")) {
+    const fallback = {
+      ...baseInsert,
+      cpf_cnpj: null,
+      observacoes: `[migração SM] CPF/CNPJ duplicado preservado: ${norm.cpf_cnpj ?? norm.cpf_cnpj_digits ?? ""}`.trim(),
+    };
+    const retry = await admin.from("clientes").insert(fallback).select("id").single();
+    data = retry.data;
+    error = retry.error;
+  }
+
   if (error || !data?.id) {
     const message = error?.message ?? "sem id";
     // RB-MIG-1:1 — race recovery APENAS por external_id/cliente_code.
-    // Telefone/CPF/email NÃO são identidade da migração e NÃO devem reconciliar.
     const isDup = /duplicate key value|unique constraint/i.test(message);
     if (isDup) {
       const externalIdSafe = norm.external_id ?? "";
       const tryFind = async (
-        column: "cliente_code" | "external_id" | "cpf_cnpj",
+        column: "cliente_code" | "external_id",
         value: string | null | undefined,
         matchedBy: string,
       ): Promise<{ id: string; created: false; matchedBy: string } | null> => {
@@ -1198,8 +1214,7 @@ async function promoteCliente(
 
       const found =
         (await tryFind("external_id", norm.external_id, "external_id_race")) ??
-        (await tryFind("cliente_code", clienteCode, "cliente_code_race")) ??
-        (await tryFind("cpf_cnpj", norm.cpf_cnpj, "cpf_cnpj_race"));
+        (await tryFind("cliente_code", clienteCode, "cliente_code_race"));
       if (found) return found;
     }
     throw new Error(`insert cliente: ${message}`);
