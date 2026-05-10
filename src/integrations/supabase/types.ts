@@ -582,13 +582,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "appointments_cliente_id_fkey"
-            columns: ["cliente_id"]
-            isOneToOne: false
-            referencedRelation: "vw_orcamentos_comercial"
-            referencedColumns: ["matched_cliente_id"]
-          },
-          {
             foreignKeyName: "appointments_conversation_id_fkey"
             columns: ["conversation_id"]
             isOneToOne: false
@@ -1808,13 +1801,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "checklists_cliente_cliente_id_fkey"
-            columns: ["cliente_id"]
-            isOneToOne: false
-            referencedRelation: "vw_orcamentos_comercial"
-            referencedColumns: ["matched_cliente_id"]
-          },
-          {
             foreignKeyName: "checklists_cliente_lead_id_fkey"
             columns: ["lead_id"]
             isOneToOne: false
@@ -2013,13 +1999,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "clientes"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "checklists_instalador_cliente_id_fkey"
-            columns: ["cliente_id"]
-            isOneToOne: false
-            referencedRelation: "vw_orcamentos_comercial"
-            referencedColumns: ["matched_cliente_id"]
           },
           {
             foreignKeyName: "checklists_instalador_projeto_id_fkey"
@@ -2335,13 +2314,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "clientes"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "comissoes_cliente_id_fkey"
-            columns: ["cliente_id"]
-            isOneToOne: false
-            referencedRelation: "vw_orcamentos_comercial"
-            referencedColumns: ["matched_cliente_id"]
           },
           {
             foreignKeyName: "comissoes_projeto_id_fkey"
@@ -3148,13 +3120,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "contacts_linked_cliente_id_fkey"
-            columns: ["linked_cliente_id"]
-            isOneToOne: false
-            referencedRelation: "vw_orcamentos_comercial"
-            referencedColumns: ["matched_cliente_id"]
-          },
-          {
             foreignKeyName: "contacts_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
@@ -3923,13 +3888,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "clientes"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "deals_customer_id_fkey"
-            columns: ["customer_id"]
-            isOneToOne: false
-            referencedRelation: "vw_orcamentos_comercial"
-            referencedColumns: ["matched_cliente_id"]
           },
           {
             foreignKeyName: "deals_motivo_perda_id_fkey"
@@ -5819,13 +5777,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "fiscal_invoices_cliente_id_fkey"
-            columns: ["cliente_id"]
-            isOneToOne: false
-            referencedRelation: "vw_orcamentos_comercial"
-            referencedColumns: ["matched_cliente_id"]
-          },
-          {
             foreignKeyName: "fiscal_invoices_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
@@ -6495,13 +6446,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "gd_groups_cliente_id_fkey"
-            columns: ["cliente_id"]
-            isOneToOne: false
-            referencedRelation: "vw_orcamentos_comercial"
-            referencedColumns: ["matched_cliente_id"]
-          },
-          {
             foreignKeyName: "gd_groups_concessionaria_id_fkey"
             columns: ["concessionaria_id"]
             isOneToOne: false
@@ -6917,13 +6861,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "clientes"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "generated_documents_cliente_id_fkey"
-            columns: ["cliente_id"]
-            isOneToOne: false
-            referencedRelation: "vw_orcamentos_comercial"
-            referencedColumns: ["matched_cliente_id"]
           },
           {
             foreignKeyName: "generated_documents_deal_id_fkey"
@@ -10245,13 +10182,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "lancamentos_financeiros_cliente_id_fkey"
-            columns: ["cliente_id"]
-            isOneToOne: false
-            referencedRelation: "vw_orcamentos_comercial"
-            referencedColumns: ["matched_cliente_id"]
-          },
-          {
             foreignKeyName: "lancamentos_financeiros_projeto_id_fkey"
             columns: ["projeto_id"]
             isOneToOne: false
@@ -10326,13 +10256,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "clientes"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "layouts_solares_cliente_id_fkey"
-            columns: ["cliente_id"]
-            isOneToOne: false
-            referencedRelation: "vw_orcamentos_comercial"
-            referencedColumns: ["matched_cliente_id"]
           },
           {
             foreignKeyName: "layouts_solares_projeto_id_fkey"
@@ -10450,6 +10373,57 @@ export type Database = {
             foreignKeyName: "lead_audit_log_lead_id_fkey"
             columns: ["lead_id"]
             isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lead_cliente_links: {
+        Row: {
+          cliente_id: string
+          created_at: string
+          id: string
+          lead_id: string
+          linked_at: string
+          linked_by: string | null
+          reason: string | null
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          cliente_id: string
+          created_at?: string
+          id?: string
+          lead_id: string
+          linked_at?: string
+          linked_by?: string | null
+          reason?: string | null
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          cliente_id?: string
+          created_at?: string
+          id?: string
+          lead_id?: string
+          linked_at?: string
+          linked_by?: string | null
+          reason?: string | null
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_cliente_links_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_cliente_links_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: true
             referencedRelation: "leads"
             referencedColumns: ["id"]
           },
@@ -12346,13 +12320,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "monitor_plants_client_id_fkey"
-            columns: ["client_id"]
-            isOneToOne: false
-            referencedRelation: "vw_orcamentos_comercial"
-            referencedColumns: ["matched_cliente_id"]
-          },
-          {
             foreignKeyName: "monitor_plants_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
@@ -12802,13 +12769,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "monitor_subscriptions_client_id_fkey"
-            columns: ["client_id"]
-            isOneToOne: false
-            referencedRelation: "vw_orcamentos_comercial"
-            referencedColumns: ["matched_cliente_id"]
-          },
-          {
             foreignKeyName: "monitor_subscriptions_plan_id_fkey"
             columns: ["plan_id"]
             isOneToOne: false
@@ -13135,13 +13095,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "clientes"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "obras_cliente_id_fkey"
-            columns: ["cliente_id"]
-            isOneToOne: false
-            referencedRelation: "vw_orcamentos_comercial"
-            referencedColumns: ["matched_cliente_id"]
           },
           {
             foreignKeyName: "obras_projeto_id_fkey"
@@ -13657,13 +13610,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "clientes"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "os_instalacao_cliente_id_fkey"
-            columns: ["cliente_id"]
-            isOneToOne: false
-            referencedRelation: "vw_orcamentos_comercial"
-            referencedColumns: ["matched_cliente_id"]
           },
           {
             foreignKeyName: "os_instalacao_instalador_id_fkey"
@@ -15136,13 +15082,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "post_sale_plans_cliente_id_fkey"
-            columns: ["cliente_id"]
-            isOneToOne: false
-            referencedRelation: "vw_orcamentos_comercial"
-            referencedColumns: ["matched_cliente_id"]
-          },
-          {
             foreignKeyName: "post_sale_plans_projeto_id_fkey"
             columns: ["projeto_id"]
             isOneToOne: false
@@ -15240,13 +15179,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "clientes"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "post_sale_upsell_opportunities_cliente_id_fkey"
-            columns: ["cliente_id"]
-            isOneToOne: false
-            referencedRelation: "vw_orcamentos_comercial"
-            referencedColumns: ["matched_cliente_id"]
           },
           {
             foreignKeyName: "post_sale_upsell_opportunities_projeto_id_fkey"
@@ -15381,13 +15313,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "clientes"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "post_sale_visits_cliente_id_fkey"
-            columns: ["cliente_id"]
-            isOneToOne: false
-            referencedRelation: "vw_orcamentos_comercial"
-            referencedColumns: ["matched_cliente_id"]
           },
           {
             foreignKeyName: "post_sale_visits_plan_id_fkey"
@@ -16700,13 +16625,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "clientes"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "fk_projetos_cliente"
-            columns: ["cliente_id"]
-            isOneToOne: false
-            referencedRelation: "vw_orcamentos_comercial"
-            referencedColumns: ["matched_cliente_id"]
           },
           {
             foreignKeyName: "projetos_deal_id_fkey"
@@ -19727,13 +19645,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "fk_propostas_cliente"
-            columns: ["cliente_id"]
-            isOneToOne: false
-            referencedRelation: "vw_orcamentos_comercial"
-            referencedColumns: ["matched_cliente_id"]
-          },
-          {
             foreignKeyName: "fk_propostas_projeto"
             columns: ["projeto_id"]
             isOneToOne: false
@@ -20079,13 +19990,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "pv_contratos_cliente_id_fkey"
-            columns: ["cliente_id"]
-            isOneToOne: false
-            referencedRelation: "vw_orcamentos_comercial"
-            referencedColumns: ["matched_cliente_id"]
-          },
-          {
             foreignKeyName: "pv_contratos_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
@@ -20175,13 +20079,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "clientes"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "pv_ordens_servico_cliente_id_fkey"
-            columns: ["cliente_id"]
-            isOneToOne: false
-            referencedRelation: "vw_orcamentos_comercial"
-            referencedColumns: ["matched_cliente_id"]
           },
           {
             foreignKeyName: "pv_ordens_servico_contrato_id_fkey"
@@ -20455,13 +20352,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "recebimentos_cliente_id_fkey"
-            columns: ["cliente_id"]
-            isOneToOne: false
-            referencedRelation: "vw_orcamentos_comercial"
-            referencedColumns: ["matched_cliente_id"]
-          },
-          {
             foreignKeyName: "recebimentos_projeto_id_fkey"
             columns: ["projeto_id"]
             isOneToOne: false
@@ -20606,13 +20496,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "clientes"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "recibos_emitidos_cliente_id_fkey"
-            columns: ["cliente_id"]
-            isOneToOne: false
-            referencedRelation: "vw_orcamentos_comercial"
-            referencedColumns: ["matched_cliente_id"]
           },
           {
             foreignKeyName: "recibos_emitidos_deal_id_fkey"
@@ -20898,13 +20781,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "clientes"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "servicos_agendados_cliente_id_fkey"
-            columns: ["cliente_id"]
-            isOneToOne: false
-            referencedRelation: "vw_orcamentos_comercial"
-            referencedColumns: ["matched_cliente_id"]
           },
           {
             foreignKeyName: "servicos_agendados_lead_id_fkey"
@@ -24824,13 +24700,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "units_consumidoras_cliente_id_fkey"
-            columns: ["cliente_id"]
-            isOneToOne: false
-            referencedRelation: "vw_orcamentos_comercial"
-            referencedColumns: ["matched_cliente_id"]
-          },
-          {
             foreignKeyName: "units_consumidoras_concessionaria_id_fkey"
             columns: ["concessionaria_id"]
             isOneToOne: false
@@ -25444,13 +25313,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "vendas_cliente_id_fkey"
-            columns: ["cliente_id"]
-            isOneToOne: false
-            referencedRelation: "vw_orcamentos_comercial"
-            referencedColumns: ["matched_cliente_id"]
-          },
-          {
             foreignKeyName: "vendas_orcamento_id_fkey"
             columns: ["orcamento_id"]
             isOneToOne: false
@@ -25643,13 +25505,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "clientes"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "visitas_tecnicas_cliente_id_fkey"
-            columns: ["cliente_id"]
-            isOneToOne: false
-            referencedRelation: "vw_orcamentos_comercial"
-            referencedColumns: ["matched_cliente_id"]
           },
           {
             foreignKeyName: "visitas_tecnicas_consultor_id_fkey"
@@ -26005,13 +25860,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "clientes"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "wa_cadence_enrollments_cliente_id_fkey"
-            columns: ["cliente_id"]
-            isOneToOne: false
-            referencedRelation: "vw_orcamentos_comercial"
-            referencedColumns: ["matched_cliente_id"]
           },
           {
             foreignKeyName: "wa_cadence_enrollments_conversation_id_fkey"
@@ -26695,13 +26543,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "clientes"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "wa_conversations_cliente_id_fkey"
-            columns: ["cliente_id"]
-            isOneToOne: false
-            referencedRelation: "vw_orcamentos_comercial"
-            referencedColumns: ["matched_cliente_id"]
           },
           {
             foreignKeyName: "wa_conversations_instance_id_fkey"
@@ -28492,13 +28333,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "whatsapp_automation_logs_cliente_id_fkey"
-            columns: ["cliente_id"]
-            isOneToOne: false
-            referencedRelation: "vw_orcamentos_comercial"
-            referencedColumns: ["matched_cliente_id"]
-          },
-          {
             foreignKeyName: "whatsapp_automation_logs_instance_id_fkey"
             columns: ["instance_id"]
             isOneToOne: false
@@ -28709,13 +28543,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "clientes"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "monitor_plants_client_id_fkey"
-            columns: ["client_id"]
-            isOneToOne: false
-            referencedRelation: "vw_orcamentos_comercial"
-            referencedColumns: ["matched_cliente_id"]
           },
           {
             foreignKeyName: "monitor_plants_tenant_id_fkey"
@@ -29956,6 +29783,10 @@ export type Database = {
         Returns: boolean
       }
       limpar_mensagens_failed: { Args: never; Returns: number }
+      link_lead_to_cliente: {
+        Args: { p_cliente_id: string; p_lead_id: string; p_reason?: string }
+        Returns: string
+      }
       link_meter_to_unit: {
         Args: {
           p_link_type?: string
@@ -30221,6 +30052,8 @@ export type Database = {
         Args: { _deal_id: string; _proposta_id: string }
         Returns: undefined
       }
+      show_limit: { Args: never; Returns: number }
+      show_trgm: { Args: { "": string }; Returns: string[] }
       sm_cancel_orphan_promotion_jobs: { Args: never; Returns: number }
       sm_classify_funnel_stage:
         | {
@@ -30304,6 +30137,23 @@ export type Database = {
             }
             Returns: Json
           }
+      suggest_cliente_for_lead: {
+        Args: { p_lead_id: string }
+        Returns: {
+          cidade: string
+          cliente_id: string
+          email: string
+          estado: string
+          external_id: string
+          external_source: string
+          match_reason: string
+          match_score: number
+          nome: string
+          projeto_count: number
+          telefone: string
+          telefone_normalized: string
+        }[]
+      }
       suggest_papel_funil: {
         Args: { p_nome: string }
         Returns: Database["public"]["Enums"]["papel_funil"]
@@ -30398,6 +30248,7 @@ export type Database = {
           }
       try_webhook_lock: { Args: never; Returns: boolean }
       unaccent: { Args: { "": string }; Returns: string }
+      unlink_lead_cliente: { Args: { p_lead_id: string }; Returns: boolean }
       update_parcelas_atrasadas: { Args: never; Returns: undefined }
       user_belongs_to_tenant: { Args: { _tenant_id: string }; Returns: boolean }
       user_is_active: { Args: { _user_id?: string }; Returns: boolean }

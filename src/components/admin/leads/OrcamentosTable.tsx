@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Phone, Eye, Trash2, ShoppingCart, UserCheck, MessageSquare, History, UserPlus, Pencil, MoreHorizontal, UserRound, RotateCcw, ScrollText, Loader2, FolderOpen } from "lucide-react";
+import { Phone, Eye, Trash2, ShoppingCart, UserCheck, MessageSquare, History, UserPlus, Pencil, MoreHorizontal, UserRound, RotateCcw, ScrollText, Loader2, FolderOpen, Link2 } from "lucide-react";
+import { VincularClienteDialog } from "./VincularClienteDialog";
 import { usePropostaRapidaLead } from "@/hooks/usePropostaRapidaLead";
 import type { QuickLeadData } from "@/hooks/usePropostaRapidaLead";
 import { DuplicateOpenDealModal } from "@/components/leads/DuplicateOpenDealModal";
@@ -65,6 +66,8 @@ export function OrcamentosTable({
   const [assignOrcamento, setAssignOrcamento] = useState<OrcamentoDisplayItem | null>(null);
   const [editOpen, setEditOpen] = useState(false);
   const [editOrcamento, setEditOrcamento] = useState<OrcamentoDisplayItem | null>(null);
+  const [vincularOpen, setVincularOpen] = useState(false);
+  const [vincularOrc, setVincularOrc] = useState<OrcamentoDisplayItem | null>(null);
   const navigate = useNavigate();
 
   const groupedOrcamentos = useGroupedOrcamentos(orcamentos, sortOption);
@@ -254,7 +257,7 @@ export function OrcamentosTable({
                   {/* Inline actions for lg+ */}
                   <TooltipProvider>
                     <div className="hidden lg:flex items-center gap-1">
-                      {orc.projeto_id && (
+                      {orc.projeto_id ? (
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <Button variant="ghost" size="icon" className={`h-8 w-8 ${orc.projeto_tem_proposta ? "text-success hover:text-success/80" : "text-destructive hover:text-destructive/80"}`} onClick={() => navigate(`/admin/projetos?projeto=${orc.projeto_id}`)}>
@@ -262,6 +265,15 @@ export function OrcamentosTable({
                             </Button>
                           </TooltipTrigger>
                           <TooltipContent>{orc.projeto_tem_proposta ? "Abrir projeto vinculado" : "Projeto sem proposta"}</TooltipContent>
+                        </Tooltip>
+                      ) : (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-primary" onClick={() => { setVincularOrc(orc); setVincularOpen(true); }}>
+                              <Link2 className="w-4 h-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Vincular a cliente existente</TooltipContent>
                         </Tooltip>
                       )}
                       <Tooltip>
@@ -343,10 +355,15 @@ export function OrcamentosTable({
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end" className="w-48">
-                        {orc.projeto_id && (
+                        {orc.projeto_id ? (
                           <DropdownMenuItem onClick={() => navigate(`/admin/projetos?projeto=${orc.projeto_id}`)}>
                             <FolderOpen className={`w-4 h-4 mr-2 ${orc.projeto_tem_proposta ? "text-success" : "text-destructive"}`} />
                             {orc.projeto_tem_proposta ? "Abrir projeto" : "Abrir projeto (sem proposta)"}
+                          </DropdownMenuItem>
+                        ) : (
+                          <DropdownMenuItem onClick={() => { setVincularOrc(orc); setVincularOpen(true); }}>
+                            <Link2 className="w-4 h-4 mr-2 text-primary" />
+                            Vincular a cliente existente
                           </DropdownMenuItem>
                         )}
                         <DropdownMenuItem onClick={() => onView(orc)}>
@@ -491,6 +508,13 @@ export function OrcamentosTable({
         onCreateAnyway={confirmCreateAnyway}
         onCancel={cancelDuplicateGuard}
         loading={quickLoading}
+      />
+      <VincularClienteDialog
+        open={vincularOpen}
+        onOpenChange={setVincularOpen}
+        leadId={vincularOrc?.lead_id ?? null}
+        leadNome={vincularOrc?.nome ?? null}
+        onSuccess={onRefresh}
       />
     </div>
   );
