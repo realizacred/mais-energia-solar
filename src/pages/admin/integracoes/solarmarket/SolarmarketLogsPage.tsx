@@ -164,18 +164,47 @@ export default function SolarmarketLogsPage() {
     return list;
   }, [isStalled, isHeartbeatLost, totals.errors, stats?.throughput, stats?.remaining, latestJob?.updated_at]);
 
+  const generatePDFReport = async () => {
+    setIsExportingPDF(true);
+    const element = document.getElementById('enterprise-dashboard');
+    if (!element) return;
+
+    try {
+      const canvas = await html2canvas(element, {
+        scale: 2,
+        useCORS: true,
+        logging: false,
+        backgroundColor: '#000000' // Dark mode PDF
+      });
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const imgProps = pdf.getImageProperties(imgData);
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+      
+      pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+      pdf.save(`sm-executive-report-${new Date().toISOString()}.pdf`);
+      toast.success("Relatório executivo PDF gerado");
+    } catch (err) {
+      console.error(err);
+      toast.error("Falha ao gerar PDF");
+    } finally {
+      setIsExportingPDF(false);
+    }
+  };
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" id="enterprise-dashboard">
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div className="flex flex-col gap-1">
           <PageHeader
             icon={ScrollText}
-            title="Monitoramento SolarMarket"
-            description="Acompanhamento operacional e observabilidade da migração."
+            title="Telemetria Enterprise SolarMarket"
+            description="Console de observabilidade em tempo real e inteligência operacional."
             className="m-0 p-0 border-0 bg-transparent"
           />
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 no-print">
           <div className="flex items-center gap-2 bg-background border rounded-md px-2 py-1">
             <span className="text-[10px] text-muted-foreground uppercase font-bold px-1">Janela:</span>
             <Select value={errorWindow} onValueChange={(v) => setErrorWindow(v as ErrorWindow)}>
@@ -198,6 +227,10 @@ export default function SolarmarketLogsPage() {
             </Button>
             <Button variant="outline" size="sm" onClick={() => exportLogs('csv')} className="h-8 text-[11px] gap-2">
               <Download className="h-3.5 w-3.5" /> CSV
+            </Button>
+            <Button variant="default" size="sm" onClick={generatePDFReport} disabled={isExportingPDF} className="h-8 text-[11px] gap-2 bg-primary hover:bg-primary/90">
+              {isExportingPDF ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileText className="h-3.5 w-3.5" />}
+              PDF EXECUTIVO
             </Button>
           </div>
         </div>
