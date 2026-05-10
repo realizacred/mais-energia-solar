@@ -209,8 +209,8 @@ export function useSolarmarketLogsPage() {
         .map(([cause, info]) => ({ 
           cause, 
           ...info,
-          status: cause.includes("(resolvido)") ? 'resolved' : 'mitigated' as const,
-          deploy: "v1.4.2" // Mock deploy version for context
+          status: (cause.includes("(resolvido)") ? 'resolved' : 'mitigated') as "active" | "mitigated" | "resolved",
+          deploy: "v1.4.2"
         }))
         .sort((a, b) => b.count - a.count)
         .slice(0, 20);
