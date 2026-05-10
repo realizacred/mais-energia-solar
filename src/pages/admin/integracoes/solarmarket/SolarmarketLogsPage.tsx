@@ -79,7 +79,7 @@ export default function SolarmarketLogsPage() {
         description="Histórico de jobs de importação, promoção e eventos recentes."
       />
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
           icon={Cloud}
           color="info"
@@ -89,16 +89,48 @@ export default function SolarmarketLogsPage() {
         <StatCard
           icon={AlertTriangle}
           color={totals.warnings > 0 ? "warning" : "success"}
-          label="Avisos recentes"
+          label="Avisos atuais"
           value={totals.warnings}
         />
         <StatCard
           icon={AlertCircle}
           color={totals.errors > 0 ? "destructive" : "success"}
-          label="Erros recentes"
+          label="Erros atuais"
           value={totals.errors}
         />
+        <StatCard
+          icon={Archive}
+          color="muted"
+          label={`Histórico (antes de ${fmt(LAST_FIX_DEPLOY_AT)})`}
+          value={totals.historicalErrors}
+        />
       </div>
+
+      {historicalSummary.data && historicalSummary.data.by_cause.length > 0 ? (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Archive className="h-4 w-4 text-muted-foreground" />
+              Erros históricos agrupados por causa
+              <Badge variant="outline" className="ml-2 text-xs">pré-fix</Badge>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-xs text-muted-foreground mb-3">
+              Erros gerados antes do último deploy de correção em {fmt(LAST_FIX_DEPLOY_AT)}.
+              Não refletem o estado atual da migração.
+            </p>
+            <div className="space-y-2">
+              {historicalSummary.data.by_cause.map((c) => (
+                <div key={c.cause} className="flex items-center justify-between text-sm border-l-2 border-muted pl-3 py-1">
+                  <span className="text-foreground">{c.cause}</span>
+                  <Badge variant="outline" className="text-muted-foreground">{c.count.toLocaleString("pt-BR")}</Badge>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      ) : null}
 
       <Card>
         <CardHeader>
