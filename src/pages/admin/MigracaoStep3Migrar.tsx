@@ -669,27 +669,37 @@ export default function MigracaoStep3Migrar() {
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <button
                     type="button"
-                    onClick={() => { setLogsFilter("warning"); setLogsOpen(true); }}
+                    onClick={() => { setLogsFilter("warning"); setLogsScope("active"); setLogsOpen(true); }}
                     disabled={!job.id}
                     className="text-left rounded-lg border border-border bg-card p-3 hover:border-warning/50 hover:bg-warning/5 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <p className="text-[10px] uppercase tracking-wide text-muted-foreground font-medium flex items-center justify-between">
-                      Avisos
+                      Avisos (ativos)
                       <span className="text-[10px] text-warning underline normal-case">ver</span>
                     </p>
-                    <p className="font-mono text-lg font-bold text-warning mt-0.5">{job.items_with_warnings}</p>
+                    <p className={`font-mono text-lg font-bold mt-0.5 ${activeWarnings > 0 ? "text-warning" : "text-muted-foreground"}`}>
+                      {activeWarnings}
+                    </p>
+                    <p className="text-[10px] text-muted-foreground mt-1">
+                      {activeWarnings} ativos · {historicalWarnings.toLocaleString("pt-BR")} históricos
+                    </p>
                   </button>
                   <button
                     type="button"
-                    onClick={() => { setLogsFilter("error"); setLogsOpen(true); }}
+                    onClick={() => { setLogsFilter("error"); setLogsScope("active"); setLogsOpen(true); }}
                     disabled={!job.id}
                     className="text-left rounded-lg border border-border bg-card p-3 hover:border-destructive/50 hover:bg-destructive/5 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <p className="text-[10px] uppercase tracking-wide text-muted-foreground font-medium flex items-center justify-between">
-                      Erros
+                      Erros (ativos)
                       <span className="text-[10px] text-destructive underline normal-case">ver</span>
                     </p>
-                    <p className="font-mono text-lg font-bold text-destructive mt-0.5">{job.items_with_errors}</p>
+                    <p className={`font-mono text-lg font-bold mt-0.5 ${activeErrors > 0 ? "text-destructive" : "text-success"}`}>
+                      {activeErrors}
+                    </p>
+                    <p className="text-[10px] text-muted-foreground mt-1">
+                      {activeErrors} ativos · {historicalErrors.toLocaleString("pt-BR")} históricos
+                    </p>
                   </button>
                   <div className="rounded-lg border border-border bg-card p-3">
                     <p className="text-[10px] uppercase tracking-wide text-muted-foreground font-medium">Pulados / bloqueados</p>
