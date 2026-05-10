@@ -291,6 +291,8 @@ export function useSolarmarketLogsPage() {
     migrationStats, 
     resumeMigration,
     exportLogs,
+    auditData,
+    runAudit,
     tenantId 
   };
 }
