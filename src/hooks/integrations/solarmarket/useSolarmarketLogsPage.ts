@@ -166,31 +166,53 @@ export function useSolarmarketLogsPage() {
     queryFn: async () => {
       const [{ count: totalStaging }, { data: links }] = await Promise.all([
         (supabase as any).from("sm_propostas_raw").select("*", { count: "exact", head: true }).eq("tenant_id", tenantId!),
-        (supabase as any).from("external_entity_links").select("entity_type, created_at").eq("source", "solarmarket").eq("tenant_id", tenantId!)
+        (supabase as any).from("external_entity_links").select("entity_type, created_at, metadata").eq("source", "solarmarket").eq("tenant_id", tenantId!)
       ]);
 
-      const counts = (links ?? []).reduce((acc: any, curr: any) => {
+      const linksArray = links ?? [];
+      const counts = linksArray.reduce((acc: any, curr: any) => {
         acc[curr.entity_type] = (acc[curr.entity_type] || 0) + 1;
         return acc;
       }, {});
 
       // Calcula throughput nos últimos 15 min
       const fifteenMinsAgo = new Date(Date.now() - 15 * 60 * 1000).toISOString();
-      const recentPromoted = (links ?? []).filter(l => l.entity_type === 'proposta' && l.created_at >= fifteenMinsAgo).length;
+      const recentPromoted = linksArray.filter(l => l.entity_type === 'proposta' && l.created_at >= fifteenMinsAgo).length;
       const tpm = recentPromoted / 15;
 
       const remaining = (totalStaging || 0) - (counts.proposta || 0);
-      const etaMinutes = tpm > 0 ? Math.ceil(remaining / tpm) : null;
+      const etaMinutes = tpm > 0 ? Math.ceil(remaining / tpm) : (remaining > 0 ? null : 0);
+
+      // Clientes criados vs reutilizados (se metadata tiver a info)
+      const clientsCreated = linksArray.filter(l => l.entity_type === 'cliente' && (l.metadata?.action === 'created' || l.metadata?.reused === false)).length;
+      const clientsReused = linksArray.filter(l => l.entity_type === 'cliente' && (l.metadata?.action === 'reused' || l.metadata?.reused === true)).length;
 
       return {
         total: totalStaging || 0,
         promoted: counts.proposta || 0,
         clients: counts.cliente || 0,
         projects: counts.projeto || 0,
+        versions: counts.proposta_versao || 0,
+        clientsCreated,
+        clientsReused,
         remaining: Math.max(0, remaining),
         throughput: tpm,
-        etaMinutes
+        etaMinutes,
+        progressPct: totalStaging ? Math.min(100, Math.round((counts.proposta || 0) * 100 / totalStaging)) : 0
       };
+    }
+  });
+
+  const runAudit = useMutation({
+    mutationFn: async () => {
+      // Auditoria via RPC ou query direta para detectar órfãos
+      const { data, error } = await supabase.rpc('audit_sm_migration', { p_tenant_id: tenantId });
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (data) => {
+      toast.success("Auditoria concluída com sucesso");
+      return data;
     }
   });
 
