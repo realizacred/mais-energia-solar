@@ -53,6 +53,19 @@ export interface SmLogRow {
   created_at: string;
 }
 
+export interface SmAuditData {
+  total_staging: number;
+  promoted_propostas: number;
+  remaining: number;
+  orphaned_propostas: number;
+  orphaned_projetos: number;
+  duplicate_links: number;
+  broken_links: number;
+  status: 'concluded' | 'in_progress';
+  timestamp: string;
+}
+
+
 export function useSolarmarketLogsPage() {
   const { data: tenantId } = useTenantId();
 
@@ -166,33 +179,68 @@ export function useSolarmarketLogsPage() {
     queryFn: async () => {
       const [{ count: totalStaging }, { data: links }] = await Promise.all([
         (supabase as any).from("sm_propostas_raw").select("*", { count: "exact", head: true }).eq("tenant_id", tenantId!),
-        (supabase as any).from("external_entity_links").select("entity_type, created_at").eq("source", "solarmarket").eq("tenant_id", tenantId!)
+        (supabase as any).from("external_entity_links").select("entity_type, created_at, metadata").eq("source", "solarmarket").eq("tenant_id", tenantId!)
       ]);
 
-      const counts = (links ?? []).reduce((acc: any, curr: any) => {
+      const linksArray = links ?? [];
+      const counts = linksArray.reduce((acc: any, curr: any) => {
         acc[curr.entity_type] = (acc[curr.entity_type] || 0) + 1;
         return acc;
       }, {});
 
       // Calcula throughput nos últimos 15 min
       const fifteenMinsAgo = new Date(Date.now() - 15 * 60 * 1000).toISOString();
-      const recentPromoted = (links ?? []).filter(l => l.entity_type === 'proposta' && l.created_at >= fifteenMinsAgo).length;
+      const recentPromoted = linksArray.filter(l => l.entity_type === 'proposta' && l.created_at >= fifteenMinsAgo).length;
       const tpm = recentPromoted / 15;
 
       const remaining = (totalStaging || 0) - (counts.proposta || 0);
-      const etaMinutes = tpm > 0 ? Math.ceil(remaining / tpm) : null;
+      const etaMinutes = tpm > 0 ? Math.ceil(remaining / tpm) : (remaining > 0 ? null : 0);
+
+      // Clientes criados vs reutilizados (se metadata tiver a info)
+      const clientsCreated = linksArray.filter(l => l.entity_type === 'cliente' && (l.metadata?.action === 'created' || l.metadata?.reused === false)).length;
+      const clientsReused = linksArray.filter(l => l.entity_type === 'cliente' && (l.metadata?.action === 'reused' || l.metadata?.reused === true)).length;
 
       return {
         total: totalStaging || 0,
         promoted: counts.proposta || 0,
         clients: counts.cliente || 0,
         projects: counts.projeto || 0,
+        versions: counts.proposta_versao || 0,
+        clientsCreated,
+        clientsReused,
         remaining: Math.max(0, remaining),
         throughput: tpm,
-        etaMinutes
+        etaMinutes,
+        progressPct: totalStaging ? Math.min(100, Math.round((counts.proposta || 0) * 100 / totalStaging)) : 0
       };
     }
   });
+  const auditData = useQuery<SmAuditData | null>({
+    queryKey: ["sm-audit", tenantId],
+    enabled: !!tenantId,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('audit_sm_migration', { p_tenant_id: tenantId });
+      if (error) throw error;
+      return (data as unknown) as SmAuditData;
+    },
+    staleTime: 60 * 1000,
+  });
+
+  const runAudit = useMutation<SmAuditData, Error, void>({
+    mutationFn: async () => {
+      const { data, error } = await supabase.rpc('audit_sm_migration', { p_tenant_id: tenantId });
+      if (error) throw error;
+      return (data as unknown) as SmAuditData;
+
+    },
+    onSuccess: () => {
+      toast.success("Auditoria concluída com sucesso");
+      queryClient.invalidateQueries({ queryKey: ["sm-audit"] });
+    }
+  });
+
+
+
 
   const queryClient = useQueryClient();
 
@@ -216,6 +264,40 @@ export function useSolarmarketLogsPage() {
     }
   });
 
+  const exportLogs = async (format: 'csv' | 'json') => {
+    const { data, error } = await (supabase as any)
+      .from("solarmarket_promotion_logs")
+      .select("*")
+      .eq("tenant_id", tenantId!)
+      .order("created_at", { ascending: false });
+    
+    if (error) {
+      toast.error("Erro ao exportar logs");
+      return;
+    }
+
+    if (format === 'json') {
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `sm-migration-logs-${new Date().toISOString()}.json`;
+      a.click();
+    } else {
+      const headers = Object.keys(data[0] || {}).join(',');
+      const rows = (data || []).map((r: any) => 
+        Object.values(r).map(v => typeof v === 'object' ? `"${JSON.stringify(v).replace(/"/g, '""')}"` : `"${v}"`).join(',')
+      ).join('\n');
+      const blob = new Blob([`${headers}\n${rows}`], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `sm-migration-logs-${new Date().toISOString()}.csv`;
+      a.click();
+    }
+    toast.success(`Exportação ${format.toUpperCase()} iniciada`);
+  };
+
   return { 
     promotionJobs, 
     importJobs, 
@@ -223,6 +305,9 @@ export function useSolarmarketLogsPage() {
     historicalSummary, 
     migrationStats, 
     resumeMigration,
+    exportLogs,
+    auditData,
+    runAudit,
     tenantId 
   };
 }

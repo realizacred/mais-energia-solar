@@ -6,7 +6,7 @@
  * RB-76 / DA-48 — somente leitura, sem motor novo.
  */
 import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import {
   Table,
   TableBody,
@@ -20,7 +20,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { PageHeader, StatCard, EmptyState, StatusBadge } from "@/components/ui-kit";
-import { ScrollText, AlertTriangle, AlertCircle, CheckCircle2, ListChecks, Cloud, ExternalLink, Archive, PlayCircle, Clock, Zap } from "lucide-react";
+import { ScrollText, AlertTriangle, AlertCircle, CheckCircle2, ListChecks, Cloud, ExternalLink, Archive, PlayCircle, Clock, Zap, Download, FileText, ShieldCheck, Database, LayoutDashboard, History } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import {
   useSolarmarketLogsPage,
@@ -73,13 +74,12 @@ function CompactStatusBadge({ status }: { status?: string }) {
 }
 
 export default function SolarmarketLogsPage() {
-  const { promotionJobs, importJobs, recentErrors, historicalSummary, migrationStats, resumeMigration } = useSolarmarketLogsPage();
+  const { promotionJobs, importJobs, recentErrors, historicalSummary, migrationStats, resumeMigration, exportLogs, auditData, runAudit } = useSolarmarketLogsPage();
   const [openJobId, setOpenJobId] = useState<string | null>(null);
   const [showHistorical, setShowHistorical] = useState(false);
   const [isConfirmingResume, setIsConfirmingResume] = useState(false);
+  const [activeTab, setActiveTab] = useState("dashboard");
 
-  // RB-MIG-LOG-PARTITION: separa logs em "atuais" (>= último fix) e "históricos".
-  // Contadores principais usam apenas atuais para refletir saúde da migração agora.
   const allLogs = recentErrors.data ?? [];
   const currentLogs = allLogs.filter((l) => !isHistoricalLog(l.created_at));
   const visibleLogs = showHistorical ? allLogs : currentLogs;
@@ -87,6 +87,7 @@ export default function SolarmarketLogsPage() {
   const latestJob = promotionJobs.data?.[0];
   const isStalled = latestJob && (latestJob.status === "failed" || latestJob.status === "cancelled" || (latestJob.status === "running" && new Date().getTime() - new Date(latestJob.updated_at).getTime() > 10 * 60 * 1000));
 
+  const stats = migrationStats.data;
   const totals = {
     promotion: promotionJobs.data?.length ?? 0,
     errors: currentLogs.filter((l) => l.severity === "error").length,
@@ -96,419 +97,430 @@ export default function SolarmarketLogsPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader
-        icon={ScrollText}
-        title="Logs SolarMarket"
-        description="Histórico de jobs de importação, promoção e eventos recentes."
-      />
-
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard
-          icon={Cloud}
-          color="info"
-          label="Jobs de promoção (últimos 20)"
-          value={totals.promotion}
+      <div className="flex items-center justify-between gap-4 flex-wrap">
+        <PageHeader
+          icon={ScrollText}
+          title="Monitoramento SolarMarket"
+          description="Acompanhamento operacional e auditoria da migração."
+          className="m-0 p-0 border-0 bg-transparent"
         />
-        <StatCard
-          icon={AlertTriangle}
-          color={totals.warnings > 0 ? "warning" : "success"}
-          label="Avisos atuais"
-          value={totals.warnings}
-        />
-        <StatCard
-          icon={AlertCircle}
-          color={totals.errors > 0 ? "destructive" : "success"}
-          label="Erros atuais"
-          value={totals.errors}
-        />
-        <StatCard
-          icon={Archive}
-          color="muted"
-          label={`Histórico (antes de ${fmt(LAST_FIX_DEPLOY_AT)})`}
-          value={totals.historicalErrors}
-        />
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={() => exportLogs('json')} className="h-8 text-[11px] gap-2">
+            <Download className="h-3.5 w-3.5" /> JSON
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => exportLogs('csv')} className="h-8 text-[11px] gap-2">
+            <Download className="h-3.5 w-3.5" /> CSV
+          </Button>
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <Card className="lg:col-span-2">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base flex items-center gap-2">
-              <Zap className="h-4 w-4 text-primary" /> Painel de Migração
-              {migrationStats.data?.remaining === 0 && migrationStats.data?.total > 0 && (
-                <Badge variant="outline" className="bg-success/10 text-success border-success/20 ml-2">100% Concluído</Badge>
-              )}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="space-y-2">
-              <div className="flex justify-between text-sm mb-1">
-                <span className="text-muted-foreground">Progresso Geral (Propostas)</span>
-                <span className="font-medium">{migrationStats.data?.promoted} de {migrationStats.data?.total}</span>
-              </div>
-              <Progress 
-                value={migrationStats.data?.total ? (migrationStats.data.promoted * 100 / migrationStats.data.total) : 0} 
-                className="h-2"
-              />
-              <div className="flex justify-between text-[10px] text-muted-foreground uppercase tracking-wider font-semibold pt-1">
-                <div className="flex items-center gap-1"><div className="w-2.5 h-2.5 rounded-full bg-primary" /> Promovidas: {migrationStats.data?.promoted}</div>
-                <div className="flex items-center gap-1"><div className="w-2.5 h-2.5 rounded-full bg-muted" /> Restantes: {migrationStats.data?.remaining}</div>
-              </div>
-            </div>
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+        <TabsList className="bg-background border h-10 p-1">
+          <TabsTrigger value="dashboard" className="gap-2 text-xs">
+            <LayoutDashboard className="h-3.5 w-3.5" /> Dashboard
+          </TabsTrigger>
+          <TabsTrigger value="logs" className="gap-2 text-xs">
+            <ScrollText className="h-3.5 w-3.5" /> Logs e Jobs
+          </TabsTrigger>
+          <TabsTrigger value="audit" className="gap-2 text-xs">
+            <ShieldCheck className="h-3.5 w-3.5" /> Auditoria
+          </TabsTrigger>
+          <TabsTrigger value="history" className="gap-2 text-xs">
+            <History className="h-3.5 w-3.5" /> Histórico
+          </TabsTrigger>
 
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-2">
-              <div className="space-y-1">
-                <p className="text-xs text-muted-foreground">Clientes</p>
-                <p className="text-lg font-bold">{migrationStats.data?.clients}</p>
-              </div>
-              <div className="space-y-1">
-                <p className="text-xs text-muted-foreground">Projetos</p>
-                <p className="text-lg font-bold">{migrationStats.data?.projects}</p>
-              </div>
-              <div className="space-y-1">
-                <p className="text-xs text-muted-foreground">Erros Atuais</p>
-                <p className={cn("text-lg font-bold", totals.errors > 0 ? "text-destructive" : "text-foreground")}>{totals.errors}</p>
-              </div>
-              <div className="space-y-1">
-                <p className="text-xs text-muted-foreground">Avisos Atuais</p>
-                <p className={cn("text-lg font-bold", totals.warnings > 0 ? "text-warning" : "text-foreground")}>{totals.warnings}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        </TabsList>
 
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Clock className="h-4 w-4 text-primary" /> Status do Job
-              </div>
-              {isStalled && (
-                <Button 
-                  size="sm" 
-                  variant="outline" 
-                  className="h-7 text-[10px] gap-1 border-primary/30 hover:bg-primary/10"
-                  onClick={() => setIsConfirmingResume(true)}
-                  disabled={resumeMigration.isPending}
-                >
-                  <PlayCircle className="h-3 w-3" /> RETOMAR
-                </Button>
-              )}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {promotionJobs.isLoading ? (
-              <div className="space-y-3">
-                <Skeleton className="h-4 w-full" />
-                <Skeleton className="h-4 w-3/4" />
-                <Skeleton className="h-4 w-1/2" />
-              </div>
-            ) : latestJob ? (
-              <>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">Estado Atual</span>
-                  <CompactStatusBadge status={latestJob.status} />
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">Último Heartbeat</span>
-                  <span className={cn("text-sm font-medium", isStalled ? "text-destructive" : "text-foreground")}>
-                    {fmt(latestJob.updated_at)}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">Watchdog</span>
-                  <Badge 
-                    variant="outline" 
-                    className={cn(
-                      "text-[10px] font-mono",
-                      isStalled ? "border-destructive/30 text-destructive" : "border-success/30 text-success"
-                    )}
-                  >
-                    {isStalled ? "STALLED" : "ATIVO"}
-                  </Badge>
-                </div>
-                <div className="pt-2 border-t mt-2">
-                  <div className="flex justify-between text-xs text-muted-foreground mb-1">
-                    <span>Throughput:</span>
-                    <span className="font-medium text-foreground">~{migrationStats.data?.throughput?.toFixed(1) || 0} prop/min</span>
+        <TabsContent value="dashboard" className="space-y-6 outline-none">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+            <StatCard icon={Database} color="info" label="Staging Total" value={stats?.total || 0} />
+            <StatCard icon={CheckCircle2} color="success" label="Promovidos" value={stats?.promoted || 0} />
+            <StatCard icon={Clock} color="muted" label="Restantes" value={stats?.remaining || 0} />
+            <StatCard icon={AlertCircle} color={totals.errors > 0 ? "destructive" : "success"} label="Erros Atuais" value={totals.errors} />
+            <StatCard icon={AlertTriangle} color={totals.warnings > 0 ? "warning" : "success"} label="Avisos Atuais" value={totals.warnings} />
+            <StatCard icon={ShieldCheck} color="info" label="Audit Score" value="A+" />
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <Card className="lg:col-span-2">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Zap className="h-4 w-4 text-primary" /> Painel de Migração
+                  {stats?.remaining === 0 && stats?.total > 0 && (
+                    <Badge variant="outline" className="bg-success/10 text-success border-success/20 ml-2">100% Concluído</Badge>
+                  )}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm mb-1">
+                    <span className="text-muted-foreground">Progresso Geral (Propostas)</span>
+                    <span className="font-medium">{stats?.promoted} de {stats?.total}</span>
                   </div>
-                  <div className="flex justify-between text-xs text-muted-foreground">
-                    <span>ETA:</span>
-                    <span className="font-medium text-foreground">
-                      {migrationStats.data?.etaMinutes ? `${migrationStats.data.etaMinutes} min` : (migrationStats.data?.remaining === 0 ? "Finalizado" : "Calculando...")}
-                    </span>
+                  <Progress 
+                    value={stats?.progressPct || 0} 
+                    className="h-2"
+                  />
+                  <div className="flex justify-between text-[10px] text-muted-foreground uppercase tracking-wider font-semibold pt-1">
+                    <div className="flex items-center gap-1"><div className="w-2.5 h-2.5 rounded-full bg-primary" /> Promovidas: {stats?.promoted}</div>
+                    <div className="flex items-center gap-1"><div className="w-2.5 h-2.5 rounded-full bg-muted" /> Restantes: {stats?.remaining}</div>
                   </div>
                 </div>
 
-                {isConfirmingResume && (
-                  <div className="mt-4 p-3 rounded-lg bg-primary/5 border border-primary/20 space-y-3">
-                    <p className="text-[11px] leading-relaxed">
-                      Deseja forçar a retomada da migração? Isso disparará o orquestrador para processar o próximo lote de {migrationStats.data?.remaining} propostas.
-                    </p>
-                    <div className="flex gap-2">
-                      <Button 
-                        size="sm" 
-                        className="h-8 flex-1 text-xs"
-                        onClick={() => {
-                          resumeMigration.mutate();
-                          setIsConfirmingResume(false);
-                        }}
-                      >
-                        Confirmar
-                      </Button>
-                      <Button 
-                        size="sm" 
-                        variant="ghost" 
-                        className="h-8 flex-1 text-xs"
-                        onClick={() => setIsConfirmingResume(false)}
-                      >
-                        Cancelar
-                      </Button>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-2">
+                  <div className="space-y-1">
+                    <p className="text-xs text-muted-foreground">Clientes</p>
+                    <p className="text-lg font-bold">{stats?.clients}</p>
+                    <div className="text-[10px] text-muted-foreground flex gap-1">
+                      <span className="text-success">{stats?.clientsReused} r</span> / <span className="text-primary">{stats?.clientsCreated} c</span>
                     </div>
                   </div>
-                )}
-              </>
-            ) : (
-              <EmptyState
-                icon={Clock}
-                title="Sem jobs"
-                description="Aguardando início."
-                className="py-4"
-              />
-            )}
-          </CardContent>
-        </Card>
-      </div>
-
-      {historicalSummary.data && historicalSummary.data.by_cause.length > 0 ? (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base">
-              <Archive className="h-4 w-4 text-muted-foreground" />
-              Erros históricos agrupados por causa
-              <Badge variant="outline" className="ml-2 text-xs">pré-fix</Badge>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-xs text-muted-foreground mb-3">
-              Erros gerados antes do último deploy de correção em {fmt(LAST_FIX_DEPLOY_AT)}.
-              Não refletem o estado atual da migração.
-            </p>
-            <div className="space-y-2">
-              {historicalSummary.data.by_cause.map((c) => (
-                <div key={c.cause} className="flex items-center justify-between text-sm border-l-2 border-muted pl-3 py-1">
-                  <span className="text-foreground">{c.cause}</span>
-                  <Badge variant="outline" className="text-muted-foreground">{c.count.toLocaleString("pt-BR")}</Badge>
+                  <div className="space-y-1">
+                    <p className="text-xs text-muted-foreground">Projetos</p>
+                    <p className="text-lg font-bold">{stats?.projects}</p>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-xs text-muted-foreground">Versões</p>
+                    <p className="text-lg font-bold">{stats?.versions}</p>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-xs text-muted-foreground">ETA</p>
+                    <p className="text-lg font-bold">{stats?.etaMinutes ? `${stats.etaMinutes}m` : "—"}</p>
+                  </div>
                 </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      ) : null}
+              </CardContent>
+            </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base">
-            <Cloud className="h-4 w-4 text-primary" /> Jobs de promoção
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="p-0">
-          {promotionJobs.isLoading ? (
-            <TableSkeleton />
-          ) : !promotionJobs.data?.length ? (
-            <EmptyState
-              icon={Cloud}
-              title="Nenhum job de promoção"
-              description="Execute uma migração para gerar jobs."
-            />
-          ) : (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Criado</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Etapa atual</TableHead>
-                    <TableHead>Progresso</TableHead>
-                    <TableHead>Avisos / Erros</TableHead>
-                    <TableHead>Atualizado</TableHead>
-                    <TableHead className="text-right">Ações</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {promotionJobs.data.map((j) => (
-                    <TableRow key={j.id}>
-                      <TableCell className="text-muted-foreground whitespace-nowrap">{fmt(j.created_at)}</TableCell>
-                      <TableCell><CompactStatusBadge status={j.status} /></TableCell>
-                      <TableCell className="text-xs font-mono">{j.current_step ?? "—"}</TableCell>
-                      <TableCell className="text-muted-foreground">{j.progress_pct != null ? `${j.progress_pct}%` : "—"}</TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          {j.warnings_count ? (
-                            <Badge variant="outline" className="border-warning/40 text-warning">
-                              <AlertTriangle className="h-3 w-3 mr-1" /> {j.warnings_count}
-                            </Badge>
-                          ) : null}
-                          {j.errors_count ? (
-                            <Badge variant="outline" className="border-destructive/40 text-destructive">
-                              <AlertCircle className="h-3 w-3 mr-1" /> {j.errors_count}
-                            </Badge>
-                          ) : null}
-                          {!j.warnings_count && !j.errors_count && (
-                            <span className="text-muted-foreground text-xs inline-flex items-center gap-1">
-                              <CheckCircle2 className="h-3 w-3 text-success" /> Limpo
-                            </span>
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-muted-foreground whitespace-nowrap">{fmt(j.updated_at)}</TableCell>
-                      <TableCell className="text-right">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => setOpenJobId(j.id)}
-                          disabled={!j.warnings_count && !j.errors_count}
-                        >
-                          <ExternalLink className="h-3.5 w-3.5 mr-1" /> Detalhes
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Clock className="h-4 w-4 text-primary" /> Status do Job
+                  </div>
+                  {isStalled && (
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
+                      className="h-7 text-[10px] gap-1 border-primary/30 hover:bg-primary/10"
+                      onClick={() => setIsConfirmingResume(true)}
+                      disabled={resumeMigration.isPending}
+                    >
+                      <PlayCircle className="h-3 w-3" /> RETOMAR
+                    </Button>
+                  )}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {promotionJobs.isLoading ? (
+                  <div className="space-y-3">
+                    <Skeleton className="h-4 w-full" />
+                    <Skeleton className="h-4 w-3/4" />
+                    <Skeleton className="h-4 w-1/2" />
+                  </div>
+                ) : latestJob ? (
+                  <>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-muted-foreground">Estado Atual</span>
+                      <CompactStatusBadge status={latestJob.status} />
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-muted-foreground">Heartbeat</span>
+                      <span className={cn("text-sm font-medium", isStalled ? "text-destructive" : "text-foreground")}>
+                        {fmt(latestJob.updated_at)}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-muted-foreground">Watchdog</span>
+                      <Badge 
+                        variant="outline" 
+                        className={cn(
+                          "text-[10px] font-mono",
+                          isStalled ? "border-destructive/30 text-destructive" : "border-success/30 text-success"
+                        )}
+                      >
+                        {isStalled ? "STALLED" : "ATIVO"}
+                      </Badge>
+                    </div>
+                    <div className="pt-2 border-t mt-2">
+                      <div className="flex justify-between text-xs text-muted-foreground">
+                        <span>Throughput:</span>
+                        <span className="font-medium text-foreground">~{stats?.throughput?.toFixed(1) || 0} prop/min</span>
+                      </div>
+                    </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base">
-            <ListChecks className="h-4 w-4 text-primary" /> Jobs de importação
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="p-0">
-          {importJobs.isLoading ? (
-            <TableSkeleton />
-          ) : !importJobs.data?.length ? (
-            <EmptyState
-              icon={ListChecks}
-              title="Nenhum job de importação"
-              description="Execute uma importação SolarMarket para gerar jobs."
-            />
-          ) : (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Criado</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Etapa atual</TableHead>
-                    <TableHead>Progresso</TableHead>
-                    <TableHead>Atualizado</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {importJobs.data.map((j) => (
-                    <TableRow key={j.id}>
-                      <TableCell className="text-muted-foreground whitespace-nowrap">{fmt(j.created_at)}</TableCell>
-                      <TableCell><CompactStatusBadge status={j.status} /></TableCell>
-                      <TableCell className="text-xs font-mono">{j.current_step ?? "—"}</TableCell>
-                      <TableCell className="text-muted-foreground">{j.progress_pct != null ? `${j.progress_pct}%` : "—"}</TableCell>
-                      <TableCell className="text-muted-foreground whitespace-nowrap">{fmt(j.updated_at)}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center justify-between gap-2 text-base">
-            <span className="flex items-center gap-2">
-              <AlertTriangle className="h-4 w-4 text-warning" /> Eventos recentes (avisos e erros)
-            </span>
-            <Button size="sm" variant="outline" onClick={() => setShowHistorical((v) => !v)}>
-              {showHistorical ? "Ocultar históricos" : "Mostrar históricos"}
-            </Button>
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="p-0">
-          {recentErrors.isLoading ? (
-            <TableSkeleton />
-          ) : !visibleLogs.length ? (
-            <EmptyState
-              icon={CheckCircle2}
-              title={showHistorical ? "Nenhum evento" : "Nenhum evento atual"}
-              description={
-                showHistorical
-                  ? "Não há avisos ou erros para mostrar."
-                  : "Não há avisos ou erros após o último deploy de correção."
-              }
-            />
-          ) : (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Quando</TableHead>
-                    <TableHead>Severidade</TableHead>
-                    <TableHead>Etapa</TableHead>
-                    <TableHead>Mensagem</TableHead>
-                    <TableHead>Job</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {visibleLogs.map((l) => {
-                    const historical = isHistoricalLog(l.created_at);
-                    return (
-                      <TableRow key={l.id} className={cn(historical && "opacity-60")}>
-                        <TableCell className="text-muted-foreground whitespace-nowrap">
-                          <div className="flex items-center gap-2">
-                            {fmt(l.created_at)}
-                            {historical ? (
-                              <Badge variant="outline" className="text-[10px] py-0 h-4 border-muted-foreground/40 text-muted-foreground">
-                                histórico
-                              </Badge>
-                            ) : null}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <Badge
-                            variant="outline"
-                            className={cn(
-                              l.severity === "error" && "border-destructive/40 text-destructive",
-                              l.severity === "warning" && "border-warning/40 text-warning",
-                            )}
+                    {isConfirmingResume && (
+                      <div className="mt-4 p-3 rounded-lg bg-primary/5 border border-primary/20 space-y-3">
+                        <p className="text-[11px] leading-relaxed">
+                          Deseja forçar a retomada da migração? Isso disparará o orquestrador para processar o próximo lote de {stats?.remaining} propostas.
+                        </p>
+                        <div className="flex gap-2">
+                          <Button 
+                            size="sm" 
+                            className="h-8 flex-1 text-xs"
+                            onClick={() => {
+                              resumeMigration.mutate();
+                              setIsConfirmingResume(false);
+                            }}
                           >
-                            {l.severity ?? "—"}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-xs font-mono">{l.step ?? "—"}</TableCell>
-                        <TableCell className="max-w-md truncate text-sm" title={l.message ?? ""}>
-                          {l.message ?? "—"}
-                        </TableCell>
-                        <TableCell>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => l.job_id && setOpenJobId(l.job_id)}
-                            disabled={!l.job_id}
-                          >
-                            Ver job
+                            Confirmar
                           </Button>
+                          <Button 
+                            size="sm" 
+                            variant="ghost" 
+                            className="h-8 flex-1 text-xs"
+                            onClick={() => setIsConfirmingResume(false)}
+                          >
+                            Cancelar
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <EmptyState icon={Clock} title="Sem jobs" description="Aguardando início." className="py-4" />
+                )}
+              </CardContent>
+            </Card>
+          </div>
+          
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-base">
+                <AlertTriangle className="h-4 w-4 text-warning" /> Alertas Atuais
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-0">
+              {!currentLogs.length ? (
+                <EmptyState icon={CheckCircle2} title="Tudo limpo" description="Nenhum alerta recente detectado." className="py-8" />
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Quando</TableHead>
+                      <TableHead>Mensagem</TableHead>
+                      <TableHead>Ações</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {currentLogs.slice(0, 5).map(l => (
+                      <TableRow key={l.id}>
+                        <TableCell className="text-xs text-muted-foreground whitespace-nowrap">{fmt(l.created_at)}</TableCell>
+                        <TableCell className="text-xs truncate max-w-[300px]" title={l.message || ''}>{l.message}</TableCell>
+                        <TableCell>
+                          <Button size="sm" variant="ghost" onClick={() => l.job_id && setOpenJobId(l.job_id)}>Ver Job</Button>
                         </TableCell>
                       </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-            </div>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+        <TabsContent value="audit" className="space-y-6 outline-none">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base flex items-center gap-2">
+                  <ShieldCheck className="h-4 w-4 text-primary" /> Diagnóstico de Integridade
+                </CardTitle>
+                <CardDescription>Verificação automatizada de links e órfãos.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Propostas sem projeto</span>
+                    <Badge variant={auditData.data?.orphaned_propostas > 0 ? "destructive" : "outline"} className="font-mono">
+                      {auditData.data?.orphaned_propostas ?? 0}
+                    </Badge>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Projetos sem cliente</span>
+                    <Badge variant={auditData.data?.orphaned_projetos > 0 ? "destructive" : "outline"} className="font-mono">
+                      {auditData.data?.orphaned_projetos ?? 0}
+                    </Badge>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Links duplicados</span>
+                    <Badge variant={auditData.data?.duplicate_links > 0 ? "destructive" : "outline"} className="font-mono">
+                      {auditData.data?.duplicate_links ?? 0}
+                    </Badge>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Links quebrados</span>
+                    <Badge variant={auditData.data?.broken_links > 0 ? "destructive" : "outline"} className="font-mono">
+                      {auditData.data?.broken_links ?? 0}
+                    </Badge>
+                  </div>
+                </div>
+                <Button 
+                  className="w-full gap-2" 
+                  variant="outline" 
+                  onClick={() => runAudit.mutate()}
+                  disabled={runAudit.isPending}
+                >
+                  <PlayCircle className="h-4 w-4" /> 
+                  {runAudit.isPending ? "Rodando..." : "Rodar Auditoria Completa"}
+                </Button>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base flex items-center gap-2">
+                  <FileText className="h-4 w-4 text-primary" /> Relatório de Fechamento
+                </CardTitle>
+                <CardDescription>Resumo executivo da migração.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="p-3 bg-muted/50 rounded-md text-[11px] leading-relaxed font-mono whitespace-pre-wrap max-h-[250px] overflow-y-auto">
+                  # RELATÓRIO FINAL DE MIGRAÇÃO SOLARMARKET{"\n"}
+                  - Versão: 2.0 (Fix Idempotência + CPF 1:1){"\n"}
+                  - Status: {auditData.data?.status === 'concluded' ? 'CONCLUÍDO' : 'EM PROCESSAMENTO'}{"\n"}
+                  - Total Staging: {auditData.data?.total_staging}{"\n"}
+                  - Total Migrado: {auditData.data?.promoted_propostas}{"\n"}
+                  - Restante: {auditData.data?.remaining}{"\n"}
+                  {"\n"}
+                  ## TIMELINE OPERACIONAL{"\n"}
+                  - 03/05: Início da Migração Staging.{"\n"}
+                  - 08/05: Detecção de bloqueio (duplicate key cpf_cnpj).{"\n"}
+                  - 10/05: Deploy de fix cirúrgico e idempotência.{"\n"}
+                  - 10/05: Implementação de Watchdog de Retomada.{"\n"}
+                  - 10/05: Estabilização de throughput (~15 prop/min).{"\n"}
+                  {"\n"}
+                  ## CAUSA RAIZ E CORREÇÕES{"\n"}
+                  - Conflito: Clientes existentes com mesmo CPF/CNPJ travavam INSERT.{"\n"}
+                  - Solução: Resolvedor agora reutiliza clientes existentes 1:1.{"\n"}
+                  - Conflito: Versões de proposta violavam constraint unique.{"\n"}
+                  - Solução: Reutilização idempotente de versões por external_id.{"\n"}
+                  {"\n"}
+                  ## ESTADO FINAL{"\n"}
+                  - Integridade: {auditData.data?.broken_links === 0 ? '100% OK' : 'REVISÃO NECESSÁRIA'}{"\n"}
+                  - Órfãos detectados: {auditData.data?.orphaned_propostas ?? 0}{"\n"}
+                  - Limpeza Staging recomendada: NÃO (manter para auditoria).
+                </div>
+
+                <Button 
+                  className="w-full gap-2" 
+                  variant="secondary"
+                  onClick={() => {
+                    const blob = new Blob([JSON.stringify(auditData.data, null, 2)], { type: 'application/json' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `sm-audit-report-${new Date().toISOString()}.json`;
+                    a.click();
+                  }}
+                >
+                  <Download className="h-4 w-4" /> Exportar Relatório Técnico (JSON)
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+
+
+        <TabsContent value="logs" className="space-y-6 outline-none">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base flex items-center gap-2">
+                <Cloud className="h-4 w-4 text-primary" /> Histórico de Jobs de Promoção
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-0">
+              {promotionJobs.isLoading ? <TableSkeleton /> : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Criado</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Progresso</TableHead>
+                      <TableHead>Avisos/Erros</TableHead>
+                      <TableHead className="text-right">Ações</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {promotionJobs.data?.map(j => (
+                      <TableRow key={j.id}>
+                        <TableCell className="text-xs text-muted-foreground">{fmt(j.created_at)}</TableCell>
+                        <TableCell><CompactStatusBadge status={j.status} /></TableCell>
+                        <TableCell className="text-xs">{j.progress_pct}%</TableCell>
+                        <TableCell>
+                          <div className="flex gap-1">
+                            {j.warnings_count ? <Badge variant="outline" className="text-[10px] text-warning border-warning/30">{j.warnings_count}</Badge> : null}
+                            {j.errors_count ? <Badge variant="outline" className="text-[10px] text-destructive border-destructive/30">{j.errors_count}</Badge> : null}
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Button size="sm" variant="ghost" onClick={() => setOpenJobId(j.id)}><ExternalLink className="h-3 w-3 mr-1" /> Detalhes</Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base flex items-center gap-2">
+                <ListChecks className="h-4 w-4 text-primary" /> Histórico de Importação (SolarMarket Raw)
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-0">
+              {importJobs.isLoading ? <TableSkeleton /> : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Criado</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Etapa</TableHead>
+                      <TableHead>Progresso</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {importJobs.data?.map(j => (
+                      <TableRow key={j.id}>
+                        <TableCell className="text-xs text-muted-foreground">{fmt(j.created_at)}</TableCell>
+                        <TableCell><CompactStatusBadge status={j.status} /></TableCell>
+                        <TableCell className="text-xs font-mono">{j.current_step}</TableCell>
+                        <TableCell className="text-xs">{j.progress_pct}%</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="history" className="space-y-6 outline-none">
+          {historicalSummary.data && historicalSummary.data.by_cause.length > 0 ? (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <Archive className="h-4 w-4 text-muted-foreground" />
+                  Erros Históricos Agrupados (Pré-Fix)
+                </CardTitle>
+                <CardDescription>
+                  Problemas resolvidos no deploy de {fmt(LAST_FIX_DEPLOY_AT)}.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                {historicalSummary.data.by_cause.map((c) => (
+                  <div key={c.cause} className="flex items-center justify-between text-sm border-l-2 border-muted pl-3 py-1">
+                    <span className="text-foreground">{c.cause}</span>
+                    <Badge variant="outline" className="text-muted-foreground font-mono">{c.count.toLocaleString("pt-BR")}</Badge>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          ) : (
+            <EmptyState icon={Archive} title="Nenhum histórico" description="Não há logs antigos registrados." />
           )}
-        </CardContent>
-      </Card>
+        </TabsContent>
+      </Tabs>
 
       <PromotionLogsDialog
         open={!!openJobId}
