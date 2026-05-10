@@ -74,7 +74,7 @@ function CompactStatusBadge({ status }: { status?: string }) {
 }
 
 export default function SolarmarketLogsPage() {
-  const { promotionJobs, importJobs, recentErrors, historicalSummary, migrationStats, resumeMigration, exportLogs, auditData, runAudit } = useSolarmarketLogsPage();
+  const { promotionJobs, importJobs, recentErrors, historicalSummary, activeSummary, migrationStats, resumeMigration, exportLogs, auditData, runAudit } = useSolarmarketLogsPage();
   const [openJobId, setOpenJobId] = useState<string | null>(null);
   const [showHistorical, setShowHistorical] = useState(false);
   const [isConfirmingResume, setIsConfirmingResume] = useState(false);
@@ -90,8 +90,8 @@ export default function SolarmarketLogsPage() {
   const stats = migrationStats.data;
   const totals = {
     promotion: promotionJobs.data?.length ?? 0,
-    errors: currentLogs.filter((l) => l.severity === "error").length,
-    warnings: currentLogs.filter((l) => l.severity === "warning").length,
+    errors: activeSummary.data?.total_errors ?? 0,
+    warnings: activeSummary.data?.total_warnings ?? 0,
     historicalErrors: historicalSummary.data?.total_errors ?? 0,
   };
 
@@ -136,7 +136,13 @@ export default function SolarmarketLogsPage() {
             <StatCard icon={Database} color="info" label="Staging Total" value={stats?.total || 0} />
             <StatCard icon={CheckCircle2} color="success" label="Promovidos" value={stats?.promoted || 0} />
             <StatCard icon={Clock} color="muted" label="Restantes" value={stats?.remaining || 0} />
-            <StatCard icon={AlertCircle} color={totals.errors > 0 ? "destructive" : "success"} label="Erros Atuais" value={totals.errors} />
+            <StatCard 
+              icon={AlertCircle} 
+              color={totals.errors > 0 ? "destructive" : "success"} 
+              label="Erros Atuais" 
+              value={totals.errors} 
+              subtitle={`${totals.historicalErrors.toLocaleString('pt-BR')} históricos arquivados`}
+            />
             <StatCard icon={AlertTriangle} color={totals.warnings > 0 ? "warning" : "success"} label="Avisos Atuais" value={totals.warnings} />
             <StatCard icon={ShieldCheck} color="info" label="Audit Score" value="A+" />
           </div>
@@ -230,15 +236,15 @@ export default function SolarmarketLogsPage() {
                       </span>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-sm text-muted-foreground">Watchdog</span>
+                      <span className="text-sm text-muted-foreground">Saúde do Job</span>
                       <Badge 
                         variant="outline" 
                         className={cn(
                           "text-[10px] font-mono",
-                          isStalled ? "border-destructive/30 text-destructive" : "border-success/30 text-success"
+                          isStalled ? "border-destructive/30 text-destructive bg-destructive/5" : "border-success/30 text-success bg-success/5"
                         )}
                       >
-                        {isStalled ? "STALLED" : "ATIVO"}
+                        {isStalled ? "STALLED" : (totals.errors === 0 && (stats?.throughput || 0) > 0 ? "HEALTHY" : "ATIVO")}
                       </Badge>
                     </div>
                     <div className="pt-2 border-t mt-2">
@@ -318,7 +324,7 @@ export default function SolarmarketLogsPage() {
           </Card>
         </TabsContent>
         <TabsContent value="audit" className="space-y-6 outline-none">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <Card>
               <CardHeader>
                 <CardTitle className="text-base flex items-center gap-2">
@@ -442,7 +448,12 @@ export default function SolarmarketLogsPage() {
                   <TableBody>
                     {promotionJobs.data?.map(j => (
                       <TableRow key={j.id}>
-                        <TableCell className="text-xs text-muted-foreground">{fmt(j.created_at)}</TableCell>
+                        <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
+                          {fmt(j.created_at)}
+                          {isHistoricalLog(j.created_at) && (
+                            <Badge variant="outline" className="ml-2 text-[8px] h-3 px-1 bg-muted/20 text-muted-foreground border-muted-foreground/20">HISTÓRICO</Badge>
+                          )}
+                        </TableCell>
                         <TableCell><CompactStatusBadge status={j.status} /></TableCell>
                         <TableCell className="text-xs">{j.progress_pct}%</TableCell>
                         <TableCell>
