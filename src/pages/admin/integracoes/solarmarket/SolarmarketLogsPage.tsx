@@ -253,18 +253,27 @@ export default function SolarmarketLogsPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base">
-            <AlertTriangle className="h-4 w-4 text-warning" /> Eventos recentes (avisos e erros)
+          <CardTitle className="flex items-center justify-between gap-2 text-base">
+            <span className="flex items-center gap-2">
+              <AlertTriangle className="h-4 w-4 text-warning" /> Eventos recentes (avisos e erros)
+            </span>
+            <Button size="sm" variant="outline" onClick={() => setShowHistorical((v) => !v)}>
+              {showHistorical ? "Ocultar históricos" : "Mostrar históricos"}
+            </Button>
           </CardTitle>
         </CardHeader>
         <CardContent className="p-0">
           {recentErrors.isLoading ? (
             <TableSkeleton />
-          ) : !recentErrors.data?.length ? (
+          ) : !visibleLogs.length ? (
             <EmptyState
               icon={CheckCircle2}
-              title="Nenhum evento recente"
-              description="Não há avisos ou erros nos últimos jobs."
+              title={showHistorical ? "Nenhum evento" : "Nenhum evento atual"}
+              description={
+                showHistorical
+                  ? "Não há avisos ou erros para mostrar."
+                  : "Não há avisos ou erros após o último deploy de correção."
+              }
             />
           ) : (
             <div className="overflow-x-auto">
@@ -279,36 +288,48 @@ export default function SolarmarketLogsPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {recentErrors.data.map((l) => (
-                    <TableRow key={l.id}>
-                      <TableCell className="text-muted-foreground whitespace-nowrap">{fmt(l.created_at)}</TableCell>
-                      <TableCell>
-                        <Badge
-                          variant="outline"
-                          className={cn(
-                            l.severity === "error" && "border-destructive/40 text-destructive",
-                            l.severity === "warning" && "border-warning/40 text-warning",
-                          )}
-                        >
-                          {l.severity ?? "—"}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-xs font-mono">{l.step ?? "—"}</TableCell>
-                      <TableCell className="max-w-md truncate text-sm" title={l.message ?? ""}>
-                        {l.message ?? "—"}
-                      </TableCell>
-                      <TableCell>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => l.job_id && setOpenJobId(l.job_id)}
-                          disabled={!l.job_id}
-                        >
-                          Ver job
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                  {visibleLogs.map((l) => {
+                    const historical = isHistoricalLog(l.created_at);
+                    return (
+                      <TableRow key={l.id} className={cn(historical && "opacity-60")}>
+                        <TableCell className="text-muted-foreground whitespace-nowrap">
+                          <div className="flex items-center gap-2">
+                            {fmt(l.created_at)}
+                            {historical ? (
+                              <Badge variant="outline" className="text-[10px] py-0 h-4 border-muted-foreground/40 text-muted-foreground">
+                                histórico
+                              </Badge>
+                            ) : null}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge
+                            variant="outline"
+                            className={cn(
+                              l.severity === "error" && "border-destructive/40 text-destructive",
+                              l.severity === "warning" && "border-warning/40 text-warning",
+                            )}
+                          >
+                            {l.severity ?? "—"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-xs font-mono">{l.step ?? "—"}</TableCell>
+                        <TableCell className="max-w-md truncate text-sm" title={l.message ?? ""}>
+                          {l.message ?? "—"}
+                        </TableCell>
+                        <TableCell>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => l.job_id && setOpenJobId(l.job_id)}
+                            disabled={!l.job_id}
+                          >
+                            Ver job
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
                 </TableBody>
               </Table>
             </div>
