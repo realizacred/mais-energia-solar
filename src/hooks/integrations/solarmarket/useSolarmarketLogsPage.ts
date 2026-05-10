@@ -215,28 +215,29 @@ export function useSolarmarketLogsPage() {
       };
     }
   });
-  const auditData = useQuery({
+  const auditData = useQuery<SmAuditData | null>({
     queryKey: ["sm-audit", tenantId],
     enabled: !!tenantId,
     queryFn: async () => {
       const { data, error } = await supabase.rpc('audit_sm_migration', { p_tenant_id: tenantId });
       if (error) throw error;
-      return data;
+      return data as SmAuditData;
     },
     staleTime: 60 * 1000,
   });
 
-  const runAudit = useMutation({
+  const runAudit = useMutation<SmAuditData, Error, void>({
     mutationFn: async () => {
       const { data, error } = await supabase.rpc('audit_sm_migration', { p_tenant_id: tenantId });
       if (error) throw error;
-      return data;
+      return data as SmAuditData;
     },
     onSuccess: () => {
       toast.success("Auditoria concluída com sucesso");
       queryClient.invalidateQueries({ queryKey: ["sm-audit"] });
     }
   });
+
 
 
 
