@@ -171,7 +171,7 @@ export function useOrcamentosAdmin({
 
       setOrcamentos(displayItems);
       setTotalCount(orcamentosRes.count || 0);
-      setStats(statsRes.data as ConversionStats);
+      setStats(statsRes.data as unknown as ConversionStats);
       
       if (statusesRes.data) {
         setStatuses(statusesRes.data);
