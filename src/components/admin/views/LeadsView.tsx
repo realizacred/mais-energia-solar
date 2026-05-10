@@ -26,7 +26,7 @@ import type { Lead } from "@/types/lead";
 
 export function LeadsView() {
   const [searchTerm, setSearchTerm] = useState("");
-  const [filterVisto, setFilterVisto] = useState("nao_visto");
+  const [filterVisto, setFilterVisto] = useState("todos");
   const [filterVendedor, setFilterVendedor] = useState("todos");
   const [filterEstado, setFilterEstado] = useState("todos");
   const [filterStatus, setFilterStatus] = useState("todos");
