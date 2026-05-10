@@ -18,9 +18,8 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { StatusBadge } from "@/components/ui-kit";
 import { Progress } from "@/components/ui/progress";
-import { PageHeader, StatCard, EmptyState } from "@/components/ui-kit";
+import { PageHeader, StatCard, EmptyState, StatusBadge } from "@/components/ui-kit";
 import { ScrollText, AlertTriangle, AlertCircle, CheckCircle2, ListChecks, Cloud, ExternalLink, Archive, PlayCircle, Clock, Zap } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -51,6 +50,25 @@ function TableSkeleton({ rows = 4 }: { rows?: number }) {
         <Skeleton key={i} className="h-10 w-full" />
       ))}
     </div>
+  );
+}
+
+function CompactStatusBadge({ status }: { status?: string }) {
+  const s = (status || "pending").toLowerCase();
+  let variant: "success" | "warning" | "destructive" | "info" | "primary" | "secondary" | "muted" = "muted";
+  let label = status || "Pendente";
+
+  if (s === "completed" || s === "success") { variant = "success"; label = "Concluído"; }
+  else if (s === "running" || s === "processing") { variant = "primary"; label = "Em execução"; }
+  else if (s === "failed" || s === "error") { variant = "destructive"; label = "Falhou"; }
+  else if (s === "completed_with_warnings" || s === "warning") { variant = "warning"; label = "Concluído c/ avisos"; }
+  else if (s === "pending") { variant = "muted"; label = "Pendente"; }
+  else if (s === "cancelled") { variant = "secondary"; label = "Cancelado"; }
+
+  return (
+    <StatusBadge variant={variant} dot>
+      {label}
+    </StatusBadge>
   );
 }
 
@@ -165,7 +183,7 @@ export default function SolarmarketLogsPage() {
               <>
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-muted-foreground">Estado Atual</span>
-                  <StatusBadge status={promotionJobs.data[0].status} size="sm" />
+                  <CompactStatusBadge status={promotionJobs.data[0].status} />
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-muted-foreground">Último Heartbeat</span>
@@ -246,7 +264,7 @@ export default function SolarmarketLogsPage() {
                   {promotionJobs.data.map((j) => (
                     <TableRow key={j.id}>
                       <TableCell className="text-muted-foreground whitespace-nowrap">{fmt(j.created_at)}</TableCell>
-                      <TableCell><StatusBadge status={j.status} size="sm" /></TableCell>
+                      <TableCell><CompactStatusBadge status={j.status} /></TableCell>
                       <TableCell className="text-xs font-mono">{j.current_step ?? "—"}</TableCell>
                       <TableCell className="text-muted-foreground">{j.progress_pct != null ? `${j.progress_pct}%` : "—"}</TableCell>
                       <TableCell>
@@ -319,7 +337,7 @@ export default function SolarmarketLogsPage() {
                   {importJobs.data.map((j) => (
                     <TableRow key={j.id}>
                       <TableCell className="text-muted-foreground whitespace-nowrap">{fmt(j.created_at)}</TableCell>
-                      <TableCell><StatusBadge status={j.status} size="sm" /></TableCell>
+                      <TableCell><CompactStatusBadge status={j.status} /></TableCell>
                       <TableCell className="text-xs font-mono">{j.current_step ?? "—"}</TableCell>
                       <TableCell className="text-muted-foreground">{j.progress_pct != null ? `${j.progress_pct}%` : "—"}</TableCell>
                       <TableCell className="text-muted-foreground whitespace-nowrap">{fmt(j.updated_at)}</TableCell>
