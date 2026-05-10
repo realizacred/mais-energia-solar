@@ -31,6 +31,11 @@ export interface SmJobSummary {
   status: string;
   current_step: string | null;
   progress_pct: number | null;
+  items_processed: number | null;
+  total_items: number | null;
+  items_promoted: number | null;
+  items_with_warnings: number | null;
+  items_with_errors: number | null;
   warnings_count: number | null;
   errors_count: number | null;
   created_at: string;
@@ -58,12 +63,17 @@ export function useSolarmarketLogsPage() {
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from("solarmarket_promotion_jobs")
-        .select("id,status,current_step,progress_pct,warnings_count,errors_count,created_at,updated_at")
+        .select("id,status,total_items,items_processed,items_promoted,items_with_warnings,items_with_errors,created_at,updated_at")
         .eq("tenant_id", tenantId!)
         .order("created_at", { ascending: false })
         .limit(20);
       if (error) throw error;
-      return (data ?? []) as SmJobSummary[];
+      return (data ?? []).map((j: any) => ({
+        ...j,
+        progress_pct: j.total_items ? Math.round((j.items_processed || 0) * 100 / j.total_items) : 0,
+        warnings_count: j.items_with_warnings,
+        errors_count: j.items_with_errors,
+      })) as SmJobSummary[];
     },
   });
 
@@ -148,7 +158,32 @@ export function useSolarmarketLogsPage() {
     },
   });
 
-  return { promotionJobs, importJobs, recentErrors, historicalSummary, tenantId };
+  const migrationStats = useQuery({
+    queryKey: ["sm-migration-stats", tenantId],
+    enabled: !!tenantId,
+    refetchInterval: 30 * 1000,
+    queryFn: async () => {
+      const [{ count: totalStaging }, { data: links }] = await Promise.all([
+        (supabase as any).from("sm_propostas_raw").select("*", { count: "exact", head: true }).eq("tenant_id", tenantId!),
+        (supabase as any).from("external_entity_links").select("entity_type").eq("source", "solarmarket").eq("tenant_id", tenantId!)
+      ]);
+
+      const counts = (links ?? []).reduce((acc: any, curr: any) => {
+        acc[curr.entity_type] = (acc[curr.entity_type] || 0) + 1;
+        return acc;
+      }, {});
+
+      return {
+        total: totalStaging || 0,
+        promoted: counts.proposta || 0,
+        clients: counts.cliente || 0,
+        projects: counts.projeto || 0,
+        remaining: (totalStaging || 0) - (counts.proposta || 0)
+      };
+    }
+  });
+
+  return { promotionJobs, importJobs, recentErrors, historicalSummary, migrationStats, tenantId };
 }
 
 /** Reduz mensagens semelhantes a uma causa única para agrupamento. */
