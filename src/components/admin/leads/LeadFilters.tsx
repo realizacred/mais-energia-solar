@@ -50,9 +50,12 @@ export function LeadFilters({
   onFilterEstadoChange,
   filterStatus,
   onFilterStatusChange,
+  filterConversao,
+  onFilterConversaoChange,
   vendedores,
   estados,
   statuses,
+  conversionStats,
   onClearFilters,
 }: LeadFiltersProps) {
   const activeCount = [
@@ -60,6 +63,7 @@ export function LeadFilters({
     filterVendedor !== "todos" ? 1 : 0,
     filterEstado !== "todos" ? 1 : 0,
     filterStatus !== "todos" ? 1 : 0,
+    filterConversao !== "todos" ? 1 : 0,
   ].reduce((a, b) => a + b, 0);
 
   return (
