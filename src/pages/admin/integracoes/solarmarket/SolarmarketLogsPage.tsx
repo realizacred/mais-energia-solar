@@ -20,9 +20,13 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { PageHeader, StatCard, EmptyState } from "@/components/ui-kit";
-import { ScrollText, AlertTriangle, AlertCircle, CheckCircle2, ListChecks, Cloud, ExternalLink } from "lucide-react";
+import { ScrollText, AlertTriangle, AlertCircle, CheckCircle2, ListChecks, Cloud, ExternalLink, Archive } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useSolarmarketLogsPage } from "@/hooks/integrations/solarmarket/useSolarmarketLogsPage";
+import {
+  useSolarmarketLogsPage,
+  isHistoricalLog,
+  LAST_FIX_DEPLOY_AT,
+} from "@/hooks/integrations/solarmarket/useSolarmarketLogsPage";
 import { PromotionLogsDialog } from "@/components/admin/solarmarket/PromotionLogsDialog";
 
 const TZ = "America/Sao_Paulo";
@@ -50,13 +54,21 @@ function TableSkeleton({ rows = 4 }: { rows?: number }) {
 }
 
 export default function SolarmarketLogsPage() {
-  const { promotionJobs, importJobs, recentErrors } = useSolarmarketLogsPage();
+  const { promotionJobs, importJobs, recentErrors, historicalSummary } = useSolarmarketLogsPage();
   const [openJobId, setOpenJobId] = useState<string | null>(null);
+  const [showHistorical, setShowHistorical] = useState(false);
+
+  // RB-MIG-LOG-PARTITION: separa logs em "atuais" (>= último fix) e "históricos".
+  // Contadores principais usam apenas atuais para refletir saúde da migração agora.
+  const allLogs = recentErrors.data ?? [];
+  const currentLogs = allLogs.filter((l) => !isHistoricalLog(l.created_at));
+  const visibleLogs = showHistorical ? allLogs : currentLogs;
 
   const totals = {
     promotion: promotionJobs.data?.length ?? 0,
-    errors: recentErrors.data?.filter((l) => l.severity === "error").length ?? 0,
-    warnings: recentErrors.data?.filter((l) => l.severity === "warning").length ?? 0,
+    errors: currentLogs.filter((l) => l.severity === "error").length,
+    warnings: currentLogs.filter((l) => l.severity === "warning").length,
+    historicalErrors: historicalSummary.data?.total_errors ?? 0,
   };
 
   return (
@@ -67,7 +79,7 @@ export default function SolarmarketLogsPage() {
         description="Histórico de jobs de importação, promoção e eventos recentes."
       />
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
           icon={Cloud}
           color="info"
@@ -77,16 +89,48 @@ export default function SolarmarketLogsPage() {
         <StatCard
           icon={AlertTriangle}
           color={totals.warnings > 0 ? "warning" : "success"}
-          label="Avisos recentes"
+          label="Avisos atuais"
           value={totals.warnings}
         />
         <StatCard
           icon={AlertCircle}
           color={totals.errors > 0 ? "destructive" : "success"}
-          label="Erros recentes"
+          label="Erros atuais"
           value={totals.errors}
         />
+        <StatCard
+          icon={Archive}
+          color="muted"
+          label={`Histórico (antes de ${fmt(LAST_FIX_DEPLOY_AT)})`}
+          value={totals.historicalErrors}
+        />
       </div>
+
+      {historicalSummary.data && historicalSummary.data.by_cause.length > 0 ? (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Archive className="h-4 w-4 text-muted-foreground" />
+              Erros históricos agrupados por causa
+              <Badge variant="outline" className="ml-2 text-xs">pré-fix</Badge>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-xs text-muted-foreground mb-3">
+              Erros gerados antes do último deploy de correção em {fmt(LAST_FIX_DEPLOY_AT)}.
+              Não refletem o estado atual da migração.
+            </p>
+            <div className="space-y-2">
+              {historicalSummary.data.by_cause.map((c) => (
+                <div key={c.cause} className="flex items-center justify-between text-sm border-l-2 border-muted pl-3 py-1">
+                  <span className="text-foreground">{c.cause}</span>
+                  <Badge variant="outline" className="text-muted-foreground">{c.count.toLocaleString("pt-BR")}</Badge>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      ) : null}
 
       <Card>
         <CardHeader>
@@ -209,18 +253,27 @@ export default function SolarmarketLogsPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base">
-            <AlertTriangle className="h-4 w-4 text-warning" /> Eventos recentes (avisos e erros)
+          <CardTitle className="flex items-center justify-between gap-2 text-base">
+            <span className="flex items-center gap-2">
+              <AlertTriangle className="h-4 w-4 text-warning" /> Eventos recentes (avisos e erros)
+            </span>
+            <Button size="sm" variant="outline" onClick={() => setShowHistorical((v) => !v)}>
+              {showHistorical ? "Ocultar históricos" : "Mostrar históricos"}
+            </Button>
           </CardTitle>
         </CardHeader>
         <CardContent className="p-0">
           {recentErrors.isLoading ? (
             <TableSkeleton />
-          ) : !recentErrors.data?.length ? (
+          ) : !visibleLogs.length ? (
             <EmptyState
               icon={CheckCircle2}
-              title="Nenhum evento recente"
-              description="Não há avisos ou erros nos últimos jobs."
+              title={showHistorical ? "Nenhum evento" : "Nenhum evento atual"}
+              description={
+                showHistorical
+                  ? "Não há avisos ou erros para mostrar."
+                  : "Não há avisos ou erros após o último deploy de correção."
+              }
             />
           ) : (
             <div className="overflow-x-auto">
@@ -235,36 +288,48 @@ export default function SolarmarketLogsPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {recentErrors.data.map((l) => (
-                    <TableRow key={l.id}>
-                      <TableCell className="text-muted-foreground whitespace-nowrap">{fmt(l.created_at)}</TableCell>
-                      <TableCell>
-                        <Badge
-                          variant="outline"
-                          className={cn(
-                            l.severity === "error" && "border-destructive/40 text-destructive",
-                            l.severity === "warning" && "border-warning/40 text-warning",
-                          )}
-                        >
-                          {l.severity ?? "—"}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-xs font-mono">{l.step ?? "—"}</TableCell>
-                      <TableCell className="max-w-md truncate text-sm" title={l.message ?? ""}>
-                        {l.message ?? "—"}
-                      </TableCell>
-                      <TableCell>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => l.job_id && setOpenJobId(l.job_id)}
-                          disabled={!l.job_id}
-                        >
-                          Ver job
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                  {visibleLogs.map((l) => {
+                    const historical = isHistoricalLog(l.created_at);
+                    return (
+                      <TableRow key={l.id} className={cn(historical && "opacity-60")}>
+                        <TableCell className="text-muted-foreground whitespace-nowrap">
+                          <div className="flex items-center gap-2">
+                            {fmt(l.created_at)}
+                            {historical ? (
+                              <Badge variant="outline" className="text-[10px] py-0 h-4 border-muted-foreground/40 text-muted-foreground">
+                                histórico
+                              </Badge>
+                            ) : null}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge
+                            variant="outline"
+                            className={cn(
+                              l.severity === "error" && "border-destructive/40 text-destructive",
+                              l.severity === "warning" && "border-warning/40 text-warning",
+                            )}
+                          >
+                            {l.severity ?? "—"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-xs font-mono">{l.step ?? "—"}</TableCell>
+                        <TableCell className="max-w-md truncate text-sm" title={l.message ?? ""}>
+                          {l.message ?? "—"}
+                        </TableCell>
+                        <TableCell>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => l.job_id && setOpenJobId(l.job_id)}
+                            disabled={!l.job_id}
+                          >
+                            Ver job
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
                 </TableBody>
               </Table>
             </div>
