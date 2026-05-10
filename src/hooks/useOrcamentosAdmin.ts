@@ -112,13 +112,15 @@ export function useOrcamentosAdmin({
           .eq("tenant_id", tenantId);
 
         if (filterConversao === "sem_proposta") {
-          viewQ = viewQ.eq("proposal_count", 0).neq("lead_status_nome", "Perdido");
+          // Semântica alinhada ao ícone de pasta: lead sem projeto vinculado
+          viewQ = viewQ.is("matched_projeto_id", null).neq("lead_status_nome", "Perdido");
         } else if (filterConversao === "com_proposta") {
-          viewQ = viewQ.gt("proposal_count", 0);
+          viewQ = viewQ.not("matched_projeto_id", "is", null);
         } else if (filterConversao === "sem_projeto") {
-          viewQ = viewQ.gt("proposal_count", 0).eq("project_count", 0).neq("lead_status_nome", "Perdido");
+          // Alias de "sem_proposta" — mesma definição (sem projeto vinculado)
+          viewQ = viewQ.is("matched_projeto_id", null).neq("lead_status_nome", "Perdido");
         } else if (filterConversao === "convertidos") {
-          viewQ = viewQ.gt("project_count", 0);
+          viewQ = viewQ.not("matched_projeto_id", "is", null);
         } else if (filterConversao === "perdidos") {
           viewQ = viewQ.eq("lead_status_nome", "Perdido");
         }
@@ -191,6 +193,10 @@ export function useOrcamentosAdmin({
         for (const r of (enrichRows || []) as any[]) {
           enrichMap.set(r.id, {
             projeto_id: r.matched_projeto_id ?? null,
+            // NOTE: tem_proposta controla apenas a COR do ícone (verde/vermelho).
+            // Semanticamente = "cliente matchado tem alguma proposta", NÃO
+            // "este projeto tem proposta". A existência do ícone é gated por
+            // projeto_id (matched_projeto_id), alinhado aos contadores.
             tem_proposta: (r.proposal_count ?? 0) > 0,
           });
         }
