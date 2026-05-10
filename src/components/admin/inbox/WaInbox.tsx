@@ -771,10 +771,6 @@ export function WaInbox({ vendorMode = false, vendorUserId, showCompactStats = f
         />
       </div>
 
-      {/* Chat Layout */}
-      <div
-        className="bg-card rounded-xl border border-border/40 shadow-sm flex-1 min-h-0 overflow-hidden"
-      >
       {/* View Switcher */}
       <div className="shrink-0 mb-2">
         <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="w-full">
@@ -821,7 +817,6 @@ export function WaInbox({ vendorMode = false, vendorUserId, showCompactStats = f
           />
         </div>
       ) : (
-        /* Chat Layout */
         <div
           className="bg-card rounded-xl border border-border/40 shadow-sm flex-1 min-h-0 overflow-hidden"
         >
