@@ -257,6 +257,11 @@ export function ProjetosManager() {
     if (storedPrefs.tipoProjetoSolar && storedPrefs.tipoProjetoSolar !== "todos" && filters.tipoProjetoSolar !== storedPrefs.tipoProjetoSolar) {
       updates.tipoProjetoSolar = storedPrefs.tipoProjetoSolar;
     }
+    if (Array.isArray(storedPrefs.etiquetaIds) && storedPrefs.etiquetaIds.length > 0) {
+      const current = filters.etiquetaIds || [];
+      const same = current.length === storedPrefs.etiquetaIds.length && current.every((id) => storedPrefs.etiquetaIds!.includes(id));
+      if (!same) updates.etiquetaIds = storedPrefs.etiquetaIds;
+    }
     // Só aplica funilId se: (a) view não for por consultor; (b) funil ainda existe no tenant.
     const funilExiste = !!funis.find((f) => f.id === storedPrefs.funilId);
     if (
