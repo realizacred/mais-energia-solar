@@ -3,10 +3,28 @@
  * Reaproveita tabelas: solarmarket_import_jobs, solarmarket_promotion_jobs,
  *   solarmarket_import_logs, solarmarket_promotion_logs.
  * RB-76: nenhuma tabela nova, nenhum motor novo. Somente leitura.
+ *
+ * RB-MIG-LOG-PARTITION: separa logs em "atuais" (>= LAST_FIX_DEPLOY_AT) e
+ * "históricos" (anteriores ao deploy do último fix). Os contadores principais
+ * da UI usam apenas "atuais"; os históricos ficam acessíveis sob badge.
  */
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useTenantId } from "@/hooks/useTenantId";
+
+/**
+ * Marco do último deploy de correção crítica em sm-promote (cpf_cnpj 1:1 +
+ * idempotência insertVersao). Logs anteriores são considerados "históricos"
+ * — não devem inflar contadores de saúde da migração atual.
+ *
+ * Atualizar este timestamp quando um novo fix significativo for deployado.
+ */
+export const LAST_FIX_DEPLOY_AT = "2026-05-10T18:54:00Z";
+
+export function isHistoricalLog(createdAt: string | null | undefined): boolean {
+  if (!createdAt) return false;
+  return new Date(createdAt).getTime() < new Date(LAST_FIX_DEPLOY_AT).getTime();
+}
 
 export interface SmJobSummary {
   id: string;
@@ -82,11 +100,69 @@ export function useSolarmarketLogsPage() {
         .eq("tenant_id", tenantId!)
         .in("severity", ["error", "warning"])
         .order("created_at", { ascending: false })
-        .limit(50);
+        .limit(200);
       if (error) throw error;
       return (data ?? []) as SmLogRow[];
     },
   });
 
-  return { promotionJobs, importJobs, recentErrors, tenantId };
+  /**
+   * Conta erros históricos agrupados por causa (mensagem normalizada).
+   * Usado para exibir um único card "Histórico (pré-fix)" com a contagem
+   * total de cada causa, em vez de listar 26k linhas iguais.
+   */
+  const historicalSummary = useQuery<{
+    total_errors: number;
+    total_warnings: number;
+    by_cause: Array<{ cause: string; count: number }>;
+  }>({
+    queryKey: ["sm-logs-page", "historical-summary", tenantId, LAST_FIX_DEPLOY_AT],
+    enabled: !!tenantId,
+    staleTime: 5 * 60 * 1000,
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("solarmarket_promotion_logs")
+        .select("severity,message")
+        .eq("tenant_id", tenantId!)
+        .in("severity", ["error", "warning"])
+        .lt("created_at", LAST_FIX_DEPLOY_AT)
+        .limit(50000);
+      if (error) throw error;
+      const rows = (data ?? []) as Array<{ severity: string; message: string | null }>;
+      const errorRows = rows.filter((r) => r.severity === "error");
+      const warningRows = rows.filter((r) => r.severity === "warning");
+      const causeCounts = new Map<string, number>();
+      for (const r of errorRows) {
+        const cause = normalizeCause(r.message);
+        causeCounts.set(cause, (causeCounts.get(cause) ?? 0) + 1);
+      }
+      const by_cause = Array.from(causeCounts.entries())
+        .map(([cause, count]) => ({ cause, count }))
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 20);
+      return {
+        total_errors: errorRows.length,
+        total_warnings: warningRows.length,
+        by_cause,
+      };
+    },
+  });
+
+  return { promotionJobs, importJobs, recentErrors, historicalSummary, tenantId };
+}
+
+/** Reduz mensagens semelhantes a uma causa única para agrupamento. */
+function normalizeCause(message: string | null): string {
+  if (!message) return "(sem mensagem)";
+  const m = message.toLowerCase();
+  if (m.includes("idx_clientes_tenant_cpf_cnpj_unique")) return "Cliente: CPF/CNPJ duplicado (resolvido)";
+  if (m.includes("uq_proposta_versao")) return "Proposta: versão duplicada (resolvido)";
+  if (m.includes("não autenticado") || m.includes("unauthorized") || m.includes("401")) return "Autenticação interna (resolvido)";
+  if (m.includes("duplicate key")) return "Duplicidade em índice único";
+  if (m.includes("insert cliente")) return "Falha ao inserir cliente";
+  if (m.includes("insert projeto")) return "Falha ao inserir projeto";
+  if (m.includes("insert proposta")) return "Falha ao inserir proposta";
+  if (m.includes("insert versao")) return "Falha ao inserir versão";
+  // Fallback: primeira frase ~80 chars
+  return message.length > 80 ? `${message.slice(0, 77)}…` : message;
 }
