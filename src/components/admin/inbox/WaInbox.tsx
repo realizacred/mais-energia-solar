@@ -32,6 +32,10 @@ import { WaInboxHeader } from "./WaInboxHeader";
 import { WaInboxNotificationBanner } from "@/components/notifications/WaInboxNotificationBanner";
 import { Button } from "@/components/ui/button";
 import type { WaConversation } from "@/hooks/useWaInbox";
+import { FollowUpIAView } from "./FollowUpIAView";
+import { useFollowUpQueue } from "@/hooks/useFollowUpQueue";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Sparkles } from "lucide-react";
 
 interface LeadAutoOpenData {
   phone: string;
@@ -125,6 +129,12 @@ export function WaInbox({ vendorMode = false, vendorUserId, showCompactStats = f
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [activeTab, setActiveTab] = useState<'inbox' | 'followup'>('inbox');
+  const { data: followUpItems = [] } = useFollowUpQueue();
+  
+  const needsAttentionCount = useMemo(() => 
+    followUpItems.filter(item => item.ai_context === 'needs_human_review').length
+  , [followUpItems]);
 
   // Determine the effective user for vendor mode
   const effectiveUserId = vendorUserId || (vendorMode ? user?.id : undefined);
@@ -761,70 +771,200 @@ export function WaInbox({ vendorMode = false, vendorUserId, showCompactStats = f
         />
       </div>
 
-      {/* Chat Layout */}
-      <div
-        className="bg-card rounded-xl border border-border/40 shadow-sm flex-1 min-h-0 overflow-hidden"
-      >
-        <div className="flex h-full min-h-0 min-w-0 w-full max-w-full overflow-hidden">
-          {/* Sidebar - Conversations (Desktop) */}
-          <div className={`${vendorMode ? "w-[320px]" : "w-[360px]"} shrink-0 hidden md:flex flex-col min-h-0 overflow-hidden`}>
-            <WaConversationList
-              conversations={filteredConvs}
-              loading={convsLoading}
-              selectedId={selectedConv?.id}
-              onSelect={handleSelectConversation}
-              search={search}
-              onSearchChange={setSearch}
-              filterStatus={filterStatus}
-              onFilterStatusChange={setFilterStatus}
-              filterAssigned={vendorMode ? "all" : filterAssigned}
-              onFilterAssignedChange={setFilterAssigned}
-              filterInstance={filterInstance}
-              onFilterInstanceChange={setFilterInstance}
-              filterTag={filterTag}
-              onFilterTagChange={setFilterTag}
-              vendedores={vendedores}
-              instances={instances}
-              tags={tags}
-              hideAssignedFilter={vendorMode}
-              showGroups={showGroups}
-              onShowGroupsChange={canViewGroups ? setShowGroups : undefined}
-              showHidden={showHidden}
-              onShowHiddenChange={canViewHidden ? setShowHidden : undefined}
-              mutedIds={mutedIds}
-              hiddenIds={hiddenIds}
-              followupConvIds={followupConvIds}
-              pinnedIds={pinnedIds}
-              onContextMenuConv={handleContextMenuConv}
-            />
-          </div>
+      {/* View Switcher */}
+      <div className="shrink-0 mb-2">
+        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="w-full">
+          <TabsList className="grid w-full grid-cols-2 max-w-[400px]">
+            <TabsTrigger value="inbox" className="gap-2">
+              <MessageCircle className="w-4 h-4" />
+              Conversas
+            </TabsTrigger>
+            <TabsTrigger value="followup" className="gap-2 relative">
+              <Sparkles className="w-4 h-4 text-primary" />
+              Follow-Up IA
+              {needsAttentionCount > 0 && (
+                <span className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground text-[10px] font-bold px-1.5 py-0.5 rounded-full ring-2 ring-background animate-pulse">
+                  {needsAttentionCount}
+                </span>
+              )}
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
+      </div>
 
-          {/* Mobile */}
-          <div
-            className="flex-1 flex flex-col md:hidden min-h-0 min-w-0 max-w-full overflow-hidden"
-            onTouchStart={(e) => {
-              const t = e.currentTarget;
-              (t as any)._swipeStartX = e.touches[0].clientX;
-              (t as any)._swipeStartY = e.touches[0].clientY;
-            }}
-            onTouchEnd={(e) => {
-              const t = e.currentTarget;
-              const startX = (t as any)._swipeStartX;
-              const startY = (t as any)._swipeStartY;
-              if (startX == null) return;
-              const dx = e.changedTouches[0].clientX - startX;
-              const dy = Math.abs(e.changedTouches[0].clientY - startY);
-              if (dx > 80 && dy < 60 && selectedConv) {
-                setSelectedConv(null);
+      {activeTab === 'followup' ? (
+        <div className="bg-card rounded-xl border border-border/40 shadow-sm flex-1 min-h-0 overflow-hidden">
+          <FollowUpIAView 
+            onSelectConversation={(id) => {
+              const conv = allConversations.find(c => c.id === id);
+              if (conv) {
+                handleSelectConversation(conv);
+                setActiveTab('inbox');
+              } else {
+                supabase
+                  .from("wa_conversations")
+                  .select("*")
+                  .eq("id", id)
+                  .maybeSingle()
+                  .then(({ data }) => {
+                    if (data) {
+                      handleSelectConversation(data as any);
+                      setActiveTab('inbox');
+                    }
+                  });
               }
-              (t as any)._swipeStartX = null;
-              (t as any)._swipeStartY = null;
             }}
-          >
-            {selectedConv ? (
-              <>
+          />
+        </div>
+      ) : (
+        <div
+          className="bg-card rounded-xl border border-border/40 shadow-sm flex-1 min-h-0 overflow-hidden"
+        >
+          <div className="flex h-full min-h-0 min-w-0 w-full max-w-full overflow-hidden">
+            {/* Sidebar - Conversations (Desktop) */}
+            <div className={`${vendorMode ? "w-[320px]" : "w-[360px]"} shrink-0 hidden md:flex flex-col min-h-0 overflow-hidden`}>
+              <WaConversationList
+                conversations={filteredConvs}
+                loading={convsLoading}
+                selectedId={selectedConv?.id}
+                onSelect={handleSelectConversation}
+                search={search}
+                onSearchChange={setSearch}
+                filterStatus={filterStatus}
+                onFilterStatusChange={setFilterStatus}
+                filterAssigned={vendorMode ? "all" : filterAssigned}
+                onFilterAssignedChange={setFilterAssigned}
+                filterInstance={filterInstance}
+                onFilterInstanceChange={setFilterInstance}
+                filterTag={filterTag}
+                onFilterTagChange={setFilterTag}
+                vendedores={vendedores}
+                instances={instances}
+                tags={tags}
+                hideAssignedFilter={vendorMode}
+                showGroups={showGroups}
+                onShowGroupsChange={canViewGroups ? setShowGroups : undefined}
+                showHidden={showHidden}
+                onShowHiddenChange={canViewHidden ? setShowHidden : undefined}
+                mutedIds={mutedIds}
+                hiddenIds={hiddenIds}
+                followupConvIds={followupConvIds}
+                pinnedIds={pinnedIds}
+                onContextMenuConv={handleContextMenuConv}
+              />
+            </div>
+
+            {/* Mobile */}
+            <div
+              className="flex-1 flex flex-col md:hidden min-h-0 min-w-0 max-w-full overflow-hidden"
+              onTouchStart={(e) => {
+                const t = e.currentTarget;
+                (t as any)._swipeStartX = e.touches[0].clientX;
+                (t as any)._swipeStartY = e.touches[0].clientY;
+              }}
+              onTouchEnd={(e) => {
+                const t = e.currentTarget;
+                const startX = (t as any)._swipeStartX;
+                const startY = (t as any)._swipeStartY;
+                if (startX == null) return;
+                const dx = e.changedTouches[0].clientX - startX;
+                const dy = Math.abs(e.changedTouches[0].clientY - startY);
+                if (dx > 80 && dy < 60 && selectedConv) {
+                  setSelectedConv(null);
+                }
+                (t as any)._swipeStartX = null;
+                (t as any)._swipeStartY = null;
+              }}
+            >
+              {selectedConv ? (
+                <>
+                  <WaChatPanel
+                    onBack={() => setSelectedConv(null)}
+                    conversation={selectedConv}
+                    messages={messages}
+                    loading={msgsLoading}
+                    isSending={isSending}
+                    initialLoadDone={initialLoadDone}
+                    isLoadingMore={isLoadingMore}
+                    hasOlderMessages={hasOlderMessages}
+                    onLoadOlder={loadOlderMessages}
+                    onSendMessage={handleSendMessage}
+                    onSendMedia={handleSendMedia}
+                    onSendReaction={handleSendReaction}
+                    onResolve={openResolveDialog}
+                    onReopen={handleReopen}
+                    onOpenTransfer={() => setShowTransfer(true)}
+                    onOpenTags={() => setShowTags(true)}
+                    onOpenAssign={() => setShowAssign(true)}
+                    onLinkLead={() => setShowLinkLead(true)}
+                    onSaveContact={() => selectedConv && setSaveContactFor(selectedConv)}
+                    onAccept={handleAccept}
+                    onRelease={handleRelease}
+                    isAccepting={isAccepting}
+                    isReleasing={isAccepting}
+                    currentUserId={user?.id}
+                    vendedores={vendedores}
+                    lastReadMessageId={lastReadMessageId}
+                    onMarkAsRead={markAsRead}
+                    isMuted={selectedConv ? isMuted(selectedConv.id) : false}
+                    isHidden={selectedConv ? isHidden(selectedConv.id) : false}
+                    onToggleMute={selectedConv ? () => toggleMute(selectedConv.id) : undefined}
+                    onToggleHide={selectedConv ? () => toggleHide(selectedConv.id) : undefined}
+                    prefillMessage={prefillMessage}
+                    onRetryMessage={(msg) => retryMessage(msg)}
+                    isAdmin={isAdminUser}
+                  />
+                </>
+              ) : preContactData ? (
+                <WaPreContactCard
+                  nome={preContactData.nome}
+                  phone={preContactData.phone}
+                  onClose={() => setPreContactData(null)}
+                  compact
+                />
+              ) : (
+                <WaConversationList
+                  conversations={filteredConvs}
+                  loading={convsLoading}
+                  selectedId={undefined}
+                  onSelect={handleSelectConversation}
+                  search={search}
+                  onSearchChange={setSearch}
+                  filterStatus={filterStatus}
+                  onFilterStatusChange={setFilterStatus}
+                  filterAssigned={vendorMode ? "all" : filterAssigned}
+                  onFilterAssignedChange={setFilterAssigned}
+                  filterInstance={filterInstance}
+                  onFilterInstanceChange={setFilterInstance}
+                  filterTag={filterTag}
+                  onFilterTagChange={setFilterTag}
+                  vendedores={vendedores}
+                  instances={instances}
+                  tags={tags}
+                  hideAssignedFilter={vendorMode}
+                  showGroups={showGroups}
+                  onShowGroupsChange={canViewGroups ? setShowGroups : undefined}
+                  showHidden={showHidden}
+                  onShowHiddenChange={canViewHidden ? setShowHidden : undefined}
+                  mutedIds={mutedIds}
+                  hiddenIds={hiddenIds}
+                  followupConvIds={followupConvIds}
+                  pinnedIds={pinnedIds}
+                  onContextMenuConv={handleContextMenuConv}
+                />
+              )}
+            </div>
+
+            {/* Desktop: Chat Panel or Pre-Contact Card */}
+            <div className="hidden md:flex flex-1 min-h-0 min-w-0 overflow-hidden">
+              {!selectedConv && preContactData ? (
+                <WaPreContactCard
+                  nome={preContactData.nome}
+                  phone={preContactData.phone}
+                  onClose={() => setPreContactData(null)}
+                />
+              ) : (
                 <WaChatPanel
-                  onBack={() => setSelectedConv(null)}
                   conversation={selectedConv}
                   messages={messages}
                   loading={msgsLoading}
@@ -859,95 +999,11 @@ export function WaInbox({ vendorMode = false, vendorUserId, showCompactStats = f
                   onRetryMessage={(msg) => retryMessage(msg)}
                   isAdmin={isAdminUser}
                 />
-              </>
-            ) : preContactData ? (
-              <WaPreContactCard
-                nome={preContactData.nome}
-                phone={preContactData.phone}
-                onClose={() => setPreContactData(null)}
-                compact
-              />
-            ) : (
-              <WaConversationList
-                conversations={filteredConvs}
-                loading={convsLoading}
-                selectedId={undefined}
-                onSelect={handleSelectConversation}
-                search={search}
-                onSearchChange={setSearch}
-                filterStatus={filterStatus}
-                onFilterStatusChange={setFilterStatus}
-                filterAssigned={vendorMode ? "all" : filterAssigned}
-                onFilterAssignedChange={setFilterAssigned}
-                filterInstance={filterInstance}
-                onFilterInstanceChange={setFilterInstance}
-                filterTag={filterTag}
-                onFilterTagChange={setFilterTag}
-                vendedores={vendedores}
-                instances={instances}
-                tags={tags}
-                hideAssignedFilter={vendorMode}
-                showGroups={showGroups}
-                onShowGroupsChange={canViewGroups ? setShowGroups : undefined}
-                showHidden={showHidden}
-                onShowHiddenChange={canViewHidden ? setShowHidden : undefined}
-                mutedIds={mutedIds}
-                hiddenIds={hiddenIds}
-                followupConvIds={followupConvIds}
-                pinnedIds={pinnedIds}
-                onContextMenuConv={handleContextMenuConv}
-              />
-            )}
-          </div>
-
-          {/* Desktop: Chat Panel or Pre-Contact Card */}
-          <div className="hidden md:flex flex-1 min-h-0 min-w-0 overflow-hidden">
-            {!selectedConv && preContactData ? (
-              <WaPreContactCard
-                nome={preContactData.nome}
-                phone={preContactData.phone}
-                onClose={() => setPreContactData(null)}
-              />
-            ) : (
-              <WaChatPanel
-                conversation={selectedConv}
-                messages={messages}
-                loading={msgsLoading}
-                isSending={isSending}
-                initialLoadDone={initialLoadDone}
-                isLoadingMore={isLoadingMore}
-                hasOlderMessages={hasOlderMessages}
-                onLoadOlder={loadOlderMessages}
-                onSendMessage={handleSendMessage}
-                onSendMedia={handleSendMedia}
-                onSendReaction={handleSendReaction}
-                onResolve={openResolveDialog}
-                onReopen={handleReopen}
-                onOpenTransfer={() => setShowTransfer(true)}
-                onOpenTags={() => setShowTags(true)}
-                onOpenAssign={() => setShowAssign(true)}
-                onLinkLead={() => setShowLinkLead(true)}
-                onSaveContact={() => selectedConv && setSaveContactFor(selectedConv)}
-                onAccept={handleAccept}
-                onRelease={handleRelease}
-                isAccepting={isAccepting}
-                isReleasing={isAccepting}
-                currentUserId={user?.id}
-                vendedores={vendedores}
-                lastReadMessageId={lastReadMessageId}
-                onMarkAsRead={markAsRead}
-                isMuted={selectedConv ? isMuted(selectedConv.id) : false}
-                isHidden={selectedConv ? isHidden(selectedConv.id) : false}
-                onToggleMute={selectedConv ? () => toggleMute(selectedConv.id) : undefined}
-                onToggleHide={selectedConv ? () => toggleHide(selectedConv.id) : undefined}
-                prefillMessage={prefillMessage}
-                onRetryMessage={(msg) => retryMessage(msg)}
-                isAdmin={isAdminUser}
-              />
-            )}
+              )}
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       {/* Dialogs */}
       <WaTransferDialog open={showTransfer} onOpenChange={setShowTransfer} onTransfer={handleTransfer} vendedores={vendedores} currentAssigned={selectedConv?.assigned_to} />
