@@ -74,7 +74,7 @@ function CompactStatusBadge({ status }: { status?: string }) {
 }
 
 export default function SolarmarketLogsPage() {
-  const { promotionJobs, importJobs, recentErrors, historicalSummary, migrationStats, resumeMigration, exportLogs } = useSolarmarketLogsPage();
+  const { promotionJobs, importJobs, recentErrors, historicalSummary, migrationStats, resumeMigration, exportLogs, auditData, runAudit } = useSolarmarketLogsPage();
   const [openJobId, setOpenJobId] = useState<string | null>(null);
   const [showHistorical, setShowHistorical] = useState(false);
   const [isConfirmingResume, setIsConfirmingResume] = useState(false);
