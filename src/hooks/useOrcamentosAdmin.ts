@@ -113,12 +113,16 @@ export function useOrcamentosAdmin({
 
         if (filterConversao === "sem_proposta") {
           // Semântica alinhada ao ícone de pasta: lead sem projeto vinculado
-          viewQ = viewQ.is("matched_projeto_id", null).neq("lead_status_nome", "Perdido");
+          viewQ = viewQ
+            .is("matched_projeto_id", null)
+            .or("lead_status_nome.is.null,lead_status_nome.not.eq.Perdido");
         } else if (filterConversao === "com_proposta") {
           viewQ = viewQ.not("matched_projeto_id", "is", null);
         } else if (filterConversao === "sem_projeto") {
           // Alias de "sem_proposta" — mesma definição (sem projeto vinculado)
-          viewQ = viewQ.is("matched_projeto_id", null).neq("lead_status_nome", "Perdido");
+          viewQ = viewQ
+            .is("matched_projeto_id", null)
+            .or("lead_status_nome.is.null,lead_status_nome.not.eq.Perdido");
         } else if (filterConversao === "convertidos") {
           viewQ = viewQ.not("matched_projeto_id", "is", null);
         } else if (filterConversao === "perdidos") {
