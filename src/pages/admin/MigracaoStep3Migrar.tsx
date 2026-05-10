@@ -611,7 +611,7 @@ export default function MigracaoStep3Migrar() {
       {/* JOB TÉCNICO — colapsado por padrão */}
 
       {job && (
-        <Collapsible defaultOpen={isRunning || (job.items_with_errors ?? 0) > 0}>
+        <Collapsible defaultOpen={isRunning || activeErrors > 0}>
           <Card className="bg-card border-border shadow-sm">
             <CollapsibleTrigger asChild>
               <button
@@ -626,11 +626,16 @@ export default function MigracaoStep3Migrar() {
                     <p className="text-sm font-semibold text-foreground">Detalhes técnicos do job</p>
                     <p className="text-xs text-muted-foreground">
                       {statusLabel} · lote {job.items_processed}/{job.total_items}
-                      {(job.items_with_errors ?? 0) > 0 && (
-                        <span className="text-destructive"> · {job.items_with_errors} erros</span>
-                      )}
-                      {(job.items_with_warnings ?? 0) > 0 && (
-                        <span className="text-warning"> · {job.items_with_warnings} avisos</span>
+                      <span className={activeErrors > 0 ? "text-destructive" : "text-success"}>
+                        {" "}· {activeErrors} erros ativos
+                      </span>
+                      <span className={activeWarnings > 0 ? "text-warning" : "text-muted-foreground"}>
+                        {" "}· {activeWarnings} avisos atuais
+                      </span>
+                      {(historicalErrors + historicalWarnings) > 0 && (
+                        <span className="text-muted-foreground">
+                          {" "}· {(historicalErrors + historicalWarnings).toLocaleString("pt-BR")} históricos arquivados
+                        </span>
                       )}
                     </p>
                   </div>
