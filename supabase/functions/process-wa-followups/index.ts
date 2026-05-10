@@ -98,6 +98,59 @@ Deno.serve(async (req) => {
       const isc = new Map<string, number>();
       let aiN = 0, tAi = Date.now(), sendAcc = 0;
       for (const c of auto) {
+        // G4: AI Context Gating - Prevent bot interaction if human is active or AI is paused
+        const { data: convContext } = await sb
+          .from("wa_conversations")
+          .select("ai_context")
+          .eq("id", c.conversation_id)
+          .maybeSingle();
+
+        const ctx = convContext?.ai_context || 'ai_active';
+
+        if (ctx === 'human_active') {
+          console.log(`[followup] GATE: human_active for conv=${c.conversation_id}. Skipping.`);
+          await sb.from("wa_context_events").insert({
+            tenant_id: c.tenant_id,
+            conversation_id: c.conversation_id,
+            evento: 'followup_bloqueado_humano_ativo',
+            origem: 'sistema',
+            context_anterior: ctx,
+            context_novo: ctx,
+            criado_em: new Date().toISOString()
+          });
+          await sb.from("wa_followup_queue").update({ status: 'paused' }).eq("conversation_id", c.conversation_id).eq("rule_id", c.rule_id);
+          continue;
+        }
+
+        if (ctx === 'ai_paused') {
+          console.log(`[followup] GATE: ai_paused for conv=${c.conversation_id}. Skipping.`);
+          await sb.from("wa_context_events").insert({
+            tenant_id: c.tenant_id,
+            conversation_id: c.conversation_id,
+            evento: 'followup_bloqueado_ia_pausada',
+            origem: 'sistema',
+            context_anterior: ctx,
+            context_novo: ctx,
+            criado_em: new Date().toISOString()
+          });
+          continue;
+        }
+
+        if (['closed', 'post_sale_context'].includes(ctx)) {
+          console.log(`[followup] GATE: closed/post_sale for conv=${c.conversation_id}. Cancelling.`);
+          await sb.from("wa_context_events").insert({
+            tenant_id: c.tenant_id,
+            conversation_id: c.conversation_id,
+            evento: 'followup_bloqueado_contexto_encerrado',
+            origem: 'sistema',
+            context_anterior: ctx,
+            context_novo: ctx,
+            criado_em: new Date().toISOString()
+          });
+          await sb.from("wa_followup_queue").update({ status: 'cancelled' }).eq("conversation_id", c.conversation_id).eq("rule_id", c.rule_id);
+          continue;
+        }
+
         const ic = isc.get(c.instance_id) || 0;
         if (ic >= MAX_INST) { m.instance_rate_limited++; continue; }
         const s = aiMap.get(c.tenant_id);
