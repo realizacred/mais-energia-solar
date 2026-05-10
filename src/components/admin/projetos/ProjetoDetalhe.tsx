@@ -414,7 +414,7 @@ function ProjetoDetalheContent() {
                   {allEtiquetas.length === 0 ? (
                     <p className="text-xs text-muted-foreground px-1 py-2">Nenhuma etiqueta cadastrada</p>
                   ) : (
-                    <div className="space-y-0.5 max-h-48 overflow-y-auto">
+                    <div className="space-y-0.5 max-h-48 overflow-y-auto scrollbar-premium">
                       {allEtiquetas.map(et => {
                         const isSelected = dealEtiquetas.some(e => e.id === et.id);
                         return (
