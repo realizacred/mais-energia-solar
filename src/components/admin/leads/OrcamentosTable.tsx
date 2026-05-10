@@ -257,7 +257,7 @@ export function OrcamentosTable({
                   {/* Inline actions for lg+ */}
                   <TooltipProvider>
                     <div className="hidden lg:flex items-center gap-1">
-                      {orc.projeto_id && (
+                      {orc.projeto_id ? (
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <Button variant="ghost" size="icon" className={`h-8 w-8 ${orc.projeto_tem_proposta ? "text-success hover:text-success/80" : "text-destructive hover:text-destructive/80"}`} onClick={() => navigate(`/admin/projetos?projeto=${orc.projeto_id}`)}>
@@ -265,6 +265,15 @@ export function OrcamentosTable({
                             </Button>
                           </TooltipTrigger>
                           <TooltipContent>{orc.projeto_tem_proposta ? "Abrir projeto vinculado" : "Projeto sem proposta"}</TooltipContent>
+                        </Tooltip>
+                      ) : (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-primary" onClick={() => { setVincularOrc(orc); setVincularOpen(true); }}>
+                              <Link2 className="w-4 h-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Vincular a cliente existente</TooltipContent>
                         </Tooltip>
                       )}
                       <Tooltip>
