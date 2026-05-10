@@ -155,15 +155,60 @@ export default function SolarmarketLogsPage() {
 
   // Operational Alerts
   const alerts = useMemo(() => {
-    const list: Array<{ id: string; type: 'error' | 'warning' | 'info'; msg: string; date: string }> = [];
-    if (isStalled) list.push({ id: 'stalled', type: 'error', msg: 'Job interrompido ou sem progresso.', date: latestJob?.updated_at || '' });
-    if (isHeartbeatLost) list.push({ id: 'heartbeat', type: 'warning', msg: 'Heartbeat do orquestrador perdido há > 10min.', date: latestJob?.updated_at || '' });
-    if (totals.errors > 0) list.push({ id: 'errors', type: 'error', msg: `${totals.errors} novos erros detectados na janela operacional.`, date: new Date().toISOString() });
-    if ((stats?.throughput || 0) === 0 && (stats?.remaining || 0) > 0 && latestJob?.status === 'running') {
-      list.push({ id: 'throughput', type: 'warning', msg: 'Throughput zerado com propostas pendentes.', date: new Date().toISOString() });
+    const list: Array<{ id: string; type: 'error' | 'warning' | 'info'; category: string; msg: string; impact: string; mitigation: string; date: string }> = [];
+    
+    if (isStalled) {
+      list.push({ 
+        id: 'stalled', type: 'error', category: 'WATCHDOG',
+        msg: 'Job interrompido ou sem progresso detectado.', 
+        impact: 'Atraso na conclusão da migração e backlog acumulado.',
+        mitigation: 'Clique em "RETOMAR" para forçar o processamento do próximo chunk.',
+        date: latestJob?.updated_at || '' 
+      });
     }
+    
+    if (isHeartbeatLost) {
+      list.push({ 
+        id: 'heartbeat', type: 'warning', category: 'HEARTBEAT',
+        msg: `Heartbeat do orquestrador perdido há > ${thresholds.heartbeatTimeout}min.`, 
+        impact: 'Visibilidade reduzida sobre o estado real do motor.',
+        mitigation: 'Verificar logs do Edge Function sm-promote e sm-migrate-chunk.',
+        date: latestJob?.updated_at || '' 
+      });
+    }
+    
+    if (totals.errors > thresholds.maxRetries) {
+      list.push({ 
+        id: 'errors', type: 'error', category: 'PROCESSING',
+        msg: `${totals.errors} novos erros detectados na janela operacional.`, 
+        impact: 'Integridade de dados comprometida para os registros afetados.',
+        mitigation: 'Analisar mensagens de erro no modal de detalhes e aplicar correções de mapeamento.',
+        date: new Date().toISOString() 
+      });
+    }
+    
+    if ((stats?.throughput || 0) < thresholds.minThroughput && (stats?.remaining || 0) > 0 && latestJob?.status === 'running') {
+      list.push({ 
+        id: 'throughput', type: 'warning', category: 'PERFORMANCE',
+        msg: 'Performance degradada: Throughput abaixo do SLA configurado.', 
+        impact: 'Aumento significativo no tempo estimado de conclusão (ETA).',
+        mitigation: 'Reduzir latência de rede ou otimizar batch_limit se possível.',
+        date: new Date().toISOString() 
+      });
+    }
+
+    if (auditData.data?.orphaned_propostas && auditData.data.orphaned_propostas > 0) {
+      list.push({
+        id: 'orphans', type: 'warning', category: 'AUDIT',
+        msg: `${auditData.data.orphaned_propostas} propostas órfãs detectadas.`,
+        impact: 'Propostas que não vinculam a nenhum projeto no CRM.',
+        mitigation: 'Rodar sm-reset-all ou investigar falha no vínculo de projeto_id.',
+        date: new Date().toISOString()
+      });
+    }
+
     return list;
-  }, [isStalled, isHeartbeatLost, totals.errors, stats?.throughput, stats?.remaining, latestJob?.updated_at]);
+  }, [isStalled, isHeartbeatLost, totals.errors, stats?.throughput, stats?.remaining, latestJob?.updated_at, thresholds, auditData.data]);
 
   const generatePDFReport = async () => {
     setIsExportingPDF(true);
