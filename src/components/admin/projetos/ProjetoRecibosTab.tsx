@@ -206,7 +206,7 @@ function ReciboLogsDialog({ reciboId, onClose }: { reciboId: string | null; onCl
             Nenhum evento registrado.
           </p>
         ) : (
-          <div className="space-y-2 max-h-[50vh] overflow-y-auto">
+          <div className="space-y-2 max-h-[50vh] overflow-y-auto scrollbar-premium">
             {logs!.map((l) => (
               <div key={l.id} className="rounded border border-border p-2.5 text-xs">
                 <div className="flex items-center justify-between gap-2">

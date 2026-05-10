@@ -188,7 +188,7 @@ export function SignatureModal({ open, onClose, doc, dealId, onSend, isPending }
           </div>
         </DialogHeader>
 
-        <div className="space-y-4 py-2 max-h-[60vh] overflow-y-auto min-h-0">
+        <div className="space-y-4 py-2 max-h-[60vh] overflow-y-auto scrollbar-premium min-h-0">
           {/* Warnings */}
           {warnings.length > 0 && (
             <div className="space-y-1.5">

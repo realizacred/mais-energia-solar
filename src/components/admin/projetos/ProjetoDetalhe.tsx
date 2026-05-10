@@ -414,7 +414,7 @@ function ProjetoDetalheContent() {
                   {allEtiquetas.length === 0 ? (
                     <p className="text-xs text-muted-foreground px-1 py-2">Nenhuma etiqueta cadastrada</p>
                   ) : (
-                    <div className="space-y-0.5 max-h-48 overflow-y-auto">
+                    <div className="space-y-0.5 max-h-48 overflow-y-auto scrollbar-premium">
                       {allEtiquetas.map(et => {
                         const isSelected = dealEtiquetas.some(e => e.id === et.id);
                         return (
@@ -644,7 +644,7 @@ function ProjetoDetalheContent() {
               </p>
             </div>
           </DialogHeader>
-          <div className="p-5 space-y-4 overflow-y-auto max-h-[70vh]">
+          <div className="p-5 space-y-4 overflow-y-auto scrollbar-premium max-h-[70vh]">
             <div>
               <Label>Motivo de Perda *</Label>
               {loadingMotivos ? (
@@ -1521,7 +1521,7 @@ function GerenciamentoTab({
                   <p className="text-xs text-muted-foreground mt-0.5">Preencha o CEP para autocompletar os campos</p>
                 </div>
               </DialogHeader>
-              <div className="flex-1 min-h-0 overflow-y-auto p-5">
+              <div className="flex-1 min-h-0 overflow-y-auto scrollbar-premium p-5">
                 <AddressFields value={addressData} onChange={setAddressData} />
               </div>
               <DialogFooter className="flex justify-end gap-2 p-4 border-t border-border bg-muted/30 shrink-0">
