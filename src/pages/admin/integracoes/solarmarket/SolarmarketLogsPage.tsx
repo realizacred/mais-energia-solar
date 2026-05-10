@@ -5,7 +5,7 @@
  * Reaproveita componente: PromotionLogsDialog (visualizador detalhado).
  * RB-76 / DA-48 — somente leitura, sem motor novo.
  */
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import {
   Table,
@@ -20,13 +20,26 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { PageHeader, StatCard, EmptyState, StatusBadge } from "@/components/ui-kit";
-import { ScrollText, AlertTriangle, AlertCircle, CheckCircle2, ListChecks, Cloud, ExternalLink, Archive, PlayCircle, Clock, Zap, Download, FileText, ShieldCheck, Database, LayoutDashboard, History } from "lucide-react";
+import { 
+  ScrollText, AlertTriangle, AlertCircle, CheckCircle2, ListChecks, 
+  Cloud, ExternalLink, Archive, PlayCircle, Clock, Zap, Download, 
+  FileText, ShieldCheck, Database, LayoutDashboard, History, 
+  Activity, ArrowUpRight, Timer, BarChart3, AlertOctagon, Info
+} from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { 
+  Select, 
+  SelectContent, 
+  SelectItem, 
+  SelectTrigger, 
+  SelectValue 
+} from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import {
   useSolarmarketLogsPage,
   isHistoricalLog,
   LAST_FIX_DEPLOY_AT,
+  type ErrorWindow
 } from "@/hooks/integrations/solarmarket/useSolarmarketLogsPage";
 import { PromotionLogsDialog } from "@/components/admin/solarmarket/PromotionLogsDialog";
 
