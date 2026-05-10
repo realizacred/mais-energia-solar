@@ -165,7 +165,7 @@ export function useOrcamentosAdmin({
           data_proxima_acao: orc.data_proxima_acao,
           created_at: orc.created_at,
           updated_at: orc.updated_at,
-          projeto_id: orc.project_count > 0 ? "EXISTS" : null, // Marker for UI
+          projeto_id: orc.matched_projeto_id,
           projeto_tem_proposta: orc.proposal_count > 0,
         };
       });
