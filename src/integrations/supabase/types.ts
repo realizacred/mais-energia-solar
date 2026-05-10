@@ -22613,6 +22613,60 @@ export type Database = {
           },
         ]
       }
+      solarmarket_promotion_logs_archive: {
+        Row: {
+          canonical_entity_id: string | null
+          canonical_entity_type: string | null
+          created_at: string | null
+          details: Json | null
+          error_code: string | null
+          error_origin: string | null
+          id: string | null
+          job_id: string | null
+          message: string | null
+          severity: string | null
+          source_entity_id: string | null
+          source_entity_type: string | null
+          status: string | null
+          step: string | null
+          tenant_id: string | null
+        }
+        Insert: {
+          canonical_entity_id?: string | null
+          canonical_entity_type?: string | null
+          created_at?: string | null
+          details?: Json | null
+          error_code?: string | null
+          error_origin?: string | null
+          id?: string | null
+          job_id?: string | null
+          message?: string | null
+          severity?: string | null
+          source_entity_id?: string | null
+          source_entity_type?: string | null
+          status?: string | null
+          step?: string | null
+          tenant_id?: string | null
+        }
+        Update: {
+          canonical_entity_id?: string | null
+          canonical_entity_type?: string | null
+          created_at?: string | null
+          details?: Json | null
+          error_code?: string | null
+          error_origin?: string | null
+          id?: string | null
+          job_id?: string | null
+          message?: string | null
+          severity?: string | null
+          source_entity_id?: string | null
+          source_entity_type?: string | null
+          status?: string | null
+          step?: string | null
+          tenant_id?: string | null
+        }
+        Relationships: []
+      }
       staging_clientes_map: {
         Row: {
           cliente_id: string | null

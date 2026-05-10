@@ -34,16 +34,25 @@ import {
   ToggleGroupItem,
 } from "@/components/ui/toggle-group";
 import { cn } from "@/lib/utils";
+import { LAST_FIX_DEPLOY_AT } from "@/hooks/integrations/solarmarket/useSolarmarketLogsPage";
 
 export type LogsFilter = "all" | "warning" | "error";
+export type LogsScope = "active" | "historical";
 
 interface PromotionLogsDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   jobId: string | null;
   initialFilter?: LogsFilter;
+  initialScope?: LogsScope;
   warningsCount?: number;
   errorsCount?: number;
+  /** Contadores ativos pós-fix (telemetria operacional) */
+  activeWarnings?: number;
+  activeErrors?: number;
+  /** Contadores históricos pré-fix */
+  historicalWarnings?: number;
+  historicalErrors?: number;
 }
 
 const PAGE_SIZE = 50;
@@ -76,14 +85,20 @@ export function PromotionLogsDialog({
   onOpenChange,
   jobId,
   initialFilter = "all",
+  initialScope = "active",
   warningsCount = 0,
   errorsCount = 0,
+  activeWarnings,
+  activeErrors,
+  historicalWarnings,
+  historicalErrors,
 }: PromotionLogsDialogProps) {
   const [filter, setFilter] = useState<LogsFilter>(initialFilter);
+  const [scope, setScope] = useState<LogsScope>(initialScope);
   const [limit, setLimit] = useState(PAGE_SIZE);
 
   // Reset limit/filter quando reabre
-  const queryKey = ["sm-promotion-logs", jobId, filter, limit] as const;
+  const queryKey = ["sm-promotion-logs", jobId, filter, scope, limit] as const;
 
   const { data, isLoading, isFetching } = useQuery({
     queryKey,
@@ -113,7 +128,7 @@ export function PromotionLogsDialog({
 
       const allJobIds = Array.from(new Set<string>([jobId, ...subJobIds]));
 
-      const { data: rows, error, count } = await supabase
+      let q = supabase
         .from("solarmarket_promotion_logs")
         .select(
           "id, created_at, severity, source_entity_type, source_entity_id, error_code, message, details",
@@ -123,6 +138,12 @@ export function PromotionLogsDialog({
         .in("severity", severities)
         .order("created_at", { ascending: false })
         .limit(limit);
+
+      q = scope === "active"
+        ? q.gte("created_at", LAST_FIX_DEPLOY_AT)
+        : q.lt("created_at", LAST_FIX_DEPLOY_AT);
+
+      const { data: rows, error, count } = await q;
 
       if (error) throw error;
       return { rows: (rows ?? []) as LogRow[], total: count ?? 0 };
@@ -164,7 +185,41 @@ export function PromotionLogsDialog({
           </DialogTitle>
           <DialogDescription>
             Avisos e erros emitidos durante a última execução do <code>sm-promote</code>.
+            {scope === "active"
+              ? " Exibindo janela operacional ativa (pós-fix)."
+              : " Exibindo arquivo histórico pré-fix."}
           </DialogDescription>
+
+          <div className="flex items-center gap-2 pt-2">
+            <ToggleGroup
+              type="single"
+              value={scope}
+              onValueChange={(v) => {
+                if (v) {
+                  setScope(v as LogsScope);
+                  setLimit(PAGE_SIZE);
+                }
+              }}
+              size="sm"
+            >
+              <ToggleGroupItem value="active" className="text-xs gap-1.5 data-[state=on]:bg-success/15 data-[state=on]:text-success">
+                Ativos
+                {(activeErrors !== undefined || activeWarnings !== undefined) && (
+                  <Badge variant="outline" className="font-mono text-[10px] h-4 px-1.5 border-success/30 text-success">
+                    {(activeErrors ?? 0) + (activeWarnings ?? 0)}
+                  </Badge>
+                )}
+              </ToggleGroupItem>
+              <ToggleGroupItem value="historical" className="text-xs gap-1.5 data-[state=on]:bg-muted data-[state=on]:text-muted-foreground">
+                Histórico
+                {(historicalErrors !== undefined || historicalWarnings !== undefined) && (
+                  <Badge variant="outline" className="font-mono text-[10px] h-4 px-1.5 border-muted-foreground/30 text-muted-foreground">
+                    {((historicalErrors ?? 0) + (historicalWarnings ?? 0)).toLocaleString("pt-BR")}
+                  </Badge>
+                )}
+              </ToggleGroupItem>
+            </ToggleGroup>
+          </div>
 
           <div className="flex items-center justify-between gap-3 flex-wrap pt-2">
             <ToggleGroup
@@ -180,9 +235,6 @@ export function PromotionLogsDialog({
             >
               <ToggleGroupItem value="all" className="text-xs gap-1.5">
                 Todos
-                <Badge variant="outline" className="font-mono text-[10px] h-4 px-1.5">
-                  {warningsCount + errorsCount}
-                </Badge>
               </ToggleGroupItem>
               <ToggleGroupItem
                 value="warning"
@@ -193,7 +245,9 @@ export function PromotionLogsDialog({
                   variant="outline"
                   className="font-mono text-[10px] h-4 px-1.5 border-warning/30 text-warning"
                 >
-                  {warningsCount}
+                  {scope === "active"
+                    ? (activeWarnings ?? warningsCount)
+                    : (historicalWarnings ?? warningsCount)}
                 </Badge>
               </ToggleGroupItem>
               <ToggleGroupItem
@@ -205,7 +259,9 @@ export function PromotionLogsDialog({
                   variant="outline"
                   className="font-mono text-[10px] h-4 px-1.5 border-destructive/30 text-destructive"
                 >
-                  {errorsCount}
+                  {scope === "active"
+                    ? (activeErrors ?? errorsCount)
+                    : (historicalErrors ?? errorsCount)}
                 </Badge>
               </ToggleGroupItem>
             </ToggleGroup>

@@ -51,9 +51,10 @@ import { useChunkedMigration } from "@/hooks/useChunkedMigration";
 import { useResetMigratedData } from "@/hooks/useResetMigratedData";
 import { useTenantId } from "@/hooks/useTenantId";
 import { toast } from "@/hooks/use-toast";
-import { PromotionLogsDialog, type LogsFilter } from "@/components/admin/solarmarket/PromotionLogsDialog";
+import { PromotionLogsDialog, type LogsFilter, type LogsScope } from "@/components/admin/solarmarket/PromotionLogsDialog";
 import { CustomFieldsMappingSummary } from "@/components/admin/solarmarket/migracao/CustomFieldsMappingSummary";
 import { MigrationFinalReport } from "@/components/admin/solarmarket/migracao/MigrationFinalReport";
+import { useActiveJobCounters } from "@/hooks/integrations/solarmarket/useActiveJobCounters";
 
 function formatRelativeTimestamp(value: string | null) {
   if (!value) return "sem atividade registrada";
@@ -194,6 +195,7 @@ export default function MigracaoStep3Migrar() {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [logsOpen, setLogsOpen] = useState(false);
   const [logsFilter, setLogsFilter] = useState<LogsFilter>("all");
+  const [logsScope, setLogsScope] = useState<LogsScope>("active");
 
   const handleStart = async () => {
     try {
@@ -246,6 +248,11 @@ export default function MigracaoStep3Migrar() {
 
   const totals = progress?.totals;
   const job = progress?.job;
+  const activeCounters = useActiveJobCounters(job?.id ?? null);
+  const activeErrors = activeCounters.data?.activeErrors ?? 0;
+  const activeWarnings = activeCounters.data?.activeWarnings ?? 0;
+  const historicalErrors = activeCounters.data?.historicalErrors ?? Math.max(0, (job?.items_with_errors ?? 0) - activeErrors);
+  const historicalWarnings = activeCounters.data?.historicalWarnings ?? Math.max(0, (job?.items_with_warnings ?? 0) - activeWarnings);
   const isRunning = !!progress?.isRunning;
   const isComplete = !!progress?.isComplete;
   const isResumable = !!progress?.isResumable;
@@ -604,7 +611,7 @@ export default function MigracaoStep3Migrar() {
       {/* JOB TÉCNICO — colapsado por padrão */}
 
       {job && (
-        <Collapsible defaultOpen={isRunning || (job.items_with_errors ?? 0) > 0}>
+        <Collapsible defaultOpen={isRunning || activeErrors > 0}>
           <Card className="bg-card border-border shadow-sm">
             <CollapsibleTrigger asChild>
               <button
@@ -619,11 +626,16 @@ export default function MigracaoStep3Migrar() {
                     <p className="text-sm font-semibold text-foreground">Detalhes técnicos do job</p>
                     <p className="text-xs text-muted-foreground">
                       {statusLabel} · lote {job.items_processed}/{job.total_items}
-                      {(job.items_with_errors ?? 0) > 0 && (
-                        <span className="text-destructive"> · {job.items_with_errors} erros</span>
-                      )}
-                      {(job.items_with_warnings ?? 0) > 0 && (
-                        <span className="text-warning"> · {job.items_with_warnings} avisos</span>
+                      <span className={activeErrors > 0 ? "text-destructive" : "text-success"}>
+                        {" "}· {activeErrors} erros ativos
+                      </span>
+                      <span className={activeWarnings > 0 ? "text-warning" : "text-muted-foreground"}>
+                        {" "}· {activeWarnings} avisos atuais
+                      </span>
+                      {(historicalErrors + historicalWarnings) > 0 && (
+                        <span className="text-muted-foreground">
+                          {" "}· {(historicalErrors + historicalWarnings).toLocaleString("pt-BR")} históricos arquivados
+                        </span>
                       )}
                     </p>
                   </div>
@@ -657,27 +669,37 @@ export default function MigracaoStep3Migrar() {
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <button
                     type="button"
-                    onClick={() => { setLogsFilter("warning"); setLogsOpen(true); }}
+                    onClick={() => { setLogsFilter("warning"); setLogsScope("active"); setLogsOpen(true); }}
                     disabled={!job.id}
                     className="text-left rounded-lg border border-border bg-card p-3 hover:border-warning/50 hover:bg-warning/5 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <p className="text-[10px] uppercase tracking-wide text-muted-foreground font-medium flex items-center justify-between">
-                      Avisos
+                      Avisos (ativos)
                       <span className="text-[10px] text-warning underline normal-case">ver</span>
                     </p>
-                    <p className="font-mono text-lg font-bold text-warning mt-0.5">{job.items_with_warnings}</p>
+                    <p className={`font-mono text-lg font-bold mt-0.5 ${activeWarnings > 0 ? "text-warning" : "text-muted-foreground"}`}>
+                      {activeWarnings}
+                    </p>
+                    <p className="text-[10px] text-muted-foreground mt-1">
+                      {activeWarnings} ativos · {historicalWarnings.toLocaleString("pt-BR")} históricos
+                    </p>
                   </button>
                   <button
                     type="button"
-                    onClick={() => { setLogsFilter("error"); setLogsOpen(true); }}
+                    onClick={() => { setLogsFilter("error"); setLogsScope("active"); setLogsOpen(true); }}
                     disabled={!job.id}
                     className="text-left rounded-lg border border-border bg-card p-3 hover:border-destructive/50 hover:bg-destructive/5 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <p className="text-[10px] uppercase tracking-wide text-muted-foreground font-medium flex items-center justify-between">
-                      Erros
+                      Erros (ativos)
                       <span className="text-[10px] text-destructive underline normal-case">ver</span>
                     </p>
-                    <p className="font-mono text-lg font-bold text-destructive mt-0.5">{job.items_with_errors}</p>
+                    <p className={`font-mono text-lg font-bold mt-0.5 ${activeErrors > 0 ? "text-destructive" : "text-success"}`}>
+                      {activeErrors}
+                    </p>
+                    <p className="text-[10px] text-muted-foreground mt-1">
+                      {activeErrors} ativos · {historicalErrors.toLocaleString("pt-BR")} históricos
+                    </p>
                   </button>
                   <div className="rounded-lg border border-border bg-card p-3">
                     <p className="text-[10px] uppercase tracking-wide text-muted-foreground font-medium">Pulados / bloqueados</p>
@@ -708,8 +730,13 @@ export default function MigracaoStep3Migrar() {
         onOpenChange={setLogsOpen}
         jobId={job?.id ?? null}
         initialFilter={logsFilter}
+        initialScope={logsScope}
         warningsCount={job?.items_with_warnings ?? 0}
         errorsCount={job?.items_with_errors ?? 0}
+        activeWarnings={activeWarnings}
+        activeErrors={activeErrors}
+        historicalWarnings={historicalWarnings}
+        historicalErrors={historicalErrors}
       />
     </MigrationLayout>
   );
