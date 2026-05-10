@@ -34,16 +34,25 @@ import {
   ToggleGroupItem,
 } from "@/components/ui/toggle-group";
 import { cn } from "@/lib/utils";
+import { LAST_FIX_DEPLOY_AT } from "@/hooks/integrations/solarmarket/useSolarmarketLogsPage";
 
 export type LogsFilter = "all" | "warning" | "error";
+export type LogsScope = "active" | "historical";
 
 interface PromotionLogsDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   jobId: string | null;
   initialFilter?: LogsFilter;
+  initialScope?: LogsScope;
   warningsCount?: number;
   errorsCount?: number;
+  /** Contadores ativos pós-fix (telemetria operacional) */
+  activeWarnings?: number;
+  activeErrors?: number;
+  /** Contadores históricos pré-fix */
+  historicalWarnings?: number;
+  historicalErrors?: number;
 }
 
 const PAGE_SIZE = 50;
