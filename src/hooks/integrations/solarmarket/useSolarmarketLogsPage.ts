@@ -269,9 +269,6 @@ export function useSolarmarketLogsPage() {
     }
   });
 
-
-
-
   const queryClient = useQueryClient();
 
   const resumeMigration = useMutation({
@@ -333,6 +330,7 @@ export function useSolarmarketLogsPage() {
     importJobs, 
     recentErrors, 
     historicalSummary, 
+    activeSummary,
     migrationStats, 
     resumeMigration,
     exportLogs,
