@@ -18,8 +18,9 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { StatusBadge } from "@/components/ui/status-badge";
-import { PageHeader, StatCard, EmptyState, ProgressBar } from "@/components/ui-kit";
+import { StatusBadge } from "@/components/ui-kit";
+import { Progress } from "@/components/ui/progress";
+import { PageHeader, StatCard, EmptyState } from "@/components/ui-kit";
 import { ScrollText, AlertTriangle, AlertCircle, CheckCircle2, ListChecks, Cloud, ExternalLink, Archive, PlayCircle, Clock, Zap } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
