@@ -102,6 +102,39 @@ export function useOrcamentosAdmin({
         query = query.eq("status_id", filterStatus);
       }
 
+      // ⚠️ Conversion pre-filter: derive eligible orcamento ids from the
+      // commercial view (proposal_count/project_count/lead_status_nome are
+      // canonical there) and constrain the main query before pagination.
+      if (filterConversao !== "todos" && tenantId) {
+        let viewQ = supabase
+          .from("vw_orcamentos_comercial")
+          .select("id")
+          .eq("tenant_id", tenantId);
+
+        if (filterConversao === "sem_proposta") {
+          viewQ = viewQ.eq("proposal_count", 0).neq("lead_status_nome", "Perdido");
+        } else if (filterConversao === "com_proposta") {
+          viewQ = viewQ.gt("proposal_count", 0);
+        } else if (filterConversao === "sem_projeto") {
+          viewQ = viewQ.gt("proposal_count", 0).eq("project_count", 0).neq("lead_status_nome", "Perdido");
+        } else if (filterConversao === "convertidos") {
+          viewQ = viewQ.gt("project_count", 0);
+        } else if (filterConversao === "perdidos") {
+          viewQ = viewQ.eq("lead_status_nome", "Perdido");
+        }
+
+        const { data: idsRows, error: idsErr } = await viewQ.limit(5000);
+        if (idsErr) throw idsErr;
+        const ids = (idsRows || []).map((r: any) => r.id);
+        if (ids.length === 0) {
+          setOrcamentos([]);
+          setTotalCount(0);
+          // still fetch stats below
+        } else {
+          query = query.in("id", ids);
+        }
+      }
+
       // ⚠️ HARDENING: Separate stats fetch from main query to avoid global failure
       let statsRes: { data: any; error: any } = { data: null, error: null };
       
@@ -142,8 +175,30 @@ export function useOrcamentosAdmin({
 
       if (orcamentosRes.error) throw orcamentosRes.error;
 
+      // ⚠️ Enrich with derived fields (projeto_id, proposta count) from the
+      // commercial view — only for the page rows. Cheap (≤25 ids), no count.
+      const pageRows = orcamentosRes.data || [];
+      const pageIds = pageRows.map((o: any) => o.id);
+      const enrichMap = new Map<string, { projeto_id: string | null; tem_proposta: boolean }>();
+      if (pageIds.length > 0) {
+        const { data: enrichRows, error: enrichErr } = await supabase
+          .from("vw_orcamentos_comercial")
+          .select("id, matched_projeto_id, proposal_count")
+          .in("id", pageIds);
+        if (enrichErr) {
+          console.warn("[useOrcamentosAdmin] enrich failed (non-blocking):", enrichErr.message);
+        }
+        for (const r of (enrichRows || []) as any[]) {
+          enrichMap.set(r.id, {
+            projeto_id: r.matched_projeto_id ?? null,
+            tem_proposta: (r.proposal_count ?? 0) > 0,
+          });
+        }
+      }
+
       // Transform to flat display format
-      const displayItems: OrcamentoDisplayItem[] = (orcamentosRes.data || []).map((orc: any) => {
+      const displayItems: OrcamentoDisplayItem[] = pageRows.map((orc: any) => {
+        const enr = enrichMap.get(orc.id);
         return {
           id: orc.id,
           orc_code: orc.orc_code,
@@ -177,8 +232,8 @@ export function useOrcamentosAdmin({
           data_proxima_acao: orc.data_proxima_acao,
           created_at: orc.created_at,
           updated_at: orc.updated_at,
-          projeto_id: null,
-          projeto_tem_proposta: false,
+          projeto_id: enr?.projeto_id ?? null,
+          projeto_tem_proposta: enr?.tem_proposta ?? false,
         };
       });
 
