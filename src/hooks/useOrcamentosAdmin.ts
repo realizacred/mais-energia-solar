@@ -186,7 +186,7 @@ export function useOrcamentosAdmin({
     } finally {
       setLoading(false);
     }
-  }, [toast, page, pageSize]);
+  }, [toast, page, pageSize, searchTerm, filterVisto, filterVendedor, filterEstado, filterStatus, filterConversao]);
 
   const toggleVisto = useCallback(async (orcamento: OrcamentoDisplayItem) => {
     const newVisto = !orcamento.visto_admin;
