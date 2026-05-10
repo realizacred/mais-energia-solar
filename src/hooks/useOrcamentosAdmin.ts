@@ -111,22 +111,34 @@ export function useOrcamentosAdmin({
         query = query.eq("lead_status_nome", "Perdido");
       }
 
-      const statsPromise = supabase.rpc("get_orcamentos_comercial_stats", {
-        p_tenant_id: tenantId,
-        p_search: searchTerm,
-        p_vendedor_id: filterVendedor !== "todos" && filterVendedor !== "sem_vendedor" ? filterVendedor : null,
-        p_status_id: filterStatus !== "todos" ? filterStatus : null,
-        p_estado: filterEstado
-      });
+      // ⚠️ HARDENING: Separate stats fetch from main query to avoid global failure
+      let statsRes: { data: any; error: any } = { data: null, error: null };
+      
+      try {
+        const statsPromise = supabase.rpc("get_orcamentos_comercial_stats", {
+          p_tenant_id: tenantId,
+          p_search: searchTerm,
+          p_vendedor_id: filterVendedor !== "todos" && filterVendedor !== "sem_vendedor" ? filterVendedor : null,
+          p_status_id: filterStatus !== "todos" ? filterStatus : null,
+          p_estado: filterEstado
+        });
 
-      const timeoutPromise = new Promise((resolve) => {
-        setTimeout(() => {
-          console.warn("RPC get_orcamentos_comercial_stats timed out after 8s");
-          resolve({ data: null, error: null });
-        }, 8000);
-      });
+        const timeoutPromise = new Promise((resolve) => {
+          setTimeout(() => {
+            console.warn("RPC get_orcamentos_comercial_stats timed out after 8s");
+            resolve({ data: null, error: null });
+          }, 8000);
+        });
 
-      const [orcamentosRes, statusesRes, statsRes] = await Promise.all([
+        statsRes = await Promise.race([statsPromise, timeoutPromise]) as any;
+        if (statsRes.error) {
+          console.error("Stats fetch error (non-blocking):", statsRes.error);
+        }
+      } catch (statsErr) {
+        console.error("Stats catch error (non-blocking):", statsErr);
+      }
+
+      const [orcamentosRes, statusesRes] = await Promise.all([
         query
           .order("created_at", { ascending: false })
           .order("id", { ascending: false })
@@ -134,8 +146,7 @@ export function useOrcamentosAdmin({
         supabase
           .from("lead_status")
           .select("id, nome, ordem, cor")
-          .order("ordem"),
-        Promise.race([statsPromise, timeoutPromise]) as Promise<any>
+          .order("ordem")
       ]);
 
       if (orcamentosRes.error) throw orcamentosRes.error;
@@ -182,12 +193,13 @@ export function useOrcamentosAdmin({
 
       setOrcamentos(displayItems);
       setTotalCount(orcamentosRes.count || 0);
-      setStats(statsRes.data as unknown as ConversionStats);
+      setStats(statsRes?.data as unknown as ConversionStats || null);
       
       if (statusesRes.data) {
         setStatuses(statusesRes.data);
       }
     } catch (error) {
+      console.error("Full fetch_orcamentos error:", error);
       const appError = handleSupabaseError(error, "fetch_orcamentos");
       toast({
         title: "Erro",
