@@ -132,7 +132,7 @@ function ProgressiveCardList({
   }, [remaining]);
 
   return (
-    <div className="flex-1 min-h-0 px-2 pb-2 space-y-0 overflow-y-auto divide-y divide-border/40" style={{ maxHeight: "calc(100vh - 340px)" }}>
+    <div className="flex-1 min-h-0 px-2 pb-2 space-y-0 overflow-y-auto scrollbar-premium divide-y divide-border/40" style={{ maxHeight: "calc(100vh - 340px)" }}>
       {deals.length === 0 ? (
         <p className="text-[10px] text-muted-foreground/40 italic text-center py-6">Nenhum projeto</p>
       ) : (
