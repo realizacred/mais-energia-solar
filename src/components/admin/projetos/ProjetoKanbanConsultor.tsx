@@ -452,7 +452,7 @@ export function ProjetoKanbanConsultor({ ownerColumns, allDeals, onViewProjeto, 
           );
         })}
       </div>
-      <ScrollBar orientation="horizontal" />
+      <ScrollBar orientation="horizontal" className="h-1.5" />
     </ScrollArea>
   );
 }
