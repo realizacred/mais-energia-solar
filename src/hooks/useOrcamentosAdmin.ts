@@ -111,6 +111,21 @@ export function useOrcamentosAdmin({
         query = query.eq("lead_status_nome", "Perdido");
       }
 
+      const statsPromise = supabase.rpc("get_orcamentos_comercial_stats", {
+        p_tenant_id: tenantId,
+        p_search: searchTerm,
+        p_vendedor_id: filterVendedor !== "todos" && filterVendedor !== "sem_vendedor" ? filterVendedor : null,
+        p_status_id: filterStatus !== "todos" ? filterStatus : null,
+        p_estado: filterEstado
+      });
+
+      const timeoutPromise = new Promise((resolve) => {
+        setTimeout(() => {
+          console.warn("RPC get_orcamentos_comercial_stats timed out after 8s");
+          resolve({ data: null, error: null });
+        }, 8000);
+      });
+
       const [orcamentosRes, statusesRes, statsRes] = await Promise.all([
         query
           .order("created_at", { ascending: false })
@@ -120,13 +135,7 @@ export function useOrcamentosAdmin({
           .from("lead_status")
           .select("id, nome, ordem, cor")
           .order("ordem"),
-        supabase.rpc("get_orcamentos_comercial_stats", {
-          p_tenant_id: tenantId,
-          p_search: searchTerm,
-          p_vendedor_id: filterVendedor !== "todos" && filterVendedor !== "sem_vendedor" ? filterVendedor : null,
-          p_status_id: filterStatus !== "todos" ? filterStatus : null,
-          p_estado: filterEstado
-        })
+        Promise.race([statsPromise, timeoutPromise]) as Promise<any>
       ]);
 
       if (orcamentosRes.error) throw orcamentosRes.error;
