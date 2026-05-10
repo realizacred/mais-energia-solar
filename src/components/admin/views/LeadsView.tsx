@@ -53,6 +53,10 @@ export function LeadsView() {
     filterStatus,
     filterConversao
   });
+  const { hasPermission } = useUserPermissions();
+  const canDeleteLeads = hasPermission("delete_leads");
+  const { sortOption, updateSort } = useOrcamentoSort("admin_leads");
+  const filteredOrcamentos = orcamentos; // Now filtered in backend
   const [selectedOrcamento, setSelectedOrcamento] = useState<OrcamentoDisplayItem | null>(null);
   const [isViewOpen, setIsViewOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
