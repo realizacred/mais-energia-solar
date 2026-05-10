@@ -20,9 +20,13 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { PageHeader, StatCard, EmptyState } from "@/components/ui-kit";
-import { ScrollText, AlertTriangle, AlertCircle, CheckCircle2, ListChecks, Cloud, ExternalLink } from "lucide-react";
+import { ScrollText, AlertTriangle, AlertCircle, CheckCircle2, ListChecks, Cloud, ExternalLink, Archive } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useSolarmarketLogsPage } from "@/hooks/integrations/solarmarket/useSolarmarketLogsPage";
+import {
+  useSolarmarketLogsPage,
+  isHistoricalLog,
+  LAST_FIX_DEPLOY_AT,
+} from "@/hooks/integrations/solarmarket/useSolarmarketLogsPage";
 import { PromotionLogsDialog } from "@/components/admin/solarmarket/PromotionLogsDialog";
 
 const TZ = "America/Sao_Paulo";
@@ -50,13 +54,21 @@ function TableSkeleton({ rows = 4 }: { rows?: number }) {
 }
 
 export default function SolarmarketLogsPage() {
-  const { promotionJobs, importJobs, recentErrors } = useSolarmarketLogsPage();
+  const { promotionJobs, importJobs, recentErrors, historicalSummary } = useSolarmarketLogsPage();
   const [openJobId, setOpenJobId] = useState<string | null>(null);
+  const [showHistorical, setShowHistorical] = useState(false);
+
+  // RB-MIG-LOG-PARTITION: separa logs em "atuais" (>= último fix) e "históricos".
+  // Contadores principais usam apenas atuais para refletir saúde da migração agora.
+  const allLogs = recentErrors.data ?? [];
+  const currentLogs = allLogs.filter((l) => !isHistoricalLog(l.created_at));
+  const visibleLogs = showHistorical ? allLogs : currentLogs;
 
   const totals = {
     promotion: promotionJobs.data?.length ?? 0,
-    errors: recentErrors.data?.filter((l) => l.severity === "error").length ?? 0,
-    warnings: recentErrors.data?.filter((l) => l.severity === "warning").length ?? 0,
+    errors: currentLogs.filter((l) => l.severity === "error").length,
+    warnings: currentLogs.filter((l) => l.severity === "warning").length,
+    historicalErrors: historicalSummary.data?.total_errors ?? 0,
   };
 
   return (
