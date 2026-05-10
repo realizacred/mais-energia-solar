@@ -203,18 +203,6 @@ export function useSolarmarketLogsPage() {
     }
   });
 
-  const runAudit = useMutation({
-    mutationFn: async () => {
-      // Auditoria via RPC ou query direta para detectar órfãos
-      const { data, error } = await supabase.rpc('audit_sm_migration', { p_tenant_id: tenantId });
-      if (error) throw error;
-      return data;
-    },
-    onSuccess: (data) => {
-      toast.success("Auditoria concluída com sucesso");
-      return data;
-    }
-  });
 
   const queryClient = useQueryClient();
 
