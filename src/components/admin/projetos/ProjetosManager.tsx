@@ -195,9 +195,12 @@ export function ProjetosManager() {
     [consultorColumns, etapaMap, existingEtapaIds, filters.status, filters.tipoProjetoSolar, resolveProjetoStatus]
   );
 
-  // ── Persistent filter storage ──
-  const STORAGE_KEY = "projetos_kanban_prefs";
-  
+  // ── Persistent filter storage (per user) ──
+  const STORAGE_KEY = useMemo(
+    () => `projetos_kanban_prefs:${user?.id ?? "anon"}`,
+    [user?.id]
+  );
+
   const getStoredPrefs = useCallback(() => {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
@@ -208,18 +211,20 @@ export function ProjetosManager() {
         consultorId?: string;
         status?: string;
         tipoProjetoSolar?: string;
+        etiquetaIds?: string[];
       };
     } catch { return null; }
-  }, []);
+  }, [STORAGE_KEY]);
 
   const savePrefs = useCallback((prefs: Record<string, any>) => {
     try {
-      const current = getStoredPrefs() || {};
+      const raw = localStorage.getItem(STORAGE_KEY);
+      const current = raw ? JSON.parse(raw) : {};
       localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...current, ...prefs }));
     } catch { /* ignore */ }
-  }, [getStoredPrefs]);
+  }, [STORAGE_KEY]);
 
-  const storedPrefs = useMemo(() => getStoredPrefs(), []);
+  const storedPrefs = useMemo(() => getStoredPrefs(), [getStoredPrefs]);
   
   const [viewMode, setViewModeRaw] = useState<"kanban-etapa" | "kanban-consultor" | "lista">(
     (storedPrefs?.viewMode as any) || "kanban-consultor"
