@@ -9,11 +9,13 @@ import {
   Zap, ClipboardList, CheckCircle, CheckCircle2,
   AlertCircle, AlertTriangle, ChevronDown, ChevronUp, Camera, X,
   MessageSquare, FileDown, Loader2, Check, MoreVertical, Lock, RotateCcw, XCircle, User, CalendarClock,
+  Sun,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { formatDateTime } from "@/lib/dateUtils";
+import { useProjetoDetalhe } from "@/contexts/ProjetoDetalheContext";
 import { StorageFileGallery } from "@/components/ui-kit/StorageFileGallery";
 import { SignaturePad, type SignaturePadRef } from "@/components/checklist/SignaturePad";
 import {
@@ -87,6 +89,7 @@ const TIPO_CONFIG: Record<string, {
 };
 
 export function ProjetoInstalacaoTab({ dealId }: Props) {
+  const { setActiveTab } = useProjetoDetalhe();
   const { data: templates = [], isLoading: loadingTemplates } = useChecklistTemplates();
   const { data: checklists = [], isLoading: loadingChecklists } = useChecklistsByProjeto(dealId);
   const criarChecklist = useCriarChecklist();
@@ -94,7 +97,7 @@ export function ProjetoInstalacaoTab({ dealId }: Props) {
   // Gate: verificar se existe proposta aceita/principal
   // Gate RB-22: só permite instalação com proposta ACEITA (status aceita/ganha)
   // is_principal sozinho NÃO é suficiente — propostas migradas podem ser principal sem aceite
-  const { data: temPropostaAceita = false } = useQuery({
+  const { data: temPropostaAceita = false, isLoading: loadingGate } = useQuery({
     queryKey: ["proposta-aceita-gate", dealId],
     queryFn: async () => {
       const { data } = await supabase
@@ -112,7 +115,7 @@ export function ProjetoInstalacaoTab({ dealId }: Props) {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [finalizarOpen, setFinalizarOpen] = useState<string | null>(null);
 
-  const loading = loadingTemplates || loadingChecklists;
+  const loading = loadingTemplates || loadingChecklists || loadingGate;
 
   if (loading) {
     return (
@@ -169,13 +172,22 @@ export function ProjetoInstalacaoTab({ dealId }: Props) {
         </div>
       </div>
 
-      {/* ALERTA — sem proposta aceita */}
-      {!temPropostaAceita && availableTemplates.length > 0 && checklists.length === 0 && (
-        <div className="flex items-center gap-2 p-3 rounded-lg bg-warning/10 border border-warning/20 text-sm text-warning">
-          <AlertTriangle className="w-4 h-4 shrink-0" />
-          <span>
-            Nenhuma proposta aceita encontrada. Aceite uma proposta na aba <strong>Propostas</strong> antes de iniciar a instalação.
-          </span>
+      {/* ALERTA — sem proposta aceita (Novo Estado Vazio) */}
+      {!temPropostaAceita && checklists.length === 0 && (
+        <div className="flex flex-col items-center justify-center py-16 px-4 text-center bg-muted/20 border border-dashed border-border/60 rounded-2xl">
+          <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mb-4">
+            <Sun className="h-6 w-6 text-primary" />
+          </div>
+          <h3 className="text-base font-medium text-foreground">Aguardando aceite da proposta</h3>
+          <p className="text-sm text-muted-foreground max-w-[320px] mt-1.5 mb-6">
+            Para iniciar a instalação, aceite uma das propostas enviadas ao cliente.
+          </p>
+          <Button 
+            onClick={() => setActiveTab("propostas")} 
+            className="bg-orange-500 hover:bg-orange-600 text-white gap-2 h-9 px-6 rounded-full shadow-sm shadow-orange-500/20"
+          >
+            Ver propostas
+          </Button>
         </div>
       )}
 
@@ -192,7 +204,7 @@ export function ProjetoInstalacaoTab({ dealId }: Props) {
 
       {/* CARDS DE INICIAR — templates disponíveis */}
       {availableTemplates.length > 0 && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className={cn("grid grid-cols-1 sm:grid-cols-2 gap-4", !temPropostaAceita && "opacity-40 pointer-events-none")}>
           {availableTemplates.map(t => {
             const cfg = TIPO_CONFIG[t.tipo] || TIPO_CONFIG.pre_instalacao;
             const IconComp = cfg.Icon;
@@ -222,7 +234,7 @@ export function ProjetoInstalacaoTab({ dealId }: Props) {
 
       {/* CARDS BLOQUEADOS — Pós sem Pré concluída */}
       {lockedTemplates.length > 0 && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className={cn("grid grid-cols-1 sm:grid-cols-2 gap-4", !temPropostaAceita && "opacity-40 pointer-events-none")}>
           {lockedTemplates.map(t => {
             const cfg = TIPO_CONFIG[t.tipo] || TIPO_CONFIG.pos_instalacao;
             const IconComp = cfg.Icon;
