@@ -71,6 +71,8 @@ export interface GenerateProposalPayload {
     incluso_no_preco: boolean;
   }>;
   venda: {
+    custo_kit?: number;
+    custo_instalacao?: number;
     custo_comissao: number;
     custo_outros: number;
     margem_percentual: number;
