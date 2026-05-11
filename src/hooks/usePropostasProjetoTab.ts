@@ -179,7 +179,8 @@ export function usePropostasProjetoTab(dealId: string, customerId: string | null
           }),
       }));
     },
-    staleTime: STALE_TIME,
+    staleTime: 0,
+    refetchOnMount: "always",
     enabled: !!(dealId || customerId),
   });
 }
