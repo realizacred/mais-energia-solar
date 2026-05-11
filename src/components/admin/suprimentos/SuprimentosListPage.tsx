@@ -253,7 +253,9 @@ export function SuprimentosListPage({ projetoId }: SuprimentosListPageProps) {
         open={novaOrdemOpen}
         onOpenChange={setNovaOrdemOpen}
         defaultProjetoId={projetoId}
+        prefilledItens={prefilledItens}
       />
+
     </div>
   );
 }
