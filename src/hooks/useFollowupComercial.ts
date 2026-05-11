@@ -3,7 +3,12 @@
  * Reaproveita: vw_proposal_followup_inbox + RPC get_followup_kpis (Phase 0).
  * RB-76: não duplicar — view já consolida propostas + versões + atividade + memória.
  */
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  useInfiniteQuery,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
