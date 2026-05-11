@@ -131,12 +131,10 @@ export function StepServicos({ servicos, onServicosChange, kitItens = [], potenc
                     </Select>
                   </div>
                   <div className="space-y-1">
-                    <Label className="text-[10px] text-muted-foreground">Valor (R$)</Label>
-                    <Input
-                      type="number" min={0} step={0.01}
-                      value={servico.valor || ""}
-                      onChange={e => updateServico(servico.id, "valor", Number(e.target.value))}
-                      placeholder="0,00"
+                    <Label className="text-[10px] text-muted-foreground">Valor</Label>
+                    <CurrencyInput
+                      value={Number(servico.valor) || 0}
+                      onChange={(reais) => updateServico(servico.id, "valor", reais)}
                       className="h-8 text-xs"
                     />
                   </div>
