@@ -295,6 +295,8 @@ export function usePropostas(filters: PropostaFilters = {}) {
     onSuccess: (result: any) => {
       toast({ title: `Status atualizado para "${result.new_status}"` });
       queryClient.invalidateQueries({ queryKey: [QUERY_KEY] });
+      queryClient.invalidateQueries({ queryKey: ["projeto-detalhe"] });
+      queryClient.invalidateQueries({ queryKey: ["deal-proposals-count"] });
     },
     onError: (err: any) => {
       toast({ title: "Erro ao atualizar status", description: err.message, variant: "destructive" });
