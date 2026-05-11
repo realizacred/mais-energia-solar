@@ -253,8 +253,10 @@ export function ProposalWizard() {
 
   // Sync catalog kit fixed_price → venda.custo_kit_override
   // When items have 0 unit_price but kit has a known cost from meta
+  // SM-MIGRATED: do not overwrite imported financial override (RB-59 paridade)
   useEffect(() => {
     if (manualKits.length === 0) return;
+    if (venda.isImportedFinancialOverride) return; // respeita valor hidratado do snapshot SM
     const meta = (manualKits[0] as any)?.meta;
     if (!meta?.custo || meta.custo <= 0) return;
     const calculatedFromItems = itens.reduce((s, i) => s + i.quantidade * i.preco_unitario, 0);
@@ -262,7 +264,7 @@ export function ProposalWizard() {
     if (calculatedFromItems < meta.custo * 0.99 && venda.custo_kit_override !== meta.custo) {
       setVenda(prev => ({ ...prev, custo_kit: calculatedFromItems, custo_kit_override: meta.custo }));
     }
-  }, [manualKits, itens]);
+  }, [manualKits, itens, venda.isImportedFinancialOverride]);
 
   const [pagamentoOpcoes, setPagamentoOpcoes] = useState<PagamentoOpcao[]>([]);
   const { bancos, loadingBancos } = useBancosCatalog();
