@@ -319,9 +319,23 @@ export function ProjectDocumentsHub({ projetoId, dealId }: Props) {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <Select value={selectedCategoria} onValueChange={setSelectedCategoria}>
+            <SelectTrigger className="w-[160px] h-9 text-xs">
+              <SelectValue placeholder="Categoria" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="Manual">Outros</SelectItem>
+              <SelectItem value="rg_cnh">RG/CNH</SelectItem>
+              <SelectItem value="conta_luz">Conta de Luz</SelectItem>
+              <SelectItem value="iptu">IPTU</SelectItem>
+              <SelectItem value="fotos_telhado">Fotos Telhado</SelectItem>
+              <SelectItem value="art">ART</SelectItem>
+              <SelectItem value="contrato">Contrato</SelectItem>
+            </SelectContent>
+          </Select>
           <Button onClick={() => fileInput.current?.click()} className="gap-1.5" disabled={upload.isPending}>
             {upload.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
-            Enviar arquivos
+            Enviar
           </Button>
           <input
             ref={fileInput}
