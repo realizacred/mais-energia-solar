@@ -39,6 +39,7 @@ export interface ClienteRow {
   comprovante_beneficiaria_urls: string[] | null;
   disjuntor_id: string | null;
   transformador_id: string | null;
+  telefone_normalized: string | null;
 }
 
 export interface LeadOption {
@@ -54,7 +55,7 @@ export function useClientes() {
     queryFn: async () => {
       const PAGE = 1000;
       const cols =
-        "id, nome, telefone, email, empresa, cpf_cnpj, data_nascimento, cep, estado, cidade, bairro, rua, numero, complemento, potencia_kwp, valor_projeto, data_instalacao, numero_placas, modelo_inversor, observacoes, lead_id, localizacao, ativo, created_at, identidade_urls, comprovante_endereco_urls, comprovante_beneficiaria_urls, disjuntor_id, transformador_id";
+        "id, nome, telefone, email, empresa, cpf_cnpj, data_nascimento, cep, estado, cidade, bairro, rua, numero, complemento, potencia_kwp, valor_projeto, data_instalacao, numero_placas, modelo_inversor, observacoes, lead_id, localizacao, ativo, created_at, identidade_urls, comprovante_endereco_urls, comprovante_beneficiaria_urls, disjuntor_id, transformador_id, telefone_normalized";
       const all: ClienteRow[] = [];
       let from = 0;
       // Paginate to bypass Supabase's default 1000-row cap
@@ -120,6 +121,7 @@ export class DuplicateClienteError extends Error {
 }
 
 const onlyDigits = (v: string) => v.replace(/\D/g, "");
+const normalizePhone = (v: string) => v.replace(/\D/g, "").replace(/^55/, "");
 
 export function useSalvarCliente() {
   const qc = useQueryClient();
@@ -134,9 +136,14 @@ export function useSalvarCliente() {
       allowSmDuplicate?: boolean;
     }) => {
       if (id) {
+        const payload = { ...data };
+        if (payload.telefone) {
+          payload.telefone_normalized = normalizePhone(String(payload.telefone));
+        }
+
         const { data: updated, error } = await supabase
           .from("clientes")
-          .update(data)
+          .update(payload)
           .eq("id", id)
           .select()
           .single();
@@ -196,9 +203,14 @@ export function useSalvarCliente() {
         }
       }
 
+      const payload = { ...data };
+      if (payload.telefone) {
+        payload.telefone_normalized = normalizePhone(String(payload.telefone));
+      }
+
       const { data: created, error } = await supabase
         .from("clientes")
-        .insert(data as any)
+        .insert(payload as any)
         .select()
         .single();
       if (error) throw error;

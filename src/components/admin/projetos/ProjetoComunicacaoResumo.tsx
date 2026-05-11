@@ -51,7 +51,7 @@ export function ProjetoComunicacaoResumo({ customerId, customerPhone }: Props) {
   const aiSummary = data?.aiSummary ?? null;
 
   const openFullInbox = () => {
-    const digits = customerPhone.replace(/\D/g, "");
+    const digits = customerPhone.replace(/\D/g, "").replace(/^55/, "");
     navigate(`/admin/wa-inbox?search=${digits}`);
   };
 

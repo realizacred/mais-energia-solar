@@ -32,14 +32,14 @@ export function useConversationByPhone(customerPhone: string, customerId: string
     queryFn: async (): Promise<ConvWithSummary> => {
       if (!customerPhone && !customerId) return { conversation: null, aiSummary: null };
 
-      const digits = customerPhone.replace(/\D/g, "");
+      const digits = customerPhone.replace(/\D/g, "").replace(/^55/, "");
       if (digits.length < 8) return { conversation: null, aiSummary: null };
 
       const suffix = digits.slice(-8);
       const { data } = await supabase
         .from("wa_conversations")
         .select("id, cliente_nome, cliente_telefone, last_message_preview, last_message_at, last_message_direction, status")
-        .or(`cliente_telefone.ilike.%${suffix}%,remote_jid.ilike.%${suffix}%`)
+        .or(`cliente_telefone.ilike.%${suffix}%,remote_jid.ilike.%${suffix}%,telefone_normalized.eq.${digits}`)
         .order("last_message_at", { ascending: false })
         .limit(1);
 
