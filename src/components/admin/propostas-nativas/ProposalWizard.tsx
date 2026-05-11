@@ -147,6 +147,16 @@ function StepContent({ children }: { children: React.ReactNode }) {
 export function ProposalWizard() {
   
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  // Invalida caches do detalhe do projeto/proposta após save (post-edit lifecycle)
+  const invalidateProposalCaches = useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: ["propostas-projeto-tab"] });
+    queryClient.invalidateQueries({ queryKey: ["proposal-detail"] });
+    queryClient.invalidateQueries({ queryKey: ["proposta-expanded-snapshot"] });
+    queryClient.invalidateQueries({ queryKey: ["proposta-expanded-ucs"] });
+    queryClient.invalidateQueries({ queryKey: ["proposta-expanded-kit-items"] });
+    queryClient.invalidateQueries({ queryKey: ["proposal-version-snapshot"] });
+  }, [queryClient]);
   const { data: isAdminOrGerente } = useIsAdminOrGerente();
   const [searchParams] = useSearchParams();
   const dealIdFromUrl = searchParams.get("deal_id");
