@@ -387,28 +387,38 @@ export function ProposalWizard() {
     });
   }, [dealFieldValues]);
 
-  const collectSnapshot = useCallback((): WizardSnapshot => {
-    // Recalculate pagamentoOpcoes with current precoFinal before saving.
-    // When StepPagamento is unmounted its useEffect never reruns,
-    // so à vista / financiamento values can be stale.
-    const pagamentoOpcoesAtualizadas = pagamentoOpcoes.map(op => {
-      if (op.tipo === "a_vista") {
-        return {
-          ...op,
-          valor_financiado: precoFinal,
-          entrada: precoFinal,
-          valor_parcela: precoFinal,
-          num_parcelas: 1,
-        };
-      }
-      if (op.tipo === "financiamento" && precoFinal > 0) {
-        return {
-          ...op,
-          valor_financiado: precoFinal,
-        };
-      }
-      return op;
+  // Fase A — Sidecar: mantém pagamentoOpcoes (à vista / financiamento) coerentes
+  // com precoFinal mesmo quando StepPagamento está desmontado. Substitui a mutação
+  // que antes vivia DENTRO de collectSnapshot (collectSnapshot agora é puro).
+  useEffect(() => {
+    setPagamentoOpcoes(prev => {
+      let mutated = false;
+      const next = prev.map(op => {
+        if (op.tipo === "a_vista") {
+          if (
+            op.valor_financiado !== precoFinal ||
+            op.entrada !== precoFinal ||
+            op.valor_parcela !== precoFinal ||
+            op.num_parcelas !== 1
+          ) {
+            mutated = true;
+            return { ...op, valor_financiado: precoFinal, entrada: precoFinal, valor_parcela: precoFinal, num_parcelas: 1 };
+          }
+          return op;
+        }
+        if (op.tipo === "financiamento" && precoFinal > 0 && op.valor_financiado !== precoFinal) {
+          mutated = true;
+          return { ...op, valor_financiado: precoFinal };
+        }
+        return op;
+      });
+      return mutated ? next : prev;
     });
+  }, [precoFinal]);
+
+  const collectSnapshot = useCallback((): WizardSnapshot => {
+    // Fase A — collectSnapshot agora é PURO: não muta pagamentoOpcoes.
+    // A sincronização com precoFinal é feita por effect dedicado acima.
 
     // ── Financial series enrichment (QW11) ──
     // Compute 25-year series, payback, TIR, VPL, economia before saving
