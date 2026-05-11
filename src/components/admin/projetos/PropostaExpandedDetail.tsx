@@ -673,6 +673,12 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
   const { data: tenantCtx } = useQuery({ queryKey: ["current-tenant-id"], queryFn: getCurrentTenantId, staleTime: 1000 * 60 * 15 });
   const isMigrated = false;
   const latestVersao = p.versoes[0];
+  const enviadaVersao = p.versoes.find(v => v.status === 'enviada' || v.status === 'sent');
+  const hasDivergence = enviadaVersao && latestVersao && 
+    latestVersao.valor_total !== null && 
+    enviadaVersao.valor_total !== null && 
+    Math.abs(latestVersao.valor_total - enviadaVersao.valor_total) > 0.01;
+
   const wpPrice = latestVersao?.valor_total && latestVersao?.potencia_kwp
     ? (latestVersao.valor_total / (latestVersao.potencia_kwp * 1000)).toFixed(2)
     : null;
