@@ -333,6 +333,8 @@ export function useExcluirProposta() {
       queryClient.invalidateQueries({ queryKey: ["deal-pipeline"] });
       // Invalidate proposals count query (replaces custom event)
       queryClient.invalidateQueries({ queryKey: ["deal-proposals-count"] });
+      // Invalidate project detail to refresh valor_total if necessary
+      queryClient.invalidateQueries({ queryKey: ["projeto-detalhe"] });
       toast({ title: "Proposta excluída" });
     },
     onError: (err: any) => {
