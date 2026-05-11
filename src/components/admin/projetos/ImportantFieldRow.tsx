@@ -155,17 +155,20 @@ export function ImportantFieldRow({ field, value, dealId, onSaved, showSeparator
     const newVal = !(value?.value_boolean ?? false);
     setSaving(true);
     try {
-      await supabase
+      const tenantId = await resolveTenantId();
+      const { error } = await supabase
         .from("deal_custom_field_values")
         .upsert({
           deal_id: dealId,
           field_id: field.id,
+          tenant_id: tenantId,
           value_text: null,
           value_number: null,
           value_boolean: newVal,
           value_date: null,
         } as any, { onConflict: "deal_id,field_id" });
-      onSaved();
+      if (error) console.error("Erro ao salvar campo booleano:", error);
+      else onSaved();
     } finally {
       setSaving(false);
     }
