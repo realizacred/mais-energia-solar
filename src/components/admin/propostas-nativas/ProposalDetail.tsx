@@ -126,7 +126,7 @@ export function ProposalDetail() {
     <div className="space-y-6">
       {/* ══════════ HEADER ══════════ */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <ProposalHeader vm={vm} clienteNome={propostaRaw?.cliente_id ? vm.clienteNome : null} />
+        <ProposalHeader vm={vm} clienteNome={propostaRaw?.cliente_id ? vm.clienteNome : null} projetoId={propostaRaw?.projeto_id ?? null} />
         <ProposalStatusActions
           vm={vm}
           existingOs={existingOs}
