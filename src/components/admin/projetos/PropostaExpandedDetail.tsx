@@ -1485,7 +1485,12 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
                     });
                     return;
                   }
-                  navigate(`/admin/propostas-nativas/${p.id}/versoes/${latestVersao.id}`);
+                  const params = new URLSearchParams();
+                  if (dealId) params.set("deal_id", dealId);
+                  if (customerId) params.set("customer_id", customerId);
+                  params.set("proposta_id", p.id);
+                  params.set("versao_id", latestVersao.id);
+                  navigate(`/admin/propostas-nativas/nova?${params.toString()}`);
                 })}>
                   <Pencil className="h-3.5 w-3.5 mr-2 text-primary" /> Editar proposta
                 </DropdownMenuItem>
