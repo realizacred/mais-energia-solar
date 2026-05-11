@@ -10,7 +10,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { type UCData, type RegraCompensacao, type GrupoTarifario, FASE_TENSAO_OPTIONS, SUBGRUPO_BT, SUBGRUPO_MT, SUBGRUPO_MT_LABELS } from "../types";
+import { type UCData, type RegraCompensacao, type GrupoTarifario, FASE_TENSAO_OPTIONS, SUBGRUPO_BT, SUBGRUPO_MT, SUBGRUPO_MT_LABELS, redeAtendimentoToFaseTensao } from "../types";
 import { resolveGrupoFromSubgrupo } from "@/lib/validateGrupoConsistency";
 import { useFetchTarifaSubgrupo, parseSubgrupoModalidade, fetchAvailableSubgrupos } from "@/hooks/useConcessionariaTarifaSubgrupo";
 import { getFioBCobranca } from "@/lib/calcGrupoB";
