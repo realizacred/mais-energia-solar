@@ -535,6 +535,7 @@ async function persistProposalAtomic(
 // ─── Hook ─────────────────────────────────────────────────
 
 export function useWizardPersistence() {
+  const queryClient = useQueryClient();
   const [saving, setSaving] = useState(false);
   const savingRef = useRef(false);
 
