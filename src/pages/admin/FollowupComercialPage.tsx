@@ -37,25 +37,24 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
 import { PageHeader } from "@/components/ui-kit/PageHeader";
 import { StatCard } from "@/components/ui-kit/StatCard";
 import { EmptyState } from "@/components/ui-kit/EmptyState";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { FollowupSendDialog } from "@/components/admin/followup-comercial/FollowupSendDialog";
 import { FollowupComercialAnalytics } from "@/components/admin/followup-comercial/FollowupComercialAnalytics";
+import { FollowupRecoveryRow } from "@/components/admin/followup-comercial/FollowupRecoveryRow";
+import { OpportunityBanner } from "@/components/admin/followup-comercial/OpportunityBanner";
 import {
   useFollowupComercialKpis,
   useFollowupComercialInbox,
   type FollowupClasse,
   type FollowupInboxRow,
 } from "@/hooks/useFollowupComercial";
-import { formatDiasParado, formatDiasParadoCompact } from "@/lib/formatters/diasParado";
 
-import { formatDistanceToNow } from "date-fns";
-import { ptBR } from "date-fns/locale";
+const formatBRL = (v: number) =>
+  v.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
 
-const TZ = "America/Sao_Paulo";
 
 const classeLabel: Record<string, { label: string; tone: string }> = {
   sem_resposta: { label: "Sem resposta", tone: "bg-warning/10 text-warning border-warning/30" },
