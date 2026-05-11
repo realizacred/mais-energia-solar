@@ -66,6 +66,7 @@ export function FollowupSendDialog({ row, open, onOpenChange }: Props) {
       setForceReason("");
       setAiSuggestion(null);
       setAiCooldown(0);
+      setBreakdownOpen(false);
     }
   }, [row, open]);
 
