@@ -89,7 +89,11 @@ function formatRelative(iso: string | null) {
 function formatAbsolute(iso: string | null) {
   if (!iso) return "—";
   try {
-    return formatInTimeZone(new Date(iso), TZ, "dd/MM/yyyy HH:mm", { locale: ptBR });
+    return new Intl.DateTimeFormat("pt-BR", {
+      timeZone: TZ,
+      dateStyle: "short",
+      timeStyle: "short",
+    }).format(new Date(iso));
   } catch {
     return "—";
   }
