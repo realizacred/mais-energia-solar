@@ -234,7 +234,7 @@ export function ProjetoInstalacaoTab({ dealId }: Props) {
 
       {/* CARDS BLOQUEADOS — Pós sem Pré concluída */}
       {lockedTemplates.length > 0 && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className={cn("grid grid-cols-1 sm:grid-cols-2 gap-4", !temPropostaAceita && "opacity-40 pointer-events-none")}>
           {lockedTemplates.map(t => {
             const cfg = TIPO_CONFIG[t.tipo] || TIPO_CONFIG.pos_instalacao;
             const IconComp = cfg.Icon;
