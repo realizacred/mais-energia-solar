@@ -191,7 +191,7 @@ export function StepPagamento({
 
   const [hasUserEditedBancoGroups, setHasUserEditedBancoGroups] = useState(false);
   const [bancoGroups, setBancoGroups] = useState<BancoGroup[]>(() =>
-    opcoes.length > 0 ? mapOpcoesToBancoGroups(opcoes, bancos, precoFinal) : buildBancoGroups(bancos, precoFinal, selectedBankIds)
+    opcoes.length > 0 ? mapOpcoesToBancoGroups(opcoes, bancos, precoFinal, selectedBankIds) : buildBancoGroups(bancos, precoFinal, selectedBankIds)
   );
   const [selectedBancoIdx, setSelectedBancoIdx] = useState(0);
   const [showNovoFinanciamento, setShowNovoFinanciamento] = useState(false);
