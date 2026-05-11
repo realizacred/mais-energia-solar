@@ -41,6 +41,7 @@ export interface HomologacaoData {
   protocolo?: string | null;
   data_solicitacao?: string | null;
   data_aprovacao?: string | null;
+  previsao_aprovacao?: string | null;
   motivo_reprovacao?: string | null;
   observacoes?: string | null;
 }
