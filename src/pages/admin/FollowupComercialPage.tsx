@@ -334,6 +334,7 @@ export default function FollowupComercialPage() {
                       <th className="text-right px-4 py-2">Aberturas</th>
                       <th className="text-right px-4 py-2">Parado</th>
                       <th className="text-left px-4 py-2">Última atividade</th>
+                      <th className="text-right px-4 py-2 w-[1%]">Ação</th>
                     </tr>
                   </thead>
                   <tbody>
