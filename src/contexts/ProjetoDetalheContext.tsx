@@ -77,6 +77,12 @@ export interface ProjetoDetalheContextValue {
   // Data
   deal: DealDetail | null;
   projetoId: string | null;
+  /** Nome próprio do projeto (projetos.nome). */
+  projetoNome: string | null;
+  /** Código do projeto (projetos.codigo). */
+  projetoCodigo: string | null;
+  /** Número humano do projeto (projetos.projeto_num). */
+  projetoNum: number | null;
   history: StageHistory[];
   stages: StageInfo[];
   loading: boolean;
