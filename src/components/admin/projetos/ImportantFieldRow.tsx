@@ -108,9 +108,11 @@ export function ImportantFieldRow({ field, value, dealId, onSaved, showSeparator
   async function save() {
     setSaving(true);
     try {
+      const tenantId = await resolveTenantId();
       const payload: any = {
         deal_id: dealId,
         field_id: field.id,
+        tenant_id: tenantId,
         value_text: null,
         value_number: null,
         value_boolean: null,
