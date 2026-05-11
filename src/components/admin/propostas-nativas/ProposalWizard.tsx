@@ -1604,6 +1604,7 @@ export function ProposalWizard() {
         applyPersistResult(res);
         syncCustomFieldValues(res.dealId || resolvedDealId);
         syncTemplateIdUsed(res.versaoId);
+        invalidateProposalCaches(res.dealId || resolvedDealId, res.projetoId);
         if (res.newVersionCreated) {
           toast({ title: "Nova versão criada", description: res.message });
         } else if (res.status !== "reused") {
@@ -1618,7 +1619,7 @@ export function ProposalWizard() {
         toast({ title: "Erro ao salvar", description: res.reason || res.message, variant: "destructive" });
         break;
     }
-  }, [isRestoring, savedPropostaId, savedVersaoId, propostaIdFromUrl, versaoIdFromUrl, buildPersistParams, persistAtomic, applyPersistResult, syncCustomFieldValues, syncTemplateIdUsed, resolvedDealId]);
+  }, [isRestoring, savedPropostaId, savedVersaoId, propostaIdFromUrl, versaoIdFromUrl, buildPersistParams, persistAtomic, applyPersistResult, syncCustomFieldValues, syncTemplateIdUsed, resolvedDealId, invalidateProposalCaches]);
 
   // ─── Grupo consistency validation
   const grupoValidation = useMemo(() => validateGrupoConsistency(ucs), [ucs]);
