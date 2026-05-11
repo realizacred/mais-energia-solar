@@ -24,6 +24,7 @@ import {
   Search,
   Inbox,
   AlertTriangle,
+  Send,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -40,10 +41,12 @@ import { Badge } from "@/components/ui/badge";
 import { PageHeader } from "@/components/ui-kit/PageHeader";
 import { StatCard } from "@/components/ui-kit/StatCard";
 import { EmptyState } from "@/components/ui-kit/EmptyState";
+import { FollowupSendDialog } from "@/components/admin/followup-comercial/FollowupSendDialog";
 import {
   useFollowupComercialKpis,
   useFollowupComercialInbox,
   type FollowupClasse,
+  type FollowupInboxRow,
 } from "@/hooks/useFollowupComercial";
 
 import { formatDistanceToNow } from "date-fns";
