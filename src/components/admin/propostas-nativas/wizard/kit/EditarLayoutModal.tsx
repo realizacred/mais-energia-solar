@@ -181,57 +181,57 @@ export function EditarLayoutModal({ open, onOpenChange, layouts: initial, totalM
                   className="flex gap-4"
                 >
                   <label className={cn(
-                    "flex items-center gap-3 p-3 rounded-lg border-2 cursor-pointer transition-all flex-1",
+                    "flex flex-col gap-3 p-3 rounded-lg border-2 cursor-pointer transition-all flex-1",
                     arranjo.disposicao === "horizontal"
                       ? "border-primary bg-primary/5"
                       : "border-border/40 hover:border-border"
                   )}>
-                    <RadioGroupItem value="horizontal" />
                     <div className="flex items-center gap-2">
+                      <RadioGroupItem value="horizontal" />
                       <span className="text-xs font-medium">Horizontal</span>
-                      <div className="flex gap-0.5">
-                        {Array.from({ length: Math.min(arranjo.modulos_por_linha, 6) }).map((_, i) => (
-                          <div key={i} className="w-4 h-6 rounded-[2px] border border-info/60 bg-gradient-to-br from-secondary/70 via-secondary/60 to-secondary/50 relative overflow-hidden">
-                            <div className="absolute inset-[1px] grid grid-cols-2 gap-[0.5px]">
-                              <div className="bg-info/15 rounded-[0.5px]" />
-                              <div className="bg-info/15 rounded-[0.5px]" />
-                              <div className="bg-info/15 rounded-[0.5px]" />
-                              <div className="bg-info/15 rounded-[0.5px]" />
-                            </div>
-                            <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/10 to-white/5" />
+                    </div>
+                    <div className="flex flex-wrap gap-0.5 max-w-full overflow-hidden">
+                      {Array.from({ length: arranjo.modulos_por_linha * arranjo.num_linhas }).map((_, i) => (
+                        <div key={i} className="w-[18px] h-[27px] rounded-[1px] border border-info/60 bg-gradient-to-br from-secondary/70 via-secondary/60 to-secondary/50 relative overflow-hidden">
+                          <div className="absolute inset-[1px] grid grid-cols-2 gap-[0.5px]">
+                            <div className="bg-info/15 rounded-[0.5px]" />
+                            <div className="bg-info/15 rounded-[0.5px]" />
+                            <div className="bg-info/15 rounded-[0.5px]" />
+                            <div className="bg-info/15 rounded-[0.5px]" />
                           </div>
-                        ))}
-                        {arranjo.modulos_por_linha > 6 && (
-                          <span className="text-[9px] text-muted-foreground self-center ml-0.5">+{arranjo.modulos_por_linha - 6}</span>
-                        )}
-                      </div>
+                          <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/10 to-white/5" />
+                        </div>
+                      ))}
+                    </div>
+                    <div className="text-[10px] text-muted-foreground mt-auto">
+                      {arranjo.modulos_por_linha * arranjo.num_linhas} módulos · {arranjo.num_linhas} {arranjo.num_linhas === 1 ? 'linha' : 'linhas'} de {arranjo.modulos_por_linha}
                     </div>
                   </label>
 
                   <label className={cn(
-                    "flex items-center gap-3 p-3 rounded-lg border-2 cursor-pointer transition-all flex-1",
+                    "flex flex-col gap-3 p-3 rounded-lg border-2 cursor-pointer transition-all flex-1",
                     arranjo.disposicao === "vertical"
                       ? "border-primary bg-primary/5"
                       : "border-border/40 hover:border-border"
                   )}>
-                    <RadioGroupItem value="vertical" />
                     <div className="flex items-center gap-2">
+                      <RadioGroupItem value="vertical" />
                       <span className="text-xs font-medium">Vertical</span>
-                      <div className="flex gap-0.5">
-                        {Array.from({ length: Math.min(arranjo.modulos_por_linha, 6) }).map((_, i) => (
-                          <div key={i} className="w-6 h-4 rounded-[2px] border border-info/60 bg-gradient-to-br from-secondary/70 via-secondary/60 to-secondary/50 relative overflow-hidden">
-                            <div className="absolute inset-[1px] grid grid-cols-3 gap-[0.5px]">
-                              <div className="bg-info/15 rounded-[0.5px]" />
-                              <div className="bg-info/15 rounded-[0.5px]" />
-                              <div className="bg-info/15 rounded-[0.5px]" />
-                            </div>
-                            <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/10 to-white/5" />
+                    </div>
+                    <div className="flex flex-wrap gap-0.5 max-w-full overflow-hidden">
+                      {Array.from({ length: arranjo.modulos_por_linha * arranjo.num_linhas }).map((_, i) => (
+                        <div key={i} className="w-[27px] h-[18px] rounded-[1px] border border-info/60 bg-gradient-to-br from-secondary/70 via-secondary/60 to-secondary/50 relative overflow-hidden">
+                          <div className="absolute inset-[1px] grid grid-cols-3 gap-[0.5px]">
+                            <div className="bg-info/15 rounded-[0.5px]" />
+                            <div className="bg-info/15 rounded-[0.5px]" />
+                            <div className="bg-info/15 rounded-[0.5px]" />
                           </div>
-                        ))}
-                        {arranjo.modulos_por_linha > 6 && (
-                          <span className="text-[9px] text-muted-foreground self-center ml-0.5">+{arranjo.modulos_por_linha - 6}</span>
-                        )}
-                      </div>
+                          <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/10 to-white/5" />
+                        </div>
+                      ))}
+                    </div>
+                    <div className="text-[10px] text-muted-foreground mt-auto">
+                      {arranjo.modulos_por_linha * arranjo.num_linhas} módulos · {arranjo.num_linhas} {arranjo.num_linhas === 1 ? 'linha' : 'linhas'} de {arranjo.modulos_por_linha}
                     </div>
                   </label>
                 </RadioGroup>
