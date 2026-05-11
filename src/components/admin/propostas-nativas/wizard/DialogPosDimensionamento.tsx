@@ -45,6 +45,8 @@ interface Props {
   onCustomFieldValuesChange: (v: Record<string, any>) => void;
   financialWarnings?: string[];
   onConfirm: () => void;
+  /** Kit data for auto-fill */
+  kitItems?: any[];
   /** Save actions */
   onSaveDraft?: () => void;
   onSaveActive?: () => void;
@@ -60,6 +62,7 @@ export function DialogPosDimensionamento({
   customFieldValues, onCustomFieldValuesChange,
   financialWarnings = [],
   onConfirm,
+  kitItems = [],
   onSaveDraft, onSaveActive, saving, savedPropostaId,
 }: Props) {
   const { data: allFields, isLoading: loading } = useCustomFieldsList();
@@ -70,6 +73,38 @@ export function DialogPosDimensionamento({
     ).sort((a: any, b: any) => (a.ordem ?? 0) - (b.ordem ?? 0)) as CustomField[],
     [allFields]
   );
+
+  // UX-02: Auto-fill pos-dimensionamento fields with kit suggestions
+  useEffect(() => {
+    if (!open || kitItems.length === 0) return;
+
+    const nextValues = { ...customFieldValues };
+    let changed = false;
+
+    // 1. pos_inversor_qtd
+    if (!nextValues.pos_inversor_qtd) {
+      const inversores = kitItems.filter(i => i.categoria === "inversor");
+      if (inversores.length > 0) {
+        const suggestion = inversores.map(i => `${i.quantidade}x ${i.modelo}`).join(" + ");
+        nextValues.pos_inversor_qtd = suggestion;
+        changed = true;
+      }
+    }
+
+    // 2. pos_modulo_info
+    if (!nextValues.pos_modulo_info) {
+      const modulos = kitItems.filter(i => i.categoria === "modulo" || i.categoria === "modulos");
+      if (modulos.length > 0) {
+        const suggestion = modulos.map(i => `${i.quantidade}x ${i.modelo} ${i.potencia_w}W`).join(" + ");
+        nextValues.pos_modulo_info = suggestion;
+        changed = true;
+      }
+    }
+
+    if (changed) {
+      onCustomFieldValuesChange(nextValues);
+    }
+  }, [open, kitItems]);
 
   const updateCustom = (key: string, value: any) => {
     onCustomFieldValuesChange({ ...customFieldValues, [key]: value });
