@@ -1563,11 +1563,13 @@ export function ProposalWizard() {
         applyPersistResult(res);
         syncCustomFieldValues(res.dealId || resolvedDealId);
         syncTemplateIdUsed(res.versaoId);
+        invalidateProposalCaches(res.dealId || resolvedDealId, res.projetoId);
         toast({ title: "✅ Rascunho salvo" });
         break;
       case "reused":
         applyPersistResult(res);
         syncTemplateIdUsed(res.versaoId);
+        invalidateProposalCaches(res.dealId || resolvedDealId, res.projetoId);
         break;
       case "blocked":
         toast({ title: "Aguarde", description: res.message, variant: "destructive" });
@@ -1577,7 +1579,7 @@ export function ProposalWizard() {
         toast({ title: "Erro ao salvar", description: res.reason || res.message, variant: "destructive" });
         break;
     }
-  }, [isRestoring, savedPropostaId, savedVersaoId, propostaIdFromUrl, versaoIdFromUrl, buildPersistParams, persistAtomic, applyPersistResult, dealIdFromUrl, resolvedDealId, syncCustomFieldValues, syncTemplateIdUsed]);
+  }, [isRestoring, savedPropostaId, savedVersaoId, propostaIdFromUrl, versaoIdFromUrl, buildPersistParams, persistAtomic, applyPersistResult, dealIdFromUrl, resolvedDealId, syncCustomFieldValues, syncTemplateIdUsed, invalidateProposalCaches]);
 
   const handleUpdate = useCallback(async (setActive: boolean) => {
     if (isRestoring) {
