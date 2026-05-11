@@ -222,15 +222,18 @@ export function StepPagamento({
       }));
   });
 
-  // Sync precoFinal into existing banco groups — update valor_financiado + recalc parcela
+  // Fase 1 — Sync precoFinal nos bancos APENAS quando o usuário ainda não editou
+  // o grupo (hasUserEditedBancoGroups=false) E o financiamento é a única forma.
+  // Para composições reais (financ. parcial + entrada por outro método), o usuário
+  // define manualmente valor_financiado e entrada — não sobrescrever.
   useEffect(() => {
     if (precoFinal <= 0) return;
+    if (hasUserEditedBancoGroups) return;
+    if (formasSelecionadas.length > 0) return; // composição em curso
     setBancoGroups(prev => {
-      // If no groups yet, build from scratch
       if (prev.length === 0 && bancos.length > 0) {
-        return buildBancoGroups(bancos, precoFinal);
+        return buildBancoGroups(bancos, precoFinal, selectedBankIds);
       }
-      // Update valor_financiado and recalculate valor_parcela in all existing options
       return prev.map(g => ({
         ...g,
         opcoes: g.opcoes.map(op => {
@@ -251,7 +254,7 @@ export function StepPagamento({
         }),
       }));
     });
-  }, [precoFinal, bancos]);
+  }, [precoFinal, bancos, hasUserEditedBancoGroups, formasSelecionadas.length, selectedBankIds]);
 
   // Merge banco groups + formas selecionadas into pagamentoOpcoes
   useEffect(() => {
