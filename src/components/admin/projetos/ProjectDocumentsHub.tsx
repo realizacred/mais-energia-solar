@@ -117,17 +117,85 @@ function formatSize(bytes?: number | null) {
 }
 
 export function ProjectDocumentsHub({ projetoId, dealId }: Props) {
-  const { data: docs = [], isLoading } = useProjectDocuments({ projetoId, dealId });
+  const { data: canonicalDocs = [], isLoading } = useProjectDocuments({ projetoId, dealId });
+  const { data: legacyFiles = [] } = useProjetoArquivos(dealId || "");
+  const { data: cfFiles = [] } = useProjetoCustomFieldFiles(dealId || "");
   const upload = useUploadProjectDocument();
   const remove = useDeleteProjectDocument();
+  const removeLegacy = useDeletarArquivo(dealId || "");
 
   const [search, setSearch] = useState("");
   const [origemFilter, setOrigemFilter] = useState<string>("all");
   const [preview, setPreview] = useState<FilePreviewTarget | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<ProjectDocument | null>(null);
+  const [confirmDeleteLegacy, setConfirmDeleteLegacy] = useState<string | null>(null);
   const [dragOver, setDragOver] = useState(false);
   const [uploading, setUploading] = useState<string[]>([]);
   const fileInput = useRef<HTMLInputElement>(null);
+
+  // Mescla canônico + legado bucket + custom fields como linhas virtuais
+  const docs = useMemo<ProjectDocument[]>(() => {
+    const out: ProjectDocument[] = [...canonicalDocs];
+    const seenPaths = new Set(canonicalDocs.map((d) => d.storage_path));
+
+    // Legacy bucket projeto-documentos
+    for (const f of legacyFiles) {
+      if (!f.id || !f.metadata) continue;
+      const path = `legacy/${dealId}/${f.name}`;
+      if (seenPaths.has(path)) continue;
+      out.push({
+        id: `legacy:${f.name}`,
+        tenant_id: "",
+        projeto_id: null,
+        deal_id: dealId || null,
+        proposta_id: null,
+        cliente_id: null,
+        categoria: "Anexos manuais",
+        origem: "legacy",
+        bucket: "projeto-documentos",
+        storage_path: path, // resolvido na hora do preview/download
+        file_name: f.name.replace(/^\d+_/, ""),
+        mime_type: f.metadata?.mimetype || null,
+        size_bytes: f.metadata?.size || null,
+        uploaded_by: null,
+        metadata: { _legacyName: f.name },
+        source_table: "storage",
+        source_id: f.name,
+        is_deleted: false,
+        created_at: f.created_at || new Date().toISOString(),
+        updated_at: f.created_at || new Date().toISOString(),
+      });
+    }
+
+    // Custom field files
+    for (const cf of cfFiles) {
+      if (seenPaths.has(cf.storage_path)) continue;
+      out.push({
+        id: `cf:${cf.field_id}:${cf.storage_path}`,
+        tenant_id: "",
+        projeto_id: null,
+        deal_id: dealId || null,
+        proposta_id: null,
+        cliente_id: null,
+        categoria: `Campo: ${cf.field_title}`,
+        origem: "custom_field",
+        bucket: "projeto-documentos",
+        storage_path: cf.storage_path,
+        file_name: cf.filename,
+        mime_type: cf.mime || null,
+        size_bytes: cf.size || null,
+        uploaded_by: null,
+        metadata: { field_id: cf.field_id, field_key: cf.field_key, field_title: cf.field_title },
+        source_table: "deal_custom_field_values",
+        source_id: cf.field_id,
+        is_deleted: false,
+        created_at: cf.uploaded_at || new Date().toISOString(),
+        updated_at: cf.uploaded_at || new Date().toISOString(),
+      });
+    }
+
+    return out.sort((a, b) => b.created_at.localeCompare(a.created_at));
+  }, [canonicalDocs, legacyFiles, cfFiles, dealId]);
 
   const filtered = useMemo(() => {
     const s = search.toLowerCase().trim();
