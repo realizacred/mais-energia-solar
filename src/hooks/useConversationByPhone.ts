@@ -39,7 +39,7 @@ export function useConversationByPhone(customerPhone: string, customerId: string
       const { data } = await supabase
         .from("wa_conversations")
         .select("id, cliente_nome, cliente_telefone, last_message_preview, last_message_at, last_message_direction, status")
-        .or(`cliente_telefone.ilike.%${suffix}%,remote_jid.ilike.%${suffix}%`)
+        .or(`cliente_telefone.ilike.%${suffix}%,remote_jid.ilike.%${suffix}%,telefone_normalized.eq.${digits}`)
         .order("last_message_at", { ascending: false })
         .limit(1);
 
