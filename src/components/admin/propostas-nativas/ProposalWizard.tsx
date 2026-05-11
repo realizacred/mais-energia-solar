@@ -2421,6 +2421,9 @@ export function ProposalWizard() {
       // proposal-generate already sets it server-side, but sync as fallback
       syncTemplateIdUsed(genResult.versao_id);
 
+      // Invalidate caches so project detail / kanban / proposal lists reflect new version
+      invalidateProposalCaches(resolvedDealId, projetoId);
+
       // Audit is now persisted by the backend — no need for frontend persistAudit
 
       // Determine if selected template is DOCX or HTML
