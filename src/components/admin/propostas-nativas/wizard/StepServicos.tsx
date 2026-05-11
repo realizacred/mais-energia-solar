@@ -94,21 +94,22 @@ export function StepServicos({ servicos, onServicosChange, venda, kitItens = [],
   const instalacaoServico = servicos.find(s => s.categoria === "instalacao");
   const comissaoServico = servicos.find(s => s.categoria === "comissao");
 
-  if (instalacaoServico || !servicos.some(s => s.categoria === "instalacao")) {
-    resumoItens.push({
-      descricao: "Instalação",
-      quantidade: 1,
-      valor: instalacaoServico?.valor || 0,
-    });
-  }
+  // Use values from VendaData if provided (Financial Center sync), otherwise from servicos array
+  const hasVendaValues = !!venda;
+  const valorInstalacao = hasVendaValues ? (venda.custo_instalacao || 0) : (servicos.find(s => s.categoria === "instalacao")?.valor || 0);
+  const valorComissao = hasVendaValues ? (venda.custo_comissao || 0) : (servicos.find(s => s.categoria === "comissao")?.valor || 0);
 
-  if (comissaoServico || !servicos.some(s => s.categoria === "comissao")) {
-    resumoItens.push({
-      descricao: "Comissão",
-      quantidade: 1,
-      valor: comissaoServico?.valor || 0,
-    });
-  }
+  resumoItens.push({
+    descricao: "Instalação",
+    quantidade: 1,
+    valor: valorInstalacao,
+  });
+
+  resumoItens.push({
+    descricao: "Comissão",
+    quantidade: 1,
+    valor: valorComissao,
+  });
 
   // Add other services not already shown
   servicos
