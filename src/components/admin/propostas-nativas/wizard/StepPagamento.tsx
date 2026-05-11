@@ -97,7 +97,7 @@ export function StepPagamento({
             carencia_meses: 2,
             valor_financiado: price - valorEntradaGlobal,
 
-            valor_parcela: calcParcela({ valor_financiado: price, entrada: 0, num_parcelas: parcelas, taxa_mensal: b.taxa_mensal, tipo: "financiamento", carencia_meses: 2 }),
+            valor_parcela: calcParcela({ valor_financiado: price, entrada: valorEntradaGlobal, num_parcelas: parcelas, taxa_mensal: b.taxa_mensal, tipo: "financiamento", carencia_meses: 2 }),
           })),
       })), []);
 
