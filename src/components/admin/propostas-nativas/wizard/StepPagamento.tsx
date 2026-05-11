@@ -98,9 +98,9 @@ export function StepPagamento({
           })),
       }));
 
-  const mapOpcoesToBancoGroups = (existingOpcoes: PagamentoOpcao[], bankList: BancoFinanciamento[], fallbackPrice: number): BancoGroup[] => {
+  const mapOpcoesToBancoGroups = (existingOpcoes: PagamentoOpcao[], bankList: BancoFinanciamento[], fallbackPrice: number, selectedIds?: Set<string>): BancoGroup[] => {
     const financiamento = existingOpcoes.filter((o) => o.tipo === "financiamento" || o.tipo === "parcelado");
-    if (financiamento.length === 0) return buildBancoGroups(bankList, fallbackPrice);
+    if (financiamento.length === 0) return buildBancoGroups(bankList, fallbackPrice, selectedIds);
 
     const byBanco = new Map<string, BancoOpcao[]>();
     financiamento.forEach((op) => {
