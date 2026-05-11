@@ -62,6 +62,7 @@ export function DialogPosDimensionamento({
   customFieldValues, onCustomFieldValuesChange,
   financialWarnings = [],
   onConfirm,
+  kitItems = [],
   onSaveDraft, onSaveActive, saving, savedPropostaId,
 }: Props) {
   const { data: allFields, isLoading: loading } = useCustomFieldsList();
