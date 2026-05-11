@@ -55,23 +55,23 @@ export function StepServicos({ servicos, onServicosChange, venda, kitItens = [],
   };
 
   const addDefaultServices = () => {
-    if (!premises?.sombreamento_config) return;
-    
-    // In current project, default services are defined in pricing_config/tenant_premises
-    // but the request asks to populate with "standard services" from premises.
-    // Since there's no explicit "default_services" array in SolarPremises, 
-    // we'll add common ones as a placeholder or check if there's a specific logic.
-    // Based on system patterns, we'll add "Projeto Elétrico" and "Homologação" 
-    // if not already present.
-    
+    // Standard services logic: fetch common descriptors or predefined system defaults
+    // Since there's no explicit array in SolarPremises, we use a robust set of defaults
     const defaults: ServicoItem[] = [
       { id: crypto.randomUUID(), descricao: "Projeto Elétrico e Engenharia", categoria: "projeto", valor: 0, incluso_no_preco: true },
       { id: crypto.randomUUID(), descricao: "Homologação na Concessionária", categoria: "homologacao", valor: 0, incluso_no_preco: true },
       { id: crypto.randomUUID(), descricao: "Visita Técnica", categoria: "manutencao", valor: 0, incluso_no_preco: true },
     ];
     
-    onServicosChange([...servicos, ...defaults]);
+    // Merge only if not already present by description
+    const existingDescs = new Set(servicos.map(s => s.descricao.toLowerCase()));
+    const toAdd = defaults.filter(d => !existingDescs.has(d.descricao.toLowerCase()));
+    
+    if (toAdd.length > 0) {
+      onServicosChange([...servicos, ...toAdd]);
+    }
   };
+
 
   const removeServico = (id: string) => onServicosChange(servicos.filter(s => s.id !== id));
 
