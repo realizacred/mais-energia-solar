@@ -158,6 +158,41 @@ export function ImportantFieldRow({ field, value, dealId, onSaved, showSeparator
 
   const options: string[] = Array.isArray(field.options) ? field.options : [];
 
+  // ── File row (upload directly, no edit/save toggle) ──
+  if (field.field_type === "file") {
+    return (
+      <>
+        <div className="flex items-center gap-2 py-1 px-1 min-w-0">
+          <FieldIcon className="h-3.5 w-3.5 shrink-0 text-primary" />
+          <span className="text-xs text-foreground truncate min-w-0 w-[120px] shrink-0" title={field.title}>{field.title}</span>
+          <div className="flex-1 min-w-0">
+            <CustomFieldFileInput
+              value={value?.value_text}
+              fieldKey={field.field_key}
+              dealId={dealId}
+              compact
+              onChange={async (jsonValue) => {
+                const { error } = await supabase
+                  .from("deal_custom_field_values")
+                  .upsert({
+                    deal_id: dealId,
+                    field_id: field.id,
+                    value_text: jsonValue,
+                    value_number: null,
+                    value_boolean: null,
+                    value_date: null,
+                  } as any, { onConflict: "deal_id,field_id" });
+                if (error) console.error("Erro ao salvar arquivo do campo:", error);
+                else onSaved();
+              }}
+            />
+          </div>
+        </div>
+        {showSeparator && <Separator />}
+      </>
+    );
+  }
+
   // ── Boolean row ──
   if (field.field_type === "boolean") {
     return (
