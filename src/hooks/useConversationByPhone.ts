@@ -32,7 +32,7 @@ export function useConversationByPhone(customerPhone: string, customerId: string
     queryFn: async (): Promise<ConvWithSummary> => {
       if (!customerPhone && !customerId) return { conversation: null, aiSummary: null };
 
-      const digits = customerPhone.replace(/\D/g, "");
+      const digits = customerPhone.replace(/\D/g, "").replace(/^55/, "");
       if (digits.length < 8) return { conversation: null, aiSummary: null };
 
       const suffix = digits.slice(-8);
