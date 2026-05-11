@@ -1040,7 +1040,18 @@ export function ProposalWizard() {
           s = {
             locEstado: uc0.estado || "",
             locCidade: uc0.cidade || "",
-            locTipoTelhado: uc0.tipo_telhado || "",
+            // Fallback em cascata: _wizard_state → UC → raiz do snapshot (SM enriched grava em roof_type)
+            // Mapeia labels SolarMarket ("Cerâmico", "Fibrocimento") para enum interno (ceramico, fibrocimento).
+            locTipoTelhado: (() => {
+              const rawTelhado =
+                ws.locTipoTelhado ||
+                uc0.tipo_telhado ||
+                (rawSnapshot as any).roof_type ||
+                (rawSnapshot as any).locTipoTelhado ||
+                "";
+              if (!rawTelhado) return "";
+              return mapLeadTipoTelhadoToProposal(rawTelhado) || rawTelhado;
+            })(),
             locDistribuidoraId: ws.locDistribuidoraId || uc0.distribuidora_id || "",
             locDistribuidoraNome: uc0.distribuidora || "",
             locIrradiacao: tecnico.irradiacao_media_kwp_mes || 0,
