@@ -55,6 +55,7 @@ export interface FollowupInboxRow {
   classe_followup: FollowupClasse | string | null;
   dias_parado: number | null;
   ultima_atividade_em: string | null;
+  projeto_id: string | null;
 }
 
 export interface FollowupKpis {
