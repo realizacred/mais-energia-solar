@@ -20,6 +20,7 @@ import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { generateProposal, renderProposal, type GenerateProposalPayload } from "@/services/proposalApi";
 import { useProposalTemplates } from "@/hooks/useProposalTemplates";
+import { useQueryClient } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
 import { useSolarPremises } from "@/hooks/useSolarPremises";
 import { useProposalEnforcement } from "@/hooks/useProposalEnforcement";
