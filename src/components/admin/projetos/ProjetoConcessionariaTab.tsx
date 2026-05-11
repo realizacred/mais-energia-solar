@@ -80,6 +80,7 @@ function HomologacaoCard({ ctx, habilitado }: { ctx: ReturnType<typeof useConces
   const [protocolo, setProtocolo] = useState("");
   const [dataSolicitacao, setDataSolicitacao] = useState("");
   const [dataAprovacao, setDataAprovacao] = useState("");
+  const [previsaoAprovacao, setPrevisaoAprovacao] = useState("");
   const [status, setStatus] = useState<string>("solicitada");
   const [motivo, setMotivo] = useState("");
   const [observacoes, setObservacoes] = useState("");
