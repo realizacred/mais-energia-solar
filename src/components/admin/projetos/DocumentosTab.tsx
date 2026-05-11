@@ -22,6 +22,7 @@ import { formatDateTime } from "@/lib/dateUtils";
 import { getCurrentTenantId } from "@/lib/getCurrentTenantId";
 import { FilePreviewModal, type FilePreviewTarget } from "./FilePreviewModal";
 import { useProjetoCustomFieldFiles } from "@/hooks/useProjetoCustomFieldFiles";
+import { ProjectDocumentsHub } from "./ProjectDocumentsHub";
 import {
   useProjetoArquivos,
   useProjetoDocumentosGerados,
