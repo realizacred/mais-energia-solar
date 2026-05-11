@@ -227,12 +227,11 @@ export function ProposalWizard() {
     const nextCustoKit = calcKitCostFromItems(nextItens);
     setItens(nextItens);
     setVenda(prev => {
-      const keepImportedOverride = prev.isImportedFinancialOverride && prev.custo_kit_override != null && prev.custo_kit_override > 0;
       return {
         ...prev,
         custo_kit: nextCustoKit,
-        custo_kit_override: keepImportedOverride ? prev.custo_kit_override : null,
-        isImportedFinancialOverride: keepImportedOverride,
+        custo_kit_override: null,
+        isImportedFinancialOverride: false,
       };
     });
   }, [calcKitCostFromItems]);
