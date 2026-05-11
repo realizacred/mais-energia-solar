@@ -159,6 +159,54 @@ export function FollowupSendDialog({ row, open, onOpenChange }: Props) {
             </div>
           </div>
 
+          {aiSuggestion && (
+            <div className={`rounded-md border p-3 text-xs space-y-2 ${tempColor(aiSuggestion.nivel_urgencia)}`}>
+              <div className="flex items-center gap-2 font-medium">
+                {tempIcon(aiSuggestion.nivel_urgencia)}
+                Temperatura: {aiSuggestion.nivel_urgencia.toUpperCase()}
+                <span className="ml-auto text-[10px] opacity-70">Risco: {aiSuggestion.risco}</span>
+              </div>
+              {aiSuggestion.motivo && <p className="opacity-80">{aiSuggestion.motivo}</p>}
+              {aiSuggestion.precisa_revisao_humana && (
+                <div className="flex items-center gap-1 text-[11px]">
+                  <AlertTriangle className="h-3 w-3" /> Revisão humana recomendada antes de enviar.
+                </div>
+              )}
+            </div>
+          )}
+
+          <div className="space-y-1">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-medium text-foreground">Mensagem</label>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="h-6 px-2 text-[11px]"
+                onClick={handleAiSuggest}
+                disabled={aiSuggest.isPending}
+              >
+                {aiSuggest.isPending ? (
+                  <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                ) : (
+                  <Sparkles className="h-3 w-3 mr-1" />
+                )}
+                Sugerir com IA
+              </Button>
+            </div>
+            <Textarea
+              rows={8}
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              placeholder="Digite a mensagem…"
+              className="text-sm"
+            />
+            <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+              <span>Tom claro, curto, com call-to-action.</span>
+              <span className={tooLong ? "text-destructive" : ""}>{charCount}/2000</span>
+            </div>
+          </div>
+
           {lastError && (
             <div className="rounded-md border border-destructive/30 bg-destructive/5 p-3 text-xs text-destructive flex items-start gap-2">
               <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
