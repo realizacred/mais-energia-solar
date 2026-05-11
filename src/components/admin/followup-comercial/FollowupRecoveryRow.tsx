@@ -239,7 +239,7 @@ export function FollowupRecoveryRow({ row, onSend, onHistory }: Props) {
       </div>
 
       {/* ===== Desktop: linha rica ===== */}
-      <div className="hidden md:grid grid-cols-12 gap-4 items-center px-4 py-3">
+      <div className="hidden md:grid grid-cols-12 gap-3 items-center px-4 py-3">
         {/* Cliente + proposta */}
         <div className="col-span-3 min-w-0">
           <div className="font-semibold text-sm text-foreground truncate">
@@ -255,55 +255,59 @@ export function FollowupRecoveryRow({ row, onSend, onHistory }: Props) {
         </div>
 
         {/* Valor + kWp */}
-        <div className="col-span-2">
-          <div className="text-lg font-bold text-foreground tabular-nums leading-tight">
+        <div className="col-span-2 min-w-0">
+          <div className="text-lg font-bold text-foreground tabular-nums leading-tight truncate">
             {formatBRL(row.valor_total)}
           </div>
           {row.potencia_kwp != null && (
-            <div className="text-[11px] text-muted-foreground tabular-nums">
+            <div className="text-[11px] text-muted-foreground tabular-nums truncate">
               {Number(row.potencia_kwp).toFixed(2)} kWp
             </div>
           )}
         </div>
 
-        {/* Temperatura + score */}
-        <div className="col-span-2">
-          <div className={`flex items-center gap-1 text-xs font-medium ${tempTone(row.temperatura)}`}>
-            {tempIcon(row.temperatura)}
-            <span className="capitalize">{row.temperatura ?? "—"}</span>
+        {/* Temperatura + dias + engajamento (consolidado) */}
+        <div className="col-span-2 min-w-0">
+          <div className={`flex items-center gap-1 text-xs font-medium min-w-0 ${tempTone(row.temperatura)}`}>
+            <span className="shrink-0">{tempIcon(row.temperatura)}</span>
+            <span className="capitalize truncate">{row.temperatura ?? "—"}</span>
             {row.score_ia != null && (
-              <span className="text-muted-foreground ml-1 font-mono">{row.score_ia}/100</span>
+              <span className="text-muted-foreground ml-1 font-mono shrink-0">{row.score_ia}/100</span>
             )}
           </div>
-          <div className="text-[11px] text-muted-foreground mt-0.5 flex items-center gap-1.5">
-            <span>{formatDiasParado(row.dias_parado)}</span>
-            <Badge variant="outline" className={`${sev.chip} text-[9px] px-1 py-0 leading-tight`}>
+          <div className="text-[11px] text-muted-foreground mt-0.5 flex items-center gap-1.5 flex-wrap">
+            <span className="truncate">{formatDiasParado(row.dias_parado)}</span>
+            <Badge variant="outline" className={`${sev.chip} text-[9px] px-1 py-0 leading-tight shrink-0`}>
               {sev.label}
             </Badge>
           </div>
-        </div>
-
-        {/* Engajamento + última atividade */}
-        <div className="col-span-2 text-xs text-muted-foreground">
-          <div className="text-foreground font-medium">
-            {row.total_aberturas ?? 0}{" "}
-            <span className="text-muted-foreground font-normal">abertura(s)</span>
-          </div>
-          <div title={formatAbsolute(row.ultima_atividade_em)}>
-            {formatRelative(row.ultima_atividade_em)}
+          <div
+            className="text-[11px] text-muted-foreground truncate"
+            title={formatAbsolute(row.ultima_atividade_em)}
+          >
+            {row.total_aberturas ?? 0} abert · {formatRelative(row.ultima_atividade_em)}
           </div>
         </div>
 
-        {/* Ação recomendada */}
-        <div className="col-span-2">
-          <div className="flex items-start gap-1.5 text-[11px] text-foreground/80 bg-muted/40 rounded px-2 py-1.5">
-            <Sparkles className="h-3 w-3 text-info shrink-0 mt-0.5" />
-            <span className="line-clamp-2">{action}</span>
-          </div>
+        {/* Ação recomendada — pill isolada, máx 2 linhas, oculta em <lg */}
+        <div className="hidden lg:block lg:col-span-2 min-w-0">
+          <TooltipProvider delayDuration={150}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="flex items-start gap-1.5 text-[11px] text-foreground/80 bg-muted/40 rounded px-2 py-1.5 min-w-0 cursor-default">
+                  <Sparkles className="h-3 w-3 text-info shrink-0 mt-0.5" />
+                  <span className="line-clamp-2 break-words">{action}</span>
+                </div>
+              </TooltipTrigger>
+              <TooltipContent side="top" className="max-w-xs text-xs">
+                {action}
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         </div>
 
-        {/* Ações */}
-        <div className="col-span-1 flex justify-end opacity-60 group-hover:opacity-100 transition-opacity">
+        {/* Cluster de ações — col-span maior em md, recolhe em lg */}
+        <div className="col-span-5 lg:col-span-3 flex justify-end items-center shrink-0 opacity-80 group-hover:opacity-100 transition-opacity">
           <RowActions
             row={row}
             projetoId={projetoId}
@@ -335,7 +339,7 @@ function RowActions({
 }) {
   return (
     <TooltipProvider delayDuration={150}>
-      <div className="flex items-center gap-1">
+      <div className="flex items-center gap-1 flex-nowrap shrink-0">
         <Tooltip>
           <TooltipTrigger asChild>
             <span>
@@ -392,7 +396,7 @@ function RowActions({
               <Button
                 size="sm"
                 variant="default"
-                className="h-8 ml-1"
+                className="h-8 ml-1 whitespace-nowrap shrink-0"
                 disabled={!row.telefone_normalized}
                 onClick={() => onSend(row)}
               >
