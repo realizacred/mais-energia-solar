@@ -180,6 +180,10 @@ function HomologacaoCard({ ctx, habilitado }: { ctx: ReturnType<typeof useConces
               <Label>Data aprovação</Label>
               <Input type="date" value={dataAprovacao} onChange={e => setDataAprovacao(e.target.value)} />
             </div>
+            <div className="space-y-2">
+              <Label>Previsão de aprovação</Label>
+              <Input type="date" value={previsaoAprovacao} onChange={e => setPrevisaoAprovacao(e.target.value)} />
+            </div>
             {status === "reprovada" && (
               <div className="col-span-1 sm:col-span-2 space-y-2">
                 <Label>Motivo da reprovação *</Label>
