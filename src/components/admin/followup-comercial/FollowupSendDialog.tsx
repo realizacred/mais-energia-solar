@@ -50,13 +50,16 @@ export function FollowupSendDialog({ row, open, onOpenChange }: Props) {
   const [message, setMessage] = useState("");
   const [force, setForce] = useState(false);
   const [forceReason, setForceReason] = useState("");
+  const [aiSuggestion, setAiSuggestion] = useState<FollowupAiSuggestion | null>(null);
   const send = useSendProposalFollowup();
+  const aiSuggest = useFollowupAiSuggestion();
 
   useEffect(() => {
     if (row && open) {
       setMessage(defaultMessage(row));
       setForce(false);
       setForceReason("");
+      setAiSuggestion(null);
     }
   }, [row, open]);
 
