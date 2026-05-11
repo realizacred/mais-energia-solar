@@ -142,7 +142,7 @@ export function HeaderSearch({ className }: HeaderSearchProps) {
                     ]
                       .filter(Boolean)
                       .join(" · ")}
-                    onClick={() => go(`/admin/clientes`)}
+                    onClick={() => go(`/admin/clientes?cliente=${c.id}`)}
                   />
                 )}
               />
