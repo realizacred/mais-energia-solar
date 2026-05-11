@@ -17,9 +17,9 @@ import {
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { AlertTriangle, Send, Loader2, Phone } from "lucide-react";
-import { useSendProposalFollowup } from "@/hooks/useFollowupComercial";
-import type { FollowupInboxRow } from "@/hooks/useFollowupComercial";
+import { AlertTriangle, Send, Loader2, Phone, Sparkles, Flame, ThermometerSun, Snowflake } from "lucide-react";
+import { useSendProposalFollowup, useFollowupAiSuggestion } from "@/hooks/useFollowupComercial";
+import type { FollowupInboxRow, FollowupAiSuggestion } from "@/hooks/useFollowupComercial";
 
 interface Props {
   row: FollowupInboxRow | null;
