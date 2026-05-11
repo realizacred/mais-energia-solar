@@ -74,6 +74,8 @@ export function StepPagamento({
   const [novoPrazo, setNovoPrazo] = useState("");
   const [novoCarencia, setNovoCarencia] = useState("0");
   const [novoMaxParcelas, setNovoMaxParcelas] = useState("60");
+  const [novoEntradaPercent, setNovoEntradaPercent] = useState(false);
+
 
   const buildBancoGroups = useCallback((bankList: BancoFinanciamento[], price: number, selectedIds?: Set<string>): BancoGroup[] =>
     bankList
