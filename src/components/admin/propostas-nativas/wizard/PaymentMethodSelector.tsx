@@ -38,6 +38,7 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { formatBRL } from "@/lib/formatters";
 import { CurrencyInput } from "@/components/ui-kit/inputs/CurrencyInput";
+import { calcularPrestacao } from "@/services/paymentComposition/financingMath";
 import {
   usePaymentInterestConfigs,
   type PaymentInterestConfig,
