@@ -225,7 +225,7 @@ Deno.serve(async (req) => {
       locked_until: lockedUntil,
       last_message_hash: messageHash,
       reason: `manual:${userId}`,
-    }, { onConflict: "tenant_id,proposta_id,channel" });
+    }, { onConflict: "proposta_id,channel" });
 
   return json(200, {
     success: true,
