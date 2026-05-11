@@ -82,7 +82,7 @@ export function DialogPosDimensionamento({
     let changed = false;
 
     // 1. pos_inversor_qtd
-    if (!nextValues.pos_inversor_qtd) {
+    if (!nextValues.pos_inversor_qtd || nextValues.pos_inversor_qtd === "") {
       const inversores = kitItems.filter(i => i.categoria === "inversor");
       if (inversores.length > 0) {
         const suggestion = inversores.map(i => `${i.quantidade}x ${i.modelo}`).join(" + ");
@@ -92,10 +92,10 @@ export function DialogPosDimensionamento({
     }
 
     // 2. pos_modulo_info
-    if (!nextValues.pos_modulo_info) {
+    if (!nextValues.pos_modulo_info || nextValues.pos_modulo_info === "") {
       const modulos = kitItems.filter(i => i.categoria === "modulo" || i.categoria === "modulos");
       if (modulos.length > 0) {
-        const suggestion = modulos.map(i => `${i.quantidade}x ${i.modelo} ${i.potencia_w}W`).join(" + ");
+        const suggestion = modulos.map(i => `${i.quantidade}x ${i.modelo} ${i.potencia_w || i.potencia_kwp * 1000 || ""}W`).join(" + ");
         nextValues.pos_modulo_info = suggestion;
         changed = true;
       }
