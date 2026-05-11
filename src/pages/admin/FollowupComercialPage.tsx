@@ -301,12 +301,21 @@ export default function FollowupComercialPage() {
                           <div className="font-medium text-foreground">{r.total_aberturas ?? 0}</div>
                         </div>
                       </div>
-                      <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+                      <div className="flex items-center justify-between gap-2 text-[11px] text-muted-foreground">
                         <span>{tempLabel[r.temperatura ?? ""] ?? "—"}</span>
                         <span title={formatAbsolute(r.ultima_atividade_em)}>
                           {formatRelative(r.ultima_atividade_em)}
                         </span>
                       </div>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="w-full"
+                        disabled={!r.telefone_normalized}
+                        onClick={() => setSendTarget(r)}
+                      >
+                        <Send className="h-3.5 w-3.5 mr-2" /> Enviar follow-up
+                      </Button>
                     </li>
                   );
                 })}
