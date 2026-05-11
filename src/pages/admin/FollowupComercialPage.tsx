@@ -11,7 +11,7 @@
  *
  * Disparos manuais/automáticos virão nas Phases 2+ atrás de feature flag.
  */
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Flame,
   Snowflake,
