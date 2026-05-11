@@ -205,9 +205,29 @@ export function useProjetoDetalheData(dealId: string) {
         }
       }
 
+      // Fetch projeto identity (nome próprio, código, num) — separado do cliente.
+      let projetoNome: string | null = null;
+      let projetoCodigo: string | null = null;
+      let projetoNum: number | null = null;
+      if (d.projeto_id) {
+        const { data: projetoIdent } = await supabase
+          .from("projetos")
+          .select("nome, codigo, projeto_num")
+          .eq("id", d.projeto_id)
+          .maybeSingle();
+        if (projetoIdent) {
+          projetoNome = (projetoIdent as any).nome ?? null;
+          projetoCodigo = (projetoIdent as any).codigo ?? null;
+          projetoNum = (projetoIdent as any).projeto_num ?? null;
+        }
+      }
+
       return {
         deal: d,
         projetoId: d.projeto_id ?? null,
+        projetoNome,
+        projetoCodigo,
+        projetoNum,
         history: historyData,
         stages: (rpcData.stages || []) as StageInfo[],
         customerName,
