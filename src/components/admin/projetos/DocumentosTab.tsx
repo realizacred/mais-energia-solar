@@ -632,6 +632,78 @@ export function DocumentosTab({ dealId, clienteTelefone, consultorTelefone: cons
         )}
       </section>
 
+      {/* BLOCO 3: Arquivos de Campos Customizados */}
+      <section className="space-y-3">
+        <div className="flex items-center justify-between">
+          <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
+            <Paperclip className="h-4 w-4 text-info" />
+            Arquivos de Campos
+            {customFieldFiles.length > 0 && (
+              <Badge variant="outline" className="text-[10px] h-5 px-1.5">{customFieldFiles.length}</Badge>
+            )}
+          </h3>
+        </div>
+        {customFieldFiles.length === 0 ? (
+          <Card>
+            <CardContent className="flex flex-col items-center justify-center py-6 text-muted-foreground">
+              <Paperclip className="h-7 w-7 mb-2 opacity-30" />
+              <p className="text-xs">Nenhum arquivo anexado em campos customizados</p>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="space-y-1">
+            {customFieldFiles.map((cf) => (
+              <div
+                key={`${cf.field_id}-${cf.storage_path}`}
+                className="flex items-center gap-3 py-2 px-3 rounded-lg bg-card border border-border/40 hover:border-border/70 transition-all cursor-pointer"
+                onClick={() => setFilePreview({
+                  bucket: "projeto-documentos",
+                  storage_path: cf.storage_path,
+                  filename: cf.filename,
+                  mime: cf.mime,
+                  size: cf.size,
+                  uploaded_at: cf.uploaded_at,
+                  origin_label: `Campo: ${cf.field_title}`,
+                })}
+              >
+                <File className="h-4 w-4 text-info shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-foreground truncate">{cf.field_title}</p>
+                  <p className="text-[10px] text-muted-foreground truncate">
+                    {cf.filename} • {formatSize(cf.size)}
+                    {cf.uploaded_at && (
+                      <span> • {formatDateTime(cf.uploaded_at, { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" })}</span>
+                    )}
+                  </p>
+                </div>
+                <Badge variant="outline" className="text-[10px] h-5 px-1.5 shrink-0">Campo customizado</Badge>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7"
+                  title="Visualizar"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setFilePreview({
+                      bucket: "projeto-documentos",
+                      storage_path: cf.storage_path,
+                      filename: cf.filename,
+                      mime: cf.mime,
+                      size: cf.size,
+                      uploaded_at: cf.uploaded_at,
+                      origin_label: `Campo: ${cf.field_title}`,
+                    });
+                  }}
+                >
+                  <Eye className="h-3.5 w-3.5" />
+                </Button>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
+
+      <FilePreviewModal target={filePreview} onClose={() => setFilePreview(null)} />
 
       {/* Generate Document Dialog */}
       <Dialog open={generateOpen} onOpenChange={setGenerateOpen}>
