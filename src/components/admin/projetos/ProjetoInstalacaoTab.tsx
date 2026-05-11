@@ -172,13 +172,22 @@ export function ProjetoInstalacaoTab({ dealId }: Props) {
         </div>
       </div>
 
-      {/* ALERTA — sem proposta aceita */}
-      {!temPropostaAceita && availableTemplates.length > 0 && checklists.length === 0 && (
-        <div className="flex items-center gap-2 p-3 rounded-lg bg-warning/10 border border-warning/20 text-sm text-warning">
-          <AlertTriangle className="w-4 h-4 shrink-0" />
-          <span>
-            Nenhuma proposta aceita encontrada. Aceite uma proposta na aba <strong>Propostas</strong> antes de iniciar a instalação.
-          </span>
+      {/* ALERTA — sem proposta aceita (Novo Estado Vazio) */}
+      {!temPropostaAceita && checklists.length === 0 && (
+        <div className="flex flex-col items-center justify-center py-16 px-4 text-center bg-muted/20 border border-dashed border-border/60 rounded-2xl">
+          <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mb-4">
+            <Sun className="h-6 w-6 text-primary" />
+          </div>
+          <h3 className="text-base font-medium text-foreground">Aguardando aceite da proposta</h3>
+          <p className="text-sm text-muted-foreground max-w-[320px] mt-1.5 mb-6">
+            Para iniciar a instalação, aceite uma das propostas enviadas ao cliente.
+          </p>
+          <Button 
+            onClick={() => setActiveTab("propostas")} 
+            className="bg-orange-500 hover:bg-orange-600 text-white gap-2 h-9 px-6 rounded-full shadow-sm shadow-orange-500/20"
+          >
+            Ver propostas
+          </Button>
         </div>
       )}
 
