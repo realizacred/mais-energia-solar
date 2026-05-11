@@ -15949,6 +15949,119 @@ export type Database = {
           },
         ]
       }
+      project_document_events: {
+        Row: {
+          actor_id: string | null
+          created_at: string
+          document_id: string
+          event: string
+          id: string
+          metadata: Json
+          tenant_id: string
+        }
+        Insert: {
+          actor_id?: string | null
+          created_at?: string
+          document_id: string
+          event: string
+          id?: string
+          metadata?: Json
+          tenant_id: string
+        }
+        Update: {
+          actor_id?: string | null
+          created_at?: string
+          document_id?: string
+          event?: string
+          id?: string
+          metadata?: Json
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_document_events_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "project_documents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      project_documents: {
+        Row: {
+          bucket: string
+          categoria: string | null
+          checksum: string | null
+          cliente_id: string | null
+          created_at: string
+          deal_id: string | null
+          deleted_at: string | null
+          file_name: string
+          id: string
+          is_deleted: boolean
+          metadata: Json
+          mime_type: string | null
+          origem: string
+          projeto_id: string | null
+          proposta_id: string | null
+          size_bytes: number | null
+          source_id: string | null
+          source_table: string | null
+          storage_path: string
+          tenant_id: string
+          updated_at: string
+          uploaded_by: string | null
+        }
+        Insert: {
+          bucket: string
+          categoria?: string | null
+          checksum?: string | null
+          cliente_id?: string | null
+          created_at?: string
+          deal_id?: string | null
+          deleted_at?: string | null
+          file_name: string
+          id?: string
+          is_deleted?: boolean
+          metadata?: Json
+          mime_type?: string | null
+          origem: string
+          projeto_id?: string | null
+          proposta_id?: string | null
+          size_bytes?: number | null
+          source_id?: string | null
+          source_table?: string | null
+          storage_path: string
+          tenant_id: string
+          updated_at?: string
+          uploaded_by?: string | null
+        }
+        Update: {
+          bucket?: string
+          categoria?: string | null
+          checksum?: string | null
+          cliente_id?: string | null
+          created_at?: string
+          deal_id?: string | null
+          deleted_at?: string | null
+          file_name?: string
+          id?: string
+          is_deleted?: boolean
+          metadata?: Json
+          mime_type?: string | null
+          origem?: string
+          projeto_id?: string | null
+          proposta_id?: string | null
+          size_bytes?: number | null
+          source_id?: string | null
+          source_table?: string | null
+          storage_path?: string
+          tenant_id?: string
+          updated_at?: string
+          uploaded_by?: string | null
+        }
+        Relationships: []
+      }
       project_events: {
         Row: {
           actor_user_id: string | null
@@ -30601,6 +30714,10 @@ export type Database = {
       normalize_proposta_snapshot: { Args: { p_snapshot: Json }; Returns: Json }
       normalize_remote_jid: { Args: { raw_jid: string }; Returns: string }
       normalize_wa_jid: { Args: { raw_jid: string }; Returns: string }
+      pd_infer_bucket: {
+        Args: { p_default: string; p_path: string }
+        Returns: string
+      }
       preview_seed_data: { Args: never; Returns: Json }
       process_proposta_aceita: {
         Args: { p_proposta_id: string }
