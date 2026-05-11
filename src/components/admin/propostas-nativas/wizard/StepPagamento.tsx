@@ -14,8 +14,139 @@ import { type PagamentoOpcao, type BancoFinanciamento, type UCData, type Premiss
 import { formatNumberBR } from "@/lib/formatters";
 import { CurrencyInput } from "@/components/ui-kit/inputs/CurrencyInput";
 import { calcularPrestacao, calcularEconomiaMensal } from "@/services/paymentComposition/financingMath";
-// ... keep existing code
+import { VARIABLES_CATALOG, CATEGORY_LABELS, CATEGORY_ORDER, type VariableCategory } from "@/lib/variablesCatalog";
+import { usePaymentInterestConfigs, type PaymentInterestConfig } from "@/hooks/usePaymentInterestConfig";
+import { FORMA_PAGAMENTO_LABELS, type FormaPagamento } from "@/services/paymentComposition/types";
+import { PaymentMethodSelector, type FormaSelected } from "./PaymentMethodSelector";
+
+interface BancoOpcao {
+  id: string;
+  banco_id: string;
+  banco_nome: string;
+  entrada: number;
+  num_parcelas: number;
+  taxa_mensal: number;
+  carencia_meses: number;
+  valor_parcela: number;
+  valor_financiado: number;
+}
+
+interface BancoGroup {
+  banco: BancoFinanciamento;
+  opcoes: BancoOpcao[];
+}
+
+interface StepPagamentoProps {
+  opcoes: PagamentoOpcao[];
+  onOpcoesChange: (opcoes: PagamentoOpcao[]) => void;
+  bancos: BancoFinanciamento[];
+  loadingBancos: boolean;
+  precoFinal: number;
+  ucs?: UCData[];
+  premissas?: PremissasData;
+  potenciaKwp?: number;
+  irradiacao?: number;
+  geracaoMensalKwh?: number;
+}
+
+const DEFAULT_PARCELAS = [12, 24, 36, 48, 60, 72, 84, 96, 120];
+
+export function StepPagamento({
+  opcoes, onOpcoesChange, bancos, loadingBancos, precoFinal,
+  ucs = [], premissas, potenciaKwp = 0, irradiacao = 0, geracaoMensalKwh = 0,
+}: StepPagamentoProps) {
+
+  const [activeTab, setActiveTab] = useState<"pagamento" | "fluxo">("pagamento");
+  const [showGastosModal, setShowGastosModal] = useState(false);
+  const [showFluxoModal, setShowFluxoModal] = useState(false);
+  const [showVariaveisModal, setShowVariaveisModal] = useState(false);
+  const [fluxoFinanciamento, setFluxoFinanciamento] = useState("sem_financiamento");
+  const [selectedBankIds, setSelectedBankIds] = useState<Set<string>>(new Set());
+  const [selectedBancoIdx, setSelectedBancoIdx] = useState<number>(0);
+  const [bancoGroups, setBancoGroups] = useState<BancoGroup[]>([]);
+  const [formasSelecionadas, setFormasSelecionadas] = useState<FormaSelected[]>([]);
+  const [showNovoFinanciamento, setShowNovoFinanciamento] = useState(false);
+  
+  // Modal states for "novo financiamento"
+  const [novoNome, setNovoNome] = useState("");
+  const [novoTaxa, setNovoTaxa] = useState("");
+  const [novoEntrada, setNovoEntrada] = useState("");
+  const [novoPrazo, setNovoPrazo] = useState("");
+  const [novoCarencia, setNovoCarencia] = useState("0");
+  const [novoMaxParcelas, setNovoMaxParcelas] = useState("60");
+  const [novoEntradaPercent, setNovoEntradaPercent] = useState(false);
+
+
+  const buildBancoGroups = useCallback((bankList: BancoFinanciamento[], price: number, selectedIds?: Set<string>): BancoGroup[] =>
+    bankList
+      .filter(b => !selectedIds || selectedIds.has(b.id))
+      .map((b) => ({
+        banco: b,
+        opcoes: DEFAULT_PARCELAS
+          .filter((p) => p <= b.max_parcelas)
+          .map((parcelas) => ({
+            id: crypto.randomUUID(),
+            banco_id: b.id,
+            banco_nome: b.nome,
+            entrada: 0,
+            num_parcelas: parcelas,
+            taxa_mensal: b.taxa_mensal,
+            carencia_meses: 2,
+            valor_financiado: price,
+            valor_parcela: calcParcela({ valor_financiado: price, entrada: 0, num_parcelas: parcelas, taxa_mensal: b.taxa_mensal, tipo: "financiamento", carencia_meses: 2 }),
+          })),
+      })), []);
+
+  useEffect(() => {
+    if (!loadingBancos && bancos.length > 0 && bancoGroups.length === 0) {
+      const groups = buildBancoGroups(bancos, precoFinal);
+      setBancoGroups(groups);
+      if (groups.length > 0) {
+        const initialSelected = new Set([groups[0].banco.id]);
+        setSelectedBankIds(initialSelected);
+      }
+    }
+  }, [loadingBancos, bancos, precoFinal, buildBancoGroups]);
+
+  useEffect(() => {
+    const bancoOpcoes = bancoGroups.flatMap(g => 
+      g.opcoes.map(o => ({
+        id: o.id,
+        nome: `${o.banco_nome} - ${o.num_parcelas}x`,
+        tipo: "financiamento" as const,
+        valor_financiado: o.valor_financiado,
+        entrada: o.entrada,
+        taxa_mensal: o.taxa_mensal,
+        carencia_meses: o.carencia_meses,
+        num_parcelas: o.num_parcelas,
+        valor_parcela: o.valor_parcela,
+        financiador_id: o.banco_id,
+      }))
+    );
+
+    const formasOpcoes = formasSelecionadas.map(f => {
+      const valorParcela = f.num_parcelas > 1 
+        ? calcularPrestacao(f.valor_total || precoFinal, f.taxa_mensal, f.num_parcelas)
+        : f.valor_total || precoFinal;
+
+      return {
+        id: crypto.randomUUID(),
+        nome: FORMA_PAGAMENTO_LABELS[f.forma_pagamento] || f.forma_pagamento,
+        tipo: "direto" as const,
+        valor_financiado: f.valor_total || precoFinal,
+        entrada: f.entrada,
+        taxa_mensal: f.taxa_mensal,
+        carencia_meses: 0,
+        num_parcelas: f.num_parcelas,
+        valor_parcela: valorParcela,
+        forma_pagamento: f.forma_pagamento,
+      };
+    });
+    onOpcoesChange([...bancoOpcoes, ...formasOpcoes]);
+  }, [bancoGroups, precoFinal, formasSelecionadas, onOpcoesChange]);
+
   // ─── Derived metrics (aligned with calc-engine.ts)
+
   const prem = premissas || { inflacao_energetica: 9.5, perda_eficiencia_anual: 0.5, vpl_taxa_desconto: 10, imposto: 0, inflacao_ipca: 4.5, sobredimensionamento: 0, troca_inversor_anos: 15, troca_inversor_custo: 30 };
   const geracaoMensalCalculada = potenciaKwp * (irradiacao || 4.5) * 30 * 0.80;
   const geracaoMensalBase = geracaoMensalKwh > 0 ? geracaoMensalKwh : geracaoMensalCalculada;

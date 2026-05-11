@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { Package, Plus, Search, Filter } from "lucide-react";
+import { Package, Plus, Search, Filter, ShoppingCart } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,6 +12,10 @@ import { useOrdensCompra, OrdemCompraStatus } from "@/hooks/useOrdensCompra";
 import { useFornecedoresNomes } from "@/hooks/useFornecedoresNomes";
 import { NovaOrdemDialog } from "./NovaOrdemDialog";
 import { formatBRL } from "@/lib/formatters";
+import { usePropostasProjetoTab } from "@/hooks/usePropostasProjetoTab";
+import { supabase } from "@/integrations/supabase/client";
+import { useQuery } from "@tanstack/react-query";
+
 
 const STATUS_LABELS: Record<OrdemCompraStatus, string> = {
   rascunho: "Rascunho",
@@ -53,6 +57,45 @@ export function SuprimentosListPage({ projetoId }: SuprimentosListPageProps) {
 
   const { data: ordens, isLoading } = useOrdensCompra(filtros);
   const { data: fornecedores = [] } = useFornecedoresNomes();
+
+  // UX-07: Fetch accepted proposal and its kit
+  const { data: propostas = [] } = usePropostasProjetoTab(projetoId || "", null);
+  const propostaAceita = useMemo(() => propostas.find(p => p.status === 'aceita'), [propostas]);
+
+  const { data: kitAceito } = useQuery({
+    queryKey: ["proposta-kit-aceito", propostaAceita?.id],
+    enabled: !!propostaAceita?.id,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("proposta_kits" as any)
+        .select("*")
+        .eq("proposta_id", propostaAceita!.id)
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    }
+  });
+
+
+  const prefilledItens = useMemo(() => {
+    if (!propostaAceita || !kitAceito) return [];
+    
+    const items: any[] = [];
+    const snapshot = (propostaAceita.versoes?.[0]?.snapshot as any) || {};
+    const snapshotItens = snapshot.itens || [];
+
+    if (snapshotItens.length > 0) {
+      return snapshotItens.map((i: any) => ({
+        descricao: `${i.fabricante || ""} ${i.modelo || i.descricao || ""}`.trim(),
+        quantidade: i.quantidade,
+        unidade: "un",
+        valor_unitario: i.preco_unitario || 0
+      }));
+    }
+
+    return [];
+  }, [propostaAceita, kitAceito]);
+
 
   return (
     <div className="space-y-6">
@@ -148,15 +191,27 @@ export function SuprimentosListPage({ projetoId }: SuprimentosListPageProps) {
             ) : !ordens?.length ? (
               <TableRow>
                 <TableCell colSpan={projetoId ? 5 : 6} className="text-center py-12">
-                  <div className="flex flex-col items-center gap-2">
-                    <Package className="h-10 w-10 text-muted-foreground/40" />
-                    <p className="text-sm text-muted-foreground">Nenhuma ordem de compra encontrada</p>
-                    <Button variant="outline" size="sm" onClick={() => setNovaOrdemOpen(true)} className="mt-2 gap-1.5">
-                      <Plus className="h-3.5 w-3.5" /> Criar primeira ordem
-                    </Button>
-                  </div>
+                  {projetoId && propostaAceita ? (
+                    <div className="flex flex-col items-center gap-2">
+                      <ShoppingCart className="h-10 w-10 text-orange-500" />
+                      <p className="text-base font-bold text-foreground">Proposta aceita! Hora de comprar os equipamentos.</p>
+                      <p className="text-sm text-muted-foreground">Crie uma ordem de compra com o kit definido na proposta aceita.</p>
+                      <Button size="sm" onClick={() => setNovaOrdemOpen(true)} className="mt-2 gap-1.5 bg-orange-500 hover:bg-orange-600 text-white border-0">
+                        <Plus className="h-3.5 w-3.5" /> Criar ordem de compra
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col items-center gap-2">
+                      <Package className="h-10 w-10 text-muted-foreground/40" />
+                      <p className="text-sm text-muted-foreground">Nenhuma ordem de compra encontrada</p>
+                      <Button variant="outline" size="sm" onClick={() => setNovaOrdemOpen(true)} className="mt-2 gap-1.5">
+                        <Plus className="h-3.5 w-3.5" /> Criar primeira ordem
+                      </Button>
+                    </div>
+                  )}
                 </TableCell>
               </TableRow>
+
             ) : (
               ordens.map((o) => (
                 <TableRow
@@ -199,7 +254,9 @@ export function SuprimentosListPage({ projetoId }: SuprimentosListPageProps) {
         open={novaOrdemOpen}
         onOpenChange={setNovaOrdemOpen}
         defaultProjetoId={projetoId}
+        prefilledItens={prefilledItens}
       />
+
     </div>
   );
 }
