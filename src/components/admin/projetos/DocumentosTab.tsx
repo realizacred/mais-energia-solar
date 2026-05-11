@@ -1,6 +1,6 @@
 import { useState, useRef, useMemo, useCallback } from "react";
 import { AlertTriangle } from "lucide-react";
-import { File, FileText, Paperclip, Upload, Trash2, Download, Plus, Loader2, Send, Eye, ChevronDown, Ban } from "lucide-react";
+import { FileText, Trash2, Download, Plus, Loader2, Send, Eye, Ban } from "lucide-react";
 import { SignatureModal, type SignerEntry } from "./SignatureModal";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
