@@ -1476,7 +1476,17 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
                     <DropdownMenuSeparator />
                   </>
                 )}
-                <DropdownMenuItem onClick={() => handleEditWithProtection(() => navigate(`/admin/propostas-nativas?edit=${p.id}`))}>
+                <DropdownMenuItem onClick={() => handleEditWithProtection(() => {
+                  if (!latestVersao?.id) {
+                    toast({
+                      title: "Proposta sem versão editável",
+                      description: "Esta proposta importada ainda não possui uma versão nativa. Use \"Duplicar proposta\" para criar uma versão editável.",
+                      variant: "destructive",
+                    });
+                    return;
+                  }
+                  navigate(`/admin/propostas-nativas/${p.id}/versoes/${latestVersao.id}`);
+                })}>
                   <Pencil className="h-3.5 w-3.5 mr-2 text-primary" /> Editar proposta
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => setCloneModalOpen(true)}>
