@@ -3,7 +3,7 @@ import { PhoneInput } from "@/components/ui-kit/inputs/PhoneInput";
 import { CpfCnpjInput } from "@/components/shared/CpfCnpjInput";
 import { formatBRLInteger as formatBRL, formatBRLInteger, formatPhoneBR } from "@/lib/formatters";
 import { useClienteHasRecebimento, useClienteRecebimentoDetalhes } from "@/hooks/useClienteRecebimento";
-import { formatPropostaLabel } from "@/lib/format-entity-labels";
+import { formatPropostaLabel, getProjetoDisplayName } from "@/lib/format-entity-labels";
 import { formatPhone } from "@/lib/validations";
 import { ClienteViewDialog } from "@/components/admin/ClienteViewDialog";
 import { upsertContactFromWhatsApp } from "@/services/contactWhatsAppService";
