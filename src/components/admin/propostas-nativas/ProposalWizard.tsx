@@ -402,6 +402,7 @@ export function ProposalWizard() {
   const [savedClienteId, setSavedClienteId] = useState<string | null>(null);
   // Track if editing a previously sent/generated proposal (will branch new version)
   const [editingsentProposal, setEditingSentProposal] = useState(false);
+  const [proposalStatus, setProposalStatus] = useState<string | null>(null);
   // Track async DB restore to block UI during loading (race condition fix)
   const [isRestoring, setIsRestoring] = useState(!!(propostaIdFromUrl && versaoIdFromUrl));
   const [migratedKitMissing, setMigratedKitMissing] = useState(false);
