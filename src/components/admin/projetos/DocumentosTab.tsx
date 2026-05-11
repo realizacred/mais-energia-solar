@@ -85,22 +85,12 @@ export function DocumentosTab({ dealId, clienteTelefone, consultorTelefone: cons
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [cancelDoc, setCancelDoc] = useState<GeneratedDocRow | null>(null);
   const [cancelMotivo, setCancelMotivo] = useState("");
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
   // §16: Queries em hooks — AP-01 resolvido
-  const { data: rawFiles = [], isLoading: loadingFiles } = useProjetoArquivos(dealId);
   const { data: generatedDocs = [], isLoading: loadingDocs } = useProjetoDocumentosGerados(dealId);
-  const { data: customFieldFiles = [], isLoading: loadingCfFiles } = useProjetoCustomFieldFiles(dealId);
   const { data: templates = [] } = useDocTemplates();
   useDocumentosRealtimeSync(dealId);
 
-  // Filtrar entradas de diretório (storage list devolve subpastas como itens com id=null)
-  const files = useMemo(
-    () => rawFiles.filter((f) => f.id !== null && f.metadata !== null),
-    [rawFiles]
-  );
-
-  // Preview universal (anexos + custom fields)
+  // Preview universal (compartilhado entre seção de gerados e Hub via prop)
   const [filePreview, setFilePreview] = useState<FilePreviewTarget | null>(null);
 
   // Buscar dados do cliente vinculado para validação pré-contrato
