@@ -179,7 +179,9 @@ export function StepUCsEnergia({ ucs, onUcsChange, grupo, onGrupoChange, potenci
                   canRemove={ucs.length > 1}
                   totalUCs={ucs.length}
                   onOpenRateio={() => setRateioModalOpen(true)}
+                  leadFase={uc.is_geradora ? leadFase : undefined}
                 />
+
               </div>
             ))}
 
