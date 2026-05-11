@@ -1109,7 +1109,7 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
           topologias={pd?.topologias}
           initialItens={editingKitIndex !== null ? manualKits[editingKitIndex]?.itens : undefined}
           initialCardData={editingKitIndex !== null && manualKits[editingKitIndex] ? {
-            ...manualKits[editingKitIndex].meta,
+            ...(manualKits[editingKitIndex].meta ?? {}),
             distribuidorNome: manualKits[editingKitIndex].meta?.distribuidorNome || manualKits[editingKitIndex].card.distribuidorNome,
             nomeKit: manualKits[editingKitIndex].meta?.nomeKit || "Kit selecionado",
             codigoKit: manualKits[editingKitIndex].meta?.codigoKit || manualKits[editingKitIndex].card.id,
