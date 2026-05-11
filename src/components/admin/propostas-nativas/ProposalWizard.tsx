@@ -3351,6 +3351,17 @@ export function ProposalWizard() {
         reason={blockReason}
       />
 
+      <NewVersionConfirmModal
+        open={showNewVersionConfirm}
+        onOpenChange={setShowNewVersionConfirm}
+        onConfirm={() => {
+          if (pendingUpdateAction !== null) {
+            handleUpdate(pendingUpdateAction);
+            setPendingUpdateAction(null);
+          }
+        }}
+      />
+
       {/* Pre-generation gate modal */}
       {gateValidation && (
         <PreGenerationGateModal
