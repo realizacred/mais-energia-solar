@@ -24,6 +24,7 @@ import {
   Search,
   Inbox,
   AlertTriangle,
+  BarChart3,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -40,13 +41,16 @@ import { Badge } from "@/components/ui/badge";
 import { PageHeader } from "@/components/ui-kit/PageHeader";
 import { StatCard } from "@/components/ui-kit/StatCard";
 import { EmptyState } from "@/components/ui-kit/EmptyState";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { FollowupSendDialog } from "@/components/admin/followup-comercial/FollowupSendDialog";
+import { FollowupComercialAnalytics } from "@/components/admin/followup-comercial/FollowupComercialAnalytics";
 import {
   useFollowupComercialKpis,
   useFollowupComercialInbox,
   type FollowupClasse,
   type FollowupInboxRow,
 } from "@/hooks/useFollowupComercial";
+import { formatDiasParado, formatDiasParadoCompact } from "@/lib/formatters/diasParado";
 
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -168,6 +172,17 @@ export default function FollowupComercialPage() {
         }
       />
 
+      <Tabs defaultValue="inbox" className="w-full">
+        <TabsList>
+          <TabsTrigger value="inbox" className="gap-1.5">
+            <Inbox className="h-3.5 w-3.5" /> Inbox
+          </TabsTrigger>
+          <TabsTrigger value="analytics" className="gap-1.5">
+            <BarChart3 className="h-3.5 w-3.5" /> Analytics
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="inbox" className="space-y-6 mt-4">
       {/* KPIs */}
       {kpis.isLoading ? (
         <KpiSkeletons />
@@ -293,7 +308,7 @@ export default function FollowupComercialPage() {
                         <div>
                           <div className="text-muted-foreground">Parado</div>
                           <div className="font-medium text-foreground">
-                            {r.dias_parado != null ? `${r.dias_parado}d` : "—"}
+                            {formatDiasParado(r.dias_parado)}
                           </div>
                         </div>
                         <div>
@@ -368,7 +383,7 @@ export default function FollowupComercialPage() {
                           </td>
                           <td className="px-4 py-2 text-right tabular-nums">{r.total_aberturas ?? 0}</td>
                           <td className="px-4 py-2 text-right tabular-nums">
-                            {r.dias_parado != null ? `${r.dias_parado}d` : "—"}
+                            <span title={formatDiasParado(r.dias_parado)}>{formatDiasParadoCompact(r.dias_parado)}</span>
                           </td>
                           <td
                             className="px-4 py-2 text-xs text-muted-foreground"
@@ -396,6 +411,12 @@ export default function FollowupComercialPage() {
           )}
         </CardContent>
       </Card>
+        </TabsContent>
+
+        <TabsContent value="analytics" className="mt-4">
+          <FollowupComercialAnalytics />
+        </TabsContent>
+      </Tabs>
 
       <FollowupSendDialog
         row={sendTarget}

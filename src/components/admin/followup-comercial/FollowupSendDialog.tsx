@@ -22,6 +22,7 @@ import { AlertTriangle, Send, Loader2, Phone, Sparkles, Flame, ThermometerSun, S
 import { useSendProposalFollowup, useFollowupAiSuggestion } from "@/hooks/useFollowupComercial";
 import type { FollowupInboxRow, FollowupAiSuggestion } from "@/hooks/useFollowupComercial";
 import { FollowupHistoryTimeline } from "./FollowupHistoryTimeline";
+import { formatDiasParado } from "@/lib/formatters/diasParado";
 
 interface Props {
   row: FollowupInboxRow | null;
@@ -146,7 +147,7 @@ export function FollowupSendDialog({ row, open, onOpenChange }: Props) {
               </Badge>
               {row.dias_parado != null && (
                 <Badge variant="outline" className="text-[10px]">
-                  {row.dias_parado}d parado
+                  {formatDiasParado(row.dias_parado)}
                 </Badge>
               )}
               {row.titulo && (
