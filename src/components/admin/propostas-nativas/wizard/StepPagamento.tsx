@@ -66,6 +66,8 @@ export function StepPagamento({
   const [bancoGroups, setBancoGroups] = useState<BancoGroup[]>([]);
   const [formasSelecionadas, setFormasSelecionadas] = useState<FormaSelected[]>([]);
   const [showNovoFinanciamento, setShowNovoFinanciamento] = useState(false);
+  const [valorEntradaGlobal, setValorEntradaGlobal] = useState<number>(0);
+
   
   // Modal states for "novo financiamento"
   const [novoNome, setNovoNome] = useState("");
