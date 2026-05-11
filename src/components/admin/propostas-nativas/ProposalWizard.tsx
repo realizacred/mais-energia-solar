@@ -149,13 +149,24 @@ export function ProposalWizard() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   // Invalida caches do detalhe do projeto/proposta após save (post-edit lifecycle)
-  const invalidateProposalCaches = useCallback(() => {
+  const invalidateProposalCaches = useCallback((dealId?: string | null, projetoId?: string | null) => {
     queryClient.invalidateQueries({ queryKey: ["propostas-projeto-tab"] });
     queryClient.invalidateQueries({ queryKey: ["proposal-detail"] });
     queryClient.invalidateQueries({ queryKey: ["proposta-expanded-snapshot"] });
     queryClient.invalidateQueries({ queryKey: ["proposta-expanded-ucs"] });
     queryClient.invalidateQueries({ queryKey: ["proposta-expanded-kit-items"] });
     queryClient.invalidateQueries({ queryKey: ["proposal-version-snapshot"] });
+    // Project / deal caches so detail page reflects new value immediately
+    queryClient.invalidateQueries({ queryKey: ["projeto-detalhe"] });
+    queryClient.invalidateQueries({ queryKey: ["deal-proposals-count"] });
+    queryClient.invalidateQueries({ queryKey: ["projetos"] });
+    if (dealId) {
+      queryClient.invalidateQueries({ queryKey: ["projeto-detalhe", dealId] });
+      queryClient.invalidateQueries({ queryKey: ["deal-proposals-count", dealId] });
+    }
+    if (projetoId) {
+      queryClient.invalidateQueries({ queryKey: ["projeto-detalhe", projetoId] });
+    }
   }, [queryClient]);
   const { data: isAdminOrGerente } = useIsAdminOrGerente();
   const [searchParams] = useSearchParams();
