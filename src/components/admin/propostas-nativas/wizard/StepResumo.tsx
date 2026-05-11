@@ -496,8 +496,9 @@ function EntityPaymentGroup({ entity, options, precoBase }: {
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <div className="text-left">
-                      <p className="text-xs font-semibold text-foreground">
-                        {op.num_parcelas}× de {formatBRL(op.valor_parcela)}
+                        <p className="text-xs font-semibold text-foreground">
+                          {op.entrada > 0 && `${formatBRL(op.entrada)} (Entrada) + `}{op.num_parcelas}× de {formatBRL(op.valor_parcela)}
+
                       </p>
                       <div className="flex items-center gap-2 mt-0.5">
                         {(op.taxa_mensal ?? 0) > 0 && (
