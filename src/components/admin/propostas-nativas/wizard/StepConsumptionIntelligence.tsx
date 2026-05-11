@@ -40,7 +40,9 @@ interface Props {
   latitude?: number | null;
   /** Skip POA transposition — use raw GHI */
   somenteGhi?: boolean;
+  leadFase?: string | null;
 }
+
 
 type ActiveTab = "ucs" | "pre";
 type PreSubTab = "premissas" | "equipamentos";
@@ -48,8 +50,9 @@ type PreSubTab = "premissas" | "equipamentos";
 export function StepConsumptionIntelligence({
   ucs, onUcsChange, potenciaKwp, onPotenciaChange,
   preDimensionamento: pd, onPreDimensionamentoChange: setPd,
-  irradiacao, ghiSeries, latitude, somenteGhi,
+  irradiacao, ghiSeries, latitude, somenteGhi, leadFase,
 }: Props) {
+
   const [activeTab, setActiveTab] = useState<ActiveTab>("ucs");
   
   const [preSubTab, setPreSubTab] = useState<PreSubTab>("premissas");
@@ -542,7 +545,9 @@ export function StepConsumptionIntelligence({
                   onOpenMesAMes={field => setMesAMes({ open: true, ucIndex: i, field })}
                   isFirst={i === 0}
                   totalUcs={ucs.length}
+                  leadFase={i === 0 ? leadFase : undefined}
                 />
+
               </div>
             ))}
 

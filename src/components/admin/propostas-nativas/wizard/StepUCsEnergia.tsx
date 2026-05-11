@@ -14,11 +14,14 @@ import { Separator } from "@/components/ui/separator";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { supabase } from "@/integrations/supabase/client";
+import { cn } from "@/lib/utils";
 import {
   type UCData, type Concessionaria, type RegraCompensacao, type GrupoTarifario,
   createEmptyUC, SUBGRUPO_BT, SUBGRUPO_MT, MESES, FASE_TENSAO_OPTIONS,
+  redeAtendimentoToFaseTensao,
 } from "./types";
 import solarBuildingImg from "@/assets/solar-building.png";
+
 
 interface Props {
   ucs: UCData[];
@@ -27,9 +30,11 @@ interface Props {
   onGrupoChange: (g: string) => void;
   potenciaKwp: number;
   onPotenciaChange: (p: number) => void;
+  leadFase?: string | null;
 }
 
-export function StepUCsEnergia({ ucs, onUcsChange, grupo, onGrupoChange, potenciaKwp, onPotenciaChange }: Props) {
+
+export function StepUCsEnergia({ ucs, onUcsChange, grupo, onGrupoChange, potenciaKwp, onPotenciaChange, leadFase }: Props) {
   const [concessionarias, setConcessionarias] = useState<Concessionaria[]>([]);
   const [loadingConc, setLoadingConc] = useState(false);
   const [configModalUC, setConfigModalUC] = useState<number | null>(null);
@@ -174,7 +179,9 @@ export function StepUCsEnergia({ ucs, onUcsChange, grupo, onGrupoChange, potenci
                   canRemove={ucs.length > 1}
                   totalUCs={ucs.length}
                   onOpenRateio={() => setRateioModalOpen(true)}
+                  leadFase={uc.is_geradora ? leadFase : undefined}
                 />
+
               </div>
             ))}
 
@@ -252,9 +259,11 @@ interface UCCardProps {
   canRemove: boolean;
   totalUCs: number;
   onOpenRateio: () => void;
+  leadFase?: string | null;
 }
 
-function UCCard({ uc, index, concessionarias, loadingConc, onUpdate, onRemove, onOpenConfig, onOpenMesAMes, canRemove, totalUCs, onOpenRateio }: UCCardProps) {
+
+function UCCard({ uc, index, concessionarias, loadingConc, onUpdate, onRemove, onOpenConfig, onOpenMesAMes, canRemove, totalUCs, onOpenRateio, leadFase }: UCCardProps) {
   const isGrupoA = uc.grupo_tarifario === "A";
   const isGD3 = uc.regra === "GD3";
   const subgrupos = isGrupoA ? SUBGRUPO_MT : SUBGRUPO_BT;
@@ -427,7 +436,34 @@ function UCCard({ uc, index, concessionarias, loadingConc, onUpdate, onRemove, o
 
           {/* Fase e Tensão */}
           <div className="space-y-1">
-            <Label className="text-xs text-muted-foreground">Fase e Tensão da Rede *</Label>
+            <div className="flex items-center justify-between">
+              <Label className="text-xs text-muted-foreground">Fase e Tensão da Rede *</Label>
+              {leadFase && (
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <div className={cn(
+                        "flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full border",
+                        redeAtendimentoToFaseTensao(leadFase)?.fase_tensao === uc.fase_tensao
+                          ? "bg-success/10 border-success/30 text-success"
+                          : "bg-warning/10 border-warning/30 text-warning"
+                      )}>
+                        <Info className="h-3 w-3" />
+                        Lead: {leadFase}
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent className="max-w-[250px]">
+                      <p className="text-xs">
+                        {redeAtendimentoToFaseTensao(leadFase)?.fase_tensao === uc.fase_tensao
+                          ? "A fase coincide com a informação original do lead."
+                          : `A fase selecionada difere do orçamento original (${leadFase}). Verifique antes de prosseguir.`
+                        }
+                      </p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              )}
+            </div>
             <Select value={uc.fase_tensao} onValueChange={v => onUpdate("fase_tensao", v)}>
               <SelectTrigger className="h-8 text-xs">
                 <SelectValue />
@@ -436,7 +472,13 @@ function UCCard({ uc, index, concessionarias, loadingConc, onUpdate, onRemove, o
                 {FASE_TENSAO_OPTIONS.map(f => <SelectItem key={f.value} value={f.value}>{f.label}</SelectItem>)}
               </SelectContent>
             </Select>
+            {leadFase && redeAtendimentoToFaseTensao(leadFase)?.fase_tensao !== uc.fase_tensao && (
+              <p className="text-[10px] text-warning font-medium animate-in fade-in slide-in-from-top-1">
+                Divergência detectada com o orçamento original ({leadFase}).
+              </p>
+            )}
           </div>
+
 
           {/* Tarifa (Grupo B only) */}
           {!isGrupoA && (
