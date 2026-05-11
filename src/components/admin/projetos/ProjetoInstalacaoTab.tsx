@@ -9,6 +9,7 @@ import {
   Zap, ClipboardList, CheckCircle, CheckCircle2,
   AlertCircle, AlertTriangle, ChevronDown, ChevronUp, Camera, X,
   MessageSquare, FileDown, Loader2, Check, MoreVertical, Lock, RotateCcw, XCircle, User, CalendarClock,
+  Sun,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
