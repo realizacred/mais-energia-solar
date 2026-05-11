@@ -263,7 +263,7 @@ interface UCCardProps {
 }
 
 
-function UCCard({ uc, index, concessionarias, loadingConc, onUpdate, onRemove, onOpenConfig, onOpenMesAMes, canRemove, totalUCs, onOpenRateio }: UCCardProps) {
+function UCCard({ uc, index, concessionarias, loadingConc, onUpdate, onRemove, onOpenConfig, onOpenMesAMes, canRemove, totalUCs, onOpenRateio, leadFase }: UCCardProps) {
   const isGrupoA = uc.grupo_tarifario === "A";
   const isGD3 = uc.regra === "GD3";
   const subgrupos = isGrupoA ? SUBGRUPO_MT : SUBGRUPO_BT;
