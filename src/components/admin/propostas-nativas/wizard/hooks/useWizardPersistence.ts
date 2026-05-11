@@ -1,5 +1,7 @@
 import { useCallback, useRef, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { projetoDetalheKeys } from "@/hooks/useProjetoDetalheData";
 
 // ─── Types ────────────────────────────────────────────────
 
@@ -533,6 +535,7 @@ async function persistProposalAtomic(
 // ─── Hook ─────────────────────────────────────────────────
 
 export function useWizardPersistence() {
+  const queryClient = useQueryClient();
   const [saving, setSaving] = useState(false);
   const savingRef = useRef(false);
 
@@ -568,7 +571,31 @@ export function useWizardPersistence() {
       inflightMap.set(intentKey, promise);
 
       try {
-        return await promise;
+        const result = await promise;
+        
+        // Success: invalidate project and proposal queries to reflect updated totals and versions
+        if (result.status === "success") {
+          const projetoId = result.projetoId || params.projetoId;
+          const dealId = result.dealId || params.dealId;
+          const customerId = result.clienteId || params.snapshot?.cliente?.id;
+
+          if (projetoId) {
+            queryClient.invalidateQueries({ queryKey: ["projeto", projetoId] });
+            // For older hooks or direct projeto ID queries
+            queryClient.invalidateQueries({ queryKey: ["projeto-detalhe", projetoId] });
+          }
+          
+          if (dealId) {
+            queryClient.invalidateQueries({ queryKey: projetoDetalheKeys.detail(dealId) });
+            queryClient.invalidateQueries({ queryKey: projetoDetalheKeys.propostasCount(dealId) });
+            queryClient.invalidateQueries({ queryKey: ["deal-pipeline", dealId] });
+          }
+
+          // Invalidate Propostas Tab query
+          queryClient.invalidateQueries({ queryKey: ["propostas-projeto-tab"] });
+        }
+
+        return result;
       } finally {
         inflightMap.delete(intentKey);
         savingRef.current = false;

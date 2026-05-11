@@ -220,8 +220,11 @@ export function useSetPropostaPrincipal() {
       });
       if (error) throw error;
     },
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: [QUERY_KEY] });
+      if (variables.dealId) {
+        queryClient.invalidateQueries({ queryKey: ["projeto-detalhe", variables.dealId] });
+      }
       toast({ title: "Proposta definida como principal ⭐" });
     },
     onError: (err: any) => {
@@ -330,6 +333,8 @@ export function useExcluirProposta() {
       queryClient.invalidateQueries({ queryKey: ["deal-pipeline"] });
       // Invalidate proposals count query (replaces custom event)
       queryClient.invalidateQueries({ queryKey: ["deal-proposals-count"] });
+      // Invalidate project detail to refresh valor_total if necessary
+      queryClient.invalidateQueries({ queryKey: ["projeto-detalhe"] });
       toast({ title: "Proposta excluída" });
     },
     onError: (err: any) => {
