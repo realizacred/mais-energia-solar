@@ -24,6 +24,7 @@ import {
   Search,
   Inbox,
   AlertTriangle,
+  BarChart3,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
