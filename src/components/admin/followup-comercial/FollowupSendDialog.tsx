@@ -74,6 +74,7 @@ export function FollowupSendDialog({ row, open, onOpenChange }: Props) {
         versao_id: row.versao_id,
         message: message.trim(),
         force,
+        force_reason: force ? forceReason.trim() : undefined,
       });
       onOpenChange(false);
     } catch {
@@ -85,6 +86,7 @@ export function FollowupSendDialog({ row, open, onOpenChange }: Props) {
   const isOverridable =
     lastError &&
     ["cooldown_active", "daily_cap_reached", "max_attempts_reached"].includes(lastError.code);
+  const forceReasonInvalid = force && forceReason.trim().length < 5;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
