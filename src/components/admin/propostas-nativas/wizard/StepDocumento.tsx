@@ -570,12 +570,24 @@ export function StepDocumento({
           </div>
           <div className="rounded-xl border border-warning/30 bg-warning/5 flex flex-col items-center justify-center min-h-[300px] sm:min-h-[400px] p-6 text-center">
             <div className="w-12 h-12 rounded-full bg-warning/10 flex items-center justify-center mb-4">
-              <Info className="h-6 w-6 text-warning" />
+              <AlertTriangle className="h-6 w-6 text-warning" />
             </div>
-            <p className="text-sm font-semibold text-warning mb-2">DOCX gerado com sucesso</p>
-            <p className="text-xs text-muted-foreground max-w-md">
+            <p className="text-sm font-semibold text-warning mb-1">Proposta parcialmente gerada</p>
+            <p className="text-xs text-muted-foreground mb-1">DOCX salvo · Conversão PDF falhou</p>
+            <p className="text-[11px] text-muted-foreground/80 max-w-md mb-4">
               {generationError || "A conversão para PDF não foi possível. O DOCX está disponível para download."}
             </p>
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-2 border-warning text-warning hover:bg-warning/10"
+              onClick={onGenerate}
+              disabled={estimativaBlocked || generating || rendering}
+              title={estimativaBlocked ? "Marque o aceite de estimativa acima para continuar" : "Refaz a geração e tenta converter o PDF novamente"}
+            >
+              <RefreshCw className={cn("h-3.5 w-3.5", (generating || rendering) && "animate-spin")} />
+              Tentar gerar PDF novamente
+            </Button>
           </div>
         </div>
       );
