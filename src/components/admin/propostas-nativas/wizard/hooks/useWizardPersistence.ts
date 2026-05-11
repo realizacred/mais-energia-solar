@@ -353,18 +353,30 @@ async function persistProposalAtomic(
         }
       }
 
-      // Sync deal value + kwp so kanban projection reflects proposal data
-      const syncDealId = params.dealId || result.projeto_id;
-      if (syncDealId && (params.potenciaKwp > 0 || params.precoFinal > 0)) {
-        await supabase
-          .from("deals")
-          .update({
-            value: params.precoFinal,
-            kwp: params.potenciaKwp,
-            updated_at: new Date().toISOString(),
-          } as any)
-          .eq("id", syncDealId);
-      }
+    // Sync deal value + kwp so kanban projection reflects proposal data
+    const syncDealId = params.dealId || result.projeto_id;
+    if (syncDealId && (params.potenciaKwp > 0 || params.precoFinal > 0)) {
+      await supabase
+        .from("deals")
+        .update({
+          value: params.precoFinal,
+          kwp: params.potenciaKwp,
+          updated_at: new Date().toISOString(),
+        } as any)
+        .eq("id", syncDealId);
+    }
+
+    // Sync canonical projeto (Project is main entity per arch memory)
+    if (result.projeto_id && (params.potenciaKwp > 0 || params.precoFinal > 0)) {
+      await supabase
+        .from("projetos")
+        .update({
+          valor_total: params.precoFinal,
+          potencia_kwp: params.potenciaKwp,
+          updated_at: new Date().toISOString(),
+        } as any)
+        .eq("id", result.projeto_id);
+    }
 
       return {
         status: "success",
