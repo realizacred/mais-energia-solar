@@ -396,7 +396,7 @@ function RowActions({
               <Button
                 size="sm"
                 variant="default"
-                className="h-8 ml-1"
+                className="h-8 ml-1 whitespace-nowrap shrink-0"
                 disabled={!row.telefone_normalized}
                 onClick={() => onSend(row)}
               >
