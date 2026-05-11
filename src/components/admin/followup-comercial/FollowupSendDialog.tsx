@@ -85,6 +85,23 @@ export function FollowupSendDialog({ row, open, onOpenChange }: Props) {
     }
   };
 
+  const handleAiSuggest = async () => {
+    try {
+      const result = await aiSuggest.mutateAsync(row);
+      setAiSuggestion(result);
+      if (result.mensagem_sugerida) setMessage(result.mensagem_sugerida);
+    } catch { /* toast já tratado */ }
+  };
+
+  const tempIcon = (lvl: string) =>
+    lvl === "alto" ? <Flame className="h-3 w-3" />
+    : lvl === "medio" ? <ThermometerSun className="h-3 w-3" />
+    : <Snowflake className="h-3 w-3" />;
+  const tempColor = (lvl: string) =>
+    lvl === "alto" ? "border-destructive/40 bg-destructive/5 text-destructive"
+    : lvl === "medio" ? "border-warning/40 bg-warning/5 text-warning-foreground"
+    : "border-info/40 bg-info/5 text-info-foreground";
+
   const lastError = send.error;
   const isOverridable =
     lastError &&
