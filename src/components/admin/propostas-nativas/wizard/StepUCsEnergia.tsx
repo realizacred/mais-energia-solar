@@ -27,7 +27,9 @@ interface Props {
   onGrupoChange: (g: string) => void;
   potenciaKwp: number;
   onPotenciaChange: (p: number) => void;
+  leadFase?: string | null;
 }
+
 
 export function StepUCsEnergia({ ucs, onUcsChange, grupo, onGrupoChange, potenciaKwp, onPotenciaChange }: Props) {
   const [concessionarias, setConcessionarias] = useState<Concessionaria[]>([]);
