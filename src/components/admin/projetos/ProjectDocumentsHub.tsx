@@ -466,7 +466,7 @@ export function ProjectDocumentsHub({ projetoId, dealId }: Props) {
                             <DropdownMenuItem
                               className="text-destructive focus:text-destructive"
                               onClick={() => setConfirmDelete(d)}
-                              disabled={d.origem !== "manual"}
+                              disabled={d.origem !== "manual" && d.origem !== "legacy"}
                             >
                               <Trash2 className="h-3.5 w-3.5 mr-2" />
                               Excluir
