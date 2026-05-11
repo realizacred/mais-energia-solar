@@ -51,6 +51,7 @@ export function FollowupSendDialog({ row, open, onOpenChange }: Props) {
   const [force, setForce] = useState(false);
   const [forceReason, setForceReason] = useState("");
   const [aiSuggestion, setAiSuggestion] = useState<FollowupAiSuggestion | null>(null);
+  const [aiCooldown, setAiCooldown] = useState(0);
   const send = useSendProposalFollowup();
   const aiSuggest = useFollowupAiSuggestion();
 
@@ -60,8 +61,15 @@ export function FollowupSendDialog({ row, open, onOpenChange }: Props) {
       setForce(false);
       setForceReason("");
       setAiSuggestion(null);
+      setAiCooldown(0);
     }
   }, [row, open]);
+
+  useEffect(() => {
+    if (aiCooldown <= 0) return;
+    const t = setTimeout(() => setAiCooldown((s) => Math.max(0, s - 1)), 1000);
+    return () => clearTimeout(t);
+  }, [aiCooldown]);
 
   const charCount = message.length;
   const tooShort = charCount < 5;
