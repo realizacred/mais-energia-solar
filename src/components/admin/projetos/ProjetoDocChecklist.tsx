@@ -19,6 +19,7 @@ import {
   type DocChecklistStatus,
 } from "@/hooks/useProjetoChecklist";
 import { useDealDocChecklist, useUpdateDealDocChecklist } from "@/hooks/useDealDocChecklist";
+import { useProjectDocuments } from "@/hooks/useProjectDocuments";
 
 // Legacy hardcoded items (fallback when tenant has no items configured)
 const LEGACY_ITEMS = [
@@ -36,6 +37,9 @@ interface Props {
 }
 
 export function ProjetoDocChecklist({ dealId, compact = false }: Props) {
+  // Sync with project_documents SSOT
+  const { data: canonicalDocs = [] } = useProjectDocuments({ dealId });
+
   // Dynamic items
   const { data: items = [], isLoading: loadingItems } = useChecklistItems();
   const { data: statuses = [], isLoading: loadingStatus } = useChecklistStatus(dealId);
@@ -97,8 +101,25 @@ export function ProjetoDocChecklist({ dealId, compact = false }: Props) {
   };
 
   // ─── Computed ───────────────────────────────────
+  // Map legacy keys to canonical categories
+  const LEGACY_CAT_MAP: Record<string, string> = {
+    rg_cnh: "rg_cnh",
+    conta_luz: "conta_luz",
+    iptu_imovel: "iptu",
+    fotos: "fotos_telhado",
+    autorizacao_art: "art",
+    contrato_assinado: "contrato",
+  };
+
+  const isLegacyItemChecked = (key: string) => {
+    const isManuallyChecked = !!legacyChecklist[key];
+    const canonicalCat = LEGACY_CAT_MAP[key];
+    const hasCanonicalDoc = canonicalDocs.some(d => d.categoria === canonicalCat);
+    return isManuallyChecked || hasCanonicalDoc;
+  };
+
   const dynamicCompleted = items.filter(i => statusMap.get(i.id)?.concluido).length;
-  const legacyCompleted = LEGACY_ITEMS.filter(d => legacyChecklist[d.key]).length;
+  const legacyCompleted = LEGACY_ITEMS.filter(d => isLegacyItemChecked(d.key)).length;
   const completed = useLegacy ? legacyCompleted : dynamicCompleted;
   const total = useLegacy ? LEGACY_ITEMS.length : items.length;
   const progress = total > 0 ? (completed / total) * 100 : 0;
@@ -171,7 +192,9 @@ export function ProjetoDocChecklist({ dealId, compact = false }: Props) {
         {useLegacy ? (
           // Legacy mode
           LEGACY_ITEMS.map(item => {
-            const checked = !!legacyChecklist[item.key];
+            const checked = isLegacyItemChecked(item.key);
+            const hasCanonicalDoc = canonicalDocs.some(d => d.categoria === LEGACY_CAT_MAP[item.key]);
+            
             return (
               <button
                 key={item.key}
@@ -192,6 +215,9 @@ export function ProjetoDocChecklist({ dealId, compact = false }: Props) {
                 <span className={cn("text-sm flex-1", checked ? "text-muted-foreground line-through" : "text-foreground font-medium")}>
                   {item.label}
                 </span>
+                {hasCanonicalDoc && (
+                  <Paperclip className="h-3.5 w-3.5 text-success shrink-0" />
+                )}
               </button>
             );
           })
