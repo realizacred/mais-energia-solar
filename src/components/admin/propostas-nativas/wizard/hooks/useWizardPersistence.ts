@@ -224,6 +224,29 @@ function sanitizeSnapshot(snapshot: any): Record<string, unknown> {
     }
   } catch { /* never break save for enrichment */ }
 
+  // ── Canonicalize on save: strip SolarMarket import flags ──
+  // Quando o usuário salva uma proposta migrada, ela vira canônica/nativa.
+  // Mantemos rastreabilidade via origin_source + converted_from_import,
+  // mas removemos override financeiro automático para o motor nativo assumir.
+  try {
+    const venda = result.venda as Record<string, any> | undefined;
+    if (venda && venda.isImportedFinancialOverride === true) {
+      result.venda = {
+        ...venda,
+        isImportedFinancialOverride: false,
+        custo_kit_override: null,
+      };
+      result.origin_source = result.origin_source ?? "solarmarket";
+      result.converted_from_import = true;
+    }
+    // Garantia extra: nunca persistir source=solarmarket no snapshot canônico.
+    if ((result as any).source === "solarmarket") {
+      result.origin_source = result.origin_source ?? "solarmarket";
+      delete (result as any).source;
+      delete (result as any).source_version;
+    }
+  } catch { /* never break save for canonicalization */ }
+
   return result;
 }
 
