@@ -3326,6 +3326,7 @@ export function ProposalWizard() {
         onCustomFieldValuesChange={setCustomFieldValues}
         financialWarnings={resumoFinancialWarnings}
         onConfirm={handlePosDialogConfirm}
+        kitItems={itens}
         onSaveDraft={() => handleUpdate(false)}
         onSaveActive={() => handleUpdate(true)}
         saving={saving || isRestoring}
