@@ -63,12 +63,12 @@ export function StepVenda({ venda, onVendaChange, itens, servicos, potenciaKwp =
   const margemValor = roundCurrency(custoParaMargem * (venda.margem_percentual / 100));
   const precoComMargem = roundCurrency(custoBase + margemValor);
   const precoSlider = precoComMargem; // Preço alvo sem o desconto
-  const margemMeta = precoSlider > 0 ? ((precoSlider - custoBase) / precoSlider) * 100 : 0;
+  const margemMeta = precoSlider > 0 && custoBase > 0 ? ((precoSlider - custoBase) / precoSlider) * 100 : null;
 
   const descontoValor = roundCurrency(precoComMargem * (venda.desconto_percentual / 100));
   const precoFinal = roundCurrency(precoComMargem - descontoValor);
-  const margemLiquida = precoFinal > 0 ? ((precoFinal - custoBase) / precoFinal) * 100 : 0;
-  const isMargemOk = margemLiquida >= margemMeta - 0.01; // tolerance for rounding
+  const margemLiquida = precoFinal > 0 && custoBase > 0 ? ((precoFinal - custoBase) / precoFinal) * 100 : null;
+  const isMargemOk = margemLiquida !== null && margemMeta !== null ? margemLiquida >= margemMeta - 0.01 : true; // tolerance for rounding
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-6">
@@ -88,14 +88,22 @@ export function StepVenda({ venda, onVendaChange, itens, servicos, potenciaKwp =
           <p className="text-xs text-muted-foreground mt-1">
             💡 {hasHistory ? "Sua margem histórica média" : "Margem sugerida"}: {hasHistory && suggested?.margem_percentual != null ? (Math.round(suggested.margem_percentual * 10) / 10) : "20"}%
             <span className="mx-2">|</span>
-            <span className="inline-flex items-center gap-1">
-              Meta: <span className="font-semibold text-foreground">{margemMeta.toFixed(1)}%</span>
-              <span className="mx-1">|</span>
-              Atual: <span className={cn("font-bold flex items-center gap-0.5", isMargemOk ? "text-success" : "text-destructive")}>
-                {margemLiquida.toFixed(1)}%
-                {isMargemOk ? <Check className="h-3 w-3" /> : <AlertTriangle className="h-3 w-3" />}
+            {margemLiquida === null ? (
+              <span className="text-muted-foreground italic">Adicione itens ao kit para calcular a margem</span>
+            ) : margemMeta === null ? (
+              <span className="inline-flex items-center gap-1">
+                Margem atual: <span className="font-bold text-success">{margemLiquida.toFixed(1)}%</span>
               </span>
-            </span>
+            ) : (
+              <span className="inline-flex items-center gap-1">
+                Meta: <span className="font-semibold text-foreground">{margemMeta.toFixed(1)}%</span>
+                <span className="mx-1">|</span>
+                Atual: <span className={cn("font-bold flex items-center gap-0.5", isMargemOk ? "text-success" : "text-destructive")}>
+                  {margemLiquida.toFixed(1)}%
+                  {isMargemOk ? <Check className="h-3 w-3" /> : <AlertTriangle className="h-3 w-3" />}
+                </span>
+              </span>
+            )}
           </p>
         </div>
 
