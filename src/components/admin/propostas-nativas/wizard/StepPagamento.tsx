@@ -90,7 +90,8 @@ export function StepPagamento({
             id: crypto.randomUUID(),
             banco_id: b.id,
             banco_nome: b.nome,
-            entrada: 0,
+            entrada: valorEntradaGlobal,
+
             num_parcelas: parcelas,
             taxa_mensal: b.taxa_mensal,
             carencia_meses: 2,
