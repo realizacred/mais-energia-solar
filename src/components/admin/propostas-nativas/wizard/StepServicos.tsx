@@ -55,23 +55,23 @@ export function StepServicos({ servicos, onServicosChange, venda, kitItens = [],
   };
 
   const addDefaultServices = () => {
-    if (!premises?.sombreamento_config) return;
-    
-    // In current project, default services are defined in pricing_config/tenant_premises
-    // but the request asks to populate with "standard services" from premises.
-    // Since there's no explicit "default_services" array in SolarPremises, 
-    // we'll add common ones as a placeholder or check if there's a specific logic.
-    // Based on system patterns, we'll add "Projeto Elétrico" and "Homologação" 
-    // if not already present.
-    
+    // Standard services logic: fetch common descriptors or predefined system defaults
+    // Since there's no explicit array in SolarPremises, we use a robust set of defaults
     const defaults: ServicoItem[] = [
       { id: crypto.randomUUID(), descricao: "Projeto Elétrico e Engenharia", categoria: "projeto", valor: 0, incluso_no_preco: true },
       { id: crypto.randomUUID(), descricao: "Homologação na Concessionária", categoria: "homologacao", valor: 0, incluso_no_preco: true },
       { id: crypto.randomUUID(), descricao: "Visita Técnica", categoria: "manutencao", valor: 0, incluso_no_preco: true },
     ];
     
-    onServicosChange([...servicos, ...defaults]);
+    // Merge only if not already present by description
+    const existingDescs = new Set(servicos.map(s => s.descricao.toLowerCase()));
+    const toAdd = defaults.filter(d => !existingDescs.has(d.descricao.toLowerCase()));
+    
+    if (toAdd.length > 0) {
+      onServicosChange([...servicos, ...toAdd]);
+    }
   };
+
 
   const removeServico = (id: string) => onServicosChange(servicos.filter(s => s.id !== id));
 
@@ -91,13 +91,14 @@ export function StepServicos({ servicos, onServicosChange, venda, kitItens = [],
   ];
 
   // Add service-based resumo items (Instalação, Comissão, etc.)
-  const instalacaoServico = servicos.find(s => s.categoria === "instalacao");
-  const comissaoServico = servicos.find(s => s.categoria === "comissao");
+  // SSOT: Use values from VendaData if provided (Financial Center sync), otherwise from servicos array
+  const valorInstalacao = (venda && venda.instalacao_enabled !== false) 
+    ? (venda.custo_instalacao || 0) 
+    : (servicos.find(s => s.categoria === "instalacao")?.valor || 0);
 
-  // Use values from VendaData if provided (Financial Center sync), otherwise from servicos array
-  const hasVendaValues = !!venda;
-  const valorInstalacao = hasVendaValues ? (venda.custo_instalacao || 0) : (servicos.find(s => s.categoria === "instalacao")?.valor || 0);
-  const valorComissao = hasVendaValues ? (venda.custo_comissao || 0) : (servicos.find(s => s.categoria === "comissao")?.valor || 0);
+  const valorComissao = (venda && venda.comissao_enabled !== false)
+    ? (venda.custo_comissao || 0)
+    : (servicos.find(s => s.categoria === "comissao")?.valor || 0);
 
   resumoItens.push({
     descricao: "Instalação",
@@ -110,6 +111,7 @@ export function StepServicos({ servicos, onServicosChange, venda, kitItens = [],
     quantidade: 1,
     valor: valorComissao,
   });
+
 
   // Add other services not already shown
   servicos
@@ -131,11 +133,11 @@ export function StepServicos({ servicos, onServicosChange, venda, kitItens = [],
         {servicos.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 px-4 text-center bg-muted/20 border border-dashed border-border/60 rounded-2xl">
             <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mb-4">
-              <Sparkles className="h-6 w-6 text-primary" />
+              <Wrench className="h-6 w-6 text-primary" />
             </div>
-            <h3 className="text-base font-semibold text-foreground">Nenhum serviço adicionado ainda</h3>
-            <p className="text-sm text-muted-foreground max-w-[320px] mt-1.5 mb-6">
-              Serviços opcionais como visita técnica e projeto elétrico. A instalação é configurada em Custos e Margem.
+            <h3 className="text-[15px] font-medium text-foreground">Nenhum serviço adicionado</h3>
+            <p className="text-[13px] text-muted-foreground max-w-[400px] mt-1.5 mb-6">
+              Adicione serviços opcionais como visita técnica ou projeto elétrico. Instalação e comissão são configuradas em Custos e Margem.
             </p>
             <div className="flex flex-wrap items-center justify-center gap-3">
               <Button 
@@ -154,6 +156,7 @@ export function StepServicos({ servicos, onServicosChange, venda, kitItens = [],
             </div>
           </div>
         ) : (
+
           <div className="space-y-2">
             {servicos.map((servico) => (
               <div key={servico.id} className="p-3 rounded-lg border border-border/40 bg-card space-y-2">
