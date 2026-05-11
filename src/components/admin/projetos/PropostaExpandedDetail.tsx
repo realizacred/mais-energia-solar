@@ -8,7 +8,7 @@ import { StepDocumento } from "@/components/admin/propostas-nativas/wizard/StepD
 import { ProposalViewsCard } from "@/components/admin/propostas-nativas/ProposalViewsCard";
 import {
   Zap, SunMedium, DollarSign, FileText, Eye, Pencil, Copy, Trash2, Download,
-  ChevronDown, MoreVertical, ExternalLink, AlertCircle, CheckCircle, Loader2,
+  ChevronDown, MoreVertical, ExternalLink, AlertCircle, AlertTriangle, CheckCircle, Loader2,
   Link2, MessageCircle, Mail, CalendarCheck, RefreshCw, Home, Building2, Star, FolderOpen, MessageSquareText, RotateCcw,
   FilePlus, FileCheck, Clock, TrendingUp, PiggyBank, Timer
 } from "lucide-react";
