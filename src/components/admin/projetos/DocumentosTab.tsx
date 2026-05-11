@@ -601,7 +601,7 @@ export function DocumentosTab({ dealId, clienteTelefone, consultorTelefone: cons
         ) : (
           <div className="space-y-1">
             {files.map(f => (
-              <div key={f.name} className="flex items-center gap-3 py-2 px-3 rounded-lg bg-card border border-border/40 hover:border-border/70 transition-all cursor-pointer" onClick={() => previewUpload(f.name)}>
+              <div key={f.name} className="flex items-center gap-3 py-2 px-3 rounded-lg bg-card border border-border/40 hover:border-border/70 transition-all cursor-pointer" onClick={() => previewUpload(f)}>
                 <FileText className="h-4 w-4 text-primary shrink-0" />
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-foreground truncate">{f.name.replace(/^\d+_/, "")}</p>
@@ -610,7 +610,7 @@ export function DocumentosTab({ dealId, clienteTelefone, consultorTelefone: cons
                   </p>
                 </div>
                 <div className="flex items-center gap-1 shrink-0">
-                  <Button variant="ghost" size="icon" className="h-7 w-7" title="Visualizar" onClick={(e) => { e.stopPropagation(); previewUpload(f.name); }}>
+                  <Button variant="ghost" size="icon" className="h-7 w-7" title="Visualizar" onClick={(e) => { e.stopPropagation(); previewUpload(f); }}>
                     <Eye className="h-3.5 w-3.5" />
                   </Button>
                   <Button variant="ghost" size="icon" className="h-7 w-7" title="Baixar" onClick={(e) => { e.stopPropagation(); downloadArquivo(dealId, f.name); }}>
