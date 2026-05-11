@@ -208,6 +208,20 @@ function CustomFieldInput({ field, value, onChange, dealId }: {
         </div>
       );
 
+    case "file":
+      return (
+        <div className="space-y-1.5">
+          <Label className="text-xs">{label}</Label>
+          <CustomFieldFileInput
+            value={value}
+            fieldKey={field.field_key}
+            dealId={dealId}
+            compact
+            onChange={(jsonValue) => onChange(jsonValue)}
+          />
+        </div>
+      );
+
     default: // text
       return (
         <div className="space-y-1.5">
