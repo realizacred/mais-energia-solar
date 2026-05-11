@@ -217,6 +217,9 @@ function HomologacaoCard({ ctx, habilitado }: { ctx: ReturnType<typeof useConces
                 {homolog.data_aprovacao && (
                   <div><span className="text-muted-foreground">Aprovação:</span> <span className="font-medium text-foreground">{formatDateBR(homolog.data_aprovacao)}</span></div>
                 )}
+                {homolog.previsao_aprovacao && (
+                  <div><span className="text-muted-foreground">Previsão:</span> <span className="font-medium text-foreground">{formatDateBR(homolog.previsao_aprovacao)}</span></div>
+                )}
                 {homolog.motivo_reprovacao && (
                   <div className="col-span-1 sm:col-span-2">
                     <span className="text-muted-foreground">Motivo reprovação:</span>{" "}
