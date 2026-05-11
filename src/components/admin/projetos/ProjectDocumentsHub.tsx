@@ -128,7 +128,6 @@ export function ProjectDocumentsHub({ projetoId, dealId }: Props) {
   const [origemFilter, setOrigemFilter] = useState<string>("all");
   const [preview, setPreview] = useState<FilePreviewTarget | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<ProjectDocument | null>(null);
-  const [confirmDeleteLegacy, setConfirmDeleteLegacy] = useState<string | null>(null);
   const [dragOver, setDragOver] = useState(false);
   const [uploading, setUploading] = useState<string[]>([]);
   const fileInput = useRef<HTMLInputElement>(null);
