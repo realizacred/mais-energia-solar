@@ -50,7 +50,7 @@ function formatPhone(p: string | null) {
   return p;
 }
 
-export function FollowupSendDialog({ row, open, onOpenChange }: Props) {
+export function FollowupSendDialog({ row, open, onOpenChange, defaultTab = "mensagem" }: Props) {
   const [message, setMessage] = useState("");
   const [force, setForce] = useState(false);
   const [forceReason, setForceReason] = useState("");
