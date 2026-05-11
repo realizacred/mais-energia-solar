@@ -402,6 +402,7 @@ export function ProposalWizard() {
   const [savedClienteId, setSavedClienteId] = useState<string | null>(null);
   // Track if editing a previously sent/generated proposal (will branch new version)
   const [editingsentProposal, setEditingSentProposal] = useState(false);
+  const [proposalStatus, setProposalStatus] = useState<string | null>(null);
   // Track async DB restore to block UI during loading (race condition fix)
   const [isRestoring, setIsRestoring] = useState(!!(propostaIdFromUrl && versaoIdFromUrl));
   const [migratedKitMissing, setMigratedKitMissing] = useState(false);
@@ -1324,6 +1325,7 @@ export function ProposalWizard() {
           const SENT_STATUSES = ["enviada", "vista", "aceita", "gerada"];
           if (propostaMeta?.status && SENT_STATUSES.includes(propostaMeta.status)) {
             setEditingSentProposal(true);
+            setProposalStatus(propostaMeta.status);
           }
 
           if (propostaMeta?.deal_id) {
@@ -3183,6 +3185,16 @@ export function ProposalWizard() {
         </div>
       )}
 
+
+      {/* Accepted Proposal Permanent Warning Banner */}
+      {proposalStatus === "aceita" && (
+        <div className="flex items-center gap-3 px-4 lg:px-6 py-3 border-b border-destructive bg-destructive text-destructive-foreground shrink-0 animate-pulse z-50">
+          <AlertTriangle className="h-5 w-5 shrink-0" />
+          <p className="text-sm font-bold">
+            ESTA PROPOSTA ESTÁ ACEITA PELO CLIENTE. QUALQUER ALTERAÇÃO PODE INVALIDAR O CONTRATO ASSINADO.
+          </p>
+        </div>
+      )}
 
       {/* Migrated proposal without editable kit */}
       {migratedKitMissing && (
