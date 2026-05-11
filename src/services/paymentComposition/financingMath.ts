@@ -59,3 +59,39 @@ export function formatTaxaMensal(taxa: number | null | undefined): string {
   const percent = val < 0.5 ? val * 100 : val;
   return `${percent.toFixed(2).replace(".", ",")}%`;
 }
+
+/**
+ * Calculates monthly savings unifiying UI and Edge Function logic.
+ * SSOT for monthly savings calculation.
+ */
+export function calcularEconomiaMensal(params: {
+  geracaoMensal: number;
+  consumoTotal: number;
+  tarifaMedia: number;
+  custoDisponibilidadeTotal: number;
+  percentualFioB: number;
+  tarifaFioBCustom?: number;
+}): number {
+  const {
+    geracaoMensal,
+    consumoTotal,
+    tarifaMedia,
+    custoDisponibilidadeTotal,
+    percentualFioB,
+    tarifaFioBCustom
+  } = params;
+
+  // Use custom Fio B tariff if provided, otherwise default to 28% of average tariff
+  const tarifaFioBAplicada = tarifaFioBCustom ?? (tarifaMedia * 0.28);
+  
+  // GD I/II Logic: Savings apply to the portion of generation that is compensated (up to consumption limit)
+  const energiaCompensavel = Math.min(geracaoMensal, consumoTotal);
+  const economiaBruta = energiaCompensavel * tarifaMedia;
+  
+  // Fio B cost applies to injected generation (excedente)
+  const excedenteInjetado = Math.max(0, geracaoMensal - consumoTotal);
+  const custoFioB = excedenteInjetado * tarifaFioBAplicada * percentualFioB;
+
+  return Math.max(0, round2(economiaBruta - custoFioB - custoDisponibilidadeTotal));
+}
+

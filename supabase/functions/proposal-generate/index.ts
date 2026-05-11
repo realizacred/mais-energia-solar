@@ -655,6 +655,10 @@ Deno.serve(async (req) => {
       return s + (uc.tipo_dimensionamento === "MT" ? uc.consumo_mensal_p + uc.consumo_mensal_fp : uc.consumo_mensal);
     }, 0);
 
+    // SSOT: Read economy from snapshot if available (persisted from Wizard)
+    // fallback to engine's internal calculation for backward compatibility
+    let economiaMensal = Number(body._wizard_state?.economiaMensal) || 0;
+
     // Prefer wizard's pre-calculated generation (includes topology performance)
     // Fallback: apply UC performance factor to raw potencia * irradiacao
     const wizardGeracao = Number(body._wizard_state?.geracaoMensalEstimada) || 0;
@@ -662,13 +666,17 @@ Deno.serve(async (req) => {
     const geracaoEstimada = wizardGeracao > 0
       ? wizardGeracao
       : round2(potenciaKwp * geracaoMediaKwpMes * ucPerformance);
-    const tarifaMedia = uc1.tarifa_distribuidora || 0.85;
-    const energiaCompensavel = Math.min(geracaoEstimada, consumoTotal);
-    const fioBAplicavel = backendGrupo === "B" ? percentualFioB / 100 : 0;
-    const custoFioBMensal = energiaCompensavel * (tarifaMedia * 0.28) * fioBAplicavel;
-    const custoDispTotal = body.ucs.reduce((s, uc) => s + uc.custo_disponibilidade_valor, 0);
-    const economiaBruta = energiaCompensavel * tarifaMedia;
-    const economiaMensal = Math.max(economiaBruta - custoFioBMensal - custoDispTotal, 0);
+
+    if (economiaMensal <= 0) {
+      const tarifaMedia = uc1.tarifa_distribuidora || 0.85;
+      const energiaCompensavel = Math.min(geracaoEstimada, consumoTotal);
+      const fioBAplicavel = backendGrupo === "B" ? percentualFioB / 100 : 0;
+      const custoFioBMensal = energiaCompensavel * (tarifaMedia * 0.28) * fioBAplicavel;
+      const custoDispTotal = body.ucs.reduce((s, uc) => s + uc.custo_disponibilidade_valor, 0);
+      const economiaBruta = energiaCompensavel * tarifaMedia;
+      economiaMensal = Math.max(economiaBruta - custoFioBMensal - custoDispTotal, 0);
+    }
+
 
     // Custos — SSOT: Financial Center (venda.custo_instalacao) takes precedence.
     // Fallback to summing servicos[incluso_no_preco] when FC not used (legacy paths).

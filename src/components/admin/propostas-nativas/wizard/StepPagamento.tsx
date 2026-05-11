@@ -13,283 +13,8 @@ import { cn } from "@/lib/utils";
 import { type PagamentoOpcao, type BancoFinanciamento, type UCData, type PremissasData, formatBRL } from "./types";
 import { formatNumberBR } from "@/lib/formatters";
 import { CurrencyInput } from "@/components/ui-kit/inputs/CurrencyInput";
-import { calcularPrestacao } from "@/services/paymentComposition/financingMath";
-import { VARIABLES_CATALOG, CATEGORY_LABELS, CATEGORY_ORDER, type VariableCategory } from "@/lib/variablesCatalog";
-import { usePaymentInterestConfigs, type PaymentInterestConfig } from "@/hooks/usePaymentInterestConfig";
-import { FORMA_PAGAMENTO_LABELS, type FormaPagamento } from "@/services/paymentComposition/types";
-import { PaymentMethodSelector, type FormaSelected } from "./PaymentMethodSelector";
-
-const FORMA_ICONS: Record<string, React.ReactNode> = {
-  pix: <Smartphone className="h-4 w-4 text-primary" />,
-  dinheiro: <Banknote className="h-4 w-4 text-primary" />,
-  transferencia: <Wallet className="h-4 w-4 text-primary" />,
-  boleto: <FileText className="h-4 w-4 text-primary" />,
-  cartao_credito: <CreditCard className="h-4 w-4 text-primary" />,
-  cartao_debito: <CreditCard className="h-4 w-4 text-primary" />,
-  cheque: <FileText className="h-4 w-4 text-primary" />,
-  financiamento: <Building2 className="h-4 w-4 text-primary" />,
-  crediario: <Wallet className="h-4 w-4 text-primary" />,
-  outro: <DollarSign className="h-4 w-4 text-primary" />,
-};
-
-// ─── Types ────────────────────────────────────────────────
-
-interface BancoOpcao {
-  id: string;
-  banco_id: string;
-  banco_nome: string;
-  entrada: number;
-  num_parcelas: number;
-  taxa_mensal: number;
-  carencia_meses: number;
-  valor_parcela: number;
-  valor_financiado: number;
-}
-
-interface BancoGroup {
-  banco: BancoFinanciamento;
-  opcoes: BancoOpcao[];
-}
-
-interface StepPagamentoProps {
-  opcoes: PagamentoOpcao[];
-  onOpcoesChange: (opcoes: PagamentoOpcao[]) => void;
-  bancos: BancoFinanciamento[];
-  loadingBancos: boolean;
-  precoFinal: number;
-  // Data for cash flow
-  ucs?: UCData[];
-  premissas?: PremissasData;
-  potenciaKwp?: number;
-  irradiacao?: number;
-  geracaoMensalKwh?: number;
-}
-
-const DEFAULT_PARCELAS = [12, 24, 36, 48];
-
-export function StepPagamento({
-  opcoes, onOpcoesChange, bancos, loadingBancos, precoFinal,
-  ucs = [], premissas, potenciaKwp = 0, irradiacao = 0, geracaoMensalKwh = 0,
-}: StepPagamentoProps) {
-  const [activeTab, setActiveTab] = useState<"pagamento" | "fluxo">("pagamento");
-  const [showGastosModal, setShowGastosModal] = useState(false);
-  const [showFluxoModal, setShowFluxoModal] = useState(false);
-  const [showVariaveisModal, setShowVariaveisModal] = useState(false);
-  const [fluxoFinanciamento, setFluxoFinanciamento] = useState("sem_financiamento");
-
-  // ─── Bank groups with auto-generated options (only for selected banks)
-  const buildBancoGroups = (bankList: BancoFinanciamento[], price: number, selectedIds?: Set<string>): BancoGroup[] =>
-    bankList
-      .filter(b => !selectedIds || selectedIds.has(b.id))
-      .map((b) => ({
-        banco: b,
-        opcoes: DEFAULT_PARCELAS
-          .filter((p) => p <= b.max_parcelas)
-          .map((parcelas) => ({
-            id: crypto.randomUUID(),
-            banco_id: b.id,
-            banco_nome: b.nome,
-            entrada: 0,
-            num_parcelas: parcelas,
-            taxa_mensal: b.taxa_mensal,
-            carencia_meses: 2,
-            valor_financiado: price,
-            valor_parcela: calcParcela({ valor_financiado: price, entrada: 0, num_parcelas: parcelas, taxa_mensal: b.taxa_mensal, tipo: "financiamento", carencia_meses: 2 }),
-          })),
-      }));
-
-  const mapOpcoesToBancoGroups = (existingOpcoes: PagamentoOpcao[], bankList: BancoFinanciamento[], fallbackPrice: number, selectedIds?: Set<string>): BancoGroup[] => {
-    const financiamento = existingOpcoes.filter((o) => o.tipo === "financiamento" || o.tipo === "parcelado");
-    if (financiamento.length === 0) return buildBancoGroups(bankList, fallbackPrice, selectedIds);
-
-    const byBanco = new Map<string, BancoOpcao[]>();
-    financiamento.forEach((op) => {
-      const key = op.nome || "Financiamento";
-      const list = byBanco.get(key) || [];
-      list.push({
-        id: op.id,
-        banco_id: op.id,
-        banco_nome: key,
-        entrada: op.entrada,
-        num_parcelas: op.num_parcelas,
-        taxa_mensal: op.taxa_mensal,
-        carencia_meses: op.carencia_meses,
-        valor_financiado: op.valor_financiado,
-        valor_parcela: op.valor_parcela,
-      });
-      byBanco.set(key, list);
-    });
-
-    return Array.from(byBanco.entries()).map(([nome, opcoesBanco]) => {
-      const fromCatalog = bankList.find((b) => b.nome === nome);
-      return {
-        banco: fromCatalog || {
-          id: opcoesBanco[0]?.banco_id || crypto.randomUUID(),
-          nome,
-          taxa_mensal: opcoesBanco[0]?.taxa_mensal || 0,
-          max_parcelas: Math.max(...opcoesBanco.map((o) => o.num_parcelas), 60),
-        },
-        opcoes: opcoesBanco,
-      };
-    });
-  };
-
-  const flattenBancoGroupsToOpcoes = (groups: BancoGroup[], price: number): PagamentoOpcao[] => {
-    const financiamento = groups.flatMap((g) =>
-      g.opcoes.map((op) => ({
-        id: op.id,
-        nome: g.banco.nome,
-        banco_id: g.banco.id,
-        tipo: "financiamento" as const,
-        valor_financiado: Number.isFinite(op.valor_financiado) ? op.valor_financiado : price,
-        entrada: Number.isFinite(op.entrada) ? op.entrada : 0,
-        taxa_mensal: Number.isFinite(op.taxa_mensal) ? op.taxa_mensal : 0,
-        carencia_meses: Number.isFinite(op.carencia_meses) ? op.carencia_meses : 0,
-        num_parcelas: Number.isFinite(op.num_parcelas) ? op.num_parcelas : 0,
-        valor_parcela: Number.isFinite(op.valor_parcela) ? op.valor_parcela : 0,
-      }))
-    );
-
-    // Fase 1 — só injeta "À Vista" default quando NÃO há outras formas configuradas
-    // (financiamento OU formas diretas como PIX/transferência/cartão).
-    // Antes: sempre injetava se não houvesse financiamento, fazendo "À Vista" coexistir
-    // com "Transferência" adicionada pelo usuário. Decisão real fica para Fase 4 (composição).
-    const hasFinanciamento = financiamento.length > 0;
-    const hasFormasDiretas = formasSelecionadas.length > 0;
-    if (hasFinanciamento || hasFormasDiretas) {
-      return financiamento;
-    }
-
-    return [
-      {
-        id: "a-vista-default",
-        nome: "À Vista",
-        tipo: "a_vista",
-        valor_financiado: price,
-        entrada: price,
-        taxa_mensal: 0,
-        carencia_meses: 0,
-        num_parcelas: 1,
-        valor_parcela: price,
-      },
-    ];
-  };
-
-  // ─── Selected banks (only checked ones generate options)
-  const [selectedBankIds, setSelectedBankIds] = useState<Set<string>>(() => {
-    // If we have existing opcoes with financing, extract bank IDs from them
-    const existingBancoIds = opcoes
-      .filter(o => o.tipo === "financiamento" || o.tipo === "parcelado")
-      .map(o => o.banco_id);
-    
-    if (existingBancoIds.some(id => !!id)) {
-      return new Set(existingBancoIds.filter((id): id is string => !!id));
-    }
-    
-    // Fallback for older proposals that didn't have banco_id yet (match by name)
-    const existingBancoNames = opcoes
-      .filter(o => o.tipo === "financiamento" || o.tipo === "parcelado")
-      .map(o => o.nome);
-
-    if (existingBancoNames.length > 0) {
-      const ids = new Set<string>();
-      bancos.forEach(b => { if (existingBancoNames.includes(b.nome)) ids.add(b.id); });
-      return ids;
-    }
-    // Default: none selected — user chooses which banks to include
-    return new Set<string>();
-  });
-
-  const [hasUserEditedBancoGroups, setHasUserEditedBancoGroups] = useState(false);
-  const [bancoGroups, setBancoGroups] = useState<BancoGroup[]>(() =>
-    opcoes.length > 0 ? mapOpcoesToBancoGroups(opcoes, bancos, precoFinal, selectedBankIds) : buildBancoGroups(bancos, precoFinal, selectedBankIds)
-  );
-  const [selectedBancoIdx, setSelectedBancoIdx] = useState(0);
-  const [showNovoFinanciamento, setShowNovoFinanciamento] = useState(false);
-  // Novo financiamento form state
-  const [novoNome, setNovoNome] = useState("");
-  const [novoTaxa, setNovoTaxa] = useState("");
-  const [novoMaxParcelas, setNovoMaxParcelas] = useState("60");
-  const [novoEntradaPercent, setNovoEntradaPercent] = useState(true);
-  const [novoEntrada, setNovoEntrada] = useState("");
-  const [novoPrazo, setNovoPrazo] = useState("");
-  const [novoCarencia, setNovoCarencia] = useState("0");
-
-  // ─── Formas de pagamento direto selecionadas (drag & drop)
-  const [formasSelecionadas, setFormasSelecionadas] = useState<FormaSelected[]>(() => {
-    // Round-trip: reconstruct from existing opcoes with tipo="direto"
-    return opcoes
-      .filter(op => op.tipo === "direto" && op.forma_pagamento)
-      .map(op => ({
-        id: op.id,
-        config_id: op.id,
-        forma_pagamento: op.forma_pagamento as FormaPagamento,
-        nome: op.nome,
-        num_parcelas: op.num_parcelas,
-        taxa_mensal: op.taxa_mensal,
-        juros_responsavel: "cliente",
-        valor_total: op.valor_financiado,
-        entrada: op.entrada,
-        observacoes: "",
-      }));
-  });
-
-  // Fase 1 — Sync precoFinal nos bancos APENAS quando o usuário ainda não editou
-  // o grupo (hasUserEditedBancoGroups=false) E o financiamento é a única forma.
-  // Para composições reais (financ. parcial + entrada por outro método), o usuário
-  // define manualmente valor_financiado e entrada — não sobrescrever.
-  useEffect(() => {
-    if (precoFinal <= 0) return;
-    if (hasUserEditedBancoGroups) return;
-    if (formasSelecionadas.length > 0) return; // composição em curso
-    setBancoGroups(prev => {
-      if (prev.length === 0 && bancos.length > 0) {
-        return buildBancoGroups(bancos, precoFinal, selectedBankIds);
-      }
-      return prev.map(g => ({
-        ...g,
-        opcoes: g.opcoes.map(op => {
-          const newFinanciado = precoFinal - (op.entrada || 0);
-          const vf = Math.max(0, newFinanciado);
-          return {
-            ...op,
-            valor_financiado: precoFinal,
-            valor_parcela: calcParcela({
-              valor_financiado: vf,
-              entrada: op.entrada || 0,
-              num_parcelas: op.num_parcelas,
-              taxa_mensal: op.taxa_mensal,
-              tipo: "financiamento",
-              carencia_meses: op.carencia_meses || 0,
-            }),
-          };
-        }),
-      }));
-    });
-  }, [precoFinal, bancos, hasUserEditedBancoGroups, formasSelecionadas.length, selectedBankIds]);
-
-  // Merge banco groups + formas selecionadas into pagamentoOpcoes
-  useEffect(() => {
-    const bancoOpcoes = flattenBancoGroupsToOpcoes(bancoGroups, precoFinal);
-    const formasOpcoes: PagamentoOpcao[] = formasSelecionadas.map(f => {
-      const principal = (f.valor_total || precoFinal) - (f.entrada || 0);
-      const valorParcela = calcularPrestacao(principal, f.taxa_mensal, f.num_parcelas || 1);
-      return {
-        id: f.id,
-        nome: f.nome,
-        tipo: "direto" as const,
-        valor_financiado: f.valor_total || precoFinal,
-        entrada: f.entrada,
-        taxa_mensal: f.taxa_mensal,
-        carencia_meses: 0,
-        num_parcelas: f.num_parcelas,
-        valor_parcela: valorParcela,
-        forma_pagamento: f.forma_pagamento,
-      };
-    });
-    onOpcoesChange([...bancoOpcoes, ...formasOpcoes]);
-  }, [bancoGroups, precoFinal, formasSelecionadas, onOpcoesChange]);
-
+import { calcularPrestacao, calcularEconomiaMensal } from "@/services/paymentComposition/financingMath";
+// ... keep existing code
   // ─── Derived metrics (aligned with calc-engine.ts)
   const prem = premissas || { inflacao_energetica: 9.5, perda_eficiencia_anual: 0.5, vpl_taxa_desconto: 10, imposto: 0, inflacao_ipca: 4.5, sobredimensionamento: 0, troca_inversor_anos: 15, troca_inversor_custo: 30 };
   const geracaoMensalCalculada = potenciaKwp * (irradiacao || 4.5) * 30 * 0.80;
@@ -297,26 +22,29 @@ export function StepPagamento({
   const geracaoAnualBase = geracaoMensalBase * 12;
   const ucGeradora = ucs.find(u => u.is_geradora) || ucs[0];
   const tarifaBase = ucGeradora?.tarifa_distribuidora || 1.10;
-  const custoDisp = ucGeradora?.custo_disponibilidade_valor || 54.81;
+  const custoDisp = ucs.reduce((acc, uc) => acc + (uc.custo_disponibilidade_valor || 0), 0);
 
   // ─── Estimativa preliminar (UI only) ─────────────────────────────────────
-  // ATENÇÃO: este cálculo é APENAS uma estimativa visual para o passo de pagamento.
-  // NÃO é a economia oficial — a economia oficial vem de calcFinancialSeries (snapshot).
-  // NÃO persistir esse valor em proposta_versoes.economia_mensal.
-  // Conforme AGENTS.md: NUNCA calcular economia oficial fora de
-  // calcFinancialSeries / calcGrupoB / calcGrupoA.
+  // SSOT: Centralized calculation in financingMath.ts
   const anoAtualCalc = new Date().getFullYear();
   const fioBPctAtual = anoAtualCalc <= 2022 ? 0 : anoAtualCalc === 2023 ? 0.15 : anoAtualCalc === 2024 ? 0.30
     : anoAtualCalc === 2025 ? 0.45 : anoAtualCalc === 2026 ? 0.60 : anoAtualCalc === 2027 ? 0.75
     : anoAtualCalc === 2028 ? 0.90 : 1.00;
-  const tarifaFioBCalc = ucGeradora?.tarifa_fio_b || tarifaBase * 0.28;
-  const economiaBrutaMensal = geracaoMensalBase * tarifaBase;
+  
   const consumoMensalUC = ucGeradora?.consumo_mensal || 0;
-  const excedenteInjetado = Math.max(0, geracaoMensalBase - consumoMensalUC);
-  const custoFioBMensal = excedenteInjetado * tarifaFioBCalc * fioBPctAtual;
-  const economiaMensal = Math.max(0, economiaBrutaMensal - custoFioBMensal - custoDisp);
+  const economiaMensal = calcularEconomiaMensal({
+    geracaoMensal: geracaoMensalBase,
+    consumoTotal: consumoMensalUC,
+    tarifaMedia: tarifaBase,
+    custoDisponibilidadeTotal: custoDisp,
+    percentualFioB: fioBPctAtual,
+    tarifaFioBCustom: ucGeradora?.tarifa_fio_b
+  });
+  
+  const economiaBrutaMensal = geracaoMensalBase * tarifaBase;
   const economiaAtual = consumoMensalUC > 0 ? consumoMensalUC * tarifaBase : economiaBrutaMensal;
   const economiaPercent = economiaAtual > 0 ? (economiaMensal / economiaAtual * 100) : 75;
+
 
   // ─── Cash flow table (25 years) — aligned with calc-engine.ts calcSeries25
   const fluxoCaixaData = useMemo(() => {

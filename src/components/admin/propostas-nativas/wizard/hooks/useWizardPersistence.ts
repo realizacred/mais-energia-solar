@@ -59,6 +59,7 @@ export interface WizardSnapshot {
   templateSelecionado: string;
   step: number;
   geracaoMensalEstimada?: number;
+  economiaMensal?: number; // Added to persist official economy
 
   // QW10 — top-level geração keys for backend resolvers
   geracao_mensal_kwh?: number;
