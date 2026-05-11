@@ -131,11 +131,11 @@ export function StepServicos({ servicos, onServicosChange, venda, kitItens = [],
         {servicos.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 px-4 text-center bg-muted/20 border border-dashed border-border/60 rounded-2xl">
             <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mb-4">
-              <Sparkles className="h-6 w-6 text-primary" />
+              <Wrench className="h-6 w-6 text-primary" />
             </div>
-            <h3 className="text-base font-semibold text-foreground">Nenhum serviço adicionado ainda</h3>
-            <p className="text-sm text-muted-foreground max-w-[320px] mt-1.5 mb-6">
-              Serviços opcionais como visita técnica e projeto elétrico. A instalação é configurada em Custos e Margem.
+            <h3 className="text-[15px] font-medium text-foreground">Nenhum serviço adicionado</h3>
+            <p className="text-[13px] text-muted-foreground max-w-[400px] mt-1.5 mb-6">
+              Adicione serviços opcionais como visita técnica ou projeto elétrico. Instalação e comissão são configuradas em Custos e Margem.
             </p>
             <div className="flex flex-wrap items-center justify-center gap-3">
               <Button 
@@ -154,6 +154,7 @@ export function StepServicos({ servicos, onServicosChange, venda, kitItens = [],
             </div>
           </div>
         ) : (
+
           <div className="space-y-2">
             {servicos.map((servico) => (
               <div key={servico.id} className="p-3 rounded-lg border border-border/40 bg-card space-y-2">
