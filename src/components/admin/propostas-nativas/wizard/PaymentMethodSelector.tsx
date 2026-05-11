@@ -37,6 +37,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { formatBRL } from "@/lib/formatters";
+import { CurrencyInput } from "@/components/ui-kit/inputs/CurrencyInput";
 import {
   usePaymentInterestConfigs,
   type PaymentInterestConfig,
