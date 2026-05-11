@@ -20,6 +20,8 @@ import { toast } from "@/hooks/use-toast";
 import { formatDateTime } from "@/lib/dateUtils";
 
 import { getCurrentTenantId } from "@/lib/getCurrentTenantId";
+import { FilePreviewModal, type FilePreviewTarget } from "./FilePreviewModal";
+import { useProjetoCustomFieldFiles } from "@/hooks/useProjetoCustomFieldFiles";
 import {
   useProjetoArquivos,
   useProjetoDocumentosGerados,
@@ -90,10 +92,20 @@ export function DocumentosTab({ dealId, clienteTelefone, consultorTelefone: cons
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // §16: Queries em hooks — AP-01 resolvido
-  const { data: files = [], isLoading: loadingFiles } = useProjetoArquivos(dealId);
+  const { data: rawFiles = [], isLoading: loadingFiles } = useProjetoArquivos(dealId);
   const { data: generatedDocs = [], isLoading: loadingDocs } = useProjetoDocumentosGerados(dealId);
+  const { data: customFieldFiles = [], isLoading: loadingCfFiles } = useProjetoCustomFieldFiles(dealId);
   const { data: templates = [] } = useDocTemplates();
   useDocumentosRealtimeSync(dealId);
+
+  // Filtrar entradas de diretório (storage list devolve subpastas como itens com id=null)
+  const files = useMemo(
+    () => rawFiles.filter((f) => f.id !== null && f.metadata !== null),
+    [rawFiles]
+  );
+
+  // Preview universal (anexos + custom fields)
+  const [filePreview, setFilePreview] = useState<FilePreviewTarget | null>(null);
 
   // Buscar dados do cliente vinculado para validação pré-contrato
   const { data: clienteData } = useQuery({
@@ -232,22 +244,20 @@ export function DocumentosTab({ dealId, clienteTelefone, consultorTelefone: cons
     setPreviewUrl(data.signedUrl);
   };
 
-  const previewUpload = async (fileName: string) => {
-    const ext = fileName.split(".").pop()?.toLowerCase();
+  const previewUpload = async (file: { name: string; metadata: { size?: number; mimetype?: string } | null; created_at: string | null }) => {
     try {
       const tenantId = (await supabase.from("profiles").select("tenant_id").limit(1).single()).data?.tenant_id;
       if (!tenantId) return;
-      const path = `${tenantId}/deals/${dealId}/${fileName}`;
-      const { data } = await supabase.storage.from("projeto-documentos").createSignedUrl(path, 3600);
-      if (!data?.signedUrl) return;
-      if (["pdf", "png", "jpg", "jpeg", "webp"].includes(ext || "")) {
-        window.open(data.signedUrl, "_blank");
-      } else {
-        const a = document.createElement("a");
-        a.href = data.signedUrl;
-        a.download = fileName;
-        a.click();
-      }
+      const path = `${tenantId}/deals/${dealId}/${file.name}`;
+      setFilePreview({
+        bucket: "projeto-documentos",
+        storage_path: path,
+        filename: file.name.replace(/^\d+_/, ""),
+        mime: file.metadata?.mimetype || null,
+        size: file.metadata?.size || null,
+        uploaded_at: file.created_at,
+        origin_label: "Anexo manual",
+      });
     } catch {
       toast({ title: "Erro ao abrir arquivo", variant: "destructive" });
     }
@@ -280,7 +290,7 @@ export function DocumentosTab({ dealId, clienteTelefone, consultorTelefone: cons
     window.open(url, "_blank");
   };
 
-  const loading = loadingFiles || loadingDocs;
+  const loading = loadingFiles || loadingDocs || loadingCfFiles;
 
   // Group generated docs by category, sorted by created_at desc within each group
   const docsByCategory = useMemo(() => {
@@ -591,7 +601,7 @@ export function DocumentosTab({ dealId, clienteTelefone, consultorTelefone: cons
         ) : (
           <div className="space-y-1">
             {files.map(f => (
-              <div key={f.name} className="flex items-center gap-3 py-2 px-3 rounded-lg bg-card border border-border/40 hover:border-border/70 transition-all cursor-pointer" onClick={() => previewUpload(f.name)}>
+              <div key={f.name} className="flex items-center gap-3 py-2 px-3 rounded-lg bg-card border border-border/40 hover:border-border/70 transition-all cursor-pointer" onClick={() => previewUpload(f)}>
                 <FileText className="h-4 w-4 text-primary shrink-0" />
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-foreground truncate">{f.name.replace(/^\d+_/, "")}</p>
@@ -600,7 +610,7 @@ export function DocumentosTab({ dealId, clienteTelefone, consultorTelefone: cons
                   </p>
                 </div>
                 <div className="flex items-center gap-1 shrink-0">
-                  <Button variant="ghost" size="icon" className="h-7 w-7" title="Visualizar" onClick={(e) => { e.stopPropagation(); previewUpload(f.name); }}>
+                  <Button variant="ghost" size="icon" className="h-7 w-7" title="Visualizar" onClick={(e) => { e.stopPropagation(); previewUpload(f); }}>
                     <Eye className="h-3.5 w-3.5" />
                   </Button>
                   <Button variant="ghost" size="icon" className="h-7 w-7" title="Baixar" onClick={(e) => { e.stopPropagation(); downloadArquivo(dealId, f.name); }}>
@@ -622,6 +632,78 @@ export function DocumentosTab({ dealId, clienteTelefone, consultorTelefone: cons
         )}
       </section>
 
+      {/* BLOCO 3: Arquivos de Campos Customizados */}
+      <section className="space-y-3">
+        <div className="flex items-center justify-between">
+          <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
+            <Paperclip className="h-4 w-4 text-info" />
+            Arquivos de Campos
+            {customFieldFiles.length > 0 && (
+              <Badge variant="outline" className="text-[10px] h-5 px-1.5">{customFieldFiles.length}</Badge>
+            )}
+          </h3>
+        </div>
+        {customFieldFiles.length === 0 ? (
+          <Card>
+            <CardContent className="flex flex-col items-center justify-center py-6 text-muted-foreground">
+              <Paperclip className="h-7 w-7 mb-2 opacity-30" />
+              <p className="text-xs">Nenhum arquivo anexado em campos customizados</p>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="space-y-1">
+            {customFieldFiles.map((cf) => (
+              <div
+                key={`${cf.field_id}-${cf.storage_path}`}
+                className="flex items-center gap-3 py-2 px-3 rounded-lg bg-card border border-border/40 hover:border-border/70 transition-all cursor-pointer"
+                onClick={() => setFilePreview({
+                  bucket: "projeto-documentos",
+                  storage_path: cf.storage_path,
+                  filename: cf.filename,
+                  mime: cf.mime,
+                  size: cf.size,
+                  uploaded_at: cf.uploaded_at,
+                  origin_label: `Campo: ${cf.field_title}`,
+                })}
+              >
+                <File className="h-4 w-4 text-info shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-foreground truncate">{cf.field_title}</p>
+                  <p className="text-[10px] text-muted-foreground truncate">
+                    {cf.filename} • {formatSize(cf.size)}
+                    {cf.uploaded_at && (
+                      <span> • {formatDateTime(cf.uploaded_at, { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" })}</span>
+                    )}
+                  </p>
+                </div>
+                <Badge variant="outline" className="text-[10px] h-5 px-1.5 shrink-0">Campo customizado</Badge>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7"
+                  title="Visualizar"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setFilePreview({
+                      bucket: "projeto-documentos",
+                      storage_path: cf.storage_path,
+                      filename: cf.filename,
+                      mime: cf.mime,
+                      size: cf.size,
+                      uploaded_at: cf.uploaded_at,
+                      origin_label: `Campo: ${cf.field_title}`,
+                    });
+                  }}
+                >
+                  <Eye className="h-3.5 w-3.5" />
+                </Button>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
+
+      <FilePreviewModal target={filePreview} onClose={() => setFilePreview(null)} />
 
       {/* Generate Document Dialog */}
       <Dialog open={generateOpen} onOpenChange={setGenerateOpen}>
