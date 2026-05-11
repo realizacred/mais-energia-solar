@@ -19,10 +19,43 @@ import { usePaymentInterestConfigs, type PaymentInterestConfig } from "@/hooks/u
 import { FORMA_PAGAMENTO_LABELS, type FormaPagamento } from "@/services/paymentComposition/types";
 import { PaymentMethodSelector, type FormaSelected } from "./PaymentMethodSelector";
 
+interface BancoOpcao {
+  id: string;
+  banco_id: string;
+  banco_nome: string;
+  entrada: number;
+  num_parcelas: number;
+  taxa_mensal: number;
+  carencia_meses: number;
+  valor_parcela: number;
+  valor_financiado: number;
+}
+
+interface BancoGroup {
+  banco: BancoFinanciamento;
+  opcoes: BancoOpcao[];
+}
+
+interface StepPagamentoProps {
+  opcoes: PagamentoOpcao[];
+  onOpcoesChange: (opcoes: PagamentoOpcao[]) => void;
+  bancos: BancoFinanciamento[];
+  loadingBancos: boolean;
+  precoFinal: number;
+  ucs?: UCData[];
+  premissas?: PremissasData;
+  potenciaKwp?: number;
+  irradiacao?: number;
+  geracaoMensalKwh?: number;
+}
+
+const DEFAULT_PARCELAS = [12, 24, 36, 48, 60, 72, 84, 96, 120];
+
 export function StepPagamento({
   opcoes, onOpcoesChange, bancos, loadingBancos, precoFinal,
   ucs = [], premissas, potenciaKwp = 0, irradiacao = 0, geracaoMensalKwh = 0,
 }: StepPagamentoProps) {
+
   const [activeTab, setActiveTab] = useState<"pagamento" | "fluxo">("pagamento");
   const [showGastosModal, setShowGastosModal] = useState(false);
   const [showFluxoModal, setShowFluxoModal] = useState(false);
