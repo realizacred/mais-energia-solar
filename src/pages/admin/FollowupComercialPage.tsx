@@ -55,55 +55,6 @@ import {
 const formatBRL = (v: number) =>
   v.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
 
-
-const classeLabel: Record<string, { label: string; tone: string }> = {
-  sem_resposta: { label: "Sem resposta", tone: "bg-warning/10 text-warning border-warning/30" },
-  visualizada_sem_retorno: {
-    label: "Visualizada s/ retorno",
-    tone: "bg-info/10 text-info border-info/30",
-  },
-  esquecida: { label: "Esquecida", tone: "bg-destructive/10 text-destructive border-destructive/30" },
-  negociacao_quente: { label: "Quente", tone: "bg-success/10 text-success border-success/30" },
-  outro: { label: "—", tone: "bg-muted text-muted-foreground border-border" },
-};
-
-const tempLabel: Record<string, string> = {
-  quente: "🔥 Quente",
-  morna: "🌤 Morna",
-  fria: "❄️ Fria",
-};
-
-function formatBRL(v: number | null | undefined) {
-  if (v == null) return "—";
-  return v.toLocaleString("pt-BR", {
-    style: "currency",
-    currency: "BRL",
-    maximumFractionDigits: 0,
-  });
-}
-
-function formatRelative(iso: string | null) {
-  if (!iso) return "—";
-  try {
-    return formatDistanceToNow(new Date(iso), { addSuffix: true, locale: ptBR });
-  } catch {
-    return "—";
-  }
-}
-
-function formatAbsolute(iso: string | null) {
-  if (!iso) return "—";
-  try {
-    return new Intl.DateTimeFormat("pt-BR", {
-      timeZone: TZ,
-      dateStyle: "short",
-      timeStyle: "short",
-    }).format(new Date(iso));
-  } catch {
-    return "—";
-  }
-}
-
 function KpiSkeletons() {
   return (
     <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -114,15 +65,16 @@ function KpiSkeletons() {
   );
 }
 
-function TableSkeletons() {
+function RowSkeletons() {
   return (
-    <div className="p-4 space-y-2">
+    <div className="space-y-2">
       {Array.from({ length: 6 }).map((_, i) => (
-        <Skeleton key={i} className="h-12 w-full" />
+        <Skeleton key={i} className="h-20 w-full rounded-lg" />
       ))}
     </div>
   );
 }
+
 
 export default function FollowupComercialPage() {
   const [classe, setClasse] = useState<FollowupClasse | "todos">("todos");
