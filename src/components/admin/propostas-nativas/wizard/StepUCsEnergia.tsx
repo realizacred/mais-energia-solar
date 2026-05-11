@@ -259,7 +259,9 @@ interface UCCardProps {
   canRemove: boolean;
   totalUCs: number;
   onOpenRateio: () => void;
+  leadFase?: string | null;
 }
+
 
 function UCCard({ uc, index, concessionarias, loadingConc, onUpdate, onRemove, onOpenConfig, onOpenMesAMes, canRemove, totalUCs, onOpenRateio }: UCCardProps) {
   const isGrupoA = uc.grupo_tarifario === "A";
