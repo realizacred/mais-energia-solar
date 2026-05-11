@@ -359,9 +359,17 @@ export function StepLocalizacao({
       .order("nome")
       .then(({ data, error }) => {
         if (error) console.error("[StepLocalizacao] concessionarias fetch error:", error);
-        setConcessionarias((data as ConcessionariaOption[]) || []);
+        const list = (data as ConcessionariaOption[]) || [];
+        setConcessionarias(list);
         setLoadingConc(false);
+        // Guardrail: if a distribuidoraId is set but does not belong to the
+        // loaded options for this estado, clear it so the user is forced to
+        // pick a valid one (prevents advancing with stale/invalid selection).
+        if (distribuidoraId && !list.some(c => c.id === distribuidoraId)) {
+          onDistribuidoraChange("", "");
+        }
       });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [estado]);
 
   const fetchIrradiacao = useCallback(async (lat: number, lon: number) => {
