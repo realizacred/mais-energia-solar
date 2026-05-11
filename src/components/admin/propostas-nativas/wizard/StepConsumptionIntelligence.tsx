@@ -40,7 +40,9 @@ interface Props {
   latitude?: number | null;
   /** Skip POA transposition — use raw GHI */
   somenteGhi?: boolean;
+  leadFase?: string | null;
 }
+
 
 type ActiveTab = "ucs" | "pre";
 type PreSubTab = "premissas" | "equipamentos";
