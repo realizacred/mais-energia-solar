@@ -1,344 +1,189 @@
-# /admin/followup-comercial — Central de Recuperação Comercial
+## Auditoria — Estado atual
 
-Área enterprise para recuperação de propostas esquecidas, reaquecimento de leads frios e follow-up comercial governado, separada da inbox WhatsApp. **SSOT = proposta** (não conversa). Esta entrega é **somente auditoria + arquitetura + roadmap** — nada será implementado agora.
+### 1. SSOT financeiro hoje
 
----
-
-## 1. Diagnóstico do estado atual
-
-### 1.1 Tabelas que JÁ EXISTEM (reaproveitáveis)
-
-| Tabela | Papel hoje | Reuso na nova área |
-|---|---|---|
-| `propostas_nativas` | SSOT da proposta. Já tem `enviada_at`, `aceita_at`, `recusada_at`, `primeiro_acesso_em`, `ultimo_acesso_em`, `total_aberturas`, `status_visualizacao`, `public_token`, `deal_id`, `consultor_id`, `cliente_id`, `lead_id`, `is_principal`, `deleted_at` | **SSOT direto** da fila de follow-up. Nenhuma duplicação necessária. |
-| `proposta_versoes` | Versões + `valor_total`, `viewed_at`, `enviado_em`, `valido_ate`, `status` | Source de KPIs financeiros e expiração |
-| `proposta_views` | Tracking detalhado por acesso (token, IP, device, duration) | Score "engajamento de leitura" |
-| `proposal_followup_queue` | Fila genérica `(tipo, status, payload jsonb)` — **subutilizada** | Reaproveitar como fila comercial (estender enums) |
-| `reaquecimento_oportunidades` | Já tem `mensagem_sugerida`, `temperamento_detectado`, `dor_principal`, `urgencia_score`, `contexto_json`, `status`, `enviado_em`, `resultado`, `valor_perdido_acumulado` | **Núcleo de IA pronto** — só falta UI e job que popula |
-| `wa_followup_queue` / `wa_followup_logs` / `wa_followup_rules` | Follow-up **operacional** pós-conversa WhatsApp (inbox) | **Não reusar** — escopo diferente (operacional vs comercial). Compartilhar apenas helper de envio. |
-| `deals` + `pipeline_stages` | Estágio comercial e `is_closed` | Filtrar leads ainda em aberto |
-| `lead_status` | Status do lead (Perdido, Convertido, etc.) | Excluir Perdido/Convertido da fila |
-
-### 1.2 Edge functions JÁ EXISTENTES (reaproveitáveis)
-
-| Função | Uso atual | Uso novo |
-|---|---|---|
-| `reaquecimento-analyzer` | Analisa leads inativos, popula `reaquecimento_oportunidades` | **Estender** para incluir critério "proposta enviada e parada" |
-| `ai-followup-intelligence` | IA de sugestão de follow-up | Reusar para gerar `mensagem_sugerida` por proposta |
-| `ai-followup-planner` | Planeja sequência de follow-up | Reusar para definir cadência (D+3, D+7, D+15) |
-| `ai-suggest-message` | Gera mensagem personalizada | Reusar no botão "Sugerir abordagem" |
-| `ai-proposal-explainer` | Explica proposta ao cliente | Reusar em mensagem de retomada |
-| `proposal-auto-expire` | Expira propostas vencidas (cron 08:00 UTC) | Já cobre expiração — apenas alimenta KPI |
-| `proposal-decision-notify` | Notifica vendedor sobre aceite/recusa | Já existe — não duplicar |
-| `approve-proposal-followup` | Approval workflow de envio de follow-up | **Reusar** como gate de disparo |
-| `send-proposal-message` / `send-whatsapp-message` | Envio via Evolution | Canal único de disparo (com `enqueue_wa_outbox_item`) |
-| `process-wa-followups` (cron) | Processa fila operacional WA | Padrão a copiar para `process-proposal-followups` |
-
-### 1.3 Frontend reaproveitável
-
-- `useProposalTracking` — leitura de `proposta_views`, métricas de visualização
-- `ProposalViewsCard` — componente de exibição de views (reusar dentro do drawer)
-- `useFollowUpQueue`, `useWaFollowupPending`, `useWaFollowup` — **NÃO reusar** (operacional). Criar hooks novos com namespace `useProposalFollowup*`
-- `AiFollowupSettingsPanel` — painel de regras IA (extender com regras comerciais)
-- `WaFollowupWidget` — referência de UX de fila
-
-### 1.4 O que está QUEBRADO ou INCOMPLETO
-
-1. **`reaquecimento_oportunidades` populada esporadicamente** — não há cron regular alimentando a tabela com base em propostas paradas (apenas leads).
-2. **`proposal_followup_queue` praticamente vazia** — schema genérico sem enums consolidados, sem cron consumidor, sem UI.
-3. **Não existe view consolidada** "proposta abandonada" — hoje requer JOIN ad-hoc entre `propostas_nativas`, `proposta_views`, `wa_messages`, `deals`.
-4. **Falta `temperatura` calculada** — campo conceitual; precisa virar coluna derivada (view) ou função.
-5. **Não há `proposal_followup_attempts`** — histórico por tentativa (qual mensagem, quando, resultado, canal).
-6. **Anti-spam não centralizado** — hoje cada função tem cooldown próprio; precisa SSOT (`proposal_followup_locks`).
-7. **Sem opt-out por cliente para canal comercial** — só opt-out global de WA.
-8. **IA não tem feedback loop** — `reaquecimento_oportunidades.resultado` raramente preenchido.
-
-### 1.5 Duplicações identificadas
-
-- 3 tabelas de fila: `proposal_followup_queue`, `wa_followup_queue`, `reaquecimento_oportunidades` com sobreposição parcial. **Decisão:** manter as 3 com escopos claros (ver §3.1).
-- 2 hooks de follow-up (`useWaFollowup` operacional vs futuro `useProposalFollowup` comercial). Documentar barreira semântica no AGENTS.md.
-
----
-
-## 2. Arquitetura ideal — visão de negócio
-
-```text
-                    ┌─────────────────────────────────────┐
-                    │  SSOT: propostas_nativas + versoes  │
-                    └──────────────┬──────────────────────┘
-                                   │
-               ┌───────────────────┼───────────────────┐
-               ▼                   ▼                   ▼
-       proposta_views       deals/pipeline       wa_messages
-       (engajamento)        (estágio aberto)     (última interação)
-               │                   │                   │
-               └───────────┬───────┴───────────────────┘
-                           ▼
-               vw_proposal_followup_inbox  (view materializada/computada)
-                           │
-        ┌──────────────────┼─────────────────────────────────┐
-        ▼                  ▼                                 ▼
-   UI /admin/         proposal_followup_              IA: reaquecimento-
-   followup-          queue + attempts                analyzer + ai-followup-
-   comercial          (controle de disparo)           intelligence
-        │                  │                                 │
-        └──────────────────┴────────────► send-whatsapp-message (single channel)
-                                          + opt-out check + cooldown
-```
-
-**Princípio chave:** **proposta é a entidade rastreada**, não a conversa. Uma proposta é "esquecida" mesmo que o WhatsApp pessoal do vendedor tenha trocado mensagens (que o sistema não vê). Critério de "parada" usa `ultimo_acesso_em` (proposta) + `last_seen_in_inbox` (se houver) + `last_followup_attempt_at`.
-
----
-
-## 3. Estrutura de banco recomendada (NÃO criar agora)
-
-### 3.1 Tabelas novas
-
-```sql
--- Histórico granular de tentativas (1 linha por disparo)
-proposal_followup_attempts (
-  id, tenant_id, proposta_id, versao_id, consultor_id,
-  attempt_number int,                  -- 1ª, 2ª, 3ª…
-  channel text,                        -- 'whatsapp' | 'email' | 'manual_note'
-  mode text,                           -- 'manual' | 'semi_auto' | 'auto'
-  template_id uuid null,
-  message_text text,
-  ai_generated boolean,
-  ai_model text null,
-  ai_prompt_id uuid null,
-  scheduled_for timestamptz,
-  sent_at timestamptz null,
-  delivery_status text,                -- queued|sent|delivered|read|failed|skipped
-  delivery_error text,
-  client_response_at timestamptz null, -- preenchido por trigger ao detectar wa_message recebida
-  outcome text,                        -- 'no_reply'|'reply_positive'|'reply_negative'|'reopened'|'converted'
-  approved_by uuid null,
-  created_at, updated_at
-)
-
--- Trava anti-spam: 1 lock por (proposta, canal)
-proposal_followup_locks (
-  proposta_id, channel, locked_until, reason, created_at  PRIMARY KEY (proposta_id, channel)
-)
-
--- Memória comercial estruturada (substitui notas soltas)
-proposal_commercial_memory (
-  id, tenant_id, proposta_id,
-  objecao_principal text,
-  temperatura text,                    -- 'quente'|'morno'|'frio'|'congelado'
-  score_recuperacao numeric,           -- 0..100
-  ultima_justificativa text,
-  proxima_acao_sugerida text,
-  proxima_acao_em timestamptz,
-  notas_ia jsonb,
-  updated_by uuid, updated_at
-)
-
--- Opt-out comercial granular (canal/categoria)
-proposal_communication_optout (
-  cliente_id, channel, category, opted_out_at, reason  PRIMARY KEY (cliente_id, channel, category)
-)
-
--- Regras de cadência por tenant (config admin)
-proposal_followup_cadence_rules (
-  id, tenant_id, name, active boolean,
-  trigger_after_days int,              -- D+3, D+7…
-  required_status text[],              -- ['enviada','visualizada']
-  excluded_status text[],              -- ['aceita','recusada']
-  channel text, mode text,             -- modo padrão
-  template_id uuid, ai_enabled boolean,
-  daily_cap int, hour_window jsonb,    -- {start:9,end:18,tz:'America/Sao_Paulo'}
-  weekday_mask int                     -- bitmask seg-dom
-)
-```
-
-### 3.2 View canônica (SSOT da tela)
-
-```sql
-CREATE VIEW vw_proposal_followup_inbox AS
-SELECT
-  p.id AS proposta_id, p.tenant_id, p.consultor_id, p.cliente_id, p.lead_id,
-  p.codigo, p.titulo, p.status, p.enviada_at, p.aceita_at, p.recusada_at,
-  p.primeiro_acesso_em, p.ultimo_acesso_em, p.total_aberturas,
-  v.valor_total, v.valido_ate, v.viewed_at,
-  c.nome AS cliente_nome, c.telefone_normalized,
-  EXTRACT(EPOCH FROM (now() - GREATEST(p.enviada_at, p.ultimo_acesso_em, last_att.sent_at))) / 86400 AS dias_parado,
-  CASE
-    WHEN p.aceita_at IS NOT NULL OR p.recusada_at IS NOT NULL THEN 'fechado'
-    WHEN p.ultimo_acesso_em IS NULL AND p.enviada_at < now() - interval '3 days' THEN 'enviada_sem_view'
-    WHEN p.ultimo_acesso_em IS NOT NULL AND p.ultimo_acesso_em < now() - interval '7 days' THEN 'view_sem_resposta'
-    WHEN last_att.sent_at IS NOT NULL AND last_att.client_response_at IS NULL THEN 'followup_sem_resposta'
-    ELSE 'monitorar'
-  END AS classe_followup,
-  COALESCE(mem.temperatura, 'morno') AS temperatura,
-  COALESCE(mem.score_recuperacao, 50) AS score_ia,
-  mem.proxima_acao_sugerida AS sugestao_ia,
-  COALESCE(att_count.n, 0) AS qtd_followups,
-  last_att.message_text AS ultima_mensagem,
-  last_att.channel AS ultimo_canal,
-  last_att.outcome AS status_followup
-FROM propostas_nativas p
-JOIN proposta_versoes v ON v.id = (SELECT id FROM proposta_versoes WHERE proposta_id=p.id ORDER BY versao_numero DESC LIMIT 1)
-LEFT JOIN clientes c ON c.id = p.cliente_id
-LEFT JOIN proposal_commercial_memory mem ON mem.proposta_id = p.id
-LEFT JOIN LATERAL (...) last_att ON true
-LEFT JOIN LATERAL (...) att_count ON true
-WHERE p.deleted_at IS NULL AND p.status NOT IN ('aceita','recusada','expirada');
-```
-
-### 3.3 RLS
-
-Todas as tabelas novas: RLS por `tenant_id` via `auth.jwt() ->> 'tenant_id'` e `WITH CHECK` no INSERT (RB já documentada). Vendedor vê apenas próprias propostas (`consultor_id = auth.uid()`); admin vê todas do tenant.
-
----
-
-## 4. Edge functions — novas e estendidas
-
-### Novas
-- **`proposal-followup-classify`** (cron 6/6h): roda `vw_proposal_followup_inbox`, recalcula `temperatura`, `score_recuperacao`, gera entradas em `proposal_followup_cadence_rules` matched.
-- **`proposal-followup-suggest`** (sob demanda): chama `ai-followup-intelligence` + `ai-proposal-explainer` para gerar `mensagem_sugerida` contextualizada (lida histórico, valor, objeções).
-- **`process-proposal-followups`** (cron a cada 10min): consome `proposal_followup_queue` respeitando `proposal_followup_locks`, opt-out, janela horária, daily_cap. Chama `send-whatsapp-message`.
-- **`proposal-followup-feedback`** (trigger via `wa_messages` INSERT do cliente): detecta resposta dentro de 7d do disparo e atualiza `proposal_followup_attempts.client_response_at` + `outcome`.
-
-### Estendidas (sem reescrever)
-- `reaquecimento-analyzer`: incluir critério "proposta `enviada_sem_view > 5d` ou `view_sem_resposta > 10d`".
-- `approve-proposal-followup`: virar gate obrigatório no modo `auto` quando `attempt_number > 2`.
-
-### Cron (pg_cron, NÃO migration — usar insert tool)
-- `proposal-followup-classify` — `0 */6 * * *`
-- `process-proposal-followups` — `*/10 * * * *` (apenas dentro da janela 8h-20h America/Sao_Paulo)
-
----
-
-## 5. Estrutura frontend
-
-```
-src/pages/admin/followup-comercial/
-├── FollowupComercialPage.tsx          (shell: PageHeader + KPIs + Tabs)
-├── tabs/
-│   ├── FilaTab.tsx                    (tabela principal)
-│   ├── PrioridadeIATab.tsx            (top 20 score IA)
-│   ├── EsquecidasTab.tsx              (>30/60/90d)
-│   └── HistoricoTab.tsx               (attempts + outcomes)
-├── components/
-│   ├── FollowupKpiBar.tsx
-│   ├── FollowupFilters.tsx
-│   ├── FollowupTable.tsx
-│   ├── FollowupRowActions.tsx         (botões: Sugerir IA, Enviar manual, Agendar, Snooze)
-│   ├── FollowupDrawer.tsx             (detalhe lateral: views, attempts, memory, IA)
-│   ├── AiSuggestionPanel.tsx
-│   ├── SendFollowupDialog.tsx         (preview + approval)
-│   └── CadenceRulesPanel.tsx          (admin)
-└── hooks/
-    ├── useProposalFollowupInbox.ts    (lê vw_proposal_followup_inbox)
-    ├── useProposalFollowupAttempts.ts
-    ├── useProposalCommercialMemory.ts
-    ├── useProposalFollowupSuggest.ts  (chama edge proposal-followup-suggest)
-    └── useSendProposalFollowup.ts     (queue + approval)
-```
-
-**Padrões obrigatórios (do AGENTS):** `PageHeader`, KPI cards `border-l-*`, `<LoadingState />`, `text-*-foreground`, `queryClient.invalidateQueries` (nunca reload), realtime cleanup síncrono, ErrorBoundary no shell, hooks dedicados (não `useQuery` solto).
-
----
-
-## 6. Estrutura IA
-
-| Caso | Edge | Modelo | Prompt source |
+| Coisa | Onde nasce | Onde é lida | Conflito? |
 |---|---|---|---|
-| Score recuperação + temperatura | `proposal-followup-classify` | `google/gemini-3-flash-preview` | Prompt no backend, contexto: dias parado, valor, views, histórico |
-| Sugerir mensagem retomada | `proposal-followup-suggest` | `google/gemini-3-flash-preview` | Inclui últimas 3 wa_messages + objeções memorizadas |
-| Detectar objeção da resposta | `proposal-followup-feedback` | `google/gemini-2.5-flash-lite` | Tool calling estruturado → `objecao_principal`, `outcome` |
-| Melhor horário | regra heurística + fallback IA | — | Histórico de respostas do cliente |
+| `precoFinal` (total da proposta) | `usePrecoFinal(itens, servicos, venda)` em `ProposalWizard.tsx:346` | StepPagamento, StepResumo, snapshot, validate, calcFinancialSeries | OK (SSOT único) |
+| `pagamentoOpcoes[]` (plano de pagamento) | `useState` em `ProposalWizard.tsx:295` | StepPagamento, snapshot, `resolveProposalVariables`, `renderTableVariable`, PDF/web | **Plano** ≡ array plano de "opções alternativas", **não** composição. |
+| `formasSelecionadas[]` (drag&drop) | `useState` em `StepPagamento.tsx:198` | reconstroi `pagamentoOpcoes` de `tipo="direto"` via effect | **Estado paralelo** ao `pagamentoOpcoes` |
+| `bancoGroups[]` (financiamentos por banco) | `useState` em `StepPagamento.tsx:183` | reconstroi `pagamentoOpcoes` de `tipo="financiamento"` via effect | **Estado paralelo** ao `pagamentoOpcoes` |
 
-**Anti-spam IA:**
-- Hash da última mensagem em `proposal_followup_locks.last_message_hash` — bloquear reenvio idêntico ≤30d.
-- Limite por cliente: máx 3 tentativas IA em 30d sem resposta → marca `temperatura='congelado'`, exige aprovação humana.
+### 2. Modelo `PagamentoOpcao` (types.ts:354)
 
----
+```
+{ id, nome, tipo, valor_financiado, entrada, taxa_mensal,
+  carencia_meses, num_parcelas, valor_parcela, forma_pagamento? }
+```
 
-## 7. Modos de disparo
+Premissa do schema: cada item é **uma opção independente** que cobre 100% do `precoFinal`. Não existe campo `valor_alocado`/`prioridade`/`grupo_composicao`. O cliente "escolhe uma opção" — não há composição multi-método.
 
-| Modo | Quem dispara | Approval | Uso |
-|---|---|---|---|
-| **Manual** | Vendedor clica "Enviar agora" | Não | Default vendedor |
-| **Semi-auto** | Sistema agenda, vendedor confirma no drawer | Sim (1-clique) | Default tenant |
-| **Auto** | Cron consome fila, envia direto | Apenas se `cadence_rules.ai_enabled=true` E `attempt_number ≤ 2` | Opcional, off por default |
+### 3. Effects perigosos confirmados
 
-**Guardrails universais:**
-- Cooldown mín 48h entre disparos para o mesmo cliente
-- Janela: 9h–18h America/Sao_Paulo, seg-sex (configurável)
-- Daily cap por consultor (default 30)
-- Opt-out → bloqueio absoluto
-- Cliente com WA conversation ativa <24h → bloquear (já está em conversa real)
-- LGPD: registrar `legal_basis='legitimate_interest'` + link de descadastro
+| Local | Problema | Risco |
+|---|---|---|
+| `ProposalWizard.tsx:415-439` | Effect "sidecar" força `a_vista.entrada/valor_parcela = precoFinal` e `financiamento.valor_financiado = precoFinal` em **toda** opção sempre que `precoFinal` muda | Sobrescreve qualquer entrada manual e força "100% do total" — destrói qualquer composição |
+| `StepPagamento.tsx:217-245` | Effect recalcula `valor_parcela` de cada banco com `valor_financiado = precoFinal` | Idem — assume opção = 100% |
+| `StepPagamento.tsx:248-269` | Effect funde `bancoGroups + formasSelecionadas → pagamentoOpcoes` em cascata sempre que qualquer um muda; `onOpcoesChange` na dep list | Ciclo de re-render + estado triplicado (banco/formas/opcoes) |
+| `StepPagamento.tsx:152-164` | `flattenBancoGroupsToOpcoes` sempre injeta `"À Vista"` default quando não há financiamento | À Vista coexiste com transferência adicionada — sintoma reportado |
+| `StepPagamento.tsx:251-253` | `principal = (valor_total || precoFinal) - entrada` por item, mas `valor_total` default = `precoFinal` (linha 323) | Cada método "direto" também assume 100% do preço |
 
----
+### 4. Sintomas explicados
 
-## 8. Roadmap em fases
+- "À vista coexistindo": `flattenBancoGroupsToOpcoes` injeta default mesmo quando há `formasSelecionadas`.
+- "Financiamento ignora entrada manual": effect `[precoFinal]` (`ProposalWizard.tsx:431`) reseta `valor_financiado = precoFinal`, ignorando `entrada` registrada por outro método.
+- "Parcela não recalcula": `valor_parcela` cai junto na sobrescrita do effect sidecar.
+- "Não fecha total": não existe campo `valor_alocado` nem invariante `Σ alocado = precoFinal`.
 
-### Fase 0 — Fundamentos (1 sprint, sem UI nova)
-1. Migration: criar `proposal_followup_attempts`, `proposal_followup_locks`, `proposal_commercial_memory`, `proposal_communication_optout`, `proposal_followup_cadence_rules` + RLS + índices.
-2. Migration: `vw_proposal_followup_inbox` + RPC `get_followup_kpis(tenant_id)`.
-3. Trigger: ao inserir em `wa_messages` (direção=in), atualizar `last_att.client_response_at`.
+### 5. Downstream que lê o plano
 
-### Fase 1 — UI read-only (1 sprint)
-4. Página `/admin/followup-comercial` com KPIs, filtros e tabela lendo da view (sem disparo).
-5. Drawer com `proposta_views`, attempts, memory, sugestão IA (botão "Gerar sugestão" — manual).
-6. Edge `proposal-followup-suggest` (sob demanda).
-
-### Fase 2 — Disparo manual + semi-auto (1 sprint)
-7. `useSendProposalFollowup` + `SendFollowupDialog` com preview, anti-spam e opt-out check.
-8. Inserção em `proposal_followup_attempts` + `proposal_followup_queue`.
-9. `process-proposal-followups` (cron 10min) com guardrails.
-
-### Fase 3 — IA classificação + cadência (1 sprint)
-10. `proposal-followup-classify` (cron 6h) populando `proposal_commercial_memory`.
-11. `CadenceRulesPanel` (admin) — CRUD de regras.
-12. Approval workflow via `approve-proposal-followup`.
-
-### Fase 4 — Modo auto controlado (1 sprint)
-13. Toggle `auto` por regra. Daily cap. Janela horária. Pausas automáticas.
-14. Feedback loop: `proposal-followup-feedback` + dashboard "taxa de recuperação".
-
-### Fase 5 — Otimizações
-15. Best-time prediction. A/B de templates. Score IA refinado.
+- `resolveProposalVariables.ts:702-744` — variáveis `f_valor_N`, `f_entrada_N`, `vc_parcela_N` lêem direto de `pagamentoOpcoes`.
+- `renderTableVariable.ts:151-157` — tabela de parcelas lê `pagamentoOpcoes[].num_parcelas/valor_parcela`.
+- `validatePropostaFinal.ts:135` — só valida `length === 0`.
+- Snapshot `useWizardPersistence.ts` e `ProposalWizard.tsx:866/1082/1183` — serializa/desserializa `pagamento_opcoes` 1:1.
+- `normalizeSolarMarketV2.ts:280-383` — proposta SM gera **1 item** com nome/valor herdados.
 
 ---
 
-## 9. Riscos e mitigações
+## Arquitetura proposta
 
-| Risco | Mitigação |
+### A) SSOT canônico
+
+Um único objeto `pagamentoPlano` (substitui `pagamentoOpcoes[]` no estado vivo do wizard, sem quebrar snapshot):
+
+```ts
+interface PagamentoPlano {
+  total_proposta: number;        // espelho de precoFinal (read-only)
+  itens: PagamentoItem[];
+  // derivados (computed, não persistidos):
+  // valor_alocado = Σ itens.valor_alocado
+  // valor_restante = total_proposta - valor_alocado
+  // status: "fechado" | "incompleto" | "excedente"
+}
+
+interface PagamentoItem {
+  id: string;
+  prioridade: number;            // ordem de cobrança (1 = primeiro)
+  nome: string;                  // rótulo livre ("Sinal PIX", "Cartão 3x")
+  metodo: FormaPagamento;        // pix | transferencia | cartao_credito | financiamento | …
+  origem: "direto" | "financiamento" | "a_vista"; // categoria de cálculo
+  valor_alocado: number;         // ★ NOVO — fatia que ESTE método cobre
+  entrada: number;               // entrada DENTRO deste item (ex.: financ. com entrada própria)
+  num_parcelas: number;
+  taxa_mensal: number;
+  carencia_meses: number;
+  valor_parcela: number;         // derivado, recalculado em util único
+  banco_id?: string;             // para financiamento
+  forma_pagamento?: FormaPagamento; // legado, mantido = metodo
+}
+```
+
+**Invariantes:**
+- `Σ itens.valor_alocado === total_proposta` (validação dura).
+- `entrada ≤ valor_alocado` por item.
+- `valor_alocado > 0`, `taxa_mensal ≥ 0`, `num_parcelas ≥ 1`.
+
+### B) Pipeline de cálculo (único)
+
+```
+precoFinal  →  PagamentoPlano (estado)
+             ↓
+    distribuirPlano(plano, precoFinal)   // util puro
+             ↓
+    recalcParcelas(item)                 // util puro por item
+             ↓
+    snapshot.pagamentoOpcoes (serialização ↓)
+             ↓
+    resolveProposalVariables / renderTableVariable / PDF / web
+```
+
+Tudo em utilitários puros em `src/services/paymentComposition/`. Zero `useEffect` de mutação cruzada.
+
+### C) Compatibilidade retroativa
+
+- **Schema do snapshot permanece `pagamento_opcoes[]`**. Adicionamos campos opcionais (`valor_alocado`, `prioridade`, `metodo`). Snapshots antigos sem esses campos são **promovidos no read** por `liftLegacyToPlano(opcoes, precoFinal)`:
+  - Se 1 item: `valor_alocado = precoFinal`, `prioridade = 1`.
+  - Se N itens (modelo "alternativas"): mantém como **alternativas exclusivas** num campo separado `pagamentoAlternativas[]` e cria plano vazio com 1 item À Vista cobrindo 100% (preserva exibição). Usuário pode converter em composição.
+- Proposta SM: `normalizeSolarMarketV2` continua emitindo 1 item → `liftLegacyToPlano` converte automaticamente.
+- Downstream (`resolveProposalVariables`, `renderTableVariable`) recebe `pagamentoOpcoes` projetado a partir do plano (mesma forma de array) — **zero mudança** em PDF/web nessa fase.
+
+### D) UX
+
+- Substituir tab "Pagamento" por: header com 3 KPIs (Total, Alocado, Restante) + lista vertical de `PagamentoItem` ordenada por prioridade + botão "Adicionar método" (PIX, Transferência, Cartão, Financiamento, Outro).
+- Cada linha: método, valor alocado (input R$), entrada própria (se aplicável), parcelas, parcela calculada, ações (↑↓ prioridade, remover).
+- Barra de progresso "Cobertura do total" com cor (verde fechado / âmbar incompleto / vermelho excedente).
+- Botão "Distribuir restante neste método" para preencher rapidamente.
+
+### E) Validações
+
+`validatePagamentoPlano(plano)` retorna `errors[]`:
+- `valor_restante !== 0` → erro bloqueante "Total não fecha".
+- `Σ alocado > total_proposta` → erro "Excedente".
+- Item com `valor_alocado ≤ 0` → erro.
+- `entrada > valor_alocado` → erro.
+- `taxa_mensal < 0` ou `num_parcelas < 1` → erro.
+- `metodo === "financiamento"` sem `banco_id` → warning.
+
+`validatePropostaFinal` passa a chamar `validatePagamentoPlano` ao invés do check de `length`.
+
+### F) Remoção de effects perigosos
+
+- Apaga effect sidecar (`ProposalWizard.tsx:415-439`).
+- Apaga effect `[precoFinal,bancos]` que reseta `valor_financiado` em `StepPagamento.tsx:217-245`.
+- Apaga effect de merge `bancoGroups + formas → opcoes` (`248-269`); merge passa a ser síncrono no handler que altera o plano.
+- `precoFinal` muda → util `reconciliarPlano(plano, novoPreco)` ajusta SOMENTE se plano tem 1 item de origem "a_vista" (caso default); composições manuais permanecem intactas e exibem badge "Total mudou — revise alocação".
+
+---
+
+## Plano em fases (cada fase encerra com build verde)
+
+**Fase 1 — Estabilização (zero novo recurso)**
+- Remover injeção automática de "À Vista" quando há `formasSelecionadas` (`StepPagamento.tsx:152-164`).
+- Trocar effect sidecar por util `reconciliarPlanoDefault` chamado só no setter de `precoFinal` quando há 1 item À Vista.
+- Apagar dependência circular do effect de merge: usar handlers diretos.
+
+**Fase 2 — Modelo canônico (interno, sem mudar UI)**
+- Criar `src/services/paymentComposition/plano.ts` com `PagamentoPlano`, `PagamentoItem`, `liftLegacyToPlano`, `projectToOpcoes`, `recalcParcela`, `reconciliarPlano`.
+- `ProposalWizard` passa a manter `pagamentoPlano` no estado. `pagamentoOpcoes` derivado via `useMemo(projectToOpcoes)`.
+- Snapshot continua serializando array `pagamento_opcoes`; ler também `pagamento_plano` se existir (forward compat).
+
+**Fase 3 — Compatibilidade**
+- `restoreFromSnapshot` chama `liftLegacyToPlano` no read.
+- Proposta SM: `normalizeSolarMarketV2` continua igual; conversor cuida.
+- Smoke test: abrir 1 nativa, 1 SM antiga, 1 SM editada — todos abrem sem erro.
+
+**Fase 4 — Nova UI de composição**
+- Reescrever painel de pagamento em `StepPagamento` para `PagamentoPlanoEditor` (3 KPIs + lista + botão adicionar). Drag&drop opcional só para reordenar prioridade.
+- `bancoGroups` e `formasSelecionadas` substituídos pelo plano único.
+
+**Fase 5 — Validações**
+- Adicionar `validatePagamentoPlano` em `validatePropostaFinal`. Bloquear "Gerar Proposta" se `valor_restante !== 0`.
+- Toast claro com saldo restante.
+
+**Fase 6 — Integração PDF/web**
+- `resolveProposalVariables` passa a expor também `total_proposta`, `valor_alocado`, `valor_restante` e iterar por `prioridade`.
+- `renderTableVariable` ganha modo "composição" (linhas = itens do plano com coluna "valor alocado").
+- Garantir que templates antigos continuam renderizando via projeção `pagamentoOpcoes`.
+
+---
+
+## Impacto em propostas existentes
+
+| Cenário | Comportamento |
 |---|---|
-| Spam ao cliente | Cooldown SSOT, opt-out, hash anti-duplicidade, daily cap, bloqueio se conversa ativa |
-| Sobreposição com inbox WA | Barreira semântica documentada no AGENTS.md (RB nova); hooks com namespaces distintos |
-| RLS vazando entre tenants | Padrão RB (auth.jwt → tenant_id) em todas as 5 tabelas + view + RPCs |
-| IA gerando mensagem ruim | Modo padrão = semi-auto (humano confirma); auto exige `cadence_rules.approved=true` |
-| Custo IA explodindo | Classify só em propostas mudaram (where `updated_at > last_classify_at`); modelo flash-lite |
-| Migração SolarMarket interferindo | View exclui `status IN ('aceita','recusada','expirada')`; migrados entram naturalmente |
-| Conflito com `proposal-auto-expire` | View já filtra expiradas; sem duplicação |
-| Performance da view | Índices em `propostas_nativas(tenant_id, status, ultimo_acesso_em)`, `proposal_followup_attempts(proposta_id, sent_at DESC)` |
+| Nativa salva (1 opção À Vista) | `liftLegacyToPlano` → plano com 1 item, valor_alocado = total. Idêntico ao atual. |
+| Nativa salva (N opções alternativas) | Promovida para `pagamentoAlternativas[]` (não-composição); plano gera 1 À Vista 100%. UI mostra alerta "Alternativas detectadas — converter em composição?". |
+| SM migrada não editada | `normalizeSolarMarketV2` (1 item) → `liftLegacyToPlano` → plano 1 item. Snapshot importado preservado. |
+| SM migrada editada | Salva snapshot novo já com `pagamento_plano` canônico + `pagamento_opcoes` projetado. PDF/web seguem lendo `pagamento_opcoes`. |
+| Snapshot reaberto após Fase 4 | Lê `pagamento_plano` se houver; senão `liftLegacyToPlano(pagamento_opcoes)`. |
 
----
+## Garantias
 
-## 10. Governança
+- Sem migração de schema (campos opcionais no JSON).
+- Sem mudança em RPC, edge functions, Gotenberg, proposta web nas Fases 1–4.
+- Cada fase é mergeável independentemente (build + tsc verde antes de seguir).
+- Effects de mutação cruzada são removidos, não acumulados.
 
-- **Auditoria:** todo INSERT em `proposal_followup_attempts` é imutável (sem UPDATE de `message_text` após `sent_at`).
-- **Logs:** `delivery_status`, `delivery_error`, `outcome`, `approved_by` rastreáveis.
-- **Permissões:** `view_followup_comercial` (vendedor: próprios; admin: todos), `send_followup_manual`, `configure_cadence_rules` (admin), `approve_followup_auto` (admin).
-- **Multi-tenant:** RLS + WITH CHECK + view filtrada por `tenant_id`.
-- **LGPD:** opt-out granular, base legal registrada, link de descadastro nos templates.
+## Próximo passo (após aprovação)
 
----
-
-## 11. Checklist final
-
-- [x] Auditoria completa de tabelas, edges, hooks, components
-- [x] Reuso identificado: `propostas_nativas`, `proposta_views`, `reaquecimento_oportunidades`, `proposal_followup_queue`, edges `ai-followup-*`, `reaquecimento-analyzer`, `approve-proposal-followup`, `send-whatsapp-message`
-- [x] Quebras/lacunas listadas (cron faltando, view ausente, attempts inexistente, opt-out granular ausente)
-- [x] Arquitetura de banco, frontend, IA e automação definidas
-- [x] Roadmap 5 fases sem implementação destrutiva
-- [x] Riscos mapeados e mitigados
-- [x] Governança multi-tenant, anti-spam, LGPD definidas
-- [x] Build e dados atuais não impactados (zero alteração nesta entrega)
-
-**Próximo passo sugerido:** aprovar este plano → executar **Fase 0** (apenas migration + view + trigger, sem UI).
+Iniciar Fase 1 (estabilização) — alterações em 2 arquivos (`ProposalWizard.tsx`, `StepPagamento.tsx`), zero novo arquivo, baixo risco. Depois pausar para validação visual antes de Fase 2.

@@ -148,6 +148,16 @@ export function StepPagamento({
       }))
     );
 
+    // Fase 1 — só injeta "À Vista" default quando NÃO há outras formas configuradas
+    // (financiamento OU formas diretas como PIX/transferência/cartão).
+    // Antes: sempre injetava se não houvesse financiamento, fazendo "À Vista" coexistir
+    // com "Transferência" adicionada pelo usuário. Decisão real fica para Fase 4 (composição).
+    const hasFinanciamento = financiamento.length > 0;
+    const hasFormasDiretas = formasSelecionadas.length > 0;
+    if (hasFinanciamento || hasFormasDiretas) {
+      return financiamento;
+    }
+
     return [
       {
         id: "a-vista-default",
@@ -160,7 +170,6 @@ export function StepPagamento({
         num_parcelas: 1,
         valor_parcela: price,
       },
-      ...financiamento,
     ];
   };
 
