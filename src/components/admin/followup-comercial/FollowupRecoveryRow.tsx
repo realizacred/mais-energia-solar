@@ -275,8 +275,11 @@ export function FollowupRecoveryRow({ row, onSend, onHistory }: Props) {
               <span className="text-muted-foreground ml-1 font-mono">{row.score_ia}/100</span>
             )}
           </div>
-          <div className="text-[11px] text-muted-foreground mt-0.5">
-            {formatDiasParado(row.dias_parado)} parado
+          <div className="text-[11px] text-muted-foreground mt-0.5 flex items-center gap-1.5">
+            <span>{formatDiasParado(row.dias_parado)}</span>
+            <Badge variant="outline" className={`${sev.chip} text-[9px] px-1 py-0 leading-tight`}>
+              {sev.label}
+            </Badge>
           </div>
         </div>
 
