@@ -189,7 +189,7 @@ export default function FollowupComercialPage() {
 
       {/* Filtros */}
       <Card className="border-border">
-        <CardContent className="p-4 grid grid-cols-1 md:grid-cols-4 gap-3">
+        <CardContent className="p-4 grid grid-cols-1 md:grid-cols-5 gap-3">
           <div className="md:col-span-2 relative">
             <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
@@ -219,6 +219,15 @@ export default function FollowupComercialPage() {
               <SelectItem value="30">30+ dias</SelectItem>
               <SelectItem value="60">60+ dias</SelectItem>
               <SelectItem value="90">90+ dias</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select value={sort} onValueChange={(v) => setSort(v as FollowupInboxSort)}>
+            <SelectTrigger><SelectValue placeholder="Ordenar por" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="dias_parado">Mais parados</SelectItem>
+              <SelectItem value="score_ia">Maior score IA</SelectItem>
+              <SelectItem value="valor_total">Maior valor</SelectItem>
+              <SelectItem value="ultima_atividade">Atividade recente</SelectItem>
             </SelectContent>
           </Select>
         </CardContent>
