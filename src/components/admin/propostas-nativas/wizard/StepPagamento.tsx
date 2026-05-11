@@ -66,6 +66,8 @@ export function StepPagamento({
   const [bancoGroups, setBancoGroups] = useState<BancoGroup[]>([]);
   const [formasSelecionadas, setFormasSelecionadas] = useState<FormaSelected[]>([]);
   const [showNovoFinanciamento, setShowNovoFinanciamento] = useState(false);
+  const [valorEntradaGlobal, setValorEntradaGlobal] = useState<number>(0);
+
   
   // Modal states for "novo financiamento"
   const [novoNome, setNovoNome] = useState("");
@@ -88,12 +90,14 @@ export function StepPagamento({
             id: crypto.randomUUID(),
             banco_id: b.id,
             banco_nome: b.nome,
-            entrada: 0,
+            entrada: valorEntradaGlobal,
+
             num_parcelas: parcelas,
             taxa_mensal: b.taxa_mensal,
             carencia_meses: 2,
-            valor_financiado: price,
-            valor_parcela: calcParcela({ valor_financiado: price, entrada: 0, num_parcelas: parcelas, taxa_mensal: b.taxa_mensal, tipo: "financiamento", carencia_meses: 2 }),
+            valor_financiado: price - valorEntradaGlobal,
+
+            valor_parcela: calcParcela({ valor_financiado: price, entrada: valorEntradaGlobal, num_parcelas: parcelas, taxa_mensal: b.taxa_mensal, tipo: "financiamento", carencia_meses: 2 }),
           })),
       })), []);
 
@@ -313,18 +317,19 @@ export function StepPagamento({
     const group = updated[bancoIdx];
     if (!group) return;
     const parcelas = 60;
-    const vf = precoFinal;
+    const vf = precoFinal - valorEntradaGlobal;
     group.opcoes.push({
       id: crypto.randomUUID(),
       banco_id: group.banco.id,
       banco_nome: group.banco.nome,
-      entrada: 0,
+      entrada: valorEntradaGlobal,
       num_parcelas: parcelas,
       taxa_mensal: group.banco.taxa_mensal,
       carencia_meses: 2,
       valor_financiado: vf,
-      valor_parcela: calcParcela({ valor_financiado: vf, entrada: 0, num_parcelas: parcelas, taxa_mensal: group.banco.taxa_mensal, tipo: "financiamento", carencia_meses: 2 }),
+      valor_parcela: calcParcela({ valor_financiado: precoFinal, entrada: valorEntradaGlobal, num_parcelas: parcelas, taxa_mensal: group.banco.taxa_mensal, tipo: "financiamento", carencia_meses: 2 }),
     });
+
     setBancoGroups(updated);
   };
 
@@ -502,12 +507,14 @@ export function StepPagamento({
                                   id: crypto.randomUUID(),
                                   banco_id: banco.id,
                                   banco_nome: banco.nome,
-                                  entrada: 0,
+                                  entrada: valorEntradaGlobal,
+
                                   num_parcelas: parcelas,
                                   taxa_mensal: banco.taxa_mensal,
                                   carencia_meses: 2,
-                                  valor_financiado: precoFinal,
-                                  valor_parcela: calcParcela({ valor_financiado: precoFinal, entrada: 0, num_parcelas: parcelas, taxa_mensal: banco.taxa_mensal, tipo: "financiamento", carencia_meses: 2 }),
+                                  valor_financiado: precoFinal - valorEntradaGlobal,
+                                  valor_parcela: calcParcela({ valor_financiado: precoFinal, entrada: valorEntradaGlobal, num_parcelas: parcelas, taxa_mensal: banco.taxa_mensal, tipo: "financiamento", carencia_meses: 2 }),
+
                                 })),
                             };
                             setBancoGroups(prev => [...prev, newGroup]);
@@ -586,6 +593,51 @@ export function StepPagamento({
 
               {/* Main - Options for selected bank */}
               <div className="space-y-3 min-w-0">
+                {bancoGroups.length > 0 && (
+                  <div className="bg-primary/5 border border-primary/20 rounded-xl p-4 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <Label className="text-sm font-semibold flex items-center gap-2">
+                        <Wallet className="h-4 w-4 text-primary" />
+                        Valor de Entrada
+                      </Label>
+                      {valorEntradaGlobal > 0 && (
+                        <Badge variant="outline" className="text-[10px] bg-primary/10 text-primary">
+                          Financiado: {formatBRL(precoFinal - valorEntradaGlobal)}
+                        </Badge>
+                      )}
+                    </div>
+                    <CurrencyInput
+                      value={valorEntradaGlobal}
+                      onChange={(val) => {
+                        const clamped = Math.min(Math.max(0, val), precoFinal);
+                        setValorEntradaGlobal(clamped);
+                        
+                        // Recalculate all bank options
+                        setBancoGroups(prev => prev.map(group => ({
+                          ...group,
+                          opcoes: group.opcoes.map(op => ({
+                            ...op,
+                            entrada: clamped,
+                            valor_financiado: precoFinal - clamped,
+                            valor_parcela: calcParcela({
+                              valor_financiado: precoFinal,
+                              entrada: clamped,
+                              num_parcelas: op.num_parcelas,
+                              taxa_mensal: op.taxa_mensal,
+                              tipo: "financiamento",
+                              carencia_meses: op.carencia_meses
+                            })
+                          }))
+                        })));
+                      }}
+                      className="h-10 text-base font-semibold"
+                    />
+                    <p className="text-[10px] text-muted-foreground">
+                      Este valor será descontado do montante total para o cálculo do financiamento.
+                    </p>
+                  </div>
+                )}
+
                 {bancoGroups[selectedBancoIdx]?.opcoes.map((op, idx) => (
                   <div key={op.id} className="p-4 rounded-xl border border-border/50 bg-card">
                     <div className="flex items-center justify-between mb-3">
