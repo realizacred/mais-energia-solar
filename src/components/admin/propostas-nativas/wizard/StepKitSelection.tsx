@@ -135,7 +135,7 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
   });
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [filters, setFilters] = useState<KitFiltersState>({ ...DEFAULT_FILTERS });
-  const [orderBy, setOrderBy] = useState("melhor_kwp");
+  const [orderBy, setOrderBy] = useState(potenciaKwp > 0 ? "proximidade" : "melhor_kwp");
   const [showChoiceModal, setShowChoiceModal] = useState(false);
   const [manualMode, setManualMode] = useState<"equipamentos" | "zero" | null>(null);
   // Use lifted state if provided, fallback to local
