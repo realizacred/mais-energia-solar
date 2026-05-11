@@ -17,7 +17,7 @@ import {
   type KitItemRow, type LayoutArranjo, type PreDimensionamentoData, type TopologiaConfig,
   SOMBREAMENTO_OPTIONS, DESVIO_AZIMUTAL_OPTIONS, INCLINACAO_OPTIONS,
   TOPOLOGIA_LABELS, DEFAULT_TOPOLOGIA_CONFIGS, MESES,
-  formatBRL,
+  formatBRL, resolveCustoKit,
 } from "./types";
 import { toast } from "@/hooks/use-toast";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
