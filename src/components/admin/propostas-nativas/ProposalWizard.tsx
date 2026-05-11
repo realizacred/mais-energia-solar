@@ -1590,6 +1590,13 @@ export function ProposalWizard() {
   }, [isRestoring, savedPropostaId, savedVersaoId, propostaIdFromUrl, versaoIdFromUrl, buildPersistParams, persistAtomic, applyPersistResult, dealIdFromUrl, resolvedDealId, syncCustomFieldValues, syncTemplateIdUsed, invalidateProposalCaches]);
 
   const handleUpdate = useCallback(async (setActive: boolean) => {
+    // UX-03: Intercept update if proposal was already sent to client
+    if (editingsentProposal && !showNewVersionConfirm) {
+      setPendingUpdateAction(setActive);
+      setShowNewVersionConfirm(true);
+      return;
+    }
+
     if (isRestoring) {
       toast({ title: "Aguarde", description: "A proposta ainda está sendo restaurada." });
       return;
