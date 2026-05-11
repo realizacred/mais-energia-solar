@@ -39,6 +39,7 @@ export interface ClienteRow {
   comprovante_beneficiaria_urls: string[] | null;
   disjuntor_id: string | null;
   transformador_id: string | null;
+  telefone_normalized: string | null;
 }
 
 export interface LeadOption {
