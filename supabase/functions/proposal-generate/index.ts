@@ -670,12 +670,17 @@ Deno.serve(async (req) => {
     const economiaBruta = energiaCompensavel * tarifaMedia;
     const economiaMensal = Math.max(economiaBruta - custoFioBMensal - custoDispTotal, 0);
 
-    // Custos
+    // Custos — SSOT: Financial Center (venda.custo_instalacao) takes precedence.
+    // Fallback to summing servicos[incluso_no_preco] when FC not used (legacy paths).
     const custoKit = body.itens.reduce((s, i) => s + i.quantidade * i.preco_unitario, 0);
-    const custoServicosInclusos = body.servicos.filter(s => s.incluso_no_preco).reduce((s, i) => s + i.valor, 0);
     const venda = body.venda ?? { custo_comissao: 0, custo_outros: 0, margem_percentual: 20, desconto_percentual: 0, observacoes: "" };
+    const custoInstalacaoFC = Number((venda as any).custo_instalacao) || 0;
+    const custoServicosLegacy = body.servicos.filter(s => s.incluso_no_preco).reduce((s, i) => s + i.valor, 0);
+    const custoServicosInclusos = custoInstalacaoFC > 0 ? custoInstalacaoFC : custoServicosLegacy;
     const custoBase = custoKit + custoServicosInclusos + venda.custo_comissao + venda.custo_outros;
-    const margemValor = custoBase * (venda.margem_percentual / 100);
+    // Margem aplicada sobre custos SEM comissão (alinhado com calcPrecoFinal do wizard — SSOT)
+    const custoParaMargem = custoKit + custoServicosInclusos + venda.custo_outros;
+    const margemValor = custoParaMargem * (venda.margem_percentual / 100);
     const precoComMargem = custoBase + margemValor;
     const descontoValor = precoComMargem * (venda.desconto_percentual / 100);
     const valorTotal = round2(precoComMargem - descontoValor);
