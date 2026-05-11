@@ -78,6 +78,7 @@ export function StepCamposCustomizados({ values, onValuesChange, dealId }: Props
             field={field}
             value={values[field.field_key]}
             onChange={(val) => updateValue(field.field_key, val)}
+            dealId={dealId}
           />
         ))}
       </div>
