@@ -736,6 +736,28 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
           {tab === "catalogo" ? (
             /* ── Catálogo Tab ── */
             <div className="space-y-3">
+              {/* ── Auto-filter info banner ── */}
+              {potenciaIdeal > 0 && !hasRemovedAutoFilter && (filters.potenciaMin > 0 || filters.potenciaMax < 1000) && (
+                <div className="flex items-center justify-between gap-3 px-4 py-2 bg-orange-50 border border-orange-200 rounded-lg shrink-0">
+                  <div className="flex items-center gap-2">
+                    <Info className="h-4 w-4 text-orange-600" />
+                    <p className="text-xs font-medium text-orange-700">
+                      Mostrando kits de {filters.potenciaMin} kWp a {filters.potenciaMax} kWp — ideal para seu projeto: <span className="font-bold">{potenciaIdeal.toFixed(2)} kWp</span>
+                    </p>
+                  </div>
+                  <Button 
+                    variant="link" 
+                    size="sm" 
+                    className="h-auto p-0 text-orange-700 hover:text-orange-800 text-[11px] font-bold"
+                    onClick={() => {
+                      setFilters({ ...DEFAULT_FILTERS });
+                      setHasNewRemovedAutoFilter(true);
+                    }}
+                  >
+                    Ver todos os kits
+                  </Button>
+                </div>
+              )}
               {/* Toggle para incluir componentes avulsos */}
               <div className="flex items-center justify-end gap-2">
                 <Label htmlFor="include-components" className="text-xs text-muted-foreground cursor-pointer">
