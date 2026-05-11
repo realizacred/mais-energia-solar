@@ -39,6 +39,8 @@ import { useExcluirProposta } from "@/hooks/usePropostasProjetoTab";
 import { usePropostaExpandedSnapshot, usePropostaExpandedUcs, usePropostaExpandedKitItems, usePropostaAuditLogs, usePropostaEvents, type UCDetailData, type ProposalEventEntry } from "@/hooks/usePropostaExpandedData";
 import { useReabrirProposta, useIsAdminOrGerente } from "@/hooks/useReabrirProposta";
 import { useProposalTemplates } from "@/hooks/useProposalTemplates";
+import { PropostaBadge } from "./PropostaBadge";
+
 
 // ─── Types ──────────────────────────────────────────
 
