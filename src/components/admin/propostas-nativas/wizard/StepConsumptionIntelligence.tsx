@@ -50,8 +50,9 @@ type PreSubTab = "premissas" | "equipamentos";
 export function StepConsumptionIntelligence({
   ucs, onUcsChange, potenciaKwp, onPotenciaChange,
   preDimensionamento: pd, onPreDimensionamentoChange: setPd,
-  irradiacao, ghiSeries, latitude, somenteGhi,
+  irradiacao, ghiSeries, latitude, somenteGhi, leadFase,
 }: Props) {
+
   const [activeTab, setActiveTab] = useState<ActiveTab>("ucs");
   
   const [preSubTab, setPreSubTab] = useState<PreSubTab>("premissas");
