@@ -903,8 +903,14 @@ export function ProposalWizard() {
         // Detect snapshot format and normalize to wizard format
         let s: WizardSnapshot;
         if (rawSnapshot.source === "legacy_import") {
-          // Legacy SolarMarket import
+          // Legacy SolarMarket import (formato achatado antigo)
           s = await normalizeLegacySnapshot(rawSnapshot, propostaIdFromUrl, versao) as WizardSnapshot;
+        } else if (rawSnapshot.source === "solarmarket") {
+          // SolarMarket V2 (motor job-based, source_version "v3"): kit.itens agrupado por category.
+          const normalized = await normalizeSolarMarketV2Snapshot(rawSnapshot, propostaIdFromUrl, versao);
+          s = normalized as WizardSnapshot;
+          const hasModulo = Array.isArray(normalized.itens) && normalized.itens.some((i: any) => i.categoria === "modulo" && i.quantidade > 0);
+          setMigratedKitMissing(!hasModulo);
         } else if (rawSnapshot.engine_version || rawSnapshot.versao_schema) {
           // Engine-enriched snapshot — map back to wizard format
           const ws = rawSnapshot._wizard_state || {}; // Wizard state passthrough (v2.5+)
