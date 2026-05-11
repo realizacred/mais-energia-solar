@@ -406,6 +406,13 @@ const PROPOSAL_ALLOWED_KEYS = [
   "viewed_at",
   "valido_ate",
   "dias_sem_resposta",
+  // Phase 4C — enriquecimento (whitelist estrita)
+  "tentativas_anteriores",
+  "ultimo_canal",
+  "ultimo_outcome",
+  "total_aberturas",
+  "opt_out",
+  "taxa_sucesso_tenant_cenario",
 ];
 
 async function handleProposalFollowup(sb: any, tenantId: string, body: any, userId: string | null) {
@@ -480,7 +487,7 @@ async function handleProposalFollowup(sb: any, tenantId: string, body: any, user
   const model = aiSettings?.modelo_preferido || activeModel;
   const temperature = aiSettings?.temperature ?? 0.4;
 
-  const sys = `Você é um consultor de energia solar. Gere UMA mensagem curta de WhatsApp para follow-up de PROPOSTA.
+  const sys = `Você é um consultor de energia solar. Gere UMA mensagem curta de WhatsApp para follow-up de PROPOSTA e um SCORE de prioridade.
 
 REGRAS ABSOLUTAS:
 - Use APENAS os dados fornecidos no contexto. NUNCA invente valor, desconto, prazo, economia, capacidade ou qualquer número.
@@ -488,7 +495,16 @@ REGRAS ABSOLUTAS:
 - Tom humano, consultivo, sem pressão. Sem emojis excessivos (máx 1).
 - Máx 3 frases curtas. Adequado a WhatsApp.
 - Se faltar dado essencial, gere mensagem neutra ("podemos conversar sobre a proposta?").
-- Se houver risco (ex.: proposta vencida, dias_sem_resposta alto, status delicado), marque precisa_revisao_humana=true e risco "alto".
+- Se houver risco (ex.: proposta vencida, dias_sem_resposta alto, status delicado, opt_out), marque precisa_revisao_humana=true e risco "alto".
+
+SCORE (0–100):
+- score_total = peso ponderado dos componentes (engajamento + urgencia_temporal + valor + risco_inverso).
+- score_breakdown.engajamento (0-100): aberturas/visualizações; ausência total tende a baixo.
+- score_breakdown.urgencia_temporal (0-100): mais alto quando dias_sem_resposta cresce ou validade próxima.
+- score_breakdown.valor (0-100): proporcional a valor_total/potência (sem inventar).
+- score_breakdown.risco (0-100): MAIOR = mais arriscado (vencida, tentativas altas, opt_out → alto).
+- razoes: até 4 frases curtas explicando o score.
+- acao_recomendada: 1 frase objetiva (ex.: "Aguardar 24h", "Ligar antes de mensagem", "Enviar agora", "Revisar antes de enviar").
 
 OUTPUT (JSON estrito, sem texto fora):
 {
@@ -497,7 +513,16 @@ OUTPUT (JSON estrito, sem texto fora):
   "motivo": "string curta",
   "mensagem_sugerida": "string curta",
   "risco": "baixo"|"medio"|"alto",
-  "precisa_revisao_humana": boolean
+  "precisa_revisao_humana": boolean,
+  "score_total": 0-100,
+  "score_breakdown": {
+    "engajamento": 0-100,
+    "urgencia_temporal": 0-100,
+    "valor": 0-100,
+    "risco": 0-100
+  },
+  "razoes": ["string", "..."],
+  "acao_recomendada": "string curta"
 }`;
 
   const usr = `Cenário: ${cenario}\nContexto (somente estes dados podem ser usados):\n${JSON.stringify(ctx)}`;
@@ -513,7 +538,7 @@ OUTPUT (JSON estrito, sem texto fora):
       body: JSON.stringify({
         model,
         messages: [{ role: "system", content: sys }, { role: "user", content: usr }],
-        max_tokens: 350,
+        max_tokens: 500,
         temperature,
         response_format: { type: "json_object" },
       }),
@@ -538,6 +563,16 @@ OUTPUT (JSON estrito, sem texto fora):
     return error(e?.message || "AI error", 500);
   }
 
+  const clamp = (v: any, min = 0, max = 100) => {
+    const n = Number(v);
+    if (!Number.isFinite(n)) return 0;
+    return Math.max(min, Math.min(max, Math.round(n)));
+  };
+  const bd = parsed.score_breakdown || {};
+  const razoesArr = Array.isArray(parsed.razoes)
+    ? parsed.razoes.filter((r: any) => typeof r === "string").slice(0, 4).map((r: string) => r.slice(0, 200))
+    : [];
+
   // Sanitize / clamp output
   const result = {
     deve_fazer_followup: !!parsed.deve_fazer_followup,
@@ -546,6 +581,15 @@ OUTPUT (JSON estrito, sem texto fora):
     mensagem_sugerida: String(parsed.mensagem_sugerida || "").slice(0, 600),
     risco: ["baixo", "medio", "alto"].includes(parsed.risco) ? parsed.risco : "baixo",
     precisa_revisao_humana: parsed.precisa_revisao_humana !== false,
+    score_total: clamp(parsed.score_total),
+    score_breakdown: {
+      engajamento: clamp(bd.engajamento),
+      urgencia_temporal: clamp(bd.urgencia_temporal),
+      valor: clamp(bd.valor),
+      risco: clamp(bd.risco),
+    },
+    razoes: razoesArr,
+    acao_recomendada: String(parsed.acao_recomendada || "").slice(0, 200),
   };
 
   // Usage logging (best-effort)

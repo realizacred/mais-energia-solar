@@ -18,7 +18,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { AlertTriangle, Send, Loader2, Phone, Sparkles, Flame, ThermometerSun, Snowflake, History } from "lucide-react";
+import { AlertTriangle, Send, Loader2, Phone, Sparkles, Flame, ThermometerSun, Snowflake, History, ChevronDown, ChevronRight, Target } from "lucide-react";
 import { useSendProposalFollowup, useFollowupAiSuggestion } from "@/hooks/useFollowupComercial";
 import type { FollowupInboxRow, FollowupAiSuggestion } from "@/hooks/useFollowupComercial";
 import { FollowupHistoryTimeline } from "./FollowupHistoryTimeline";
@@ -55,6 +55,7 @@ export function FollowupSendDialog({ row, open, onOpenChange }: Props) {
   const [forceReason, setForceReason] = useState("");
   const [aiSuggestion, setAiSuggestion] = useState<FollowupAiSuggestion | null>(null);
   const [aiCooldown, setAiCooldown] = useState(0);
+  const [breakdownOpen, setBreakdownOpen] = useState(false);
   const send = useSendProposalFollowup();
   const aiSuggest = useFollowupAiSuggestion();
 
@@ -65,6 +66,7 @@ export function FollowupSendDialog({ row, open, onOpenChange }: Props) {
       setForceReason("");
       setAiSuggestion(null);
       setAiCooldown(0);
+      setBreakdownOpen(false);
     }
   }, [row, open]);
 
@@ -173,12 +175,68 @@ export function FollowupSendDialog({ row, open, onOpenChange }: Props) {
                 <div className={`rounded-md border p-3 text-xs space-y-2 ${tempColor(aiSuggestion.nivel_urgencia)}`}>
                   <div className="flex items-center gap-2 font-medium">
                     {tempIcon(aiSuggestion.nivel_urgencia)}
-                    Temperatura: {aiSuggestion.nivel_urgencia.toUpperCase()}
+                    Prioridade: {aiSuggestion.nivel_urgencia.toUpperCase()}
+                    {typeof aiSuggestion.score_total === "number" && (
+                      <Badge variant="outline" className="text-[10px] ml-1 font-mono">
+                        Score {aiSuggestion.score_total}/100
+                      </Badge>
+                    )}
                     <span className="ml-auto text-[10px] opacity-70">Risco: {aiSuggestion.risco}</span>
                   </div>
+
                   {aiSuggestion.motivo && <p className="opacity-80">{aiSuggestion.motivo}</p>}
+
+                  {aiSuggestion.acao_recomendada && (
+                    <div className="flex items-start gap-1.5 text-[11px] font-medium pt-1 border-t border-current/10">
+                      <Target className="h-3 w-3 mt-0.5 shrink-0" />
+                      <span>Ação: {aiSuggestion.acao_recomendada}</span>
+                    </div>
+                  )}
+
+                  {aiSuggestion.score_breakdown && (
+                    <div className="pt-1">
+                      <button
+                        type="button"
+                        onClick={() => setBreakdownOpen((v) => !v)}
+                        className="flex items-center gap-1 text-[10px] uppercase tracking-wide opacity-70 hover:opacity-100"
+                      >
+                        {breakdownOpen ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
+                        Detalhamento do score
+                      </button>
+                      {breakdownOpen && (
+                        <div className="mt-1.5 grid grid-cols-2 gap-1.5 text-[11px]">
+                          {[
+                            { k: "engajamento", label: "Engajamento" },
+                            { k: "urgencia_temporal", label: "Urgência" },
+                            { k: "valor", label: "Valor" },
+                            { k: "risco", label: "Risco" },
+                          ].map((item) => {
+                            const v = (aiSuggestion.score_breakdown as any)?.[item.k] ?? 0;
+                            return (
+                              <div key={item.k} className="flex items-center gap-1.5">
+                                <span className="opacity-70 w-20 shrink-0">{item.label}</span>
+                                <div className="flex-1 h-1.5 rounded-full bg-current/10 overflow-hidden">
+                                  <div className="h-full bg-current/60" style={{ width: `${v}%` }} />
+                                </div>
+                                <span className="font-mono text-[10px] w-7 text-right">{v}</span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {aiSuggestion.razoes && aiSuggestion.razoes.length > 0 && (
+                    <ul className="text-[11px] space-y-0.5 pt-1 border-t border-current/10 list-disc list-inside opacity-80">
+                      {aiSuggestion.razoes.map((r, i) => (
+                        <li key={i}>{r}</li>
+                      ))}
+                    </ul>
+                  )}
+
                   {aiSuggestion.precisa_revisao_humana && (
-                    <div className="flex items-center gap-1 text-[11px]">
+                    <div className="flex items-center gap-1 text-[11px] pt-1 border-t border-current/10">
                       <AlertTriangle className="h-3 w-3" /> Revisão humana recomendada antes de enviar.
                     </div>
                   )}
