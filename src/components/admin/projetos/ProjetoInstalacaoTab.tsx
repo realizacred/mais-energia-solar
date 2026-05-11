@@ -15,6 +15,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { formatDateTime } from "@/lib/dateUtils";
+import { useProjetoDetalhe } from "@/contexts/ProjetoDetalheContext";
 import { StorageFileGallery } from "@/components/ui-kit/StorageFileGallery";
 import { SignaturePad, type SignaturePadRef } from "@/components/checklist/SignaturePad";
 import {
