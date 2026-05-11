@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatPhoneBR } from "@/lib/formatters";
+import { resolveCustoKit } from "./types";
 
 interface StepResumoProps {
   // Location
@@ -97,8 +98,8 @@ export function StepResumo({
   precoFinal, margemPercentual, custoInstalacao, custoComissao, custoOutros, descontoPercentual,
   pagamentoOpcoes,
 }: StepResumoProps) {
-  const custoKitCalculado = itens.reduce((s, i) => s + (i.quantidade * i.preco_unitario), 0);
-  const custoKit = (custoKitOverride != null && custoKitOverride > 0) ? custoKitOverride : custoKitCalculado;
+  // Fase A — SSOT: usa resolveCustoKit em vez de lógica inline duplicada.
+  const custoKit = resolveCustoKit({ itens, custoKitOverride });
   const custoAdicionais = adicionais.reduce((s, i) => s + (i.quantidade * i.preco_unitario), 0);
   const custoServicos = servicos.reduce((s, i) => s + i.valor, 0);
   const hasFCCosts = (Number(custoInstalacao) || 0) > 0 || (Number(custoComissao) || 0) > 0 || (Number(custoOutros) || 0) > 0;

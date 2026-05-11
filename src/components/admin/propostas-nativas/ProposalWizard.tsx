@@ -223,14 +223,28 @@ export function ProposalWizard() {
     return Math.round(rows.reduce((s, i) => s + ((Number(i.quantidade) || 0) * (Number(i.preco_unitario) || 0)), 0) * 100) / 100;
   }, []);
 
-  const handleItensChange = useCallback((nextItens: KitItemRow[]) => {
+  /**
+   * Handler canônico de mudança de itens do kit.
+   * - Recalcula `venda.custo_kit` (Σ itens).
+   * - `nextOverride` controla `venda.custo_kit_override`:
+   *     undefined  → limpa override (edição manual de itens) + libera flag SM.
+   *     null       → limpa override explicitamente.
+   *     number > 0 → trava override one-shot (seleção de kit de catálogo / kit fechado).
+   * Fase A: substitui o effect persistente que sincronizava `manualKits.meta.custo`.
+   */
+  const handleItensChange = useCallback((
+    nextItens: KitItemRow[],
+    nextOverride?: number | null,
+  ) => {
     const nextCustoKit = calcKitCostFromItems(nextItens);
     setItens(nextItens);
     setVenda(prev => {
+      const overrideValue = nextOverride != null && nextOverride > 0 ? nextOverride : null;
       return {
         ...prev,
         custo_kit: nextCustoKit,
-        custo_kit_override: null,
+        custo_kit_override: overrideValue,
+        // Limpamos a flag SM em qualquer alteração — só a hidratação a seta de novo.
         isImportedFinancialOverride: false,
       };
     });
@@ -251,20 +265,10 @@ export function ProposalWizard() {
     margem_percentual: 20, desconto_percentual: 0, observacoes: "",
   });
 
-  // Sync catalog kit fixed_price → venda.custo_kit_override
-  // When items have 0 unit_price but kit has a known cost from meta
-  // SM-MIGRATED: do not overwrite imported financial override (RB-59 paridade)
-  useEffect(() => {
-    if (manualKits.length === 0) return;
-    if (venda.isImportedFinancialOverride) return; // respeita valor hidratado do snapshot SM
-    const meta = (manualKits[0] as any)?.meta;
-    if (!meta?.custo || meta.custo <= 0) return;
-    const calculatedFromItems = itens.reduce((s, i) => s + i.quantidade * i.preco_unitario, 0);
-    // Only set override when items cost is significantly lower than meta cost
-    if (calculatedFromItems < meta.custo * 0.99 && venda.custo_kit_override !== meta.custo) {
-      setVenda(prev => ({ ...prev, custo_kit: calculatedFromItems, custo_kit_override: meta.custo }));
-    }
-  }, [manualKits, itens, venda.isImportedFinancialOverride]);
+  // Fase A — E1 ELIMINADO: a sincronização `manualKits.meta.custo → custo_kit_override`
+  // agora ocorre apenas (a) na hidratação/normalizer e (b) one-shot dentro de
+  // handleSelectKit/handleManualKitCreated em StepKitSelection, via `nextOverride`.
+  // Removido: useEffect([manualKits, itens, venda.isImportedFinancialOverride]).
 
   const [pagamentoOpcoes, setPagamentoOpcoes] = useState<PagamentoOpcao[]>([]);
   const { bancos, loadingBancos } = useBancosCatalog();
@@ -383,28 +387,38 @@ export function ProposalWizard() {
     });
   }, [dealFieldValues]);
 
-  const collectSnapshot = useCallback((): WizardSnapshot => {
-    // Recalculate pagamentoOpcoes with current precoFinal before saving.
-    // When StepPagamento is unmounted its useEffect never reruns,
-    // so à vista / financiamento values can be stale.
-    const pagamentoOpcoesAtualizadas = pagamentoOpcoes.map(op => {
-      if (op.tipo === "a_vista") {
-        return {
-          ...op,
-          valor_financiado: precoFinal,
-          entrada: precoFinal,
-          valor_parcela: precoFinal,
-          num_parcelas: 1,
-        };
-      }
-      if (op.tipo === "financiamento" && precoFinal > 0) {
-        return {
-          ...op,
-          valor_financiado: precoFinal,
-        };
-      }
-      return op;
+  // Fase A — Sidecar: mantém pagamentoOpcoes (à vista / financiamento) coerentes
+  // com precoFinal mesmo quando StepPagamento está desmontado. Substitui a mutação
+  // que antes vivia DENTRO de collectSnapshot (collectSnapshot agora é puro).
+  useEffect(() => {
+    setPagamentoOpcoes(prev => {
+      let mutated = false;
+      const next = prev.map(op => {
+        if (op.tipo === "a_vista") {
+          if (
+            op.valor_financiado !== precoFinal ||
+            op.entrada !== precoFinal ||
+            op.valor_parcela !== precoFinal ||
+            op.num_parcelas !== 1
+          ) {
+            mutated = true;
+            return { ...op, valor_financiado: precoFinal, entrada: precoFinal, valor_parcela: precoFinal, num_parcelas: 1 };
+          }
+          return op;
+        }
+        if (op.tipo === "financiamento" && precoFinal > 0 && op.valor_financiado !== precoFinal) {
+          mutated = true;
+          return { ...op, valor_financiado: precoFinal };
+        }
+        return op;
+      });
+      return mutated ? next : prev;
     });
+  }, [precoFinal]);
+
+  const collectSnapshot = useCallback((): WizardSnapshot => {
+    // Fase A — collectSnapshot agora é PURO: não muta pagamentoOpcoes.
+    // A sincronização com precoFinal é feita por effect dedicado acima.
 
     // ── Financial series enrichment (QW11) ──
     // Compute 25-year series, payback, TIR, VPL, economia before saving
@@ -474,7 +488,7 @@ export function ProposalWizard() {
       adicionais,
       servicos,
       venda,
-      pagamentoOpcoes: pagamentoOpcoesAtualizadas,
+      pagamentoOpcoes,
       nomeProposta: nomeProposta ?? "",
       descricaoProposta: descricaoProposta ?? "",
       templateSelecionado,

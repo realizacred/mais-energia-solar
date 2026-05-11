@@ -213,15 +213,33 @@ function _round(v: number): number {
   return Math.round(v * 100) / 100;
 }
 
+/** SSOT canônico para resolver o custo do kit.
+ *  Hierarquia (Fase A — Estabilização):
+ *    1) custo_kit_override > 0  → valor manualmente travado (Centro Financeiro / catálogo / SM)
+ *    2) custo_kit > 0           → valor persistido em venda
+ *    3) Σ (qty × preço_unitário) → fallback calculado a partir dos itens
+ *  Toda tela que exibe "custo do kit" DEVE usar este helper. */
+export function resolveCustoKit(opts: {
+  itens: ReadonlyArray<{ quantidade: number; preco_unitario: number }>;
+  custoKitOverride?: number | null;
+  custoKit?: number | null;
+}): number {
+  const { itens, custoKitOverride, custoKit } = opts;
+  if (custoKitOverride != null && custoKitOverride > 0) return _round(custoKitOverride);
+  if (custoKit != null && custoKit > 0) return _round(custoKit);
+  return _round(itens.reduce((s, i) => s + _round((i.quantidade || 0) * (i.preco_unitario || 0)), 0));
+}
+
 /** Calcula o preço final (custo base + margem − desconto) de forma canônica.
  *  SSOT: toda lógica de pricing deve usar esta função.
  *  Quando o Centro Financeiro está ativo, custo_instalacao/custo_comissao/custo_outros
  *  são sincronizados de lá — usa esses valores se disponíveis para evitar double-counting. */
 export function calcPrecoFinal(itens: KitItemRow[], servicos: ServicoItem[], venda: VendaData): number {
-  const custoKitCalculado = _round(itens.reduce((s, i) => s + _round(i.quantidade * i.preco_unitario), 0));
-  const custoKit = (venda.custo_kit_override != null && venda.custo_kit_override > 0)
-    ? _round(venda.custo_kit_override)
-    : (venda.custo_kit > 0 ? _round(venda.custo_kit) : custoKitCalculado);
+  const custoKit = resolveCustoKit({
+    itens,
+    custoKitOverride: venda.custo_kit_override,
+    custoKit: venda.custo_kit,
+  });
 
   // If Financial Center has synced costs (custo_instalacao > 0 or explicitly set),
   // use VendaData costs directly. Otherwise fall back to servicos array.
