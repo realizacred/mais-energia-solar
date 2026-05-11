@@ -21,18 +21,13 @@ import { formatDateTime } from "@/lib/dateUtils";
 
 import { getCurrentTenantId } from "@/lib/getCurrentTenantId";
 import { FilePreviewModal, type FilePreviewTarget } from "./FilePreviewModal";
-import { useProjetoCustomFieldFiles } from "@/hooks/useProjetoCustomFieldFiles";
 import { ProjectDocumentsHub } from "./ProjectDocumentsHub";
 import {
-  useProjetoArquivos,
   useProjetoDocumentosGerados,
   useDocTemplates,
-  useUploadArquivo,
-  useDeletarArquivo,
   useGerarDocumento,
   useEnviarParaAssinatura,
   useDocumentosRealtimeSync,
-  downloadArquivo,
   downloadGeneratedDoc,
   type GeneratedDocRow,
 } from "@/hooks/useProjetoDocumentos";
