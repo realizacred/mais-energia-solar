@@ -244,37 +244,68 @@ export function ProjectDocumentsHub({ projetoId, dealId }: Props) {
     [upload, projetoId, dealId],
   );
 
+  const resolveStoragePath = async (d: ProjectDocument): Promise<string> => {
+    if (d.id.startsWith("legacy:")) {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("tenant_id")
+        .limit(1)
+        .single();
+      const tenantId = (profile as any)?.tenant_id;
+      const realName = (d.metadata as any)?._legacyName || d.file_name;
+      return `${tenantId}/deals/${dealId}/${realName}`;
+    }
+    return d.storage_path;
+  };
+
   const onPreview = async (d: ProjectDocument) => {
+    const path = await resolveStoragePath(d);
     setPreview({
       bucket: d.bucket,
-      storage_path: d.storage_path,
+      storage_path: path,
       filename: d.file_name,
       mime: d.mime_type,
       size: d.size_bytes,
       origin_label: ORIGEM_LABEL[d.origem],
       uploaded_at: d.created_at,
     });
-    await supabase.from("project_document_events" as any).insert({
-      tenant_id: d.tenant_id,
-      document_id: d.id,
-      event: "preview",
-    });
+    if (!d.id.startsWith("legacy:") && !d.id.startsWith("cf:")) {
+      await supabase.from("project_document_events" as any).insert({
+        tenant_id: d.tenant_id,
+        document_id: d.id,
+        event: "preview",
+      });
+    }
   };
 
   const onDownload = async (d: ProjectDocument) => {
+    const path = await resolveStoragePath(d);
     const { data, error } = await supabase.storage
       .from(d.bucket)
-      .createSignedUrl(d.storage_path, 300, { download: d.file_name });
+      .createSignedUrl(path, 300, { download: d.file_name });
     if (error || !data?.signedUrl) {
       toast({ title: "Erro ao baixar", description: error?.message, variant: "destructive" });
       return;
     }
     window.open(data.signedUrl, "_blank");
-    await supabase.from("project_document_events" as any).insert({
-      tenant_id: d.tenant_id,
-      document_id: d.id,
-      event: "download",
-    });
+    if (!d.id.startsWith("legacy:") && !d.id.startsWith("cf:")) {
+      await supabase.from("project_document_events" as any).insert({
+        tenant_id: d.tenant_id,
+        document_id: d.id,
+        event: "download",
+      });
+    }
+  };
+
+  const handleDelete = (d: ProjectDocument) => {
+    if (d.id.startsWith("legacy:")) {
+      const realName = (d.metadata as any)?._legacyName || d.file_name;
+      removeLegacy.mutate(realName);
+      setConfirmDelete(null);
+      return;
+    }
+    remove.mutate(d);
+    setConfirmDelete(null);
   };
 
   return (
