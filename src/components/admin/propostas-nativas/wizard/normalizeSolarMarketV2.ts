@@ -233,14 +233,29 @@ export async function normalizeSolarMarketV2Snapshot(
   ];
 
   // ── Venda ────────────────────────────────────────────────
+  // SM v3: unitCost==totalCost==salesValue (sem markup) e
+  // valor_total = KIT + Instalação + Comissão.
+  // Travamos custo_kit via override para o resumo do wizard somar
+  // exatamente o valor importado, e habilitamos os serviços com flags
+  // explícitas (sem elas o wizard zera Instalação/Comissão no total).
+  const custoInstalacao = toNum(instalacaoRow?.salesValue ?? instalacaoRow?.totalCost);
+  const custoComissao = toNum(comissaoRow?.salesValue ?? comissaoRow?.totalCost);
   const venda = {
     custo_kit: custoKitTotal,
-    custo_instalacao: toNum(instalacaoRow?.salesValue ?? instalacaoRow?.totalCost),
-    custo_comissao: toNum(comissaoRow?.salesValue ?? comissaoRow?.totalCost),
+    custo_kit_override: custoKitTotal > 0 ? custoKitTotal : null,
+    custo_instalacao: custoInstalacao,
+    custo_comissao: custoComissao,
     custo_outros: 0,
     margem_percentual: 0,
     desconto_percentual: 0,
     observacoes: "",
+    instalacao_enabled: custoInstalacao > 0,
+    comissao_enabled: custoComissao > 0,
+    comissao_manual_override: custoComissao > 0,
+    custos_extras: [] as any[],
+    servicos_enabled_map: {} as Record<string, boolean>,
+    percentual_comissao_consultor: 0,
+    consultor_nome_comissao: "",
   };
 
   // ── Serviços ─────────────────────────────────────────────
