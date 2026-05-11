@@ -475,12 +475,15 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
         quantidade: kit.inversorQtd, preco_unitario: inversorPreco, categoria: "inversor", avulso: false,
       },
     ];
-    onItensChange(newItens);
+    // Fase A: catálogo tem preço travado — propaga como override one-shot.
+    onItensChange(newItens, totalPreco > 0 ? totalPreco : null);
     toast({ title: "Kit selecionado", description: `${kit.moduloPotenciaKwp.toFixed(2)} kWp • ${kit.topologia}` });
   };
 
-  const handleSelectManualKit = (entry: { card: KitCardData; itens: KitItemRow[] }, index: number) => {
-    onItensChange(entry.itens);
+  const handleSelectManualKit = (entry: { card: KitCardData; itens: KitItemRow[]; meta?: KitMeta }, index: number) => {
+    // Fase A: ao reativar um kit manual já criado, restaura o override travado dele.
+    const overrideShot = entry.meta?.custo ?? entry.card?.precoTotal ?? null;
+    onItensChange(entry.itens, overrideShot && overrideShot > 0 ? overrideShot : null);
     setSelectedManualIdx(index);
     toast({ title: "Kit selecionado", description: `${entry.card.moduloPotenciaKwp.toFixed(2)} kWp` });
   };
@@ -492,6 +495,9 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
       if (meta?.distribuidorNome) card.distribuidorNome = meta.distribuidorNome;
       if (meta?.custo != null && meta.custo > 0) card.precoTotal = meta.custo;
 
+      // Fase A: override one-shot baseado em meta.custo do kit recém-criado.
+      const overrideShot = meta?.custo && meta.custo > 0 ? meta.custo : null;
+
       if (editingKitIndex !== null) {
         const updatedKits = manualKits.map((k, i) => i === editingKitIndex ? { card, itens: newItens, meta } : k);
         setManualKits(updatedKits);
@@ -500,7 +506,7 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
         const editingVisibleSelectedKit = editingKitIndex === 0 && selectedManualIdx == null && manualKits.length === 1;
         if (selectedManualIdx === editingKitIndex || editingVisibleSelectedKit) {
           setSelectedManualIdx(editingKitIndex);
-          onItensChange(newItens);
+          onItensChange(newItens, overrideShot);
         }
         setEditingKitIndex(null);
       } else {
@@ -509,7 +515,7 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
         // Auto-select the newly created kit
         const newIdx = newKits.length - 1;
         setSelectedManualIdx(newIdx);
-        onItensChange(newItens);
+        onItensChange(newItens, overrideShot);
       }
     }
     setManualMode(null);
