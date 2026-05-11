@@ -37,73 +37,23 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
 import { PageHeader } from "@/components/ui-kit/PageHeader";
 import { StatCard } from "@/components/ui-kit/StatCard";
 import { EmptyState } from "@/components/ui-kit/EmptyState";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { FollowupSendDialog } from "@/components/admin/followup-comercial/FollowupSendDialog";
 import { FollowupComercialAnalytics } from "@/components/admin/followup-comercial/FollowupComercialAnalytics";
+import { FollowupRecoveryRow } from "@/components/admin/followup-comercial/FollowupRecoveryRow";
+import { OpportunityBanner } from "@/components/admin/followup-comercial/OpportunityBanner";
 import {
   useFollowupComercialKpis,
   useFollowupComercialInbox,
   type FollowupClasse,
   type FollowupInboxRow,
 } from "@/hooks/useFollowupComercial";
-import { formatDiasParado, formatDiasParadoCompact } from "@/lib/formatters/diasParado";
 
-import { formatDistanceToNow } from "date-fns";
-import { ptBR } from "date-fns/locale";
-
-const TZ = "America/Sao_Paulo";
-
-const classeLabel: Record<string, { label: string; tone: string }> = {
-  sem_resposta: { label: "Sem resposta", tone: "bg-warning/10 text-warning border-warning/30" },
-  visualizada_sem_retorno: {
-    label: "Visualizada s/ retorno",
-    tone: "bg-info/10 text-info border-info/30",
-  },
-  esquecida: { label: "Esquecida", tone: "bg-destructive/10 text-destructive border-destructive/30" },
-  negociacao_quente: { label: "Quente", tone: "bg-success/10 text-success border-success/30" },
-  outro: { label: "—", tone: "bg-muted text-muted-foreground border-border" },
-};
-
-const tempLabel: Record<string, string> = {
-  quente: "🔥 Quente",
-  morna: "🌤 Morna",
-  fria: "❄️ Fria",
-};
-
-function formatBRL(v: number | null | undefined) {
-  if (v == null) return "—";
-  return v.toLocaleString("pt-BR", {
-    style: "currency",
-    currency: "BRL",
-    maximumFractionDigits: 0,
-  });
-}
-
-function formatRelative(iso: string | null) {
-  if (!iso) return "—";
-  try {
-    return formatDistanceToNow(new Date(iso), { addSuffix: true, locale: ptBR });
-  } catch {
-    return "—";
-  }
-}
-
-function formatAbsolute(iso: string | null) {
-  if (!iso) return "—";
-  try {
-    return new Intl.DateTimeFormat("pt-BR", {
-      timeZone: TZ,
-      dateStyle: "short",
-      timeStyle: "short",
-    }).format(new Date(iso));
-  } catch {
-    return "—";
-  }
-}
+const formatBRL = (v: number) =>
+  v.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
 
 function KpiSkeletons() {
   return (
@@ -115,21 +65,23 @@ function KpiSkeletons() {
   );
 }
 
-function TableSkeletons() {
+function RowSkeletons() {
   return (
-    <div className="p-4 space-y-2">
+    <div className="space-y-2">
       {Array.from({ length: 6 }).map((_, i) => (
-        <Skeleton key={i} className="h-12 w-full" />
+        <Skeleton key={i} className="h-20 w-full rounded-lg" />
       ))}
     </div>
   );
 }
+
 
 export default function FollowupComercialPage() {
   const [classe, setClasse] = useState<FollowupClasse | "todos">("todos");
   const [diasMin, setDiasMin] = useState<string>("0");
   const [search, setSearch] = useState("");
   const [sendTarget, setSendTarget] = useState<FollowupInboxRow | null>(null);
+  const [dialogTab, setDialogTab] = useState<"mensagem" | "historico">("mensagem");
 
   const kpis = useFollowupComercialKpis();
   const inbox = useFollowupComercialInbox({
@@ -248,169 +200,57 @@ export default function FollowupComercialPage() {
         </CardContent>
       </Card>
 
+      {/* Banner de oportunidade */}
+      {!inbox.isLoading && !inbox.isError && rows.length > 0 && (
+        <OpportunityBanner rows={rows} />
+      )}
+
       {/* Inbox */}
-      <Card className="border-border">
-        <CardContent className="p-0">
-          {inbox.isLoading ? (
-            <TableSkeletons />
-          ) : inbox.isError ? (
-            <div className="p-6 flex flex-col sm:flex-row items-center justify-between gap-3">
-              <div className="flex items-center gap-2 text-sm text-destructive">
-                <AlertTriangle className="h-4 w-4" />
-                Erro ao carregar inbox de recuperação.
-              </div>
-              <Button size="sm" variant="outline" onClick={() => inbox.refetch()}>
-                <RefreshCw className="h-4 w-4 mr-2" /> Tentar novamente
-              </Button>
+      {inbox.isLoading ? (
+        <Card className="border-border"><CardContent className="p-4"><RowSkeletons /></CardContent></Card>
+      ) : inbox.isError ? (
+        <Card className="border-l-[3px] border-l-destructive">
+          <CardContent className="p-6 flex flex-col sm:flex-row items-center justify-between gap-3">
+            <div className="flex items-center gap-2 text-sm text-destructive">
+              <AlertTriangle className="h-4 w-4" />
+              Erro ao carregar inbox de recuperação.
             </div>
-          ) : rows.length === 0 ? (
-            <EmptyState
-              icon={Inbox}
-              title="Nenhuma proposta encontrada"
-              description="Ajuste os filtros ou aguarde novas propostas elegíveis para reaquecimento."
-            />
-          ) : (
-            <>
-              <div className="px-4 py-3 border-b border-border flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 text-xs text-muted-foreground">
-                <span>
-                  {rows.length} proposta(s) — valor potencial{" "}
-                  <strong className="text-foreground">{formatBRL(totalValor)}</strong>
-                </span>
-                <span className="hidden sm:inline">
-                  Limite 300 — refine filtros para listas maiores
-                </span>
-              </div>
-
-              {/* Mobile cards (<= sm) */}
-              <ul className="md:hidden divide-y divide-border">
-                {rows.map((r) => {
-                  const c = classeLabel[r.classe_followup ?? "outro"] ?? classeLabel.outro;
-                  return (
-                    <li key={`m-${r.proposta_id}-${r.versao_id ?? "v"}`} className="p-4 space-y-2">
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="min-w-0">
-                          <div className="font-medium text-sm text-foreground truncate">
-                            {r.cliente_nome ?? "—"}
-                          </div>
-                          <div className="text-xs text-muted-foreground truncate">
-                            {r.codigo ? `${r.codigo} · ` : ""}{r.titulo ?? "Sem título"}
-                          </div>
-                        </div>
-                        <Badge variant="outline" className={`${c.tone} text-[10px] shrink-0`}>
-                          {c.label}
-                        </Badge>
-                      </div>
-                      <div className="grid grid-cols-3 gap-2 text-xs">
-                        <div>
-                          <div className="text-muted-foreground">Valor</div>
-                          <div className="font-medium text-foreground">{formatBRL(r.valor_total)}</div>
-                        </div>
-                        <div>
-                          <div className="text-muted-foreground">Parado</div>
-                          <div className="font-medium text-foreground">
-                            {formatDiasParado(r.dias_parado)}
-                          </div>
-                        </div>
-                        <div>
-                          <div className="text-muted-foreground">Aberturas</div>
-                          <div className="font-medium text-foreground">{r.total_aberturas ?? 0}</div>
-                        </div>
-                      </div>
-                      <div className="flex items-center justify-between gap-2 text-[11px] text-muted-foreground">
-                        <span>{tempLabel[r.temperatura ?? ""] ?? "—"}</span>
-                        <span title={formatAbsolute(r.ultima_atividade_em)}>
-                          {formatRelative(r.ultima_atividade_em)}
-                        </span>
-                      </div>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="w-full"
-                        disabled={!r.telefone_normalized}
-                        onClick={() => setSendTarget(r)}
-                      >
-                        <Send className="h-3.5 w-3.5 mr-2" /> Enviar follow-up
-                      </Button>
-                    </li>
-                  );
-                })}
-              </ul>
-
-              {/* Desktop table (>= md) */}
-              <div className="hidden md:block overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead className="bg-muted/40 text-xs uppercase text-muted-foreground">
-                    <tr>
-                      <th className="text-left px-4 py-2">Cliente / Proposta</th>
-                      <th className="text-left px-4 py-2">Classe</th>
-                      <th className="text-left px-4 py-2">Temperatura</th>
-                      <th className="text-right px-4 py-2">Valor</th>
-                      <th className="text-right px-4 py-2">kWp</th>
-                      <th className="text-right px-4 py-2">Aberturas</th>
-                      <th className="text-right px-4 py-2">Parado</th>
-                      <th className="text-left px-4 py-2">Última atividade</th>
-                      <th className="text-right px-4 py-2 w-[1%]">Ação</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {rows.map((r) => {
-                      const c = classeLabel[r.classe_followup ?? "outro"] ?? classeLabel.outro;
-                      return (
-                        <tr
-                          key={`${r.proposta_id}-${r.versao_id ?? "v"}`}
-                          className="border-t border-border hover:bg-muted/30"
-                        >
-                          <td className="px-4 py-2">
-                            <div className="font-medium text-foreground truncate max-w-[260px]">
-                              {r.cliente_nome ?? "—"}
-                            </div>
-                            <div className="text-xs text-muted-foreground truncate max-w-[260px]">
-                              {r.codigo ? `${r.codigo} · ` : ""}{r.titulo ?? "Sem título"}
-                            </div>
-                          </td>
-                          <td className="px-4 py-2">
-                            <Badge variant="outline" className={c.tone}>{c.label}</Badge>
-                          </td>
-                          <td className="px-4 py-2 text-xs text-foreground">
-                            {tempLabel[r.temperatura ?? ""] ?? "—"}
-                            {r.score_ia != null && (
-                              <span className="text-muted-foreground ml-1">({r.score_ia})</span>
-                            )}
-                          </td>
-                          <td className="px-4 py-2 text-right tabular-nums">{formatBRL(r.valor_total)}</td>
-                          <td className="px-4 py-2 text-right tabular-nums">
-                            {r.potencia_kwp ? Number(r.potencia_kwp).toFixed(2) : "—"}
-                          </td>
-                          <td className="px-4 py-2 text-right tabular-nums">{r.total_aberturas ?? 0}</td>
-                          <td className="px-4 py-2 text-right tabular-nums">
-                            <span title={formatDiasParado(r.dias_parado)}>{formatDiasParadoCompact(r.dias_parado)}</span>
-                          </td>
-                          <td
-                            className="px-4 py-2 text-xs text-muted-foreground"
-                            title={formatAbsolute(r.ultima_atividade_em)}
-                          >
-                            {formatRelative(r.ultima_atividade_em)}
-                          </td>
-                          <td className="px-4 py-2 text-right">
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              disabled={!r.telefone_normalized}
-                              onClick={() => setSendTarget(r)}
-                            >
-                              <Send className="h-3.5 w-3.5 mr-1.5" /> Enviar
-                            </Button>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            </>
-          )}
-        </CardContent>
-      </Card>
+            <Button size="sm" variant="outline" onClick={() => inbox.refetch()}>
+              <RefreshCw className="h-4 w-4 mr-2" /> Tentar novamente
+            </Button>
+          </CardContent>
+        </Card>
+      ) : rows.length === 0 ? (
+        <Card className="border-border"><CardContent className="p-0">
+          <EmptyState
+            icon={Inbox}
+            title="Nenhuma proposta encontrada"
+            description="Ajuste os filtros ou aguarde novas propostas elegíveis para reaquecimento."
+          />
+        </CardContent></Card>
+      ) : (
+        <div className="space-y-2">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 text-xs text-muted-foreground px-1">
+            <span>
+              {rows.length} proposta(s) — valor potencial{" "}
+              <strong className="text-foreground">{formatBRL(totalValor)}</strong>
+            </span>
+            <span className="hidden sm:inline">
+              Limite 300 — refine filtros para listas maiores
+            </span>
+          </div>
+          <ul className="rounded-lg overflow-hidden">
+            {rows.map((r) => (
+              <FollowupRecoveryRow
+                key={`${r.proposta_id}-${r.versao_id ?? "v"}`}
+                row={r}
+                onSend={(row) => { setDialogTab("mensagem"); setSendTarget(row); }}
+                onHistory={(row) => { setDialogTab("historico"); setSendTarget(row); }}
+              />
+            ))}
+          </ul>
+        </div>
+      )}
         </TabsContent>
 
         <TabsContent value="analytics" className="mt-4">
@@ -421,8 +261,10 @@ export default function FollowupComercialPage() {
       <FollowupSendDialog
         row={sendTarget}
         open={!!sendTarget}
+        defaultTab={dialogTab}
         onOpenChange={(o) => !o && setSendTarget(null)}
       />
     </div>
   );
 }
+

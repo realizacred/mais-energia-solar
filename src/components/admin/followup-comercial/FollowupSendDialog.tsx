@@ -28,6 +28,7 @@ interface Props {
   row: FollowupInboxRow | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  defaultTab?: "mensagem" | "historico";
 }
 
 function defaultMessage(row: FollowupInboxRow): string {
@@ -49,7 +50,7 @@ function formatPhone(p: string | null) {
   return p;
 }
 
-export function FollowupSendDialog({ row, open, onOpenChange }: Props) {
+export function FollowupSendDialog({ row, open, onOpenChange, defaultTab = "mensagem" }: Props) {
   const [message, setMessage] = useState("");
   const [force, setForce] = useState(false);
   const [forceReason, setForceReason] = useState("");
@@ -160,7 +161,7 @@ export function FollowupSendDialog({ row, open, onOpenChange }: Props) {
             </div>
           </div>
 
-          <Tabs defaultValue="mensagem" className="w-full">
+          <Tabs key={`${row.proposta_id}-${defaultTab}`} defaultValue={defaultTab} className="w-full">
             <TabsList className="grid grid-cols-2 w-full">
               <TabsTrigger value="mensagem" className="gap-1.5 text-xs">
                 <Send className="h-3.5 w-3.5" /> Mensagem
