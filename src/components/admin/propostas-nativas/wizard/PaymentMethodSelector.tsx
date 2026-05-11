@@ -196,9 +196,7 @@ function SelectedItemCard({
 
   // Calculate valor_parcela
   const principal = (editData.valor_total || precoFinal) - (editData.entrada || 0);
-  const valorParcela = editData.num_parcelas > 0 && principal > 0
-    ? principal / editData.num_parcelas
-    : principal;
+  const valorParcela = calcularPrestacao(principal, editData.taxa_mensal, editData.num_parcelas);
 
   if (editing) {
     return (
