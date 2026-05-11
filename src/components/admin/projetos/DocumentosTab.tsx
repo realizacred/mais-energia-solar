@@ -373,13 +373,8 @@ export function DocumentosTab({ dealId, clienteTelefone, consultorTelefone: cons
   if (loading) return <div className="flex justify-center py-12"><SunLoader style="spin" /></div>;
 
   return (
-    <div className="space-y-5">
-      {/* HUB CANÔNICO — SSOT project_documents (Fase 1-4) */}
-      <ProjectDocumentsHub dealId={dealId} />
-
-      <div className="border-t border-border pt-5" />
-
-      {/* BLOCO 1: Documentos Gerados */}
+    <div className="space-y-6">
+      {/* SEÇÃO 1: Documentos Gerados (workflow de assinatura) */}
       <section className="space-y-3">
         <div className="flex items-center justify-between">
           <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
