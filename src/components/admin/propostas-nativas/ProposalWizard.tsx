@@ -2363,6 +2363,8 @@ export function ProposalWizard() {
         itens: itens.filter(i => i.descricao).map(({ id, ...rest }) => rest),
         servicos: servicos.map(({ id, ...rest }) => rest),
         venda: {
+          custo_kit: venda.custo_kit,
+          custo_instalacao: venda.custo_instalacao,
           custo_comissao: venda.custo_comissao,
           custo_outros: venda.custo_outros,
           margem_percentual: venda.margem_percentual,
