@@ -39,6 +39,8 @@ import { useExcluirProposta } from "@/hooks/usePropostasProjetoTab";
 import { usePropostaExpandedSnapshot, usePropostaExpandedUcs, usePropostaExpandedKitItems, usePropostaAuditLogs, usePropostaEvents, type UCDetailData, type ProposalEventEntry } from "@/hooks/usePropostaExpandedData";
 import { useReabrirProposta, useIsAdminOrGerente } from "@/hooks/useReabrirProposta";
 import { useProposalTemplates } from "@/hooks/useProposalTemplates";
+import { PropostaBadge } from "./PropostaBadge";
+
 
 // ─── Types ──────────────────────────────────────────
 
@@ -267,47 +269,32 @@ import { getProposalStatusConfig } from "@/lib/proposalStatusConfig";
 
 function StatusBadge({ status, aceita_at, enviada_at, recusada_at, created_at }: { status: string; aceita_at?: string | null; enviada_at?: string | null; recusada_at?: string | null; created_at?: string | null }) {
   const s = getProposalStatusConfig(status);
-
-  // Build tooltip text based on status
-  const getTooltipText = () => {
-    const lines: string[] = [];
-    if (["aceita", "accepted", "aprovada", "ganha"].includes(status) && aceita_at) {
-      lines.push(`Aceita em ${formatDateTime(aceita_at)}`);
-    }
-    if (["recusada", "rejected", "rejeitada", "perdida"].includes(status) && recusada_at) {
-      lines.push(`Recusada em ${formatDateTime(recusada_at)}`);
-    }
-    if (["enviada", "sent"].includes(status) && enviada_at) {
-      lines.push(`Enviada em ${formatDateTime(enviada_at)}`);
-    }
-    if (["gerada", "generated"].includes(status) && created_at) {
-      lines.push(`Gerada em ${formatDateTime(created_at)}`);
-    }
-    if (lines.length === 0 && created_at) {
-      lines.push(`Criada em ${formatDateTime(created_at)}`);
-    }
-    return lines.join("\n");
+  
+  // Map internal status to badge type
+  const getBadgeType = () => {
+    const normalized = status.toLowerCase();
+    if (["aceita", "accepted", "aprovada", "ganha"].includes(normalized)) return "aceita";
+    if (["enviada", "sent", "visualizada", "vista"].includes(normalized)) return "enviada";
+    if (["gerada", "generated"].includes(normalized)) return "gerada";
+    if (["rascunho", "draft"].includes(normalized)) return "rascunho";
+    return null;
   };
 
-  const tooltipText = getTooltipText();
+  const badgeType = getBadgeType();
 
-  if (!tooltipText) {
-    return <span className={cn("text-[10px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap", s.className)}>{s.label}</span>;
+  // If we have a mapped tooltip type, use it
+  if (badgeType) {
+    return <PropostaBadge type={badgeType as any} className={s.className} />;
   }
 
+  // Fallback to standard Badge without custom tooltip for other statuses
   return (
-    <TooltipProvider>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <span className={cn("text-[10px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap cursor-default", s.className)}>{s.label}</span>
-        </TooltipTrigger>
-        <TooltipContent side="bottom" className="text-xs">
-          {tooltipText}
-        </TooltipContent>
-      </Tooltip>
-    </TooltipProvider>
+    <Badge variant="outline" className={cn("text-[10px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap cursor-default", s.className)}>
+      {s.label}
+    </Badge>
   );
 }
+
 
 /** Returns contextual date label based on proposal status */
 function getStatusDateLabel(
@@ -1378,21 +1365,10 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
                 {p.cliente_nome || p.titulo || p.codigo || `Proposta #${p.proposta_num}`}
               </p>
               <StatusBadge status={p.status} aceita_at={p.aceita_at} enviada_at={p.enviada_at} recusada_at={p.recusada_at} created_at={p.created_at} />
-              {isMigrated && (
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap bg-warning/10 text-warning border border-warning/30">
-                  Migrada SM
-                </span>
-              )}
-              {isPrincipal && (
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap bg-warning/10 text-warning">
-                  <Star className="h-2.5 w-2.5 inline mr-0.5 -mt-0.5" />Principal
-                </span>
-              )}
-              {isOutdated && (
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap bg-warning/10 text-warning border border-warning/20">
-                  Desatualizada
-                </span>
-              )}
+              {isMigrated && <PropostaBadge type="migrada" />}
+              {isPrincipal && <PropostaBadge type="principal" />}
+              {isOutdated && <PropostaBadge type="desatualizada" />}
+
             </div>
             <p className="text-[10px] text-muted-foreground mt-0.5">
               {getStatusDateLabel(p.status, p.aceita_at, p.enviada_at, p.recusada_at, p.created_at)}

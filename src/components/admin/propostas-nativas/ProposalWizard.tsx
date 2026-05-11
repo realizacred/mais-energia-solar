@@ -74,6 +74,8 @@ import { useSavedFeedback, SavedFeedbackInline } from "./wizard/SavedFeedback";
 import { EstimativaCheckbox } from "./wizard/EstimativaCheckbox";
 import { MissingVariablesModal } from "./wizard/MissingVariablesModal";
 import { useIsAdminOrGerente } from "@/hooks/useReabrirProposta";
+import { PropostaBadge } from "../projetos/PropostaBadge";
+
 
 // ── Types
 import {
@@ -3174,22 +3176,24 @@ export function ProposalWizard() {
       {/* Sent Proposal Warning Banner */}
       {editingsentProposal && (
         <div className="flex items-center gap-3 px-4 lg:px-6 py-3 border-b border-warning/30 bg-warning/10 shrink-0">
-          <AlertTriangle className="h-[18px] w-[18px] text-warning shrink-0" />
+          <PropostaBadge type="enviada" className="bg-warning/10 text-warning border-warning/30" />
           <p className="text-sm font-medium text-warning">
             Essa proposta já foi enviada/gerada. Ao salvar, uma nova versão será criada com um novo link.
           </p>
         </div>
       )}
 
+
       {/* Migrated proposal without editable kit */}
       {migratedKitMissing && (
         <div className="flex items-center gap-2 px-4 lg:px-6 py-2 border-b border-amber-500/30 bg-amber-500/10 shrink-0">
-          <AlertTriangle className="h-3.5 w-3.5 text-amber-600 shrink-0" />
+          <PropostaBadge type="migrada" className="bg-amber-500/10 text-amber-600 border-amber-500/30" />
           <p className="text-[11px] font-medium text-amber-700 dark:text-amber-400">
             Esta proposta importada não possui kit técnico editável. Use "Duplicar proposta" para criar uma versão editável ou refaça o kit manualmente.
           </p>
         </div>
       )}
+
 
       {/* ── Pipeline stepper — responsive: scrollable on mobile, full on desktop */}
       <div className="relative shrink-0 border-b-2 border-secondary/10 bg-gradient-to-b from-card to-muted/20">

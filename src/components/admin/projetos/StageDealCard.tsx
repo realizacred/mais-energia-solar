@@ -31,9 +31,10 @@ interface DynamicEtiqueta {
   short: string | null;
   icon: string | null;
 }
-
+import { PropostaBadge } from "./PropostaBadge";
 import { PROPOSAL_STATUS_CONFIG } from "@/lib/proposalStatusConfig";
 const PROPOSTA_STATUS_MAP = PROPOSAL_STATUS_CONFIG;
+
 
 function getTimeInStage(lastChange: string) {
   const hours = differenceInHours(new Date(), new Date(lastChange));
@@ -247,9 +248,18 @@ export function StageDealCard({
             {propostaInfo && (
               <>
                 <span className="text-muted-foreground/30">·</span>
-                <Badge variant="outline" className={cn("text-[8px] h-[16px] px-1 py-0 font-medium border bg-transparent", propostaInfo.className)}>
-                  {propostaInfo.label}
-                </Badge>
+                <PropostaBadge 
+                  type={(() => {
+                    const normalized = deal.proposta_status?.toLowerCase() ?? "";
+                    if (["aceita", "accepted", "aprovada", "ganha"].includes(normalized)) return "aceita";
+                    if (["enviada", "sent", "visualizada", "vista"].includes(normalized)) return "enviada";
+                    if (["gerada", "generated"].includes(normalized)) return "gerada";
+                    if (["rascunho", "draft"].includes(normalized)) return "rascunho";
+                    return "gerada"; // fallback
+                  })() as any}
+                  className={cn("text-[8px] h-[16px] px-1 py-0 font-medium border bg-transparent", propostaInfo.className)} 
+                />
+
               </>
             )}
             {deal.deal_num != null && (
