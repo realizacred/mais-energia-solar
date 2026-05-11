@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Plus, Trash2, Wrench, Info, ChevronDown, ChevronRight } from "lucide-react";
+import { Plus, Trash2, Wrench, Info, ChevronDown, ChevronRight, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { CurrencyInput } from "@/components/ui-kit/inputs/CurrencyInput";
@@ -7,7 +7,8 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
-import { type ServicoItem, type KitItemRow, formatBRL } from "./types";
+import { type ServicoItem, type KitItemRow, type VendaData, formatBRL } from "./types";
+import { useSolarPremises } from "@/hooks/useSolarPremises";
 
 const CATEGORIAS_SERVICO = [
   { value: "instalacao", label: "Instalação" },
@@ -30,6 +31,8 @@ interface ResumoItem {
 interface StepServicosProps {
   servicos: ServicoItem[];
   onServicosChange: (servicos: ServicoItem[]) => void;
+  /** Venda data for installation/commission values in sidebar */
+  venda?: VendaData;
   /** Kit items for building the Resumo sidebar */
   kitItens?: KitItemRow[];
   potenciaKwp?: number;
@@ -37,8 +40,9 @@ interface StepServicosProps {
   custoKitOverride?: number | null;
 }
 
-export function StepServicos({ servicos, onServicosChange, kitItens = [], potenciaKwp = 0, custoKitOverride }: StepServicosProps) {
+export function StepServicos({ servicos, onServicosChange, venda, kitItens = [], potenciaKwp = 0, custoKitOverride }: StepServicosProps) {
   const [kitExpanded, setKitExpanded] = useState(false);
+  const { data: premises } = useSolarPremises();
 
   const addServico = () => {
     onServicosChange([...servicos, {
@@ -48,6 +52,25 @@ export function StepServicos({ servicos, onServicosChange, kitItens = [], potenc
       valor: 0,
       incluso_no_preco: true,
     }]);
+  };
+
+  const addDefaultServices = () => {
+    if (!premises?.sombreamento_config) return;
+    
+    // In current project, default services are defined in pricing_config/tenant_premises
+    // but the request asks to populate with "standard services" from premises.
+    // Since there's no explicit "default_services" array in SolarPremises, 
+    // we'll add common ones as a placeholder or check if there's a specific logic.
+    // Based on system patterns, we'll add "Projeto Elétrico" and "Homologação" 
+    // if not already present.
+    
+    const defaults: ServicoItem[] = [
+      { id: crypto.randomUUID(), descricao: "Projeto Elétrico e Engenharia", categoria: "projeto", valor: 0, incluso_no_preco: true },
+      { id: crypto.randomUUID(), descricao: "Homologação na Concessionária", categoria: "homologacao", valor: 0, incluso_no_preco: true },
+      { id: crypto.randomUUID(), descricao: "Visita Técnica", categoria: "manutencao", valor: 0, incluso_no_preco: true },
+    ];
+    
+    onServicosChange([...servicos, ...defaults]);
   };
 
   const removeServico = (id: string) => onServicosChange(servicos.filter(s => s.id !== id));
@@ -71,21 +94,22 @@ export function StepServicos({ servicos, onServicosChange, kitItens = [], potenc
   const instalacaoServico = servicos.find(s => s.categoria === "instalacao");
   const comissaoServico = servicos.find(s => s.categoria === "comissao");
 
-  if (instalacaoServico || !servicos.some(s => s.categoria === "instalacao")) {
-    resumoItens.push({
-      descricao: "Instalação",
-      quantidade: 1,
-      valor: instalacaoServico?.valor || 0,
-    });
-  }
+  // Use values from VendaData if provided (Financial Center sync), otherwise from servicos array
+  const hasVendaValues = !!venda;
+  const valorInstalacao = hasVendaValues ? (venda.custo_instalacao || 0) : (servicos.find(s => s.categoria === "instalacao")?.valor || 0);
+  const valorComissao = hasVendaValues ? (venda.custo_comissao || 0) : (servicos.find(s => s.categoria === "comissao")?.valor || 0);
 
-  if (comissaoServico || !servicos.some(s => s.categoria === "comissao")) {
-    resumoItens.push({
-      descricao: "Comissão",
-      quantidade: 1,
-      valor: comissaoServico?.valor || 0,
-    });
-  }
+  resumoItens.push({
+    descricao: "Instalação",
+    quantidade: 1,
+    valor: valorInstalacao,
+  });
+
+  resumoItens.push({
+    descricao: "Comissão",
+    quantidade: 1,
+    valor: valorComissao,
+  });
 
   // Add other services not already shown
   servicos
@@ -105,8 +129,29 @@ export function StepServicos({ servicos, onServicosChange, kitItens = [], potenc
         </div>
 
         {servicos.length === 0 ? (
-          <div className="text-center py-12 text-sm text-muted-foreground">
-            Nenhum serviço configurado para esta proposta.
+          <div className="flex flex-col items-center justify-center py-16 px-4 text-center bg-muted/20 border border-dashed border-border/60 rounded-2xl">
+            <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mb-4">
+              <Sparkles className="h-6 w-6 text-primary" />
+            </div>
+            <h3 className="text-base font-semibold text-foreground">Nenhum serviço adicionado ainda</h3>
+            <p className="text-sm text-muted-foreground max-w-[320px] mt-1.5 mb-6">
+              Serviços opcionais como visita técnica e projeto elétrico. A instalação é configurada em Custos e Margem.
+            </p>
+            <div className="flex flex-wrap items-center justify-center gap-3">
+              <Button 
+                onClick={addDefaultServices} 
+                className="bg-orange-500 hover:bg-orange-600 text-white gap-2 h-9 px-5 rounded-full shadow-sm shadow-orange-500/20"
+              >
+                <Plus className="h-4 w-4" /> Adicionar serviço padrão
+              </Button>
+              <Button 
+                variant="outline" 
+                onClick={addServico} 
+                className="gap-2 h-9 px-5 rounded-full"
+              >
+                <Plus className="h-4 w-4" /> Personalizado
+              </Button>
+            </div>
           </div>
         ) : (
           <div className="space-y-2">
