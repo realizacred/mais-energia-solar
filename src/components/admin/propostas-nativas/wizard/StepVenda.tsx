@@ -88,7 +88,14 @@ export function StepVenda({ venda, onVendaChange, itens, servicos, potenciaKwp =
           <p className="text-xs text-muted-foreground mt-1">
             💡 {hasHistory ? "Sua margem histórica média" : "Margem sugerida"}: {hasHistory && suggested?.margem_percentual != null ? (Math.round(suggested.margem_percentual * 10) / 10) : "20"}%
             <span className="mx-2">|</span>
-            Margem atual da proposta: <span className={cn("font-semibold", margemLiquida > 0 ? "text-success" : "text-warning")}>{(Number(margemLiquida) || 0).toFixed(1)}%</span>
+            <span className="inline-flex items-center gap-1">
+              Meta: <span className="font-semibold text-foreground">{margemMeta.toFixed(1)}%</span>
+              <span className="mx-1">|</span>
+              Atual: <span className={cn("font-bold flex items-center gap-0.5", isMargemOk ? "text-success" : "text-destructive")}>
+                {margemLiquida.toFixed(1)}%
+                {isMargemOk ? <Check className="h-3 w-3" /> : <AlertTriangle className="h-3 w-3" />}
+              </span>
+            </span>
           </p>
         </div>
 
