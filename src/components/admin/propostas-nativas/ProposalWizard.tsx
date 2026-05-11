@@ -75,6 +75,7 @@ import {
   EMPTY_CLIENTE, DEFAULT_PREMISSAS, DEFAULT_PRE_DIMENSIONAMENTO, createEmptyUC, formatBRL,
   redeAtendimentoToFaseTensao, mapLeadTipoTelhadoToProposal,
 } from "./wizard/types";
+import { normalizeSolarMarketV2Snapshot } from "./wizard/normalizeSolarMarketV2";
 
 // ─── Step Keys ─────────────────────────────────────────────
 
