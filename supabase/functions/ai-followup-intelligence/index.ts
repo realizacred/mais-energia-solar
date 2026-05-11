@@ -406,6 +406,13 @@ const PROPOSAL_ALLOWED_KEYS = [
   "viewed_at",
   "valido_ate",
   "dias_sem_resposta",
+  // Phase 4C — enriquecimento (whitelist estrita)
+  "tentativas_anteriores",
+  "ultimo_canal",
+  "ultimo_outcome",
+  "total_aberturas",
+  "opt_out",
+  "taxa_sucesso_tenant_cenario",
 ];
 
 async function handleProposalFollowup(sb: any, tenantId: string, body: any, userId: string | null) {
