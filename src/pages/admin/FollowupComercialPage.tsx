@@ -234,8 +234,12 @@ export default function FollowupComercialPage() {
       </Card>
 
       {/* Banner de oportunidade */}
-      {!inbox.isLoading && !inbox.isError && rows.length > 0 && (
-        <OpportunityBanner rows={rows} />
+      {!inbox.isLoading && !inbox.isError && totalReal > 0 && (
+        <OpportunityBanner
+          rows={rows}
+          totalReal={totalReal}
+          valorPotencialReal={valorPotencialReal}
+        />
       )}
 
       {/* Inbox */}
@@ -265,12 +269,16 @@ export default function FollowupComercialPage() {
         <div className="space-y-2">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 text-xs text-muted-foreground px-1">
             <span>
-              {rows.length} proposta(s) — valor potencial{" "}
-              <strong className="text-foreground">{formatBRL(totalValor)}</strong>
+              Mostrando <strong className="text-foreground">{rows.length}</strong> de{" "}
+              <strong className="text-foreground">{totalReal}</strong> proposta(s) — valor potencial{" "}
+              <strong className="text-foreground">{formatBRL(valorPotencialReal)}</strong>
             </span>
-            <span className="hidden sm:inline">
-              Limite 300 — refine filtros para listas maiores
-            </span>
+            {summary.data && (
+              <span className="hidden sm:inline">
+                Inatividade: p50 {Math.round(summary.data.dias_parado_p50)}d · p90{" "}
+                {Math.round(summary.data.dias_parado_p90)}d
+              </span>
+            )}
           </div>
           <ul className="rounded-lg overflow-hidden">
             {rows.map((r) => (
@@ -282,6 +290,29 @@ export default function FollowupComercialPage() {
               />
             ))}
           </ul>
+
+          {/* Lazy-load sentinel + fallback botão */}
+          {inbox.hasNextPage && (
+            <div ref={sentinelRef} className="flex justify-center py-3">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => inbox.fetchNextPage()}
+                disabled={inbox.isFetchingNextPage}
+              >
+                {inbox.isFetchingNextPage ? (
+                  <><RefreshCw className="h-4 w-4 mr-2 animate-spin" /> Carregando…</>
+                ) : (
+                  <>Carregar mais</>
+                )}
+              </Button>
+            </div>
+          )}
+          {!inbox.hasNextPage && rows.length > 0 && rows.length < totalReal && (
+            <div className="text-center text-xs text-muted-foreground py-2">
+              Fim da lista para os filtros atuais.
+            </div>
+          )}
         </div>
       )}
         </TabsContent>
