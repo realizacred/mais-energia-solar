@@ -14,7 +14,11 @@ import { type PagamentoOpcao, type BancoFinanciamento, type UCData, type Premiss
 import { formatNumberBR } from "@/lib/formatters";
 import { CurrencyInput } from "@/components/ui-kit/inputs/CurrencyInput";
 import { calcularPrestacao, calcularEconomiaMensal } from "@/services/paymentComposition/financingMath";
-// ... keep existing code
+import { VARIABLES_CATALOG, CATEGORY_LABELS, CATEGORY_ORDER, type VariableCategory } from "@/lib/variablesCatalog";
+import { usePaymentInterestConfigs, type PaymentInterestConfig } from "@/hooks/usePaymentInterestConfig";
+import { FORMA_PAGAMENTO_LABELS, type FormaPagamento } from "@/services/paymentComposition/types";
+import { PaymentMethodSelector, type FormaSelected } from "./PaymentMethodSelector";
+
   // ─── Derived metrics (aligned with calc-engine.ts)
   const prem = premissas || { inflacao_energetica: 9.5, perda_eficiencia_anual: 0.5, vpl_taxa_desconto: 10, imposto: 0, inflacao_ipca: 4.5, sobredimensionamento: 0, troca_inversor_anos: 15, troca_inversor_custo: 30 };
   const geracaoMensalCalculada = potenciaKwp * (irradiacao || 4.5) * 30 * 0.80;
