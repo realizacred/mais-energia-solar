@@ -273,9 +273,7 @@ export function StepPagamento({
     const bancoOpcoes = flattenBancoGroupsToOpcoes(bancoGroups, precoFinal);
     const formasOpcoes: PagamentoOpcao[] = formasSelecionadas.map(f => {
       const principal = (f.valor_total || precoFinal) - (f.entrada || 0);
-      const valorParcela = f.num_parcelas > 0 && principal > 0
-        ? principal / f.num_parcelas
-        : principal;
+      const valorParcela = calcularPrestacao(principal, f.taxa_mensal, f.num_parcelas || 1);
       return {
         id: f.id,
         nome: f.nome,
