@@ -28,6 +28,12 @@ export const projetoDetalheKeys = {
 export interface ProjetoDetalheFullData {
   deal: DealDetail;
   projetoId: string | null;
+  /** Nome próprio do projeto (projetos.nome). NÃO é o nome do cliente. */
+  projetoNome: string | null;
+  /** Código humano do projeto (projetos.codigo) — fallback de display. */
+  projetoCodigo: string | null;
+  /** Número humano do projeto (projetos.projeto_num) — fallback final. */
+  projetoNum: number | null;
   history: StageHistory[];
   stages: StageInfo[];
   customerName: string;
