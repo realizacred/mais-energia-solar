@@ -129,8 +129,29 @@ export function StepServicos({ servicos, onServicosChange, venda, kitItens = [],
         </div>
 
         {servicos.length === 0 ? (
-          <div className="text-center py-12 text-sm text-muted-foreground">
-            Nenhum serviço configurado para esta proposta.
+          <div className="flex flex-col items-center justify-center py-16 px-4 text-center bg-muted/20 border border-dashed border-border/60 rounded-2xl">
+            <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mb-4">
+              <Sparkles className="h-6 w-6 text-primary" />
+            </div>
+            <h3 className="text-base font-semibold text-foreground">Nenhum serviço adicionado ainda</h3>
+            <p className="text-sm text-muted-foreground max-w-[320px] mt-1.5 mb-6">
+              Serviços opcionais como visita técnica e projeto elétrico. A instalação é configurada em Custos e Margem.
+            </p>
+            <div className="flex flex-wrap items-center justify-center gap-3">
+              <Button 
+                onClick={addDefaultServices} 
+                className="bg-orange-500 hover:bg-orange-600 text-white gap-2 h-9 px-5 rounded-full shadow-sm shadow-orange-500/20"
+              >
+                <Plus className="h-4 w-4" /> Adicionar serviço padrão
+              </Button>
+              <Button 
+                variant="outline" 
+                onClick={addServico} 
+                className="gap-2 h-9 px-5 rounded-full"
+              >
+                <Plus className="h-4 w-4" /> Personalizado
+              </Button>
+            </div>
           </div>
         ) : (
           <div className="space-y-2">
