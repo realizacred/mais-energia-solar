@@ -1164,6 +1164,7 @@ export function ProposalWizard() {
               desconto_percentual: 0,
               observacoes: "",
               custo_kit_override: null,
+              isImportedFinancialOverride: false,
               comissao_manual_override: false,
               instalacao_enabled: true,
               comissao_enabled: true,
@@ -2865,7 +2866,7 @@ export function ProposalWizard() {
         const kitVal = validateKit(itens, potenciaKwp, venda.custo_kit_override);
         return wrap("kit", (
           <div className="space-y-4">
-            <StepKitSelection itens={itens} onItensChange={setItens} modulos={modulos} inversores={inversores} otimizadores={otimizadores} baterias={baterias} loadingEquip={loadingEquip} potenciaKwp={potenciaKwp} preDimensionamento={preDimensionamento} onPreDimensionamentoChange={setPreDimensionamento} consumoTotal={consumoTotal} manualKits={manualKits} onManualKitsChange={setManualKits} selectedManualIdx={selectedManualIdx} onSelectedManualIdxChange={setSelectedManualIdx} irradiacao={locIrradiacao} latitude={locLatitude} ghiSeries={locGhiSeries} somenteGhi={locSkipPoa} custoKitOverride={venda.custo_kit_override} ibgeCodigo={clienteMunicipioIbgeCodigo ?? solarPremises?.solaryum_ibge_fallback ?? null} />
+            <StepKitSelection itens={itens} onItensChange={handleItensChange} modulos={modulos} inversores={inversores} otimizadores={otimizadores} baterias={baterias} loadingEquip={loadingEquip} potenciaKwp={potenciaKwp} preDimensionamento={preDimensionamento} onPreDimensionamentoChange={setPreDimensionamento} consumoTotal={consumoTotal} manualKits={manualKits} onManualKitsChange={setManualKits} selectedManualIdx={selectedManualIdx} onSelectedManualIdxChange={setSelectedManualIdx} irradiacao={locIrradiacao} latitude={locLatitude} ghiSeries={locGhiSeries} somenteGhi={locSkipPoa} custoKitOverride={venda.custo_kit_override} ibgeCodigo={clienteMunicipioIbgeCodigo ?? solarPremises?.solaryum_ibge_fallback ?? null} />
             {(kitVal?.warnings ?? []).length > 0 && (
               <div className="rounded-lg border border-warning/40 bg-warning/5 p-3 space-y-1">
                 {(kitVal?.warnings ?? []).map((w, i) => (
@@ -2894,7 +2895,7 @@ export function ProposalWizard() {
             adicionais={adicionais}
             onAdicionaisChange={setAdicionais}
             itens={itens}
-            onItensChange={setItens}
+            onItensChange={handleItensChange}
             layouts={layouts}
             onLayoutsChange={setLayouts}
             modulos={modulos}
