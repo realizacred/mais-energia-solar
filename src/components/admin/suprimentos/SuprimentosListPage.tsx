@@ -67,7 +67,7 @@ export function SuprimentosListPage({ projetoId }: SuprimentosListPageProps) {
     enabled: !!propostaAceita?.id,
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("proposta_kits")
+        .from("proposta_kits" as any)
         .select("*")
         .eq("proposta_id", propostaAceita!.id)
         .maybeSingle();
@@ -75,6 +75,7 @@ export function SuprimentosListPage({ projetoId }: SuprimentosListPageProps) {
       return data;
     }
   });
+
 
   const prefilledItens = useMemo(() => {
     if (!propostaAceita || !kitAceito) return [];
