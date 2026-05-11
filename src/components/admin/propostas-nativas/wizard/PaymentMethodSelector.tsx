@@ -37,6 +37,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { formatBRL } from "@/lib/formatters";
+import { CurrencyInput } from "@/components/ui-kit/inputs/CurrencyInput";
 import {
   usePaymentInterestConfigs,
   type PaymentInterestConfig,
@@ -244,13 +245,10 @@ function SelectedItemCard({
             />
           </div>
           <div className="space-y-1">
-            <Label className="text-[10px] text-muted-foreground">Entrada (R$)</Label>
-            <Input
-              type="number"
-              step="0.01"
-              min={0}
-              value={editData.entrada}
-              onChange={(e) => setEditData(prev => ({ ...prev, entrada: Number(e.target.value) || 0 }))}
+            <Label className="text-[10px] text-muted-foreground">Entrada</Label>
+            <CurrencyInput
+              value={editData.entrada || 0}
+              onChange={(reais) => setEditData(prev => ({ ...prev, entrada: reais }))}
               className="h-8 text-xs"
             />
           </div>

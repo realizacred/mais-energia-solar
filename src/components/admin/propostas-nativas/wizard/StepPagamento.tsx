@@ -12,6 +12,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
 import { type PagamentoOpcao, type BancoFinanciamento, type UCData, type PremissasData, formatBRL } from "./types";
 import { formatNumberBR } from "@/lib/formatters";
+import { CurrencyInput } from "@/components/ui-kit/inputs/CurrencyInput";
 import { calcularPrestacao } from "@/services/paymentComposition/financingMath";
 import { VARIABLES_CATALOG, CATEGORY_LABELS, CATEGORY_ORDER, type VariableCategory } from "@/lib/variablesCatalog";
 import { usePaymentInterestConfigs, type PaymentInterestConfig } from "@/hooks/usePaymentInterestConfig";
@@ -875,15 +876,23 @@ export function StepPagamento({
                     <SelectItem value="value" className="text-xs">R$</SelectItem>
                   </SelectContent>
                 </Select>
-                <Input
-                  type="number"
-                  min={0}
-                  step={0.01}
-                  value={novoEntrada}
-                  onChange={e => setNovoEntrada(e.target.value)}
-                  placeholder="0,00"
-                  className="h-9 text-xs flex-1"
-                />
+                {novoEntradaPercent ? (
+                  <Input
+                    type="number"
+                    min={0}
+                    step={0.01}
+                    value={novoEntrada}
+                    onChange={e => setNovoEntrada(e.target.value)}
+                    placeholder="0,00"
+                    className="h-9 text-xs flex-1"
+                  />
+                ) : (
+                  <CurrencyInput
+                    value={parseFloat(novoEntrada) || 0}
+                    onChange={(reais) => setNovoEntrada(String(reais))}
+                    className="h-9 text-xs flex-1"
+                  />
+                )}
               </div>
               <p className="text-[10px] text-muted-foreground">
                 Valor da entrada: {formatBRL(

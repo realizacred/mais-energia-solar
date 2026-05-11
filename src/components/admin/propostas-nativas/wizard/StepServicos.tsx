@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Plus, Trash2, Wrench, Info, ChevronDown, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { CurrencyInput } from "@/components/ui-kit/inputs/CurrencyInput";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
@@ -131,12 +132,10 @@ export function StepServicos({ servicos, onServicosChange, kitItens = [], potenc
                     </Select>
                   </div>
                   <div className="space-y-1">
-                    <Label className="text-[10px] text-muted-foreground">Valor (R$)</Label>
-                    <Input
-                      type="number" min={0} step={0.01}
-                      value={servico.valor || ""}
-                      onChange={e => updateServico(servico.id, "valor", Number(e.target.value))}
-                      placeholder="0,00"
+                    <Label className="text-[10px] text-muted-foreground">Valor</Label>
+                    <CurrencyInput
+                      value={Number(servico.valor) || 0}
+                      onChange={(reais) => updateServico(servico.id, "valor", reais)}
                       className="h-8 text-xs"
                     />
                   </div>

@@ -902,15 +902,22 @@ export function StepFinancialCenter({ venda, onVendaChange, itens, servicos, pot
 
           {/* Input */}
           <div className="relative">
-            <Input
-              type="number"
-              step={0.01}
-              value={editValue}
-              onChange={e => setEditValue(e.target.value)}
-              className="pr-8"
-            />
-            {editMode === "margem" && (
-              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">%</span>
+            {editMode === "preco" ? (
+              <CurrencyInput
+                value={parseFloat(editValue) || 0}
+                onChange={(reais) => setEditValue(String(reais))}
+              />
+            ) : (
+              <>
+                <Input
+                  type="number"
+                  step={0.01}
+                  value={editValue}
+                  onChange={e => setEditValue(e.target.value)}
+                  className="pr-8"
+                />
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">%</span>
+              </>
             )}
           </div>
 
