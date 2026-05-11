@@ -45,6 +45,8 @@ interface Props {
   onCustomFieldValuesChange: (v: Record<string, any>) => void;
   financialWarnings?: string[];
   onConfirm: () => void;
+  /** Kit data for auto-fill */
+  kitItems?: any[];
   /** Save actions */
   onSaveDraft?: () => void;
   onSaveActive?: () => void;
