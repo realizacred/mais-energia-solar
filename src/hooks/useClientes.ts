@@ -136,9 +136,14 @@ export function useSalvarCliente() {
       allowSmDuplicate?: boolean;
     }) => {
       if (id) {
+        const payload = { ...data };
+        if (payload.telefone) {
+          payload.telefone_normalized = normalizePhone(String(payload.telefone));
+        }
+
         const { data: updated, error } = await supabase
           .from("clientes")
-          .update(data)
+          .update(payload)
           .eq("id", id)
           .select()
           .single();
