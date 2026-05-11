@@ -342,6 +342,7 @@ export function ProposalWizard() {
   const [editingsentProposal, setEditingSentProposal] = useState(false);
   // Track async DB restore to block UI during loading (race condition fix)
   const [isRestoring, setIsRestoring] = useState(!!(propostaIdFromUrl && versaoIdFromUrl));
+  const [migratedKitMissing, setMigratedKitMissing] = useState(false);
 
   // ─── Load deal custom field values as fallback for customFieldValues
   const effectiveDealId = savedDealId || (projectContext as any)?.dealId || null;
