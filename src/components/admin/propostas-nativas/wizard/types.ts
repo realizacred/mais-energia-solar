@@ -363,6 +363,8 @@ export interface PagamentoOpcao {
   valor_parcela: number;
   /** Forma de pagamento (pix, cartao_credito, etc.) — usado em tipo="direto" */
   forma_pagamento?: string;
+  /** ID do banco (instituição financeira) — usado em tipo="financiamento" */
+  banco_id?: string;
 }
 
 export interface Concessionaria {
