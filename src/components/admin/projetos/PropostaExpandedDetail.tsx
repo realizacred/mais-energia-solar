@@ -1630,7 +1630,15 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
                           ? () => window.open(latestVersao.link_pdf!, "_blank", "noopener,noreferrer")
                           : handleRender}
                         onNewVersion={() => handleEditWithProtection(() => {
-                          navigate(`/admin/propostas-nativas?edit=${p.id}`);
+                          if (!latestVersao?.id) {
+                            toast({
+                              title: "Proposta sem versão editável",
+                              description: "Esta proposta importada ainda não possui uma versão nativa. Use \"Duplicar proposta\" para criar uma versão editável.",
+                              variant: "destructive",
+                            });
+                            return;
+                          }
+                          navigate(`/admin/propostas-nativas/${p.id}/versoes/${latestVersao.id}`);
                         })}
                         onViewDetail={() => {}}
                       />
