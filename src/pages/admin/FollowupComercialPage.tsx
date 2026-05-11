@@ -41,13 +41,16 @@ import { Badge } from "@/components/ui/badge";
 import { PageHeader } from "@/components/ui-kit/PageHeader";
 import { StatCard } from "@/components/ui-kit/StatCard";
 import { EmptyState } from "@/components/ui-kit/EmptyState";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { FollowupSendDialog } from "@/components/admin/followup-comercial/FollowupSendDialog";
+import { FollowupComercialAnalytics } from "@/components/admin/followup-comercial/FollowupComercialAnalytics";
 import {
   useFollowupComercialKpis,
   useFollowupComercialInbox,
   type FollowupClasse,
   type FollowupInboxRow,
 } from "@/hooks/useFollowupComercial";
+import { formatDiasParado, formatDiasParadoCompact } from "@/lib/formatters/diasParado";
 
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
