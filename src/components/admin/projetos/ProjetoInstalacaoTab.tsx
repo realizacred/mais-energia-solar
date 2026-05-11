@@ -120,11 +120,8 @@ export function ProjetoInstalacaoTab({ dealId }: Props) {
   if (loading) {
     return (
       <div className="space-y-4 p-6">
-        <Skeleton className="h-8 w-48" />
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <Skeleton className="h-40 w-full rounded-lg" />
-          <Skeleton className="h-40 w-full rounded-lg" />
-        </div>
+        <div className="h-[120px] w-full bg-muted animate-pulse rounded-lg" />
+        <div className="h-[120px] w-full bg-muted animate-pulse rounded-lg" />
       </div>
     );
   }
