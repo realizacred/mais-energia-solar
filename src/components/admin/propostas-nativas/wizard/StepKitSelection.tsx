@@ -2,7 +2,7 @@ import { useState, useMemo, useRef, useEffect, useCallback } from "react";
 import { calcFatorGeracao, calcEffectiveIrrad } from "@/services/solar/fatorGeracaoService";
 import { DEFAULT_SOMBREAMENTO_CONFIG, type SombreamentoConfig } from "@/hooks/useTenantPremises";
 import { formatDate } from "@/lib/dateUtils";
-import { Package, Zap, LayoutGrid, List, Settings2, Loader2, Pencil, Trash2, Plus, AlertCircle, BookOpen, Sun, Cpu, Check } from "lucide-react";
+import { Package, Zap, LayoutGrid, List, Settings2, Loader2, Pencil, Trash2, Plus, AlertCircle, BookOpen, Sun, Cpu, Check, Info } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
