@@ -251,8 +251,9 @@ export function StepFinancialCenter({ venda, onVendaChange, itens, servicos, pot
 
   // ── Calculations ──
 
-  const custoKit = roundCurrency(itens.reduce((s, i) => s + roundCurrency(i.quantidade * i.preco_unitario), 0));
-  const custoKitEfetivo = kitCustoOverride !== null ? kitCustoOverride : custoKit;
+  // Fase A — SSOT: usa resolveCustoKit (mesma fonte do calcPrecoFinal e StepResumo).
+  const custoKitEfetivo = resolveCustoKit({ itens, custoKitOverride: kitCustoOverride });
+  const custoKit = custoKitEfetivo;
   const kitLabel = potenciaKwp > 0 ? `Kit fotovoltaico ${(Number(potenciaKwp) || 0).toFixed(2)} kWp` : "Kit fotovoltaico";
 
   // Build all cost rows
