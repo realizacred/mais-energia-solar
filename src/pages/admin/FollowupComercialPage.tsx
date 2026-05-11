@@ -376,6 +376,16 @@ export default function FollowupComercialPage() {
                           >
                             {formatRelative(r.ultima_atividade_em)}
                           </td>
+                          <td className="px-4 py-2 text-right">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              disabled={!r.telefone_normalized}
+                              onClick={() => setSendTarget(r)}
+                            >
+                              <Send className="h-3.5 w-3.5 mr-1.5" /> Enviar
+                            </Button>
+                          </td>
                         </tr>
                       );
                     })}
@@ -386,6 +396,12 @@ export default function FollowupComercialPage() {
           )}
         </CardContent>
       </Card>
+
+      <FollowupSendDialog
+        row={sendTarget}
+        open={!!sendTarget}
+        onOpenChange={(o) => !o && setSendTarget(null)}
+      />
     </div>
   );
 }
