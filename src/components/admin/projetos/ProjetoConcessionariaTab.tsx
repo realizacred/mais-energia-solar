@@ -8,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
-import { AlertTriangle, CheckCircle, ClipboardList, Gauge, Zap, Lock, FileCheck2, ShieldCheck } from "lucide-react";
+import { AlertTriangle, CheckCircle, ClipboardList, Gauge, Zap, Lock, FileCheck2, ShieldCheck, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useConcessionaria, type VistoriaData } from "@/hooks/useConcessionaria";
 import { formatDate as formatDateBR } from "@/lib/dateUtils";
@@ -80,6 +80,7 @@ function HomologacaoCard({ ctx, habilitado }: { ctx: ReturnType<typeof useConces
   const [protocolo, setProtocolo] = useState("");
   const [dataSolicitacao, setDataSolicitacao] = useState("");
   const [dataAprovacao, setDataAprovacao] = useState("");
+  const [previsaoAprovacao, setPrevisaoAprovacao] = useState("");
   const [status, setStatus] = useState<string>("solicitada");
   const [motivo, setMotivo] = useState("");
   const [observacoes, setObservacoes] = useState("");
@@ -92,6 +93,7 @@ function HomologacaoCard({ ctx, habilitado }: { ctx: ReturnType<typeof useConces
     setProtocolo(homolog?.protocolo || "");
     setDataSolicitacao(homolog?.data_solicitacao || "");
     setDataAprovacao(homolog?.data_aprovacao || "");
+    setPrevisaoAprovacao(homolog?.previsao_aprovacao || "");
     setStatus(homolog?.status || "solicitada");
     setMotivo(homolog?.motivo_reprovacao || "");
     setObservacoes(homolog?.observacoes || "");
@@ -106,11 +108,16 @@ function HomologacaoCard({ ctx, habilitado }: { ctx: ReturnType<typeof useConces
       data_aprovacao: status === "aprovada"
         ? (dataAprovacao || new Date().toISOString().split("T")[0])
         : (dataAprovacao || null),
+      previsao_aprovacao: previsaoAprovacao || null,
       motivo_reprovacao: status === "reprovada" ? motivo : null,
       observacoes: observacoes || null,
     });
     setEditMode(false);
   };
+
+  const isExpired = homolog?.previsao_aprovacao && 
+                    new Date(homolog.previsao_aprovacao) < new Date(new Date().setHours(0,0,0,0)) && 
+                    currentStatus !== "aprovada";
 
   return (
     <Card className={cn("shadow-sm", !habilitado && "opacity-60")}>
@@ -125,10 +132,23 @@ function HomologacaoCard({ ctx, habilitado }: { ctx: ReturnType<typeof useConces
               <p className="text-xs text-muted-foreground mt-0.5">Parecer de Acesso / Aprovação do projeto</p>
             </div>
           </div>
-          <Badge variant="outline" className={cn("text-xs", cfg.classes)}>{cfg.label}</Badge>
+          <div className="flex flex-col items-end gap-1">
+            <Badge variant="outline" className={cn("text-xs", cfg.classes)}>{cfg.label}</Badge>
+            {homolog?.previsao_aprovacao && !editMode && (
+              <span className={cn("text-[10px]", isExpired ? "text-destructive font-bold" : "text-muted-foreground")}>
+                Prev. {formatDateBR(homolog.previsao_aprovacao)}
+              </span>
+            )}
+          </div>
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
+        {isExpired && !editMode && (
+          <div className="flex items-center gap-2 p-3 rounded-lg bg-destructive/10 text-destructive text-xs border border-destructive/20">
+            <AlertCircle className="h-4 w-4 shrink-0" />
+            <span>Prazo de homologação vencido em {formatDateBR(homolog.previsao_aprovacao)}. Entre em contato com a concessionária.</span>
+          </div>
+        )}
         {!habilitado ? (
           <div className="flex items-center gap-2 p-3 rounded-lg bg-warning/10 text-warning text-sm">
             <Lock className="h-4 w-4 shrink-0" />
@@ -159,6 +179,10 @@ function HomologacaoCard({ ctx, habilitado }: { ctx: ReturnType<typeof useConces
             <div className="space-y-2">
               <Label>Data aprovação</Label>
               <Input type="date" value={dataAprovacao} onChange={e => setDataAprovacao(e.target.value)} />
+            </div>
+            <div className="space-y-2">
+              <Label>Previsão de aprovação</Label>
+              <Input type="date" value={previsaoAprovacao} onChange={e => setPrevisaoAprovacao(e.target.value)} />
             </div>
             {status === "reprovada" && (
               <div className="col-span-1 sm:col-span-2 space-y-2">
@@ -192,6 +216,9 @@ function HomologacaoCard({ ctx, habilitado }: { ctx: ReturnType<typeof useConces
                 )}
                 {homolog.data_aprovacao && (
                   <div><span className="text-muted-foreground">Aprovação:</span> <span className="font-medium text-foreground">{formatDateBR(homolog.data_aprovacao)}</span></div>
+                )}
+                {homolog.previsao_aprovacao && (
+                  <div><span className="text-muted-foreground">Previsão:</span> <span className="font-medium text-foreground">{formatDateBR(homolog.previsao_aprovacao)}</span></div>
                 )}
                 {homolog.motivo_reprovacao && (
                   <div className="col-span-1 sm:col-span-2">
