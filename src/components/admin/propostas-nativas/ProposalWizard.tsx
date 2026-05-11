@@ -2544,8 +2544,8 @@ export function ProposalWizard() {
             setGenerationError(friendlyPdfError);
             console.warn("[ProposalWizard] PDF conversion failed, DOCX available:", rawPdfError);
             toast({
-              title: "DOCX gerado com sucesso",
-              description: friendlyPdfError,
+              title: "Proposta parcialmente gerada",
+              description: friendlyPdfError + " Você pode baixar o DOCX ou tentar gerar o PDF novamente.",
               variant: "default",
             });
           }
