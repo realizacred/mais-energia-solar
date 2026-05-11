@@ -48,8 +48,10 @@ import { OpportunityBanner } from "@/components/admin/followup-comercial/Opportu
 import {
   useFollowupComercialKpis,
   useFollowupComercialInbox,
+  useFollowupComercialInboxSummary,
   type FollowupClasse,
   type FollowupInboxRow,
+  type FollowupInboxSort,
 } from "@/hooks/useFollowupComercial";
 
 const formatBRL = (v: number) =>
