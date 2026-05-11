@@ -3176,12 +3176,13 @@ export function ProposalWizard() {
       {/* Sent Proposal Warning Banner */}
       {editingsentProposal && (
         <div className="flex items-center gap-3 px-4 lg:px-6 py-3 border-b border-warning/30 bg-warning/10 shrink-0">
-          <AlertTriangle className="h-[18px] w-[18px] text-warning shrink-0" />
+          <PropostaBadge type="enviada" className="bg-warning/10 text-warning border-warning/30" />
           <p className="text-sm font-medium text-warning">
             Essa proposta já foi enviada/gerada. Ao salvar, uma nova versão será criada com um novo link.
           </p>
         </div>
       )}
+
 
       {/* Migrated proposal without editable kit */}
       {migratedKitMissing && (
