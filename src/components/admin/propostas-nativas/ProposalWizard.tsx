@@ -2418,6 +2418,9 @@ export function ProposalWizard() {
           locGhiSeries,
           locDistribuidoraId,
           geracaoMensalEstimada,
+          // FIX hidratação Pagamento: preserva tipo "direto" + forma_pagamento
+          // (PIX/transferência/boleto/cartão) que o engine não tipa.
+          pagamentoOpcoes,
         },
       };
 
