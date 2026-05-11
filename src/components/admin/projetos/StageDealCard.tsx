@@ -31,9 +31,10 @@ interface DynamicEtiqueta {
   short: string | null;
   icon: string | null;
 }
-
+import { PropostaBadge } from "./PropostaBadge";
 import { PROPOSAL_STATUS_CONFIG } from "@/lib/proposalStatusConfig";
 const PROPOSTA_STATUS_MAP = PROPOSAL_STATUS_CONFIG;
+
 
 function getTimeInStage(lastChange: string) {
   const hours = differenceInHours(new Date(), new Date(lastChange));
