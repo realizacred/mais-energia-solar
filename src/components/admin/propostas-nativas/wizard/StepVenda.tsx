@@ -63,12 +63,12 @@ export function StepVenda({ venda, onVendaChange, itens, servicos, potenciaKwp =
   const margemValor = roundCurrency(custoParaMargem * (venda.margem_percentual / 100));
   const precoComMargem = roundCurrency(custoBase + margemValor);
   const precoSlider = precoComMargem; // Preço alvo sem o desconto
-  const margemMeta = precoSlider > 0 ? ((precoSlider - custoBase) / precoSlider) * 100 : 0;
+  const margemMeta = precoSlider > 0 && custoBase > 0 ? ((precoSlider - custoBase) / precoSlider) * 100 : null;
 
   const descontoValor = roundCurrency(precoComMargem * (venda.desconto_percentual / 100));
   const precoFinal = roundCurrency(precoComMargem - descontoValor);
-  const margemLiquida = precoFinal > 0 ? ((precoFinal - custoBase) / precoFinal) * 100 : 0;
-  const isMargemOk = margemLiquida >= margemMeta - 0.01; // tolerance for rounding
+  const margemLiquida = precoFinal > 0 && custoBase > 0 ? ((precoFinal - custoBase) / precoFinal) * 100 : null;
+  const isMargemOk = margemLiquida !== null && margemMeta !== null ? margemLiquida >= margemMeta - 0.01 : true; // tolerance for rounding
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-6">
