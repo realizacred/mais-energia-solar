@@ -429,7 +429,34 @@ function UCCard({ uc, index, concessionarias, loadingConc, onUpdate, onRemove, o
 
           {/* Fase e Tensão */}
           <div className="space-y-1">
-            <Label className="text-xs text-muted-foreground">Fase e Tensão da Rede *</Label>
+            <div className="flex items-center justify-between">
+              <Label className="text-xs text-muted-foreground">Fase e Tensão da Rede *</Label>
+              {leadFase && (
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <div className={cn(
+                        "flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full border",
+                        redeAtendimentoToFaseTensao(leadFase)?.fase_tensao === uc.fase_tensao
+                          ? "bg-success/10 border-success/30 text-success"
+                          : "bg-warning/10 border-warning/30 text-warning"
+                      )}>
+                        <Info className="h-3 w-3" />
+                        Lead: {leadFase}
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent className="max-w-[250px]">
+                      <p className="text-xs">
+                        {redeAtendimentoToFaseTensao(leadFase)?.fase_tensao === uc.fase_tensao
+                          ? "A fase coincide com a informação original do lead."
+                          : `A fase selecionada difere do orçamento original (${leadFase}). Verifique antes de prosseguir.`
+                        }
+                      </p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              )}
+            </div>
             <Select value={uc.fase_tensao} onValueChange={v => onUpdate("fase_tensao", v)}>
               <SelectTrigger className="h-8 text-xs">
                 <SelectValue />
@@ -438,7 +465,13 @@ function UCCard({ uc, index, concessionarias, loadingConc, onUpdate, onRemove, o
                 {FASE_TENSAO_OPTIONS.map(f => <SelectItem key={f.value} value={f.value}>{f.label}</SelectItem>)}
               </SelectContent>
             </Select>
+            {leadFase && redeAtendimentoToFaseTensao(leadFase)?.fase_tensao !== uc.fase_tensao && (
+              <p className="text-[10px] text-warning font-medium animate-in fade-in slide-in-from-top-1">
+                Divergência detectada com o orçamento original ({leadFase}).
+              </p>
+            )}
           </div>
+
 
           {/* Tarifa (Grupo B only) */}
           {!isGrupoA && (
