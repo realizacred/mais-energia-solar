@@ -98,8 +98,11 @@ export function FollowupSendDialog({ row, open, onOpenChange }: Props) {
       const result = await aiSuggest.mutateAsync(row);
       setAiSuggestion(result);
       if (result.mensagem_sugerida) setMessage(result.mensagem_sugerida);
+      setAiCooldown(3);
     } catch { /* toast já tratado */ }
   };
+
+  const aiBusy = aiSuggest.isPending || aiCooldown > 0;
 
   const tempIcon = (lvl: string) =>
     lvl === "alto" ? <Flame className="h-3 w-3" />
