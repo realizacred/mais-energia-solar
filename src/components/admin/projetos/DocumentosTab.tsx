@@ -297,15 +297,7 @@ export function DocumentosTab({ dealId, clienteTelefone, consultorTelefone: cons
     return CATEGORY_ORDER.filter(c => cats.includes(c)).concat(cats.filter(c => !CATEGORY_ORDER.includes(c)));
   }, [docsByCategory]);
 
-  const handleUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const fileList = e.target.files;
-    if (!fileList || fileList.length === 0) return;
-    uploadMutation.mutate(fileList, {
-      onSettled: () => {
-        if (fileInputRef.current) fileInputRef.current.value = "";
-      },
-    });
-  };
+  // Upload manual passou para o ProjectDocumentsHub (SSOT canônico)
 
   const handleGenerate = () => {
     if (!selectedTemplateId) return;
