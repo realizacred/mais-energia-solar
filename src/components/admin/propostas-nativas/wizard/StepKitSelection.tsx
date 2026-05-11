@@ -57,7 +57,9 @@ interface CatalogoBateria {
 
 interface Props {
   itens: KitItemRow[];
-  onItensChange: (itens: KitItemRow[]) => void;
+  /** Fase A: segundo arg opcional carrega override one-shot do custo do kit
+   *  (ex.: meta.custo de catálogo / kit fechado). undefined = limpar. */
+  onItensChange: (itens: KitItemRow[], custoKitOverride?: number | null) => void;
   modulos: CatalogoModuloUnificado[];
   inversores: CatalogoInversorUnificado[];
   otimizadores?: CatalogoOtimizador[];
