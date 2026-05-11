@@ -14,11 +14,14 @@ import { Separator } from "@/components/ui/separator";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { supabase } from "@/integrations/supabase/client";
+import { cn } from "@/lib/utils";
 import {
   type UCData, type Concessionaria, type RegraCompensacao, type GrupoTarifario,
   createEmptyUC, SUBGRUPO_BT, SUBGRUPO_MT, MESES, FASE_TENSAO_OPTIONS,
+  redeAtendimentoToFaseTensao,
 } from "./types";
 import solarBuildingImg from "@/assets/solar-building.png";
+
 
 interface Props {
   ucs: UCData[];
