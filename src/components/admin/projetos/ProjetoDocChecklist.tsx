@@ -192,7 +192,9 @@ export function ProjetoDocChecklist({ dealId, compact = false }: Props) {
         {useLegacy ? (
           // Legacy mode
           LEGACY_ITEMS.map(item => {
-            const checked = !!legacyChecklist[item.key];
+            const checked = isLegacyItemChecked(item.key);
+            const hasCanonicalDoc = canonicalDocs.some(d => d.categoria === LEGACY_CAT_MAP[item.key]);
+            
             return (
               <button
                 key={item.key}
