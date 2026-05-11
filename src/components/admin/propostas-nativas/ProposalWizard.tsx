@@ -149,13 +149,24 @@ export function ProposalWizard() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   // Invalida caches do detalhe do projeto/proposta após save (post-edit lifecycle)
-  const invalidateProposalCaches = useCallback(() => {
+  const invalidateProposalCaches = useCallback((dealId?: string | null, projetoId?: string | null) => {
     queryClient.invalidateQueries({ queryKey: ["propostas-projeto-tab"] });
     queryClient.invalidateQueries({ queryKey: ["proposal-detail"] });
     queryClient.invalidateQueries({ queryKey: ["proposta-expanded-snapshot"] });
     queryClient.invalidateQueries({ queryKey: ["proposta-expanded-ucs"] });
     queryClient.invalidateQueries({ queryKey: ["proposta-expanded-kit-items"] });
     queryClient.invalidateQueries({ queryKey: ["proposal-version-snapshot"] });
+    // Project / deal caches so detail page reflects new value immediately
+    queryClient.invalidateQueries({ queryKey: ["projeto-detalhe"] });
+    queryClient.invalidateQueries({ queryKey: ["deal-proposals-count"] });
+    queryClient.invalidateQueries({ queryKey: ["projetos"] });
+    if (dealId) {
+      queryClient.invalidateQueries({ queryKey: ["projeto-detalhe", dealId] });
+      queryClient.invalidateQueries({ queryKey: ["deal-proposals-count", dealId] });
+    }
+    if (projetoId) {
+      queryClient.invalidateQueries({ queryKey: ["projeto-detalhe", projetoId] });
+    }
   }, [queryClient]);
   const { data: isAdminOrGerente } = useIsAdminOrGerente();
   const [searchParams] = useSearchParams();
@@ -1552,11 +1563,13 @@ export function ProposalWizard() {
         applyPersistResult(res);
         syncCustomFieldValues(res.dealId || resolvedDealId);
         syncTemplateIdUsed(res.versaoId);
+        invalidateProposalCaches(res.dealId || resolvedDealId, res.projetoId);
         toast({ title: "✅ Rascunho salvo" });
         break;
       case "reused":
         applyPersistResult(res);
         syncTemplateIdUsed(res.versaoId);
+        invalidateProposalCaches(res.dealId || resolvedDealId, res.projetoId);
         break;
       case "blocked":
         toast({ title: "Aguarde", description: res.message, variant: "destructive" });
@@ -1566,7 +1579,7 @@ export function ProposalWizard() {
         toast({ title: "Erro ao salvar", description: res.reason || res.message, variant: "destructive" });
         break;
     }
-  }, [isRestoring, savedPropostaId, savedVersaoId, propostaIdFromUrl, versaoIdFromUrl, buildPersistParams, persistAtomic, applyPersistResult, dealIdFromUrl, resolvedDealId, syncCustomFieldValues, syncTemplateIdUsed]);
+  }, [isRestoring, savedPropostaId, savedVersaoId, propostaIdFromUrl, versaoIdFromUrl, buildPersistParams, persistAtomic, applyPersistResult, dealIdFromUrl, resolvedDealId, syncCustomFieldValues, syncTemplateIdUsed, invalidateProposalCaches]);
 
   const handleUpdate = useCallback(async (setActive: boolean) => {
     if (isRestoring) {
@@ -1591,6 +1604,7 @@ export function ProposalWizard() {
         applyPersistResult(res);
         syncCustomFieldValues(res.dealId || resolvedDealId);
         syncTemplateIdUsed(res.versaoId);
+        invalidateProposalCaches(res.dealId || resolvedDealId, res.projetoId);
         if (res.newVersionCreated) {
           toast({ title: "Nova versão criada", description: res.message });
         } else if (res.status !== "reused") {
@@ -1605,7 +1619,7 @@ export function ProposalWizard() {
         toast({ title: "Erro ao salvar", description: res.reason || res.message, variant: "destructive" });
         break;
     }
-  }, [isRestoring, savedPropostaId, savedVersaoId, propostaIdFromUrl, versaoIdFromUrl, buildPersistParams, persistAtomic, applyPersistResult, syncCustomFieldValues, syncTemplateIdUsed, resolvedDealId]);
+  }, [isRestoring, savedPropostaId, savedVersaoId, propostaIdFromUrl, versaoIdFromUrl, buildPersistParams, persistAtomic, applyPersistResult, syncCustomFieldValues, syncTemplateIdUsed, resolvedDealId, invalidateProposalCaches]);
 
   // ─── Grupo consistency validation
   const grupoValidation = useMemo(() => validateGrupoConsistency(ucs), [ucs]);
@@ -2406,6 +2420,9 @@ export function ProposalWizard() {
       // Sync template_id_used on the new version (RB-54) — belt-and-suspenders
       // proposal-generate already sets it server-side, but sync as fallback
       syncTemplateIdUsed(genResult.versao_id);
+
+      // Invalidate caches so project detail / kanban / proposal lists reflect new version
+      invalidateProposalCaches(resolvedDealId, projetoId);
 
       // Audit is now persisted by the backend — no need for frontend persistAudit
 
