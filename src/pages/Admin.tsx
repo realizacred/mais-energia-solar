@@ -598,6 +598,7 @@ export default function Admin() {
                 <Route path="pipeline" element={<LeadsPipeline />} />
                 <Route path="followup" element={<FollowUpManager diasAlerta={3} />} />
                 <Route path="followup-comercial" element={<FollowupComercialPage />} />
+                <Route path="preventiva" element={<PreventiveCenterPage />} />
                 <Route path="lixeira" element={<LeadsTrashPage />} />
                 <Route path="propostas" element={<PropostasManager />} />
                 <Route path="projetos" element={<ProjetosManagerPage />} />
