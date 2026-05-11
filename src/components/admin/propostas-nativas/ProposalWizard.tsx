@@ -1325,6 +1325,7 @@ export function ProposalWizard() {
           const SENT_STATUSES = ["enviada", "vista", "aceita", "gerada"];
           if (propostaMeta?.status && SENT_STATUSES.includes(propostaMeta.status)) {
             setEditingSentProposal(true);
+            setProposalStatus(propostaMeta.status);
           }
 
           if (propostaMeta?.deal_id) {
