@@ -202,6 +202,16 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
       .then(async (kits) => {
         setCatalogKits(kits);
         catalogLoaded.current = true;
+        
+        // UX-05: Auto-apply power filter if potenciaIdeal is set
+        if (potenciaIdeal > 0 && !hasRemovedAutoFilter) {
+          setFilters(prev => ({
+            ...prev,
+            potenciaMin: Math.round(potenciaIdeal * 0.7 * 100) / 100,
+            potenciaMax: Math.round(potenciaIdeal * 1.3 * 100) / 100,
+          }));
+        }
+
         if (kits.length > 0) {
           const summaries = await fetchKitsSummary(kits.map(k => k.id));
           setCatalogSummaries(summaries);
@@ -209,7 +219,7 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
       })
       .catch((err) => setCatalogError(err.message))
       .finally(() => setCatalogLoading(false));
-  }, [tab]);
+  }, [tab, potenciaIdeal, hasRemovedAutoFilter]);
 
   const handleSelectCatalogKit = async (kitId: string, kitName: string) => {
     // If items already exist, ask for confirmation
