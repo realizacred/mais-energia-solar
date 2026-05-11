@@ -433,7 +433,26 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
 
     // Sort
     if (orderBy === "melhor_kwp") {
-      result.sort((a, b) => (a.preco_por_kwp || Infinity) - (b.preco_por_kwp || Infinity));
+      // UX-05: If auto-filtering by power, prioritize proximity to ideal power within the "melhor_kwp" sorting
+      result.sort((a, b) => {
+        // Primary sort: price per kWp
+        const priceDiff = (a.preco_por_kwp || Infinity) - (b.preco_por_kwp || Infinity);
+        
+        // If prices are very similar (within 1%), sort by proximity to ideal power
+        if (potenciaIdeal > 0 && Math.abs(priceDiff) < (a.preco_por_kwp || 1) * 0.01) {
+          const proximityA = Math.abs((a.estimated_kwp || 0) - potenciaIdeal);
+          const proximityB = Math.abs((b.estimated_kwp || 0) - potenciaIdeal);
+          return proximityA - proximityB;
+        }
+        
+        return priceDiff;
+      });
+    } else if (orderBy === "proximidade" && potenciaIdeal > 0) {
+      result.sort((a, b) => {
+        const proximityA = Math.abs((a.estimated_kwp || 0) - potenciaIdeal);
+        const proximityB = Math.abs((b.estimated_kwp || 0) - potenciaIdeal);
+        return proximityA - proximityB;
+      });
     } else if (orderBy === "menor_preco") {
       result.sort((a, b) => {
         const pa = a.fixed_price || catalogSummaries.get(a.id)?.custoTotal || 0;
@@ -457,7 +476,7 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
     }
 
     return result;
-  }, [catalogKits, catalogSummaries, filters, orderBy, includeComponents]);
+  }, [catalogKits, catalogSummaries, filters, orderBy, includeComponents, potenciaIdeal]);
 
 
   const handleSelectKit = (kit: KitCardData) => {
