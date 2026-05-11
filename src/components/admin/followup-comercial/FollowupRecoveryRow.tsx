@@ -130,11 +130,24 @@ interface Props {
   onHistory: (row: FollowupInboxRow) => void;
 }
 
+/** Severidade de inatividade — tokens semânticos, sem cor hardcoded. */
+function inatividadeSeverity(dias: number | null | undefined): {
+  label: string;
+  chip: string;
+} {
+  const d = Math.floor(Number(dias ?? 0));
+  if (d <= 3) return { label: "normal", chip: "bg-muted text-muted-foreground border-border" };
+  if (d <= 15) return { label: "atenção", chip: "bg-warning/10 text-warning border-warning/30" };
+  if (d <= 60) return { label: "risco", chip: "bg-destructive/10 text-destructive border-destructive/30" };
+  return { label: "frio", chip: "bg-info/10 text-info border-info/30" };
+}
+
 export function FollowupRecoveryRow({ row, onSend, onHistory }: Props) {
   const navigate = useNavigate();
   const meta = classeMeta[row.classe_followup ?? "outro"] ?? classeMeta.outro;
   const action = suggestedAction(row);
-  const projetoId = (row as any).projeto_id ?? null;
+  const projetoId = row.projeto_id;
+  const sev = inatividadeSeverity(row.dias_parado);
 
   const goProposta = () => {
     if (!row.versao_id) return;
@@ -262,8 +275,11 @@ export function FollowupRecoveryRow({ row, onSend, onHistory }: Props) {
               <span className="text-muted-foreground ml-1 font-mono">{row.score_ia}/100</span>
             )}
           </div>
-          <div className="text-[11px] text-muted-foreground mt-0.5">
-            {formatDiasParado(row.dias_parado)} parado
+          <div className="text-[11px] text-muted-foreground mt-0.5 flex items-center gap-1.5">
+            <span>{formatDiasParado(row.dias_parado)}</span>
+            <Badge variant="outline" className={`${sev.chip} text-[9px] px-1 py-0 leading-tight`}>
+              {sev.label}
+            </Badge>
           </div>
         </div>
 

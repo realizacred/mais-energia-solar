@@ -29296,6 +29296,7 @@ export type Database = {
           objecao_principal: string | null
           potencia_kwp: number | null
           primeiro_acesso_em: string | null
+          projeto_id: string | null
           proposta_id: string | null
           proxima_acao_em: string | null
           qtd_followups: number | null
@@ -29327,6 +29328,13 @@ export type Database = {
             columns: ["cliente_id"]
             isOneToOne: false
             referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_propostas_projeto"
+            columns: ["projeto_id"]
+            isOneToOne: false
+            referencedRelation: "projetos"
             referencedColumns: ["id"]
           },
           {
