@@ -68,6 +68,8 @@ import {
   type ProjectDocument,
   type ProjectDocumentOrigem,
 } from "@/hooks/useProjectDocuments";
+import { useProjetoArquivos, useDeletarArquivo } from "@/hooks/useProjetoDocumentos";
+import { useProjetoCustomFieldFiles } from "@/hooks/useProjetoCustomFieldFiles";
 
 interface Props {
   projetoId?: string | null;
@@ -115,9 +117,12 @@ function formatSize(bytes?: number | null) {
 }
 
 export function ProjectDocumentsHub({ projetoId, dealId }: Props) {
-  const { data: docs = [], isLoading } = useProjectDocuments({ projetoId, dealId });
+  const { data: canonicalDocs = [], isLoading } = useProjectDocuments({ projetoId, dealId });
+  const { data: legacyFiles = [] } = useProjetoArquivos(dealId || "");
+  const { data: cfFiles = [] } = useProjetoCustomFieldFiles(dealId || "");
   const upload = useUploadProjectDocument();
   const remove = useDeleteProjectDocument();
+  const removeLegacy = useDeletarArquivo(dealId || "");
 
   const [search, setSearch] = useState("");
   const [origemFilter, setOrigemFilter] = useState<string>("all");
@@ -126,6 +131,70 @@ export function ProjectDocumentsHub({ projetoId, dealId }: Props) {
   const [dragOver, setDragOver] = useState(false);
   const [uploading, setUploading] = useState<string[]>([]);
   const fileInput = useRef<HTMLInputElement>(null);
+
+  // Mescla canônico + legado bucket + custom fields como linhas virtuais
+  const docs = useMemo<ProjectDocument[]>(() => {
+    const out: ProjectDocument[] = [...canonicalDocs];
+    const seenPaths = new Set(canonicalDocs.map((d) => d.storage_path));
+
+    // Legacy bucket projeto-documentos
+    for (const f of legacyFiles) {
+      if (!f.id || !f.metadata) continue;
+      const path = `legacy/${dealId}/${f.name}`;
+      if (seenPaths.has(path)) continue;
+      out.push({
+        id: `legacy:${f.name}`,
+        tenant_id: "",
+        projeto_id: null,
+        deal_id: dealId || null,
+        proposta_id: null,
+        cliente_id: null,
+        categoria: "Anexos manuais",
+        origem: "legacy",
+        bucket: "projeto-documentos",
+        storage_path: path, // resolvido na hora do preview/download
+        file_name: f.name.replace(/^\d+_/, ""),
+        mime_type: f.metadata?.mimetype || null,
+        size_bytes: f.metadata?.size || null,
+        uploaded_by: null,
+        metadata: { _legacyName: f.name },
+        source_table: "storage",
+        source_id: f.name,
+        is_deleted: false,
+        created_at: f.created_at || new Date().toISOString(),
+        updated_at: f.created_at || new Date().toISOString(),
+      });
+    }
+
+    // Custom field files
+    for (const cf of cfFiles) {
+      if (seenPaths.has(cf.storage_path)) continue;
+      out.push({
+        id: `cf:${cf.field_id}:${cf.storage_path}`,
+        tenant_id: "",
+        projeto_id: null,
+        deal_id: dealId || null,
+        proposta_id: null,
+        cliente_id: null,
+        categoria: `Campo: ${cf.field_title}`,
+        origem: "custom_field",
+        bucket: "projeto-documentos",
+        storage_path: cf.storage_path,
+        file_name: cf.filename,
+        mime_type: cf.mime || null,
+        size_bytes: cf.size || null,
+        uploaded_by: null,
+        metadata: { field_id: cf.field_id, field_key: cf.field_key, field_title: cf.field_title },
+        source_table: "deal_custom_field_values",
+        source_id: cf.field_id,
+        is_deleted: false,
+        created_at: cf.uploaded_at || new Date().toISOString(),
+        updated_at: cf.uploaded_at || new Date().toISOString(),
+      });
+    }
+
+    return out.sort((a, b) => b.created_at.localeCompare(a.created_at));
+  }, [canonicalDocs, legacyFiles, cfFiles, dealId]);
 
   const filtered = useMemo(() => {
     const s = search.toLowerCase().trim();
@@ -174,37 +243,68 @@ export function ProjectDocumentsHub({ projetoId, dealId }: Props) {
     [upload, projetoId, dealId],
   );
 
+  const resolveStoragePath = async (d: ProjectDocument): Promise<string> => {
+    if (d.id.startsWith("legacy:")) {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("tenant_id")
+        .limit(1)
+        .single();
+      const tenantId = (profile as any)?.tenant_id;
+      const realName = (d.metadata as any)?._legacyName || d.file_name;
+      return `${tenantId}/deals/${dealId}/${realName}`;
+    }
+    return d.storage_path;
+  };
+
   const onPreview = async (d: ProjectDocument) => {
+    const path = await resolveStoragePath(d);
     setPreview({
       bucket: d.bucket,
-      storage_path: d.storage_path,
+      storage_path: path,
       filename: d.file_name,
       mime: d.mime_type,
       size: d.size_bytes,
       origin_label: ORIGEM_LABEL[d.origem],
       uploaded_at: d.created_at,
     });
-    await supabase.from("project_document_events" as any).insert({
-      tenant_id: d.tenant_id,
-      document_id: d.id,
-      event: "preview",
-    });
+    if (!d.id.startsWith("legacy:") && !d.id.startsWith("cf:")) {
+      await supabase.from("project_document_events" as any).insert({
+        tenant_id: d.tenant_id,
+        document_id: d.id,
+        event: "preview",
+      });
+    }
   };
 
   const onDownload = async (d: ProjectDocument) => {
+    const path = await resolveStoragePath(d);
     const { data, error } = await supabase.storage
       .from(d.bucket)
-      .createSignedUrl(d.storage_path, 300, { download: d.file_name });
+      .createSignedUrl(path, 300, { download: d.file_name });
     if (error || !data?.signedUrl) {
       toast({ title: "Erro ao baixar", description: error?.message, variant: "destructive" });
       return;
     }
     window.open(data.signedUrl, "_blank");
-    await supabase.from("project_document_events" as any).insert({
-      tenant_id: d.tenant_id,
-      document_id: d.id,
-      event: "download",
-    });
+    if (!d.id.startsWith("legacy:") && !d.id.startsWith("cf:")) {
+      await supabase.from("project_document_events" as any).insert({
+        tenant_id: d.tenant_id,
+        document_id: d.id,
+        event: "download",
+      });
+    }
+  };
+
+  const handleDelete = (d: ProjectDocument) => {
+    if (d.id.startsWith("legacy:")) {
+      const realName = (d.metadata as any)?._legacyName || d.file_name;
+      removeLegacy.mutate(realName);
+      setConfirmDelete(null);
+      return;
+    }
+    remove.mutate(d);
+    setConfirmDelete(null);
   };
 
   return (
@@ -365,7 +465,7 @@ export function ProjectDocumentsHub({ projetoId, dealId }: Props) {
                             <DropdownMenuItem
                               className="text-destructive focus:text-destructive"
                               onClick={() => setConfirmDelete(d)}
-                              disabled={d.origem !== "manual"}
+                              disabled={d.origem !== "manual" && d.origem !== "legacy"}
                             >
                               <Trash2 className="h-3.5 w-3.5 mr-2" />
                               Excluir
@@ -396,8 +496,7 @@ export function ProjectDocumentsHub({ projetoId, dealId }: Props) {
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => {
-                if (confirmDelete) remove.mutate(confirmDelete);
-                setConfirmDelete(null);
+                if (confirmDelete) handleDelete(confirmDelete);
               }}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >

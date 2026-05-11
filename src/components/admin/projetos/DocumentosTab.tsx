@@ -1,6 +1,6 @@
 import { useState, useRef, useMemo, useCallback } from "react";
 import { AlertTriangle } from "lucide-react";
-import { File, FileText, Paperclip, Upload, Trash2, Download, Plus, Loader2, Send, Eye, ChevronDown, Ban } from "lucide-react";
+import { FileText, Trash2, Download, Plus, Loader2, Send, Eye, Ban } from "lucide-react";
 import { SignatureModal, type SignerEntry } from "./SignatureModal";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -21,18 +21,13 @@ import { formatDateTime } from "@/lib/dateUtils";
 
 import { getCurrentTenantId } from "@/lib/getCurrentTenantId";
 import { FilePreviewModal, type FilePreviewTarget } from "./FilePreviewModal";
-import { useProjetoCustomFieldFiles } from "@/hooks/useProjetoCustomFieldFiles";
 import { ProjectDocumentsHub } from "./ProjectDocumentsHub";
 import {
-  useProjetoArquivos,
   useProjetoDocumentosGerados,
   useDocTemplates,
-  useUploadArquivo,
-  useDeletarArquivo,
   useGerarDocumento,
   useEnviarParaAssinatura,
   useDocumentosRealtimeSync,
-  downloadArquivo,
   downloadGeneratedDoc,
   type GeneratedDocRow,
 } from "@/hooks/useProjetoDocumentos";
@@ -90,22 +85,12 @@ export function DocumentosTab({ dealId, clienteTelefone, consultorTelefone: cons
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [cancelDoc, setCancelDoc] = useState<GeneratedDocRow | null>(null);
   const [cancelMotivo, setCancelMotivo] = useState("");
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
   // §16: Queries em hooks — AP-01 resolvido
-  const { data: rawFiles = [], isLoading: loadingFiles } = useProjetoArquivos(dealId);
   const { data: generatedDocs = [], isLoading: loadingDocs } = useProjetoDocumentosGerados(dealId);
-  const { data: customFieldFiles = [], isLoading: loadingCfFiles } = useProjetoCustomFieldFiles(dealId);
   const { data: templates = [] } = useDocTemplates();
   useDocumentosRealtimeSync(dealId);
 
-  // Filtrar entradas de diretório (storage list devolve subpastas como itens com id=null)
-  const files = useMemo(
-    () => rawFiles.filter((f) => f.id !== null && f.metadata !== null),
-    [rawFiles]
-  );
-
-  // Preview universal (anexos + custom fields)
+  // Preview universal (compartilhado entre seção de gerados e Hub via prop)
   const [filePreview, setFilePreview] = useState<FilePreviewTarget | null>(null);
 
   // Buscar dados do cliente vinculado para validação pré-contrato
@@ -184,8 +169,6 @@ export function DocumentosTab({ dealId, clienteTelefone, consultorTelefone: cons
   const consultorTelefone = consultorTelefoneProp || consultorData?.telefone;
   const consultorNome = consultorData?.nome;
 
-  const uploadMutation = useUploadArquivo(dealId);
-  const deleteMutation = useDeletarArquivo(dealId);
   const generateMutation = useGerarDocumento(dealId);
   const signMutation = useEnviarParaAssinatura(dealId);
 
@@ -245,24 +228,7 @@ export function DocumentosTab({ dealId, clienteTelefone, consultorTelefone: cons
     setPreviewUrl(data.signedUrl);
   };
 
-  const previewUpload = async (file: { name: string; metadata: { size?: number; mimetype?: string } | null; created_at: string | null }) => {
-    try {
-      const tenantId = (await supabase.from("profiles").select("tenant_id").limit(1).single()).data?.tenant_id;
-      if (!tenantId) return;
-      const path = `${tenantId}/deals/${dealId}/${file.name}`;
-      setFilePreview({
-        bucket: "projeto-documentos",
-        storage_path: path,
-        filename: file.name.replace(/^\d+_/, ""),
-        mime: file.metadata?.mimetype || null,
-        size: file.metadata?.size || null,
-        uploaded_at: file.created_at,
-        origin_label: "Anexo manual",
-      });
-    } catch {
-      toast({ title: "Erro ao abrir arquivo", variant: "destructive" });
-    }
-  };
+  // previewUpload removido — preview de uploads vive no ProjectDocumentsHub
 
   const enviarWhatsApp = async (doc: GeneratedDocRow, destinatario: "cliente" | "consultor") => {
     const telefone = destinatario === "cliente" ? clienteTelefone : consultorTelefone;
@@ -291,7 +257,7 @@ export function DocumentosTab({ dealId, clienteTelefone, consultorTelefone: cons
     window.open(url, "_blank");
   };
 
-  const loading = loadingFiles || loadingDocs || loadingCfFiles;
+  const loading = loadingDocs;
 
   // Group generated docs by category, sorted by created_at desc within each group
   const docsByCategory = useMemo(() => {
@@ -314,15 +280,7 @@ export function DocumentosTab({ dealId, clienteTelefone, consultorTelefone: cons
     return CATEGORY_ORDER.filter(c => cats.includes(c)).concat(cats.filter(c => !CATEGORY_ORDER.includes(c)));
   }, [docsByCategory]);
 
-  const handleUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const fileList = e.target.files;
-    if (!fileList || fileList.length === 0) return;
-    uploadMutation.mutate(fileList, {
-      onSettled: () => {
-        if (fileInputRef.current) fileInputRef.current.value = "";
-      },
-    });
-  };
+  // Upload manual passou para o ProjectDocumentsHub (SSOT canônico)
 
   const handleGenerate = () => {
     if (!selectedTemplateId) return;
@@ -373,13 +331,8 @@ export function DocumentosTab({ dealId, clienteTelefone, consultorTelefone: cons
   if (loading) return <div className="flex justify-center py-12"><SunLoader style="spin" /></div>;
 
   return (
-    <div className="space-y-5">
-      {/* HUB CANÔNICO — SSOT project_documents (Fase 1-4) */}
-      <ProjectDocumentsHub dealId={dealId} />
-
-      <div className="border-t border-border pt-5" />
-
-      {/* BLOCO 1: Documentos Gerados */}
+    <div className="space-y-6">
+      {/* SEÇÃO 1: Documentos Gerados (workflow de assinatura) */}
       <section className="space-y-3">
         <div className="flex items-center justify-between">
           <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
@@ -580,134 +533,9 @@ export function DocumentosTab({ dealId, clienteTelefone, consultorTelefone: cons
         )}
       </section>
 
-      {/* BLOCO 2: Arquivos Anexados */}
-      <section className="space-y-3">
-        <div className="flex items-center justify-between">
-          <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
-            <Paperclip className="h-4 w-4 text-warning" />
-            Arquivos Anexados
-          </h3>
-          <div>
-            <input ref={fileInputRef} type="file" multiple className="hidden" onChange={handleUpload} />
-            <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()} disabled={uploadMutation.isPending} className="gap-1.5">
-              {uploadMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}
-              {uploadMutation.isPending ? "Enviando..." : "Upload"}
-            </Button>
-          </div>
-        </div>
-
-        {files.length === 0 ? (
-          <Card>
-            <CardContent className="flex flex-col items-center justify-center py-8 text-muted-foreground">
-              <Paperclip className="h-8 w-8 mb-2 opacity-30" />
-              <p className="text-sm font-medium">Nenhum arquivo</p>
-              <p className="text-xs mt-1">Faça upload de documentos relacionados ao projeto</p>
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="space-y-1">
-            {files.map(f => (
-              <div key={f.name} className="flex items-center gap-3 py-2 px-3 rounded-lg bg-card border border-border/40 hover:border-border/70 transition-all cursor-pointer" onClick={() => previewUpload(f)}>
-                <FileText className="h-4 w-4 text-primary shrink-0" />
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-foreground truncate">{f.name.replace(/^\d+_/, "")}</p>
-                  <p className="text-[10px] text-muted-foreground">
-                    {formatSize(f.metadata?.size)} • {f.created_at ? formatDateTime(f.created_at, { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" }) : ""}
-                  </p>
-                </div>
-                <div className="flex items-center gap-1 shrink-0">
-                  <Button variant="ghost" size="icon" className="h-7 w-7" title="Visualizar" onClick={(e) => { e.stopPropagation(); previewUpload(f); }}>
-                    <Eye className="h-3.5 w-3.5" />
-                  </Button>
-                  <Button variant="ghost" size="icon" className="h-7 w-7" title="Baixar" onClick={(e) => { e.stopPropagation(); downloadArquivo(dealId, f.name); }}>
-                    <Download className="h-3.5 w-3.5" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-7 w-7 text-destructive hover:text-destructive"
-                    onClick={(e) => { e.stopPropagation(); deleteMutation.mutate(f.name); }}
-                    disabled={deleteMutation.isPending}
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </Button>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </section>
-
-      {/* BLOCO 3: Arquivos de Campos Customizados */}
-      <section className="space-y-3">
-        <div className="flex items-center justify-between">
-          <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
-            <Paperclip className="h-4 w-4 text-info" />
-            Arquivos de Campos
-            {customFieldFiles.length > 0 && (
-              <Badge variant="outline" className="text-[10px] h-5 px-1.5">{customFieldFiles.length}</Badge>
-            )}
-          </h3>
-        </div>
-        {customFieldFiles.length === 0 ? (
-          <Card>
-            <CardContent className="flex flex-col items-center justify-center py-6 text-muted-foreground">
-              <Paperclip className="h-7 w-7 mb-2 opacity-30" />
-              <p className="text-xs">Nenhum arquivo anexado em campos customizados</p>
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="space-y-1">
-            {customFieldFiles.map((cf) => (
-              <div
-                key={`${cf.field_id}-${cf.storage_path}`}
-                className="flex items-center gap-3 py-2 px-3 rounded-lg bg-card border border-border/40 hover:border-border/70 transition-all cursor-pointer"
-                onClick={() => setFilePreview({
-                  bucket: "projeto-documentos",
-                  storage_path: cf.storage_path,
-                  filename: cf.filename,
-                  mime: cf.mime,
-                  size: cf.size,
-                  uploaded_at: cf.uploaded_at,
-                  origin_label: `Campo: ${cf.field_title}`,
-                })}
-              >
-                <File className="h-4 w-4 text-info shrink-0" />
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-foreground truncate">{cf.field_title}</p>
-                  <p className="text-[10px] text-muted-foreground truncate">
-                    {cf.filename} • {formatSize(cf.size)}
-                    {cf.uploaded_at && (
-                      <span> • {formatDateTime(cf.uploaded_at, { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" })}</span>
-                    )}
-                  </p>
-                </div>
-                <Badge variant="outline" className="text-[10px] h-5 px-1.5 shrink-0">Campo customizado</Badge>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-7 w-7"
-                  title="Visualizar"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setFilePreview({
-                      bucket: "projeto-documentos",
-                      storage_path: cf.storage_path,
-                      filename: cf.filename,
-                      mime: cf.mime,
-                      size: cf.size,
-                      uploaded_at: cf.uploaded_at,
-                      origin_label: `Campo: ${cf.field_title}`,
-                    });
-                  }}
-                >
-                  <Eye className="h-3.5 w-3.5" />
-                </Button>
-              </div>
-            ))}
-          </div>
-        )}
-      </section>
+      {/* SEÇÃO 2: Central documental canônica (project_documents SSOT)
+          Engloba: uploads manuais, custom fields, checklist, pós-venda e arquivos legados. */}
+      <ProjectDocumentsHub dealId={dealId} />
 
       <FilePreviewModal target={filePreview} onClose={() => setFilePreview(null)} />
 
