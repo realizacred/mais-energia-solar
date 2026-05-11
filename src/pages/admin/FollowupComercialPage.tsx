@@ -82,26 +82,48 @@ export default function FollowupComercialPage() {
   const [classe, setClasse] = useState<FollowupClasse | "todos">("todos");
   const [diasMin, setDiasMin] = useState<string>("0");
   const [search, setSearch] = useState("");
+  const [sort, setSort] = useState<FollowupInboxSort>("dias_parado");
   const [sendTarget, setSendTarget] = useState<FollowupInboxRow | null>(null);
   const [dialogTab, setDialogTab] = useState<"mensagem" | "historico">("mensagem");
 
-  const kpis = useFollowupComercialKpis();
-  const inbox = useFollowupComercialInbox({
-    classe,
-    diasMin: Number(diasMin) || 0,
-    search,
-  });
-
-  const rows = inbox.data ?? [];
-
-  const totalValor = useMemo(
-    () => rows.reduce((acc, r) => acc + (Number(r.valor_total) || 0), 0),
-    [rows]
+  const filters = useMemo(
+    () => ({ classe, diasMin: Number(diasMin) || 0, search, sort }),
+    [classe, diasMin, search, sort]
   );
+
+  const kpis = useFollowupComercialKpis();
+  const inbox = useFollowupComercialInbox(filters);
+  const summary = useFollowupComercialInboxSummary(filters);
+
+  const rows = useMemo<FollowupInboxRow[]>(
+    () => inbox.data?.pages.flat() ?? [],
+    [inbox.data]
+  );
+
+  const totalReal = summary.data?.total_count ?? rows.length;
+  const valorPotencialReal = summary.data?.valor_potencial_total ?? 0;
+
+  // Lazy-load: observa o sentinel do rodapé
+  const sentinelRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    const el = sentinelRef.current;
+    if (!el || !inbox.hasNextPage) return;
+    const io = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting && !inbox.isFetchingNextPage) {
+          inbox.fetchNextPage();
+        }
+      },
+      { rootMargin: "300px" }
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, [inbox.hasNextPage, inbox.isFetchingNextPage, inbox.fetchNextPage]);
 
   const refreshAll = () => {
     kpis.refetch();
     inbox.refetch();
+    summary.refetch();
   };
 
   return (
