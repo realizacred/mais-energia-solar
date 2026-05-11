@@ -90,7 +90,7 @@ function Section({ title, children, className = "" }: { title?: string; children
 }
 
 /* ── Main UCCard component ── */
-export function UCCard({ uc, index, onChange, onRemove, onOpenConfig, onOpenMesAMes, isFirst, totalUcs }: UCCardProps) {
+export function UCCard({ uc, index, onChange, onRemove, onOpenConfig, onOpenMesAMes, isFirst, totalUcs, leadFase }: UCCardProps) {
   const isGrupoA = uc.grupo_tarifario === "A";
   const isGD3 = uc.regra === "GD3";
   const resolvedGrupo = resolveGrupoFromSubgrupo(uc.subgrupo) || uc.grupo_tarifario;
