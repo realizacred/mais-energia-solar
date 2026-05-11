@@ -409,32 +409,26 @@ export function ProposalWizard() {
     });
   }, [dealFieldValues]);
 
-  // Fase A — Sidecar: mantém pagamentoOpcoes (à vista / financiamento) coerentes
-  // com precoFinal mesmo quando StepPagamento está desmontado. Substitui a mutação
-  // que antes vivia DENTRO de collectSnapshot (collectSnapshot agora é puro).
+  // Fase 1 — Sidecar reduzido: APENAS sincroniza o "À Vista" default quando ele é
+  // a ÚNICA opção do plano (1 opção = 100% do precoFinal). Para qualquer composição
+  // manual (múltiplas opções, financiamento, formas diretas) o effect NÃO toca em
+  // valor_financiado/entrada/parcela — preserva edição do usuário.
+  // O modelo canônico de composição multi-método (Σ valor_alocado = precoFinal)
+  // será introduzido na Fase 2.
   useEffect(() => {
     setPagamentoOpcoes(prev => {
-      let mutated = false;
-      const next = prev.map(op => {
-        if (op.tipo === "a_vista") {
-          if (
-            op.valor_financiado !== precoFinal ||
-            op.entrada !== precoFinal ||
-            op.valor_parcela !== precoFinal ||
-            op.num_parcelas !== 1
-          ) {
-            mutated = true;
-            return { ...op, valor_financiado: precoFinal, entrada: precoFinal, valor_parcela: precoFinal, num_parcelas: 1 };
-          }
-          return op;
-        }
-        if (op.tipo === "financiamento" && precoFinal > 0 && op.valor_financiado !== precoFinal) {
-          mutated = true;
-          return { ...op, valor_financiado: precoFinal };
-        }
-        return op;
-      });
-      return mutated ? next : prev;
+      if (prev.length !== 1) return prev;
+      const op = prev[0];
+      if (op.tipo !== "a_vista") return prev;
+      if (
+        op.valor_financiado === precoFinal &&
+        op.entrada === precoFinal &&
+        op.valor_parcela === precoFinal &&
+        op.num_parcelas === 1
+      ) {
+        return prev;
+      }
+      return [{ ...op, valor_financiado: precoFinal, entrada: precoFinal, valor_parcela: precoFinal, num_parcelas: 1 }];
     });
   }, [precoFinal]);
 
