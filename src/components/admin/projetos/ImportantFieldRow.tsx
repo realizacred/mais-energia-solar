@@ -190,18 +190,24 @@ export function ImportantFieldRow({ field, value, dealId, onSaved, showSeparator
               dealId={dealId}
               compact
               onChange={async (jsonValue) => {
+                const tenantId = await resolveTenantId();
                 const { error } = await supabase
                   .from("deal_custom_field_values")
                   .upsert({
                     deal_id: dealId,
                     field_id: field.id,
+                    tenant_id: tenantId,
                     value_text: jsonValue,
                     value_number: null,
                     value_boolean: null,
                     value_date: null,
                   } as any, { onConflict: "deal_id,field_id" });
-                if (error) console.error("Erro ao salvar arquivo do campo:", error);
-                else onSaved();
+                if (error) {
+                  console.error("Erro ao salvar arquivo do campo:", error);
+                  toast({ title: "Erro ao salvar", description: error.message, variant: "destructive" });
+                } else {
+                  onSaved();
+                }
               }}
             />
           </div>
