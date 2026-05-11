@@ -479,6 +479,27 @@ async function persistProposalAtomic(
         .eq("id", syncDealId);
     }
 
+    // Sync canonical projeto. Resolve projeto_id from proposta when not in params.
+    let syncProjetoId = params.projetoId || null;
+    if (!syncProjetoId && effectivePropostaId) {
+      const { data: pn } = await supabase
+        .from("propostas_nativas")
+        .select("projeto_id")
+        .eq("id", effectivePropostaId)
+        .maybeSingle();
+      syncProjetoId = (pn as any)?.projeto_id ?? null;
+    }
+    if (syncProjetoId && (params.potenciaKwp > 0 || params.precoFinal > 0)) {
+      await supabase
+        .from("projetos")
+        .update({
+          valor_total: params.precoFinal,
+          potencia_kwp: params.potenciaKwp,
+          updated_at: new Date().toISOString(),
+        } as any)
+        .eq("id", syncProjetoId);
+    }
+
     return {
       status: "success",
       propostaId: effectivePropostaId,
