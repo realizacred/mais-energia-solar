@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { Package, Plus, Search, Filter } from "lucide-react";
+import { Package, Plus, Search, Filter, ShoppingCart } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,6 +12,10 @@ import { useOrdensCompra, OrdemCompraStatus } from "@/hooks/useOrdensCompra";
 import { useFornecedoresNomes } from "@/hooks/useFornecedoresNomes";
 import { NovaOrdemDialog } from "./NovaOrdemDialog";
 import { formatBRL } from "@/lib/formatters";
+import { usePropostasProjetoTab } from "@/hooks/usePropostasProjetoTab";
+import { supabase } from "@/integrations/supabase/client";
+import { useQuery } from "@tanstack/react-query";
+
 
 const STATUS_LABELS: Record<OrdemCompraStatus, string> = {
   rascunho: "Rascunho",
