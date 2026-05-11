@@ -49,12 +49,14 @@ function formatPhone(p: string | null) {
 export function FollowupSendDialog({ row, open, onOpenChange }: Props) {
   const [message, setMessage] = useState("");
   const [force, setForce] = useState(false);
+  const [forceReason, setForceReason] = useState("");
   const send = useSendProposalFollowup();
 
   useEffect(() => {
     if (row && open) {
       setMessage(defaultMessage(row));
       setForce(false);
+      setForceReason("");
     }
   }, [row, open]);
 
@@ -72,6 +74,7 @@ export function FollowupSendDialog({ row, open, onOpenChange }: Props) {
         versao_id: row.versao_id,
         message: message.trim(),
         force,
+        force_reason: force ? forceReason.trim() : undefined,
       });
       onOpenChange(false);
     } catch {
@@ -83,6 +86,7 @@ export function FollowupSendDialog({ row, open, onOpenChange }: Props) {
   const isOverridable =
     lastError &&
     ["cooldown_active", "daily_cap_reached", "max_attempts_reached"].includes(lastError.code);
+  const forceReasonInvalid = force && forceReason.trim().length < 5;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -141,15 +145,26 @@ export function FollowupSendDialog({ row, open, onOpenChange }: Props) {
               <div className="space-y-1 min-w-0">
                 <div className="font-medium">{lastError.message}</div>
                 {isOverridable && (
-                  <label className="flex items-center gap-2 text-[11px] text-foreground/80">
-                    <input
-                      type="checkbox"
-                      checked={force}
-                      onChange={(e) => setForce(e.target.checked)}
-                      className="h-3.5 w-3.5"
-                    />
-                    Forçar envio mesmo assim (registrado em auditoria)
-                  </label>
+                  <div className="space-y-2">
+                    <label className="flex items-center gap-2 text-[11px] text-foreground/80">
+                      <input
+                        type="checkbox"
+                        checked={force}
+                        onChange={(e) => setForce(e.target.checked)}
+                        className="h-3.5 w-3.5"
+                      />
+                      Forçar envio mesmo assim (registrado em auditoria)
+                    </label>
+                    {force && (
+                      <Textarea
+                        rows={2}
+                        value={forceReason}
+                        onChange={(e) => setForceReason(e.target.value)}
+                        placeholder="Justificativa (mín. 5 caracteres) — obrigatória para auditoria."
+                        className="text-xs text-foreground"
+                      />
+                    )}
+                  </div>
                 )}
               </div>
             </div>
@@ -162,7 +177,7 @@ export function FollowupSendDialog({ row, open, onOpenChange }: Props) {
           </Button>
           <Button
             onClick={handleSend}
-            disabled={send.isPending || tooShort || tooLong}
+            disabled={send.isPending || tooShort || tooLong || forceReasonInvalid}
           >
             {send.isPending ? (
               <Loader2 className="h-4 w-4 mr-2 animate-spin" />

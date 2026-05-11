@@ -143,15 +143,19 @@ export interface SendFollowupInput {
   message: string;
   channel?: "whatsapp";
   force?: boolean;
+  force_reason?: string;
 }
 
 export interface SendFollowupResult {
   success: true;
   attempt_id: string;
   attempt_number: number;
+  delivery_status: "queued";
   locked_until: string;
   sent_today: number;
   daily_cap: number;
+  instance_id: string;
+  bypassed_guardrails: string[];
 }
 
 export class FollowupSendError extends Error {
@@ -166,10 +170,16 @@ export class FollowupSendError extends Error {
 }
 
 const errorCopy: Record<string, string> = {
-  opted_out: "Cliente optou por não receber este canal (LGPD).",
+  opted_out: "Cliente optou por não receber este canal (LGPD). Não pode ser forçado.",
   cooldown_active: "Cooldown ativo — aguarde antes de reenviar.",
   daily_cap_reached: "Limite diário de envios atingido para este canal.",
   max_attempts_reached: "Máximo de tentativas atingido para esta proposta.",
+  force_max_attempts_requires_manager: "Apenas gerente/admin pode forçar acima do máximo de tentativas.",
+  force_daily_cap_requires_admin: "Apenas admin pode forçar acima do limite diário.",
+  force_reason_required: "Justificativa obrigatória para envio forçado (mín. 5 caracteres).",
+  forbidden_role: "Você não tem permissão para enviar follow-up.",
+  tenant_mismatch: "Proposta pertence a outro tenant.",
+  duplicate_attempt: "Já existe um envio em andamento para esta proposta.",
   no_wa_instance_connected: "Nenhuma instância WhatsApp conectada.",
   telefone_missing: "Cliente sem telefone normalizado.",
   cliente_missing: "Proposta sem cliente vinculado.",
@@ -198,7 +208,7 @@ export function useSendProposalFollowup() {
       return data as SendFollowupResult;
     },
     onSuccess: () => {
-      toast.success("Follow-up enviado com sucesso.");
+      toast.success("Follow-up enfileirado — aguardando confirmação do WhatsApp.");
       qc.invalidateQueries({ queryKey: ["followup-comercial-inbox"] });
       qc.invalidateQueries({ queryKey: ["followup-comercial-kpis"] });
     },
