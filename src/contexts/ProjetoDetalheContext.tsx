@@ -524,7 +524,7 @@ export function ProjetoDetalheProvider({ dealId, onBack, initialPipelineId, init
     tabBadge,
   }), [
     dealId, onBack, initialPipelineId, initialPipelineName,
-    deal, projetoId, history, stages, loadingData,
+    deal, projetoId, projetoNome, projetoCodigo, projetoNum, history, stages, loadingData,
     customerName, customerPhone, customerEmail, customerCpfCnpj, customerAddress, customerEmpresa,
     ownerName, pipelines, allStagesMap, propostasCountData, docsCount, userNamesMap,
     dealEtiquetas, allEtiquetas, etiquetaPopoverOpen,
