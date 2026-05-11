@@ -89,6 +89,7 @@ const TIPO_CONFIG: Record<string, {
 };
 
 export function ProjetoInstalacaoTab({ dealId }: Props) {
+  const { setActiveTab } = useProjetoDetalhe();
   const { data: templates = [], isLoading: loadingTemplates } = useChecklistTemplates();
   const { data: checklists = [], isLoading: loadingChecklists } = useChecklistsByProjeto(dealId);
   const criarChecklist = useCriarChecklist();
@@ -96,7 +97,7 @@ export function ProjetoInstalacaoTab({ dealId }: Props) {
   // Gate: verificar se existe proposta aceita/principal
   // Gate RB-22: só permite instalação com proposta ACEITA (status aceita/ganha)
   // is_principal sozinho NÃO é suficiente — propostas migradas podem ser principal sem aceite
-  const { data: temPropostaAceita = false } = useQuery({
+  const { data: temPropostaAceita = false, isLoading: loadingGate } = useQuery({
     queryKey: ["proposta-aceita-gate", dealId],
     queryFn: async () => {
       const { data } = await supabase
