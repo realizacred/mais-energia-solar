@@ -3186,6 +3186,16 @@ export function ProposalWizard() {
       )}
 
 
+      {/* Accepted Proposal Permanent Warning Banner */}
+      {proposalStatus === "aceita" && (
+        <div className="flex items-center gap-3 px-4 lg:px-6 py-3 border-b border-destructive bg-destructive text-destructive-foreground shrink-0 animate-pulse z-50">
+          <AlertTriangle className="h-5 w-5 shrink-0" />
+          <p className="text-sm font-bold">
+            ESTA PROPOSTA ESTÁ ACEITA PELO CLIENTE. QUALQUER ALTERAÇÃO PODE INVALIDAR O CONTRATO ASSINADO.
+          </p>
+        </div>
+      )}
+
       {/* Migrated proposal without editable kit */}
       {migratedKitMissing && (
         <div className="flex items-center gap-2 px-4 lg:px-6 py-2 border-b border-amber-500/30 bg-amber-500/10 shrink-0">
