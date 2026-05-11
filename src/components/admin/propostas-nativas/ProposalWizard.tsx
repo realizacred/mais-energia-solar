@@ -320,6 +320,9 @@ export function ProposalWizard() {
   // Pos-dimensionamento dialog
   const [showPosDialog, setShowPosDialog] = useState(false);
   const [nomeProposta, setNomeProposta] = useState("");
+  const [editingSentProposal, setEditingSentProposal] = useState(false);
+  const [showNewVersionConfirm, setShowNewVersionConfirm] = useState(false);
+  const [pendingUpdateAction, setPendingUpdateAction] = useState<boolean | null>(null);
 
   // ─── Enforcement: block modal state
   const [showBlockModal, setShowBlockModal] = useState(false);
