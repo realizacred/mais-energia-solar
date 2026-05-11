@@ -91,13 +91,14 @@ export function StepServicos({ servicos, onServicosChange, venda, kitItens = [],
   ];
 
   // Add service-based resumo items (Instalação, Comissão, etc.)
-  const instalacaoServico = servicos.find(s => s.categoria === "instalacao");
-  const comissaoServico = servicos.find(s => s.categoria === "comissao");
+  // SSOT: Use values from VendaData if provided (Financial Center sync), otherwise from servicos array
+  const valorInstalacao = (venda && venda.instalacao_enabled !== false) 
+    ? (venda.custo_instalacao || 0) 
+    : (servicos.find(s => s.categoria === "instalacao")?.valor || 0);
 
-  // Use values from VendaData if provided (Financial Center sync), otherwise from servicos array
-  const hasVendaValues = !!venda;
-  const valorInstalacao = hasVendaValues ? (venda.custo_instalacao || 0) : (servicos.find(s => s.categoria === "instalacao")?.valor || 0);
-  const valorComissao = hasVendaValues ? (venda.custo_comissao || 0) : (servicos.find(s => s.categoria === "comissao")?.valor || 0);
+  const valorComissao = (venda && venda.comissao_enabled !== false)
+    ? (venda.custo_comissao || 0)
+    : (servicos.find(s => s.categoria === "comissao")?.valor || 0);
 
   resumoItens.push({
     descricao: "Instalação",
@@ -110,6 +111,7 @@ export function StepServicos({ servicos, onServicosChange, venda, kitItens = [],
     quantidade: 1,
     valor: valorComissao,
   });
+
 
   // Add other services not already shown
   servicos
