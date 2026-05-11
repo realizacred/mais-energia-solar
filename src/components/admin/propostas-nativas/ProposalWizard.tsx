@@ -219,6 +219,24 @@ export function ProposalWizard() {
   const [manualKits, setManualKits] = useState<{ card: any; itens: KitItemRow[] }[]>([]);
   const [selectedManualIdx, setSelectedManualIdx] = useState<number | null>(null);
 
+  const calcKitCostFromItems = useCallback((rows: KitItemRow[]) => {
+    return Math.round(rows.reduce((s, i) => s + ((Number(i.quantidade) || 0) * (Number(i.preco_unitario) || 0)), 0) * 100) / 100;
+  }, []);
+
+  const handleItensChange = useCallback((nextItens: KitItemRow[]) => {
+    const nextCustoKit = calcKitCostFromItems(nextItens);
+    setItens(nextItens);
+    setVenda(prev => {
+      const keepImportedOverride = prev.isImportedFinancialOverride && prev.custo_kit_override != null && prev.custo_kit_override > 0;
+      return {
+        ...prev,
+        custo_kit: nextCustoKit,
+        custo_kit_override: keepImportedOverride ? prev.custo_kit_override : null,
+        isImportedFinancialOverride: keepImportedOverride,
+      };
+    });
+  }, [calcKitCostFromItems]);
+
   // Layouts
   const [layouts, setLayouts] = useState<LayoutArranjo[]>([]);
 
