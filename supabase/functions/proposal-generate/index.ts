@@ -96,6 +96,8 @@ interface ServicoPayload {
 }
 
 interface VendaPayload {
+  custo_kit?: number;
+  custo_instalacao?: number;
   custo_comissao: number;
   custo_outros: number;
   margem_percentual: number;
