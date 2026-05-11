@@ -1110,7 +1110,10 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
           initialItens={editingKitIndex !== null ? manualKits[editingKitIndex]?.itens : undefined}
           initialCardData={editingKitIndex !== null && manualKits[editingKitIndex] ? manualKits[editingKitIndex].meta || {
             distribuidorNome: manualKits[editingKitIndex].card.distribuidorNome,
+            nomeKit: "Kit selecionado",
+            codigoKit: manualKits[editingKitIndex].card.id,
             topologia: manualKits[editingKitIndex].card.topologia,
+            custo: manualKits[editingKitIndex].card.precoTotal,
           } : undefined}
         />
       )}
