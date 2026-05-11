@@ -36,7 +36,9 @@ interface UCCardProps {
   onOpenMesAMes: (field: "consumo" | "hp" | "hfp") => void;
   isFirst: boolean;
   totalUcs: number;
+  leadFase?: string | null;
 }
+
 
 /* ── Editable inline value ── */
 function EditableValue({ label, value, decimals = 5, onChange }: {
