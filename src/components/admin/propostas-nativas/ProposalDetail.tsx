@@ -10,6 +10,8 @@
 
 import { useState, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { Info, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -124,7 +126,7 @@ export function ProposalDetail() {
     <div className="space-y-6">
       {/* ══════════ HEADER ══════════ */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <ProposalHeader vm={vm} clienteNome={propostaRaw?.cliente_id ? vm.clienteNome : null} />
+        <ProposalHeader vm={vm} clienteNome={propostaRaw?.cliente_id ? vm.clienteNome : null} projetoId={propostaRaw?.projeto_id ?? null} />
         <ProposalStatusActions
           vm={vm}
           existingOs={existingOs}
