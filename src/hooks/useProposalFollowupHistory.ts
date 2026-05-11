@@ -96,7 +96,7 @@ export function useProposalFollowupHistory(propostaId: string | null | undefined
       if (ids.size > 0) {
         const { data: profData } = await supabase
           .from("profiles")
-          .select("user_id,display_name,full_name")
+          .select("user_id,nome")
           .in("user_id", Array.from(ids));
         profiles = Object.fromEntries(
           ((profData ?? []) as ProfileMini[]).map((p) => [p.user_id, p])
