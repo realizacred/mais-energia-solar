@@ -228,24 +228,7 @@ export function DocumentosTab({ dealId, clienteTelefone, consultorTelefone: cons
     setPreviewUrl(data.signedUrl);
   };
 
-  const previewUpload = async (file: { name: string; metadata: { size?: number; mimetype?: string } | null; created_at: string | null }) => {
-    try {
-      const tenantId = (await supabase.from("profiles").select("tenant_id").limit(1).single()).data?.tenant_id;
-      if (!tenantId) return;
-      const path = `${tenantId}/deals/${dealId}/${file.name}`;
-      setFilePreview({
-        bucket: "projeto-documentos",
-        storage_path: path,
-        filename: file.name.replace(/^\d+_/, ""),
-        mime: file.metadata?.mimetype || null,
-        size: file.metadata?.size || null,
-        uploaded_at: file.created_at,
-        origin_label: "Anexo manual",
-      });
-    } catch {
-      toast({ title: "Erro ao abrir arquivo", variant: "destructive" });
-    }
-  };
+  // previewUpload removido — preview de uploads vive no ProjectDocumentsHub
 
   const enviarWhatsApp = async (doc: GeneratedDocRow, destinatario: "cliente" | "consultor") => {
     const telefone = destinatario === "cliente" ? clienteTelefone : consultorTelefone;
