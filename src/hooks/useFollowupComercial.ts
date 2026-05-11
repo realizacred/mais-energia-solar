@@ -143,15 +143,19 @@ export interface SendFollowupInput {
   message: string;
   channel?: "whatsapp";
   force?: boolean;
+  force_reason?: string;
 }
 
 export interface SendFollowupResult {
   success: true;
   attempt_id: string;
   attempt_number: number;
+  delivery_status: "queued";
   locked_until: string;
   sent_today: number;
   daily_cap: number;
+  instance_id: string;
+  bypassed_guardrails: string[];
 }
 
 export class FollowupSendError extends Error {
