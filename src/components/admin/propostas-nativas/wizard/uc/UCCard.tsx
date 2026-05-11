@@ -344,7 +344,33 @@ export function UCCard({ uc, index, onChange, onRemove, onOpenConfig, onOpenMesA
 
           {/* Fase */}
           <div className="space-y-1 pt-1">
-            <Label className="text-[11px]">{isFirst ? "Fase e Tensão da Rede" : "Fase"} <span className="text-destructive">*</span></Label>
+            <div className="flex items-center justify-between">
+              <Label className="text-[11px]">{isFirst ? "Fase e Tensão da Rede" : "Fase"} <span className="text-destructive">*</span></Label>
+              {isFirst && leadFase && (
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <div className={`flex items-center gap-0.5 text-[9px] px-1.5 py-0.5 rounded-full border ${
+                        redeAtendimentoToFaseTensao(leadFase)?.fase_tensao === uc.fase_tensao
+                          ? "bg-success/10 border-success/30 text-success"
+                          : "bg-warning/10 border-warning/30 text-warning"
+                      }`}>
+                        <Info className="h-2.5 w-2.5" />
+                        Lead: {leadFase}
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent className="max-w-[200px]">
+                      <p className="text-[10px]">
+                        {redeAtendimentoToFaseTensao(leadFase)?.fase_tensao === uc.fase_tensao
+                          ? "A fase coincide com a informação original do lead."
+                          : `A fase selecionada difere do orçamento original (${leadFase}). Verifique antes de prosseguir.`
+                        }
+                      </p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              )}
+            </div>
             {isFirst ? (
               <Select value={uc.fase_tensao} onValueChange={v => update("fase_tensao", v as any)}>
                 <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Selecione" /></SelectTrigger>
@@ -356,7 +382,13 @@ export function UCCard({ uc, index, onChange, onRemove, onOpenConfig, onOpenMesA
                 <SelectContent>{FASE_SIMPLE.map(f => <SelectItem key={f.value} value={f.value}>{f.label}</SelectItem>)}</SelectContent>
               </Select>
             )}
+            {isFirst && leadFase && redeAtendimentoToFaseTensao(leadFase)?.fase_tensao !== uc.fase_tensao && (
+              <p className="text-[9px] text-warning font-medium">
+                Divergência detectada com o orçamento original ({leadFase}).
+              </p>
+            )}
           </div>
+
         </Section>
 
         <div className="border-t border-border/40 my-1.5" />
