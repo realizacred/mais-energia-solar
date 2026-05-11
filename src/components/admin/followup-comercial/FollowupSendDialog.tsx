@@ -145,15 +145,26 @@ export function FollowupSendDialog({ row, open, onOpenChange }: Props) {
               <div className="space-y-1 min-w-0">
                 <div className="font-medium">{lastError.message}</div>
                 {isOverridable && (
-                  <label className="flex items-center gap-2 text-[11px] text-foreground/80">
-                    <input
-                      type="checkbox"
-                      checked={force}
-                      onChange={(e) => setForce(e.target.checked)}
-                      className="h-3.5 w-3.5"
-                    />
-                    Forçar envio mesmo assim (registrado em auditoria)
-                  </label>
+                  <div className="space-y-2">
+                    <label className="flex items-center gap-2 text-[11px] text-foreground/80">
+                      <input
+                        type="checkbox"
+                        checked={force}
+                        onChange={(e) => setForce(e.target.checked)}
+                        className="h-3.5 w-3.5"
+                      />
+                      Forçar envio mesmo assim (registrado em auditoria)
+                    </label>
+                    {force && (
+                      <Textarea
+                        rows={2}
+                        value={forceReason}
+                        onChange={(e) => setForceReason(e.target.value)}
+                        placeholder="Justificativa (mín. 5 caracteres) — obrigatória para auditoria."
+                        className="text-xs text-foreground"
+                      />
+                    )}
+                  </div>
                 )}
               </div>
             </div>
