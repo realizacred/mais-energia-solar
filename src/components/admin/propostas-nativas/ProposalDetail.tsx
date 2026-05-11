@@ -37,6 +37,8 @@ import { ProposalViewsCard } from "./ProposalViewsCard";
 import { GenerateFileDialog } from "./GenerateFileDialog";
 import { ProposalAnalysis } from "./ProposalAnalysis";
 import { ProposalActionCards } from "./ProposalActionCards";
+import { FollowupHistoryTimeline } from "@/components/admin/followup-comercial/FollowupHistoryTimeline";
+import { History } from "lucide-react";
 
 export function ProposalDetail() {
   const { propostaId, versaoId } = useParams();
@@ -211,6 +213,17 @@ export function ProposalDetail() {
           />
         )}
       </div>
+
+      {/* ══════════ HISTÓRICO DE FOLLOW-UPS ══════════ */}
+      {vm.propostaId && (
+        <section className="rounded-lg border border-border bg-card p-4 space-y-3">
+          <header className="flex items-center gap-2">
+            <History className="h-4 w-4 text-muted-foreground" />
+            <h2 className="text-sm font-semibold text-foreground">Histórico de Follow-ups</h2>
+          </header>
+          <FollowupHistoryTimeline propostaId={vm.propostaId} />
+        </section>
+      )}
 
       {/* ══════════ GENERATE FILE DIALOG ══════════ */}
       {versaoId && vm.propostaId && (
