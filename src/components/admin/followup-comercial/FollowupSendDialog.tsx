@@ -177,7 +177,7 @@ export function FollowupSendDialog({ row, open, onOpenChange }: Props) {
           </Button>
           <Button
             onClick={handleSend}
-            disabled={send.isPending || tooShort || tooLong}
+            disabled={send.isPending || tooShort || tooLong || forceReasonInvalid}
           >
             {send.isPending ? (
               <Loader2 className="h-4 w-4 mr-2 animate-spin" />
