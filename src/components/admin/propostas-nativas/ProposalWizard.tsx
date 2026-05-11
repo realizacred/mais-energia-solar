@@ -75,6 +75,7 @@ import {
   EMPTY_CLIENTE, DEFAULT_PREMISSAS, DEFAULT_PRE_DIMENSIONAMENTO, createEmptyUC, formatBRL,
   redeAtendimentoToFaseTensao, mapLeadTipoTelhadoToProposal,
 } from "./wizard/types";
+import { normalizeSolarMarketV2Snapshot } from "./wizard/normalizeSolarMarketV2";
 
 // ─── Step Keys ─────────────────────────────────────────────
 
@@ -341,6 +342,7 @@ export function ProposalWizard() {
   const [editingsentProposal, setEditingSentProposal] = useState(false);
   // Track async DB restore to block UI during loading (race condition fix)
   const [isRestoring, setIsRestoring] = useState(!!(propostaIdFromUrl && versaoIdFromUrl));
+  const [migratedKitMissing, setMigratedKitMissing] = useState(false);
 
   // ─── Load deal custom field values as fallback for customFieldValues
   const effectiveDealId = savedDealId || (projectContext as any)?.dealId || null;
@@ -901,8 +903,14 @@ export function ProposalWizard() {
         // Detect snapshot format and normalize to wizard format
         let s: WizardSnapshot;
         if (rawSnapshot.source === "legacy_import") {
-          // Legacy SolarMarket import
+          // Legacy SolarMarket import (formato achatado antigo)
           s = await normalizeLegacySnapshot(rawSnapshot, propostaIdFromUrl, versao) as WizardSnapshot;
+        } else if (rawSnapshot.source === "solarmarket") {
+          // SolarMarket V2 (motor job-based, source_version "v3"): kit.itens agrupado por category.
+          const normalized = await normalizeSolarMarketV2Snapshot(rawSnapshot, propostaIdFromUrl, versao);
+          s = normalized as WizardSnapshot;
+          const hasModulo = Array.isArray(normalized.itens) && normalized.itens.some((i: any) => i.categoria === "modulo" && i.quantidade > 0);
+          setMigratedKitMissing(!hasModulo);
         } else if (rawSnapshot.engine_version || rawSnapshot.versao_schema) {
           // Engine-enriched snapshot — map back to wizard format
           const ws = rawSnapshot._wizard_state || {}; // Wizard state passthrough (v2.5+)
@@ -3079,6 +3087,16 @@ export function ProposalWizard() {
           <AlertTriangle className="h-3.5 w-3.5 text-warning shrink-0" />
           <p className="text-[11px] font-medium text-warning">
             Essa proposta já foi enviada/gerada. Ao salvar, uma nova versão será criada com um novo link.
+          </p>
+        </div>
+      )}
+
+      {/* Migrated proposal without editable kit */}
+      {migratedKitMissing && (
+        <div className="flex items-center gap-2 px-4 lg:px-6 py-2 border-b border-amber-500/30 bg-amber-500/10 shrink-0">
+          <AlertTriangle className="h-3.5 w-3.5 text-amber-600 shrink-0" />
+          <p className="text-[11px] font-medium text-amber-700 dark:text-amber-400">
+            Esta proposta importada não possui kit técnico editável. Use "Duplicar proposta" para criar uma versão editável ou refaça o kit manualmente.
           </p>
         </div>
       )}
