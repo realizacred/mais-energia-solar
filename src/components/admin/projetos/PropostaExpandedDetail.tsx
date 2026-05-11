@@ -1449,7 +1449,7 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
                 </TooltipProvider>
 
                 {p.versoes.length > 1 && (
-                  <Badge variant="secondary" className="h-4 px-1 text-[9px] font-medium bg-muted text-muted-foreground border-none">
+                  <Badge variant="secondary" className="h-4 px-1.5 text-[11px] font-medium bg-muted text-muted-foreground border-none">
                     v{latestVersao?.versao_numero}
                   </Badge>
                 )}
