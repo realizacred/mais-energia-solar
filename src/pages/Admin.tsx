@@ -139,6 +139,7 @@ const DataResetManager = lazy(() => import("@/components/admin/DataResetManager"
 const BackupRestorePage = lazy(() => import("@/components/admin/BackupRestorePage").then(m => ({ default: m.BackupRestorePage })));
 const LeadsTrashPage = lazy(() => import("@/components/admin/leads/LeadsTrashPage"));
 const FollowupComercialPage = lazy(() => import("@/pages/admin/FollowupComercialPage"));
+const PreventiveCenterPage = lazy(() => import("@/pages/admin/PreventiveCenterPage"));
 const IntegrationsPage = lazy(() => import("@/components/admin/integrations/IntegrationsPage"));
 const IntegrationHealthPage = lazy(() => import("@/components/admin/integrations/IntegrationHealthPage"));
 const MonitoringPage = lazy(() => import("@/components/admin/monitoring/MonitoringPage"));
