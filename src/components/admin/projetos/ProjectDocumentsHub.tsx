@@ -68,6 +68,8 @@ import {
   type ProjectDocument,
   type ProjectDocumentOrigem,
 } from "@/hooks/useProjectDocuments";
+import { useProjetoArquivos, useDeletarArquivo } from "@/hooks/useProjetoDocumentos";
+import { useProjetoCustomFieldFiles } from "@/hooks/useProjetoCustomFieldFiles";
 
 interface Props {
   projetoId?: string | null;
