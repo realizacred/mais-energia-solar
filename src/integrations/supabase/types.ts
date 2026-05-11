@@ -29278,6 +29278,49 @@ export type Database = {
           },
         ]
       }
+      vw_preventive_dashboard: {
+        Row: {
+          acoes_automaticas_hoje: number | null
+          aguardando_revisao: number | null
+          clientes_em_risco: number | null
+          clientes_sem_interacao: number | null
+          cobrancas_preventivas: number | null
+          engenharia_parada: number | null
+          propostas_esfriando: number | null
+          recuperacao_potencial: number | null
+          tenant_id: string | null
+        }
+        Relationships: []
+      }
+      vw_preventive_heatmap: {
+        Row: {
+          criticos: number | null
+          criticos_pct: number | null
+          dominio: string | null
+          dominio_label: string | null
+          status: string | null
+          tenant_id: string | null
+          total: number | null
+        }
+        Relationships: []
+      }
+      vw_preventive_scenarios: {
+        Row: {
+          ativo: boolean | null
+          cooldown_horas: number | null
+          descricao: string | null
+          dominio: string | null
+          executor: string | null
+          gatilho: string | null
+          nome: string | null
+          requer_aprovacao: boolean | null
+          scenario_id: string | null
+          tenant_id: string | null
+          usa_ia: boolean | null
+          volume_estimado: number | null
+        }
+        Relationships: []
+      }
       vw_proposal_followup_inbox: {
         Row: {
           aceita_at: string | null

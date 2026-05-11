@@ -139,6 +139,7 @@ const DataResetManager = lazy(() => import("@/components/admin/DataResetManager"
 const BackupRestorePage = lazy(() => import("@/components/admin/BackupRestorePage").then(m => ({ default: m.BackupRestorePage })));
 const LeadsTrashPage = lazy(() => import("@/components/admin/leads/LeadsTrashPage"));
 const FollowupComercialPage = lazy(() => import("@/pages/admin/FollowupComercialPage"));
+const PreventiveCenterPage = lazy(() => import("@/pages/admin/PreventiveCenterPage"));
 const IntegrationsPage = lazy(() => import("@/components/admin/integrations/IntegrationsPage"));
 const IntegrationHealthPage = lazy(() => import("@/components/admin/integrations/IntegrationHealthPage"));
 const MonitoringPage = lazy(() => import("@/components/admin/monitoring/MonitoringPage"));
@@ -320,6 +321,7 @@ const TAB_TITLES: Record<string, string> = {
   "respostas-rapidas": "Respostas rápidas",
   followup: "Acompanhamentos",
   "followup-comercial": "Recuperação Comercial",
+  preventiva: "Central Preventiva",
   validacao: "Aprovação de vendas",
   tarefas: "Tarefas & prazos",
   clientes: "Clientes",
@@ -596,6 +598,7 @@ export default function Admin() {
                 <Route path="pipeline" element={<LeadsPipeline />} />
                 <Route path="followup" element={<FollowUpManager diasAlerta={3} />} />
                 <Route path="followup-comercial" element={<FollowupComercialPage />} />
+                <Route path="preventiva" element={<PreventiveCenterPage />} />
                 <Route path="lixeira" element={<LeadsTrashPage />} />
                 <Route path="propostas" element={<PropostasManager />} />
                 <Route path="projetos" element={<ProjetosManagerPage />} />
