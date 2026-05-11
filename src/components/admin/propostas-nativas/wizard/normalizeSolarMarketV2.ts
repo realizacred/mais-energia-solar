@@ -22,9 +22,9 @@ import { supabase } from "@/integrations/supabase/client";
 import {
   createEmptyUC,
   mapLeadTipoTelhadoToProposal,
-  type WizardSnapshot,
   type UCData,
 } from "./types";
+import type { WizardSnapshot } from "./hooks/useWizardPersistence";
 
 const extractPotenciaFromModel = (model: string | null | undefined): number => {
   if (!model) return 0;
