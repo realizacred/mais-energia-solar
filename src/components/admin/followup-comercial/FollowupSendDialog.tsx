@@ -56,6 +56,7 @@ export function FollowupSendDialog({ row, open, onOpenChange }: Props) {
     if (row && open) {
       setMessage(defaultMessage(row));
       setForce(false);
+      setForceReason("");
     }
   }, [row, open]);
 
