@@ -98,42 +98,97 @@ export function useFollowupComercialKpis() {
   });
 }
 
+export type FollowupInboxSort =
+  | "dias_parado"
+  | "score_ia"
+  | "valor_total"
+  | "ultima_atividade";
+
 export interface FollowupInboxFilters {
   classe?: FollowupClasse | "todos";
   consultorId?: string | null;
   diasMin?: number | null;
   search?: string | null;
+  sort?: FollowupInboxSort;
 }
 
+const PAGE_SIZE = 50;
+
+function sortKeyFromRow(row: FollowupInboxRow, sort: FollowupInboxSort): number | null {
+  switch (sort) {
+    case "score_ia":
+      return row.score_ia == null ? null : Number(row.score_ia);
+    case "valor_total":
+      return row.valor_total == null ? null : Number(row.valor_total);
+    case "ultima_atividade":
+      return row.ultima_atividade_em ? new Date(row.ultima_atividade_em).getTime() / 1000 : null;
+    case "dias_parado":
+    default:
+      return row.dias_parado == null ? null : Number(row.dias_parado);
+  }
+}
+
+/**
+ * Inbox paginada por cursor. Reaproveita RPC get_followup_inbox_page.
+ * Página de até 50 linhas; UI usa fetchNextPage para lazy-load.
+ */
 export function useFollowupComercialInbox(filters: FollowupInboxFilters = {}) {
-  return useQuery({
-    queryKey: ["followup-comercial-inbox", filters],
-    queryFn: async (): Promise<FollowupInboxRow[]> => {
-      let q = supabase
-        .from("vw_proposal_followup_inbox")
-        .select("*")
-        .order("dias_parado", { ascending: false, nullsFirst: false })
-        .limit(300);
-
-      if (filters.classe && filters.classe !== "todos") {
-        q = q.eq("classe_followup", filters.classe);
-      }
-      if (filters.consultorId) {
-        q = q.eq("consultor_id", filters.consultorId);
-      }
-      if (filters.diasMin && filters.diasMin > 0) {
-        q = q.gte("dias_parado", filters.diasMin);
-      }
-      if (filters.search && filters.search.trim().length >= 2) {
-        const term = `%${filters.search.trim()}%`;
-        q = q.or(
-          `cliente_nome.ilike.${term},titulo.ilike.${term},codigo.ilike.${term}`
-        );
-      }
-
-      const { data, error } = await q;
+  const sort: FollowupInboxSort = filters.sort ?? "dias_parado";
+  return useInfiniteQuery({
+    queryKey: ["followup-comercial-inbox", { ...filters, sort }],
+    initialPageParam: { value: null as number | null, id: null as string | null },
+    queryFn: async ({ pageParam }): Promise<FollowupInboxRow[]> => {
+      const { data, error } = await supabase.rpc("get_followup_inbox_page", {
+        p_classe: filters.classe && filters.classe !== "todos" ? filters.classe : null,
+        p_consultor_id: filters.consultorId ?? null,
+        p_dias_min: filters.diasMin && filters.diasMin > 0 ? filters.diasMin : null,
+        p_search: filters.search && filters.search.trim().length >= 2 ? filters.search.trim() : null,
+        p_sort: sort,
+        p_cursor_value: pageParam.value,
+        p_cursor_id: pageParam.id,
+        p_page_size: PAGE_SIZE,
+      });
       if (error) throw error;
       return (data ?? []) as FollowupInboxRow[];
+    },
+    getNextPageParam: (lastPage) => {
+      if (!lastPage || lastPage.length < PAGE_SIZE) return undefined;
+      const last = lastPage[lastPage.length - 1];
+      return { value: sortKeyFromRow(last, sort), id: last.proposta_id };
+    },
+    staleTime: 30 * 1000,
+  });
+}
+
+export interface FollowupInboxSummary {
+  total_count: number;
+  valor_potencial_total: number;
+  dias_parado_p50: number;
+  dias_parado_p90: number;
+}
+
+/**
+ * Sumário real (server-side) com os MESMOS filtros da inbox.
+ * Total e valor potencial NUNCA são derivados do que está renderizado.
+ */
+export function useFollowupComercialInboxSummary(filters: FollowupInboxFilters = {}) {
+  return useQuery({
+    queryKey: ["followup-comercial-inbox-summary", filters],
+    queryFn: async (): Promise<FollowupInboxSummary> => {
+      const { data, error } = await supabase.rpc("get_followup_inbox_summary", {
+        p_classe: filters.classe && filters.classe !== "todos" ? filters.classe : null,
+        p_consultor_id: filters.consultorId ?? null,
+        p_dias_min: filters.diasMin && filters.diasMin > 0 ? filters.diasMin : null,
+        p_search: filters.search && filters.search.trim().length >= 2 ? filters.search.trim() : null,
+      });
+      if (error) throw error;
+      const s = (data ?? {}) as Record<string, number>;
+      return {
+        total_count: Number(s.total_count ?? 0),
+        valor_potencial_total: Number(s.valor_potencial_total ?? 0),
+        dias_parado_p50: Number(s.dias_parado_p50 ?? 0),
+        dias_parado_p90: Number(s.dias_parado_p90 ?? 0),
+      };
     },
     staleTime: 30 * 1000,
   });
