@@ -204,7 +204,7 @@ export function ProjetoInstalacaoTab({ dealId }: Props) {
 
       {/* CARDS DE INICIAR — templates disponíveis */}
       {availableTemplates.length > 0 && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className={cn("grid grid-cols-1 sm:grid-cols-2 gap-4", !temPropostaAceita && "opacity-40 pointer-events-none")}>
           {availableTemplates.map(t => {
             const cfg = TIPO_CONFIG[t.tipo] || TIPO_CONFIG.pre_instalacao;
             const IconComp = cfg.Icon;
