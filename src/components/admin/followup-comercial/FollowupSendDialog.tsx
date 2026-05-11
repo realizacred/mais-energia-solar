@@ -17,9 +17,9 @@ import {
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { AlertTriangle, Send, Loader2, Phone } from "lucide-react";
-import { useSendProposalFollowup } from "@/hooks/useFollowupComercial";
-import type { FollowupInboxRow } from "@/hooks/useFollowupComercial";
+import { AlertTriangle, Send, Loader2, Phone, Sparkles, Flame, ThermometerSun, Snowflake } from "lucide-react";
+import { useSendProposalFollowup, useFollowupAiSuggestion } from "@/hooks/useFollowupComercial";
+import type { FollowupInboxRow, FollowupAiSuggestion } from "@/hooks/useFollowupComercial";
 
 interface Props {
   row: FollowupInboxRow | null;
@@ -50,13 +50,16 @@ export function FollowupSendDialog({ row, open, onOpenChange }: Props) {
   const [message, setMessage] = useState("");
   const [force, setForce] = useState(false);
   const [forceReason, setForceReason] = useState("");
+  const [aiSuggestion, setAiSuggestion] = useState<FollowupAiSuggestion | null>(null);
   const send = useSendProposalFollowup();
+  const aiSuggest = useFollowupAiSuggestion();
 
   useEffect(() => {
     if (row && open) {
       setMessage(defaultMessage(row));
       setForce(false);
       setForceReason("");
+      setAiSuggestion(null);
     }
   }, [row, open]);
 
@@ -81,6 +84,23 @@ export function FollowupSendDialog({ row, open, onOpenChange }: Props) {
       // toast já tratado no hook; permite override quando aplicável
     }
   };
+
+  const handleAiSuggest = async () => {
+    try {
+      const result = await aiSuggest.mutateAsync(row);
+      setAiSuggestion(result);
+      if (result.mensagem_sugerida) setMessage(result.mensagem_sugerida);
+    } catch { /* toast já tratado */ }
+  };
+
+  const tempIcon = (lvl: string) =>
+    lvl === "alto" ? <Flame className="h-3 w-3" />
+    : lvl === "medio" ? <ThermometerSun className="h-3 w-3" />
+    : <Snowflake className="h-3 w-3" />;
+  const tempColor = (lvl: string) =>
+    lvl === "alto" ? "border-destructive/40 bg-destructive/5 text-destructive"
+    : lvl === "medio" ? "border-warning/40 bg-warning/5 text-warning-foreground"
+    : "border-info/40 bg-info/5 text-info-foreground";
 
   const lastError = send.error;
   const isOverridable =
@@ -124,8 +144,41 @@ export function FollowupSendDialog({ row, open, onOpenChange }: Props) {
             </div>
           </div>
 
+          {aiSuggestion && (
+            <div className={`rounded-md border p-3 text-xs space-y-2 ${tempColor(aiSuggestion.nivel_urgencia)}`}>
+              <div className="flex items-center gap-2 font-medium">
+                {tempIcon(aiSuggestion.nivel_urgencia)}
+                Temperatura: {aiSuggestion.nivel_urgencia.toUpperCase()}
+                <span className="ml-auto text-[10px] opacity-70">Risco: {aiSuggestion.risco}</span>
+              </div>
+              {aiSuggestion.motivo && <p className="opacity-80">{aiSuggestion.motivo}</p>}
+              {aiSuggestion.precisa_revisao_humana && (
+                <div className="flex items-center gap-1 text-[11px]">
+                  <AlertTriangle className="h-3 w-3" /> Revisão humana recomendada antes de enviar.
+                </div>
+              )}
+            </div>
+          )}
+
           <div className="space-y-1">
-            <label className="text-xs font-medium text-foreground">Mensagem</label>
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-medium text-foreground">Mensagem</label>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="h-6 px-2 text-[11px]"
+                onClick={handleAiSuggest}
+                disabled={aiSuggest.isPending}
+              >
+                {aiSuggest.isPending ? (
+                  <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                ) : (
+                  <Sparkles className="h-3 w-3 mr-1" />
+                )}
+                Sugerir com IA
+              </Button>
+            </div>
             <Textarea
               rows={8}
               value={message}

@@ -188,6 +188,60 @@ const errorCopy: Record<string, string> = {
   enqueue_failed: "Falha ao enfileirar mensagem no WhatsApp.",
 };
 
+// =====================================================================
+// Phase 3 — Sugestão IA (reutiliza ai-followup-intelligence, RB-76)
+// =====================================================================
+
+export interface FollowupAiSuggestion {
+  deve_fazer_followup: boolean;
+  nivel_urgencia: "baixo" | "medio" | "alto";
+  motivo: string;
+  mensagem_sugerida: string;
+  risco: "baixo" | "medio" | "alto";
+  precisa_revisao_humana: boolean;
+}
+
+export function useFollowupAiSuggestion() {
+  return useMutation<FollowupAiSuggestion, Error, FollowupInboxRow>({
+    mutationFn: async (row) => {
+      const dias = row.dias_parado ?? 0;
+      const cenario =
+        dias > 60 ? "esquecida_60d_mais"
+        : dias > 30 ? "esquecida_30d"
+        : (row.total_aberturas ?? 0) > 0 ? "visualizada_sem_retorno"
+        : "sem_resposta";
+
+      const { data, error } = await supabase.functions.invoke("ai-followup-intelligence", {
+        body: {
+          type: "proposal_followup",
+          cenario,
+          proposal_context: {
+            cliente_nome: row.cliente_nome,
+            valor_total: row.valor_total,
+            potencia_kwp: row.potencia_kwp,
+            status_proposta: row.status,
+            enviado_em: row.enviada_at,
+            viewed_at: row.versao_viewed_at,
+            valido_ate: row.valido_ate,
+            dias_sem_resposta: dias,
+          },
+        },
+      });
+      if (error) {
+        let payload: any = null;
+        try { payload = (error as any).context?.body ? JSON.parse((error as any).context.body) : null; } catch { /* ignore */ }
+        const msg = payload?.error ?? error.message ?? "Falha ao gerar sugestão";
+        throw new Error(msg);
+      }
+      if (data?.error) throw new Error(data.error);
+      return data as FollowupAiSuggestion;
+    },
+    onError: (err) => {
+      toast.error(err.message || "Falha ao gerar sugestão IA");
+    },
+  });
+}
+
 export function useSendProposalFollowup() {
   const qc = useQueryClient();
   return useMutation<SendFollowupResult, FollowupSendError, SendFollowupInput>({
