@@ -192,6 +192,9 @@ export function ProjetoDetalheProvider({ dealId, onBack, initialPipelineId, init
   // Derived data from query
   const deal = fullData?.deal ?? null;
   const projetoId = fullData?.projetoId ?? null;
+  const projetoNome = fullData?.projetoNome ?? null;
+  const projetoCodigo = fullData?.projetoCodigo ?? null;
+  const projetoNum = fullData?.projetoNum ?? null;
   const history = fullData?.history ?? [];
   const stages = fullData?.stages ?? [];
   const customerName = fullData?.customerName ?? "";
