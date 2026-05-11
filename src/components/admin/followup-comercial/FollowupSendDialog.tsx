@@ -180,14 +180,15 @@ export function FollowupSendDialog({ row, open, onOpenChange }: Props) {
                 size="sm"
                 className="h-6 px-2 text-[11px]"
                 onClick={handleAiSuggest}
-                disabled={aiSuggest.isPending}
+                disabled={aiBusy}
+                title={aiCooldown > 0 ? `Aguarde ${aiCooldown}s antes de gerar novamente` : "Sugerir mensagem com IA"}
               >
                 {aiSuggest.isPending ? (
                   <Loader2 className="h-3 w-3 mr-1 animate-spin" />
                 ) : (
                   <Sparkles className="h-3 w-3 mr-1" />
                 )}
-                Sugerir com IA
+                {aiCooldown > 0 ? `Aguarde ${aiCooldown}s` : "Sugerir com IA"}
               </Button>
             </div>
             <Textarea
