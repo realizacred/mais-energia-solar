@@ -2959,7 +2959,7 @@ export function ProposalWizard() {
 
       case STEP_KEYS.SERVICOS:
         return wrap("servicos", (
-          <StepServicos servicos={servicos} onServicosChange={setServicos} kitItens={itens} potenciaKwp={potenciaKwp} custoKitOverride={venda.custo_kit_override} />
+          <StepServicos servicos={servicos} onServicosChange={setServicos} venda={venda} kitItens={itens} potenciaKwp={potenciaKwp} custoKitOverride={venda.custo_kit_override} />
         ));
 
       case STEP_KEYS.VENDA:
