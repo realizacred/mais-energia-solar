@@ -328,7 +328,15 @@ export function DocumentosTab({ dealId, clienteTelefone, consultorTelefone: cons
     }
   };
 
-  if (loading) return <div className="flex justify-center py-12"><SunLoader style="spin" /></div>;
+  if (loading) {
+    return (
+      <div className="space-y-3">
+        <div className="h-12 w-full bg-muted animate-pulse rounded-lg" />
+        <div className="h-12 w-full bg-muted animate-pulse rounded-lg" />
+        <div className="h-12 w-full bg-muted animate-pulse rounded-lg" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

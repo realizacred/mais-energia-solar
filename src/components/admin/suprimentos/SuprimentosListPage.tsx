@@ -178,16 +178,11 @@ export function SuprimentosListPage({ projetoId }: SuprimentosListPageProps) {
           </TableHeader>
           <TableBody>
             {isLoading ? (
-              Array.from({ length: 5 }).map((_, i) => (
-                <TableRow key={i}>
-                  <TableCell><Skeleton className="h-4 w-24" /></TableCell>
-                  {!projetoId && <TableCell><Skeleton className="h-4 w-32" /></TableCell>}
-                  <TableCell><Skeleton className="h-4 w-28" /></TableCell>
-                  <TableCell><Skeleton className="h-5 w-20" /></TableCell>
-                  <TableCell><Skeleton className="h-4 w-20" /></TableCell>
-                  <TableCell><Skeleton className="h-4 w-24" /></TableCell>
-                </TableRow>
-              ))
+              <TableRow>
+                <TableCell colSpan={projetoId ? 5 : 6} className="p-0">
+                  <div className="h-[200px] w-full bg-muted animate-pulse" />
+                </TableCell>
+              </TableRow>
             ) : !ordens?.length ? (
               <TableRow>
                 <TableCell colSpan={projetoId ? 5 : 6} className="text-center py-12">

@@ -33,7 +33,7 @@ export function ProjetoConcessionariaTab({ dealId }: Props) {
     return (
       <div className="space-y-4">
         {[1, 2, 3, 4].map(i => (
-          <Card key={i}><CardContent className="p-5"><Skeleton className="h-32 w-full" /></CardContent></Card>
+          <div key={i} className="h-[60px] w-full bg-muted animate-pulse rounded-lg" />
         ))}
       </div>
     );

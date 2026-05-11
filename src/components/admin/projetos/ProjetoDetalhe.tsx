@@ -2220,7 +2220,14 @@ function PropostasTab({ customerId, dealId, dealTitle, navigate, isClosed, dealS
     })();
   }, [customerId]);
 
-  if (loading) return <div className="flex justify-center py-12"><SunLoader style="spin" /></div>;
+  if (loading) {
+    return (
+      <div className="space-y-3">
+        <div className="h-20 w-full bg-muted animate-pulse rounded-lg" />
+        <div className="h-20 w-full bg-muted animate-pulse rounded-lg" />
+      </div>
+    );
+  }
 
   const principal = selectPrincipal(propostas as any[]);
   const outras = propostas.filter(p => p.id !== principal?.id);
