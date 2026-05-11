@@ -1591,6 +1591,12 @@ export function ProposalWizard() {
   }, [isRestoring, savedPropostaId, savedVersaoId, propostaIdFromUrl, versaoIdFromUrl, buildPersistParams, persistAtomic, applyPersistResult, dealIdFromUrl, resolvedDealId, syncCustomFieldValues, syncTemplateIdUsed, invalidateProposalCaches]);
 
   const handleUpdate = useCallback(async (setActive: boolean) => {
+    // Sync state if using URL fallback (moved before interceptor)
+    const effectivePropostaId = savedPropostaId || propostaIdFromUrl || null;
+    const effectiveVersaoId = savedVersaoId || versaoIdFromUrl || null;
+    if (!savedPropostaId && effectivePropostaId) setSavedPropostaId(effectivePropostaId);
+    if (!savedVersaoId && effectiveVersaoId) setSavedVersaoId(effectiveVersaoId);
+
     // UX-03: Intercept update if proposal was already sent to client
     if (editingsentProposal && !showNewVersionConfirm) {
       setPendingUpdateAction(setActive);
@@ -1602,13 +1608,6 @@ export function ProposalWizard() {
       toast({ title: "Aguarde", description: "A proposta ainda está sendo restaurada." });
       return;
     }
-
-    const effectivePropostaId = savedPropostaId || propostaIdFromUrl || null;
-    const effectiveVersaoId = savedVersaoId || versaoIdFromUrl || null;
-
-    // Sync state if using URL fallback
-    if (!savedPropostaId && effectivePropostaId) setSavedPropostaId(effectivePropostaId);
-    if (!savedVersaoId && effectiveVersaoId) setSavedVersaoId(effectiveVersaoId);
 
     const params = buildPersistParams(effectivePropostaId, effectiveVersaoId);
     const intent = setActive ? "active" as const : "draft" as const;
