@@ -146,7 +146,7 @@ export function FollowupSendDialog({ row, open, onOpenChange }: Props) {
               </Badge>
               {row.dias_parado != null && (
                 <Badge variant="outline" className="text-[10px]">
-                  {row.dias_parado}d parado
+                  {formatDiasParado(row.dias_parado)}
                 </Badge>
               )}
               {row.titulo && (
