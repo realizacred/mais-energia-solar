@@ -37,6 +37,8 @@ import { ProposalViewsCard } from "./ProposalViewsCard";
 import { GenerateFileDialog } from "./GenerateFileDialog";
 import { ProposalAnalysis } from "./ProposalAnalysis";
 import { ProposalActionCards } from "./ProposalActionCards";
+import { FollowupHistoryTimeline } from "@/components/admin/followup-comercial/FollowupHistoryTimeline";
+import { History } from "lucide-react";
 
 export function ProposalDetail() {
   const { propostaId, versaoId } = useParams();
