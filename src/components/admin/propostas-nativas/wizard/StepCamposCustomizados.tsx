@@ -9,6 +9,7 @@ import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { useCustomFieldsList } from "@/hooks/useCustomFieldsSettings";
+import { CustomFieldFileInput } from "@/components/admin/projetos/CustomFieldFileInput";
 import type { Json } from "@/integrations/supabase/types";
 
 interface CustomField {
