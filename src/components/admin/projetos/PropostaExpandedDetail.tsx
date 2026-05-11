@@ -1430,10 +1430,36 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
             <DollarSign className="h-4 w-4 text-warning shrink-0" />
             <div>
               <p className="text-[10px] text-muted-foreground leading-tight">Preço do Projeto</p>
-              <p className="text-sm font-bold text-foreground">
-                {latestVersao?.valor_total ? formatBRL(latestVersao.valor_total) : "—"}
-                {wpPrice && <span className="text-[10px] font-normal text-muted-foreground ml-1.5">R$ {wpPrice.replace('.', ',')} / Wp</span>}
-              </p>
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <p className={cn("text-sm font-bold text-foreground", hasDivergence && "cursor-help underline decoration-dotted decoration-warning/50 underline-offset-2")}>
+                        {latestVersao?.valor_total ? formatBRL(latestVersao.valor_total) : "—"}
+                      </p>
+                    </TooltipTrigger>
+                    {hasDivergence && (
+                      <TooltipContent>
+                        <p className="text-xs">
+                          Versão atual: {formatBRL(latestVersao.valor_total)} | Versão enviada: {formatBRL(enviadaVersao.valor_total)}
+                        </p>
+                      </TooltipContent>
+                    )}
+                  </Tooltip>
+                </TooltipProvider>
+
+                {p.versoes.length > 1 && (
+                  <Badge variant="secondary" className="h-4 px-1 text-[9px] font-medium bg-muted text-muted-foreground border-none">
+                    v{latestVersao?.versao_numero}
+                  </Badge>
+                )}
+
+                {hasDivergence && (
+                  <AlertTriangle className="h-3.5 w-3.5 text-warning shrink-0" />
+                )}
+                
+                {wpPrice && <span className="text-[10px] font-normal text-muted-foreground">R$ {wpPrice.replace('.', ',')} / Wp</span>}
+              </div>
             </div>
           </div>
 
