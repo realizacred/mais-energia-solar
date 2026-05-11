@@ -165,21 +165,70 @@ export async function normalizeSolarMarketV2Snapshot(
   );
   const locTipoTelhado = telhadoRaw ? (mapLeadTipoTelhadoToProposal(telhadoRaw) || telhadoRaw) : "";
 
-  // ── UCs (a partir de "Consumo Mensal UC N" ou "Consumo Mensal") ─
-  const consumoUC1 = readSmVar(sm, "Consumo Mensal UC 1") ?? readSmVar(sm, "Consumo Mensal");
+  // ── UCs (hidratação completa a partir de sm_variables) ─────────
+  const MESES_NORM = ["jan","fev","mar","abr","mai","jun","jul","ago","set","out","nov","dez"];
+  const baseUC = createEmptyUC(1);
+
+  // Consumo: 1) array "Consumo Mensal", 2) meses individuais consumo_<mes>[_uc1], 3) escalares
+  const consumoArr = readSmVar(sm, "Consumo Mensal UC 1") ?? readSmVar(sm, "Consumo Mensal");
+  const consumoMeses: Record<string, number> = { ...baseUC.consumo_meses };
   let mediaConsumoUC1 = 0;
-  if (Array.isArray(consumoUC1) && consumoUC1.length > 0) {
-    const nums = consumoUC1.map((v) => toNum(v)).filter((n) => n > 0);
+  if (Array.isArray(consumoArr) && consumoArr.length > 0) {
+    consumoArr.forEach((v: any, i: number) => {
+      if (i < 12) consumoMeses[MESES_NORM[i]] = toNum(v);
+    });
+    const nums = consumoArr.map((v) => toNum(v)).filter((n) => n > 0);
     mediaConsumoUC1 = nums.length > 0 ? nums.reduce((s, n) => s + n, 0) / nums.length : 0;
   } else {
-    mediaConsumoUC1 = toNum(consumoUC1);
+    let anyMes = false;
+    for (const m of MESES_NORM) {
+      const v = toNum(readSmVar(sm, `consumo_${m}_uc1`) ?? readSmVar(sm, `consumo_${m}`));
+      if (v > 0) { consumoMeses[m] = v; anyMes = true; }
+    }
+    if (anyMes) {
+      const vals = MESES_NORM.map((m) => consumoMeses[m]).filter((n) => n > 0);
+      mediaConsumoUC1 = vals.reduce((s, n) => s + n, 0) / vals.length;
+    } else {
+      mediaConsumoUC1 = toNum(
+        readSmVar(sm, "consumo_mensal") ??
+        readSmVar(sm, "consumo_uc1") ??
+        readSmVar(sm, "vc_consumo") ??
+        consumoArr
+      );
+    }
   }
+
+  // Subgrupo / Grupo / Fase / Tipo / Nome — vindos de *_uc1
+  const subgrupoSm = String(readSmVar(sm, "Subgrupo UC 1") ?? readSmVar(sm, "subgrupo_uc1") ?? "").trim();
+  const subgrupoCode = subgrupoSm.split(/[\s\-]/)[0]?.trim().toUpperCase() || "";
+  const grupoTarif: "A" | "B" = subgrupoCode.startsWith("A") ? "A" : "B";
+
+  const faseSm = String(readSmVar(sm, "Fase UC 1") ?? readSmVar(sm, "fase_uc1") ?? "").trim();
+  const faseKey = faseSm.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+  const faseNorm: "monofasico" | "bifasico" | "trifasico" | undefined =
+    faseKey === "monofasico" ? "monofasico" :
+    faseKey === "bifasico" ? "bifasico" :
+    faseKey === "trifasico" ? "trifasico" : undefined;
+
+  const tipoDimSm = String(readSmVar(sm, "tipo_uc1") ?? "").trim().toUpperCase();
+  const tipoDim: "BT" | "MT" | undefined =
+    tipoDimSm === "BT" || tipoDimSm === "MT" ? (tipoDimSm as "BT" | "MT") : undefined;
+
+  const nomeUC = String(readSmVar(sm, "nome_uc1") ?? "").trim();
 
   const ucs: UCData[] = [
     {
-      ...createEmptyUC(1),
-      consumo_mensal: Math.round(mediaConsumoUC1),
+      ...baseUC,
+      ...(nomeUC ? { nome: nomeUC } : {}),
+      consumo_mensal: Math.round(mediaConsumoUC1 || 0),
+      consumo_meses: consumoMeses,
       distribuidora: disNome,
+      estado,
+      cidade,
+      tipo_telhado: locTipoTelhado,
+      ...(subgrupoCode ? { subgrupo: subgrupoCode, grupo_tarifario: grupoTarif } : {}),
+      ...(faseNorm ? { fase: faseNorm } : {}),
+      ...(tipoDim ? { tipo_dimensionamento: tipoDim } : {}),
     } as UCData,
   ];
 
