@@ -332,7 +332,7 @@ export async function normalizeSolarMarketV2Snapshot(
       precoWp,
       updatedAt: new Date().toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" }),
     };
-    return [{ card, itens, meta: { distribuidorNome: "Importado SM", nomeKit: raw.kit?.nome || "Kit Importado SM" } }];
+    return [{ card, itens, meta: { distribuidorNome: "Importado SM", nomeKit: raw.kit?.nome || "Kit Importado SM", custo: precoTotal } }];
   })();
 
   const normalized: Partial<WizardSnapshot> = {

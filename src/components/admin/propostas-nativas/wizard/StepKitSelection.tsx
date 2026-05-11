@@ -493,8 +493,11 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
       if (editingKitIndex !== null) {
         const updatedKits = manualKits.map((k, i) => i === editingKitIndex ? { card, itens: newItens, meta } : k);
         setManualKits(updatedKits);
-        // If the edited kit was the selected one, propagate updated items to parent
-        if (selectedManualIdx === editingKitIndex) {
+        // If the edited kit is the active kit, propagate updated items to parent.
+        // Restored SM kits can have selectedManualIdx=null while manualKits[0] is visibly selected.
+        const editingVisibleSelectedKit = editingKitIndex === 0 && selectedManualIdx == null && manualKits.length === 1;
+        if (selectedManualIdx === editingKitIndex || editingVisibleSelectedKit) {
+          setSelectedManualIdx(editingKitIndex);
           onItensChange(newItens);
         }
         setEditingKitIndex(null);
@@ -656,7 +659,7 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
                   </Badge>
                 </div>
                 <div className="flex items-center gap-1.5">
-                  <Button variant="outline" size="sm" className="h-7 text-xs gap-1" onClick={() => { setEditingKitIndex(0); setManualMode("zero"); }}>
+                  <Button variant="outline" size="sm" className="h-7 text-xs gap-1" onClick={() => { setSelectedManualIdx(0); setEditingKitIndex(0); setManualMode("zero"); }}>
                     <Pencil className="h-3 w-3" /> Editar
                   </Button>
                   <Button variant="outline" size="sm" className="h-7 text-xs gap-1 border-destructive/30 text-destructive hover:bg-destructive/10" onClick={() => handleDeleteManualKit(0)}>
@@ -1105,9 +1108,13 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
           sistema={pd?.sistema}
           topologias={pd?.topologias}
           initialItens={editingKitIndex !== null ? manualKits[editingKitIndex]?.itens : undefined}
-          initialCardData={editingKitIndex !== null && manualKits[editingKitIndex] ? manualKits[editingKitIndex].meta || {
-            distribuidorNome: manualKits[editingKitIndex].card.distribuidorNome,
-            topologia: manualKits[editingKitIndex].card.topologia,
+          initialCardData={editingKitIndex !== null && manualKits[editingKitIndex] ? {
+            ...(manualKits[editingKitIndex].meta ?? {}),
+            distribuidorNome: manualKits[editingKitIndex].meta?.distribuidorNome || manualKits[editingKitIndex].card.distribuidorNome,
+            nomeKit: manualKits[editingKitIndex].meta?.nomeKit || "Kit selecionado",
+            codigoKit: manualKits[editingKitIndex].meta?.codigoKit || manualKits[editingKitIndex].card.id,
+            topologia: manualKits[editingKitIndex].meta?.topologia || manualKits[editingKitIndex].card.topologia,
+            custo: manualKits[editingKitIndex].meta?.custo || manualKits[editingKitIndex].card.precoTotal,
           } : undefined}
         />
       )}
