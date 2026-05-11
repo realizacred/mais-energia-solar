@@ -8,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
-import { AlertTriangle, CheckCircle, ClipboardList, Gauge, Zap, Lock, FileCheck2, ShieldCheck } from "lucide-react";
+import { AlertTriangle, CheckCircle, ClipboardList, Gauge, Zap, Lock, FileCheck2, ShieldCheck, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useConcessionaria, type VistoriaData } from "@/hooks/useConcessionaria";
 import { formatDate as formatDateBR } from "@/lib/dateUtils";
