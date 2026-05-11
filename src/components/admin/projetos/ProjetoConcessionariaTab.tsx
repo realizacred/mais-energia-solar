@@ -108,6 +108,7 @@ function HomologacaoCard({ ctx, habilitado }: { ctx: ReturnType<typeof useConces
       data_aprovacao: status === "aprovada"
         ? (dataAprovacao || new Date().toISOString().split("T")[0])
         : (dataAprovacao || null),
+      previsao_aprovacao: previsaoAprovacao || null,
       motivo_reprovacao: status === "reprovada" ? motivo : null,
       observacoes: observacoes || null,
     });
