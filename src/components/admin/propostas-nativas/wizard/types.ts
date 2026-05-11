@@ -221,7 +221,7 @@ export function calcPrecoFinal(itens: KitItemRow[], servicos: ServicoItem[], ven
   const custoKitCalculado = _round(itens.reduce((s, i) => s + _round(i.quantidade * i.preco_unitario), 0));
   const custoKit = (venda.custo_kit_override != null && venda.custo_kit_override > 0)
     ? _round(venda.custo_kit_override)
-    : custoKitCalculado;
+    : (venda.custo_kit > 0 ? _round(venda.custo_kit) : custoKitCalculado);
 
   // If Financial Center has synced costs (custo_instalacao > 0 or explicitly set),
   // use VendaData costs directly. Otherwise fall back to servicos array.
@@ -307,6 +307,8 @@ export interface VendaData {
   observacoes: string;
   /** Override manual do custo do kit no Centro Financeiro */
   custo_kit_override?: number | null;
+  /** Preserve o valor financeiro importado até o usuário editar o kit/custo */
+  isImportedFinancialOverride?: boolean;
   /** Flag indicando que o usuário alterou manualmente a comissão */
   comissao_manual_override?: boolean;
 

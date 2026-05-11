@@ -243,6 +243,7 @@ export async function normalizeSolarMarketV2Snapshot(
   const venda = {
     custo_kit: custoKitTotal,
     custo_kit_override: custoKitTotal > 0 ? custoKitTotal : null,
+    isImportedFinancialOverride: custoKitTotal > 0,
     custo_instalacao: custoInstalacao,
     custo_comissao: custoComissao,
     custo_outros: 0,

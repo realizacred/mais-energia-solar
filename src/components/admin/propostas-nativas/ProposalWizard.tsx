@@ -219,6 +219,23 @@ export function ProposalWizard() {
   const [manualKits, setManualKits] = useState<{ card: any; itens: KitItemRow[] }[]>([]);
   const [selectedManualIdx, setSelectedManualIdx] = useState<number | null>(null);
 
+  const calcKitCostFromItems = useCallback((rows: KitItemRow[]) => {
+    return Math.round(rows.reduce((s, i) => s + ((Number(i.quantidade) || 0) * (Number(i.preco_unitario) || 0)), 0) * 100) / 100;
+  }, []);
+
+  const handleItensChange = useCallback((nextItens: KitItemRow[]) => {
+    const nextCustoKit = calcKitCostFromItems(nextItens);
+    setItens(nextItens);
+    setVenda(prev => {
+      return {
+        ...prev,
+        custo_kit: nextCustoKit,
+        custo_kit_override: null,
+        isImportedFinancialOverride: false,
+      };
+    });
+  }, [calcKitCostFromItems]);
+
   // Layouts
   const [layouts, setLayouts] = useState<LayoutArranjo[]>([]);
 
@@ -243,7 +260,7 @@ export function ProposalWizard() {
     const calculatedFromItems = itens.reduce((s, i) => s + i.quantidade * i.preco_unitario, 0);
     // Only set override when items cost is significantly lower than meta cost
     if (calculatedFromItems < meta.custo * 0.99 && venda.custo_kit_override !== meta.custo) {
-      setVenda(prev => ({ ...prev, custo_kit_override: meta.custo }));
+      setVenda(prev => ({ ...prev, custo_kit: calculatedFromItems, custo_kit_override: meta.custo }));
     }
   }, [manualKits, itens]);
 
@@ -1146,6 +1163,7 @@ export function ProposalWizard() {
               desconto_percentual: 0,
               observacoes: "",
               custo_kit_override: null,
+              isImportedFinancialOverride: false,
               comissao_manual_override: false,
               instalacao_enabled: true,
               comissao_enabled: true,
@@ -2847,7 +2865,7 @@ export function ProposalWizard() {
         const kitVal = validateKit(itens, potenciaKwp, venda.custo_kit_override);
         return wrap("kit", (
           <div className="space-y-4">
-            <StepKitSelection itens={itens} onItensChange={setItens} modulos={modulos} inversores={inversores} otimizadores={otimizadores} baterias={baterias} loadingEquip={loadingEquip} potenciaKwp={potenciaKwp} preDimensionamento={preDimensionamento} onPreDimensionamentoChange={setPreDimensionamento} consumoTotal={consumoTotal} manualKits={manualKits} onManualKitsChange={setManualKits} selectedManualIdx={selectedManualIdx} onSelectedManualIdxChange={setSelectedManualIdx} irradiacao={locIrradiacao} latitude={locLatitude} ghiSeries={locGhiSeries} somenteGhi={locSkipPoa} custoKitOverride={venda.custo_kit_override} ibgeCodigo={clienteMunicipioIbgeCodigo ?? solarPremises?.solaryum_ibge_fallback ?? null} />
+            <StepKitSelection itens={itens} onItensChange={handleItensChange} modulos={modulos} inversores={inversores} otimizadores={otimizadores} baterias={baterias} loadingEquip={loadingEquip} potenciaKwp={potenciaKwp} preDimensionamento={preDimensionamento} onPreDimensionamentoChange={setPreDimensionamento} consumoTotal={consumoTotal} manualKits={manualKits} onManualKitsChange={setManualKits} selectedManualIdx={selectedManualIdx} onSelectedManualIdxChange={setSelectedManualIdx} irradiacao={locIrradiacao} latitude={locLatitude} ghiSeries={locGhiSeries} somenteGhi={locSkipPoa} custoKitOverride={venda.custo_kit_override} ibgeCodigo={clienteMunicipioIbgeCodigo ?? solarPremises?.solaryum_ibge_fallback ?? null} />
             {(kitVal?.warnings ?? []).length > 0 && (
               <div className="rounded-lg border border-warning/40 bg-warning/5 p-3 space-y-1">
                 {(kitVal?.warnings ?? []).map((w, i) => (
@@ -2876,7 +2894,7 @@ export function ProposalWizard() {
             adicionais={adicionais}
             onAdicionaisChange={setAdicionais}
             itens={itens}
-            onItensChange={setItens}
+            onItensChange={handleItensChange}
             layouts={layouts}
             onLayoutsChange={setLayouts}
             modulos={modulos}
