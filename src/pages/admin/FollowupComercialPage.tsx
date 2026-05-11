@@ -297,7 +297,7 @@ export default function FollowupComercialPage() {
                         <div>
                           <div className="text-muted-foreground">Parado</div>
                           <div className="font-medium text-foreground">
-                            {r.dias_parado != null ? `${r.dias_parado}d` : "—"}
+                            {formatDiasParado(r.dias_parado)}
                           </div>
                         </div>
                         <div>
