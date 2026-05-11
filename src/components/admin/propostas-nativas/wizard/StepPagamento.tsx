@@ -315,18 +315,19 @@ export function StepPagamento({
     const group = updated[bancoIdx];
     if (!group) return;
     const parcelas = 60;
-    const vf = precoFinal;
+    const vf = precoFinal - valorEntradaGlobal;
     group.opcoes.push({
       id: crypto.randomUUID(),
       banco_id: group.banco.id,
       banco_nome: group.banco.nome,
-      entrada: 0,
+      entrada: valorEntradaGlobal,
       num_parcelas: parcelas,
       taxa_mensal: group.banco.taxa_mensal,
       carencia_meses: 2,
       valor_financiado: vf,
-      valor_parcela: calcParcela({ valor_financiado: vf, entrada: 0, num_parcelas: parcelas, taxa_mensal: group.banco.taxa_mensal, tipo: "financiamento", carencia_meses: 2 }),
+      valor_parcela: calcParcela({ valor_financiado: precoFinal, entrada: valorEntradaGlobal, num_parcelas: parcelas, taxa_mensal: group.banco.taxa_mensal, tipo: "financiamento", carencia_meses: 2 }),
     });
+
     setBancoGroups(updated);
   };
 
