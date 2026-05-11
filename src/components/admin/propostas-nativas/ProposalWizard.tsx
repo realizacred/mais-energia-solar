@@ -488,7 +488,7 @@ export function ProposalWizard() {
       adicionais,
       servicos,
       venda,
-      pagamentoOpcoes: pagamentoOpcoesAtualizadas,
+      pagamentoOpcoes,
       nomeProposta: nomeProposta ?? "",
       descricaoProposta: descricaoProposta ?? "",
       templateSelecionado,
