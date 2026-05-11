@@ -59,6 +59,7 @@ import { StepPagamento } from "./wizard/StepPagamento";
 import { StepResumo } from "./wizard/StepResumo";
 import { StepDocumento } from "./wizard/StepDocumento";
 import { DialogPosDimensionamento } from "./wizard/DialogPosDimensionamento";
+import { NewVersionConfirmModal } from "./wizard/NewVersionConfirmModal";
 import { ProposalAuditPanel } from "./wizard/ProposalAuditPanel";
 import { WizardSidebar, type WizardStep } from "./wizard/WizardSidebar";
 import { WizardStepCard } from "./wizard/WizardStepCard";
