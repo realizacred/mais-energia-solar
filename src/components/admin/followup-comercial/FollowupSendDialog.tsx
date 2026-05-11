@@ -28,6 +28,7 @@ interface Props {
   row: FollowupInboxRow | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  defaultTab?: "mensagem" | "historico";
 }
 
 function defaultMessage(row: FollowupInboxRow): string {
