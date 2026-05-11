@@ -10,6 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { CurrencyInput } from "@/components/ui-kit/inputs/CurrencyInput";
 import { type VendaData, type KitItemRow, type ServicoItem, formatBRL } from "./types";
 import { roundCurrency } from "@/lib/formatters";
+import { cn } from "@/lib/utils";
 import { usePricingDefaults } from "./hooks/usePricingDefaults";
 import { toast } from "@/hooks/use-toast";
 
