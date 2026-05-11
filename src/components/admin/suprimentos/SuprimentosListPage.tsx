@@ -190,15 +190,27 @@ export function SuprimentosListPage({ projetoId }: SuprimentosListPageProps) {
             ) : !ordens?.length ? (
               <TableRow>
                 <TableCell colSpan={projetoId ? 5 : 6} className="text-center py-12">
-                  <div className="flex flex-col items-center gap-2">
-                    <Package className="h-10 w-10 text-muted-foreground/40" />
-                    <p className="text-sm text-muted-foreground">Nenhuma ordem de compra encontrada</p>
-                    <Button variant="outline" size="sm" onClick={() => setNovaOrdemOpen(true)} className="mt-2 gap-1.5">
-                      <Plus className="h-3.5 w-3.5" /> Criar primeira ordem
-                    </Button>
-                  </div>
+                  {projetoId && propostaAceita ? (
+                    <div className="flex flex-col items-center gap-2">
+                      <ShoppingCart className="h-10 w-10 text-orange-500" />
+                      <p className="text-base font-bold text-foreground">Proposta aceita! Hora de comprar os equipamentos.</p>
+                      <p className="text-sm text-muted-foreground">Crie uma ordem de compra com o kit definido na proposta aceita.</p>
+                      <Button size="sm" onClick={() => setNovaOrdemOpen(true)} className="mt-2 gap-1.5 bg-orange-500 hover:bg-orange-600 text-white border-0">
+                        <Plus className="h-3.5 w-3.5" /> Criar ordem de compra
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col items-center gap-2">
+                      <Package className="h-10 w-10 text-muted-foreground/40" />
+                      <p className="text-sm text-muted-foreground">Nenhuma ordem de compra encontrada</p>
+                      <Button variant="outline" size="sm" onClick={() => setNovaOrdemOpen(true)} className="mt-2 gap-1.5">
+                        <Plus className="h-3.5 w-3.5" /> Criar primeira ordem
+                      </Button>
+                    </div>
+                  )}
                 </TableCell>
               </TableRow>
+
             ) : (
               ordens.map((o) => (
                 <TableRow
