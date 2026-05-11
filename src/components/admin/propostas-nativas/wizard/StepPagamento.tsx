@@ -139,6 +139,7 @@ export function StepPagamento({
       g.opcoes.map((op) => ({
         id: op.id,
         nome: g.banco.nome,
+        banco_id: g.banco.id,
         tipo: "financiamento" as const,
         valor_financiado: Number.isFinite(op.valor_financiado) ? op.valor_financiado : price,
         entrada: Number.isFinite(op.entrada) ? op.entrada : 0,
