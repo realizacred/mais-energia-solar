@@ -565,6 +565,11 @@ OUTPUT (JSON estrito, sem texto fora):
       total_tokens: totalTokens,
       estimated_cost_usd: estimatedCost,
       is_fallback: false,
+      cenario,
+      nivel_urgencia: result.nivel_urgencia,
+      precisa_revisao_humana: result.precisa_revisao_humana,
+      tempo_resposta_ms: Date.now() - startedAt,
+      source: "followup_comercial",
     });
   } catch {}
 
