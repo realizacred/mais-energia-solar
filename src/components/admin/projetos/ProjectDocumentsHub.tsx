@@ -231,7 +231,7 @@ export function ProjectDocumentsHub({ projetoId, dealId }: Props) {
         await Promise.all(
           arr.map((file) =>
             upload
-              .mutateAsync({ file, projetoId, dealId })
+              .mutateAsync({ file, projetoId, dealId, categoria: selectedCategoria })
               .finally(() =>
                 setUploading((u) => u.filter((n) => n !== file.name)),
               ),
