@@ -588,6 +588,51 @@ export function StepPagamento({
 
               {/* Main - Options for selected bank */}
               <div className="space-y-3 min-w-0">
+                {bancoGroups.length > 0 && (
+                  <div className="bg-primary/5 border border-primary/20 rounded-xl p-4 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <Label className="text-sm font-semibold flex items-center gap-2">
+                        <Wallet className="h-4 w-4 text-primary" />
+                        Valor de Entrada
+                      </Label>
+                      {valorEntradaGlobal > 0 && (
+                        <Badge variant="outline" className="text-[10px] bg-primary/10 text-primary">
+                          Financiado: {formatBRL(precoFinal - valorEntradaGlobal)}
+                        </Badge>
+                      )}
+                    </div>
+                    <CurrencyInput
+                      value={valorEntradaGlobal}
+                      onChange={(val) => {
+                        const clamped = Math.min(Math.max(0, val), precoFinal);
+                        setValorEntradaGlobal(clamped);
+                        
+                        // Recalculate all bank options
+                        setBancoGroups(prev => prev.map(group => ({
+                          ...group,
+                          opcoes: group.opcoes.map(op => ({
+                            ...op,
+                            entrada: clamped,
+                            valor_financiado: precoFinal - clamped,
+                            valor_parcela: calcParcela({
+                              valor_financiado: precoFinal,
+                              entrada: clamped,
+                              num_parcelas: op.num_parcelas,
+                              taxa_mensal: op.taxa_mensal,
+                              tipo: "financiamento",
+                              carencia_meses: op.carencia_meses
+                            })
+                          }))
+                        })));
+                      }}
+                      className="h-10 text-base font-semibold"
+                    />
+                    <p className="text-[10px] text-muted-foreground">
+                      Este valor será descontado do montante total para o cálculo do financiamento.
+                    </p>
+                  </div>
+                )}
+
                 {bancoGroups[selectedBancoIdx]?.opcoes.map((op, idx) => (
                   <div key={op.id} className="p-4 rounded-xl border border-border/50 bg-card">
                     <div className="flex items-center justify-between mb-3">
