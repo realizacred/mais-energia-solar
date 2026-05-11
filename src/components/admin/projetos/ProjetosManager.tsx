@@ -538,6 +538,7 @@ export function ProjetosManager() {
                 consultor_id: data.consultorId || null,
                 funil_id: funilId,
                 etapa_id: etapaId,
+                nome: data.nome?.trim() ? data.nome.trim() : null,
                 valor_total: data.valor || 0,
                 observacoes: data.descricao || null,
                 status: "criado" as any,
