@@ -62,7 +62,7 @@ export function useFollowupComercialAnalytics() {
     queryFn: async (): Promise<FollowupComercialAnalytics> => {
       const since30d = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
 
-      const [attemptsRes, locksRes, optoutsRes, inboxRes] = await Promise.all([
+      const [attemptsRes, locksRes, optoutsRes, inboxRes, summaryRes] = await Promise.all([
         supabase
           .from("proposal_followup_attempts")
           .select(
@@ -81,24 +81,31 @@ export function useFollowupComercialAnalytics() {
           .select("cliente_id", { count: "exact", head: true }),
         supabase
           .from("vw_proposal_followup_inbox")
-          .select("proposta_id,valor_total,dias_parado")
+          .select("dias_parado")
           .limit(1000),
+        // Total real + valor potencial (sem limit — agregação SQL)
+        supabase.rpc("get_followup_inbox_summary", {
+          p_classe: null,
+          p_consultor_id: null,
+          p_dias_min: null,
+          p_search: null,
+        }),
       ]);
 
       if (attemptsRes.error) throw attemptsRes.error;
       if (locksRes.error) throw locksRes.error;
       if (optoutsRes.error) throw optoutsRes.error;
       if (inboxRes.error) throw inboxRes.error;
+      if (summaryRes.error) throw summaryRes.error;
 
       const attempts = attemptsRes.data ?? [];
       const inbox = inboxRes.data ?? [];
+      const summary = (summaryRes.data ?? {}) as Record<string, number>;
 
-      // Agregados de inbox (recuperação)
-      const totalRecuperacao = inbox.length;
-      const valorPotencial = inbox.reduce(
-        (acc, r: any) => acc + (Number(r.valor_total) || 0),
-        0
-      );
+      // Totais reais via RPC (não limitados a 1000)
+      const totalRecuperacao = Number(summary.total_count ?? 0);
+      const valorPotencial = Number(summary.valor_potencial_total ?? 0);
+      // Média de dias_parado: amostra de até 1000 (suficiente para média estável)
       const diasArr = inbox
         .map((r: any) => Number(r.dias_parado))
         .filter((n) => Number.isFinite(n) && n >= 0);
