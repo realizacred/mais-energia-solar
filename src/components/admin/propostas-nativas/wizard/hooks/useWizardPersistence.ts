@@ -239,11 +239,21 @@ function sanitizeSnapshot(snapshot: any): Record<string, unknown> {
       result.origin_source = result.origin_source ?? "solarmarket";
       result.converted_from_import = true;
     }
-    // Garantia extra: nunca persistir source=solarmarket no snapshot canônico.
+    // Garantia extra: nunca persistir flags SM no snapshot canônico após edição.
+    // Mantemos apenas origin_source + converted_from_import para rastreabilidade.
     if ((result as any).source === "solarmarket") {
       result.origin_source = result.origin_source ?? "solarmarket";
+      result.converted_from_import = true;
       delete (result as any).source;
       delete (result as any).source_version;
+    }
+    // Remover blobs SM pesados (raw_sm, sm_variables) — dados já foram normalizados
+    // para o modelo canônico nativo (ucs, itens, venda, premissas, etc.).
+    if ((result as any).raw_sm !== undefined) {
+      delete (result as any).raw_sm;
+    }
+    if ((result as any).sm_variables !== undefined) {
+      delete (result as any).sm_variables;
     }
   } catch { /* never break save for canonicalization */ }
 
