@@ -125,6 +125,7 @@ export default function FollowupComercialPage() {
   const [classe, setClasse] = useState<FollowupClasse | "todos">("todos");
   const [diasMin, setDiasMin] = useState<string>("0");
   const [search, setSearch] = useState("");
+  const [sendTarget, setSendTarget] = useState<FollowupInboxRow | null>(null);
 
   const kpis = useFollowupComercialKpis();
   const inbox = useFollowupComercialInbox({
