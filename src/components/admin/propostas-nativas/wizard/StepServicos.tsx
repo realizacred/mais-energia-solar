@@ -31,6 +31,8 @@ interface ResumoItem {
 interface StepServicosProps {
   servicos: ServicoItem[];
   onServicosChange: (servicos: ServicoItem[]) => void;
+  /** Venda data for installation/commission values in sidebar */
+  venda?: VendaData;
   /** Kit items for building the Resumo sidebar */
   kitItens?: KitItemRow[];
   potenciaKwp?: number;
@@ -38,8 +40,9 @@ interface StepServicosProps {
   custoKitOverride?: number | null;
 }
 
-export function StepServicos({ servicos, onServicosChange, kitItens = [], potenciaKwp = 0, custoKitOverride }: StepServicosProps) {
+export function StepServicos({ servicos, onServicosChange, venda, kitItens = [], potenciaKwp = 0, custoKitOverride }: StepServicosProps) {
   const [kitExpanded, setKitExpanded] = useState(false);
+  const { data: premises } = useSolarPremises();
 
   const addServico = () => {
     onServicosChange([...servicos, {
