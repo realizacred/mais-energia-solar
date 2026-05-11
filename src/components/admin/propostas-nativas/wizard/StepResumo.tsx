@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatPhoneBR } from "@/lib/formatters";
+import { resolveCustoKit } from "./types";
 
 interface StepResumoProps {
   // Location
