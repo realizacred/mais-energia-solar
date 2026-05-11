@@ -148,15 +148,20 @@ export function ProposalWizard() {
   
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  // Invalida caches do detalhe do projeto/proposta após save (post-edit lifecycle)
+  // Invalida caches do detalhe do projeto/proposta após save (post-edit lifecycle).
+  // Fase 5.A: usar refetchQueries({type:'active'}) nas keys críticas para forçar
+  // refetch imediato mesmo se a aba destino não está montada no momento do save.
   const invalidateProposalCaches = useCallback((dealId?: string | null, projetoId?: string | null) => {
+    // Keys críticas para divergência wizard↔resumo: forçar refetch ativo.
+    queryClient.refetchQueries({ queryKey: ["propostas-projeto-tab"], type: "active" });
+    queryClient.refetchQueries({ queryKey: ["projeto-detalhe"], type: "active" });
+    // Demais caches: invalidate é suficiente (refetch lazy ao montar).
     queryClient.invalidateQueries({ queryKey: ["propostas-projeto-tab"] });
     queryClient.invalidateQueries({ queryKey: ["proposal-detail"] });
     queryClient.invalidateQueries({ queryKey: ["proposta-expanded-snapshot"] });
     queryClient.invalidateQueries({ queryKey: ["proposta-expanded-ucs"] });
     queryClient.invalidateQueries({ queryKey: ["proposta-expanded-kit-items"] });
     queryClient.invalidateQueries({ queryKey: ["proposal-version-snapshot"] });
-    // Project / deal caches so detail page reflects new value immediately
     queryClient.invalidateQueries({ queryKey: ["projeto-detalhe"] });
     queryClient.invalidateQueries({ queryKey: ["deal-proposals-count"] });
     queryClient.invalidateQueries({ queryKey: ["projetos"] });
