@@ -98,8 +98,8 @@ function kitItemsToCardData(itens: KitItemRow[], topologia?: string, custoOverri
   const totalModKwp = modItems.reduce((s, m) => s + (m.potencia_w * m.quantidade) / 1000, 0);
   const totalInvQtd = invItems.reduce((s, i) => s + i.quantidade, 0);
   const totalInvKw = invItems.reduce((s, i) => s + (i.potencia_w * i.quantidade) / 1000, 0);
-  const precoFromItems = itens.reduce((s, i) => s + i.quantidade * i.preco_unitario, 0);
-  const precoTotal = (custoOverride != null && custoOverride > 0) ? custoOverride : precoFromItems;
+  // Fase A — SSOT: usa resolveCustoKit em vez de lógica inline.
+  const precoTotal = resolveCustoKit({ itens, custoKitOverride: custoOverride });
   const precoWp = totalModKwp > 0 ? precoTotal / (totalModKwp * 1000) : 0;
 
   const modDesc = modItems.length > 0
