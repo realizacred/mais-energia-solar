@@ -323,7 +323,11 @@ export function ProjetoDetalhe({ dealId, onBack, initialPipelineId, initialPipel
 function ProjetoDetalheContent() {
   const ctx = useProjetoDetalhe();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [editClienteId, setEditClienteId] = useState<string | null>(null);
+  const [editingTitle, setEditingTitle] = useState(false);
+  const [titleDraft, setTitleDraft] = useState("");
+  const [savingTitle, setSavingTitle] = useState(false);
 
   const {
     deal, projetoId, loading, activeTab, setActiveTab, stages,
