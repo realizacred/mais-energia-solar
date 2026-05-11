@@ -173,11 +173,37 @@ Deno.serve(async (req) => {
           }
 
           console.log(`[process-wa-outbox] Using ${keySource} api_key for instance ${inst.evolution_instance_key} (flavor=${(inst as any).api_flavor || "classic"})`);
+
+          // ── Resolve private-bucket media URLs to signed URLs ──
+          // Legacy/in-flight outbox items may carry a "/object/public/wa-attachments/..."
+          // URL even though the bucket is private. Evolution then gets 403 → 500.
+          // Rewrite to a fresh signed URL (24h) using service role before sending.
+          let resolvedMediaUrl: string | null = item.media_url ?? null;
+          if (resolvedMediaUrl && /\/storage\/v1\/object\/(public|sign)\/wa-attachments\//.test(resolvedMediaUrl)) {
+            try {
+              const m = resolvedMediaUrl.match(/\/storage\/v1\/object\/(?:public|sign)\/wa-attachments\/([^?]+)/);
+              const storagePath = m?.[1] ? decodeURIComponent(m[1]) : null;
+              if (storagePath) {
+                const { data: signed, error: signErr } = await supabase
+                  .storage
+                  .from("wa-attachments")
+                  .createSignedUrl(storagePath, 60 * 60 * 24);
+                if (!signErr && signed?.signedUrl) {
+                  resolvedMediaUrl = signed.signedUrl;
+                } else {
+                  console.warn("[process-wa-outbox] failed to sign media_url", { id: item.id, err: signErr?.message });
+                }
+              }
+            } catch (e: any) {
+              console.warn("[process-wa-outbox] media_url rewrite exception", { id: item.id, err: e?.message });
+            }
+          }
+
           const sendResult = await sendEvolutionMessage(
             inst.evolution_api_url,
             inst.evolution_instance_key,
             effectiveApiKey,
-            { ...item, remote_jid: canonicalJid },
+            { ...item, remote_jid: canonicalJid, media_url: resolvedMediaUrl },
             (inst as any).api_flavor || "classic"
           );
 
