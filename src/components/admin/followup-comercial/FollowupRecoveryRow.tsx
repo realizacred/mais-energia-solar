@@ -339,7 +339,7 @@ function RowActions({
 }) {
   return (
     <TooltipProvider delayDuration={150}>
-      <div className="flex items-center gap-1">
+      <div className="flex items-center gap-1 flex-nowrap shrink-0">
         <Tooltip>
           <TooltipTrigger asChild>
             <span>
