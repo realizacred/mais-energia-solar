@@ -16,6 +16,7 @@
 // ═══════════════════════════════════════════════════════════════════════
 
 import type { PagamentoOpcao } from "../types";
+import { calcularPrestacao } from "@/services/paymentComposition/financingMath";
 
 export type PagamentoItemTipo = PagamentoOpcao["tipo"];
 
@@ -186,12 +187,8 @@ export function projectPlanoToOpcoes(plano: PagamentoPlano): PagamentoOpcao[] {
 export function recalcParcela(item: PagamentoItem): PagamentoItem {
   const principal = Math.max(0, r2(item.valor_alocado - item.entrada));
   const n = Math.max(1, Math.floor(item.num_parcelas));
-  const i = Math.max(0, item.taxa_mensal) / 100;
-  let parcela = principal / n;
-  if (i > 0 && n > 1) {
-    const f = (i * Math.pow(1 + i, n)) / (Math.pow(1 + i, n) - 1);
-    parcela = principal * f;
-  }
+  const taxa = Math.max(0, item.taxa_mensal);
+  const parcela = calcularPrestacao(principal, taxa, n);
   return { ...item, valor_parcela: r2(parcela) };
 }
 
