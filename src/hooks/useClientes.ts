@@ -203,9 +203,14 @@ export function useSalvarCliente() {
         }
       }
 
+      const payload = { ...data };
+      if (payload.telefone) {
+        payload.telefone_normalized = normalizePhone(String(payload.telefone));
+      }
+
       const { data: created, error } = await supabase
         .from("clientes")
-        .insert(data as any)
+        .insert(payload as any)
         .select()
         .single();
       if (error) throw error;
