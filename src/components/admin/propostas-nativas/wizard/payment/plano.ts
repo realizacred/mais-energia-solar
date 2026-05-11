@@ -16,6 +16,7 @@
 // ═══════════════════════════════════════════════════════════════════════
 
 import type { PagamentoOpcao } from "../types";
+import { calcularPrestacao } from "@/services/paymentComposition/financingMath";
 
 export type PagamentoItemTipo = PagamentoOpcao["tipo"];
 
