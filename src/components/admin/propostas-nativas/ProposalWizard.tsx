@@ -2162,6 +2162,7 @@ export function ProposalWizard() {
     });
   };
 
+
   // ─── Validations per step key
   const canAdvance: Record<string, boolean> = {
     [STEP_KEYS.LOCALIZACAO]: !!locEstado && !!locCidade && !!locTipoTelhado && !!locDistribuidoraId,
