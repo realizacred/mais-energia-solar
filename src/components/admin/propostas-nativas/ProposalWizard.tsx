@@ -59,6 +59,7 @@ import { StepPagamento } from "./wizard/StepPagamento";
 import { StepResumo } from "./wizard/StepResumo";
 import { StepDocumento } from "./wizard/StepDocumento";
 import { DialogPosDimensionamento } from "./wizard/DialogPosDimensionamento";
+import { NewVersionConfirmModal } from "./wizard/NewVersionConfirmModal";
 import { ProposalAuditPanel } from "./wizard/ProposalAuditPanel";
 import { WizardSidebar, type WizardStep } from "./wizard/WizardSidebar";
 import { WizardStepCard } from "./wizard/WizardStepCard";
@@ -320,6 +321,8 @@ export function ProposalWizard() {
   // Pos-dimensionamento dialog
   const [showPosDialog, setShowPosDialog] = useState(false);
   const [nomeProposta, setNomeProposta] = useState("");
+  const [showNewVersionConfirm, setShowNewVersionConfirm] = useState(false);
+  const [pendingUpdateAction, setPendingUpdateAction] = useState<boolean | null>(null);
 
   // ─── Enforcement: block modal state
   const [showBlockModal, setShowBlockModal] = useState(false);
@@ -1588,17 +1591,23 @@ export function ProposalWizard() {
   }, [isRestoring, savedPropostaId, savedVersaoId, propostaIdFromUrl, versaoIdFromUrl, buildPersistParams, persistAtomic, applyPersistResult, dealIdFromUrl, resolvedDealId, syncCustomFieldValues, syncTemplateIdUsed, invalidateProposalCaches]);
 
   const handleUpdate = useCallback(async (setActive: boolean) => {
+    // Sync state if using URL fallback (moved before interceptor)
+    const effectivePropostaId = savedPropostaId || propostaIdFromUrl || null;
+    const effectiveVersaoId = savedVersaoId || versaoIdFromUrl || null;
+    if (!savedPropostaId && effectivePropostaId) setSavedPropostaId(effectivePropostaId);
+    if (!savedVersaoId && effectiveVersaoId) setSavedVersaoId(effectiveVersaoId);
+
+    // UX-03: Intercept update if proposal was already sent to client
+    if (editingsentProposal && !showNewVersionConfirm) {
+      setPendingUpdateAction(setActive);
+      setShowNewVersionConfirm(true);
+      return;
+    }
+
     if (isRestoring) {
       toast({ title: "Aguarde", description: "A proposta ainda está sendo restaurada." });
       return;
     }
-
-    const effectivePropostaId = savedPropostaId || propostaIdFromUrl || null;
-    const effectiveVersaoId = savedVersaoId || versaoIdFromUrl || null;
-
-    // Sync state if using URL fallback
-    if (!savedPropostaId && effectivePropostaId) setSavedPropostaId(effectivePropostaId);
-    if (!savedVersaoId && effectiveVersaoId) setSavedVersaoId(effectiveVersaoId);
 
     const params = buildPersistParams(effectivePropostaId, effectiveVersaoId);
     const intent = setActive ? "active" as const : "draft" as const;
@@ -3156,9 +3165,9 @@ export function ProposalWizard() {
 
       {/* Sent Proposal Warning Banner */}
       {editingsentProposal && (
-        <div className="flex items-center gap-2 px-4 lg:px-6 py-2 border-b border-warning/30 bg-warning/10 shrink-0">
-          <AlertTriangle className="h-3.5 w-3.5 text-warning shrink-0" />
-          <p className="text-[11px] font-medium text-warning">
+        <div className="flex items-center gap-3 px-4 lg:px-6 py-3 border-b border-warning/30 bg-warning/10 shrink-0">
+          <AlertTriangle className="h-[18px] w-[18px] text-warning shrink-0" />
+          <p className="text-sm font-medium text-warning">
             Essa proposta já foi enviada/gerada. Ao salvar, uma nova versão será criada com um novo link.
           </p>
         </div>
@@ -3339,6 +3348,17 @@ export function ProposalWizard() {
         onClose={() => setShowBlockModal(false)}
         missingVariables={blockMissing}
         reason={blockReason}
+      />
+
+      <NewVersionConfirmModal
+        open={showNewVersionConfirm}
+        onOpenChange={setShowNewVersionConfirm}
+        onConfirm={() => {
+          if (pendingUpdateAction !== null) {
+            handleUpdate(pendingUpdateAction);
+            setPendingUpdateAction(null);
+          }
+        }}
       />
 
       {/* Pre-generation gate modal */}
