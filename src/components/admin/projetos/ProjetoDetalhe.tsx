@@ -378,9 +378,55 @@ function ProjetoDetalheContent() {
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-3">
             <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-wrap">
               <div className="flex flex-col min-w-0">
-                <h1 className="text-lg sm:text-2xl font-bold text-foreground truncate max-w-full">
-                  {getProjetoDisplayName({ nome: projetoNome, codigo: projetoCodigo, projeto_num: projetoNum })}
-                </h1>
+                {editingTitle ? (
+                  <div className="flex items-center gap-2">
+                    <Input
+                      autoFocus
+                      value={titleDraft}
+                      onChange={(e) => setTitleDraft(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Escape") setEditingTitle(false);
+                        if (e.key === "Enter") (e.target as HTMLInputElement).blur();
+                      }}
+                      onBlur={async () => {
+                        const newName = titleDraft.trim();
+                        const currentName = projetoNome ?? "";
+                        if (newName === currentName) { setEditingTitle(false); return; }
+                        if (!projetoId) { setEditingTitle(false); return; }
+                        setSavingTitle(true);
+                        const { error } = await supabase
+                          .from("projetos")
+                          .update({ nome: newName || null })
+                          .eq("id", projetoId);
+                        setSavingTitle(false);
+                        setEditingTitle(false);
+                        if (error) {
+                          toast({ title: "Erro ao salvar nome", description: error.message, variant: "destructive" });
+                          return;
+                        }
+                        toast({ title: "Nome atualizado" });
+                        queryClient.invalidateQueries({ queryKey: ["projeto-detalhe"] });
+                        queryClient.invalidateQueries({ queryKey: ["projetos-pipeline"] });
+                        queryClient.invalidateQueries({ queryKey: ["propostas-projeto-tab"] });
+                        silentRefresh?.();
+                      }}
+                      className="h-8 text-lg sm:text-2xl font-bold"
+                      placeholder="Nome do projeto"
+                    />
+                    {savingTitle && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
+                  </div>
+                ) : (
+                  <h1
+                    className="text-lg sm:text-2xl font-bold text-foreground truncate max-w-full cursor-text hover:text-primary transition-colors"
+                    title="Clique para editar o nome do projeto"
+                    onClick={() => {
+                      setTitleDraft(projetoNome ?? "");
+                      setEditingTitle(true);
+                    }}
+                  >
+                    {getProjetoDisplayName({ nome: projetoNome, codigo: projetoCodigo, projeto_num: projetoNum })}
+                  </h1>
+                )}
                 {customerName && (
                   <span className="text-xs text-muted-foreground truncate max-w-full flex items-center gap-1">
                     <User className="h-3 w-3" />
