@@ -220,8 +220,11 @@ export function useSetPropostaPrincipal() {
       });
       if (error) throw error;
     },
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: [QUERY_KEY] });
+      if (variables.dealId) {
+        queryClient.invalidateQueries({ queryKey: ["projeto-detalhe", variables.dealId] });
+      }
       toast({ title: "Proposta definida como principal ⭐" });
     },
     onError: (err: any) => {
