@@ -215,6 +215,9 @@ export function ProjetoDocChecklist({ dealId, compact = false }: Props) {
                 <span className={cn("text-sm flex-1", checked ? "text-muted-foreground line-through" : "text-foreground font-medium")}>
                   {item.label}
                 </span>
+                {hasCanonicalDoc && (
+                  <Paperclip className="h-3.5 w-3.5 text-success shrink-0" />
+                )}
               </button>
             );
           })
