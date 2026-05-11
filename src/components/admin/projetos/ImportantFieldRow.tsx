@@ -59,6 +59,19 @@ const TITLE_ICON_MAP: Array<{ pattern: RegExp; icon: typeof Type }> = [
   { pattern: /transformador/i, icon: Settings },
 ];
 
+async function resolveTenantId(): Promise<string | null> {
+  const { data: userData } = await supabase.auth.getUser();
+  const userId = userData?.user?.id;
+  if (!userId) return null;
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("tenant_id")
+    .eq("user_id", userId)
+    .limit(1)
+    .maybeSingle();
+  return (profile as any)?.tenant_id ?? null;
+}
+
 export function ImportantFieldRow({ field, value, dealId, onSaved, showSeparator = true }: Props) {
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
