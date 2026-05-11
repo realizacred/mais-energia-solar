@@ -45,8 +45,7 @@ export interface FollowupLockRow {
 
 export interface ProfileMini {
   user_id: string;
-  display_name: string | null;
-  full_name: string | null;
+  nome: string | null;
 }
 
 export interface FollowupHistoryData {
