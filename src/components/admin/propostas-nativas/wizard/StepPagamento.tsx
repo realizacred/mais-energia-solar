@@ -139,6 +139,7 @@ export function StepPagamento({
       g.opcoes.map((op) => ({
         id: op.id,
         nome: g.banco.nome,
+        banco_id: g.banco.id,
         tipo: "financiamento" as const,
         valor_financiado: Number.isFinite(op.valor_financiado) ? op.valor_financiado : price,
         entrada: Number.isFinite(op.entrada) ? op.entrada : 0,
@@ -177,9 +178,19 @@ export function StepPagamento({
   // ─── Selected banks (only checked ones generate options)
   const [selectedBankIds, setSelectedBankIds] = useState<Set<string>>(() => {
     // If we have existing opcoes with financing, extract bank IDs from them
+    const existingBancoIds = opcoes
+      .filter(o => o.tipo === "financiamento" || o.tipo === "parcelado")
+      .map(o => o.banco_id);
+    
+    if (existingBancoIds.some(id => !!id)) {
+      return new Set(existingBancoIds.filter((id): id is string => !!id));
+    }
+    
+    // Fallback for older proposals that didn't have banco_id yet (match by name)
     const existingBancoNames = opcoes
       .filter(o => o.tipo === "financiamento" || o.tipo === "parcelado")
       .map(o => o.nome);
+
     if (existingBancoNames.length > 0) {
       const ids = new Set<string>();
       bancos.forEach(b => { if (existingBancoNames.includes(b.nome)) ids.add(b.id); });
