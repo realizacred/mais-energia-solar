@@ -9,6 +9,7 @@ import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { useCustomFieldsList } from "@/hooks/useCustomFieldsSettings";
+import { CustomFieldFileInput } from "@/components/admin/projetos/CustomFieldFileInput";
 import type { Json } from "@/integrations/supabase/types";
 
 interface CustomField {
@@ -28,6 +29,8 @@ interface CustomField {
 interface Props {
   values: Record<string, any>;
   onValuesChange: (values: Record<string, any>) => void;
+  /** Optional dealId so file uploads can target {tenant}/deals/{dealId}/... */
+  dealId?: string | null;
 }
 
 /**
@@ -35,7 +38,7 @@ interface Props {
  * para reagir em tempo real a mudanças de tipo/configuração feitas em admin/custom-fields.
  * §16: Queries só em hooks — NUNCA em componentes (RB-04)
  */
-export function StepCamposCustomizados({ values, onValuesChange }: Props) {
+export function StepCamposCustomizados({ values, onValuesChange, dealId }: Props) {
   const { data: allFields, isLoading: loading } = useCustomFieldsList();
 
   const fields = useMemo(() =>
@@ -75,6 +78,7 @@ export function StepCamposCustomizados({ values, onValuesChange }: Props) {
             field={field}
             value={values[field.field_key]}
             onChange={(val) => updateValue(field.field_key, val)}
+            dealId={dealId}
           />
         ))}
       </div>
@@ -83,10 +87,11 @@ export function StepCamposCustomizados({ values, onValuesChange }: Props) {
 }
 
 // ─── Dynamic Field Renderer ───────────────────────────────
-function CustomFieldInput({ field, value, onChange }: {
+function CustomFieldInput({ field, value, onChange, dealId }: {
   field: CustomField;
   value: any;
   onChange: (val: any) => void;
+  dealId?: string | null;
 }) {
   const isRequired = field.required_on_proposal === true || field.required_on_create === true;
   const label = `${field.title}${isRequired ? " *" : ""}`;
@@ -200,6 +205,20 @@ function CustomFieldInput({ field, value, onChange }: {
         <div className="space-y-1.5 col-span-full">
           <Label className="text-xs">{label}</Label>
           <Textarea value={value || ""} onChange={e => onChange(e.target.value)} className="text-xs min-h-[60px]" />
+        </div>
+      );
+
+    case "file":
+      return (
+        <div className="space-y-1.5">
+          <Label className="text-xs">{label}</Label>
+          <CustomFieldFileInput
+            value={value}
+            fieldKey={field.field_key}
+            dealId={dealId}
+            compact
+            onChange={(jsonValue) => onChange(jsonValue)}
+          />
         </div>
       );
 
