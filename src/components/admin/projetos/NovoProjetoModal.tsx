@@ -271,7 +271,7 @@ export function NovoProjetoModal({
       }
 
       await onSubmit?.({
-        nome: values.nomeProjeto?.trim() || values.clienteNome.trim(),
+        nome: values.nomeProjeto?.trim() || "",
         consultorId: values.consultorId,
         valor: values.valor && values.valor > 0 ? values.valor : undefined,
         pipelineId: resolvedPipelineId || undefined,
