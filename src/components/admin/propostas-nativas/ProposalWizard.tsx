@@ -261,7 +261,7 @@ export function ProposalWizard() {
     const calculatedFromItems = itens.reduce((s, i) => s + i.quantidade * i.preco_unitario, 0);
     // Only set override when items cost is significantly lower than meta cost
     if (calculatedFromItems < meta.custo * 0.99 && venda.custo_kit_override !== meta.custo) {
-      setVenda(prev => ({ ...prev, custo_kit_override: meta.custo }));
+      setVenda(prev => ({ ...prev, custo_kit: calculatedFromItems, custo_kit_override: meta.custo }));
     }
   }, [manualKits, itens]);
 
