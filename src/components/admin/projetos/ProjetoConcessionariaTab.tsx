@@ -93,6 +93,7 @@ function HomologacaoCard({ ctx, habilitado }: { ctx: ReturnType<typeof useConces
     setProtocolo(homolog?.protocolo || "");
     setDataSolicitacao(homolog?.data_solicitacao || "");
     setDataAprovacao(homolog?.data_aprovacao || "");
+    setPrevisaoAprovacao(homolog?.previsao_aprovacao || "");
     setStatus(homolog?.status || "solicitada");
     setMotivo(homolog?.motivo_reprovacao || "");
     setObservacoes(homolog?.observacoes || "");
