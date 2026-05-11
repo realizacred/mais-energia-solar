@@ -172,6 +172,17 @@ export default function FollowupComercialPage() {
         }
       />
 
+      <Tabs defaultValue="inbox" className="w-full">
+        <TabsList>
+          <TabsTrigger value="inbox" className="gap-1.5">
+            <Inbox className="h-3.5 w-3.5" /> Inbox
+          </TabsTrigger>
+          <TabsTrigger value="analytics" className="gap-1.5">
+            <BarChart3 className="h-3.5 w-3.5" /> Analytics
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="inbox" className="space-y-6 mt-4">
       {/* KPIs */}
       {kpis.isLoading ? (
         <KpiSkeletons />
