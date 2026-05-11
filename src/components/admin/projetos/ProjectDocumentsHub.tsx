@@ -130,6 +130,7 @@ export function ProjectDocumentsHub({ projetoId, dealId }: Props) {
   const [confirmDelete, setConfirmDelete] = useState<ProjectDocument | null>(null);
   const [dragOver, setDragOver] = useState(false);
   const [uploading, setUploading] = useState<string[]>([]);
+  const [selectedCategoria, setSelectedCategoria] = useState<string>("Manual");
   const fileInput = useRef<HTMLInputElement>(null);
 
   // Mescla canônico + legado bucket + custom fields como linhas virtuais
