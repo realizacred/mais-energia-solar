@@ -372,7 +372,7 @@ export default function FollowupComercialPage() {
                           </td>
                           <td className="px-4 py-2 text-right tabular-nums">{r.total_aberturas ?? 0}</td>
                           <td className="px-4 py-2 text-right tabular-nums">
-                            {r.dias_parado != null ? `${r.dias_parado}d` : "—"}
+                            <span title={formatDiasParado(r.dias_parado)}>{formatDiasParadoCompact(r.dias_parado)}</span>
                           </td>
                           <td
                             className="px-4 py-2 text-xs text-muted-foreground"
