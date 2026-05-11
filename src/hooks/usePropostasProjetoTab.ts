@@ -97,7 +97,7 @@ export function usePropostasProjetoTab(dealId: string, customerId: string | null
         .from("proposta_versoes")
         .select("id, proposta_id, versao_numero, valor_total, potencia_kwp, status, economia_mensal, geracao_mensal, payback_meses, tir, vpl, created_at, snapshot, output_pdf_path, output_docx_path, link_pdf, public_slug, gerado_em, usuario_editou_em, template_id_used")
         .in("proposta_id", ids)
-        .order("versao_numero", { ascending: false });
+        .order("created_at", { ascending: false });
 
       // Fetch UC geração
       const versaoIds = (versoes || []).map((v: any) => v.id);

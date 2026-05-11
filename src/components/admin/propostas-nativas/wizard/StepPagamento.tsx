@@ -98,9 +98,9 @@ export function StepPagamento({
           })),
       }));
 
-  const mapOpcoesToBancoGroups = (existingOpcoes: PagamentoOpcao[], bankList: BancoFinanciamento[], fallbackPrice: number): BancoGroup[] => {
+  const mapOpcoesToBancoGroups = (existingOpcoes: PagamentoOpcao[], bankList: BancoFinanciamento[], fallbackPrice: number, selectedIds?: Set<string>): BancoGroup[] => {
     const financiamento = existingOpcoes.filter((o) => o.tipo === "financiamento" || o.tipo === "parcelado");
-    if (financiamento.length === 0) return buildBancoGroups(bankList, fallbackPrice);
+    if (financiamento.length === 0) return buildBancoGroups(bankList, fallbackPrice, selectedIds);
 
     const byBanco = new Map<string, BancoOpcao[]>();
     financiamento.forEach((op) => {
@@ -191,7 +191,7 @@ export function StepPagamento({
 
   const [hasUserEditedBancoGroups, setHasUserEditedBancoGroups] = useState(false);
   const [bancoGroups, setBancoGroups] = useState<BancoGroup[]>(() =>
-    opcoes.length > 0 ? mapOpcoesToBancoGroups(opcoes, bancos, precoFinal) : buildBancoGroups(bancos, precoFinal, selectedBankIds)
+    opcoes.length > 0 ? mapOpcoesToBancoGroups(opcoes, bancos, precoFinal, selectedBankIds) : buildBancoGroups(bancos, precoFinal, selectedBankIds)
   );
   const [selectedBancoIdx, setSelectedBancoIdx] = useState(0);
   const [showNovoFinanciamento, setShowNovoFinanciamento] = useState(false);

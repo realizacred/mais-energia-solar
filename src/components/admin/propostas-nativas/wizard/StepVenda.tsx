@@ -10,6 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { CurrencyInput } from "@/components/ui-kit/inputs/CurrencyInput";
 import { type VendaData, type KitItemRow, type ServicoItem, formatBRL } from "./types";
 import { roundCurrency } from "@/lib/formatters";
+import { cn } from "@/lib/utils";
 import { usePricingDefaults } from "./hooks/usePricingDefaults";
 import { toast } from "@/hooks/use-toast";
 
@@ -79,11 +80,12 @@ export function StepVenda({ venda, onVendaChange, itens, servicos, potenciaKwp =
           <div className="flex justify-between text-[10px] text-muted-foreground">
             <span>0%</span><span>20%</span><span>40%</span><span>60%</span><span>80%</span>
           </div>
-          {hasHistory && suggested?.margem_percentual != null && (
-            <p className="text-xs text-muted-foreground mt-1">
-              💡 Margem média usada recentemente: {Math.round(suggested.margem_percentual * 10) / 10}%
-            </p>
-          )}
+          {/* Indicador de margem sugerida/histórica */}
+          <p className="text-xs text-muted-foreground mt-1">
+            💡 {hasHistory ? "Sua margem histórica média" : "Margem sugerida"}: {hasHistory && suggested?.margem_percentual != null ? (Math.round(suggested.margem_percentual * 10) / 10) : "20"}%
+            <span className="mx-2">|</span>
+            Margem atual da proposta: <span className={cn("font-semibold", margemLiquida > 0 ? "text-success" : "text-warning")}>{(Number(margemLiquida) || 0).toFixed(1)}%</span>
+          </p>
         </div>
 
         {/* Custos adicionais + desconto */}
