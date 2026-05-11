@@ -327,6 +327,7 @@ function ProjetoDetalheContent() {
 
   const {
     deal, projetoId, loading, activeTab, setActiveTab, stages,
+    projetoNome, projetoCodigo, projetoNum,
     customerName, customerPhone, customerEmail, customerCpfCnpj, customerEmpresa, customerAddress,
     ownerName, pipelines, allStagesMap, userNamesMap,
     currentStage, currentPipeline, projectCode,
