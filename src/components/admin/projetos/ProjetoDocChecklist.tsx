@@ -101,7 +101,7 @@ export function ProjetoDocChecklist({ dealId, compact = false }: Props) {
   };
 
   // ─── Computed ───────────────────────────────────
-  // Map legacy keys to canonical categories
+  // Map legacy keys (from LEGACY_ITEMS) to canonical categories (from project_documents)
   const LEGACY_CAT_MAP: Record<string, string> = {
     rg_cnh: "rg_cnh",
     conta_luz: "conta_luz",

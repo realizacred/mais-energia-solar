@@ -228,6 +228,12 @@ export function ProjectDocumentsHub({ projetoId, dealId }: Props) {
       if (!arr.length) return;
       setUploading((u) => [...u, ...arr.map((f) => f.name)]);
       try {
+        // BUG-05: Validar categoria antes de salvar em desenvolvimento
+        const VALID_CHECKLIST_CATS = ["rg_cnh", "conta_luz", "iptu", "fotos_telhado", "art", "contrato"];
+        if (process.env.NODE_ENV === 'development' && selectedCategoria !== "Manual" && !VALID_CHECKLIST_CATS.includes(selectedCategoria)) {
+          console.warn('Categoria não mapeada para checklist:', selectedCategoria);
+        }
+
         await Promise.all(
           arr.map((file) =>
             upload
