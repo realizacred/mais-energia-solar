@@ -411,6 +411,12 @@ export default function FollowupComercialPage() {
           )}
         </CardContent>
       </Card>
+        </TabsContent>
+
+        <TabsContent value="analytics" className="mt-4">
+          <FollowupComercialAnalytics />
+        </TabsContent>
+      </Tabs>
 
       <FollowupSendDialog
         row={sendTarget}
