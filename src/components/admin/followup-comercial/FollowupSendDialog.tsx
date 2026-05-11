@@ -144,21 +144,6 @@ export function FollowupSendDialog({ row, open, onOpenChange }: Props) {
             </div>
           </div>
 
-          <div className="space-y-1">
-            <label className="text-xs font-medium text-foreground">Mensagem</label>
-            <Textarea
-              rows={8}
-              value={message}
-              onChange={(e) => setMessage(e.target.value)}
-              placeholder="Digite a mensagem…"
-              className="text-sm"
-            />
-            <div className="flex items-center justify-between text-[11px] text-muted-foreground">
-              <span>Tom claro, curto, com call-to-action.</span>
-              <span className={tooLong ? "text-destructive" : ""}>{charCount}/2000</span>
-            </div>
-          </div>
-
           {aiSuggestion && (
             <div className={`rounded-md border p-3 text-xs space-y-2 ${tempColor(aiSuggestion.nivel_urgencia)}`}>
               <div className="flex items-center gap-2 font-medium">
