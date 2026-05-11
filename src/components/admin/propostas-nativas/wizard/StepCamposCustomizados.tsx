@@ -29,6 +29,8 @@ interface CustomField {
 interface Props {
   values: Record<string, any>;
   onValuesChange: (values: Record<string, any>) => void;
+  /** Optional dealId so file uploads can target {tenant}/deals/{dealId}/... */
+  dealId?: string | null;
 }
 
 /**
