@@ -58,6 +58,44 @@ export function SuprimentosListPage({ projetoId }: SuprimentosListPageProps) {
   const { data: ordens, isLoading } = useOrdensCompra(filtros);
   const { data: fornecedores = [] } = useFornecedoresNomes();
 
+  // UX-07: Fetch accepted proposal and its kit
+  const { data: propostas = [] } = usePropostasProjetoTab(projetoId || "", null);
+  const propostaAceita = useMemo(() => propostas.find(p => p.status === 'aceita'), [propostas]);
+
+  const { data: kitAceito } = useQuery({
+    queryKey: ["proposta-kit-aceito", propostaAceita?.id],
+    enabled: !!propostaAceita?.id,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("proposta_kits")
+        .select("*")
+        .eq("proposta_id", propostaAceita!.id)
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    }
+  });
+
+  const prefilledItens = useMemo(() => {
+    if (!propostaAceita || !kitAceito) return [];
+    
+    const items: any[] = [];
+    const snapshot = (propostaAceita.versoes?.[0]?.snapshot as any) || {};
+    const snapshotItens = snapshot.itens || [];
+
+    if (snapshotItens.length > 0) {
+      return snapshotItens.map((i: any) => ({
+        descricao: `${i.fabricante || ""} ${i.modelo || i.descricao || ""}`.trim(),
+        quantidade: i.quantidade,
+        unidade: "un",
+        valor_unitario: i.preco_unitario || 0
+      }));
+    }
+
+    return [];
+  }, [propostaAceita, kitAceito]);
+
+
   return (
     <div className="space-y-6">
       {/* Header */}
