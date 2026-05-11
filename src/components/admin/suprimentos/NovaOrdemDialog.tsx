@@ -37,7 +37,7 @@ interface ItemDraft {
 }
 
 
-export function NovaOrdemDialog({ open, onOpenChange, defaultProjetoId }: NovaOrdemDialogProps) {
+export function NovaOrdemDialog({ open, onOpenChange, defaultProjetoId, prefilledItens }: NovaOrdemDialogProps) {
   const navigate = useNavigate();
   const [step, setStep] = useState(1);
   const [projetoId, setProjetoId] = useState(defaultProjetoId || "");
@@ -47,6 +47,21 @@ export function NovaOrdemDialog({ open, onOpenChange, defaultProjetoId }: NovaOr
   const [dataPrevisao, setDataPrevisao] = useState("");
   const [observacoes, setObservacoes] = useState("");
   const [itens, setItens] = useState<ItemDraft[]>([]);
+
+  // Apply prefilled items when dialog opens
+  useEffect(() => {
+    if (open && prefilledItens && prefilledItens.length > 0 && itens.length === 0) {
+      setItens(prefilledItens.map(i => ({
+        descricao: i.descricao,
+        quantidade: i.quantidade,
+        unidade: i.unidade || "un",
+        valor_unitario: i.valor_unitario || 0
+      })));
+      // If we have items, we might want to skip to step 2 or at least show them
+      if (step === 1) setStep(2);
+    }
+  }, [open, prefilledItens]);
+
 
   // New item form
   const [novoItemDesc, setNovoItemDesc] = useState("");
