@@ -148,6 +148,22 @@ export function ClientesManager({ onSelectCliente }: ClientesManagerProps) {
   const [selectedClienteForWhatsApp, setSelectedClienteForWhatsApp] = useState<Cliente | null>(null);
   const [viewOpen, setViewOpen] = useState(false);
   const [selectedCliente, setSelectedCliente] = useState<Cliente | null>(null);
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  // Auto-abre detalhe do cliente via ?cliente=ID (busca global, deep links)
+  useEffect(() => {
+    const clienteId = searchParams.get("cliente");
+    if (!clienteId || clientes.length === 0) return;
+    const target = clientes.find((c) => c.id === clienteId);
+    if (target) {
+      setSelectedCliente(target);
+      setViewOpen(true);
+      const next = new URLSearchParams(searchParams);
+      next.delete("cliente");
+      setSearchParams(next, { replace: true });
+    }
+  }, [searchParams, clientes, setSearchParams]);
+
   const [editDocuments, setEditDocuments] = useState<{
     identidade_urls: string[];
     comprovante_endereco_urls: string[];
