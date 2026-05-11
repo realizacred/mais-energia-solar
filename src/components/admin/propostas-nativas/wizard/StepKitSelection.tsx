@@ -2,7 +2,7 @@ import { useState, useMemo, useRef, useEffect, useCallback } from "react";
 import { calcFatorGeracao, calcEffectiveIrrad } from "@/services/solar/fatorGeracaoService";
 import { DEFAULT_SOMBREAMENTO_CONFIG, type SombreamentoConfig } from "@/hooks/useTenantPremises";
 import { formatDate } from "@/lib/dateUtils";
-import { Package, Zap, LayoutGrid, List, Settings2, Loader2, Pencil, Trash2, Plus, AlertCircle, BookOpen, Sun, Cpu, Check } from "lucide-react";
+import { Package, Zap, LayoutGrid, List, Settings2, Loader2, Pencil, Trash2, Plus, AlertCircle, BookOpen, Sun, Cpu, Check, Info } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -127,7 +127,7 @@ function kitItemsToCardData(itens: KitItemRow[], topologia?: string, custoOverri
 
 // Mock kits removed — manual mode only for now
 
-export function StepKitSelection({ itens, onItensChange, modulos, inversores, otimizadores = [], baterias = [], loadingEquip, potenciaKwp, layouts = [], onLayoutsChange, preDimensionamento: pd, onPreDimensionamentoChange: setPd, consumoTotal: consumoTotalProp = 0, manualKits: manualKitsProp = [], onManualKitsChange, selectedManualIdx: selectedManualIdxProp, onSelectedManualIdxChange, irradiacao, latitude, ghiSeries, somenteGhi, custoKitOverride, ibgeCodigo }: Props) {
+export function StepKitSelection({ itens, onItensChange, modulos, inversores, otimizadores = [], baterias = [], loadingEquip, potenciaKwp: potenciaIdeal, layouts = [], onLayoutsChange, preDimensionamento: pd, onPreDimensionamentoChange: setPd, consumoTotal: consumoTotalProp = 0, manualKits: manualKitsProp = [], onManualKitsChange, selectedManualIdx: selectedManualIdxProp, onSelectedManualIdxChange, irradiacao, latitude, ghiSeries, somenteGhi, custoKitOverride, ibgeCodigo }: Props) {
   // If returning to this step with a kit already restored, auto-switch to "customizado" tab
   const [tab, setTab] = useState<TabType>(() => {
     if (manualKitsProp.length > 0) return "customizado";
@@ -135,7 +135,7 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
   });
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [filters, setFilters] = useState<KitFiltersState>({ ...DEFAULT_FILTERS });
-  const [orderBy, setOrderBy] = useState("melhor_kwp");
+  const [orderBy, setOrderBy] = useState(potenciaIdeal > 0 ? "proximidade" : "melhor_kwp");
   const [showChoiceModal, setShowChoiceModal] = useState(false);
   const [manualMode, setManualMode] = useState<"equipamentos" | "zero" | null>(null);
   // Use lifted state if provided, fallback to local
@@ -183,6 +183,7 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
   const [includeComponents, setIncludeComponents] = useState(false);
   const catalogLoaded = useRef(false);
   const [selectedSolaryumKitId, setSelectedSolaryumKitId] = useState<number | null>(null);
+  const [hasRemovedAutoFilter, setHasNewRemovedAutoFilter] = useState(false);
 
   // Derive selected catalog kit ID from manualKits meta
   const selectedCatalogKitId = useMemo(() => {
@@ -201,6 +202,16 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
       .then(async (kits) => {
         setCatalogKits(kits);
         catalogLoaded.current = true;
+        
+        // UX-05: Auto-apply power filter if potenciaIdeal is set
+        if (potenciaIdeal > 0 && !hasRemovedAutoFilter) {
+          setFilters(prev => ({
+            ...prev,
+            potenciaMin: Math.round(potenciaIdeal * 0.7 * 100) / 100,
+            potenciaMax: Math.round(potenciaIdeal * 1.3 * 100) / 100,
+          }));
+        }
+
         if (kits.length > 0) {
           const summaries = await fetchKitsSummary(kits.map(k => k.id));
           setCatalogSummaries(summaries);
@@ -208,7 +219,7 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
       })
       .catch((err) => setCatalogError(err.message))
       .finally(() => setCatalogLoading(false));
-  }, [tab]);
+  }, [tab, potenciaIdeal, hasRemovedAutoFilter]);
 
   const handleSelectCatalogKit = async (kitId: string, kitName: string) => {
     // If items already exist, ask for confirmation
@@ -422,7 +433,26 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
 
     // Sort
     if (orderBy === "melhor_kwp") {
-      result.sort((a, b) => (a.preco_por_kwp || Infinity) - (b.preco_por_kwp || Infinity));
+      // UX-05: If auto-filtering by power, prioritize proximity to ideal power within the "melhor_kwp" sorting
+      result.sort((a, b) => {
+        // Primary sort: price per kWp
+        const priceDiff = (a.preco_por_kwp || Infinity) - (b.preco_por_kwp || Infinity);
+        
+        // If prices are very similar (within 1%), sort by proximity to ideal power
+        if (potenciaIdeal > 0 && Math.abs(priceDiff) < (a.preco_por_kwp || 1) * 0.01) {
+          const proximityA = Math.abs((a.estimated_kwp || 0) - potenciaIdeal);
+          const proximityB = Math.abs((b.estimated_kwp || 0) - potenciaIdeal);
+          return proximityA - proximityB;
+        }
+        
+        return priceDiff;
+      });
+    } else if (orderBy === "proximidade" && potenciaIdeal > 0) {
+      result.sort((a, b) => {
+        const proximityA = Math.abs((a.estimated_kwp || 0) - potenciaIdeal);
+        const proximityB = Math.abs((b.estimated_kwp || 0) - potenciaIdeal);
+        return proximityA - proximityB;
+      });
     } else if (orderBy === "menor_preco") {
       result.sort((a, b) => {
         const pa = a.fixed_price || catalogSummaries.get(a.id)?.custoTotal || 0;
@@ -446,7 +476,7 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
     }
 
     return result;
-  }, [catalogKits, catalogSummaries, filters, orderBy, includeComponents]);
+  }, [catalogKits, catalogSummaries, filters, orderBy, includeComponents, potenciaIdeal]);
 
 
   const handleSelectKit = (kit: KitCardData) => {
@@ -620,6 +650,7 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
                   <SelectTrigger className="h-7 text-xs w-32"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="melhor_kwp">Melhor R$/kWp</SelectItem>
+                    {potenciaIdeal > 0 && <SelectItem value="proximidade">Proximidade (kWp Ideal)</SelectItem>}
                     <SelectItem value="menor_preco">Menor Preço</SelectItem>
                     <SelectItem value="maior_preco">Maior Preço</SelectItem>
                     <SelectItem value="potencia">Potência</SelectItem>
@@ -705,6 +736,28 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
           {tab === "catalogo" ? (
             /* ── Catálogo Tab ── */
             <div className="space-y-3">
+              {/* ── Auto-filter info banner ── */}
+              {potenciaIdeal > 0 && !hasRemovedAutoFilter && (filters.potenciaMin > 0 || filters.potenciaMax < 1000) && (
+                <div className="flex items-center justify-between gap-3 px-4 py-2 bg-orange-50 border border-orange-200 rounded-lg shrink-0">
+                  <div className="flex items-center gap-2">
+                    <Info className="h-4 w-4 text-orange-600" />
+                    <p className="text-xs font-medium text-orange-700">
+                      Mostrando kits de {filters.potenciaMin} kWp a {filters.potenciaMax} kWp — ideal para seu projeto: <span className="font-bold">{potenciaIdeal.toFixed(2)} kWp</span>
+                    </p>
+                  </div>
+                  <Button 
+                    variant="link" 
+                    size="sm" 
+                    className="h-auto p-0 text-orange-700 hover:text-orange-800 text-[11px] font-bold"
+                    onClick={() => {
+                      setFilters({ ...DEFAULT_FILTERS });
+                      setHasNewRemovedAutoFilter(true);
+                    }}
+                  >
+                    Ver todos os kits
+                  </Button>
+                </div>
+              )}
               {/* Toggle para incluir componentes avulsos */}
               <div className="flex items-center justify-end gap-2">
                 <Label htmlFor="include-components" className="text-xs text-muted-foreground cursor-pointer">
@@ -978,7 +1031,7 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
             /* ── Solaryum Tab ── */
             <SolaryumTab
               ibgeCodigo={ibgeCodigo ?? null}
-              potenciaKwp={potenciaKwp}
+              potenciaKwp={potenciaIdeal}
               onSelectKit={(solKit: ProdutoSolaryum) => {
                 setSelectedSolaryumKitId(solKit.idProduto);
                 const potKwp = solKit.potencia >= 100 ? solKit.potencia / 1000 : solKit.potencia;
