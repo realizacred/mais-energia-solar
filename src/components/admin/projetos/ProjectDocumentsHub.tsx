@@ -497,8 +497,7 @@ export function ProjectDocumentsHub({ projetoId, dealId }: Props) {
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => {
-                if (confirmDelete) remove.mutate(confirmDelete);
-                setConfirmDelete(null);
+                if (confirmDelete) handleDelete(confirmDelete);
               }}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
