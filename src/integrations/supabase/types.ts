@@ -16340,6 +16340,7 @@ export type Database = {
           id: string
           motivo_reprovacao: string | null
           observacoes: string | null
+          previsao_aprovacao: string | null
           projeto_id: string
           protocolo: string | null
           status: Database["public"]["Enums"]["homologacao_status"]
@@ -16352,6 +16353,7 @@ export type Database = {
           id?: string
           motivo_reprovacao?: string | null
           observacoes?: string | null
+          previsao_aprovacao?: string | null
           projeto_id: string
           protocolo?: string | null
           status?: Database["public"]["Enums"]["homologacao_status"]
@@ -16364,6 +16366,7 @@ export type Database = {
           id?: string
           motivo_reprovacao?: string | null
           observacoes?: string | null
+          previsao_aprovacao?: string | null
           projeto_id?: string
           protocolo?: string | null
           status?: Database["public"]["Enums"]["homologacao_status"]
