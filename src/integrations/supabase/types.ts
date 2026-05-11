@@ -29980,6 +29980,76 @@ export type Database = {
           percentual_nao_compensado: number
         }[]
       }
+      get_followup_inbox_page: {
+        Args: {
+          p_classe?: string
+          p_consultor_id?: string
+          p_cursor_id?: string
+          p_cursor_value?: number
+          p_dias_min?: number
+          p_page_size?: number
+          p_search?: string
+          p_sort?: string
+        }
+        Returns: {
+          aceita_at: string | null
+          bloqueado_ate: string | null
+          classe_followup: string | null
+          cliente_email: string | null
+          cliente_id: string | null
+          cliente_nome: string | null
+          codigo: string | null
+          consultor_id: string | null
+          deal_id: string | null
+          dias_parado: number | null
+          enviada_at: string | null
+          is_principal: boolean | null
+          lead_id: string | null
+          objecao_principal: string | null
+          potencia_kwp: number | null
+          primeiro_acesso_em: string | null
+          projeto_id: string | null
+          proposta_id: string | null
+          proxima_acao_em: string | null
+          qtd_followups: number | null
+          recusada_at: string | null
+          score_ia: number | null
+          status: string | null
+          status_visualizacao: string | null
+          sugestao_ia: string | null
+          telefone_normalized: string | null
+          temperatura: string | null
+          tenant_id: string | null
+          titulo: string | null
+          total_aberturas: number | null
+          ultima_atividade_em: string | null
+          ultima_mensagem: string | null
+          ultimo_acesso_em: string | null
+          ultimo_canal: string | null
+          ultimo_followup_em: string | null
+          ultimo_outcome: string | null
+          valido_ate: string | null
+          valor_total: number | null
+          versao_id: string | null
+          versao_numero: number | null
+          versao_viewed_at: string | null
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "vw_proposal_followup_inbox"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      get_followup_inbox_summary: {
+        Args: {
+          p_classe?: string
+          p_consultor_id?: string
+          p_dias_min?: number
+          p_search?: string
+        }
+        Returns: Json
+      }
       get_followup_kpis: { Args: never; Returns: Json }
       get_hot_proposals: { Args: { p_limit?: number }; Returns: Json }
       get_integration_key: {

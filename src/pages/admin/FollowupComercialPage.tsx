@@ -11,7 +11,7 @@
  *
  * Disparos manuais/automáticos virão nas Phases 2+ atrás de feature flag.
  */
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Flame,
   Snowflake,
@@ -48,8 +48,10 @@ import { OpportunityBanner } from "@/components/admin/followup-comercial/Opportu
 import {
   useFollowupComercialKpis,
   useFollowupComercialInbox,
+  useFollowupComercialInboxSummary,
   type FollowupClasse,
   type FollowupInboxRow,
+  type FollowupInboxSort,
 } from "@/hooks/useFollowupComercial";
 
 const formatBRL = (v: number) =>
@@ -80,26 +82,48 @@ export default function FollowupComercialPage() {
   const [classe, setClasse] = useState<FollowupClasse | "todos">("todos");
   const [diasMin, setDiasMin] = useState<string>("0");
   const [search, setSearch] = useState("");
+  const [sort, setSort] = useState<FollowupInboxSort>("dias_parado");
   const [sendTarget, setSendTarget] = useState<FollowupInboxRow | null>(null);
   const [dialogTab, setDialogTab] = useState<"mensagem" | "historico">("mensagem");
 
-  const kpis = useFollowupComercialKpis();
-  const inbox = useFollowupComercialInbox({
-    classe,
-    diasMin: Number(diasMin) || 0,
-    search,
-  });
-
-  const rows = inbox.data ?? [];
-
-  const totalValor = useMemo(
-    () => rows.reduce((acc, r) => acc + (Number(r.valor_total) || 0), 0),
-    [rows]
+  const filters = useMemo(
+    () => ({ classe, diasMin: Number(diasMin) || 0, search, sort }),
+    [classe, diasMin, search, sort]
   );
+
+  const kpis = useFollowupComercialKpis();
+  const inbox = useFollowupComercialInbox(filters);
+  const summary = useFollowupComercialInboxSummary(filters);
+
+  const rows = useMemo<FollowupInboxRow[]>(
+    () => inbox.data?.pages.flat() ?? [],
+    [inbox.data]
+  );
+
+  const totalReal = summary.data?.total_count ?? rows.length;
+  const valorPotencialReal = summary.data?.valor_potencial_total ?? 0;
+
+  // Lazy-load: observa o sentinel do rodapé
+  const sentinelRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    const el = sentinelRef.current;
+    if (!el || !inbox.hasNextPage) return;
+    const io = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting && !inbox.isFetchingNextPage) {
+          inbox.fetchNextPage();
+        }
+      },
+      { rootMargin: "300px" }
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, [inbox.hasNextPage, inbox.isFetchingNextPage, inbox.fetchNextPage]);
 
   const refreshAll = () => {
     kpis.refetch();
     inbox.refetch();
+    summary.refetch();
   };
 
   return (
@@ -165,7 +189,7 @@ export default function FollowupComercialPage() {
 
       {/* Filtros */}
       <Card className="border-border">
-        <CardContent className="p-4 grid grid-cols-1 md:grid-cols-4 gap-3">
+        <CardContent className="p-4 grid grid-cols-1 md:grid-cols-5 gap-3">
           <div className="md:col-span-2 relative">
             <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
@@ -197,12 +221,25 @@ export default function FollowupComercialPage() {
               <SelectItem value="90">90+ dias</SelectItem>
             </SelectContent>
           </Select>
+          <Select value={sort} onValueChange={(v) => setSort(v as FollowupInboxSort)}>
+            <SelectTrigger><SelectValue placeholder="Ordenar por" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="dias_parado">Mais parados</SelectItem>
+              <SelectItem value="score_ia">Maior score IA</SelectItem>
+              <SelectItem value="valor_total">Maior valor</SelectItem>
+              <SelectItem value="ultima_atividade">Atividade recente</SelectItem>
+            </SelectContent>
+          </Select>
         </CardContent>
       </Card>
 
       {/* Banner de oportunidade */}
-      {!inbox.isLoading && !inbox.isError && rows.length > 0 && (
-        <OpportunityBanner rows={rows} />
+      {!inbox.isLoading && !inbox.isError && totalReal > 0 && (
+        <OpportunityBanner
+          rows={rows}
+          totalReal={totalReal}
+          valorPotencialReal={valorPotencialReal}
+        />
       )}
 
       {/* Inbox */}
@@ -232,12 +269,16 @@ export default function FollowupComercialPage() {
         <div className="space-y-2">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 text-xs text-muted-foreground px-1">
             <span>
-              {rows.length} proposta(s) — valor potencial{" "}
-              <strong className="text-foreground">{formatBRL(totalValor)}</strong>
+              Mostrando <strong className="text-foreground">{rows.length}</strong> de{" "}
+              <strong className="text-foreground">{totalReal}</strong> proposta(s) — valor potencial{" "}
+              <strong className="text-foreground">{formatBRL(valorPotencialReal)}</strong>
             </span>
-            <span className="hidden sm:inline">
-              Limite 300 — refine filtros para listas maiores
-            </span>
+            {summary.data && (
+              <span className="hidden sm:inline">
+                Inatividade: p50 {Math.round(summary.data.dias_parado_p50)}d · p90{" "}
+                {Math.round(summary.data.dias_parado_p90)}d
+              </span>
+            )}
           </div>
           <ul className="rounded-lg overflow-hidden">
             {rows.map((r) => (
@@ -249,6 +290,29 @@ export default function FollowupComercialPage() {
               />
             ))}
           </ul>
+
+          {/* Lazy-load sentinel + fallback botão */}
+          {inbox.hasNextPage && (
+            <div ref={sentinelRef} className="flex justify-center py-3">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => inbox.fetchNextPage()}
+                disabled={inbox.isFetchingNextPage}
+              >
+                {inbox.isFetchingNextPage ? (
+                  <><RefreshCw className="h-4 w-4 mr-2 animate-spin" /> Carregando…</>
+                ) : (
+                  <>Carregar mais</>
+                )}
+              </Button>
+            </div>
+          )}
+          {!inbox.hasNextPage && rows.length > 0 && rows.length < totalReal && (
+            <div className="text-center text-xs text-muted-foreground py-2">
+              Fim da lista para os filtros atuais.
+            </div>
+          )}
         </div>
       )}
         </TabsContent>

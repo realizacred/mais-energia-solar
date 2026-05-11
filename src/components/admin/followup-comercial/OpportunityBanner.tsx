@@ -1,12 +1,9 @@
 /**
  * Banner superior de oportunidades — sumariza a Inbox de recuperação.
  *
- * Calcula no client a partir das linhas já carregadas (sem nova query, RB-76):
- *  - valor potencial total
- *  - quantidade em recuperação
- *  - oportunidades quentes (temperatura=quente)
- *  - propostas críticas (esquecidas 30+ dias)
- *  - badge "IA monitorando"
+ * Total e valor potencial vêm do servidor (RPC get_followup_inbox_summary)
+ * para refletir TODA a base que bate nos filtros — não apenas a página visível.
+ * "Quentes" e "Críticas" continuam derivando das linhas carregadas (página atual).
  */
 import { Flame, AlertTriangle, Sparkles, TrendingUp } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
@@ -23,13 +20,16 @@ function formatBRL(v: number) {
 
 interface Props {
   rows: FollowupInboxRow[];
+  totalReal?: number;
+  valorPotencialReal?: number;
 }
 
-export function OpportunityBanner({ rows }: Props) {
-  const valorPotencial = rows.reduce((acc, r) => acc + (Number(r.valor_total) || 0), 0);
+export function OpportunityBanner({ rows, totalReal, valorPotencialReal }: Props) {
+  const valorPotencial =
+    valorPotencialReal ?? rows.reduce((acc, r) => acc + (Number(r.valor_total) || 0), 0);
   const quentes = rows.filter((r) => r.temperatura === "quente").length;
   const criticas = rows.filter((r) => (r.dias_parado ?? 0) >= 30).length;
-  const total = rows.length;
+  const total = totalReal ?? rows.length;
 
   return (
     <Card className="overflow-hidden border-l-[3px] border-l-primary bg-gradient-to-br from-primary/5 via-background to-background">
