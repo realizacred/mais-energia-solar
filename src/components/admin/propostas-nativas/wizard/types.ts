@@ -220,7 +220,7 @@ function _round(v: number): number {
  *    3) Σ (qty × preço_unitário) → fallback calculado a partir dos itens
  *  Toda tela que exibe "custo do kit" DEVE usar este helper. */
 export function resolveCustoKit(opts: {
-  itens: KitItemRow[];
+  itens: ReadonlyArray<{ quantidade: number; preco_unitario: number }>;
   custoKitOverride?: number | null;
   custoKit?: number | null;
 }): number {
