@@ -315,6 +315,7 @@ export type Database = {
       }
       ai_usage_logs: {
         Row: {
+          cenario: string | null
           completion_tokens: number
           created_at: string
           estimated_cost_usd: number
@@ -322,13 +323,18 @@ export type Database = {
           id: string
           is_fallback: boolean
           model: string
+          nivel_urgencia: string | null
+          precisa_revisao_humana: boolean | null
           prompt_tokens: number
           provider: string
+          source: string | null
+          tempo_resposta_ms: number | null
           tenant_id: string
           total_tokens: number
           user_id: string
         }
         Insert: {
+          cenario?: string | null
           completion_tokens?: number
           created_at?: string
           estimated_cost_usd?: number
@@ -336,13 +342,18 @@ export type Database = {
           id?: string
           is_fallback?: boolean
           model: string
+          nivel_urgencia?: string | null
+          precisa_revisao_humana?: boolean | null
           prompt_tokens?: number
           provider: string
+          source?: string | null
+          tempo_resposta_ms?: number | null
           tenant_id?: string
           total_tokens?: number
           user_id: string
         }
         Update: {
+          cenario?: string | null
           completion_tokens?: number
           created_at?: string
           estimated_cost_usd?: number
@@ -350,8 +361,12 @@ export type Database = {
           id?: string
           is_fallback?: boolean
           model?: string
+          nivel_urgencia?: string | null
+          precisa_revisao_humana?: boolean | null
           prompt_tokens?: number
           provider?: string
+          source?: string | null
+          tempo_resposta_ms?: number | null
           tenant_id?: string
           total_tokens?: number
           user_id?: string

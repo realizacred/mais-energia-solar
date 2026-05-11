@@ -413,8 +413,42 @@ async function handleProposalFollowup(sb: any, tenantId: string, body: any, user
   const ctxRaw = body.proposal_context || {};
   if (!cenario) return error("cenario required", 400);
 
+  // Rate limit: 20 req/min/tenant + 5 req/min/usuário (reaproveita check_rate_limit padrão)
+  try {
+    const { data: tenantOk } = await sb.rpc("check_rate_limit", {
+      _function_name: "ai-followup-intelligence:proposal:tenant",
+      _identifier: tenantId,
+      _window_seconds: 60,
+      _max_requests: 20,
+    });
+    if (tenantOk === false) {
+      return new Response(
+        JSON.stringify({ error: "Limite de sugestões IA por minuto atingido (tenant). Aguarde alguns segundos." }),
+        { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json", "Retry-After": "60" } }
+      );
+    }
+    if (userId) {
+      const { data: userOk } = await sb.rpc("check_rate_limit", {
+        _function_name: "ai-followup-intelligence:proposal:user",
+        _identifier: userId,
+        _window_seconds: 60,
+        _max_requests: 5,
+      });
+      if (userOk === false) {
+        return new Response(
+          JSON.stringify({ error: "Você atingiu o limite de sugestões IA por minuto. Aguarde." }),
+          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json", "Retry-After": "60" } }
+        );
+      }
+    }
+  } catch (rlErr) {
+    console.warn("[ai-followup-intelligence] rate limit check failed (allowing):", (rlErr as any)?.message);
+  }
+
   const ctx: Record<string, any> = {};
   for (const k of PROPOSAL_ALLOWED_KEYS) if (ctxRaw[k] !== undefined && ctxRaw[k] !== null) ctx[k] = ctxRaw[k];
+
+  const startedAt = Date.now();
 
   // Resolve OpenAI key + model (mesma lógica das outras actions)
   const { data: keyData } = await sb
@@ -531,6 +565,11 @@ OUTPUT (JSON estrito, sem texto fora):
       total_tokens: totalTokens,
       estimated_cost_usd: estimatedCost,
       is_fallback: false,
+      cenario,
+      nivel_urgencia: result.nivel_urgencia,
+      precisa_revisao_humana: result.precisa_revisao_humana,
+      tempo_resposta_ms: Date.now() - startedAt,
+      source: "followup_comercial",
     });
   } catch {}
 

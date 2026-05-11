@@ -51,6 +51,7 @@ export function FollowupSendDialog({ row, open, onOpenChange }: Props) {
   const [force, setForce] = useState(false);
   const [forceReason, setForceReason] = useState("");
   const [aiSuggestion, setAiSuggestion] = useState<FollowupAiSuggestion | null>(null);
+  const [aiCooldown, setAiCooldown] = useState(0);
   const send = useSendProposalFollowup();
   const aiSuggest = useFollowupAiSuggestion();
 
@@ -60,8 +61,15 @@ export function FollowupSendDialog({ row, open, onOpenChange }: Props) {
       setForce(false);
       setForceReason("");
       setAiSuggestion(null);
+      setAiCooldown(0);
     }
   }, [row, open]);
+
+  useEffect(() => {
+    if (aiCooldown <= 0) return;
+    const t = setTimeout(() => setAiCooldown((s) => Math.max(0, s - 1)), 1000);
+    return () => clearTimeout(t);
+  }, [aiCooldown]);
 
   const charCount = message.length;
   const tooShort = charCount < 5;
@@ -90,8 +98,11 @@ export function FollowupSendDialog({ row, open, onOpenChange }: Props) {
       const result = await aiSuggest.mutateAsync(row);
       setAiSuggestion(result);
       if (result.mensagem_sugerida) setMessage(result.mensagem_sugerida);
+      setAiCooldown(3);
     } catch { /* toast já tratado */ }
   };
+
+  const aiBusy = aiSuggest.isPending || aiCooldown > 0;
 
   const tempIcon = (lvl: string) =>
     lvl === "alto" ? <Flame className="h-3 w-3" />
@@ -169,14 +180,15 @@ export function FollowupSendDialog({ row, open, onOpenChange }: Props) {
                 size="sm"
                 className="h-6 px-2 text-[11px]"
                 onClick={handleAiSuggest}
-                disabled={aiSuggest.isPending}
+                disabled={aiBusy}
+                title={aiCooldown > 0 ? `Aguarde ${aiCooldown}s antes de gerar novamente` : "Sugerir mensagem com IA"}
               >
                 {aiSuggest.isPending ? (
                   <Loader2 className="h-3 w-3 mr-1 animate-spin" />
                 ) : (
                   <Sparkles className="h-3 w-3 mr-1" />
                 )}
-                Sugerir com IA
+                {aiCooldown > 0 ? `Aguarde ${aiCooldown}s` : "Sugerir com IA"}
               </Button>
             </div>
             <Textarea
