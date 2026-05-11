@@ -1078,7 +1078,13 @@ export function ProposalWizard() {
           };
 
           // Map engine pagamento opcoes
-          const pagOpcoes = (rawSnapshot.pagamento_opcoes || rawSnapshot.pagamentoOpcoes || []).map((p: any) => ({
+          // FIX: preservar forma_pagamento e tipo "direto" para hidratar PaymentMethodSelector
+          // (PIX, transferência, boleto, cartão...) ao reabrir proposta para edição.
+          const pagOpcoesSrc = (rawSnapshot._wizard_state as any)?.pagamentoOpcoes
+            ?? rawSnapshot.pagamento_opcoes
+            ?? rawSnapshot.pagamentoOpcoes
+            ?? [];
+          const pagOpcoes = (pagOpcoesSrc as any[]).map((p: any) => ({
             id: p.id || crypto.randomUUID(),
             nome: p.nome || "",
             tipo: p.tipo || "a_vista",
@@ -1088,6 +1094,7 @@ export function ProposalWizard() {
             carencia_meses: Number(p.carencia_meses) || 0,
             num_parcelas: Number(p.num_parcelas) || 0,
             valor_parcela: Number(p.valor_parcela) || 0,
+            forma_pagamento: p.forma_pagamento || undefined,
           }));
 
           // Map engine servicos to wizard ServicoItem format
@@ -2411,6 +2418,9 @@ export function ProposalWizard() {
           locGhiSeries,
           locDistribuidoraId,
           geracaoMensalEstimada,
+          // FIX hidratação Pagamento: preserva tipo "direto" + forma_pagamento
+          // (PIX/transferência/boleto/cartão) que o engine não tipa.
+          pagamentoOpcoes,
         },
       };
 
