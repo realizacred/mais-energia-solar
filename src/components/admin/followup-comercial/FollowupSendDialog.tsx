@@ -17,9 +17,11 @@ import {
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { AlertTriangle, Send, Loader2, Phone, Sparkles, Flame, ThermometerSun, Snowflake } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { AlertTriangle, Send, Loader2, Phone, Sparkles, Flame, ThermometerSun, Snowflake, History } from "lucide-react";
 import { useSendProposalFollowup, useFollowupAiSuggestion } from "@/hooks/useFollowupComercial";
 import type { FollowupInboxRow, FollowupAiSuggestion } from "@/hooks/useFollowupComercial";
+import { FollowupHistoryTimeline } from "./FollowupHistoryTimeline";
 
 interface Props {
   row: FollowupInboxRow | null;
