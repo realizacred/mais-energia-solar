@@ -115,7 +115,7 @@ export function ProjetoInstalacaoTab({ dealId }: Props) {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [finalizarOpen, setFinalizarOpen] = useState<string | null>(null);
 
-  const loading = loadingTemplates || loadingChecklists;
+  const loading = loadingTemplates || loadingChecklists || loadingGate;
 
   if (loading) {
     return (
