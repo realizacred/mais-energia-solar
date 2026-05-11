@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { cn } from "@/lib/utils";
 import { Separator } from "@/components/ui/separator";
 import { formatDateTime, formatDate, formatTime, formatDateShort } from "@/lib/dateUtils";
+import { CustomFieldFileInput } from "./CustomFieldFileInput";
 
 interface FieldDef {
   id: string;
