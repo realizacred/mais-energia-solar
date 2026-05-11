@@ -545,7 +545,9 @@ export function StepConsumptionIntelligence({
                   onOpenMesAMes={field => setMesAMes({ open: true, ucIndex: i, field })}
                   isFirst={i === 0}
                   totalUcs={ucs.length}
+                  leadFase={i === 0 ? leadFase : undefined}
                 />
+
               </div>
             ))}
 
