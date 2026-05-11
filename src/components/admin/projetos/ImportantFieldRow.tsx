@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils";
 import { Separator } from "@/components/ui/separator";
 import { formatDateTime, formatDate, formatTime, formatDateShort } from "@/lib/dateUtils";
 import { CustomFieldFileInput } from "./CustomFieldFileInput";
+import { toast } from "@/hooks/use-toast";
 
 interface FieldDef {
   id: string;
@@ -59,6 +60,19 @@ const TITLE_ICON_MAP: Array<{ pattern: RegExp; icon: typeof Type }> = [
   { pattern: /transformador/i, icon: Settings },
 ];
 
+async function resolveTenantId(): Promise<string | null> {
+  const { data: userData } = await supabase.auth.getUser();
+  const userId = userData?.user?.id;
+  if (!userId) return null;
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("tenant_id")
+    .eq("user_id", userId)
+    .limit(1)
+    .maybeSingle();
+  return (profile as any)?.tenant_id ?? null;
+}
+
 export function ImportantFieldRow({ field, value, dealId, onSaved, showSeparator = true }: Props) {
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -95,9 +109,11 @@ export function ImportantFieldRow({ field, value, dealId, onSaved, showSeparator
   async function save() {
     setSaving(true);
     try {
+      const tenantId = await resolveTenantId();
       const payload: any = {
         deal_id: dealId,
         field_id: field.id,
+        tenant_id: tenantId,
         value_text: null,
         value_number: null,
         value_boolean: null,
@@ -140,17 +156,20 @@ export function ImportantFieldRow({ field, value, dealId, onSaved, showSeparator
     const newVal = !(value?.value_boolean ?? false);
     setSaving(true);
     try {
-      await supabase
+      const tenantId = await resolveTenantId();
+      const { error } = await supabase
         .from("deal_custom_field_values")
         .upsert({
           deal_id: dealId,
           field_id: field.id,
+          tenant_id: tenantId,
           value_text: null,
           value_number: null,
           value_boolean: newVal,
           value_date: null,
         } as any, { onConflict: "deal_id,field_id" });
-      onSaved();
+      if (error) console.error("Erro ao salvar campo booleano:", error);
+      else onSaved();
     } finally {
       setSaving(false);
     }
@@ -172,18 +191,24 @@ export function ImportantFieldRow({ field, value, dealId, onSaved, showSeparator
               dealId={dealId}
               compact
               onChange={async (jsonValue) => {
+                const tenantId = await resolveTenantId();
                 const { error } = await supabase
                   .from("deal_custom_field_values")
                   .upsert({
                     deal_id: dealId,
                     field_id: field.id,
+                    tenant_id: tenantId,
                     value_text: jsonValue,
                     value_number: null,
                     value_boolean: null,
                     value_date: null,
                   } as any, { onConflict: "deal_id,field_id" });
-                if (error) console.error("Erro ao salvar arquivo do campo:", error);
-                else onSaved();
+                if (error) {
+                  console.error("Erro ao salvar arquivo do campo:", error);
+                  toast({ title: "Erro ao salvar", description: error.message, variant: "destructive" });
+                } else {
+                  onSaved();
+                }
               }}
             />
           </div>
