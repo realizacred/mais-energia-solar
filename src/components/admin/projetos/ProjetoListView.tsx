@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { formatBRLInteger as formatBRL } from "@/lib/formatters";
-import { formatProjetoLabel } from "@/lib/format-entity-labels";
+import { formatProjetoLabel, getProjetoDisplayName } from "@/lib/format-entity-labels";
 import { Badge } from "@/components/ui/badge";
 import { User, Zap, ChevronRight, Phone } from "lucide-react";
 import type { ProjetoItem, ProjetoEtapa } from "@/hooks/useProjetoPipeline";
