@@ -319,6 +319,7 @@ const TAB_TITLES: Record<string, string> = {
   inbox: "Atendimento",
   "respostas-rapidas": "Respostas rápidas",
   followup: "Acompanhamentos",
+  "followup-comercial": "Recuperação Comercial",
   validacao: "Aprovação de vendas",
   tarefas: "Tarefas & prazos",
   clientes: "Clientes",
