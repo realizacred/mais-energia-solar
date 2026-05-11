@@ -3,8 +3,9 @@
  * Reaproveita: vw_proposal_followup_inbox + RPC get_followup_kpis (Phase 0).
  * RB-76: não duplicar — view já consolida propostas + versões + atividade + memória.
  */
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 export type FollowupClasse =
   | "sem_resposta"
@@ -129,5 +130,80 @@ export function useFollowupComercialInbox(filters: FollowupInboxFilters = {}) {
       return (data ?? []) as FollowupInboxRow[];
     },
     staleTime: 30 * 1000,
+  });
+}
+
+// =====================================================================
+// Phase 2 — Envio manual com guardrails
+// =====================================================================
+
+export interface SendFollowupInput {
+  proposta_id: string;
+  versao_id?: string | null;
+  message: string;
+  channel?: "whatsapp";
+  force?: boolean;
+}
+
+export interface SendFollowupResult {
+  success: true;
+  attempt_id: string;
+  attempt_number: number;
+  locked_until: string;
+  sent_today: number;
+  daily_cap: number;
+}
+
+export class FollowupSendError extends Error {
+  code: string;
+  detail?: string;
+  meta?: Record<string, unknown>;
+  constructor(code: string, message: string, meta?: Record<string, unknown>) {
+    super(message);
+    this.code = code;
+    this.meta = meta;
+  }
+}
+
+const errorCopy: Record<string, string> = {
+  opted_out: "Cliente optou por não receber este canal (LGPD).",
+  cooldown_active: "Cooldown ativo — aguarde antes de reenviar.",
+  daily_cap_reached: "Limite diário de envios atingido para este canal.",
+  max_attempts_reached: "Máximo de tentativas atingido para esta proposta.",
+  no_wa_instance_connected: "Nenhuma instância WhatsApp conectada.",
+  telefone_missing: "Cliente sem telefone normalizado.",
+  cliente_missing: "Proposta sem cliente vinculado.",
+  message_too_short: "Mensagem precisa de pelo menos 5 caracteres.",
+  message_too_long: "Mensagem muito longa (máx. 2000 caracteres).",
+  enqueue_failed: "Falha ao enfileirar mensagem no WhatsApp.",
+};
+
+export function useSendProposalFollowup() {
+  const qc = useQueryClient();
+  return useMutation<SendFollowupResult, FollowupSendError, SendFollowupInput>({
+    mutationFn: async (input) => {
+      const { data, error } = await supabase.functions.invoke("proposal-followup-send", {
+        body: { channel: "whatsapp", ...input },
+      });
+      if (error) {
+        // supabase-js wraps non-2xx into FunctionsHttpError; try to read context
+        let payload: any = null;
+        try { payload = (error as any).context?.body ? JSON.parse((error as any).context.body) : null; } catch { /* ignore */ }
+        const code = payload?.error ?? "unknown_error";
+        throw new FollowupSendError(code, errorCopy[code] ?? error.message, payload);
+      }
+      if (data?.error) {
+        throw new FollowupSendError(data.error, errorCopy[data.error] ?? data.error, data);
+      }
+      return data as SendFollowupResult;
+    },
+    onSuccess: () => {
+      toast.success("Follow-up enviado com sucesso.");
+      qc.invalidateQueries({ queryKey: ["followup-comercial-inbox"] });
+      qc.invalidateQueries({ queryKey: ["followup-comercial-kpis"] });
+    },
+    onError: (err) => {
+      toast.error(err.message);
+    },
   });
 }

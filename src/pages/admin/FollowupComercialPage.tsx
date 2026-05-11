@@ -40,10 +40,12 @@ import { Badge } from "@/components/ui/badge";
 import { PageHeader } from "@/components/ui-kit/PageHeader";
 import { StatCard } from "@/components/ui-kit/StatCard";
 import { EmptyState } from "@/components/ui-kit/EmptyState";
+import { FollowupSendDialog } from "@/components/admin/followup-comercial/FollowupSendDialog";
 import {
   useFollowupComercialKpis,
   useFollowupComercialInbox,
   type FollowupClasse,
+  type FollowupInboxRow,
 } from "@/hooks/useFollowupComercial";
 
 import { formatDistanceToNow } from "date-fns";
@@ -123,6 +125,7 @@ export default function FollowupComercialPage() {
   const [classe, setClasse] = useState<FollowupClasse | "todos">("todos");
   const [diasMin, setDiasMin] = useState<string>("0");
   const [search, setSearch] = useState("");
+  const [sendTarget, setSendTarget] = useState<FollowupInboxRow | null>(null);
 
   const kpis = useFollowupComercialKpis();
   const inbox = useFollowupComercialInbox({
@@ -298,12 +301,21 @@ export default function FollowupComercialPage() {
                           <div className="font-medium text-foreground">{r.total_aberturas ?? 0}</div>
                         </div>
                       </div>
-                      <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+                      <div className="flex items-center justify-between gap-2 text-[11px] text-muted-foreground">
                         <span>{tempLabel[r.temperatura ?? ""] ?? "—"}</span>
                         <span title={formatAbsolute(r.ultima_atividade_em)}>
                           {formatRelative(r.ultima_atividade_em)}
                         </span>
                       </div>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="w-full"
+                        disabled={!r.telefone_normalized}
+                        onClick={() => setSendTarget(r)}
+                      >
+                        <Send className="h-3.5 w-3.5 mr-2" /> Enviar follow-up
+                      </Button>
                     </li>
                   );
                 })}
@@ -322,6 +334,7 @@ export default function FollowupComercialPage() {
                       <th className="text-right px-4 py-2">Aberturas</th>
                       <th className="text-right px-4 py-2">Parado</th>
                       <th className="text-left px-4 py-2">Última atividade</th>
+                      <th className="text-right px-4 py-2 w-[1%]">Ação</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -363,6 +376,16 @@ export default function FollowupComercialPage() {
                           >
                             {formatRelative(r.ultima_atividade_em)}
                           </td>
+                          <td className="px-4 py-2 text-right">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              disabled={!r.telefone_normalized}
+                              onClick={() => setSendTarget(r)}
+                            >
+                              <Send className="h-3.5 w-3.5 mr-1.5" /> Enviar
+                            </Button>
+                          </td>
                         </tr>
                       );
                     })}
@@ -373,6 +396,12 @@ export default function FollowupComercialPage() {
           )}
         </CardContent>
       </Card>
+
+      <FollowupSendDialog
+        row={sendTarget}
+        open={!!sendTarget}
+        onOpenChange={(o) => !o && setSendTarget(null)}
+      />
     </div>
   );
 }
