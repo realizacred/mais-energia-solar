@@ -512,8 +512,9 @@ export function StepPagamento({
                                   num_parcelas: parcelas,
                                   taxa_mensal: banco.taxa_mensal,
                                   carencia_meses: 2,
-                                  valor_financiado: precoFinal,
-                                  valor_parcela: calcParcela({ valor_financiado: precoFinal, entrada: 0, num_parcelas: parcelas, taxa_mensal: banco.taxa_mensal, tipo: "financiamento", carencia_meses: 2 }),
+                                  valor_financiado: precoFinal - valorEntradaGlobal,
+                                  valor_parcela: calcParcela({ valor_financiado: precoFinal, entrada: valorEntradaGlobal, num_parcelas: parcelas, taxa_mensal: banco.taxa_mensal, tipo: "financiamento", carencia_meses: 2 }),
+
                                 })),
                             };
                             setBancoGroups(prev => [...prev, newGroup]);
