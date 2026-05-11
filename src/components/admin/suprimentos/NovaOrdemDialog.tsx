@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -20,6 +20,12 @@ interface NovaOrdemDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   defaultProjetoId?: string;
+  prefilledItens?: Array<{
+    descricao: string;
+    quantidade: number;
+    unidade?: string;
+    valor_unitario?: number;
+  }>;
 }
 
 interface ItemDraft {
@@ -29,6 +35,7 @@ interface ItemDraft {
   unidade: string;
   valor_unitario: number;
 }
+
 
 export function NovaOrdemDialog({ open, onOpenChange, defaultProjetoId }: NovaOrdemDialogProps) {
   const navigate = useNavigate();
