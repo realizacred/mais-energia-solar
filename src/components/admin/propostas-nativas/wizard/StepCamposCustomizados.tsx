@@ -87,10 +87,11 @@ export function StepCamposCustomizados({ values, onValuesChange, dealId }: Props
 }
 
 // ─── Dynamic Field Renderer ───────────────────────────────
-function CustomFieldInput({ field, value, onChange }: {
+function CustomFieldInput({ field, value, onChange, dealId }: {
   field: CustomField;
   value: any;
   onChange: (val: any) => void;
+  dealId?: string | null;
 }) {
   const isRequired = field.required_on_proposal === true || field.required_on_create === true;
   const label = `${field.title}${isRequired ? " *" : ""}`;
