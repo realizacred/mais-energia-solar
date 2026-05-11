@@ -116,6 +116,7 @@ Deno.serve(async (req) => {
         proposta_id,
         versao_id,
         created_by: userId,
+        expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
       })
       .select("id, token")
       .single();

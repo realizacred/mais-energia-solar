@@ -312,7 +312,7 @@ Deno.serve(async (req) => {
 
     if (tokenData.expires_at && new Date(tokenData.expires_at) < new Date()) {
       return new Response(
-        JSON.stringify({ error: "Token expirado" }),
+        JSON.stringify({ error: "Este link expirou. Solicite ao vendedor um novo link." }),
         { status: 410, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
