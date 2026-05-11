@@ -192,6 +192,13 @@ const errorCopy: Record<string, string> = {
 // Phase 3 — Sugestão IA (reutiliza ai-followup-intelligence, RB-76)
 // =====================================================================
 
+export interface FollowupAiScoreBreakdown {
+  engajamento: number;
+  urgencia_temporal: number;
+  valor: number;
+  risco: number;
+}
+
 export interface FollowupAiSuggestion {
   deve_fazer_followup: boolean;
   nivel_urgencia: "baixo" | "medio" | "alto";
@@ -199,6 +206,11 @@ export interface FollowupAiSuggestion {
   mensagem_sugerida: string;
   risco: "baixo" | "medio" | "alto";
   precisa_revisao_humana: boolean;
+  // Phase 4C — score refinado (efêmero, não persistido por proposta)
+  score_total?: number;
+  score_breakdown?: FollowupAiScoreBreakdown;
+  razoes?: string[];
+  acao_recomendada?: string;
 }
 
 export function useFollowupAiSuggestion() {
@@ -224,6 +236,11 @@ export function useFollowupAiSuggestion() {
             viewed_at: row.versao_viewed_at,
             valido_ate: row.valido_ate,
             dias_sem_resposta: dias,
+            // Phase 4C — enriquecimento (whitelist server-side)
+            tentativas_anteriores: row.qtd_followups ?? 0,
+            ultimo_canal: row.ultimo_canal,
+            ultimo_outcome: row.ultimo_outcome,
+            total_aberturas: row.total_aberturas ?? 0,
           },
         },
       });
