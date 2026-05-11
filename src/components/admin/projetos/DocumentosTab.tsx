@@ -20,6 +20,8 @@ import { toast } from "@/hooks/use-toast";
 import { formatDateTime } from "@/lib/dateUtils";
 
 import { getCurrentTenantId } from "@/lib/getCurrentTenantId";
+import { FilePreviewModal, type FilePreviewTarget } from "./FilePreviewModal";
+import { useProjetoCustomFieldFiles } from "@/hooks/useProjetoCustomFieldFiles";
 import {
   useProjetoArquivos,
   useProjetoDocumentosGerados,
@@ -90,10 +92,20 @@ export function DocumentosTab({ dealId, clienteTelefone, consultorTelefone: cons
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // §16: Queries em hooks — AP-01 resolvido
-  const { data: files = [], isLoading: loadingFiles } = useProjetoArquivos(dealId);
+  const { data: rawFiles = [], isLoading: loadingFiles } = useProjetoArquivos(dealId);
   const { data: generatedDocs = [], isLoading: loadingDocs } = useProjetoDocumentosGerados(dealId);
+  const { data: customFieldFiles = [], isLoading: loadingCfFiles } = useProjetoCustomFieldFiles(dealId);
   const { data: templates = [] } = useDocTemplates();
   useDocumentosRealtimeSync(dealId);
+
+  // Filtrar entradas de diretório (storage list devolve subpastas como itens com id=null)
+  const files = useMemo(
+    () => rawFiles.filter((f) => f.id !== null && f.metadata !== null),
+    [rawFiles]
+  );
+
+  // Preview universal (anexos + custom fields)
+  const [filePreview, setFilePreview] = useState<FilePreviewTarget | null>(null);
 
   // Buscar dados do cliente vinculado para validação pré-contrato
   const { data: clienteData } = useQuery({
@@ -232,22 +244,20 @@ export function DocumentosTab({ dealId, clienteTelefone, consultorTelefone: cons
     setPreviewUrl(data.signedUrl);
   };
 
-  const previewUpload = async (fileName: string) => {
-    const ext = fileName.split(".").pop()?.toLowerCase();
+  const previewUpload = async (file: { name: string; metadata: { size?: number; mimetype?: string } | null; created_at: string | null }) => {
     try {
       const tenantId = (await supabase.from("profiles").select("tenant_id").limit(1).single()).data?.tenant_id;
       if (!tenantId) return;
-      const path = `${tenantId}/deals/${dealId}/${fileName}`;
-      const { data } = await supabase.storage.from("projeto-documentos").createSignedUrl(path, 3600);
-      if (!data?.signedUrl) return;
-      if (["pdf", "png", "jpg", "jpeg", "webp"].includes(ext || "")) {
-        window.open(data.signedUrl, "_blank");
-      } else {
-        const a = document.createElement("a");
-        a.href = data.signedUrl;
-        a.download = fileName;
-        a.click();
-      }
+      const path = `${tenantId}/deals/${dealId}/${file.name}`;
+      setFilePreview({
+        bucket: "projeto-documentos",
+        storage_path: path,
+        filename: file.name.replace(/^\d+_/, ""),
+        mime: file.metadata?.mimetype || null,
+        size: file.metadata?.size || null,
+        uploaded_at: file.created_at,
+        origin_label: "Anexo manual",
+      });
     } catch {
       toast({ title: "Erro ao abrir arquivo", variant: "destructive" });
     }
