@@ -16949,6 +16949,7 @@ export type Database = {
           delivery_status: string
           id: string
           message_text: string | null
+          metadata: Json
           mode: string
           outcome: string | null
           proposta_id: string
@@ -16973,6 +16974,7 @@ export type Database = {
           delivery_status?: string
           id?: string
           message_text?: string | null
+          metadata?: Json
           mode: string
           outcome?: string | null
           proposta_id: string
@@ -16997,6 +16999,7 @@ export type Database = {
           delivery_status?: string
           id?: string
           message_text?: string | null
+          metadata?: Json
           mode?: string
           outcome?: string | null
           proposta_id?: string
