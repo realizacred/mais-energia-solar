@@ -31,7 +31,7 @@ interface Props {
 }
 
 
-export function StepUCsEnergia({ ucs, onUcsChange, grupo, onGrupoChange, potenciaKwp, onPotenciaChange }: Props) {
+export function StepUCsEnergia({ ucs, onUcsChange, grupo, onGrupoChange, potenciaKwp, onPotenciaChange, leadFase }: Props) {
   const [concessionarias, setConcessionarias] = useState<Concessionaria[]>([]);
   const [loadingConc, setLoadingConc] = useState(false);
   const [configModalUC, setConfigModalUC] = useState<number | null>(null);
