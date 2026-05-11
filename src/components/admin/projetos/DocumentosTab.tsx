@@ -290,7 +290,7 @@ export function DocumentosTab({ dealId, clienteTelefone, consultorTelefone: cons
     window.open(url, "_blank");
   };
 
-  const loading = loadingFiles || loadingDocs;
+  const loading = loadingFiles || loadingDocs || loadingCfFiles;
 
   // Group generated docs by category, sorted by created_at desc within each group
   const docsByCategory = useMemo(() => {
