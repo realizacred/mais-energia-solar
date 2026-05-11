@@ -45,7 +45,7 @@ import {
   useFollowupComercialInbox,
   type FollowupClasse,
 } from "@/hooks/useFollowupComercial";
-import { formatInTimeZone } from "date-fns-tz";
+
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
