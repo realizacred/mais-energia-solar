@@ -36,6 +36,8 @@ export interface ProjetoItem {
   deal_id: string | null;
   codigo: string | null;
   projeto_num: number | null;
+  /** Nome próprio do projeto (projetos.nome). NÃO é o nome do cliente. */
+  nome: string | null;
   lead_id: string | null;
   cliente_id: string | null;
   consultor_id: string | null;
