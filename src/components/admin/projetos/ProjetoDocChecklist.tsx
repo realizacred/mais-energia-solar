@@ -101,8 +101,25 @@ export function ProjetoDocChecklist({ dealId, compact = false }: Props) {
   };
 
   // ─── Computed ───────────────────────────────────
+  // Map legacy keys to canonical categories
+  const LEGACY_CAT_MAP: Record<string, string> = {
+    rg_cnh: "rg_cnh",
+    conta_luz: "conta_luz",
+    iptu_imovel: "iptu",
+    fotos: "fotos_telhado",
+    autorizacao_art: "art",
+    contrato_assinado: "contrato",
+  };
+
+  const isLegacyItemChecked = (key: string) => {
+    const isManuallyChecked = !!legacyChecklist[key];
+    const canonicalCat = LEGACY_CAT_MAP[key];
+    const hasCanonicalDoc = canonicalDocs.some(d => d.categoria === canonicalCat);
+    return isManuallyChecked || hasCanonicalDoc;
+  };
+
   const dynamicCompleted = items.filter(i => statusMap.get(i.id)?.concluido).length;
-  const legacyCompleted = LEGACY_ITEMS.filter(d => legacyChecklist[d.key]).length;
+  const legacyCompleted = LEGACY_ITEMS.filter(d => isLegacyItemChecked(d.key)).length;
   const completed = useLegacy ? legacyCompleted : dynamicCompleted;
   const total = useLegacy ? LEGACY_ITEMS.length : items.length;
   const progress = total > 0 ? (completed / total) * 100 : 0;
