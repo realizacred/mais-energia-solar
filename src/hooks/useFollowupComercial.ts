@@ -208,7 +208,7 @@ export function useSendProposalFollowup() {
       return data as SendFollowupResult;
     },
     onSuccess: () => {
-      toast.success("Follow-up enviado com sucesso.");
+      toast.success("Follow-up enfileirado — aguardando confirmação do WhatsApp.");
       qc.invalidateQueries({ queryKey: ["followup-comercial-inbox"] });
       qc.invalidateQueries({ queryKey: ["followup-comercial-kpis"] });
     },
