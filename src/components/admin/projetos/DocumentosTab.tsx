@@ -169,8 +169,6 @@ export function DocumentosTab({ dealId, clienteTelefone, consultorTelefone: cons
   const consultorTelefone = consultorTelefoneProp || consultorData?.telefone;
   const consultorNome = consultorData?.nome;
 
-  const uploadMutation = useUploadArquivo(dealId);
-  const deleteMutation = useDeletarArquivo(dealId);
   const generateMutation = useGerarDocumento(dealId);
   const signMutation = useEnviarParaAssinatura(dealId);
 
