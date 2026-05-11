@@ -978,7 +978,7 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
             /* ── Solaryum Tab ── */
             <SolaryumTab
               ibgeCodigo={ibgeCodigo ?? null}
-              potenciaKwp={potenciaKwp}
+              potenciaKwp={potenciaIdeal}
               onSelectKit={(solKit: ProdutoSolaryum) => {
                 setSelectedSolaryumKitId(solKit.idProduto);
                 const potKwp = solKit.potencia >= 100 ? solKit.potencia / 1000 : solKit.potencia;
