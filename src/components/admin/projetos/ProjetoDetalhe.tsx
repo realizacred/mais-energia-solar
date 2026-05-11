@@ -3,7 +3,7 @@ import { PhoneInput } from "@/components/ui-kit/inputs/PhoneInput";
 import { CpfCnpjInput } from "@/components/shared/CpfCnpjInput";
 import { formatBRLInteger as formatBRL, formatBRLInteger, formatPhoneBR } from "@/lib/formatters";
 import { useClienteHasRecebimento, useClienteRecebimentoDetalhes } from "@/hooks/useClienteRecebimento";
-import { formatPropostaLabel } from "@/lib/format-entity-labels";
+import { formatPropostaLabel, getProjetoDisplayName } from "@/lib/format-entity-labels";
 import { formatPhone } from "@/lib/validations";
 import { ClienteViewDialog } from "@/components/admin/ClienteViewDialog";
 import { upsertContactFromWhatsApp } from "@/services/contactWhatsAppService";
@@ -327,6 +327,7 @@ function ProjetoDetalheContent() {
 
   const {
     deal, projetoId, loading, activeTab, setActiveTab, stages,
+    projetoNome, projetoCodigo, projetoNum,
     customerName, customerPhone, customerEmail, customerCpfCnpj, customerEmpresa, customerAddress,
     ownerName, pipelines, allStagesMap, userNamesMap,
     currentStage, currentPipeline, projectCode,
@@ -372,9 +373,17 @@ function ProjetoDetalheContent() {
           {/* Row 1: Title + Etiquetas + Actions */}
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-3">
             <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-wrap">
-              <h1 className="text-lg sm:text-2xl font-bold text-foreground truncate max-w-full">
-                {customerName || deal.title}
-              </h1>
+              <div className="flex flex-col min-w-0">
+                <h1 className="text-lg sm:text-2xl font-bold text-foreground truncate max-w-full">
+                  {getProjetoDisplayName({ nome: projetoNome, codigo: projetoCodigo, projeto_num: projetoNum })}
+                </h1>
+                {customerName && (
+                  <span className="text-xs text-muted-foreground truncate max-w-full flex items-center gap-1">
+                    <User className="h-3 w-3" />
+                    {customerName}
+                  </span>
+                )}
+              </div>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0">

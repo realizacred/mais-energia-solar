@@ -8,7 +8,37 @@ export interface ProjetoLabelInput {
   projeto_num?: number | null;
   deal_num?: number | null;
   codigo?: string | null;
+  /** Nome próprio do projeto. NÃO é nome do cliente. */
+  nome?: string | null;
 }
+
+/**
+ * Retorna o display name canônico do PROJETO (entidade própria).
+ *
+ * Ordem (NUNCA cair em cliente.nome):
+ *   1. projeto.nome (se preenchido e não vazio)
+ *   2. projeto.codigo
+ *   3. "Projeto #{projeto_num|deal_num}"
+ *   4. "Projeto sem nome"
+ */
+export function getProjetoDisplayName(input: ProjetoLabelInput): string {
+  const nome = input.nome?.trim();
+  if (nome) return nome;
+  if (input.codigo?.trim()) return input.codigo.trim();
+  const num = input.projeto_num ?? input.deal_num;
+  if (num != null) return `Projeto #${num}`;
+  return "Projeto sem nome";
+}
+
+/**
+ * Subtítulo do projeto. Cliente pode aparecer aqui — mas NUNCA como título.
+ */
+export function getProjetoSubtitle(input: { clienteNome?: string | null; codigo?: string | null }): string | null {
+  const cliente = input.clienteNome?.trim();
+  if (cliente) return cliente;
+  return input.codigo?.trim() || null;
+}
+
 
 export interface PropostaLabelInput {
   id?: string;

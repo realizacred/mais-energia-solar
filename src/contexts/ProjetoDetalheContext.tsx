@@ -77,6 +77,12 @@ export interface ProjetoDetalheContextValue {
   // Data
   deal: DealDetail | null;
   projetoId: string | null;
+  /** Nome próprio do projeto (projetos.nome). */
+  projetoNome: string | null;
+  /** Código do projeto (projetos.codigo). */
+  projetoCodigo: string | null;
+  /** Número humano do projeto (projetos.projeto_num). */
+  projetoNum: number | null;
   history: StageHistory[];
   stages: StageInfo[];
   loading: boolean;
@@ -186,6 +192,9 @@ export function ProjetoDetalheProvider({ dealId, onBack, initialPipelineId, init
   // Derived data from query
   const deal = fullData?.deal ?? null;
   const projetoId = fullData?.projetoId ?? null;
+  const projetoNome = fullData?.projetoNome ?? null;
+  const projetoCodigo = fullData?.projetoCodigo ?? null;
+  const projetoNum = fullData?.projetoNum ?? null;
   const history = fullData?.history ?? [];
   const stages = fullData?.stages ?? [];
   const customerName = fullData?.customerName ?? "";
@@ -457,6 +466,9 @@ export function ProjetoDetalheProvider({ dealId, onBack, initialPipelineId, init
     initialPipelineName,
     deal,
     projetoId,
+    projetoNome,
+    projetoCodigo,
+    projetoNum,
     history,
     stages,
     loading: loadingData,
@@ -512,7 +524,7 @@ export function ProjetoDetalheProvider({ dealId, onBack, initialPipelineId, init
     tabBadge,
   }), [
     dealId, onBack, initialPipelineId, initialPipelineName,
-    deal, projetoId, history, stages, loadingData,
+    deal, projetoId, projetoNome, projetoCodigo, projetoNum, history, stages, loadingData,
     customerName, customerPhone, customerEmail, customerCpfCnpj, customerAddress, customerEmpresa,
     ownerName, pipelines, allStagesMap, propostasCountData, docsCount, userNamesMap,
     dealEtiquetas, allEtiquetas, etiquetaPopoverOpen,

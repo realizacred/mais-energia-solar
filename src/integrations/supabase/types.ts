@@ -16508,6 +16508,7 @@ export type Database = {
           modelo_modulos: string | null
           motivo_perda_id: string | null
           motivo_perda_obs: string | null
+          nome: string | null
           numero_instalacao: string | null
           numero_inversores: number | null
           numero_modulos: number | null
@@ -16565,6 +16566,7 @@ export type Database = {
           modelo_modulos?: string | null
           motivo_perda_id?: string | null
           motivo_perda_obs?: string | null
+          nome?: string | null
           numero_instalacao?: string | null
           numero_inversores?: number | null
           numero_modulos?: number | null
@@ -16622,6 +16624,7 @@ export type Database = {
           modelo_modulos?: string | null
           motivo_perda_id?: string | null
           motivo_perda_obs?: string | null
+          nome?: string | null
           numero_instalacao?: string | null
           numero_inversores?: number | null
           numero_modulos?: number | null

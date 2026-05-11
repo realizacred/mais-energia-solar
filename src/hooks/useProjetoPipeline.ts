@@ -36,6 +36,8 @@ export interface ProjetoItem {
   deal_id: string | null;
   codigo: string | null;
   projeto_num: number | null;
+  /** Nome próprio do projeto (projetos.nome). NÃO é o nome do cliente. */
+  nome: string | null;
   lead_id: string | null;
   cliente_id: string | null;
   consultor_id: string | null;
@@ -183,7 +185,7 @@ export function useProjetoPipeline() {
 
     let query = supabase
       .from("projetos")
-      .select("id, deal_id, codigo, projeto_num, lead_id, cliente_id, consultor_id, funil_id, etapa_id, proposta_id, potencia_kwp, valor_total, status, observacoes, created_at, updated_at, tipo_projeto_solar, clientes:cliente_id(nome, telefone)", { count: "exact" })
+      .select("id, deal_id, codigo, projeto_num, nome, lead_id, cliente_id, consultor_id, funil_id, etapa_id, proposta_id, potencia_kwp, valor_total, status, observacoes, created_at, updated_at, tipo_projeto_solar, clientes:cliente_id(nome, telefone)", { count: "exact" })
       .order("created_at", { ascending: false });
 
     if (f.consultorId !== "todos") {
