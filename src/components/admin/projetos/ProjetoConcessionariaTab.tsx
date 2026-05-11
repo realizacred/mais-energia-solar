@@ -115,6 +115,10 @@ function HomologacaoCard({ ctx, habilitado }: { ctx: ReturnType<typeof useConces
     setEditMode(false);
   };
 
+  const isExpired = homolog?.previsao_aprovacao && 
+                    new Date(homolog.previsao_aprovacao) < new Date(new Date().setHours(0,0,0,0)) && 
+                    currentStatus !== "aprovada";
+
   return (
     <Card className={cn("shadow-sm", !habilitado && "opacity-60")}>
       <CardHeader className="pb-3">
@@ -128,10 +132,23 @@ function HomologacaoCard({ ctx, habilitado }: { ctx: ReturnType<typeof useConces
               <p className="text-xs text-muted-foreground mt-0.5">Parecer de Acesso / Aprovação do projeto</p>
             </div>
           </div>
-          <Badge variant="outline" className={cn("text-xs", cfg.classes)}>{cfg.label}</Badge>
+          <div className="flex flex-col items-end gap-1">
+            <Badge variant="outline" className={cn("text-xs", cfg.classes)}>{cfg.label}</Badge>
+            {homolog?.previsao_aprovacao && !editMode && (
+              <span className={cn("text-[10px]", isExpired ? "text-destructive font-bold" : "text-muted-foreground")}>
+                Prev. {formatDateBR(homolog.previsao_aprovacao)}
+              </span>
+            )}
+          </div>
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
+        {isExpired && !editMode && (
+          <div className="flex items-center gap-2 p-3 rounded-lg bg-destructive/10 text-destructive text-xs border border-destructive/20">
+            <AlertCircle className="h-4 w-4 shrink-0" />
+            <span>Prazo de homologação vencido em {formatDateBR(homolog.previsao_aprovacao)}. Entre em contato com a concessionária.</span>
+          </div>
+        )}
         {!habilitado ? (
           <div className="flex items-center gap-2 p-3 rounded-lg bg-warning/10 text-warning text-sm">
             <Lock className="h-4 w-4 shrink-0" />
