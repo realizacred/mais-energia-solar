@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Loader2, Sparkles } from "lucide-react";
+import { Loader2, Sparkles, AlertTriangle, Check } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
@@ -62,9 +62,13 @@ export function StepVenda({ venda, onVendaChange, itens, servicos, potenciaKwp =
   const custoParaMargem = roundCurrency(custoKit + custoServicos + venda.custo_outros);
   const margemValor = roundCurrency(custoParaMargem * (venda.margem_percentual / 100));
   const precoComMargem = roundCurrency(custoBase + margemValor);
+  const precoSlider = precoComMargem; // Preço alvo sem o desconto
+  const margemMeta = precoSlider > 0 ? ((precoSlider - custoBase) / precoSlider) * 100 : 0;
+
   const descontoValor = roundCurrency(precoComMargem * (venda.desconto_percentual / 100));
   const precoFinal = roundCurrency(precoComMargem - descontoValor);
-  const margemLiquida = custoBase > 0 ? ((precoFinal - custoBase) / precoFinal) * 100 : 0;
+  const margemLiquida = precoFinal > 0 ? ((precoFinal - custoBase) / precoFinal) * 100 : 0;
+  const isMargemOk = margemLiquida >= margemMeta - 0.01; // tolerance for rounding
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-6">
@@ -84,7 +88,14 @@ export function StepVenda({ venda, onVendaChange, itens, servicos, potenciaKwp =
           <p className="text-xs text-muted-foreground mt-1">
             💡 {hasHistory ? "Sua margem histórica média" : "Margem sugerida"}: {hasHistory && suggested?.margem_percentual != null ? (Math.round(suggested.margem_percentual * 10) / 10) : "20"}%
             <span className="mx-2">|</span>
-            Margem atual da proposta: <span className={cn("font-semibold", margemLiquida > 0 ? "text-success" : "text-warning")}>{(Number(margemLiquida) || 0).toFixed(1)}%</span>
+            <span className="inline-flex items-center gap-1">
+              Meta: <span className="font-semibold text-foreground">{margemMeta.toFixed(1)}%</span>
+              <span className="mx-1">|</span>
+              Atual: <span className={cn("font-bold flex items-center gap-0.5", isMargemOk ? "text-success" : "text-destructive")}>
+                {margemLiquida.toFixed(1)}%
+                {isMargemOk ? <Check className="h-3 w-3" /> : <AlertTriangle className="h-3 w-3" />}
+              </span>
+            </span>
           </p>
         </div>
 
