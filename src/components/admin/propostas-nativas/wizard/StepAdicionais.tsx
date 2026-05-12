@@ -60,12 +60,14 @@ function itensToKitCards(itens: KitItemRow[]): KitCardData[] {
   }];
 }
 
-export function StepAdicionais({
-  adicionais, onAdicionaisChange,
-  itens, onItensChange,
-  layouts, onLayoutsChange,
-  modulos = [], inversores = [],
-}: StepAdicionaisProps) {
+export function StepAdicionais({ onNext, onBack }: StepAdicionaisProps) {
+  const {
+    adicionais, setAdicionais: onAdicionaisChange,
+    itens, handleItensChange: onItensChange,
+    layouts, setLayouts: onLayoutsChange
+  } = useWizardContext();
+  const { modulos, inversores } = useEquipmentCatalog();
+
   const [showEditKit, setShowEditKit] = useState(false);
   const [showEditLayout, setShowEditLayout] = useState(false);
 
