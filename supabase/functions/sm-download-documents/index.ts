@@ -87,8 +87,26 @@ Deno.serve(async (req) => {
       });
     }
 
-    // 2. Carrega lote — apenas registros com http no value_text
-    const { data: rows, error: rowsErr } = await sb
+    // 2. Carrega lote — apenas registros com http no value_text.
+    // Quando project_external_ids estiver presente, escopa aos deals desses projetos.
+    let dealIdScope: string[] | null = null;
+    if (projectExternalIds.length > 0) {
+      const { data: projs, error: pErr } = await sb
+        .from("projetos")
+        .select("deal_id")
+        .eq("tenant_id", tenantId)
+        .in("external_id", projectExternalIds)
+        .not("deal_id", "is", null);
+      if (pErr) throw pErr;
+      dealIdScope = (projs ?? []).map((p: any) => p.deal_id).filter(Boolean);
+      if (dealIdScope.length === 0) {
+        return new Response(JSON.stringify({ ok: true, processed: 0, downloaded: 0, skipped: 0, errors: [], next_offset: null }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
+
+    let q = sb
       .from("deal_custom_field_values")
       .select("deal_id, field_id, value_text")
       .eq("tenant_id", tenantId)
@@ -96,6 +114,8 @@ Deno.serve(async (req) => {
       .ilike("value_text", "%http%")
       .order("deal_id", { ascending: true })
       .range(offset, offset + batch - 1);
+    if (dealIdScope) q = q.in("deal_id", dealIdScope);
+    const { data: rows, error: rowsErr } = await q;
     if (rowsErr) throw rowsErr;
 
     const processed = rows?.length ?? 0;
