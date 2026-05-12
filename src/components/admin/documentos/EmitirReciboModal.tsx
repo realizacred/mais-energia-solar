@@ -261,7 +261,7 @@ export function EmitirReciboModal({
     const id = await emitir.mutateAsync({
       template_id: templateId,
       cliente_id: clienteId,
-      projeto_id: defaultProjetoId ?? null,
+      projeto_id: projetoId || null,
       deal_id: defaultDealId ?? null,
       descricao: descricao || undefined,
       numero: numero || undefined,
