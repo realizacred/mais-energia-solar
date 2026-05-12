@@ -608,10 +608,8 @@ Deno.serve(async (req) => {
 
     if (uploadErr) {
       console.error("[generate-document] Upload error:", uploadErr);
-      return new Response(
-        JSON.stringify({ error: `Erro ao salvar DOCX: ${uploadErr.message}` }),
-        { status: 500, headers: jsonHeaders },
-      );
+      // Ensure we don't proceed to DB record if upload failed
+      throw new Error(`Erro ao salvar DOCX: ${uploadErr.message}`);
     }
 
     // 7. Convert DOCX to PDF via Gotenberg

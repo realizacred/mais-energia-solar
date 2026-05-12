@@ -74,7 +74,7 @@ export function FilePreviewModal({ target, onClose }: Props) {
         if (!exists) {
           toast({
             title: "Arquivo não encontrado",
-            description: "O arquivo não existe no servidor. Tente fazer o upload novamente.",
+            description: "Arquivo não encontrado. Tente gerar o documento novamente.",
             variant: "destructive",
           });
           onClose();
