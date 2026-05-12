@@ -291,12 +291,15 @@ export function SignatureModal({ open, onClose, doc, dealId, onSend, isPending }
                       <div className="space-y-1.5">
                         <Label className="text-xs">E-mail *</Label>
                         <Input
-                          className="h-9 text-sm"
+                          className={`h-9 text-sm ${signer.email && !isValidEmail(signer.email) ? "border-destructive focus-visible:ring-destructive" : ""}`}
                           type="email"
                           value={signer.email}
                           onChange={(e) => updateSigner(idx, "email", e.target.value)}
                           placeholder="email@exemplo.com"
                         />
+                        {signer.email && !isValidEmail(signer.email) && (
+                          <p className="text-[10px] text-destructive">E-mail inválido</p>
+                        )}
                       </div>
                       <div className="space-y-1.5">
                         <Label className="text-xs">CPF</Label>
