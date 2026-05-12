@@ -267,6 +267,7 @@ const SUGGESTIONS: SuggestedAutomation[] = [
 export function PipelineAutomations() {
   const { data: automations, isLoading } = useAutomations();
   const { data: pipelines } = usePipelines();
+  const { toast } = useToast();
   const toggleMutation = useToggleAutomation();
   const deleteMutation = useDeleteAutomation();
   const createMutation = useCreateAutomation();
