@@ -22,6 +22,7 @@ import { formatDateTime } from "@/lib/dateUtils";
 import { getCurrentTenantId } from "@/lib/getCurrentTenantId";
 import { FilePreviewModal, type FilePreviewTarget } from "./FilePreviewModal";
 import { ProjectDocumentsHub } from "./ProjectDocumentsHub";
+import { DocumentSignersPanel } from "./DocumentSignersPanel";
 import { useProjectDocuments } from "@/hooks/useProjectDocuments";
 import {
   useProjetoDocumentosGerados,
@@ -567,6 +568,12 @@ export function DocumentosTab({ dealId, clienteTelefone, consultorTelefone: cons
                             title={`Preview: ${doc.title}`}
                           />
                         </div>
+                      )}
+                      {/* Per-signer status panel — shown while signature flow is in progress */}
+                      {(doc.signature_status === "sent" ||
+                        doc.signature_status === "viewed" ||
+                        doc.signature_status === "partially_signed") && (
+                        <DocumentSignersPanel documentId={doc.id} />
                       )}
                     </div>
                   );
