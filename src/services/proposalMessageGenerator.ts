@@ -472,19 +472,40 @@ export function extractMessageContext(
 ): ProposalMessageContext {
   const snap = snapshot || {};
 
-  // Extract modules info from snapshot items
+  // Extract modules info from snapshot items (aceita categoria OU tipo)
   const itens = snap.itens || [];
-  const modulos = itens.filter((i: any) => i.categoria === "modulo" || i.categoria === "modulos");
-  const inversores = itens.filter((i: any) => i.categoria === "inversor" || i.categoria === "inversores");
+  const isModulo = (i: any) => {
+    const c = String(i.categoria || i.tipo || i.tipo_item || "").toLowerCase();
+    return c === "modulo" || c === "modulos" || c === "módulo" || c === "módulos";
+  };
+  const isInversor = (i: any) => {
+    const c = String(i.categoria || i.tipo || i.tipo_item || "").toLowerCase();
+    return c === "inversor" || c === "inversores";
+  };
+  const modulos = itens.filter(isModulo);
+  const inversores = itens.filter(isInversor);
 
-  const modulosQtd = modulos.reduce((s: number, m: any) => s + (m.quantidade || 0), 0);
+  const modulosQtdSum = modulos.reduce((s: number, m: any) => s + (Number(m.quantidade) || 0), 0);
+  // Fallbacks: campo direto na versão (numero_modulos / quantidade_modulos) ou no snapshot
+  const modulosQtd =
+    modulosQtdSum > 0
+      ? modulosQtdSum
+      : (snap.numero_modulos ?? snap.numeroModulos ?? snap.quantidade_modulos ?? snap.quantidadeModulos ?? null);
+
   const moduloPotencia = modulos[0]?.potencia_w || null;
   const moduloModelo = modulos[0] ? `${modulos[0].fabricante || ""} ${modulos[0].modelo || modulos[0].descricao || ""}`.trim() : null;
   const inversorModelo = inversores[0] ? `${inversores[0].fabricante || ""} ${inversores[0].modelo || inversores[0].descricao || ""}`.trim() : null;
 
-  // Consumo from UCs
+  // Consumo from UCs (soma todas) com fallback para versao.consumo_mensal
   const ucs = snap.ucs || [];
-  const consumoMensal = ucs.reduce((s: number, uc: any) => s + (uc.consumo_mensal || uc.consumo_mensal_kwh || 0), 0);
+  const consumoSum = ucs.reduce(
+    (s: number, uc: any) => s + (Number(uc.consumo_mensal_kwh ?? uc.consumo_mensal) || 0),
+    0,
+  );
+  const consumoMensal =
+    ucs.length > 0
+      ? consumoSum
+      : (snap._consumo_mensal_versao ?? snap.consumo_mensal ?? snap.consumoMensal ?? null);
 
   // Pagamento
   const pagOpcoes = snap.pagamentoOpcoes || snap.pagamento_opcoes || [];
