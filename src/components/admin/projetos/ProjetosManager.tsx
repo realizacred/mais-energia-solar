@@ -318,7 +318,7 @@ export function ProjetosManager() {
   const [legendOpen, setLegendOpen] = useState(false);
   const [defaultStageId, setDefaultStageId] = useState<string | undefined>();
   const [defaultModalFunilId, setDefaultModalFunilId] = useState<string | undefined>();
-  const [searchParams, setSearchParams] = useSearchParams();
+  // searchParams já declarado acima (URL params dos filtros)
   const selectedProjetoId = searchParams.get("projeto") || null;
   const setSelectedProjetoId = useCallback((id: string | null) => {
     setSearchParams((prev) => {
