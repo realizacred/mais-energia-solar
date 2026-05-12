@@ -219,6 +219,13 @@ Deno.serve(async (req) => {
       }
     }
 
+    // Normalize CPF and phone to digits-only (Autentique/ZapSign/ClickSign requirement)
+    signersList = signersList.map((s) => ({
+      ...s,
+      cpf: s.cpf ? String(s.cpf).replace(/\D/g, "") || undefined : undefined,
+      phone: s.phone ? String(s.phone).replace(/\D/g, "") || undefined : undefined,
+    }));
+
     const missingEmail = signersList.find(s => !s.email);
     if (missingEmail) {
       return new Response(JSON.stringify({ error: `Signatário "${missingEmail.name}" não possui e-mail cadastrado.` }), {
