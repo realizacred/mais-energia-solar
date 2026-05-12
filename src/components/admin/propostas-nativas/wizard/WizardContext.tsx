@@ -132,7 +132,34 @@ export function WizardProvider({ children, initialData = {} }: { children: React
   const [editAceitaMotivo, setEditAceitaMotivo] = useState("");
 
   const calcKitCostFromItems = useCallback((rows: KitItemRow[]) => {
-// ... keep existing code
+    return Math.round(rows.reduce((s, i) => s + ((Number(i.quantidade) || 0) * (Number(i.preco_unitario) || 0)), 0) * 100) / 100;
+  }, []);
+
+  const handleItensChange = useCallback((
+    nextItens: KitItemRow[],
+    nextOverride?: number | null,
+  ) => {
+    const nextCustoKit = calcKitCostFromItems(nextItens);
+    setItens(nextItens);
+    setVenda(prev => {
+      const overrideValue = nextOverride != null && nextOverride > 0 ? nextOverride : null;
+      return {
+        ...prev,
+        custo_kit: nextCustoKit,
+        custo_kit_override: overrideValue,
+        isImportedFinancialOverride: false,
+      };
+    });
+  }, [calcKitCostFromItems]);
+
+  const handleUCsChange = useCallback((nextUcs: UCData[]) => {
+    setUcs(nextUcs);
+  }, []);
+
+  const handleVendaChange = useCallback((nextVenda: VendaData) => {
+    setVenda(nextVenda);
+  }, []);
+
   const value = useMemo(() => ({
     selectedLead, setSelectedLead,
     cliente, setCliente,
