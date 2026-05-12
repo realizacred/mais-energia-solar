@@ -573,7 +573,11 @@ export function DocumentosTab({ dealId, clienteTelefone, consultorTelefone: cons
                       {(doc.signature_status === "sent" ||
                         doc.signature_status === "viewed" ||
                         doc.signature_status === "partially_signed") && (
-                        <DocumentSignersPanel documentId={doc.id} />
+                        <DocumentSignersPanel
+                          documentId={doc.id}
+                          signatureStatus={doc.signature_status}
+                          onResendDocument={() => setSignConfirmDoc(doc)}
+                        />
                       )}
                     </div>
                   );
