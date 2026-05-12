@@ -220,7 +220,8 @@ export function CustomFieldFileInput({
                   )}
                 </Button>
               </div>
-            ))}
+              );
+            })}
           </div>
         )}
 
