@@ -60,6 +60,12 @@ export function FilePreviewModal({ target, onClose }: Props) {
     setSignedUrl(null);
     const checkAndSign = async () => {
       try {
+        // External bucket: storage_path is already a public URL (e.g. SolarMarket S3 import).
+        if (target.bucket === "external") {
+          if (cancelled) return;
+          setSignedUrl(target.storage_path);
+          return;
+        }
         const pathParts = target.storage_path.split("/");
         const filename = pathParts.pop()!;
         const parentPath = pathParts.join("/");
@@ -112,6 +118,10 @@ export function FilePreviewModal({ target, onClose }: Props) {
   const handleDownload = async () => {
     if (!target) return;
     try {
+      if (target.bucket === "external") {
+        window.open(target.storage_path, "_blank");
+        return;
+      }
       const { data, error } = await supabase.storage
         .from(target.bucket)
         .createSignedUrl(target.storage_path, 300, { download: target.filename });
