@@ -2864,15 +2864,25 @@ function ProposalWizardContent() {
       <div className="shrink-0 border-b border-border/60 bg-card px-4 lg:px-6 py-2.5 space-y-1">
         {/* Breadcrumb row */}
         <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
-          <Button variant="link" size="sm" className="p-0 h-auto text-[11px] text-muted-foreground hover:text-foreground" onClick={() => navigate("/admin/propostas-nativas")}>
-            Propostas
-          </Button>
-          <ChevronRight className="h-3 w-3 text-muted-foreground/50" />
-          {savedProjetoId && (
+          {savedProjetoId ? (
             <>
-              <Button variant="link" size="sm" className="p-0 h-auto text-[11px] text-muted-foreground hover:text-foreground" onClick={() => navigate(`/admin/projetos?projeto=${savedProjetoId}`)}>
-                Projeto
-              </Button>
+              <Link to="/admin/projetos" className="text-[11px] text-muted-foreground hover:text-foreground hover:underline">
+                Projetos
+              </Link>
+              <ChevronRight className="h-3 w-3 text-muted-foreground/50" />
+              <Link
+                to={`/admin/projetos?projeto=${savedProjetoId}`}
+                className="text-[11px] text-muted-foreground hover:text-foreground hover:underline"
+              >
+                {projetoBreadcrumb?.codigo ? `Projeto #${projetoBreadcrumb.codigo}` : "Projeto"}
+              </Link>
+              <ChevronRight className="h-3 w-3 text-muted-foreground/50" />
+            </>
+          ) : (
+            <>
+              <Link to="/admin/propostas-nativas" className="text-[11px] text-muted-foreground hover:text-foreground hover:underline">
+                Propostas
+              </Link>
               <ChevronRight className="h-3 w-3 text-muted-foreground/50" />
             </>
           )}
