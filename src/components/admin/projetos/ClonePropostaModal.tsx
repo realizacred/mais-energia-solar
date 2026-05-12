@@ -21,6 +21,7 @@ import { Copy, Loader2, AlertTriangle } from "lucide-react";
 import { useCloneProposta, useProjetosParaClone } from "@/hooks/useCloneProposta";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useNavigate } from "react-router-dom";
 
 interface ClonePropostaModalProps {
   open: boolean;
