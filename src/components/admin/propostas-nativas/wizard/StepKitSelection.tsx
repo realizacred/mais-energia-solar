@@ -1125,7 +1125,7 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
               }}
               selectedKitId={selectedSolaryumKitId}
             />
-          ) : (
+          ) : tab === "fechado" ? (
             /* ── Fechado Tab ── */
             activeKits.length > 0 ? (
               viewMode === "grid" ? (

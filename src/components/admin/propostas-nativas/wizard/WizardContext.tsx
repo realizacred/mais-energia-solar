@@ -72,6 +72,12 @@ interface WizardContextType {
   generationStatus: string;
   setGenerationStatus: React.Dispatch<React.SetStateAction<any>>;
 
+  // Edit Accepted Proposal
+  editAceitaDialogOpen: boolean;
+  setEditAceitaDialogOpen: (open: boolean) => void;
+  editAceitaMotivo: string;
+  setEditAceitaMotivo: (motivo: string) => void;
+
   // Handlers
   handleItensChange: (nextItens: KitItemRow[], nextOverride?: number | null) => void;
   handleUCsChange: (nextUcs: UCData[]) => void;
@@ -122,35 +128,11 @@ export function WizardProvider({ children, initialData = {} }: { children: React
   const [templateSelecionado, setTemplateSelecionado] = useState("");
   const [generationStatus, setGenerationStatus] = useState("idle");
 
+  const [editAceitaDialogOpen, setEditAceitaDialogOpen] = useState(false);
+  const [editAceitaMotivo, setEditAceitaMotivo] = useState("");
+
   const calcKitCostFromItems = useCallback((rows: KitItemRow[]) => {
-    return Math.round(rows.reduce((s, i) => s + ((Number(i.quantidade) || 0) * (Number(i.preco_unitario) || 0)), 0) * 100) / 100;
-  }, []);
-
-  const handleItensChange = useCallback((
-    nextItens: KitItemRow[],
-    nextOverride?: number | null,
-  ) => {
-    const nextCustoKit = calcKitCostFromItems(nextItens);
-    setItens(nextItens);
-    setVenda(prev => {
-      const overrideValue = nextOverride != null && nextOverride > 0 ? nextOverride : null;
-      return {
-        ...prev,
-        custo_kit: nextCustoKit,
-        custo_kit_override: overrideValue,
-        isImportedFinancialOverride: false,
-      };
-    });
-  }, [calcKitCostFromItems]);
-
-  const handleUCsChange = useCallback((nextUcs: UCData[]) => {
-    setUcs(nextUcs);
-  }, []);
-
-  const handleVendaChange = useCallback((nextVenda: VendaData) => {
-    setVenda(nextVenda);
-  }, []);
-
+// ... keep existing code
   const value = useMemo(() => ({
     selectedLead, setSelectedLead,
     cliente, setCliente,
@@ -177,6 +159,8 @@ export function WizardProvider({ children, initialData = {} }: { children: React
     pagamentoOpcoes, setPagamentoOpcoes,
     templateSelecionado, setTemplateSelecionado,
     generationStatus, setGenerationStatus,
+    editAceitaDialogOpen, setEditAceitaDialogOpen,
+    editAceitaMotivo, setEditAceitaMotivo,
     handleItensChange,
     handleUCsChange,
     handleVendaChange
@@ -186,7 +170,8 @@ export function WizardProvider({ children, initialData = {} }: { children: React
     projectAddress, ucs, grupo, potenciaKwp, itens, manualKits, 
     selectedManualIdx, layouts, adicionais, preDimensionamento, 
     premissas, servicos, venda, pagamentoOpcoes, templateSelecionado, 
-    generationStatus, handleItensChange, handleUCsChange, handleVendaChange
+    generationStatus, editAceitaDialogOpen, editAceitaMotivo, 
+    handleItensChange, handleUCsChange, handleVendaChange
   ]);
 
   return <WizardContext.Provider value={value}>{children}</WizardContext.Provider>;

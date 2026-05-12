@@ -44,6 +44,10 @@ import { PropostaBadge } from "./PropostaBadge";
 // ... keep existing code (types and hooks)
 
 export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, onToggle, dealId, customerId, onRefresh, isOutdated, onSetPrincipal, onArchive }: Props) {
+  const { 
+    editAceitaDialogOpen, setEditAceitaDialogOpen, 
+    editAceitaMotivo, setEditAceitaMotivo 
+  } = useWizardContext();
   // ... keep existing state and logic
 
   return (
