@@ -96,7 +96,14 @@ export function ClonePropostaModal({
         targetDealId: target,
         customerId: outroProjeto ? null : customerId,
       },
-      { onSuccess: () => onOpenChange(false) },
+      {
+        onSuccess: (res) => {
+          onOpenChange(false);
+          if (res?.newPropostaId) {
+            navigate(`/admin/propostas-nativas/${res.newPropostaId}`);
+          }
+        },
+      },
     );
   };
 
