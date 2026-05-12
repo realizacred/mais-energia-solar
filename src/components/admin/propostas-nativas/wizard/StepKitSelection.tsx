@@ -184,12 +184,6 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
   const catalogLoaded = useRef(false);
   const [selectedSolaryumKitId, setSelectedSolaryumKitId] = useState<number | null>(null);
   const [hasRemovedAutoFilter, setHasNewRemovedAutoFilter] = useState(false);
-  
-  // Paginação
-  const [page, setPage] = useState(1);
-  const [totalCount, setTotalCount] = useState(0);
-  const pageSize = 20;
-  const listTopRef = useRef<HTMLDivElement>(null);
 
   // Derive selected catalog kit ID from manualKits meta
   const selectedCatalogKitId = useMemo(() => {
@@ -199,57 +193,33 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
     return null;
   }, [manualKits]);
 
-  // Load catalog kits when tab switches to "catalogo" or filters/page changes
+  // Load catalog kits when tab switches to "catalogo" — fetch all, filter client-side
   useEffect(() => {
-    if (tab !== "catalogo") return;
+    if (tab !== "catalogo" || catalogLoaded.current) return;
     setCatalogLoading(true);
     setCatalogError(null);
-    
-    // Auto-apply power filter if potenciaIdeal is set and it's the first load
-    if (potenciaIdeal > 0 && !hasRemovedAutoFilter && !catalogLoaded.current) {
-      const initialPotMin = Math.round(potenciaIdeal * 0.7 * 100) / 100;
-      const initialPotMax = Math.round(potenciaIdeal * 1.3 * 100) / 100;
-      setFilters(prev => ({
-        ...prev,
-        potenciaMin: initialPotMin,
-        potenciaMax: initialPotMax,
-      }));
-      // We will let the next effect cycle with updated filters do the fetch
-      setHasNewRemovedAutoFilter(true); // Prevent re-entry
-      return;
-    }
-
-    fetchActiveKits(
-      !includeComponents, 
-      page, 
-      pageSize, 
-      {
-        potenciaMin: filters.potenciaMin,
-        potenciaMax: filters.potenciaMax,
-        searchText: filters.searchText,
-      }
-    )
-      .then(async (response) => {
-        setCatalogKits(response.data);
-        setTotalCount(response.count);
+    fetchActiveKits(false) // fetch all products; generator filter applied client-side via includeComponents toggle
+      .then(async (kits) => {
+        setCatalogKits(kits);
         catalogLoaded.current = true;
         
-        if (response.data.length > 0) {
-          const summaries = await fetchKitsSummary(response.data.map(k => k.id));
+        // UX-05: Auto-apply power filter if potenciaIdeal is set
+        if (potenciaIdeal > 0 && !hasRemovedAutoFilter) {
+          setFilters(prev => ({
+            ...prev,
+            potenciaMin: Math.round(potenciaIdeal * 0.7 * 100) / 100,
+            potenciaMax: Math.round(potenciaIdeal * 1.3 * 100) / 100,
+          }));
+        }
+
+        if (kits.length > 0) {
+          const summaries = await fetchKitsSummary(kits.map(k => k.id));
           setCatalogSummaries(summaries);
         }
-        
-        // Scroll suave para o topo
-        listTopRef.current?.scrollIntoView({ behavior: "smooth" });
       })
       .catch((err) => setCatalogError(err.message))
       .finally(() => setCatalogLoading(false));
-  }, [tab, includeComponents, page, filters.potenciaMin, filters.potenciaMax, filters.searchText, potenciaIdeal]);
-
-  // Reset page to 1 when filters change
-  useEffect(() => {
-    setPage(1);
-  }, [filters.potenciaMin, filters.potenciaMax, filters.searchText, includeComponents]);
+  }, [tab, potenciaIdeal, hasRemovedAutoFilter]);
 
   const handleSelectCatalogKit = async (kitId: string, kitName: string) => {
     // If items already exist, ask for confirmation
@@ -402,12 +372,31 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
     };
   }, [catalogKits, catalogSummaries]);
 
-  // Filter & sort catalog kits based on sidebar filters (Filtering mostly done on server now)
+  // Filter & sort catalog kits based on sidebar filters
   const filteredCatalogKits = useMemo(() => {
-    let result = [...catalogKits];
+    // Default: show only generators unless "includeComponents" toggle is on
+    let result = includeComponents
+      ? [...catalogKits]
+      : catalogKits.filter(k => k.is_generator);
 
-    // Client-side filtering only for what server doesn't handle or to refine
-    
+    // Potência range filter
+    if (filters.potenciaMin > 0 || filters.potenciaMax < 1000) {
+      result = result.filter(k => {
+        const kwp = k.estimated_kwp ?? 0;
+        return kwp >= filters.potenciaMin && kwp <= filters.potenciaMax;
+      });
+    }
+
+    // General text search (name, description, fabricante)
+    if (filters.searchText.trim()) {
+      const q = filters.searchText.toLowerCase();
+      result = result.filter(k =>
+        k.name.toLowerCase().includes(q) ||
+        (k.description || "").toLowerCase().includes(q) ||
+        (k.fabricante || "").toLowerCase().includes(q)
+      );
+    }
+
     // Fabricante Inversor dropdown
     if (filters.fabricanteInversor) {
       const q = filters.fabricanteInversor.toLowerCase();
@@ -444,13 +433,18 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
 
     // Sort
     if (orderBy === "melhor_kwp") {
+      // UX-05: If auto-filtering by power, prioritize proximity to ideal power within the "melhor_kwp" sorting
       result.sort((a, b) => {
+        // Primary sort: price per kWp
         const priceDiff = (a.preco_por_kwp || Infinity) - (b.preco_por_kwp || Infinity);
+        
+        // If prices are very similar (within 1%), sort by proximity to ideal power
         if (potenciaIdeal > 0 && Math.abs(priceDiff) < (a.preco_por_kwp || 1) * 0.01) {
           const proximityA = Math.abs((a.estimated_kwp || 0) - potenciaIdeal);
           const proximityB = Math.abs((b.estimated_kwp || 0) - potenciaIdeal);
           return proximityA - proximityB;
         }
+        
         return priceDiff;
       });
     } else if (orderBy === "proximidade" && potenciaIdeal > 0) {
@@ -482,7 +476,7 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
     }
 
     return result;
-  }, [catalogKits, catalogSummaries, filters, orderBy, potenciaIdeal]);
+  }, [catalogKits, catalogSummaries, filters, orderBy, includeComponents, potenciaIdeal]);
 
 
   const handleSelectKit = (kit: KitCardData) => {
@@ -612,7 +606,7 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
         </aside>
 
         {/* ── Main Content Area ── */}
-        <div ref={listTopRef} className="flex-1 min-w-0 space-y-4">
+        <div className="flex-1 min-w-0 space-y-4">
           {/* Tabs: Catálogo | Customizado | Fechado */}
           <div className="flex items-center border-b border-border/50">
             {([
@@ -740,6 +734,7 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
 
           {/* Tab Content */}
           {tab === "catalogo" ? (
+            /* ── Catálogo Tab ── */
             <div className="space-y-3">
               {/* ── Auto-filter info banner ── */}
               {potenciaIdeal > 0 && !hasRemovedAutoFilter && (filters.potenciaMin > 0 || filters.potenciaMax < 1000) && (
@@ -806,11 +801,10 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
                   <p className="text-xs text-muted-foreground/70 mt-1">Ajuste os filtros ou limpe para ver todos</p>
                 </div>
               ) : (
-                <div className="space-y-4">
-                  <div className={viewMode === "grid"
-                    ? "grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3"
-                    : "space-y-2"
-                  }>
+                <div className={viewMode === "grid"
+                  ? "grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3"
+                  : "space-y-2"
+                }>
                   {filteredCatalogKits.map(kit => {
                     const summary = catalogSummaries.get(kit.id);
                     const isSelected = selectedCatalogKitId === kit.id;
@@ -992,36 +986,10 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
                     );
                   })}
                 </div>
-
-                {/* ── Paginação ── */}
-                {totalCount > pageSize && (
-                  <div className="flex items-center justify-center gap-4 py-4 border-t border-border/40 mt-4">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setPage(p => Math.max(1, p - 1))}
-                      disabled={page === 1}
-                      className="gap-1"
-                    >
-                      <ChevronLeft className="h-4 w-4" /> Anterior
-                    </Button>
-                    <span className="text-xs font-medium text-muted-foreground">
-                      Página {page} de {Math.ceil(totalCount / pageSize)}
-                    </span>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setPage(p => p + 1)}
-                      disabled={page * pageSize >= totalCount}
-                      className="gap-1"
-                    >
-                      Próxima <ChevronRight className="h-4 w-4" />
-                    </Button>
-                  </div>
-                )}
-              </div>
-            ) : tab === "customizado" ? (
-              /* ── Customizado Tab — manual kits + imported catalog kits ── */
+              )}
+            </div>
+          ) : tab === "customizado" ? (
+            /* ── Customizado Tab — manual kits + imported catalog kits ── */
             <div className="space-y-3">
               {manualKits.length > 0 && (
                 <div className={viewMode === "grid"
@@ -1125,7 +1093,7 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
               }}
               selectedKitId={selectedSolaryumKitId}
             />
-          ) : tab === "fechado" ? (
+          ) : (
             /* ── Fechado Tab ── */
             activeKits.length > 0 ? (
               viewMode === "grid" ? (
@@ -1570,7 +1538,7 @@ function PremissasModal({ open, onOpenChange, pd, setPd, activeTab, onTabChange,
     setPd(updated);
   }, [baseDesempenho, effectiveIrrad, setPd]);
 
-  function pdUpdate<K extends keyof PreDimensionamentoData>(field: K, value: PreDimensionamentoData[K]) {
+  const pdUpdate = <K extends keyof PreDimensionamentoData>(field: K, value: PreDimensionamentoData[K]) => {
     if (field === "sombreamento") {
       applySombreamento(value as string, pdRef.current);
       return;
