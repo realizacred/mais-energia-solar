@@ -684,11 +684,8 @@ async function processStep(
         } catch (e) {
           console.error("[sm-migrate-chunk] promote-custom-fields chain failed:", e);
         }
-        try {
-          await runPostPhaseUntilDone(tenantId, "sm-download-documents", "download", 10);
-        } catch (e) {
-          console.error("[sm-migrate-chunk] download-documents chain failed:", e);
-        }
+        // sm-download-documents intencionalmente removido — internalização
+        // de documentos é responsabilidade de sm-promote-custom-fields.
       })());
     } catch (e) {
       console.error("[sm-migrate-chunk] failed to schedule post-phases:", e);
