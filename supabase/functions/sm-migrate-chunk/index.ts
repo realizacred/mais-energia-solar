@@ -686,6 +686,11 @@ async function processStep(
         } catch (e) {
           console.error("[sm-migrate-chunk] promote-custom-fields chain failed:", e);
         }
+        try {
+          await runPostPhaseUntilDone(tenantId, "sm-download-documents", "download", 10);
+        } catch (e) {
+          console.error("[sm-migrate-chunk] download-documents chain failed:", e);
+        }
       })());
     } catch (e) {
       console.error("[sm-migrate-chunk] failed to schedule post-phases:", e);
