@@ -1128,6 +1128,7 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
               selectedKitId={selectedSolaryumKitId}
             />
           ) : (
+            /* ── Fechado Tab ── */
             activeKits.length > 0 ? (
               viewMode === "grid" ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-3">
