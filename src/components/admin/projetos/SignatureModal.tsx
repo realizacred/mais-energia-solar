@@ -127,13 +127,15 @@ export function SignatureModal({ open, onClose, doc, dealId, onSend, isPending }
         if (cliente) {
           resolved.push({
             name: cliente.nome || "",
-            email: cliente.email || "",
-            cpf: cliente.cpf_cnpj || "",
+            email: (cliente.email || "").trim(),
+            cpf: formatCpfCnpj(cliente.cpf_cnpj || ""),
             phone: cliente.telefone || "",
             role: "contratante",
           });
           if (!cliente.email) {
             warns.push("Cliente sem e-mail cadastrado. Preencha antes de enviar.");
+          } else if (!isValidEmail(cliente.email)) {
+            warns.push("E-mail do cliente parece inválido. Verifique antes de enviar.");
           }
         }
       } else {
