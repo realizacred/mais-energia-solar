@@ -30,13 +30,9 @@ interface CustoRow {
   checked: boolean;
 }
 
-interface Props {
-  venda: VendaData;
-  onVendaChange: (venda: VendaData) => void;
-  itens: KitItemRow[];
-  servicos: ServicoItem[];
-  potenciaKwp: number;
-  leadId?: string | null;
+interface StepVendaProps {
+  onNext?: () => void;
+  onBack?: () => void;
 }
 
 // ── View Modes ──
