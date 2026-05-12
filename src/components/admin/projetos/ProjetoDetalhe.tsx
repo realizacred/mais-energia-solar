@@ -1398,9 +1398,15 @@ function GerenciamentoTab({
             } else {
               subtitle = actorSuffix || baseSubtitle || undefined;
             }
+            const FUNIL_EVENT_TYPES = new Set(["stage_changed", "pipeline_changed", "pipeline_added", "pipeline_removed"]);
+            const entryType: "proposta" | "funil" | "criacao" | "projeto" =
+              PROPOSAL_EVENT_TYPES.has(e.event_type) ? "proposta" :
+              FUNIL_EVENT_TYPES.has(e.event_type) ? "funil" :
+              e.event_type === "created" ? "criacao" :
+              "projeto";
             return {
               id: `pe-${e.id}`,
-              type: PROPOSAL_EVENT_TYPES.has(e.event_type) ? "proposta" as const : "projeto" as const,
+              type: entryType,
               title: EVENT_LABELS[e.event_type] || e.event_type,
               subtitle,
               date: formatDate(e.created_at),
