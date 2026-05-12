@@ -7,13 +7,14 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import {
   MapPin, User, Zap, Package, Box, Wrench, DollarSign, CreditCard,
   SunMedium, TrendingUp, Phone, Mail, Building2, Percent,
-  Banknote, Clock, ArrowDown, ChevronDown, ChevronRight,
+  Banknote, Clock, ArrowDown, ChevronDown, ChevronRight, ChevronLeft
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatPhoneBR } from "@/lib/formatters";
 import { resolveCustoKit } from "./types";
 import { useWizardContext } from "./WizardContext";
 import { usePrecoFinal } from "@/hooks/usePrecoFinal";
+import { Button } from "@/components/ui/button";
 
 interface StepResumoProps {
   // Navigation
@@ -120,9 +121,9 @@ export function StepResumo({
   const consumoTotal = isSnapshot ? snapshotData.consumoTotal : context.ucs.reduce((s, u) => s + (u.consumo_mensal || u.consumo_mensal_p + u.consumo_mensal_fp), 0);
 
   // Geração estimada
-  const topologiaAtiva = (itens.length > 0 ? (itens.find(i => i.categoria === "inversor")?.modelo?.toLowerCase() ?? "tradicional") : "tradicional");
+  const topologiaAtiva = (itens.length > 0 ? (itens.find(i => i.categoria === "inversor")?.descricao?.toLowerCase() ?? "tradicional") : "tradicional");
   const fatorGeracaoAtivo = isSnapshot ? 0 : (context.preDimensionamento.topologia_configs?.[topologiaAtiva]?.fator_geracao ?? context.preDimensionamento.fator_geracao ?? 0);
-  
+
   const geracaoMensalKwh = useMemo(() => {
     if (isSnapshot) return snapshotData.geracaoMensalKwh;
     if (potenciaKwp <= 0) return 0;
