@@ -5,6 +5,7 @@ import { getPublicUrl } from "@/lib/getPublicUrl";
 import { useNavigate } from "react-router-dom";
 import { ProposalSnapshotView } from "@/components/admin/propostas-nativas/ProposalSnapshotView";
 import { StepDocumento } from "@/components/admin/propostas-nativas/wizard/StepDocumento";
+import { WizardProvider } from "@/components/admin/propostas-nativas/wizard/WizardContext";
 import { ProposalViewsCard } from "@/components/admin/propostas-nativas/ProposalViewsCard";
 import {
   Zap, SunMedium, DollarSign, FileText, Eye, Pencil, Copy, Trash2, Download,
@@ -1608,10 +1609,12 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
 
                   <TabsContent value="arquivo" className="px-4 pb-4 mt-0">
                     <div className="mt-3">
-                      <StepDocumento
-                        onViewDetail={() => {}}
-                        skipTemplateAutoSelect={true}
-                      />
+                      <WizardProvider>
+                        <StepDocumento
+                          onViewDetail={() => {}}
+                          skipTemplateAutoSelect={true}
+                        />
+                      </WizardProvider>
 
                     </div>
                   </TabsContent>
