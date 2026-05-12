@@ -312,7 +312,11 @@ export function EmitirReciboModal({
 
           <div className="space-y-1.5 sm:col-span-2">
             <Label className="text-xs">Cliente</Label>
-            <Select value={clienteId} onValueChange={setClienteId} disabled={loadingClientes}>
+            <Select
+              value={clienteId}
+              onValueChange={setClienteId}
+              disabled={loadingClientes || !!defaultProjetoId || !!defaultClienteId}
+            >
               <SelectTrigger><SelectValue placeholder={loadingClientes ? "Carregando..." : "Selecione o cliente"} /></SelectTrigger>
               <SelectContent>
                 {(clientes ?? []).map((c) => (
@@ -322,6 +326,9 @@ export function EmitirReciboModal({
                 ))}
               </SelectContent>
             </Select>
+            {(!!defaultProjetoId || !!defaultClienteId) && (
+              <p className="text-[10px] text-muted-foreground">Cliente definido pelo projeto</p>
+            )}
           </div>
 
           <div className="space-y-1.5">
