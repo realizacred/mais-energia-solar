@@ -185,7 +185,16 @@ export function EmitirReciboModal({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 py-2">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 py-2 relative">
+          {loadingContext && (
+            <div className="absolute inset-0 bg-background/50 z-10 flex items-center justify-center rounded-lg backdrop-blur-[1px]">
+              <div className="flex flex-col items-center gap-2">
+                <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">Carregando dados do projeto...</span>
+              </div>
+            </div>
+          )}
+
           <div className="space-y-1.5 sm:col-span-2">
             <Label className="text-xs">Template</Label>
             <Select value={templateId} onValueChange={setTemplateId} disabled={loadingTpls}>
