@@ -482,6 +482,13 @@ export class AutentiqueAdapter implements SignatureAdapter {
 
     const data = await response.json();
 
+    // Full diagnostic log for every Autentique response (success or error)
+    console.error("[AutentiqueAdapter] HTTP status:", response.status);
+    console.error("[AutentiqueAdapter] Response headers:", Object.fromEntries(response.headers.entries()));
+    console.error("[AutentiqueAdapter] Full response body:", JSON.stringify(data));
+    console.error("[AutentiqueAdapter] Query sent:", query);
+    console.error("[AutentiqueAdapter] Variables sent:", JSON.stringify({ ...variables, file: "<blob>" }, null, 2));
+
     if (!response.ok || data?.errors?.length) {
       // Full error log for debugging — Autentique returns 200 with errors array on validation
       console.error("[AutentiqueAdapter] Full API error response:", JSON.stringify(data));
