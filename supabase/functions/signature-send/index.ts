@@ -170,11 +170,24 @@ Deno.serve(async (req) => {
     let autoResolved = false;
 
     // Always fetch brand representante (used for auto-injection of Contratada)
-    const { data: brand } = await supabase
+    const { data: brandRaw } = await supabase
       .from("brand_settings")
       .select("representante_legal, representante_email, representante_cpf, representante_cargo")
       .eq("tenant_id", tenant_id)
       .maybeSingle();
+
+    // Normaliza CPF do representante imediatamente (brand_settings salva formatado "XXX.XXX.XXX-XX")
+    const brand = brandRaw
+      ? {
+          ...brandRaw,
+          representante_cpf: brandRaw.representante_cpf
+            ? String(brandRaw.representante_cpf).replace(/\D/g, "") || null
+            : null,
+        }
+      : null;
+    if (brandRaw?.representante_cpf) {
+      console.log("[signature-send] CPF representante normalizado:", brandRaw.representante_cpf, "→", brand?.representante_cpf);
+    }
 
     if (requestSigners && Array.isArray(requestSigners) && requestSigners.length > 0) {
       // Use signers provided by the frontend modal
