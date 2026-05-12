@@ -60,6 +60,12 @@ export function FilePreviewModal({ target, onClose }: Props) {
     setSignedUrl(null);
     const checkAndSign = async () => {
       try {
+        // External bucket: storage_path is already a public URL (e.g. SolarMarket S3 import).
+        if (target.bucket === "external") {
+          if (cancelled) return;
+          setSignedUrl(target.storage_path);
+          return;
+        }
         const pathParts = target.storage_path.split("/");
         const filename = pathParts.pop()!;
         const parentPath = pathParts.join("/");
