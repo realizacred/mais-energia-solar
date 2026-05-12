@@ -2,15 +2,14 @@
  * DocumentSignersPanel — mostra status individual por signatário do documento.
  * Aparece abaixo do card quando o documento foi enviado e ainda não está totalmente assinado.
  */
-import { Mail, Loader2, CheckCircle2, Eye, Clock, XCircle, RefreshCw } from "lucide-react";
+import { Mail, Loader2, CheckCircle2, Eye, Clock, XCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useDocumentSigners, useResendSigner, type DocumentSignerRow } from "@/hooks/useDocumentSigners";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
-import { toast } from "sonner";
+import { useEffect, useRef, useState } from "react";
 
 interface Props {
   documentId: string;
@@ -24,60 +23,56 @@ const STATUS_BADGE: Record<DocumentSignerRow["status"], { label: string; cls: st
   refused: { label: "Recusou",    cls: "bg-destructive/10 text-destructive border-destructive/20", icon: <XCircle className="h-3 w-3" /> },
 };
 
+const BACKFILL_STATUSES = new Set(["sent", "viewed", "partially_signed"]);
+
 export function DocumentSignersPanel({ documentId, signatureStatus }: Props) {
   const { data: signers = [], isLoading } = useDocumentSigners(documentId);
   const resend = useResendSigner();
   const qc = useQueryClient();
-  const [recovering, setRecovering] = useState(false);
 
-  async function handleRecover() {
-    setRecovering(true);
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.access_token) {
-        toast.error("Faça login para recuperar o status.");
-        return;
+  const triggeredRef = useRef<Set<string>>(new Set());
+  const [backfilling, setBackfilling] = useState(false);
+
+  // Auto-backfill: quando query terminou, sem signatários, e doc enviado.
+  useEffect(() => {
+    if (isLoading) return;
+    if (signers.length > 0) return;
+    if (!signatureStatus || !BACKFILL_STATUSES.has(signatureStatus)) return;
+    if (triggeredRef.current.has(documentId)) return;
+
+    triggeredRef.current.add(documentId);
+    setBackfilling(true);
+
+    (async () => {
+      try {
+        const { data, error } = await supabase.functions.invoke("signature-backfill-signers", {
+          body: { document_id: documentId },
+        });
+        if (error) throw error;
+        if ((data as any)?.error) throw new Error((data as any).error);
+        qc.invalidateQueries({ queryKey: ["document-signers", documentId] });
+        qc.invalidateQueries({ queryKey: ["document-signers"] });
+      } catch (e) {
+        console.warn("[DocumentSignersPanel] backfill falhou silenciosamente:", e);
+      } finally {
+        setBackfilling(false);
       }
-      const { data, error } = await supabase.functions.invoke("signature-backfill-signers", {
-        body: { document_id: documentId },
-      });
-      if (error) throw error;
-      if ((data as any)?.error) throw new Error((data as any).error);
-      toast.success("Signatários recuperados com sucesso");
-      qc.invalidateQueries({ queryKey: ["document-signers", documentId] });
-      qc.invalidateQueries({ queryKey: ["document-signers"] });
-    } catch (e: any) {
-      toast.error(e?.message || "Erro ao recuperar signatários");
-    } finally {
-      setRecovering(false);
-    }
-  }
+    })();
+  }, [isLoading, signers.length, signatureStatus, documentId, qc]);
 
-  if (isLoading) {
+  if (isLoading || backfilling) {
     return <div className="mx-3 mb-2 h-12 rounded-lg bg-muted/40 animate-pulse" />;
   }
   if (signers.length === 0) {
-    if (signatureStatus === "sent" || signatureStatus === "viewed" || signatureStatus === "partially_signed") {
+    if (signatureStatus && BACKFILL_STATUSES.has(signatureStatus)) {
       return (
-        <div className="mt-2 p-3 border rounded-md bg-muted/30 space-y-2">
+        <div className="mt-2 p-3 border rounded-md bg-muted/30">
           <p className="text-sm text-muted-foreground">
             Rastreamento por signatário não disponível para este envio.
           </p>
-          <p className="text-xs text-muted-foreground">
-            Recupere o status diretamente do provedor ou reenvie o documento.
+          <p className="text-xs text-muted-foreground mt-1">
+            Reenvie o documento para ativar o acompanhamento individual.
           </p>
-          <div className="flex gap-2 pt-1">
-            <Button
-              size="sm"
-              variant="outline"
-              className="h-7 text-xs gap-1.5"
-              onClick={handleRecover}
-              disabled={recovering}
-            >
-              {recovering ? <Loader2 className="h-3 w-3 animate-spin" /> : <RefreshCw className="h-3 w-3" />}
-              Recuperar status
-            </Button>
-          </div>
         </div>
       );
     }
