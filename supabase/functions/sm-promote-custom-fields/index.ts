@@ -169,12 +169,28 @@ function mergeNote(existing: string | null | undefined, label: string, value: st
   return current ? `${current}\n${line}` : line;
 }
 
+function inferMimeFromName(s: string): string {
+  const clean = s.split("?")[0].split("#")[0].toLowerCase();
+  if (/\.pdf$/.test(clean)) return "application/pdf";
+  if (/\.(jpg|jpeg)$/.test(clean)) return "image/jpeg";
+  if (/\.png$/.test(clean)) return "image/png";
+  if (/\.webp$/.test(clean)) return "image/webp";
+  if (/\.gif$/.test(clean)) return "image/gif";
+  if (/\.heic$/.test(clean)) return "image/heic";
+  return "application/octet-stream";
+}
+
 async function downloadAndStore(
   supabase: any,
   bucket: string,
   url: string,
   storagePath: string,
-): Promise<{ ok: boolean; path: string; reason?: string }> {
+): Promise<{ ok: boolean; path: string; reason?: string; size?: number | null; mime?: string }> {
+  const inferred =
+    inferMimeFromName(url) !== "application/octet-stream"
+      ? inferMimeFromName(url)
+      : inferMimeFromName(storagePath);
+
   // Skip if already exists.
   const { data: existing } = await supabase.storage
     .from(bucket)
@@ -182,39 +198,32 @@ async function downloadAndStore(
       search: storagePath.split("/").pop(),
     });
   if (existing && existing.length > 0) {
-    return { ok: true, path: storagePath, reason: "already_exists" };
+    const meta = existing.find((f: any) => f.name === storagePath.split("/").pop());
+    return {
+      ok: true,
+      path: storagePath,
+      reason: "already_exists",
+      size: meta?.metadata?.size ?? null,
+      mime: meta?.metadata?.mimetype ?? inferred,
+    };
   }
 
   const resp = await fetch(url);
   if (!resp.ok) {
     return { ok: false, path: storagePath, reason: `http_${resp.status}` };
   }
-  // Infer mime type from URL/path extension; ignore S3 Content-Type (often octet-stream).
-  const inferMime = (s: string): string => {
-    const clean = s.split("?")[0].split("#")[0].toLowerCase();
-    if (/\.pdf$/.test(clean)) return "application/pdf";
-    if (/\.(jpg|jpeg)$/.test(clean)) return "image/jpeg";
-    if (/\.png$/.test(clean)) return "image/png";
-    if (/\.webp$/.test(clean)) return "image/webp";
-    if (/\.gif$/.test(clean)) return "image/gif";
-    if (/\.heic$/.test(clean)) return "image/heic";
-    return "application/octet-stream";
-  };
-  const contentType = inferMime(url) !== "application/octet-stream"
-    ? inferMime(url)
-    : inferMime(storagePath);
   const blob = await resp.blob();
 
   const { error: upErr } = await supabase.storage
     .from(bucket)
     .upload(storagePath, blob, {
-      contentType,
+      contentType: inferred,
       upsert: false,
     });
   if (upErr && !/exists/i.test(upErr.message)) {
     return { ok: false, path: storagePath, reason: upErr.message };
   }
-  return { ok: true, path: storagePath };
+  return { ok: true, path: storagePath, size: blob.size, mime: inferred };
 }
 
 async function resolveLookupId(
