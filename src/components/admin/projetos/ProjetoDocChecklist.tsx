@@ -86,12 +86,12 @@ export function ProjetoDocChecklist({ dealId, compact = false }: Props) {
   };
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
+    const files = Array.from(e.target.files || []);
     const itemId = pendingItemRef.current;
-    if (!file || !itemId) return;
+    if (files.length === 0 || !itemId) return;
     try {
-      await uploadMutation.mutateAsync({ itemId, file });
-      toast({ title: "Arquivo enviado" });
+      await Promise.all(files.map(file => uploadMutation.mutateAsync({ itemId, file })));
+      toast({ title: files.length === 1 ? "Arquivo enviado" : `${files.length} arquivos enviados` });
     } catch (err: any) {
       toast({ title: "Erro no upload", description: err.message, variant: "destructive" });
     } finally {
@@ -187,7 +187,7 @@ export function ProjetoDocChecklist({ dealId, compact = false }: Props) {
       </CardHeader>
 
       <CardContent className="p-3 sm:p-3 pt-0 sm:pt-0 space-y-0.5">
-        <input ref={fileInputRef} type="file" className="hidden" onChange={handleFileChange} />
+        <input ref={fileInputRef} type="file" multiple accept="*/*" className="hidden" onChange={handleFileChange} />
 
         {useLegacy ? (
           // Legacy mode
