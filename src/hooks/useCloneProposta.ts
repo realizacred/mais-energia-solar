@@ -80,7 +80,18 @@ export function useCloneProposta() {
       toast({ title: "Proposta clonada com sucesso! ✅" });
     },
     onError: (err: any) => {
-      toast({ title: "Erro ao clonar proposta", description: err.message, variant: "destructive" });
+      const raw = String(err?.message || "");
+      let description = raw;
+      if (raw.includes("uq_propostas_tenant_codigo") || raw.includes("duplicate key")) {
+        description = "Não foi possível gerar um código único para a nova proposta. Tente novamente em instantes.";
+      } else if (raw.includes("codigo_generation_failed")) {
+        description = "Não foi possível gerar um código único após várias tentativas. Tente novamente.";
+      } else if (raw.includes("source_not_found")) {
+        description = "Proposta de origem não encontrada.";
+      } else if (raw.includes("source_version_not_found")) {
+        description = "A proposta de origem não possui versão para clonar.";
+      }
+      toast({ title: "Erro ao clonar proposta", description, variant: "destructive" });
     },
   });
 }
