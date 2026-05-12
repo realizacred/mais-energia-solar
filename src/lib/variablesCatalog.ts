@@ -546,6 +546,7 @@ export const VARIABLES_CATALOG: CatalogVariable[] = [
   v("entrada", "entrada.fator_simultaneidade", "fator_simultaneidade", "Fator de Simultaneidade", "Fator de simultaneidade para autoconsumo", "%", "10"),
   // qtd_ucs removido daqui — canônico em sistema_solar.qtd_ucs (linha 706)
   v("entrada", "entrada.num_ucs", "num_ucs", "Número de UCs", "Quantidade total de unidades consumidoras no projeto", "-", "3"),
+  v("entrada", "entrada.ucs_tabela", "ucs_tabela", "Tabela de UCs (multilinha)", "Bloco multilinha com uma linha por UC: número, consumo médio, tarifa, custo de disponibilidade e economia estimada. Use em parágrafo isolado.", "-", "UC 1 — Matriz | Consumo: 1.200 kWh/mês | Tarifa: R$ 0,8500/kWh | Custo disp.: R$ 99,00 | Economia est.: R$ 850,00/mês"),
 
   // ── Rateio de Créditos ──
   v("entrada", "entrada.rateio_sugerido_creditos", "rateio_sugerido_creditos", "Rateio Sugerido dos Créditos Gerados UCs", "Rateio sugerido de créditos de todas as UCs", "%", "100"),
