@@ -1349,13 +1349,15 @@ function GerenciamentoTab({
               if (toName) return toName;
               if (fromName) return `${fromName} → (removido)`;
             }
-            // Stage changed: resolve UUID → stage name via helper
+            // Stage changed: prefer metadata names from trigger (multi-pipeline), fallback to local resolver
             if (e.event_type === "stage_changed") {
-              const fromName = e.from_value ? getStageNameById(e.from_value) : null;
-              const toName = e.to_value ? getStageNameById(e.to_value) : null;
-              if (fromName && toName) return `${fromName} → ${toName}`;
-              if (toName) return toName;
-              if (fromName) return `${fromName} → (removido)`;
+              const meta = typeof e.metadata === "string" ? (() => { try { return JSON.parse(e.metadata); } catch { return {}; } })() : (e.metadata || {});
+              const fromName = meta?.from_stage || (e.from_value ? getStageNameById(e.from_value) : null);
+              const toName = meta?.to_stage || (e.to_value ? getStageNameById(e.to_value) : null);
+              const pipelinePrefix = meta?.pipeline_name ? `Funil ${meta.pipeline_name}: ` : "";
+              if (fromName && toName) return `${pipelinePrefix}${fromName} → ${toName}`;
+              if (toName) return `${pipelinePrefix}${toName}`;
+              if (fromName) return `${pipelinePrefix}${fromName} → (removido)`;
             }
             // Pipeline changed/added/removed: resolve UUID → pipeline name
             if (e.event_type === "pipeline_changed" || e.event_type === "pipeline_added" || e.event_type === "pipeline_removed") {
