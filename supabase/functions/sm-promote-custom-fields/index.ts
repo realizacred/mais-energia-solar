@@ -671,7 +671,12 @@ Deno.serve(async (req) => {
         const sourceKey = normalizeSmKey(v?.key);
         if (!sourceKey) continue;
 
-        if (DEFAULT_NATIVE_KEYS.has(sourceKey)) continue;
+        // Mapping explícito do usuário sempre tem precedência sobre native skip.
+        if (
+          DEFAULT_NATIVE_KEYS.has(sourceKey) &&
+          !resolved.resolvable.has(sourceKey) &&
+          !resolved.nativeTargets.has(sourceKey)
+        ) continue;
 
         // Slug ignorado pelo usuário → warning único, não migra.
         if (resolved.ignored.has(sourceKey)) {
