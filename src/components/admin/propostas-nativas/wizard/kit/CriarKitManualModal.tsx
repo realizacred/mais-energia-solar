@@ -124,24 +124,48 @@ const TOPOLOGIAS = ["Tradicional", "Microinversor", "Otimizador"];
 /** Searchable equipment combo with highlight, keyboard nav, badge */
 interface SearchableOption { value: string; label: string; searchText: string }
 
+/** Lowercase + strip diacritics for accent/case-insensitive matching */
+function normalize(s: string): string {
+  return s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+}
+
 function highlightMatch(text: string, query: string) {
   if (!query.trim()) return <>{text}</>;
-  const terms = query.trim().toLowerCase().split(/\s+/);
-  // Build a regex that matches any of the terms
-  const escaped = terms.map(t => t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|");
-  const regex = new RegExp(`(${escaped})`, "gi");
-  const parts = text.split(regex);
-  return (
-    <>
-      {parts.map((part, i) =>
-        regex.test(part) ? (
-          <mark key={i} className="bg-primary/20 text-primary font-medium rounded-sm px-0.5">{part}</mark>
-        ) : (
-          <span key={i}>{part}</span>
-        )
-      )}
-    </>
-  );
+  const terms = normalize(query).split(/\s+/).filter(Boolean);
+  if (terms.length === 0) return <>{text}</>;
+  const norm = normalize(text);
+  type Span = { start: number; end: number };
+  const spans: Span[] = [];
+  for (const t of terms) {
+    let from = 0;
+    while (from < norm.length) {
+      const idx = norm.indexOf(t, from);
+      if (idx === -1) break;
+      spans.push({ start: idx, end: idx + t.length });
+      from = idx + t.length;
+    }
+  }
+  if (spans.length === 0) return <>{text}</>;
+  spans.sort((a, b) => a.start - b.start);
+  const merged: Span[] = [];
+  for (const s of spans) {
+    const last = merged[merged.length - 1];
+    if (last && s.start <= last.end) last.end = Math.max(last.end, s.end);
+    else merged.push({ ...s });
+  }
+  const out: React.ReactNode[] = [];
+  let cursor = 0;
+  merged.forEach((s, i) => {
+    if (cursor < s.start) out.push(<span key={`p${i}`}>{text.slice(cursor, s.start)}</span>);
+    out.push(
+      <mark key={`m${i}`} className="bg-primary/20 text-primary font-medium rounded-sm px-0.5">
+        {text.slice(s.start, s.end)}
+      </mark>,
+    );
+    cursor = s.end;
+  });
+  if (cursor < text.length) out.push(<span key="tail">{text.slice(cursor)}</span>);
+  return <>{out}</>;
 }
 
 function SearchableEquipSelect({ value, onValueChange, options, placeholder, emptyText, className }: {
