@@ -667,8 +667,10 @@ Deno.serve(async (req) => {
       ? wizardGeracao
       : round2(potenciaKwp * geracaoMediaKwpMes * ucPerformance);
 
+    // Hoisted: tarifaMedia é usado tanto no fallback de economia quanto no calcInputs (linha ~701)
+    const tarifaMedia = uc1.tarifa_distribuidora || 0.85;
+
     if (economiaMensal <= 0) {
-      const tarifaMedia = uc1.tarifa_distribuidora || 0.85;
       const energiaCompensavel = Math.min(geracaoEstimada, consumoTotal);
       const fioBAplicavel = backendGrupo === "B" ? percentualFioB / 100 : 0;
       const custoFioBMensal = energiaCompensavel * (tarifaMedia * 0.28) * fioBAplicavel;
