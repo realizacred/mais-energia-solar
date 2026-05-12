@@ -53,10 +53,17 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   try {
-    const body = await req.json().catch(() => ({}));
-    const tenantId: string | undefined = body?.tenant_id;
+    const raw = await req.json().catch(() => ({}));
+    // Aceita tanto body flat {tenant_id, batch, offset} quanto wrapper
+    // {action, payload:{...}} usado por sm-migrate-chunk (RB-65/RB-72).
+    const body = raw?.payload && typeof raw.payload === "object" ? raw.payload : raw;
+    const tenantId: string | undefined =
+      body?.tenant_id ?? req.headers.get("x-sm-tenant-override") ?? undefined;
     const batch: number = Math.min(Math.max(Number(body?.batch ?? 10), 1), 25);
     const offset: number = Math.max(Number(body?.offset ?? 0), 0);
+    const projectExternalIds: string[] = Array.isArray(body?.project_external_ids)
+      ? body.project_external_ids.map((x: unknown) => String(x).trim()).filter(Boolean)
+      : [];
 
     if (!tenantId) {
       return new Response(JSON.stringify({ error: "tenant_id obrigatório" }), {
