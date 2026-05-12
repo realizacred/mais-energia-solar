@@ -125,14 +125,39 @@ Deno.serve(async (req) => {
       });
     }
 
-    // 6. Get PDF signed URL (valid for 1 hour)
+    // 6. Get PDF signed URL (valid for 1 hour) — bucket: document-files
+    console.error("[signature-send] pdf_path:", doc.pdf_path);
+    console.error("[signature-send] bucket: document-files | document_id:", doc.id, "| tenant_id:", doc.tenant_id);
+
+    // Verifica se o objeto existe no bucket antes de gerar signed URL
+    const pathParts = (doc.pdf_path || "").split("/");
+    const fileName = pathParts.pop() || "";
+    const folderPath = pathParts.join("/");
+    const { data: listData, error: listErr } = await supabase.storage
+      .from("document-files")
+      .list(folderPath, { search: fileName, limit: 1 });
+    if (listErr || !listData || listData.length === 0) {
+      console.error("[signature-send] PDF NÃO encontrado no bucket document-files:", {
+        pdf_path: doc.pdf_path,
+        folder: folderPath,
+        file: fileName,
+        listErr: listErr?.message,
+      });
+    } else {
+      console.log("[signature-send] PDF localizado no bucket:", listData[0]?.name, "size:", (listData[0] as any)?.metadata?.size);
+    }
+
     const { data: signedUrl, error: urlErr } = await supabase.storage
       .from("document-files")
       .createSignedUrl(doc.pdf_path, 3600);
 
     if (urlErr || !signedUrl?.signedUrl) {
-      console.error("[signature-send] PDF download error:", doc.pdf_path, urlErr);
-      return new Response(JSON.stringify({ error: "Erro ao acessar o PDF no storage" }), {
+      console.error("[signature-send] PDF download error | pdf_path:", doc.pdf_path, "| err:", urlErr);
+      return new Response(JSON.stringify({
+        error: "Erro ao acessar o PDF no storage",
+        pdf_path: doc.pdf_path,
+        details: urlErr?.message || "signed URL vazia",
+      }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
