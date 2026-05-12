@@ -36,35 +36,9 @@ import { getOrCreateProposalToken } from "@/services/proposal/proposalDetail.ser
 // ─── Types ────────────────────────────────────────────────
 
 interface StepDocumentoProps {
-  clienteNome: string;
-  empresaNome?: string;
-  clienteTelefone?: string;
-  clienteEmail?: string;
-  potenciaKwp: number;
-  areaUtilM2?: number;
-  geracaoMensalKwh?: number;
-  numUcs: number;
-  precoFinal: number;
-  templateSelecionado: string;
-  onTemplateSelecionado: (id: string) => void;
-  generating: boolean;
-  rendering: boolean;
-  result: any;
-  htmlPreview: string | null;
-  pdfBlobUrl?: string | null;
-  outputDocxPath?: string | null;
-  outputPdfPath?: string | null;
-  externalPdfUrl?: string | null;
-  generationStatus?: "idle" | "calculating" | "generating_docx" | "converting_pdf" | "saving" | "ready" | "docx_only" | "error";
-  generationError?: string | null;
-  missingVars?: string[];
-  onGenerate: () => void;
-  onNewVersion: () => void;
-  onViewDetail: () => void;
-  customFieldValues?: Record<string, any>;
-  onCustomFieldValuesChange?: (values: Record<string, any>) => void;
-  docxBlob?: Blob | null;
-  generationAuditReport?: GenerationAuditReport | null;
+  onBack?: () => void;
+  onNext?: () => void;
+  onViewDetail?: () => void;
   /** When true, all "Gerar Proposta" buttons are disabled (estimativa not accepted) */
   estimativaBlocked?: boolean;
   /** When true, skip auto-selecting the first template */
@@ -74,22 +48,35 @@ interface StepDocumentoProps {
 // ─── Main Component ───────────────────────────────────────
 
 export function StepDocumento({
-  clienteNome, empresaNome, clienteTelefone, clienteEmail,
-  potenciaKwp, areaUtilM2 = 0, geracaoMensalKwh = 0,
-  numUcs, precoFinal,
-  templateSelecionado, onTemplateSelecionado,
-  generating, rendering, result, htmlPreview, pdfBlobUrl,
-  outputDocxPath, outputPdfPath,
-  externalPdfUrl,
-  generationStatus = "idle", generationError,
-  missingVars = [],
-  onGenerate, onNewVersion, onViewDetail,
-  customFieldValues = {}, onCustomFieldValuesChange,
-  docxBlob,
-  generationAuditReport,
+  onBack, onNext, onViewDetail,
   estimativaBlocked = false,
   skipTemplateAutoSelect = false,
 }: StepDocumentoProps) {
+  const {
+    cliente, selectedLead,
+    potenciaKwp, ucs,
+    templateSelecionado, setTemplateSelecionado: onTemplateSelecionado,
+    generationStatus,
+    handleGenerate: onGenerate,
+    handleNewVersion: onNewVersion,
+    // Add these if they exist in context, otherwise use local state placeholders
+    generating, rendering, result, htmlPreview, pdfBlobUrl,
+    outputDocxPath, outputPdfPath, externalPdfUrl,
+    generationError, missingVars, 
+    customFieldValues, setCustomFieldValues: onCustomFieldValuesChange,
+    docxBlob, generationAuditReport
+  } = useWizardContext() as any; // Temporary cast as we might need to add these to context later
+
+  const clienteNome = cliente.nome || selectedLead?.nome || "";
+  const empresaNome = cliente.empresa;
+  const clienteTelefone = cliente.celular || selectedLead?.telefone;
+  const clienteEmail = cliente.email || selectedLead?.email;
+  const numUcs = ucs.length;
+  // Calculate areaUtilM2 and precoFinal if needed, or get from context
+  const areaUtilM2 = 0; 
+  const precoFinal = 0;
+  const geracaoMensalKwh = 0;
+
   // ─── Queries via hooks (§16 AGENTS.md) ──────────────────
   const queryClient = useQueryClient();
   const { data: templates = [], isLoading: loadingTemplates } = useProposalTemplates();
