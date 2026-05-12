@@ -402,31 +402,12 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
     };
   }, [catalogKits, catalogSummaries]);
 
-  // Filter & sort catalog kits based on sidebar filters
+  // Filter & sort catalog kits based on sidebar filters (Filtering mostly done on server now)
   const filteredCatalogKits = useMemo(() => {
-    // Default: show only generators unless "includeComponents" toggle is on
-    let result = includeComponents
-      ? [...catalogKits]
-      : catalogKits.filter(k => k.is_generator);
+    let result = [...catalogKits];
 
-    // Potência range filter
-    if (filters.potenciaMin > 0 || filters.potenciaMax < 1000) {
-      result = result.filter(k => {
-        const kwp = k.estimated_kwp ?? 0;
-        return kwp >= filters.potenciaMin && kwp <= filters.potenciaMax;
-      });
-    }
-
-    // General text search (name, description, fabricante)
-    if (filters.searchText.trim()) {
-      const q = filters.searchText.toLowerCase();
-      result = result.filter(k =>
-        k.name.toLowerCase().includes(q) ||
-        (k.description || "").toLowerCase().includes(q) ||
-        (k.fabricante || "").toLowerCase().includes(q)
-      );
-    }
-
+    // Client-side filtering only for what server doesn't handle or to refine
+    
     // Fabricante Inversor dropdown
     if (filters.fabricanteInversor) {
       const q = filters.fabricanteInversor.toLowerCase();
@@ -463,18 +444,13 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
 
     // Sort
     if (orderBy === "melhor_kwp") {
-      // UX-05: If auto-filtering by power, prioritize proximity to ideal power within the "melhor_kwp" sorting
       result.sort((a, b) => {
-        // Primary sort: price per kWp
         const priceDiff = (a.preco_por_kwp || Infinity) - (b.preco_por_kwp || Infinity);
-        
-        // If prices are very similar (within 1%), sort by proximity to ideal power
         if (potenciaIdeal > 0 && Math.abs(priceDiff) < (a.preco_por_kwp || 1) * 0.01) {
           const proximityA = Math.abs((a.estimated_kwp || 0) - potenciaIdeal);
           const proximityB = Math.abs((b.estimated_kwp || 0) - potenciaIdeal);
           return proximityA - proximityB;
         }
-        
         return priceDiff;
       });
     } else if (orderBy === "proximidade" && potenciaIdeal > 0) {
@@ -506,7 +482,7 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
     }
 
     return result;
-  }, [catalogKits, catalogSummaries, filters, orderBy, includeComponents, potenciaIdeal]);
+  }, [catalogKits, catalogSummaries, filters, orderBy, potenciaIdeal]);
 
 
   const handleSelectKit = (kit: KitCardData) => {
