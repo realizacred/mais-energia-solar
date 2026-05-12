@@ -2505,6 +2505,7 @@ function PropostasTab({ customerId, dealId, dealTitle, navigate, isClosed, dealS
                         onClick={() => {
                           const params = new URLSearchParams({ deal_id: dealId });
                           if (customerId) params.set("customer_id", customerId);
+                          if (projetoId) params.set("projeto_id", projetoId);
                           params.set("lead_id", orc.lead_id);
                           params.set("orc_id", orc.id);
                           navigate(`/admin/propostas-nativas/nova?${params.toString()}`);
