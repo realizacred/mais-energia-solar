@@ -540,7 +540,16 @@ Deno.serve(async (req) => {
       if (est) variables["estrutura"] = String(est);
     }
 
-    // FIX 4: vc_observacao — never show "N/A" literally
+    // FIX 5: ucs_tabela — bloco multilinha com todas as UCs (RB DOCX)
+    if (!variables["ucs_tabela"]) {
+      const economiaMensal =
+        parseLocaleNumber(variables["economia_mensal"]) ??
+        parseLocaleNumber((snapshot as any)?.financeiro?.economia_mensal) ??
+        0;
+      variables["ucs_tabela"] = buildUcsTabela(snapshot, {
+        economiaTotalMensal: economiaMensal,
+      });
+    }
     if (!variables["vc_observacao"] || variables["vc_observacao"] === "N/A" || variables["vc_observacao"] === "n/a") {
       variables["vc_observacao"] = "";
     }
