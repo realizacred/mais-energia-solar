@@ -102,7 +102,24 @@ function kitItemsToCardData(itens: KitItemRow[], topologia?: string, custoOverri
 
 // Mock kits removed — manual mode only for now
 
-export function StepKitSelection({ itens, onItensChange, modulos, inversores, otimizadores = [], baterias = [], loadingEquip, potenciaKwp: potenciaIdeal, layouts = [], onLayoutsChange, preDimensionamento: pd, onPreDimensionamentoChange: setPd, consumoTotal: consumoTotalProp = 0, manualKits: manualKitsProp = [], onManualKitsChange, selectedManualIdx: selectedManualIdxProp, onSelectedManualIdxChange, irradiacao, latitude, ghiSeries, somenteGhi, custoKitOverride, ibgeCodigo }: Props) {
+export function StepKitSelection({ onNext, onBack }: StepKitProps) {
+  const {
+    itens, handleItensChange: onItensChange,
+    potenciaKwp: potenciaIdeal,
+    layouts, setLayouts: onLayoutsChange,
+    preDimensionamento: pd, setPreDimensionamento: setPd,
+    manualKits: manualKitsProp, setManualKits: onManualKitsChange,
+    selectedManualIdx: selectedManualIdxProp, setSelectedManualIdx: onSelectedManualIdxChange,
+    locIrradiacao: irradiacao,
+    venda,
+    clienteMunicipioIbgeCodigo: ibgeCodigo
+  } = useWizardContext();
+  const custoKitOverride = venda.custo_kit_override;
+  const { modulos, inversores, otimizadores, baterias, loadingEquip } = useEquipmentCatalog();
+  const latitude = null; // Derived if needed, but not in props for now
+  const ghiSeries = null;
+  const somenteGhi = false;
+
   // If returning to this step with a kit already restored, auto-switch to "customizado" tab
   const [tab, setTab] = useState<TabType>(() => {
     if (manualKitsProp.length > 0) return "customizado";
