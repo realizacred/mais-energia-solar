@@ -96,10 +96,10 @@ Deno.serve(async (req) => {
       .eq("id", doc.template_id)
       .single();
 
-    // 5. Fetch signature settings
+    // 5. Fetch signature settings (incl. settings_extra for Autentique behaviour)
     const { data: sigSettings, error: sigErr } = await supabase
       .from("signature_settings")
-      .select("api_token_encrypted, sandbox_mode, enabled, provider, webhook_secret_encrypted")
+      .select("api_token_encrypted, sandbox_mode, enabled, provider, webhook_secret_encrypted, settings_extra")
       .eq("tenant_id", tenant_id)
       .single();
 
