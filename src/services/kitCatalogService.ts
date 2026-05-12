@@ -109,22 +109,54 @@ export interface CatalogKitSummary {
 }
 
 /**
- * Lista kits ativos do tenant (RLS filtra automaticamente).
+ * Lista kits ativos do tenant com suporte a paginação.
  */
-export async function fetchActiveKits(onlyGenerators = false): Promise<CatalogKit[]> {
+export async function fetchActiveKits(
+  onlyGenerators = false, 
+  page = 1, 
+  pageSize = 50,
+  filters?: {
+    potenciaMin?: number;
+    potenciaMax?: number;
+    searchText?: string;
+  }
+): Promise<{ data: CatalogKit[]; count: number }> {
   let query = supabase
     .from("solar_kit_catalog")
-    .select("id, name, description, estimated_kwp, pricing_mode, fixed_price, source, fornecedor_id, external_data, is_generator, fabricante, fase, tensao, estrutura, disponivel, permite_compra_sem_estoque, preco_por_kwp, is_available_now, product_kind, thumbnail_url, potencia_inversor, potencia_modulo, previsao")
-    .eq("status", "active")
-    .order("name");
+    .select("id, name, description, estimated_kwp, pricing_mode, fixed_price, source, fornecedor_id, external_data, is_generator, fabricante, fase, tensao, estrutura, disponivel, permite_compra_sem_estoque, preco_por_kwp, is_available_now, product_kind, thumbnail_url, potencia_inversor, potencia_modulo, previsao", { count: "exact" })
+    .eq("status", "active");
 
   if (onlyGenerators) {
     query = query.eq("is_generator", true);
   }
 
-  const { data, error } = await query;
+  // Aplicar filtros no servidor
+  if (filters?.potenciaMin != null && filters.potenciaMin > 0) {
+    query = query.gte("estimated_kwp", filters.potenciaMin);
+  }
+  if (filters?.potenciaMax != null && filters.potenciaMax < 1000) {
+    query = query.lte("estimated_kwp", filters.potenciaMax);
+  }
+  if (filters?.searchText?.trim()) {
+    const q = `%${filters.searchText.trim()}%`;
+    query = query.or(`name.ilike.${q},description.ilike.${q},fabricante.ilike.${q}`);
+  }
+
+  // Paginação
+  const from = (page - 1) * pageSize;
+  const to = from + pageSize - 1;
+  
+  query = query
+    .order("name")
+    .range(from, to);
+
+  const { data, error, count } = await query;
   if (error) throw new Error(`Erro ao buscar kits: ${error.message}`);
-  return (data ?? []) as unknown as CatalogKit[];
+  
+  return { 
+    data: (data ?? []) as unknown as CatalogKit[], 
+    count: count ?? 0 
+  };
 }
 
 /**
