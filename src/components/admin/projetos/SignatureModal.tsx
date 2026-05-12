@@ -40,6 +40,26 @@ const ROLE_LABELS: Record<string, { label: string; icon: typeof User }> = {
   testemunha: { label: "Testemunha", icon: User },
 };
 
+function formatCpfCnpj(raw: string): string {
+  const d = (raw || "").replace(/\D/g, "").slice(0, 14);
+  if (d.length <= 11) {
+    return d
+      .replace(/^(\d{3})(\d)/, "$1.$2")
+      .replace(/^(\d{3})\.(\d{3})(\d)/, "$1.$2.$3")
+      .replace(/\.(\d{3})(\d{1,2})$/, ".$1-$2");
+  }
+  return d
+    .replace(/^(\d{2})(\d)/, "$1.$2")
+    .replace(/^(\d{2})\.(\d{3})(\d)/, "$1.$2.$3")
+    .replace(/\.(\d{3})(\d)/, ".$1/$2")
+    .replace(/(\d{4})(\d{1,2})$/, "$1-$2");
+}
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+function isValidEmail(v: string): boolean {
+  return EMAIL_RE.test((v || "").trim());
+}
+
 export function SignatureModal({ open, onClose, doc, dealId, onSend, isPending }: SignatureModalProps) {
   const [signers, setSigners] = useState<SignerEntry[]>([]);
   const [loading, setLoading] = useState(false);
@@ -107,13 +127,15 @@ export function SignatureModal({ open, onClose, doc, dealId, onSend, isPending }
         if (cliente) {
           resolved.push({
             name: cliente.nome || "",
-            email: cliente.email || "",
-            cpf: cliente.cpf_cnpj || "",
+            email: (cliente.email || "").trim(),
+            cpf: formatCpfCnpj(cliente.cpf_cnpj || ""),
             phone: cliente.telefone || "",
             role: "contratante",
           });
           if (!cliente.email) {
             warns.push("Cliente sem e-mail cadastrado. Preencha antes de enviar.");
+          } else if (!isValidEmail(cliente.email)) {
+            warns.push("E-mail do cliente parece inválido. Verifique antes de enviar.");
           }
         }
       } else {
@@ -130,12 +152,14 @@ export function SignatureModal({ open, onClose, doc, dealId, onSend, isPending }
       if (brand?.representante_legal) {
         resolved.push({
           name: brand.representante_legal,
-          email: brand.representante_email || "",
-          cpf: brand.representante_cpf || "",
+          email: (brand.representante_email || "").trim(),
+          cpf: formatCpfCnpj(brand.representante_cpf || ""),
           role: "contratada",
         });
         if (!brand.representante_email) {
           warns.push("Representante legal sem e-mail. Configure em Configurações → Representante Legal.");
+        } else if (!isValidEmail(brand.representante_email)) {
+          warns.push("E-mail do representante legal parece inválido. Verifique em Configurações.");
         }
       } else {
         warns.push("Representante legal não configurado. Configure em Configurações → Representante Legal.");
@@ -151,7 +175,13 @@ export function SignatureModal({ open, onClose, doc, dealId, onSend, isPending }
   };
 
   const updateSigner = (index: number, field: keyof SignerEntry, value: string) => {
-    setSigners(prev => prev.map((s, i) => i === index ? { ...s, [field]: value } : s));
+    setSigners(prev => prev.map((s, i) => {
+      if (i !== index) return s;
+      let next = value;
+      if (field === "cpf") next = formatCpfCnpj(value);
+      else if (field === "email") next = value.trim();
+      return { ...s, [field]: next };
+    }));
   };
 
   const removeSigner = (index: number) => {
@@ -162,7 +192,9 @@ export function SignatureModal({ open, onClose, doc, dealId, onSend, isPending }
     setSigners(prev => [...prev, { name: "", email: "", role: "testemunha" }]);
   };
 
-  const canSend = signers.length > 0 && signers.every(s => s.name.trim() && s.email.trim());
+  const canSend =
+    signers.length > 0 &&
+    signers.every(s => s.name.trim() && isValidEmail(s.email));
 
   const handleSend = () => {
     if (!canSend) return;
@@ -259,12 +291,15 @@ export function SignatureModal({ open, onClose, doc, dealId, onSend, isPending }
                       <div className="space-y-1.5">
                         <Label className="text-xs">E-mail *</Label>
                         <Input
-                          className="h-9 text-sm"
+                          className={`h-9 text-sm ${signer.email && !isValidEmail(signer.email) ? "border-destructive focus-visible:ring-destructive" : ""}`}
                           type="email"
                           value={signer.email}
                           onChange={(e) => updateSigner(idx, "email", e.target.value)}
                           placeholder="email@exemplo.com"
                         />
+                        {signer.email && !isValidEmail(signer.email) && (
+                          <p className="text-[10px] text-destructive">E-mail inválido</p>
+                        )}
                       </div>
                       <div className="space-y-1.5">
                         <Label className="text-xs">CPF</Label>
