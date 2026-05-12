@@ -89,7 +89,7 @@ interface ConcessionariaOption {
 
 type GeoStatus = "idle" | "buscando" | "localizado" | "manual" | "erro";
 
-export function StepLocalizacao({
+function StepLocalizacaoImpl({
   estado, cidade, tipoTelhado, distribuidoraId,
   onEstadoChange, onCidadeChange, onTipoTelhadoChange, onDistribuidoraChange,
   onIrradiacaoChange, onGhiSeriesChange, onLatitudeChange,
