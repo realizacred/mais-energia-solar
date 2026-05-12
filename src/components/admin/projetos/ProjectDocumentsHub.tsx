@@ -290,14 +290,18 @@ export function ProjectDocumentsHub({ projetoId, dealId }: Props) {
 
   const onDownload = async (d: ProjectDocument) => {
     const path = await resolveStoragePath(d);
-    const { data, error } = await supabase.storage
-      .from(d.bucket)
-      .createSignedUrl(path, 300, { download: d.file_name });
-    if (error || !data?.signedUrl) {
-      toast({ title: "Erro ao baixar", description: error?.message, variant: "destructive" });
-      return;
+    if (d.bucket === "external") {
+      window.open(path, "_blank");
+    } else {
+      const { data, error } = await supabase.storage
+        .from(d.bucket)
+        .createSignedUrl(path, 300, { download: d.file_name });
+      if (error || !data?.signedUrl) {
+        toast({ title: "Erro ao baixar", description: error?.message, variant: "destructive" });
+        return;
+      }
+      window.open(data.signedUrl, "_blank");
     }
-    window.open(data.signedUrl, "_blank");
     if (!d.id.startsWith("legacy:") && !d.id.startsWith("cf:")) {
       await supabase.from("project_document_events" as any).insert({
         tenant_id: d.tenant_id,
