@@ -58,19 +58,52 @@ export function FilePreviewModal({ target, onClose }: Props) {
     }
     setLoading(true);
     setSignedUrl(null);
-    supabase.storage
-      .from(target.bucket)
-      .createSignedUrl(target.storage_path, 3600)
-      .then(({ data, error }) => {
-        if (cancelled) return;
-        if (error || !data?.signedUrl) {
-          toast({ title: "Erro ao abrir arquivo", description: error?.message, variant: "destructive" });
+    const checkAndSign = async () => {
+      try {
+        const pathParts = target.storage_path.split("/");
+        const filename = pathParts.pop()!;
+        const parentPath = pathParts.join("/");
+
+        const { data: files, error: listError } = await supabase.storage
+          .from(target.bucket)
+          .list(parentPath, { search: filename });
+
+        if (listError) throw listError;
+
+        const exists = files?.some((f) => f.name === filename);
+        if (!exists) {
+          toast({
+            title: "Arquivo não encontrado",
+            description: "O arquivo não existe no servidor. Tente fazer o upload novamente.",
+            variant: "destructive",
+          });
           onClose();
           return;
         }
+
+        const { data, error } = await supabase.storage
+          .from(target.bucket)
+          .createSignedUrl(target.storage_path, 3600);
+
+        if (cancelled) return;
+        if (error || !data?.signedUrl) {
+          throw error || new Error("Não foi possível gerar URL de visualização");
+        }
         setSignedUrl(data.signedUrl);
-      })
-      .finally(() => !cancelled && setLoading(false));
+      } catch (err: any) {
+        if (cancelled) return;
+        toast({
+          title: "Erro ao abrir arquivo",
+          description: err.message === "Object not found" ? "Arquivo não encontrado no servidor." : err.message,
+          variant: "destructive",
+        });
+        onClose();
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+
+    checkAndSign();
     return () => {
       cancelled = true;
     };
