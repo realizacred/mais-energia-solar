@@ -888,6 +888,8 @@ export default function MigracaoSolarmarket() {
 
                 <BackfillCustomFieldsButton tenantId={tenantId} initialOffset={600} batch={10} />
 
+                <DownloadDocumentsButton tenantId={tenantId} batch={10} />
+
                 <p className="text-xs text-muted-foreground">
                   Estas ações afetam apenas a área de revisão e a conexão com o
                   SolarMarket. Use com cuidado.
