@@ -183,39 +183,31 @@ export function IntegrationProviderDrawer({
     return !!formValues[f.key]?.trim() || !!savedSecrets[f.key];
   });
 
-  const handleSaveExtras = async () => {
-    setSavingExtras(true);
-    try {
-      const days = Number(deadlineDays);
-      const settings_extra = {
-        signer_mode: signerMode,
-        refusable,
-        reminder,
-        deadline_days: Number.isFinite(days) && days > 0 ? days : 30,
-      };
-      const { error: e1 } = await (supabase as any)
-        .from("signature_settings")
-        .update({ settings_extra })
-        .eq("provider", provider.id.includes("autentique") ? "autentique" : provider.id);
-      if (e1) throw e1;
+  const persistSignatureExtras = async () => {
+    const days = Number(deadlineDays);
+    const settings_extra = {
+      signer_mode: signerMode,
+      refusable,
+      reminder,
+      deadline_days: Number.isFinite(days) && days > 0 ? days : 30,
+    };
+    const providerKey = provider.id.includes("autentique") ? "autentique" : provider.id;
+    const { error: e1 } = await (supabase as any)
+      .from("signature_settings")
+      .update({ settings_extra })
+      .eq("provider", providerKey);
+    if (e1) throw e1;
 
-      const { error: e2 } = await (supabase as any)
-        .from("brand_settings")
-        .update({
-          representante_legal: repNome || null,
-          representante_email: repEmail || null,
-          representante_cpf: repCpf || null,
-          representante_cargo: repCargo || null,
-        })
-        .not("id", "is", null);
-      if (e2) throw e2;
-
-      toast.success("Configurações avançadas salvas");
-    } catch (err: any) {
-      toast.error(err?.message || "Erro ao salvar configurações");
-    } finally {
-      setSavingExtras(false);
-    }
+    const { error: e2 } = await (supabase as any)
+      .from("brand_settings")
+      .update({
+        representante_legal: repNome || null,
+        representante_email: repEmail || null,
+        representante_cpf: repCpf || null,
+        representante_cargo: repCargo || null,
+      })
+      .not("id", "is", null);
+    if (e2) throw e2;
   };
 
   const handleSubmit = async () => {
@@ -235,7 +227,15 @@ export function IntegrationProviderDrawer({
       }
 
       if (result.success) {
-        toast.success(`${provider.label} conectado com sucesso!`);
+        if (provider.category === "signature") {
+          try {
+            await persistSignatureExtras();
+          } catch (err: any) {
+            toast.error(err?.message || "Erro ao salvar configurações avançadas");
+            return;
+          }
+        }
+        toast.success(`${provider.label} ${isConnected ? "atualizado" : "conectado"} com sucesso!`);
         onSuccess();
       } else {
         toast.error(result.error || "Falha na conexão");
