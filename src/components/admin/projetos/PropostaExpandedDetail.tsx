@@ -1631,15 +1631,13 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
                               description: "Esta proposta importada ainda não possui uma versão nativa. Use \"Duplicar proposta\" para criar uma versão editável.",
                               variant: "destructive",
                             });
-                            return;
-                          }
                           const params = new URLSearchParams();
                           if (dealId) params.set("deal_id", dealId);
                           if (customerId) params.set("customer_id", customerId);
                           params.set("proposta_id", p.id);
                           params.set("versao_id", latestVersao.id);
                           navigate(`/admin/propostas-nativas/nova?${params.toString()}`);
-                        })}
+                        }}
                         onViewDetail={() => {}}
                       />
                     </div>
