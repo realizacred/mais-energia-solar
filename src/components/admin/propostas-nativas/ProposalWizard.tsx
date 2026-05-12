@@ -360,6 +360,27 @@ function ProposalWizardContent() {
   // Track async DB restore to block UI during loading (race condition fix)
   const [isRestoring, setIsRestoring] = useState(!!(propostaIdFromUrl && versaoIdFromUrl));
   const [migratedKitMissing, setMigratedKitMissing] = useState(false);
+  // Track if user actually edited fields after opening a sent proposal (banner gating)
+  const [hasEditsAfterRestore, setHasEditsAfterRestore] = useState(false);
+  const editsBaselineReadyRef = useRef(false);
+
+  // Activate edit-tracking 1.5s after restore completes (lets async hydration settle)
+  useEffect(() => {
+    if (isRestoring) {
+      editsBaselineReadyRef.current = false;
+      setHasEditsAfterRestore(false);
+      return;
+    }
+    const t = setTimeout(() => { editsBaselineReadyRef.current = true; }, 1500);
+    return () => clearTimeout(t);
+  }, [isRestoring]);
+
+  // Mark as dirty whenever key wizard state changes after baseline
+  useEffect(() => {
+    if (!editsBaselineReadyRef.current) return;
+    if (hasEditsAfterRestore) return;
+    setHasEditsAfterRestore(true);
+  }, [cliente, ucs, itens, manualKits, selectedManualIdx, venda, pagamentoOpcoes, premissas, servicos, customFieldValues, templateSelecionado, adicionais, layouts, hasEditsAfterRestore]);
 
   // ─── Load deal custom field values as fallback for customFieldValues
   const effectiveDealId = savedDealId || (projectContext as any)?.dealId || null;
@@ -2848,6 +2869,19 @@ function ProposalWizardContent() {
               onBack={() => setStep(step - 1)}
               onViewDetail={handleViewDetail}
               estimativaBlocked={enforcement.precisao === "estimado" && !enforcement.aceiteEstimativa}
+              onGenerate={handlePreGenerate}
+              onNewVersion={handleNewVersion}
+              generating={generating}
+              rendering={rendering}
+              result={result}
+              htmlPreview={htmlPreview}
+              pdfBlobUrl={pdfBlobUrl}
+              outputDocxPath={outputDocxPath}
+              outputPdfPath={outputPdfPath}
+              generationError={generationError}
+              missingVars={missingVars}
+              docxBlob={docxBlob}
+              generationAuditReport={generationAuditReport}
             />
           </>
         ));
@@ -2969,7 +3003,7 @@ function ProposalWizardContent() {
       )}
 
       {/* Sent Proposal Warning Banner */}
-      {editingsentProposal && (
+      {editingsentProposal && hasEditsAfterRestore && (
         <div className="flex items-center gap-3 px-4 lg:px-6 py-3 border-b border-warning/30 bg-warning/10 shrink-0">
           <PropostaBadge type="enviada" className="bg-warning/10 text-warning border-warning/30" />
           <p className="text-sm font-medium text-warning">
