@@ -1570,7 +1570,7 @@ function PremissasModal({ open, onOpenChange, pd, setPd, activeTab, onTabChange,
     setPd(updated);
   }, [baseDesempenho, effectiveIrrad, setPd]);
 
-  const pdUpdate = <K extends keyof PreDimensionamentoData>(field: K, value: PreDimensionamentoData[K]) => {
+  function pdUpdate<K extends keyof PreDimensionamentoData>(field: K, value: PreDimensionamentoData[K]) {
     if (field === "sombreamento") {
       applySombreamento(value as string, pdRef.current);
       return;

@@ -217,15 +217,44 @@ export function DocumentosTab({ dealId, clienteTelefone, consultorTelefone: cons
     }
     const path = doc.pdf_path;
     if (!path) return;
-    const { data, error } = await supabase.storage
-      .from("document-files")
-      .createSignedUrl(path, 3600);
-    if (error || !data) {
-      toast({ title: "Erro ao abrir preview", variant: "destructive" });
-      return;
+
+    try {
+      const pathParts = path.split("/");
+      const filename = pathParts.pop()!;
+      const parentPath = pathParts.join("/");
+
+      // Validação de existência antes de abrir preview
+      const { data: files, error: listError } = await supabase.storage
+        .from("document-files")
+        .list(parentPath, { search: filename });
+
+      if (listError) throw listError;
+      const exists = files?.some((f) => f.name === filename);
+
+      if (!exists) {
+        toast({
+          title: "Arquivo não encontrado",
+          description: "O arquivo não existe no servidor. Tente fazer o upload novamente.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const { data, error } = await supabase.storage
+        .from("document-files")
+        .createSignedUrl(path, 3600);
+
+      if (error || !data) throw error || new Error("Erro ao gerar URL");
+
+      setPreviewDocId(doc.id);
+      setPreviewUrl(data.signedUrl);
+    } catch (err: any) {
+      toast({
+        title: "Erro ao abrir preview",
+        description: err.message === "Object not found" ? "Arquivo não encontrado no servidor." : err.message,
+        variant: "destructive",
+      });
     }
-    setPreviewDocId(doc.id);
-    setPreviewUrl(data.signedUrl);
   };
 
   // previewUpload removido — preview de uploads vive no ProjectDocumentsHub
