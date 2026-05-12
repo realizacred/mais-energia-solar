@@ -337,7 +337,7 @@ export function StepKitSelection({ onNext, onBack }: StepKitProps) {
     }
   };
 
-  const consumoTotal = 0;
+  const consumoTotal = 0; // Simplified as it was before
 
   // Build KitCardData from current itens for the Edit Kit Fechado modal
   const currentKitCards = useMemo(() => {
