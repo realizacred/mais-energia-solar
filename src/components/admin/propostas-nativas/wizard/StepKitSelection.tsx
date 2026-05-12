@@ -806,10 +806,11 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
                   <p className="text-xs text-muted-foreground/70 mt-1">Ajuste os filtros ou limpe para ver todos</p>
                 </div>
               ) : (
-                <div className={viewMode === "grid"
-                  ? "grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3"
-                  : "space-y-2"
-                }>
+                <div className="space-y-4">
+                  <div className={viewMode === "grid"
+                    ? "grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3"
+                    : "space-y-2"
+                  }>
                   {filteredCatalogKits.map(kit => {
                     const summary = catalogSummaries.get(kit.id);
                     const isSelected = selectedCatalogKitId === kit.id;
