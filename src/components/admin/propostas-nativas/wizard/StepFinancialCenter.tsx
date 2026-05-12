@@ -41,7 +41,17 @@ type ViewMode = "resumido" | "detalhado";
 
 // ── Component ──
 
-export function StepFinancialCenter({ venda, onVendaChange, itens, servicos, potenciaKwp, leadId }: Props) {
+export function StepFinancialCenter({ onNext, onBack }: StepVendaProps) {
+  const {
+    venda,
+    handleVendaChange: onVendaChange,
+    itens,
+    servicos,
+    potenciaKwp,
+    selectedLead,
+  } = useWizardContext();
+  const leadId = selectedLead?.id;
+
   const instalacaoServico = servicos.find(s => s.categoria === "instalacao");
   const comissaoServico = servicos.find(s => s.categoria === "comissao");
 
