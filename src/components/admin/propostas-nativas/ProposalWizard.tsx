@@ -360,6 +360,9 @@ function ProposalWizardContent() {
   // Track async DB restore to block UI during loading (race condition fix)
   const [isRestoring, setIsRestoring] = useState(!!(propostaIdFromUrl && versaoIdFromUrl));
   const [migratedKitMissing, setMigratedKitMissing] = useState(false);
+  // Track if user actually edited fields after opening a sent proposal (banner gating)
+  const [hasEditsAfterRestore, setHasEditsAfterRestore] = useState(false);
+  const editsBaselineReadyRef = useRef(false);
 
   // ─── Load deal custom field values as fallback for customFieldValues
   const effectiveDealId = savedDealId || (projectContext as any)?.dealId || null;
