@@ -54,56 +54,41 @@ export function ProposalSnapshotView({
 
   return (
     <StepResumo
-      // Location
-      estado={norm.locEstado}
-      cidade={norm.locCidade}
-      tipoTelhado={norm.locTipoTelhado}
-      distribuidoraNome={norm.locDistribuidoraNome}
-      irradiacao={norm.locIrradiacao}
-      // Client
-      clienteNome={norm.clienteNome}
-      clienteCelular={norm.clienteCelular || undefined}
-      clienteEmail={norm.clienteEmail || undefined}
-      clienteEmpresa={norm.clienteEmpresa || undefined}
-      // System
-      potenciaKwp={norm.potenciaKwp}
-      consumoTotal={norm.consumoTotal}
-      geracaoMensalKwh={geracaoMensalKwh}
-      numUcs={norm.ucs.length || 1}
-      grupo={norm.grupo}
-      // Kit
-      itens={norm.itens.map(i => ({
-        descricao: `${i.fabricante} ${i.modelo}`.trim() || i.descricao,
-        quantidade: i.quantidade,
-        preco_unitario: i.preco_unitario,
-        categoria: i.categoria,
-      }))}
-      // Adicionais
-      adicionais={adicionais}
-      // Serviços
-      servicos={norm.servicos.map(s => ({
-        descricao: s.descricao,
-        valor: s.valor,
-        incluso_no_preco: s.incluso_no_preco,
-      }))}
-      // Venda
-      precoFinal={precoFinal}
-      margemPercentual={norm.venda.margem_percentual}
-      custoInstalacao={norm.venda.custo_instalacao}
-      custoComissao={norm.venda.custo_comissao}
-      custoOutros={norm.venda.custo_outros}
-      descontoPercentual={norm.venda.desconto_percentual}
-      // Pagamento
-      pagamentoOpcoes={norm.pagamentoOpcoes.map(p => ({
-        nome: p.nome,
-        tipo: p.tipo,
-        num_parcelas: p.num_parcelas,
-        valor_parcela: p.valor_parcela,
-        entrada: p.entrada,
-        taxa_mensal: p.taxa_mensal,
-        valor_financiado: p.valor_financiado,
-        carencia_meses: p.carencia_meses,
-      }))}
+      snapshotData={{
+        estado: norm.locEstado,
+        cidade: norm.locCidade,
+        tipoTelhado: norm.locTipoTelhado,
+        distribuidoraNome: norm.locDistribuidoraNome,
+        irradiacao: norm.locIrradiacao,
+        clienteNome: norm.clienteNome,
+        clienteCelular: norm.clienteCelular || undefined,
+        clienteEmail: norm.clienteEmail || undefined,
+        clienteEmpresa: norm.clienteEmpresa || undefined,
+        potenciaKwp: norm.potenciaKwp,
+        consumoTotal: norm.consumoTotal,
+        geracaoMensalKwh: geracaoMensalKwh,
+        numUcs: norm.ucs.length || 1,
+        grupo: norm.grupo,
+        itens: norm.itens.map(i => ({
+          descricao: `${i.fabricante} ${i.modelo}`.trim() || i.descricao,
+          quantidade: i.quantidade,
+          preco_unitario: i.preco_unitario,
+          categoria: i.categoria,
+        })),
+        adicionais: adicionais,
+        servicos: norm.servicos.map(s => ({
+          descricao: s.descricao,
+          valor: s.valor,
+          incluso_no_preco: s.incluso_no_preco,
+        })),
+        precoFinal: precoFinal,
+        margemPercentual: norm.venda.margem_percentual,
+        custoInstalacao: norm.venda.custo_instalacao,
+        custoComissao: norm.venda.custo_comissao,
+        custoOutros: norm.venda.custo_outros,
+        descontoPercentual: norm.venda.desconto_percentual,
+        pagamentoOpcoes: norm.pagamentoOpcoes,
+      }}
     />
   );
 }
