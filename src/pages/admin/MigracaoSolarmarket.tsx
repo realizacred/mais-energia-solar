@@ -37,6 +37,7 @@ import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { LoadingState } from "@/components/ui-kit/LoadingState";
 import { SmStagingTable } from "@/components/admin/solarmarket/SmStagingTable";
+import { BackfillCustomFieldsButton } from "@/components/admin/solarmarket/BackfillCustomFieldsButton";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { Trash2, Eye as EyeIcon } from "lucide-react";
