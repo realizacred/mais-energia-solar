@@ -2848,6 +2848,19 @@ function ProposalWizardContent() {
               onBack={() => setStep(step - 1)}
               onViewDetail={handleViewDetail}
               estimativaBlocked={enforcement.precisao === "estimado" && !enforcement.aceiteEstimativa}
+              onGenerate={handlePreGenerate}
+              onNewVersion={handleNewVersion}
+              generating={generating}
+              rendering={rendering}
+              result={result}
+              htmlPreview={htmlPreview}
+              pdfBlobUrl={pdfBlobUrl}
+              outputDocxPath={outputDocxPath}
+              outputPdfPath={outputPdfPath}
+              generationError={generationError}
+              missingVars={missingVars}
+              docxBlob={docxBlob}
+              generationAuditReport={generationAuditReport}
             />
           </>
         ));
