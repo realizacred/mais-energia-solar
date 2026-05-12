@@ -45,6 +45,21 @@ interface StepDocumentoProps {
   estimativaBlocked?: boolean;
   /** When true, skip auto-selecting the first template */
   skipTemplateAutoSelect?: boolean;
+  // Generation state/handlers (passed by ProposalWizard — not in WizardContext)
+  onGenerate?: () => void;
+  onNewVersion?: () => void;
+  generating?: boolean;
+  rendering?: boolean;
+  result?: any;
+  htmlPreview?: string | null;
+  pdfBlobUrl?: string | null;
+  outputDocxPath?: string | null;
+  outputPdfPath?: string | null;
+  externalPdfUrl?: string | null;
+  generationError?: string | null;
+  missingVars?: string[];
+  docxBlob?: Blob | null;
+  generationAuditReport?: any;
 }
 
 // ─── Main Component ───────────────────────────────────────
@@ -53,21 +68,28 @@ export function StepDocumento({
   onBack, onNext, onViewDetail,
   estimativaBlocked = false,
   skipTemplateAutoSelect = false,
+  onGenerate,
+  onNewVersion,
+  generating = false,
+  rendering = false,
+  result = null,
+  htmlPreview = null,
+  pdfBlobUrl = null,
+  outputDocxPath = null,
+  outputPdfPath = null,
+  externalPdfUrl = null,
+  generationError = null,
+  missingVars = [],
+  docxBlob = null,
+  generationAuditReport = null,
 }: StepDocumentoProps) {
   const {
     cliente, selectedLead,
     potenciaKwp, ucs,
     templateSelecionado, setTemplateSelecionado: onTemplateSelecionado,
     generationStatus,
-    handleGenerate: onGenerate,
-    handleNewVersion: onNewVersion,
-    // Add these if they exist in context, otherwise use local state placeholders
-    generating, rendering, result, htmlPreview, pdfBlobUrl,
-    outputDocxPath, outputPdfPath, externalPdfUrl,
-    generationError, missingVars, 
     customFieldValues, setCustomFieldValues: onCustomFieldValuesChange,
-    docxBlob, generationAuditReport
-  } = useWizardContext() as any; // Temporary cast as we might need to add these to context later
+  } = useWizardContext() as any;
 
   const clienteNome = cliente.nome || selectedLead?.nome || "";
   const empresaNome = cliente.empresa;
