@@ -175,7 +175,13 @@ export function SignatureModal({ open, onClose, doc, dealId, onSend, isPending }
   };
 
   const updateSigner = (index: number, field: keyof SignerEntry, value: string) => {
-    setSigners(prev => prev.map((s, i) => i === index ? { ...s, [field]: value } : s));
+    setSigners(prev => prev.map((s, i) => {
+      if (i !== index) return s;
+      let next = value;
+      if (field === "cpf") next = formatCpfCnpj(value);
+      else if (field === "email") next = value.trim();
+      return { ...s, [field]: next };
+    }));
   };
 
   const removeSigner = (index: number) => {
@@ -186,7 +192,9 @@ export function SignatureModal({ open, onClose, doc, dealId, onSend, isPending }
     setSigners(prev => [...prev, { name: "", email: "", role: "testemunha" }]);
   };
 
-  const canSend = signers.length > 0 && signers.every(s => s.name.trim() && s.email.trim());
+  const canSend =
+    signers.length > 0 &&
+    signers.every(s => s.name.trim() && isValidEmail(s.email));
 
   const handleSend = () => {
     if (!canSend) return;
