@@ -1441,14 +1441,6 @@ function GerenciamentoTab({
   // Build unified timeline
   const allEntries = useMemo(() => {
     const entries: UnifiedTimelineItem[] = [];
-    if (currentStage) {
-      entries.push({
-        id: "current-stage", type: "funil",
-        title: `Etapa atual: ${currentStage.name}`,
-        subtitle: `Probabilidade: ${currentStage.probability}%`,
-        date: formatDate(deal.updated_at), isCurrent: true,
-      });
-    }
     history.forEach(h => {
       entries.push({
         id: h.id, type: "funil",
@@ -1480,9 +1472,13 @@ function GerenciamentoTab({
     entries.push(...docEntries);
     entries.push(...projectEventEntries);
     entries.push(...propostaEntries);
-    entries.push({ id: "criacao", type: "criacao", title: "Projeto criado", subtitle: ownerName ? `por ${ownerName}` : undefined, date: formatDate(deal.created_at), isFirst: true });
+    // Only add hardcoded "Projeto criado" if DB doesn't already have a 'created' event
+    const hasDbCreatedEvent = projectEventEntries.some(e => e.title === "Projeto criado");
+    if (!hasDbCreatedEvent) {
+      entries.push({ id: "criacao", type: "criacao", title: "Projeto criado", subtitle: ownerName ? `por ${ownerName}` : undefined, date: formatDate(deal.created_at), isFirst: true });
+    }
     return entries;
-  }, [history, currentStage, deal, docEntries, projectEventEntries, propostaEntries, notes, activities, formatDate, getStageNameById, userNamesMap]);
+  }, [history, deal, docEntries, projectEventEntries, propostaEntries, notes, activities, formatDate, getStageNameById, userNamesMap, ownerName]);
 
   const filteredEntries = useMemo(() => {
     if (timelineFilter === "todos") return allEntries;
