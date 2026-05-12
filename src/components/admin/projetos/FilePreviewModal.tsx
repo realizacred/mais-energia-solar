@@ -118,6 +118,10 @@ export function FilePreviewModal({ target, onClose }: Props) {
   const handleDownload = async () => {
     if (!target) return;
     try {
+      if (target.bucket === "external") {
+        window.open(target.storage_path, "_blank");
+        return;
+      }
       const { data, error } = await supabase.storage
         .from(target.bucket)
         .createSignedUrl(target.storage_path, 300, { download: target.filename });
