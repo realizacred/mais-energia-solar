@@ -1288,12 +1288,17 @@ function GerenciamentoTab({
             if (!v) return v;
             return VALUE_LABELS[v] || v;
           };
-          // Resolve consultant UUIDs to names
+          // Resolve consultant / stage / pipeline UUIDs to names
           const consultantEventUuids = new Set<string>();
+          const pipelineEventUuids = new Set<string>();
           data.forEach((e: any) => {
             if (e.event_type === "consultant_changed" || e.event_type === "consultor_changed") {
               if (e.from_value && e.from_value.length > 30) consultantEventUuids.add(e.from_value);
               if (e.to_value && e.to_value.length > 30) consultantEventUuids.add(e.to_value);
+            }
+            if (e.event_type === "pipeline_changed" || e.event_type === "pipeline_added" || e.event_type === "pipeline_removed") {
+              if (e.from_value && e.from_value.length > 30) pipelineEventUuids.add(e.from_value);
+              if (e.to_value && e.to_value.length > 30) pipelineEventUuids.add(e.to_value);
             }
           });
           const consultantNameMap = new Map<string, string>();
@@ -1303,6 +1308,14 @@ function GerenciamentoTab({
               .select("id, nome")
               .in("id", [...consultantEventUuids]);
             (consultores || []).forEach((c: any) => consultantNameMap.set(c.id, c.nome));
+          }
+          const pipelineNameMap = new Map<string, string>();
+          if (pipelineEventUuids.size > 0) {
+            const { data: pipes } = await supabase
+              .from("pipelines")
+              .select("id, name")
+              .in("id", [...pipelineEventUuids]);
+            (pipes || []).forEach((p: any) => pipelineNameMap.set(p.id, p.name));
           }
 
           // Resolve actor_user_id to names for attribution
@@ -1334,6 +1347,22 @@ function GerenciamentoTab({
               if (fromName && toName) return `${fromName} → ${toName}`;
               if (toName) return toName;
               if (fromName) return `${fromName} → (removido)`;
+            }
+            // Stage changed: resolve UUID → stage name via helper
+            if (e.event_type === "stage_changed") {
+              const fromName = e.from_value ? getStageNameById(e.from_value) : null;
+              const toName = e.to_value ? getStageNameById(e.to_value) : null;
+              if (fromName && toName) return `${fromName} → ${toName}`;
+              if (toName) return toName;
+              if (fromName) return `${fromName} → (removido)`;
+            }
+            // Pipeline changed/added/removed: resolve UUID → pipeline name
+            if (e.event_type === "pipeline_changed" || e.event_type === "pipeline_added" || e.event_type === "pipeline_removed") {
+              const fromName = e.from_value ? (pipelineNameMap.get(e.from_value) || e.from_value) : null;
+              const toName = e.to_value ? (pipelineNameMap.get(e.to_value) || e.to_value) : null;
+              if (fromName && toName) return `${fromName} → ${toName}`;
+              if (toName) return toName;
+              if (fromName) return fromName;
             }
             // Value changed: format as BRL
             if (e.event_type === "value_changed" && e.from_value && e.to_value) {
@@ -1378,7 +1407,7 @@ function GerenciamentoTab({
       } catch { /* ignore */ }
     }
     loadProjectEvents();
-  }, [deal.id, formatDate]);
+  }, [deal.id, formatDate, getStageNameById]);
 
   // Load proposal records for timeline
   useEffect(() => {
