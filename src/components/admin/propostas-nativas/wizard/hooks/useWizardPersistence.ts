@@ -298,10 +298,23 @@ async function persistProposalAtomic(
       // });
 
       const cli = params.cliente;
+
+      // RB-60: se temos dealId mas não projetoId, resolver projetoId do deal
+      // antes de chamar a RPC (evita criar projeto duplicado).
+      let resolvedProjetoId = params.projetoId || null;
+      if (params.dealId && !resolvedProjetoId) {
+        const { data: dealRow } = await supabase
+          .from("deals")
+          .select("projeto_id")
+          .eq("id", params.dealId)
+          .maybeSingle();
+        resolvedProjetoId = (dealRow?.projeto_id as string | null) || null;
+      }
+
       const rpcPayload: Record<string, any> = {
         p_titulo: params.titulo || "Proposta sem título",
         p_lead_id: params.leadId || null,
-        p_projeto_id: params.projetoId || null,
+        p_projeto_id: resolvedProjetoId,
         p_deal_id: params.dealId || null,
         p_origem: "native",
         p_potencia_kwp: params.potenciaKwp,
