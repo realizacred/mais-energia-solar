@@ -23,6 +23,7 @@ import { useDocumentTemplates } from "./useDocumentTemplates";
 import { useClientes } from "@/hooks/useClientes";
 import { useEmitirRecibo } from "@/hooks/useRecibos";
 import type { DocumentTemplate, FormFieldSchema } from "./types";
+import { supabase } from "@/integrations/supabase/client";
 
 interface EmitirReciboModalProps {
   open: boolean;
@@ -55,6 +56,8 @@ export function EmitirReciboModal({
   const [descricao, setDescricao] = useState<string>("");
   const [numero, setNumero] = useState<string>("");
   const [dynFields, setDynFields] = useState<Record<string, string>>({});
+  const [loadingContext, setLoadingContext] = useState(false);
+  const [projectContext, setProjectContext] = useState<any>(null);
 
   useEffect(() => {
     if (open) {
@@ -64,13 +67,82 @@ export function EmitirReciboModal({
       setDescricao("");
       setNumero("");
       setDynFields({});
+      setProjectContext(null);
+
+      // Auto-fetch context if project ID is provided
+      if (defaultProjetoId) {
+        setLoadingContext(true);
+        (async () => {
+          try {
+            const { data: projeto, error: projErr } = await supabase
+              .from("projetos")
+              .select("*, clientes(*)")
+              .eq("id", defaultProjetoId)
+              .maybeSingle();
+
+            if (!projErr && projeto) {
+              setProjectContext(projeto);
+              if (!defaultClienteId && projeto.cliente_id) {
+                setClienteId(projeto.cliente_id);
+              }
+            }
+          } catch (err) {
+            console.error("[EmitirReciboModal] Error loading context:", err);
+          } finally {
+            setLoadingContext(false);
+          }
+        })();
+      }
     }
-  }, [open, defaultClienteId]);
+  }, [open, defaultClienteId, defaultProjetoId]);
 
   const template = useMemo<DocumentTemplate | undefined>(
     () => (templates ?? []).find((t) => t.id === templateId),
     [templates, templateId],
   );
+
+  // Auto-fill dynamic fields when template changes
+  useEffect(() => {
+    if (!template || !projectContext) return;
+
+    const schema = (template.form_schema ?? []) as FormFieldSchema[];
+    const updates: Record<string, string> = {};
+    const cliente = projectContext.clientes;
+
+    schema.forEach(field => {
+      const key = field.key.toLowerCase();
+      
+      // Auto-fill logic based on similarity
+      if (cliente) {
+        if (key.includes("nome_cliente") || key.includes("cliente_nome") || (key === "nome" && !updates["nome"])) {
+          updates[field.key] = cliente.nome || "";
+        }
+        if (key.includes("cpf") || key.includes("cnpj") || key.includes("documento")) {
+          updates[field.key] = cliente.cpf_cnpj || "";
+        }
+      }
+
+      if (key.includes("valor_total") || key.includes("valor_venda") || key.includes("valor_projeto")) {
+        updates[field.key] = String(projectContext.valor_total || "");
+      }
+      
+      if (key.includes("potencia") || key.includes("kwp")) {
+        updates[field.key] = String(projectContext.potencia_kwp || "");
+      }
+    });
+
+    if (Object.keys(updates).length > 0) {
+      setDynFields(prev => ({ ...prev, ...updates }));
+    }
+    
+    // Also auto-fill standard fields if empty
+    if (!valor && projectContext.valor_total) {
+      // Valor of project is a good suggestion for receipt if empty
+      // but usually receipts are for installments, so we only fill if it makes sense
+      // setValor(String(projectContext.valor_total)); 
+    }
+  }, [template, projectContext]);
+
 
   const schema: FormFieldSchema[] = useMemo(() => {
     const arr = (template?.form_schema ?? []) as FormFieldSchema[];
