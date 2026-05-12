@@ -131,8 +131,10 @@ Deno.serve(async (req) => {
           const { data: list } = await sb.storage.from(BUCKET).list(parent, { search: fname });
           const exists = (list ?? []).some((f: any) => f.name === fname);
 
+          let fileSize: number | null = meta.size ?? null;
+
           if (!exists) {
-            // Download
+            // Download — não validar Content-Type
             const resp = await fetch(url);
             if (!resp.ok) {
               errors.push({ deal_id: row.deal_id, url, error: `fetch ${resp.status}` });
@@ -140,6 +142,7 @@ Deno.serve(async (req) => {
               continue;
             }
             const ab = await resp.arrayBuffer();
+            fileSize = ab.byteLength;
             const { error: upErr } = await sb.storage.from(BUCKET).upload(path, ab, {
               contentType: mime,
               upsert: true,
@@ -158,7 +161,7 @@ Deno.serve(async (req) => {
             storage_path: path,
             filename,
             mime,
-            size: meta.size ?? ab_size(meta) ?? null,
+            size: fileSize,
             uploaded_at: meta.uploaded_at ?? new Date().toISOString(),
             uploaded_by: meta.uploaded_by,
           });
@@ -189,5 +192,3 @@ Deno.serve(async (req) => {
     });
   }
 });
-
-function ab_size(_m: any): number | null { return null; }
