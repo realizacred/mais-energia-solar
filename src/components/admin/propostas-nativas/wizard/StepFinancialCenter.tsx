@@ -17,6 +17,8 @@ import { roundCurrency } from "@/lib/formatters";
 import { usePricingDefaults } from "./hooks/usePricingDefaults";
 import { usePricingConfig } from "./hooks/usePricingConfig";
 import { toast } from "@/hooks/use-toast";
+import { useWizardContext } from "./WizardContext";
+
 
 // ── Types ──
 
