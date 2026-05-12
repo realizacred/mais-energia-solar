@@ -191,5 +191,51 @@ export function resolvePagamento(
   // ── vc_nome = client name (resolved in clienteComercial, but set here as fallback) ──
   // set("vc_nome", ...) is NOT done here — belongs to resolveClienteComercial
 
+  // ── pagamento.forma_descrita (AP-17 compatibility) ──
+  const parts: string[] = [];
+  const comp = safeArr(snap.payment_composition || snap.paymentComposition);
+  if (comp.length > 0) {
+    let entradaTotal = 0;
+    let financiadoTotal = 0;
+    for (const item of comp) {
+      const entrada = num(item.entrada) || 0;
+      const parcelas = num(item.parcelas) || 0;
+      const valorBase = num(item.valor_base || item.valorBase) || 0;
+      const banco = str(item.observacoes || item.banco || item.banco_nome) || "";
+
+      if (entrada > 0) {
+        entradaTotal += entrada;
+        parts.push(`${fmtVal(entrada)} entrada`);
+      }
+      if (parcelas > 0 && valorBase > 0) {
+        financiadoTotal += parcelas * valorBase;
+        parts.push(`${parcelas}x ${fmtVal(valorBase)}`);
+      }
+      if (banco && !out["pagamento.banco_nome"]) {
+        out["pagamento.banco_nome"] = banco;
+      }
+    }
+    const formaDescrita = parts.join(" + ") || "-";
+    out["pagamento.forma_descrita"] = formaDescrita;
+    out["pagamento_forma_descrita"] = formaDescrita;
+
+    if (entradaTotal > 0) {
+      setCur("pagamento.entrada_valor", entradaTotal);
+      setCur("pagamento_entrada_valor", entradaTotal);
+      if (valorTotalNum && valorTotalNum > 0) {
+        const pct = Math.round((entradaTotal / valorTotalNum) * 100);
+        out["pagamento.entrada_percentual"] = `${pct}%`;
+        out["pagamento_entrada_percentual"] = `${pct}%`;
+      }
+    }
+  } else {
+    // Fallback if no payment_composition
+    const forma = str(snap.pagamento_forma || snap.forma_pagamento);
+    if (forma) {
+      out["pagamento.forma_descrita"] = forma;
+      out["pagamento_forma_descrita"] = forma;
+    }
+  }
+
   return out;
 }
