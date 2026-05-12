@@ -2,7 +2,7 @@ import { useState, useMemo, useRef, useEffect, useCallback } from "react";
 import { calcFatorGeracao, calcEffectiveIrrad } from "@/services/solar/fatorGeracaoService";
 import { DEFAULT_SOMBREAMENTO_CONFIG, type SombreamentoConfig } from "@/hooks/useTenantPremises";
 import { formatDate } from "@/lib/dateUtils";
-import { Package, Zap, LayoutGrid, List, Settings2, Loader2, Pencil, Trash2, Plus, AlertCircle, BookOpen, Sun, Cpu, Check, Info } from "lucide-react";
+import { Package, Zap, LayoutGrid, List, Settings2, Loader2, Pencil, Trash2, Plus, AlertCircle, BookOpen, Sun, Cpu, Check, Info, ChevronLeft, ChevronRight } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -184,6 +184,12 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
   const catalogLoaded = useRef(false);
   const [selectedSolaryumKitId, setSelectedSolaryumKitId] = useState<number | null>(null);
   const [hasRemovedAutoFilter, setHasNewRemovedAutoFilter] = useState(false);
+  
+  // Paginação
+  const [page, setPage] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
+  const pageSize = 20;
+  const listTopRef = useRef<HTMLDivElement>(null);
 
   // Derive selected catalog kit ID from manualKits meta
   const selectedCatalogKitId = useMemo(() => {
@@ -193,33 +199,57 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
     return null;
   }, [manualKits]);
 
-  // Load catalog kits when tab switches to "catalogo" — fetch all, filter client-side
+  // Load catalog kits when tab switches to "catalogo" or filters/page changes
   useEffect(() => {
-    if (tab !== "catalogo" || catalogLoaded.current) return;
+    if (tab !== "catalogo") return;
     setCatalogLoading(true);
     setCatalogError(null);
-    fetchActiveKits(false) // fetch all products; generator filter applied client-side via includeComponents toggle
-      .then(async (kits) => {
-        setCatalogKits(kits);
+    
+    // Auto-apply power filter if potenciaIdeal is set and it's the first load
+    if (potenciaIdeal > 0 && !hasRemovedAutoFilter && !catalogLoaded.current) {
+      const initialPotMin = Math.round(potenciaIdeal * 0.7 * 100) / 100;
+      const initialPotMax = Math.round(potenciaIdeal * 1.3 * 100) / 100;
+      setFilters(prev => ({
+        ...prev,
+        potenciaMin: initialPotMin,
+        potenciaMax: initialPotMax,
+      }));
+      // We will let the next effect cycle with updated filters do the fetch
+      setHasNewRemovedAutoFilter(true); // Prevent re-entry
+      return;
+    }
+
+    fetchActiveKits(
+      !includeComponents, 
+      page, 
+      pageSize, 
+      {
+        potenciaMin: filters.potenciaMin,
+        potenciaMax: filters.potenciaMax,
+        searchText: filters.searchText,
+      }
+    )
+      .then(async (response) => {
+        setCatalogKits(response.data);
+        setTotalCount(response.count);
         catalogLoaded.current = true;
         
-        // UX-05: Auto-apply power filter if potenciaIdeal is set
-        if (potenciaIdeal > 0 && !hasRemovedAutoFilter) {
-          setFilters(prev => ({
-            ...prev,
-            potenciaMin: Math.round(potenciaIdeal * 0.7 * 100) / 100,
-            potenciaMax: Math.round(potenciaIdeal * 1.3 * 100) / 100,
-          }));
-        }
-
-        if (kits.length > 0) {
-          const summaries = await fetchKitsSummary(kits.map(k => k.id));
+        if (response.data.length > 0) {
+          const summaries = await fetchKitsSummary(response.data.map(k => k.id));
           setCatalogSummaries(summaries);
         }
+        
+        // Scroll suave para o topo
+        listTopRef.current?.scrollIntoView({ behavior: "smooth" });
       })
       .catch((err) => setCatalogError(err.message))
       .finally(() => setCatalogLoading(false));
-  }, [tab, potenciaIdeal, hasRemovedAutoFilter]);
+  }, [tab, includeComponents, page, filters.potenciaMin, filters.potenciaMax, filters.searchText, potenciaIdeal]);
+
+  // Reset page to 1 when filters change
+  useEffect(() => {
+    setPage(1);
+  }, [filters.potenciaMin, filters.potenciaMax, filters.searchText, includeComponents]);
 
   const handleSelectCatalogKit = async (kitId: string, kitName: string) => {
     // If items already exist, ask for confirmation
@@ -372,31 +402,12 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
     };
   }, [catalogKits, catalogSummaries]);
 
-  // Filter & sort catalog kits based on sidebar filters
+  // Filter & sort catalog kits based on sidebar filters (Filtering mostly done on server now)
   const filteredCatalogKits = useMemo(() => {
-    // Default: show only generators unless "includeComponents" toggle is on
-    let result = includeComponents
-      ? [...catalogKits]
-      : catalogKits.filter(k => k.is_generator);
+    let result = [...catalogKits];
 
-    // Potência range filter
-    if (filters.potenciaMin > 0 || filters.potenciaMax < 1000) {
-      result = result.filter(k => {
-        const kwp = k.estimated_kwp ?? 0;
-        return kwp >= filters.potenciaMin && kwp <= filters.potenciaMax;
-      });
-    }
-
-    // General text search (name, description, fabricante)
-    if (filters.searchText.trim()) {
-      const q = filters.searchText.toLowerCase();
-      result = result.filter(k =>
-        k.name.toLowerCase().includes(q) ||
-        (k.description || "").toLowerCase().includes(q) ||
-        (k.fabricante || "").toLowerCase().includes(q)
-      );
-    }
-
+    // Client-side filtering only for what server doesn't handle or to refine
+    
     // Fabricante Inversor dropdown
     if (filters.fabricanteInversor) {
       const q = filters.fabricanteInversor.toLowerCase();
@@ -433,18 +444,13 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
 
     // Sort
     if (orderBy === "melhor_kwp") {
-      // UX-05: If auto-filtering by power, prioritize proximity to ideal power within the "melhor_kwp" sorting
       result.sort((a, b) => {
-        // Primary sort: price per kWp
         const priceDiff = (a.preco_por_kwp || Infinity) - (b.preco_por_kwp || Infinity);
-        
-        // If prices are very similar (within 1%), sort by proximity to ideal power
         if (potenciaIdeal > 0 && Math.abs(priceDiff) < (a.preco_por_kwp || 1) * 0.01) {
           const proximityA = Math.abs((a.estimated_kwp || 0) - potenciaIdeal);
           const proximityB = Math.abs((b.estimated_kwp || 0) - potenciaIdeal);
           return proximityA - proximityB;
         }
-        
         return priceDiff;
       });
     } else if (orderBy === "proximidade" && potenciaIdeal > 0) {
@@ -476,7 +482,7 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
     }
 
     return result;
-  }, [catalogKits, catalogSummaries, filters, orderBy, includeComponents, potenciaIdeal]);
+  }, [catalogKits, catalogSummaries, filters, orderBy, potenciaIdeal]);
 
 
   const handleSelectKit = (kit: KitCardData) => {
@@ -606,7 +612,7 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
         </aside>
 
         {/* ── Main Content Area ── */}
-        <div className="flex-1 min-w-0 space-y-4">
+        <div ref={listTopRef} className="flex-1 min-w-0 space-y-4">
           {/* Tabs: Catálogo | Customizado | Fechado */}
           <div className="flex items-center border-b border-border/50">
             {([
@@ -734,7 +740,6 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
 
           {/* Tab Content */}
           {tab === "catalogo" ? (
-            /* ── Catálogo Tab ── */
             <div className="space-y-3">
               {/* ── Auto-filter info banner ── */}
               {potenciaIdeal > 0 && !hasRemovedAutoFilter && (filters.potenciaMin > 0 || filters.potenciaMax < 1000) && (
@@ -986,8 +991,36 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
                     );
                   })}
                 </div>
-              )}
-            </div>
+                
+                {/* ── Paginação ── */}
+                {totalCount > pageSize && (
+                  <div className="flex items-center justify-center gap-4 py-4 border-t border-border/50">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="gap-1.5 h-8 text-xs"
+                      onClick={() => setPage(p => Math.max(1, p - 1))}
+                      disabled={page === 1}
+                    >
+                      <ChevronLeft className="h-3.5 w-3.5" /> Anterior
+                    </Button>
+                    
+                    <span className="text-xs font-medium text-muted-foreground">
+                      Página {page} de {Math.ceil(totalCount / pageSize)}
+                    </span>
+                    
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="gap-1.5 h-8 text-xs"
+                      onClick={() => setPage(p => Math.min(Math.ceil(totalCount / pageSize), p + 1))}
+                      disabled={page >= Math.ceil(totalCount / pageSize)}
+                    >
+                      Próxima <ChevronRight className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                )}
+              </div>
           ) : tab === "customizado" ? (
             /* ── Customizado Tab — manual kits + imported catalog kits ── */
             <div className="space-y-3">
