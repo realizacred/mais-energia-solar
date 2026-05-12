@@ -26,6 +26,25 @@ export function ProposalProblemSection({ snapshot: s, versaoData, activeCenario 
   const economiaAnual = economiaMensal * 12;
   const hasContaAtual = contaAtual > 0;
   const hasEconomia = economiaMensal > 0;
+
+  // ── Decomposição do custo fixo residual (Fio B + CIP) ────────────────
+  const uc0: any = (s?.ucs?.[0] as any) || {};
+  const tarifaFioB = Number(uc0.tarifa_fio_b) || 0;
+  const consumoUc = Number(uc0.consumo_mensal) || kpis.consumoMensalKwh || 0;
+  const cipReal = Number(uc0.cosip ?? uc0.cip ?? uc0.iluminacao_publica) || 0;
+  let valorFioB = tarifaFioB > 0 && consumoUc > 0 ? Math.min(tarifaFioB * consumoUc, contaDepois) : 0;
+  let valorCip = cipReal > 0 ? cipReal : 0;
+  // Fallback 70/30 quando faltarem dados
+  if (valorFioB === 0 && valorCip === 0 && contaDepois > 0) {
+    valorFioB = contaDepois * 0.7;
+    valorCip = contaDepois * 0.3;
+  } else if (valorFioB === 0 && contaDepois > valorCip) {
+    valorFioB = contaDepois - valorCip;
+  } else if (valorCip === 0 && contaDepois > valorFioB) {
+    valorCip = contaDepois - valorFioB;
+  }
+  const fmt = (n: number) => Math.round(n).toLocaleString("pt-BR");
+
   return (
     <AnimatedSection style={{ padding: "5rem 1.5rem", background: "#fff" }}>
       <div style={{ maxWidth: 900, margin: "0 auto" }}>
@@ -160,7 +179,7 @@ export function ProposalProblemSection({ snapshot: s, versaoData, activeCenario 
                 </span>
                 {contaDepois > 0 && (
                   <span
-                    title={`Por que ainda pago R$ ${Math.round(contaDepois).toLocaleString("pt-BR")}?\n\nMesmo com energia solar, a distribuidora cobra uma taxa mínima de conexão à rede (Fio B / TUSD) e a prefeitura cobra a iluminação pública (CIP/COSIP). Esses custos são obrigatórios por lei e não podem ser eliminados por nenhum sistema solar.`}
+                    title={`Por que ainda pago R$ ${fmt(contaDepois)}/mês?\n\nMesmo com solar 100%, a distribuidora cobra:\n• Fio B (TUSD): R$ ${fmt(valorFioB)}/mês\n• Iluminação pública (CIP): R$ ${fmt(valorCip)}/mês\n\nEsses custos são obrigatórios por lei e não somem com nenhum sistema solar.`}
                     style={{ display: "inline-flex", marginLeft: 8, cursor: "help", verticalAlign: "middle" }}
                   >
                     <Info style={{ width: 16, height: 16, color: "#86EFAC", opacity: 0.8 }} />
@@ -169,9 +188,19 @@ export function ProposalProblemSection({ snapshot: s, versaoData, activeCenario 
               </p>
               <p style={{ fontSize: "0.82rem", opacity: 0.5, margin: "4px 0 0" }}>/mês com energia solar</p>
               {contaDepois > 0 && (
-                <p style={{ fontSize: "0.7rem", opacity: 0.55, margin: "8px 0 0", lineHeight: 1.4, fontStyle: "italic" }}>
-                  * Inclui custos fixos obrigatórios (Fio B, CIP) que não são eliminados pelo solar em nenhuma situação.
-                </p>
+                <div style={{ marginTop: 14, paddingLeft: 4, fontSize: "0.78rem", lineHeight: 1.6, opacity: 0.85 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", color: "#CBD5E1" }}>
+                    <span>├ R$ {fmt(valorFioB)}</span>
+                    <span style={{ opacity: 0.7 }}>Fio B (conexão à rede)</span>
+                  </div>
+                  <div style={{ display: "flex", justifyContent: "space-between", color: "#CBD5E1" }}>
+                    <span>└ R$ {fmt(valorCip)}</span>
+                    <span style={{ opacity: 0.7 }}>CIP (iluminação pública)</span>
+                  </div>
+                  <p style={{ fontSize: "0.7rem", opacity: 0.55, margin: "8px 0 0", lineHeight: 1.4, fontStyle: "italic" }}>
+                    * Esses valores são obrigatórios — não dependem do solar.
+                  </p>
+                </div>
               )}
               {hasEconomia && (
                 <div style={{ marginTop: 16, padding: "10px 14px", background: "rgba(34,197,94,0.12)", borderRadius: 10 }}>
@@ -201,7 +230,9 @@ export function ProposalProblemSection({ snapshot: s, versaoData, activeCenario 
               boxShadow: "0 4px 20px rgba(22,163,74,0.25)",
             }}>
               <Sun style={{ width: 18, height: 18 }} />
-              {percentEconomia}% DE ECONOMIA NA SUA CONTA
+              {hasEconomia
+                ? `Você economiza R$ ${fmt(economiaMensal)}/mês — ${percentEconomia}% da sua conta atual`
+                : `${percentEconomia}% DE ECONOMIA NA SUA CONTA`}
             </span>
           </motion.div>
         )}
