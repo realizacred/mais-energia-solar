@@ -1678,7 +1678,7 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
                       />
                     </div>
                   </TabsContent>
-                </>
+                </WizardProvider>
               )}
             </Tabs>
           </div>
