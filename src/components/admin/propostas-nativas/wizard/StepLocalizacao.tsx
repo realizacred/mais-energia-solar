@@ -967,3 +967,43 @@ function IrradiacaoMensalDialog({
     </Dialog>
   );
 }
+
+// ── Wrapper consuming WizardContext (Fase C) ──────────────────────────────
+import { useWizardContext } from "./WizardContext";
+
+export function StepLocalizacao() {
+  const {
+    locEstado, setLocEstado,
+    locCidade, setLocCidade,
+    locTipoTelhado, handleLocTipoTelhadoChange,
+    locDistribuidoraId, setLocDistribuidoraId, setLocDistribuidoraNome,
+    setLocIrradiacao, setLocGhiSeries, setLocLatitude,
+    mapSnapshots, setMapSnapshots,
+    locSkipPoa, setLocSkipPoa,
+    cliente, projectAddress, setProjectAddress,
+    distanciaKm, setDistanciaKm,
+  } = useWizardContext();
+  return (
+    <StepLocalizacaoImpl
+      estado={locEstado}
+      cidade={locCidade}
+      tipoTelhado={locTipoTelhado}
+      distribuidoraId={locDistribuidoraId}
+      onEstadoChange={setLocEstado}
+      onCidadeChange={setLocCidade}
+      onTipoTelhadoChange={handleLocTipoTelhadoChange}
+      onDistribuidoraChange={(id, nome) => { setLocDistribuidoraId(id); setLocDistribuidoraNome(nome); }}
+      onIrradiacaoChange={setLocIrradiacao}
+      onGhiSeriesChange={setLocGhiSeries}
+      onLatitudeChange={setLocLatitude}
+      onMapSnapshotsChange={setMapSnapshots}
+      skipPoa={locSkipPoa}
+      onSkipPoaChange={setLocSkipPoa}
+      clienteData={cliente}
+      projectAddress={projectAddress}
+      onProjectAddressChange={setProjectAddress}
+      distanciaKm={distanciaKm}
+      onDistanciaKmChange={setDistanciaKm}
+    />
+  );
+}
