@@ -196,6 +196,7 @@ function ProposalWizardContent() {
   const orcIdFromUrl = searchParams.get("orc_id");
   const propostaIdFromUrl = searchParams.get("proposta_id");
   const versaoIdFromUrl = searchParams.get("versao_id");
+  const projetoIdFromUrl = searchParams.get("projeto_id");
   const [step, setStep] = useState(0);
   const [projectContext, setProjectContext] = useState<{ dealId: string; customerId: string } | null>(null);
 
