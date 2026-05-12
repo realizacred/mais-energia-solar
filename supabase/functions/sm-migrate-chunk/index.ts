@@ -307,8 +307,8 @@ async function callSmPromoteOnce(
 
 async function runPostPhaseUntilDone(
   tenantId: string,
-  fnName: "sm-enrich-versoes" | "sm-promote-custom-fields",
-  action: "enrich" | "promote",
+  fnName: "sm-enrich-versoes" | "sm-promote-custom-fields" | "sm-download-documents",
+  action: "enrich" | "promote" | "download",
   batch: number,
   projectExternalIds?: string[],
 ): Promise<void> {
@@ -590,6 +590,12 @@ async function processStep(
       } catch (e) {
         console.error("[sm-migrate-chunk] promote-custom-fields chunk chain failed:", e);
       }
+      try {
+        // RB-65: internalizar documentos SM (URLs externas → Storage) na sequência
+        await runPostPhaseUntilDone(tenantId, "sm-download-documents", "download", 10, promotedProjectExternalIds);
+      } catch (e) {
+        console.error("[sm-migrate-chunk] download-documents chunk chain failed:", e);
+      }
     })();
     // Não bloquear o step principal: as pós-fases podem ultrapassar o limite
     // de execução da Edge Function e impedir o auto-encadeamento do próximo chunk.
@@ -679,6 +685,11 @@ async function processStep(
           await runPostPhaseUntilDone(tenantId, "sm-promote-custom-fields", "promote", 20);
         } catch (e) {
           console.error("[sm-migrate-chunk] promote-custom-fields chain failed:", e);
+        }
+        try {
+          await runPostPhaseUntilDone(tenantId, "sm-download-documents", "download", 10);
+        } catch (e) {
+          console.error("[sm-migrate-chunk] download-documents chain failed:", e);
         }
       })());
     } catch (e) {

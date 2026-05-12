@@ -37,8 +37,7 @@ import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { LoadingState } from "@/components/ui-kit/LoadingState";
 import { SmStagingTable } from "@/components/admin/solarmarket/SmStagingTable";
-import { BackfillCustomFieldsButton } from "@/components/admin/solarmarket/BackfillCustomFieldsButton";
-import { DownloadDocumentsButton } from "@/components/admin/solarmarket/DownloadDocumentsButton";
+import { DocumentsInternalizationStatus } from "@/components/admin/solarmarket/DocumentsInternalizationStatus";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { Trash2, Eye as EyeIcon } from "lucide-react";
@@ -886,9 +885,7 @@ export default function MigracaoSolarmarket() {
                   </AlertDialog>
                 </div>
 
-                <BackfillCustomFieldsButton tenantId={tenantId} initialOffset={600} batch={10} />
-
-                <DownloadDocumentsButton tenantId={tenantId} batch={10} />
+                <DocumentsInternalizationStatus tenantId={tenantId} />
 
                 <p className="text-xs text-muted-foreground">
                   Estas ações afetam apenas a área de revisão e a conexão com o

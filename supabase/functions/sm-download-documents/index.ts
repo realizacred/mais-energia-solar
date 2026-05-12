@@ -53,10 +53,17 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   try {
-    const body = await req.json().catch(() => ({}));
-    const tenantId: string | undefined = body?.tenant_id;
+    const raw = await req.json().catch(() => ({}));
+    // Aceita tanto body flat {tenant_id, batch, offset} quanto wrapper
+    // {action, payload:{...}} usado por sm-migrate-chunk (RB-65/RB-72).
+    const body = raw?.payload && typeof raw.payload === "object" ? raw.payload : raw;
+    const tenantId: string | undefined =
+      body?.tenant_id ?? req.headers.get("x-sm-tenant-override") ?? undefined;
     const batch: number = Math.min(Math.max(Number(body?.batch ?? 10), 1), 25);
     const offset: number = Math.max(Number(body?.offset ?? 0), 0);
+    const projectExternalIds: string[] = Array.isArray(body?.project_external_ids)
+      ? body.project_external_ids.map((x: unknown) => String(x).trim()).filter(Boolean)
+      : [];
 
     if (!tenantId) {
       return new Response(JSON.stringify({ error: "tenant_id obrigatório" }), {
@@ -80,8 +87,26 @@ Deno.serve(async (req) => {
       });
     }
 
-    // 2. Carrega lote — apenas registros com http no value_text
-    const { data: rows, error: rowsErr } = await sb
+    // 2. Carrega lote — apenas registros com http no value_text.
+    // Quando project_external_ids estiver presente, escopa aos deals desses projetos.
+    let dealIdScope: string[] | null = null;
+    if (projectExternalIds.length > 0) {
+      const { data: projs, error: pErr } = await sb
+        .from("projetos")
+        .select("deal_id")
+        .eq("tenant_id", tenantId)
+        .in("external_id", projectExternalIds)
+        .not("deal_id", "is", null);
+      if (pErr) throw pErr;
+      dealIdScope = (projs ?? []).map((p: any) => p.deal_id).filter(Boolean);
+      if (dealIdScope.length === 0) {
+        return new Response(JSON.stringify({ ok: true, processed: 0, downloaded: 0, skipped: 0, errors: [], next_offset: null }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
+
+    let q = sb
       .from("deal_custom_field_values")
       .select("deal_id, field_id, value_text")
       .eq("tenant_id", tenantId)
@@ -89,6 +114,8 @@ Deno.serve(async (req) => {
       .ilike("value_text", "%http%")
       .order("deal_id", { ascending: true })
       .range(offset, offset + batch - 1);
+    if (dealIdScope) q = q.in("deal_id", dealIdScope);
+    const { data: rows, error: rowsErr } = await q;
     if (rowsErr) throw rowsErr;
 
     const processed = rows?.length ?? 0;
@@ -183,11 +210,12 @@ Deno.serve(async (req) => {
 
     const next_offset = processed < batch ? null : offset + batch;
 
-    return new Response(JSON.stringify({ processed, downloaded, skipped, errors, next_offset }), {
+    return new Response(JSON.stringify({ ok: true, processed, downloaded, skipped, errors, next_offset }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e: any) {
-    return new Response(JSON.stringify({ error: e?.message || String(e) }), {
+    console.error("[sm-download-documents] fatal:", e?.message || e);
+    return new Response(JSON.stringify({ ok: false, error: e?.message || String(e) }), {
       status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
