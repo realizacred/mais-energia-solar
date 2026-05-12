@@ -2719,44 +2719,11 @@ function ProposalWizardContent() {
       case STEP_KEYS.LOCALIZACAO:
         return wrap("localizacao", (
           <div className="space-y-4">
-            <StepLocalizacao
-              estado={locEstado} cidade={locCidade} tipoTelhado={locTipoTelhado}
-              distribuidoraId={locDistribuidoraId}
-              onEstadoChange={setLocEstado}
-              onCidadeChange={setLocCidade}
-              onTipoTelhadoChange={(v) => {
-                setLocTipoTelhado(v);
-                // Propagar tipo de telhado para a UC geradora (ucs[0])
-                setUcs(prev => {
-                  if (prev.length === 0) return prev;
-                  if (prev[0].tipo_telhado === v) return prev;
-                  return [{ ...prev[0], tipo_telhado: v }, ...prev.slice(1)];
-                });
-              }}
-              onDistribuidoraChange={(id, nome) => { setLocDistribuidoraId(id); setLocDistribuidoraNome(nome); }}
-              onIrradiacaoChange={setLocIrradiacao}
-              onGhiSeriesChange={setLocGhiSeries}
-              onLatitudeChange={setLocLatitude}
-              onMapSnapshotsChange={setMapSnapshots}
-              skipPoa={locSkipPoa}
-              onSkipPoaChange={setLocSkipPoa}
-              clienteData={cliente}
-              projectAddress={projectAddress}
-              onProjectAddressChange={setProjectAddress}
-              distanciaKm={distanciaKm}
-              onDistanciaKmChange={setDistanciaKm}
-            />
+            <StepLocalizacao />
             {/* Cliente section — only show full form when NOT from project */}
             {!projectContext && (
               <div className="border-t border-border/50 pt-4">
-                <StepCliente
-                  selectedLead={selectedLead}
-                  onSelectLead={handleSelectLead}
-                  onClearLead={() => setSelectedLead(null)}
-                  cliente={cliente}
-                  onClienteChange={setCliente}
-                  fromProject={false}
-                />
+                <StepCliente fromProject={false} />
               </div>
             )}
           </div>
@@ -2792,22 +2759,13 @@ function ProposalWizardContent() {
                 </div>
               </div>
             )}
-            <StepConsumptionIntelligence
-              ucs={ucs} onUcsChange={handleUcsChange}
-              potenciaKwp={potenciaKwp} onPotenciaChange={setPotenciaKwp}
-              preDimensionamento={preDimensionamento}
-              onPreDimensionamentoChange={setPreDimensionamento}
-              irradiacao={locIrradiacao}
-              ghiSeries={locGhiSeries}
-              latitude={locLatitude}
-              somenteGhi={locSkipPoa}
-            />
+            <StepConsumptionIntelligence />
           </>
         ));
 
       case STEP_KEYS.CAMPOS_PRE:
         return wrap("campos_pre", (
-          <StepCamposCustomizados values={customFieldValues} onValuesChange={setCustomFieldValues} />
+          <StepCamposCustomizados />
         ));
 
       case STEP_KEYS.KIT: {
