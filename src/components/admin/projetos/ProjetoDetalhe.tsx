@@ -703,6 +703,49 @@ function ProjetoDetalheContent() {
         </motion.div>
       </AnimatePresence>
 
+      {/* ── Editar Projeto modal ── */}
+      <Dialog open={editProjetoOpen} onOpenChange={setEditProjetoOpen}>
+        <DialogContent onOpenAutoFocus={(e) => e.preventDefault()}>
+          <DialogHeader>
+            <DialogTitle>Alterar Projeto</DialogTitle>
+            <DialogDescription>Edite o nome e a descrição do projeto.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-1.5">
+              <Label htmlFor="edit-projeto-nome">Nome do projeto</Label>
+              <Input
+                id="edit-projeto-nome"
+                value={editProjetoNome}
+                onChange={(e) => setEditProjetoNome(e.target.value)}
+                placeholder="Ex: Usina Cliente XPTO"
+                disabled={savingProjeto}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="edit-projeto-descricao">Descrição</Label>
+              <Textarea
+                id="edit-projeto-descricao"
+                value={editProjetoDescricao}
+                onChange={(e) => setEditProjetoDescricao(e.target.value)}
+                placeholder="Notas, observações ou contexto do projeto"
+                rows={4}
+                disabled={savingProjeto}
+              />
+            </div>
+            {projetoCodigo && (
+              <p className="text-xs text-muted-foreground">Código: <span className="font-mono">{projetoCodigo}</span></p>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setEditProjetoOpen(false)} disabled={savingProjeto}>Cancelar</Button>
+            <Button onClick={handleSaveProjeto} disabled={savingProjeto}>
+              {savingProjeto && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              Salvar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* ── Confirm consultor change dialog ── */}
       <AlertDialog open={!!confirmConsultorId} onOpenChange={(open) => { if (!open) setConfirmConsultorId(null); }}>
         <AlertDialogContent>
