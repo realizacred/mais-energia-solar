@@ -94,7 +94,7 @@ export function IntegrationProviderDrawer({
           // Signature providers persist in signature_settings
           const { data } = await (supabase as any)
             .from("signature_settings")
-            .select("provider, sandbox_mode, api_token_encrypted, webhook_secret_encrypted")
+            .select("provider, sandbox_mode, api_token_encrypted, webhook_secret_encrypted, settings_extra")
             .maybeSingle();
 
           if (data) {
@@ -103,6 +103,27 @@ export function IntegrationProviderDrawer({
               sandbox_mode: data.sandbox_mode ? "true" : "false",
               webhook_secret: data.webhook_secret_encrypted || "",
             };
+            const extra = (data.settings_extra as any) || {};
+            if (extra.signer_mode === "complete" || extra.signer_mode === "simplified") {
+              setSignerMode(extra.signer_mode);
+            }
+            if (typeof extra.refusable === "boolean") setRefusable(extra.refusable);
+            if (extra.reminder === "NONE" || extra.reminder === "DAILY" || extra.reminder === "WEEKLY") {
+              setReminder(extra.reminder);
+            }
+            if (typeof extra.deadline_days === "number") setDeadlineDays(String(extra.deadline_days));
+          }
+
+          // Carregar representante legal de brand_settings
+          const { data: brand } = await (supabase as any)
+            .from("brand_settings")
+            .select("representante_legal, representante_email, representante_cpf, representante_cargo")
+            .maybeSingle();
+          if (brand) {
+            setRepNome(brand.representante_legal || "");
+            setRepEmail(brand.representante_email || "");
+            setRepCpf(brand.representante_cpf || "");
+            setRepCargo(brand.representante_cargo || "");
           }
         } else {
           const legacyId = LEGACY_PROVIDER_MAP[provider.id] || provider.id;
