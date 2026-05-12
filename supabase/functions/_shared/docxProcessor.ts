@@ -446,7 +446,14 @@ export function replaceVars(text: string, ctx: Record<string, string>): string {
   return text.replace(/\{\{([^}]+)\}\}/g, (_match, key: string) => {
     const k = key.trim();
     const value = ctx[k] ?? ctx[k.replace(/\./g, "_")] ?? ctx[k.replace(/_/g, ".")] ?? "";
-    return escapeXml(String(value));
+    const str = String(value);
+    // Multi-line values (e.g. {{ucs_tabela}}): preserve line breaks as DOCX <w:br/>
+    // within the same <w:t> run so the substitution renders as multiple lines.
+    if (str.indexOf("\n") !== -1) {
+      const lines = str.split(/\r?\n/).map((line) => escapeXml(line));
+      return lines.join('</w:t><w:br/><w:t xml:space="preserve">');
+    }
+    return escapeXml(str);
   });
 }
 

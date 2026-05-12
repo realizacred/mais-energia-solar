@@ -1,6 +1,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import JSZip from "npm:jszip@3.10.1";
 import { flattenSnapshot } from "../_shared/flattenSnapshot.ts";
+import { buildUcsTabela } from "../_shared/formatUcsTabela.ts";
 import { normalizeVariableFormat } from "../_shared/normalizeVariableFormat.ts";
 import { resolveGotenbergUrl } from "../_shared/resolveGotenbergUrl.ts";
 import { injectChartsIntoDocx } from "../_shared/chartInjector.ts";
@@ -1285,6 +1286,16 @@ Deno.serve(async (req) => {
     // FIX 4: vc_observacao — never show "N/A" literally
     if (!vars["vc_observacao"] || vars["vc_observacao"] === "N/A" || vars["vc_observacao"] === "n/a") {
       vars["vc_observacao"] = "";
+    }
+
+    // FIX 5: ucs_tabela — bloco multilinha com todas as UCs
+    if (!vars["ucs_tabela"]) {
+      const economiaMensal = Number(
+        (snapshot as any)?.financeiro?.economia_mensal ?? vars["economia_mensal"] ?? 0,
+      );
+      vars["ucs_tabela"] = buildUcsTabela(snapshot, {
+        economiaTotalMensal: Number.isFinite(economiaMensal) ? economiaMensal : 0,
+      });
     }
 
     // ── 7. DOWNLOAD TEMPLATE DOCX ─────────────────────────

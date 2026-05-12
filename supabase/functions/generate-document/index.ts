@@ -12,6 +12,7 @@ import { enforceTenantAccess } from "../_shared/entitlement.ts";
 import { processXmlContent, shouldProcessXmlFile } from "../_shared/docxProcessor.ts";
 import { resolveGotenbergUrl } from "../_shared/resolveGotenbergUrl.ts";
 import { flattenSnapshot } from "../_shared/flattenSnapshot.ts";
+import { buildUcsTabela } from "../_shared/formatUcsTabela.ts";
 import {
   withRetry,
   fetchWithTimeout,
@@ -537,6 +538,17 @@ Deno.serve(async (req) => {
         ?? (snapshot as any)?.tipo_telhado ?? variables["tipo_telhado"]
         ?? variables["estrutura_tipo"];
       if (est) variables["estrutura"] = String(est);
+    }
+
+    // FIX 5: ucs_tabela — bloco multilinha com todas as UCs (RB DOCX)
+    if (!variables["ucs_tabela"]) {
+      const economiaMensal =
+        parseLocaleNumber(variables["economia_mensal"]) ??
+        parseLocaleNumber((snapshot as any)?.financeiro?.economia_mensal) ??
+        0;
+      variables["ucs_tabela"] = buildUcsTabela(snapshot, {
+        economiaTotalMensal: economiaMensal,
+      });
     }
 
     // FIX 4: vc_observacao — never show "N/A" literally
