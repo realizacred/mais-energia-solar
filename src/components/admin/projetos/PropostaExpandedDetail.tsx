@@ -1609,28 +1609,10 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
                   <TabsContent value="arquivo" className="px-4 pb-4 mt-0">
                     <div className="mt-3">
                       <StepDocumento
-                        clienteNome={p.cliente_nome || ""}
-                        empresaNome={(snapshot as any)?.clienteEmpresa || (snapshot as any)?.cliente?.empresa || p.cliente_nome || ""}
-                        clienteTelefone={(snapshot as any)?.clienteCelular || (snapshot as any)?.cliente?.celular || (snapshot as any)?.cliente?.telefone || ""}
-                        clienteEmail={(snapshot as any)?.clienteEmail || (snapshot as any)?.cliente?.email || ""}
-                        potenciaKwp={latestVersao?.potencia_kwp || 0}
-                        geracaoMensalKwh={latestVersao?.geracao_mensal || 0}
-                        numUcs={((snapshot as any)?.ucs || []).length || 1}
-                        precoFinal={latestVersao?.valor_total || 0}
-                        templateSelecionado={templateSelecionado}
-                        onTemplateSelecionado={setTemplateSelecionado}
-                        generating={false}
-                        rendering={rendering}
-                        result={latestVersao ? {
-                          proposta_id: p.id,
-                          versao_id: latestVersao.id,
-                          success: true,
-                        } : null}
-                        htmlPreview={html}
-                        pdfBlobUrl={pdfSignedUrl}
-                        outputDocxPath={latestVersao?.output_docx_path || undefined}
-                        outputPdfPath={latestVersao?.output_pdf_path || undefined}
-                        externalPdfUrl={latestVersao?.link_pdf || undefined}
+                        onViewDetail={() => {}}
+                        skipTemplateAutoSelect={true}
+                      />
+
                         generationStatus={
                           rendering ? "generating_docx" :
                           pdfSignedUrl || latestVersao?.output_pdf_path || latestVersao?.link_pdf ? "ready" :
