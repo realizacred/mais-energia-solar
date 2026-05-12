@@ -1288,6 +1288,16 @@ Deno.serve(async (req) => {
       vars["vc_observacao"] = "";
     }
 
+    // FIX 5: ucs_tabela — bloco multilinha com todas as UCs
+    if (!vars["ucs_tabela"]) {
+      const economiaMensal = Number(
+        (snapshot as any)?.financeiro?.economia_mensal ?? vars["economia_mensal"] ?? 0,
+      );
+      vars["ucs_tabela"] = buildUcsTabela(snapshot, {
+        economiaTotalMensal: Number.isFinite(economiaMensal) ? economiaMensal : 0,
+      });
+    }
+
     // ── 7. DOWNLOAD TEMPLATE DOCX ─────────────────────────
     let templateBuffer: Uint8Array;
     try {
