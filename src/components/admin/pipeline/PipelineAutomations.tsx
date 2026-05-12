@@ -303,6 +303,17 @@ export function PipelineAutomations() {
   };
 
   const handleSave = () => {
+    // Validate if pipeline still exists in current list (prevents FK violation from stale UI)
+    const pipelineExists = pipelines?.some(p => p.id === formPipelineId);
+    if (!pipelineExists) {
+      toast({
+        title: "Funil não encontrado",
+        description: "Recarregue a página e tente novamente. O funil pode ter sido excluído ou recriado.",
+        variant: "destructive"
+      });
+      return;
+    }
+
     createMutation.mutate(
       {
         nome: formName,
