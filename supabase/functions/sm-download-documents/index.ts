@@ -1,11 +1,19 @@
 /**
- * sm-download-documents
- * Baixa documentos referenciados por URL externa (S3 do SolarMarket) em
- * deal_custom_field_values e os armazena no bucket `projeto-documentos`,
- * trocando a URL externa pelo storage_path.
+ * sm-download-documents — DEPRECATED (transitional backfill only)
+ * ==============================================================
+ * NÃO faz mais parte do fluxo principal de migração SolarMarket.
+ * A internalização canônica de documentos (file fields cap_*) é feita por
+ * `sm-promote-custom-fields`, que grava no bucket `projeto-documentos`
+ * com path `{tenant}/deals/{deal}/custom-fields/{field_key}/{filename}` e
+ * formato value_text = JSON.stringify([{storage_path, filename, mime, size,
+ * uploaded_at}]) — compatível com CustomFieldFileInput/FilePreviewModal.
  *
- * Body: { tenant_id: string, batch?: number, offset?: number }
- * Resposta: { processed, downloaded, skipped, errors, next_offset }
+ * Mantida APENAS para backfill controlado dos registros legados com URLs
+ * externas remanescentes do S3 do SolarMarket. NÃO invocar pela UI nem
+ * pelo orquestrador (sm-migrate-chunk). Após drenagem, remover.
+ *
+ * Body: { tenant_id, batch?, offset? } ou { action, payload:{...} }.
+ * Resposta: { ok, processed, downloaded, skipped, errors, next_offset }
  */
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import { createClient } from "npm:@supabase/supabase-js@2";
