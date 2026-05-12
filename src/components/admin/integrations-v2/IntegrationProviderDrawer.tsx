@@ -47,6 +47,17 @@ export function IntegrationProviderDrawer({
   const [savedSecrets, setSavedSecrets] = useState<Record<string, boolean>>({});
   const [loaded, setLoaded] = useState(false);
 
+  // Signature-only advanced config (signature_settings.settings_extra + brand_settings)
+  const [signerMode, setSignerMode] = useState<"simplified" | "complete">("simplified");
+  const [refusable, setRefusable] = useState<boolean>(true);
+  const [reminder, setReminder] = useState<"NONE" | "DAILY" | "WEEKLY">("WEEKLY");
+  const [deadlineDays, setDeadlineDays] = useState<string>("30");
+  const [repNome, setRepNome] = useState<string>("");
+  const [repEmail, setRepEmail] = useState<string>("");
+  const [repCpf, setRepCpf] = useState<string>("");
+  const [repCargo, setRepCargo] = useState<string>("");
+  const [savingExtras, setSavingExtras] = useState(false);
+
   const isConnected = connStatus === "connected";
   const fields = (provider.credential_schema || []) as CredentialField[];
   const tutorial = provider.tutorial;
