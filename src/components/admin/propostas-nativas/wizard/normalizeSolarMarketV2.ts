@@ -110,31 +110,64 @@ export async function normalizeSolarMarketV2Snapshot(
     ? custoKitTotal / totalModuloQtd
     : 0;
 
+  // RB-67: ler valores reais de sm_variables (key=snake_case do payload SM v2)
+  // antes de cair em regex. Evita "adivinhar" potência do nome do modelo em runtime.
+  const smPotenciaModulo = toNum(readSmVar(sm, "modulo_potencia"));
+  const smFabricanteModulo = String(readSmVar(sm, "modulo_fabricante") ?? "").trim();
+  const smModeloModulo = String(readSmVar(sm, "modulo_modelo") ?? "").trim();
+  const smQtdModulo = toNum(readSmVar(sm, "modulo_quantidade"));
+
   const itens = [
-    ...modulosRaw.map((m) => {
-      const modelo = String(m.item || m.modelo || "");
+    ...modulosRaw.map((m, idx) => {
+      const modeloKit = String(m.item || m.modelo || "");
+      // Para o primeiro/único módulo, prioriza valores canônicos do payload SM.
+      const modelo = idx === 0 && smModeloModulo ? smModeloModulo : modeloKit;
+      const fabricante = idx === 0 && smFabricanteModulo
+        ? smFabricanteModulo
+        : firstWord(modelo);
+      const potenciaW = idx === 0 && smPotenciaModulo > 0
+        ? smPotenciaModulo
+        : extractPotenciaFromModel(modelo); // fallback p/ snapshots sem sm_variables
+      const quantidade = idx === 0 && smQtdModulo > 0
+        ? smQtdModulo
+        : toNum(m.qnt ?? m.quantidade);
       return {
         id: crypto.randomUUID(),
         descricao: modelo,
-        fabricante: firstWord(modelo),
+        fabricante,
         modelo,
-        potencia_w: extractPotenciaFromModel(modelo),
-        quantidade: toNum(m.qnt ?? m.quantidade),
+        potencia_w: potenciaW,
+        quantidade,
         preco_unitario: toNum(m.unitCost ?? m.preco_unitario) || precoUnitModuloRateado,
         categoria: "modulo" as const,
         avulso: false,
         produto_ref: null,
       };
     }),
-    ...inversoresRaw.map((inv) => {
-      const modelo = String(inv.item || inv.modelo || "");
+    ...inversoresRaw.map((inv, idx) => {
+      const suffix = idx === 0 ? "" : `_${idx + 1}`;
+      const smModeloInv = String(readSmVar(sm, `inversor_modelo${suffix}`) ?? readSmVar(sm, "inversor_modelo") ?? "").trim();
+      const smFabInv = String(readSmVar(sm, `inversor_fabricante${suffix}`) ?? readSmVar(sm, "inversor_fabricante") ?? "").trim();
+      const smPotInv = toNum(
+        readSmVar(sm, `inversor_potencia_nominal${suffix}`) ??
+        readSmVar(sm, `inversor_potencia${suffix}`) ??
+        readSmVar(sm, "inversor_potencia_nominal") ??
+        readSmVar(sm, "inversor_potencia"),
+      );
+      const smQtdInv = toNum(readSmVar(sm, `inversor_quantidade${suffix}`) ?? readSmVar(sm, "inversor_quantidade"));
+
+      const modeloKit = String(inv.item || inv.modelo || "");
+      const modelo = smModeloInv || modeloKit;
+      const fabricante = smFabInv || firstWord(modelo);
+      const potenciaW = smPotInv > 0 ? smPotInv : extractPotenciaFromModel(modelo); // fallback
+      const quantidade = smQtdInv > 0 ? smQtdInv : (toNum(inv.qnt ?? inv.quantidade) || 1);
       return {
         id: crypto.randomUUID(),
         descricao: modelo,
-        fabricante: firstWord(modelo),
+        fabricante,
         modelo,
-        potencia_w: extractPotenciaFromModel(modelo),
-        quantidade: toNum(inv.qnt ?? inv.quantidade) || 1,
+        potencia_w: potenciaW,
+        quantidade,
         preco_unitario: toNum(inv.unitCost ?? inv.preco_unitario),
         categoria: "inversor" as const,
         avulso: false,
