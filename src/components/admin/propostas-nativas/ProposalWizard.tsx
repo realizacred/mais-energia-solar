@@ -197,7 +197,7 @@ function ProposalWizardContent() {
   const orcIdFromUrl = searchParams.get("orc_id");
   const propostaIdFromUrl = searchParams.get("proposta_id");
   const versaoIdFromUrl = searchParams.get("versao_id");
-  const projetoIdFromUrl = searchParams.get("projeto_id");
+  const projetoIdFromUrl = new URLSearchParams(window.location.search).get("projeto_id");
   const [step, setStep] = useState(0);
   const [projectContext, setProjectContext] = useState<{ dealId: string; customerId: string } | null>(null);
 
@@ -340,7 +340,6 @@ function ProposalWizardContent() {
   const [savedPropostaId, setSavedPropostaId] = useState<string | null>(null);
   const [savedVersaoId, setSavedVersaoId] = useState<string | null>(null);
   const [savedProjetoId, setSavedProjetoId] = useState<string | null>(projetoIdFromUrl || null);
-  console.log('[Wizard] projetoIdFromUrl:', projetoIdFromUrl, 'savedProjetoId:', savedProjetoId);
   const [savedDealId, setSavedDealId] = useState<string | null>(null);
 
   // Fetch projeto codigo for breadcrumb (Projetos > Projeto #XXXX > Nova Proposta)
