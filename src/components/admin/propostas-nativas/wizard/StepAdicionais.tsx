@@ -1,12 +1,14 @@
 import { formatKwp, formatPowerKw } from "@/lib/formatters/index";
 import { useState, useEffect } from "react";
-import { SunMedium, Cable, Pencil, LayoutGrid, Info } from "lucide-react";
+import { SunMedium, Cable, Pencil, LayoutGrid, Info, ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { EditarKitFechadoModal, type SelectedKit } from "./kit/EditarKitFechadoModal";
 import { EditarLayoutModal } from "./kit/EditarLayoutModal";
 import { toast } from "@/hooks/use-toast";
 import type { KitItemRow, LayoutArranjo } from "./types";
 import type { KitCardData } from "./kit/KitCard";
+import { useWizardContext } from "./WizardContext";
+import { useEquipmentCatalog } from "./useWizardDataLoaders";
 
 interface AdicionalItem {
   id: string;
@@ -17,14 +19,8 @@ interface AdicionalItem {
 }
 
 interface StepAdicionaisProps {
-  adicionais: AdicionalItem[];
-  onAdicionaisChange: (adicionais: AdicionalItem[]) => void;
-  itens: KitItemRow[];
-  onItensChange: (itens: KitItemRow[]) => void;
-  layouts: LayoutArranjo[];
-  onLayoutsChange: (layouts: LayoutArranjo[]) => void;
-  modulos?: any[];
-  inversores?: any[];
+  onNext?: () => void;
+  onBack?: () => void;
 }
 
 export type { AdicionalItem };
