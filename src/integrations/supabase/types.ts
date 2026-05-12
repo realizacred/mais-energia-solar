@@ -21552,6 +21552,7 @@ export type Database = {
           enabled: boolean
           provider: string | null
           sandbox_mode: boolean
+          settings_extra: Json
           tenant_id: string
           updated_at: string
           updated_by: string | null
@@ -21564,6 +21565,7 @@ export type Database = {
           enabled?: boolean
           provider?: string | null
           sandbox_mode?: boolean
+          settings_extra?: Json
           tenant_id: string
           updated_at?: string
           updated_by?: string | null
@@ -21576,6 +21578,7 @@ export type Database = {
           enabled?: boolean
           provider?: string | null
           sandbox_mode?: boolean
+          settings_extra?: Json
           tenant_id?: string
           updated_at?: string
           updated_by?: string | null
