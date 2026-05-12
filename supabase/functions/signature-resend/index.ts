@@ -22,11 +22,19 @@ function json(status: number, payload: unknown) {
 }
 
 async function resendAutentique(envelopeId: string, providerSignerId: string, apiToken: string) {
-  const query = `mutation ResendSignatures($public_ids: [UUID!]!) { resendSignatures(public_ids: $public_ids) }`;
+  // IMPORTANTE: public_ids é o ID do DOCUMENTO (envelope). Para reenviar apenas
+  // a um signatário específico usa-se o argumento `to_signer` com o public_id do signer.
+  // Sem `to_signer`, o Autentique reenvia para TODOS os pendentes do documento.
+  const query = `mutation ResendSignatures($public_ids: [UUID!]!, $to_signer: UUID) {
+    resendSignatures(public_ids: $public_ids, to_signer: $to_signer)
+  }`;
   const res = await fetch("https://api.autentique.com.br/v2/graphql", {
     method: "POST",
     headers: { "Authorization": `Bearer ${apiToken}`, "Content-Type": "application/json" },
-    body: JSON.stringify({ query, variables: { public_ids: [providerSignerId] } }),
+    body: JSON.stringify({
+      query,
+      variables: { public_ids: [envelopeId], to_signer: providerSignerId },
+    }),
   });
   const data = await res.json().catch(() => ({}));
   if (!res.ok || data?.errors?.length) {
