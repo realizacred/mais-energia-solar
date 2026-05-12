@@ -8,7 +8,7 @@
  */
 
 import { motion } from "framer-motion";
-import { TrendingUp, TrendingDown, AlertTriangle, Sun, ArrowRight } from "lucide-react";
+import { TrendingUp, TrendingDown, AlertTriangle, Sun, ArrowRight, Info } from "lucide-react";
 import { AnimatedSection } from "./AnimatedSection";
 import type { LandingSectionProps, CenarioData } from "./types";
 import { useProposalKPIs } from "../hooks/useProposalKPIs";
