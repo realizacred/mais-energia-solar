@@ -411,11 +411,11 @@ export function generateProposalMessage(
   const vars: Record<string, string> = {
     cliente_nome: ctx.clienteNome || "Cliente",
     potencia_kwp: ctx.potenciaKwp ? formatNumberBR(ctx.potenciaKwp) : "—",
-    modulos_qtd: ctx.modulosQtd?.toString() || "—",
+    modulos_qtd: ctx.modulosQtd != null ? ctx.modulosQtd.toString() : "—",
     modulo_potencia: ctx.moduloPotenciaW ? `${ctx.moduloPotenciaW}W` : "—",
     modulo_modelo: ctx.moduloModelo || "—",
     inversor_modelo: ctx.inversorModelo || "—",
-    consumo_mensal: ctx.consumoMensal ? formatNumberBR(ctx.consumoMensal) : "—",
+    consumo_mensal: ctx.consumoMensal != null ? formatNumberBR(ctx.consumoMensal) : "—",
     geracao_mensal: ctx.geracaoMensal ? formatNumberBR(ctx.geracaoMensal) : "—",
     economia_mensal: ctx.economiaMensal ? formatBRL(ctx.economiaMensal) : "—",
     valor_total: ctx.valorTotal ? formatBRL(ctx.valorTotal) : "—",
