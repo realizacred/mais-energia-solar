@@ -256,14 +256,7 @@ function ProposalWizardContent() {
 
   const currentStepKey = activeSteps[step]?.key || STEP_KEYS.LOCALIZACAO;
 
-  // Local state (UI only)
-  const [locGhiSeries, setLocGhiSeries] = useState<Record<string, number> | null>(null);
-  const [locSkipPoa, setLocSkipPoa] = useState(true);
-  const [locLatitude, setLocLatitude] = useState<number | null>(null);
-  const [mapSnapshots, setMapSnapshots] = useState<string[]>([]);
-  const [distanciaKm, setDistanciaKm] = useState<number>(0);
-  const [ucsRestoreEpoch, setUcsRestoreEpoch] = useState(0);
-  const [customFieldValues, setCustomFieldValues] = useState<Record<string, any>>({});
+  // Local UI state moved to WizardContext (Fase C)
   const { modulos, inversores, otimizadores, baterias, loadingEquip } = useEquipmentCatalog();
   const { bancos, loadingBancos } = useBancosCatalog();
 
