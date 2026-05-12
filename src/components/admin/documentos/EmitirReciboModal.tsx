@@ -225,6 +225,23 @@ export function EmitirReciboModal({
       });
     }
   }, [template, projectContext, proposalContext]);
+  // Em modo global (sem defaultProjetoId), ao escolher cliente buscar projeto principal
+  useEffect(() => {
+    if (defaultProjetoId) return;
+    if (!clienteId) return;
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase
+        .from("projetos")
+        .select("id")
+        .eq("cliente_id", clienteId)
+        .eq("is_principal", true)
+        .limit(1)
+        .maybeSingle();
+      if (!cancelled) setProjetoId(data?.id ?? null);
+    })();
+    return () => { cancelled = true; };
+  }, [clienteId, defaultProjetoId]);
 
 
   const schema: FormFieldSchema[] = useMemo(() => {
