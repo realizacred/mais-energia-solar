@@ -113,8 +113,8 @@ export interface CatalogKitSummary {
  */
 export async function fetchActiveKits(
   onlyGenerators = false, 
-  page = 1, 
-  pageSize = 50,
+  page = 0, 
+  pageSize = 20,
   filters?: {
     potenciaMin?: number;
     potenciaMax?: number;
@@ -143,8 +143,8 @@ export async function fetchActiveKits(
   }
 
   // Paginação
-  const from = (page - 1) * pageSize;
-  const to = from + pageSize - 1;
+  const from = page * pageSize;
+  const to = (page + 1) * pageSize - 1;
   
   query = query
     .order("name")

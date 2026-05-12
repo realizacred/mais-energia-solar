@@ -992,32 +992,7 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
                     );
                   })}
                 </div>
-                {/* Pagination */}
-                {totalKits > pageSize && (
-                  <div className="flex items-center justify-center gap-4 py-6 border-t border-border/40 mt-6">
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      onClick={prevPage} 
-                      disabled={page === 1}
-                      className="gap-1.5"
-                    >
-                      <ChevronLeft className="h-4 w-4" /> Anterior
-                    </Button>
-                    <span className="text-xs text-muted-foreground font-medium">
-                      Página {page} de {Math.ceil(totalKits / pageSize)}
-                    </span>
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      onClick={nextPage} 
-                      disabled={page >= Math.ceil(totalKits / pageSize)}
-                      className="gap-1.5"
-                    >
-                      Próxima <ChevronRight className="h-4 w-4" />
-                    </Button>
-                  </div>
-                )}
+{/* Pagination removed */}
               </div>
             ) : tab === "customizado" ? (
               /* ── Customizado Tab — manual kits + imported catalog kits ── */
