@@ -63,6 +63,7 @@ export function ClonePropostaModal({
   const [outroProjeto, setOutroProjeto] = useState(false);
   const [targetDealId, setTargetDealId] = useState("");
 
+  const navigate = useNavigate();
   const { mutate: clonar, isPending } = useCloneProposta();
   const { data: projetos, isLoading: loadingProjetos } = useProjetosParaClone(outroProjeto && open);
 
