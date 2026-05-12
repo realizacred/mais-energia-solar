@@ -184,6 +184,12 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
   const catalogLoaded = useRef(false);
   const [selectedSolaryumKitId, setSelectedSolaryumKitId] = useState<number | null>(null);
   const [hasRemovedAutoFilter, setHasNewRemovedAutoFilter] = useState(false);
+  
+  // Paginação
+  const [page, setPage] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
+  const pageSize = 20;
+  const listTopRef = useRef<HTMLDivElement>(null);
 
   // Derive selected catalog kit ID from manualKits meta
   const selectedCatalogKitId = useMemo(() => {
