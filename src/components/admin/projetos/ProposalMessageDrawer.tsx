@@ -8,6 +8,8 @@
  */
 
 import { useState, useEffect, useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import {
   MessageCircle, Mail, Copy, RefreshCw, User, Briefcase,
   AlignLeft, AlignJustify, CheckCircle, Loader2, Phone, AtSign, Info
@@ -108,12 +110,42 @@ export function ProposalMessageDrawer({
     }
   }, [open, tenantConfig, defaultsApplied]);
 
+  // Busca consultor vinculado à proposta (telefone/email do consultor responsável)
+  const { data: consultorContato } = useQuery({
+    queryKey: ["proposta-consultor-contato", propostaId],
+    queryFn: async () => {
+      if (!propostaId) return null;
+      const { data: prop, error: e1 } = await supabase
+        .from("propostas_nativas")
+        .select("consultor_id")
+        .eq("id", propostaId)
+        .maybeSingle();
+      if (e1) throw e1;
+      if (!prop?.consultor_id) return null;
+      const { data: cons, error: e2 } = await supabase
+        .from("consultores")
+        .select("telefone, email, nome")
+        .eq("id", prop.consultor_id)
+        .maybeSingle();
+      if (e2) throw e2;
+      return cons;
+    },
+    enabled: open && !!propostaId,
+    staleTime: 60_000,
+  });
+
+  // Auto-preenche telefone/email conforme destinatário selecionado.
+  // Sobrescreve sempre que abrir o modal ou trocar o destinatário (regra 2).
   useEffect(() => {
-    if (open) {
+    if (!open) return;
+    if (mode === "consultor") {
+      setDestinatarioTelefone(consultorContato?.telefone || "");
+      setDestinatarioEmail(consultorContato?.email || "");
+    } else {
       setDestinatarioTelefone(clienteTelefone || "");
       setDestinatarioEmail(clienteEmail || "");
     }
-  }, [open, clienteTelefone, clienteEmail]);
+  }, [open, mode, clienteTelefone, clienteEmail, consultorContato?.telefone, consultorContato?.email]);
 
   const { data: snapshot, isLoading: loadingSnapshot } = useProposalVersionSnapshot(
     open ? versaoId : null
