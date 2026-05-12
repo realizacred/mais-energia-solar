@@ -328,10 +328,14 @@ function ProjetoDetalheContent() {
   const [editingTitle, setEditingTitle] = useState(false);
   const [titleDraft, setTitleDraft] = useState("");
   const [savingTitle, setSavingTitle] = useState(false);
+  const [editProjetoOpen, setEditProjetoOpen] = useState(false);
+  const [editProjetoNome, setEditProjetoNome] = useState("");
+  const [editProjetoDescricao, setEditProjetoDescricao] = useState("");
+  const [savingProjeto, setSavingProjeto] = useState(false);
 
   const {
     deal, projetoId, loading, activeTab, setActiveTab, stages,
-    projetoNome, projetoCodigo, projetoNum,
+    projetoNome, projetoCodigo, projetoNum, projetoDescricao,
     customerName, customerPhone, customerEmail, customerCpfCnpj, customerEmpresa, customerAddress,
     ownerName, pipelines, allStagesMap, userNamesMap,
     currentStage, currentPipeline, projectCode,
@@ -343,6 +347,28 @@ function ProjetoDetalheContent() {
     isClosed, silentRefresh, refreshCustomer, formatDate, getStageNameById, tabBadge,
     dealId, onBack, initialPipelineId,
   } = ctx;
+
+  const handleSaveProjeto = async () => {
+    if (!projetoId) return;
+    setSavingProjeto(true);
+    const { error } = await supabase
+      .from("projetos")
+      .update({
+        nome: editProjetoNome.trim() || null,
+        observacoes: editProjetoDescricao.trim() || null,
+      })
+      .eq("id", projetoId);
+    setSavingProjeto(false);
+    if (error) {
+      toast({ title: "Erro ao salvar", description: error.message, variant: "destructive" });
+      return;
+    }
+    toast({ title: "Projeto atualizado" });
+    setEditProjetoOpen(false);
+    queryClient.invalidateQueries({ queryKey: ["projeto-detalhe"] });
+    queryClient.invalidateQueries({ queryKey: ["projetos-pipeline"] });
+    silentRefresh?.();
+  };
 
   if (loading) {
     return (
@@ -377,7 +403,7 @@ function ProjetoDetalheContent() {
           {/* Row 1: Title + Etiquetas + Actions */}
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-3">
             <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-wrap">
-              <div className="flex flex-col min-w-0">
+              <div className="flex flex-col min-w-0 gap-0.5">
                 {editingTitle ? (
                   <div className="flex items-center gap-2">
                     <Input
@@ -410,24 +436,36 @@ function ProjetoDetalheContent() {
                         queryClient.invalidateQueries({ queryKey: ["propostas-projeto-tab"] });
                         silentRefresh?.();
                       }}
-                      className="h-8 text-lg sm:text-2xl font-bold"
+                      className="h-8 text-lg sm:text-2xl font-medium"
                       placeholder="Nome do projeto"
                     />
                     {savingTitle && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
                   </div>
                 ) : (
-                  <h1
-                    className="text-lg sm:text-2xl font-bold text-foreground truncate max-w-full cursor-text hover:text-primary transition-colors"
-                    title="Clique para editar o nome do projeto"
-                    onClick={() => {
-                      setTitleDraft(projetoNome ?? "");
-                      setEditingTitle(true);
-                    }}
-                  >
-                    {getProjetoDisplayName({ nome: projetoNome, codigo: projetoCodigo, projeto_num: projetoNum })}
-                  </h1>
+                  <div className="flex items-center gap-2 flex-wrap min-w-0">
+                    <h1
+                      className="text-lg sm:text-2xl font-medium text-foreground truncate max-w-full cursor-text hover:text-primary transition-colors"
+                      title="Clique para editar o nome do projeto"
+                      onClick={() => {
+                        setTitleDraft(projetoNome ?? "");
+                        setEditingTitle(true);
+                      }}
+                    >
+                      {projetoNome?.trim() || customerName?.trim() || (projetoNum != null ? `Projeto #${projetoNum}` : null) || projetoCodigo || "Projeto sem nome"}
+                    </h1>
+                    {projetoCodigo && (
+                      <Badge variant="outline" className="text-[10px] font-mono text-muted-foreground shrink-0">
+                        {projetoCodigo}
+                      </Badge>
+                    )}
+                  </div>
                 )}
-                {customerName && (
+                {projetoDescricao && !editingTitle && (
+                  <p className="text-xs text-muted-foreground line-clamp-2 max-w-full">
+                    {projetoDescricao}
+                  </p>
+                )}
+                {customerName && projetoNome?.trim() && (
                   <span className="text-xs text-muted-foreground truncate max-w-full flex items-center gap-1">
                     <User className="h-3 w-3" />
                     {customerName}
@@ -441,6 +479,17 @@ function ProjetoDetalheContent() {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="start">
+                  <DropdownMenuItem
+                    onClick={() => {
+                      setEditProjetoNome(projetoNome ?? "");
+                      setEditProjetoDescricao(projetoDescricao ?? "");
+                      setEditProjetoOpen(true);
+                    }}
+                  >
+                    <Pencil className="h-4 w-4 mr-2" />
+                    Alterar Projeto
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
                   <DropdownMenuItem
                     className="text-destructive focus:text-destructive"
                     onClick={() => { setDeleteBlocking([]); handleDeleteProject(); }}
@@ -653,6 +702,49 @@ function ProjetoDetalheContent() {
           )}
         </motion.div>
       </AnimatePresence>
+
+      {/* ── Editar Projeto modal ── */}
+      <Dialog open={editProjetoOpen} onOpenChange={setEditProjetoOpen}>
+        <DialogContent onOpenAutoFocus={(e) => e.preventDefault()}>
+          <DialogHeader>
+            <DialogTitle>Alterar Projeto</DialogTitle>
+            <DialogDescription>Edite o nome e a descrição do projeto.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-1.5">
+              <Label htmlFor="edit-projeto-nome">Nome do projeto</Label>
+              <Input
+                id="edit-projeto-nome"
+                value={editProjetoNome}
+                onChange={(e) => setEditProjetoNome(e.target.value)}
+                placeholder="Ex: Usina Cliente XPTO"
+                disabled={savingProjeto}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="edit-projeto-descricao">Descrição</Label>
+              <Textarea
+                id="edit-projeto-descricao"
+                value={editProjetoDescricao}
+                onChange={(e) => setEditProjetoDescricao(e.target.value)}
+                placeholder="Notas, observações ou contexto do projeto"
+                rows={4}
+                disabled={savingProjeto}
+              />
+            </div>
+            {projetoCodigo && (
+              <p className="text-xs text-muted-foreground">Código: <span className="font-mono">{projetoCodigo}</span></p>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setEditProjetoOpen(false)} disabled={savingProjeto}>Cancelar</Button>
+            <Button onClick={handleSaveProjeto} disabled={savingProjeto}>
+              {savingProjeto && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              Salvar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* ── Confirm consultor change dialog ── */}
       <AlertDialog open={!!confirmConsultorId} onOpenChange={(open) => { if (!open) setConfirmConsultorId(null); }}>

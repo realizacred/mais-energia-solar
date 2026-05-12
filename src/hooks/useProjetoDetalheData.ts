@@ -34,6 +34,8 @@ export interface ProjetoDetalheFullData {
   projetoCodigo: string | null;
   /** Número humano do projeto (projetos.projeto_num) — fallback final. */
   projetoNum: number | null;
+  /** Descrição do projeto (projetos.observacoes). */
+  projetoDescricao: string | null;
   history: StageHistory[];
   stages: StageInfo[];
   customerName: string;
@@ -205,20 +207,22 @@ export function useProjetoDetalheData(dealId: string) {
         }
       }
 
-      // Fetch projeto identity (nome próprio, código, num) — separado do cliente.
+      // Fetch projeto identity (nome próprio, código, num, descrição) — separado do cliente.
       let projetoNome: string | null = null;
       let projetoCodigo: string | null = null;
       let projetoNum: number | null = null;
+      let projetoDescricao: string | null = null;
       if (d.projeto_id) {
         const { data: projetoIdent } = await supabase
           .from("projetos")
-          .select("nome, codigo, projeto_num")
+          .select("nome, codigo, projeto_num, observacoes")
           .eq("id", d.projeto_id)
           .maybeSingle();
         if (projetoIdent) {
           projetoNome = (projetoIdent as any).nome ?? null;
           projetoCodigo = (projetoIdent as any).codigo ?? null;
           projetoNum = (projetoIdent as any).projeto_num ?? null;
+          projetoDescricao = (projetoIdent as any).observacoes ?? null;
         }
       }
 
@@ -228,6 +232,7 @@ export function useProjetoDetalheData(dealId: string) {
         projetoNome,
         projetoCodigo,
         projetoNum,
+        projetoDescricao,
         history: historyData,
         stages: (rpcData.stages || []) as StageInfo[],
         customerName,

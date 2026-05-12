@@ -83,6 +83,8 @@ export interface ProjetoDetalheContextValue {
   projetoCodigo: string | null;
   /** Número humano do projeto (projetos.projeto_num). */
   projetoNum: number | null;
+  /** Descrição do projeto (projetos.observacoes). */
+  projetoDescricao: string | null;
   history: StageHistory[];
   stages: StageInfo[];
   loading: boolean;
@@ -195,6 +197,7 @@ export function ProjetoDetalheProvider({ dealId, onBack, initialPipelineId, init
   const projetoNome = fullData?.projetoNome ?? null;
   const projetoCodigo = fullData?.projetoCodigo ?? null;
   const projetoNum = fullData?.projetoNum ?? null;
+  const projetoDescricao = fullData?.projetoDescricao ?? null;
   const history = fullData?.history ?? [];
   const stages = fullData?.stages ?? [];
   const customerName = fullData?.customerName ?? "";
@@ -469,6 +472,7 @@ export function ProjetoDetalheProvider({ dealId, onBack, initialPipelineId, init
     projetoNome,
     projetoCodigo,
     projetoNum,
+    projetoDescricao,
     history,
     stages,
     loading: loadingData,
@@ -524,7 +528,7 @@ export function ProjetoDetalheProvider({ dealId, onBack, initialPipelineId, init
     tabBadge,
   }), [
     dealId, onBack, initialPipelineId, initialPipelineName,
-    deal, projetoId, projetoNome, projetoCodigo, projetoNum, history, stages, loadingData,
+    deal, projetoId, projetoNome, projetoCodigo, projetoNum, projetoDescricao, history, stages, loadingData,
     customerName, customerPhone, customerEmail, customerCpfCnpj, customerAddress, customerEmpresa,
     ownerName, pipelines, allStagesMap, propostasCountData, docsCount, userNamesMap,
     dealEtiquetas, allEtiquetas, etiquetaPopoverOpen,
