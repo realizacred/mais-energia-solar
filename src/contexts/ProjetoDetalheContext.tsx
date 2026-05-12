@@ -472,6 +472,7 @@ export function ProjetoDetalheProvider({ dealId, onBack, initialPipelineId, init
     projetoNome,
     projetoCodigo,
     projetoNum,
+    projetoDescricao,
     history,
     stages,
     loading: loadingData,
