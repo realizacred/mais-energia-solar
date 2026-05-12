@@ -640,3 +640,20 @@ function StepClienteForm({
     </div>
   );
 }
+
+// ── Wrapper consuming WizardContext (Fase C) ──────────────────────────────
+import { useWizardContext } from "./WizardContext";
+
+export function StepCliente({ fromProject }: { fromProject?: boolean } = {}) {
+  const { selectedLead, setSelectedLead, handleSelectLead, cliente, setCliente } = useWizardContext();
+  return (
+    <StepClienteImpl
+      selectedLead={selectedLead}
+      onSelectLead={handleSelectLead}
+      onClearLead={() => setSelectedLead(null)}
+      cliente={cliente}
+      onClienteChange={setCliente}
+      fromProject={fromProject}
+    />
+  );
+}
