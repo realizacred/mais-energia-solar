@@ -229,5 +229,18 @@ function CustomFieldInput({ field, value, onChange, dealId }: {
           <Input value={value || ""} onChange={e => onChange(e.target.value)} className="h-9 text-xs" />
         </div>
       );
-  }
+}
+
+// ── Wrapper consuming WizardContext (Fase C) ──────────────────────────────
+import { useWizardContext } from "./WizardContext";
+
+export function StepCamposCustomizados({ dealId }: { dealId?: string | null } = {}) {
+  const { customFieldValues, setCustomFieldValues } = useWizardContext();
+  return (
+    <StepCamposCustomizadosImpl
+      values={customFieldValues}
+      onValuesChange={setCustomFieldValues as (v: Record<string, any>) => void}
+      dealId={dealId}
+    />
+  );
 }
