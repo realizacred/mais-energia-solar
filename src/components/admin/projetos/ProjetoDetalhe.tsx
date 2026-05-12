@@ -1348,6 +1348,22 @@ function GerenciamentoTab({
               if (toName) return toName;
               if (fromName) return `${fromName} → (removido)`;
             }
+            // Stage changed: resolve UUID → stage name via helper
+            if (e.event_type === "stage_changed") {
+              const fromName = e.from_value ? getStageNameById(e.from_value) : null;
+              const toName = e.to_value ? getStageNameById(e.to_value) : null;
+              if (fromName && toName) return `${fromName} → ${toName}`;
+              if (toName) return toName;
+              if (fromName) return `${fromName} → (removido)`;
+            }
+            // Pipeline changed/added/removed: resolve UUID → pipeline name
+            if (e.event_type === "pipeline_changed" || e.event_type === "pipeline_added" || e.event_type === "pipeline_removed") {
+              const fromName = e.from_value ? (pipelineNameMap.get(e.from_value) || e.from_value) : null;
+              const toName = e.to_value ? (pipelineNameMap.get(e.to_value) || e.to_value) : null;
+              if (fromName && toName) return `${fromName} → ${toName}`;
+              if (toName) return toName;
+              if (fromName) return fromName;
+            }
             // Value changed: format as BRL
             if (e.event_type === "value_changed" && e.from_value && e.to_value) {
               const from = parseFloat(e.from_value);
