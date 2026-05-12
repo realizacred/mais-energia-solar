@@ -12,52 +12,12 @@ import {
 import { cn } from "@/lib/utils";
 import { formatPhoneBR } from "@/lib/formatters";
 import { resolveCustoKit } from "./types";
+import { useWizardContext } from "./WizardContext";
+import { usePrecoFinal } from "@/hooks/usePrecoFinal";
 
 interface StepResumoProps {
-  // Location
-  estado: string;
-  cidade: string;
-  tipoTelhado: string;
-  distribuidoraNome: string;
-  irradiacao: number;
-  // Client
-  clienteNome: string;
-  clienteCelular?: string;
-  clienteEmail?: string;
-  clienteEmpresa?: string;
-  leadNome?: string;
-  // System
-  potenciaKwp: number;
-  consumoTotal: number;
-  geracaoMensalKwh: number;
-  numUcs: number;
-  grupo: string;
-  // Kit
-  itens: Array<{ descricao: string; quantidade: number; preco_unitario: number; categoria: string }>;
-  /** Override manual do custo do kit (do Centro Financeiro) */
-  custoKitOverride?: number | null;
-  // Adicionais
-  adicionais: Array<{ descricao: string; quantidade: number; preco_unitario: number }>;
-  // Servicos
-  servicos: Array<{ descricao: string; valor: number; incluso_no_preco: boolean }>;
-  // Venda
-  precoFinal: number;
-  margemPercentual: number;
-  custoInstalacao: number;
-  custoComissao: number;
-  custoOutros: number;
-  descontoPercentual: number;
-  // Pagamento
-  pagamentoOpcoes: Array<{
-    nome: string;
-    tipo: string;
-    num_parcelas: number;
-    valor_parcela: number;
-    entrada: number;
-    taxa_mensal?: number;
-    valor_financiado?: number;
-    carencia_meses?: number;
-  }>;
+  onBack: () => void;
+  onNext: () => void;
 }
 
 
@@ -91,13 +51,62 @@ function getTipoBadgeColor(tipo: string): string {
 }
 
 export function StepResumo({
-  estado, cidade, tipoTelhado, distribuidoraNome, irradiacao,
-  clienteNome, clienteCelular, clienteEmail, clienteEmpresa, leadNome,
-  potenciaKwp, consumoTotal, geracaoMensalKwh, numUcs, grupo,
-  itens, custoKitOverride, adicionais, servicos,
-  precoFinal, margemPercentual, custoInstalacao, custoComissao, custoOutros, descontoPercentual,
-  pagamentoOpcoes,
+  onBack, onNext
 }: StepResumoProps) {
+  const {
+    locEstado: estado,
+    locCidade: cidade,
+    locTipoTelhado: tipoTelhado,
+    locDistribuidoraNome: distribuidoraNome,
+    locIrradiacao: irradiacao,
+    cliente,
+    selectedLead,
+    potenciaKwp,
+    ucs,
+    grupo,
+    itens,
+    adicionais,
+    servicos,
+    venda,
+    pagamentoOpcoes,
+    preDimensionamento,
+  } = useWizardContext();
+
+  // Dados derivados do cliente/lead
+  const clienteNome = cliente.nome;
+  const clienteCelular = cliente.telefone;
+  const clienteEmail = cliente.email;
+  const clienteEmpresa = cliente.empresa;
+  const leadNome = selectedLead?.name;
+  
+  const numUcs = ucs.length;
+  const consumoTotal = ucs.reduce((s, u) => s + (u.consumo_mensal || u.consumo_mensal_p + u.consumo_mensal_fp), 0);
+  
+  const precoFinal = usePrecoFinal(itens, servicos, venda);
+
+  // Geração estimada (re-implementada para ser independente ou consumida do contexto se disponível)
+  const topologiaAtiva = (itens.length > 0 ? (itens.find(i => i.categoria === "inversor")?.modelo?.toLowerCase() ?? "tradicional") : "tradicional");
+  const fatorGeracaoAtivo = preDimensionamento.topologia_configs?.[topologiaAtiva]?.fator_geracao ?? preDimensionamento.fator_geracao ?? 0;
+  
+  const geracaoMensalKwh = useMemo(() => {
+    if (potenciaKwp <= 0) return 0;
+    if (fatorGeracaoAtivo > 0) return Math.round(potenciaKwp * fatorGeracaoAtivo);
+    if (irradiacao > 0) {
+      const ucGeradora = ucs.find(u => u.is_geradora);
+      const pr = (ucGeradora?.taxa_desempenho ?? 80) / 100;
+      return Math.round(potenciaKwp * irradiacao * 30 * pr);
+    }
+    return 0;
+  }, [potenciaKwp, fatorGeracaoAtivo, irradiacao, ucs]);
+
+  // Valores de custo (origem: venda)
+  const custoInstalacao = venda.custo_instalacao;
+  const custoComissao = venda.custo_comissao;
+  const custoOutros = venda.custo_outros;
+  const descontoPercentual = venda.desconto_percentual;
+  const margemPercentual = venda.margem_percentual;
+  const custoKitOverride = venda.custo_kit_override;
+
   // Fase A — SSOT: usa resolveCustoKit em vez de lógica inline duplicada.
   const custoKit = resolveCustoKit({ itens, custoKitOverride });
   const custoAdicionais = adicionais.reduce((s, i) => s + (i.quantidade * i.preco_unitario), 0);
