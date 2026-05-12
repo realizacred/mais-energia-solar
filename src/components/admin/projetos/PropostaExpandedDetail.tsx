@@ -1598,7 +1598,7 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
                   <span className="text-xs">Carregando dados...</span>
                 </div>
               ) : (
-                <>
+                <WizardProvider>
                   <TabsContent value="resumo" className="px-4 pb-4 mt-0">
                     {(snapshot as Record<string, any>)?.source === "legacy_import" ? (
                       <SmResumoTab snapshot={snapshot as Record<string, any>} latestVersao={latestVersao} wpPrice={wpPrice} />
@@ -1609,12 +1609,10 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
 
                   <TabsContent value="arquivo" className="px-4 pb-4 mt-0">
                     <div className="mt-3">
-                      <WizardProvider>
-                        <StepDocumento
-                          onViewDetail={() => {}}
-                          skipTemplateAutoSelect={true}
-                        />
-                      </WizardProvider>
+                      <StepDocumento
+                        onViewDetail={() => {}}
+                        skipTemplateAutoSelect={true}
+                      />
 
                     </div>
                   </TabsContent>
@@ -1680,7 +1678,7 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
                       />
                     </div>
                   </TabsContent>
-                </>
+                </WizardProvider>
               )}
             </Tabs>
           </div>
