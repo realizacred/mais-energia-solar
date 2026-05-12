@@ -21,20 +21,25 @@ import {
   redeAtendimentoToFaseTensao,
 } from "./types";
 import solarBuildingImg from "@/assets/solar-building.png";
+import { useWizardContext } from "./WizardContext";
 
 
-interface Props {
-  ucs: UCData[];
-  onUcsChange: (ucs: UCData[]) => void;
-  grupo: string;
-  onGrupoChange: (g: string) => void;
-  potenciaKwp: number;
-  onPotenciaChange: (p: number) => void;
-  leadFase?: string | null;
+
+interface StepUCsProps {
+  onNext?: () => void;
+  onBack?: () => void;
 }
 
 
-export function StepUCsEnergia({ ucs, onUcsChange, grupo, onGrupoChange, potenciaKwp, onPotenciaChange, leadFase }: Props) {
+export function StepUCsEnergia({ onNext, onBack }: StepUCsProps) {
+  const {
+    ucs, setUcs: onUcsChange,
+    grupo, setGrupo: onGrupoChange,
+    potenciaKwp, setPotenciaKwp: onPotenciaChange,
+    selectedLead
+  } = useWizardContext();
+  const leadFase = selectedLead?.rede_atendimento;
+
   const [concessionarias, setConcessionarias] = useState<Concessionaria[]>([]);
   const [loadingConc, setLoadingConc] = useState(false);
   const [configModalUC, setConfigModalUC] = useState<number | null>(null);

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Plus, Trash2, Wrench, Info, ChevronDown, ChevronRight, Sparkles } from "lucide-react";
+import { Plus, Trash2, Wrench, Info, ChevronDown, ChevronRight, Sparkles, ChevronLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { CurrencyInput } from "@/components/ui-kit/inputs/CurrencyInput";
@@ -9,6 +9,7 @@ import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { type ServicoItem, type KitItemRow, type VendaData, formatBRL } from "./types";
 import { useSolarPremises } from "@/hooks/useSolarPremises";
+import { useWizardContext } from "./WizardContext";
 
 const CATEGORIAS_SERVICO = [
   { value: "instalacao", label: "Instalação" },
@@ -29,18 +30,19 @@ interface ResumoItem {
 }
 
 interface StepServicosProps {
-  servicos: ServicoItem[];
-  onServicosChange: (servicos: ServicoItem[]) => void;
-  /** Venda data for installation/commission values in sidebar */
-  venda?: VendaData;
-  /** Kit items for building the Resumo sidebar */
-  kitItens?: KitItemRow[];
-  potenciaKwp?: number;
-  /** Override manual do custo do kit (do Centro Financeiro) */
-  custoKitOverride?: number | null;
+  onNext?: () => void;
+  onBack?: () => void;
 }
 
-export function StepServicos({ servicos, onServicosChange, venda, kitItens = [], potenciaKwp = 0, custoKitOverride }: StepServicosProps) {
+export function StepServicos({ onNext, onBack }: StepServicosProps) {
+  const {
+    servicos, setServicos: onServicosChange,
+    venda,
+    itens: kitItens,
+    potenciaKwp
+  } = useWizardContext();
+  const custoKitOverride = venda.custo_kit_override;
+
   const [kitExpanded, setKitExpanded] = useState(false);
   const { data: premises } = useSolarPremises();
 

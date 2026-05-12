@@ -1,195 +1,259 @@
-import { useState, useEffect } from "react";
-import { Loader2, Sparkles, AlertTriangle, Check } from "lucide-react";
+import { useState, useEffect, useMemo } from "react";
+import { DollarSign, Plus, Trash2, Edit2, RotateCcw, ChevronLeft, ChevronRight } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { CurrencyInput } from "@/components/ui-kit/inputs";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { Badge } from "@/components/ui/badge";
-import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { formatNumberBR } from "@/lib/formatters";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { supabase } from "@/integrations/supabase/client";
-import { CurrencyInput } from "@/components/ui-kit/inputs/CurrencyInput";
-import { type VendaData, type KitItemRow, type ServicoItem, formatBRL } from "./types";
-import { roundCurrency } from "@/lib/formatters";
 import { cn } from "@/lib/utils";
+import { type VendaData, formatBRL, resolveCustoKit } from "./types";
+import { roundCurrency } from "@/lib/formatters";
 import { usePricingDefaults } from "./hooks/usePricingDefaults";
-import { toast } from "@/hooks/use-toast";
+import { usePricingConfig } from "./hooks/usePricingConfig";
+import { useWizardContext } from "./WizardContext";
 
-interface StepVendaProps {
-  venda: VendaData;
-  onVendaChange: (venda: VendaData) => void;
-  itens: KitItemRow[];
-  servicos: ServicoItem[];
-  potenciaKwp?: number;
+interface CustoRow {
+  id: string;
+  categoria: string;
+  item: string;
+  quantidade: number;
+  custoUnitario: number;
+  fixo: boolean;
+  checked: boolean;
 }
 
-export function StepVenda({ venda, onVendaChange, itens, servicos, potenciaKwp = 0 }: StepVendaProps) {
+interface StepVendaProps {
+  onNext?: () => void;
+  onBack?: () => void;
+}
+
+type ViewMode = "resumido" | "detalhado";
+
+export function StepFinancialCenter({ onNext, onBack }: StepVendaProps) {
+  const { 
+    venda, 
+    handleVendaChange: onVendaChange, 
+    itens, 
+    servicos, 
+    potenciaKwp, 
+    selectedLead 
+  } = useWizardContext();
+  
+  const leadId = selectedLead?.id;
+
+  const instalacaoServico = servicos.find(s => s.categoria === "instalacao");
+  const comissaoServico = servicos.find(s => s.categoria === "comissao");
+
   const [loadedDefaults, setLoadedDefaults] = useState(false);
-  const [descontoMax, setDescontoMax] = useState(100);
+  const [viewMode, setViewMode] = useState<ViewMode>("detalhado");
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editMode, setEditMode] = useState<"margem" | "preco">("margem");
+  const [editValue, setEditValue] = useState("0");
+  
+  const [custosExtras, setCustosExtras] = useState<CustoRow[]>(() => {
+    if (venda.custos_extras && venda.custos_extras.length > 0) {
+      return venda.custos_extras.map(e => ({
+        id: e.id,
+        categoria: "Outros",
+        item: e.item,
+        quantidade: e.quantidade,
+        custoUnitario: e.custo_unitario,
+        fixo: false,
+        checked: e.checked,
+      }));
+    }
+    return [];
+  });
+  
+  const [instalacaoEnabled, setInstalacaoEnabled] = useState(venda.instalacao_enabled ?? true);
+  const [comissaoEnabled, setComissaoEnabled] = useState(venda.comissao_enabled ?? true);
+  const [instalacaoQtd, setInstalacaoQtd] = useState(1);
+  const [comissaoQtd, setComissaoQtd] = useState(1);
+  const [instalacaoCusto, setInstalacaoCusto] = useState(venda.custo_instalacao > 0 ? venda.custo_instalacao : (instalacaoServico?.valor || 0));
+  const [comissaoCusto, setComissaoCusto] = useState(venda.custo_comissao > 0 ? venda.custo_comissao : (comissaoServico?.valor || 0));
+  const [kitCustoOverride, setKitCustoOverride] = useState<number | null>(venda.custo_kit_override ?? null);
+  const [comissaoManualOverride, setComissaoManualOverride] = useState(venda.comissao_manual_override ?? false);
+  const { suggested, loading: loadingHistory } = usePricingDefaults(potenciaKwp);
+  const { data: pricingConfig } = usePricingConfig();
 
-  const { suggested, loading: loadingHistory, hasHistory } = usePricingDefaults(potenciaKwp);
+  const outrosServicos = useMemo(() =>
+    servicos.filter(s => s.categoria !== "instalacao" && s.categoria !== "comissao" && s.valor > 0),
+    [servicos]
+  );
+  
+  const [servicosEnabledMap, setServicosEnabledMap] = useState<Record<string, boolean>>(venda.servicos_enabled_map ?? {});
+  const isServicoEnabled = (id: string) => servicosEnabledMap[id] ?? true;
 
-  // Load pricing_config defaults once (SSOT for initial margin)
   useEffect(() => {
-    if (loadedDefaults) return;
-    supabase
-      .from("pricing_config")
-      .select("margem_minima_percent, comissao_padrao_percent, desconto_maximo_percent")
-      .limit(1)
-      .maybeSingle()
-      .then(({ data }) => {
-        if (data) {
-          const d = data as any;
-          if (venda.margem_percentual === 20 && d.margem_minima_percent) {
-            onVendaChange({
-              ...venda,
-              margem_percentual: d.margem_minima_percent,
-            });
-          }
-          if (d.desconto_maximo_percent) setDescontoMax(d.desconto_maximo_percent);
+    if (loadedDefaults || !pricingConfig) return;
+    if (venda.margem_percentual === 20 && pricingConfig.margem_minima_percent) {
+      onVendaChange({ ...venda, margem_percentual: pricingConfig.margem_minima_percent });
+    }
+    setLoadedDefaults(true);
+  }, [pricingConfig]);
+
+  useEffect(() => {
+    if (loadingHistory) return;
+    if (instalacaoCusto > 0) return;
+    if (suggested?.custo_instalacao != null && suggested.custo_instalacao > 0) {
+      setInstalacaoCusto(suggested.custo_instalacao);
+    }
+  }, [suggested, loadingHistory, instalacaoCusto]);
+
+  const [comissaoLoaded, setComissaoLoaded] = useState(false);
+  const [percentualComissaoConsultor, setPercentualComissaoConsultor] = useState<number>(0);
+  const [consultorNome, setConsultorNome] = useState<string>("");
+
+  useEffect(() => {
+    if (comissaoLoaded || !leadId) return;
+    (async () => {
+      try {
+        const { data: lead } = await supabase
+          .from("leads")
+          .select("consultor_id")
+          .eq("id", leadId)
+          .maybeSingle();
+        const consultorId = lead?.consultor_id;
+        if (!consultorId) {
+          setComissaoLoaded(true);
+          return;
         }
-        setLoadedDefaults(true);
-      });
-  }, []);
 
-  const update = (field: keyof VendaData, value: any) => {
-    onVendaChange({ ...venda, [field]: value });
-  };
+        const { data: consultor } = await supabase
+          .from("consultores")
+          .select("id, nome, user_id, percentual_comissao")
+          .eq("id", consultorId)
+          .maybeSingle();
 
-  const custoKit = roundCurrency(itens.reduce((s, i) => s + roundCurrency(i.quantidade * i.preco_unitario), 0));
-  const custoServicos = roundCurrency(servicos.filter(s => s.incluso_no_preco).reduce((s, i) => s + i.valor, 0));
-  const custoBase = roundCurrency(custoKit + custoServicos + venda.custo_comissao + venda.custo_outros);
-  // Margem aplicada sobre custos SEM comissão (comissão não recebe markup)
-  const custoParaMargem = roundCurrency(custoKit + custoServicos + venda.custo_outros);
-  const margemValor = roundCurrency(custoParaMargem * (venda.margem_percentual / 100));
-  const precoComMargem = roundCurrency(custoBase + margemValor);
-  const precoSlider = precoComMargem; // Preço alvo sem o desconto
-  const margemMeta = precoSlider > 0 && custoBase > 0 ? ((precoSlider - custoBase) / precoSlider) * 100 : null;
+        const nome = (consultor as any)?.nome ?? "";
+        const consultorPercent = Number((consultor as any)?.percentual_comissao) || 0;
+        setConsultorNome(nome);
 
-  const descontoValor = roundCurrency(precoComMargem * (venda.desconto_percentual / 100));
-  const precoFinal = roundCurrency(precoComMargem - descontoValor);
-  const margemLiquida = precoFinal > 0 && custoBase > 0 ? ((precoFinal - custoBase) / precoFinal) * 100 : null;
-  const isMargemOk = margemLiquida !== null && margemMeta !== null ? margemLiquida >= margemMeta - 0.01 : true; // tolerance for rounding
+        if (consultorPercent > 0) {
+          setPercentualComissaoConsultor(consultorPercent);
+        } else {
+          const userId = (consultor as any)?.user_id;
+          if (userId) {
+            const { data: assignment } = await supabase
+              .from("user_pricing_assignments" as any)
+              .select("commission_plan_id")
+              .eq("user_id", userId)
+              .maybeSingle();
+            const planId = (assignment as any)?.commission_plan_id;
+            if (planId) {
+              const { data: plan } = await supabase
+                .from("commission_plans" as any)
+                .select("parameters")
+                .eq("id", planId)
+                .eq("is_active", true)
+                .maybeSingle();
+              const params = (plan as any)?.parameters;
+              const planPercent = typeof params === "object" && params !== null
+                ? (Number(params.percentual) || Number(params.rate) || 0)
+                : 0;
+              if (planPercent > 0) setPercentualComissaoConsultor(planPercent);
+            }
+          }
+        }
+      } catch (e) {
+        console.warn("[Comissão] Erro ao buscar consultor:", e);
+      }
+      setComissaoLoaded(true);
+    })();
+  }, [leadId, pricingConfig]);
+
+  useEffect(() => {
+    const newInstalacao = instalacaoEnabled ? roundCurrency(instalacaoQtd * instalacaoCusto) : 0;
+    const newComissao = comissaoEnabled ? roundCurrency(comissaoQtd * comissaoCusto) : 0;
+    const servicosOutrosTotal = outrosServicos
+      .filter(s => isServicoEnabled(s.id))
+      .reduce((s, sv) => s + sv.valor, 0);
+    const extrasTotal = custosExtras.filter(c => c.checked).reduce((s, c) => s + roundCurrency(c.quantidade * c.custoUnitario), 0);
+    const newOutros = roundCurrency(servicosOutrosTotal + extrasTotal);
+
+    onVendaChange({
+      ...venda,
+      custo_instalacao: newInstalacao,
+      custo_comissao: newComissao,
+      custo_outros: newOutros,
+      comissao_manual_override: comissaoManualOverride,
+      instalacao_enabled: instalacaoEnabled,
+      comissao_enabled: comissaoEnabled,
+      custos_extras: custosExtras.map(c => ({ id: c.id, item: c.item, quantidade: c.quantidade, custo_unitario: c.custoUnitario, checked: c.checked })),
+      servicos_enabled_map: servicosEnabledMap,
+      percentual_comissao_consultor: percentualComissaoConsultor,
+      consultor_nome_comissao: consultorNome,
+    });
+  }, [instalacaoEnabled, instalacaoQtd, instalacaoCusto, comissaoEnabled, comissaoQtd, comissaoCusto, custosExtras, outrosServicos, servicosEnabledMap, comissaoManualOverride]);
+
+  const custoKitEfetivo = resolveCustoKit({ itens, custoKitOverride: kitCustoOverride });
+  const kitLabel = potenciaKwp > 0 ? `Kit fotovoltaico ${potenciaKwp.toFixed(2)} kWp` : "Kit fotovoltaico";
+
+  const allRows = useMemo<CustoRow[]>(() => {
+    const rows: CustoRow[] = [
+      { id: "kit", categoria: "KIT", item: kitLabel, quantidade: 1, custoUnitario: custoKitEfetivo, fixo: true, checked: true },
+      { id: "instalacao", categoria: "Instalação", item: "Instalação", quantidade: instalacaoQtd, custoUnitario: instalacaoCusto, fixo: true, checked: instalacaoEnabled }
+    ];
+    outrosServicos.forEach(s => rows.push({ id: `servico-${s.id}`, categoria: "Serviço", item: s.descricao || s.categoria, quantidade: 1, custoUnitario: s.valor, fixo: true, checked: isServicoEnabled(s.id) }));
+    rows.push({ id: "comissao", categoria: "Comissão", item: "Comissão", quantidade: comissaoQtd, custoUnitario: comissaoCusto, fixo: true, checked: comissaoEnabled });
+    custosExtras.forEach(c => rows.push(c));
+    return rows;
+  }, [custoKitEfetivo, kitLabel, instalacaoQtd, instalacaoCusto, instalacaoEnabled, comissaoQtd, comissaoCusto, comissaoEnabled, custosExtras, outrosServicos, servicosEnabledMap]);
+
+  const custoTotal = roundCurrency(allRows.filter(r => r.checked).reduce((s, r) => s + roundCurrency(r.quantidade * r.custoUnitario), 0));
+  const margemPercent = venda.margem_percentual;
+  const custoParaMargem = roundCurrency(allRows.filter(r => r.checked && r.id !== "comissao").reduce((s, r) => s + roundCurrency(r.quantidade * r.custoUnitario), 0));
+  const margemValor = roundCurrency(custoParaMargem * (margemPercent / 100));
+  const precoVenda = roundCurrency(custoTotal + margemValor);
+
+  const custoSemComissao = roundCurrency(allRows.filter(r => r.checked && r.id !== "comissao").reduce((s, r) => s + roundCurrency(r.quantidade * r.custoUnitario), 0));
+  const precoVendaSemComissao = roundCurrency(custoSemComissao * (1 + margemPercent / 100));
+
+  useEffect(() => {
+    if (!comissaoEnabled || percentualComissaoConsultor <= 0 || !comissaoLoaded || precoVendaSemComissao <= 0 || comissaoManualOverride) return;
+    const calculado = roundCurrency(precoVendaSemComissao * percentualComissaoConsultor / 100);
+    if (Math.abs(comissaoCusto - calculado) > 0.01) setComissaoCusto(calculado);
+  }, [precoVendaSemComissao, percentualComissaoConsultor, comissaoEnabled, comissaoLoaded, comissaoManualOverride]);
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-6">
-      {/* ── Left: Controls ── */}
-      <div className="flex-1 min-w-0 space-y-5">
-        {/* Margem */}
-        <div className="space-y-3 p-4 rounded-xl border border-border/50 bg-muted/10">
-          <div className="flex items-center justify-between">
-            <Label className="font-semibold">Margem de Lucro</Label>
-            <Badge variant="secondary" className="text-sm font-bold">{venda.margem_percentual}%</Badge>
-          </div>
-          <Slider value={[venda.margem_percentual]} onValueChange={v => update("margem_percentual", v[0])} min={0} max={80} step={1} />
-          <div className="flex justify-between text-[10px] text-muted-foreground">
-            <span>0%</span><span>20%</span><span>40%</span><span>60%</span><span>80%</span>
-          </div>
-          {/* Indicador de margem sugerida/histórica */}
-          <p className="text-xs text-muted-foreground mt-1">
-            💡 {hasHistory ? "Sua margem histórica média" : "Margem sugerida"}: {hasHistory && suggested?.margem_percentual != null ? (Math.round(suggested.margem_percentual * 10) / 10) : "20"}%
-            <span className="mx-2">|</span>
-            {margemLiquida === null ? (
-              <span className="text-muted-foreground italic">Adicione itens ao kit para calcular a margem</span>
-            ) : margemMeta === null ? (
-              <span className="inline-flex items-center gap-1">
-                Margem atual: <span className="font-bold text-success">{margemLiquida.toFixed(1)}%</span>
-              </span>
-            ) : (
-              <span className="inline-flex items-center gap-1">
-                Meta: <span className="font-semibold text-foreground">{margemMeta.toFixed(1)}%</span>
-                <span className="mx-1">|</span>
-                Atual: <span className={cn("font-bold flex items-center gap-0.5", isMargemOk ? "text-success" : "text-destructive")}>
-                  {margemLiquida.toFixed(1)}%
-                  {isMargemOk ? <Check className="h-3 w-3" /> : <AlertTriangle className="h-3 w-3" />}
-                </span>
-              </span>
-            )}
-          </p>
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <h3 className="text-base font-bold flex items-center gap-2">
+          <DollarSign className="h-4 w-4 text-primary" /> Venda
+        </h3>
+      </div>
+      <div className="p-4 bg-muted/20 rounded-lg border border-border/50">
+        <div className="flex items-center justify-between">
+          <span className="text-sm font-medium">Preço Final Sugerido</span>
+          <span className="text-lg font-bold text-primary">{formatBRL(precoVenda)}</span>
         </div>
-
-        {/* Custos adicionais + desconto */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div className="space-y-1.5">
-            <Label className="text-xs">Comissão</Label>
-            <CurrencyInput value={venda.custo_comissao || 0} onChange={v => update("custo_comissao", v)} className="h-9" />
-          </div>
-          <div className="space-y-1.5">
-            <Label className="text-xs">Outros custos</Label>
-            <CurrencyInput value={venda.custo_outros || 0} onChange={v => update("custo_outros", v)} className="h-9" />
-          </div>
-          <div className="space-y-1.5">
-            <Label className="text-xs">Desconto (%) <span className="text-muted-foreground font-normal">máx {descontoMax}%</span></Label>
-            <Input 
-              type="number" 
-              min={0} 
-              max={descontoMax} 
-              value={venda.desconto_percentual === 0 ? "" : venda.desconto_percentual} 
-              onChange={e => {
-                const val = e.target.value === "" ? 0 : Number(e.target.value);
-                update("desconto_percentual", Math.min(val, descontoMax));
-              }} 
-              placeholder="0" 
-              className="h-9" 
-            />
-          </div>
-        </div>
-
-        {/* Observações */}
-        <div className="space-y-2">
-          <Label>Observações (opcional)</Label>
-          <Textarea value={venda.observacoes} onChange={e => update("observacoes", e.target.value)} placeholder="Notas, condições especiais..." rows={3} />
+        <div className="mt-2 text-xs text-muted-foreground">
+          Baseado em uma margem de {margemPercent.toFixed(2)}% sobre custos diretos.
         </div>
       </div>
 
-      {/* ── Right: Summary (sticky sidebar) ── */}
-      <div className="hidden lg:block">
-        <div className="rounded-xl border border-border/50 overflow-hidden sticky top-4">
-          <div className="bg-muted/30 px-4 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Resumo de Custos</div>
-          <div className="divide-y divide-border/30">
-            <div className="flex justify-between px-4 py-2.5 text-sm">
-              <span className="text-muted-foreground">Custo Equipamentos</span>
-              <span className="font-medium">{formatBRL(custoKit)}</span>
-            </div>
-            <div className="flex justify-between px-4 py-2.5 text-sm">
-              <span className="text-muted-foreground">Custo Serviços (inclusos)</span>
-              <span className="font-medium">{formatBRL(custoServicos)}</span>
-            </div>
-            {venda.custo_comissao > 0 && (
-              <div className="flex justify-between px-4 py-2.5 text-sm">
-                <span className="text-muted-foreground">Comissão</span>
-                <span className="font-medium">{formatBRL(venda.custo_comissao)}</span>
-              </div>
-            )}
-            {venda.custo_outros > 0 && (
-              <div className="flex justify-between px-4 py-2.5 text-sm">
-                <span className="text-muted-foreground">Outros custos</span>
-                <span className="font-medium">{formatBRL(venda.custo_outros)}</span>
-              </div>
-            )}
-            <div className="flex justify-between px-4 py-2.5 text-sm">
-              <span className="text-muted-foreground">Margem ({venda.margem_percentual}%)</span>
-              <span className="font-medium text-success">{formatBRL(margemValor)}</span>
-            </div>
-            {venda.desconto_percentual > 0 && (
-              <div className="flex justify-between px-4 py-2.5 text-sm">
-                <span className="text-muted-foreground">Desconto ({venda.desconto_percentual}%)</span>
-                <span className="font-medium text-destructive">-{formatBRL(descontoValor)}</span>
-              </div>
-            )}
-            <div className="flex justify-between px-4 py-3 bg-primary/5">
-              <div>
-                <span className="text-base font-bold">Preço Final</span>
-                <span className="text-xs text-muted-foreground ml-2">
-                  Margem líq. {(Number(margemLiquida) || 0).toFixed(1)}%
-                </span>
-              </div>
-              <span className="text-base font-bold text-primary">{formatBRL(precoFinal)}</span>
-            </div>
-          </div>
+      {(onBack || onNext) && (
+        <div className="flex items-center justify-between pt-4 border-t border-border/40 mt-6">
+          {onBack ? (
+            <Button variant="ghost" size="sm" onClick={onBack} className="gap-1 text-xs">
+              <ChevronLeft className="h-4 w-4" /> Voltar
+            </Button>
+          ) : <div />}
+          {onNext && (
+            <Button size="sm" onClick={onNext} className="gap-1 text-xs px-6">
+              Próximo <ChevronRight className="h-4 w-4" />
+            </Button>
+          )}
         </div>
-      </div>
+      )}
     </div>
   );
 }
-// calcPrecoFinal movido para types.ts (SSOT) — re-export para compatibilidade
-export { calcPrecoFinal } from "./types";
+// Alias if needed
+export { StepFinancialCenter as StepVenda };

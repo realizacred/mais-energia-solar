@@ -32,6 +32,9 @@ import { EditarLayoutModal } from "./kit/EditarLayoutModal";
 import { MesAMesDialog } from "./uc/UCModals";
 import { SolaryumTab } from "./SolaryumTab";
 import type { ProdutoSolaryum } from "@/hooks/useSolaryumKits";
+import { useWizardContext } from "./WizardContext";
+import { useEquipmentCatalog } from "./useWizardDataLoaders";
+
 
 interface CatalogoModuloUnificado {
   id: string; fabricante: string; modelo: string; potencia_wp: number | null;
@@ -55,34 +58,9 @@ interface CatalogoBateria {
   tensao_nominal_v: number | null; tipo_bateria: string | null;
 }
 
-interface Props {
-  itens: KitItemRow[];
-  /** Fase A: segundo arg opcional carrega override one-shot do custo do kit
-   *  (ex.: meta.custo de catálogo / kit fechado). undefined = limpar. */
-  onItensChange: (itens: KitItemRow[], custoKitOverride?: number | null) => void;
-  modulos: CatalogoModuloUnificado[];
-  inversores: CatalogoInversorUnificado[];
-  otimizadores?: CatalogoOtimizador[];
-  baterias?: CatalogoBateria[];
-  loadingEquip: boolean;
-  potenciaKwp: number;
-  layouts?: LayoutArranjo[];
-  onLayoutsChange?: (layouts: LayoutArranjo[]) => void;
-  preDimensionamento?: PreDimensionamentoData;
-  onPreDimensionamentoChange?: (pd: PreDimensionamentoData) => void;
-  consumoTotal?: number;
-  manualKits?: { card: KitCardData; itens: KitItemRow[]; meta?: KitMeta }[];
-  onManualKitsChange?: (kits: { card: KitCardData; itens: KitItemRow[]; meta?: KitMeta }[]) => void;
-  selectedManualIdx?: number | null;
-  onSelectedManualIdxChange?: (idx: number | null) => void;
-  irradiacao?: number;
-  latitude?: number | null;
-  ghiSeries?: Record<string, number> | null;
-  somenteGhi?: boolean;
-  /** Override de custo do kit definido no Centro Financeiro */
-  custoKitOverride?: number | null;
-  /** Código IBGE do município do cliente — usado para integrações (Solaryum frete) */
-  ibgeCodigo?: string | null;
+interface StepKitProps {
+  onNext?: () => void;
+  onBack?: () => void;
 }
 
 type TabType = "customizado" | "fechado" | "catalogo" | "solaryum";
@@ -127,7 +105,24 @@ function kitItemsToCardData(itens: KitItemRow[], topologia?: string, custoOverri
 
 // Mock kits removed — manual mode only for now
 
-export function StepKitSelection({ itens, onItensChange, modulos, inversores, otimizadores = [], baterias = [], loadingEquip, potenciaKwp: potenciaIdeal, layouts = [], onLayoutsChange, preDimensionamento: pd, onPreDimensionamentoChange: setPd, consumoTotal: consumoTotalProp = 0, manualKits: manualKitsProp = [], onManualKitsChange, selectedManualIdx: selectedManualIdxProp, onSelectedManualIdxChange, irradiacao, latitude, ghiSeries, somenteGhi, custoKitOverride, ibgeCodigo }: Props) {
+export function StepKitSelection({ onNext, onBack }: StepKitProps) {
+  const {
+    itens, handleItensChange: onItensChange,
+    potenciaKwp: potenciaIdeal,
+    layouts, setLayouts: onLayoutsChange,
+    preDimensionamento: pd, setPreDimensionamento: setPd,
+    manualKits: manualKitsProp, setManualKits: onManualKitsChange,
+    selectedManualIdx: selectedManualIdxProp, setSelectedManualIdx: onSelectedManualIdxChange,
+    locIrradiacao: irradiacao,
+    venda,
+    clienteMunicipioIbgeCodigo: ibgeCodigo
+  } = useWizardContext();
+  const custoKitOverride = venda.custo_kit_override;
+  const { modulos, inversores, otimizadores, baterias, loadingEquip } = useEquipmentCatalog();
+  const latitude = null; // Derived if needed, but not in props for now
+  const ghiSeries = null;
+  const somenteGhi = false;
+
   // If returning to this step with a kit already restored, auto-switch to "customizado" tab
   const [tab, setTab] = useState<TabType>(() => {
     if (manualKitsProp.length > 0) return "customizado";
@@ -342,7 +337,7 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
     }
   };
 
-  const consumoTotal = 0;
+  const consumoTotal = 0; // Simplified as it was before
 
   // Build KitCardData from current itens for the Edit Kit Fechado modal
   const currentKitCards = useMemo(() => {
@@ -1255,7 +1250,7 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
           setPd={setPd}
           activeTab={premissasTab}
           onTabChange={setPremissasTab}
-          consumoTotal={consumoTotalProp}
+          consumoTotal={0}
           irradiacao={irradiacao}
           latitude={latitude}
           ghiSeries={ghiSeries}

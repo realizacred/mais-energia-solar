@@ -17,6 +17,8 @@ import { roundCurrency } from "@/lib/formatters";
 import { usePricingDefaults } from "./hooks/usePricingDefaults";
 import { usePricingConfig } from "./hooks/usePricingConfig";
 import { toast } from "@/hooks/use-toast";
+import { useWizardContext } from "./WizardContext";
+
 
 // ── Types ──
 
@@ -30,13 +32,9 @@ interface CustoRow {
   checked: boolean;
 }
 
-interface Props {
-  venda: VendaData;
-  onVendaChange: (venda: VendaData) => void;
-  itens: KitItemRow[];
-  servicos: ServicoItem[];
-  potenciaKwp: number;
-  leadId?: string | null;
+interface StepVendaProps {
+  onNext?: () => void;
+  onBack?: () => void;
 }
 
 // ── View Modes ──
@@ -45,7 +43,17 @@ type ViewMode = "resumido" | "detalhado";
 
 // ── Component ──
 
-export function StepFinancialCenter({ venda, onVendaChange, itens, servicos, potenciaKwp, leadId }: Props) {
+export function StepFinancialCenter({ onNext, onBack }: StepVendaProps) {
+  const {
+    venda,
+    handleVendaChange: onVendaChange,
+    itens,
+    servicos,
+    potenciaKwp,
+    selectedLead,
+  } = useWizardContext();
+  const leadId = selectedLead?.id;
+
   const instalacaoServico = servicos.find(s => s.categoria === "instalacao");
   const comissaoServico = servicos.find(s => s.categoria === "comissao");
 
