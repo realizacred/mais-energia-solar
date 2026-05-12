@@ -146,8 +146,8 @@ export function StepPagamento({ onNext, onBack }: StepPagamentoProps) {
 
       <PaymentMethodSelector 
         precoFinal={precoFinal} 
-        formas={formasSelecionadas} 
-        onFormasChange={setFormasSelecionadas} 
+        selected={formasSelecionadas} 
+        onSelectedChange={setFormasSelecionadas} 
       />
 
       {(onBack || onNext) && (
