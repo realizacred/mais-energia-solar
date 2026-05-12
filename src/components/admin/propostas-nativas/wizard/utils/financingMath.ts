@@ -4,8 +4,8 @@
  * SSOT for both Frontend and Edge Functions.
  */
 
-import { calcGrupoB, type TipoFase, type RegraGD, getFioBCobranca } from "../../../lib/calcGrupoB";
-import { calcGrupoA } from "../../../lib/calcGrupoA";
+import { calcGrupoB, type TipoFase, type RegraGD, getFioBCobranca } from "@/lib/calcGrupoB";
+import { calcGrupoA } from "@/lib/calcGrupoA";
 
 export interface FinancialSeriesInput {
   precoFinal: number;
