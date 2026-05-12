@@ -178,14 +178,20 @@ async function downloadAndStore(
   if (!resp.ok) {
     return { ok: false, path: storagePath, reason: `http_${resp.status}` };
   }
-  let contentType = resp.headers.get("content-type") || "application/octet-stream";
-  if (contentType === "application/octet-stream") {
-    const name = storagePath.toLowerCase();
-    if (/\.pdf$/.test(name)) contentType = "application/pdf";
-    else if (/\.(jpg|jpeg)$/.test(name)) contentType = "image/jpeg";
-    else if (/\.png$/.test(name)) contentType = "image/png";
-    else if (/\.webp$/.test(name)) contentType = "image/webp";
-  }
+  // Infer mime type from URL/path extension; ignore S3 Content-Type (often octet-stream).
+  const inferMime = (s: string): string => {
+    const clean = s.split("?")[0].split("#")[0].toLowerCase();
+    if (/\.pdf$/.test(clean)) return "application/pdf";
+    if (/\.(jpg|jpeg)$/.test(clean)) return "image/jpeg";
+    if (/\.png$/.test(clean)) return "image/png";
+    if (/\.webp$/.test(clean)) return "image/webp";
+    if (/\.gif$/.test(clean)) return "image/gif";
+    if (/\.heic$/.test(clean)) return "image/heic";
+    return "application/octet-stream";
+  };
+  const contentType = inferMime(url) !== "application/octet-stream"
+    ? inferMime(url)
+    : inferMime(storagePath);
   const blob = await resp.blob();
 
   const { error: upErr } = await supabase.storage
