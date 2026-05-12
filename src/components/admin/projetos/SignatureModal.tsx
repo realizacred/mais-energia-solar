@@ -40,6 +40,26 @@ const ROLE_LABELS: Record<string, { label: string; icon: typeof User }> = {
   testemunha: { label: "Testemunha", icon: User },
 };
 
+function formatCpfCnpj(raw: string): string {
+  const d = (raw || "").replace(/\D/g, "").slice(0, 14);
+  if (d.length <= 11) {
+    return d
+      .replace(/^(\d{3})(\d)/, "$1.$2")
+      .replace(/^(\d{3})\.(\d{3})(\d)/, "$1.$2.$3")
+      .replace(/\.(\d{3})(\d{1,2})$/, ".$1-$2");
+  }
+  return d
+    .replace(/^(\d{2})(\d)/, "$1.$2")
+    .replace(/^(\d{2})\.(\d{3})(\d)/, "$1.$2.$3")
+    .replace(/\.(\d{3})(\d)/, ".$1/$2")
+    .replace(/(\d{4})(\d{1,2})$/, "$1-$2");
+}
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+function isValidEmail(v: string): boolean {
+  return EMAIL_RE.test((v || "").trim());
+}
+
 export function SignatureModal({ open, onClose, doc, dealId, onSend, isPending }: SignatureModalProps) {
   const [signers, setSigners] = useState<SignerEntry[]>([]);
   const [loading, setLoading] = useState(false);
