@@ -21,6 +21,8 @@ import {
   redeAtendimentoToFaseTensao,
 } from "./types";
 import solarBuildingImg from "@/assets/solar-building.png";
+import { useWizardContext } from "./WizardContext";
+
 
 
 interface StepUCsProps {
