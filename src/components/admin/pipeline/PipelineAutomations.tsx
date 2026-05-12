@@ -98,7 +98,7 @@ function usePipelines() {
       if (error) throw error;
       return data as PipelineOption[];
     },
-    staleTime: STALE_TIME,
+    staleTime: 0, // Always fetch fresh to avoid FK violations (re-created pipelines)
   });
 }
 
