@@ -225,18 +225,49 @@ export function ProjetosManager() {
   }, [STORAGE_KEY]);
 
   const storedPrefs = useMemo(() => getStoredPrefs(), [getStoredPrefs]);
-  
-  const [viewMode, setViewModeRaw] = useState<"kanban-etapa" | "kanban-consultor" | "lista">(
-    (storedPrefs?.viewMode as any) || "kanban-consultor"
-  );
+
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  // ── URL params ↔ filtros (URL = SSOT entre navegações) ──
+  const urlFilters = useMemo(() => ({
+    status: searchParams.get("status") || undefined,
+    consultor: searchParams.get("consultor") || undefined,
+    funil: searchParams.get("funil") || undefined,
+    tipoSolar: searchParams.get("tipoSolar") || undefined,
+    etiquetas: searchParams.get("etiquetas")?.split(",").filter(Boolean) || undefined,
+    view: searchParams.get("view") || undefined,
+  }), [searchParams]);
+
+  const updateUrlFilter = useCallback((updates: Record<string, string | string[] | null | undefined>) => {
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      for (const [k, v] of Object.entries(updates)) {
+        const isEmpty =
+          v === null || v === undefined || v === "" ||
+          v === "todos" || (Array.isArray(v) && v.length === 0);
+        if (isEmpty) next.delete(k);
+        else next.set(k, Array.isArray(v) ? v.join(",") : v);
+      }
+      return next;
+    }, { replace: true });
+  }, [setSearchParams]);
+
+  const initialView =
+    (urlFilters.view as any) ||
+    (storedPrefs?.viewMode as any) ||
+    "kanban-consultor";
+
+  const [viewMode, setViewModeRaw] = useState<"kanban-etapa" | "kanban-consultor" | "lista">(initialView);
 
   const setViewMode = (mode: "kanban-etapa" | "kanban-consultor" | "lista") => {
     setViewModeRaw(mode);
     savePrefs({ viewMode: mode });
+    updateUrlFilter({ view: mode });
     if (mode === "kanban-consultor") {
       setSelectedFunilId(null);
       applyFilters({ funilId: null });
       savePrefs({ viewMode: mode, funilId: null });
+      updateUrlFilter({ view: mode, funil: null });
     }
   };
 
@@ -245,39 +276,57 @@ export function ProjetosManager() {
   // funil deletado) e respeita viewMode kanban-consultor (que NÃO deve filtrar funil).
   const [storedPrefsApplied, setStoredPrefsApplied] = useState(false);
   useEffect(() => {
-    if (!storedPrefs || storedPrefsApplied) return;
+    if (storedPrefsApplied) return;
     if (funis.length === 0) return; // aguarda metadata
+
+    // URL params têm precedência sobre localStorage para permitir
+    // compartilhamento de URL e back/forward do navegador.
+    const fromUrl = {
+      status: urlFilters.status,
+      consultorId: urlFilters.consultor,
+      tipoProjetoSolar: urlFilters.tipoSolar,
+      etiquetaIds: urlFilters.etiquetas,
+      funilId: urlFilters.funil,
+    };
+    const source = {
+      status: fromUrl.status ?? storedPrefs?.status,
+      consultorId: fromUrl.consultorId ?? storedPrefs?.consultorId,
+      tipoProjetoSolar: fromUrl.tipoProjetoSolar ?? storedPrefs?.tipoProjetoSolar,
+      etiquetaIds: fromUrl.etiquetaIds ?? storedPrefs?.etiquetaIds,
+      funilId: fromUrl.funilId ?? storedPrefs?.funilId,
+    };
+
     const updates: Record<string, any> = {};
-    if (storedPrefs.status && storedPrefs.status !== "todos" && filters.status !== storedPrefs.status) {
-      updates.status = storedPrefs.status;
+    if (source.status && source.status !== "todos" && filters.status !== source.status) {
+      updates.status = source.status;
     }
-    if (storedPrefs.consultorId && storedPrefs.consultorId !== "todos" && filters.consultorId !== storedPrefs.consultorId) {
-      updates.consultorId = storedPrefs.consultorId;
+    if (source.consultorId && source.consultorId !== "todos" && filters.consultorId !== source.consultorId) {
+      updates.consultorId = source.consultorId;
     }
-    if (storedPrefs.tipoProjetoSolar && storedPrefs.tipoProjetoSolar !== "todos" && filters.tipoProjetoSolar !== storedPrefs.tipoProjetoSolar) {
-      updates.tipoProjetoSolar = storedPrefs.tipoProjetoSolar;
+    if (source.tipoProjetoSolar && source.tipoProjetoSolar !== "todos" && filters.tipoProjetoSolar !== source.tipoProjetoSolar) {
+      updates.tipoProjetoSolar = source.tipoProjetoSolar;
     }
-    if (Array.isArray(storedPrefs.etiquetaIds) && storedPrefs.etiquetaIds.length > 0) {
+    if (Array.isArray(source.etiquetaIds) && source.etiquetaIds.length > 0) {
       const current = filters.etiquetaIds || [];
-      const same = current.length === storedPrefs.etiquetaIds.length && current.every((id) => storedPrefs.etiquetaIds!.includes(id));
-      if (!same) updates.etiquetaIds = storedPrefs.etiquetaIds;
+      const same = current.length === source.etiquetaIds.length && current.every((id) => source.etiquetaIds!.includes(id));
+      if (!same) updates.etiquetaIds = source.etiquetaIds;
     }
     // Só aplica funilId se: (a) view não for por consultor; (b) funil ainda existe no tenant.
-    const funilExiste = !!funis.find((f) => f.id === storedPrefs.funilId);
+    const funilExiste = !!funis.find((f) => f.id === source.funilId);
     if (
-      storedPrefs.funilId &&
+      source.funilId &&
       funilExiste &&
       viewMode !== "kanban-consultor" &&
-      filters.funilId !== storedPrefs.funilId
+      filters.funilId !== source.funilId
     ) {
-      updates.funilId = storedPrefs.funilId;
-      setSelectedFunilId(storedPrefs.funilId);
+      updates.funilId = source.funilId;
+      setSelectedFunilId(source.funilId);
     }
     if (Object.keys(updates).length > 0) {
       applyFilters(updates);
     }
     setStoredPrefsApplied(true);
-  }, [storedPrefs, funis, viewMode, filters, applyFilters, setSelectedFunilId, storedPrefsApplied]);
+  }, [storedPrefs, urlFilters, funis, viewMode, filters, applyFilters, setSelectedFunilId, storedPrefsApplied]);
 
   const [editingEtapasFunilId, setEditingEtapasFunilId] = useState<string | null>(null);
   const [novoProjetoOpen, setNovoProjetoOpen] = useState(false);
@@ -287,7 +336,7 @@ export function ProjetosManager() {
   const [legendOpen, setLegendOpen] = useState(false);
   const [defaultStageId, setDefaultStageId] = useState<string | undefined>();
   const [defaultModalFunilId, setDefaultModalFunilId] = useState<string | undefined>();
-  const [searchParams, setSearchParams] = useSearchParams();
+  // searchParams já declarado acima (URL params dos filtros)
   const selectedProjetoId = searchParams.get("projeto") || null;
   const setSelectedProjetoId = useCallback((id: string | null) => {
     setSearchParams((prev) => {
@@ -320,18 +369,22 @@ export function ProjetosManager() {
       setSelectedFunilId(funilValue);
       applyFilters({ funilId: funilValue });
       savePrefs({ funilId: funilValue });
+      updateUrlFilter({ funil: funilValue });
       if (funilValue && viewMode === "kanban-consultor") {
         setViewMode("kanban-etapa");
       }
     } else if (key === "ownerId") {
       applyFilters({ consultorId: value });
       savePrefs({ consultorId: value });
+      updateUrlFilter({ consultor: value });
     } else if (key === "status") {
       applyFilters({ status: value });
       savePrefs({ status: value });
+      updateUrlFilter({ status: value });
     } else if (key === "tipoProjetoSolar") {
       applyFilters({ tipoProjetoSolar: value });
       savePrefs({ tipoProjetoSolar: value });
+      updateUrlFilter({ tipoSolar: value });
     } else if (key === "search") {
       applyFilters({ search: value });
     }
@@ -374,9 +427,10 @@ export function ProjetosManager() {
   }, [funis, selectedFunilId, activeFunis, defaultFunilApplied]);
 
   const clearFilters = () => {
-    applyFilters({ funilId: null, consultorId: "todos", status: "todos", search: "", tipoProjetoSolar: "todos" });
+    applyFilters({ funilId: null, consultorId: "todos", status: "todos", search: "", tipoProjetoSolar: "todos", etiquetaIds: [] });
     setSelectedFunilId(null);
     try { localStorage.removeItem(STORAGE_KEY); } catch { /* ignore */ }
+    updateUrlFilter({ status: null, consultor: null, funil: null, tipoSolar: null, etiquetas: null });
   };
 
   const totalValue = useMemo(() => {
@@ -705,7 +759,7 @@ export function ProjetosManager() {
                   onFilterTipoProjetoSolarChange={(v) => handleFilterChange("tipoProjetoSolar", v)}
                   etiquetas={dynamicEtiquetas.map(e => ({ id: e.id, nome: e.nome, cor: e.cor, tenant_id: "" }))}
                   filterEtiquetas={filters.etiquetaIds || []}
-                  onFilterEtiquetasChange={(ids) => { applyFilters({ etiquetaIds: ids }); savePrefs({ etiquetaIds: ids }); }}
+                  onFilterEtiquetasChange={(ids) => { applyFilters({ etiquetaIds: ids }); savePrefs({ etiquetaIds: ids }); updateUrlFilter({ etiquetas: ids }); }}
                   viewMode={viewMode}
                   onViewModeChange={setViewMode}
                   onClearFilters={clearFilters}
