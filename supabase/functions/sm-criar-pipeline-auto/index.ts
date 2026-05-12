@@ -167,18 +167,18 @@ Deno.serve(async (req) => {
       );
     }
 
-    // 3) Criar pipeline COMERCIAL (RB-58: confirmar com .select())
+    // 3) Criar ou Atualizar pipeline COMERCIAL (RB-73: usar upsert para manter ID estável)
     const { data: pipeline, error: pipeErr } = await admin
       .from("pipelines")
-      .insert({
+      .upsert({
         tenant_id: tenantId,
         name: finalName,
         is_active: true,
-      })
+      }, { onConflict: "tenant_id,name,version" })
       .select("id, name")
       .single();
     if (pipeErr) throw new Error(`pipelines: ${pipeErr.message}`);
-    if (!pipeline) throw new Error("Falha ao criar pipeline (sem retorno)");
+    if (!pipeline) throw new Error("Falha ao criar/atualizar pipeline (sem retorno)");
     state.pipelineId = pipeline.id;
 
     // 4) Criar pipeline_stages
