@@ -275,9 +275,13 @@ export function ProjetosManager() {
   // Roda novamente quando funis chegam para validar funilId persistido (defesa contra
   // funil deletado) e respeita viewMode kanban-consultor (que NÃO deve filtrar funil).
   const [storedPrefsApplied, setStoredPrefsApplied] = useState(false);
+  // Reset flag when storage key changes (user.id resolves async after first render).
+  useEffect(() => { setStoredPrefsApplied(false); }, [STORAGE_KEY]);
   useEffect(() => {
     if (storedPrefsApplied) return;
     if (funis.length === 0) return; // aguarda metadata
+    // Aguarda user.id resolver para não aplicar prefs do bucket "anon" e travar o flag.
+    if (!user?.id) return;
 
     // URL params têm precedência sobre localStorage para permitir
     // compartilhamento de URL e back/forward do navegador.
