@@ -2,7 +2,7 @@
  * DocumentsInternalizationStatus
  * Painel READ-ONLY do estado de internalização de documentos SM.
  * Substitui os botões manuais "Backfill" e "Download documentos SM" — agora
- * o download é encadeado automaticamente em sm-migrate-chunk → sm-download-documents
+ * o download é executado dentro de sm-promote-custom-fields (canônico).
  * (RB-65, RB-71). AGENTS.md v4.1 / RB-76: sem segunda central, sem remendo.
  */
 import { useQuery } from "@tanstack/react-query";
