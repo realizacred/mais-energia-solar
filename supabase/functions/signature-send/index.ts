@@ -139,9 +139,16 @@ Deno.serve(async (req) => {
     }
 
     // 7. Build signers list — prefer request signers, fallback to auto-resolve
-    let signersList: Array<{ name: string; email: string; cpf?: string; phone?: string; auth_method?: string }> = [];
+    let signersList: Array<{ name: string; email: string; cpf?: string; phone?: string; auth_method?: string; role?: string }> = [];
 
     let autoResolved = false;
+
+    // Always fetch brand representante (used for auto-injection of Contratada)
+    const { data: brand } = await supabase
+      .from("brand_settings")
+      .select("representante_legal, representante_email, representante_cpf, representante_cargo")
+      .eq("tenant_id", tenant_id)
+      .maybeSingle();
 
     if (requestSigners && Array.isArray(requestSigners) && requestSigners.length > 0) {
       // Use signers provided by the frontend modal
@@ -150,6 +157,7 @@ Deno.serve(async (req) => {
         email: s.email,
         cpf: s.cpf || undefined,
         phone: s.phone || undefined,
+        role: s.role || undefined,
       }));
     } else {
       // 7a. Auto-resolve: Contratante (client) + Contratada (representative)
@@ -162,12 +170,6 @@ Deno.serve(async (req) => {
           .eq("id", clienteId)
           .single();
 
-        const { data: brand } = await supabase
-          .from("brand_settings")
-          .select("representante_legal, representante_email, representante_cpf, representante_cargo")
-          .eq("tenant_id", tenant_id)
-          .maybeSingle();
-
         const hasRepresentante = brand?.representante_legal && brand?.representante_email;
         const hasCliente = cliente?.nome && cliente?.email;
 
@@ -177,11 +179,13 @@ Deno.serve(async (req) => {
             email: cliente.email!,
             cpf: cliente.cpf_cnpj?.replace(/\D/g, "")?.length <= 11 ? cliente.cpf_cnpj : undefined,
             phone: cliente.telefone || undefined,
+            role: "Contratante",
           });
           signersList.push({
-            name: brand.representante_legal!,
-            email: brand.representante_email!,
-            cpf: brand.representante_cpf || undefined,
+            name: brand!.representante_legal!,
+            email: brand!.representante_email!,
+            cpf: brand!.representante_cpf || undefined,
+            role: "Contratada",
           });
           autoResolved = true;
         }
@@ -198,12 +202,13 @@ Deno.serve(async (req) => {
             .eq("tenant_id", tenant_id);
 
           if (signers && signers.length > 0) {
-            signersList = signers.map((s: any) => ({
+            signersList = signers.map((s: any, idx: number) => ({
               name: s.full_name,
               email: s.email,
               cpf: s.cpf || undefined,
               phone: s.phone || undefined,
               auth_method: s.auth_method || undefined,
+              role: idx === 0 ? "Contratante" : undefined,
             }));
           }
         }
@@ -217,6 +222,19 @@ Deno.serve(async (req) => {
           });
         }
       }
+    }
+
+    // Auto-inject Contratada (representative) if missing and brand has it configured
+    const hasContratada = signersList.some(
+      (s) => (s.role || "").toLowerCase() === "contratada"
+    );
+    if (!hasContratada && brand?.representante_legal && brand?.representante_email) {
+      signersList.push({
+        name: brand.representante_legal,
+        email: brand.representante_email,
+        cpf: brand.representante_cpf || undefined,
+        role: "Contratada",
+      });
     }
 
     // Normalize CPF and phone to digits-only (Autentique/ZapSign/ClickSign requirement)
@@ -246,6 +264,7 @@ Deno.serve(async (req) => {
         signers: signersList,
         sandbox: sigSettings.sandbox_mode ?? false,
         apiToken,
+        settingsExtra: (sigSettings as any).settings_extra ?? undefined,
       });
     } catch (adapterErr: any) {
       console.error(`[signature-send] ${provider} adapter error:`, adapterErr.message);
