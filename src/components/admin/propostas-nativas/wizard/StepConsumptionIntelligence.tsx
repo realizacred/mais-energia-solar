@@ -47,7 +47,7 @@ interface Props {
 type ActiveTab = "ucs" | "pre";
 type PreSubTab = "premissas" | "equipamentos";
 
-export function StepConsumptionIntelligence({
+function StepConsumptionIntelligenceImpl({
   ucs, onUcsChange, potenciaKwp, onPotenciaChange,
   preDimensionamento: pd, onPreDimensionamentoChange: setPd,
   irradiacao, ghiSeries, latitude, somenteGhi, leadFase,
