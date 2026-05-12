@@ -323,18 +323,27 @@ Deno.serve(async (req) => {
         }
         const geracaoAnual = geracaoMensal ? geracaoMensal * 12 : v.num("geracao_anual_0");
 
-        // Payback: vem como "X meses" ou número (anos) → guardar em meses
-        const paybackRaw = v.get("payback") ?? "";
+        // Economia mensal canônica (vem do SM)
+        const economiaMensal = v.num("economia_mensal") ?? v.num("s_economia_mensal");
+
+        // Payback: SEMPRE calcular como ceil(valor_total / economia_mensal).
+        // O campo "payback" raw do SM costuma vir em anos (ex.: "9") e era
+        // multiplicado errado, gerando valores absurdos. Fórmula canônica:
+        //   payback_meses = Math.ceil(valor_total / economia_mensal)
+        // Se economia_mensal for 0/null → payback NULL (UI mostra "—").
         let paybackMeses: number | null = null;
-        const matchMes = paybackRaw.match(/(\d+(?:[.,]\d+)?)\s*mes/i);
-        const matchAno = paybackRaw.match(/(\d+(?:[.,]\d+)?)\s*ano/i);
-        if (matchMes) paybackMeses = toInt(matchMes[1]);
-        else if (matchAno) {
-          const anos = toNumber(matchAno[1]) ?? 0;
-          paybackMeses = Math.round(anos * 12);
+        if (valorTotal > 0 && economiaMensal != null && economiaMensal > 0) {
+          paybackMeses = Math.ceil(valorTotal / economiaMensal);
         } else {
-          const n = toNumber(paybackRaw);
-          paybackMeses = n !== null ? Math.round(n * 12) : null; // assume anos
+          // fallback: tentar parse do raw caso valor/economia ainda não estejam disponíveis
+          const paybackRaw = v.get("payback") ?? "";
+          const matchMes = paybackRaw.match(/(\d+(?:[.,]\d+)?)\s*mes/i);
+          const matchAno = paybackRaw.match(/(\d+(?:[.,]\d+)?)\s*ano/i);
+          if (matchMes) paybackMeses = toInt(matchMes[1]);
+          else if (matchAno) {
+            const anos = toNumber(matchAno[1]) ?? 0;
+            paybackMeses = Math.ceil(anos * 12);
+          }
         }
 
         // ─── 3c. UPDATE proposta_versoes ───
@@ -346,7 +355,7 @@ Deno.serve(async (req) => {
           payback_meses: paybackMeses,
           tir: v.num("tir"),
           vpl: v.num("vpl"),
-          economia_mensal: v.num("economia_mensal") ?? v.num("s_economia_mensal"),
+          economia_mensal: economiaMensal,
           consumo_mensal: v.num("consumo_mensal"),
           tarifa_distribuidora: v.num("tarifa_distribuidora"),
           distribuidora_nome: v.get("dis_energia"),
