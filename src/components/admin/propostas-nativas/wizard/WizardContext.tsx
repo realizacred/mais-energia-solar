@@ -4,8 +4,10 @@ import {
   type PremissasData, type KitItemRow, type ServicoItem, type VendaData,
   type PagamentoOpcao, type LayoutArranjo, type PreDimensionamentoData,
   EMPTY_CLIENTE, DEFAULT_PREMISSAS, DEFAULT_PRE_DIMENSIONAMENTO, createEmptyUC
-} from "./wizard/types";
-import { type AdicionalItem } from "./wizard/StepAdicionais";
+} from "./types";
+import { type AdicionalItem } from "./StepAdicionais";
+
+type GenerationStatus = "idle" | "calculating" | "generating_docx" | "converting_pdf" | "saving" | "ready" | "docx_only" | "error";
 
 interface WizardContextType {
   // Shared state
@@ -69,8 +71,8 @@ interface WizardContextType {
   // Document & Status
   templateSelecionado: string;
   setTemplateSelecionado: (id: string) => void;
-  generationStatus: string;
-  setGenerationStatus: React.Dispatch<React.SetStateAction<any>>;
+  generationStatus: GenerationStatus;
+  setGenerationStatus: React.Dispatch<React.SetStateAction<GenerationStatus>>;
 
   // Edit Accepted Proposal
   editAceitaDialogOpen: boolean;
@@ -126,13 +128,40 @@ export function WizardProvider({ children, initialData = {} }: { children: React
 
   const [pagamentoOpcoes, setPagamentoOpcoes] = useState<PagamentoOpcao[]>([]);
   const [templateSelecionado, setTemplateSelecionado] = useState("");
-  const [generationStatus, setGenerationStatus] = useState("idle");
+  const [generationStatus, setGenerationStatus] = useState<GenerationStatus>("idle");
 
   const [editAceitaDialogOpen, setEditAceitaDialogOpen] = useState(false);
   const [editAceitaMotivo, setEditAceitaMotivo] = useState("");
 
   const calcKitCostFromItems = useCallback((rows: KitItemRow[]) => {
-// ... keep existing code
+    return Math.round(rows.reduce((s, i) => s + ((Number(i.quantidade) || 0) * (Number(i.preco_unitario) || 0)), 0) * 100) / 100;
+  }, []);
+
+  const handleItensChange = useCallback((
+    nextItens: KitItemRow[],
+    nextOverride?: number | null,
+  ) => {
+    const nextCustoKit = calcKitCostFromItems(nextItens);
+    setItens(nextItens);
+    setVenda(prev => {
+      const overrideValue = nextOverride != null && nextOverride > 0 ? nextOverride : null;
+      return {
+        ...prev,
+        custo_kit: nextCustoKit,
+        custo_kit_override: overrideValue,
+        isImportedFinancialOverride: false,
+      };
+    });
+  }, [calcKitCostFromItems]);
+
+  const handleUCsChange = useCallback((nextUcs: UCData[]) => {
+    setUcs(nextUcs);
+  }, []);
+
+  const handleVendaChange = useCallback((nextVenda: VendaData) => {
+    setVenda(nextVenda);
+  }, []);
+
   const value = useMemo(() => ({
     selectedLead, setSelectedLead,
     cliente, setCliente,

@@ -14,7 +14,7 @@ import { type PagamentoOpcao, type BancoFinanciamento, type UCData, type Premiss
 import { formatNumberBR } from "@/lib/formatters";
 import { CurrencyInput } from "@/components/ui-kit/inputs/CurrencyInput";
 import { calcularSerieFinanceira25Anos, type FinancialSeriesInput } from "./utils/financingMath";
-import { calcularPrestacao } from "@/services/paymentComposition/financingMath";
+import { calcularPrestacao, calcularEconomiaMensal } from "@/services/paymentComposition/financingMath";
 import { VARIABLES_CATALOG, CATEGORY_LABELS, CATEGORY_ORDER, type VariableCategory } from "@/lib/variablesCatalog";
 import { usePaymentInterestConfigs, type PaymentInterestConfig } from "@/hooks/usePaymentInterestConfig";
 import { FORMA_PAGAMENTO_LABELS, type FormaPagamento } from "@/services/paymentComposition/types";
