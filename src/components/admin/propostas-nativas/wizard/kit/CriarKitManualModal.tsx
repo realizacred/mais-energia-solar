@@ -181,11 +181,39 @@ function SearchableEquipSelect({ value, onValueChange, options, placeholder, emp
 
   const selectedOption = options.find(o => o.value === value);
 
-  // Filter options by search (150ms debounce handled inline since cmdk is gone)
+  // Filter + rank: startsWith (label or each word) > startsWith (searchText) > middle match
   const filtered = useMemo(() => {
     if (!search.trim()) return options.slice(0, 50);
-    const terms = search.toLowerCase().split(/\s+/);
-    return options.filter(o => terms.every(t => o.searchText.toLowerCase().includes(t))).slice(0, 50);
+    const terms = normalize(search).split(/\s+/).filter(Boolean);
+    if (terms.length === 0) return options.slice(0, 50);
+
+    const scored: { o: SearchableOption; score: number; firstIdx: number }[] = [];
+    for (const o of options) {
+      const nLabel = normalize(o.label);
+      const nSearch = normalize(o.searchText);
+      // every term must be present in searchText
+      if (!terms.every(t => nSearch.includes(t))) continue;
+
+      // Score: lower is better
+      let score = 100;
+      const first = terms[0];
+      const labelWords = nLabel.split(/[\s\-_/.]+/).filter(Boolean);
+      if (nLabel.startsWith(first)) score = 0;
+      else if (labelWords.some(w => w.startsWith(first))) score = 10;
+      else if (nSearch.startsWith(first)) score = 20;
+      else score = 50 + nLabel.indexOf(first); // middle match — ordered by position
+
+      // Bonus: all terms also start a word
+      if (terms.every(t => labelWords.some(w => w.startsWith(t)))) score -= 5;
+
+      scored.push({ o, score, firstIdx: nLabel.indexOf(first) });
+    }
+    scored.sort((a, b) =>
+      a.score - b.score ||
+      a.firstIdx - b.firstIdx ||
+      a.o.label.localeCompare(b.o.label),
+    );
+    return scored.slice(0, 50).map(s => s.o);
   }, [options, search]);
 
   // Reset focused index when filtered list changes
