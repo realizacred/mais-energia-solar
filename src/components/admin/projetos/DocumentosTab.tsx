@@ -44,11 +44,13 @@ const DOC_STATUS_MAP: Record<string, { label: string; color: string }> = {
 };
 
 const SIGNATURE_STATUS_MAP: Record<string, { label: string; color: string }> = {
-  sent: { label: "Enviado", color: "bg-warning/10 text-warning border-warning/20" },
+  sent: { label: "Aguardando assinatura", color: "bg-warning/10 text-warning border-warning/20" },
   viewed: { label: "Visualizado", color: "bg-info/10 text-info border-info/20" },
+  partially_signed: { label: "Parcialmente assinado", color: "bg-info/10 text-info border-info/20" },
   signed: { label: "Assinado ✓", color: "bg-success/10 text-success border-success/20" },
   refused: { label: "Recusado", color: "bg-destructive/10 text-destructive border-destructive/20" },
   cancelled: { label: "Cancelado", color: "bg-destructive/10 text-destructive border-destructive/20" },
+  delivery_failed: { label: "Falha no envio", color: "bg-destructive/10 text-destructive border-destructive/20" },
 };
 
 const DOC_CATEGORY_LABELS: Record<string, string> = {
