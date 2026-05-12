@@ -230,7 +230,9 @@ export function ProposalProblemSection({ snapshot: s, versaoData, activeCenario 
               boxShadow: "0 4px 20px rgba(22,163,74,0.25)",
             }}>
               <Sun style={{ width: 18, height: 18 }} />
-              {percentEconomia}% DE ECONOMIA NA SUA CONTA
+              {hasEconomia
+                ? `Você economiza R$ ${fmt(economiaMensal)}/mês — ${percentEconomia}% da sua conta atual`
+                : `${percentEconomia}% DE ECONOMIA NA SUA CONTA`}
             </span>
           </motion.div>
         )}
