@@ -682,11 +682,12 @@ Deno.serve(async (req) => {
           });
 
         if (pdfUploadErr) {
-          console.error("[generate-document] PDF upload error:", pdfUploadErr);
-          pdfPath = null;
+          throw pdfUploadErr;
         }
       } catch (pdfErr: any) {
-        console.error("[generate-document] PDF conversion error (non-fatal):", pdfErr?.message);
+        console.error("[generate-document] PDF generation/upload error (FATAL):", pdfErr?.message);
+        // Clean up DOCX if PDF fails? Optional, but let's at least stop the DB insert
+        throw new Error(`Erro na geração do PDF: ${pdfErr.message}`);
       }
     }
 
