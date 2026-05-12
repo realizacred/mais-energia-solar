@@ -1407,7 +1407,7 @@ function GerenciamentoTab({
       } catch { /* ignore */ }
     }
     loadProjectEvents();
-  }, [deal.id, formatDate]);
+  }, [deal.id, formatDate, getStageNameById]);
 
   // Load proposal records for timeline
   useEffect(() => {
