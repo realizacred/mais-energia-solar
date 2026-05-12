@@ -513,13 +513,6 @@ export function IntegrationProviderDrawer({
                     <Input value={repCargo} onChange={(e) => setRepCargo(e.target.value)} className="h-10" placeholder="Ex: Diretor" />
                   </div>
                 </div>
-
-                <div className="flex justify-end pt-1">
-                  <Button onClick={handleSaveExtras} disabled={savingExtras} size="sm" className="gap-2">
-                    {savingExtras ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-                    Salvar configurações avançadas
-                  </Button>
-                </div>
               </div>
             )}
 
