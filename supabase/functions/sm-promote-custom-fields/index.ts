@@ -14,8 +14,19 @@
  *
  * Para campos do tipo `file` (cap_identidade, cap_comprovante_endereco):
  *   - baixa cada URL externa
- *   - salva no bucket `imported-files` em `sm/{tenant_id}/{deal_id}/{field_key}/{filename}`
- *   - grava JSON array de paths em value_text
+ *   - salva no bucket CANÔNICO `projeto-documentos` em
+ *     `{tenant_id}/deals/{deal_id}/custom-fields/{field_key}/{filename}`
+ *     (mesmo path/bucket lido por CustomFieldFileInput / FilePreviewModal).
+ *   - grava `deal_custom_field_values.value_text` no FORMATO NATIVO:
+ *     JSON.stringify([{ storage_path, filename, mime, size, uploaded_at }])
+ *   - idempotente: preserva entries já internalizadas; não duplica por
+ *     storage_path nem por filename; pula upload se objeto já existe no bucket.
+ *
+ * Histórico: `sm-download-documents` foi um remendo transitório criado quando
+ * esta função gravava no bucket errado (`project-documents`) e em formato de
+ * array de strings. Após esta correção, sm-download-documents fica DEPRECATED
+ * e só deve ser usada para backfill controlado dos legados — nunca pelo fluxo
+ * principal nem pela UI.
  *
  * Para outros tipos: grava o `value` (ou `formattedValue`) direto na coluna correta.
  *
