@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { formatBRL } from "@/lib/formatters";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -7,59 +7,48 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import {
   MapPin, User, Zap, Package, Box, Wrench, DollarSign, CreditCard,
   SunMedium, TrendingUp, Phone, Mail, Building2, Percent,
-  Banknote, Clock, ArrowDown, ChevronDown, ChevronRight,
+  Banknote, Clock, ArrowDown, ChevronDown, ChevronRight, ChevronLeft
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatPhoneBR } from "@/lib/formatters";
 import { resolveCustoKit } from "./types";
+import { useWizardContext } from "./WizardContext";
+import { usePrecoFinal } from "@/hooks/usePrecoFinal";
+import { Button } from "@/components/ui/button";
 
 interface StepResumoProps {
-  // Location
-  estado: string;
-  cidade: string;
-  tipoTelhado: string;
-  distribuidoraNome: string;
-  irradiacao: number;
-  // Client
-  clienteNome: string;
-  clienteCelular?: string;
-  clienteEmail?: string;
-  clienteEmpresa?: string;
-  leadNome?: string;
-  // System
-  potenciaKwp: number;
-  consumoTotal: number;
-  geracaoMensalKwh: number;
-  numUcs: number;
-  grupo: string;
-  // Kit
-  itens: Array<{ descricao: string; quantidade: number; preco_unitario: number; categoria: string }>;
-  /** Override manual do custo do kit (do Centro Financeiro) */
-  custoKitOverride?: number | null;
-  // Adicionais
-  adicionais: Array<{ descricao: string; quantidade: number; preco_unitario: number }>;
-  // Servicos
-  servicos: Array<{ descricao: string; valor: number; incluso_no_preco: boolean }>;
-  // Venda
-  precoFinal: number;
-  margemPercentual: number;
-  custoInstalacao: number;
-  custoComissao: number;
-  custoOutros: number;
-  descontoPercentual: number;
-  // Pagamento
-  pagamentoOpcoes: Array<{
-    nome: string;
-    tipo: string;
-    num_parcelas: number;
-    valor_parcela: number;
-    entrada: number;
-    taxa_mensal?: number;
-    valor_financiado?: number;
-    carencia_meses?: number;
-  }>;
+  // Navigation
+  onBack?: () => void;
+  onNext?: () => void;
+  // Snapshot data (for read-only view)
+  snapshotData?: {
+    estado: string;
+    cidade: string;
+    tipoTelhado: string;
+    distribuidoraNome: string;
+    irradiacao: number;
+    clienteNome: string;
+    clienteCelular?: string;
+    clienteEmail?: string;
+    clienteEmpresa?: string;
+    potenciaKwp: number;
+    consumoTotal: number;
+    geracaoMensalKwh: number;
+    numUcs: number;
+    grupo: string;
+    itens: Array<{ descricao: string; quantidade: number; preco_unitario: number; categoria: string }>;
+    adicionais: Array<{ descricao: string; quantidade: number; preco_unitario: number }>;
+    servicos: Array<{ descricao: string; valor: number; incluso_no_preco: boolean }>;
+    precoFinal: number;
+    margemPercentual: number;
+    custoInstalacao: number;
+    custoComissao: number;
+    custoOutros: number;
+    descontoPercentual: number;
+    pagamentoOpcoes: any[];
+    custoKitOverride?: number | null;
+  };
 }
-
 
 function SectionHeader({ icon: Icon, label }: { icon: any; label: string }) {
   return (
@@ -91,24 +80,70 @@ function getTipoBadgeColor(tipo: string): string {
 }
 
 export function StepResumo({
-  estado, cidade, tipoTelhado, distribuidoraNome, irradiacao,
-  clienteNome, clienteCelular, clienteEmail, clienteEmpresa, leadNome,
-  potenciaKwp, consumoTotal, geracaoMensalKwh, numUcs, grupo,
-  itens, custoKitOverride, adicionais, servicos,
-  precoFinal, margemPercentual, custoInstalacao, custoComissao, custoOutros, descontoPercentual,
-  pagamentoOpcoes,
+  onBack, onNext, snapshotData
 }: StepResumoProps) {
-  // Fase A — SSOT: usa resolveCustoKit em vez de lógica inline duplicada.
+  // Wizard Context (always call it, but ignore values if snapshotData is present)
+  const context = useWizardContext();
+  
+  const isSnapshot = !!snapshotData;
+  
+  const estado = isSnapshot ? snapshotData.estado : context.locEstado;
+  const cidade = isSnapshot ? snapshotData.cidade : context.locCidade;
+  const tipoTelhado = isSnapshot ? snapshotData.tipoTelhado : context.locTipoTelhado;
+  const distribuidoraNome = isSnapshot ? snapshotData.distribuidoraNome : context.locDistribuidoraNome;
+  const irradiacao = isSnapshot ? snapshotData.irradiacao : context.locIrradiacao;
+  
+  const clienteNome = isSnapshot ? snapshotData.clienteNome : context.cliente.nome;
+  const clienteCelular = isSnapshot ? snapshotData.clienteCelular : context.cliente.celular;
+  const clienteEmail = isSnapshot ? snapshotData.clienteEmail : context.cliente.email;
+  const clienteEmpresa = isSnapshot ? snapshotData.clienteEmpresa : context.cliente.empresa;
+  const leadNome = isSnapshot ? undefined : context.selectedLead?.nome;
+  
+  const potenciaKwp = isSnapshot ? snapshotData.potenciaKwp : context.potenciaKwp;
+  const numUcs = isSnapshot ? snapshotData.numUcs : context.ucs.length;
+  const grupo = isSnapshot ? snapshotData.grupo : context.grupo;
+  
+  const itens = isSnapshot ? snapshotData.itens : context.itens;
+  const adicionais = isSnapshot ? snapshotData.adicionais : context.adicionais;
+  const servicos = isSnapshot ? snapshotData.servicos : context.servicos;
+  
+  const precoFinalFromHook = usePrecoFinal(context.itens, context.servicos, context.venda);
+  const precoFinal = isSnapshot ? snapshotData.precoFinal : precoFinalFromHook;
+  
+  const custoInstalacao = isSnapshot ? snapshotData.custoInstalacao : context.venda.custo_instalacao;
+  const custoComissao = isSnapshot ? snapshotData.custoComissao : context.venda.custo_comissao;
+  const custoOutros = isSnapshot ? snapshotData.custoOutros : context.venda.custo_outros;
+  const descontoPercentual = isSnapshot ? snapshotData.descontoPercentual : context.venda.desconto_percentual;
+  const custoKitOverride = isSnapshot ? snapshotData.custoKitOverride : context.venda.custo_kit_override;
+  
+  const pagamentoOpcoes = isSnapshot ? snapshotData.pagamentoOpcoes : context.pagamentoOpcoes;
+
+  const consumoTotal = isSnapshot ? snapshotData.consumoTotal : context.ucs.reduce((s, u) => s + (u.consumo_mensal || u.consumo_mensal_p + u.consumo_mensal_fp), 0);
+
+  // Geração estimada
+  const topologiaAtiva = (itens.length > 0 ? (itens.find(i => i.categoria === "inversor")?.descricao?.toLowerCase() ?? "tradicional") : "tradicional");
+  const fatorGeracaoAtivo = isSnapshot ? 0 : (context.preDimensionamento.topologia_configs?.[topologiaAtiva]?.fator_geracao ?? context.preDimensionamento.fator_geracao ?? 0);
+
+  const geracaoMensalKwh = useMemo(() => {
+    if (isSnapshot) return snapshotData.geracaoMensalKwh;
+    if (potenciaKwp <= 0) return 0;
+    if (fatorGeracaoAtivo > 0) return Math.round(potenciaKwp * fatorGeracaoAtivo);
+    if (irradiacao > 0) {
+      const ucGeradora = context.ucs.find(u => u.is_geradora);
+      const pr = (ucGeradora?.taxa_desempenho ?? 80) / 100;
+      return Math.round(potenciaKwp * irradiacao * 30 * pr);
+    }
+    return 0;
+  }, [isSnapshot, snapshotData, potenciaKwp, fatorGeracaoAtivo, irradiacao, context.ucs]);
+
   const custoKit = resolveCustoKit({ itens, custoKitOverride });
   const custoAdicionais = adicionais.reduce((s, i) => s + (i.quantidade * i.preco_unitario), 0);
-  const custoServicos = servicos.reduce((s, i) => s + i.valor, 0);
   const hasFCCosts = (Number(custoInstalacao) || 0) > 0 || (Number(custoComissao) || 0) > 0 || (Number(custoOutros) || 0) > 0;
   const custoServicosEfetivo = hasFCCosts
     ? (Number(custoInstalacao) || 0)
     : servicos.filter((i) => i.incluso_no_preco).reduce((s, i) => s + i.valor, 0);
   const custoBase = custoKit + custoServicosEfetivo + (Number(custoComissao) || 0) + (Number(custoOutros) || 0);
   const margemRealPercentual = custoBase > 0 ? ((precoFinal - custoBase) / custoBase) * 100 : 0;
-
 
   return (
     <div className="space-y-4">
@@ -312,7 +347,7 @@ export function StepResumo({
                   <Separator className="my-2" />
                   <div className="flex justify-between text-sm font-semibold">
                     <span className="text-muted-foreground">Total Serviços</span>
-                    <span className="text-foreground">{formatBRL(custoServicos)}</span>
+                    <span className="text-foreground">{formatBRL(servicos.reduce((s, i) => s + i.valor, 0))}</span>
                   </div>
                 </div>
               </CardContent>
@@ -338,10 +373,10 @@ export function StepResumo({
                     <span className="font-medium text-foreground text-right">{formatBRL(custoServicosEfetivo)}</span>
                   </>
                 )}
-                {custoComissao > 0 && (
+                {Number(custoComissao) > 0 && (
                   <>
                     <span className="text-muted-foreground">Comissão</span>
-                    <span className="font-medium text-foreground text-right">{formatBRL(custoComissao)}</span>
+                    <span className="font-medium text-foreground text-right">{formatBRL(Number(custoComissao))}</span>
                   </>
                 )}
                 {(Number(custoOutros) || 0) > 0 && (
@@ -350,7 +385,7 @@ export function StepResumo({
                     <span className="font-medium text-foreground text-right">{formatBRL(Number(custoOutros))}</span>
                   </>
                 )}
-                {descontoPercentual > 0 && (
+                {Number(descontoPercentual) > 0 && (
                   <>
                     <span className="text-muted-foreground">Desconto</span>
                     <span className="font-medium text-destructive text-right">-{(Number(descontoPercentual) || 0).toFixed(1)}%</span>
@@ -363,279 +398,90 @@ export function StepResumo({
                 <span className="font-medium text-foreground text-right">{(Number(margemRealPercentual) || 0).toFixed(1)}%</span>
               </div>
               <Separator className="my-3" />
-              <div className="flex justify-between text-base font-bold">
-                <span className="text-foreground">Preço Final</span>
-                <span className="text-primary">{formatBRL(precoFinal)}</span>
+              <div className="flex items-center justify-between">
+                <span className="text-base font-bold text-foreground">Preço Final</span>
+                <span className="text-lg font-black text-primary">{formatBRL(precoFinal)}</span>
               </div>
             </CardContent>
           </Card>
         </div>
       </div>
 
-      {/* Pagamento — grouped by entity */}
+      {/* Pagamento */}
       {pagamentoOpcoes.length > 0 && (
         <Card className="border-border/40 shadow-sm">
           <CardContent className="p-4">
-            <SectionHeader icon={CreditCard} label="Condições de Pagamento" />
-            <PaymentGroupedList opcoes={pagamentoOpcoes} precoBase={precoFinal} />
+            <SectionHeader icon={CreditCard} label="Opções de Pagamento" />
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+              {pagamentoOpcoes.map((opcao, i) => (
+                <div key={i} className="p-3 rounded-lg border border-border/50 bg-muted/20 hover:bg-muted/40 transition-colors">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs font-bold text-foreground uppercase truncate pr-2">{opcao.nome}</span>
+                    <Badge variant="outline" className={cn("text-[9px] px-1.5 py-0", getTipoBadgeColor(opcao.tipo))}>
+                      {getTipoLabel(opcao.tipo)}
+                    </Badge>
+                  </div>
+                  <div className="space-y-1.5">
+                    <div className="flex justify-between items-baseline">
+                      <span className="text-[10px] text-muted-foreground">Parcelas</span>
+                      <span className="text-sm font-bold text-foreground">{opcao.num_parcelas}x</span>
+                    </div>
+                    <div className="flex justify-between items-baseline">
+                      <span className="text-[10px] text-muted-foreground">Valor Parcela</span>
+                      <span className="text-sm font-bold text-foreground">{formatBRL(opcao.valor_parcela)}</span>
+                    </div>
+                    {opcao.entrada > 0 && (
+                      <div className="flex justify-between items-baseline">
+                        <span className="text-[10px] text-muted-foreground">Entrada</span>
+                        <span className="text-sm font-semibold text-success">{formatBRL(opcao.entrada)}</span>
+                      </div>
+                    )}
+                    {opcao.taxa_mensal != null && opcao.taxa_mensal > 0 && (
+                      <div className="flex justify-between items-baseline">
+                        <span className="text-[10px] text-muted-foreground">Taxa</span>
+                        <span className="text-[11px] font-medium text-foreground">{opcao.taxa_mensal.toFixed(2)}% a.m.</span>
+                      </div>
+                    )}
+                    {opcao.carencia_meses != null && opcao.carencia_meses > 0 && (
+                      <div className="flex justify-between items-baseline">
+                        <span className="text-[10px] text-muted-foreground">Carência</span>
+                        <span className="text-[11px] font-medium text-foreground">{opcao.carencia_meses} meses</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
           </CardContent>
         </Card>
+      )}
+
+      {/* Footer Navigation (only if callbacks provided) */}
+      {(onBack || onNext) && (
+        <div className="flex items-center justify-between pt-4 border-t border-border/40">
+          {onBack ? (
+            <Button variant="ghost" size="sm" onClick={onBack} className="gap-1 text-xs">
+              <ChevronLeft className="h-4 w-4" /> Voltar
+            </Button>
+          ) : <div />}
+          {onNext && (
+            <Button size="sm" onClick={onNext} className="gap-1 text-xs px-6">
+              Próximo <ChevronRight className="h-4 w-4" />
+            </Button>
+          )}
+        </div>
       )}
     </div>
   );
 }
 
-/* ── Grouped Payment List ── */
-type PaymentOp = StepResumoProps["pagamentoOpcoes"][number];
-
-function PaymentGroupedList({ opcoes, precoBase }: { opcoes: PaymentOp[]; precoBase: number }) {
-  // Separate "à vista" from financing/installment options
-  const aVistaOps = opcoes.filter(op => op.tipo === "a_vista");
-  const financingOps = opcoes.filter(op => op.tipo !== "a_vista");
-
-  // Group financing by entity name (nome field)
-  const entityGroups = new Map<string, PaymentOp[]>();
-  for (const op of financingOps) {
-    const entity = op.nome || "Outros";
-    if (!entityGroups.has(entity)) entityGroups.set(entity, []);
-    entityGroups.get(entity)!.push(op);
-  }
-
+function SectionHeaderLegacy({ icon: Icon, label }: { icon: any; label: string }) {
   return (
-    <div className="space-y-2">
-      {/* À Vista options — shown individually */}
-      {aVistaOps.map((op, i) => (
-        <PaymentOptionItem key={`av-${i}`} op={op} defaultOpen={i === 0} precoBase={precoBase} />
-      ))}
-
-      {/* Grouped financing by entity */}
-      {Array.from(entityGroups.entries()).map(([entity, ops]) => (
-        <EntityPaymentGroup key={entity} entity={entity} options={ops} precoBase={precoBase} />
-      ))}
-    </div>
-  );
-}
-
-/* ── Entity Group (e.g. Santander, BV Financeira) ── */
-function EntityPaymentGroup({ entity, options, precoBase }: {
-  entity: string;
-  options: PaymentOp[];
-  precoBase: number;
-}) {
-  const [open, setOpen] = useState(false);
-
-  // Sort by num_parcelas ascending
-  const sorted = [...options].sort((a, b) => a.num_parcelas - b.num_parcelas);
-
-  // Summary: range of installments
-  const minParcelas = sorted[0]?.num_parcelas || 0;
-  const maxParcelas = sorted[sorted.length - 1]?.num_parcelas || 0;
-  const minValorParcela = Math.min(...sorted.map(o => o.valor_parcela));
-  const maxValorParcela = Math.max(...sorted.map(o => o.valor_parcela));
-
-  return (
-    <Collapsible open={open} onOpenChange={setOpen}>
-      <CollapsibleTrigger asChild>
-        <button
-          type="button"
-          className={cn(
-            "w-full group rounded-xl border transition-all duration-200",
-            "hover:shadow-md cursor-pointer",
-            open
-              ? "border-primary/30 shadow-sm bg-card"
-              : "border-border/50 bg-card hover:border-primary/20"
-          )}
-        >
-          <div className="flex items-center gap-4 p-4">
-            <div className="h-10 w-10 rounded-xl flex items-center justify-center shrink-0 bg-info/10">
-              <Building2 className="h-5 w-5 text-info" />
-            </div>
-
-            <div className="flex-1 min-w-0 text-left">
-              <div className="flex items-center gap-2">
-                <span className="font-semibold text-sm text-foreground truncate">{entity}</span>
-                <Badge variant="outline" className="text-[9px] shrink-0 bg-info/10 text-info border-info/20">
-                  Financiamento
-                </Badge>
-                <Badge variant="outline" className="text-[9px] shrink-0 bg-muted text-muted-foreground">
-                  {options.length} {options.length === 1 ? "opção" : "opções"}
-                </Badge>
-              </div>
-              {!open && (
-                <div className="flex items-center gap-3 mt-1">
-                  <span className="text-[11px] text-muted-foreground">
-                    <Clock className="h-2.5 w-2.5 inline mr-0.5" />
-                    {minParcelas === maxParcelas ? `${minParcelas}×` : `${minParcelas}× a ${maxParcelas}×`}
-                  </span>
-                  <span className="text-[11px] text-muted-foreground">
-                    {formatBRL(minValorParcela)} – {formatBRL(maxValorParcela)}/mês
-                  </span>
-                </div>
-              )}
-            </div>
-
-            <ChevronDown className={cn(
-              "h-4 w-4 text-muted-foreground transition-transform duration-200 shrink-0",
-              open && "rotate-180"
-            )} />
-          </div>
-        </button>
-      </CollapsibleTrigger>
-
-      <CollapsibleContent>
-        <div className="mx-1 mb-1 rounded-b-xl border border-t-0 border-border/40 bg-muted/10 p-2 space-y-1.5">
-          {sorted.map((op, i) => {
-            const totalFinanciado = op.num_parcelas > 0 && op.valor_parcela > 0
-              ? op.num_parcelas * op.valor_parcela
-              : 0;
-            const totalGeral = (op.entrada || 0) + totalFinanciado;
-            const ganho = totalGeral > 0 ? totalGeral - precoBase : 0;
-
-            return (
-              <div key={i} className="rounded-lg border border-border/30 bg-card p-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="text-left">
-                        <p className="text-xs font-semibold text-foreground">
-                          {op.entrada > 0 && `${formatBRL(op.entrada)} (Entrada) + `}{op.num_parcelas}× de {formatBRL(op.valor_parcela)}
-
-                      </p>
-                      <div className="flex items-center gap-2 mt-0.5">
-                        {(op.taxa_mensal ?? 0) > 0 && (
-                          <span className="text-[10px] text-muted-foreground">
-                            <Percent className="h-2.5 w-2.5 inline mr-0.5" />
-                            {((op.taxa_mensal ?? 0) * 100).toFixed(2)}% a.m.
-                          </span>
-                        )}
-                        {op.entrada > 0 && (
-                          <span className="text-[10px] text-muted-foreground">
-                            <ArrowDown className="h-2.5 w-2.5 inline mr-0.5" />
-                            Entrada: {formatBRL(op.entrada)}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="text-right">
-                    <p className="text-sm font-bold text-foreground">{formatBRL(totalGeral)}</p>
-                    {ganho > 0 && (
-                      <p className="text-[10px] text-success font-medium">
-                        +{formatBRL(ganho)} de ganho
-                      </p>
-                    )}
-                    {ganho < 0 && (
-                      <p className="text-[10px] text-destructive font-medium">
-                        {formatBRL(ganho)} abaixo
-                      </p>
-                    )}
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </CollapsibleContent>
-    </Collapsible>
-  );
-}
-
-/* ── Single Payment Option (used for À Vista) ── */
-function PaymentOptionItem({ op, defaultOpen, precoBase }: {
-  op: PaymentOp;
-  defaultOpen?: boolean;
-  precoBase: number;
-}) {
-  const [open, setOpen] = useState(defaultOpen ?? false);
-
-  const totalFinanciado = op.num_parcelas > 0 && op.valor_parcela > 0
-    ? op.num_parcelas * op.valor_parcela
-    : 0;
-  const totalGeral = (op.entrada || 0) + totalFinanciado;
-
-  const tipoColor = getTipoBadgeColor(op.tipo);
-  const isAVista = op.tipo === "a_vista";
-
-  return (
-    <Collapsible open={open} onOpenChange={setOpen}>
-      <CollapsibleTrigger asChild>
-        <button
-          type="button"
-          className={cn(
-            "w-full group rounded-xl border transition-all duration-200",
-            "hover:shadow-md cursor-pointer",
-            open
-              ? "border-primary/30 shadow-sm bg-card"
-              : "border-border/50 bg-card hover:border-primary/20"
-          )}
-        >
-          <div className="flex items-center gap-4 p-4">
-            <div className={cn(
-              "h-10 w-10 rounded-xl flex items-center justify-center shrink-0 transition-colors",
-              isAVista ? "bg-success/10" : "bg-warning/10",
-            )}>
-              <Banknote className={cn("h-5 w-5", isAVista ? "text-success" : "text-warning")} />
-            </div>
-
-            <div className="flex-1 min-w-0 text-left">
-              <div className="flex items-center gap-2">
-                <span className="font-semibold text-sm text-foreground truncate">{op.nome}</span>
-                <Badge variant="outline" className={cn("text-[9px] shrink-0", tipoColor)}>
-                  {getTipoLabel(op.tipo)}
-                </Badge>
-              </div>
-            </div>
-
-            <div className="text-right shrink-0">
-              <p className="text-sm font-bold text-foreground">
-                {isAVista ? formatBRL(op.entrada || op.valor_parcela) : totalGeral > 0 ? formatBRL(totalGeral) : formatBRL(op.valor_parcela)}
-              </p>
-            </div>
-
-            <ChevronDown className={cn(
-              "h-4 w-4 text-muted-foreground transition-transform duration-200 shrink-0",
-              open && "rotate-180"
-            )} />
-          </div>
-        </button>
-      </CollapsibleTrigger>
-
-      <CollapsibleContent>
-        <div className="mx-1 mb-1 rounded-b-xl border border-t-0 border-border/40 bg-muted/20 px-4 py-3">
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-            {op.entrada > 0 && (
-              <MetricMini icon={ArrowDown} label="Entrada" value={formatBRL(op.entrada)} />
-            )}
-            {op.num_parcelas > 0 && (
-              <MetricMini
-                icon={Clock}
-                label="Parcelas"
-                value={`${op.num_parcelas}× ${formatBRL(op.valor_parcela)}`}
-              />
-            )}
-            {(op.valor_financiado ?? 0) > 0 && (
-              <MetricMini
-                icon={Banknote}
-                label="Financiado"
-                value={formatBRL(op.valor_financiado ?? 0)}
-              />
-            )}
-          </div>
-        </div>
-      </CollapsibleContent>
-    </Collapsible>
-  );
-}
-
-/* ── Mini metric for expanded state ── */
-function MetricMini({ icon: Icon, label, value }: { icon: any; label: string; value: string }) {
-  return (
-    <div className="space-y-0.5">
-      <div className="flex items-center gap-1 text-muted-foreground">
-        <Icon className="h-3 w-3 shrink-0" />
-        <span className="text-[10px] font-medium uppercase tracking-wider">{label}</span>
+    <div className="flex items-center gap-2 mb-3">
+      <div className="h-7 w-7 rounded-md bg-primary/10 flex items-center justify-center shrink-0">
+        <Icon className="h-3.5 w-3.5 text-primary" />
       </div>
-      <p className="text-sm font-semibold text-foreground">{value}</p>
+      <h3 className="text-sm font-bold text-foreground">{label}</h3>
     </div>
   );
 }

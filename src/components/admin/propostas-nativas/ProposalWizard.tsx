@@ -2934,34 +2934,7 @@ function ProposalWizardContent() {
 
       case STEP_KEYS.RESUMO:
         return wrap("resumo", (
-          <StepResumo
-            estado={locEstado}
-            cidade={locCidade}
-            tipoTelhado={locTipoTelhado}
-            distribuidoraNome={locDistribuidoraNome}
-            irradiacao={locIrradiacao}
-            clienteNome={cliente.nome || ""}
-            clienteCelular={cliente.celular || ""}
-            clienteEmail={cliente.email || ""}
-            clienteEmpresa={cliente.empresa || ""}
-            leadNome={selectedLead?.nome || ""}
-            potenciaKwp={potenciaKwp}
-            consumoTotal={consumoTotal}
-            geracaoMensalKwh={geracaoMensalEstimada}
-            numUcs={ucs.length}
-            grupo={grupo}
-            itens={itens}
-            custoKitOverride={venda.custo_kit_override}
-            adicionais={adicionais}
-            servicos={servicos}
-            precoFinal={precoFinal}
-            margemPercentual={venda.margem_percentual}
-            custoInstalacao={venda.custo_instalacao}
-            custoComissao={venda.custo_comissao}
-            custoOutros={venda.custo_outros}
-            descontoPercentual={venda.desconto_percentual}
-            pagamentoOpcoes={pagamentoOpcoes}
-          />
+          <StepResumo onBack={() => setStep(step - 1)} onNext={() => setStep(step + 1)} />
         ));
 
       case STEP_KEYS.PROPOSTA:
