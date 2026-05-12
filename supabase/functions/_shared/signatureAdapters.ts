@@ -407,8 +407,7 @@ export class AutentiqueAdapter implements SignatureAdapter {
       createDocument(
         document: { ${documentInputFields.join(", ")} },
         signers: $signers,
-        file: $file,
-        sandbox: ${params.sandbox ? "true" : "false"}
+        file: $file
       ) {
         id
         name
