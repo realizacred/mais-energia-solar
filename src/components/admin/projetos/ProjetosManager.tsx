@@ -225,18 +225,49 @@ export function ProjetosManager() {
   }, [STORAGE_KEY]);
 
   const storedPrefs = useMemo(() => getStoredPrefs(), [getStoredPrefs]);
-  
-  const [viewMode, setViewModeRaw] = useState<"kanban-etapa" | "kanban-consultor" | "lista">(
-    (storedPrefs?.viewMode as any) || "kanban-consultor"
-  );
+
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  // ── URL params ↔ filtros (URL = SSOT entre navegações) ──
+  const urlFilters = useMemo(() => ({
+    status: searchParams.get("status") || undefined,
+    consultor: searchParams.get("consultor") || undefined,
+    funil: searchParams.get("funil") || undefined,
+    tipoSolar: searchParams.get("tipoSolar") || undefined,
+    etiquetas: searchParams.get("etiquetas")?.split(",").filter(Boolean) || undefined,
+    view: searchParams.get("view") || undefined,
+  }), [searchParams]);
+
+  const updateUrlFilter = useCallback((updates: Record<string, string | string[] | null | undefined>) => {
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      for (const [k, v] of Object.entries(updates)) {
+        const isEmpty =
+          v === null || v === undefined || v === "" ||
+          v === "todos" || (Array.isArray(v) && v.length === 0);
+        if (isEmpty) next.delete(k);
+        else next.set(k, Array.isArray(v) ? v.join(",") : v);
+      }
+      return next;
+    }, { replace: true });
+  }, [setSearchParams]);
+
+  const initialView =
+    (urlFilters.view as any) ||
+    (storedPrefs?.viewMode as any) ||
+    "kanban-consultor";
+
+  const [viewMode, setViewModeRaw] = useState<"kanban-etapa" | "kanban-consultor" | "lista">(initialView);
 
   const setViewMode = (mode: "kanban-etapa" | "kanban-consultor" | "lista") => {
     setViewModeRaw(mode);
     savePrefs({ viewMode: mode });
+    updateUrlFilter({ view: mode });
     if (mode === "kanban-consultor") {
       setSelectedFunilId(null);
       applyFilters({ funilId: null });
       savePrefs({ viewMode: mode, funilId: null });
+      updateUrlFilter({ view: mode, funil: null });
     }
   };
 
