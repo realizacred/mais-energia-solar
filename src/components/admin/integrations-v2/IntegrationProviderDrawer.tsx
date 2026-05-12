@@ -47,6 +47,17 @@ export function IntegrationProviderDrawer({
   const [savedSecrets, setSavedSecrets] = useState<Record<string, boolean>>({});
   const [loaded, setLoaded] = useState(false);
 
+  // Signature-only advanced config (signature_settings.settings_extra + brand_settings)
+  const [signerMode, setSignerMode] = useState<"simplified" | "complete">("simplified");
+  const [refusable, setRefusable] = useState<boolean>(true);
+  const [reminder, setReminder] = useState<"NONE" | "DAILY" | "WEEKLY">("WEEKLY");
+  const [deadlineDays, setDeadlineDays] = useState<string>("30");
+  const [repNome, setRepNome] = useState<string>("");
+  const [repEmail, setRepEmail] = useState<string>("");
+  const [repCpf, setRepCpf] = useState<string>("");
+  const [repCargo, setRepCargo] = useState<string>("");
+  const [savingExtras, setSavingExtras] = useState(false);
+
   const isConnected = connStatus === "connected";
   const fields = (provider.credential_schema || []) as CredentialField[];
   const tutorial = provider.tutorial;
@@ -83,7 +94,7 @@ export function IntegrationProviderDrawer({
           // Signature providers persist in signature_settings
           const { data } = await (supabase as any)
             .from("signature_settings")
-            .select("provider, sandbox_mode, api_token_encrypted, webhook_secret_encrypted")
+            .select("provider, sandbox_mode, api_token_encrypted, webhook_secret_encrypted, settings_extra")
             .maybeSingle();
 
           if (data) {
@@ -92,6 +103,27 @@ export function IntegrationProviderDrawer({
               sandbox_mode: data.sandbox_mode ? "true" : "false",
               webhook_secret: data.webhook_secret_encrypted || "",
             };
+            const extra = (data.settings_extra as any) || {};
+            if (extra.signer_mode === "complete" || extra.signer_mode === "simplified") {
+              setSignerMode(extra.signer_mode);
+            }
+            if (typeof extra.refusable === "boolean") setRefusable(extra.refusable);
+            if (extra.reminder === "NONE" || extra.reminder === "DAILY" || extra.reminder === "WEEKLY") {
+              setReminder(extra.reminder);
+            }
+            if (typeof extra.deadline_days === "number") setDeadlineDays(String(extra.deadline_days));
+          }
+
+          // Carregar representante legal de brand_settings
+          const { data: brand } = await (supabase as any)
+            .from("brand_settings")
+            .select("representante_legal, representante_email, representante_cpf, representante_cargo")
+            .maybeSingle();
+          if (brand) {
+            setRepNome(brand.representante_legal || "");
+            setRepEmail(brand.representante_email || "");
+            setRepCpf(brand.representante_cpf || "");
+            setRepCargo(brand.representante_cargo || "");
           }
         } else {
           const legacyId = LEGACY_PROVIDER_MAP[provider.id] || provider.id;
@@ -149,6 +181,41 @@ export function IntegrationProviderDrawer({
     if (!f.required) return true;
     return !!formValues[f.key]?.trim() || !!savedSecrets[f.key];
   });
+
+  const handleSaveExtras = async () => {
+    setSavingExtras(true);
+    try {
+      const days = Number(deadlineDays);
+      const settings_extra = {
+        signer_mode: signerMode,
+        refusable,
+        reminder,
+        deadline_days: Number.isFinite(days) && days > 0 ? days : 30,
+      };
+      const { error: e1 } = await (supabase as any)
+        .from("signature_settings")
+        .update({ settings_extra })
+        .eq("provider", provider.id.includes("autentique") ? "autentique" : provider.id);
+      if (e1) throw e1;
+
+      const { error: e2 } = await (supabase as any)
+        .from("brand_settings")
+        .update({
+          representante_legal: repNome || null,
+          representante_email: repEmail || null,
+          representante_cpf: repCpf || null,
+          representante_cargo: repCargo || null,
+        })
+        .not("id", "is", null);
+      if (e2) throw e2;
+
+      toast.success("Configurações avançadas salvas");
+    } catch (err: any) {
+      toast.error(err?.message || "Erro ao salvar configurações");
+    } finally {
+      setSavingExtras(false);
+    }
+  };
 
   const handleSubmit = async () => {
     setSaving(true);
@@ -335,6 +402,94 @@ export function IntegrationProviderDrawer({
               <p className="text-[10px] text-muted-foreground">
                 A senha é usada apenas para autenticação e <strong>não é armazenada</strong>. Apenas o token de acesso é salvo.
               </p>
+            )}
+
+            {/* Configurações avançadas (apenas signature) */}
+            {provider.category === "signature" && (
+              <div className="space-y-4 rounded-lg border border-border/50 p-4">
+                <div>
+                  <h4 className="text-sm font-semibold text-foreground">Comportamento da assinatura</h4>
+                  <p className="text-[11px] text-muted-foreground">Aplicado a cada documento enviado pelo provedor.</p>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-semibold">Assinatura do contratante</Label>
+                    <Select value={signerMode} onValueChange={(v) => setSignerMode(v as "simplified" | "complete")}>
+                      <SelectTrigger className="h-10"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="simplified">Simplificada (sem CPF/data nasc.)</SelectItem>
+                        <SelectItem value="complete">Completa (exige CPF e data)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-semibold">Lembrete automático</Label>
+                    <Select value={reminder} onValueChange={(v) => setReminder(v as "NONE" | "DAILY" | "WEEKLY")}>
+                      <SelectTrigger className="h-10"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="NONE">Sem lembrete</SelectItem>
+                        <SelectItem value="DAILY">Diário</SelectItem>
+                        <SelectItem value="WEEKLY">Semanal</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-semibold">Prazo (dias)</Label>
+                    <Input
+                      type="number"
+                      min="1"
+                      value={deadlineDays}
+                      onChange={(e) => setDeadlineDays(e.target.value)}
+                      className="h-10"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-semibold">Permitir recusa</Label>
+                    <Select value={refusable ? "true" : "false"} onValueChange={(v) => setRefusable(v === "true")}>
+                      <SelectTrigger className="h-10"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="true">Sim — signatário pode recusar</SelectItem>
+                        <SelectItem value="false">Não</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <div>
+                  <h4 className="text-sm font-semibold text-foreground mt-2">Representante legal padrão (Contratada)</h4>
+                  <p className="text-[11px] text-muted-foreground">Injetado automaticamente como signatário em todos os envelopes.</p>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-semibold">Nome</Label>
+                    <Input value={repNome} onChange={(e) => setRepNome(e.target.value)} className="h-10" placeholder="Nome completo" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-semibold">E-mail</Label>
+                    <Input type="email" value={repEmail} onChange={(e) => setRepEmail(e.target.value)} className="h-10" placeholder="email@empresa.com" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-semibold">CPF</Label>
+                    <Input value={repCpf} onChange={(e) => setRepCpf(e.target.value)} className="h-10" placeholder="000.000.000-00" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-semibold">Cargo</Label>
+                    <Input value={repCargo} onChange={(e) => setRepCargo(e.target.value)} className="h-10" placeholder="Ex: Diretor" />
+                  </div>
+                </div>
+
+                <div className="flex justify-end pt-1">
+                  <Button onClick={handleSaveExtras} disabled={savingExtras} size="sm" className="gap-2">
+                    {savingExtras ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                    Salvar configurações avançadas
+                  </Button>
+                </div>
+              </div>
             )}
 
             {/* Help / Tutorial */}
