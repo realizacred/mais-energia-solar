@@ -65,6 +65,7 @@ export function EmitirReciboModal({
     if (open) {
       setTemplateId("");
       setClienteId(defaultClienteId ?? "");
+      setProjetoId(defaultProjetoId ?? null);
       setValor("");
       setDescricao("");
       setNumero("");
