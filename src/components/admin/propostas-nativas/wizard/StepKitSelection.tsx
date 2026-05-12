@@ -199,33 +199,57 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
     return null;
   }, [manualKits]);
 
-  // Load catalog kits when tab switches to "catalogo" — fetch all, filter client-side
+  // Load catalog kits when tab switches to "catalogo" or filters/page changes
   useEffect(() => {
-    if (tab !== "catalogo" || catalogLoaded.current) return;
+    if (tab !== "catalogo") return;
     setCatalogLoading(true);
     setCatalogError(null);
-    fetchActiveKits(false) // fetch all products; generator filter applied client-side via includeComponents toggle
-      .then(async (kits) => {
-        setCatalogKits(kits);
+    
+    // Auto-apply power filter if potenciaIdeal is set and it's the first load
+    if (potenciaIdeal > 0 && !hasRemovedAutoFilter && !catalogLoaded.current) {
+      const initialPotMin = Math.round(potenciaIdeal * 0.7 * 100) / 100;
+      const initialPotMax = Math.round(potenciaIdeal * 1.3 * 100) / 100;
+      setFilters(prev => ({
+        ...prev,
+        potenciaMin: initialPotMin,
+        potenciaMax: initialPotMax,
+      }));
+      // We will let the next effect cycle with updated filters do the fetch
+      setHasNewRemovedAutoFilter(true); // Prevent re-entry
+      return;
+    }
+
+    fetchActiveKits(
+      !includeComponents, 
+      page, 
+      pageSize, 
+      {
+        potenciaMin: filters.potenciaMin,
+        potenciaMax: filters.potenciaMax,
+        searchText: filters.searchText,
+      }
+    )
+      .then(async (response) => {
+        setCatalogKits(response.data);
+        setTotalCount(response.count);
         catalogLoaded.current = true;
         
-        // UX-05: Auto-apply power filter if potenciaIdeal is set
-        if (potenciaIdeal > 0 && !hasRemovedAutoFilter) {
-          setFilters(prev => ({
-            ...prev,
-            potenciaMin: Math.round(potenciaIdeal * 0.7 * 100) / 100,
-            potenciaMax: Math.round(potenciaIdeal * 1.3 * 100) / 100,
-          }));
-        }
-
-        if (kits.length > 0) {
-          const summaries = await fetchKitsSummary(kits.map(k => k.id));
+        if (response.data.length > 0) {
+          const summaries = await fetchKitsSummary(response.data.map(k => k.id));
           setCatalogSummaries(summaries);
         }
+        
+        // Scroll suave para o topo
+        listTopRef.current?.scrollIntoView({ behavior: "smooth" });
       })
       .catch((err) => setCatalogError(err.message))
       .finally(() => setCatalogLoading(false));
-  }, [tab, potenciaIdeal, hasRemovedAutoFilter]);
+  }, [tab, includeComponents, page, filters.potenciaMin, filters.potenciaMax, filters.searchText, potenciaIdeal]);
+
+  // Reset page to 1 when filters change
+  useEffect(() => {
+    setPage(1);
+  }, [filters.potenciaMin, filters.potenciaMax, filters.searchText, includeComponents]);
 
   const handleSelectCatalogKit = async (kitId: string, kitName: string) => {
     // If items already exist, ask for confirmation
