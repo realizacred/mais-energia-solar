@@ -364,6 +364,24 @@ function ProposalWizardContent() {
   const [hasEditsAfterRestore, setHasEditsAfterRestore] = useState(false);
   const editsBaselineReadyRef = useRef(false);
 
+  // Activate edit-tracking 1.5s after restore completes (lets async hydration settle)
+  useEffect(() => {
+    if (isRestoring) {
+      editsBaselineReadyRef.current = false;
+      setHasEditsAfterRestore(false);
+      return;
+    }
+    const t = setTimeout(() => { editsBaselineReadyRef.current = true; }, 1500);
+    return () => clearTimeout(t);
+  }, [isRestoring]);
+
+  // Mark as dirty whenever key wizard state changes after baseline
+  useEffect(() => {
+    if (!editsBaselineReadyRef.current) return;
+    if (hasEditsAfterRestore) return;
+    setHasEditsAfterRestore(true);
+  }, [cliente, ucs, itens, manualKits, selectedManualIdx, venda, pagamentoOpcoes, premissas, servicos, customFieldValues, templateSelecionado, adicionais, layouts, hasEditsAfterRestore]);
+
   // ─── Load deal custom field values as fallback for customFieldValues
   const effectiveDealId = savedDealId || (projectContext as any)?.dealId || null;
   const { data: dealFieldValues } = useDealCustomFieldValues(effectiveDealId);
