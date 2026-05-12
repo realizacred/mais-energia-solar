@@ -340,6 +340,7 @@ function ProposalWizardContent() {
   const [savedPropostaId, setSavedPropostaId] = useState<string | null>(null);
   const [savedVersaoId, setSavedVersaoId] = useState<string | null>(null);
   const [savedProjetoId, setSavedProjetoId] = useState<string | null>(projetoIdFromUrl || null);
+  console.log('[Wizard] projetoIdFromUrl:', projetoIdFromUrl, 'savedProjetoId:', savedProjetoId);
   const [savedDealId, setSavedDealId] = useState<string | null>(null);
 
   // Fetch projeto codigo for breadcrumb (Projetos > Projeto #XXXX > Nova Proposta)
