@@ -4078,6 +4078,84 @@ export type Database = {
           },
         ]
       }
+      document_signers: {
+        Row: {
+          cpf: string | null
+          created_at: string
+          document_id: string
+          email: string | null
+          id: string
+          last_resent_at: string | null
+          name: string
+          order_index: number
+          phone: string | null
+          provider_signer_id: string | null
+          refused_at: string | null
+          role: string | null
+          sign_url: string | null
+          signed_at: string | null
+          status: string
+          tenant_id: string
+          updated_at: string
+          viewed_at: string | null
+        }
+        Insert: {
+          cpf?: string | null
+          created_at?: string
+          document_id: string
+          email?: string | null
+          id?: string
+          last_resent_at?: string | null
+          name: string
+          order_index?: number
+          phone?: string | null
+          provider_signer_id?: string | null
+          refused_at?: string | null
+          role?: string | null
+          sign_url?: string | null
+          signed_at?: string | null
+          status?: string
+          tenant_id: string
+          updated_at?: string
+          viewed_at?: string | null
+        }
+        Update: {
+          cpf?: string | null
+          created_at?: string
+          document_id?: string
+          email?: string | null
+          id?: string
+          last_resent_at?: string | null
+          name?: string
+          order_index?: number
+          phone?: string | null
+          provider_signer_id?: string | null
+          refused_at?: string | null
+          role?: string | null
+          sign_url?: string | null
+          signed_at?: string | null
+          status?: string
+          tenant_id?: string
+          updated_at?: string
+          viewed_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "document_signers_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "generated_documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "document_signers_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       document_templates: {
         Row: {
           categoria: string

@@ -273,6 +273,31 @@ Deno.serve(async (req) => {
       console.error("[signature-send] DB update error:", updateErr);
     }
 
+    // 9b. Persist per-signer rows (replace any previous attempt)
+    await supabase.from("document_signers").delete().eq("document_id", documento_id);
+    const signerRows = signersList.map((s, idx) => {
+      // Match provider signer ID by name when available (best-effort)
+      const link = (result.signerLinks || []).find(l => l.name === s.name);
+      const incomingRole = (requestSigners || [])[idx]?.role as string | undefined;
+      return {
+        tenant_id,
+        document_id: documento_id,
+        provider_signer_id: link?.shortLink ? null : null, // some providers don't expose IDs at create — webhook will fill
+        name: s.name,
+        email: s.email,
+        cpf: s.cpf || null,
+        phone: s.phone || null,
+        role: incomingRole || (idx === 0 ? "Contratante" : "Contratada"),
+        order_index: idx,
+        status: "pending",
+        sign_url: link?.shortLink || (idx === 0 ? result.signUrl ?? null : null),
+      };
+    });
+    if (signerRows.length > 0) {
+      const { error: signersErr } = await supabase.from("document_signers").insert(signerRows);
+      if (signersErr) console.error("[signature-send] Signers insert error:", signersErr);
+    }
+
     return new Response(JSON.stringify({
       success: true,
       provider,

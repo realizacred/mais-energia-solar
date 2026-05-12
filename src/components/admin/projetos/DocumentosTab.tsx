@@ -22,6 +22,7 @@ import { formatDateTime } from "@/lib/dateUtils";
 import { getCurrentTenantId } from "@/lib/getCurrentTenantId";
 import { FilePreviewModal, type FilePreviewTarget } from "./FilePreviewModal";
 import { ProjectDocumentsHub } from "./ProjectDocumentsHub";
+import { DocumentSignersPanel } from "./DocumentSignersPanel";
 import { useProjectDocuments } from "@/hooks/useProjectDocuments";
 import {
   useProjetoDocumentosGerados,
@@ -44,11 +45,13 @@ const DOC_STATUS_MAP: Record<string, { label: string; color: string }> = {
 };
 
 const SIGNATURE_STATUS_MAP: Record<string, { label: string; color: string }> = {
-  sent: { label: "Enviado", color: "bg-warning/10 text-warning border-warning/20" },
+  sent: { label: "Aguardando assinatura", color: "bg-warning/10 text-warning border-warning/20" },
   viewed: { label: "Visualizado", color: "bg-info/10 text-info border-info/20" },
+  partially_signed: { label: "Parcialmente assinado", color: "bg-info/10 text-info border-info/20" },
   signed: { label: "Assinado ✓", color: "bg-success/10 text-success border-success/20" },
   refused: { label: "Recusado", color: "bg-destructive/10 text-destructive border-destructive/20" },
   cancelled: { label: "Cancelado", color: "bg-destructive/10 text-destructive border-destructive/20" },
+  delivery_failed: { label: "Falha no envio", color: "bg-destructive/10 text-destructive border-destructive/20" },
 };
 
 const DOC_CATEGORY_LABELS: Record<string, string> = {
@@ -565,6 +568,12 @@ export function DocumentosTab({ dealId, clienteTelefone, consultorTelefone: cons
                             title={`Preview: ${doc.title}`}
                           />
                         </div>
+                      )}
+                      {/* Per-signer status panel — shown while signature flow is in progress */}
+                      {(doc.signature_status === "sent" ||
+                        doc.signature_status === "viewed" ||
+                        doc.signature_status === "partially_signed") && (
+                        <DocumentSignersPanel documentId={doc.id} />
                       )}
                     </div>
                   );

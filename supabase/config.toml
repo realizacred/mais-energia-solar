@@ -323,6 +323,9 @@ verify_jwt = false
 [functions.signature-archive-pending]
 verify_jwt = false
 
+[functions.signature-resend]
+verify_jwt = false
+
 [functions.sync-projeto-funis]
 verify_jwt = false
 
