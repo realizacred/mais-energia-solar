@@ -2934,7 +2934,7 @@ function ProposalWizardContent() {
 
       case STEP_KEYS.RESUMO:
         return wrap("resumo", (
-          <StepResumo />
+          <StepResumo onBack={() => setStep(step - 1)} onNext={() => setStep(step + 1)} />
         ));
 
       case STEP_KEYS.PROPOSTA:
