@@ -241,7 +241,7 @@ function LeadsSemProposta({
 }
 
 // ─── Main Component ──────────────────────────────────────
-export function StepCliente({ selectedLead, onSelectLead, onClearLead, cliente, onClienteChange, fromProject }: Props) {
+function StepClienteImpl({ selectedLead, onSelectLead, onClearLead, cliente, onClienteChange, fromProject }: Props) {
   // ── When fromProject: show summary + leads sem proposta
   if (fromProject) {
     return (
