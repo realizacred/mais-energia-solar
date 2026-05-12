@@ -992,7 +992,6 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
                     );
                   })}
                 </div>
-{/* Pagination removed */}
               </div>
             ) : tab === "customizado" ? (
               /* ── Customizado Tab — manual kits + imported catalog kits ── */
