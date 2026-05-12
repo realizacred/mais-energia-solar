@@ -179,7 +179,7 @@ export function ProposalProblemSection({ snapshot: s, versaoData, activeCenario 
                 </span>
                 {contaDepois > 0 && (
                   <span
-                    title={`Por que ainda pago R$ ${Math.round(contaDepois).toLocaleString("pt-BR")}?\n\nMesmo com energia solar, a distribuidora cobra uma taxa mínima de conexão à rede (Fio B / TUSD) e a prefeitura cobra a iluminação pública (CIP/COSIP). Esses custos são obrigatórios por lei e não podem ser eliminados por nenhum sistema solar.`}
+                    title={`Por que ainda pago R$ ${fmt(contaDepois)}/mês?\n\nMesmo com solar 100%, a distribuidora cobra:\n• Fio B (TUSD): R$ ${fmt(valorFioB)}/mês\n• Iluminação pública (CIP): R$ ${fmt(valorCip)}/mês\n\nEsses custos são obrigatórios por lei e não somem com nenhum sistema solar.`}
                     style={{ display: "inline-flex", marginLeft: 8, cursor: "help", verticalAlign: "middle" }}
                   >
                     <Info style={{ width: 16, height: 16, color: "#86EFAC", opacity: 0.8 }} />
@@ -188,9 +188,19 @@ export function ProposalProblemSection({ snapshot: s, versaoData, activeCenario 
               </p>
               <p style={{ fontSize: "0.82rem", opacity: 0.5, margin: "4px 0 0" }}>/mês com energia solar</p>
               {contaDepois > 0 && (
-                <p style={{ fontSize: "0.7rem", opacity: 0.55, margin: "8px 0 0", lineHeight: 1.4, fontStyle: "italic" }}>
-                  * Inclui custos fixos obrigatórios (Fio B, CIP) que não são eliminados pelo solar em nenhuma situação.
-                </p>
+                <div style={{ marginTop: 14, paddingLeft: 4, fontSize: "0.78rem", lineHeight: 1.6, opacity: 0.85 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", color: "#CBD5E1" }}>
+                    <span>├ R$ {fmt(valorFioB)}</span>
+                    <span style={{ opacity: 0.7 }}>Fio B (conexão à rede)</span>
+                  </div>
+                  <div style={{ display: "flex", justifyContent: "space-between", color: "#CBD5E1" }}>
+                    <span>└ R$ {fmt(valorCip)}</span>
+                    <span style={{ opacity: 0.7 }}>CIP (iluminação pública)</span>
+                  </div>
+                  <p style={{ fontSize: "0.7rem", opacity: 0.55, margin: "8px 0 0", lineHeight: 1.4, fontStyle: "italic" }}>
+                    * Esses valores são obrigatórios — não dependem do solar.
+                  </p>
+                </div>
               )}
               {hasEconomia && (
                 <div style={{ marginTop: 16, padding: "10px 14px", background: "rgba(34,197,94,0.12)", borderRadius: 10 }}>
