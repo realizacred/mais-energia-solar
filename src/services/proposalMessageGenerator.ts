@@ -188,8 +188,8 @@ function resolveBlocks(ctx: ProposalMessageContext): Record<string, string> {
     const anos = Math.floor(ctx.paybackMeses / 12);
     const meses = ctx.paybackMeses % 12;
     const paybackStr = anos > 0
-      ? (meses > 0 ? `${anos} ano${anos > 1 ? "s" : ""} e ${meses} mês${meses > 1 ? "es" : ""}` : `${anos} ano${anos > 1 ? "s" : ""}`)
-      : `${meses} mês${meses > 1 ? "es" : ""}`;
+      ? (meses > 0 ? `${anos} ano${anos > 1 ? "s" : ""} e ${meses} ${meses > 1 ? "meses" : "mês"}` : `${anos} ano${anos > 1 ? "s" : ""}`)
+      : `${meses} ${meses > 1 ? "meses" : "mês"}`;
     blocks.bloco_payback = `⏱️ Retorno do investimento: ${paybackStr}`;
   } else {
     blocks.bloco_payback = "";
