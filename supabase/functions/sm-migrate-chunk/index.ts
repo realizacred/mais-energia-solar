@@ -307,8 +307,8 @@ async function callSmPromoteOnce(
 
 async function runPostPhaseUntilDone(
   tenantId: string,
-  fnName: "sm-enrich-versoes" | "sm-promote-custom-fields",
-  action: "enrich" | "promote",
+  fnName: "sm-enrich-versoes" | "sm-promote-custom-fields" | "sm-download-documents",
+  action: "enrich" | "promote" | "download",
   batch: number,
   projectExternalIds?: string[],
 ): Promise<void> {
