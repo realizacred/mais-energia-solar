@@ -326,10 +326,12 @@ export function IntegrationProviderDrawer({
                   <span className="text-sm text-foreground">Conectado</span>
                 </div>
                 <div className="flex gap-2 pt-1">
-                  <Button size="sm" variant="outline" onClick={onSync} disabled={syncing} className="text-xs gap-1.5">
-                    <RefreshCw className={cn("h-3.5 w-3.5", syncing && "animate-spin")} />
-                    Sincronizar
-                  </Button>
+                  {provider.category !== "signature" && (
+                    <Button size="sm" variant="outline" onClick={onSync} disabled={syncing} className="text-xs gap-1.5">
+                      <RefreshCw className={cn("h-3.5 w-3.5", syncing && "animate-spin")} />
+                      Sincronizar
+                    </Button>
+                  )}
                   <Button
                     size="sm"
                     variant="ghost"
