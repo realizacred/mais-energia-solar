@@ -42,6 +42,7 @@ export function IntegrationProviderDrawer({
   onSuccess, onDisconnect, onSync, syncing,
 }: Props) {
   const [saving, setSaving] = useState(false);
+  const [testing, setTesting] = useState(false);
   const [formValues, setFormValues] = useState<Record<string, string>>({});
   const [showPassword, setShowPassword] = useState<Record<string, boolean>>({});
   const [savedSecrets, setSavedSecrets] = useState<Record<string, boolean>>({});
