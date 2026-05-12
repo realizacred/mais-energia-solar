@@ -320,6 +320,9 @@ verify_jwt = false
 [functions.signature-webhook]
 verify_jwt = false
 
+[functions.signature-archive-pending]
+verify_jwt = false
+
 [functions.sync-projeto-funis]
 verify_jwt = false
 
