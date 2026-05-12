@@ -172,8 +172,11 @@ export function ProjetoMultiPipelineManager({ dealId, dealStatus, pipelines, all
       const pb = pipelineOrderIndex.get(b.pipeline_id) ?? Number.POSITIVE_INFINITY;
       return pa - pb;
     });
-    // sortByUserOrder usa `id`; para pipelines, chave estável é pipeline_id.
-    return sortByUserOrder(canonical.map((m) => ({ ...m, id: m.pipeline_id }))) as typeof canonical;
+    // sortByUserOrder ordena por `.id`; usamos pipeline_id como chave de ordenação
+    // mas restauramos o id original (membership.id) para não quebrar mutations.
+    const byPipelineId = canonical.map((m) => ({ ...m, id: m.pipeline_id, _membershipId: m.id }));
+    const sorted = sortByUserOrder(byPipelineId) as Array<DealPipelineMembership & { _membershipId: string }>;
+    return sorted.map(({ _membershipId, ...rest }) => ({ ...rest, id: _membershipId })) as DealPipelineMembership[];
   }, [memberships, pipelineOrderIndex, sortByUserOrder]);
 
   const activeMembership = orderedMemberships.find(m => m.pipeline_id === activePipelineId) || null;
