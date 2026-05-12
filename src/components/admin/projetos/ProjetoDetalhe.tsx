@@ -403,7 +403,7 @@ function ProjetoDetalheContent() {
           {/* Row 1: Title + Etiquetas + Actions */}
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-3">
             <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-wrap">
-              <div className="flex flex-col min-w-0">
+              <div className="flex flex-col min-w-0 gap-0.5">
                 {editingTitle ? (
                   <div className="flex items-center gap-2">
                     <Input
@@ -436,24 +436,36 @@ function ProjetoDetalheContent() {
                         queryClient.invalidateQueries({ queryKey: ["propostas-projeto-tab"] });
                         silentRefresh?.();
                       }}
-                      className="h-8 text-lg sm:text-2xl font-bold"
+                      className="h-8 text-lg sm:text-2xl font-medium"
                       placeholder="Nome do projeto"
                     />
                     {savingTitle && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
                   </div>
                 ) : (
-                  <h1
-                    className="text-lg sm:text-2xl font-bold text-foreground truncate max-w-full cursor-text hover:text-primary transition-colors"
-                    title="Clique para editar o nome do projeto"
-                    onClick={() => {
-                      setTitleDraft(projetoNome ?? "");
-                      setEditingTitle(true);
-                    }}
-                  >
-                    {getProjetoDisplayName({ nome: projetoNome, codigo: projetoCodigo, projeto_num: projetoNum })}
-                  </h1>
+                  <div className="flex items-center gap-2 flex-wrap min-w-0">
+                    <h1
+                      className="text-lg sm:text-2xl font-medium text-foreground truncate max-w-full cursor-text hover:text-primary transition-colors"
+                      title="Clique para editar o nome do projeto"
+                      onClick={() => {
+                        setTitleDraft(projetoNome ?? "");
+                        setEditingTitle(true);
+                      }}
+                    >
+                      {projetoNome?.trim() || customerName?.trim() || (projetoNum != null ? `Projeto #${projetoNum}` : null) || projetoCodigo || "Projeto sem nome"}
+                    </h1>
+                    {projetoCodigo && (
+                      <Badge variant="outline" className="text-[10px] font-mono text-muted-foreground shrink-0">
+                        {projetoCodigo}
+                      </Badge>
+                    )}
+                  </div>
                 )}
-                {customerName && (
+                {projetoDescricao && !editingTitle && (
+                  <p className="text-xs text-muted-foreground line-clamp-2 max-w-full">
+                    {projetoDescricao}
+                  </p>
+                )}
+                {customerName && projetoNome?.trim() && (
                   <span className="text-xs text-muted-foreground truncate max-w-full flex items-center gap-1">
                     <User className="h-3 w-3" />
                     {customerName}
@@ -467,6 +479,17 @@ function ProjetoDetalheContent() {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="start">
+                  <DropdownMenuItem
+                    onClick={() => {
+                      setEditProjetoNome(projetoNome ?? "");
+                      setEditProjetoDescricao(projetoDescricao ?? "");
+                      setEditProjetoOpen(true);
+                    }}
+                  >
+                    <Pencil className="h-4 w-4 mr-2" />
+                    Alterar Projeto
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
                   <DropdownMenuItem
                     className="text-destructive focus:text-destructive"
                     onClick={() => { setDeleteBlocking([]); handleDeleteProject(); }}
