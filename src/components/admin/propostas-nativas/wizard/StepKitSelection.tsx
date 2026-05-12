@@ -55,34 +55,9 @@ interface CatalogoBateria {
   tensao_nominal_v: number | null; tipo_bateria: string | null;
 }
 
-interface Props {
-  itens: KitItemRow[];
-  /** Fase A: segundo arg opcional carrega override one-shot do custo do kit
-   *  (ex.: meta.custo de catálogo / kit fechado). undefined = limpar. */
-  onItensChange: (itens: KitItemRow[], custoKitOverride?: number | null) => void;
-  modulos: CatalogoModuloUnificado[];
-  inversores: CatalogoInversorUnificado[];
-  otimizadores?: CatalogoOtimizador[];
-  baterias?: CatalogoBateria[];
-  loadingEquip: boolean;
-  potenciaKwp: number;
-  layouts?: LayoutArranjo[];
-  onLayoutsChange?: (layouts: LayoutArranjo[]) => void;
-  preDimensionamento?: PreDimensionamentoData;
-  onPreDimensionamentoChange?: (pd: PreDimensionamentoData) => void;
-  consumoTotal?: number;
-  manualKits?: { card: KitCardData; itens: KitItemRow[]; meta?: KitMeta }[];
-  onManualKitsChange?: (kits: { card: KitCardData; itens: KitItemRow[]; meta?: KitMeta }[]) => void;
-  selectedManualIdx?: number | null;
-  onSelectedManualIdxChange?: (idx: number | null) => void;
-  irradiacao?: number;
-  latitude?: number | null;
-  ghiSeries?: Record<string, number> | null;
-  somenteGhi?: boolean;
-  /** Override de custo do kit definido no Centro Financeiro */
-  custoKitOverride?: number | null;
-  /** Código IBGE do município do cliente — usado para integrações (Solaryum frete) */
-  ibgeCodigo?: string | null;
+interface StepKitProps {
+  onNext?: () => void;
+  onBack?: () => void;
 }
 
 type TabType = "customizado" | "fechado" | "catalogo" | "solaryum";
