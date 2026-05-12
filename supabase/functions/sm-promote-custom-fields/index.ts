@@ -730,18 +730,58 @@ Deno.serve(async (req) => {
           const localPaths: string[] = [];
           for (const url of urls) {
             const fname = sanitizeFilename(url);
-            const path = `sm/${tenantId}/${dealId}/${def.id}/${fname}`;
+            // Novo destino: bucket project-documents em {tenantId}/{projetoId}/{fname}
+            const path = `${tenantId}/${projetoId}/${fname}`;
             if (dryRun) {
               localPaths.push(path);
               filesSkipped++;
               continue;
             }
             try {
-              const r = await downloadAndStore(supabase, CUSTOM_FIELD_BUCKET, url, path);
+              const r = await downloadAndStore(supabase, "project-documents", url, path);
               if (r.ok) {
                 localPaths.push(r.path);
                 if (r.reason === "already_exists") filesSkipped++;
                 else filesDownloaded++;
+
+                // Idempotente: cria registro em project_documents se ainda não existe.
+                const sourceId = `sm:${(proj as any).external_id}:${sourceKey}:${fname}`;
+                const { data: existsDoc } = await supabase
+                  .from("project_documents")
+                  .select("id")
+                  .eq("tenant_id", tenantId)
+                  .eq("source_table", "sm_propostas_raw")
+                  .eq("source_id", sourceId)
+                  .maybeSingle();
+                if (!existsDoc) {
+                  const { error: pdErr } = await supabase
+                    .from("project_documents")
+                    .insert({
+                      tenant_id: tenantId,
+                      projeto_id: projetoId,
+                      deal_id: dealId,
+                      categoria: sourceKey === "cap_identidade"
+                        ? "Identidade"
+                        : sourceKey === "cap_comprovante_endereco"
+                        ? "Comprovante de Endereço"
+                        : sourceKey,
+                      origem: "custom_field",
+                      bucket: "project-documents",
+                      storage_path: r.path,
+                      file_name: fname,
+                      mime_type: null,
+                      source_table: "sm_propostas_raw",
+                      source_id: sourceId,
+                      metadata: { sm_field_key: sourceKey, sm_url: url },
+                    });
+                  if (pdErr) {
+                    errors.push({
+                      projeto_id: projetoId,
+                      deal_id: dealId,
+                      error: `project_documents insert ${sourceKey}: ${pdErr.message}`,
+                    });
+                  }
+                }
               } else {
                 filesFailed++;
                 errors.push({
@@ -763,7 +803,6 @@ Deno.serve(async (req) => {
           baseRow.value_text = JSON.stringify(localPaths);
         } else {
           // text / textarea / select / currency / boolean — gravado como texto.
-          // (Conversões de tipo ficarão na próxima onda.)
           baseRow.value_text = rawValue;
         }
 
