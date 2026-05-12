@@ -155,8 +155,14 @@ export function useUploadProjectDocument() {
       qc.invalidateQueries({ queryKey: ["project-documents"] });
       toast({ title: "Documento enviado" });
     },
-    onError: (e: any) =>
-      toast({ title: "Erro ao enviar", description: e.message, variant: "destructive" }),
+    onError: (e: any) => {
+      console.error("[useUploadProjectDocument] mutation error", e);
+      toast({
+        title: "Erro ao enviar documento",
+        description: e?.message || "Erro desconhecido. Veja o console para detalhes.",
+        variant: "destructive",
+      });
+    },
   });
 }
 
