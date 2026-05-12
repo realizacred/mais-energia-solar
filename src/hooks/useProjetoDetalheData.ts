@@ -34,6 +34,8 @@ export interface ProjetoDetalheFullData {
   projetoCodigo: string | null;
   /** Número humano do projeto (projetos.projeto_num) — fallback final. */
   projetoNum: number | null;
+  /** Descrição do projeto (projetos.observacoes). */
+  projetoDescricao: string | null;
   history: StageHistory[];
   stages: StageInfo[];
   customerName: string;
