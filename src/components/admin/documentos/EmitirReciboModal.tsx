@@ -52,6 +52,7 @@ export function EmitirReciboModal({
 
   const [templateId, setTemplateId] = useState<string>("");
   const [clienteId, setClienteId] = useState<string>(defaultClienteId ?? "");
+  const [projetoId, setProjetoId] = useState<string | null>(defaultProjetoId ?? null);
   const [valor, setValor] = useState<string>("");
   const [descricao, setDescricao] = useState<string>("");
   const [numero, setNumero] = useState<string>("");
@@ -64,6 +65,7 @@ export function EmitirReciboModal({
     if (open) {
       setTemplateId("");
       setClienteId(defaultClienteId ?? "");
+      setProjetoId(defaultProjetoId ?? null);
       setValor("");
       setDescricao("");
       setNumero("");
@@ -223,6 +225,23 @@ export function EmitirReciboModal({
       });
     }
   }, [template, projectContext, proposalContext]);
+  // Em modo global (sem defaultProjetoId), ao escolher cliente buscar projeto principal
+  useEffect(() => {
+    if (defaultProjetoId) return;
+    if (!clienteId) return;
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase
+        .from("projetos")
+        .select("id")
+        .eq("cliente_id", clienteId)
+        .eq("is_principal", true)
+        .limit(1)
+        .maybeSingle();
+      if (!cancelled) setProjetoId(data?.id ?? null);
+    })();
+    return () => { cancelled = true; };
+  }, [clienteId, defaultProjetoId]);
 
 
   const schema: FormFieldSchema[] = useMemo(() => {
@@ -242,7 +261,7 @@ export function EmitirReciboModal({
     const id = await emitir.mutateAsync({
       template_id: templateId,
       cliente_id: clienteId,
-      projeto_id: defaultProjetoId ?? null,
+      projeto_id: projetoId || null,
       deal_id: defaultDealId ?? null,
       descricao: descricao || undefined,
       numero: numero || undefined,
@@ -293,7 +312,11 @@ export function EmitirReciboModal({
 
           <div className="space-y-1.5 sm:col-span-2">
             <Label className="text-xs">Cliente</Label>
-            <Select value={clienteId} onValueChange={setClienteId} disabled={loadingClientes}>
+            <Select
+              value={clienteId}
+              onValueChange={setClienteId}
+              disabled={loadingClientes || !!defaultProjetoId || !!defaultClienteId}
+            >
               <SelectTrigger><SelectValue placeholder={loadingClientes ? "Carregando..." : "Selecione o cliente"} /></SelectTrigger>
               <SelectContent>
                 {(clientes ?? []).map((c) => (
@@ -303,6 +326,9 @@ export function EmitirReciboModal({
                 ))}
               </SelectContent>
             </Select>
+            {(!!defaultProjetoId || !!defaultClienteId) && (
+              <p className="text-[10px] text-muted-foreground">Cliente definido pelo projeto</p>
+            )}
           </div>
 
           <div className="space-y-1.5">
