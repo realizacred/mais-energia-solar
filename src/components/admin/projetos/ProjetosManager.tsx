@@ -758,7 +758,7 @@ export function ProjetosManager() {
                   onFilterTipoProjetoSolarChange={(v) => handleFilterChange("tipoProjetoSolar", v)}
                   etiquetas={dynamicEtiquetas.map(e => ({ id: e.id, nome: e.nome, cor: e.cor, tenant_id: "" }))}
                   filterEtiquetas={filters.etiquetaIds || []}
-                  onFilterEtiquetasChange={(ids) => { applyFilters({ etiquetaIds: ids }); savePrefs({ etiquetaIds: ids }); }}
+                  onFilterEtiquetasChange={(ids) => { applyFilters({ etiquetaIds: ids }); savePrefs({ etiquetaIds: ids }); updateUrlFilter({ etiquetas: ids }); }}
                   viewMode={viewMode}
                   onViewModeChange={setViewMode}
                   onClearFilters={clearFilters}
