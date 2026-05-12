@@ -1609,10 +1609,12 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
 
                   <TabsContent value="arquivo" className="px-4 pb-4 mt-0">
                     <div className="mt-3">
-                      <StepDocumento
-                        onViewDetail={() => {}}
-                        skipTemplateAutoSelect={true}
-                      />
+                      <WizardProvider>
+                        <StepDocumento
+                          onViewDetail={() => {}}
+                          skipTemplateAutoSelect={true}
+                        />
+                      </WizardProvider>
 
                     </div>
                   </TabsContent>
