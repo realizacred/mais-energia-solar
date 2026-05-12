@@ -375,7 +375,7 @@ export class AutentiqueAdapter implements SignatureAdapter {
     const deadlineDays = extra.deadline_days ?? null;
     const deadlineAt =
       deadlineDays && deadlineDays > 0
-        ? new Date(Date.now() + deadlineDays * 86400000).toISOString().slice(0, 19).replace("T", " ")
+        ? new Date(Date.now() + deadlineDays * 86400000).toISOString()
         : null;
 
     // Build DocumentInput dynamically
