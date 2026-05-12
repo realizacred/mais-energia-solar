@@ -145,16 +145,16 @@ export function ProposalMessageDrawer({
         .eq("id", prop.consultor_id)
         .maybeSingle();
       if (e2) throw e2;
-      // Fallback: se consultor não tem telefone/email, busca em profiles via user_id
-      if (cons && (!cons.telefone || !cons.email) && cons.user_id) {
+      // Fallback: se consultor não tem telefone, busca em profiles via user_id
+      if (cons && !cons.telefone && cons.user_id) {
         const { data: prof } = await supabase
           .from("profiles")
-          .select("telefone, email")
+          .select("telefone")
           .eq("user_id", cons.user_id)
           .maybeSingle();
         return {
           telefone: cons.telefone || prof?.telefone || null,
-          email: cons.email || prof?.email || null,
+          email: cons.email || null,
         };
       }
       return cons;
