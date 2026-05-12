@@ -80,7 +80,7 @@ export function DocumentsInternalizationStatus({ tenantId }: Props) {
           </p>
           <p className="text-xs text-muted-foreground mt-0.5">
             O download dos arquivos roda automaticamente após cada chunk de
-            promoção (sm-migrate-chunk → sm-download-documents). Sem ação manual.
+            promoção (sm-promote-custom-fields). Sem ação manual.
           </p>
         </div>
         {q.isLoading && <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />}
