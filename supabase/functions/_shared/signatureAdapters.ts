@@ -378,36 +378,22 @@ export class AutentiqueAdapter implements SignatureAdapter {
         ? new Date(Date.now() + deadlineDays * 86400000).toISOString()
         : null;
 
-    // Build DocumentInput dynamically
-    const documentInputFields: string[] = ["name: $name"];
-    const documentVarsDecl: string[] = ["$name: String!"];
-    const documentVarsValues: Record<string, unknown> = { name: params.docName };
-
-    if (refusable) {
-      documentVarsDecl.push("$refusable: Boolean");
-      documentInputFields.push("refusable: $refusable");
-      documentVarsValues.refusable = true;
-    }
-    if (reminder) {
-      documentVarsDecl.push("$reminder: ReminderEnum");
-      documentInputFields.push("reminder: $reminder");
-      documentVarsValues.reminder = reminder;
-    }
-    if (deadlineAt) {
-      documentVarsDecl.push("$deadline_at: DateTime");
-      documentInputFields.push("deadline_at: $deadline_at");
-      documentVarsValues.deadline_at = deadlineAt;
-    }
+    // Build DocumentInput object
+    const documentInput: Record<string, unknown> = { name: params.docName };
+    if (refusable) documentInput.refusable = true;
+    if (reminder) documentInput.reminder = reminder;
+    if (deadlineAt) documentInput.deadline_at = deadlineAt;
 
     const query = `mutation CreateDocumentMutation(
-      ${documentVarsDecl.join(", ")},
+      $document: DocumentInput!,
       $signers: [SignerInput!]!,
       $file: Upload!
     ) {
       createDocument(
-        document: { ${documentInputFields.join(", ")} },
+        document: $document,
         signers: $signers,
-        file: $file
+        file: $file,
+        sandbox: ${params.sandbox ? "true" : "false"}
       ) {
         id
         name
@@ -422,7 +408,7 @@ export class AutentiqueAdapter implements SignatureAdapter {
     }`;
 
     const variables: Record<string, unknown> = {
-      ...documentVarsValues,
+      document: documentInput,
       // Autentique: only ONE of email/phone is allowed per signer.
       // When phone is used, delivery_method is required (DELIVERY_METHOD_WHATSAPP).
       // We always prefer email when present (most reliable) and only fallback to phone.
@@ -440,10 +426,8 @@ export class AutentiqueAdapter implements SignatureAdapter {
           baseSigner.phone = validPhone;
           baseSigner.delivery_method = "DELIVERY_METHOD_WHATSAPP";
         } else {
-          // Will fail upstream validation — but defend with email-only
           baseSigner.email = s.email || "";
         }
-        // Simplified mode: no need to inform CPF / birthdate (only for Contratante)
         if (signerMode === "simplified" && isContratante) {
           baseSigner.ignore_cpf = true;
           baseSigner.ignore_birthdate = true;
