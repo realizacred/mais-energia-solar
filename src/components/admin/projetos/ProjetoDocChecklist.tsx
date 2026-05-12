@@ -86,12 +86,12 @@ export function ProjetoDocChecklist({ dealId, compact = false }: Props) {
   };
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
+    const files = Array.from(e.target.files || []);
     const itemId = pendingItemRef.current;
-    if (!file || !itemId) return;
+    if (files.length === 0 || !itemId) return;
     try {
-      await uploadMutation.mutateAsync({ itemId, file });
-      toast({ title: "Arquivo enviado" });
+      await Promise.all(files.map(file => uploadMutation.mutateAsync({ itemId, file })));
+      toast({ title: files.length === 1 ? "Arquivo enviado" : `${files.length} arquivos enviados` });
     } catch (err: any) {
       toast({ title: "Erro no upload", description: err.message, variant: "destructive" });
     } finally {
