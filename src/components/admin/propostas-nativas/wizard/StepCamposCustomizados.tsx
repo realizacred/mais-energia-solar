@@ -38,7 +38,7 @@ interface Props {
  * para reagir em tempo real a mudanças de tipo/configuração feitas em admin/custom-fields.
  * §16: Queries só em hooks — NUNCA em componentes (RB-04)
  */
-export function StepCamposCustomizados({ values, onValuesChange, dealId }: Props) {
+function StepCamposCustomizadosImpl({ values, onValuesChange, dealId }: Props) {
   const { data: allFields, isLoading: loading } = useCustomFieldsList();
 
   const fields = useMemo(() =>
