@@ -329,8 +329,25 @@ export function ProjetosManager() {
     if (Object.keys(updates).length > 0) {
       applyFilters(updates);
     }
+
+    // Re-hidrata a URL a partir das prefs restauradas quando a URL veio vazia.
+    // Garante que ?funil=...&status=... apareça mesmo após sair/voltar para a tela.
+    const urlIsEmpty =
+      !urlFilters.status && !urlFilters.consultor && !urlFilters.funil &&
+      !urlFilters.tipoSolar && !urlFilters.etiquetas && !urlFilters.view;
+    if (urlIsEmpty) {
+      updateUrlFilter({
+        status: source.status,
+        consultor: source.consultorId,
+        funil: viewMode === "kanban-consultor" ? null : (funilExiste ? source.funilId : null),
+        tipoSolar: source.tipoProjetoSolar,
+        etiquetas: source.etiquetaIds,
+        view: (storedPrefs?.viewMode as string) || viewMode,
+      });
+    }
+
     setStoredPrefsApplied(true);
-  }, [storedPrefs, urlFilters, funis, viewMode, filters, applyFilters, setSelectedFunilId, storedPrefsApplied]);
+  }, [storedPrefs, urlFilters, funis, viewMode, filters, applyFilters, setSelectedFunilId, storedPrefsApplied, updateUrlFilter]);
 
   const [editingEtapasFunilId, setEditingEtapasFunilId] = useState<string | null>(null);
   const [novoProjetoOpen, setNovoProjetoOpen] = useState(false);
