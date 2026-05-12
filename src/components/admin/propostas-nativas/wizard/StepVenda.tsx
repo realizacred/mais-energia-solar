@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { DollarSign, Plus, Trash2, Edit2, RotateCcw } from "lucide-react";
+import { DollarSign, Plus, Trash2, Edit2, RotateCcw, ChevronLeft, ChevronRight } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { CurrencyInput } from "@/components/ui-kit/inputs";
 import { Label } from "@/components/ui/label";
@@ -192,7 +192,7 @@ export function StepFinancialCenter({ onNext, onBack }: StepVendaProps) {
     });
   }, [instalacaoEnabled, instalacaoQtd, instalacaoCusto, comissaoEnabled, comissaoQtd, comissaoCusto, custosExtras, outrosServicos, servicosEnabledMap, comissaoManualOverride]);
 
-  const custoKitEfetivo = resolveCustoKit({ itens, custoKitOverride });
+  const custoKitEfetivo = resolveCustoKit({ itens, custoKitOverride: kitCustoOverride });
   const kitLabel = potenciaKwp > 0 ? `Kit fotovoltaico ${potenciaKwp.toFixed(2)} kWp` : "Kit fotovoltaico";
 
   const allRows = useMemo<CustoRow[]>(() => {
@@ -237,6 +237,21 @@ export function StepFinancialCenter({ onNext, onBack }: StepVendaProps) {
           Baseado em uma margem de {margemPercent.toFixed(2)}% sobre custos diretos.
         </div>
       </div>
+
+      {(onBack || onNext) && (
+        <div className="flex items-center justify-between pt-4 border-t border-border/40 mt-6">
+          {onBack ? (
+            <Button variant="ghost" size="sm" onClick={onBack} className="gap-1 text-xs">
+              <ChevronLeft className="h-4 w-4" /> Voltar
+            </Button>
+          ) : <div />}
+          {onNext && (
+            <Button size="sm" onClick={onNext} className="gap-1 text-xs px-6">
+              Próximo <ChevronRight className="h-4 w-4" />
+            </Button>
+          )}
+        </div>
+      )}
     </div>
   );
 }
