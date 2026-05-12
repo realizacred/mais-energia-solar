@@ -167,18 +167,18 @@ Deno.serve(async (req) => {
       );
     }
 
-    // 3) Criar pipeline COMERCIAL (RB-58: confirmar com .select())
+    // 3) Criar ou Atualizar pipeline COMERCIAL (RB-73: usar upsert para manter ID estável)
     const { data: pipeline, error: pipeErr } = await admin
       .from("pipelines")
-      .insert({
+      .upsert({
         tenant_id: tenantId,
         name: finalName,
         is_active: true,
-      })
+      }, { onConflict: "tenant_id,name,version" })
       .select("id, name")
       .single();
     if (pipeErr) throw new Error(`pipelines: ${pipeErr.message}`);
-    if (!pipeline) throw new Error("Falha ao criar pipeline (sem retorno)");
+    if (!pipeline) throw new Error("Falha ao criar/atualizar pipeline (sem retorno)");
     state.pipelineId = pipeline.id;
 
     // 4) Criar pipeline_stages
@@ -194,7 +194,7 @@ Deno.serve(async (req) => {
 
     const { data: stagesCriadas, error: stagesErr } = await admin
       .from("pipeline_stages")
-      .insert(stageRows)
+      .upsert(stageRows, { onConflict: "tenant_id,pipeline_id,name" })
       .select("id, name, position");
     if (stagesErr) throw new Error(`pipeline_stages: ${stagesErr.message}`);
     if (!stagesCriadas || stagesCriadas.length !== stagesOrdenadas.length) {
@@ -311,28 +311,9 @@ Deno.serve(async (req) => {
     const msg = (e as Error).message;
     console.error("[sm-criar-pipeline-auto] fatal:", msg);
 
-    // Rollback manual
-    if (state.pipelineId) {
-      try {
-        await admin.from("pipeline_stages").delete().eq("pipeline_id", state.pipelineId);
-        await admin.from("pipelines").delete().eq("id", state.pipelineId);
-        console.error("[sm-criar-pipeline-auto] rollback pipeline", state.pipelineId);
-      } catch (rb) {
-        console.error("[sm-criar-pipeline-auto] rollback pipeline falhou:", (rb as Error).message);
-      }
-    }
-    // Só fazemos rollback do funil de execução se ele foi criado AGORA por este request
-    // (heurística: se funilExecId existe E pipeline também foi criado por este request).
-    if (state.funilExecId && state.pipelineId) {
-      try {
-        await admin.from("projeto_etapas").delete().eq("funil_id", state.funilExecId);
-        await admin.from("projeto_funis").delete().eq("id", state.funilExecId);
-        console.error("[sm-criar-pipeline-auto] rollback funil exec", state.funilExecId);
-      } catch (rb) {
-        console.error("[sm-criar-pipeline-auto] rollback funil exec falhou:", (rb as Error).message);
-      }
-    }
-
+    // Nota: Removemos rollback agressivo com DELETE para evitar FK violations em propostas/automações existentes.
+    // O uso de UPSERT acima garante que o estado seja consistente sem mudar IDs.
+    
     return new Response(
       JSON.stringify({ ok: false, error: msg }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
