@@ -7,7 +7,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { getCurrentTenantId } from "@/lib/getCurrentTenantId";
-import type { SignatureSettings, Signer } from "@/components/admin/documentos/types";
+import type { SignatureSettings, SignatureSettingsExtra, Signer, RepresentanteLegal } from "@/components/admin/documentos/types";
 
 const STALE_TIME = 1000 * 60 * 5;
 
@@ -19,12 +19,56 @@ export function useSignatureSettings() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("signature_settings")
-        .select("tenant_id, enabled, provider, sandbox_mode, api_token_encrypted, webhook_secret_encrypted, updated_by")
+        .select("tenant_id, enabled, provider, sandbox_mode, api_token_encrypted, webhook_secret_encrypted, settings_extra, updated_by")
         .maybeSingle();
       if (error) throw error;
       return data as unknown as SignatureSettings | null;
     },
     staleTime: STALE_TIME,
+  });
+}
+
+export function useRepresentanteLegal() {
+  return useQuery({
+    queryKey: ["brand_settings", "representante"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("brand_settings")
+        .select("representante_legal, representante_email, representante_cpf, representante_cargo")
+        .maybeSingle();
+      if (error) throw error;
+      return (data ?? null) as RepresentanteLegal | null;
+    },
+    staleTime: STALE_TIME,
+  });
+}
+
+export function useSaveRepresentanteLegal() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (payload: RepresentanteLegal) => {
+      const { tenantId } = await getCurrentTenantId();
+      const { data: existing } = await supabase
+        .from("brand_settings")
+        .select("tenant_id")
+        .eq("tenant_id", tenantId)
+        .maybeSingle();
+      if (existing) {
+        const { error } = await supabase
+          .from("brand_settings")
+          .update(payload as any)
+          .eq("tenant_id", tenantId);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from("brand_settings")
+          .insert({ tenant_id: tenantId, ...payload } as any);
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["brand_settings", "representante"] });
+    },
   });
 }
 
@@ -55,6 +99,7 @@ export function useSaveSignatureSettings() {
       sandbox,
       apiToken,
       webhookSecret,
+      settingsExtra,
     }: {
       settings: SignatureSettings | null;
       enabled: boolean;
@@ -62,6 +107,7 @@ export function useSaveSignatureSettings() {
       sandbox: boolean;
       apiToken: string;
       webhookSecret: string;
+      settingsExtra: SignatureSettingsExtra;
     }) => {
       const { tenantId, userId } = await getCurrentTenantId();
 
@@ -70,6 +116,7 @@ export function useSaveSignatureSettings() {
         enabled,
         provider,
         sandbox_mode: sandbox,
+        settings_extra: settingsExtra,
         updated_by: userId,
       };
 
