@@ -158,10 +158,23 @@ export function ProposalProblemSection({ snapshot: s, versaoData, activeCenario 
                 <span style={{ fontFamily: "Montserrat, sans-serif", fontWeight: 900, fontSize: "clamp(2rem, 5vw, 3rem)" }}>
                   {hasEconomia || contaDepois > 0 ? Math.round(contaDepois).toLocaleString("pt-BR") : "—"}
                 </span>
+                {contaDepois > 0 && (
+                  <span
+                    title={`Por que ainda pago R$ ${Math.round(contaDepois).toLocaleString("pt-BR")}?\n\nMesmo com energia solar, a distribuidora cobra uma taxa mínima de conexão à rede (Fio B / TUSD) e a prefeitura cobra a iluminação pública (CIP/COSIP). Esses custos são obrigatórios por lei e não podem ser eliminados por nenhum sistema solar.`}
+                    style={{ display: "inline-flex", marginLeft: 8, cursor: "help", verticalAlign: "middle" }}
+                  >
+                    <Info style={{ width: 16, height: 16, color: "#86EFAC", opacity: 0.8 }} />
+                  </span>
+                )}
               </p>
               <p style={{ fontSize: "0.82rem", opacity: 0.5, margin: "4px 0 0" }}>/mês com energia solar</p>
+              {contaDepois > 0 && (
+                <p style={{ fontSize: "0.7rem", opacity: 0.55, margin: "8px 0 0", lineHeight: 1.4, fontStyle: "italic" }}>
+                  * Inclui custos fixos obrigatórios (Fio B, CIP) que não são eliminados pelo solar em nenhuma situação.
+                </p>
+              )}
               {hasEconomia && (
-                <div style={{ marginTop: 20, padding: "10px 14px", background: "rgba(34,197,94,0.12)", borderRadius: 10 }}>
+                <div style={{ marginTop: 16, padding: "10px 14px", background: "rgba(34,197,94,0.12)", borderRadius: 10 }}>
                   <p style={{ margin: 0, fontSize: "0.75rem", color: "#86EFAC" }}>
                     ✅ Em 25 anos: <strong>R$ {Math.round((kpis.economia25Anos ?? economiaAnual * 25)).toLocaleString("pt-BR")}</strong> de economia
                   </p>
