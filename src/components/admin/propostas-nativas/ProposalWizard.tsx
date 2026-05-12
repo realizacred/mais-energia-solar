@@ -157,17 +157,19 @@ function StepContent({ children }: { children: React.ReactNode }) {
 // ─── Main Component ───────────────────────────────────────
 
 export function ProposalWizard() {
-  
+  return (
+    <WizardProvider>
+      <ProposalWizardContent />
+    </WizardProvider>
+  );
+}
+
+function ProposalWizardContent() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  // Invalida caches do detalhe do projeto/proposta após save (post-edit lifecycle).
-  // Fase 5.A: usar refetchQueries({type:'active'}) nas keys críticas para forçar
-  // refetch imediato mesmo se a aba destino não está montada no momento do save.
   const invalidateProposalCaches = useCallback((dealId?: string | null, projetoId?: string | null) => {
-    // Keys críticas para divergência wizard↔resumo: forçar refetch ativo.
     queryClient.refetchQueries({ queryKey: ["propostas-projeto-tab"], type: "active" });
     queryClient.refetchQueries({ queryKey: ["projeto-detalhe"], type: "active" });
-    // Demais caches: invalidate é suficiente (refetch lazy ao montar).
     queryClient.invalidateQueries({ queryKey: ["propostas-projeto-tab"] });
     queryClient.invalidateQueries({ queryKey: ["proposal-detail"] });
     queryClient.invalidateQueries({ queryKey: ["proposta-expanded-snapshot"] });
@@ -185,6 +187,7 @@ export function ProposalWizard() {
       queryClient.invalidateQueries({ queryKey: ["projeto-detalhe", projetoId] });
     }
   }, [queryClient]);
+
   const { data: isAdminOrGerente } = useIsAdminOrGerente();
   const [searchParams] = useSearchParams();
   const dealIdFromUrl = searchParams.get("deal_id");
@@ -196,7 +199,37 @@ export function ProposalWizard() {
   const [step, setStep] = useState(0);
   const [projectContext, setProjectContext] = useState<{ dealId: string; customerId: string } | null>(null);
 
-  // ─── Custom fields availability (extracted hook)
+  const {
+    selectedLead, setSelectedLead,
+    cliente, setCliente,
+    clienteMunicipioIbgeCodigo, setClienteMunicipioIbgeCodigo,
+    locEstado, setLocEstado,
+    locCidade, setLocCidade,
+    locTipoTelhado, setLocTipoTelhado,
+    locDistribuidoraId, setLocDistribuidoraId,
+    locDistribuidoraNome, setLocDistribuidoraNome,
+    locIrradiacao, setLocIrradiacao,
+    projectAddress, setProjectAddress,
+    ucs, setUcs,
+    grupo, setGrupo,
+    potenciaKwp, setPotenciaKwp,
+    itens, setItens,
+    manualKits, setManualKits,
+    selectedManualIdx, setSelectedManualIdx,
+    layouts, setLayouts,
+    adicionais, setAdicionais,
+    preDimensionamento, setPreDimensionamento,
+    premissas, setPremissas,
+    servicos, setServicos,
+    venda, setVenda,
+    pagamentoOpcoes, setPagamentoOpcoes,
+    templateSelecionado, setTemplateSelecionado,
+    generationStatus, setGenerationStatus,
+    handleItensChange,
+    handleUCsChange,
+    handleVendaChange
+  } = useWizardContext();
+
   const { hasCustomFieldsPre } = useCustomFieldsAvailability();
   const { data: proposalTemplates = [] } = useProposalTemplates();
   const { data: solarPremises } = useSolarPremises();
@@ -206,7 +239,6 @@ export function ProposalWizard() {
     [paymentInterestConfigs]
   );
 
-  // ─── Dynamic steps based on custom fields
   const activeSteps = useMemo(() => {
     return BASE_STEPS.filter(s => {
       if (s.key === STEP_KEYS.CAMPOS_PRE) return hasCustomFieldsPre;
@@ -216,132 +248,37 @@ export function ProposalWizard() {
 
   const currentStepKey = activeSteps[step]?.key || STEP_KEYS.LOCALIZACAO;
 
-  // Step 0 - Localização
-  const [locEstado, setLocEstado] = useState("");
-  const [locCidade, setLocCidade] = useState("");
-  const [locTipoTelhado, setLocTipoTelhado] = useState("");
-  const [locDistribuidoraId, setLocDistribuidoraId] = useState("");
-  const [locDistribuidoraNome, setLocDistribuidoraNome] = useState("");
-  const [locIrradiacao, setLocIrradiacao] = useState<number>(0);
+  // Local state (UI only)
   const [locGhiSeries, setLocGhiSeries] = useState<Record<string, number> | null>(null);
   const [locSkipPoa, setLocSkipPoa] = useState(true);
   const [locLatitude, setLocLatitude] = useState<number | null>(null);
   const [mapSnapshots, setMapSnapshots] = useState<string[]>([]);
   const [distanciaKm, setDistanciaKm] = useState<number>(0);
-  const [projectAddress, setProjectAddress] = useState<import("./wizard/ProjectAddressFields").ProjectAddress>({
-    cep: "", rua: "", numero: "", complemento: "",
-    bairro: "", cidade: "", uf: "", lat: null, lon: null,
-  });
-
-  // Cliente (embedded in Localização flow)
-  const [selectedLead, setSelectedLead] = useState<LeadSelection | null>(null);
-  const [cliente, setCliente] = useState<ClienteData>(EMPTY_CLIENTE);
-  const [clienteMunicipioIbgeCodigo, setClienteMunicipioIbgeCodigo] = useState<string | null>(null);
-
-  // UCs
-  const [ucs, setUcs] = useState<UCData[]>([createEmptyUC(1)]);
   const [ucsRestoreEpoch, setUcsRestoreEpoch] = useState(0);
-  const [grupo, setGrupo] = useState("B1");
-  const [potenciaKwp, setPotenciaKwp] = useState<number>(0);
-
-  // Custom Fields
   const [customFieldValues, setCustomFieldValues] = useState<Record<string, any>>({});
-
-  // Premissas
-  const [premissas, setPremissas] = useState<PremissasData>(DEFAULT_PREMISSAS);
-
-  // Kit (extracted hooks)
   const { modulos, inversores, otimizadores, baterias, loadingEquip } = useEquipmentCatalog();
-  const [itens, setItens] = useState<KitItemRow[]>([
-    { id: crypto.randomUUID(), descricao: "", fabricante: "", modelo: "", potencia_w: 0, quantidade: 1, preco_unitario: 0, categoria: "modulo", avulso: false },
-  ]);
-  const [manualKits, setManualKits] = useState<{ card: any; itens: KitItemRow[] }[]>([]);
-  const [selectedManualIdx, setSelectedManualIdx] = useState<number | null>(null);
-
-  const calcKitCostFromItems = useCallback((rows: KitItemRow[]) => {
-    return Math.round(rows.reduce((s, i) => s + ((Number(i.quantidade) || 0) * (Number(i.preco_unitario) || 0)), 0) * 100) / 100;
-  }, []);
-
-  /**
-   * Handler canônico de mudança de itens do kit.
-   * - Recalcula `venda.custo_kit` (Σ itens).
-   * - `nextOverride` controla `venda.custo_kit_override`:
-   *     undefined  → limpa override (edição manual de itens) + libera flag SM.
-   *     null       → limpa override explicitamente.
-   *     number > 0 → trava override one-shot (seleção de kit de catálogo / kit fechado).
-   * Fase A: substitui o effect persistente que sincronizava `manualKits.meta.custo`.
-   */
-  const handleItensChange = useCallback((
-    nextItens: KitItemRow[],
-    nextOverride?: number | null,
-  ) => {
-    const nextCustoKit = calcKitCostFromItems(nextItens);
-    setItens(nextItens);
-    setVenda(prev => {
-      const overrideValue = nextOverride != null && nextOverride > 0 ? nextOverride : null;
-      return {
-        ...prev,
-        custo_kit: nextCustoKit,
-        custo_kit_override: overrideValue,
-        // Limpamos a flag SM em qualquer alteração — só a hidratação a seta de novo.
-        isImportedFinancialOverride: false,
-      };
-    });
-  }, [calcKitCostFromItems]);
-
-  // Layouts
-  const [layouts, setLayouts] = useState<LayoutArranjo[]>([]);
-
-  // Adicionais
-  const [adicionais, setAdicionais] = useState<AdicionalItem[]>([]);
-
-  // Serviços
-  const [servicos, setServicos] = useState<ServicoItem[]>([]);
-
-  // Venda
-  const [venda, setVenda] = useState<VendaData>({
-    custo_kit: 0, custo_instalacao: 0, custo_comissao: 0, custo_outros: 0,
-    margem_percentual: 20, desconto_percentual: 0, observacoes: "",
-  });
-
-  // Fase A — E1 ELIMINADO: a sincronização `manualKits.meta.custo → custo_kit_override`
-  // agora ocorre apenas (a) na hidratação/normalizer e (b) one-shot dentro de
-  // handleSelectKit/handleManualKitCreated em StepKitSelection, via `nextOverride`.
-  // Removido: useEffect([manualKits, itens, venda.isImportedFinancialOverride]).
-
-  const [pagamentoOpcoes, setPagamentoOpcoes] = useState<PagamentoOpcao[]>([]);
   const { bancos, loadingBancos } = useBancosCatalog();
 
-  // Proposta (Documento)
   const [generating, setGenerating] = useState(false);
   const [rendering, setRendering] = useState(false);
   const [result, setResult] = useState<any>(null);
   const [htmlPreview, setHtmlPreview] = useState<string | null>(null);
   const [pdfBlobUrl, setPdfBlobUrl] = useState<string | null>(null);
   const [docxBlob, setDocxBlob] = useState<Blob | null>(null);
-  // Persisted artifact paths (from storage)
   const [outputDocxPath, setOutputDocxPath] = useState<string | null>(null);
   const [outputPdfPath, setOutputPdfPath] = useState<string | null>(null);
-  const [generationStatus, setGenerationStatus] = useState<"idle" | "calculating" | "generating_docx" | "converting_pdf" | "saving" | "ready" | "docx_only" | "error">("idle");
   const [generationError, setGenerationError] = useState<string | null>(null);
   const [missingVars, setMissingVars] = useState<string[]>([]);
   const [generationAuditReport, setGenerationAuditReport] = useState<GenerationAuditReport | null>(null);
-  const [templateSelecionado, setTemplateSelecionado] = useState("");
-  const [preDimensionamento, setPreDimensionamento] = useState<PreDimensionamentoData>(DEFAULT_PRE_DIMENSIONAMENTO);
-
-  // Pos-dimensionamento dialog
   const [showPosDialog, setShowPosDialog] = useState(false);
   const [nomeProposta, setNomeProposta] = useState("");
   const [showNewVersionConfirm, setShowNewVersionConfirm] = useState(false);
   const [pendingUpdateAction, setPendingUpdateAction] = useState<boolean | null>(null);
-
-  // ─── Enforcement: block modal state
   const [showBlockModal, setShowBlockModal] = useState(false);
   const [blockReason, setBlockReason] = useState<"missing_required" | "estimativa_not_accepted">("missing_required");
   const [blockMissing, setBlockMissing] = useState<string[]>([]);
   const [descricaoProposta, setDescricaoProposta] = useState("");
   const [debugMode, setDebugMode] = useState(false);
-  // ─── Pre-generation gate state
   const [showGateModal, setShowGateModal] = useState(false);
   const [gateValidation, setGateValidation] = useState<PropostaFinalValidationResult | null>(null);
 
