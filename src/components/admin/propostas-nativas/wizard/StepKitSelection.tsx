@@ -991,6 +991,7 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
                       </div>
                     );
                   })}
+                  </div>
                 </div>
                 
                 {/* ── Paginação ── */}
