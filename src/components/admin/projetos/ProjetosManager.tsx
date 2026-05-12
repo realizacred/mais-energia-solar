@@ -427,9 +427,10 @@ export function ProjetosManager() {
   }, [funis, selectedFunilId, activeFunis, defaultFunilApplied]);
 
   const clearFilters = () => {
-    applyFilters({ funilId: null, consultorId: "todos", status: "todos", search: "", tipoProjetoSolar: "todos" });
+    applyFilters({ funilId: null, consultorId: "todos", status: "todos", search: "", tipoProjetoSolar: "todos", etiquetaIds: [] });
     setSelectedFunilId(null);
     try { localStorage.removeItem(STORAGE_KEY); } catch { /* ignore */ }
+    updateUrlFilter({ status: null, consultor: null, funil: null, tipoSolar: null, etiquetas: null });
   };
 
   const totalValue = useMemo(() => {
