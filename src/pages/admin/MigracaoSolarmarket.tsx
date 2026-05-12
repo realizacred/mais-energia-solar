@@ -884,6 +884,9 @@ export default function MigracaoSolarmarket() {
                     </AlertDialogContent>
                   </AlertDialog>
                 </div>
+
+                <BackfillCustomFieldsButton tenantId={tenantId} initialOffset={600} batch={25} />
+
                 <p className="text-xs text-muted-foreground">
                   Estas ações afetam apenas a área de revisão e a conexão com o
                   SolarMarket. Use com cuidado.
