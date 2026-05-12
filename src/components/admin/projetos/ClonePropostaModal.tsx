@@ -21,6 +21,7 @@ import { Copy, Loader2, AlertTriangle } from "lucide-react";
 import { useCloneProposta, useProjetosParaClone } from "@/hooks/useCloneProposta";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useNavigate } from "react-router-dom";
 
 interface ClonePropostaModalProps {
   open: boolean;
@@ -62,6 +63,7 @@ export function ClonePropostaModal({
   const [outroProjeto, setOutroProjeto] = useState(false);
   const [targetDealId, setTargetDealId] = useState("");
 
+  const navigate = useNavigate();
   const { mutate: clonar, isPending } = useCloneProposta();
   const { data: projetos, isLoading: loadingProjetos } = useProjetosParaClone(outroProjeto && open);
 
@@ -94,7 +96,14 @@ export function ClonePropostaModal({
         targetDealId: target,
         customerId: outroProjeto ? null : customerId,
       },
-      { onSuccess: () => onOpenChange(false) },
+      {
+        onSuccess: (res) => {
+          onOpenChange(false);
+          if (res?.newPropostaId) {
+            navigate(`/admin/propostas-nativas/${res.newPropostaId}`);
+          }
+        },
+      },
     );
   };
 
