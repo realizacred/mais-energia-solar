@@ -187,7 +187,7 @@ export function ProjetoDocChecklist({ dealId, compact = false }: Props) {
       </CardHeader>
 
       <CardContent className="p-3 sm:p-3 pt-0 sm:pt-0 space-y-0.5">
-        <input ref={fileInputRef} type="file" className="hidden" onChange={handleFileChange} />
+        <input ref={fileInputRef} type="file" multiple accept="*/*" className="hidden" onChange={handleFileChange} />
 
         {useLegacy ? (
           // Legacy mode
