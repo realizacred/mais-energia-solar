@@ -42,6 +42,7 @@ export function IntegrationProviderDrawer({
   onSuccess, onDisconnect, onSync, syncing,
 }: Props) {
   const [saving, setSaving] = useState(false);
+  const [testing, setTesting] = useState(false);
   const [formValues, setFormValues] = useState<Record<string, string>>({});
   const [showPassword, setShowPassword] = useState<Record<string, boolean>>({});
   const [savedSecrets, setSavedSecrets] = useState<Record<string, boolean>>({});
@@ -330,6 +331,34 @@ export function IntegrationProviderDrawer({
                     <Button size="sm" variant="outline" onClick={onSync} disabled={syncing} className="text-xs gap-1.5">
                       <RefreshCw className={cn("h-3.5 w-3.5", syncing && "animate-spin")} />
                       Sincronizar
+                    </Button>
+                  )}
+                  {provider.category === "signature" && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={async () => {
+                        setTesting(true);
+                        try {
+                          const { data, error } = await supabase.functions.invoke("signature-test-connection");
+                          if (error) throw error;
+                          if (data?.ok) {
+                            const who = data.name ? `${data.name} (${data.email})` : data.email;
+                            toast.success(`Conectado como ${who}`);
+                          } else {
+                            toast.error(data?.error || "Token inválido ou sem permissão");
+                          }
+                        } catch (e: any) {
+                          toast.error(e?.message || "Falha ao testar conexão");
+                        } finally {
+                          setTesting(false);
+                        }
+                      }}
+                      disabled={testing}
+                      className="text-xs gap-1.5"
+                    >
+                      {testing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plug className="h-3.5 w-3.5" />}
+                      Testar conexão
                     </Button>
                   )}
                   <Button
