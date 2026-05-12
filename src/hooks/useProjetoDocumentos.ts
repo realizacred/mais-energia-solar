@@ -295,8 +295,11 @@ export function useEnviarParaAssinatura(dealId: string) {
 
       return result;
     },
-    onSuccess: () => {
+    onSuccess: (_data, vars) => {
       queryClient.invalidateQueries({ queryKey: [QUERY_KEY_DOCS, dealId] });
+      // Invalida painel de signatários do documento recém-enviado
+      queryClient.invalidateQueries({ queryKey: ["document-signers", vars.documentoId] });
+      queryClient.invalidateQueries({ queryKey: ["document-signers"] });
       toast({
         title: "Documento enviado para assinatura!",
         description: "O signatário receberá um e-mail para assinar.",
