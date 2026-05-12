@@ -146,6 +146,53 @@ export function useEmitirRecibo() {
         }
       }
 
+      // Espelhar recibo no centro financeiro (lancamentos_financeiros)
+      // Tabela não tem coluna deal_id — vinculação ao deal vai em observacoes.
+      try {
+        const marker = `recibo_id:${reciboId}`;
+        const { data: existing } = await supabase
+          .from("lancamentos_financeiros")
+          .select("id")
+          .eq("tenant_id", tenantId)
+          .ilike("observacoes", `%${marker}%`)
+          .maybeSingle();
+
+        if (!existing) {
+          const { data: tplRow } = await supabase
+            .from("document_templates")
+            .select("nome")
+            .eq("id", input.template_id)
+            .maybeSingle();
+          const templateNome = (tplRow as any)?.nome || "Recibo";
+          const numeroSuffix = input.numero ? ` #${input.numero}` : "";
+          const descricaoFinal = `${templateNome}${numeroSuffix}`;
+          const dealMarker = input.deal_id ? ` deal_id:${input.deal_id}` : "";
+
+          const { error: lancErr } = await supabase
+            .from("lancamentos_financeiros")
+            .insert({
+              tenant_id: tenantId,
+              tipo: "receita",
+              categoria: "recibo",
+              descricao: descricaoFinal,
+              valor: input.valor,
+              data_lancamento: new Date().toISOString().slice(0, 10),
+              status: "confirmado",
+              cliente_id: input.cliente_id,
+              projeto_id: input.projeto_id ?? null,
+              observacoes: `${marker}${dealMarker}`,
+              created_by: userId,
+            });
+          if (lancErr) {
+            console.warn("[useEmitirRecibo] lancamento financeiro falhou:", lancErr);
+          } else {
+            qc.invalidateQueries({ queryKey: ["lancamentos_financeiros"] });
+          }
+        }
+      } catch (e) {
+        console.warn("[useEmitirRecibo] mirror to lancamentos_financeiros failed:", e);
+      }
+
       return reciboId;
     },
     onSuccess: () => {
