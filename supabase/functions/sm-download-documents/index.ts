@@ -210,11 +210,12 @@ Deno.serve(async (req) => {
 
     const next_offset = processed < batch ? null : offset + batch;
 
-    return new Response(JSON.stringify({ processed, downloaded, skipped, errors, next_offset }), {
+    return new Response(JSON.stringify({ ok: true, processed, downloaded, skipped, errors, next_offset }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e: any) {
-    return new Response(JSON.stringify({ error: e?.message || String(e) }), {
+    console.error("[sm-download-documents] fatal:", e?.message || e);
+    return new Response(JSON.stringify({ ok: false, error: e?.message || String(e) }), {
       status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
