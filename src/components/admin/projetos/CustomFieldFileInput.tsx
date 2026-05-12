@@ -166,7 +166,18 @@ export function CustomFieldFileInput({
 
         {items.length > 0 && (
           <div className="flex flex-col gap-1">
-            {items.map((meta, idx) => (
+          {items.map((meta, idx) => {
+              const isExternal = /^https?:\/\//i.test(meta.storage_path);
+              const previewTarget: FilePreviewTarget = {
+                bucket: isExternal ? "external" : "projeto-documentos",
+                storage_path: meta.storage_path,
+                filename: meta.filename,
+                mime: meta.mime,
+                size: meta.size,
+                uploaded_at: meta.uploaded_at,
+                origin_label: "Campo customizado",
+              };
+              return (
               <div
                 key={meta.storage_path}
                 className={cn(
@@ -177,17 +188,7 @@ export function CustomFieldFileInput({
                 <Paperclip className="h-3.5 w-3.5 shrink-0 text-primary" />
                 <button
                   type="button"
-                  onClick={() =>
-                    setPreview({
-                      bucket: "projeto-documentos",
-                      storage_path: meta.storage_path,
-                      filename: meta.filename,
-                      mime: meta.mime,
-                      size: meta.size,
-                      uploaded_at: meta.uploaded_at,
-                      origin_label: "Campo customizado",
-                    })
-                  }
+                  onClick={() => setPreview(previewTarget)}
                   className="flex-1 min-w-0 text-left truncate text-foreground hover:underline"
                   title={meta.filename}
                 >
@@ -198,17 +199,7 @@ export function CustomFieldFileInput({
                   variant="ghost"
                   size="icon"
                   className="h-6 w-6 shrink-0"
-                  onClick={() =>
-                    setPreview({
-                      bucket: "projeto-documentos",
-                      storage_path: meta.storage_path,
-                      filename: meta.filename,
-                      mime: meta.mime,
-                      size: meta.size,
-                      uploaded_at: meta.uploaded_at,
-                      origin_label: "Campo customizado",
-                    })
-                  }
+                  onClick={() => setPreview(previewTarget)}
                   title="Visualizar"
                 >
                   <Eye className="h-3 w-3" />
@@ -229,7 +220,8 @@ export function CustomFieldFileInput({
                   )}
                 </Button>
               </div>
-            ))}
+              );
+            })}
           </div>
         )}
 
