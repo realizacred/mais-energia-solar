@@ -200,6 +200,8 @@ export function ProjectDocumentsHub({ projetoId, dealId }: Props) {
   const filtered = useMemo(() => {
     const s = search.toLowerCase().trim();
     return docs.filter((d) => {
+      // Filtrar documentos que já aparecem na seção de "Documentos Gerados"
+      if (d.origem === 'generated') return false;
       if (origemFilter !== "all" && d.origem !== origemFilter) return false;
       if (s && !d.file_name.toLowerCase().includes(s) && !(d.categoria || "").toLowerCase().includes(s))
         return false;
