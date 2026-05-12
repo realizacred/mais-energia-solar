@@ -293,14 +293,26 @@ Deno.serve(async (req) => {
     }
 
     // 9b. Persist per-signer rows (replace any previous attempt)
-    await supabase.from("document_signers").delete().eq("document_id", documento_id);
+    const { error: deleteSignersErr } = await supabase
+      .from("document_signers")
+      .delete()
+      .eq("document_id", documento_id);
+    if (deleteSignersErr) {
+      console.error("[signature-send] CRÍTICO: falha ao limpar signatários anteriores:", deleteSignersErr);
+      return new Response(JSON.stringify({ error: "Documento enviado, mas falhou ao preparar rastreamento dos signatários." }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
     const signerRows = signersList.map((s, idx) => {
       // Match provider signer ID by name when available (best-effort)
-      const link = (result.signerLinks || []).find(l => l.name === s.name);
+      const link = (result.signerLinks || []).find(l =>
+        (s.email && l.email && l.email.toLowerCase() === s.email.toLowerCase()) || l.name === s.name
+      );
       return {
         tenant_id,
         document_id: documento_id,
-        provider_signer_id: link?.shortLink ? null : null, // some providers don't expose IDs at create — webhook will fill
+        provider_signer_id: link?.providerSignerId || null,
         name: s.name,
         email: s.email,
         cpf: s.cpf || null,
@@ -313,7 +325,13 @@ Deno.serve(async (req) => {
     });
     if (signerRows.length > 0) {
       const { error: signersErr } = await supabase.from("document_signers").insert(signerRows);
-      if (signersErr) console.error("[signature-send] Signers insert error:", signersErr);
+      if (signersErr) {
+        console.error("[signature-send] CRÍTICO: falha ao gravar signatários:", signersErr);
+        return new Response(JSON.stringify({ error: "Documento enviado, mas falhou ao gravar signatários." }), {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
     }
 
     return new Response(JSON.stringify({
