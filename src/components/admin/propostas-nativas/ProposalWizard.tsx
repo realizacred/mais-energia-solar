@@ -209,8 +209,14 @@ function ProposalWizardContent() {
     locDistribuidoraId, setLocDistribuidoraId,
     locDistribuidoraNome, setLocDistribuidoraNome,
     locIrradiacao, setLocIrradiacao,
+    locGhiSeries, setLocGhiSeries,
+    locSkipPoa, setLocSkipPoa,
+    locLatitude, setLocLatitude,
+    mapSnapshots, setMapSnapshots,
+    distanciaKm, setDistanciaKm,
     projectAddress, setProjectAddress,
     ucs, setUcs,
+    ucsRestoreEpoch, bumpUcsRestoreEpoch,
     grupo, setGrupo,
     potenciaKwp, setPotenciaKwp,
     itens, setItens,
@@ -223,11 +229,13 @@ function ProposalWizardContent() {
     servicos, setServicos,
     venda, setVenda,
     pagamentoOpcoes, setPagamentoOpcoes,
+    customFieldValues, setCustomFieldValues,
     templateSelecionado, setTemplateSelecionado,
     generationStatus, setGenerationStatus,
     handleItensChange,
-    handleUCsChange,
-    handleVendaChange
+    handleUCsChange: handleUcsChange,
+    handleVendaChange,
+    handleSelectLead,
   } = useWizardContext();
 
   const { hasCustomFieldsPre } = useCustomFieldsAvailability();
