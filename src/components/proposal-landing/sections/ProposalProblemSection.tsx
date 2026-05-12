@@ -26,6 +26,25 @@ export function ProposalProblemSection({ snapshot: s, versaoData, activeCenario 
   const economiaAnual = economiaMensal * 12;
   const hasContaAtual = contaAtual > 0;
   const hasEconomia = economiaMensal > 0;
+
+  // ── Decomposição do custo fixo residual (Fio B + CIP) ────────────────
+  const uc0: any = (s?.ucs?.[0] as any) || {};
+  const tarifaFioB = Number(uc0.tarifa_fio_b) || 0;
+  const consumoUc = Number(uc0.consumo_mensal) || kpis.consumoMensalKwh || 0;
+  const cipReal = Number(uc0.cosip ?? uc0.cip ?? uc0.iluminacao_publica) || 0;
+  let valorFioB = tarifaFioB > 0 && consumoUc > 0 ? Math.min(tarifaFioB * consumoUc, contaDepois) : 0;
+  let valorCip = cipReal > 0 ? cipReal : 0;
+  // Fallback 70/30 quando faltarem dados
+  if (valorFioB === 0 && valorCip === 0 && contaDepois > 0) {
+    valorFioB = contaDepois * 0.7;
+    valorCip = contaDepois * 0.3;
+  } else if (valorFioB === 0 && contaDepois > valorCip) {
+    valorFioB = contaDepois - valorCip;
+  } else if (valorCip === 0 && contaDepois > valorFioB) {
+    valorCip = contaDepois - valorFioB;
+  }
+  const fmt = (n: number) => Math.round(n).toLocaleString("pt-BR");
+
   return (
     <AnimatedSection style={{ padding: "5rem 1.5rem", background: "#fff" }}>
       <div style={{ maxWidth: 900, margin: "0 auto" }}>
