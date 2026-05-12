@@ -27,7 +27,9 @@ import { getCurrentTenantId } from "@/lib/getCurrentTenantId";
 import { useProposalTemplates, useEmailTemplates } from "@/hooks/useProposalTemplates";
 import { useQueryClient } from "@tanstack/react-query";
 import { formatBRL } from "./types";
+import { useWizardContext } from "./WizardContext";
 import { toast } from "@/hooks/use-toast";
+
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { formatDateTime, formatDate, formatTime, formatDateShort } from "@/lib/dateUtils";
 import { QRCodeCanvas } from "qrcode.react";
