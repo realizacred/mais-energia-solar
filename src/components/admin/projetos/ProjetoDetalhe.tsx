@@ -574,6 +574,7 @@ function ProjetoDetalheContent() {
                 <Button size="sm" onClick={() => {
                   const params = new URLSearchParams({ deal_id: dealId });
                   if (deal.customer_id) params.set("customer_id", deal.customer_id);
+                  if (projetoId) params.set("projeto_id", projetoId);
                   navigate(`/admin/propostas-nativas/nova?${params.toString()}`);
                 }} className="gap-1.5 shrink-0">
                   <Plus className="h-3.5 w-3.5" />Nova proposta
@@ -676,7 +677,7 @@ function ProjetoDetalheContent() {
             <ProjetoComunicacaoResumo customerId={deal.customer_id} customerPhone={customerPhone} />
           )}
           {activeTab === "propostas" && (
-            <PropostasTab customerId={deal.customer_id} dealId={deal.id} dealTitle={deal.title} navigate={navigate} isClosed={isClosed} dealStatus={deal.status} />
+            <PropostasTab customerId={deal.customer_id} dealId={deal.id} dealTitle={deal.title} navigate={navigate} isClosed={isClosed} dealStatus={deal.status} projetoId={projetoId} />
           )}
           {activeTab === "documentos" && (
             <DocumentosTab dealId={deal.id} clienteTelefone={customerPhone} />
@@ -2262,7 +2263,7 @@ interface LinkedOrcamento {
   created_at: string;
 }
 
-function PropostasTab({ customerId, dealId, dealTitle, navigate, isClosed, dealStatus }: { customerId: string | null; dealId: string; dealTitle: string; navigate: any; isClosed?: boolean; dealStatus?: string }) {
+function PropostasTab({ customerId, dealId, dealTitle, navigate, isClosed, dealStatus, projetoId }: { customerId: string | null; dealId: string; dealTitle: string; navigate: any; isClosed?: boolean; dealStatus?: string; projetoId?: string | null }) {
   const { data: propostas = [], isLoading: loading, refetch } = usePropostasProjetoTab(dealId, customerId);
   usePropostasRealtimeSync(dealId, customerId);
   const setPrincipalMutation = useSetPropostaPrincipal();
@@ -2504,6 +2505,7 @@ function PropostasTab({ customerId, dealId, dealTitle, navigate, isClosed, dealS
                         onClick={() => {
                           const params = new URLSearchParams({ deal_id: dealId });
                           if (customerId) params.set("customer_id", customerId);
+                          if (projetoId) params.set("projeto_id", projetoId);
                           params.set("lead_id", orc.lead_id);
                           params.set("orc_id", orc.id);
                           navigate(`/admin/propostas-nativas/nova?${params.toString()}`);
@@ -2530,6 +2532,7 @@ function PropostasTab({ customerId, dealId, dealTitle, navigate, isClosed, dealS
             onClick: () => {
               const params = new URLSearchParams({ deal_id: dealId });
               if (customerId) params.set("customer_id", customerId);
+              if (projetoId) params.set("projeto_id", projetoId);
               navigate(`/admin/propostas-nativas/nova?${params.toString()}`);
             },
             icon: Plus,

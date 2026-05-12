@@ -3,7 +3,8 @@ import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { useDevToolsContext } from "@/contexts/DevToolsContext";
 import { buildGenerationAuditReport, shouldBlockGeneration, type GenerationAuditReport } from "@/services/generationAudit";
 import { formatNumberBR } from "@/lib/formatters";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams, Link } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
 import {
   ChevronLeft, ChevronRight, MapPin, User, BarChart3, Settings2,
   Wrench, DollarSign, CreditCard, FileText, Check, Cpu, Link2, ClipboardList, Box,
@@ -196,6 +197,7 @@ function ProposalWizardContent() {
   const orcIdFromUrl = searchParams.get("orc_id");
   const propostaIdFromUrl = searchParams.get("proposta_id");
   const versaoIdFromUrl = searchParams.get("versao_id");
+  const projetoIdFromUrl = searchParams.get("projeto_id");
   const [step, setStep] = useState(0);
   const [projectContext, setProjectContext] = useState<{ dealId: string; customerId: string } | null>(null);
 
@@ -337,8 +339,20 @@ function ProposalWizardContent() {
   const saveCustomFieldsMutation = useSaveDealCustomFieldValues();
   const [savedPropostaId, setSavedPropostaId] = useState<string | null>(null);
   const [savedVersaoId, setSavedVersaoId] = useState<string | null>(null);
-  const [savedProjetoId, setSavedProjetoId] = useState<string | null>(null);
+  const [savedProjetoId, setSavedProjetoId] = useState<string | null>(projetoIdFromUrl || null);
   const [savedDealId, setSavedDealId] = useState<string | null>(null);
+
+  // Fetch projeto codigo for breadcrumb (Projetos > Projeto #XXXX > Nova Proposta)
+  const { data: projetoBreadcrumb } = useQuery({
+    queryKey: ["projeto-breadcrumb", savedProjetoId],
+    queryFn: async () => {
+      if (!savedProjetoId) return null;
+      const { data } = await supabase.from("projetos").select("codigo").eq("id", savedProjetoId).maybeSingle();
+      return data;
+    },
+    enabled: !!savedProjetoId,
+    staleTime: 1000 * 60 * 5,
+  });
   const [savedClienteId, setSavedClienteId] = useState<string | null>(null);
   // Track if editing a previously sent/generated proposal (will branch new version)
   const [editingsentProposal, setEditingSentProposal] = useState(false);
@@ -2850,15 +2864,25 @@ function ProposalWizardContent() {
       <div className="shrink-0 border-b border-border/60 bg-card px-4 lg:px-6 py-2.5 space-y-1">
         {/* Breadcrumb row */}
         <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
-          <Button variant="link" size="sm" className="p-0 h-auto text-[11px] text-muted-foreground hover:text-foreground" onClick={() => navigate("/admin/propostas-nativas")}>
-            Propostas
-          </Button>
-          <ChevronRight className="h-3 w-3 text-muted-foreground/50" />
-          {savedProjetoId && (
+          {savedProjetoId ? (
             <>
-              <Button variant="link" size="sm" className="p-0 h-auto text-[11px] text-muted-foreground hover:text-foreground" onClick={() => navigate(`/admin/projetos?projeto=${savedProjetoId}`)}>
-                Projeto
-              </Button>
+              <Link to="/admin/projetos" className="text-[11px] text-muted-foreground hover:text-foreground hover:underline">
+                Projetos
+              </Link>
+              <ChevronRight className="h-3 w-3 text-muted-foreground/50" />
+              <Link
+                to={`/admin/projetos?projeto=${savedProjetoId}`}
+                className="text-[11px] text-muted-foreground hover:text-foreground hover:underline"
+              >
+                {projetoBreadcrumb?.codigo ? `Projeto #${projetoBreadcrumb.codigo}` : "Projeto"}
+              </Link>
+              <ChevronRight className="h-3 w-3 text-muted-foreground/50" />
+            </>
+          ) : (
+            <>
+              <Link to="/admin/propostas-nativas" className="text-[11px] text-muted-foreground hover:text-foreground hover:underline">
+                Propostas
+              </Link>
               <ChevronRight className="h-3 w-3 text-muted-foreground/50" />
             </>
           )}
