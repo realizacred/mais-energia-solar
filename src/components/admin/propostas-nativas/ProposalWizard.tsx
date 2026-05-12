@@ -76,6 +76,8 @@ import { MissingVariablesModal } from "./wizard/MissingVariablesModal";
 import { useIsAdminOrGerente } from "@/hooks/useReabrirProposta";
 import { PropostaBadge } from "../projetos/PropostaBadge";
 
+// ── Wizard Context
+import { WizardProvider, useWizardContext } from "./wizard/WizardContext";
 
 // ── Types
 import {
