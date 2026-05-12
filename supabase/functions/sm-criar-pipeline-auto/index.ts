@@ -194,7 +194,7 @@ Deno.serve(async (req) => {
 
     const { data: stagesCriadas, error: stagesErr } = await admin
       .from("pipeline_stages")
-      .insert(stageRows)
+      .upsert(stageRows, { onConflict: "tenant_id,pipeline_id,name" })
       .select("id, name, position");
     if (stagesErr) throw new Error(`pipeline_stages: ${stagesErr.message}`);
     if (!stagesCriadas || stagesCriadas.length !== stagesOrdenadas.length) {
