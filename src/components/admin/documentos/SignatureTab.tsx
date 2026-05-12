@@ -7,7 +7,10 @@ import {
   useSaveSignatureSettings,
   useDeleteSigner,
   useSaveSigner,
+  useRepresentanteLegal,
+  useSaveRepresentanteLegal,
 } from "@/hooks/useSignatureData";
+import type { SignatureSettingsExtra, SignerMode, SignatureReminder } from "./types";
 import { toast } from "sonner";
 import { Plus, Pencil, Trash2, Mail, Phone, MessageCircle, Copy, Link, Info, ChevronDown, ChevronUp, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
