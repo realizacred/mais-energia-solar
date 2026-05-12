@@ -341,6 +341,18 @@ function ProposalWizardContent() {
   const [savedVersaoId, setSavedVersaoId] = useState<string | null>(null);
   const [savedProjetoId, setSavedProjetoId] = useState<string | null>(projetoIdFromUrl || null);
   const [savedDealId, setSavedDealId] = useState<string | null>(null);
+
+  // Fetch projeto codigo for breadcrumb (Projetos > Projeto #XXXX > Nova Proposta)
+  const { data: projetoBreadcrumb } = useQuery({
+    queryKey: ["projeto-breadcrumb", savedProjetoId],
+    queryFn: async () => {
+      if (!savedProjetoId) return null;
+      const { data } = await supabase.from("projetos").select("codigo").eq("id", savedProjetoId).maybeSingle();
+      return data;
+    },
+    enabled: !!savedProjetoId,
+    staleTime: 1000 * 60 * 5,
+  });
   const [savedClienteId, setSavedClienteId] = useState<string | null>(null);
   // Track if editing a previously sent/generated proposal (will branch new version)
   const [editingsentProposal, setEditingSentProposal] = useState(false);
