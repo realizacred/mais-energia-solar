@@ -2905,31 +2905,22 @@ function ProposalWizardContent() {
 
       case STEP_KEYS.ADICIONAIS:
         return wrap("adicionais", (
-          <StepAdicionais
-            adicionais={adicionais}
-            onAdicionaisChange={setAdicionais}
-            itens={itens}
-            onItensChange={handleItensChange}
-            layouts={layouts}
-            onLayoutsChange={setLayouts}
-            modulos={modulos}
-            inversores={inversores}
-          />
+          <StepAdicionais onBack={() => setStep(step - 1)} onNext={() => setStep(step + 1)} />
         ));
 
       case STEP_KEYS.SERVICOS:
         return wrap("servicos", (
-          <StepServicos servicos={servicos} onServicosChange={setServicos} venda={venda} kitItens={itens} potenciaKwp={potenciaKwp} custoKitOverride={venda.custo_kit_override} />
+          <StepServicos onBack={() => setStep(step - 1)} onNext={() => setStep(step + 1)} />
         ));
 
       case STEP_KEYS.VENDA:
         return wrap("venda", (
-          <StepFinancialCenter venda={venda} onVendaChange={setVenda} itens={itens} servicos={servicos} potenciaKwp={potenciaKwp} leadId={selectedLead?.id} />
+          <StepFinancialCenter onBack={() => setStep(step - 1)} onNext={() => setStep(step + 1)} />
         ));
 
       case STEP_KEYS.PAGAMENTO:
         return wrap("pagamento", (
-          <StepPagamento opcoes={pagamentoOpcoes} onOpcoesChange={setPagamentoOpcoes} bancos={bancos} loadingBancos={loadingBancos} precoFinal={precoFinal} ucs={ucs} premissas={premissas} potenciaKwp={potenciaKwp} irradiacao={locIrradiacao} geracaoMensalKwh={geracaoMensalEstimada} />
+          <StepPagamento onBack={() => setStep(step - 1)} onNext={() => setStep(step + 1)} />
         ));
 
       case STEP_KEYS.RESUMO:
