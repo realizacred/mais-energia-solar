@@ -188,8 +188,8 @@ function resolveBlocks(ctx: ProposalMessageContext): Record<string, string> {
     const anos = Math.floor(ctx.paybackMeses / 12);
     const meses = ctx.paybackMeses % 12;
     const paybackStr = anos > 0
-      ? (meses > 0 ? `${anos} ano${anos > 1 ? "s" : ""} e ${meses} mês${meses > 1 ? "es" : ""}` : `${anos} ano${anos > 1 ? "s" : ""}`)
-      : `${meses} mês${meses > 1 ? "es" : ""}`;
+      ? (meses > 0 ? `${anos} ano${anos > 1 ? "s" : ""} e ${meses} ${meses > 1 ? "meses" : "mês"}` : `${anos} ano${anos > 1 ? "s" : ""}`)
+      : `${meses} ${meses > 1 ? "meses" : "mês"}`;
     blocks.bloco_payback = `⏱️ Retorno do investimento: ${paybackStr}`;
   } else {
     blocks.bloco_payback = "";
@@ -411,11 +411,11 @@ export function generateProposalMessage(
   const vars: Record<string, string> = {
     cliente_nome: ctx.clienteNome || "Cliente",
     potencia_kwp: ctx.potenciaKwp ? formatNumberBR(ctx.potenciaKwp) : "—",
-    modulos_qtd: ctx.modulosQtd?.toString() || "—",
+    modulos_qtd: ctx.modulosQtd != null ? ctx.modulosQtd.toString() : "—",
     modulo_potencia: ctx.moduloPotenciaW ? `${ctx.moduloPotenciaW}W` : "—",
     modulo_modelo: ctx.moduloModelo || "—",
     inversor_modelo: ctx.inversorModelo || "—",
-    consumo_mensal: ctx.consumoMensal ? formatNumberBR(ctx.consumoMensal) : "—",
+    consumo_mensal: ctx.consumoMensal != null ? formatNumberBR(ctx.consumoMensal) : "—",
     geracao_mensal: ctx.geracaoMensal ? formatNumberBR(ctx.geracaoMensal) : "—",
     economia_mensal: ctx.economiaMensal ? formatBRL(ctx.economiaMensal) : "—",
     valor_total: ctx.valorTotal ? formatBRL(ctx.valorTotal) : "—",
@@ -472,19 +472,40 @@ export function extractMessageContext(
 ): ProposalMessageContext {
   const snap = snapshot || {};
 
-  // Extract modules info from snapshot items
+  // Extract modules info from snapshot items (aceita categoria OU tipo)
   const itens = snap.itens || [];
-  const modulos = itens.filter((i: any) => i.categoria === "modulo" || i.categoria === "modulos");
-  const inversores = itens.filter((i: any) => i.categoria === "inversor" || i.categoria === "inversores");
+  const isModulo = (i: any) => {
+    const c = String(i.categoria || i.tipo || i.tipo_item || "").toLowerCase();
+    return c === "modulo" || c === "modulos" || c === "módulo" || c === "módulos";
+  };
+  const isInversor = (i: any) => {
+    const c = String(i.categoria || i.tipo || i.tipo_item || "").toLowerCase();
+    return c === "inversor" || c === "inversores";
+  };
+  const modulos = itens.filter(isModulo);
+  const inversores = itens.filter(isInversor);
 
-  const modulosQtd = modulos.reduce((s: number, m: any) => s + (m.quantidade || 0), 0);
+  const modulosQtdSum = modulos.reduce((s: number, m: any) => s + (Number(m.quantidade) || 0), 0);
+  // Fallbacks: campo direto na versão (numero_modulos / quantidade_modulos) ou no snapshot
+  const modulosQtd =
+    modulosQtdSum > 0
+      ? modulosQtdSum
+      : (snap.numero_modulos ?? snap.numeroModulos ?? snap.quantidade_modulos ?? snap.quantidadeModulos ?? null);
+
   const moduloPotencia = modulos[0]?.potencia_w || null;
   const moduloModelo = modulos[0] ? `${modulos[0].fabricante || ""} ${modulos[0].modelo || modulos[0].descricao || ""}`.trim() : null;
   const inversorModelo = inversores[0] ? `${inversores[0].fabricante || ""} ${inversores[0].modelo || inversores[0].descricao || ""}`.trim() : null;
 
-  // Consumo from UCs
+  // Consumo from UCs (soma todas) com fallback para versao.consumo_mensal
   const ucs = snap.ucs || [];
-  const consumoMensal = ucs.reduce((s: number, uc: any) => s + (uc.consumo_mensal || uc.consumo_mensal_kwh || 0), 0);
+  const consumoSum = ucs.reduce(
+    (s: number, uc: any) => s + (Number(uc.consumo_mensal_kwh ?? uc.consumo_mensal) || 0),
+    0,
+  );
+  const consumoMensal =
+    ucs.length > 0
+      ? consumoSum
+      : (snap._consumo_mensal_versao ?? snap.consumo_mensal ?? snap.consumoMensal ?? null);
 
   // Pagamento
   const pagOpcoes = snap.pagamentoOpcoes || snap.pagamento_opcoes || [];
@@ -499,11 +520,11 @@ export function extractMessageContext(
   const result: ProposalMessageContext & { _snapshot?: any } = {
     clienteNome: proposta.cliente_nome || snap.clienteNome || snap.cliente_nome || null,
     potenciaKwp: versao.potencia_kwp || snap.potenciaKwp || snap.potencia_kwp || null,
-    modulosQtd: modulosQtd || versao.potencia_kwp ? modulosQtd : null,
+    modulosQtd: modulosQtd != null ? Number(modulosQtd) : null,
     moduloPotenciaW: moduloPotencia,
     moduloModelo,
     inversorModelo,
-    consumoMensal: consumoMensal || null,
+    consumoMensal: consumoMensal != null ? Number(consumoMensal) : null,
     geracaoMensal: versao.geracao_mensal || snap.geracaoMensal || snap.geracao_mensal || null,
     economiaMensal: versao.economia_mensal || snap.economiaMensal || snap.economia_mensal || null,
     paybackMeses: versao.payback_meses || snap.paybackMeses || snap.payback_meses || null,
