@@ -47,7 +47,7 @@ interface Props {
 type ActiveTab = "ucs" | "pre";
 type PreSubTab = "premissas" | "equipamentos";
 
-export function StepConsumptionIntelligence({
+function StepConsumptionIntelligenceImpl({
   ucs, onUcsChange, potenciaKwp, onPotenciaChange,
   preDimensionamento: pd, onPreDimensionamentoChange: setPd,
   irradiacao, ghiSeries, latitude, somenteGhi, leadFase,
@@ -860,5 +860,32 @@ function EquipamentosPreFilter({ pd, consumoTotal, potenciaIdealByTopo }: {
         <Badge variant="outline" className="text-[10px]">Em breve</Badge>
       </div>
     </div>
+  );
+}
+
+// ── Wrapper consuming WizardContext (Fase C) ──────────────────────────────
+import { useWizardContext } from "./WizardContext";
+
+export function StepConsumptionIntelligence({ leadFase }: { leadFase?: string | null } = {}) {
+  const {
+    ucs, handleUCsChange,
+    potenciaKwp, setPotenciaKwp,
+    preDimensionamento, setPreDimensionamento,
+    locIrradiacao, locGhiSeries, locLatitude, locSkipPoa,
+  } = useWizardContext();
+  return (
+    <StepConsumptionIntelligenceImpl
+      ucs={ucs}
+      onUcsChange={(next) => handleUCsChange(next)}
+      potenciaKwp={potenciaKwp}
+      onPotenciaChange={setPotenciaKwp}
+      preDimensionamento={preDimensionamento}
+      onPreDimensionamentoChange={setPreDimensionamento}
+      irradiacao={locIrradiacao}
+      ghiSeries={locGhiSeries}
+      latitude={locLatitude}
+      somenteGhi={locSkipPoa}
+      leadFase={leadFase}
+    />
   );
 }

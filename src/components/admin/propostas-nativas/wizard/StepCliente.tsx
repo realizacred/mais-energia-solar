@@ -241,7 +241,7 @@ function LeadsSemProposta({
 }
 
 // ─── Main Component ──────────────────────────────────────
-export function StepCliente({ selectedLead, onSelectLead, onClearLead, cliente, onClienteChange, fromProject }: Props) {
+function StepClienteImpl({ selectedLead, onSelectLead, onClearLead, cliente, onClienteChange, fromProject }: Props) {
   // ── When fromProject: show summary + leads sem proposta
   if (fromProject) {
     return (
@@ -638,5 +638,22 @@ function StepClienteForm({
         </div>
       </div>
     </div>
+  );
+}
+
+// ── Wrapper consuming WizardContext (Fase C) ──────────────────────────────
+import { useWizardContext } from "./WizardContext";
+
+export function StepCliente({ fromProject }: { fromProject?: boolean } = {}) {
+  const { selectedLead, setSelectedLead, handleSelectLead, cliente, setCliente } = useWizardContext();
+  return (
+    <StepClienteImpl
+      selectedLead={selectedLead}
+      onSelectLead={handleSelectLead}
+      onClearLead={() => setSelectedLead(null)}
+      cliente={cliente}
+      onClienteChange={setCliente}
+      fromProject={fromProject}
+    />
   );
 }
