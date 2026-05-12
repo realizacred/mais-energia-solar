@@ -201,8 +201,8 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
     setCatalogLoading(true);
     setCatalogError(null);
     fetchActiveKits(false, page, pageSize) // fetch all products; generator filter applied client-side via includeComponents toggle
-      .then(async (kits) => {
-        setCatalogKits(kits);
+      .then(async (response) => {
+        setCatalogKits(response.data);
         catalogLoaded.current = true;
         
         // UX-05: Auto-apply power filter if potenciaIdeal is set
@@ -214,8 +214,8 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
           }));
         }
 
-        if (kits.length > 0) {
-          const summaries = await fetchKitsSummary(kits.map(k => k.id));
+        if (response.data.length > 0) {
+          const summaries = await fetchKitsSummary(response.data.map(k => k.id));
           setCatalogSummaries(summaries);
         }
       })
