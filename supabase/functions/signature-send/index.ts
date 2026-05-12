@@ -282,6 +282,7 @@ Deno.serve(async (req) => {
       cpf: s.cpf ? String(s.cpf).replace(/\D/g, "") || undefined : undefined,
       phone: s.phone ? String(s.phone).replace(/\D/g, "") || undefined : undefined,
     }));
+    console.log("[signature-send] Signers normalizados:", JSON.stringify(signersList.map(s => ({ name: s.name, email: s.email, cpf: s.cpf, role: s.role })), null, 2));
 
     const missingEmail = signersList.find(s => !s.email);
     if (missingEmail) {
