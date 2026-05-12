@@ -371,12 +371,27 @@ export class AutentiqueAdapter implements SignatureAdapter {
       document: {
         name: params.docName,
       },
-      signers: params.signers.map(s => ({
-        email: s.email,
-        action: "SIGN",
-        name: s.name,
-        ...(s.phone ? { phone: s.phone.replace(/\D/g, "") } : {}),
-      })),
+      // Autentique: only ONE of email/phone is allowed per signer.
+      // When phone is used, delivery_method is required (DELIVERY_METHOD_WHATSAPP).
+      // We always prefer email when present (most reliable) and only fallback to phone.
+      signers: params.signers.map(s => {
+        const phoneDigits = s.phone ? s.phone.replace(/\D/g, "") : "";
+        const validPhone = phoneDigits.length >= 10 ? phoneDigits : "";
+        const baseSigner: Record<string, unknown> = {
+          action: "SIGN",
+          name: s.name,
+        };
+        if (s.email) {
+          baseSigner.email = s.email;
+        } else if (validPhone) {
+          baseSigner.phone = validPhone;
+          baseSigner.delivery_method = "DELIVERY_METHOD_WHATSAPP";
+        } else {
+          // Will fail upstream validation — but defend with email-only
+          baseSigner.email = s.email || "";
+        }
+        return baseSigner;
+      }),
       file: null,
     };
 
@@ -405,9 +420,17 @@ export class AutentiqueAdapter implements SignatureAdapter {
     const data = await response.json();
 
     if (!response.ok || data?.errors?.length) {
-      console.error("[AutentiqueAdapter] API error:", response.status, JSON.stringify(data));
+      // Full error log for debugging — Autentique returns 200 with errors array on validation
+      console.error("[AutentiqueAdapter] Full API error response:", JSON.stringify(data));
+      console.error("[AutentiqueAdapter] Signers payload sent:", JSON.stringify(variables.signers));
       if (response.status === 401 || response.status === 403) {
         throw new Error("Token Autentique inválido ou expirado. Verifique nas configurações.");
+      }
+      // Extract validation details if present
+      const validation = data?.errors?.[0]?.extensions?.validation;
+      if (validation) {
+        const fields = Object.entries(validation).map(([k, v]) => `${k}: ${(v as string[]).join(", ")}`).join(" | ");
+        throw new Error(`Autentique rejeitou os dados: ${fields}`);
       }
       const errMsg = data?.errors?.[0]?.message || JSON.stringify(data);
       throw new Error(`Erro Autentique (${response.status}): ${errMsg}`);
