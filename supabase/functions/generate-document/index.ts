@@ -95,71 +95,7 @@ function formatDateExtenso(date: Date): string {
   });
 }
 
-/** Build payment description from payment_composition JSONB */
-function buildPaymentDescription(composition: any[], valorTotal: number | null): Record<string, string> {
-  const result: Record<string, string> = {};
-  if (!composition || !Array.isArray(composition) || composition.length === 0) return result;
-
-  const parts: string[] = [];
-  let entradaTotal = 0;
-  let financiadoTotal = 0;
-
-  for (const item of composition) {
-    const entrada = Number(item.entrada) || 0;
-    const parcelas = Number(item.parcelas) || 0;
-    const valorBase = Number(item.valor_base) || 0;
-    const banco = item.observacoes || item.banco || "";
-
-    if (entrada > 0) {
-      entradaTotal += entrada;
-      parts.push(`${formatBRL(entrada)} entrada`);
-    }
-    if (parcelas > 0 && valorBase > 0) {
-      financiadoTotal += parcelas * valorBase;
-      parts.push(`${parcelas}x ${formatBRL(valorBase)}`);
-    }
-    if (banco) {
-      result["pagamento_banco_nome"] = banco;
-      result["pagamento.banco_nome"] = banco;
-    }
-  }
-
-  const formaDescrita = parts.join(" + ") || "—";
-  result["pagamento_forma_descrita"] = formaDescrita;
-  result["pagamento.forma_descrita"] = formaDescrita;
-
-  result["pagamento_entrada_valor"] = entradaTotal > 0 ? formatBRL(entradaTotal) : "—";
-  result["pagamento.entrada_valor"] = result["pagamento_entrada_valor"];
-
-  if (valorTotal && valorTotal > 0 && entradaTotal > 0) {
-    const pct = Math.round((entradaTotal / valorTotal) * 100);
-    result["pagamento_entrada_percentual"] = `${pct}%`;
-    result["pagamento.entrada_percentual"] = `${pct}%`;
-  } else {
-    result["pagamento_entrada_percentual"] = "—";
-    result["pagamento.entrada_percentual"] = "—";
-  }
-
-  result["pagamento_total_financiado"] = financiadoTotal > 0 ? formatBRL(financiadoTotal) : "—";
-  result["pagamento.total_financiado"] = result["pagamento_total_financiado"];
-
-  const firstItem = composition[0];
-  if (firstItem) {
-    const parcelas = Number(firstItem.parcelas) || 0;
-    const valorBase = Number(firstItem.valor_base) || 0;
-    result["pagamento_parcelas_quantidade"] = parcelas > 0 ? String(parcelas) : "—";
-    result["pagamento.parcelas_quantidade"] = result["pagamento_parcelas_quantidade"];
-    result["pagamento_parcelas_valor"] = valorBase > 0 ? formatBRL(valorBase) : "—";
-    result["pagamento.parcelas_valor"] = result["pagamento_parcelas_valor"];
-  }
-
-  const banco = result["pagamento_banco_nome"] || "";
-  const condicoes = banco ? `${formaDescrita} via ${banco}` : formaDescrita;
-  result["pagamento_condicoes_completas"] = condicoes;
-  result["pagamento.condicoes_completas"] = condicoes;
-
-  return result;
-}
+/** buildPaymentDescription removed — unified in resolvePagamento.ts (AP-17) */
 
 /**
  * Build DOCUMENT-ONLY enrichment variables.
