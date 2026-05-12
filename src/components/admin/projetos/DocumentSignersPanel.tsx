@@ -27,6 +27,31 @@ const STATUS_BADGE: Record<DocumentSignerRow["status"], { label: string; cls: st
 export function DocumentSignersPanel({ documentId, signatureStatus }: Props) {
   const { data: signers = [], isLoading } = useDocumentSigners(documentId);
   const resend = useResendSigner();
+  const qc = useQueryClient();
+  const [recovering, setRecovering] = useState(false);
+
+  async function handleRecover() {
+    setRecovering(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        toast.error("Faça login para recuperar o status.");
+        return;
+      }
+      const { data, error } = await supabase.functions.invoke("signature-backfill-signers", {
+        body: { document_id: documentId },
+      });
+      if (error) throw error;
+      if ((data as any)?.error) throw new Error((data as any).error);
+      toast.success("Signatários recuperados com sucesso");
+      qc.invalidateQueries({ queryKey: ["document-signers", documentId] });
+      qc.invalidateQueries({ queryKey: ["document-signers"] });
+    } catch (e: any) {
+      toast.error(e?.message || "Erro ao recuperar signatários");
+    } finally {
+      setRecovering(false);
+    }
+  }
 
   if (isLoading) {
     return <div className="mx-3 mb-2 h-12 rounded-lg bg-muted/40 animate-pulse" />;
@@ -34,13 +59,25 @@ export function DocumentSignersPanel({ documentId, signatureStatus }: Props) {
   if (signers.length === 0) {
     if (signatureStatus === "sent" || signatureStatus === "viewed" || signatureStatus === "partially_signed") {
       return (
-        <div className="mt-2 p-3 border rounded-md bg-muted/30">
+        <div className="mt-2 p-3 border rounded-md bg-muted/30 space-y-2">
           <p className="text-sm text-muted-foreground">
             Rastreamento por signatário não disponível para este envio.
           </p>
-          <p className="text-xs text-muted-foreground mt-1">
-            Reenvie o documento para ativar o acompanhamento individual.
+          <p className="text-xs text-muted-foreground">
+            Recupere o status diretamente do provedor ou reenvie o documento.
           </p>
+          <div className="flex gap-2 pt-1">
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-7 text-xs gap-1.5"
+              onClick={handleRecover}
+              disabled={recovering}
+            >
+              {recovering ? <Loader2 className="h-3 w-3 animate-spin" /> : <RefreshCw className="h-3 w-3" />}
+              Recuperar status
+            </Button>
+          </div>
         </div>
       );
     }
