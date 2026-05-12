@@ -276,39 +276,57 @@ export function ProjetosManager() {
   // funil deletado) e respeita viewMode kanban-consultor (que NÃO deve filtrar funil).
   const [storedPrefsApplied, setStoredPrefsApplied] = useState(false);
   useEffect(() => {
-    if (!storedPrefs || storedPrefsApplied) return;
+    if (storedPrefsApplied) return;
     if (funis.length === 0) return; // aguarda metadata
+
+    // URL params têm precedência sobre localStorage para permitir
+    // compartilhamento de URL e back/forward do navegador.
+    const fromUrl = {
+      status: urlFilters.status,
+      consultorId: urlFilters.consultor,
+      tipoProjetoSolar: urlFilters.tipoSolar,
+      etiquetaIds: urlFilters.etiquetas,
+      funilId: urlFilters.funil,
+    };
+    const source = {
+      status: fromUrl.status ?? storedPrefs?.status,
+      consultorId: fromUrl.consultorId ?? storedPrefs?.consultorId,
+      tipoProjetoSolar: fromUrl.tipoProjetoSolar ?? storedPrefs?.tipoProjetoSolar,
+      etiquetaIds: fromUrl.etiquetaIds ?? storedPrefs?.etiquetaIds,
+      funilId: fromUrl.funilId ?? storedPrefs?.funilId,
+    };
+
     const updates: Record<string, any> = {};
-    if (storedPrefs.status && storedPrefs.status !== "todos" && filters.status !== storedPrefs.status) {
-      updates.status = storedPrefs.status;
+    if (source.status && source.status !== "todos" && filters.status !== source.status) {
+      updates.status = source.status;
     }
-    if (storedPrefs.consultorId && storedPrefs.consultorId !== "todos" && filters.consultorId !== storedPrefs.consultorId) {
-      updates.consultorId = storedPrefs.consultorId;
+    if (source.consultorId && source.consultorId !== "todos" && filters.consultorId !== source.consultorId) {
+      updates.consultorId = source.consultorId;
     }
-    if (storedPrefs.tipoProjetoSolar && storedPrefs.tipoProjetoSolar !== "todos" && filters.tipoProjetoSolar !== storedPrefs.tipoProjetoSolar) {
-      updates.tipoProjetoSolar = storedPrefs.tipoProjetoSolar;
+    if (source.tipoProjetoSolar && source.tipoProjetoSolar !== "todos" && filters.tipoProjetoSolar !== source.tipoProjetoSolar) {
+      updates.tipoProjetoSolar = source.tipoProjetoSolar;
     }
-    if (Array.isArray(storedPrefs.etiquetaIds) && storedPrefs.etiquetaIds.length > 0) {
+    if (Array.isArray(source.etiquetaIds) && source.etiquetaIds.length > 0) {
       const current = filters.etiquetaIds || [];
-      const same = current.length === storedPrefs.etiquetaIds.length && current.every((id) => storedPrefs.etiquetaIds!.includes(id));
-      if (!same) updates.etiquetaIds = storedPrefs.etiquetaIds;
+      const same = current.length === source.etiquetaIds.length && current.every((id) => source.etiquetaIds!.includes(id));
+      if (!same) updates.etiquetaIds = source.etiquetaIds;
     }
     // Só aplica funilId se: (a) view não for por consultor; (b) funil ainda existe no tenant.
-    const funilExiste = !!funis.find((f) => f.id === storedPrefs.funilId);
+    const funilExiste = !!funis.find((f) => f.id === source.funilId);
     if (
-      storedPrefs.funilId &&
+      source.funilId &&
       funilExiste &&
       viewMode !== "kanban-consultor" &&
-      filters.funilId !== storedPrefs.funilId
+      filters.funilId !== source.funilId
     ) {
-      updates.funilId = storedPrefs.funilId;
-      setSelectedFunilId(storedPrefs.funilId);
+      updates.funilId = source.funilId;
+      setSelectedFunilId(source.funilId);
     }
     if (Object.keys(updates).length > 0) {
       applyFilters(updates);
     }
     setStoredPrefsApplied(true);
-  }, [storedPrefs, funis, viewMode, filters, applyFilters, setSelectedFunilId, storedPrefsApplied]);
+  }, [storedPrefs, urlFilters, funis, viewMode, filters, applyFilters, setSelectedFunilId, storedPrefsApplied]);
 
   const [editingEtapasFunilId, setEditingEtapasFunilId] = useState<string | null>(null);
   const [novoProjetoOpen, setNovoProjetoOpen] = useState(false);
