@@ -17,16 +17,18 @@ import {
   parseZapSignWebhook,
   parseClickSignWebhook,
   parseAutentiqueWebhook,
+  parseAssinafyWebhook,
   mapZapSignStatus,
   mapClickSignStatus,
   mapAutentiqueStatus,
+  mapAssinafyStatus,
 } from "../_shared/signatureAdapters.ts";
 import { validateWebhookSignature } from "../_shared/signatureWebhookSecurity.ts";
 import { archiveSignedPdf } from "../_shared/signedPdfArchiver.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-autentique-signature, x-zapsign-webhook-token, x-clicksign-hmac-sha256",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-autentique-signature, x-zapsign-webhook-token, x-clicksign-hmac-sha256, x-assinafy-signature",
 };
 
 Deno.serve(async (req) => {
@@ -76,6 +78,10 @@ Deno.serve(async (req) => {
       const p = parseAutentiqueWebhook(body);
       docToken = p.docToken;
       mappedStatus = p.status ? mapAutentiqueStatus(p.status) : null;
+    } else if (provider === "assinafy") {
+      const p = parseAssinafyWebhook(body);
+      docToken = p.docToken;
+      mappedStatus = p.status ? mapAssinafyStatus(p.status) : null;
     } else {
       const p = parseZapSignWebhook(body);
       docToken = p.docToken;
