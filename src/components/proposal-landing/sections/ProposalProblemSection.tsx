@@ -165,7 +165,7 @@ export function ProposalProblemSection({ snapshot: s, versaoData, activeCenario 
                 </span>
                 {contaDepois > 0 && (
                   <span
-                    title={`Por que ainda pago R$ ${fmt(contaDepois)}/mês?\n\nMesmo com solar 100%, a distribuidora cobra:\n• Fio B (TUSD): R$ ${fmt(valorFioB)}/mês\n• Iluminação pública (CIP): R$ ${fmt(valorCip)}/mês\n\nEsses custos são obrigatórios por lei e não somem com nenhum sistema solar.`}
+                    title={`Por que ainda pago R$ ${fmt(contaDepois)}/mês?\n\nMesmo com solar 100%, a distribuidora cobra:\n• Fio B (TUSD): R$ ${fmt(valorFioB)}/mês (conexão à rede obrigatória)\n\nEste custo é obrigatório por lei e não some com nenhum sistema solar.`}
                     style={{ display: "inline-flex", marginLeft: 8, cursor: "help", verticalAlign: "middle" }}
                   >
                     <Info style={{ width: 16, height: 16, color: "#86EFAC", opacity: 0.8 }} />
@@ -176,15 +176,11 @@ export function ProposalProblemSection({ snapshot: s, versaoData, activeCenario 
               {contaDepois > 0 && (
                 <div style={{ marginTop: 14, paddingLeft: 4, fontSize: "0.78rem", lineHeight: 1.6, opacity: 0.85 }}>
                   <div style={{ display: "flex", justifyContent: "space-between", color: "#CBD5E1" }}>
-                    <span>├ R$ {fmt(valorFioB)}</span>
-                    <span style={{ opacity: 0.7 }}>Fio B (conexão à rede)</span>
-                  </div>
-                  <div style={{ display: "flex", justifyContent: "space-between", color: "#CBD5E1" }}>
-                    <span>└ R$ {fmt(valorCip)}</span>
-                    <span style={{ opacity: 0.7 }}>CIP (iluminação pública)</span>
+                    <span>└ R$ {fmt(valorFioB)}</span>
+                    <span style={{ opacity: 0.7 }}>Fio B (conexão à rede obrigatória)</span>
                   </div>
                   <p style={{ fontSize: "0.7rem", opacity: 0.55, margin: "8px 0 0", lineHeight: 1.4, fontStyle: "italic" }}>
-                    * Esses valores são obrigatórios — não dependem do solar.
+                    * Este valor é obrigatório — não depende do solar.
                   </p>
                 </div>
               )}
