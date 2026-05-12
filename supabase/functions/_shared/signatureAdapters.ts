@@ -7,6 +7,13 @@
 
 // ─── Interface ────────────────────────────────────────
 
+export interface SignatureSettingsExtra {
+  signer_mode?: "simplified" | "complete";
+  refusable?: boolean;
+  reminder?: null | "DAILY" | "WEEKLY";
+  deadline_days?: number | null;
+}
+
 export interface SignatureEnvelopeParams {
   pdfUrl: string;
   docName: string;
@@ -16,9 +23,13 @@ export interface SignatureEnvelopeParams {
     cpf?: string;
     phone?: string;
     auth_method?: string;
+    /** Role identifier — used by some providers to differentiate Contratante vs Contratada */
+    role?: string;
   }>;
   sandbox: boolean;
   apiToken: string;
+  /** Provider-specific extra settings (e.g. Autentique reminder/deadline) */
+  settingsExtra?: SignatureSettingsExtra;
 }
 
 export interface SignatureEnvelopeResult {
