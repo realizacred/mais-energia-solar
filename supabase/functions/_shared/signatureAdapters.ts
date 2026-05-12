@@ -36,7 +36,7 @@ export interface SignatureEnvelopeResult {
   envelopeId: string;
   signUrl?: string;
   /** Per-signer short links (Autentique returns these) */
-  signerLinks?: Array<{ name: string; shortLink: string }>;
+  signerLinks?: Array<{ name: string; email?: string; shortLink?: string; providerSignerId?: string }>;
 }
 
 export interface WebhookParseResult {
@@ -488,18 +488,23 @@ export class AutentiqueAdapter implements SignatureAdapter {
       throw new Error("Autentique não retornou o ID do documento.");
     }
 
-    // Collect signer links
-    const signerLinks: Array<{ name: string; shortLink: string }> = [];
+    // Collect signer identifiers/links
+    const signerLinks: Array<{ name: string; email?: string; shortLink?: string; providerSignerId?: string }> = [];
     let firstSignUrl: string | undefined;
 
     if (doc.signatures && Array.isArray(doc.signatures)) {
       for (const sig of doc.signatures) {
         const shortLink = sig?.link?.short_link;
+        const providerSignerId = sig?.public_id;
         if (shortLink) {
           if (!firstSignUrl) firstSignUrl = shortLink;
+        }
+        if (shortLink || providerSignerId) {
           signerLinks.push({
             name: sig.name || sig.email || "Signatário",
+            email: sig.email || undefined,
             shortLink,
+            providerSignerId,
           });
         }
       }

@@ -2,7 +2,7 @@
  * DocumentSignersPanel — mostra status individual por signatário do documento.
  * Aparece abaixo do card quando o documento foi enviado e ainda não está totalmente assinado.
  */
-import { Mail, Loader2, CheckCircle2, Eye, Clock, XCircle } from "lucide-react";
+import { Mail, Loader2, CheckCircle2, Eye, Clock, XCircle, AlertTriangle, Send } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -10,6 +10,8 @@ import { useDocumentSigners, useResendSigner, type DocumentSignerRow } from "@/h
 
 interface Props {
   documentId: string;
+  signatureStatus?: string | null;
+  onResendDocument?: () => void;
 }
 
 const STATUS_BADGE: Record<DocumentSignerRow["status"], { label: string; cls: string; icon: React.ReactNode }> = {
@@ -19,14 +21,32 @@ const STATUS_BADGE: Record<DocumentSignerRow["status"], { label: string; cls: st
   refused: { label: "Recusou",    cls: "bg-destructive/10 text-destructive border-destructive/20", icon: <XCircle className="h-3 w-3" /> },
 };
 
-export function DocumentSignersPanel({ documentId }: Props) {
+export function DocumentSignersPanel({ documentId, signatureStatus, onResendDocument }: Props) {
   const { data: signers = [], isLoading } = useDocumentSigners(documentId);
   const resend = useResendSigner();
 
   if (isLoading) {
     return <div className="mx-3 mb-2 h-12 rounded-lg bg-muted/40 animate-pulse" />;
   }
-  if (signers.length === 0) return null;
+  if (signers.length === 0) {
+    if (signatureStatus === "sent" || signatureStatus === "viewed") {
+      return (
+        <div className="mx-3 mb-2 flex items-start gap-2 rounded-lg border border-warning/20 bg-warning/10 p-3">
+          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-warning" />
+          <div className="min-w-0 flex-1">
+            <p className="text-xs font-medium text-warning">Rastreamento não disponível para este envio. Reenvie o documento para ativar o acompanhamento por signatário.</p>
+          </div>
+          {onResendDocument && (
+            <Button size="sm" variant="outline" className="h-7 gap-1.5 text-xs" onClick={onResendDocument}>
+              <Send className="h-3 w-3" />
+              Reenviar
+            </Button>
+          )}
+        </div>
+      );
+    }
+    return null;
+  }
 
   return (
     <div className="mx-3 mb-2 rounded-lg border border-border/60 bg-muted/20 p-2 space-y-1">
