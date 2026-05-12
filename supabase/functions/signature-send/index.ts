@@ -297,7 +297,6 @@ Deno.serve(async (req) => {
     const signerRows = signersList.map((s, idx) => {
       // Match provider signer ID by name when available (best-effort)
       const link = (result.signerLinks || []).find(l => l.name === s.name);
-      const incomingRole = (requestSigners || [])[idx]?.role as string | undefined;
       return {
         tenant_id,
         document_id: documento_id,
@@ -306,7 +305,7 @@ Deno.serve(async (req) => {
         email: s.email,
         cpf: s.cpf || null,
         phone: s.phone || null,
-        role: incomingRole || (idx === 0 ? "Contratante" : "Contratada"),
+        role: s.role || (idx === 0 ? "Contratante" : "Contratada"),
         order_index: idx,
         status: "pending",
         sign_url: link?.shortLink || (idx === 0 ? result.signUrl ?? null : null),
