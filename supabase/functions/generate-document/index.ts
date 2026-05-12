@@ -550,6 +550,8 @@ Deno.serve(async (req) => {
         economiaTotalMensal: economiaMensal,
       });
     }
+
+    // FIX 4: vc_observacao — never show "N/A" literally
     if (!variables["vc_observacao"] || variables["vc_observacao"] === "N/A" || variables["vc_observacao"] === "n/a") {
       variables["vc_observacao"] = "";
     }
