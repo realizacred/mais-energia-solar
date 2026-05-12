@@ -1,0 +1,1 @@
+ALTER TABLE public.signature_settings ADD COLUMN IF NOT EXISTS settings_extra JSONB NOT NULL DEFAULT '{}'::jsonb;

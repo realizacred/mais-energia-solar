@@ -7,6 +7,13 @@
 
 // ─── Interface ────────────────────────────────────────
 
+export interface SignatureSettingsExtra {
+  signer_mode?: "simplified" | "complete";
+  refusable?: boolean;
+  reminder?: null | "DAILY" | "WEEKLY";
+  deadline_days?: number | null;
+}
+
 export interface SignatureEnvelopeParams {
   pdfUrl: string;
   docName: string;
@@ -16,9 +23,13 @@ export interface SignatureEnvelopeParams {
     cpf?: string;
     phone?: string;
     auth_method?: string;
+    /** Role identifier — used by some providers to differentiate Contratante vs Contratada */
+    role?: string;
   }>;
   sandbox: boolean;
   apiToken: string;
+  /** Provider-specific extra settings (e.g. Autentique reminder/deadline) */
+  settingsExtra?: SignatureSettingsExtra;
 }
 
 export interface SignatureEnvelopeResult {
@@ -344,13 +355,44 @@ export class AutentiqueAdapter implements SignatureAdapter {
     }
 
     // Step 2: Create document with signers via GraphQL multipart
+    const extra = params.settingsExtra ?? {};
+    const signerMode = extra.signer_mode ?? "complete";
+    const reminder = extra.reminder ?? null;
+    const refusable = !!extra.refusable;
+    const deadlineDays = extra.deadline_days ?? null;
+    const deadlineAt =
+      deadlineDays && deadlineDays > 0
+        ? new Date(Date.now() + deadlineDays * 86400000).toISOString().slice(0, 19).replace("T", " ")
+        : null;
+
+    // Build DocumentInput dynamically
+    const documentInputFields: string[] = ["name: $name"];
+    const documentVarsDecl: string[] = ["$name: String!"];
+    const documentVarsValues: Record<string, unknown> = { name: params.docName };
+
+    if (refusable) {
+      documentVarsDecl.push("$refusable: Boolean");
+      documentInputFields.push("refusable: $refusable");
+      documentVarsValues.refusable = true;
+    }
+    if (reminder) {
+      documentVarsDecl.push("$reminder: ReminderEnum");
+      documentInputFields.push("reminder: $reminder");
+      documentVarsValues.reminder = reminder;
+    }
+    if (deadlineAt) {
+      documentVarsDecl.push("$deadline_at: DateTime");
+      documentInputFields.push("deadline_at: $deadline_at");
+      documentVarsValues.deadline_at = deadlineAt;
+    }
+
     const query = `mutation CreateDocumentMutation(
-      $document: DocumentInput!,
+      ${documentVarsDecl.join(", ")},
       $signers: [SignerInput!]!,
       $file: Upload!
     ) {
       createDocument(
-        document: $document,
+        document: { ${documentInputFields.join(", ")} },
         signers: $signers,
         file: $file,
         sandbox: ${params.sandbox ? "true" : "false"}
@@ -367,16 +409,15 @@ export class AutentiqueAdapter implements SignatureAdapter {
       }
     }`;
 
-    const variables = {
-      document: {
-        name: params.docName,
-      },
+    const variables: Record<string, unknown> = {
+      ...documentVarsValues,
       // Autentique: only ONE of email/phone is allowed per signer.
       // When phone is used, delivery_method is required (DELIVERY_METHOD_WHATSAPP).
       // We always prefer email when present (most reliable) and only fallback to phone.
       signers: params.signers.map(s => {
         const phoneDigits = s.phone ? s.phone.replace(/\D/g, "") : "";
         const validPhone = phoneDigits.length >= 10 ? phoneDigits : "";
+        const isContratante = !s.role || s.role.toLowerCase() === "contratante";
         const baseSigner: Record<string, unknown> = {
           action: "SIGN",
           name: s.name,
@@ -389,6 +430,11 @@ export class AutentiqueAdapter implements SignatureAdapter {
         } else {
           // Will fail upstream validation — but defend with email-only
           baseSigner.email = s.email || "";
+        }
+        // Simplified mode: no need to inform CPF / birthdate (only for Contratante)
+        if (signerMode === "simplified" && isContratante) {
+          baseSigner.ignore_cpf = true;
+          baseSigner.ignore_birthdate = true;
         }
         return baseSigner;
       }),

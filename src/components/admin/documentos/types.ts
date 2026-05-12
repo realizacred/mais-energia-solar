@@ -101,6 +101,16 @@ export interface Signer {
   updated_by: string | null;
 }
 
+export type SignerMode = "simplified" | "complete";
+export type SignatureReminder = null | "DAILY" | "WEEKLY";
+
+export interface SignatureSettingsExtra {
+  signer_mode?: SignerMode;
+  refusable?: boolean;
+  reminder?: SignatureReminder;
+  deadline_days?: number | null;
+}
+
 export interface SignatureSettings {
   tenant_id: string;
   enabled: boolean;
@@ -108,10 +118,18 @@ export interface SignatureSettings {
   api_token_encrypted: string | null;
   sandbox_mode: boolean;
   webhook_secret_encrypted: string | null;
+  settings_extra: SignatureSettingsExtra | null;
   created_at: string;
   created_by: string | null;
   updated_at: string;
   updated_by: string | null;
+}
+
+export interface RepresentanteLegal {
+  representante_legal: string | null;
+  representante_email: string | null;
+  representante_cpf: string | null;
+  representante_cargo: string | null;
 }
 
 // ═══════════════════════════════════════════════

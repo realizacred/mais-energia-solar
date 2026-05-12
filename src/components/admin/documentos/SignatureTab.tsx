@@ -7,7 +7,10 @@ import {
   useSaveSignatureSettings,
   useDeleteSigner,
   useSaveSigner,
+  useRepresentanteLegal,
+  useSaveRepresentanteLegal,
 } from "@/hooks/useSignatureData";
+import type { SignatureSettingsExtra, SignerMode, SignatureReminder } from "./types";
 import { toast } from "sonner";
 import { Plus, Pencil, Trash2, Mail, Phone, MessageCircle, Copy, Link, Info, ChevronDown, ChevronUp, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -172,8 +175,22 @@ function SignatureConfig() {
   const [hasExistingToken, setHasExistingToken] = useState(false);
   const [hasExistingWebhook, setHasExistingWebhook] = useState(false);
 
+  // Settings extra (Autentique-specific behaviour)
+  const [signerMode, setSignerMode] = useState<SignerMode>("complete");
+  const [refusable, setRefusable] = useState(false);
+  const [reminder, setReminder] = useState<SignatureReminder>(null);
+  const [deadlineDays, setDeadlineDays] = useState<number>(0);
+
+  // Representante Legal Padrão (brand_settings)
+  const [repNome, setRepNome] = useState("");
+  const [repEmail, setRepEmail] = useState("");
+  const [repCpf, setRepCpf] = useState("");
+  const [repCargo, setRepCargo] = useState("");
+
   const { data: settings, isLoading } = useSignatureSettings();
+  const { data: representante, isLoading: loadingRep } = useRepresentanteLegal();
   const save = useSaveSignatureSettings();
+  const saveRep = useSaveRepresentanteLegal();
 
   useEffect(() => {
     if (settings) {
@@ -185,20 +202,55 @@ function SignatureConfig() {
       setWebhookSecret("");
       setHasExistingToken(!!settings.api_token_encrypted);
       setHasExistingWebhook(!!settings.webhook_secret_encrypted);
+
+      const extra = (settings.settings_extra || {}) as SignatureSettingsExtra;
+      setSignerMode(extra.signer_mode ?? "complete");
+      setRefusable(extra.refusable ?? false);
+      setReminder(extra.reminder ?? null);
+      setDeadlineDays(extra.deadline_days ?? 0);
     }
   }, [settings]);
 
+  useEffect(() => {
+    if (representante) {
+      setRepNome(representante.representante_legal ?? "");
+      setRepEmail(representante.representante_email ?? "");
+      setRepCpf(representante.representante_cpf ?? "");
+      setRepCargo(representante.representante_cargo ?? "");
+    }
+  }, [representante]);
+
   const handleSave = () => {
+    const settingsExtra: SignatureSettingsExtra = {
+      signer_mode: signerMode,
+      refusable,
+      reminder,
+      deadline_days: deadlineDays > 0 ? deadlineDays : null,
+    };
     save.mutate(
-      { settings: settings ?? null, enabled, provider, sandbox, apiToken, webhookSecret },
+      { settings: settings ?? null, enabled, provider, sandbox, apiToken, webhookSecret, settingsExtra },
       {
-        onSuccess: () => toast.success("Configuração salva"),
+        onSuccess: () => {
+          // Salvar representante em paralelo
+          saveRep.mutate(
+            {
+              representante_legal: repNome.trim() || null,
+              representante_email: repEmail.trim() || null,
+              representante_cpf: repCpf.trim() || null,
+              representante_cargo: repCargo.trim() || null,
+            },
+            {
+              onSuccess: () => toast.success("Configuração salva"),
+              onError: (e: Error) => toast.error(`Configuração salva, mas representante falhou: ${e.message}`),
+            }
+          );
+        },
         onError: (e: Error) => toast.error(e.message),
       }
     );
   };
 
-  if (isLoading) return (
+  if (isLoading || loadingRep) return (
     <Card className="p-6 space-y-4">
       <Skeleton className="h-5 w-48" />
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -206,6 +258,8 @@ function SignatureConfig() {
       </div>
     </Card>
   );
+
+  const isAutentique = provider === "autentique";
 
   return (
     <Card>
@@ -253,6 +307,93 @@ function SignatureConfig() {
             </div>
           </div>
 
+          {/* Comportamento da assinatura — específico Autentique */}
+          {isAutentique && (
+            <div className="rounded-lg border border-border bg-muted/20 p-4 space-y-4">
+              <div className="flex items-center gap-2">
+                <Info className="h-3.5 w-3.5 text-primary" />
+                <h4 className="text-xs font-semibold">Comportamento da assinatura (Autentique)</h4>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Assinatura do contratante</Label>
+                  <Select value={signerMode} onValueChange={(v) => setSignerMode(v as SignerMode)}>
+                    <SelectTrigger className="h-9 text-sm"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="simplified" className="text-sm">Simplificada (sem criar conta)</SelectItem>
+                      <SelectItem value="complete" className="text-sm">Completa (com CPF e senha)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-[10px] text-muted-foreground">
+                    Simplificada: cliente assina sem criar conta no Autentique.
+                  </p>
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Lembrete automático</Label>
+                  <Select
+                    value={reminder ?? "none"}
+                    onValueChange={(v) => setReminder(v === "none" ? null : (v as SignatureReminder))}
+                  >
+                    <SelectTrigger className="h-9 text-sm"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none" className="text-sm">Nunca</SelectItem>
+                      <SelectItem value="DAILY" className="text-sm">Diário</SelectItem>
+                      <SelectItem value="WEEKLY" className="text-sm">Semanal</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <Switch checked={refusable} onCheckedChange={setRefusable} />
+                  <Label className="text-xs">Permitir recusar documento</Label>
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Prazo para assinar (dias)</Label>
+                  <Input
+                    type="number"
+                    min={0}
+                    value={deadlineDays}
+                    onChange={(e) => setDeadlineDays(Math.max(0, parseInt(e.target.value || "0", 10)))}
+                    className="h-9 text-sm"
+                    placeholder="0 = sem prazo"
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Representante Legal Padrão (Contratada) — gravado em brand_settings */}
+          <div className="rounded-lg border border-border bg-muted/20 p-4 space-y-4">
+            <div className="flex items-center gap-2">
+              <Info className="h-3.5 w-3.5 text-primary" />
+              <h4 className="text-xs font-semibold">Representante Legal Padrão (Contratada)</h4>
+            </div>
+            <p className="text-[10px] text-muted-foreground -mt-2">
+              Adicionado automaticamente como signatário do tipo Contratada nos envios.
+            </p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <Label className="text-xs">Nome completo</Label>
+                <Input value={repNome} onChange={(e) => setRepNome(e.target.value)} className="h-9 text-sm" />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">E-mail</Label>
+                <Input type="email" value={repEmail} onChange={(e) => setRepEmail(e.target.value)} className="h-9 text-sm" />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">CPF</Label>
+                <CpfCnpjInput value={repCpf} onChange={setRepCpf} className="h-9 text-sm" />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">Cargo</Label>
+                <Input value={repCargo} onChange={(e) => setRepCargo(e.target.value)} className="h-9 text-sm" placeholder="Ex: Diretor Comercial" />
+              </div>
+            </div>
+          </div>
+
           {/* Webhook URL */}
           <div className="space-y-1.5">
             <Label className="text-xs flex items-center gap-1">
@@ -286,8 +427,8 @@ function SignatureConfig() {
           <SetupTutorial provider={provider} />
 
           <div className="flex justify-end">
-            <Button size="sm" onClick={handleSave} disabled={save.isPending}>
-              {save.isPending ? "Salvando…" : "Salvar configuração"}
+            <Button size="sm" onClick={handleSave} disabled={save.isPending || saveRep.isPending}>
+              {save.isPending || saveRep.isPending ? "Salvando…" : "Salvar configuração"}
             </Button>
           </div>
         </CardContent>
