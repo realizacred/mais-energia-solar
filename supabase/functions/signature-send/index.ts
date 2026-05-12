@@ -131,12 +131,13 @@ Deno.serve(async (req) => {
       .createSignedUrl(doc.pdf_path, 3600);
 
     if (urlErr || !signedUrl?.signedUrl) {
-      console.error("[signature-send] Failed to create signed URL:", urlErr);
+      console.error("[signature-send] PDF download error:", doc.pdf_path, urlErr);
       return new Response(JSON.stringify({ error: "Erro ao acessar o PDF no storage" }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+    console.log("[signature-send] PDF signed URL ok for path:", doc.pdf_path);
 
     // 7. Build signers list — prefer request signers, fallback to auto-resolve
     let signersList: Array<{ name: string; email: string; cpf?: string; phone?: string; auth_method?: string; role?: string }> = [];
