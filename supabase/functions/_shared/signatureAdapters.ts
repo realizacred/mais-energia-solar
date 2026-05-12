@@ -343,16 +343,29 @@ export class AutentiqueAdapter implements SignatureAdapter {
   readonly providerId = "autentique";
 
   async createEnvelope(params: SignatureEnvelopeParams): Promise<SignatureEnvelopeResult> {
-    // Step 1: Download PDF
+    // Step 1: Download PDF (with 1 retry on 5xx — Supabase Storage occasionally returns 502)
     let pdfBlob: Blob;
-    try {
-      const pdfResponse = await fetchWithTimeout(params.pdfUrl, {}, 60000);
-      if (!pdfResponse.ok) throw new Error(`HTTP ${pdfResponse.status}`);
-      pdfBlob = await pdfResponse.blob();
-    } catch (err: any) {
-      console.error("[AutentiqueAdapter] PDF download error:", err.message);
-      throw new Error("Falha ao baixar o PDF para envio à Autentique.");
+    let lastErr: any = null;
+    for (let attempt = 1; attempt <= 2; attempt++) {
+      try {
+        const pdfResponse = await fetchWithTimeout(params.pdfUrl, {}, 60000);
+        if (!pdfResponse.ok) {
+          const bodyPreview = await pdfResponse.text().catch(() => "<no body>");
+          throw new Error(`HTTP ${pdfResponse.status} — ${bodyPreview.slice(0, 200)}`);
+        }
+        pdfBlob = await pdfResponse.blob();
+        lastErr = null;
+        break;
+      } catch (err: any) {
+        lastErr = err;
+        console.error(`[AutentiqueAdapter] PDF download error (attempt ${attempt}/2):`, err.message, "url:", params.pdfUrl);
+        if (attempt < 2) await new Promise(r => setTimeout(r, 1500));
+      }
     }
+    if (lastErr) {
+      throw new Error(`Falha ao baixar o PDF para envio à Autentique. (${lastErr.message})`);
+    }
+    pdfBlob = pdfBlob!;
 
     // Step 2: Create document with signers via GraphQL multipart
     const extra = params.settingsExtra ?? {};
