@@ -590,6 +590,12 @@ async function processStep(
       } catch (e) {
         console.error("[sm-migrate-chunk] promote-custom-fields chunk chain failed:", e);
       }
+      try {
+        // RB-65: internalizar documentos SM (URLs externas → Storage) na sequência
+        await runPostPhaseUntilDone(tenantId, "sm-download-documents", "download", 10, promotedProjectExternalIds);
+      } catch (e) {
+        console.error("[sm-migrate-chunk] download-documents chunk chain failed:", e);
+      }
     })();
     // Não bloquear o step principal: as pós-fases podem ultrapassar o limite
     // de execução da Edge Function e impedir o auto-encadeamento do próximo chunk.
