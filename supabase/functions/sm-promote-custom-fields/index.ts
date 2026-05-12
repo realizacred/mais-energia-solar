@@ -749,33 +749,91 @@ Deno.serve(async (req) => {
         };
 
         if (def.field_type === "file") {
-          const urls = rawValue
-            .split(/\s*\|\s*/)
-            .filter((u: string) => /^https?:\/\//i.test(u));
+          const urls = Array.from(new Set(
+            rawValue
+              .split(/\s*\|\s*/)
+              .filter((u: string) => /^https?:\/\//i.test(u))
+          ));
           if (urls.length === 0) continue;
-          const localPaths: string[] = [];
+
+          // Idempotência: lê value_text atual e preserva entries internalizadas
+          // (objeto com storage_path local não-http). Dedup por storage_path e filename.
+          interface FileMeta {
+            storage_path: string; filename: string;
+            mime?: string; size?: number | null; uploaded_at?: string | null;
+          }
+          const existingMetas: FileMeta[] = (() => {
+            try {
+              const { data: cur } = { data: null } as any; // placeholder — populamos abaixo
+              return [];
+            } catch { return []; }
+          })();
+          // Buscar value_text atual (best-effort; se vier null, segue vazio)
+          const { data: curRow } = await supabase
+            .from("deal_custom_field_values")
+            .select("value_text")
+            .eq("deal_id", dealId)
+            .eq("field_id", def.id)
+            .maybeSingle();
+          const preserved: FileMeta[] = [];
+          const seenPaths = new Set<string>();
+          const seenNames = new Set<string>();
+          if (curRow?.value_text) {
+            try {
+              const parsed = JSON.parse(curRow.value_text);
+              const arr = Array.isArray(parsed) ? parsed : [parsed];
+              for (const item of arr) {
+                if (typeof item === "string") continue; // legado de strings: deixa cair no fluxo abaixo
+                const sp = item?.storage_path;
+                if (typeof sp === "string" && !/^https?:\/\//i.test(sp)) {
+                  if (seenPaths.has(sp)) continue;
+                  seenPaths.add(sp);
+                  if (item?.filename) seenNames.add(item.filename);
+                  preserved.push({
+                    storage_path: sp,
+                    filename: item.filename ?? sp.split("/").pop() ?? "arquivo",
+                    mime: item.mime ?? inferMimeFromName(item.filename ?? sp),
+                    size: item.size ?? null,
+                    uploaded_at: item.uploaded_at ?? null,
+                  });
+                }
+              }
+            } catch { /* parse falha → ignora e re-internaliza */ }
+          }
+
+          const metas: FileMeta[] = [...preserved];
+
           for (const url of urls) {
             const fname = sanitizeFilename(url);
-            // Novo destino: bucket project-documents em {tenantId}/{projetoId}/{fname}
-            const path = `${tenantId}/${projetoId}/${fname}`;
+            // Path canônico — idêntico ao usado por CustomFieldFileInput nativo.
+            const path = `${tenantId}/deals/${dealId}/custom-fields/${sourceKey}/${fname}`;
+            if (seenPaths.has(path)) continue;
             if (dryRun) {
-              localPaths.push(path);
+              metas.push({ storage_path: path, filename: fname, mime: inferMimeFromName(fname), size: null, uploaded_at: new Date().toISOString() });
+              seenPaths.add(path); seenNames.add(fname);
               filesSkipped++;
               continue;
             }
             try {
-              const r = await downloadAndStore(supabase, "project-documents", url, path);
+              const r = await downloadAndStore(supabase, "projeto-documentos", url, path);
               if (r.ok) {
-                localPaths.push(r.path);
                 if (r.reason === "already_exists") filesSkipped++;
                 else filesDownloaded++;
+                metas.push({
+                  storage_path: r.path,
+                  filename: fname,
+                  mime: r.mime ?? inferMimeFromName(fname),
+                  size: r.size ?? null,
+                  uploaded_at: new Date().toISOString(),
+                });
+                seenPaths.add(r.path); seenNames.add(fname);
 
-                // Idempotente: cria registro em project_documents se ainda não existe (dedup por storage_path).
+                // Mirror em project_documents (bucket canônico).
                 const { data: existsDoc } = await supabase
                   .from("project_documents")
                   .select("id")
                   .eq("tenant_id", tenantId)
-                  .eq("bucket", "project-documents")
+                  .eq("bucket", "projeto-documentos")
                   .eq("storage_path", r.path)
                   .maybeSingle();
                 if (!existsDoc) {
@@ -791,40 +849,40 @@ Deno.serve(async (req) => {
                         ? "Comprovante de Endereço"
                         : sourceKey,
                       origem: "custom_field",
-                      bucket: "project-documents",
+                      bucket: "projeto-documentos",
                       storage_path: r.path,
                       file_name: fname,
-                      mime_type: null,
+                      mime_type: r.mime ?? inferMimeFromName(fname),
                       source_table: "sm_propostas_raw",
                       metadata: { sm_field_key: sourceKey, sm_url: url, sm_external_id: (proj as any).external_id },
                     });
                   if (pdErr) {
-                    errors.push({
+                    warnings.push({
                       projeto_id: projetoId,
                       deal_id: dealId,
-                      error: `project_documents insert ${sourceKey}: ${pdErr.message}`,
+                      warning: `project_documents insert ${sourceKey}: ${pdErr.message}`,
                     });
                   }
                 }
               } else {
                 filesFailed++;
-                errors.push({
+                warnings.push({
                   projeto_id: projetoId,
                   deal_id: dealId,
-                  error: `download ${sourceKey}: ${r.reason}`,
+                  warning: `download ${sourceKey}: ${r.reason}`,
                 });
               }
             } catch (e) {
               filesFailed++;
-              errors.push({
+              warnings.push({
                 projeto_id: projetoId,
                 deal_id: dealId,
-                error: `download ${sourceKey}: ${(e as Error).message}`,
+                warning: `download ${sourceKey}: ${(e as Error).message}`,
               });
             }
           }
-          if (localPaths.length === 0) continue;
-          baseRow.value_text = JSON.stringify(localPaths);
+          if (metas.length === 0) continue;
+          baseRow.value_text = JSON.stringify(metas);
         } else {
           // text / textarea / select / currency / boolean — gravado como texto.
           baseRow.value_text = rawValue;
