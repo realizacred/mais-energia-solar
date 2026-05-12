@@ -42,6 +42,22 @@ async function fetchClickSignSignedUrl(envelopeId: string, apiToken: string, san
   return data?.document?.downloads?.signed_file_url || data?.document?.downloads?.original_file_url || null;
 }
 
+async function fetchAssinafySignedUrl(envelopeId: string, apiToken: string, sandbox: boolean): Promise<string | null> {
+  // Token is stored as "ACCOUNT_ID:API_KEY"; only the API key is needed for document GET.
+  const idx = apiToken.indexOf(":");
+  const apiKey = idx > 0 ? apiToken.slice(idx + 1).trim() : apiToken;
+  const base = sandbox ? "https://sandbox.assinafy.com.br/v1" : "https://api.assinafy.com.br/v1";
+  const res = await fetch(`${base}/documents/${envelopeId}`, {
+    headers: { "X-Api-Key": apiKey },
+  });
+  if (!res.ok) return null;
+  const json = await res.json().catch(() => ({} as any));
+  const doc = json?.data || json;
+  const artifacts = doc?.artifacts || {};
+  // Prefer the certificated (signed) artifact when available.
+  return artifacts.certificated || artifacts.signed || artifacts.original || null;
+}
+
 export async function archiveSignedPdf(deps: ArchiveDeps): Promise<{ ok: boolean; reason?: string; path?: string }> {
   const { supabase, doc, apiToken, sandbox } = deps;
   if (!doc.envelope_id || !doc.signature_provider) {
@@ -56,6 +72,8 @@ export async function archiveSignedPdf(deps: ArchiveDeps): Promise<{ ok: boolean
       url = await fetchZapSignSignedUrl(doc.envelope_id, apiToken);
     } else if (doc.signature_provider === "clicksign") {
       url = await fetchClickSignSignedUrl(doc.envelope_id, apiToken, sandbox);
+    } else if (doc.signature_provider === "assinafy") {
+      url = await fetchAssinafySignedUrl(doc.envelope_id, apiToken, sandbox);
     } else {
       return { ok: false, reason: "unknown provider" };
     }

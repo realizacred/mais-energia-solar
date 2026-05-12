@@ -525,6 +525,212 @@ export function mapAutentiqueStatus(eventType: string): { signatureStatus: strin
   }
 }
 
+// ─── Assinafy Adapter ─────────────────────────────────
+// REST API. Auth via X-Api-Key header.
+// Workspace account_id is required for upload — user provides credentials as
+// "ACCOUNT_ID:API_KEY" in the apiToken field (parsed below).
+// Flow: 1) upload PDF → document_id  2) create signer(s) → signer_ids
+//       3) POST /documents/{doc}/assignments method=virtual signer_ids=[...]
+
+function assinafyBaseUrl(sandbox: boolean): string {
+  return sandbox ? "https://sandbox.assinafy.com.br/v1" : "https://api.assinafy.com.br/v1";
+}
+
+function parseAssinafyToken(raw: string): { accountId: string; apiKey: string } {
+  const idx = raw.indexOf(":");
+  if (idx <= 0) {
+    throw new Error(
+      "Token Assinafy deve estar no formato ACCOUNT_ID:API_KEY (workspace + chave). Veja o tutorial.",
+    );
+  }
+  return { accountId: raw.slice(0, idx).trim(), apiKey: raw.slice(idx + 1).trim() };
+}
+
+export class AssinafyAdapter implements SignatureAdapter {
+  readonly providerId = "assinafy";
+
+  async createEnvelope(params: SignatureEnvelopeParams): Promise<SignatureEnvelopeResult> {
+    const { accountId, apiKey } = parseAssinafyToken(params.apiToken);
+    const baseUrl = assinafyBaseUrl(params.sandbox);
+    const authHeaders = { "X-Api-Key": apiKey };
+
+    // Step 1: download PDF
+    let pdfBlob: Blob;
+    try {
+      const r = await fetchWithTimeout(params.pdfUrl, {}, 60000);
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      pdfBlob = await r.blob();
+    } catch (err: any) {
+      console.error("[AssinafyAdapter] PDF download error:", err.message);
+      throw new Error("Falha ao baixar o PDF para envio à Assinafy.");
+    }
+
+    // Step 2: upload document (multipart)
+    const safeName = `${params.docName.replace(/[^a-zA-Z0-9._-]/g, "_")}.pdf`;
+    const fd = new FormData();
+    fd.append("file", pdfBlob, safeName);
+
+    let uploadRes: Response;
+    try {
+      uploadRes = await fetchWithTimeout(`${baseUrl}/accounts/${accountId}/documents`, {
+        method: "POST",
+        headers: authHeaders,
+        body: fd,
+      }, 60000);
+    } catch (err: any) {
+      console.error("[AssinafyAdapter] Upload fetch error:", err.message);
+      throw new Error("Falha na comunicação com Assinafy. Tente novamente.");
+    }
+    const uploadJson = await uploadRes.json().catch(() => ({} as any));
+    if (!uploadRes.ok) {
+      console.error("[AssinafyAdapter] Upload error:", uploadRes.status, JSON.stringify(uploadJson));
+      if (uploadRes.status === 401 || uploadRes.status === 403) {
+        throw new Error("Credenciais Assinafy inválidas. Verifique ACCOUNT_ID e API Key.");
+      }
+      throw new Error(`Erro Assinafy upload (${uploadRes.status}): ${uploadJson?.message || JSON.stringify(uploadJson)}`);
+    }
+    // Upload returns either {id, ...} (legacy) or {data: {id, ...}}
+    const documentId: string | undefined = uploadJson?.data?.id || uploadJson?.id;
+    if (!documentId) {
+      console.error("[AssinafyAdapter] Missing document id:", JSON.stringify(uploadJson));
+      throw new Error("Assinafy não retornou o ID do documento.");
+    }
+
+    // Step 3: create signers
+    const signerIds: string[] = [];
+    for (const s of params.signers) {
+      const phoneDigits = s.phone ? s.phone.replace(/\D/g, "") : "";
+      const cpfDigits = s.cpf ? s.cpf.replace(/\D/g, "") : "";
+      const signerBody: Record<string, unknown> = {
+        full_name: s.name,
+        email: s.email || undefined,
+      };
+      if (cpfDigits) signerBody.government_id = cpfDigits;
+      if (phoneDigits.length >= 10) signerBody.telephone = phoneDigits;
+
+      let sRes: Response;
+      try {
+        sRes = await fetchWithTimeout(`${baseUrl}/accounts/${accountId}/signers`, {
+          method: "POST",
+          headers: { ...authHeaders, "Content-Type": "application/json" },
+          body: JSON.stringify(signerBody),
+        });
+      } catch (err: any) {
+        console.error("[AssinafyAdapter] Signer fetch error:", err.message);
+        throw new Error(`Falha ao criar signatário ${s.name} na Assinafy.`);
+      }
+      const sJson = await sRes.json().catch(() => ({} as any));
+      if (!sRes.ok) {
+        console.error("[AssinafyAdapter] Signer error:", sRes.status, JSON.stringify(sJson));
+        throw new Error(`Erro ao criar signatário ${s.name}: ${sJson?.message || JSON.stringify(sJson)}`);
+      }
+      const signerId: string | undefined = sJson?.data?.id || sJson?.id;
+      if (!signerId) {
+        throw new Error(`Assinafy não retornou ID do signatário ${s.name}.`);
+      }
+      signerIds.push(signerId);
+    }
+
+    // Step 4: create virtual assignment (request signatures)
+    const assignBody = {
+      method: "virtual",
+      signers: signerIds.map((id) => ({
+        id,
+        verification_method: "Email",
+        notification_methods: ["Email"],
+      })),
+    };
+
+    let aRes: Response;
+    try {
+      aRes = await fetchWithTimeout(`${baseUrl}/documents/${documentId}/assignments`, {
+        method: "POST",
+        headers: { ...authHeaders, "Content-Type": "application/json" },
+        body: JSON.stringify(assignBody),
+      });
+    } catch (err: any) {
+      console.error("[AssinafyAdapter] Assignment fetch error:", err.message);
+      throw new Error("Falha ao solicitar assinaturas na Assinafy.");
+    }
+    const aJson = await aRes.json().catch(() => ({} as any));
+    if (!aRes.ok) {
+      console.error("[AssinafyAdapter] Assignment error:", aRes.status, JSON.stringify(aJson));
+      throw new Error(`Erro Assinafy assignment (${aRes.status}): ${aJson?.message || JSON.stringify(aJson)}`);
+    }
+
+    const assignmentData = aJson?.data || aJson;
+    const signerLinks: Array<{ name: string; shortLink: string }> = [];
+    let firstSignUrl: string | undefined;
+    const urls = assignmentData?.signing_urls || [];
+    if (Array.isArray(urls)) {
+      for (const u of urls) {
+        const link = u?.url;
+        if (link) {
+          if (!firstSignUrl) firstSignUrl = link;
+          // Best effort name lookup by signer id
+          const idx = signerIds.indexOf(u?.signer_id);
+          const name = idx >= 0 ? params.signers[idx]?.name : (u?.signer_id || "Signatário");
+          signerLinks.push({ name: name || "Signatário", shortLink: link });
+        }
+      }
+    }
+
+    return {
+      envelopeId: documentId,
+      signUrl: firstSignUrl,
+      signerLinks,
+    };
+  }
+}
+
+// ─── Assinafy Webhook Parser ──────────────────────────
+/**
+ * Assinafy webhook payloads are envelope-shaped:
+ *   { event_type: "document.certificated", data: { document: { id, status, ... } } }
+ *   { event: "document.certificated", data: { id: "<documentId>", ... } }
+ * Statuses (per docs): uploaded, metadata_processing, metadata_ready, pending_signature,
+ *   certificating, certificated, rejected_by_signer, rejected_by_user, expired, failed.
+ */
+export function parseAssinafyWebhook(body: Record<string, any>): WebhookParseResult {
+  const docToken =
+    body?.data?.document?.id ||
+    body?.data?.id ||
+    body?.document?.id ||
+    body?.document_id ||
+    null;
+  const status =
+    body?.event_type ||
+    body?.event ||
+    body?.data?.document?.status ||
+    body?.data?.status ||
+    null;
+  return { docToken, status };
+}
+
+export function mapAssinafyStatus(status: string): { signatureStatus: string; docStatus: string; isSigned: boolean } | null {
+  switch (status) {
+    case "document.certificated":
+    case "certificated":
+      return { signatureStatus: "signed", docStatus: "signed", isSigned: true };
+    case "document.rejected_by_signer":
+    case "rejected_by_signer":
+      return { signatureStatus: "refused", docStatus: "cancelled", isSigned: false };
+    case "document.rejected_by_user":
+    case "rejected_by_user":
+    case "document.expired":
+    case "expired":
+      return { signatureStatus: "cancelled", docStatus: "cancelled", isSigned: false };
+    case "document.pending_signature":
+    case "pending_signature":
+      return { signatureStatus: "sent", docStatus: "sent_for_signature", isSigned: false };
+    case "document.failed":
+    case "failed":
+      return { signatureStatus: "delivery_failed", docStatus: "sent_for_signature", isSigned: false };
+    default:
+      return null;
+  }
+}
+
 // ─── Factory ──────────────────────────────────────────
 
 export function getSignatureAdapter(provider: string): SignatureAdapter {
@@ -533,6 +739,8 @@ export function getSignatureAdapter(provider: string): SignatureAdapter {
       return new ClickSignAdapter();
     case "autentique":
       return new AutentiqueAdapter();
+    case "assinafy":
+      return new AssinafyAdapter();
     case "zapsign":
     default:
       return new ZapSignAdapter();
@@ -541,17 +749,21 @@ export function getSignatureAdapter(provider: string): SignatureAdapter {
 
 // ─── Webhook Detection ────────────────────────────────
 
-export type WebhookProvider = "zapsign" | "clicksign" | "autentique" | "unknown";
+export type WebhookProvider = "zapsign" | "clicksign" | "autentique" | "assinafy" | "unknown";
 
 /**
  * DA-29: Detect provider by webhook payload format.
  * Clicksign: { event: { name }, document: { key } }
  * ZapSign: { doc: { token, status } } or { token, status }
  * Autentique: { object: "webhook", event: { type }, data: { document: { id } } }
+ * Assinafy: { event_type|event: "document.*", data: { document|id } } — REST/JSON envelope
  */
 export function detectWebhookProvider(body: Record<string, any>): WebhookProvider {
   if (body?.object === "webhook" && body?.event?.type) return "autentique";
   if (body?.event?.name && body?.document?.key) return "clicksign";
+  const assinafyEvent = typeof body?.event_type === "string" ? body.event_type
+    : (typeof body?.event === "string" ? body.event : "");
+  if (assinafyEvent && /^(document|assignment)\./.test(assinafyEvent)) return "assinafy";
   if (body?.doc?.token || body?.doc?.status || body?.token) return "zapsign";
   return "unknown";
 }

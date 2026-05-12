@@ -26,7 +26,7 @@ function timingSafeEqual(a: string, b: string): boolean {
   return r === 0;
 }
 
-export type WebhookProviderId = "autentique" | "zapsign" | "clicksign";
+export type WebhookProviderId = "autentique" | "zapsign" | "clicksign" | "assinafy";
 
 /**
  * Validate webhook signature against the raw body using the tenant secret.
@@ -68,6 +68,16 @@ export async function validateWebhookSignature(
       headers.get("content-hmac") ||
       ""
     ).trim().replace(/^sha256=/i, "");
+    if (!sig) return false;
+    const expected = await hmacSha256Hex(secret, rawBody);
+    return timingSafeEqual(sig.toLowerCase(), expected.toLowerCase());
+  }
+
+  if (provider === "assinafy") {
+    // Assinafy signs the raw body with HMAC-SHA256 in X-Assinafy-Signature.
+    const sig = (headers.get("x-assinafy-signature") || "")
+      .trim()
+      .replace(/^sha256=/i, "");
     if (!sig) return false;
     const expected = await hmacSha256Hex(secret, rawBody);
     return timingSafeEqual(sig.toLowerCase(), expected.toLowerCase());
