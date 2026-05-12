@@ -744,14 +744,13 @@ Deno.serve(async (req) => {
                 if (r.reason === "already_exists") filesSkipped++;
                 else filesDownloaded++;
 
-                // Idempotente: cria registro em project_documents se ainda não existe.
-                const sourceId = `sm:${(proj as any).external_id}:${sourceKey}:${fname}`;
+                // Idempotente: cria registro em project_documents se ainda não existe (dedup por storage_path).
                 const { data: existsDoc } = await supabase
                   .from("project_documents")
                   .select("id")
                   .eq("tenant_id", tenantId)
-                  .eq("source_table", "sm_propostas_raw")
-                  .eq("source_id", sourceId)
+                  .eq("bucket", "project-documents")
+                  .eq("storage_path", r.path)
                   .maybeSingle();
                 if (!existsDoc) {
                   const { error: pdErr } = await supabase
@@ -771,8 +770,7 @@ Deno.serve(async (req) => {
                       file_name: fname,
                       mime_type: null,
                       source_table: "sm_propostas_raw",
-                      source_id: sourceId,
-                      metadata: { sm_field_key: sourceKey, sm_url: url },
+                      metadata: { sm_field_key: sourceKey, sm_url: url, sm_external_id: (proj as any).external_id },
                     });
                   if (pdErr) {
                     errors.push({
