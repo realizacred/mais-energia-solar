@@ -57,7 +57,7 @@ export function IntegrationProviderDrawer({
   const [repEmail, setRepEmail] = useState<string>("");
   const [repCpf, setRepCpf] = useState<string>("");
   const [repCargo, setRepCargo] = useState<string>("");
-  const [savingExtras, setSavingExtras] = useState(false);
+  
 
   const isConnected = connStatus === "connected";
   const fields = (provider.credential_schema || []) as CredentialField[];
