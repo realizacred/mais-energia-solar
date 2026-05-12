@@ -441,6 +441,10 @@ export class AutentiqueAdapter implements SignatureAdapter {
       file: null,
     };
 
+    console.log("[AutentiqueAdapter] Sandbox mode:", params.sandbox);
+    console.log("[AutentiqueAdapter] GraphQL query:", query);
+    console.log("[AutentiqueAdapter] Payload variables:", JSON.stringify({ ...variables, file: "<upload>" }, null, 2));
+
     const operations = JSON.stringify({ query, variables });
     const map = JSON.stringify({ "0": ["variables.file"] });
 
