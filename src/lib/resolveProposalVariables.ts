@@ -811,6 +811,36 @@ function resolveFromContext(
     return null;
   }
 
+  // ── pagamento_forma & pagamento.forma_descrita (AP-17 unificado) ──
+  if (key === "pagamento_forma" || key === "pagamento.forma_descrita") {
+    // resolvePagamento já resolve e coloca no vars via resolveAllVariables (BE)
+    // No FE, tentamos buscar do snapshot canônico
+    const fs = (fsCanon ?? ctx.finalSnapshot ?? {}) as any;
+    const resolved = fs["pagamento.forma_descrita"] ?? fs["pagamento_forma_descrita"];
+    if (resolved) return String(resolved);
+
+    const forma = s(fs.pagamento_forma ?? fs.forma_pagamento);
+    return forma ?? null;
+  }
+
+  // ── pagamento.banco_nome ──
+  if (key === "pagamento.banco_nome") {
+    const fs = (fsCanon ?? ctx.finalSnapshot ?? {}) as any;
+    return s(fs["pagamento.banco_nome"] ?? fs["pagamento_banco_nome"]);
+  }
+
+  // ── pagamento.entrada_valor & pagamento.entrada_percentual ──
+  if (key === "pagamento.entrada_valor") {
+    const fs = (fsCanon ?? ctx.finalSnapshot ?? {}) as any;
+    const val = fs["pagamento.entrada_valor"] ?? fs["pagamento_entrada_valor"];
+    return val != null ? String(val) : null;
+  }
+  if (key === "pagamento.entrada_percentual") {
+    const fs = (fsCanon ?? ctx.finalSnapshot ?? {}) as any;
+    const val = fs["pagamento.entrada_percentual"] ?? fs["pagamento_entrada_percentual"];
+    return val != null ? String(val) : null;
+  }
+
   // ── capo_m — tipo de estrutura de fixação (legacy) ──
   if (key === "financeiro.capo_m" || key === "customizada.capo_m") {
     return s((ctx.finalSnapshot as any)?.capo_m)
