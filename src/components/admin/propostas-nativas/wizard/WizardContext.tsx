@@ -5,10 +5,9 @@ import {
   type PagamentoOpcao, type LayoutArranjo, type PreDimensionamentoData,
   EMPTY_CLIENTE, DEFAULT_PREMISSAS, DEFAULT_PRE_DIMENSIONAMENTO, createEmptyUC,
   redeAtendimentoToFaseTensao, mapLeadTipoTelhadoToProposal,
-  applyTenantTarifasToUC,
 } from "./types";
 import { type AdicionalItem } from "./StepAdicionais";
-import { useTenantTarifas } from "./useWizardDataLoaders";
+import { useTenantTarifas, applyTenantTarifasToUC } from "./useWizardDataLoaders";
 
 type GenerationStatus = "idle" | "calculating" | "generating_docx" | "converting_pdf" | "saving" | "ready" | "docx_only" | "error";
 
