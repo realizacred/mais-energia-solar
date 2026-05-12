@@ -152,12 +152,14 @@ export function SignatureModal({ open, onClose, doc, dealId, onSend, isPending }
       if (brand?.representante_legal) {
         resolved.push({
           name: brand.representante_legal,
-          email: brand.representante_email || "",
-          cpf: brand.representante_cpf || "",
+          email: (brand.representante_email || "").trim(),
+          cpf: formatCpfCnpj(brand.representante_cpf || ""),
           role: "contratada",
         });
         if (!brand.representante_email) {
           warns.push("Representante legal sem e-mail. Configure em Configurações → Representante Legal.");
+        } else if (!isValidEmail(brand.representante_email)) {
+          warns.push("E-mail do representante legal parece inválido. Verifique em Configurações.");
         }
       } else {
         warns.push("Representante legal não configurado. Configure em Configurações → Representante Legal.");
