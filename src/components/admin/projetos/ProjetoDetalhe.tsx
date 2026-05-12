@@ -574,6 +574,7 @@ function ProjetoDetalheContent() {
                 <Button size="sm" onClick={() => {
                   const params = new URLSearchParams({ deal_id: dealId });
                   if (deal.customer_id) params.set("customer_id", deal.customer_id);
+                  if (projetoId) params.set("projeto_id", projetoId);
                   navigate(`/admin/propostas-nativas/nova?${params.toString()}`);
                 }} className="gap-1.5 shrink-0">
                   <Plus className="h-3.5 w-3.5" />Nova proposta
