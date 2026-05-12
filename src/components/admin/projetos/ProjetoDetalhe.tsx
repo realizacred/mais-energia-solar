@@ -328,10 +328,14 @@ function ProjetoDetalheContent() {
   const [editingTitle, setEditingTitle] = useState(false);
   const [titleDraft, setTitleDraft] = useState("");
   const [savingTitle, setSavingTitle] = useState(false);
+  const [editProjetoOpen, setEditProjetoOpen] = useState(false);
+  const [editProjetoNome, setEditProjetoNome] = useState("");
+  const [editProjetoDescricao, setEditProjetoDescricao] = useState("");
+  const [savingProjeto, setSavingProjeto] = useState(false);
 
   const {
     deal, projetoId, loading, activeTab, setActiveTab, stages,
-    projetoNome, projetoCodigo, projetoNum,
+    projetoNome, projetoCodigo, projetoNum, projetoDescricao,
     customerName, customerPhone, customerEmail, customerCpfCnpj, customerEmpresa, customerAddress,
     ownerName, pipelines, allStagesMap, userNamesMap,
     currentStage, currentPipeline, projectCode,
@@ -343,6 +347,28 @@ function ProjetoDetalheContent() {
     isClosed, silentRefresh, refreshCustomer, formatDate, getStageNameById, tabBadge,
     dealId, onBack, initialPipelineId,
   } = ctx;
+
+  const handleSaveProjeto = async () => {
+    if (!projetoId) return;
+    setSavingProjeto(true);
+    const { error } = await supabase
+      .from("projetos")
+      .update({
+        nome: editProjetoNome.trim() || null,
+        observacoes: editProjetoDescricao.trim() || null,
+      })
+      .eq("id", projetoId);
+    setSavingProjeto(false);
+    if (error) {
+      toast({ title: "Erro ao salvar", description: error.message, variant: "destructive" });
+      return;
+    }
+    toast({ title: "Projeto atualizado" });
+    setEditProjetoOpen(false);
+    queryClient.invalidateQueries({ queryKey: ["projeto-detalhe"] });
+    queryClient.invalidateQueries({ queryKey: ["projetos-pipeline"] });
+    silentRefresh?.();
+  };
 
   if (loading) {
     return (
