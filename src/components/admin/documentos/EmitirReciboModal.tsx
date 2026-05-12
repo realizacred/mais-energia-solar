@@ -58,6 +58,7 @@ export function EmitirReciboModal({
   const [dynFields, setDynFields] = useState<Record<string, string>>({});
   const [loadingContext, setLoadingContext] = useState(false);
   const [projectContext, setProjectContext] = useState<any>(null);
+  const [proposalContext, setProposalContext] = useState<any>(null);
 
   useEffect(() => {
     if (open) {
@@ -68,6 +69,7 @@ export function EmitirReciboModal({
       setNumero("");
       setDynFields({});
       setProjectContext(null);
+      setProposalContext(null);
 
       // Auto-fetch context if project ID is provided
       if (defaultProjetoId) {
@@ -85,6 +87,39 @@ export function EmitirReciboModal({
               if (!defaultClienteId && projeto.cliente_id) {
                 setClienteId(projeto.cliente_id);
               }
+
+              // Buscar proposta aceita do deal (suggestion para valor + parcelas)
+              const dealId = defaultDealId ?? (projeto as any).deal_id;
+              if (dealId) {
+                const { data: prop } = await supabase
+                  .from("propostas_nativas")
+                  .select("id, deal_id, status, created_at")
+                  .eq("deal_id", dealId)
+                  .eq("status", "aceita")
+                  .order("created_at", { ascending: false })
+                  .limit(1)
+                  .maybeSingle();
+                if (prop) {
+                  // Buscar versão atual + opção de pagamento principal
+                  const { data: versao } = await supabase
+                    .from("proposta_versoes")
+                    .select("id, valor_total, potencia_kwp")
+                    .eq("proposta_id", prop.id)
+                    .order("versao_numero", { ascending: false })
+                    .limit(1)
+                    .maybeSingle();
+                  const { data: opcao } = versao
+                    ? await supabase
+                        .from("proposta_pagamento_opcoes")
+                        .select("num_parcelas, valor_parcela, valor_financiado, entrada")
+                        .eq("versao_id", versao.id)
+                        .order("ordem", { ascending: true })
+                        .limit(1)
+                        .maybeSingle()
+                    : { data: null as any };
+                  setProposalContext({ proposta: prop, versao, opcao });
+                }
+              }
             }
           } catch (err) {
             console.error("[EmitirReciboModal] Error loading context:", err);
@@ -94,54 +129,100 @@ export function EmitirReciboModal({
         })();
       }
     }
-  }, [open, defaultClienteId, defaultProjetoId]);
+  }, [open, defaultClienteId, defaultProjetoId, defaultDealId]);
 
   const template = useMemo<DocumentTemplate | undefined>(
     () => (templates ?? []).find((t) => t.id === templateId),
     [templates, templateId],
   );
 
-  // Auto-fill dynamic fields when template changes
+  // Sugestão de valor a partir da proposta aceita (independente de template)
   useEffect(() => {
-    if (!template || !projectContext) return;
+    if (valor) return;
+    const v =
+      proposalContext?.versao?.valor_total ??
+      projectContext?.valor_total ??
+      null;
+    if (v && Number(v) > 0) setValor(String(v));
+  }, [proposalContext, projectContext]); // eslint-disable-line react-hooks/exhaustive-deps
 
-    const schema = (template.form_schema ?? []) as FormFieldSchema[];
+  // Auto-fill dynamic fields. Roda assim que houver projectContext/proposalContext,
+  // e re-aplica quando um template é selecionado depois.
+  useEffect(() => {
+    if (!projectContext && !proposalContext) return;
+
+    const schema = (template?.form_schema ?? []) as FormFieldSchema[];
+    if (schema.length === 0) return;
+
     const updates: Record<string, string> = {};
-    const cliente = projectContext.clientes;
+    const cliente = projectContext?.clientes;
+    const versao = proposalContext?.versao;
+    const opcao = proposalContext?.opcao;
 
-    schema.forEach(field => {
+    const has = (key: string, ...tokens: string[]) =>
+      tokens.some((t) => key.includes(t));
+
+    schema.forEach((field) => {
       const key = field.key.toLowerCase();
-      
-      // Auto-fill logic based on similarity
+
       if (cliente) {
-        if (key.includes("nome_cliente") || key.includes("cliente_nome") || (key === "nome" && !updates["nome"])) {
+        if (has(key, "nome_cliente", "cliente_nome") || key === "nome") {
           updates[field.key] = cliente.nome || "";
         }
-        if (key.includes("cpf") || key.includes("cnpj") || key.includes("documento")) {
+        if (has(key, "cpf", "cnpj", "documento")) {
           updates[field.key] = cliente.cpf_cnpj || "";
+        }
+        if (key === "email" || has(key, "e_mail", "email_cliente")) {
+          updates[field.key] = cliente.email || "";
+        }
+        if (has(key, "telefone", "celular", "whatsapp", "fone")) {
+          updates[field.key] = cliente.telefone || "";
+        }
+        if (key === "cidade" || has(key, "municipio")) {
+          updates[field.key] = cliente.cidade || "";
+        }
+        if (has(key, "empresa", "razao_social")) {
+          updates[field.key] = cliente.empresa || cliente.nome || "";
         }
       }
 
-      if (key.includes("valor_total") || key.includes("valor_venda") || key.includes("valor_projeto")) {
-        updates[field.key] = String(projectContext.valor_total || "");
+      if (has(key, "valor_total", "valor_venda", "valor_projeto", "valor_proposta")) {
+        const v = versao?.valor_total ?? projectContext?.valor_total;
+        if (v) updates[field.key] = String(v);
       }
-      
-      if (key.includes("potencia") || key.includes("kwp")) {
-        updates[field.key] = String(projectContext.potencia_kwp || "");
+
+      if (has(key, "potencia", "kwp")) {
+        const p = versao?.potencia_kwp ?? projectContext?.potencia_kwp;
+        if (p) updates[field.key] = String(p);
+      }
+
+      // Parcelas (total)
+      if (
+        has(key, "total_parcelas", "num_parcelas", "numero_parcelas", "qtd_parcelas", "quantidade_parcelas")
+      ) {
+        if (opcao?.num_parcelas) updates[field.key] = String(opcao.num_parcelas);
+      }
+
+      // Valor da parcela
+      if (
+        key === "parcela" ||
+        has(key, "valor_parcela", "valor_da_parcela", "parcela_valor")
+      ) {
+        if (opcao?.valor_parcela) updates[field.key] = String(opcao.valor_parcela);
       }
     });
 
     if (Object.keys(updates).length > 0) {
-      setDynFields(prev => ({ ...prev, ...updates }));
+      setDynFields((prev) => {
+        const merged = { ...prev };
+        // Não sobrescreve valor já editado pelo usuário
+        for (const k of Object.keys(updates)) {
+          if (!merged[k]) merged[k] = updates[k];
+        }
+        return merged;
+      });
     }
-    
-    // Also auto-fill standard fields if empty
-    if (!valor && projectContext.valor_total) {
-      // Valor of project is a good suggestion for receipt if empty
-      // but usually receipts are for installments, so we only fill if it makes sense
-      // setValor(String(projectContext.valor_total)); 
-    }
-  }, [template, projectContext]);
+  }, [template, projectContext, proposalContext]);
 
 
   const schema: FormFieldSchema[] = useMemo(() => {
