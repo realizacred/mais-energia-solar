@@ -1022,7 +1022,7 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
                 )}
               </div>
             ) : tab === "customizado" ? (
-            /* ── Customizado Tab — manual kits + imported catalog kits ── */
+              /* ── Customizado Tab — manual kits + imported catalog kits ── */
             <div className="space-y-3">
               {manualKits.length > 0 && (
                 <div className={viewMode === "grid"
