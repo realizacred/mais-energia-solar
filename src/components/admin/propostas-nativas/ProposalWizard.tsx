@@ -2880,7 +2880,7 @@ function ProposalWizardContent() {
         const kitVal = validateKit(itens, potenciaKwp, venda.custo_kit_override);
         return wrap("kit", (
           <div className="space-y-4">
-            <StepKitSelection itens={itens} onItensChange={handleItensChange} modulos={modulos} inversores={inversores} otimizadores={otimizadores} baterias={baterias} loadingEquip={loadingEquip} potenciaKwp={potenciaKwp} preDimensionamento={preDimensionamento} onPreDimensionamentoChange={setPreDimensionamento} consumoTotal={consumoTotal} manualKits={manualKits} onManualKitsChange={setManualKits} selectedManualIdx={selectedManualIdx} onSelectedManualIdxChange={setSelectedManualIdx} irradiacao={locIrradiacao} latitude={locLatitude} ghiSeries={locGhiSeries} somenteGhi={locSkipPoa} custoKitOverride={venda.custo_kit_override} ibgeCodigo={clienteMunicipioIbgeCodigo ?? solarPremises?.solaryum_ibge_fallback ?? null} />
+            <StepKitSelection onBack={() => setStep(step - 1)} onNext={() => setStep(step + 1)} />
             {(kitVal?.warnings ?? []).length > 0 && (
               <div className="rounded-lg border border-warning/40 bg-warning/5 p-3 space-y-1">
                 {(kitVal?.warnings ?? []).map((w, i) => (
@@ -2939,34 +2939,8 @@ function ProposalWizardContent() {
               className="mb-4"
             />
             <StepDocumento
-              clienteNome={cliente.nome || selectedLead?.nome || ""}
-              empresaNome={cliente.empresa || cliente.nome || selectedLead?.nome || ""}
-              clienteTelefone={cliente.celular || selectedLead?.telefone || ""}
-              clienteEmail={cliente.email || ""}
-              potenciaKwp={potenciaKwp}
-              areaUtilM2={areaUtilEstimada}
-              geracaoMensalKwh={geracaoMensalEstimada}
-              numUcs={ucs.length}
-              precoFinal={precoFinal}
-              templateSelecionado={templateSelecionado}
-              onTemplateSelecionado={handleTemplateChange}
-              generating={generating}
-              rendering={rendering}
-              result={result}
-              htmlPreview={htmlPreview}
-              pdfBlobUrl={pdfBlobUrl}
-              outputDocxPath={outputDocxPath}
-              outputPdfPath={outputPdfPath}
-              generationStatus={generationStatus}
-              generationError={generationError}
-              missingVars={missingVars}
-              onGenerate={handlePreGenerate}
-              onNewVersion={handleNewVersion}
+              onBack={() => setStep(step - 1)}
               onViewDetail={handleViewDetail}
-              customFieldValues={customFieldValues}
-              onCustomFieldValuesChange={setCustomFieldValues}
-              docxBlob={docxBlob}
-              generationAuditReport={generationAuditReport}
               estimativaBlocked={enforcement.precisao === "estimado" && !enforcement.aceiteEstimativa}
             />
           </>

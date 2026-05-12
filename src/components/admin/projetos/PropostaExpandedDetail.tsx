@@ -1613,33 +1613,6 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
                         skipTemplateAutoSelect={true}
                       />
 
-                        generationStatus={
-                          rendering ? "generating_docx" :
-                          pdfSignedUrl || latestVersao?.output_pdf_path || latestVersao?.link_pdf ? "ready" :
-                          html ? "ready" : "idle"
-                        }
-                        generationError={null}
-                        missingVars={[]}
-                        skipTemplateAutoSelect={!latestVersao?.template_id_used}
-                        onGenerate={latestVersao?.link_pdf && !latestVersao?.output_pdf_path
-                          ? () => window.open(latestVersao.link_pdf!, "_blank", "noopener,noreferrer")
-                          : handleRender}
-                        onNewVersion={() => handleEditWithProtection(() => {
-                          if (!latestVersao?.id) {
-                            toast({
-                              title: "Proposta sem versão editável",
-                              description: "Esta proposta importada ainda não possui uma versão nativa. Use \"Duplicar proposta\" para criar uma versão editável.",
-                              variant: "destructive",
-                            });
-                          const params = new URLSearchParams();
-                          if (dealId) params.set("deal_id", dealId);
-                          if (customerId) params.set("customer_id", customerId);
-                          params.set("proposta_id", p.id);
-                          params.set("versao_id", latestVersao.id);
-                          navigate(`/admin/propostas-nativas/nova?${params.toString()}`);
-                        }}
-                        onViewDetail={() => {}}
-                      />
                     </div>
                   </TabsContent>
 
