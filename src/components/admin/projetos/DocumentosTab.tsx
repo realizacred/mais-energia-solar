@@ -576,7 +576,6 @@ export function DocumentosTab({ dealId, clienteTelefone, consultorTelefone: cons
                         <DocumentSignersPanel
                           documentId={doc.id}
                           signatureStatus={doc.signature_status}
-                          onResendDocument={() => setSignConfirmDoc(doc)}
                         />
                       )}
                     </div>
