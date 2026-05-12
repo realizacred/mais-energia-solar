@@ -590,12 +590,10 @@ async function processStep(
       } catch (e) {
         console.error("[sm-migrate-chunk] promote-custom-fields chunk chain failed:", e);
       }
-      try {
-        // RB-65: internalizar documentos SM (URLs externas → Storage) na sequência
-        await runPostPhaseUntilDone(tenantId, "sm-download-documents", "download", 10, promotedProjectExternalIds);
-      } catch (e) {
-        console.error("[sm-migrate-chunk] download-documents chunk chain failed:", e);
-      }
+      // sm-download-documents removido do fluxo principal: a internalização
+      // canônica agora é feita por sm-promote-custom-fields (bucket
+      // projeto-documentos + array de objetos). A função existe apenas para
+      // backfill controlado de legados (DEPRECATED).
     })();
     // Não bloquear o step principal: as pós-fases podem ultrapassar o limite
     // de execução da Edge Function e impedir o auto-encadeamento do próximo chunk.
