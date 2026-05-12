@@ -324,7 +324,9 @@ Deno.serve(async (req) => {
       };
     });
     if (signerRows.length > 0) {
+      console.log("[signature-send] Inserindo signatários:", JSON.stringify(signerRows));
       const { error: signersErr } = await supabase.from("document_signers").insert(signerRows);
+      console.log("[signature-send] Resultado insert signatários:", signersErr ? signersErr.message : "OK");
       if (signersErr) {
         console.error("[signature-send] CRÍTICO: falha ao gravar signatários:", signersErr);
         return new Response(JSON.stringify({ error: "Documento enviado, mas falhou ao gravar signatários." }), {
