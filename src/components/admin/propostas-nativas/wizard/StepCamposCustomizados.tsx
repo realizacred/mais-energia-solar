@@ -229,6 +229,7 @@ function CustomFieldInput({ field, value, onChange, dealId }: {
           <Input value={value || ""} onChange={e => onChange(e.target.value)} className="h-9 text-xs" />
         </div>
       );
+  }
 }
 
 // ── Wrapper consuming WizardContext (Fase C) ──────────────────────────────
