@@ -2040,36 +2040,6 @@ function ProposalWizardContent() {
     return () => { cancelled = true; };
   }, [orcIdFromUrl]);
 
-  const handleSelectLead = (lead: LeadSelection) => {
-    setSelectedLead(lead);
-    if (lead.municipio_ibge_codigo) setClienteMunicipioIbgeCodigo(lead.municipio_ibge_codigo);
-    if (lead.estado) setLocEstado(lead.estado);
-    if (lead.cidade) setLocCidade(lead.cidade);
-    const mappedTelhado = mapLeadTipoTelhadoToProposal(lead.tipo_telhado);
-    if (mappedTelhado) setLocTipoTelhado(mappedTelhado);
-
-    const faseData = redeAtendimentoToFaseTensao(lead.rede_atendimento);
-    const consumo = lead.media_consumo || 0;
-
-    setUcs(prev => {
-      const updated = [...prev];
-      updated[0] = {
-        ...updated[0],
-        estado: lead.estado || updated[0].estado,
-        cidade: lead.cidade || updated[0].cidade,
-        tipo_telhado: mappedTelhado || updated[0].tipo_telhado,
-        ...(consumo ? { consumo_mensal: consumo } : {}),
-        ...(faseData ? {
-          fase: faseData.fase,
-          fase_tensao: faseData.fase_tensao,
-          tensao_rede: faseData.tensao_rede,
-        } : {}),
-      };
-      return updated;
-    });
-  };
-
-
   // ─── Validations per step key
   const canAdvance: Record<string, boolean> = {
     [STEP_KEYS.LOCALIZACAO]: !!locEstado && !!locCidade && !!locTipoTelhado && !!locDistribuidoraId,
