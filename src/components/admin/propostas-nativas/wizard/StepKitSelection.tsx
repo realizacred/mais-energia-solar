@@ -184,6 +184,8 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
   const catalogLoaded = useRef(false);
   const [selectedSolaryumKitId, setSelectedSolaryumKitId] = useState<number | null>(null);
   const [hasRemovedAutoFilter, setHasNewRemovedAutoFilter] = useState(false);
+  const [page, setPage] = useState(0);
+  const pageSize = 20;
 
   // Derive selected catalog kit ID from manualKits meta
   const selectedCatalogKitId = useMemo(() => {
@@ -198,7 +200,7 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
     if (tab !== "catalogo" || catalogLoaded.current) return;
     setCatalogLoading(true);
     setCatalogError(null);
-    fetchActiveKits(false) // fetch all products; generator filter applied client-side via includeComponents toggle
+    fetchActiveKits(false, page, pageSize) // fetch all products; generator filter applied client-side via includeComponents toggle
       .then(async (kits) => {
         setCatalogKits(kits);
         catalogLoaded.current = true;
@@ -219,7 +221,7 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
       })
       .catch((err) => setCatalogError(err.message))
       .finally(() => setCatalogLoading(false));
-  }, [tab, potenciaIdeal, hasRemovedAutoFilter]);
+  }, [tab, page, potenciaIdeal, hasRemovedAutoFilter]);
 
   const handleSelectCatalogKit = async (kitId: string, kitName: string) => {
     // If items already exist, ask for confirmation
