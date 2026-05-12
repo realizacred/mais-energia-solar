@@ -12,6 +12,7 @@ import { enforceTenantAccess } from "../_shared/entitlement.ts";
 import { processXmlContent, shouldProcessXmlFile } from "../_shared/docxProcessor.ts";
 import { resolveGotenbergUrl } from "../_shared/resolveGotenbergUrl.ts";
 import { flattenSnapshot } from "../_shared/flattenSnapshot.ts";
+import { buildUcsTabela } from "../_shared/formatUcsTabela.ts";
 import {
   withRetry,
   fetchWithTimeout,
