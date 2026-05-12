@@ -332,6 +332,34 @@ export function IntegrationProviderDrawer({
                       Sincronizar
                     </Button>
                   )}
+                  {provider.category === "signature" && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={async () => {
+                        setTesting(true);
+                        try {
+                          const { data, error } = await supabase.functions.invoke("signature-test-connection");
+                          if (error) throw error;
+                          if (data?.ok) {
+                            const who = data.name ? `${data.name} (${data.email})` : data.email;
+                            toast.success(`Conectado como ${who}`);
+                          } else {
+                            toast.error(data?.error || "Token inválido ou sem permissão");
+                          }
+                        } catch (e: any) {
+                          toast.error(e?.message || "Falha ao testar conexão");
+                        } finally {
+                          setTesting(false);
+                        }
+                      }}
+                      disabled={testing}
+                      className="text-xs gap-1.5"
+                    >
+                      {testing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plug className="h-3.5 w-3.5" />}
+                      Testar conexão
+                    </Button>
+                  )}
                   <Button
                     size="sm"
                     variant="ghost"
