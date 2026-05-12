@@ -134,12 +134,90 @@ Deno.serve(async (req) => {
       return ok();
     }
 
+    // ── PER-SIGNER UPDATE ──
+    // Provider-specific lookup of which signer triggered this event.
+    const signerEmail: string | null =
+      body?.data?.signature?.email || body?.data?.signer?.email || body?.signer?.email || null;
+    const signerProviderId: string | null =
+      body?.data?.signature?.public_id || // Autentique
+      body?.signer?.token || body?.signer?.id || // ZapSign / generic
+      body?.list?.signer?.key || // Clicksign
+      body?.data?.signer_id || null; // Assinafy
+
+    const perSignerStatus =
+      mappedStatus.isSigned ? "signed"
+      : mappedStatus.signatureStatus === "viewed" ? "viewed"
+      : mappedStatus.signatureStatus === "refused" ? "refused"
+      : null;
+
+    if (perSignerStatus) {
+      const update: Record<string, unknown> = { status: perSignerStatus };
+      if (perSignerStatus === "signed") update.signed_at = new Date().toISOString();
+      if (perSignerStatus === "viewed") update.viewed_at = new Date().toISOString();
+      if (perSignerStatus === "refused") update.refused_at = new Date().toISOString();
+
+      // Try by provider_signer_id first, then by email
+      let matched = false;
+      if (signerProviderId) {
+        const { data: bySig } = await supabase
+          .from("document_signers")
+          .update(update)
+          .eq("document_id", doc.id)
+          .eq("provider_signer_id", signerProviderId)
+          .select("id");
+        matched = !!bySig?.length;
+      }
+      if (!matched && signerEmail) {
+        await supabase
+          .from("document_signers")
+          .update(update)
+          .eq("document_id", doc.id)
+          .eq("email", signerEmail);
+      }
+    }
+
+    // ── AGGREGATE STATUS RECOMPUTE ──
+    const { data: signersAll } = await supabase
+      .from("document_signers")
+      .select("status")
+      .eq("document_id", doc.id);
+
+    let aggSignature = mappedStatus.signatureStatus;
+    let aggDoc = mappedStatus.docStatus;
+    let aggSigned = mappedStatus.isSigned;
+
+    if (signersAll && signersAll.length > 0) {
+      const signedCount = signersAll.filter(s => s.status === "signed").length;
+      const refusedAny = signersAll.some(s => s.status === "refused");
+      if (refusedAny) {
+        aggSignature = "refused";
+        aggDoc = "cancelled";
+        aggSigned = false;
+      } else if (signedCount === signersAll.length) {
+        aggSignature = "signed";
+        aggDoc = "signed";
+        aggSigned = true;
+      } else if (signedCount > 0) {
+        aggSignature = "partially_signed";
+        aggDoc = "sent_for_signature";
+        aggSigned = false;
+      } else if (mappedStatus.signatureStatus === "viewed") {
+        aggSignature = "viewed";
+        aggDoc = "sent_for_signature";
+        aggSigned = false;
+      } else {
+        aggSignature = "sent";
+        aggDoc = "sent_for_signature";
+        aggSigned = false;
+      }
+    }
+
     const updatePayload: Record<string, unknown> = {
-      signature_status: mappedStatus.signatureStatus,
-      status: mappedStatus.docStatus,
+      signature_status: aggSignature,
+      status: aggDoc,
       updated_at: new Date().toISOString(),
     };
-    if (mappedStatus.isSigned) {
+    if (aggSigned) {
       updatePayload.signed_at = new Date().toISOString();
     }
 
@@ -151,6 +229,9 @@ Deno.serve(async (req) => {
     if (updateErr) {
       console.error("[signature-webhook] DB update error:", updateErr);
     }
+
+    // Override mappedStatus.isSigned with aggregate for archival
+    mappedStatus = { ...mappedStatus, isSigned: aggSigned };
 
     // ── ARCHIVE SIGNED PDF ──
     if (mappedStatus.isSigned && !doc.signed_pdf_path && settings?.api_token_encrypted) {
