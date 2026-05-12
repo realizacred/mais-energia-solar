@@ -85,6 +85,7 @@ const ORIGEM_LABEL: Record<ProjectDocumentOrigem, string> = {
   checklist_doc: "Checklist documental",
   post_sale: "Pós-venda",
   legacy: "Legado",
+  recibo: "Recibo",
 };
 
 const ORIGEM_COLOR: Record<ProjectDocumentOrigem, string> = {
@@ -96,6 +97,7 @@ const ORIGEM_COLOR: Record<ProjectDocumentOrigem, string> = {
   checklist_doc: "bg-success/10 text-success border-success/20",
   post_sale: "bg-secondary text-secondary-foreground border-border",
   legacy: "bg-muted text-muted-foreground border-border",
+  recibo: "bg-success/10 text-success border-success/20",
 };
 
 function iconFor(mime?: string | null, name?: string) {
