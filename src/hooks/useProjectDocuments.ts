@@ -102,7 +102,24 @@ export function useUploadProjectDocument() {
       const { error: upErr } = await supabase.storage
         .from("project-documents")
         .upload(storagePath, file, { upsert: false, contentType: file.type });
-      if (upErr) throw upErr;
+      if (upErr) {
+        console.error("[useUploadProjectDocument] storage upload failed", {
+          storagePath,
+          bucket: "project-documents",
+          fileName: file.name,
+          mime: file.type,
+          size: file.size,
+          error: upErr,
+        });
+        const msg = (upErr as any)?.message || "Falha desconhecida no Storage";
+        const statusCode = (upErr as any)?.statusCode || (upErr as any)?.status;
+        throw new Error(
+          `Storage [${statusCode ?? "?"}]: ${msg}` +
+            (String(msg).toLowerCase().includes("row-level security")
+              ? " — verifique se as policies RLS do bucket 'project-documents' permitem INSERT para seu tenant."
+              : ""),
+        );
+      }
 
       const { data, error } = await supabase
         .from("project_documents" as any)
