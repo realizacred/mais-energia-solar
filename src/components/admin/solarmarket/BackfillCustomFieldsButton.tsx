@@ -80,6 +80,24 @@ export function BackfillCustomFieldsButton({
     if (!tenantId || running || state.done) return;
     setRunning(true);
     setCurrentOffset(state.offset);
+
+    // Safety timeout — destrava o botão se a invocação não retornar em 120s
+    // (ex.: timeout silencioso de gateway). O backend continua processando;
+    // o usuário só clica de novo no próximo chunk.
+    const timeoutMs = 120_000;
+    let timedOut = false;
+    const timeoutId = setTimeout(() => {
+      timedOut = true;
+      setRunning(false);
+      setCurrentOffset(null);
+      toast({
+        title: "Sem resposta do servidor (120s)",
+        description:
+          "O chunk pode ter concluído em segundo plano. Clique novamente para continuar do próximo offset.",
+        variant: "destructive",
+      });
+    }, timeoutMs);
+
     try {
       const { data, error } = await supabase.functions.invoke("sm-promote-custom-fields", {
         body: {
@@ -87,6 +105,7 @@ export function BackfillCustomFieldsButton({
           payload: { batch, offset: state.offset, tenant_id: tenantId },
         },
       });
+      if (timedOut) return;
       if (error) throw error;
 
       const processed = Number(data?.processed ?? 0);
@@ -95,7 +114,9 @@ export function BackfillCustomFieldsButton({
       const native = Number(data?.native_updates ?? 0);
       const errs = Array.isArray(data?.errors) ? data.errors : [];
       const next = data?.next_offset;
-      const isDone = next === null || next === undefined;
+      // Concluído quando next_offset vem null/undefined OU quando processed=0
+      // (significa que não há mais registros na janela do tenant).
+      const isDone = next === null || next === undefined || processed === 0;
 
       const newState: BackfillState = {
         offset: isDone ? state.offset : Number(next),
@@ -110,18 +131,22 @@ export function BackfillCustomFieldsButton({
       updateState(newState);
 
       toast({
-        title: isDone ? "Backfill concluído!" : `Chunk processado (offset ${state.offset})`,
+        title: isDone ? "✅ Backfill concluído!" : `Chunk OK (offset ${state.offset})`,
         description: `+${upserted} campos · +${files} docs · +${errs.length} erros · próximo offset: ${isDone ? "—" : next}`,
       });
     } catch (e: any) {
+      if (timedOut) return;
       toast({
         title: "Falha no chunk",
         description: e?.message ?? String(e),
         variant: "destructive",
       });
     } finally {
-      setRunning(false);
-      setCurrentOffset(null);
+      clearTimeout(timeoutId);
+      if (!timedOut) {
+        setRunning(false);
+        setCurrentOffset(null);
+      }
     }
   };
 
