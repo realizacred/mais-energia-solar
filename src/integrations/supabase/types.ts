@@ -6811,6 +6811,7 @@ export type Database = {
           signature_provider: string | null
           signature_status: string | null
           signed_at: string | null
+          signed_pdf_path: string | null
           status: string
           template_id: string
           template_version: number
@@ -6836,6 +6837,7 @@ export type Database = {
           signature_provider?: string | null
           signature_status?: string | null
           signed_at?: string | null
+          signed_pdf_path?: string | null
           status?: string
           template_id: string
           template_version?: number
@@ -6861,6 +6863,7 @@ export type Database = {
           signature_provider?: string | null
           signature_status?: string | null
           signed_at?: string | null
+          signed_pdf_path?: string | null
           status?: string
           template_id?: string
           template_version?: number
