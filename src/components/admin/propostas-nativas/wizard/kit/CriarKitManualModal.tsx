@@ -124,24 +124,48 @@ const TOPOLOGIAS = ["Tradicional", "Microinversor", "Otimizador"];
 /** Searchable equipment combo with highlight, keyboard nav, badge */
 interface SearchableOption { value: string; label: string; searchText: string }
 
+/** Lowercase + strip diacritics for accent/case-insensitive matching */
+function normalize(s: string): string {
+  return s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+}
+
 function highlightMatch(text: string, query: string) {
   if (!query.trim()) return <>{text}</>;
-  const terms = query.trim().toLowerCase().split(/\s+/);
-  // Build a regex that matches any of the terms
-  const escaped = terms.map(t => t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|");
-  const regex = new RegExp(`(${escaped})`, "gi");
-  const parts = text.split(regex);
-  return (
-    <>
-      {parts.map((part, i) =>
-        regex.test(part) ? (
-          <mark key={i} className="bg-primary/20 text-primary font-medium rounded-sm px-0.5">{part}</mark>
-        ) : (
-          <span key={i}>{part}</span>
-        )
-      )}
-    </>
-  );
+  const terms = normalize(query).split(/\s+/).filter(Boolean);
+  if (terms.length === 0) return <>{text}</>;
+  const norm = normalize(text);
+  type Span = { start: number; end: number };
+  const spans: Span[] = [];
+  for (const t of terms) {
+    let from = 0;
+    while (from < norm.length) {
+      const idx = norm.indexOf(t, from);
+      if (idx === -1) break;
+      spans.push({ start: idx, end: idx + t.length });
+      from = idx + t.length;
+    }
+  }
+  if (spans.length === 0) return <>{text}</>;
+  spans.sort((a, b) => a.start - b.start);
+  const merged: Span[] = [];
+  for (const s of spans) {
+    const last = merged[merged.length - 1];
+    if (last && s.start <= last.end) last.end = Math.max(last.end, s.end);
+    else merged.push({ ...s });
+  }
+  const out: React.ReactNode[] = [];
+  let cursor = 0;
+  merged.forEach((s, i) => {
+    if (cursor < s.start) out.push(<span key={`p${i}`}>{text.slice(cursor, s.start)}</span>);
+    out.push(
+      <mark key={`m${i}`} className="bg-primary/20 text-primary font-medium rounded-sm px-0.5">
+        {text.slice(s.start, s.end)}
+      </mark>,
+    );
+    cursor = s.end;
+  });
+  if (cursor < text.length) out.push(<span key="tail">{text.slice(cursor)}</span>);
+  return <>{out}</>;
 }
 
 function SearchableEquipSelect({ value, onValueChange, options, placeholder, emptyText, className }: {
@@ -157,11 +181,39 @@ function SearchableEquipSelect({ value, onValueChange, options, placeholder, emp
 
   const selectedOption = options.find(o => o.value === value);
 
-  // Filter options by search (150ms debounce handled inline since cmdk is gone)
+  // Filter + rank: startsWith (label or each word) > startsWith (searchText) > middle match
   const filtered = useMemo(() => {
     if (!search.trim()) return options.slice(0, 50);
-    const terms = search.toLowerCase().split(/\s+/);
-    return options.filter(o => terms.every(t => o.searchText.toLowerCase().includes(t))).slice(0, 50);
+    const terms = normalize(search).split(/\s+/).filter(Boolean);
+    if (terms.length === 0) return options.slice(0, 50);
+
+    const scored: { o: SearchableOption; score: number; firstIdx: number }[] = [];
+    for (const o of options) {
+      const nLabel = normalize(o.label);
+      const nSearch = normalize(o.searchText);
+      // every term must be present in searchText
+      if (!terms.every(t => nSearch.includes(t))) continue;
+
+      // Score: lower is better
+      let score = 100;
+      const first = terms[0];
+      const labelWords = nLabel.split(/[\s\-_/.]+/).filter(Boolean);
+      if (nLabel.startsWith(first)) score = 0;
+      else if (labelWords.some(w => w.startsWith(first))) score = 10;
+      else if (nSearch.startsWith(first)) score = 20;
+      else score = 50 + nLabel.indexOf(first); // middle match — ordered by position
+
+      // Bonus: all terms also start a word
+      if (terms.every(t => labelWords.some(w => w.startsWith(t)))) score -= 5;
+
+      scored.push({ o, score, firstIdx: nLabel.indexOf(first) });
+    }
+    scored.sort((a, b) =>
+      a.score - b.score ||
+      a.firstIdx - b.firstIdx ||
+      a.o.label.localeCompare(b.o.label),
+    );
+    return scored.slice(0, 50).map(s => s.o);
   }, [options, search]);
 
   // Reset focused index when filtered list changes
