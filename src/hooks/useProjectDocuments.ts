@@ -102,7 +102,24 @@ export function useUploadProjectDocument() {
       const { error: upErr } = await supabase.storage
         .from("project-documents")
         .upload(storagePath, file, { upsert: false, contentType: file.type });
-      if (upErr) throw upErr;
+      if (upErr) {
+        console.error("[useUploadProjectDocument] storage upload failed", {
+          storagePath,
+          bucket: "project-documents",
+          fileName: file.name,
+          mime: file.type,
+          size: file.size,
+          error: upErr,
+        });
+        const msg = (upErr as any)?.message || "Falha desconhecida no Storage";
+        const statusCode = (upErr as any)?.statusCode || (upErr as any)?.status;
+        throw new Error(
+          `Storage [${statusCode ?? "?"}]: ${msg}` +
+            (String(msg).toLowerCase().includes("row-level security")
+              ? " — verifique se as policies RLS do bucket 'project-documents' permitem INSERT para seu tenant."
+              : ""),
+        );
+      }
 
       const { data, error } = await supabase
         .from("project_documents" as any)
@@ -138,8 +155,14 @@ export function useUploadProjectDocument() {
       qc.invalidateQueries({ queryKey: ["project-documents"] });
       toast({ title: "Documento enviado" });
     },
-    onError: (e: any) =>
-      toast({ title: "Erro ao enviar", description: e.message, variant: "destructive" }),
+    onError: (e: any) => {
+      console.error("[useUploadProjectDocument] mutation error", e);
+      toast({
+        title: "Erro ao enviar documento",
+        description: e?.message || "Erro desconhecido. Veja o console para detalhes.",
+        variant: "destructive",
+      });
+    },
   });
 }
 
