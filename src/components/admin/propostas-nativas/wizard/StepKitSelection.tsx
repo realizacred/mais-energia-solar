@@ -740,7 +740,6 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
 
           {/* Tab Content */}
           {tab === "catalogo" ? (
-            /* ── Catálogo Tab ── */
             <div className="space-y-3">
               {/* ── Auto-filter info banner ── */}
               {potenciaIdeal > 0 && !hasRemovedAutoFilter && (filters.potenciaMin > 0 || filters.potenciaMax < 1000) && (
