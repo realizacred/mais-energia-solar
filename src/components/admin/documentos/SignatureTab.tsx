@@ -30,6 +30,7 @@ const PROVIDERS = [
   { value: "autentique", label: "Autentique" },
   { value: "clicksign", label: "ClickSign" },
   { value: "zapsign", label: "ZapSign" },
+  { value: "assinafy", label: "Assinafy — 100 docs grátis/mês • ICP-Brasil" },
 ];
 
 const AUTH_ICONS: Record<AuthMethod, React.ReactNode> = {
@@ -95,6 +96,21 @@ function SetupTutorial({ provider }: { provider: string }) {
         "Marque os eventos: document_signed, document_refused, document_cancelled, signer_link_opened.",
         "Salve o webhook no ClickSign.",
         "Se quiser segurança extra, copie o \"HMAC Secret\" do ClickSign e cole no campo \"Webhook Secret\" acima.",
+        "Volte aqui e clique em \"Salvar configuração\".",
+      ],
+    },
+    assinafy: {
+      title: "Tutorial: Configurar Assinafy",
+      steps: [
+        "Acesse o painel Assinafy em app.assinafy.com.br e faça login (ou app-sandbox.assinafy.com.br para testes).",
+        "Vá em Minha Conta → Workspaces e copie o ID do workspace (ACCOUNT_ID).",
+        "Em Minha Conta → API, gere uma API Key e copie.",
+        "No campo \"API Token\" acima, cole no formato: ACCOUNT_ID:API_KEY (separados por dois-pontos).",
+        "Em Webhooks, crie uma assinatura nova.",
+        `No campo "URL", cole: ${webhookUrl}`,
+        "Selecione os eventos: document.certificated, document.rejected_by_signer, document.rejected_by_user, document.expired, document.failed.",
+        "Copie o segredo HMAC gerado e cole no campo \"Webhook Secret\" acima.",
+        "Salve no Assinafy.",
         "Volte aqui e clique em \"Salvar configuração\".",
       ],
     },

@@ -43,6 +43,7 @@ const ICON_MAP: Record<string, string> = {
   clicksign: "clicksign.png",
   autentique: "autentique.png",
   d4sign: "d4sign.png",
+  assinafy: "assinafy.png",
 
   // PNG assets (suppliers)
   edeltec: "edeltec.png",

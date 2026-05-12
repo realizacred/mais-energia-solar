@@ -72,6 +72,8 @@ export async function archiveSignedPdf(deps: ArchiveDeps): Promise<{ ok: boolean
       url = await fetchZapSignSignedUrl(doc.envelope_id, apiToken);
     } else if (doc.signature_provider === "clicksign") {
       url = await fetchClickSignSignedUrl(doc.envelope_id, apiToken, sandbox);
+    } else if (doc.signature_provider === "assinafy") {
+      url = await fetchAssinafySignedUrl(doc.envelope_id, apiToken, sandbox);
     } else {
       return { ok: false, reason: "unknown provider" };
     }
