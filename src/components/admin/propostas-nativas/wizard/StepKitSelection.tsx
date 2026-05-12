@@ -1250,7 +1250,7 @@ export function StepKitSelection({ onNext, onBack }: StepKitProps) {
           setPd={setPd}
           activeTab={premissasTab}
           onTabChange={setPremissasTab}
-          consumoTotal={consumoTotalProp}
+          consumoTotal={0}
           irradiacao={irradiacao}
           latitude={latitude}
           ghiSeries={ghiSeries}
