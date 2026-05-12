@@ -612,7 +612,7 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
         </aside>
 
         {/* ── Main Content Area ── */}
-        <div className="flex-1 min-w-0 space-y-4">
+        <div ref={listTopRef} className="flex-1 min-w-0 space-y-4">
           {/* Tabs: Catálogo | Customizado | Fechado */}
           <div className="flex items-center border-b border-border/50">
             {([
