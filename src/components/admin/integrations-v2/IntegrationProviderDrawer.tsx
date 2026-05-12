@@ -404,6 +404,94 @@ export function IntegrationProviderDrawer({
               </p>
             )}
 
+            {/* Configurações avançadas (apenas signature) */}
+            {provider.category === "signature" && (
+              <div className="space-y-4 rounded-lg border border-border/50 p-4">
+                <div>
+                  <h4 className="text-sm font-semibold text-foreground">Comportamento da assinatura</h4>
+                  <p className="text-[11px] text-muted-foreground">Aplicado a cada documento enviado pelo provedor.</p>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-semibold">Assinatura do contratante</Label>
+                    <Select value={signerMode} onValueChange={(v) => setSignerMode(v as "simplified" | "complete")}>
+                      <SelectTrigger className="h-10"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="simplified">Simplificada (sem CPF/data nasc.)</SelectItem>
+                        <SelectItem value="complete">Completa (exige CPF e data)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-semibold">Lembrete automático</Label>
+                    <Select value={reminder} onValueChange={(v) => setReminder(v as "NONE" | "DAILY" | "WEEKLY")}>
+                      <SelectTrigger className="h-10"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="NONE">Sem lembrete</SelectItem>
+                        <SelectItem value="DAILY">Diário</SelectItem>
+                        <SelectItem value="WEEKLY">Semanal</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-semibold">Prazo (dias)</Label>
+                    <Input
+                      type="number"
+                      min="1"
+                      value={deadlineDays}
+                      onChange={(e) => setDeadlineDays(e.target.value)}
+                      className="h-10"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-semibold">Permitir recusa</Label>
+                    <Select value={refusable ? "true" : "false"} onValueChange={(v) => setRefusable(v === "true")}>
+                      <SelectTrigger className="h-10"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="true">Sim — signatário pode recusar</SelectItem>
+                        <SelectItem value="false">Não</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <div>
+                  <h4 className="text-sm font-semibold text-foreground mt-2">Representante legal padrão (Contratada)</h4>
+                  <p className="text-[11px] text-muted-foreground">Injetado automaticamente como signatário em todos os envelopes.</p>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-semibold">Nome</Label>
+                    <Input value={repNome} onChange={(e) => setRepNome(e.target.value)} className="h-10" placeholder="Nome completo" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-semibold">E-mail</Label>
+                    <Input type="email" value={repEmail} onChange={(e) => setRepEmail(e.target.value)} className="h-10" placeholder="email@empresa.com" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-semibold">CPF</Label>
+                    <Input value={repCpf} onChange={(e) => setRepCpf(e.target.value)} className="h-10" placeholder="000.000.000-00" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-semibold">Cargo</Label>
+                    <Input value={repCargo} onChange={(e) => setRepCargo(e.target.value)} className="h-10" placeholder="Ex: Diretor" />
+                  </div>
+                </div>
+
+                <div className="flex justify-end pt-1">
+                  <Button onClick={handleSaveExtras} disabled={savingExtras} size="sm" className="gap-2">
+                    {savingExtras ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                    Salvar configurações avançadas
+                  </Button>
+                </div>
+              </div>
+            )}
+
             {/* Help / Tutorial */}
             {tutorial && (tutorial.steps?.length > 0 || tutorial.notes) && (
               <Accordion type="single" collapsible className="w-full" defaultValue={isComingSoon ? "tutorial" : undefined}>
