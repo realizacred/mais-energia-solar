@@ -992,7 +992,7 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
                     );
                   })}
                   </div>
-                
+
                   {/* ── Paginação ── */}
                   {totalCount > pageSize && (
                     <div className="flex items-center justify-center gap-4 py-4 border-t border-border/50">
