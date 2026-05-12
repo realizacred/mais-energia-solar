@@ -22,6 +22,7 @@ import { formatDateTime } from "@/lib/dateUtils";
 import { getCurrentTenantId } from "@/lib/getCurrentTenantId";
 import { FilePreviewModal, type FilePreviewTarget } from "./FilePreviewModal";
 import { ProjectDocumentsHub } from "./ProjectDocumentsHub";
+import { useProjectDocuments } from "@/hooks/useProjectDocuments";
 import {
   useProjetoDocumentosGerados,
   useDocTemplates,
@@ -88,6 +89,11 @@ export function DocumentosTab({ dealId, clienteTelefone, consultorTelefone: cons
   // §16: Queries em hooks — AP-01 resolvido
   const { data: generatedDocs = [], isLoading: loadingDocs } = useProjetoDocumentosGerados(dealId);
   const { data: templates = [] } = useDocTemplates();
+  const { data: allProjectDocs = [] } = useProjectDocuments({ dealId });
+  const recibos = useMemo(
+    () => allProjectDocs.filter((d) => d.origem === "recibo"),
+    [allProjectDocs],
+  );
   useDocumentosRealtimeSync(dealId);
 
   // Preview universal (compartilhado entre seção de gerados e Hub via prop)
@@ -570,7 +576,60 @@ export function DocumentosTab({ dealId, clienteTelefone, consultorTelefone: cons
         )}
       </section>
 
-      {/* SEÇÃO 2: Central documental canônica (project_documents SSOT)
+      {/* SEÇÃO 2: Recibos emitidos (espelhados de recibos_emitidos via project_documents) */}
+      <section className="space-y-3">
+        <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
+          <FileText className="h-4 w-4 text-success" />
+          Recibos
+          {recibos.length > 0 && (
+            <Badge variant="outline" className="text-[10px] h-5 px-1.5">{recibos.length}</Badge>
+          )}
+        </h3>
+        {recibos.length === 0 ? (
+          <Card>
+            <CardContent className="py-6 text-center">
+              <p className="text-xs text-muted-foreground">Nenhum recibo emitido para este projeto.</p>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="space-y-1">
+            {recibos.map((r) => (
+              <div
+                key={r.id}
+                className="flex items-center gap-3 py-2 px-3 rounded-lg bg-card border border-border/40 hover:border-border/70 transition-all"
+              >
+                <FileText className="h-4 w-4 text-success shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-foreground truncate">{r.file_name}</p>
+                  <p className="text-[10px] text-muted-foreground">
+                    {formatDateTime(r.created_at, { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" })}
+                  </p>
+                </div>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="h-7 w-7 p-0"
+                  onClick={async () => {
+                    const { data, error } = await supabase.storage
+                      .from(r.bucket)
+                      .createSignedUrl(r.storage_path, 3600);
+                    if (error || !data) {
+                      toast({ title: "Erro ao abrir recibo", description: error?.message, variant: "destructive" });
+                      return;
+                    }
+                    window.open(data.signedUrl, "_blank");
+                  }}
+                  title="Abrir recibo"
+                >
+                  <Eye className="h-3.5 w-3.5" />
+                </Button>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
+
+      {/* SEÇÃO 3: Central documental canônica (project_documents SSOT)
           Engloba: uploads manuais, custom fields, checklist, pós-venda e arquivos legados. */}
       <ProjectDocumentsHub dealId={dealId} />
 

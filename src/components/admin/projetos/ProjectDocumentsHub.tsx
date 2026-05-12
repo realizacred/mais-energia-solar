@@ -85,6 +85,7 @@ const ORIGEM_LABEL: Record<ProjectDocumentOrigem, string> = {
   checklist_doc: "Checklist documental",
   post_sale: "Pós-venda",
   legacy: "Legado",
+  recibo: "Recibo",
 };
 
 const ORIGEM_COLOR: Record<ProjectDocumentOrigem, string> = {
@@ -96,6 +97,7 @@ const ORIGEM_COLOR: Record<ProjectDocumentOrigem, string> = {
   checklist_doc: "bg-success/10 text-success border-success/20",
   post_sale: "bg-secondary text-secondary-foreground border-border",
   legacy: "bg-muted text-muted-foreground border-border",
+  recibo: "bg-success/10 text-success border-success/20",
 };
 
 function iconFor(mime?: string | null, name?: string) {
@@ -200,8 +202,8 @@ export function ProjectDocumentsHub({ projetoId, dealId }: Props) {
   const filtered = useMemo(() => {
     const s = search.toLowerCase().trim();
     return docs.filter((d) => {
-      // Filtrar documentos que já aparecem na seção de "Documentos Gerados"
-      if (d.origem === 'generated') return false;
+      // Recibos e documentos gerados aparecem em seções dedicadas acima
+      if (d.origem === 'generated' || d.origem === 'recibo') return false;
       if (origemFilter !== "all" && d.origem !== origemFilter) return false;
       if (s && !d.file_name.toLowerCase().includes(s) && !(d.categoria || "").toLowerCase().includes(s))
         return false;

@@ -20,7 +20,8 @@ export type ProjectDocumentOrigem =
   | "checklist_instalador"
   | "checklist_doc"
   | "post_sale"
-  | "legacy";
+  | "legacy"
+  | "recibo";
 
 export interface ProjectDocument {
   id: string;

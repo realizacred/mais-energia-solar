@@ -108,6 +108,39 @@ export function useEmitirRecibo() {
           await supabase.functions.invoke("generate-recibo-pdf", {
             body: { recibo_id: reciboId },
           });
+
+          // Espelhar recibo emitido em project_documents para aparecer na aba Documentos
+          if (input.projeto_id || input.deal_id) {
+            try {
+              const { data: rec } = await supabase
+                .from("recibos_emitidos" as any)
+                .select("pdf_path, numero")
+                .eq("id", reciboId)
+                .maybeSingle();
+              const pdfPath = (rec as any)?.pdf_path as string | null;
+              if (pdfPath) {
+                const fileName = `Recibo ${(rec as any)?.numero || reciboId.slice(0, 8)}.pdf`;
+                await supabase.from("project_documents" as any).insert({
+                  tenant_id: tenantId,
+                  projeto_id: input.projeto_id ?? null,
+                  deal_id: input.deal_id ?? null,
+                  cliente_id: input.cliente_id,
+                  categoria: "recibo",
+                  origem: "recibo",
+                  bucket: "recibos",
+                  storage_path: pdfPath,
+                  file_name: fileName,
+                  mime_type: "application/pdf",
+                  uploaded_by: userId,
+                  source_table: "recibos_emitidos",
+                  source_id: reciboId,
+                });
+                qc.invalidateQueries({ queryKey: ["project-documents"] });
+              }
+            } catch (e) {
+              console.warn("[useEmitirRecibo] mirror to project_documents failed:", e);
+            }
+          }
         } catch (e) {
           console.warn("[useEmitirRecibo] PDF generation failed (non-fatal):", e);
         }
