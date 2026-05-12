@@ -520,11 +520,11 @@ export function extractMessageContext(
   const result: ProposalMessageContext & { _snapshot?: any } = {
     clienteNome: proposta.cliente_nome || snap.clienteNome || snap.cliente_nome || null,
     potenciaKwp: versao.potencia_kwp || snap.potenciaKwp || snap.potencia_kwp || null,
-    modulosQtd: modulosQtd || versao.potencia_kwp ? modulosQtd : null,
+    modulosQtd: modulosQtd != null ? Number(modulosQtd) : null,
     moduloPotenciaW: moduloPotencia,
     moduloModelo,
     inversorModelo,
-    consumoMensal: consumoMensal || null,
+    consumoMensal: consumoMensal != null ? Number(consumoMensal) : null,
     geracaoMensal: versao.geracao_mensal || snap.geracaoMensal || snap.geracao_mensal || null,
     economiaMensal: versao.economia_mensal || snap.economiaMensal || snap.economia_mensal || null,
     paybackMeses: versao.payback_meses || snap.paybackMeses || snap.payback_meses || null,
