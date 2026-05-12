@@ -369,18 +369,22 @@ export function ProjetosManager() {
       setSelectedFunilId(funilValue);
       applyFilters({ funilId: funilValue });
       savePrefs({ funilId: funilValue });
+      updateUrlFilter({ funil: funilValue });
       if (funilValue && viewMode === "kanban-consultor") {
         setViewMode("kanban-etapa");
       }
     } else if (key === "ownerId") {
       applyFilters({ consultorId: value });
       savePrefs({ consultorId: value });
+      updateUrlFilter({ consultor: value });
     } else if (key === "status") {
       applyFilters({ status: value });
       savePrefs({ status: value });
+      updateUrlFilter({ status: value });
     } else if (key === "tipoProjetoSolar") {
       applyFilters({ tipoProjetoSolar: value });
       savePrefs({ tipoProjetoSolar: value });
+      updateUrlFilter({ tipoSolar: value });
     } else if (key === "search") {
       applyFilters({ search: value });
     }
