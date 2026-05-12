@@ -110,6 +110,23 @@ export function ProposalMessageDrawer({
     }
   }, [open, tenantConfig, defaultsApplied]);
 
+  // Busca contato do cliente vinculado à proposta (fallback sobre props).
+  const { data: clienteContato } = useQuery({
+    queryKey: ["proposta-cliente-contato", clienteId],
+    queryFn: async () => {
+      if (!clienteId) return null;
+      const { data, error } = await supabase
+        .from("clientes")
+        .select("telefone, email")
+        .eq("id", clienteId)
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+    enabled: open && !!clienteId,
+    staleTime: 60_000,
+  });
+
   // Busca consultor vinculado à proposta (telefone/email do consultor responsável)
   const { data: consultorContato } = useQuery({
     queryKey: ["proposta-consultor-contato", propostaId],
@@ -124,10 +141,22 @@ export function ProposalMessageDrawer({
       if (!prop?.consultor_id) return null;
       const { data: cons, error: e2 } = await supabase
         .from("consultores")
-        .select("telefone, email, nome")
+        .select("telefone, email, nome, user_id")
         .eq("id", prop.consultor_id)
         .maybeSingle();
       if (e2) throw e2;
+      // Fallback: se consultor não tem telefone, busca em profiles via user_id
+      if (cons && !cons.telefone && cons.user_id) {
+        const { data: prof } = await supabase
+          .from("profiles")
+          .select("telefone")
+          .eq("user_id", cons.user_id)
+          .maybeSingle();
+        return {
+          telefone: cons.telefone || prof?.telefone || null,
+          email: cons.email || null,
+        };
+      }
       return cons;
     },
     enabled: open && !!propostaId,
@@ -135,17 +164,26 @@ export function ProposalMessageDrawer({
   });
 
   // Auto-preenche telefone/email conforme destinatário selecionado.
-  // Sobrescreve sempre que abrir o modal ou trocar o destinatário (regra 2).
+  // Sobrescreve sempre ao abrir ou trocar destinatário; limpa se não houver dado (regra 4/5).
   useEffect(() => {
     if (!open) return;
     if (mode === "consultor") {
-      setDestinatarioTelefone(consultorContato?.telefone || "");
-      setDestinatarioEmail(consultorContato?.email || "");
+      setDestinatarioTelefone(consultorContato?.telefone ?? "");
+      setDestinatarioEmail(consultorContato?.email ?? "");
     } else {
-      setDestinatarioTelefone(clienteTelefone || "");
-      setDestinatarioEmail(clienteEmail || "");
+      setDestinatarioTelefone(clienteContato?.telefone ?? clienteTelefone ?? "");
+      setDestinatarioEmail(clienteContato?.email ?? clienteEmail ?? "");
     }
-  }, [open, mode, clienteTelefone, clienteEmail, consultorContato?.telefone, consultorContato?.email]);
+  }, [
+    open,
+    mode,
+    clienteTelefone,
+    clienteEmail,
+    clienteContato?.telefone,
+    clienteContato?.email,
+    consultorContato?.telefone,
+    consultorContato?.email,
+  ]);
 
   const { data: snapshot, isLoading: loadingSnapshot } = useProposalVersionSnapshot(
     open ? versaoId : null
