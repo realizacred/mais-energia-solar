@@ -2,11 +2,15 @@
  * DocumentSignersPanel — mostra status individual por signatário do documento.
  * Aparece abaixo do card quando o documento foi enviado e ainda não está totalmente assinado.
  */
-import { Mail, Loader2, CheckCircle2, Eye, Clock, XCircle } from "lucide-react";
+import { Mail, Loader2, CheckCircle2, Eye, Clock, XCircle, RefreshCw } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useDocumentSigners, useResendSigner, type DocumentSignerRow } from "@/hooks/useDocumentSigners";
+import { supabase } from "@/integrations/supabase/client";
+import { useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
+import { toast } from "sonner";
 
 interface Props {
   documentId: string;
