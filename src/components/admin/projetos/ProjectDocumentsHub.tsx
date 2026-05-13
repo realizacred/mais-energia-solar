@@ -119,51 +119,9 @@ function formatSize(bytes?: number | null) {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-/** URL-decode tolerante (cf entries vêm com %C3%A7 etc). */
-function safeDecode(s: string): string {
-  try {
-    return decodeURIComponent(s);
-  } catch {
-    return s;
-  }
-}
-
-/**
- * Remove acentos, URL-encoding, timestamps/prefixos aleatórios e normaliza
- * separadores (espaço/underscore/hífen viram _). Tolerante a:
- *  - "2025-10-29_19-56-51_FMOCPF_frente.jpeg"
- *  - "2025-10-29_19-56-51_FMOCPF frente.jpeg" (espaço)
- *  - "2025-10-29_19-57-13_EXYUC_instala%C3%A7%C3%A3o.jpeg" (url-encoded)
- *  - "2025-10-29_19-57-13_EXYUC_instala_o.jpeg" (acento já removido pelo storage)
- */
-function normalizeFilename(name?: string | null): string {
-  if (!name) return "";
-  let n = safeDecode(name).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-  // timestamp + token aleatório curto (qualquer separador, inclusive espaço)
-  n = n.replace(
-    /^\d{4}-\d{2}-\d{2}[_\s-]\d{2}[-:_]\d{2}[-:_]\d{2}[\s_-]*[a-z0-9]{0,12}[\s_-]*/i,
-    "",
-  );
-  // epoch ms prefix (1778524914933_ ou 1778524914933_3_)
-  n = n.replace(/^\d{10,}[_\s-](?:\d+[_\s-])?/, "");
-  // "Date.now()_idx_" generic
-  n = n.replace(/^\d+[_\s-]\d+[_\s-]/, "");
-  // colapsa separadores e remove qualquer caractere não-alfanumérico/.
-  n = n.replace(/[\s_-]+/g, "_").replace(/[^\w.]/g, "");
-  // remove _ no início que sobrou
-  n = n.replace(/^_+/, "");
-  return n;
-}
-
-/** Detecta sufixo lógico do documento (frente/verso/comprovante/etc). */
-function logicalSuffix(name: string): string {
-  const n = normalizeFilename(name).replace(/\.[a-z0-9]+$/, "");
-  // pega últimos tokens significativos
-  const tokens = n.split(/[._]+/).filter(Boolean);
-  const KNOWN = ["frente", "verso", "comprovante", "endereco", "rg", "cnh", "cpf", "selfie"];
-  const found = tokens.filter((t) => KNOWN.includes(t));
-  return found.length ? found.sort().join("_") : tokens.slice(-2).join("_");
-}
+// Normalização e sufixo lógico extraídos para util compartilhado, garantindo
+// paridade entre dedup do Hub e contador da aba Documentos (badge).
+import { normalizeFilename, logicalSuffix } from "@/lib/documentDedup";
 
 /** Normaliza nome de categoria para evitar duplicação visual ("CAMPO: X" vs "X"). */
 function normalizeCategoria(raw?: string | null): string {
