@@ -270,6 +270,8 @@ function ProposalWizardContent() {
   const [docxBlob, setDocxBlob] = useState<Blob | null>(null);
   const [outputDocxPath, setOutputDocxPath] = useState<string | null>(null);
   const [outputPdfPath, setOutputPdfPath] = useState<string | null>(null);
+  // Fase 1 — PDF original migrado do SolarMarket (link_pdf). Fallback quando não há output_pdf_path.
+  const [externalPdfUrl, setExternalPdfUrl] = useState<string | null>(null);
   const [generationError, setGenerationError] = useState<string | null>(null);
   const [missingVars, setMissingVars] = useState<string[]>([]);
   const [generationAuditReport, setGenerationAuditReport] = useState<GenerationAuditReport | null>(null);
@@ -1435,10 +1437,12 @@ function ProposalWizardContent() {
         // Restaurar preview do PDF se a versão já foi gerada
         const restoredPdfPath = (versao as any)?.output_pdf_path ?? null;
         const restoredDocxPath = (versao as any)?.output_docx_path ?? null;
+        const restoredLinkPdf = (versao as any)?.link_pdf ?? null;
 
         if (restoredPdfPath) {
           setOutputPdfPath(restoredPdfPath);
           setOutputDocxPath(restoredDocxPath);
+          setExternalPdfUrl(null);
           setGenerationStatus("ready");
 
           const { data: signedData } = await supabase.storage
@@ -1451,8 +1455,16 @@ function ProposalWizardContent() {
         } else if (restoredDocxPath) {
           setOutputPdfPath(null);
           setOutputDocxPath(restoredDocxPath);
+          setExternalPdfUrl(null);
+          setGenerationStatus("ready");
+        } else if (restoredLinkPdf) {
+          // Proposta migrada (SolarMarket) sem PDF regenerado — usa link_pdf original como fallback
+          setOutputPdfPath(null);
+          setOutputDocxPath(null);
+          setExternalPdfUrl(restoredLinkPdf);
           setGenerationStatus("ready");
         }
+
 
         const isLegacy = rawSnapshot.source === "legacy_import";
         toast({
@@ -2186,7 +2198,9 @@ function ProposalWizardContent() {
     setDocxBlob(null);
     setOutputDocxPath(null);
     setOutputPdfPath(null);
+    setExternalPdfUrl(null);
     setResult(null);
+
 
     try {
       // Ensure draft is saved (creates project if needed) before generating
@@ -2866,6 +2880,7 @@ function ProposalWizardContent() {
               className="mb-4"
             />
             <StepDocumento
+              externalPdfUrl={externalPdfUrl}
               onBack={() => setStep(step - 1)}
               onViewDetail={handleViewDetail}
               estimativaBlocked={enforcement.precisao === "estimado" && !enforcement.aceiteEstimativa}

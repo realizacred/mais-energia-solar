@@ -605,7 +605,7 @@ export function StepDocumento({
     }
 
     // ── Before generation (no result AND no restored PDF)
-    const hasRestoredPreview = !result && (!!pdfBlobUrl || !!outputPdfPath);
+    const hasRestoredPreview = !result && (!!pdfBlobUrl || !!outputPdfPath || !!externalPdfUrl);
     if (!result && !hasRestoredPreview) {
       return (
         <div className="grid grid-cols-1 md:grid-cols-[220px_1fr] gap-4 sm:gap-6 min-h-[400px]">
@@ -1144,6 +1144,36 @@ export function StepDocumento({
                 <RefreshCw className="h-3.5 w-3.5" />
                 Abrir PDF em nova aba
               </Button>
+            </div>
+          ) : externalPdfUrl && !outputPdfPath ? (
+            // Fase 1 — PDF original migrado do SolarMarket (link_pdf). Fallback quando não há PDF regenerado.
+            <div className="space-y-3">
+              <div className="flex items-center justify-between gap-2 p-2.5 rounded-lg bg-amber-500/10 border border-amber-500/30">
+                <div className="flex items-center gap-2">
+                  <FileText className="h-4 w-4 text-amber-600 shrink-0" />
+                  <p className="text-xs font-medium text-amber-900 dark:text-amber-200">
+                    PDF original SolarMarket
+                  </p>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-7 gap-1.5 text-xs"
+                  onClick={() => window.open(externalPdfUrl, "_blank", "noopener,noreferrer")}
+                >
+                  <Download className="h-3.5 w-3.5" />
+                  Baixar PDF original
+                </Button>
+              </div>
+              <div className="border border-border/50 rounded-xl overflow-hidden bg-card shadow-sm">
+                <iframe
+                  src={externalPdfUrl}
+                  title="PDF Original SolarMarket"
+                  className="w-full border-0"
+                  style={{ height: 800, background: "#fff" }}
+                  onError={() => toast({ title: "Não foi possível incorporar o PDF — use 'Baixar PDF original'.", variant: "destructive" })}
+                />
+              </div>
             </div>
           ) : (
             <div className="border border-border/50 rounded-xl flex flex-col items-center justify-center h-[400px] bg-muted/20 gap-3">
