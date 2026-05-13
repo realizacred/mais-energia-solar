@@ -68,9 +68,14 @@ export function DialogPosDimensionamento({
 }: Props) {
   const { data: allFields, isLoading: loading } = useCustomFieldsList();
 
+  // Campos ocultos explicitamente neste modal (valores no banco são preservados).
+  const HIDDEN_IN_PROPOSAL_MODAL = new Set(["pos_inversor_qtd", "pos_modulo_info"]);
+
   const fields = useMemo(() =>
     (allFields ?? []).filter((f: any) =>
-      f.is_active && f.field_context === "pos_dimensionamento"
+      f.is_active &&
+      f.field_context === "pos_dimensionamento" &&
+      !HIDDEN_IN_PROPOSAL_MODAL.has(f.field_key)
     ).sort((a: any, b: any) => (a.ordem ?? 0) - (b.ordem ?? 0)) as CustomField[],
     [allFields]
   );
