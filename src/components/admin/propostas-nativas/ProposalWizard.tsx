@@ -2880,6 +2880,7 @@ function ProposalWizardContent() {
               className="mb-4"
             />
             <StepDocumento
+              externalPdfUrl={externalPdfUrl}
               onBack={() => setStep(step - 1)}
               onViewDetail={handleViewDetail}
               estimativaBlocked={enforcement.precisao === "estimado" && !enforcement.aceiteEstimativa}
