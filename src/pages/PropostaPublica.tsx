@@ -208,7 +208,7 @@ export default function PropostaPublica() {
 
       if (tdErr || !td) { setError("Link inválido ou expirado."); setLoading(false); return; }
 
-      // Check if token was invalidated (new version created or proposal deleted)
+      // Token invalidado — exibir mensagem comercial neutra (sem expor versionamento interno)
       if (td.invalidado_em) {
         try {
           const { data: proposta } = await (supabase as any)
@@ -216,17 +216,6 @@ export default function PropostaPublica() {
             .select("tenant_id")
             .eq("id", td.proposta_id)
             .maybeSingle();
-
-          let latestTokenUrl: string | null = null;
-          // Only look for latest token if invalidated by new version (not deletion)
-          if (td.motivo_invalidacao === 'nova_versao_criada') {
-            const { data: latestRows } = await (supabase as any)
-              .rpc("get_latest_valid_token_for_proposta", { p_proposta_id: td.proposta_id });
-            const latestToken = Array.isArray(latestRows) ? latestRows[0] : latestRows;
-            if (latestToken?.token) {
-              latestTokenUrl = `/proposta/${latestToken.token}`;
-            }
-          }
 
           if (proposta?.tenant_id) {
             const [tenantRes, brandRes, consultorRes] = await Promise.all([
@@ -241,17 +230,13 @@ export default function PropostaPublica() {
               empresaLogo: (brandRow as any)?.logo_url || null,
               empresaTelefone: consultorRes.data?.telefone || null,
               motivo_invalidacao: td.motivo_invalidacao || null,
-              latestTokenUrl,
+              latestTokenUrl: null,
             });
             setLoading(false);
             return;
           }
         } catch { /* fallback to generic error */ }
-        setError(
-          td.motivo_invalidacao === 'proposta_excluida'
-            ? "Esta proposta foi removida e o link não está mais disponível."
-            : "Este link não está mais disponível. Uma nova versão da proposta foi gerada."
-        );
+        setError("Proposta temporariamente indisponível. Entre em contato com nossa equipe.");
         setLoading(false);
         return;
       }
