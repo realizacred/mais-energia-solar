@@ -155,23 +155,23 @@ export function WaMessageBubble({
         )}
 
         <div
-          className={`max-w-[75%] rounded-2xl px-3.5 py-2.5 text-[15px] leading-relaxed shadow-sm ${
+          className={`max-w-[75%] rounded-2xl px-3.5 py-2 text-[14.5px] leading-snug shadow-sm ring-1 ${
             isNote
-              ? "bg-warning/10 border border-warning/30 text-foreground italic"
+              ? "bg-warning/10 ring-warning/30 text-foreground italic"
               : isOut
-              ? "bg-primary/10 text-foreground border border-primary/15 rounded-br-md"
-              : "bg-card border border-border/30 rounded-bl-md text-foreground"
+              ? "bg-primary text-primary-foreground ring-primary/20 rounded-br-md"
+              : "bg-card ring-border/60 rounded-bl-md text-foreground"
           }`}
         >
           {/* Quoted message */}
           {quotedMsg && (
-            <div className={`mb-1.5 p-1.5 rounded-lg border-l-2 text-[11px] ${
-              isOut ? "bg-primary-foreground/10 border-primary-foreground/40" : "bg-background/60 border-primary/40"
+            <div className={`mb-1.5 p-2 rounded-lg border-l-2 text-[11px] ${
+              isOut ? "bg-primary-foreground/15 border-primary-foreground/50" : "bg-muted/60 border-primary/50"
             }`}>
-              <p className={`font-semibold text-[10px] ${isOut ? "text-primary-foreground/70" : "text-primary/80"}`}>
+              <p className={`font-semibold text-[10px] ${isOut ? "text-primary-foreground/90" : "text-primary"}`}>
                 {quotedMsg.direction === "out" ? (quotedMsg.sent_by_name || "Você") : conversation.cliente_nome || "Cliente"}
               </p>
-              <p className={`truncate ${isOut ? "text-primary-foreground/60" : "text-muted-foreground"}`}>
+              <p className={`truncate ${isOut ? "text-primary-foreground/80" : "text-muted-foreground"}`}>
                 {quotedMsg.content || (quotedMsg.message_type !== "text" ? `[${quotedMsg.message_type}]` : "")}
               </p>
             </div>
@@ -254,23 +254,41 @@ export function WaMessageBubble({
             ) : renderMediaPlaceholder("áudio")
           )}
 
-          {/* DOCUMENT — with download button */}
+          {/* DOCUMENT — premium mini-card */}
           {msg.message_type === "document" && (
             msg.media_url ? (
-              <div className="flex items-center gap-2 text-xs">
-                <div
-                  className="flex items-center gap-2 flex-1 min-w-0 opacity-80 hover:opacity-100 transition-opacity cursor-pointer"
-                  onClick={() => msg.media_url && onMediaPreview({ url: msg.media_url, type: "document", caption: msg.content || undefined })}
-                >
-                  <span>📄</span>
-                  <span className="truncate">{msg.content || "Documento"}</span>
+              <div
+                className={`flex items-center gap-2.5 p-2 rounded-lg ${
+                  isOut
+                    ? "bg-primary-foreground/15 hover:bg-primary-foreground/20"
+                    : "bg-muted/70 hover:bg-muted"
+                } transition-colors cursor-pointer`}
+                onClick={() => msg.media_url && onMediaPreview({ url: msg.media_url, type: "document", caption: msg.content || undefined })}
+              >
+                <div className={`shrink-0 h-9 w-9 rounded-md flex items-center justify-center ${
+                  isOut ? "bg-primary-foreground/20 text-primary-foreground" : "bg-background text-primary border border-border"
+                }`}>
+                  <FileWarning className="hidden" />
+                  <span className="text-base">📄</span>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className={`text-[13px] font-medium truncate ${isOut ? "text-primary-foreground" : "text-foreground"}`}>
+                    {msg.content || "Documento"}
+                  </p>
+                  <p className={`text-[10.5px] ${isOut ? "text-primary-foreground/70" : "text-muted-foreground"}`}>
+                    Toque para abrir
+                  </p>
                 </div>
                 <a
                   href={msg.media_url}
                   target="_blank"
                   rel="noopener noreferrer"
                   download
-                  className="p-1 rounded hover:bg-muted/80 text-muted-foreground hover:text-foreground transition-colors shrink-0"
+                  className={`shrink-0 p-1.5 rounded-md transition-colors ${
+                    isOut
+                      ? "text-primary-foreground/80 hover:text-primary-foreground hover:bg-primary-foreground/15"
+                      : "text-muted-foreground hover:text-foreground hover:bg-background"
+                  }`}
                   title="Baixar"
                   onClick={(e) => e.stopPropagation()}
                 >
@@ -343,7 +361,7 @@ export function WaMessageBubble({
           )}
 
           {isOut && msg.sent_by_name && !isNote && (
-            <p className="text-[10px] text-muted-foreground/50 mt-0.5">
+            <p className="text-[10px] text-primary-foreground/70 mt-0.5">
               Enviado por {msg.sent_by_name}
             </p>
           )}
@@ -354,7 +372,7 @@ export function WaMessageBubble({
               {msg.error_message ? (
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <p className="text-[10px] text-destructive cursor-help truncate flex-1">
+                    <p className={`text-[10px] cursor-help truncate flex-1 font-medium ${isOut ? "text-destructive-foreground bg-destructive/90 px-1.5 py-0.5 rounded" : "text-destructive"}`}>
                       ⚠ Falha no envio
                     </p>
                   </TooltipTrigger>
@@ -363,7 +381,7 @@ export function WaMessageBubble({
                   </TooltipContent>
                 </Tooltip>
               ) : (
-                <p className="text-[10px] text-destructive truncate flex-1">
+                <p className={`text-[10px] truncate flex-1 font-medium ${isOut ? "text-destructive-foreground bg-destructive/90 px-1.5 py-0.5 rounded" : "text-destructive"}`}>
                   ⚠ Falha no envio
                 </p>
               )}
@@ -371,7 +389,9 @@ export function WaMessageBubble({
                 // RB-03-exception: chat micro-interaction — retry with stopPropagation
                 <button
                   onClick={(e) => { e.stopPropagation(); onRetry(msg); }}
-                  className="flex items-center gap-0.5 text-[10px] text-primary hover:text-primary/80 font-medium shrink-0 transition-colors"
+                  className={`flex items-center gap-0.5 text-[10px] font-medium shrink-0 transition-colors ${
+                    isOut ? "text-primary-foreground hover:text-primary-foreground/80 underline" : "text-primary hover:text-primary/80"
+                  }`}
                   title="Tentar reenviar"
                 >
                   <RefreshCw className="h-3 w-3" />
@@ -382,12 +402,22 @@ export function WaMessageBubble({
           )}
 
           {/* Timestamp & status */}
-          <div className={`flex items-center gap-1 mt-0.5 ${isNote ? "text-warning/70" : "text-muted-foreground"}`}>
-            <span className="text-[10px]">{format(new Date(msg.created_at), "HH:mm")}</span>
+          <div className={`flex items-center gap-1 mt-1 justify-end ${
+            isNote ? "text-warning/80" : isOut ? "text-primary-foreground/75" : "text-muted-foreground"
+          }`}>
+            <span className="text-[10.5px] font-medium tabular-nums">{format(new Date(msg.created_at), "HH:mm")}</span>
             {statusCfg && (
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <statusCfg.icon className={`h-3.5 w-3.5 ${statusCfg.className}`} />
+                  <statusCfg.icon className={`h-3.5 w-3.5 ${
+                    isOut
+                      ? msg.status === "read"
+                        ? "text-primary-foreground"
+                        : msg.status === "failed"
+                          ? "text-destructive-foreground"
+                          : "text-primary-foreground/70"
+                      : statusCfg.className
+                  }`} />
                 </TooltipTrigger>
                 <TooltipContent side="left" className="text-[10px] px-2 py-1">
                   {statusCfg.label}
