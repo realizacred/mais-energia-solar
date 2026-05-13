@@ -8,6 +8,7 @@
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { countLogicalDocs } from "@/lib/documentDedup";
+import { parseFileMetaArray } from "@/components/admin/projetos/CustomFieldFileInput";
 import type {
   DealDetail,
   StageHistory,
