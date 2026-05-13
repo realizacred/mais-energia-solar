@@ -3521,6 +3521,7 @@ export type Database = {
           required_on_proposal: boolean | null
           required_stage_ids: string[] | null
           show_on_create: boolean | null
+          show_on_proposal: boolean
           tenant_id: string
           title: string
           updated_at: string
@@ -3544,6 +3545,7 @@ export type Database = {
           required_on_proposal?: boolean | null
           required_stage_ids?: string[] | null
           show_on_create?: boolean | null
+          show_on_proposal?: boolean
           tenant_id: string
           title: string
           updated_at?: string
@@ -3567,6 +3569,7 @@ export type Database = {
           required_on_proposal?: boolean | null
           required_stage_ids?: string[] | null
           show_on_create?: boolean | null
+          show_on_proposal?: boolean
           tenant_id?: string
           title?: string
           updated_at?: string
