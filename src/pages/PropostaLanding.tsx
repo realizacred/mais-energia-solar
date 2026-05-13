@@ -144,55 +144,30 @@ export default function PropostaLanding() {
         setVersaoData(versaoRes.data);
         setSnapshot(normalizeProposalSnapshot(versaoRes.data.snapshot as Record<string, unknown> | null));
 
-        // Resolução determinística do template WEB:
-        // 1) template_id_used SOMENTE se for tipo='html' com template_html válido
-        // 2) fallback: template HTML padrão do tenant (is_default=true, ativo=true)
-        // 3) erro explícito — sem redirect automático para PDF
+        // Resolução determinística do template WEB via RPC SECURITY DEFINER
+        // (anon não consegue ler proposta_templates por RLS — RB-02 exceção pública).
+        // 1) tenta template_id_used (se html válido)
+        // 2) fallback: default HTML do tenant
+        // 3) erro explícito
         const templateId = (versaoRes.data as any).template_id_used;
+        const tenantIdForTpl = (propostaRes as any)?.data?.tenant_id ?? null;
         let webUsable = false;
-        if (templateId) {
-          try {
-            const { data: tplData } = await supabase
-              .from("proposta_templates")
-              .select("tipo, template_html")
-              .eq("id", templateId)
-              .maybeSingle();
-            const tipo = (tplData as any)?.tipo;
-            const tplHtml = (tplData as any)?.template_html;
-            if (tipo === "html" && tplHtml) {
-              const parsed = typeof tplHtml === "string" ? JSON.parse(tplHtml) : tplHtml;
-              if (Array.isArray(parsed) && parsed.length > 0) {
-                setTemplateBlocks(parsed);
-                webUsable = true;
-              }
+        try {
+          const { data: tplRows } = await (supabase as any).rpc(
+            "get_proposal_template_for_landing",
+            { _template_id: templateId ?? null, _tenant_id: tenantIdForTpl }
+          );
+          const tpl = Array.isArray(tplRows) ? tplRows[0] : tplRows;
+          const tplHtml = tpl?.template_html;
+          if (tplHtml) {
+            const parsed = typeof tplHtml === "string" ? JSON.parse(tplHtml) : tplHtml;
+            if (Array.isArray(parsed) && parsed.length > 0) {
+              setTemplateBlocks(parsed);
+              webUsable = true;
             }
-          } catch { /* try default fallback */ }
-        }
-
-        // Fallback: padrão HTML do tenant
-        if (!webUsable) {
-          // tenant_id vem de propostaRes (resolvido no Promise.all acima)
-          const tenantIdForDefault = (propostaRes as any)?.data?.tenant_id;
-          if (tenantIdForDefault) {
-            try {
-              const { data: defTpl } = await supabase
-                .from("proposta_templates")
-                .select("template_html")
-                .eq("tenant_id", tenantIdForDefault)
-                .eq("tipo", "html")
-                .eq("ativo", true)
-                .eq("is_default", true)
-                .maybeSingle();
-              const defHtml = (defTpl as any)?.template_html;
-              if (defHtml) {
-                const parsed = typeof defHtml === "string" ? JSON.parse(defHtml) : defHtml;
-                if (Array.isArray(parsed) && parsed.length > 0) {
-                  setTemplateBlocks(parsed);
-                  webUsable = true;
-                }
-              }
-            } catch { /* ignore */ }
           }
+        } catch (e) {
+          console.error("[PropostaLanding] RPC get_proposal_template_for_landing falhou:", e);
         }
 
         if (!webUsable) {
