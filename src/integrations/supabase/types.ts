@@ -30754,6 +30754,10 @@ export type Database = {
       }
       is_super_admin: { Args: { _user_id?: string }; Returns: boolean }
       is_tenant_active: { Args: { _tenant_id: string }; Returns: boolean }
+      is_valid_public_token_for_versao: {
+        Args: { p_versao_id: string }
+        Returns: boolean
+      }
       is_within_business_hours: {
         Args: { _tenant_id: string }
         Returns: boolean
