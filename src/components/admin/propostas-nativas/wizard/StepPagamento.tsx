@@ -105,7 +105,67 @@ export function StepPagamento({ onNext, onBack }: StepPagamentoProps) {
     }
   }, [loadingBancos, bancos, precoFinal, buildBancoGroups, bancoGroups.length]);
 
+  // ── FASE 1: Hidratar formasSelecionadas a partir de pagamentoOpcoes restaurado
+  //    OU semear 3 defaults para nova proposta vazia (FASE 2 — Opção A mínima segura).
+  //    Roda uma única vez, após configs carregadas. Preserva snapshot existente.
   useEffect(() => {
+    if (hydratedRef.current) return;
+    if (!formasConfig) return;
+    const directExisting = (opcoes || []).filter(o => o.tipo === "direto" || !!o.forma_pagamento);
+    if (directExisting.length > 0) {
+      const restored: FormaSelected[] = directExisting.map(o => {
+        const fp = (o.forma_pagamento || "outro") as FormaPagamento;
+        const cfg = formasConfig.find(c => c.forma_pagamento === fp);
+        return {
+          id: o.id || crypto.randomUUID(),
+          config_id: cfg?.id || "",
+          forma_pagamento: fp,
+          nome: o.nome || FORMA_PAGAMENTO_LABELS[fp] || "Pagamento",
+          num_parcelas: o.num_parcelas || 1,
+          taxa_mensal: o.taxa_mensal || 0,
+          juros_responsavel: cfg?.juros_responsavel || "cliente",
+          valor_total: o.valor_financiado || precoFinal,
+          entrada: o.entrada || 0,
+          observacoes: cfg?.observacoes || "",
+        };
+      });
+      setFormasSelecionadas(restored);
+      hydratedRef.current = true;
+      return;
+    }
+    if ((opcoes || []).length === 0) {
+      const custoKit = resolveCustoKit({
+        itens,
+        custoKitOverride: venda?.custo_kit_override,
+        custoKit: venda?.custo_kit,
+      });
+      const mk = (fp: FormaPagamento, parcelas: number, entrada: number, observacoes: string): FormaSelected => {
+        const cfg = formasConfig.find(c => c.ativo && c.forma_pagamento === fp);
+        return {
+          id: crypto.randomUUID(),
+          config_id: cfg?.id || "",
+          forma_pagamento: fp,
+          nome: FORMA_PAGAMENTO_LABELS[fp] || fp,
+          num_parcelas: parcelas,
+          taxa_mensal: cfg?.juros_tipo === "percentual" ? cfg.juros_valor : 0,
+          juros_responsavel: cfg?.juros_responsavel || "cliente",
+          valor_total: precoFinal,
+          entrada,
+          observacoes,
+        };
+      };
+      setFormasSelecionadas([
+        mk("pix" as FormaPagamento, 1, 0, "À vista"),
+        mk("transferencia" as FormaPagamento, 1, custoKit, "Saldo restante no fim da instalação"),
+        mk("boleto" as FormaPagamento, 3, custoKit, "Saldo restante em 3 parcelas"),
+      ]);
+    }
+    hydratedRef.current = true;
+  }, [formasConfig, opcoes, precoFinal, itens, venda]);
+
+  useEffect(() => {
+    // ⚠ Não sobrescrever pagamentoOpcoes antes da hidratação concluir
+    if (!hydratedRef.current) return;
     const bancoOpcoes = bancoGroups.flatMap(g => 
       g.opcoes.map(o => ({
         id: o.id,
@@ -136,6 +196,16 @@ export function StepPagamento({ onNext, onBack }: StepPagamentoProps) {
     
     onOpcoesChange([...bancoOpcoes, ...formasOpcoes]);
   }, [bancoGroups, precoFinal, formasSelecionadas, onOpcoesChange]);
+
+  const handleNext = useCallback(() => {
+    if (formasSelecionadas.length === 0) {
+      toast.error("Selecione pelo menos uma forma de pagamento.", {
+        description: "Adicione ao menos uma opção antes de avançar.",
+      });
+      return;
+    }
+    onNext?.();
+  }, [formasSelecionadas, onNext]);
 
   return (
     <div className="space-y-4 w-full">
