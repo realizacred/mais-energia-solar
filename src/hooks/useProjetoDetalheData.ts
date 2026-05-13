@@ -189,21 +189,27 @@ export function useProjetoDetalheData(dealId: string) {
         allStagesMap.set(s.pipeline_id, arr);
       });
 
-      // Docs count: SSOT = project_documents (mesma fonte do ProjectDocumentsHub).
-      // Inclui manual/legacy/custom_field/generated/recibo. Já está deduplicado
-      // por (deal_id, storage_path) na tabela canônica, refletindo o que a aba mostra.
+      // Docs count: SSOT = project_documents + dedup semântico (mesma regra do Hub).
+      // Garante paridade entre badge da aba e cards exibidos.
       let docsCount = 0;
       const orFilter: string[] = [];
       if (d.projeto_id) orFilter.push(`projeto_id.eq.${d.projeto_id}`);
       orFilter.push(`deal_id.eq.${d.id}`);
-      const { count: pdCount } = await supabase
+      const { data: pdRows } = await supabase
         .from("project_documents")
-        .select("id", { count: "exact", head: true })
+        .select("bucket,storage_path,file_name,size_bytes,mime_type,deal_id,projeto_id")
         .eq("is_deleted", false)
         .or(orFilter.join(","));
-      docsCount = pdCount || 0;
-      // Fallback: se SSOT vazio (projeto antigo sem registros canônicos),
-      // soma generated_docs_count vindo do RPC para não zerar a aba.
+      const items = (pdRows || []).map((r: any) => ({
+        bucket: r.bucket,
+        storage_path: r.storage_path,
+        file_name: r.file_name,
+        size_bytes: r.size_bytes,
+        mime_type: r.mime_type,
+        scope: r.deal_id || r.projeto_id || d.id,
+      }));
+      docsCount = countLogicalDocs(items);
+      // Fallback: SSOT vazio (projeto antigo) → soma generated do RPC.
       if (docsCount === 0) {
         docsCount = (rpcData.generated_docs_count as number) || 0;
       }
