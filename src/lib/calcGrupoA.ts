@@ -33,7 +33,7 @@ export interface CalcGrupoAInput {
   tarifa_fio_b_fp?: number;
   /** Regra GD: GD1, GD2, GD3 */
   regra: "GD1" | "GD2" | "GD3";
-  /** Ano para escalonamento Fio B (Lei 14.300). Default: 2026 */
+  /** Ano para escalonamento Fio B (Lei 14.300). Se omitido, usa ano corrente. */
   ano?: number;
 }
 
@@ -85,7 +85,7 @@ export function calcGrupoA(input: CalcGrupoAInput): CalcGrupoAResult {
     tarifa_fio_b_p = 0,
     tarifa_fio_b_fp = 0,
     regra,
-    ano = 2026,
+    ano = new Date().getFullYear(),
   } = input;
 
   const alertas: string[] = [];

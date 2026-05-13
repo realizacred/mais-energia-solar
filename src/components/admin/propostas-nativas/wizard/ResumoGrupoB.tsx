@@ -110,7 +110,7 @@ export function ResumoGrupoB({
   fase = "monofasico",
   tariff,
   custoDisponibilidade,
-  ano = 2026,
+  ano = new Date().getFullYear(),
   className,
 }: ResumoGrupoBProps) {
   const [open, setOpen] = useState(false);

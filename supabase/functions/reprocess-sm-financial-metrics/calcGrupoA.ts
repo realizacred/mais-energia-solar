@@ -85,7 +85,7 @@ export function calcGrupoA(input: CalcGrupoAInput): CalcGrupoAResult {
     tarifa_fio_b_p = 0,
     tarifa_fio_b_fp = 0,
     regra,
-    ano = 2026,
+    ano = new Date().getFullYear(),
   } = input;
 
   const alertas: string[] = [];
