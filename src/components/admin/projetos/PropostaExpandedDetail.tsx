@@ -1016,7 +1016,7 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
             "x-client-timeout": "120",
           },
           body: JSON.stringify({
-            template_id: templateSelecionado,
+            template_id: effectiveTemplateId,
             proposta_id: p.id,
             response_format: "json",
           }),
