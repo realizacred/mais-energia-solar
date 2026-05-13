@@ -189,22 +189,23 @@ export function useProjetoDetalheData(dealId: string) {
         allStagesMap.set(s.pipeline_id, arr);
       });
 
-      // Docs count: storage files + generated documents (RPC já trouxe generated)
-      let docsCount = (rpcData.generated_docs_count as number) || 0;
-      const { data: authData } = await supabase.auth.getUser();
-      const uid = authData?.user?.id;
-      if (uid) {
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("tenant_id")
-          .eq("user_id", uid)
-          .maybeSingle();
-        if (profile) {
-          const { data: files } = await supabase.storage
-            .from("projeto-documentos")
-            .list(`${(profile as any).tenant_id}/deals/${d.id}`, { limit: 100 });
-          docsCount += files?.length || 0;
-        }
+      // Docs count: SSOT = project_documents (mesma fonte do ProjectDocumentsHub).
+      // Inclui manual/legacy/custom_field/generated/recibo. Já está deduplicado
+      // por (deal_id, storage_path) na tabela canônica, refletindo o que a aba mostra.
+      let docsCount = 0;
+      const orFilter: string[] = [];
+      if (d.projeto_id) orFilter.push(`projeto_id.eq.${d.projeto_id}`);
+      orFilter.push(`deal_id.eq.${d.id}`);
+      const { count: pdCount } = await supabase
+        .from("project_documents")
+        .select("id", { count: "exact", head: true })
+        .eq("is_deleted", false)
+        .or(orFilter.join(","));
+      docsCount = pdCount || 0;
+      // Fallback: se SSOT vazio (projeto antigo sem registros canônicos),
+      // soma generated_docs_count vindo do RPC para não zerar a aba.
+      if (docsCount === 0) {
+        docsCount = (rpcData.generated_docs_count as number) || 0;
       }
 
       // Fetch projeto identity (nome próprio, código, num, descrição) — separado do cliente.
