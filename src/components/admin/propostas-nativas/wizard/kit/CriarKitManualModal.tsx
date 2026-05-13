@@ -524,7 +524,10 @@ export function CriarKitManualModal({ open, onOpenChange, modulos, inversores, o
       setDistribuidorNome(initialCardData.distribuidorNome || "");
       setNomeKit(initialCardData.nomeKit || "");
       setCodigoKit(initialCardData.codigoKit || "");
-      if (initialCardData.topologia) setTopologia(initialCardData.topologia);
+      if (initialCardData.topologia) {
+        const norm = normalizeTopologia(initialCardData.topologia);
+        if (norm) setTopologia(norm);
+      }
       if (initialCardData.sistema) setSistema(initialCardData.sistema);
       if (initialCardData.custosEmbutidos) setCustosEmbutidos(initialCardData.custosEmbutidos);
     }
