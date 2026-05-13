@@ -27,6 +27,7 @@ interface CustomField {
   field_type: string;
   options: Json | null;
   required_on_proposal: boolean | null;
+  show_on_proposal: boolean | null;
   is_active: boolean | null;
   ordem: number | null;
 }
