@@ -14,6 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { useCustomFieldsList } from "@/hooks/useCustomFieldsSettings";
+import { seedCustomFieldDefaults } from "@/lib/customFieldDefaults";
 import type { Json } from "@/integrations/supabase/types";
 import { formatBRL } from "./types";
 
