@@ -1437,10 +1437,12 @@ function ProposalWizardContent() {
         // Restaurar preview do PDF se a versão já foi gerada
         const restoredPdfPath = (versao as any)?.output_pdf_path ?? null;
         const restoredDocxPath = (versao as any)?.output_docx_path ?? null;
+        const restoredLinkPdf = (versao as any)?.link_pdf ?? null;
 
         if (restoredPdfPath) {
           setOutputPdfPath(restoredPdfPath);
           setOutputDocxPath(restoredDocxPath);
+          setExternalPdfUrl(null);
           setGenerationStatus("ready");
 
           const { data: signedData } = await supabase.storage
@@ -1453,8 +1455,16 @@ function ProposalWizardContent() {
         } else if (restoredDocxPath) {
           setOutputPdfPath(null);
           setOutputDocxPath(restoredDocxPath);
+          setExternalPdfUrl(null);
+          setGenerationStatus("ready");
+        } else if (restoredLinkPdf) {
+          // Proposta migrada (SolarMarket) sem PDF regenerado — usa link_pdf original como fallback
+          setOutputPdfPath(null);
+          setOutputDocxPath(null);
+          setExternalPdfUrl(restoredLinkPdf);
           setGenerationStatus("ready");
         }
+
 
         const isLegacy = rawSnapshot.source === "legacy_import";
         toast({
