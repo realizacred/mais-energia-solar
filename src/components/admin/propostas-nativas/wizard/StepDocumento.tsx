@@ -131,6 +131,36 @@ export function StepDocumento({
   const [copiedDirect, setCopiedDirect] = useState(false);
   const [copiedSimulacao, setCopiedSimulacao] = useState(false);
   const [resolvedPublicUrl, setResolvedPublicUrl] = useState<string | null>(null);
+  // Signed URL gerada localmente quando temos outputPdfPath mas não temos pdfBlobUrl
+  const [resolvedPdfPreviewUrl, setResolvedPdfPreviewUrl] = useState<string | null>(null);
+  const [pdfPreviewError, setPdfPreviewError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    setPdfPreviewError(null);
+    if (pdfBlobUrl) {
+      setResolvedPdfPreviewUrl(null);
+      return;
+    }
+    if (!outputPdfPath) {
+      setResolvedPdfPreviewUrl(null);
+      return;
+    }
+    (async () => {
+      const { data, error } = await supabase.storage
+        .from("proposta-documentos")
+        .createSignedUrl(outputPdfPath, 3600);
+      if (cancelled) return;
+      if (error || !data?.signedUrl) {
+        setPdfPreviewError(error?.message || "Falha ao gerar link assinado do PDF");
+        setResolvedPdfPreviewUrl(null);
+        return;
+      }
+      // #toolbar=0 para visual mais limpo; #view=FitH ajuda no fit horizontal
+      setResolvedPdfPreviewUrl(`${data.signedUrl}#toolbar=1&view=FitH`);
+    })();
+    return () => { cancelled = true; };
+  }, [outputPdfPath, pdfBlobUrl]);
 
   // Proposal validity
   const [validade, setValidade] = useState(() => {
