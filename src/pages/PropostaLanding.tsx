@@ -264,7 +264,6 @@ export default function PropostaLanding() {
 
     // SSOT: total canônico recomposto via getCanonicalProposalTotal
     // (substitui re-implementação local de calcPrecoFinal — não duplicar).
-    const { getCanonicalProposalTotal } = await import("@/services/proposal/proposalTotals");
     const snapshotValorTotal = getCanonicalProposalTotal({
       valor_total: versaoData.valor_total,
       snapshot: raw,
