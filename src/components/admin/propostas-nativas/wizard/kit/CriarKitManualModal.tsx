@@ -121,6 +121,18 @@ export interface KitMeta {
 
 const TOPOLOGIAS = ["Tradicional", "Microinversor", "Otimizador"];
 
+/** Normaliza topologia (lowercase legado → capitalizada do Select) */
+function normalizeTopologia(t?: string): string {
+  if (!t) return "";
+  const n = t.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+  if (n.startsWith("micro")) return "Microinversor";
+  if (n.startsWith("otim")) return "Otimizador";
+  if (n.startsWith("trad")) return "Tradicional";
+  // Já vem capitalizado e válido
+  if (TOPOLOGIAS.includes(t)) return t;
+  return "";
+}
+
 /** Searchable equipment combo with highlight, keyboard nav, badge */
 interface SearchableOption { value: string; label: string; searchText: string }
 
@@ -482,7 +494,7 @@ export function CriarKitManualModal({ open, onOpenChange, modulos, inversores, o
   const [sistema, setSistema] = useState<"on_grid" | "hibrido" | "off_grid">(initialCardData?.sistema || sistemaProp || "on_grid");
   const [tipoKit, setTipoKit] = useState<"customizado" | "fechado">("customizado");
   const [topologia, setTopologia] = useState(
-    initialCardData?.topologia ||
+    normalizeTopologia(initialCardData?.topologia) ||
     (topologiasProp?.length === 1
       ? (topologiasProp[0] === "tradicional" ? "Tradicional" : topologiasProp[0] === "microinversor" ? "Microinversor" : "Otimizador")
       : "Tradicional")
@@ -512,7 +524,10 @@ export function CriarKitManualModal({ open, onOpenChange, modulos, inversores, o
       setDistribuidorNome(initialCardData.distribuidorNome || "");
       setNomeKit(initialCardData.nomeKit || "");
       setCodigoKit(initialCardData.codigoKit || "");
-      if (initialCardData.topologia) setTopologia(initialCardData.topologia);
+      if (initialCardData.topologia) {
+        const norm = normalizeTopologia(initialCardData.topologia);
+        if (norm) setTopologia(norm);
+      }
       if (initialCardData.sistema) setSistema(initialCardData.sistema);
       if (initialCardData.custosEmbutidos) setCustosEmbutidos(initialCardData.custosEmbutidos);
     }
