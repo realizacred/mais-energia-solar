@@ -1110,7 +1110,7 @@ export function StepDocumento({
                  "Processando documento..."}
               </p>
             </div>
-          ) : pdfBlobUrl ? (
+          ) : (pdfBlobUrl || resolvedPdfPreviewUrl) ? (
             <div className="space-y-3">
               {hasRestoredPreview && (
                 <div className="flex items-center gap-2 p-3 rounded-lg bg-warning/10 border border-warning/30">
@@ -1122,11 +1122,22 @@ export function StepDocumento({
               )}
               <div className="border border-border/50 rounded-xl overflow-hidden bg-card shadow-sm">
                 <iframe
-                  src={pdfBlobUrl}
+                  src={pdfBlobUrl || resolvedPdfPreviewUrl || ""}
                   title="Proposta PDF Preview"
                   className="w-full border-0"
                   style={{ height: 800 }}
                 />
+              </div>
+              <div className="flex flex-wrap gap-2 justify-end">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-2"
+                  onClick={() => window.open(pdfBlobUrl || resolvedPdfPreviewUrl || "", "_blank", "noopener,noreferrer")}
+                >
+                  <ExternalLink className="h-3.5 w-3.5" />
+                  Abrir em nova aba
+                </Button>
               </div>
             </div>
           ) : htmlPreview && !isDocxSelected ? (
@@ -1152,28 +1163,50 @@ export function StepDocumento({
               </Button>
             </div>
           ) : outputPdfPath ? (
-            <div className="border border-border/50 rounded-xl flex flex-col items-center justify-center h-[400px] bg-muted/20 gap-3">
+            <div className="border border-border/50 rounded-xl flex flex-col items-center justify-center h-[400px] bg-muted/20 gap-3 p-6 text-center">
               <Info className="h-8 w-8 text-muted-foreground" />
-              <p className="text-sm text-muted-foreground">Não foi possível carregar o preview</p>
-              <Button
-                variant="outline"
-                size="sm"
-                className="gap-2"
-                onClick={async () => {
-                  const { data } = await supabase.storage
-                    .from("proposta-documentos")
-                    .createSignedUrl(outputPdfPath, 3600);
-                  if (data?.signedUrl) {
-                    // Force re-render by opening in iframe via parent state
-                    window.open(data.signedUrl, "_blank");
-                  } else {
-                    toast({ title: "Erro ao carregar preview", variant: "destructive" });
-                  }
-                }}
-              >
-                <RefreshCw className="h-3.5 w-3.5" />
-                Abrir PDF em nova aba
-              </Button>
+              <p className="text-sm text-muted-foreground">
+                {pdfPreviewError ? "Não foi possível carregar o preview" : "Carregando preview do PDF…"}
+              </p>
+              {pdfPreviewError && (
+                <p className="text-xs text-destructive max-w-sm">{pdfPreviewError}</p>
+              )}
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-2"
+                  onClick={async () => {
+                    setPdfPreviewError(null);
+                    const { data, error } = await supabase.storage
+                      .from("proposta-documentos")
+                      .createSignedUrl(outputPdfPath, 3600);
+                    if (data?.signedUrl) {
+                      setResolvedPdfPreviewUrl(`${data.signedUrl}#toolbar=1&view=FitH`);
+                    } else {
+                      setPdfPreviewError(error?.message || "Falha ao gerar link");
+                      toast({ title: "Erro ao carregar preview", description: error?.message, variant: "destructive" });
+                    }
+                  }}
+                >
+                  <RefreshCw className="h-3.5 w-3.5" />
+                  Tentar novamente
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-2"
+                  onClick={async () => {
+                    const { data } = await supabase.storage
+                      .from("proposta-documentos")
+                      .createSignedUrl(outputPdfPath, 3600);
+                    if (data?.signedUrl) window.open(data.signedUrl, "_blank", "noopener,noreferrer");
+                  }}
+                >
+                  <ExternalLink className="h-3.5 w-3.5" />
+                  Abrir em nova aba
+                </Button>
+              </div>
             </div>
           ) : externalPdfUrl && !outputPdfPath ? (
             // Fase 1 — PDF original migrado do SolarMarket (link_pdf). Fallback quando não há PDF regenerado.
