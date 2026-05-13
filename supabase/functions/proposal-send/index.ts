@@ -109,9 +109,10 @@ Deno.serve(async (req) => {
     if (existingEnvio?.token_id) {
       const { data: existingToken } = await adminClient
         .from("proposta_aceite_tokens")
-        .select("token").eq("id", existingEnvio.token_id).single();
+        .select("token, invalidado_em").eq("id", existingEnvio.token_id).single();
 
-      if (existingToken) {
+      // Só reutiliza token se ainda estiver ATIVO (não invalidado).
+      if (existingToken && !(existingToken as any).invalidado_em) {
         const baseUrl = Deno.env.get("APP_URL") || Deno.env.get("APP_URL_LOCKED") || `https://${tenant?.slug || "app"}.lovable.app`;
         return jsonOk({
           success: true, idempotent: true,
