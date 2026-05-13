@@ -51,6 +51,8 @@ export function getDefaultCustomFieldValue(fieldType: CustomFieldType): any {
  *
  * @returns objeto com defaults aplicados ou o próprio `current` se nada mudou.
  */
+const NUMERIC_FIELD_TYPES = new Set(["percent", "number", "currency", "monetary"]);
+
 export function seedCustomFieldDefaults(
   fields: Array<{ field_key: string; field_type: CustomFieldType }>,
   current: Record<string, any>,
@@ -58,7 +60,12 @@ export function seedCustomFieldDefaults(
   let changed = false;
   const next = { ...current };
   for (const f of fields) {
-    if (next[f.field_key] === undefined) {
+    const v = next[f.field_key];
+    const isNumeric = NUMERIC_FIELD_TYPES.has(f.field_type);
+    // Snapshots legados podem trazer "" em campos numéricos — tratar como ausência.
+    // Preserva 0/false/valores válidos e textos vazios em campos texto.
+    const shouldSeed = v === undefined || (isNumeric && v === "");
+    if (shouldSeed) {
       next[f.field_key] = getDefaultCustomFieldValue(f.field_type);
       changed = true;
     }
