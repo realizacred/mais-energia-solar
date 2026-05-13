@@ -10,6 +10,7 @@
 
 import { normalizeProposalSnapshot } from "@/domain/proposal/normalizeProposalSnapshot";
 import { formatBRL, formatBRLCompact } from "@/lib/formatters";
+import { formatTirPercent } from "@/lib/tirDisplay";
 import { Card, CardContent } from "@/components/ui/card";
 import { motion } from "framer-motion";
 import {
