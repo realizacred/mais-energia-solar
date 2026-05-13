@@ -711,101 +711,75 @@ export function StepDocumento({
     }
 
     // After generation — download helpers using storage-persisted files
-    const handleDownloadPdf = async () => {
-      // Build a good filename from backend response or local fallback
-      const backendFileName = result?.file_name;
-      const fallbackName = (() => {
-        const safeName = clienteNome.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-zA-Z0-9]+/g, "_").replace(/_+/g, "_").replace(/^_+|_+$/g, "").substring(0, 60);
-        return `Proposta_${safeName}_${new Date().toISOString().split("T")[0]}.pdf`;
-      })();
-      const downloadName = backendFileName || fallbackName;
+    const triggerAnchorDownload = (href: string, fileName: string) => {
+      const a = document.createElement("a");
+      a.href = href;
+      a.download = fileName;
+      a.rel = "noopener";
+      a.target = "_blank";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    };
 
-      if (outputPdfPath) {
-        // Fetch from storage via signed URL (fetch-to-blob for cross-origin download)
-        const { data } = await supabase.storage.from("proposta-documentos").createSignedUrl(outputPdfPath, 300);
-        if (data?.signedUrl) {
-          const resp = await fetch(data.signedUrl);
-          const blob = await resp.blob();
-          const url = URL.createObjectURL(blob);
-          const a = document.createElement("a");
-          a.href = url;
-          a.download = downloadName;
-          document.body.appendChild(a);
-          a.click();
-          document.body.removeChild(a);
-          URL.revokeObjectURL(url);
+    const handleDownloadPdf = async () => {
+      try {
+        const backendFileName = result?.file_name;
+        const fallbackName = (() => {
+          const safeName = clienteNome.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-zA-Z0-9]+/g, "_").replace(/_+/g, "_").replace(/^_+|_+$/g, "").substring(0, 60);
+          return `Proposta_${safeName}_${new Date().toISOString().split("T")[0]}.pdf`;
+        })();
+        const downloadName = backendFileName || fallbackName;
+
+        if (outputPdfPath) {
+          const { data, error } = await supabase.storage
+            .from("proposta-documentos")
+            .createSignedUrl(outputPdfPath, 300, { download: downloadName });
+          if (error) throw error;
+          if (!data?.signedUrl) throw new Error("URL assinada não disponível");
+          triggerAnchorDownload(data.signedUrl, downloadName);
           toast({ title: "PDF baixado com sucesso!" });
           return;
         }
-      }
-      if (externalPdfUrl) {
-        window.open(externalPdfUrl, "_blank", "noopener,noreferrer");
-        toast({ title: "PDF aberto em nova aba!" });
-        return;
-      }
-      // Fallback to pdfBlobUrl (signed URL already available)
-      if (pdfBlobUrl) {
-        try {
-          const resp = await fetch(pdfBlobUrl);
-          const blob = await resp.blob();
-          const url = URL.createObjectURL(blob);
-          const a = document.createElement("a");
-          a.href = url;
-          a.download = downloadName;
-          document.body.appendChild(a);
-          a.click();
-          document.body.removeChild(a);
-          URL.revokeObjectURL(url);
-          toast({ title: "PDF baixado com sucesso!" });
-          return;
-        } catch {
-          window.open(pdfBlobUrl, "_blank", "noopener,noreferrer");
+        if (externalPdfUrl) {
+          triggerAnchorDownload(externalPdfUrl, downloadName);
           toast({ title: "PDF aberto em nova aba!" });
           return;
         }
+        if (pdfBlobUrl) {
+          triggerAnchorDownload(pdfBlobUrl, downloadName);
+          toast({ title: "PDF baixado com sucesso!" });
+          return;
+        }
+        toast({ title: "PDF não disponível", description: "Gere a proposta primeiro.", variant: "destructive" });
+      } catch (e: any) {
+        toast({ title: "Erro ao baixar PDF", description: e?.message ?? String(e), variant: "destructive" });
       }
-      toast({ title: "PDF não disponível", description: "Gere a proposta primeiro.", variant: "destructive" });
     };
 
     const handleDownloadDocx = async () => {
-      const backendDocxName = result?.file_name_docx;
-      const fallbackDocxName = (() => {
-        const safeName = clienteNome.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-zA-Z0-9]+/g, "_").replace(/_+/g, "_").replace(/^_+|_+$/g, "").substring(0, 60);
-        return `Proposta_${safeName}_${new Date().toISOString().split("T")[0]}.docx`;
-      })();
-      const downloadName = backendDocxName || fallbackDocxName;
+      try {
+        const backendDocxName = result?.file_name_docx;
+        const fallbackDocxName = (() => {
+          const safeName = clienteNome.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-zA-Z0-9]+/g, "_").replace(/_+/g, "_").replace(/^_+|_+$/g, "").substring(0, 60);
+          return `Proposta_${safeName}_${new Date().toISOString().split("T")[0]}.docx`;
+        })();
+        const downloadName = backendDocxName || fallbackDocxName;
 
-      if (outputDocxPath) {
-        const { data } = await supabase.storage.from("proposta-documentos").createSignedUrl(outputDocxPath, 300);
-        if (data?.signedUrl) {
-          const resp = await fetch(data.signedUrl);
-          const blob = await resp.blob();
-          const url = URL.createObjectURL(blob);
-          const a = document.createElement("a");
-          a.href = url;
-          a.download = downloadName;
-          document.body.appendChild(a);
-          a.click();
-          document.body.removeChild(a);
-          URL.revokeObjectURL(url);
+        if (outputDocxPath) {
+          const { data, error } = await supabase.storage
+            .from("proposta-documentos")
+            .createSignedUrl(outputDocxPath, 300, { download: downloadName });
+          if (error) throw error;
+          if (!data?.signedUrl) throw new Error("URL assinada não disponível");
+          triggerAnchorDownload(data.signedUrl, downloadName);
           toast({ title: "DOCX baixado!" });
           return;
         }
+        toast({ title: "DOCX não disponível", variant: "destructive" });
+      } catch (e: any) {
+        toast({ title: "Erro ao baixar DOCX", description: e?.message ?? String(e), variant: "destructive" });
       }
-      // Fallback to local blob
-      if (docxBlob) {
-        const url = URL.createObjectURL(docxBlob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = downloadName;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-        toast({ title: "DOCX baixado!" });
-        return;
-      }
-      toast({ title: "DOCX não disponível", variant: "destructive" });
     };
 
     const isBusy = generating || rendering;
