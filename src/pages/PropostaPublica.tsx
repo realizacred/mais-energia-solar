@@ -247,7 +247,7 @@ export default function PropostaPublica() {
         setLoading(false);
         return;
       }
-      if (new Date(td.expires_at) < new Date()) { setError("Este link expirou."); setLoading(false); return; }
+      if (new Date(td.expires_at) < new Date()) { setError("Esta proposta expirou. Entre em contato com nossa equipe."); setLoading(false); return; }
 
       setTokenData(td);
       trackView(td);
