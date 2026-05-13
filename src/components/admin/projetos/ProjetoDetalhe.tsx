@@ -1430,13 +1430,25 @@ function GerenciamentoTab({
               if (toName) return toName;
               if (fromName) return fromName;
             }
-            // Value changed: format as BRL
+            // Value changed: format as BRL + show reason from metadata
             if (e.event_type === "value_changed" && e.from_value && e.to_value) {
               const from = parseFloat(e.from_value);
               const to = parseFloat(e.to_value);
               if (!isNaN(from) && !isNaN(to)) {
                 const fmt = (v: number) => formatBRLInteger(v);
-                return `${fmt(from)} → ${fmt(to)}`;
+                const meta = typeof e.metadata === "string"
+                  ? (() => { try { return JSON.parse(e.metadata); } catch { return {}; } })()
+                  : (e.metadata || {});
+                const REASON_LABELS: Record<string, string> = {
+                  proposta_gerada: "Proposta gerada",
+                  proposta_regenerada: "Proposta regenerada",
+                  proposta_ativa: "Proposta marcada como ativa",
+                  proposta_salva: "Proposta salva",
+                  manual_edit: "Edição manual",
+                };
+                const reasonLabel = meta?.reason ? REASON_LABELS[meta.reason] || null : null;
+                const range = `${fmt(from)} → ${fmt(to)}`;
+                return reasonLabel ? `${range} • ${reasonLabel}` : range;
               }
             }
             if (e.from_value && e.to_value) return `${translateValue(e.from_value)} → ${translateValue(e.to_value)}`;

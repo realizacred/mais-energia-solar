@@ -379,17 +379,18 @@ async function persistProposalAtomic(
         }
       }
 
-    // Sync deal value + kwp so kanban projection reflects proposal data
+    // Sync deal value + kwp so kanban projection reflects proposal data.
+    // IMPORTANTE: só atualiza deals.value em ações finais (intent='active').
+    // Em rascunhos, evita disparar trigger audit_deal_changes (value_changed)
+    // por edições intermediárias do wizard.
     const syncDealId = params.dealId || result.projeto_id;
     if (syncDealId && (params.potenciaKwp > 0 || params.precoFinal > 0)) {
-      await supabase
-        .from("deals")
-        .update({
-          value: params.precoFinal,
-          kwp: params.potenciaKwp,
-          updated_at: new Date().toISOString(),
-        } as any)
-        .eq("id", syncDealId);
+      const dealUpdate: Record<string, any> = {
+        kwp: params.potenciaKwp,
+        updated_at: new Date().toISOString(),
+      };
+      if (setActive) dealUpdate.value = params.precoFinal;
+      await supabase.from("deals").update(dealUpdate as any).eq("id", syncDealId);
     }
 
     // Sync canonical projeto (Project is main entity per arch memory)
@@ -492,17 +493,16 @@ async function persistProposalAtomic(
     //   reason: result.reason,
     // });
 
-    // Sync deal value + kwp so kanban projection reflects proposal data
+    // Sync deal value + kwp — só em ações finais (intent='active'). Rascunhos
+    // não devem mexer em deals.value para não gerar evento "Valor alterado".
     const syncDealId = params.dealId;
     if (syncDealId && (params.potenciaKwp > 0 || params.precoFinal > 0)) {
-      await supabase
-        .from("deals")
-        .update({
-          value: params.precoFinal,
-          kwp: params.potenciaKwp,
-          updated_at: new Date().toISOString(),
-        } as any)
-        .eq("id", syncDealId);
+      const dealUpdate: Record<string, any> = {
+        kwp: params.potenciaKwp,
+        updated_at: new Date().toISOString(),
+      };
+      if (setActive) dealUpdate.value = params.precoFinal;
+      await supabase.from("deals").update(dealUpdate as any).eq("id", syncDealId);
     }
 
     // Sync canonical projeto. Resolve projeto_id from proposta when not in params.
