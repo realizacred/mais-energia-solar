@@ -40,6 +40,7 @@ interface LeadSemProposta {
   estado: string;
   cidade: string;
   media_consumo: number;
+  consumo_previsto?: number | string | null;
   tipo_telhado: string;
   created_at: string;
 }
