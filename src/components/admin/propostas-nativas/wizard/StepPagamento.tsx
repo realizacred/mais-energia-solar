@@ -1,4 +1,5 @@
-import { useState, useMemo, useEffect, useCallback } from "react";
+import { useState, useMemo, useEffect, useCallback, useRef } from "react";
+import { toast } from "sonner";
 import { Plus, Trash2, CreditCard, Building2, ChevronRight, Calendar, TrendingUp, DollarSign, X, Search, Info, AlertTriangle, Smartphone, FileText, Banknote, Wallet, Check, ChevronLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,15 +11,16 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
-import { type PagamentoOpcao, type BancoFinanciamento, type UCData, type PremissasData, formatBRL } from "./types";
+import { type PagamentoOpcao, type BancoFinanciamento, type UCData, type PremissasData, formatBRL, resolveCustoKit } from "./types";
 import { formatNumberBR } from "@/lib/formatters";
 import { CurrencyInput } from "@/components/ui-kit/inputs/CurrencyInput";
 import { calcularPrestacao, calcularEconomiaMensal } from "@/services/paymentComposition/financingMath";
-import { FORMA_PAGAMENTO_LABELS } from "@/services/paymentComposition/types";
+import { FORMA_PAGAMENTO_LABELS, type FormaPagamento } from "@/services/paymentComposition/types";
 import { PaymentMethodSelector, type FormaSelected } from "./PaymentMethodSelector";
 import { useWizardContext } from "./WizardContext";
 import { useBancosCatalog } from "./useWizardDataLoaders";
 import { usePrecoFinal } from "@/hooks/usePrecoFinal";
+import { usePaymentInterestConfigs } from "@/hooks/usePaymentInterestConfig";
 
 interface BancoOpcao {
   id: string;
@@ -58,6 +60,7 @@ export function StepPagamento({ onNext, onBack }: StepPagamentoProps) {
   } = useWizardContext();
 
   const { bancos, loadingBancos } = useBancosCatalog();
+  const { data: formasConfig } = usePaymentInterestConfigs();
   const precoFinal = usePrecoFinal(itens, servicos, venda);
 
   const [activeTab, setActiveTab] = useState<"pagamento" | "fluxo">("pagamento");
@@ -66,6 +69,7 @@ export function StepPagamento({ onNext, onBack }: StepPagamentoProps) {
   const [bancoGroups, setBancoGroups] = useState<BancoGroup[]>([]);
   const [formasSelecionadas, setFormasSelecionadas] = useState<FormaSelected[]>([]);
   const [valorEntradaGlobal, setValorEntradaGlobal] = useState<number>(0);
+  const hydratedRef = useRef(false);
 
   const calcParcela = useCallback((input: any) => {
     return calcularPrestacao(input.valor_financiado - input.entrada, input.taxa_mensal, input.num_parcelas);
@@ -101,7 +105,67 @@ export function StepPagamento({ onNext, onBack }: StepPagamentoProps) {
     }
   }, [loadingBancos, bancos, precoFinal, buildBancoGroups, bancoGroups.length]);
 
+  // ── FASE 1: Hidratar formasSelecionadas a partir de pagamentoOpcoes restaurado
+  //    OU semear 3 defaults para nova proposta vazia (FASE 2 — Opção A mínima segura).
+  //    Roda uma única vez, após configs carregadas. Preserva snapshot existente.
   useEffect(() => {
+    if (hydratedRef.current) return;
+    if (!formasConfig) return;
+    const directExisting = (opcoes || []).filter(o => o.tipo === "direto" || !!o.forma_pagamento);
+    if (directExisting.length > 0) {
+      const restored: FormaSelected[] = directExisting.map(o => {
+        const fp = (o.forma_pagamento || "outro") as FormaPagamento;
+        const cfg = formasConfig.find(c => c.forma_pagamento === fp);
+        return {
+          id: o.id || crypto.randomUUID(),
+          config_id: cfg?.id || "",
+          forma_pagamento: fp,
+          nome: o.nome || FORMA_PAGAMENTO_LABELS[fp] || "Pagamento",
+          num_parcelas: o.num_parcelas || 1,
+          taxa_mensal: o.taxa_mensal || 0,
+          juros_responsavel: cfg?.juros_responsavel || "cliente",
+          valor_total: o.valor_financiado || precoFinal,
+          entrada: o.entrada || 0,
+          observacoes: cfg?.observacoes || "",
+        };
+      });
+      setFormasSelecionadas(restored);
+      hydratedRef.current = true;
+      return;
+    }
+    if ((opcoes || []).length === 0) {
+      const custoKit = resolveCustoKit({
+        itens,
+        custoKitOverride: venda?.custo_kit_override,
+        custoKit: venda?.custo_kit,
+      });
+      const mk = (fp: FormaPagamento, parcelas: number, entrada: number, observacoes: string): FormaSelected => {
+        const cfg = formasConfig.find(c => c.ativo && c.forma_pagamento === fp);
+        return {
+          id: crypto.randomUUID(),
+          config_id: cfg?.id || "",
+          forma_pagamento: fp,
+          nome: FORMA_PAGAMENTO_LABELS[fp] || fp,
+          num_parcelas: parcelas,
+          taxa_mensal: cfg?.juros_tipo === "percentual" ? cfg.juros_valor : 0,
+          juros_responsavel: cfg?.juros_responsavel || "cliente",
+          valor_total: precoFinal,
+          entrada,
+          observacoes,
+        };
+      };
+      setFormasSelecionadas([
+        mk("pix" as FormaPagamento, 1, 0, "À vista"),
+        mk("transferencia" as FormaPagamento, 1, custoKit, "Saldo restante no fim da instalação"),
+        mk("boleto" as FormaPagamento, 3, custoKit, "Saldo restante em 3 parcelas"),
+      ]);
+    }
+    hydratedRef.current = true;
+  }, [formasConfig, opcoes, precoFinal, itens, venda]);
+
+  useEffect(() => {
+    // ⚠ Não sobrescrever pagamentoOpcoes antes da hidratação concluir
+    if (!hydratedRef.current) return;
     const bancoOpcoes = bancoGroups.flatMap(g => 
       g.opcoes.map(o => ({
         id: o.id,
@@ -133,6 +197,16 @@ export function StepPagamento({ onNext, onBack }: StepPagamentoProps) {
     onOpcoesChange([...bancoOpcoes, ...formasOpcoes]);
   }, [bancoGroups, precoFinal, formasSelecionadas, onOpcoesChange]);
 
+  const handleNext = useCallback(() => {
+    if (formasSelecionadas.length === 0) {
+      toast.error("Selecione pelo menos uma forma de pagamento.", {
+        description: "Adicione ao menos uma opção antes de avançar.",
+      });
+      return;
+    }
+    onNext?.();
+  }, [formasSelecionadas, onNext]);
+
   return (
     <div className="space-y-4 w-full">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-3">
@@ -143,6 +217,13 @@ export function StepPagamento({ onNext, onBack }: StepPagamentoProps) {
           </TabsList>
         </Tabs>
       </div>
+
+      {formasSelecionadas.length === 0 && (
+        <div className="flex items-center gap-2 p-3 rounded-md border border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-300 text-xs">
+          <AlertTriangle className="h-4 w-4 shrink-0" />
+          <span>Adicione pelo menos uma forma de pagamento para continuar.</span>
+        </div>
+      )}
 
       <PaymentMethodSelector 
         precoFinal={precoFinal} 
@@ -158,7 +239,12 @@ export function StepPagamento({ onNext, onBack }: StepPagamentoProps) {
             </Button>
           ) : <div />}
           {onNext && (
-            <Button size="sm" onClick={onNext} className="gap-1 text-xs px-6">
+            <Button
+              size="sm"
+              onClick={handleNext}
+              disabled={formasSelecionadas.length === 0}
+              className="gap-1 text-xs px-6"
+            >
               Próximo <ChevronRight className="h-4 w-4" />
             </Button>
           )}
