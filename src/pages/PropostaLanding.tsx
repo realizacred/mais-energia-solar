@@ -97,8 +97,8 @@ export default function PropostaLanding() {
         .rpc("get_proposta_token_by_value", { p_token: token! });
       const td = Array.isArray(tdRows) ? tdRows[0] : tdRows;
 
-      if (tdErr || !td) { setError("Link inválido ou expirado."); setLoading(false); return; }
-      if (td.invalidado_em) { setError("Este link não está mais disponível."); setLoading(false); return; }
+      if (tdErr || !td) { setError("Proposta temporariamente indisponível. Entre em contato com nossa equipe."); setLoading(false); return; }
+      if (td.invalidado_em) { setError("Proposta temporariamente indisponível. Entre em contato com nossa equipe."); setLoading(false); return; }
       if (td.used_at) { setDecision(td.decisao || "aceita"); setTokenId(td.id); setLoading(false); return; }
       if (new Date(td.expires_at) < new Date()) { setError("Este link expirou."); setLoading(false); return; }
 
