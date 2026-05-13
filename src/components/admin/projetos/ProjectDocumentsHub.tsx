@@ -223,7 +223,7 @@ export function ProjectDocumentsHub({ projetoId, dealId }: Props) {
   useEffect(() => {
     qc.invalidateQueries({ queryKey: ["project-documents"] });
     if (dealId) {
-      qc.invalidateQueries({ queryKey: ["projeto-arquivos", dealId] });
+      qc.invalidateQueries({ queryKey: ["projeto-documentos-files", dealId] });
       qc.invalidateQueries({ queryKey: ["projeto-custom-field-files", dealId] });
     }
   }, [qc, projetoId, dealId]);
