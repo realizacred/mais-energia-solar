@@ -74,29 +74,33 @@ export function DialogPosDimensionamento({
     [allFields]
   );
 
-  // UX-02: Auto-fill pos-dimensionamento fields with kit suggestions
+  // UX-02: Auto-fill SSOT-driven — only fills keys that exist as ACTIVE configured custom fields.
+  // Se o admin desativar/remover o campo na configuração canônica, o auto-fill para automaticamente.
   useEffect(() => {
-    if (!open || kitItems.length === 0) return;
+    if (!open || kitItems.length === 0 || fields.length === 0) return;
 
+    const configuredKeys = new Set(fields.map(f => f.field_key));
     const nextValues = { ...customFieldValues };
     let changed = false;
 
-    // 1. pos_inversor_qtd
-    if (!nextValues.pos_inversor_qtd || nextValues.pos_inversor_qtd === "") {
+    // 1. pos_inversor_qtd (somente se configurado)
+    if (configuredKeys.has("pos_inversor_qtd") &&
+        (!nextValues.pos_inversor_qtd || nextValues.pos_inversor_qtd === "")) {
       const inversores = kitItems.filter(i => i.categoria === "inversor");
       if (inversores.length > 0) {
-        const suggestion = inversores.map(i => `${i.quantidade}x ${i.modelo}`).join(" + ");
-        nextValues.pos_inversor_qtd = suggestion;
+        nextValues.pos_inversor_qtd = inversores
+          .map(i => `${i.quantidade}x ${i.modelo}`).join(" + ");
         changed = true;
       }
     }
 
-    // 2. pos_modulo_info
-    if (!nextValues.pos_modulo_info || nextValues.pos_modulo_info === "") {
+    // 2. pos_modulo_info (somente se configurado)
+    if (configuredKeys.has("pos_modulo_info") &&
+        (!nextValues.pos_modulo_info || nextValues.pos_modulo_info === "")) {
       const modulos = kitItems.filter(i => i.categoria === "modulo" || i.categoria === "modulos");
       if (modulos.length > 0) {
-        const suggestion = modulos.map(i => `${i.quantidade}x ${i.modelo} ${i.potencia_w || i.potencia_kwp * 1000 || ""}W`).join(" + ");
-        nextValues.pos_modulo_info = suggestion;
+        nextValues.pos_modulo_info = modulos
+          .map(i => `${i.quantidade}x ${i.modelo} ${i.potencia_w || i.potencia_kwp * 1000 || ""}W`).join(" + ");
         changed = true;
       }
     }
@@ -104,7 +108,7 @@ export function DialogPosDimensionamento({
     if (changed) {
       onCustomFieldValuesChange(nextValues);
     }
-  }, [open, kitItems]);
+  }, [open, kitItems, fields]);
 
   const updateCustom = (key: string, value: any) => {
     onCustomFieldValuesChange({ ...customFieldValues, [key]: value });
