@@ -22,7 +22,7 @@ export function useCustomFieldsList() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("deal_custom_fields")
-        .select("id, title, field_key, field_type, field_context, options, ordem, show_on_create, required_on_create, visible_on_funnel, important_on_funnel, required_on_funnel, required_on_proposal, is_active, visible_pipeline_ids, important_stage_ids, required_stage_ids, icon")
+        .select("id, title, field_key, field_type, field_context, options, ordem, show_on_create, required_on_create, visible_on_funnel, important_on_funnel, required_on_funnel, required_on_proposal, show_on_proposal, is_active, visible_pipeline_ids, important_stage_ids, required_stage_ids, icon")
         .order("ordem");
       if (error) throw error;
       return (data ?? []) as any[];

@@ -94,6 +94,7 @@ export interface CustomFieldFormData {
   important_on_funnel: boolean;
   required_on_funnel: boolean;
   required_on_proposal: boolean;
+  show_on_proposal: boolean;
   visibilityMode: "all" | "some";
   visible_pipeline_ids: string[];
   important_stage_ids: string[];
@@ -115,6 +116,7 @@ export interface CustomFieldData {
   important_on_funnel: boolean;
   required_on_funnel: boolean;
   required_on_proposal: boolean;
+  show_on_proposal: boolean;
   is_active: boolean;
   visible_pipeline_ids: string[];
   important_stage_ids: string[];
@@ -182,7 +184,7 @@ export function CustomFieldEditModal({
     title: "", field_key: "", field_type: "text", field_context: context,
     show_on_create: false, required_on_create: false,
     visible_on_funnel: false, important_on_funnel: false,
-    required_on_funnel: false, required_on_proposal: false,
+    required_on_funnel: false, required_on_proposal: false, show_on_proposal: false,
     visibilityMode: "all", visible_pipeline_ids: [],
     important_stage_ids: [], required_stage_ids: [], icon: "",
   });
@@ -212,6 +214,7 @@ export function CustomFieldEditModal({
         important_on_funnel: editingField.important_on_funnel,
         required_on_funnel: editingField.required_on_funnel,
         required_on_proposal: editingField.required_on_proposal,
+        show_on_proposal: (editingField as any).show_on_proposal ?? false,
         visibilityMode: vpids.length > 0 ? "some" : "all",
         visible_pipeline_ids: vpids,
         important_stage_ids: editingField.important_stage_ids || [],
@@ -230,7 +233,7 @@ export function CustomFieldEditModal({
         title: "", field_key: "", field_type: "text", field_context: context,
         show_on_create: false, required_on_create: false,
         visible_on_funnel: false, important_on_funnel: false,
-        required_on_funnel: false, required_on_proposal: false,
+        required_on_funnel: false, required_on_proposal: false, show_on_proposal: false,
         visibilityMode: "all", visible_pipeline_ids: [],
         important_stage_ids: [], required_stage_ids: [], icon: "",
       });
@@ -514,15 +517,42 @@ export function CustomFieldEditModal({
                   </div>
                   <div className="p-4 space-y-4">
                     <div className="space-y-1.5">
-                      <Label className="text-xs font-medium">Obrigatório na proposta?</Label>
-                      <Select value={form.required_on_proposal ? "sim" : "nao"}
-                        onValueChange={v => setForm(p => ({ ...p, required_on_proposal: v === "sim" }))}>
+                      <Label className="text-xs font-medium">Exibir na proposta?</Label>
+                      <Select value={form.show_on_proposal ? "sim" : "nao"}
+                        onValueChange={v => setForm(p => ({
+                          ...p,
+                          show_on_proposal: v === "sim",
+                          // se ocultar, não pode ser obrigatório
+                          required_on_proposal: v === "sim" ? p.required_on_proposal : false,
+                        }))}>
                         <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
                         <SelectContent>
                           <SelectItem value="sim">Sim</SelectItem>
                           <SelectItem value="nao">Não</SelectItem>
                         </SelectContent>
                       </Select>
+                      <p className="text-[11px] text-muted-foreground">
+                        Controla se o campo aparece no modal "Alterar Proposta".
+                      </p>
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-xs font-medium">Obrigatório na proposta?</Label>
+                      <Select value={form.required_on_proposal ? "sim" : "nao"}
+                        onValueChange={v => setForm(p => ({
+                          ...p,
+                          required_on_proposal: v === "sim",
+                          // obrigatório implica exibir
+                          show_on_proposal: v === "sim" ? true : p.show_on_proposal,
+                        }))}>
+                        <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="sim">Sim</SelectItem>
+                          <SelectItem value="nao">Não</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <p className="text-[11px] text-muted-foreground">
+                        Se Sim, o campo será exibido e o preenchimento será obrigatório.
+                      </p>
                     </div>
                   </div>
                 </div>

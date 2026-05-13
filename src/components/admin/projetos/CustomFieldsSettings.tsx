@@ -58,6 +58,7 @@ interface CustomField {
   important_on_funnel: boolean;
   required_on_funnel: boolean;
   required_on_proposal: boolean;
+  show_on_proposal: boolean;
   is_active: boolean;
   visible_pipeline_ids: string[];
   important_stage_ids: string[];
@@ -349,6 +350,7 @@ export function CustomFieldsSettings() {
                             <th className="text-left px-4 py-2.5 text-xs font-semibold text-muted-foreground">Título</th>
                             <th className="text-left px-4 py-2.5 text-xs font-semibold text-muted-foreground">Chave</th>
                             <th className="text-left px-4 py-2.5 text-xs font-semibold text-muted-foreground">Tipo</th>
+                            <th className="text-center px-2 py-2.5 text-xs font-semibold text-muted-foreground">Exibir na Proposta</th>
                             <th className="text-center px-2 py-2.5 text-xs font-semibold text-muted-foreground">Obrigatório na Proposta</th>
                             <th className="text-right px-4 py-2.5 text-xs font-semibold text-muted-foreground">Ações</th>
                           </tr>
@@ -389,7 +391,10 @@ export function CustomFieldsSettings() {
                           </>
                         )}
                         {contextFilter === "pre_dimensionamento" && (
-                          <th className="text-center px-2 py-2.5 text-xs font-semibold text-muted-foreground">Obrigatório na Proposta</th>
+                          <>
+                            <th className="text-center px-2 py-2.5 text-xs font-semibold text-muted-foreground">Exibir na Proposta</th>
+                            <th className="text-center px-2 py-2.5 text-xs font-semibold text-muted-foreground">Obrigatório na Proposta</th>
+                          </>
                         )}
                         <th className="text-right px-4 py-2.5 text-xs font-semibold text-muted-foreground">Ações</th>
                       </tr>
@@ -452,7 +457,10 @@ export function CustomFieldsSettings() {
                             </>
                           )}
                           {contextFilter === "pre_dimensionamento" && (
-                            <td className="text-center px-2"><SwitchCell value={f.required_on_proposal} fieldId={f.id} column="required_on_proposal" onUpdate={() => {}} /></td>
+                            <>
+                              <td className="text-center px-2"><SwitchCell value={f.show_on_proposal} fieldId={f.id} column="show_on_proposal" onUpdate={() => {}} /></td>
+                              <td className="text-center px-2"><SwitchCell value={f.required_on_proposal} fieldId={f.id} column="required_on_proposal" onUpdate={() => {}} /></td>
+                            </>
                           )}
                           <td className="px-4 py-2.5 text-right">
                             <div className="flex items-center justify-end gap-1">
@@ -915,6 +923,7 @@ function SortableFieldRow({
       <td className="px-4 py-2.5">
         <Badge variant="outline" className="text-[10px]">{FIELD_TYPE_LABELS[normalizeFieldType(f.field_type)] || f.field_type}</Badge>
       </td>
+      <td className="text-center px-2"><SwitchCell value={f.show_on_proposal} fieldId={f.id} column="show_on_proposal" onUpdate={() => {}} /></td>
       <td className="text-center px-2"><SwitchCell value={f.required_on_proposal} fieldId={f.id} column="required_on_proposal" onUpdate={() => {}} /></td>
       <td className="px-4 py-2.5 text-right">
         <div className="flex items-center justify-end gap-1">
