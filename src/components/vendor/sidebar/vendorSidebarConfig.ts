@@ -79,7 +79,13 @@ export const VENDOR_SIDEBAR_SECTIONS: VendorSidebarSection[] = [
         id: "orcamentos",
         title: "Orçamentos",
         icon: FileText,
-        description: "Propostas e simulações enviadas",
+        description: "Leads captados pelo seu link",
+      },
+      {
+        id: "propostas",
+        title: "Minhas Propostas",
+        icon: FileText,
+        description: "Propostas oficiais geradas para seus clientes",
       },
       {
         id: "gamificacao",
@@ -122,6 +128,7 @@ export const VENDOR_TAB_TITLES: Record<string, string> = {
   whatsapp: "Atendimento",
   agenda: "Agenda",
   orcamentos: "Orçamentos",
+  propostas: "Minhas Propostas",
   gamificacao: "Metas & Ranking",
   links: "Captação & App",
   notificacoes: "Notificações",
