@@ -85,7 +85,7 @@ export function usePropostaTemplates() {
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from("proposta_templates")
-        .select("id, nome, descricao, grupo, categoria, tipo, ativo, ordem, thumbnail_url, template_html")
+        .select("id, nome, descricao, grupo, categoria, tipo, ativo, ordem, thumbnail_url, template_html, is_default")
         .order("ordem", { ascending: true });
       if (error) throw error;
       return data ?? [];

@@ -12,9 +12,9 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "@/hooks/use-toast";
-import { Plus, Trash2, Save, Loader2, FileText, GripVertical, Eye, Pencil, Sparkles } from "lucide-react";
+import { Plus, Trash2, Save, Loader2, FileText, GripVertical, Eye, Pencil, Sparkles, Star } from "lucide-react";
 import { usePropostaTemplates, useRefreshPropostaTemplates } from "@/hooks/useConfSolar";
-import { useAtualizarTemplateHtml } from "@/hooks/usePropostaTemplatesCrud";
+import { useAtualizarTemplateHtml, useSetTemplateAsDefault } from "@/hooks/usePropostaTemplatesCrud";
 import { ProposalBuilderEditor } from "@/components/admin/proposal-builder";
 import type { TemplateBlock } from "@/components/admin/proposal-builder/types";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -33,6 +33,7 @@ interface TemplateRow {
   ordem: number;
   thumbnail_url: string | null;
   template_html: string | null;
+  is_default?: boolean;
   isNew?: boolean;
 }
 /** Renders block JSON as a visual preview (read-only) */
@@ -104,6 +105,7 @@ export function TemplatesTab() {
   const { data: serverData, isLoading: loading } = usePropostaTemplates();
   const refreshTemplates = useRefreshPropostaTemplates();
   const atualizarHtml = useAtualizarTemplateHtml();
+  const setAsDefault = useSetTemplateAsDefault();
   const [templates, setTemplates] = useState<TemplateRow[]>([]);
   const [saving, setSaving] = useState(false);
   const [previewHtml, setPreviewHtml] = useState<string | null>(null);
@@ -328,9 +330,39 @@ export function TemplatesTab() {
                     <Badge variant={t.ativo ? "default" : "secondary"} className="text-[10px]">
                       {t.ativo ? "Ativo" : "Inativo"}
                     </Badge>
+                    {t.is_default && t.tipo === "html" && t.ativo && (
+                      <Badge className="text-[10px] gap-1 bg-primary/15 text-primary border-primary/20 hover:bg-primary/20" variant="outline">
+                        <Star className="h-3 w-3 fill-current" />
+                        Padrão WEB
+                      </Badge>
+                    )}
                     <span className="text-xs font-semibold">{t.nome || `Template ${i + 1}`}</span>
                   </div>
                    <div className="flex items-center gap-2">
+                     {t.tipo === "html" && t.ativo && !t.is_default && !t.isNew && (
+                       <Button
+                         variant="outline"
+                         size="sm"
+                         className="h-7 text-xs gap-1.5"
+                         disabled={setAsDefault.isPending}
+                         onClick={async () => {
+                           try {
+                             await setAsDefault.mutateAsync(t.id);
+                             toast({
+                               title: "Template definido como padrão",
+                               description: "Esse template será usado como landing comercial quando a proposta não tiver modelo web vinculado.",
+                             });
+                             setInitialized(false);
+                             refreshTemplates();
+                           } catch (e: any) {
+                             toast({ title: "Erro", description: e.message, variant: "destructive" });
+                           }
+                         }}
+                       >
+                         <Star className="h-3.5 w-3.5" />
+                         Definir como padrão
+                       </Button>
+                     )}
                      {t.tipo === "html" && !t.isNew && (
                        <Button
                          variant="outline"

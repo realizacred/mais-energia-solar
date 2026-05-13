@@ -144,6 +144,10 @@ export default function PropostaLanding() {
         setVersaoData(versaoRes.data);
         setSnapshot(normalizeProposalSnapshot(versaoRes.data.snapshot as Record<string, unknown> | null));
 
+        // Resolução determinística do template WEB:
+        // 1) template_id_used SOMENTE se for tipo='html' com template_html válido
+        // 2) fallback: template HTML padrão do tenant (is_default=true, ativo=true)
+        // 3) erro explícito — sem redirect automático para PDF
         const templateId = (versaoRes.data as any).template_id_used;
         let webUsable = false;
         if (templateId) {
@@ -160,17 +164,40 @@ export default function PropostaLanding() {
               if (Array.isArray(parsed) && parsed.length > 0) {
                 setTemplateBlocks(parsed);
                 webUsable = true;
-              } else if (typeof parsed === "string" && parsed.trim().length > 0) {
-                webUsable = true;
               }
             }
-          } catch { /* fallback to component layout */ }
+          } catch { /* try default fallback */ }
         }
 
-        // Sem template WEB utilizável: se houver PDF, redirecionar para /proposta/:token
-        // (que abrirá o PDF oficial). Evita mostrar erro técnico ao cliente.
-        if (!webUsable && (versaoRes.data as any).output_pdf_path) {
-          window.location.replace(`/proposta/${token}`);
+        // Fallback: padrão HTML do tenant
+        if (!webUsable) {
+          // tenant_id vem de propostaRes (resolvido no Promise.all acima)
+          const tenantIdForDefault = (propostaRes as any)?.data?.tenant_id;
+          if (tenantIdForDefault) {
+            try {
+              const { data: defTpl } = await supabase
+                .from("proposta_templates")
+                .select("template_html")
+                .eq("tenant_id", tenantIdForDefault)
+                .eq("tipo", "html")
+                .eq("ativo", true)
+                .eq("is_default", true)
+                .maybeSingle();
+              const defHtml = (defTpl as any)?.template_html;
+              if (defHtml) {
+                const parsed = typeof defHtml === "string" ? JSON.parse(defHtml) : defHtml;
+                if (Array.isArray(parsed) && parsed.length > 0) {
+                  setTemplateBlocks(parsed);
+                  webUsable = true;
+                }
+              }
+            } catch { /* ignore */ }
+          }
+        }
+
+        if (!webUsable) {
+          setError("Modelo web não configurado. Defina um template WEB padrão na área de Modelos de Proposta.");
+          setLoading(false);
           return;
         }
       }
