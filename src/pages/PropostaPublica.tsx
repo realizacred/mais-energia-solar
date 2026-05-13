@@ -208,7 +208,7 @@ export default function PropostaPublica() {
 
       if (tdErr || !td) { setError("Link inválido ou expirado."); setLoading(false); return; }
 
-      // Check if token was invalidated (new version created or proposal deleted)
+      // Token invalidado — exibir mensagem comercial neutra (sem expor versionamento interno)
       if (td.invalidado_em) {
         try {
           const { data: proposta } = await (supabase as any)
@@ -216,17 +216,6 @@ export default function PropostaPublica() {
             .select("tenant_id")
             .eq("id", td.proposta_id)
             .maybeSingle();
-
-          let latestTokenUrl: string | null = null;
-          // Only look for latest token if invalidated by new version (not deletion)
-          if (td.motivo_invalidacao === 'nova_versao_criada') {
-            const { data: latestRows } = await (supabase as any)
-              .rpc("get_latest_valid_token_for_proposta", { p_proposta_id: td.proposta_id });
-            const latestToken = Array.isArray(latestRows) ? latestRows[0] : latestRows;
-            if (latestToken?.token) {
-              latestTokenUrl = `/proposta/${latestToken.token}`;
-            }
-          }
 
           if (proposta?.tenant_id) {
             const [tenantRes, brandRes, consultorRes] = await Promise.all([
@@ -241,17 +230,13 @@ export default function PropostaPublica() {
               empresaLogo: (brandRow as any)?.logo_url || null,
               empresaTelefone: consultorRes.data?.telefone || null,
               motivo_invalidacao: td.motivo_invalidacao || null,
-              latestTokenUrl,
+              latestTokenUrl: null,
             });
             setLoading(false);
             return;
           }
         } catch { /* fallback to generic error */ }
-        setError(
-          td.motivo_invalidacao === 'proposta_excluida'
-            ? "Esta proposta foi removida e o link não está mais disponível."
-            : "Este link não está mais disponível. Uma nova versão da proposta foi gerada."
-        );
+        setError("Proposta temporariamente indisponível. Entre em contato com nossa equipe.");
         setLoading(false);
         return;
       }
@@ -458,9 +443,8 @@ export default function PropostaPublica() {
     );
   }
 
-  // ── INVALIDATED TOKEN (new version created) ─────────
+  // ── INVALIDATED TOKEN — mensagem comercial neutra (sem expor versionamento) ─────────
   if (invalidatedInfo) {
-    const isDeleted = invalidatedInfo.motivo_invalidacao === 'proposta_excluida';
     return (
       <div className="min-h-screen flex items-center justify-center bg-muted/20 p-4">
         <div className="max-w-md w-full text-center space-y-6">
@@ -478,33 +462,18 @@ export default function PropostaPublica() {
 
           <div className="space-y-2">
             <h1 className="text-xl font-bold text-foreground">
-              {isDeleted ? "Proposta removida" : "Este link não está mais disponível"}
+              Proposta temporariamente indisponível
             </h1>
             <p className="text-sm text-muted-foreground">
-              {isDeleted
-                ? "Esta proposta foi removida e o link não está mais ativo."
-                : "Uma nova versão desta proposta foi gerada."}
-              {!isDeleted && invalidatedInfo.empresaNome && !invalidatedInfo.latestTokenUrl && (
-                <>
-                  {" "}Entre em contato com{" "}
-                  <span className="font-medium text-foreground">
-                    {invalidatedInfo.empresaNome}
-                  </span>{" "}
-                  para receber o link atualizado.
-                </>
-              )}
+              Entre em contato com{" "}
+              {invalidatedInfo.empresaNome ? (
+                <span className="font-medium text-foreground">{invalidatedInfo.empresaNome}</span>
+              ) : (
+                "nossa equipe"
+              )}{" "}
+              para receber o atendimento comercial.
             </p>
           </div>
-
-          {invalidatedInfo.latestTokenUrl && (
-            <a
-              href={invalidatedInfo.latestTokenUrl}
-              className="inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-primary text-primary-foreground font-medium text-sm hover:opacity-90 transition"
-            >
-              <Zap className="w-4 h-4" />
-              Ver versão atualizada
-            </a>
-          )}
 
           {invalidatedInfo.empresaTelefone && (
             <a
@@ -517,13 +486,6 @@ export default function PropostaPublica() {
               Falar com {invalidatedInfo.empresaNome || "a empresa"}
             </a>
           )}
-
-          <p className="text-xs text-muted-foreground">
-            Link expirado em{" "}
-            {new Date(invalidatedInfo.invalidado_em).toLocaleDateString("pt-BR", {
-              timeZone: "America/Sao_Paulo",
-            })}
-          </p>
         </div>
       </div>
     );
