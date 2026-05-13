@@ -60,6 +60,7 @@ export function StepPagamento({ onNext, onBack }: StepPagamentoProps) {
   } = useWizardContext();
 
   const { bancos, loadingBancos } = useBancosCatalog();
+  const { data: formasConfig } = usePaymentInterestConfigs();
   const precoFinal = usePrecoFinal(itens, servicos, venda);
 
   const [activeTab, setActiveTab] = useState<"pagamento" | "fluxo">("pagamento");
@@ -68,6 +69,7 @@ export function StepPagamento({ onNext, onBack }: StepPagamentoProps) {
   const [bancoGroups, setBancoGroups] = useState<BancoGroup[]>([]);
   const [formasSelecionadas, setFormasSelecionadas] = useState<FormaSelected[]>([]);
   const [valorEntradaGlobal, setValorEntradaGlobal] = useState<number>(0);
+  const hydratedRef = useRef(false);
 
   const calcParcela = useCallback((input: any) => {
     return calcularPrestacao(input.valor_financiado - input.entrada, input.taxa_mensal, input.num_parcelas);
