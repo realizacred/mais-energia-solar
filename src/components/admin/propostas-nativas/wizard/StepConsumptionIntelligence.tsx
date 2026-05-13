@@ -41,6 +41,8 @@ interface Props {
   /** Skip POA transposition — use raw GHI */
   somenteGhi?: boolean;
   leadFase?: string | null;
+  /** Geração desejada/estimada informada pelo cliente no cadastro do lead (kWh/mês). SSOT: leads.consumo_previsto */
+  geracaoDesejadaKwh?: number | null;
 }
 
 
@@ -50,7 +52,7 @@ type PreSubTab = "premissas" | "equipamentos";
 function StepConsumptionIntelligenceImpl({
   ucs, onUcsChange, potenciaKwp, onPotenciaChange,
   preDimensionamento: pd, onPreDimensionamentoChange: setPd,
-  irradiacao, ghiSeries, latitude, somenteGhi, leadFase,
+  irradiacao, ghiSeries, latitude, somenteGhi, leadFase, geracaoDesejadaKwh,
 }: Props) {
 
   const [activeTab, setActiveTab] = useState<ActiveTab>("ucs");
@@ -474,6 +476,16 @@ function StepConsumptionIntelligenceImpl({
     <div className="space-y-4">
       {/* ─── Header metrics bar */}
       <div className="flex items-center justify-end gap-4 text-xs flex-wrap">
+        {typeof geracaoDesejadaKwh === "number" && geracaoDesejadaKwh > 0 && (
+          <div
+            className="flex items-center gap-1.5 rounded-md border border-secondary/30 bg-secondary/5 px-2 py-1 text-secondary"
+            title="Geração desejada informada pelo cliente no cadastro do lead"
+          >
+            <Zap className="h-3.5 w-3.5" />
+            <span className="font-medium">Objetivo do cliente</span>
+            <span className="font-bold">{formatNumberBR(geracaoDesejadaKwh)} kWh/mês</span>
+          </div>
+        )}
         <div className="flex items-center gap-1.5 text-muted-foreground">
           <BarChart3 className="h-3.5 w-3.5" />
           <span>Consumo Médio Total</span>
@@ -872,6 +884,7 @@ export function StepConsumptionIntelligence({ leadFase }: { leadFase?: string | 
     potenciaKwp, setPotenciaKwp,
     preDimensionamento, setPreDimensionamento,
     locIrradiacao, locGhiSeries, locLatitude, locSkipPoa,
+    selectedLead,
   } = useWizardContext();
   return (
     <StepConsumptionIntelligenceImpl
@@ -886,6 +899,7 @@ export function StepConsumptionIntelligence({ leadFase }: { leadFase?: string | 
       latitude={locLatitude}
       somenteGhi={locSkipPoa}
       leadFase={leadFase}
+      geracaoDesejadaKwh={selectedLead?.geracao_estimada_kwh}
     />
   );
 }
