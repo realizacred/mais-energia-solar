@@ -236,7 +236,7 @@ export default function PropostaPublica() {
             return;
           }
         } catch { /* fallback to generic error */ }
-        setError("Proposta temporariamente indisponível. Entre em contato com nossa equipe.");
+        setError("Esta proposta não está mais disponível. Entre em contato com nossa equipe.");
         setLoading(false);
         return;
       }
