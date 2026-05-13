@@ -185,16 +185,33 @@ export function ProjectDocumentsHub({ projetoId, dealId }: Props) {
   const fileInput = useRef<HTMLInputElement>(null);
 
   // Mescla canônico + legado bucket + custom fields como linhas virtuais
+  // SSOT visual = project_documents. Custom fields entram como metadado/badge,
+  // nunca como linha duplicada quando o mesmo arquivo já existe na canônica.
   const docs = useMemo<ProjectDocument[]>(() => {
-    const out: ProjectDocument[] = [...canonicalDocs];
-    const seenPaths = new Set(canonicalDocs.map((d) => d.storage_path));
+    const out: ProjectDocument[] = [];
+    // Index canônico por (bucket+path) e por (deal+filename_normalizado+size)
+    const byPath = new Map<string, ProjectDocument>();
+    const byFnSize = new Map<string, ProjectDocument>();
+    const fnSizeKey = (dealId: string | null, name: string, size: number | null) =>
+      `${dealId || ""}::${normalizeFilename(name)}::${size ?? ""}`;
 
-    // Legacy bucket projeto-documentos
+    for (const d of canonicalDocs) {
+      const norm: ProjectDocument = { ...d, categoria: normalizeCategoria(d.categoria) };
+      out.push(norm);
+      byPath.set(`${norm.bucket}::${norm.storage_path}`, norm);
+      byFnSize.set(fnSizeKey(norm.deal_id, norm.file_name, norm.size_bytes), norm);
+    }
+
+    // Legacy bucket projeto-documentos (storage scan)
     for (const f of legacyFiles) {
       if (!f.id || !f.metadata) continue;
       const path = `legacy/${dealId}/${f.name}`;
-      if (seenPaths.has(path)) continue;
-      out.push({
+      const fname = f.name.replace(/^\d+_/, "");
+      const size = f.metadata?.size || null;
+      const pathKey = `projeto-documentos::${path}`;
+      const fnKey = fnSizeKey(dealId || null, fname, size);
+      if (byPath.has(pathKey) || byFnSize.has(fnKey)) continue;
+      const item: ProjectDocument = {
         id: `legacy:${f.name}`,
         tenant_id: "",
         projeto_id: null,
@@ -204,10 +221,10 @@ export function ProjectDocumentsHub({ projetoId, dealId }: Props) {
         categoria: "Anexos manuais",
         origem: "legacy",
         bucket: "projeto-documentos",
-        storage_path: path, // resolvido na hora do preview/download
-        file_name: f.name.replace(/^\d+_/, ""),
+        storage_path: path,
+        file_name: fname,
         mime_type: f.metadata?.mimetype || null,
-        size_bytes: f.metadata?.size || null,
+        size_bytes: size,
         uploaded_by: null,
         metadata: { _legacyName: f.name },
         source_table: "storage",
@@ -215,20 +232,39 @@ export function ProjectDocumentsHub({ projetoId, dealId }: Props) {
         is_deleted: false,
         created_at: f.created_at || new Date().toISOString(),
         updated_at: f.created_at || new Date().toISOString(),
-      });
+      };
+      out.push(item);
+      byPath.set(pathKey, item);
+      byFnSize.set(fnKey, item);
     }
 
-    // Custom field files
+    // Custom field files — preferir enriquecer existente em vez de duplicar
     for (const cf of cfFiles) {
-      if (seenPaths.has(cf.storage_path)) continue;
-      out.push({
+      const pathKey = `projeto-documentos::${cf.storage_path}`;
+      const fnKey = fnSizeKey(dealId || null, cf.filename, cf.size ?? null);
+      const existing = byPath.get(pathKey) || byFnSize.get(fnKey);
+      if (existing) {
+        // Enriquece metadado mas NÃO cria linha nova
+        existing.metadata = {
+          ...(existing.metadata || {}),
+          field_id: cf.field_id,
+          field_key: cf.field_key,
+          field_title: cf.field_title,
+        };
+        // Se canônica não tinha categoria útil, herda do campo
+        if (!existing.categoria || existing.categoria === "Outros" || existing.categoria === "Anexos manuais") {
+          existing.categoria = normalizeCategoria(cf.field_title);
+        }
+        continue;
+      }
+      const item: ProjectDocument = {
         id: `cf:${cf.field_id}:${cf.storage_path}`,
         tenant_id: "",
         projeto_id: null,
         deal_id: dealId || null,
         proposta_id: null,
         cliente_id: null,
-        categoria: `Campo: ${cf.field_title}`,
+        categoria: normalizeCategoria(cf.field_title),
         origem: "custom_field",
         bucket: "projeto-documentos",
         storage_path: cf.storage_path,
@@ -242,7 +278,10 @@ export function ProjectDocumentsHub({ projetoId, dealId }: Props) {
         is_deleted: false,
         created_at: cf.uploaded_at || new Date().toISOString(),
         updated_at: cf.uploaded_at || new Date().toISOString(),
-      });
+      };
+      out.push(item);
+      byPath.set(pathKey, item);
+      byFnSize.set(fnKey, item);
     }
 
     return out.sort((a, b) => b.created_at.localeCompare(a.created_at));
