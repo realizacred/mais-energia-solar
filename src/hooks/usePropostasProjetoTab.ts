@@ -4,6 +4,8 @@ import { useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
+// SSOT: total da proposta vem SEMPRE de getCanonicalProposalTotal — não recalcule aqui.
+import { getCanonicalProposalTotal } from "@/services/proposal/proposalTotals";
 
 // ─── Types ──────────────────────────────────────────
 export interface VersaoProjetoTab {
