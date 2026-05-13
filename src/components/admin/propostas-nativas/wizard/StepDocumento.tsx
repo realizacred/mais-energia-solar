@@ -881,50 +881,7 @@ export function StepDocumento({
             )}
           </div>
 
-          {/* 2. PRIMARY GENERATE / REGENERATE CTA — sempre visível */}
-          <Button
-            variant={isReady ? "outline" : "default"}
-            size="lg"
-            className="w-full gap-2 h-11"
-            onClick={onGenerate}
-            disabled={isBusy || !templateSelecionado || estimativaBlocked}
-            title={estimativaBlocked ? "Marque o aceite de estimativa acima para continuar" : undefined}
-          >
-            {isBusy ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : isReady ? (
-              <RefreshCw className="h-4 w-4" />
-            ) : (
-              <Sun className="h-4 w-4" />
-            )}
-            {isBusy ? "Gerando..." : isReady ? "Regenerar proposta" : "Gerar proposta"}
-          </Button>
-
-          {/* 3. COMMERCIAL CTAs — WhatsApp (primary) + Email (secondary) */}
-          {isReady && (
-            <div className="space-y-2">
-              <Button
-                variant="success"
-                size="lg"
-                className="w-full gap-2 h-12 text-sm font-semibold shadow-sm"
-                onClick={() => setActiveTab("whatsapp")}
-              >
-                <MessageCircle className="h-4 w-4" />
-                Enviar por WhatsApp
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                className="w-full gap-2 h-9"
-                onClick={() => setActiveTab("email")}
-              >
-                <Mail className="h-4 w-4" />
-                Enviar por e-mail
-              </Button>
-            </div>
-          )}
-
-          {/* 4. TEMPLATE SELECTOR — compact */}
+          {/* 2. TEMPLATE SELECTOR + UPLOAD .docx */}
           <div className="rounded-lg border border-border/50 bg-muted/20 p-2.5 space-y-2">
             <Label className="text-[10px] uppercase tracking-wide text-muted-foreground font-medium">Template do documento</Label>
             <Select value={templateSelecionado} onValueChange={onTemplateSelecionado}>
@@ -964,6 +921,49 @@ export function StepDocumento({
               {uploadingDocx ? "Enviando..." : "Upload .docx personalizado"}
             </Button>
           </div>
+
+          {/* 3. PRIMARY GENERATE / REGENERATE CTA */}
+          <Button
+            variant={isReady ? "outline" : "default"}
+            size="lg"
+            className="w-full gap-2 h-11"
+            onClick={onGenerate}
+            disabled={isBusy || !templateSelecionado || estimativaBlocked}
+            title={estimativaBlocked ? "Marque o aceite de estimativa acima para continuar" : undefined}
+          >
+            {isBusy ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : isReady ? (
+              <RefreshCw className="h-4 w-4" />
+            ) : (
+              <Sun className="h-4 w-4" />
+            )}
+            {isBusy ? "Gerando..." : isReady ? "Regenerar proposta" : "Gerar proposta"}
+          </Button>
+
+          {/* 4. COMMERCIAL CTAs — WhatsApp (primary) + Email (secondary) */}
+          {isReady && (
+            <div className="space-y-2">
+              <Button
+                variant="success"
+                size="lg"
+                className="w-full gap-2 h-12 text-sm font-semibold shadow-sm"
+                onClick={() => setActiveTab("whatsapp")}
+              >
+                <MessageCircle className="h-4 w-4" />
+                Enviar por WhatsApp
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full gap-2 h-9"
+                onClick={() => setActiveTab("email")}
+              >
+                <Mail className="h-4 w-4" />
+                Enviar por e-mail
+              </Button>
+            </div>
+          )}
 
           {/* 5. SHARING & TRACKING — sempre visível quando ready */}
           {isReady && (
