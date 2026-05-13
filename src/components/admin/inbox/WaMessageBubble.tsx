@@ -412,10 +412,10 @@ export function WaMessageBubble({
                   <statusCfg.icon className={`h-3.5 w-3.5 ${
                     isOut
                       ? msg.status === "read"
-                        ? "text-sky-300"
+                        ? "text-primary-foreground"
                         : msg.status === "failed"
                           ? "text-destructive-foreground"
-                          : "text-primary-foreground/80"
+                          : "text-primary-foreground/70"
                       : statusCfg.className
                   }`} />
                 </TooltipTrigger>
