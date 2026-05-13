@@ -803,10 +803,23 @@ export function StepDocumento({
     };
 
     const isBusy = generating || rendering;
-    // SSOT do "pronta": artefato persistido (PDF/DOCX/link externo) OU status explícito "ready".
-    // Quando o componente é renderizado fora do ProposalWizard (ex: ProjetoDetalhe via
-    // StepDocumentoBridge), ninguém alimenta generationStatus — então o painel ficava
-    // travado em "Proposta desatualizada" mesmo após gerar/regenerar com sucesso.
+    // ─────────────────────────────────────────────────────────────────────────
+    // SSOT de "Proposta pronta" — NÃO ALTERAR sem auditar AMBOS os contextos:
+    //   1) ProposalWizard (fluxo nativo de criação/edição) — alimenta
+    //      generationStatus no WizardContext durante geração.
+    //   2) ProjetoDetalhe → StepDocumentoBridge (fluxo de visualização/regen
+    //      dentro do projeto) — NÃO usa WizardContext, então generationStatus
+    //      permanece "idle" mesmo após gerar/regenerar com sucesso.
+    //
+    // Por isso a fonte canônica de prontidão é o ARTEFATO PERSISTIDO na
+    // versão (output_pdf_path | external_pdf_url | output_docx_path),
+    // refletido aqui via props vindas do hook de versão ativa.
+    // generationStatus === "ready" é apenas um sinal transitório auxiliar.
+    //
+    // ❌ NUNCA voltar isReady para depender SÓ de generationStatus.
+    // ❌ NUNCA esconder QR/WhatsApp/e-mail/links/downloads quando há artefato.
+    // ❌ NUNCA criar estado paralelo de "pronta" — esta é a única regra.
+    // ─────────────────────────────────────────────────────────────────────────
     const hasArtifact = !!outputPdfPath || !!externalPdfUrl || !!outputDocxPath;
     const isReady = !isBusy && (generationStatus === "ready" || hasArtifact);
     const statusLabel = isReady
