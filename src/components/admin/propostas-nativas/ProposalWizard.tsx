@@ -813,7 +813,9 @@ function ProposalWizardContent() {
           inversorDescricao: invDesc,
           inversorQtd: totalInvQtd,
           inversorPotenciaKw: totalInvKw,
-          topologia: "Tradicional",
+          // Persistência canônica = lowercase (ver mem://constraints/kit-topologia-normalization).
+          // Modal hidrata via normalizeTopologyLabel; não trocar para "Tradicional".
+          topologia: "tradicional",
           precoTotal,
           precoWp,
           updatedAt: new Date().toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" }),
@@ -2350,17 +2352,11 @@ function ProposalWizardContent() {
         customFieldValues: customFieldValues ?? {},
         aceite_estimativa: enforcement.aceiteEstimativa || undefined,
         // Sistema/topologia derivados do kit selecionado pelo usuário (defaults no servidor).
+        // Topologia normalizada via helper canônico (lowercase) — não reimplementar inline.
         kit: (() => {
           const meta = (manualKits[(selectedManualIdx ?? 0) as number] as any)?.meta;
           if (!meta) return undefined;
-          const topoRaw = (meta.topologia || "").toString().toLowerCase();
-          const topologia = topoRaw === "microinversor"
-            ? "microinversor" as const
-            : topoRaw.startsWith("otimizador")
-              ? "otimizador" as const
-              : topoRaw === "tradicional"
-                ? "tradicional" as const
-                : undefined;
+          const topologia = meta.topologia ? normalizeTopologyValue(meta.topologia) : undefined;
           const tipo_sistema = (meta.sistema === "hibrido" || meta.sistema === "off_grid" || meta.sistema === "on_grid")
             ? meta.sistema
             : undefined;
