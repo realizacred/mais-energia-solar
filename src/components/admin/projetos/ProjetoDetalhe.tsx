@@ -1289,12 +1289,13 @@ function GerenciamentoTab({
             });
           const realFiles = (files || []).filter((f: any) => !isFolder(f));
           if (realFiles.length === 0) continue;
-          const label = prettyFieldName(fieldKey);
+          const { label, gender } = prettyField(fieldKey);
+          const verb = gender === "f" ? "atualizada" : "atualizado";
           const last = realFiles[0];
           entries.push({
             id: `doc-cf-${fieldKey}`,
             type: "documento" as const,
-            title: `${label} atualizado`,
+            title: `${label} ${verb}`,
             subtitle:
               realFiles.length === 1
                 ? "1 arquivo anexado"
