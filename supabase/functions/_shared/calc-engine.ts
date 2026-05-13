@@ -16,6 +16,10 @@ export interface CalcInputs {
   trocaInversorAnos: number;
   trocaInversorCustoPct: number;
   vplTaxaDesconto: number;
+  // FASE 2: Fio B real (R$/kWh) resolvido pelo chamador via precedência
+  // tariff_versions.tusd_fio_b_kwh > tenant_premises.tusd_fio_b_bt > concessionarias.tarifa_fio_b.
+  // Quando ausente, mantemos o proxy histórico tarifaMedia * 0.28 (compat).
+  tarifaFioBKwh?: number;
   // Lei 14.300 Fio B escalation
   fioB: {
     anoBase: number;
