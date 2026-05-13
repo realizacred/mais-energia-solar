@@ -218,6 +218,13 @@ export function StepPagamento({ onNext, onBack }: StepPagamentoProps) {
         </Tabs>
       </div>
 
+      {formasSelecionadas.length === 0 && (
+        <div className="flex items-center gap-2 p-3 rounded-md border border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-300 text-xs">
+          <AlertTriangle className="h-4 w-4 shrink-0" />
+          <span>Adicione pelo menos uma forma de pagamento para continuar.</span>
+        </div>
+      )}
+
       <PaymentMethodSelector 
         precoFinal={precoFinal} 
         selected={formasSelecionadas} 
@@ -232,7 +239,12 @@ export function StepPagamento({ onNext, onBack }: StepPagamentoProps) {
             </Button>
           ) : <div />}
           {onNext && (
-            <Button size="sm" onClick={onNext} className="gap-1 text-xs px-6">
+            <Button
+              size="sm"
+              onClick={handleNext}
+              disabled={formasSelecionadas.length === 0}
+              className="gap-1 text-xs px-6"
+            >
               Próximo <ChevronRight className="h-4 w-4" />
             </Button>
           )}
