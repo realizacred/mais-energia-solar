@@ -254,23 +254,41 @@ export function WaMessageBubble({
             ) : renderMediaPlaceholder("áudio")
           )}
 
-          {/* DOCUMENT — with download button */}
+          {/* DOCUMENT — premium mini-card */}
           {msg.message_type === "document" && (
             msg.media_url ? (
-              <div className="flex items-center gap-2 text-xs">
-                <div
-                  className="flex items-center gap-2 flex-1 min-w-0 opacity-80 hover:opacity-100 transition-opacity cursor-pointer"
-                  onClick={() => msg.media_url && onMediaPreview({ url: msg.media_url, type: "document", caption: msg.content || undefined })}
-                >
-                  <span>📄</span>
-                  <span className="truncate">{msg.content || "Documento"}</span>
+              <div
+                className={`flex items-center gap-2.5 p-2 rounded-lg ${
+                  isOut
+                    ? "bg-primary-foreground/15 hover:bg-primary-foreground/20"
+                    : "bg-muted/70 hover:bg-muted"
+                } transition-colors cursor-pointer`}
+                onClick={() => msg.media_url && onMediaPreview({ url: msg.media_url, type: "document", caption: msg.content || undefined })}
+              >
+                <div className={`shrink-0 h-9 w-9 rounded-md flex items-center justify-center ${
+                  isOut ? "bg-primary-foreground/20 text-primary-foreground" : "bg-background text-primary border border-border"
+                }`}>
+                  <FileWarning className="hidden" />
+                  <span className="text-base">📄</span>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className={`text-[13px] font-medium truncate ${isOut ? "text-primary-foreground" : "text-foreground"}`}>
+                    {msg.content || "Documento"}
+                  </p>
+                  <p className={`text-[10.5px] ${isOut ? "text-primary-foreground/70" : "text-muted-foreground"}`}>
+                    Toque para abrir
+                  </p>
                 </div>
                 <a
                   href={msg.media_url}
                   target="_blank"
                   rel="noopener noreferrer"
                   download
-                  className="p-1 rounded hover:bg-muted/80 text-muted-foreground hover:text-foreground transition-colors shrink-0"
+                  className={`shrink-0 p-1.5 rounded-md transition-colors ${
+                    isOut
+                      ? "text-primary-foreground/80 hover:text-primary-foreground hover:bg-primary-foreground/15"
+                      : "text-muted-foreground hover:text-foreground hover:bg-background"
+                  }`}
                   title="Baixar"
                   onClick={(e) => e.stopPropagation()}
                 >
