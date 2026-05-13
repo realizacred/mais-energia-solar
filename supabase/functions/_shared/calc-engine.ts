@@ -16,6 +16,10 @@ export interface CalcInputs {
   trocaInversorAnos: number;
   trocaInversorCustoPct: number;
   vplTaxaDesconto: number;
+  // FASE 2: Fio B real (R$/kWh) resolvido pelo chamador via precedência
+  // tariff_versions.tusd_fio_b_kwh > tenant_premises.tusd_fio_b_bt > concessionarias.tarifa_fio_b.
+  // Quando ausente, mantemos o proxy histórico tarifaMedia * 0.28 (compat).
+  tarifaFioBKwh?: number;
   // Lei 14.300 Fio B escalation
   fioB: {
     anoBase: number;
@@ -109,6 +113,7 @@ export function calcSeries25(inputs: CalcInputs): CalcResult {
     investimentoTotal, economiaMensalAno1, geracaoMensalKwh,
     tarifaMedia, inflacaoEnergetica, perdaEficienciaAnual,
     trocaInversorAnos, trocaInversorCustoPct, vplTaxaDesconto, fioB,
+    tarifaFioBKwh,
   } = inputs;
 
   const series: SeriesRow[] = [];
@@ -117,6 +122,9 @@ export function calcSeries25(inputs: CalcInputs): CalcResult {
   let vplTotal = -investimentoTotal;
   let paybackAnos = 0;
   const taxaDesc = vplTaxaDesconto / 100;
+
+  // FASE 2: Fio B real (R$/kWh) quando o chamador resolve via tariff_versions / tenant_premises / concessionarias.
+  const hasFioBReal = !!(tarifaFioBKwh && tarifaFioBKwh > 0);
 
   for (let ano = 1; ano <= 25; ano++) {
     const degradacao = Math.pow(1 - perdaEficienciaAnual / 100, ano - 1);
@@ -127,7 +135,10 @@ export function calcSeries25(inputs: CalcInputs): CalcResult {
 
     // Fio B cost using Lei 14.300 escalation
     const fioBPct = getFioBPercent(fioB, ano);
-    const custoFioB = round2(geracaoAnual * tarifaVigente * 0.28 * fioBPct); // 28% = TUSD Fio B proportion
+    // Quando há Fio B real: usa-o inflacionado. Sem real: mantém proxy histórico tarifaVigente * 0.28 (bit-identical).
+    const custoFioB = hasFioBReal
+      ? round2(geracaoAnual * (tarifaFioBKwh as number) * inflacao * fioBPct)
+      : round2(geracaoAnual * tarifaVigente * 0.28 * fioBPct);
 
     const economiaLiquida = round2(economiaBruta - custoFioB);
 

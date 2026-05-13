@@ -670,10 +670,21 @@ Deno.serve(async (req) => {
     // Hoisted: tarifaMedia é usado tanto no fallback de economia quanto no calcInputs (linha ~701)
     const tarifaMedia = uc1.tarifa_distribuidora || 0.85;
 
+    // FASE 2: Fio B real (R$/kWh) — precedência tariff_versions > tenant_premises > concessionarias.
+    // Quando indisponível, mantém proxy histórico tarifaMedia * 0.28.
+    const tarifaFioBResolvida =
+      Number(activeTariff?.tusd_fio_b_kwh) ||
+      Number(tenantPremises?.tusd_fio_b_bt) ||
+      Number(concessionaria?.tarifa_fio_b) ||
+      undefined;
+
     if (economiaMensal <= 0) {
       const energiaCompensavel = Math.min(geracaoEstimada, consumoTotal);
       const fioBAplicavel = backendGrupo === "B" ? percentualFioB / 100 : 0;
-      const custoFioBMensal = energiaCompensavel * (tarifaMedia * 0.28) * fioBAplicavel;
+      const fioBKwhFallback = (tarifaFioBResolvida && tarifaFioBResolvida > 0)
+        ? tarifaFioBResolvida
+        : tarifaMedia * 0.28;
+      const custoFioBMensal = energiaCompensavel * fioBKwhFallback * fioBAplicavel;
       const custoDispTotal = body.ucs.reduce((s, uc) => s + uc.custo_disponibilidade_valor, 0);
       const economiaBruta = energiaCompensavel * tarifaMedia;
       economiaMensal = Math.max(economiaBruta - custoFioBMensal - custoDispTotal, 0);
@@ -706,6 +717,7 @@ Deno.serve(async (req) => {
       trocaInversorAnos: premissas.troca_inversor_anos,
       trocaInversorCustoPct: premissas.troca_inversor_custo,
       vplTaxaDesconto: premissas.vpl_taxa_desconto,
+      tarifaFioBKwh: tarifaFioBResolvida,
       fioB: {
         anoBase: anoAtual,
         percentualBase: percentualFioB,
