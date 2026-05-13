@@ -5,7 +5,7 @@ import { getPublicUrl } from "@/lib/getPublicUrl";
 import { useNavigate } from "react-router-dom";
 import { ProposalSnapshotView } from "@/components/admin/propostas-nativas/ProposalSnapshotView";
 import { StepDocumento } from "@/components/admin/propostas-nativas/wizard/StepDocumento";
-import { WizardProvider } from "@/components/admin/propostas-nativas/wizard/WizardContext";
+import { WizardProvider, useWizardContext } from "@/components/admin/propostas-nativas/wizard/WizardContext";
 import { ProposalViewsCard } from "@/components/admin/propostas-nativas/ProposalViewsCard";
 import {
   Zap, SunMedium, DollarSign, FileText, Eye, Pencil, Copy, Trash2, Download,
@@ -985,12 +985,18 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
   };
 
   // Render proposal — handles both HTML (web) and DOCX templates
-  const handleRender = async () => {
+  const handleRender = async (overrideTemplateId?: string) => {
+    const effectiveTemplateId = overrideTemplateId || templateSelecionado;
     if (!latestVersao?.id) return;
 
     // Detect if selected template is DOCX
-    const selectedTpl = proposalTemplates.find(t => t.id === templateSelecionado);
+    const selectedTpl = proposalTemplates.find(t => t.id === effectiveTemplateId);
     const isDocxTemplate = selectedTpl?.tipo === "docx";
+
+    if (!effectiveTemplateId) {
+      toast({ title: "Selecione um template antes de gerar", variant: "destructive" });
+      return;
+    }
 
     setRendering(true);
     try {
@@ -1010,7 +1016,7 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
             "x-client-timeout": "120",
           },
           body: JSON.stringify({
-            template_id: templateSelecionado,
+            template_id: effectiveTemplateId,
             proposta_id: p.id,
             response_format: "json",
           }),
@@ -1610,11 +1616,16 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
 
                   <TabsContent value="arquivo" className="px-4 pb-4 mt-0">
                     <div className="mt-3">
-                      <StepDocumento
-                        onViewDetail={() => {}}
-                        skipTemplateAutoSelect={true}
+                      <StepDocumentoBridge
+                        onRender={handleRender}
+                        rendering={rendering}
+                        html={html}
+                        propostaId={p.id}
+                        versaoId={latestVersao?.id}
+                        outputPdfPath={latestVersao?.output_pdf_path ?? null}
+                        outputDocxPath={latestVersao?.output_docx_path ?? null}
+                        externalPdfUrl={latestVersao?.link_pdf ?? null}
                       />
-
                     </div>
                   </TabsContent>
 
@@ -1896,5 +1907,44 @@ function DadosField({ icon, label, value }: { icon: "check" | "text" | "dollar";
         </div>
       </div>
     </div>
+  );
+}
+
+// ─── Bridge: lê templateSelecionado do WizardContext e dispara handleRender do pai
+function StepDocumentoBridge({
+  onRender,
+  rendering,
+  html,
+  propostaId,
+  versaoId,
+  outputPdfPath,
+  outputDocxPath,
+  externalPdfUrl,
+}: {
+  onRender: (templateId?: string) => void | Promise<void>;
+  rendering: boolean;
+  html: string | null;
+  propostaId: string;
+  versaoId?: string;
+  outputPdfPath: string | null;
+  outputDocxPath: string | null;
+  externalPdfUrl: string | null;
+}) {
+  const ctx = useWizardContext() as any;
+  const tplFromCtx = ctx?.templateSelecionado as string | undefined;
+
+  return (
+    <StepDocumento
+      onViewDetail={() => {}}
+      skipTemplateAutoSelect={true}
+      onGenerate={() => onRender(tplFromCtx)}
+      generating={rendering}
+      rendering={rendering}
+      htmlPreview={html}
+      result={versaoId ? { proposta_id: propostaId, versao_id: versaoId } : null}
+      outputPdfPath={outputPdfPath}
+      outputDocxPath={outputDocxPath}
+      externalPdfUrl={externalPdfUrl}
+    />
   );
 }
