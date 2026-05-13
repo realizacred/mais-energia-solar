@@ -457,7 +457,10 @@ export function CustomFieldsSettings() {
                             </>
                           )}
                           {contextFilter === "pre_dimensionamento" && (
-                            <td className="text-center px-2"><SwitchCell value={f.required_on_proposal} fieldId={f.id} column="required_on_proposal" onUpdate={() => {}} /></td>
+                            <>
+                              <td className="text-center px-2"><SwitchCell value={f.show_on_proposal} fieldId={f.id} column="show_on_proposal" onUpdate={() => {}} /></td>
+                              <td className="text-center px-2"><SwitchCell value={f.required_on_proposal} fieldId={f.id} column="required_on_proposal" onUpdate={() => {}} /></td>
+                            </>
                           )}
                           <td className="px-4 py-2.5 text-right">
                             <div className="flex items-center justify-end gap-1">
