@@ -118,6 +118,55 @@ function formatSize(bytes?: number | null) {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
+/** Remove acentos, baixa, tira timestamps/prefixos aleatórios e normaliza separadores. */
+function normalizeFilename(name?: string | null): string {
+  if (!name) return "";
+  let n = name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  // remove timestamp prefix tipo 2025-11-06_18-10-59_xxxx_
+  n = n.replace(/^\d{4}-\d{2}-\d{2}[_-]\d{2}[-:]\d{2}[-:]\d{2}[_-]?[a-z0-9]*[_-]?/i, "");
+  // remove epoch ms prefix tipo 1778524914933_
+  n = n.replace(/^\d{10,}_(?:\d+_)?/, "");
+  // remove "Date.now()_idx_" prefix
+  n = n.replace(/^\d+_\d+_/, "");
+  // colapsa separadores
+  n = n.replace(/[\s_]+/g, "_").replace(/[^\w.\-]/g, "");
+  return n;
+}
+
+/** Normaliza nome de categoria para evitar duplicação visual ("CAMPO: X" vs "X"). */
+function normalizeCategoria(raw?: string | null): string {
+  if (!raw) return "Outros";
+  let c = raw.trim().replace(/^campo[:\s]+/i, "");
+  const slug = c
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "");
+  const ALIASES: Record<string, string> = {
+    identidade: "Identidade",
+    rg: "Identidade",
+    rg_cnh: "Identidade",
+    cnh: "Identidade",
+    comprovante_endereco: "Comprovante de endereço",
+    comprovante_de_endereco: "Comprovante de endereço",
+    conta_luz: "Conta de luz",
+    conta_de_luz: "Conta de luz",
+    iptu: "IPTU",
+    fotos_telhado: "Fotos do telhado",
+    art: "ART",
+    contrato: "Contrato",
+    proposta: "Proposta",
+    anexos_manuais: "Anexos manuais",
+  };
+  if (ALIASES[slug]) return ALIASES[slug];
+  // title case fallback
+  return c
+    .split(/\s+/)
+    .map((w) => (w ? w[0].toUpperCase() + w.slice(1).toLowerCase() : w))
+    .join(" ");
+}
+
 export function ProjectDocumentsHub({ projetoId, dealId }: Props) {
   const { data: canonicalDocs = [], isLoading } = useProjectDocuments({ projetoId, dealId });
   const { data: legacyFiles = [] } = useProjetoArquivos(dealId || "");
@@ -136,16 +185,33 @@ export function ProjectDocumentsHub({ projetoId, dealId }: Props) {
   const fileInput = useRef<HTMLInputElement>(null);
 
   // Mescla canônico + legado bucket + custom fields como linhas virtuais
+  // SSOT visual = project_documents. Custom fields entram como metadado/badge,
+  // nunca como linha duplicada quando o mesmo arquivo já existe na canônica.
   const docs = useMemo<ProjectDocument[]>(() => {
-    const out: ProjectDocument[] = [...canonicalDocs];
-    const seenPaths = new Set(canonicalDocs.map((d) => d.storage_path));
+    const out: ProjectDocument[] = [];
+    // Index canônico por (bucket+path) e por (deal+filename_normalizado+size)
+    const byPath = new Map<string, ProjectDocument>();
+    const byFnSize = new Map<string, ProjectDocument>();
+    const fnSizeKey = (dealId: string | null, name: string, size: number | null) =>
+      `${dealId || ""}::${normalizeFilename(name)}::${size ?? ""}`;
 
-    // Legacy bucket projeto-documentos
+    for (const d of canonicalDocs) {
+      const norm: ProjectDocument = { ...d, categoria: normalizeCategoria(d.categoria) };
+      out.push(norm);
+      byPath.set(`${norm.bucket}::${norm.storage_path}`, norm);
+      byFnSize.set(fnSizeKey(norm.deal_id, norm.file_name, norm.size_bytes), norm);
+    }
+
+    // Legacy bucket projeto-documentos (storage scan)
     for (const f of legacyFiles) {
       if (!f.id || !f.metadata) continue;
       const path = `legacy/${dealId}/${f.name}`;
-      if (seenPaths.has(path)) continue;
-      out.push({
+      const fname = f.name.replace(/^\d+_/, "");
+      const size = f.metadata?.size || null;
+      const pathKey = `projeto-documentos::${path}`;
+      const fnKey = fnSizeKey(dealId || null, fname, size);
+      if (byPath.has(pathKey) || byFnSize.has(fnKey)) continue;
+      const item: ProjectDocument = {
         id: `legacy:${f.name}`,
         tenant_id: "",
         projeto_id: null,
@@ -155,10 +221,10 @@ export function ProjectDocumentsHub({ projetoId, dealId }: Props) {
         categoria: "Anexos manuais",
         origem: "legacy",
         bucket: "projeto-documentos",
-        storage_path: path, // resolvido na hora do preview/download
-        file_name: f.name.replace(/^\d+_/, ""),
+        storage_path: path,
+        file_name: fname,
         mime_type: f.metadata?.mimetype || null,
-        size_bytes: f.metadata?.size || null,
+        size_bytes: size,
         uploaded_by: null,
         metadata: { _legacyName: f.name },
         source_table: "storage",
@@ -166,20 +232,39 @@ export function ProjectDocumentsHub({ projetoId, dealId }: Props) {
         is_deleted: false,
         created_at: f.created_at || new Date().toISOString(),
         updated_at: f.created_at || new Date().toISOString(),
-      });
+      };
+      out.push(item);
+      byPath.set(pathKey, item);
+      byFnSize.set(fnKey, item);
     }
 
-    // Custom field files
+    // Custom field files — preferir enriquecer existente em vez de duplicar
     for (const cf of cfFiles) {
-      if (seenPaths.has(cf.storage_path)) continue;
-      out.push({
+      const pathKey = `projeto-documentos::${cf.storage_path}`;
+      const fnKey = fnSizeKey(dealId || null, cf.filename, cf.size ?? null);
+      const existing = byPath.get(pathKey) || byFnSize.get(fnKey);
+      if (existing) {
+        // Enriquece metadado mas NÃO cria linha nova
+        existing.metadata = {
+          ...(existing.metadata || {}),
+          field_id: cf.field_id,
+          field_key: cf.field_key,
+          field_title: cf.field_title,
+        };
+        // Se canônica não tinha categoria útil, herda do campo
+        if (!existing.categoria || existing.categoria === "Outros" || existing.categoria === "Anexos manuais") {
+          existing.categoria = normalizeCategoria(cf.field_title);
+        }
+        continue;
+      }
+      const item: ProjectDocument = {
         id: `cf:${cf.field_id}:${cf.storage_path}`,
         tenant_id: "",
         projeto_id: null,
         deal_id: dealId || null,
         proposta_id: null,
         cliente_id: null,
-        categoria: `Campo: ${cf.field_title}`,
+        categoria: normalizeCategoria(cf.field_title),
         origem: "custom_field",
         bucket: "projeto-documentos",
         storage_path: cf.storage_path,
@@ -193,7 +278,10 @@ export function ProjectDocumentsHub({ projetoId, dealId }: Props) {
         is_deleted: false,
         created_at: cf.uploaded_at || new Date().toISOString(),
         updated_at: cf.uploaded_at || new Date().toISOString(),
-      });
+      };
+      out.push(item);
+      byPath.set(pathKey, item);
+      byFnSize.set(fnKey, item);
     }
 
     return out.sort((a, b) => b.created_at.localeCompare(a.created_at));
@@ -214,7 +302,7 @@ export function ProjectDocumentsHub({ projetoId, dealId }: Props) {
   const groups = useMemo(() => {
     const out: Record<string, ProjectDocument[]> = {};
     for (const d of filtered) {
-      const k = d.categoria || ORIGEM_LABEL[d.origem] || "Outros";
+      const k = normalizeCategoria(d.categoria || ORIGEM_LABEL[d.origem] || "Outros");
       (out[k] ||= []).push(d);
     }
     return Object.entries(out).sort(([a], [b]) => a.localeCompare(b));
