@@ -923,6 +923,7 @@ function SortableFieldRow({
       <td className="px-4 py-2.5">
         <Badge variant="outline" className="text-[10px]">{FIELD_TYPE_LABELS[normalizeFieldType(f.field_type)] || f.field_type}</Badge>
       </td>
+      <td className="text-center px-2"><SwitchCell value={f.show_on_proposal} fieldId={f.id} column="show_on_proposal" onUpdate={() => {}} /></td>
       <td className="text-center px-2"><SwitchCell value={f.required_on_proposal} fieldId={f.id} column="required_on_proposal" onUpdate={() => {}} /></td>
       <td className="px-4 py-2.5 text-right">
         <div className="flex items-center justify-end gap-1">
