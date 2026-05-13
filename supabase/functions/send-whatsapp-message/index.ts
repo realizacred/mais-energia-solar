@@ -182,11 +182,13 @@ Deno.serve(async (req) => {
           { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
+      // SSOT tenant ativo: status='active' AND deleted_at IS NULL (NÃO usar coluna legada `ativo`)
       const { data: tenantRow } = await supabaseAdmin
         .from("tenants")
         .select("id, status, deleted_at")
         .eq("id", body.tenant_id)
-        .eq("ativo", true)
+        .eq("status", "active")
+        .is("deleted_at", null)
         .maybeSingle();
       if (!tenantRow) {
         console.error(`[send-wa] BLOCKED: service_role tenant_id=${body.tenant_id} not found or inactive`);
