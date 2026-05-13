@@ -803,72 +803,108 @@ export function StepDocumento({
     };
 
     return (
-      <div className="grid grid-cols-1 md:grid-cols-[220px_1fr] gap-4 sm:gap-6 min-h-[400px]">
-        {/* Left: Sidebar with actions */}
+      <div className="grid grid-cols-1 md:grid-cols-[260px_1fr] gap-4 sm:gap-6 min-h-[400px]">
+        {/* Left: Conversion-focused commercial panel */}
         <div className="space-y-4">
-          <div className="space-y-1.5">
-            <Label className="text-xs text-muted-foreground">Template</Label>
-            <Select value={templateSelecionado} onValueChange={onTemplateSelecionado}>
-              <SelectTrigger className="h-9 text-sm">
-                <SelectValue placeholder="Selecione um modelo" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectGroup>
-                  <SelectLabel className="text-xs font-bold">Template Web</SelectLabel>
-                  {webTemplates.map(t => (
-                    <SelectItem key={t.id} value={t.id} className="text-sm">{t.nome}</SelectItem>
-                  ))}
-                </SelectGroup>
-                <SelectGroup>
-                  <SelectLabel className="text-xs font-bold">Template Doc</SelectLabel>
-                  {docTemplates.map(t => (
-                    <SelectItem key={t.id} value={t.id} className="text-sm">{t.nome}</SelectItem>
-                  ))}
-                </SelectGroup>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <input
-            ref={docxUploadRef}
-            type="file"
-            accept=".docx"
-            className="hidden"
-            onChange={handleDocxUpload}
-          />
-          <Button
-            variant="ghost"
-            size="sm"
-            className="flex items-center gap-1.5 text-xs text-primary hover:underline p-0 h-auto"
-            onClick={() => docxUploadRef.current?.click()}
-            disabled={uploadingDocx}
-          >
-            {uploadingDocx ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}
-            {uploadingDocx ? "Enviando..." : "Fazer upload de arquivo doc"}
-          </Button>
-
-          <Separator />
-
-          {/* Generation status badge */}
+          {/* 1. STATUS HEADER — "Proposta pronta para envio" */}
           {generationStatus === "ready" && (
-            <div className="space-y-2">
-              <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-success/10 border border-success/20">
-                <Check className="h-3.5 w-3.5 text-success" />
-                <span className="text-xs font-medium text-success">Documento pronto</span>
+            <div className="rounded-xl border border-success/30 bg-gradient-to-br from-success/10 to-success/5 p-3.5 space-y-1.5 shadow-sm">
+              <div className="flex items-center gap-2">
+                <div className="h-7 w-7 rounded-full bg-success/20 flex items-center justify-center">
+                  <Check className="h-4 w-4 text-success" />
+                </div>
+                <span className="text-sm font-semibold text-success">Proposta pronta para envio</span>
               </div>
-              <Button
-                variant="outline"
-                size="sm"
-                className="w-full gap-2"
-                onClick={onGenerate}
-                disabled={generating || rendering || !templateSelecionado || estimativaBlocked}
-                title={estimativaBlocked ? "Marque o aceite de estimativa acima para continuar" : undefined}
-              >
-                <RefreshCw className="h-3.5 w-3.5" />
-                Gerar Proposta
-              </Button>
+              <p className="text-[11px] leading-relaxed text-muted-foreground pl-9">
+                PDF e link público gerados com sucesso
+              </p>
             </div>
           )}
+
+          {/* 2. PRIMARY CTA — Enviar WhatsApp (commercial action) */}
+          {generationStatus === "ready" && (
+            <Button
+              variant="success"
+              size="lg"
+              className="w-full gap-2.5 h-14 text-base font-semibold shadow-md hover:shadow-lg transition-shadow"
+              onClick={() => setActiveTab("whatsapp")}
+            >
+              <MessageCircle className="h-5 w-5" />
+              Enviar por WhatsApp
+            </Button>
+          )}
+
+          {/* 3. SECONDARY — E-mail */}
+          {generationStatus === "ready" && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-full gap-2 border-info/40 text-info hover:bg-info/10"
+              onClick={() => setActiveTab("email")}
+            >
+              <Mail className="h-4 w-4" />
+              Enviar por e-mail
+            </Button>
+          )}
+
+          {/* 4. TEMPLATE SELECTOR — accessible but compact, doesn't compete with CTA */}
+          <div className="rounded-lg border border-border/50 bg-muted/20 p-2.5 space-y-2">
+            <div className="space-y-1">
+              <Label className="text-[10px] uppercase tracking-wide text-muted-foreground font-medium">Template do documento</Label>
+              <Select value={templateSelecionado} onValueChange={onTemplateSelecionado}>
+                <SelectTrigger className="h-8 text-xs bg-background">
+                  <SelectValue placeholder="Selecione um modelo" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectGroup>
+                    <SelectLabel className="text-xs font-bold">Template Web</SelectLabel>
+                    {webTemplates.map(t => (
+                      <SelectItem key={t.id} value={t.id} className="text-sm">{t.nome}</SelectItem>
+                    ))}
+                  </SelectGroup>
+                  <SelectGroup>
+                    <SelectLabel className="text-xs font-bold">Template Doc</SelectLabel>
+                    {docTemplates.map(t => (
+                      <SelectItem key={t.id} value={t.id} className="text-sm">{t.nome}</SelectItem>
+                    ))}
+                  </SelectGroup>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <input
+              ref={docxUploadRef}
+              type="file"
+              accept=".docx"
+              className="hidden"
+              onChange={handleDocxUpload}
+            />
+            <div className="flex items-center justify-between gap-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="flex items-center gap-1 text-[10px] text-muted-foreground hover:text-foreground p-0 h-auto"
+                onClick={() => docxUploadRef.current?.click()}
+                disabled={uploadingDocx}
+              >
+                {uploadingDocx ? <Loader2 className="h-3 w-3 animate-spin" /> : <Upload className="h-3 w-3" />}
+                {uploadingDocx ? "Enviando..." : "Upload .docx"}
+              </Button>
+              {generationStatus === "ready" && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="flex items-center gap-1 text-[10px] text-muted-foreground hover:text-foreground p-0 h-auto"
+                  onClick={onGenerate}
+                  disabled={generating || rendering || !templateSelecionado || estimativaBlocked}
+                  title={estimativaBlocked ? "Marque o aceite de estimativa acima para continuar" : undefined}
+                >
+                  <RefreshCw className="h-3 w-3" />
+                  Regenerar
+                </Button>
+              )}
+            </div>
+          </div>
 
           {/* Generation Quality Score + Missing variables */}
           {generationAuditReport && (
