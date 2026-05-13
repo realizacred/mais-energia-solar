@@ -1365,6 +1365,30 @@ Inclua: análise do perfil de consumo, adequação técnica do sistema, retorno 
         if (auditErr) console.warn("[proposal-generate] Audit persist failed:", auditErr.message);
       });
 
+    // ── 11. AUTO-RENDER WEB (fire-and-forget) ───────────────
+    // Garante que a regra original PDF + WEB padrão funcione: após criar a
+    // versão (que recebe template HTML default via trigger), dispara o render
+    // HTML para popular proposta_renders sem bloquear a resposta. O link
+    // público /proposta/:token poderá então abrir a versão WEB renderizada.
+    try {
+      const renderPromise = adminClient.functions
+        .invoke("proposal-render", {
+          body: { versao_id: versaoId },
+          headers: authHeader ? { Authorization: authHeader } : undefined,
+        })
+        .then(({ error: rErr }) => {
+          if (rErr) console.warn("[proposal-generate] auto-render warn:", rErr.message);
+        })
+        .catch((e) => console.warn("[proposal-generate] auto-render error:", (e as any)?.message));
+      // @ts-ignore EdgeRuntime is available in Supabase Deno runtime
+      if (typeof EdgeRuntime !== "undefined" && (EdgeRuntime as any).waitUntil) {
+        // @ts-ignore
+        EdgeRuntime.waitUntil(renderPromise);
+      }
+    } catch (e) {
+      console.warn("[proposal-generate] auto-render schedule failed:", (e as any)?.message);
+    }
+
     return jsonOk({
       success: true, idempotent: false,
       proposta_id: propostaId, versao_id: versaoId,
