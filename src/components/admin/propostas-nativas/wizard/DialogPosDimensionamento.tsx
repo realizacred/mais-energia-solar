@@ -68,14 +68,14 @@ export function DialogPosDimensionamento({
 }: Props) {
   const { data: allFields, isLoading: loading } = useCustomFieldsList();
 
-  // Campos ocultos explicitamente neste modal (valores no banco são preservados).
-  const HIDDEN_IN_PROPOSAL_MODAL = new Set(["pos_inversor_qtd", "pos_modulo_info"]);
-
+  // Visibilidade segue a configuração: somente campos marcados como
+  // "Obrigatório na Proposta" são renderizados aqui. Valores salvos no banco
+  // são sempre preservados (não há delete; apenas filtro de render).
   const fields = useMemo(() =>
     (allFields ?? []).filter((f: any) =>
       f.is_active &&
       f.field_context === "pos_dimensionamento" &&
-      !HIDDEN_IN_PROPOSAL_MODAL.has(f.field_key)
+      f.required_on_proposal === true
     ).sort((a: any, b: any) => (a.ordem ?? 0) - (b.ordem ?? 0)) as CustomField[],
     [allFields]
   );
