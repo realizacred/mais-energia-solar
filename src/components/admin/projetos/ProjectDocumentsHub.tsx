@@ -302,7 +302,7 @@ export function ProjectDocumentsHub({ projetoId, dealId }: Props) {
   const groups = useMemo(() => {
     const out: Record<string, ProjectDocument[]> = {};
     for (const d of filtered) {
-      const k = d.categoria || ORIGEM_LABEL[d.origem] || "Outros";
+      const k = normalizeCategoria(d.categoria || ORIGEM_LABEL[d.origem] || "Outros");
       (out[k] ||= []).push(d);
     }
     return Object.entries(out).sort(([a], [b]) => a.localeCompare(b));
