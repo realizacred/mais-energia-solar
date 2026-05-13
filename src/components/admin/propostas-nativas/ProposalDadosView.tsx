@@ -438,7 +438,7 @@ export function ProposalDadosView({
               <DataRow icon={Receipt} label="Custo Equipamento" value={custoEquip > 0 ? formatBRL(custoEquip) : "—"} />
               <DataRow icon={Receipt} label="Custo Instalação" value={custoInstalacao > 0 ? formatBRL(custoInstalacao) : "—"} />
               <DataRow icon={ArrowDownRight} label="Desconto" value={desconto > 0 ? `${desconto}%` : "—"} />
-              <DataRow icon={Percent} label="TIR" value={tir > 0 ? `${tir.toFixed(2).replace(".", ",")}%` : "—"} />
+              <DataRow icon={Percent} label="TIR" value={tir > 0 ? formatTirPercent(tir) : "—"} />
               <DataRow icon={DollarSign} label="VPL" value={vpl > 0 ? formatBRL(vpl) : "—"} />
               <DataRow icon={Clock} label="Payback" value={paybackDisplay} />
             </AccordionContent>
