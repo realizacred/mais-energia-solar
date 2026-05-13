@@ -41,6 +41,8 @@ interface Props {
   /** Skip POA transposition — use raw GHI */
   somenteGhi?: boolean;
   leadFase?: string | null;
+  /** Geração desejada/estimada informada pelo cliente no cadastro do lead (kWh/mês). SSOT: leads.consumo_previsto */
+  geracaoDesejadaKwh?: number | null;
 }
 
 
@@ -50,7 +52,7 @@ type PreSubTab = "premissas" | "equipamentos";
 function StepConsumptionIntelligenceImpl({
   ucs, onUcsChange, potenciaKwp, onPotenciaChange,
   preDimensionamento: pd, onPreDimensionamentoChange: setPd,
-  irradiacao, ghiSeries, latitude, somenteGhi, leadFase,
+  irradiacao, ghiSeries, latitude, somenteGhi, leadFase, geracaoDesejadaKwh,
 }: Props) {
 
   const [activeTab, setActiveTab] = useState<ActiveTab>("ucs");
