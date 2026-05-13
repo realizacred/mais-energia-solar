@@ -11,7 +11,8 @@
  *
  * Adicional ao DocumentosTab existente — não substitui o legado nesta fase.
  */
-import { useMemo, useState, useCallback, useRef } from "react";
+import { useMemo, useState, useCallback, useRef, useEffect } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   Upload,
   Search,
@@ -214,6 +215,18 @@ export function ProjectDocumentsHub({ projetoId, dealId }: Props) {
   const [uploading, setUploading] = useState<string[]>([]);
   const [selectedCategoria, setSelectedCategoria] = useState<string>("Manual");
   const fileInput = useRef<HTMLInputElement>(null);
+
+  // Cache buster: ao montar/trocar projeto/deal, invalida as 3 fontes para
+  // refletir imediatamente a nova lógica de dedup semântico (sem esperar
+  // staleTime — useProjetoArquivos=5min, useProjectDocuments=30s, cfFiles=60s).
+  const qc = useQueryClient();
+  useEffect(() => {
+    qc.invalidateQueries({ queryKey: ["project-documents"] });
+    if (dealId) {
+      qc.invalidateQueries({ queryKey: ["projeto-documentos-files", dealId] });
+      qc.invalidateQueries({ queryKey: ["projeto-custom-field-files", dealId] });
+    }
+  }, [qc, projetoId, dealId]);
 
   // Mescla canônico + legado bucket + custom fields como linhas virtuais.
   // SSOT visual = project_documents. Dedup semântico em 3 camadas:
