@@ -17,6 +17,7 @@ import { CurrencyInput } from "@/components/ui-kit/inputs";
 import { type KitItemRow, formatBRL } from "../types";
 import { formatKwp } from "@/lib/formatters/index";
 import { useFornecedoresNomes } from "@/hooks/useFornecedoresNomes";
+import { KIT_TOPOLOGIA_SELECT_OPTIONS, normalizeTopologyLabel, normalizeTopologyValue, type KitTopologiaLabel } from "@/lib/tipoProjetoSolar";
 
 interface CatalogoModulo {
   id: string; fabricante: string; modelo: string; potencia_wp: number | null;
@@ -117,20 +118,6 @@ export interface KitMeta {
   previsao?: string | null;
   external_data?: Record<string, any> | null;
   selected_at?: string;
-}
-
-const TOPOLOGIAS = ["Tradicional", "Microinversor", "Otimizador"];
-
-/** Normaliza topologia (lowercase legado → capitalizada do Select) */
-function normalizeTopologia(t?: string): string {
-  if (!t) return "";
-  const n = t.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
-  if (n.startsWith("micro")) return "Microinversor";
-  if (n.startsWith("otim")) return "Otimizador";
-  if (n.startsWith("trad")) return "Tradicional";
-  // Já vem capitalizado e válido
-  if (TOPOLOGIAS.includes(t)) return t;
-  return "";
 }
 
 /** Searchable equipment combo with highlight, keyboard nav, badge */
@@ -493,10 +480,10 @@ export function CriarKitManualModal({ open, onOpenChange, modulos, inversores, o
   const [codigoKit, setCodigoKit] = useState(initialCardData?.codigoKit || "");
   const [sistema, setSistema] = useState<"on_grid" | "hibrido" | "off_grid">(initialCardData?.sistema || sistemaProp || "on_grid");
   const [tipoKit, setTipoKit] = useState<"customizado" | "fechado">("customizado");
-  const [topologia, setTopologia] = useState(
-    normalizeTopologia(initialCardData?.topologia) ||
+  const [topologia, setTopologia] = useState<KitTopologiaLabel>(
+    normalizeTopologyLabel(initialCardData?.topologia) ||
     (topologiasProp?.length === 1
-      ? (topologiasProp[0] === "tradicional" ? "Tradicional" : topologiasProp[0] === "microinversor" ? "Microinversor" : "Otimizador")
+      ? normalizeTopologyLabel(topologiasProp[0])
       : "Tradicional")
   );
   const [distribuidorSelect, setDistribuidorSelect] = useState("");
@@ -525,8 +512,7 @@ export function CriarKitManualModal({ open, onOpenChange, modulos, inversores, o
       setNomeKit(initialCardData.nomeKit || "");
       setCodigoKit(initialCardData.codigoKit || "");
       if (initialCardData.topologia) {
-        const norm = normalizeTopologia(initialCardData.topologia);
-        if (norm) setTopologia(norm);
+        setTopologia(normalizeTopologyLabel(initialCardData.topologia));
       }
       if (initialCardData.sistema) setSistema(initialCardData.sistema);
       if (initialCardData.custosEmbutidos) setCustosEmbutidos(initialCardData.custosEmbutidos);
@@ -727,7 +713,7 @@ export function CriarKitManualModal({ open, onOpenChange, modulos, inversores, o
 
     const meta: KitMeta = {
       distribuidorNome, nomeKit, codigoKit,
-      topologia: topologia.toLowerCase().replace("otimizador de potência", "otimizador"),
+      topologia: normalizeTopologyValue(topologia),
       custo, sistema, custosEmbutidos,
     };
     onKitCreated(itens, meta);
@@ -843,13 +829,14 @@ export function CriarKitManualModal({ open, onOpenChange, modulos, inversores, o
             <div className="space-y-1">
               <Label className="text-xs font-medium text-foreground">Topologia <span className="text-destructive">*</span></Label>
               <Select value={topologia} onValueChange={v => {
-                setTopologia(v);
+                const normalized = normalizeTopologyLabel(v);
+                setTopologia(normalized);
                 // Auto-add otimizador entry when switching to Otimizador
-                if (v === "Otimizador" && otimizadorEntries.length === 0) {
+                if (normalized === "Otimizador" && otimizadorEntries.length === 0) {
                   setOtimizadorEntries([createEmptyOtimizador()]);
                 }
                 // Clear otimizadores when switching away
-                if (v !== "Otimizador") {
+                if (normalized !== "Otimizador") {
                   setOtimizadorEntries([]);
                 }
                 // Reset inversor selections since the filtered list changed
@@ -857,7 +844,7 @@ export function CriarKitManualModal({ open, onOpenChange, modulos, inversores, o
               }}>
                 <SelectTrigger className={cn("h-8 text-xs", triedSave && !topologia && "ring-2 ring-destructive")}><SelectValue placeholder="Selecione uma topologia" /></SelectTrigger>
                 <SelectContent>
-                  {TOPOLOGIAS.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                  {KIT_TOPOLOGIA_SELECT_OPTIONS.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>

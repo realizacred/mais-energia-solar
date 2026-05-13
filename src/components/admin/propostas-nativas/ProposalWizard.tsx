@@ -90,6 +90,7 @@ import {
   redeAtendimentoToFaseTensao, mapLeadTipoTelhadoToProposal,
 } from "./wizard/types";
 import { normalizeSolarMarketV2Snapshot } from "./wizard/normalizeSolarMarketV2";
+import { normalizeManualKitTopologies, normalizeTopologyValue } from "@/lib/tipoProjetoSolar";
 
 // ─── Step Keys ─────────────────────────────────────────────
 
@@ -314,7 +315,7 @@ function ProposalWizardContent() {
   // Sem kit → sempre "tradicional"; com kit → topologia do kit
   const temKit = itens.length > 0;
   const topologiaDoKit = temKit
-    ? (manualKits[0]?.card?.topologia?.toLowerCase() ?? null)
+    ? normalizeTopologyValue(manualKits[0]?.meta?.topologia ?? manualKits[0]?.card?.topologia)
     : null;
   const topologiaAtiva = topologiaDoKit || "tradicional";
   const fatorGeracaoAtivo =
@@ -495,7 +496,7 @@ function ProposalWizardContent() {
       preDimensionamento,
       itens,
       layouts,
-      manualKits,
+      manualKits: normalizeManualKitTopologies(manualKits, "persist"),
       adicionais,
       servicos,
       venda,
@@ -591,7 +592,7 @@ function ProposalWizardContent() {
     if (s.preDimensionamento != null) setPreDimensionamento(s.preDimensionamento);
     if (s.itens != null) setItens(s.itens);
     if (s.layouts != null) setLayouts(s.layouts);
-    if (s.manualKits != null) setManualKits(s.manualKits);
+    if (s.manualKits != null) setManualKits(normalizeManualKitTopologies(s.manualKits, "ui"));
     if (s.adicionais != null) setAdicionais(s.adicionais);
     if (s.servicos != null) setServicos(s.servicos);
     if (s.venda != null) setVenda(s.venda);

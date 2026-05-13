@@ -123,13 +123,64 @@ export function mapTipoProjetoToKitTipoSistema(
   }
 }
 
-/** Normaliza label de topologia ("Tradicional"/"Microinversor"/"Otimizador") para o enum DB. */
+/**
+ * Topologia técnica do kit gerador.
+ *
+ * Decisão de persistência anti-regressão: banco/snapshot/meta salvam o valor
+ * canônico lowercase (`tradicional` | `microinversor` | `otimizador`).
+ * Componentes de UI/Select recebem sempre o label capitalizado via
+ * `normalizeTopologyLabel`. Não reimplementar normalização em componentes.
+ */
 export type KitTopologia = "tradicional" | "microinversor" | "otimizador";
+export type KitTopologiaLabel = "Tradicional" | "Microinversor" | "Otimizador";
+
+export const KIT_TOPOLOGIA_LABELS: Record<KitTopologia, KitTopologiaLabel> = {
+  tradicional: "Tradicional",
+  microinversor: "Microinversor",
+  otimizador: "Otimizador",
+};
+
+export const KIT_TOPOLOGIA_SELECT_OPTIONS: KitTopologiaLabel[] = [
+  "Tradicional",
+  "Microinversor",
+  "Otimizador",
+];
 
 export function normalizeKitTopologia(value?: string | null): KitTopologia {
-  const v = (value ?? "").toString().trim().toLowerCase();
+  return normalizeTopologyValue(value);
+}
+
+export function normalizeTopologyValue(value?: string | null): KitTopologia {
+  const v = (value ?? "")
+    .toString()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim()
+    .toLowerCase();
   if (v === "microinversor" || v === "micro") return "microinversor";
   if (v === "otimizador" || v === "otimizador de potência" || v === "otimizador de potencia") return "otimizador";
   return "tradicional";
+}
+
+export function normalizeTopologyLabel(value?: string | null): KitTopologiaLabel {
+  return KIT_TOPOLOGIA_LABELS[normalizeTopologyValue(value)];
+}
+
+export function normalizeManualKitTopologies<T extends { card?: Record<string, any>; meta?: Record<string, any> }>(
+  manualKits?: T[] | null,
+  mode: "ui" | "persist" = "ui",
+): T[] {
+  if (!Array.isArray(manualKits)) return [];
+  return manualKits.map((kit) => {
+    const source = kit.meta?.topologia ?? kit.card?.topologia;
+    const normalized = mode === "persist"
+      ? normalizeTopologyValue(source)
+      : normalizeTopologyLabel(source);
+    return {
+      ...kit,
+      card: kit.card ? { ...kit.card, topologia: normalized } : kit.card,
+      meta: kit.meta ? { ...kit.meta, topologia: normalized } : kit.meta,
+    };
+  });
 }
 
