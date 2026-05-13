@@ -813,7 +813,9 @@ function ProposalWizardContent() {
           inversorDescricao: invDesc,
           inversorQtd: totalInvQtd,
           inversorPotenciaKw: totalInvKw,
-          topologia: "Tradicional",
+          // Persistência canônica = lowercase (ver mem://constraints/kit-topologia-normalization).
+          // Modal hidrata via normalizeTopologyLabel; não trocar para "Tradicional".
+          topologia: "tradicional",
           precoTotal,
           precoWp,
           updatedAt: new Date().toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" }),
