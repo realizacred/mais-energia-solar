@@ -34,6 +34,12 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { formatDateTime, formatDate, formatTime, formatDateShort } from "@/lib/dateUtils";
 import { QRCodeCanvas } from "qrcode.react";
 import { getOrCreateProposalToken } from "@/services/proposal/proposalDetail.service";
+import {
+  getProposalWebUrl,
+  getTrackedPdfUrl,
+  getDirectPdfUrl,
+  getSimulationUrl,
+} from "@/services/proposal/proposalLinks";
 
 // ─── Types ────────────────────────────────────────────────
 
