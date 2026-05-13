@@ -717,6 +717,7 @@ Deno.serve(async (req) => {
       trocaInversorAnos: premissas.troca_inversor_anos,
       trocaInversorCustoPct: premissas.troca_inversor_custo,
       vplTaxaDesconto: premissas.vpl_taxa_desconto,
+      tarifaFioBKwh: tarifaFioBResolvida,
       fioB: {
         anoBase: anoAtual,
         percentualBase: percentualFioB,
