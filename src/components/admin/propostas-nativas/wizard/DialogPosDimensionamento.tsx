@@ -111,6 +111,14 @@ export function DialogPosDimensionamento({
     }
   }, [open, kitItems, fields]);
 
+  // Seed defaults por tipo apenas para campos undefined (preserva 0/false/""/valores salvos).
+  useEffect(() => {
+    if (!open || !fields.length) return;
+    const next = seedCustomFieldDefaults(fields, customFieldValues);
+    if (next !== customFieldValues) onCustomFieldValuesChange(next);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, fields]);
+
   const updateCustom = (key: string, value: any) => {
     onCustomFieldValuesChange({ ...customFieldValues, [key]: value });
   };
