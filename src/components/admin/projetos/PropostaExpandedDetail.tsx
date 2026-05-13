@@ -1636,6 +1636,8 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
                         outputPdfPath={latestVersao?.output_pdf_path ?? null}
                         outputDocxPath={latestVersao?.output_docx_path ?? null}
                         externalPdfUrl={latestVersao?.link_pdf ?? null}
+                        generationStatusOverride={latestVersao?.generation_status ?? null}
+                        generationError={latestVersao?.generation_error ?? null}
                       />
                     </div>
                   </TabsContent>
@@ -1971,6 +1973,7 @@ function StepDocumentoBridge({
       outputPdfPath={outputPdfPath}
       outputDocxPath={outputDocxPath}
       externalPdfUrl={externalPdfUrl}
+      generationStatusOverride={effectiveGenerationStatus}
       generationError={generationError}
     />
   );
