@@ -118,6 +118,55 @@ function formatSize(bytes?: number | null) {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
+/** Remove acentos, baixa, tira timestamps/prefixos aleatórios e normaliza separadores. */
+function normalizeFilename(name?: string | null): string {
+  if (!name) return "";
+  let n = name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  // remove timestamp prefix tipo 2025-11-06_18-10-59_xxxx_
+  n = n.replace(/^\d{4}-\d{2}-\d{2}[_-]\d{2}[-:]\d{2}[-:]\d{2}[_-]?[a-z0-9]*[_-]?/i, "");
+  // remove epoch ms prefix tipo 1778524914933_
+  n = n.replace(/^\d{10,}_(?:\d+_)?/, "");
+  // remove "Date.now()_idx_" prefix
+  n = n.replace(/^\d+_\d+_/, "");
+  // colapsa separadores
+  n = n.replace(/[\s_]+/g, "_").replace(/[^\w.\-]/g, "");
+  return n;
+}
+
+/** Normaliza nome de categoria para evitar duplicação visual ("CAMPO: X" vs "X"). */
+function normalizeCategoria(raw?: string | null): string {
+  if (!raw) return "Outros";
+  let c = raw.trim().replace(/^campo[:\s]+/i, "");
+  const slug = c
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "");
+  const ALIASES: Record<string, string> = {
+    identidade: "Identidade",
+    rg: "Identidade",
+    rg_cnh: "Identidade",
+    cnh: "Identidade",
+    comprovante_endereco: "Comprovante de endereço",
+    comprovante_de_endereco: "Comprovante de endereço",
+    conta_luz: "Conta de luz",
+    conta_de_luz: "Conta de luz",
+    iptu: "IPTU",
+    fotos_telhado: "Fotos do telhado",
+    art: "ART",
+    contrato: "Contrato",
+    proposta: "Proposta",
+    anexos_manuais: "Anexos manuais",
+  };
+  if (ALIASES[slug]) return ALIASES[slug];
+  // title case fallback
+  return c
+    .split(/\s+/)
+    .map((w) => (w ? w[0].toUpperCase() + w.slice(1).toLowerCase() : w))
+    .join(" ");
+}
+
 export function ProjectDocumentsHub({ projetoId, dealId }: Props) {
   const { data: canonicalDocs = [], isLoading } = useProjectDocuments({ projetoId, dealId });
   const { data: legacyFiles = [] } = useProjetoArquivos(dealId || "");
