@@ -417,7 +417,14 @@ export function ClienteViewDialog({ cliente, open, onOpenChange }: ClienteViewDi
                         <div
                           key={p.id}
                           className="flex items-center justify-between p-3 rounded-lg border border-border/50 bg-card hover:bg-muted/30 transition-colors cursor-pointer"
-                          onClick={() => { onOpenChange(false); navigate(`/admin/propostas/${p.id}`); }}
+                          onClick={() => {
+                            onOpenChange(false);
+                            if (melhorVersao?.id) {
+                              navigate(`/admin/propostas-nativas/${p.id}/versoes/${melhorVersao.id}`);
+                            } else {
+                              navigate(`/admin/propostas?proposta=${p.id}`);
+                            }
+                          }}
                         >
                           <div className="min-w-0 flex-1">
                             <div className="flex items-center gap-2">
