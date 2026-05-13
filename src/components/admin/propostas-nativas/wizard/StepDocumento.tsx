@@ -802,76 +802,129 @@ export function StepDocumento({
       toast({ title: "DOCX não disponível", variant: "destructive" });
     };
 
+    const isReady = generationStatus === "ready";
+    const isBusy = generating || rendering;
+    const statusLabel = isReady
+      ? "Proposta pronta"
+      : isBusy
+        ? "Gerando proposta..."
+        : generationStatus === "error"
+          ? "Erro na geração"
+          : "Proposta desatualizada";
+    const statusTone = isReady
+      ? "success"
+      : isBusy
+        ? "info"
+        : generationStatus === "error"
+          ? "destructive"
+          : "warning";
+    const statusClasses: Record<string, string> = {
+      success: "border-success/30 bg-success/5 text-success",
+      info: "border-info/30 bg-info/5 text-info",
+      warning: "border-warning/30 bg-warning/5 text-warning",
+      destructive: "border-destructive/30 bg-destructive/5 text-destructive",
+    };
+
     return (
-      <div className="grid grid-cols-1 md:grid-cols-[260px_1fr] gap-4 sm:gap-6 min-h-[400px]">
-        {/* Left: Conversion-focused commercial panel */}
-        <div className="space-y-4">
-          {/* 1. STATUS HEADER — "Proposta pronta para envio" */}
-          {generationStatus === "ready" && (
-            <div className="rounded-xl border border-success/30 bg-gradient-to-br from-success/10 to-success/5 p-3.5 space-y-1.5 shadow-sm">
-              <div className="flex items-center gap-2">
-                <div className="h-7 w-7 rounded-full bg-success/20 flex items-center justify-center">
-                  <Check className="h-4 w-4 text-success" />
-                </div>
-                <span className="text-sm font-semibold text-success">Proposta pronta para envio</span>
+      <div className="grid grid-cols-1 md:grid-cols-[280px_1fr] gap-4 sm:gap-6 min-h-[400px]">
+        {/* Left: Operational + commercial control panel */}
+        <div className="space-y-3">
+          {/* 1. STATUS HEADER */}
+          <div className={cn("rounded-lg border p-2.5 space-y-1", statusClasses[statusTone])}>
+            <div className="flex items-center gap-2">
+              {isReady ? (
+                <Check className="h-4 w-4 shrink-0" />
+              ) : isBusy ? (
+                <Loader2 className="h-4 w-4 animate-spin shrink-0" />
+              ) : generationStatus === "error" ? (
+                <AlertTriangle className="h-4 w-4 shrink-0" />
+              ) : (
+                <RefreshCw className="h-4 w-4 shrink-0" />
+              )}
+              <span className="text-xs font-semibold">{statusLabel}</span>
+            </div>
+            <p className="text-[10px] leading-tight text-muted-foreground pl-6">
+              {isReady
+                ? "PDF, link público e QR Code prontos para envio"
+                : isBusy
+                  ? "Aguarde, isso pode levar alguns segundos"
+                  : generationStatus === "error"
+                    ? "Revise os dados e tente regenerar"
+                    : "Gere a proposta para liberar envio e link público"}
+            </p>
+            {isReady && (
+              <div className="flex items-center gap-1.5 pl-6 pt-0.5 text-[10px] text-muted-foreground">
+                <Calendar className="h-3 w-3" />
+                <span>Validade: {validade ? formatDate(validade + "T12:00:00") : "—"}</span>
               </div>
-              <p className="text-[11px] leading-relaxed text-muted-foreground pl-9">
-                PDF e link público gerados com sucesso
-              </p>
+            )}
+          </div>
+
+          {/* 2. PRIMARY GENERATE / REGENERATE CTA — sempre visível */}
+          <Button
+            variant={isReady ? "outline" : "default"}
+            size="lg"
+            className="w-full gap-2 h-11"
+            onClick={onGenerate}
+            disabled={isBusy || !templateSelecionado || estimativaBlocked}
+            title={estimativaBlocked ? "Marque o aceite de estimativa acima para continuar" : undefined}
+          >
+            {isBusy ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : isReady ? (
+              <RefreshCw className="h-4 w-4" />
+            ) : (
+              <Sun className="h-4 w-4" />
+            )}
+            {isBusy ? "Gerando..." : isReady ? "Regenerar proposta" : "Gerar proposta"}
+          </Button>
+
+          {/* 3. COMMERCIAL CTAs — WhatsApp (primary) + Email (secondary) */}
+          {isReady && (
+            <div className="space-y-2">
+              <Button
+                variant="success"
+                size="lg"
+                className="w-full gap-2 h-12 text-sm font-semibold shadow-sm"
+                onClick={() => setActiveTab("whatsapp")}
+              >
+                <MessageCircle className="h-4 w-4" />
+                Enviar por WhatsApp
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full gap-2 h-9"
+                onClick={() => setActiveTab("email")}
+              >
+                <Mail className="h-4 w-4" />
+                Enviar por e-mail
+              </Button>
             </div>
           )}
 
-          {/* 2. PRIMARY CTA — Enviar WhatsApp (commercial action) */}
-          {generationStatus === "ready" && (
-            <Button
-              variant="success"
-              size="lg"
-              className="w-full gap-2.5 h-14 text-base font-semibold shadow-md hover:shadow-lg transition-shadow"
-              onClick={() => setActiveTab("whatsapp")}
-            >
-              <MessageCircle className="h-5 w-5" />
-              Enviar por WhatsApp
-            </Button>
-          )}
-
-          {/* 3. SECONDARY — E-mail */}
-          {generationStatus === "ready" && (
-            <Button
-              variant="outline"
-              size="sm"
-              className="w-full gap-2 border-info/40 text-info hover:bg-info/10"
-              onClick={() => setActiveTab("email")}
-            >
-              <Mail className="h-4 w-4" />
-              Enviar por e-mail
-            </Button>
-          )}
-
-          {/* 4. TEMPLATE SELECTOR — accessible but compact, doesn't compete with CTA */}
+          {/* 4. TEMPLATE SELECTOR — compact */}
           <div className="rounded-lg border border-border/50 bg-muted/20 p-2.5 space-y-2">
-            <div className="space-y-1">
-              <Label className="text-[10px] uppercase tracking-wide text-muted-foreground font-medium">Template do documento</Label>
-              <Select value={templateSelecionado} onValueChange={onTemplateSelecionado}>
-                <SelectTrigger className="h-8 text-xs bg-background">
-                  <SelectValue placeholder="Selecione um modelo" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectGroup>
-                    <SelectLabel className="text-xs font-bold">Template Web</SelectLabel>
-                    {webTemplates.map(t => (
-                      <SelectItem key={t.id} value={t.id} className="text-sm">{t.nome}</SelectItem>
-                    ))}
-                  </SelectGroup>
-                  <SelectGroup>
-                    <SelectLabel className="text-xs font-bold">Template Doc</SelectLabel>
-                    {docTemplates.map(t => (
-                      <SelectItem key={t.id} value={t.id} className="text-sm">{t.nome}</SelectItem>
-                    ))}
-                  </SelectGroup>
-                </SelectContent>
-              </Select>
-            </div>
-
+            <Label className="text-[10px] uppercase tracking-wide text-muted-foreground font-medium">Template do documento</Label>
+            <Select value={templateSelecionado} onValueChange={onTemplateSelecionado}>
+              <SelectTrigger className="h-8 text-xs bg-background">
+                <SelectValue placeholder="Selecione um modelo" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectGroup>
+                  <SelectLabel className="text-xs font-bold">Template Web</SelectLabel>
+                  {webTemplates.map(t => (
+                    <SelectItem key={t.id} value={t.id} className="text-sm">{t.nome}</SelectItem>
+                  ))}
+                </SelectGroup>
+                <SelectGroup>
+                  <SelectLabel className="text-xs font-bold">Template Doc</SelectLabel>
+                  {docTemplates.map(t => (
+                    <SelectItem key={t.id} value={t.id} className="text-sm">{t.nome}</SelectItem>
+                  ))}
+                </SelectGroup>
+              </SelectContent>
+            </Select>
             <input
               ref={docxUploadRef}
               type="file"
@@ -879,34 +932,126 @@ export function StepDocumento({
               className="hidden"
               onChange={handleDocxUpload}
             />
-            <div className="flex items-center justify-between gap-2">
-              <Button
-                variant="ghost"
-                size="sm"
-                className="flex items-center gap-1 text-[10px] text-muted-foreground hover:text-foreground p-0 h-auto"
-                onClick={() => docxUploadRef.current?.click()}
-                disabled={uploadingDocx}
-              >
-                {uploadingDocx ? <Loader2 className="h-3 w-3 animate-spin" /> : <Upload className="h-3 w-3" />}
-                {uploadingDocx ? "Enviando..." : "Upload .docx"}
-              </Button>
-              {generationStatus === "ready" && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="flex items-center gap-1.5 text-[10px] text-muted-foreground hover:text-foreground p-0 h-auto"
+              onClick={() => docxUploadRef.current?.click()}
+              disabled={uploadingDocx}
+            >
+              {uploadingDocx ? <Loader2 className="h-3 w-3 animate-spin" /> : <Upload className="h-3 w-3" />}
+              {uploadingDocx ? "Enviando..." : "Upload .docx personalizado"}
+            </Button>
+          </div>
+
+          {/* 5. SHARING & TRACKING — sempre visível quando ready */}
+          {isReady && (
+            <div className="rounded-lg border border-border/50 bg-card p-3 space-y-3">
+              <div className="flex items-center justify-between">
+                <Label className="text-[10px] uppercase tracking-wide text-muted-foreground font-medium">
+                  Compartilhar e rastrear
+                </Label>
+              </div>
+
+              {/* QR Code + URL */}
+              {resolvedPublicUrl && (
+                <div className="rounded-md border border-border/40 bg-background p-2 flex items-center gap-2.5">
+                  <div className="rounded bg-background p-1 border border-border/40 shrink-0">
+                    <QRCodeCanvas value={resolvedPublicUrl} size={88} includeMargin={false} />
+                  </div>
+                  <div className="min-w-0 space-y-1">
+                    <p className="text-[10px] font-medium text-foreground">Link público</p>
+                    <p className="break-all text-[9px] leading-tight text-muted-foreground">{resolvedPublicUrl}</p>
+                  </div>
+                </div>
+              )}
+
+              {/* Action buttons grid */}
+              <div className="space-y-1">
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="w-full justify-start gap-2 h-8 text-xs"
+                      onClick={() => handleCopyLink(true)}
+                      disabled={!result?.proposta_id || !result?.versao_id}
+                    >
+                      {copiedTracker ? <Check className="h-3.5 w-3.5 text-success" /> : <LinkIcon className="h-3.5 w-3.5" />}
+                      Copiar link com rastreio
+                    </Button>
+                  </TooltipTrigger>
+                  {(!result?.proposta_id || !result?.versao_id) && <TooltipContent>Gere a proposta primeiro</TooltipContent>}
+                </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="w-full justify-start gap-2 h-8 text-xs"
+                      onClick={() => handleCopyLink(false)}
+                      disabled={!outputPdfPath && !externalPdfUrl && !pdfBlobUrl}
+                    >
+                      {copiedDirect ? <Check className="h-3.5 w-3.5 text-success" /> : <Copy className="h-3.5 w-3.5" />}
+                      Copiar link direto
+                    </Button>
+                  </TooltipTrigger>
+                  {!outputPdfPath && !externalPdfUrl && !pdfBlobUrl && <TooltipContent>Gere a proposta primeiro</TooltipContent>}
+                </Tooltip>
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="flex items-center gap-1 text-[10px] text-muted-foreground hover:text-foreground p-0 h-auto"
-                  onClick={onGenerate}
-                  disabled={generating || rendering || !templateSelecionado || estimativaBlocked}
-                  title={estimativaBlocked ? "Marque o aceite de estimativa acima para continuar" : undefined}
+                  className="w-full justify-start gap-2 h-8 text-xs"
+                  onClick={handleCopySimulacaoLink}
                 >
-                  <RefreshCw className="h-3 w-3" />
-                  Regenerar
+                  {copiedSimulacao ? <Check className="h-3.5 w-3.5 text-success" /> : <LinkIcon className="h-3.5 w-3.5" />}
+                  Simulação financeira
                 </Button>
-              )}
+                <div className="h-px bg-border/40 my-1" />
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="w-full justify-start gap-2 h-8 text-xs"
+                  onClick={handleDownloadPdf}
+                >
+                  <Download className="h-3.5 w-3.5" />
+                  Baixar PDF
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="w-full justify-start gap-2 h-8 text-xs"
+                  onClick={handleDownloadDocx}
+                >
+                  <FileDown className="h-3.5 w-3.5" />
+                  Baixar DOC
+                </Button>
+                <div className="h-px bg-border/40 my-1" />
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="w-full justify-start gap-2 h-8 text-xs"
+                    >
+                      <Calendar className="h-3.5 w-3.5" />
+                      Validade: {validade ? formatDate(validade + "T12:00:00") : "—"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-3" align="start">
+                    <Label className="text-xs text-muted-foreground mb-1.5 block">Alterar validade</Label>
+                    <DateInput
+                      value={validade}
+                      onChange={setValidade}
+                      className="h-8 text-xs w-44"
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
             </div>
-          </div>
+          )}
 
-          {/* Generation Quality Score + Missing variables */}
+          {/* 6. QUALITY / AUDIT */}
           {generationAuditReport && (
             <div className={cn(
               "rounded-lg border p-2.5 space-y-2",
@@ -916,7 +1061,6 @@ export function StepDocumento({
                   ? "border-warning/30 bg-warning/5"
                   : "border-success/30 bg-success/5"
             )}>
-              {/* Health badge */}
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-1.5">
                   {generationAuditReport.health === "critica" ? (
@@ -932,7 +1076,7 @@ export function StepDocumento({
                       : generationAuditReport.health === "atencao" ? "text-warning"
                         : "text-success"
                   )}>
-                    Qualidade da Geração: {generationAuditReport.health === "saudavel" ? "Saudável" : generationAuditReport.health === "atencao" ? "Atenção" : "Crítica"}
+                    Qualidade: {generationAuditReport.health === "saudavel" ? "Saudável" : generationAuditReport.health === "atencao" ? "Atenção" : "Crítica"}
                   </span>
                 </div>
                 <Badge variant="outline" className={cn(
@@ -944,7 +1088,6 @@ export function StepDocumento({
                   {generationAuditReport.healthScore}%
                 </Badge>
               </div>
-              {/* Summary stats */}
               <div className="flex flex-wrap gap-3 text-[10px] text-muted-foreground">
                 <span>{generationAuditReport.resolved} resolvidas</span>
                 {generationAuditReport.errorCount > 0 && (
@@ -954,7 +1097,6 @@ export function StepDocumento({
                   <span className="text-warning font-medium">{generationAuditReport.warningCount} aviso(s)</span>
                 )}
               </div>
-              {/* Unresolved placeholders */}
               {generationAuditReport.unresolvedPlaceholders.length > 0 && (
                 <div className="space-y-1">
                   <span className="text-[10px] font-medium text-foreground">Placeholders não resolvidos:</span>
@@ -967,7 +1109,6 @@ export function StepDocumento({
                   </div>
                 </div>
               )}
-              {/* Null values */}
               {generationAuditReport.nullValues.length > 0 && (
                 <div className="space-y-1">
                   <span className="text-[10px] font-medium text-foreground">Variáveis com valor vazio:</span>
@@ -980,7 +1121,6 @@ export function StepDocumento({
                   </div>
                 </div>
               )}
-              {/* Custom var expression errors */}
               {generationAuditReport.items.filter(i => i.status === "error_expression").length > 0 && (
                 <div className="space-y-1">
                   <span className="text-[10px] font-medium text-foreground">Variáveis custom com erro:</span>
@@ -998,14 +1138,8 @@ export function StepDocumento({
                   </div>
                 </div>
               )}
-              {generationAuditReport.items.filter(i => i.suggestion).length > 0 && (
-                <p className="text-[10px] text-muted-foreground">
-                  Esses campos ficaram em branco no documento. Verifique os dados nas etapas anteriores.
-                </p>
-              )}
             </div>
           )}
-          {/* Fallback: show simple missing vars if no audit report yet */}
           {!generationAuditReport && missingVars.length > 0 && (
             <div className="rounded-lg border border-warning/30 bg-warning/5 p-2.5 space-y-1.5">
               <div className="flex items-center gap-1.5">
@@ -1019,110 +1153,7 @@ export function StepDocumento({
                   </Badge>
                 ))}
               </div>
-              <p className="text-[10px] text-muted-foreground">
-                Esses campos ficaram em branco no documento. Verifique os dados nas etapas anteriores.
-              </p>
             </div>
-          )}
-
-          {/* 5. AUXILIARY ACTIONS — QR/links/downloads (reduced visual weight) */}
-          {generationStatus === "ready" && (
-            <details className="group rounded-lg border border-border/40 bg-muted/10 open:bg-muted/20 transition-colors">
-              <summary className="flex items-center justify-between cursor-pointer select-none px-3 py-2 text-[11px] font-medium text-muted-foreground hover:text-foreground">
-                <span className="flex items-center gap-1.5">
-                  <LinkIcon className="h-3 w-3" />
-                  QR Code, links e downloads
-                </span>
-                <span className="text-[10px] opacity-60 group-open:rotate-180 transition-transform">▾</span>
-              </summary>
-              <div className="px-3 pb-3 pt-1 space-y-2">
-                {resolvedPublicUrl && (
-                  <div className="rounded-md border border-border/40 bg-background/60 p-2 flex items-center gap-2.5">
-                    <div className="rounded bg-background p-1 border border-border/40 shrink-0">
-                      <QRCodeCanvas value={resolvedPublicUrl} size={64} includeMargin={false} />
-                    </div>
-                    <p className="break-all text-[9px] leading-tight text-muted-foreground min-w-0">{resolvedPublicUrl}</p>
-                  </div>
-                )}
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground w-full justify-start p-0 h-auto"
-                  onClick={handleDownloadPdf}
-                >
-                  <Download className="h-3.5 w-3.5" />
-                  Download de PDF
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground w-full justify-start p-0 h-auto"
-                  onClick={handleDownloadDocx}
-                >
-                  <FileDown className="h-3.5 w-3.5" />
-                  Download de Doc
-                </Button>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground w-full justify-start p-0 h-auto"
-                      onClick={() => handleCopyLink(true)}
-                      disabled={!result?.proposta_id || !result?.versao_id}
-                    >
-                      {copiedTracker ? <Check className="h-3.5 w-3.5 text-success" /> : <LinkIcon className="h-3.5 w-3.5" />}
-                      Copiar link com rastreio
-                    </Button>
-                  </TooltipTrigger>
-                  {(!result?.proposta_id || !result?.versao_id) && <TooltipContent>Gere a proposta primeiro</TooltipContent>}
-                </Tooltip>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground w-full justify-start p-0 h-auto"
-                      onClick={() => handleCopyLink(false)}
-                      disabled={!outputPdfPath && !externalPdfUrl && !pdfBlobUrl}
-                    >
-                      {copiedDirect ? <Check className="h-3.5 w-3.5 text-success" /> : <Copy className="h-3.5 w-3.5" />}
-                      Copiar link sem rastreio
-                    </Button>
-                  </TooltipTrigger>
-                  {!outputPdfPath && !externalPdfUrl && !pdfBlobUrl && <TooltipContent>Gere a proposta primeiro</TooltipContent>}
-                </Tooltip>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground w-full justify-start p-0 h-auto"
-                  onClick={handleCopySimulacaoLink}
-                >
-                  {copiedSimulacao ? <Check className="h-3.5 w-3.5 text-success" /> : <LinkIcon className="h-3.5 w-3.5" />}
-                  Copiar link simulação financeira
-                </Button>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground w-full justify-start p-0 h-auto"
-                    >
-                      <Calendar className="h-3.5 w-3.5" />
-                      Validade: {validade ? formatDate(validade + "T12:00:00") : "—"}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-3" align="start">
-                    <Label className="text-xs text-muted-foreground mb-1.5 block">Alterar validade</Label>
-                    <DateInput
-                      value={validade}
-                      onChange={setValidade}
-                      className="h-8 text-xs w-44"
-                    />
-                  </PopoverContent>
-                </Popover>
-              </div>
-            </details>
           )}
         </div>
 
