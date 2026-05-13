@@ -234,3 +234,90 @@ export function AddressFields({
     </div>
   );
 }
+
+interface CityComboboxProps {
+  value: string;
+  estado: string;
+  onChange: (val: string) => void;
+  disabled?: boolean;
+}
+
+function CityCombobox({ value, estado, onChange, disabled }: CityComboboxProps) {
+  const [open, setOpen] = useState(false);
+  const cities = useMemo(() => {
+    if (!estado) return [] as string[];
+    return CITIES_BY_STATE[estado] || [];
+  }, [estado]);
+
+  const placeholder = !estado
+    ? "Selecione o estado primeiro"
+    : cities.length === 0
+      ? "Digite a cidade"
+      : "Selecione ou digite a cidade";
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button
+          type="button"
+          variant="outline"
+          role="combobox"
+          aria-expanded={open}
+          disabled={disabled}
+          className={cn(
+            "w-full justify-between font-normal",
+            !value && "text-muted-foreground",
+          )}
+        >
+          <span className="truncate">{value || placeholder}</span>
+          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent
+        className="w-[var(--radix-popover-trigger-width)] p-0"
+        align="start"
+      >
+        <Command
+          filter={(itemValue, search) =>
+            itemValue.toLowerCase().includes(search.toLowerCase()) ? 1 : 0
+          }
+        >
+          <CommandInput
+            placeholder="Buscar cidade..."
+            value={value}
+            onValueChange={(v) => onChange(v)}
+          />
+          <CommandList>
+            <CommandEmpty>
+              {cities.length === 0
+                ? "Selecione um estado para listar cidades."
+                : "Nenhuma cidade encontrada. O valor digitado será mantido."}
+            </CommandEmpty>
+            {cities.length > 0 && (
+              <CommandGroup>
+                {cities.map((city) => (
+                  <CommandItem
+                    key={city}
+                    value={city}
+                    onSelect={(selected) => {
+                      onChange(selected);
+                      setOpen(false);
+                    }}
+                  >
+                    <Check
+                      className={cn(
+                        "mr-2 h-4 w-4",
+                        value === city ? "opacity-100" : "opacity-0",
+                      )}
+                    />
+                    {city}
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+            )}
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
+  );
+}
