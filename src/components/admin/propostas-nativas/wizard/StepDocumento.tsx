@@ -802,8 +802,13 @@ export function StepDocumento({
       toast({ title: "DOCX não disponível", variant: "destructive" });
     };
 
-    const isReady = generationStatus === "ready";
     const isBusy = generating || rendering;
+    // SSOT do "pronta": artefato persistido (PDF/DOCX/link externo) OU status explícito "ready".
+    // Quando o componente é renderizado fora do ProposalWizard (ex: ProjetoDetalhe via
+    // StepDocumentoBridge), ninguém alimenta generationStatus — então o painel ficava
+    // travado em "Proposta desatualizada" mesmo após gerar/regenerar com sucesso.
+    const hasArtifact = !!outputPdfPath || !!externalPdfUrl || !!outputDocxPath;
+    const isReady = !isBusy && (generationStatus === "ready" || hasArtifact);
     const statusLabel = isReady
       ? "Proposta pronta"
       : isBusy
