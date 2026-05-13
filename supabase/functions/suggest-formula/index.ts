@@ -65,17 +65,44 @@ Variáveis disponíveis: ${varsListStr}`;
 
     let formula = "";
     try {
-      const aiData = await callAi({
-        tier: "flash",
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: `Crie uma fórmula que: ${description}` },
-        ],
-      });
-      formula = aiData?.choices?.[0]?.message?.content?.trim() || "";
+      // Tenta provider próprio (Gemini/OpenAI) e cai para Lovable AI Gateway
+      const hasOwnKey = !!Deno.env.get("GEMINI_API_KEY") || !!Deno.env.get("OPENAI_API_KEY");
+      if (hasOwnKey) {
+        const aiData = await callAi({
+          tier: "flash",
+          messages: [
+            { role: "system", content: systemPrompt },
+            { role: "user", content: `Crie uma fórmula que: ${description}` },
+          ],
+        });
+        formula = aiData?.choices?.[0]?.message?.content?.trim() || "";
+      } else {
+        const lovableKey = Deno.env.get("LOVABLE_API_KEY");
+        if (!lovableKey) throw new Error("Nenhuma API key de IA configurada");
+        const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${lovableKey}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            model: "google/gemini-2.5-flash",
+            messages: [
+              { role: "system", content: systemPrompt },
+              { role: "user", content: `Crie uma fórmula que: ${description}` },
+            ],
+          }),
+        });
+        if (!res.ok) {
+          const txt = await res.text();
+          throw new Error(`Lovable AI Gateway ${res.status}: ${txt.slice(0, 200)}`);
+        }
+        const data = await res.json();
+        formula = data?.choices?.[0]?.message?.content?.trim() || "";
+      }
     } catch (aiErr) {
       console.error("[suggest-formula] AI error:", aiErr);
-      return new Response(JSON.stringify({ error: "Erro no serviço de IA" }), {
+      return new Response(JSON.stringify({ error: `Erro no serviço de IA: ${(aiErr as Error).message}` }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
