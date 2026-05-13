@@ -124,11 +124,27 @@ export async function getOrCreateProposalToken(
   versaoId: string,
   tipo: "tracked" | "public",
 ): Promise<string> {
+  // Resolver SEMPRE a versão ATIVA da proposta (substituida_em IS NULL).
+  // Evita gerar token apontando para versão antiga (que ficaria inutilizável
+  // após nova geração — public_slug invalidado, template defasado).
+  let activeVersaoId = versaoId;
+  const { data: activeVersao } = await supabase
+    .from("proposta_versoes")
+    .select("id, substituida_em")
+    .eq("proposta_id", propostaId)
+    .is("substituida_em", null)
+    .order("versao_numero", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if ((activeVersao as any)?.id) {
+    activeVersaoId = (activeVersao as any).id;
+  }
+
   const { data: existing } = await supabase
     .from("proposta_aceite_tokens" as any)
     .select("token")
     .eq("proposta_id", propostaId)
-    .eq("versao_id", versaoId)
+    .eq("versao_id", activeVersaoId)
     .eq("tipo", tipo)
     .is("invalidado_em", null)
     .order("created_at", { ascending: false })
@@ -142,7 +158,7 @@ export async function getOrCreateProposalToken(
 
   const { data: created, error } = await supabase
     .from("proposta_aceite_tokens" as any)
-    .insert({ proposta_id: propostaId, versao_id: versaoId, tipo, tenant_id: tenantId } as any)
+    .insert({ proposta_id: propostaId, versao_id: activeVersaoId, tipo, tenant_id: tenantId } as any)
     .select("token")
     .single();
 
