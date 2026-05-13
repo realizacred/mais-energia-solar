@@ -270,6 +270,8 @@ function ProposalWizardContent() {
   const [docxBlob, setDocxBlob] = useState<Blob | null>(null);
   const [outputDocxPath, setOutputDocxPath] = useState<string | null>(null);
   const [outputPdfPath, setOutputPdfPath] = useState<string | null>(null);
+  // Fase 1 — PDF original migrado do SolarMarket (link_pdf). Fallback quando não há output_pdf_path.
+  const [externalPdfUrl, setExternalPdfUrl] = useState<string | null>(null);
   const [generationError, setGenerationError] = useState<string | null>(null);
   const [missingVars, setMissingVars] = useState<string[]>([]);
   const [generationAuditReport, setGenerationAuditReport] = useState<GenerationAuditReport | null>(null);
