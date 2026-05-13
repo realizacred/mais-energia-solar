@@ -525,16 +525,22 @@ O painel admin é composto por um layout com sidebar + área de conteúdo. Os co
 
 ### 8.4. Módulo de Propostas
 
-**Tabelas:** `propostas`, `proposta_itens`, `proposta_variaveis`
+**Tabelas (SSOT):** `propostas_nativas`, `proposta_versoes`, `proposta_kits`, `proposta_versao_ucs`
 
-**Componentes:** `PropostasManager`, hooks `usePropostas`
+**Engine oficial de geração:** edge function `proposal-generate` (única autorizada).
+A renderização de PDF é feita via Gotenberg a partir do template + snapshot da versão.
+
+**Componentes:** wizard `/admin/propostas-nativas/nova`, hooks `usePropostasNativas`, `useProposalGenerate`.
+
+**Regra:** NÃO existe gerador local de PDF (jsPDF) no projeto. Qualquer fluxo
+paralelo fora de `propostas_nativas` / `proposta_versoes` / `proposal-generate`
+é proibido (ver auditoria do Portal Consultor — Fase 2A).
 
 **Funcionalidades:**
-- Integração com SolarMarket para geração automática
-- Dados completos: potência, módulos, inversor, payback, economia
-- Geração de PDF via jsPDF (`proposalPdf.ts`)
-- Variáveis dinâmicas por proposta
+- Versionamento imutável por snapshot
+- Variáveis dinâmicas resolvidas no servidor (`resolveProposalVariables`)
 - Séries de dados (consumo mensal, geração mensal, economia anual)
+- Validade, status e governança via `proposta_versoes`
 
 ### 8.5. Módulo de Clientes
 
