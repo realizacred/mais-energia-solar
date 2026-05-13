@@ -985,7 +985,8 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
   };
 
   // Render proposal — handles both HTML (web) and DOCX templates
-  const handleRender = async () => {
+  const handleRender = async (overrideTemplateId?: string) => {
+    const effectiveTemplateId = overrideTemplateId || templateSelecionado;
     if (!latestVersao?.id) return;
 
     // Detect if selected template is DOCX
