@@ -391,7 +391,10 @@ export function CustomFieldsSettings() {
                           </>
                         )}
                         {contextFilter === "pre_dimensionamento" && (
-                          <th className="text-center px-2 py-2.5 text-xs font-semibold text-muted-foreground">Obrigatório na Proposta</th>
+                          <>
+                            <th className="text-center px-2 py-2.5 text-xs font-semibold text-muted-foreground">Exibir na Proposta</th>
+                            <th className="text-center px-2 py-2.5 text-xs font-semibold text-muted-foreground">Obrigatório na Proposta</th>
+                          </>
                         )}
                         <th className="text-right px-4 py-2.5 text-xs font-semibold text-muted-foreground">Ações</th>
                       </tr>
