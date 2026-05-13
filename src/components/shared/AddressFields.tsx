@@ -202,12 +202,11 @@ export function AddressFields({
             </Field>
 
             <Field label="Cidade">
-              <Input
+              <CityCombobox
                 value={value.cidade}
-                onChange={(e) => update("cidade", e.target.value)}
-                placeholder="Preenchido pelo CEP"
+                estado={value.estado}
+                onChange={(v) => update("cidade", v)}
                 disabled={disabled || cepLoading}
-                className={cepLoading ? "opacity-60" : ""}
               />
             </Field>
 
