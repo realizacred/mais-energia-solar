@@ -899,7 +899,13 @@ export function StepConsumptionIntelligence({ leadFase }: { leadFase?: string | 
       latitude={locLatitude}
       somenteGhi={locSkipPoa}
       leadFase={leadFase}
-      geracaoDesejadaKwh={selectedLead?.geracao_estimada_kwh}
+      geracaoDesejadaKwh={(() => {
+        const raw =
+          (selectedLead as any)?.geracao_estimada_kwh ??
+          (selectedLead as any)?.consumo_previsto;
+        const n = Number(raw);
+        return Number.isFinite(n) && n > 0 ? n : undefined;
+      })()}
     />
   );
 }
