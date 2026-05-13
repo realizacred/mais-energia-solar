@@ -11,15 +11,16 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
-import { type PagamentoOpcao, type BancoFinanciamento, type UCData, type PremissasData, formatBRL } from "./types";
+import { type PagamentoOpcao, type BancoFinanciamento, type UCData, type PremissasData, formatBRL, resolveCustoKit } from "./types";
 import { formatNumberBR } from "@/lib/formatters";
 import { CurrencyInput } from "@/components/ui-kit/inputs/CurrencyInput";
 import { calcularPrestacao, calcularEconomiaMensal } from "@/services/paymentComposition/financingMath";
-import { FORMA_PAGAMENTO_LABELS } from "@/services/paymentComposition/types";
+import { FORMA_PAGAMENTO_LABELS, type FormaPagamento } from "@/services/paymentComposition/types";
 import { PaymentMethodSelector, type FormaSelected } from "./PaymentMethodSelector";
 import { useWizardContext } from "./WizardContext";
 import { useBancosCatalog } from "./useWizardDataLoaders";
 import { usePrecoFinal } from "@/hooks/usePrecoFinal";
+import { usePaymentInterestConfigs } from "@/hooks/usePaymentInterestConfig";
 
 interface BancoOpcao {
   id: string;
