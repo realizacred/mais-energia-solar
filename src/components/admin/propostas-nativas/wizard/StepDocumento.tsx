@@ -424,7 +424,7 @@ export function StepDocumento({
         token = (created as any).token;
       }
 
-      const url = `${getPublicUrl()}/proposta/${token}?view=simulacao`;
+      const url = getSimulationUrl(token, true)!; // botão só aparece quando hasFinancing
       try { await navigator.clipboard.writeText(url); } catch { window.prompt("Copie o link:", url); }
       setCopiedSimulacao(true);
       setTimeout(() => setCopiedSimulacao(false), 2000);
