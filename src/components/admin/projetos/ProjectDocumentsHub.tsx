@@ -216,6 +216,18 @@ export function ProjectDocumentsHub({ projetoId, dealId }: Props) {
   const [selectedCategoria, setSelectedCategoria] = useState<string>("Manual");
   const fileInput = useRef<HTMLInputElement>(null);
 
+  // Cache buster: ao montar/trocar projeto/deal, invalida as 3 fontes para
+  // refletir imediatamente a nova lógica de dedup semântico (sem esperar
+  // staleTime — useProjetoArquivos=5min, useProjectDocuments=30s, cfFiles=60s).
+  const qc = useQueryClient();
+  useEffect(() => {
+    qc.invalidateQueries({ queryKey: ["project-documents"] });
+    if (dealId) {
+      qc.invalidateQueries({ queryKey: ["projeto-arquivos", dealId] });
+      qc.invalidateQueries({ queryKey: ["projeto-custom-field-files", dealId] });
+    }
+  }, [qc, projetoId, dealId]);
+
   // Mescla canônico + legado bucket + custom fields como linhas virtuais.
   // SSOT visual = project_documents. Dedup semântico em 3 camadas:
   //   1) bucket+storage_path (mesmo arquivo físico)
