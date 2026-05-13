@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
-import { getPublicUrl } from "@/lib/getPublicUrl";
+
 import type { GenerationAuditReport } from "@/services/generationAudit";
 import {
   FileText, Sun, Zap, Loader2, Globe, FileDown, Upload, MessageCircle, Mail,
@@ -34,6 +34,12 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { formatDateTime, formatDate, formatTime, formatDateShort } from "@/lib/dateUtils";
 import { QRCodeCanvas } from "qrcode.react";
 import { getOrCreateProposalToken } from "@/services/proposal/proposalDetail.service";
+import {
+  getProposalWebUrl,
+  getTrackedPdfUrl,
+  getDirectPdfUrl,
+  getSimulationUrl,
+} from "@/services/proposal/proposalLinks";
 
 // ─── Types ────────────────────────────────────────────────
 
@@ -88,6 +94,7 @@ export function StepDocumento({
     potenciaKwp, ucs,
     templateSelecionado, setTemplateSelecionado: onTemplateSelecionado,
     generationStatus,
+    pagamentoOpcoes,
     customFieldValues, setCustomFieldValues: onCustomFieldValuesChange,
   } = useWizardContext() as any;
 
@@ -96,6 +103,11 @@ export function StepDocumento({
   const clienteTelefone = cliente.celular || selectedLead?.telefone;
   const clienteEmail = cliente.email || selectedLead?.email;
   const numUcs = ucs.length;
+  // Simulação financeira só faz sentido se há pelo menos 1 opção tipo "financiamento"
+  const hasFinancing = useMemo(
+    () => Array.isArray(pagamentoOpcoes) && pagamentoOpcoes.some((o: any) => o?.tipo === "financiamento"),
+    [pagamentoOpcoes],
+  );
   // Calculate areaUtilM2 and precoFinal if needed, or get from context
   const areaUtilM2 = 0; 
   const precoFinal = 0;
@@ -198,7 +210,7 @@ export function StepDocumento({
 
         if (cancelled) return;
 
-        const url = `${getPublicUrl()}/proposta/${token}`;
+        const url = getProposalWebUrl(token);
         setResolvedPublicUrl(url);
 
         // Set WA default message with link
@@ -331,22 +343,13 @@ export function StepDocumento({
 
       if (withTracker) {
         const token = await getOrCreateProposalToken(propostaId!, versaoId!, "tracked");
-        url = `${getPublicUrl()}/proposta/${token}`;
+        url = getTrackedPdfUrl(token);
         setResolvedPublicUrl(url);
       } else {
-        url = directPdfUrl;
-
-        if (!url && outputPdfPath) {
-          const { data: signedData, error: signErr } = await supabase.storage
-            .from("proposta-documentos")
-            .createSignedUrl(outputPdfPath, 604800); // 7 days
-
-          if (signErr || !signedData?.signedUrl) {
-            toast({ title: "Erro ao gerar link do PDF", description: signErr?.message, variant: "destructive" });
-            return;
-          }
-
-          url = signedData.signedUrl;
+        url = await getDirectPdfUrl(outputPdfPath, directPdfUrl);
+        if (!url) {
+          toast({ title: "Erro ao gerar link do PDF", variant: "destructive" });
+          return;
         }
       }
 
@@ -421,7 +424,7 @@ export function StepDocumento({
         token = (created as any).token;
       }
 
-      const url = `${getPublicUrl()}/proposta/${token}?view=simulacao`;
+      const url = getSimulationUrl(token, true)!; // botão só aparece quando hasFinancing
       try { await navigator.clipboard.writeText(url); } catch { window.prompt("Copie o link:", url); }
       setCopiedSimulacao(true);
       setTimeout(() => setCopiedSimulacao(false), 2000);
@@ -878,50 +881,7 @@ export function StepDocumento({
             )}
           </div>
 
-          {/* 2. PRIMARY GENERATE / REGENERATE CTA — sempre visível */}
-          <Button
-            variant={isReady ? "outline" : "default"}
-            size="lg"
-            className="w-full gap-2 h-11"
-            onClick={onGenerate}
-            disabled={isBusy || !templateSelecionado || estimativaBlocked}
-            title={estimativaBlocked ? "Marque o aceite de estimativa acima para continuar" : undefined}
-          >
-            {isBusy ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : isReady ? (
-              <RefreshCw className="h-4 w-4" />
-            ) : (
-              <Sun className="h-4 w-4" />
-            )}
-            {isBusy ? "Gerando..." : isReady ? "Regenerar proposta" : "Gerar proposta"}
-          </Button>
-
-          {/* 3. COMMERCIAL CTAs — WhatsApp (primary) + Email (secondary) */}
-          {isReady && (
-            <div className="space-y-2">
-              <Button
-                variant="success"
-                size="lg"
-                className="w-full gap-2 h-12 text-sm font-semibold shadow-sm"
-                onClick={() => setActiveTab("whatsapp")}
-              >
-                <MessageCircle className="h-4 w-4" />
-                Enviar por WhatsApp
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                className="w-full gap-2 h-9"
-                onClick={() => setActiveTab("email")}
-              >
-                <Mail className="h-4 w-4" />
-                Enviar por e-mail
-              </Button>
-            </div>
-          )}
-
-          {/* 4. TEMPLATE SELECTOR — compact */}
+          {/* 2. TEMPLATE SELECTOR + UPLOAD .docx */}
           <div className="rounded-lg border border-border/50 bg-muted/20 p-2.5 space-y-2">
             <Label className="text-[10px] uppercase tracking-wide text-muted-foreground font-medium">Template do documento</Label>
             <Select value={templateSelecionado} onValueChange={onTemplateSelecionado}>
@@ -961,6 +921,49 @@ export function StepDocumento({
               {uploadingDocx ? "Enviando..." : "Upload .docx personalizado"}
             </Button>
           </div>
+
+          {/* 3. PRIMARY GENERATE / REGENERATE CTA */}
+          <Button
+            variant={isReady ? "outline" : "default"}
+            size="lg"
+            className="w-full gap-2 h-11"
+            onClick={onGenerate}
+            disabled={isBusy || !templateSelecionado || estimativaBlocked}
+            title={estimativaBlocked ? "Marque o aceite de estimativa acima para continuar" : undefined}
+          >
+            {isBusy ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : isReady ? (
+              <RefreshCw className="h-4 w-4" />
+            ) : (
+              <Sun className="h-4 w-4" />
+            )}
+            {isBusy ? "Gerando..." : isReady ? "Regenerar proposta" : "Gerar proposta"}
+          </Button>
+
+          {/* 4. COMMERCIAL CTAs — WhatsApp (primary) + Email (secondary) */}
+          {isReady && (
+            <div className="space-y-2">
+              <Button
+                variant="success"
+                size="lg"
+                className="w-full gap-2 h-12 text-sm font-semibold shadow-sm"
+                onClick={() => setActiveTab("whatsapp")}
+              >
+                <MessageCircle className="h-4 w-4" />
+                Enviar por WhatsApp
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full gap-2 h-9"
+                onClick={() => setActiveTab("email")}
+              >
+                <Mail className="h-4 w-4" />
+                Enviar por e-mail
+              </Button>
+            </div>
+          )}
 
           {/* 5. SHARING & TRACKING — sempre visível quando ready */}
           {isReady && (
@@ -1016,15 +1019,34 @@ export function StepDocumento({
                   </TooltipTrigger>
                   {!outputPdfPath && !externalPdfUrl && !pdfBlobUrl && <TooltipContent>Gere a proposta primeiro</TooltipContent>}
                 </Tooltip>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="w-full justify-start gap-2 h-8 text-xs"
-                  onClick={handleCopySimulacaoLink}
-                >
-                  {copiedSimulacao ? <Check className="h-3.5 w-3.5 text-success" /> : <LinkIcon className="h-3.5 w-3.5" />}
-                  Simulação financeira
-                </Button>
+                {hasFinancing ? (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="w-full justify-start gap-2 h-8 text-xs"
+                    onClick={handleCopySimulacaoLink}
+                  >
+                    {copiedSimulacao ? <Check className="h-3.5 w-3.5 text-success" /> : <LinkIcon className="h-3.5 w-3.5" />}
+                    Simulação financeira
+                  </Button>
+                ) : (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span tabIndex={0}>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="w-full justify-start gap-2 h-8 text-xs opacity-50 pointer-events-none"
+                          disabled
+                        >
+                          <LinkIcon className="h-3.5 w-3.5" />
+                          Simulação financeira
+                        </Button>
+                      </span>
+                    </TooltipTrigger>
+                    <TooltipContent>Adicione uma opção de financiamento para liberar a simulação</TooltipContent>
+                  </Tooltip>
+                )}
                 <div className="h-px bg-border/40 my-1" />
                 <Button
                   variant="ghost"

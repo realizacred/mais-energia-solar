@@ -1,3 +1,17 @@
+/**
+ * @deprecated Tela web genérica antiga. NÃO é a experiência comercial canônica.
+ *
+ * A landing de alta conversão (`/pl/:token` → PropostaLanding.tsx) é a única
+ * destino válido para QR Code, link público, WhatsApp e e-mail comerciais.
+ *
+ * Esta rota (`/proposta/:token`) é mantida apenas para:
+ *   - tokens históricos já enviados a clientes
+ *   - fluxo de assinatura/decisão herdado
+ *
+ * ❌ NUNCA apontar QR/link público novo para esta rota.
+ * ❌ NUNCA reativar este como destino de "Compartilhar e rastrear".
+ * Usar SEMPRE `src/services/proposal/proposalLinks.ts`.
+ */
 import { formatBRL } from "@/lib/formatters";
 import { formatTaxaMensal } from "@/services/paymentComposition/financingMath";
 import { getCanonicalProposalTotal } from "@/services/proposal/proposalTotals";
