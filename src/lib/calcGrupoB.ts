@@ -60,7 +60,8 @@ export interface CalcGrupoBInput {
   consumo_mensal_kwh: number;
   tariff: TariffComponentes;
   custo_disponibilidade: CustoDisponibilidade;
-  ano?: number; // default 2026
+  /** Ano-base do escalonamento Fio B. Se omitido, usa ano corrente. */
+  ano?: number;
 }
 
 export interface CalcGrupoBResult {
