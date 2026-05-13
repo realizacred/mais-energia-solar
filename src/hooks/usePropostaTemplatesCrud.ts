@@ -123,6 +123,36 @@ export function useDeletarPropostaTemplate() {
   });
 }
 
+/**
+ * Marca um template como padrão (is_default=true).
+ * O trigger BEFORE INSERT/UPDATE proposta_templates_enforce_single_default
+ * desmarca os demais do mesmo (tenant_id, tipo).
+ */
+export function useSetTemplateAsDefault() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from("proposta_templates")
+        .update({ is_default: true } as any)
+        .eq("id", id);
+      if (error) {
+        // Índice parcial único pode lançar 23505 em corrida — mensagem amigável
+        const code = (error as any).code;
+        if (code === "23505") {
+          throw new Error("Já existe outro template marcado como padrão. Recarregue a página e tente novamente.");
+        }
+        throw new Error(error.message || "Não foi possível definir como padrão.");
+      }
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: [QUERY_KEY] });
+      qc.invalidateQueries({ queryKey: ["proposta-templates-active"] });
+      qc.invalidateQueries({ queryKey: ["proposta-templates-config"] });
+    },
+  });
+}
+
 export function useAtualizarTemplateHtml() {
   const qc = useQueryClient();
   return useMutation({
