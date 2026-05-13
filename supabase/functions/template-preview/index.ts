@@ -1100,16 +1100,84 @@ Deno.serve(async (req) => {
         clienteData: (clienteR.data ?? {}) as Record<string, unknown>,
       });
 
+      // ── Carregar e avaliar proposta_variaveis_custom (vc_*) ──
+      // Espelha proposal-generate: sem isso, qualquer vc_* retorna "Não encontrado"
+      const customWarnings: Array<{ nome: string; error: string; missingKeys?: string[] }> = [];
+      try {
+        const { data: vcDefs } = await adminClient
+          .from("proposta_variaveis_custom")
+          .select("id, nome, label, expressao, tipo_resultado, ativo")
+          .eq("tenant_id", tenantId)
+          .eq("ativo", true)
+          .order("ordem", { ascending: true });
+
+        if (vcDefs && vcDefs.length > 0) {
+          // Contexto começa com tudo que veio do flattenSnapshot
+          const ctx: Record<string, unknown> = { ...resolved };
+
+          // Resolução iterativa: variáveis podem depender de outras vc_*
+          const pending = [...vcDefs];
+          const maxPasses = pending.length + 2;
+          for (let pass = 0; pass < maxPasses && pending.length > 0; pass++) {
+            let progressed = false;
+            for (let i = pending.length - 1; i >= 0; i--) {
+              const vc = pending[i];
+              const expr = (vc.expressao ?? "").toString();
+              const deps = extractVariableRefs(expr);
+              // Só avalia quando todas as deps que são vc_* dela mesma já foram resolvidas
+              const unresolvedVcDep = deps.some(
+                (d) =>
+                  pending.some((p) => p.nome === d && p.nome !== vc.nome),
+              );
+              if (unresolvedVcDep) continue;
+
+              const result = evaluateCustomVarV2(expr, ctx as Record<string, string | number | boolean | null>, vc.tipo_resultado);
+              if (result.error) {
+                customWarnings.push({
+                  nome: vc.nome,
+                  error: `${result.error.type}: ${result.error.message}`,
+                  missingKeys: result.missingKeys,
+                });
+                ctx[vc.nome] = null;
+                resolved[vc.nome] = `#ERRO: ${result.error.message}`;
+              } else {
+                const val = result.value;
+                ctx[vc.nome] = val as never;
+                resolved[vc.nome] = val == null ? null : (typeof val === "number" ? val : String(val)) as never;
+                if (result.missingKeys && result.missingKeys.length > 0) {
+                  customWarnings.push({
+                    nome: vc.nome,
+                    error: "Dependências ausentes",
+                    missingKeys: result.missingKeys,
+                  });
+                }
+              }
+              pending.splice(i, 1);
+              progressed = true;
+            }
+            if (!progressed) break;
+          }
+          // Sobrou pendência => ciclo ou dep não resolvível
+          for (const vc of pending) {
+            customWarnings.push({ nome: vc.nome, error: "Não avaliado (ciclo ou dep não resolvida)" });
+            resolved[vc.nome] = null as never;
+          }
+        }
+      } catch (e) {
+        console.error("[template-preview] resolve_variables custom vars failed:", (e as Error).message);
+        customWarnings.push({ nome: "*", error: `load_failed: ${(e as Error).message}` });
+      }
+
       // If specific variable_key requested, return only that
       const varKey = body.variable_key as string | undefined;
       if (varKey) {
         const value = resolved[varKey] ?? null;
-        return new Response(JSON.stringify({ resolved_variables: { [varKey]: value }, value }), {
+        return new Response(JSON.stringify({ resolved_variables: { [varKey]: value }, value, warnings: customWarnings }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
 
-      return new Response(JSON.stringify({ resolved_variables: resolved }), {
+      return new Response(JSON.stringify({ resolved_variables: resolved, warnings: customWarnings }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
