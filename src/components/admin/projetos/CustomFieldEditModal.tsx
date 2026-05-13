@@ -233,7 +233,7 @@ export function CustomFieldEditModal({
         title: "", field_key: "", field_type: "text", field_context: context,
         show_on_create: false, required_on_create: false,
         visible_on_funnel: false, important_on_funnel: false,
-        required_on_funnel: false, required_on_proposal: false,
+        required_on_funnel: false, required_on_proposal: false, show_on_proposal: false,
         visibilityMode: "all", visible_pipeline_ids: [],
         important_stage_ids: [], required_stage_ids: [], icon: "",
       });
