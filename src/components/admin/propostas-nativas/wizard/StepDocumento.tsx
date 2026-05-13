@@ -210,7 +210,7 @@ export function StepDocumento({
 
         if (cancelled) return;
 
-        const url = `${getPublicUrl()}/proposta/${token}`;
+        const url = getProposalWebUrl(token);
         setResolvedPublicUrl(url);
 
         // Set WA default message with link
