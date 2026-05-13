@@ -1223,25 +1223,84 @@ function GerenciamentoTab({
     }
   };
 
-  // Load document activity for timeline
+  // Load document activity for timeline (storage scan).
+  // Filtra "pseudo-entries" de pastas (ex.: subpasta `custom-fields/` aparece
+  // como item sem mime/extensão e sem metadata.size) — antes virava
+  // "Documento: custom-fields" / "—" no histórico. Recursivamente lista
+  // arquivos reais dentro de `custom-fields/<field_key>/` e os agrupa por
+  // campo amigável.
   useEffect(() => {
     async function loadDocEntries() {
       try {
         const { data: profile } = await supabase.from("profiles").select("tenant_id").limit(1).maybeSingle();
         if (!profile) return;
-        const path = `${(profile as any).tenant_id}/deals/${deal.id}`;
-        const { data } = await supabase.storage
+        const basePath = `${(profile as any).tenant_id}/deals/${deal.id}`;
+        const entries: UnifiedTimelineItem[] = [];
+
+        const isFolder = (f: any) =>
+          !f?.metadata || (f?.metadata && (f.metadata.size == null || f.metadata.size === 0 && !f.metadata.mimetype));
+        const prettyFieldName = (key: string) => {
+          const map: Record<string, string> = {
+            cap_identidade: "Identidade",
+            identidade: "Identidade",
+            cap_comprovante_endereco: "Comprovante de endereço",
+            comprovante_endereco: "Comprovante de endereço",
+            cap_cnh: "CNH",
+            cap_rg: "RG",
+            cap_cpf: "CPF",
+            cap_selfie: "Selfie",
+          };
+          return map[key] || key
+            .replace(/^cap_|^pre_|^pos_/, "")
+            .replace(/_/g, " ")
+            .replace(/\b\w/g, (c) => c.toUpperCase());
+        };
+
+        // Raiz: arquivos manuais
+        const { data: rootList } = await supabase.storage
           .from("projeto-documentos")
-          .list(path, { limit: 50, sortBy: { column: "created_at", order: "desc" } });
-        if (data && data.length > 0) {
-          setDocEntries(data.map((f: any) => ({
+          .list(basePath, { limit: 50, sortBy: { column: "created_at", order: "desc" } });
+        for (const f of (rootList || []) as any[]) {
+          if (isFolder(f)) continue; // ignora subpasta `custom-fields`
+          entries.push({
             id: `doc-${f.name}`,
             type: "documento" as const,
-            title: `Documento: ${f.name.replace(/^\d+_/, "")}`,
+            title: f.name.replace(/^\d+_/, ""),
             subtitle: f.metadata?.size ? `${(f.metadata.size / 1024).toFixed(0)} KB` : undefined,
-            date: f.created_at ? formatDate(f.created_at) : "—",
-          })));
+            date: f.created_at ? formatDate(f.created_at) : "",
+          });
         }
+
+        // Subpasta custom-fields/<field_key>/<arquivos>
+        const { data: cfFolders } = await supabase.storage
+          .from("projeto-documentos")
+          .list(`${basePath}/custom-fields`, { limit: 50 });
+        for (const folder of (cfFolders || []) as any[]) {
+          if (!isFolder(folder)) continue;
+          const fieldKey = folder.name;
+          const { data: files } = await supabase.storage
+            .from("projeto-documentos")
+            .list(`${basePath}/custom-fields/${fieldKey}`, {
+              limit: 50,
+              sortBy: { column: "created_at", order: "desc" },
+            });
+          const realFiles = (files || []).filter((f: any) => !isFolder(f));
+          if (realFiles.length === 0) continue;
+          const label = prettyFieldName(fieldKey);
+          const last = realFiles[0];
+          entries.push({
+            id: `doc-cf-${fieldKey}`,
+            type: "documento" as const,
+            title: `${label} atualizado`,
+            subtitle:
+              realFiles.length === 1
+                ? "1 arquivo anexado"
+                : `${realFiles.length} arquivos anexados`,
+            date: last?.created_at ? formatDate(last.created_at) : "",
+          });
+        }
+
+        setDocEntries(entries);
       } catch { /* ignore */ }
     }
     loadDocEntries();
