@@ -29,6 +29,7 @@ import {
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { formatBRL, formatNumberBR } from "@/lib/formatters";
+import { formatTirPercent } from "@/lib/tirDisplay";
 import { cn } from "@/lib/utils";
 import { renderProposal, sendProposal } from "@/services/proposalApi";
 import { useLazyTemplateAssign } from "@/hooks/useLazyTemplateAssign";
