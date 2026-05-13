@@ -572,7 +572,7 @@ function ProjetoDetalheContent() {
               <TipoProjetoSolarBadge projetoId={projetoId ?? deal.id} />
               {deal.status !== "won" && deal.status !== "lost" && (
                 <Button size="sm" onClick={() => {
-                  const params = new URLSearchParams({ deal_id: dealId });
+                  const params = new URLSearchParams({ deal_id: deal.id });
                   if (deal.customer_id) params.set("customer_id", deal.customer_id);
                   if (projetoId) params.set("projeto_id", projetoId);
                   navigate(`/admin/propostas-nativas/nova?${params.toString()}`);
