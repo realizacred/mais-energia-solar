@@ -107,10 +107,18 @@ export default function PropostaLanding() {
       setPropostaId(td.proposta_id);
 
       try {
+        const sw = window.innerWidth || null;
+        const deviceType = sw ? (sw < 768 ? "Mobile" : sw < 1024 ? "Tablet" : "Desktop") : null;
+        // PostgREST resolve overload por args nomeados — passar TODOS os 6 evita 404
         await supabase.rpc("registrar_view_proposta" as any, {
-          p_token: td.token, p_user_agent: navigator.userAgent, p_referrer: document.referrer || null,
+          p_token: td.token,
+          p_user_agent: navigator.userAgent,
+          p_referrer: document.referrer || null,
+          p_ip: null,
+          p_device_type: deviceType,
+          p_screen_width: sw,
         });
-      } catch { /* best-effort */ }
+      } catch { /* best-effort: tracking nunca bloqueia abertura */ }
 
       if (td.tipo !== "public") {
         heartbeatRef.current = setInterval(async () => {
