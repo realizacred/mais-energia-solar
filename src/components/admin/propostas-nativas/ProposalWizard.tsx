@@ -2198,7 +2198,9 @@ function ProposalWizardContent() {
     setDocxBlob(null);
     setOutputDocxPath(null);
     setOutputPdfPath(null);
+    setExternalPdfUrl(null);
     setResult(null);
+
 
     try {
       // Ensure draft is saved (creates project if needed) before generating
