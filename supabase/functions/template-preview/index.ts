@@ -1,6 +1,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import JSZip from "npm:jszip@3.10.1";
 import { flattenSnapshot } from "../_shared/flattenSnapshot.ts";
+import { evaluateCustomVarV2, extractVariableRefs } from "../_shared/expression-evaluator.ts";
 import { buildUcsTabela } from "../_shared/formatUcsTabela.ts";
 import { normalizeVariableFormat } from "../_shared/normalizeVariableFormat.ts";
 import { resolveGotenbergUrl } from "../_shared/resolveGotenbergUrl.ts";
