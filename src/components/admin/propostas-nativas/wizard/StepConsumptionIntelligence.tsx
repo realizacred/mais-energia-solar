@@ -476,6 +476,16 @@ function StepConsumptionIntelligenceImpl({
     <div className="space-y-4">
       {/* ─── Header metrics bar */}
       <div className="flex items-center justify-end gap-4 text-xs flex-wrap">
+        {typeof geracaoDesejadaKwh === "number" && geracaoDesejadaKwh > 0 && (
+          <div
+            className="flex items-center gap-1.5 rounded-md border border-secondary/30 bg-secondary/5 px-2 py-1 text-secondary"
+            title="Geração desejada informada pelo cliente no cadastro do lead"
+          >
+            <Zap className="h-3.5 w-3.5" />
+            <span className="font-medium">Objetivo do cliente</span>
+            <span className="font-bold">{formatNumberBR(geracaoDesejadaKwh)} kWh/mês</span>
+          </div>
+        )}
         <div className="flex items-center gap-1.5 text-muted-foreground">
           <BarChart3 className="h-3.5 w-3.5" />
           <span>Consumo Médio Total</span>
