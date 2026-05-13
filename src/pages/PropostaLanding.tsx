@@ -398,18 +398,17 @@ export default function PropostaLanding() {
   }
 
   if (!isLegacyMigrated) {
+    // Log técnico apenas em console (admin/devtools), nunca exposto ao cliente final
+    console.error("[PropostaLanding] Proposta nativa sem template WEB vinculado", { propostaId, tokenId });
     return (
       <div style={{ minHeight: "100vh", background: "#0F172A", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
         <div style={{ maxWidth: 480, textAlign: "center", fontFamily: "'Open Sans', sans-serif" }}>
           <AlertTriangle style={{ width: 48, height: 48, margin: "0 auto 16px", color: "#F59E0B" }} />
           <h1 style={{ fontFamily: "Montserrat, sans-serif", fontSize: "1.4rem", fontWeight: 800, margin: "0 0 12px" }}>
-            Proposta indisponível
+            Proposta temporariamente indisponível
           </h1>
           <p style={{ fontSize: "0.95rem", opacity: 0.8, margin: "0 0 8px" }}>
-            Esta proposta nativa ainda não tem um modelo WEB vinculado.
-          </p>
-          <p style={{ fontSize: "0.85rem", opacity: 0.6 }}>
-            Selecione um modelo no editor (/admin/proposta-comercial?tab=modelos-proposta) e gere uma nova versão.
+            Entre em contato com nossa equipe para receber o atendimento comercial.
           </p>
         </div>
       </div>
