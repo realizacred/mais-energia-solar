@@ -1616,11 +1616,16 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
 
                   <TabsContent value="arquivo" className="px-4 pb-4 mt-0">
                     <div className="mt-3">
-                      <StepDocumento
-                        onViewDetail={() => {}}
-                        skipTemplateAutoSelect={true}
+                      <StepDocumentoBridge
+                        onRender={handleRender}
+                        rendering={rendering}
+                        html={html}
+                        propostaId={p.id}
+                        versaoId={latestVersao?.id}
+                        outputPdfPath={latestVersao?.output_pdf_path ?? null}
+                        outputDocxPath={latestVersao?.output_docx_path ?? null}
+                        externalPdfUrl={latestVersao?.link_pdf ?? null}
                       />
-
                     </div>
                   </TabsContent>
 
