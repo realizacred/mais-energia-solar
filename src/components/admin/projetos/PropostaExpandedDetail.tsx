@@ -1909,3 +1909,42 @@ function DadosField({ icon, label, value }: { icon: "check" | "text" | "dollar";
     </div>
   );
 }
+
+// ─── Bridge: lê templateSelecionado do WizardContext e dispara handleRender do pai
+function StepDocumentoBridge({
+  onRender,
+  rendering,
+  html,
+  propostaId,
+  versaoId,
+  outputPdfPath,
+  outputDocxPath,
+  externalPdfUrl,
+}: {
+  onRender: (templateId?: string) => void | Promise<void>;
+  rendering: boolean;
+  html: string | null;
+  propostaId: string;
+  versaoId?: string;
+  outputPdfPath: string | null;
+  outputDocxPath: string | null;
+  externalPdfUrl: string | null;
+}) {
+  const ctx = useWizardContext() as any;
+  const tplFromCtx = ctx?.templateSelecionado as string | undefined;
+
+  return (
+    <StepDocumento
+      onViewDetail={() => {}}
+      skipTemplateAutoSelect={true}
+      onGenerate={() => onRender(tplFromCtx)}
+      generating={rendering}
+      rendering={rendering}
+      htmlPreview={html}
+      result={versaoId ? { proposta_id: propostaId, versao_id: versaoId } : null}
+      outputPdfPath={outputPdfPath}
+      outputDocxPath={outputDocxPath}
+      externalPdfUrl={externalPdfUrl}
+    />
+  );
+}
