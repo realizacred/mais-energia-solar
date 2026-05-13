@@ -7,6 +7,7 @@
 
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { countLogicalDocs } from "@/lib/documentDedup";
 import type {
   DealDetail,
   StageHistory,
@@ -189,22 +190,29 @@ export function useProjetoDetalheData(dealId: string) {
         allStagesMap.set(s.pipeline_id, arr);
       });
 
-      // Docs count: storage files + generated documents (RPC já trouxe generated)
-      let docsCount = (rpcData.generated_docs_count as number) || 0;
-      const { data: authData } = await supabase.auth.getUser();
-      const uid = authData?.user?.id;
-      if (uid) {
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("tenant_id")
-          .eq("user_id", uid)
-          .maybeSingle();
-        if (profile) {
-          const { data: files } = await supabase.storage
-            .from("projeto-documentos")
-            .list(`${(profile as any).tenant_id}/deals/${d.id}`, { limit: 100 });
-          docsCount += files?.length || 0;
-        }
+      // Docs count: SSOT = project_documents + dedup semântico (mesma regra do Hub).
+      // Garante paridade entre badge da aba e cards exibidos.
+      let docsCount = 0;
+      const orFilter: string[] = [];
+      if (d.projeto_id) orFilter.push(`projeto_id.eq.${d.projeto_id}`);
+      orFilter.push(`deal_id.eq.${d.id}`);
+      const { data: pdRows } = await supabase
+        .from("project_documents")
+        .select("bucket,storage_path,file_name,size_bytes,mime_type,deal_id,projeto_id")
+        .eq("is_deleted", false)
+        .or(orFilter.join(","));
+      const items = (pdRows || []).map((r: any) => ({
+        bucket: r.bucket,
+        storage_path: r.storage_path,
+        file_name: r.file_name,
+        size_bytes: r.size_bytes,
+        mime_type: r.mime_type,
+        scope: r.deal_id || r.projeto_id || d.id,
+      }));
+      docsCount = countLogicalDocs(items);
+      // Fallback: SSOT vazio (projeto antigo) → soma generated do RPC.
+      if (docsCount === 0) {
+        docsCount = (rpcData.generated_docs_count as number) || 0;
       }
 
       // Fetch projeto identity (nome próprio, código, num, descrição) — separado do cliente.
