@@ -1010,38 +1010,49 @@ Inclua: análise do perfil de consumo, adequação técnica do sistema, retorno 
           .eq("id", propostaId).eq("tenant_id", tenantId);
       }
     } else {
+      // RB: codigo NUNCA é gerado aqui. SSOT canônico = trigger trg_set_proposta_num
+      // → next_tenant_number(tenant_id, 'proposta') com FOR UPDATE + auto-repair.
+      // Derivar codigo de lead_code/cliente_code colide na 2ª proposta do mesmo lead/cliente
+      // (constraint uq_propostas_tenant_codigo). Apenas titulo é derivado para UX.
       let titulo = "Proposta";
-      let codigo: string | null = null;
 
       if (body.lead_id) {
         const { data: lead } = await adminClient
           .from("leads").select("nome, lead_code")
           .eq("id", body.lead_id).eq("tenant_id", tenantId).single();
         if (!lead) return jsonError("Lead não encontrado neste tenant", 404);
-
         titulo = `Proposta ${lead.lead_code ?? ""} - ${lead.nome}`.trim();
-        codigo = lead.lead_code ? `PROP-${lead.lead_code}` : null;
       } else {
         const { data: cliente } = await adminClient
           .from("clientes").select("nome, cliente_code")
           .eq("id", body.cliente_id).eq("tenant_id", tenantId).single();
         if (!cliente) return jsonError("Cliente não encontrado neste tenant", 404);
-
         titulo = `Proposta ${cliente.cliente_code ?? ""} - ${cliente.nome}`.trim();
-        codigo = cliente.cliente_code ? `PROP-${cliente.cliente_code}` : null;
       }
 
-      const { data: novaProposta, error: insertErr } = await adminClient
-        .from("propostas_nativas")
-        .insert({
-          tenant_id: tenantId, lead_id: body.lead_id ?? null,
-          projeto_id: body.projeto_id ?? null, cliente_id: body.cliente_id ?? null,
-          consultor_id: consultorId, template_id: body.template_id ?? null,
-          titulo, codigo,
-          versao_atual: 0, created_by: userId,
-        })
-        .select("id").single();
-      if (insertErr || !novaProposta) return jsonError(`Erro ao criar proposta: ${insertErr?.message}`, 500);
+      // Retry curto contra colisão concorrente (defense-in-depth; trigger já é tenant-safe).
+      let novaProposta: { id: string } | null = null;
+      let lastErr: any = null;
+      for (let attempt = 0; attempt < 3; attempt++) {
+        const { data, error } = await adminClient
+          .from("propostas_nativas")
+          .insert({
+            tenant_id: tenantId, lead_id: body.lead_id ?? null,
+            projeto_id: body.projeto_id ?? null, cliente_id: body.cliente_id ?? null,
+            consultor_id: consultorId, template_id: body.template_id ?? null,
+            titulo, codigo: null, // ← deixar o trigger gerar (SSOT)
+            versao_atual: 0, created_by: userId,
+          })
+          .select("id").single();
+        if (!error && data) { novaProposta = data; break; }
+        lastErr = error;
+        const msg = String(error?.message ?? "");
+        const isCollision = error?.code === "23505" ||
+          /uq_propostas_tenant_codigo|duplicate key/i.test(msg);
+        if (!isCollision) break;
+        console.warn(`[proposal-generate] codigo collision attempt ${attempt + 1}, retrying...`);
+      }
+      if (!novaProposta) return jsonError(`Erro ao criar proposta: ${lastErr?.message ?? "desconhecido"}`, 500);
       propostaId = novaProposta.id;
     }
 
