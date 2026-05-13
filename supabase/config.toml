@@ -359,3 +359,6 @@ verify_jwt = true
 [functions.equipment-enrichment-worker]
 verify_jwt = false
 # wall_clock_limit = 300
+
+[functions.sm-cleanup-legacy-files]
+verify_jwt = false
