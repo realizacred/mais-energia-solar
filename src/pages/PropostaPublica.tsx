@@ -634,7 +634,9 @@ export default function PropostaPublica() {
 
   // Payment methods from snapshot (admin-configured)
   const formasProprias: any[] = versaoData?.snapshot?.formas_pagamento_proprias ?? [];
-  const valorTotal = activeCenario?.preco_final ?? versaoData?.valor_total ?? 0;
+  // SSOT: total canônico (snapshot recomposto > valor_total persistido)
+  const canonicalTotal = getCanonicalProposalTotal(versaoData);
+  const valorTotal = activeCenario?.preco_final ?? canonicalTotal ?? versaoData?.valor_total ?? 0;
   const temEscolha = formaEscolhida !== null || bancoEscolhido !== null;
 
   const FORMA_LABELS: Record<string, string> = {
