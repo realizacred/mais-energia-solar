@@ -605,7 +605,7 @@ export function StepDocumento({
     }
 
     // ── Before generation (no result AND no restored PDF)
-    const hasRestoredPreview = !result && (!!pdfBlobUrl || !!outputPdfPath);
+    const hasRestoredPreview = !result && (!!pdfBlobUrl || !!outputPdfPath || !!externalPdfUrl);
     if (!result && !hasRestoredPreview) {
       return (
         <div className="grid grid-cols-1 md:grid-cols-[220px_1fr] gap-4 sm:gap-6 min-h-[400px]">
