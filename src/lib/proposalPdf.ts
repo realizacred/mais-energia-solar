@@ -1,3 +1,13 @@
+/**
+ * @deprecated NÃO USAR em produção — gerador local de PDF de proposta.
+ *
+ * Viola SSOT: produz PDF fora do pipeline oficial (proposal-generate +
+ * Gotenberg) sem versionamento, validade ou rastreabilidade. Usado apenas
+ * por ProposalGenerator (também deprecated) e pelo smoke test.
+ *
+ * Não importar em UI nova. Será removido junto com ProposalGenerator
+ * quando a tela "Minhas Propostas" do consultor estiver pronta (Fase 3).
+ */
 // jsPDF + autoTable loaded via dynamic import to reduce initial bundle
 
 interface ProposalData {

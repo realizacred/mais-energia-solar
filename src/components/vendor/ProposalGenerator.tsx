@@ -1,3 +1,16 @@
+/**
+ * @deprecated NÃO USAR — Gerador paralelo de proposta do portal consultor.
+ *
+ * Viola SSOT: cria proposta fora de propostas_nativas / proposta_versoes /
+ * proposal-generate, sem versionamento, validade ou rastreabilidade.
+ *
+ * Regra de negócio (Fase 1 — Segurança):
+ *   Consultor NÃO gera proposta. Apenas visualiza, copia link e envia
+ *   propostas oficiais geradas pelo sistema/admin.
+ *
+ * Removido de VendorLeadViewDialog. Mantido em disco apenas para referência
+ * histórica até a Fase 3 (tela "Minhas Propostas"). NÃO importar.
+ */
 import { useState, useMemo } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
