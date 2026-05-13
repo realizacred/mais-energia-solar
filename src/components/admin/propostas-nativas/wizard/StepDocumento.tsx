@@ -1019,15 +1019,34 @@ export function StepDocumento({
                   </TooltipTrigger>
                   {!outputPdfPath && !externalPdfUrl && !pdfBlobUrl && <TooltipContent>Gere a proposta primeiro</TooltipContent>}
                 </Tooltip>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="w-full justify-start gap-2 h-8 text-xs"
-                  onClick={handleCopySimulacaoLink}
-                >
-                  {copiedSimulacao ? <Check className="h-3.5 w-3.5 text-success" /> : <LinkIcon className="h-3.5 w-3.5" />}
-                  Simulação financeira
-                </Button>
+                {hasFinancing ? (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="w-full justify-start gap-2 h-8 text-xs"
+                    onClick={handleCopySimulacaoLink}
+                  >
+                    {copiedSimulacao ? <Check className="h-3.5 w-3.5 text-success" /> : <LinkIcon className="h-3.5 w-3.5" />}
+                    Simulação financeira
+                  </Button>
+                ) : (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span tabIndex={0}>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="w-full justify-start gap-2 h-8 text-xs opacity-50 pointer-events-none"
+                          disabled
+                        >
+                          <LinkIcon className="h-3.5 w-3.5" />
+                          Simulação financeira
+                        </Button>
+                      </span>
+                    </TooltipTrigger>
+                    <TooltipContent>Adicione uma opção de financiamento para liberar a simulação</TooltipContent>
+                  </Tooltip>
+                )}
                 <div className="h-px bg-border/40 my-1" />
                 <Button
                   variant="ghost"
