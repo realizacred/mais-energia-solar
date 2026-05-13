@@ -14,6 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { useCustomFieldsList } from "@/hooks/useCustomFieldsSettings";
+import { seedCustomFieldDefaults } from "@/lib/customFieldDefaults";
 import type { Json } from "@/integrations/supabase/types";
 import { formatBRL } from "./types";
 
@@ -109,6 +110,14 @@ export function DialogPosDimensionamento({
       onCustomFieldValuesChange(nextValues);
     }
   }, [open, kitItems, fields]);
+
+  // Seed defaults por tipo apenas para campos undefined (preserva 0/false/""/valores salvos).
+  useEffect(() => {
+    if (!open || !fields.length) return;
+    const next = seedCustomFieldDefaults(fields, customFieldValues);
+    if (next !== customFieldValues) onCustomFieldValuesChange(next);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, fields]);
 
   const updateCustom = (key: string, value: any) => {
     onCustomFieldValuesChange({ ...customFieldValues, [key]: value });
@@ -364,8 +373,8 @@ function PosCustomFieldInput({ field, value, onChange }: {
               step="0.01"
               min={0}
               max={100}
-              value={value ?? ""}
-              onChange={e => onChange(e.target.value === "" ? null : Number(e.target.value))}
+              value={value ?? 0}
+              onChange={e => onChange(e.target.value === "" ? 0 : Number(e.target.value))}
               className="h-9 text-xs pr-7"
             />
             <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground pointer-events-none">%</span>
@@ -377,7 +386,7 @@ function PosCustomFieldInput({ field, value, onChange }: {
       return (
         <div className="space-y-1.5">
           <Label className="text-xs text-muted-foreground">{label}</Label>
-          <Input type="number" value={value ?? ""} onChange={e => onChange(Number(e.target.value))} className="h-9 text-xs" />
+          <Input type="number" value={value ?? 0} onChange={e => onChange(e.target.value === "" ? 0 : Number(e.target.value))} className="h-9 text-xs" />
         </div>
       );
 

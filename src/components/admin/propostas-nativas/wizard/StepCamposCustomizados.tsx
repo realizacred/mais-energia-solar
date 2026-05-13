@@ -1,4 +1,5 @@
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
+import { seedCustomFieldDefaults } from "@/lib/customFieldDefaults";
 import { Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { DateInput } from "@/components/ui-kit/inputs/DateInput";
@@ -47,6 +48,14 @@ function StepCamposCustomizadosImpl({ values, onValuesChange, dealId }: Props) {
       .sort((a: any, b: any) => (a.ordem ?? 0) - (b.ordem ?? 0)) as CustomField[],
     [allFields]
   );
+
+  // Seed defaults por tipo APENAS para campos undefined (preserva 0/false/""/valores salvos).
+  useEffect(() => {
+    if (!fields.length) return;
+    const next = seedCustomFieldDefaults(fields, values);
+    if (next !== values) onValuesChange(next);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fields]);
 
   const updateValue = (key: string, value: any) => {
     onValuesChange({ ...values, [key]: value });
@@ -175,8 +184,8 @@ function CustomFieldInput({ field, value, onChange, dealId }: {
               step="0.01"
               min={0}
               max={100}
-              value={value ?? ""}
-              onChange={e => onChange(e.target.value === "" ? null : Number(e.target.value))}
+              value={value ?? 0}
+              onChange={e => onChange(e.target.value === "" ? 0 : Number(e.target.value))}
               className="h-9 text-xs pr-7"
             />
             <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground pointer-events-none">%</span>
@@ -188,7 +197,7 @@ function CustomFieldInput({ field, value, onChange, dealId }: {
       return (
         <div className="space-y-1.5">
           <Label className="text-xs">{label}</Label>
-          <Input type="number" value={value || ""} onChange={e => onChange(Number(e.target.value))} className="h-9 text-xs" />
+          <Input type="number" value={value ?? 0} onChange={e => onChange(e.target.value === "" ? 0 : Number(e.target.value))} className="h-9 text-xs" />
         </div>
       );
 
