@@ -185,9 +185,17 @@ export async function downloadArquivo(dealId: string, fileName: string) {
   try {
     const tenantId = await getTenantId();
     const path = `${tenantId}/deals/${dealId}/${fileName}`;
-    const { data, error } = await supabase.storage.from("projeto-documentos").createSignedUrl(path, 300);
+    const { data, error } = await supabase.storage.from("projeto-documentos").createSignedUrl(path, 300, { download: fileName });
     if (error) throw error;
-    if (data?.signedUrl) window.open(data.signedUrl, "_blank");
+    if (!data?.signedUrl) throw new Error("URL não disponível");
+    const a = document.createElement("a");
+    a.href = data.signedUrl;
+    a.download = fileName;
+    a.rel = "noopener";
+    a.target = "_blank";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
   } catch (err: any) {
     toast({ title: "Erro ao baixar", description: err.message, variant: "destructive" });
   }
