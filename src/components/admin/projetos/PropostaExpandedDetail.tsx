@@ -357,7 +357,7 @@ function FinancialKPIs({ snapshot, latestVersao }: { snapshot: any; latestVersao
         </div>
         <div>
           <p className="text-[10px] text-muted-foreground">TIR</p>
-          <p className="text-sm font-bold text-foreground">{tir != null ? `${formatNumberBR(Number(tir))}%` : "—"}</p>
+          <p className="text-sm font-bold text-foreground">{formatTirPercent(tir)}</p>
         </div>
       </div>
       <div className="flex items-center gap-2 border rounded-lg p-3 bg-card">
