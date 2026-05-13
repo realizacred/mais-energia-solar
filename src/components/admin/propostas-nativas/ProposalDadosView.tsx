@@ -10,6 +10,7 @@
 
 import { normalizeProposalSnapshot } from "@/domain/proposal/normalizeProposalSnapshot";
 import { formatBRL, formatBRLCompact } from "@/lib/formatters";
+import { formatTirPercent } from "@/lib/tirDisplay";
 import { Card, CardContent } from "@/components/ui/card";
 import { motion } from "framer-motion";
 import {
@@ -359,7 +360,7 @@ export function ProposalDadosView({
           <DataRow icon={Receipt} label="Custo Equipamento" value={custoEquip > 0 ? formatBRL(custoEquip) : "—"} />
           <DataRow icon={Receipt} label="Custo Instalação" value={custoInstalacao > 0 ? formatBRL(custoInstalacao) : "—"} />
           <DataRow icon={ArrowDownRight} label="Desconto" value={desconto > 0 ? `${desconto}%` : "—"} />
-          <DataRow icon={Percent} label="TIR" value={tir > 0 ? `${tir.toFixed(2).replace(".", ",")}%` : "—"} />
+          <DataRow icon={Percent} label="TIR" value={tir > 0 ? formatTirPercent(tir) : "—"} />
           <DataRow icon={DollarSign} label="VPL" value={vpl > 0 ? formatBRL(vpl) : "—"} />
           <DataRow icon={Clock} label="Payback" value={paybackDisplay} />
         </SectionCard>
@@ -437,7 +438,7 @@ export function ProposalDadosView({
               <DataRow icon={Receipt} label="Custo Equipamento" value={custoEquip > 0 ? formatBRL(custoEquip) : "—"} />
               <DataRow icon={Receipt} label="Custo Instalação" value={custoInstalacao > 0 ? formatBRL(custoInstalacao) : "—"} />
               <DataRow icon={ArrowDownRight} label="Desconto" value={desconto > 0 ? `${desconto}%` : "—"} />
-              <DataRow icon={Percent} label="TIR" value={tir > 0 ? `${tir.toFixed(2).replace(".", ",")}%` : "—"} />
+              <DataRow icon={Percent} label="TIR" value={tir > 0 ? formatTirPercent(tir) : "—"} />
               <DataRow icon={DollarSign} label="VPL" value={vpl > 0 ? formatBRL(vpl) : "—"} />
               <DataRow icon={Clock} label="Payback" value={paybackDisplay} />
             </AccordionContent>

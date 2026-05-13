@@ -1,6 +1,7 @@
 import React from "react";
 import { formatBRL } from "@/lib/formatters";
 import { formatKwp, formatKwhValue } from "@/lib/formatters/index";
+import { formatTirPercent } from "@/lib/tirDisplay";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -222,7 +223,7 @@ export function ProposalAnalysis({
               <TrendingUp className="h-4 w-4" />
               <p className="text-sm font-medium">Taxa Interna de Retorno</p>
             </div>
-            <p className="text-2xl font-bold text-warning">{snapshot.tir ? `${(snapshot.tir * 100).toFixed(2)}%` : "—"}</p>
+            <p className="text-2xl font-bold text-warning">{formatTirPercent(snapshot.tir)}</p>
           </CardContent>
         </Card>
         <Card className="bg-warning/5 border-warning/20">
