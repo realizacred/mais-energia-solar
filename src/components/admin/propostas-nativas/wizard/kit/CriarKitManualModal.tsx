@@ -494,7 +494,7 @@ export function CriarKitManualModal({ open, onOpenChange, modulos, inversores, o
   const [sistema, setSistema] = useState<"on_grid" | "hibrido" | "off_grid">(initialCardData?.sistema || sistemaProp || "on_grid");
   const [tipoKit, setTipoKit] = useState<"customizado" | "fechado">("customizado");
   const [topologia, setTopologia] = useState(
-    initialCardData?.topologia ||
+    normalizeTopologia(initialCardData?.topologia) ||
     (topologiasProp?.length === 1
       ? (topologiasProp[0] === "tradicional" ? "Tradicional" : topologiasProp[0] === "microinversor" ? "Microinversor" : "Otimizador")
       : "Tradicional")
