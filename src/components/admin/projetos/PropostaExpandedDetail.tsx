@@ -990,8 +990,13 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
     if (!latestVersao?.id) return;
 
     // Detect if selected template is DOCX
-    const selectedTpl = proposalTemplates.find(t => t.id === templateSelecionado);
+    const selectedTpl = proposalTemplates.find(t => t.id === effectiveTemplateId);
     const isDocxTemplate = selectedTpl?.tipo === "docx";
+
+    if (!effectiveTemplateId) {
+      toast({ title: "Selecione um template antes de gerar", variant: "destructive" });
+      return;
+    }
 
     setRendering(true);
     try {
