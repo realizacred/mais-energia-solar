@@ -94,6 +94,7 @@ export function StepDocumento({
     potenciaKwp, ucs,
     templateSelecionado, setTemplateSelecionado: onTemplateSelecionado,
     generationStatus,
+    pagamentoOpcoes,
     customFieldValues, setCustomFieldValues: onCustomFieldValuesChange,
   } = useWizardContext() as any;
 
@@ -102,6 +103,11 @@ export function StepDocumento({
   const clienteTelefone = cliente.celular || selectedLead?.telefone;
   const clienteEmail = cliente.email || selectedLead?.email;
   const numUcs = ucs.length;
+  // Simulação financeira só faz sentido se há pelo menos 1 opção tipo "financiamento"
+  const hasFinancing = useMemo(
+    () => Array.isArray(pagamentoOpcoes) && pagamentoOpcoes.some((o: any) => o?.tipo === "financiamento"),
+    [pagamentoOpcoes],
+  );
   // Calculate areaUtilM2 and precoFinal if needed, or get from context
   const areaUtilM2 = 0; 
   const precoFinal = 0;
