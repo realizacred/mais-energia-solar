@@ -431,6 +431,40 @@ class Parser {
         return Math.round(toNum(args[0]) * factor) / factor;
       }
 
+      case "ROUNDDOWN":
+      case "TRUNC": {
+        // Arredonda em direção a zero (trunca)
+        if (args.length < 1) throw new Error(`${name} requer 1 argumento`);
+        const decimals = args.length >= 2 ? toNum(args[1]) : 0;
+        const factor = Math.pow(10, decimals);
+        const n = toNum(args[0]) * factor;
+        return (n >= 0 ? Math.floor(n) : Math.ceil(n)) / factor;
+      }
+
+      case "ROUNDUP": {
+        // Arredonda afastando de zero
+        if (args.length < 1) throw new Error("ROUNDUP requer 1 argumento");
+        const decimals = args.length >= 2 ? toNum(args[1]) : 0;
+        const factor = Math.pow(10, decimals);
+        const n = toNum(args[0]) * factor;
+        return (n >= 0 ? Math.ceil(n) : Math.floor(n)) / factor;
+      }
+
+      case "FLOOR": {
+        if (args.length < 1) throw new Error("FLOOR requer 1 argumento");
+        const decimals = args.length >= 2 ? toNum(args[1]) : 0;
+        const factor = Math.pow(10, decimals);
+        return Math.floor(toNum(args[0]) * factor) / factor;
+      }
+
+      case "CEILING":
+      case "CEIL": {
+        if (args.length < 1) throw new Error(`${name} requer 1 argumento`);
+        const decimals = args.length >= 2 ? toNum(args[1]) : 0;
+        const factor = Math.pow(10, decimals);
+        return Math.ceil(toNum(args[0]) * factor) / factor;
+      }
+
       case "CHAR": {
         if (args.length < 1) throw new Error("CHAR requer 1 argumento");
         const code = toNum(args[0]);
