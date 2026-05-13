@@ -2322,15 +2322,28 @@ function ProposalWizardContent() {
         premissas,
         itens: itens.filter(i => i.descricao).map(({ id, ...rest }) => rest),
         servicos: servicos.map(({ id, ...rest }) => rest),
-        venda: {
-          custo_kit: venda.custo_kit,
-          custo_instalacao: venda.custo_instalacao,
-          custo_comissao: venda.custo_comissao,
-          custo_outros: venda.custo_outros,
-          margem_percentual: venda.margem_percentual,
-          desconto_percentual: venda.desconto_percentual,
-          observacoes: venda.observacoes,
-        },
+        venda: (() => {
+          // SSOT-guard: nunca enviar venda sem custo_instalacao numérico.
+          // Fallback determinístico: servicos[categoria=instalacao, incluso_no_preco].
+          // Evita regressão onde proposal-generate persiste valor_total sem instalação.
+          const fallbackInstalacao = Number(
+            servicos
+              .filter(s => (s.categoria === "instalacao") && (s.incluso_no_preco !== false))
+              .reduce((sum, s) => sum + (Number(s.valor) || 0), 0)
+          ) || 0;
+          const custoInstalacao = Number(venda.custo_instalacao);
+          return {
+            custo_kit: Number(venda.custo_kit) || 0,
+            custo_instalacao: Number.isFinite(custoInstalacao) && custoInstalacao > 0
+              ? custoInstalacao
+              : fallbackInstalacao,
+            custo_comissao: Number(venda.custo_comissao) || 0,
+            custo_outros: Number(venda.custo_outros) || 0,
+            margem_percentual: Number(venda.margem_percentual) || 0,
+            desconto_percentual: Number(venda.desconto_percentual) || 0,
+            observacoes: venda.observacoes ?? "",
+          };
+        })(),
         pagamento_opcoes: pagamentoOpcoes.map(({ id, ...rest }) => rest),
         observacoes: venda.observacoes || undefined,
         customFieldValues: customFieldValues ?? {},
