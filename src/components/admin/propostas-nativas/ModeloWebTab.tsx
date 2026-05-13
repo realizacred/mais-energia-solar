@@ -330,9 +330,39 @@ export function TemplatesTab() {
                     <Badge variant={t.ativo ? "default" : "secondary"} className="text-[10px]">
                       {t.ativo ? "Ativo" : "Inativo"}
                     </Badge>
+                    {t.is_default && t.tipo === "html" && t.ativo && (
+                      <Badge className="text-[10px] gap-1 bg-primary/15 text-primary border-primary/20 hover:bg-primary/20" variant="outline">
+                        <Star className="h-3 w-3 fill-current" />
+                        Padrão WEB
+                      </Badge>
+                    )}
                     <span className="text-xs font-semibold">{t.nome || `Template ${i + 1}`}</span>
                   </div>
                    <div className="flex items-center gap-2">
+                     {t.tipo === "html" && t.ativo && !t.is_default && !t.isNew && (
+                       <Button
+                         variant="outline"
+                         size="sm"
+                         className="h-7 text-xs gap-1.5"
+                         disabled={setAsDefault.isPending}
+                         onClick={async () => {
+                           try {
+                             await setAsDefault.mutateAsync(t.id);
+                             toast({
+                               title: "Template definido como padrão",
+                               description: "Esse template será usado como landing comercial quando a proposta não tiver modelo web vinculado.",
+                             });
+                             setInitialized(false);
+                             refreshTemplates();
+                           } catch (e: any) {
+                             toast({ title: "Erro", description: e.message, variant: "destructive" });
+                           }
+                         }}
+                       >
+                         <Star className="h-3.5 w-3.5" />
+                         Definir como padrão
+                       </Button>
+                     )}
                      {t.tipo === "html" && !t.isNew && (
                        <Button
                          variant="outline"
