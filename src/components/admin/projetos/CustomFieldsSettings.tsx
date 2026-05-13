@@ -58,6 +58,7 @@ interface CustomField {
   important_on_funnel: boolean;
   required_on_funnel: boolean;
   required_on_proposal: boolean;
+  show_on_proposal: boolean;
   is_active: boolean;
   visible_pipeline_ids: string[];
   important_stage_ids: string[];
