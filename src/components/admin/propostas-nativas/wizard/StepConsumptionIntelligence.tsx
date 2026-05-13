@@ -872,6 +872,7 @@ export function StepConsumptionIntelligence({ leadFase }: { leadFase?: string | 
     potenciaKwp, setPotenciaKwp,
     preDimensionamento, setPreDimensionamento,
     locIrradiacao, locGhiSeries, locLatitude, locSkipPoa,
+    selectedLead,
   } = useWizardContext();
   return (
     <StepConsumptionIntelligenceImpl
@@ -886,6 +887,7 @@ export function StepConsumptionIntelligence({ leadFase }: { leadFase?: string | 
       latitude={locLatitude}
       somenteGhi={locSkipPoa}
       leadFase={leadFase}
+      geracaoDesejadaKwh={selectedLead?.geracao_estimada_kwh}
     />
   );
 }
