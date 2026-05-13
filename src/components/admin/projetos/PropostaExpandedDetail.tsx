@@ -926,10 +926,19 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
 
   // §16: Queries moved to hooks (usePropostaExpandedData) — AP-01 fix
 
-  // Auto-populate publicUrl from public_slug
+  // Reset publicUrl quando a versão ativa muda (regeneração cria nova versão).
+  // Evita exibir QR/link antigo apontando para versão substituída.
+  const lastVersaoIdRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (latestVersao?.id && lastVersaoIdRef.current && lastVersaoIdRef.current !== latestVersao.id) {
+      setPublicUrl(null);
+    }
+    if (latestVersao?.id) lastVersaoIdRef.current = latestVersao.id;
+  }, [latestVersao?.id]);
+
+  // Auto-populate publicUrl from active version (token-based link).
   useEffect(() => {
     if (!isExpanded || publicUrl || !latestVersao?.id || !p.id) return;
-    // Auto-populate publicUrl using token-based link (not slug)
     (async () => {
       try {
         const { getOrCreateProposalToken } = await import("@/services/proposal/proposalDetail.service");
