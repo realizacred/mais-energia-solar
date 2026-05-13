@@ -123,8 +123,8 @@ export function calcSeries25(inputs: CalcInputs): CalcResult {
   let paybackAnos = 0;
   const taxaDesc = vplTaxaDesconto / 100;
 
-  // FASE 2: Fio B base (R$/kWh) — usa real quando disponível; senão proxy 0.28 sobre tarifaMedia.
-  const fioBKwhBase = (tarifaFioBKwh && tarifaFioBKwh > 0) ? tarifaFioBKwh : tarifaMedia * 0.28;
+  // FASE 2: Fio B real (R$/kWh) quando o chamador resolve via tariff_versions / tenant_premises / concessionarias.
+  const hasFioBReal = !!(tarifaFioBKwh && tarifaFioBKwh > 0);
 
   for (let ano = 1; ano <= 25; ano++) {
     const degradacao = Math.pow(1 - perdaEficienciaAnual / 100, ano - 1);
@@ -135,8 +135,10 @@ export function calcSeries25(inputs: CalcInputs): CalcResult {
 
     // Fio B cost using Lei 14.300 escalation
     const fioBPct = getFioBPercent(fioB, ano);
-    const fioBKwhVigente = fioBKwhBase * inflacao;
-    const custoFioB = round2(geracaoAnual * fioBKwhVigente * fioBPct);
+    // Quando há Fio B real: usa-o inflacionado. Sem real: mantém proxy histórico tarifaVigente * 0.28 (bit-identical).
+    const custoFioB = hasFioBReal
+      ? round2(geracaoAnual * (tarifaFioBKwh as number) * inflacao * fioBPct)
+      : round2(geracaoAnual * tarifaVigente * 0.28 * fioBPct);
 
     const economiaLiquida = round2(economiaBruta - custoFioB);
 
