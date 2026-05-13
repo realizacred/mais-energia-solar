@@ -361,7 +361,7 @@ export function WaMessageBubble({
           )}
 
           {isOut && msg.sent_by_name && !isNote && (
-            <p className="text-[10px] text-muted-foreground/50 mt-0.5">
+            <p className="text-[10px] text-primary-foreground/70 mt-0.5">
               Enviado por {msg.sent_by_name}
             </p>
           )}
@@ -372,7 +372,7 @@ export function WaMessageBubble({
               {msg.error_message ? (
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <p className="text-[10px] text-destructive cursor-help truncate flex-1">
+                    <p className={`text-[10px] cursor-help truncate flex-1 font-medium ${isOut ? "text-destructive-foreground bg-destructive/90 px-1.5 py-0.5 rounded" : "text-destructive"}`}>
                       ⚠ Falha no envio
                     </p>
                   </TooltipTrigger>
@@ -381,7 +381,7 @@ export function WaMessageBubble({
                   </TooltipContent>
                 </Tooltip>
               ) : (
-                <p className="text-[10px] text-destructive truncate flex-1">
+                <p className={`text-[10px] truncate flex-1 font-medium ${isOut ? "text-destructive-foreground bg-destructive/90 px-1.5 py-0.5 rounded" : "text-destructive"}`}>
                   ⚠ Falha no envio
                 </p>
               )}
@@ -389,7 +389,9 @@ export function WaMessageBubble({
                 // RB-03-exception: chat micro-interaction — retry with stopPropagation
                 <button
                   onClick={(e) => { e.stopPropagation(); onRetry(msg); }}
-                  className="flex items-center gap-0.5 text-[10px] text-primary hover:text-primary/80 font-medium shrink-0 transition-colors"
+                  className={`flex items-center gap-0.5 text-[10px] font-medium shrink-0 transition-colors ${
+                    isOut ? "text-primary-foreground hover:text-primary-foreground/80 underline" : "text-primary hover:text-primary/80"
+                  }`}
                   title="Tentar reenviar"
                 >
                   <RefreshCw className="h-3 w-3" />
@@ -400,12 +402,22 @@ export function WaMessageBubble({
           )}
 
           {/* Timestamp & status */}
-          <div className={`flex items-center gap-1 mt-0.5 ${isNote ? "text-warning/70" : "text-muted-foreground"}`}>
-            <span className="text-[10px]">{format(new Date(msg.created_at), "HH:mm")}</span>
+          <div className={`flex items-center gap-1 mt-1 justify-end ${
+            isNote ? "text-warning/80" : isOut ? "text-primary-foreground/75" : "text-muted-foreground"
+          }`}>
+            <span className="text-[10.5px] font-medium tabular-nums">{format(new Date(msg.created_at), "HH:mm")}</span>
             {statusCfg && (
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <statusCfg.icon className={`h-3.5 w-3.5 ${statusCfg.className}`} />
+                  <statusCfg.icon className={`h-3.5 w-3.5 ${
+                    isOut
+                      ? msg.status === "read"
+                        ? "text-sky-300"
+                        : msg.status === "failed"
+                          ? "text-destructive-foreground"
+                          : "text-primary-foreground/80"
+                      : statusCfg.className
+                  }`} />
                 </TooltipTrigger>
                 <TooltipContent side="left" className="text-[10px] px-2 py-1">
                   {statusCfg.label}
