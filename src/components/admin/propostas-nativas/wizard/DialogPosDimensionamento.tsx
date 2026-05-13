@@ -373,8 +373,8 @@ function PosCustomFieldInput({ field, value, onChange }: {
               step="0.01"
               min={0}
               max={100}
-              value={value ?? ""}
-              onChange={e => onChange(e.target.value === "" ? null : Number(e.target.value))}
+              value={value ?? 0}
+              onChange={e => onChange(e.target.value === "" ? 0 : Number(e.target.value))}
               className="h-9 text-xs pr-7"
             />
             <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground pointer-events-none">%</span>
@@ -386,7 +386,7 @@ function PosCustomFieldInput({ field, value, onChange }: {
       return (
         <div className="space-y-1.5">
           <Label className="text-xs text-muted-foreground">{label}</Label>
-          <Input type="number" value={value ?? ""} onChange={e => onChange(Number(e.target.value))} className="h-9 text-xs" />
+          <Input type="number" value={value ?? 0} onChange={e => onChange(e.target.value === "" ? 0 : Number(e.target.value))} className="h-9 text-xs" />
         </div>
       );
 
