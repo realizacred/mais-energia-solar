@@ -2163,6 +2163,16 @@ function ProposalWizardContent() {
       }
     }
 
+    // ── Gate: pelo menos 1 forma de pagamento (FASE 1)
+    if (!Array.isArray(pagamentoOpcoes) || pagamentoOpcoes.length === 0) {
+      toast({
+        title: "Forma de pagamento obrigatória",
+        description: "Adicione pelo menos uma forma de pagamento na etapa Pagamento antes de gerar a proposta.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     // ── Grupo consistency gate
     if (!grupoValidation.valid) {
       toast({
