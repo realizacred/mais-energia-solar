@@ -206,7 +206,7 @@ export default function PropostaPublica() {
         .rpc("get_proposta_token_by_value", { p_token: token! });
       const td = Array.isArray(tdRows) ? tdRows[0] : tdRows;
 
-      if (tdErr || !td) { setError("Link inválido ou expirado."); setLoading(false); return; }
+      if (tdErr || !td) { setError("Esta proposta não está mais disponível. Entre em contato com nossa equipe."); setLoading(false); return; }
 
       // Token invalidado — exibir mensagem comercial neutra (sem expor versionamento interno)
       if (td.invalidado_em) {
@@ -236,7 +236,7 @@ export default function PropostaPublica() {
             return;
           }
         } catch { /* fallback to generic error */ }
-        setError("Proposta temporariamente indisponível. Entre em contato com nossa equipe.");
+        setError("Esta proposta não está mais disponível. Entre em contato com nossa equipe.");
         setLoading(false);
         return;
       }
@@ -247,7 +247,7 @@ export default function PropostaPublica() {
         setLoading(false);
         return;
       }
-      if (new Date(td.expires_at) < new Date()) { setError("Este link expirou."); setLoading(false); return; }
+      if (new Date(td.expires_at) < new Date()) { setError("Esta proposta expirou. Entre em contato com nossa equipe."); setLoading(false); return; }
 
       setTokenData(td);
       trackView(td);
@@ -271,18 +271,39 @@ export default function PropostaPublica() {
       if (versaoRes.data) {
         setVersaoData(versaoRes.data);
 
-        // If template_id_used exists (HTML web template), redirect to landing page
-        if ((versaoRes.data as any).template_id_used) {
+        const tplId = (versaoRes.data as any).template_id_used;
+        const pdfPath = (versaoRes.data as any).output_pdf_path;
+
+        // Só redireciona para /pl se template for HTML utilizável.
+        // (DOCX/sem template_html → abrir PDF oficial neste fluxo).
+        let templateUsableForWeb = false;
+        if (tplId) {
+          const { data: tplData } = await supabase
+            .from("proposta_templates")
+            .select("tipo, template_html")
+            .eq("id", tplId)
+            .maybeSingle();
+          const tipo = (tplData as any)?.tipo;
+          const tplHtml = (tplData as any)?.template_html;
+          if (tipo === "html" && tplHtml) {
+            // Aceita string não vazia ou array com pelo menos 1 bloco
+            if (typeof tplHtml === "string" && tplHtml.trim().length > 0) templateUsableForWeb = true;
+            else if (Array.isArray(tplHtml) && tplHtml.length > 0) templateUsableForWeb = true;
+            else if (typeof tplHtml === "object" && tplHtml !== null) templateUsableForWeb = true;
+          }
+        }
+
+        if (templateUsableForWeb) {
           setRedirectToLanding(true);
           setLoading(false);
           return;
         }
 
-        // If no HTML render but PDF exists, generate signed URL for PDF viewing
-        if (!renderRes.data?.html && versaoRes.data.output_pdf_path) {
+        // Sem template WEB utilizável: abrir PDF oficial se existir.
+        if (!renderRes.data?.html && pdfPath) {
           const { data: signedData } = await supabase.storage
             .from("proposta-documentos")
-            .createSignedUrl(versaoRes.data.output_pdf_path, 3600);
+            .createSignedUrl(pdfPath, 3600);
           if (signedData?.signedUrl) setPdfUrl(signedData.signedUrl);
         }
       }

@@ -52,9 +52,23 @@ Deno.serve(async (req) => {
 
     // ── 2. PARSE ────────────────────────────────────────────
     const body = await req.json();
-    const { proposta_id, versao_id, canal, lead_id, template_id, mensagem_custom } = body;
+    const { proposta_id, canal, lead_id, template_id, mensagem_custom } = body;
+    let { versao_id } = body;
 
     if (!proposta_id || !versao_id) return jsonError("proposta_id e versao_id obrigatórios", 400);
+
+    // Resolver SEMPRE a versão ATIVA da proposta (substituida_em IS NULL).
+    // Evita reutilizar token de versão substituída por regeneração.
+    const { data: activeVersao } = await adminClient
+      .from("proposta_versoes")
+      .select("id")
+      .eq("proposta_id", proposta_id)
+      .eq("tenant_id", tenantId)
+      .is("substituida_em", null)
+      .order("versao_numero", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if ((activeVersao as any)?.id) versao_id = (activeVersao as any).id;
 
     // ── 3. VERIFICAR OWNERSHIP + DADOS (paralelo) ───────────
     const [propostaRes, tenantRes, versaoRes, renderRes] = await Promise.all([
@@ -95,9 +109,10 @@ Deno.serve(async (req) => {
     if (existingEnvio?.token_id) {
       const { data: existingToken } = await adminClient
         .from("proposta_aceite_tokens")
-        .select("token").eq("id", existingEnvio.token_id).single();
+        .select("token, invalidado_em").eq("id", existingEnvio.token_id).single();
 
-      if (existingToken) {
+      // Só reutiliza token se ainda estiver ATIVO (não invalidado).
+      if (existingToken && !(existingToken as any).invalidado_em) {
         const baseUrl = Deno.env.get("APP_URL") || Deno.env.get("APP_URL_LOCKED") || `https://${tenant?.slug || "app"}.lovable.app`;
         return jsonOk({
           success: true, idempotent: true,

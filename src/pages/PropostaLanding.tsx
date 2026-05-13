@@ -97,10 +97,10 @@ export default function PropostaLanding() {
         .rpc("get_proposta_token_by_value", { p_token: token! });
       const td = Array.isArray(tdRows) ? tdRows[0] : tdRows;
 
-      if (tdErr || !td) { setError("Proposta temporariamente indisponível. Entre em contato com nossa equipe."); setLoading(false); return; }
-      if (td.invalidado_em) { setError("Proposta temporariamente indisponível. Entre em contato com nossa equipe."); setLoading(false); return; }
+      if (tdErr || !td) { setError("Esta proposta não está mais disponível. Entre em contato com nossa equipe."); setLoading(false); return; }
+      if (td.invalidado_em) { setError("Esta proposta não está mais disponível. Entre em contato com nossa equipe."); setLoading(false); return; }
       if (td.used_at) { setDecision(td.decisao || "aceita"); setTokenId(td.id); setLoading(false); return; }
-      if (new Date(td.expires_at) < new Date()) { setError("Este link expirou."); setLoading(false); return; }
+      if (new Date(td.expires_at) < new Date()) { setError("Esta proposta expirou. Entre em contato com nossa equipe."); setLoading(false); return; }
 
       setTokenId(td.id);
       setPropostaId(td.proposta_id);
@@ -136,22 +136,33 @@ export default function PropostaLanding() {
         setSnapshot(normalizeProposalSnapshot(versaoRes.data.snapshot as Record<string, unknown> | null));
 
         const templateId = (versaoRes.data as any).template_id_used;
+        let webUsable = false;
         if (templateId) {
           try {
             const { data: tplData } = await supabase
               .from("proposta_templates")
-              .select("template_html")
+              .select("tipo, template_html")
               .eq("id", templateId)
               .maybeSingle();
-            if (tplData?.template_html) {
-              const parsed = typeof tplData.template_html === "string"
-                ? JSON.parse(tplData.template_html)
-                : tplData.template_html;
+            const tipo = (tplData as any)?.tipo;
+            const tplHtml = (tplData as any)?.template_html;
+            if (tipo === "html" && tplHtml) {
+              const parsed = typeof tplHtml === "string" ? JSON.parse(tplHtml) : tplHtml;
               if (Array.isArray(parsed) && parsed.length > 0) {
                 setTemplateBlocks(parsed);
+                webUsable = true;
+              } else if (typeof parsed === "string" && parsed.trim().length > 0) {
+                webUsable = true;
               }
             }
           } catch { /* fallback to component layout */ }
+        }
+
+        // Sem template WEB utilizável: se houver PDF, redirecionar para /proposta/:token
+        // (que abrirá o PDF oficial). Evita mostrar erro técnico ao cliente.
+        if (!webUsable && (versaoRes.data as any).output_pdf_path) {
+          window.location.replace(`/proposta/${token}`);
+          return;
         }
       }
 
