@@ -166,3 +166,21 @@ export function normalizeTopologyLabel(value?: string | null): KitTopologiaLabel
   return KIT_TOPOLOGIA_LABELS[normalizeTopologyValue(value)];
 }
 
+export function normalizeManualKitTopologies<T extends { card?: Record<string, any>; meta?: Record<string, any> }>(
+  manualKits?: T[] | null,
+  mode: "ui" | "persist" = "ui",
+): T[] {
+  if (!Array.isArray(manualKits)) return [];
+  return manualKits.map((kit) => {
+    const source = kit.meta?.topologia ?? kit.card?.topologia;
+    const normalized = mode === "persist"
+      ? normalizeTopologyValue(source)
+      : normalizeTopologyLabel(source);
+    return {
+      ...kit,
+      card: kit.card ? { ...kit.card, topologia: normalized } : kit.card,
+      meta: kit.meta ? { ...kit.meta, topologia: normalized } : kit.meta,
+    };
+  });
+}
+
