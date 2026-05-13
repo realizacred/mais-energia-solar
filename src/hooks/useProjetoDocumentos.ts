@@ -196,11 +196,21 @@ export async function downloadArquivo(dealId: string, fileName: string) {
 /** Download generated document (DOCX or PDF) from document-files bucket */
 export async function downloadGeneratedDoc(filePath: string) {
   try {
+    const fileName = filePath.split("/").pop() || "documento";
     const { data, error } = await supabase.storage
       .from("document-files")
-      .createSignedUrl(filePath, 300);
+      .createSignedUrl(filePath, 300, { download: fileName });
     if (error) throw error;
-    if (data?.signedUrl) window.open(data.signedUrl, "_blank");
+    if (!data?.signedUrl) throw new Error("URL não disponível");
+    // Use anchor with download attr — avoids popup blocker / silent fetch failures
+    const a = document.createElement("a");
+    a.href = data.signedUrl;
+    a.download = fileName;
+    a.rel = "noopener";
+    a.target = "_blank";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
   } catch (err: any) {
     toast({ title: "Erro ao baixar", description: err.message, variant: "destructive" });
   }
