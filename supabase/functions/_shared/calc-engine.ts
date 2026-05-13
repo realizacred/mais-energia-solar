@@ -113,6 +113,7 @@ export function calcSeries25(inputs: CalcInputs): CalcResult {
     investimentoTotal, economiaMensalAno1, geracaoMensalKwh,
     tarifaMedia, inflacaoEnergetica, perdaEficienciaAnual,
     trocaInversorAnos, trocaInversorCustoPct, vplTaxaDesconto, fioB,
+    tarifaFioBKwh,
   } = inputs;
 
   const series: SeriesRow[] = [];
@@ -121,6 +122,9 @@ export function calcSeries25(inputs: CalcInputs): CalcResult {
   let vplTotal = -investimentoTotal;
   let paybackAnos = 0;
   const taxaDesc = vplTaxaDesconto / 100;
+
+  // FASE 2: Fio B base (R$/kWh) — usa real quando disponível; senão proxy 0.28 sobre tarifaMedia.
+  const fioBKwhBase = (tarifaFioBKwh && tarifaFioBKwh > 0) ? tarifaFioBKwh : tarifaMedia * 0.28;
 
   for (let ano = 1; ano <= 25; ano++) {
     const degradacao = Math.pow(1 - perdaEficienciaAnual / 100, ano - 1);
@@ -131,7 +135,8 @@ export function calcSeries25(inputs: CalcInputs): CalcResult {
 
     // Fio B cost using Lei 14.300 escalation
     const fioBPct = getFioBPercent(fioB, ano);
-    const custoFioB = round2(geracaoAnual * tarifaVigente * 0.28 * fioBPct); // 28% = TUSD Fio B proportion
+    const fioBKwhVigente = fioBKwhBase * inflacao;
+    const custoFioB = round2(geracaoAnual * fioBKwhVigente * fioBPct);
 
     const economiaLiquida = round2(economiaBruta - custoFioB);
 
