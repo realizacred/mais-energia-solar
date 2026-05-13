@@ -121,6 +121,18 @@ export interface KitMeta {
 
 const TOPOLOGIAS = ["Tradicional", "Microinversor", "Otimizador"];
 
+/** Normaliza topologia (lowercase legado → capitalizada do Select) */
+function normalizeTopologia(t?: string): string {
+  if (!t) return "";
+  const n = t.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+  if (n.startsWith("micro")) return "Microinversor";
+  if (n.startsWith("otim")) return "Otimizador";
+  if (n.startsWith("trad")) return "Tradicional";
+  // Já vem capitalizado e válido
+  if (TOPOLOGIAS.includes(t)) return t;
+  return "";
+}
+
 /** Searchable equipment combo with highlight, keyboard nav, badge */
 interface SearchableOption { value: string; label: string; searchText: string }
 
