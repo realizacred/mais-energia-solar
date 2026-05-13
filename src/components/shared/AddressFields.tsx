@@ -18,9 +18,10 @@
  *   />
  */
 
-import { useCallback } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
 import {
   Select,
   SelectContent,
@@ -28,10 +29,24 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Loader2, MapPin } from "lucide-react";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import { Check, ChevronsUpDown, Loader2, MapPin } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useCepLookup, formatCep } from "@/hooks/useCepLookup";
 import { ESTADOS_BRASIL } from "@/lib/validations";
+import { CITIES_BY_STATE } from "@/data/brazil-states-cities";
 
 export interface AddressData {
   cep: string;
