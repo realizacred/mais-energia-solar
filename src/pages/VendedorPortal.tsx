@@ -27,6 +27,7 @@ const VendorDashboardView = lazy(() => import("@/components/vendor/views/VendorD
 const VendorWhatsAppView = lazy(() => import("@/components/vendor/views/VendorWhatsAppView"));
 const VendorAgendaView = lazy(() => import("@/components/vendor/views/VendorAgendaView"));
 const VendorOrcamentosView = lazy(() => import("@/components/vendor/views/VendorOrcamentosView"));
+const VendorPropostasView = lazy(() => import("@/components/vendor/views/VendorPropostasView"));
 const VendorGamificacaoView = lazy(() => import("@/components/vendor/views/VendorGamificacaoView"));
 const VendorLinksView = lazy(() => import("@/components/vendor/views/VendorLinksView"));
 const VendorNotificacoesView = lazy(() => import("@/components/vendor/views/VendorNotificacoesView"));
@@ -121,6 +122,10 @@ export default function VendedorPortal() {
                     <Route
                       path="orcamentos"
                       element={<VendorOrcamentosView portal={portal} />}
+                    />
+                    <Route
+                      path="propostas"
+                      element={<VendorPropostasView portal={portal} />}
                     />
                     <Route
                       path="gamificacao"
