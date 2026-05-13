@@ -1,6 +1,7 @@
 import React from "react";
 import { formatBRL } from "@/lib/formatters";
 import { formatKwp, formatKwhValue } from "@/lib/formatters/index";
+import { formatTirPercent } from "@/lib/tirDisplay";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
