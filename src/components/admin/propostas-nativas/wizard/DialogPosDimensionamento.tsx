@@ -69,14 +69,14 @@ export function DialogPosDimensionamento({
 }: Props) {
   const { data: allFields, isLoading: loading } = useCustomFieldsList();
 
-  // Visibilidade segue a configuração: somente campos marcados como
-  // "Obrigatório na Proposta" são renderizados aqui. Valores salvos no banco
-  // são sempre preservados (não há delete; apenas filtro de render).
+  // Visibilidade: "Exibir na Proposta" (show_on_proposal) controla render.
+  // "Obrigatório na Proposta" (required_on_proposal) controla validação.
+  // Valores salvos no banco são sempre preservados (apenas filtro de render).
   const fields = useMemo(() =>
     (allFields ?? []).filter((f: any) =>
       f.is_active &&
       f.field_context === "pos_dimensionamento" &&
-      f.required_on_proposal === true
+      f.show_on_proposal === true
     ).sort((a: any, b: any) => (a.ordem ?? 0) - (b.ordem ?? 0)) as CustomField[],
     [allFields]
   );
