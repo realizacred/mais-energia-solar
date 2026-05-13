@@ -755,7 +755,7 @@ export default function PropostaPublica() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
                 <div className="bg-muted/50 rounded-lg p-3 text-center">
                   <p className="text-[10px] text-muted-foreground uppercase">Investimento</p>
-                  <p className="text-sm font-bold">{formatBRL(activeCenario?.preco_final ?? versaoData.valor_total)}</p>
+                  <p className="text-sm font-bold">{formatBRL(activeCenario?.preco_final ?? canonicalTotal ?? versaoData.valor_total)}</p>
                 </div>
                 <div className="bg-muted/50 rounded-lg p-3 text-center">
                   <p className="text-[10px] text-muted-foreground uppercase">Economia/mês</p>
