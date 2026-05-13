@@ -119,9 +119,6 @@ function formatSize(bytes?: number | null) {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-// Normalização e sufixo lógico extraídos para util compartilhado, garantindo
-// paridade entre dedup do Hub e contador da aba Documentos (badge).
-import { normalizeFilename, logicalSuffix } from "@/lib/documentDedup";
 
 /** Normaliza nome de categoria para evitar duplicação visual ("CAMPO: X" vs "X"). */
 function normalizeCategoria(raw?: string | null): string {
