@@ -343,22 +343,13 @@ export function StepDocumento({
 
       if (withTracker) {
         const token = await getOrCreateProposalToken(propostaId!, versaoId!, "tracked");
-        url = `${getPublicUrl()}/proposta/${token}`;
+        url = getTrackedPdfUrl(token);
         setResolvedPublicUrl(url);
       } else {
-        url = directPdfUrl;
-
-        if (!url && outputPdfPath) {
-          const { data: signedData, error: signErr } = await supabase.storage
-            .from("proposta-documentos")
-            .createSignedUrl(outputPdfPath, 604800); // 7 days
-
-          if (signErr || !signedData?.signedUrl) {
-            toast({ title: "Erro ao gerar link do PDF", description: signErr?.message, variant: "destructive" });
-            return;
-          }
-
-          url = signedData.signedUrl;
+        url = await getDirectPdfUrl(outputPdfPath, directPdfUrl);
+        if (!url) {
+          toast({ title: "Erro ao gerar link do PDF", variant: "destructive" });
+          return;
         }
       }
 
