@@ -141,7 +141,7 @@ function resolveFioB(tariff: TariffComponentes): {
  * Função pura, determinística, auditável.
  */
 export function calcGrupoB(input: CalcGrupoBInput): CalcGrupoBResult {
-  const { regra, fase, geracao_mensal_kwh, consumo_mensal_kwh, tariff, custo_disponibilidade, ano = 2026 } = input;
+  const { regra, fase, geracao_mensal_kwh, consumo_mensal_kwh, tariff, custo_disponibilidade, ano = new Date().getFullYear() } = input;
   const alertas: string[] = [];
   let incompleto_gd3 = false;
 
