@@ -40,6 +40,7 @@ interface LeadSemProposta {
   estado: string;
   cidade: string;
   media_consumo: number;
+  consumo_previsto?: number | string | null;
   tipo_telhado: string;
   created_at: string;
 }
@@ -210,6 +211,10 @@ function LeadsSemProposta({
                   cidade: l.cidade,
                   media_consumo: l.media_consumo,
                   tipo_telhado: l.tipo_telhado,
+                  // SSOT: leads.consumo_previsto = geração desejada pelo cliente (kWh/mês)
+                  geracao_estimada_kwh: Number(l.consumo_previsto) > 0
+                    ? Number(l.consumo_previsto)
+                    : undefined,
                 });
                 toast({
                   title: "Lead vinculado",
