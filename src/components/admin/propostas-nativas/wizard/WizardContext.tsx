@@ -213,7 +213,13 @@ export function WizardProvider({ children, initialData = {} }: { children: React
     if (!locDistribuidoraId && tenantTarifas.concessionaria_id) {
       setLocDistribuidoraId(tenantTarifas.concessionaria_id);
     }
-  }, [tenantTarifas, locTipoTelhado, locDistribuidoraId]);
+    // Espelha o nome quando o id está setado mas o nome ainda não (seed do tenant
+    // ou hidratação a partir de project sem nome). Sem isso a validação final
+    // bloqueia a geração com "Distribuidora de energia não selecionada".
+    if (!locDistribuidoraNome && tenantTarifas.concessionaria_nome) {
+      setLocDistribuidoraNome(tenantTarifas.concessionaria_nome);
+    }
+  }, [tenantTarifas, locTipoTelhado, locDistribuidoraId, locDistribuidoraNome]);
 
   // Combined: setting roof type also propagates to the generating UC (ucs[0])
   const handleLocTipoTelhadoChange = useCallback((v: string) => {
