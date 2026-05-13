@@ -156,12 +156,16 @@ export function useProposalKPIs(
             ? s.paybackMeses
             : series?.payback_meses) || null;
 
-    const tirPercent =
+    const tirRaw =
       (activeCenario?.tir_anual && activeCenario.tir_anual > 0
         ? activeCenario.tir_anual
         : (s as any).tir && (s as any).tir > 0
           ? (s as any).tir
           : series?.tir) || null;
+    // Normaliza escala (DB pode trazer decimal 0.32 ou percentual 32). Ver lib/tirDisplay.
+    const tirPercent = tirRaw != null
+      ? (Math.abs(tirRaw) <= 1.5 ? tirRaw * 100 : tirRaw)
+      : null;
 
     const vpl = ((s as any).vpl && (s as any).vpl > 0 ? (s as any).vpl : series?.vpl) || null;
 
