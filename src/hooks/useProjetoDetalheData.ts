@@ -8,6 +8,7 @@
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { countLogicalDocs } from "@/lib/documentDedup";
+import { parseFileMetaArray } from "@/components/admin/projetos/CustomFieldFileInput";
 import type {
   DealDetail,
   StageHistory,
@@ -190,25 +191,61 @@ export function useProjetoDetalheData(dealId: string) {
         allStagesMap.set(s.pipeline_id, arr);
       });
 
-      // Docs count: SSOT = project_documents + dedup semântico (mesma regra do Hub).
-      // Garante paridade entre badge da aba e cards exibidos.
+      // Docs count: paridade com o Hub — mescla project_documents (SSOT) +
+      // arquivos de campos customizados tipo "file" (deal_custom_field_values),
+      // aplica mesma dedup semântica e conta documentos lógicos únicos.
       let docsCount = 0;
       const orFilter: string[] = [];
       if (d.projeto_id) orFilter.push(`projeto_id.eq.${d.projeto_id}`);
       orFilter.push(`deal_id.eq.${d.id}`);
+      const scopeDefault = d.id;
+      const items: Array<{
+        bucket: string;
+        storage_path: string;
+        file_name: string;
+        size_bytes: number | null;
+        mime_type: string | null;
+        scope: string;
+      }> = [];
+
       const { data: pdRows } = await supabase
         .from("project_documents")
         .select("bucket,storage_path,file_name,size_bytes,mime_type,deal_id,projeto_id")
         .eq("is_deleted", false)
         .or(orFilter.join(","));
-      const items = (pdRows || []).map((r: any) => ({
-        bucket: r.bucket,
-        storage_path: r.storage_path,
-        file_name: r.file_name,
-        size_bytes: r.size_bytes,
-        mime_type: r.mime_type,
-        scope: r.deal_id || r.projeto_id || d.id,
-      }));
+      for (const r of (pdRows || []) as any[]) {
+        items.push({
+          bucket: r.bucket,
+          storage_path: r.storage_path,
+          file_name: r.file_name,
+          size_bytes: r.size_bytes,
+          mime_type: r.mime_type,
+          scope: r.deal_id || r.projeto_id || scopeDefault,
+        });
+      }
+
+      // Custom field files (mesma fonte usada pelo Hub)
+      const { data: cfRows } = await supabase
+        .from("deal_custom_field_values")
+        .select("value_text, deal_custom_fields!inner(field_type)")
+        .eq("deal_id", d.id);
+      for (const row of (cfRows || []) as any[]) {
+        const f = row.deal_custom_fields;
+        if (!f || f.field_type !== "file") continue;
+        const metas = parseFileMetaArray(row.value_text);
+        for (const m of metas) {
+          if (!m?.storage_path) continue;
+          items.push({
+            bucket: "projeto-documentos",
+            storage_path: m.storage_path,
+            file_name: m.filename,
+            size_bytes: m.size ?? null,
+            mime_type: m.mime ?? null,
+            scope: d.id,
+          });
+        }
+      }
+
       docsCount = countLogicalDocs(items);
       // Fallback: SSOT vazio (projeto antigo) → soma generated do RPC.
       if (docsCount === 0) {
