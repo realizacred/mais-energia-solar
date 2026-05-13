@@ -214,6 +214,7 @@ export function CustomFieldEditModal({
         important_on_funnel: editingField.important_on_funnel,
         required_on_funnel: editingField.required_on_funnel,
         required_on_proposal: editingField.required_on_proposal,
+        show_on_proposal: (editingField as any).show_on_proposal ?? false,
         visibilityMode: vpids.length > 0 ? "some" : "all",
         visible_pipeline_ids: vpids,
         important_stage_ids: editingField.important_stage_ids || [],
