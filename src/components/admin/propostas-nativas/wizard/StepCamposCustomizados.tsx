@@ -1,4 +1,5 @@
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
+import { seedCustomFieldDefaults } from "@/lib/customFieldDefaults";
 import { Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { DateInput } from "@/components/ui-kit/inputs/DateInput";
