@@ -443,9 +443,8 @@ export default function PropostaPublica() {
     );
   }
 
-  // ── INVALIDATED TOKEN (new version created) ─────────
+  // ── INVALIDATED TOKEN — mensagem comercial neutra (sem expor versionamento) ─────────
   if (invalidatedInfo) {
-    const isDeleted = invalidatedInfo.motivo_invalidacao === 'proposta_excluida';
     return (
       <div className="min-h-screen flex items-center justify-center bg-muted/20 p-4">
         <div className="max-w-md w-full text-center space-y-6">
@@ -463,33 +462,18 @@ export default function PropostaPublica() {
 
           <div className="space-y-2">
             <h1 className="text-xl font-bold text-foreground">
-              {isDeleted ? "Proposta removida" : "Este link não está mais disponível"}
+              Proposta temporariamente indisponível
             </h1>
             <p className="text-sm text-muted-foreground">
-              {isDeleted
-                ? "Esta proposta foi removida e o link não está mais ativo."
-                : "Uma nova versão desta proposta foi gerada."}
-              {!isDeleted && invalidatedInfo.empresaNome && !invalidatedInfo.latestTokenUrl && (
-                <>
-                  {" "}Entre em contato com{" "}
-                  <span className="font-medium text-foreground">
-                    {invalidatedInfo.empresaNome}
-                  </span>{" "}
-                  para receber o link atualizado.
-                </>
-              )}
+              Entre em contato com{" "}
+              {invalidatedInfo.empresaNome ? (
+                <span className="font-medium text-foreground">{invalidatedInfo.empresaNome}</span>
+              ) : (
+                "nossa equipe"
+              )}{" "}
+              para receber o atendimento comercial.
             </p>
           </div>
-
-          {invalidatedInfo.latestTokenUrl && (
-            <a
-              href={invalidatedInfo.latestTokenUrl}
-              className="inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-primary text-primary-foreground font-medium text-sm hover:opacity-90 transition"
-            >
-              <Zap className="w-4 h-4" />
-              Ver versão atualizada
-            </a>
-          )}
 
           {invalidatedInfo.empresaTelefone && (
             <a
@@ -502,13 +486,6 @@ export default function PropostaPublica() {
               Falar com {invalidatedInfo.empresaNome || "a empresa"}
             </a>
           )}
-
-          <p className="text-xs text-muted-foreground">
-            Link expirado em{" "}
-            {new Date(invalidatedInfo.invalidado_em).toLocaleDateString("pt-BR", {
-              timeZone: "America/Sao_Paulo",
-            })}
-          </p>
         </div>
       </div>
     );
