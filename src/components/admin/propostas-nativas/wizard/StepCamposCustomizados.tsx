@@ -49,6 +49,14 @@ function StepCamposCustomizadosImpl({ values, onValuesChange, dealId }: Props) {
     [allFields]
   );
 
+  // Seed defaults por tipo APENAS para campos undefined (preserva 0/false/""/valores salvos).
+  useEffect(() => {
+    if (!fields.length) return;
+    const next = seedCustomFieldDefaults(fields, values);
+    if (next !== values) onValuesChange(next);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fields]);
+
   const updateValue = (key: string, value: any) => {
     onValuesChange({ ...values, [key]: value });
   };
