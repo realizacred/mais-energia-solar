@@ -681,8 +681,10 @@ Deno.serve(async (req) => {
     // Hoisted: usado tanto no fallback de economia (abaixo) quanto no snapshot (regra_lei_14300.percentual_fio_b)
     const fioBAplicavel = backendGrupo === "B" ? percentualFioB / 100 : 0;
 
+    // Hoisted: energia compensável é usada no fallback de economia E no snapshot técnico (linha ~937)
+    const energiaCompensavel = Math.min(geracaoEstimada, consumoTotal);
+
     if (economiaMensal <= 0) {
-      const energiaCompensavel = Math.min(geracaoEstimada, consumoTotal);
       const fioBKwhFallback = (tarifaFioBResolvida && tarifaFioBResolvida > 0)
         ? tarifaFioBResolvida
         : tarifaMedia * 0.28;
