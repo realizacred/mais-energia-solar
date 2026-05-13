@@ -1239,21 +1239,24 @@ function GerenciamentoTab({
 
         const isFolder = (f: any) =>
           !f?.metadata || (f?.metadata && (f.metadata.size == null || f.metadata.size === 0 && !f.metadata.mimetype));
-        const prettyFieldName = (key: string) => {
-          const map: Record<string, string> = {
-            cap_identidade: "Identidade",
-            identidade: "Identidade",
-            cap_comprovante_endereco: "Comprovante de endereço",
-            comprovante_endereco: "Comprovante de endereço",
-            cap_cnh: "CNH",
-            cap_rg: "RG",
-            cap_cpf: "CPF",
-            cap_selfie: "Selfie",
-          };
-          return map[key] || key
+        // Concordância: feminino → "atualizada", masculino → "atualizado".
+        const FIELD_META: Record<string, { label: string; gender: "f" | "m" }> = {
+          cap_identidade: { label: "Identidade", gender: "f" },
+          identidade: { label: "Identidade", gender: "f" },
+          cap_comprovante_endereco: { label: "Comprovante de endereço", gender: "m" },
+          comprovante_endereco: { label: "Comprovante de endereço", gender: "m" },
+          cap_cnh: { label: "CNH", gender: "f" },
+          cap_rg: { label: "RG", gender: "m" },
+          cap_cpf: { label: "CPF", gender: "m" },
+          cap_selfie: { label: "Selfie", gender: "f" },
+        };
+        const prettyField = (key: string): { label: string; gender: "f" | "m" } => {
+          if (FIELD_META[key]) return FIELD_META[key];
+          const label = key
             .replace(/^cap_|^pre_|^pos_/, "")
             .replace(/_/g, " ")
             .replace(/\b\w/g, (c) => c.toUpperCase());
+          return { label, gender: "m" };
         };
 
         // Raiz: arquivos manuais
