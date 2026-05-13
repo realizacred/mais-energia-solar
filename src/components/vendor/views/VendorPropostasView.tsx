@@ -11,7 +11,6 @@ import { useMemo, useState } from "react";
 import { FileText, Send, Eye, CheckCircle2, AlertTriangle, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
 import { LoadingState } from "@/components/ui-kit/LoadingState";
 import {
   useMinhasPropostasConsultor,
@@ -157,5 +156,3 @@ function KpiCard({ label, value, icon: Icon, accent }: KpiCardProps) {
   );
 }
 
-// Avoids "Skeleton unused" warning if a future loading variant is added
-export const _internal = { Skeleton };
