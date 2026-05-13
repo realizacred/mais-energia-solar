@@ -155,23 +155,23 @@ export function WaMessageBubble({
         )}
 
         <div
-          className={`max-w-[75%] rounded-2xl px-3.5 py-2.5 text-[15px] leading-relaxed shadow-sm ${
+          className={`max-w-[75%] rounded-2xl px-3.5 py-2 text-[14.5px] leading-snug shadow-sm ring-1 ${
             isNote
-              ? "bg-warning/10 border border-warning/30 text-foreground italic"
+              ? "bg-warning/10 ring-warning/30 text-foreground italic"
               : isOut
-              ? "bg-primary/10 text-foreground border border-primary/15 rounded-br-md"
-              : "bg-card border border-border/30 rounded-bl-md text-foreground"
+              ? "bg-primary text-primary-foreground ring-primary/20 rounded-br-md"
+              : "bg-card ring-border/60 rounded-bl-md text-foreground"
           }`}
         >
           {/* Quoted message */}
           {quotedMsg && (
-            <div className={`mb-1.5 p-1.5 rounded-lg border-l-2 text-[11px] ${
-              isOut ? "bg-primary-foreground/10 border-primary-foreground/40" : "bg-background/60 border-primary/40"
+            <div className={`mb-1.5 p-2 rounded-lg border-l-2 text-[11px] ${
+              isOut ? "bg-primary-foreground/15 border-primary-foreground/50" : "bg-muted/60 border-primary/50"
             }`}>
-              <p className={`font-semibold text-[10px] ${isOut ? "text-primary-foreground/70" : "text-primary/80"}`}>
+              <p className={`font-semibold text-[10px] ${isOut ? "text-primary-foreground/90" : "text-primary"}`}>
                 {quotedMsg.direction === "out" ? (quotedMsg.sent_by_name || "Você") : conversation.cliente_nome || "Cliente"}
               </p>
-              <p className={`truncate ${isOut ? "text-primary-foreground/60" : "text-muted-foreground"}`}>
+              <p className={`truncate ${isOut ? "text-primary-foreground/80" : "text-muted-foreground"}`}>
                 {quotedMsg.content || (quotedMsg.message_type !== "text" ? `[${quotedMsg.message_type}]` : "")}
               </p>
             </div>
