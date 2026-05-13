@@ -22,8 +22,9 @@ export const GD_FIO_B_PERCENT_BY_YEAR: Record<number, number> = {
 };
 
 /** Percentual do Fio B que é COBRADO (não compensado).
- *  2029+ retorna null → regra nova não modelada. */
-export function getFioBCobranca(ano = 2026): number | null {
+ *  2029+ retorna null → regra nova não modelada.
+ *  FASE 1 (audit financeira): default = ano corrente (sem hardcode 2026). */
+export function getFioBCobranca(ano: number = new Date().getFullYear()): number | null {
   if (ano >= 2029) return null; // regra nova — não modelada
   return GD_FIO_B_PERCENT_BY_YEAR[ano] ?? 0.60;
 }
