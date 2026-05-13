@@ -98,11 +98,13 @@ Deno.serve(async (req) => {
 
     // Validate explicit tenant_id if provided — HARD FAIL if invalid (no fallback)
     if (tenantId) {
+      // SSOT tenant ativo: status='active' AND deleted_at IS NULL (NÃO usar coluna legada `ativo`)
       const { data: tenantRow } = await supabaseAdmin
         .from("tenants")
         .select("id")
         .eq("id", tenantId)
-        .eq("ativo", true)
+        .eq("status", "active")
+        .is("deleted_at", null)
         .maybeSingle();
       if (!tenantRow) {
         console.error(`[process-wa-auto] BLOCKED: body.tenant_id=${tenantId} not found or inactive — no fallback`);
