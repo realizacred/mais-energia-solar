@@ -30415,6 +30415,16 @@ export type Database = {
       }
       get_projeto_detalhe: { Args: { _deal_id: string }; Returns: Json }
       get_proposal_funnel_metrics: { Args: { p_days?: number }; Returns: Json }
+      get_proposal_template_for_landing: {
+        Args: { _template_id: string; _tenant_id: string }
+        Returns: {
+          id: string
+          is_default: boolean
+          nome: string
+          template_html: Json
+          tipo: string
+        }[]
+      }
       get_proposal_workspace: { Args: { p_versao_id: string }; Returns: Json }
       get_proposals_by_vendor: { Args: { p_days?: number }; Returns: Json }
       get_proposta_grupo_by_token: { Args: { p_token: string }; Returns: Json }
