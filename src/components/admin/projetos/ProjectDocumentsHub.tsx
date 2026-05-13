@@ -215,37 +215,73 @@ export function ProjectDocumentsHub({ projetoId, dealId }: Props) {
   const [selectedCategoria, setSelectedCategoria] = useState<string>("Manual");
   const fileInput = useRef<HTMLInputElement>(null);
 
-  // Mescla canônico + legado bucket + custom fields como linhas virtuais
-  // SSOT visual = project_documents. Custom fields entram como metadado/badge,
-  // nunca como linha duplicada quando o mesmo arquivo já existe na canônica.
+  // Mescla canônico + legado bucket + custom fields como linhas virtuais.
+  // SSOT visual = project_documents. Dedup semântico em 3 camadas:
+  //   1) bucket+storage_path (mesmo arquivo físico)
+  //   2) scope + normalizedFilename (+ size opcional)
+  //   3) scope + logicalSuffix (frente/verso/comprovante)
+  // Quando há colisão, preferimos o bucket canônico `projeto-documentos`
+  // como destino de download/preview e enriquecemos com metadado de campo.
   const docs = useMemo<ProjectDocument[]>(() => {
     const out: ProjectDocument[] = [];
-    // Index canônico por (bucket+path) e por (deal+filename_normalizado+size)
     const byPath = new Map<string, ProjectDocument>();
-    const byFnSize = new Map<string, ProjectDocument>();
-    const fnSizeKey = (dealId: string | null, name: string, size: number | null) =>
-      `${dealId || ""}::${normalizeFilename(name)}::${size ?? ""}`;
+    const byFn = new Map<string, ProjectDocument>();
+    const byLogical = new Map<string, ProjectDocument>();
 
+    const scopeOf = (d: { deal_id?: string | null; projeto_id?: string | null }) =>
+      d.deal_id || d.projeto_id || dealId || projetoId || "";
+    const fnKey = (scope: string, name: string) => `${scope}::${normalizeFilename(name)}`;
+    const fnSizeKey = (scope: string, name: string, size: number | null) =>
+      `${scope}::${normalizeFilename(name)}::${size ?? ""}`;
+    const logicalKey = (scope: string, name: string, mime: string | null) => {
+      const suf = logicalSuffix(name);
+      const ext = (name.split(".").pop() || "").toLowerCase();
+      return `${scope}::${suf}::${mime || ext || ""}`;
+    };
+
+    const findExisting = (scope: string, name: string, size: number | null, mime: string | null) =>
+      byFn.get(fnKey(scope, name)) ||
+      (size != null ? byFn.get(fnSizeKey(scope, name, size)) : undefined) ||
+      byLogical.get(logicalKey(scope, name, mime));
+
+    const indexAll = (item: ProjectDocument) => {
+      const scope = scopeOf(item);
+      byPath.set(`${item.bucket}::${item.storage_path}`, item);
+      byFn.set(fnKey(scope, item.file_name), item);
+      if (item.size_bytes != null) byFn.set(fnSizeKey(scope, item.file_name, item.size_bytes), item);
+      byLogical.set(logicalKey(scope, item.file_name, item.mime_type), item);
+    };
+
+    // 1) project_documents — SSOT visual
     for (const d of canonicalDocs) {
       const norm: ProjectDocument = { ...d, categoria: normalizeCategoria(d.categoria) };
+      const scope = scopeOf(norm);
+      // dedup intra-canônico (mesmo arquivo lógico apareceu em duas rows pd)
+      const dup =
+        byPath.get(`${norm.bucket}::${norm.storage_path}`) ||
+        findExisting(scope, norm.file_name, norm.size_bytes, norm.mime_type);
+      if (dup) continue;
       out.push(norm);
-      byPath.set(`${norm.bucket}::${norm.storage_path}`, norm);
-      byFnSize.set(fnSizeKey(norm.deal_id, norm.file_name, norm.size_bytes), norm);
+      indexAll(norm);
     }
 
-    // Legacy bucket projeto-documentos (storage scan)
+    // 2) Legacy bucket scan
     for (const f of legacyFiles) {
       if (!f.id || !f.metadata) continue;
       const path = `legacy/${dealId}/${f.name}`;
       const fname = f.name.replace(/^\d+_/, "");
       const size = f.metadata?.size || null;
-      const pathKey = `projeto-documentos::${path}`;
-      const fnKey = fnSizeKey(dealId || null, fname, size);
-      if (byPath.has(pathKey) || byFnSize.has(fnKey)) continue;
+      const mime = f.metadata?.mimetype || null;
+      const scope = dealId || projetoId || "";
+      if (
+        byPath.get(`projeto-documentos::${path}`) ||
+        findExisting(scope, fname, size, mime)
+      )
+        continue;
       const item: ProjectDocument = {
         id: `legacy:${f.name}`,
         tenant_id: "",
-        projeto_id: null,
+        projeto_id: projetoId || null,
         deal_id: dealId || null,
         proposta_id: null,
         cliente_id: null,
@@ -254,7 +290,7 @@ export function ProjectDocumentsHub({ projetoId, dealId }: Props) {
         bucket: "projeto-documentos",
         storage_path: path,
         file_name: fname,
-        mime_type: f.metadata?.mimetype || null,
+        mime_type: mime,
         size_bytes: size,
         uploaded_by: null,
         metadata: { _legacyName: f.name },
@@ -265,33 +301,49 @@ export function ProjectDocumentsHub({ projetoId, dealId }: Props) {
         updated_at: f.created_at || new Date().toISOString(),
       };
       out.push(item);
-      byPath.set(pathKey, item);
-      byFnSize.set(fnKey, item);
+      indexAll(item);
     }
 
-    // Custom field files — preferir enriquecer existente em vez de duplicar
+    // 3) Custom field files — preferir enriquecer + canonicalizar bucket
     for (const cf of cfFiles) {
+      const scope = dealId || projetoId || "";
       const pathKey = `projeto-documentos::${cf.storage_path}`;
-      const fnKey = fnSizeKey(dealId || null, cf.filename, cf.size ?? null);
-      const existing = byPath.get(pathKey) || byFnSize.get(fnKey);
+      const existing =
+        byPath.get(pathKey) ||
+        findExisting(scope, cf.filename, cf.size ?? null, cf.mime || null);
       if (existing) {
-        // Enriquece metadado mas NÃO cria linha nova
+        // Enriquece metadado + categoria + canonicaliza bucket/path para download
         existing.metadata = {
           ...(existing.metadata || {}),
           field_id: cf.field_id,
           field_key: cf.field_key,
           field_title: cf.field_title,
+          _alt_sources: [
+            ...(((existing.metadata as any)?._alt_sources as any[]) || []),
+            { bucket: existing.bucket, storage_path: existing.storage_path },
+          ],
         };
-        // Se canônica não tinha categoria útil, herda do campo
-        if (!existing.categoria || existing.categoria === "Outros" || existing.categoria === "Anexos manuais") {
+        if (
+          !existing.categoria ||
+          existing.categoria === "Outros" ||
+          existing.categoria === "Anexos manuais"
+        ) {
           existing.categoria = normalizeCategoria(cf.field_title);
+        }
+        // Se a row pd está em bucket legacy `project-documents` e o cf
+        // entrega arquivo no canônico `projeto-documentos`, prefere o canônico.
+        if (existing.bucket !== "projeto-documentos") {
+          existing.bucket = "projeto-documentos";
+          existing.storage_path = cf.storage_path;
+          if (existing.mime_type == null) existing.mime_type = cf.mime || null;
+          if (existing.size_bytes == null) existing.size_bytes = cf.size || null;
         }
         continue;
       }
       const item: ProjectDocument = {
         id: `cf:${cf.field_id}:${cf.storage_path}`,
         tenant_id: "",
-        projeto_id: null,
+        projeto_id: projetoId || null,
         deal_id: dealId || null,
         proposta_id: null,
         cliente_id: null,
@@ -311,12 +363,11 @@ export function ProjectDocumentsHub({ projetoId, dealId }: Props) {
         updated_at: cf.uploaded_at || new Date().toISOString(),
       };
       out.push(item);
-      byPath.set(pathKey, item);
-      byFnSize.set(fnKey, item);
+      indexAll(item);
     }
 
     return out.sort((a, b) => b.created_at.localeCompare(a.created_at));
-  }, [canonicalDocs, legacyFiles, cfFiles, dealId]);
+  }, [canonicalDocs, legacyFiles, cfFiles, dealId, projetoId]);
 
   const filtered = useMemo(() => {
     const s = search.toLowerCase().trim();
