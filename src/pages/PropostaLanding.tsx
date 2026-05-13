@@ -13,6 +13,7 @@ import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { formatBRL } from "@/lib/formatters";
+import { getCanonicalProposalTotal } from "@/services/proposal/proposalTotals";
 import { TemplateHtmlRenderer } from "@/components/proposal-landing/TemplateHtmlRenderer";
 import type { TemplateBlock } from "@/components/admin/proposal-builder/types";
 import {
@@ -261,34 +262,14 @@ export default function PropostaLanding() {
       if (v !== null && v !== undefined) vars[k] = String(v);
     }
 
-    // Recalculate valor_total from snapshot venda data as fallback
-    // Must match calcPrecoFinal (wizard/types.ts) exactly:
-    // custoBase = custoKit + custoServicos + custoComissao + custoOutros
-    // custoParaMargem = custoKit + custoServicos + custoOutros (comissão não recebe markup)
-    // precoFinal = (custoBase + margem) * (1 - desconto)
-    const vendaSnap = (raw as any)?.venda;
-    let snapshotValorTotal = 0;
-    if (vendaSnap && typeof vendaSnap === "object") {
-      const custoKit = Number(vendaSnap.custo_kit_override ?? 0) > 0
-        ? Number(vendaSnap.custo_kit_override)
-        : s.custoKit;
-      // custo_instalacao maps to custoServicos in calcPrecoFinal
-      const hasFCCosts = Number(vendaSnap.custo_instalacao ?? 0) > 0 || Number(vendaSnap.custo_comissao ?? 0) > 0 || Number(vendaSnap.custo_outros ?? 0) > 0;
-      const custoServicos = hasFCCosts
-        ? Number(vendaSnap.custo_instalacao ?? 0)
-        : s.custoServicos ?? 0;
-      const custoComissao = Number(vendaSnap.custo_comissao ?? 0);
-      const custoOutros = Number(vendaSnap.custo_outros ?? 0);
-      const margem = Number(vendaSnap.margem_percentual ?? 0);
-      const desconto = Number(vendaSnap.desconto_percentual ?? 0);
-      const custoBase = custoKit + custoServicos + custoComissao + custoOutros;
-      const custoParaMargem = custoKit + custoServicos + custoOutros;
-      const margemValor = custoParaMargem * (margem / 100);
-      const precoComMargem = custoBase + margemValor;
-      snapshotValorTotal = Math.round((precoComMargem - precoComMargem * (desconto / 100)) * 100) / 100;
-    }
+    // SSOT: total canônico recomposto via getCanonicalProposalTotal
+    // (substitui re-implementação local de calcPrecoFinal — não duplicar).
+    const snapshotValorTotal = getCanonicalProposalTotal({
+      valor_total: versaoData.valor_total,
+      snapshot: raw,
+    });
 
-    // Use cenario > recalculated snapshot total > DB column > 0
+    // Use cenario > canonical total > DB column > 0
     const bestValorTotal = activeCenario?.preco_final
       ?? (snapshotValorTotal > 0 ? snapshotValorTotal : null)
       ?? versaoData.valor_total

@@ -4,6 +4,8 @@ import { useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
+// SSOT: total da proposta vem SEMPRE de getCanonicalProposalTotal — não recalcule aqui.
+import { getCanonicalProposalTotal } from "@/services/proposal/proposalTotals";
 
 // ─── Types ──────────────────────────────────────────
 export interface VersaoProjetoTab {
@@ -160,7 +162,8 @@ export function usePropostasProjetoTab(dealId: string, customerId: string | null
             return {
               id: v.id,
               versao_numero: v.versao_numero,
-              valor_total: v.valor_total,
+              // SSOT: getCanonicalProposalTotal recompõe via snapshot quando valor_total está stale
+              valor_total: getCanonicalProposalTotal(v) || v.valor_total,
               potencia_kwp: potencia,
               status: v.status,
               economia_mensal: v.economia_mensal,

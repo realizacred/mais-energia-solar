@@ -1,5 +1,6 @@
 import { formatBRL } from "@/lib/formatters";
 import { formatTaxaMensal } from "@/services/paymentComposition/financingMath";
+import { getCanonicalProposalTotal } from "@/services/proposal/proposalTotals";
 import { useState, useEffect, useRef, useMemo } from "react";
 import { useParams, useSearchParams, Navigate } from "react-router-dom";
 import { CheckCircle2, Loader2, AlertTriangle, Pencil, Sun, Zap, TrendingUp, Clock, XCircle, ThumbsDown, CreditCard, Smartphone, FileText, Banknote, Wallet, DollarSign, Building2, MessageCircle } from "lucide-react";
@@ -633,7 +634,9 @@ export default function PropostaPublica() {
 
   // Payment methods from snapshot (admin-configured)
   const formasProprias: any[] = versaoData?.snapshot?.formas_pagamento_proprias ?? [];
-  const valorTotal = activeCenario?.preco_final ?? versaoData?.valor_total ?? 0;
+  // SSOT: total canônico (snapshot recomposto > valor_total persistido)
+  const canonicalTotal = getCanonicalProposalTotal(versaoData);
+  const valorTotal = activeCenario?.preco_final ?? canonicalTotal ?? versaoData?.valor_total ?? 0;
   const temEscolha = formaEscolhida !== null || bancoEscolhido !== null;
 
   const FORMA_LABELS: Record<string, string> = {
@@ -752,7 +755,7 @@ export default function PropostaPublica() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
                 <div className="bg-muted/50 rounded-lg p-3 text-center">
                   <p className="text-[10px] text-muted-foreground uppercase">Investimento</p>
-                  <p className="text-sm font-bold">{formatBRL(activeCenario?.preco_final ?? versaoData.valor_total)}</p>
+                  <p className="text-sm font-bold">{formatBRL(activeCenario?.preco_final ?? canonicalTotal ?? versaoData.valor_total)}</p>
                 </div>
                 <div className="bg-muted/50 rounded-lg p-3 text-center">
                   <p className="text-[10px] text-muted-foreground uppercase">Economia/mês</p>
