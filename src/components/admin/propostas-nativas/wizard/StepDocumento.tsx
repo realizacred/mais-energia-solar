@@ -1124,6 +1124,8 @@ export function StepDocumento({
               </div>
             </details>
           )}
+        </div>
+
 
         {/* Right: Preview — PDF real only, no HTML fallback */}
         <div className="min-w-0 min-h-[300px] sm:min-h-[400px]">
