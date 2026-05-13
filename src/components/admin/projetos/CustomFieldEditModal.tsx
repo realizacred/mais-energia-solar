@@ -517,15 +517,42 @@ export function CustomFieldEditModal({
                   </div>
                   <div className="p-4 space-y-4">
                     <div className="space-y-1.5">
-                      <Label className="text-xs font-medium">Obrigatório na proposta?</Label>
-                      <Select value={form.required_on_proposal ? "sim" : "nao"}
-                        onValueChange={v => setForm(p => ({ ...p, required_on_proposal: v === "sim" }))}>
+                      <Label className="text-xs font-medium">Exibir na proposta?</Label>
+                      <Select value={form.show_on_proposal ? "sim" : "nao"}
+                        onValueChange={v => setForm(p => ({
+                          ...p,
+                          show_on_proposal: v === "sim",
+                          // se ocultar, não pode ser obrigatório
+                          required_on_proposal: v === "sim" ? p.required_on_proposal : false,
+                        }))}>
                         <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
                         <SelectContent>
                           <SelectItem value="sim">Sim</SelectItem>
                           <SelectItem value="nao">Não</SelectItem>
                         </SelectContent>
                       </Select>
+                      <p className="text-[11px] text-muted-foreground">
+                        Controla se o campo aparece no modal "Alterar Proposta".
+                      </p>
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-xs font-medium">Obrigatório na proposta?</Label>
+                      <Select value={form.required_on_proposal ? "sim" : "nao"}
+                        onValueChange={v => setForm(p => ({
+                          ...p,
+                          required_on_proposal: v === "sim",
+                          // obrigatório implica exibir
+                          show_on_proposal: v === "sim" ? true : p.show_on_proposal,
+                        }))}>
+                        <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="sim">Sim</SelectItem>
+                          <SelectItem value="nao">Não</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <p className="text-[11px] text-muted-foreground">
+                        Se Sim, o campo será exibido e o preenchimento será obrigatório.
+                      </p>
                     </div>
                   </div>
                 </div>
