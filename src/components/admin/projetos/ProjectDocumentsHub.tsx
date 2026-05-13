@@ -118,19 +118,50 @@ function formatSize(bytes?: number | null) {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-/** Remove acentos, baixa, tira timestamps/prefixos aleatórios e normaliza separadores. */
+/** URL-decode tolerante (cf entries vêm com %C3%A7 etc). */
+function safeDecode(s: string): string {
+  try {
+    return decodeURIComponent(s);
+  } catch {
+    return s;
+  }
+}
+
+/**
+ * Remove acentos, URL-encoding, timestamps/prefixos aleatórios e normaliza
+ * separadores (espaço/underscore/hífen viram _). Tolerante a:
+ *  - "2025-10-29_19-56-51_FMOCPF_frente.jpeg"
+ *  - "2025-10-29_19-56-51_FMOCPF frente.jpeg" (espaço)
+ *  - "2025-10-29_19-57-13_EXYUC_instala%C3%A7%C3%A3o.jpeg" (url-encoded)
+ *  - "2025-10-29_19-57-13_EXYUC_instala_o.jpeg" (acento já removido pelo storage)
+ */
 function normalizeFilename(name?: string | null): string {
   if (!name) return "";
-  let n = name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-  // remove timestamp prefix tipo 2025-11-06_18-10-59_xxxx_
-  n = n.replace(/^\d{4}-\d{2}-\d{2}[_-]\d{2}[-:]\d{2}[-:]\d{2}[_-]?[a-z0-9]*[_-]?/i, "");
-  // remove epoch ms prefix tipo 1778524914933_
-  n = n.replace(/^\d{10,}_(?:\d+_)?/, "");
-  // remove "Date.now()_idx_" prefix
-  n = n.replace(/^\d+_\d+_/, "");
-  // colapsa separadores
-  n = n.replace(/[\s_]+/g, "_").replace(/[^\w.\-]/g, "");
+  let n = safeDecode(name).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  // timestamp + token aleatório curto (qualquer separador, inclusive espaço)
+  n = n.replace(
+    /^\d{4}-\d{2}-\d{2}[_\s-]\d{2}[-:_]\d{2}[-:_]\d{2}[\s_-]*[a-z0-9]{0,12}[\s_-]*/i,
+    "",
+  );
+  // epoch ms prefix (1778524914933_ ou 1778524914933_3_)
+  n = n.replace(/^\d{10,}[_\s-](?:\d+[_\s-])?/, "");
+  // "Date.now()_idx_" generic
+  n = n.replace(/^\d+[_\s-]\d+[_\s-]/, "");
+  // colapsa separadores e remove qualquer caractere não-alfanumérico/.
+  n = n.replace(/[\s_-]+/g, "_").replace(/[^\w.]/g, "");
+  // remove _ no início que sobrou
+  n = n.replace(/^_+/, "");
   return n;
+}
+
+/** Detecta sufixo lógico do documento (frente/verso/comprovante/etc). */
+function logicalSuffix(name: string): string {
+  const n = normalizeFilename(name).replace(/\.[a-z0-9]+$/, "");
+  // pega últimos tokens significativos
+  const tokens = n.split(/[._]+/).filter(Boolean);
+  const KNOWN = ["frente", "verso", "comprovante", "endereco", "rg", "cnh", "cpf", "selfie"];
+  const found = tokens.filter((t) => KNOWN.includes(t));
+  return found.length ? found.sort().join("_") : tokens.slice(-2).join("_");
 }
 
 /** Normaliza nome de categoria para evitar duplicação visual ("CAMPO: X" vs "X"). */
@@ -184,37 +215,73 @@ export function ProjectDocumentsHub({ projetoId, dealId }: Props) {
   const [selectedCategoria, setSelectedCategoria] = useState<string>("Manual");
   const fileInput = useRef<HTMLInputElement>(null);
 
-  // Mescla canônico + legado bucket + custom fields como linhas virtuais
-  // SSOT visual = project_documents. Custom fields entram como metadado/badge,
-  // nunca como linha duplicada quando o mesmo arquivo já existe na canônica.
+  // Mescla canônico + legado bucket + custom fields como linhas virtuais.
+  // SSOT visual = project_documents. Dedup semântico em 3 camadas:
+  //   1) bucket+storage_path (mesmo arquivo físico)
+  //   2) scope + normalizedFilename (+ size opcional)
+  //   3) scope + logicalSuffix (frente/verso/comprovante)
+  // Quando há colisão, preferimos o bucket canônico `projeto-documentos`
+  // como destino de download/preview e enriquecemos com metadado de campo.
   const docs = useMemo<ProjectDocument[]>(() => {
     const out: ProjectDocument[] = [];
-    // Index canônico por (bucket+path) e por (deal+filename_normalizado+size)
     const byPath = new Map<string, ProjectDocument>();
-    const byFnSize = new Map<string, ProjectDocument>();
-    const fnSizeKey = (dealId: string | null, name: string, size: number | null) =>
-      `${dealId || ""}::${normalizeFilename(name)}::${size ?? ""}`;
+    const byFn = new Map<string, ProjectDocument>();
+    const byLogical = new Map<string, ProjectDocument>();
 
+    const scopeOf = (d: { deal_id?: string | null; projeto_id?: string | null }) =>
+      d.deal_id || d.projeto_id || dealId || projetoId || "";
+    const fnKey = (scope: string, name: string) => `${scope}::${normalizeFilename(name)}`;
+    const fnSizeKey = (scope: string, name: string, size: number | null) =>
+      `${scope}::${normalizeFilename(name)}::${size ?? ""}`;
+    const logicalKey = (scope: string, name: string, mime: string | null) => {
+      const suf = logicalSuffix(name);
+      const ext = (name.split(".").pop() || "").toLowerCase();
+      return `${scope}::${suf}::${mime || ext || ""}`;
+    };
+
+    const findExisting = (scope: string, name: string, size: number | null, mime: string | null) =>
+      byFn.get(fnKey(scope, name)) ||
+      (size != null ? byFn.get(fnSizeKey(scope, name, size)) : undefined) ||
+      byLogical.get(logicalKey(scope, name, mime));
+
+    const indexAll = (item: ProjectDocument) => {
+      const scope = scopeOf(item);
+      byPath.set(`${item.bucket}::${item.storage_path}`, item);
+      byFn.set(fnKey(scope, item.file_name), item);
+      if (item.size_bytes != null) byFn.set(fnSizeKey(scope, item.file_name, item.size_bytes), item);
+      byLogical.set(logicalKey(scope, item.file_name, item.mime_type), item);
+    };
+
+    // 1) project_documents — SSOT visual
     for (const d of canonicalDocs) {
       const norm: ProjectDocument = { ...d, categoria: normalizeCategoria(d.categoria) };
+      const scope = scopeOf(norm);
+      // dedup intra-canônico (mesmo arquivo lógico apareceu em duas rows pd)
+      const dup =
+        byPath.get(`${norm.bucket}::${norm.storage_path}`) ||
+        findExisting(scope, norm.file_name, norm.size_bytes, norm.mime_type);
+      if (dup) continue;
       out.push(norm);
-      byPath.set(`${norm.bucket}::${norm.storage_path}`, norm);
-      byFnSize.set(fnSizeKey(norm.deal_id, norm.file_name, norm.size_bytes), norm);
+      indexAll(norm);
     }
 
-    // Legacy bucket projeto-documentos (storage scan)
+    // 2) Legacy bucket scan
     for (const f of legacyFiles) {
       if (!f.id || !f.metadata) continue;
       const path = `legacy/${dealId}/${f.name}`;
       const fname = f.name.replace(/^\d+_/, "");
       const size = f.metadata?.size || null;
-      const pathKey = `projeto-documentos::${path}`;
-      const fnKey = fnSizeKey(dealId || null, fname, size);
-      if (byPath.has(pathKey) || byFnSize.has(fnKey)) continue;
+      const mime = f.metadata?.mimetype || null;
+      const scope = dealId || projetoId || "";
+      if (
+        byPath.get(`projeto-documentos::${path}`) ||
+        findExisting(scope, fname, size, mime)
+      )
+        continue;
       const item: ProjectDocument = {
         id: `legacy:${f.name}`,
         tenant_id: "",
-        projeto_id: null,
+        projeto_id: projetoId || null,
         deal_id: dealId || null,
         proposta_id: null,
         cliente_id: null,
@@ -223,7 +290,7 @@ export function ProjectDocumentsHub({ projetoId, dealId }: Props) {
         bucket: "projeto-documentos",
         storage_path: path,
         file_name: fname,
-        mime_type: f.metadata?.mimetype || null,
+        mime_type: mime,
         size_bytes: size,
         uploaded_by: null,
         metadata: { _legacyName: f.name },
@@ -234,33 +301,49 @@ export function ProjectDocumentsHub({ projetoId, dealId }: Props) {
         updated_at: f.created_at || new Date().toISOString(),
       };
       out.push(item);
-      byPath.set(pathKey, item);
-      byFnSize.set(fnKey, item);
+      indexAll(item);
     }
 
-    // Custom field files — preferir enriquecer existente em vez de duplicar
+    // 3) Custom field files — preferir enriquecer + canonicalizar bucket
     for (const cf of cfFiles) {
+      const scope = dealId || projetoId || "";
       const pathKey = `projeto-documentos::${cf.storage_path}`;
-      const fnKey = fnSizeKey(dealId || null, cf.filename, cf.size ?? null);
-      const existing = byPath.get(pathKey) || byFnSize.get(fnKey);
+      const existing =
+        byPath.get(pathKey) ||
+        findExisting(scope, cf.filename, cf.size ?? null, cf.mime || null);
       if (existing) {
-        // Enriquece metadado mas NÃO cria linha nova
+        // Enriquece metadado + categoria + canonicaliza bucket/path para download
         existing.metadata = {
           ...(existing.metadata || {}),
           field_id: cf.field_id,
           field_key: cf.field_key,
           field_title: cf.field_title,
+          _alt_sources: [
+            ...(((existing.metadata as any)?._alt_sources as any[]) || []),
+            { bucket: existing.bucket, storage_path: existing.storage_path },
+          ],
         };
-        // Se canônica não tinha categoria útil, herda do campo
-        if (!existing.categoria || existing.categoria === "Outros" || existing.categoria === "Anexos manuais") {
+        if (
+          !existing.categoria ||
+          existing.categoria === "Outros" ||
+          existing.categoria === "Anexos manuais"
+        ) {
           existing.categoria = normalizeCategoria(cf.field_title);
+        }
+        // Se a row pd está em bucket legacy `project-documents` e o cf
+        // entrega arquivo no canônico `projeto-documentos`, prefere o canônico.
+        if (existing.bucket !== "projeto-documentos") {
+          existing.bucket = "projeto-documentos";
+          existing.storage_path = cf.storage_path;
+          if (existing.mime_type == null) existing.mime_type = cf.mime || null;
+          if (existing.size_bytes == null) existing.size_bytes = cf.size || null;
         }
         continue;
       }
       const item: ProjectDocument = {
         id: `cf:${cf.field_id}:${cf.storage_path}`,
         tenant_id: "",
-        projeto_id: null,
+        projeto_id: projetoId || null,
         deal_id: dealId || null,
         proposta_id: null,
         cliente_id: null,
@@ -280,12 +363,11 @@ export function ProjectDocumentsHub({ projetoId, dealId }: Props) {
         updated_at: cf.uploaded_at || new Date().toISOString(),
       };
       out.push(item);
-      byPath.set(pathKey, item);
-      byFnSize.set(fnKey, item);
+      indexAll(item);
     }
 
     return out.sort((a, b) => b.created_at.localeCompare(a.created_at));
-  }, [canonicalDocs, legacyFiles, cfFiles, dealId]);
+  }, [canonicalDocs, legacyFiles, cfFiles, dealId, projetoId]);
 
   const filtered = useMemo(() => {
     const s = search.toLowerCase().trim();
