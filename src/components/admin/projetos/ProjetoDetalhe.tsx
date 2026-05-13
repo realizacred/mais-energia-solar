@@ -2349,6 +2349,16 @@ function PropostasTab({ customerId, dealId, dealTitle, navigate, isClosed, dealS
   const arquivarMutation = useArquivarProposta();
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [showGrupoKits, setShowGrupoKits] = useState(false);
+  const hasPendingProposalArtifacts = propostas.some((p: any) => {
+    const v = p.versoes?.[0];
+    return !!v && !v.output_pdf_path && !v.output_docx_path && !v.link_pdf && v.generation_status === "pending";
+  });
+
+  useEffect(() => {
+    if (!hasPendingProposalArtifacts) return;
+    const intervalId = window.setInterval(() => refetch(), 3000);
+    return () => window.clearInterval(intervalId);
+  }, [hasPendingProposalArtifacts, refetch]);
 
   // Reset expandedId if the expanded proposta no longer exists in the list (e.g. after deletion)
   useEffect(() => {

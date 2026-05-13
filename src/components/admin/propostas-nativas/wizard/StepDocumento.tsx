@@ -63,6 +63,7 @@ interface StepDocumentoProps {
   outputPdfPath?: string | null;
   externalPdfUrl?: string | null;
   generationError?: string | null;
+  generationStatusOverride?: string | null;
   missingVars?: string[];
   docxBlob?: Blob | null;
   generationAuditReport?: any;
@@ -85,6 +86,7 @@ export function StepDocumento({
   outputPdfPath = null,
   externalPdfUrl = null,
   generationError = null,
+  generationStatusOverride = null,
   missingVars = [],
   docxBlob = null,
   generationAuditReport = null,
@@ -93,10 +95,11 @@ export function StepDocumento({
     cliente, selectedLead,
     potenciaKwp, ucs,
     templateSelecionado, setTemplateSelecionado: onTemplateSelecionado,
-    generationStatus,
+    generationStatus: contextGenerationStatus,
     pagamentoOpcoes,
     customFieldValues, setCustomFieldValues: onCustomFieldValuesChange,
   } = useWizardContext() as any;
+  const generationStatus = generationStatusOverride || contextGenerationStatus;
 
   const clienteNome = cliente.nome || selectedLead?.nome || "";
   const empresaNome = cliente.empresa;

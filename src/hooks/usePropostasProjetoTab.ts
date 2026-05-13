@@ -24,6 +24,9 @@ export interface VersaoProjetoTab {
   public_slug: string | null;
   gerado_em: string | null;
   usuario_editou_em: string | null;
+  template_id_used: string | null;
+  generation_status: string | null;
+  generation_error: string | null;
   tir: number | null;
   vpl: number | null;
 }
@@ -97,7 +100,7 @@ export function usePropostasProjetoTab(dealId: string, customerId: string | null
       // Fetch versoes
       const { data: versoes } = await supabase
         .from("proposta_versoes")
-        .select("id, proposta_id, versao_numero, valor_total, potencia_kwp, status, economia_mensal, geracao_mensal, payback_meses, tir, vpl, created_at, snapshot, output_pdf_path, output_docx_path, link_pdf, public_slug, gerado_em, usuario_editou_em, template_id_used")
+        .select("id, proposta_id, versao_numero, valor_total, potencia_kwp, status, economia_mensal, geracao_mensal, payback_meses, tir, vpl, created_at, snapshot, output_pdf_path, output_docx_path, link_pdf, public_slug, gerado_em, usuario_editou_em, template_id_used, generation_status, generation_error")
         .in("proposta_id", ids)
         .order("created_at", { ascending: false });
 
@@ -176,6 +179,9 @@ export function usePropostasProjetoTab(dealId: string, customerId: string | null
               public_slug: v.public_slug || null,
               gerado_em: v.gerado_em || v.created_at,
               usuario_editou_em: v.usuario_editou_em || null,
+              template_id_used: v.template_id_used || null,
+              generation_status: v.generation_status || null,
+              generation_error: v.generation_error || null,
               tir: v.tir ?? null,
               vpl: v.vpl ?? null,
             };

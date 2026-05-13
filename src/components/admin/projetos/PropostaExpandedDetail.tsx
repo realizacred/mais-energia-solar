@@ -62,6 +62,8 @@ interface VersaoData {
   public_slug: string | null;
   gerado_em: string | null;
   template_id_used?: string | null;
+  generation_status?: string | null;
+  generation_error?: string | null;
   tir?: number | null;
   vpl?: number | null;
 }
@@ -1634,6 +1636,8 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
                         outputPdfPath={latestVersao?.output_pdf_path ?? null}
                         outputDocxPath={latestVersao?.output_docx_path ?? null}
                         externalPdfUrl={latestVersao?.link_pdf ?? null}
+                        generationStatusOverride={latestVersao?.generation_status ?? null}
+                        generationError={latestVersao?.generation_error ?? null}
                       />
                     </div>
                   </TabsContent>
@@ -1929,6 +1933,8 @@ function StepDocumentoBridge({
   outputPdfPath,
   outputDocxPath,
   externalPdfUrl,
+  generationStatusOverride,
+  generationError,
 }: {
   onRender: (templateId?: string) => void | Promise<void>;
   rendering: boolean;
@@ -1938,22 +1944,37 @@ function StepDocumentoBridge({
   outputPdfPath: string | null;
   outputDocxPath: string | null;
   externalPdfUrl: string | null;
+  generationStatusOverride?: string | null;
+  generationError?: string | null;
 }) {
   const ctx = useWizardContext() as any;
   const tplFromCtx = ctx?.templateSelecionado as string | undefined;
+  const hasArtifact = !!outputPdfPath || !!externalPdfUrl || !!outputDocxPath;
+  const effectiveGenerating = rendering || (!hasArtifact && generationStatusOverride === "pending");
+  const effectiveGenerationStatus = rendering
+    ? "generating_docx"
+    : outputDocxPath && !outputPdfPath && !externalPdfUrl
+      ? "docx_only"
+      : hasArtifact
+        ? "ready"
+        : generationStatusOverride === "error"
+          ? "error"
+          : (ctx?.generationStatus ?? "idle");
 
   return (
     <StepDocumento
       onViewDetail={() => {}}
       skipTemplateAutoSelect={true}
       onGenerate={() => onRender(tplFromCtx)}
-      generating={rendering}
-      rendering={rendering}
+      generating={effectiveGenerating}
+      rendering={effectiveGenerating}
       htmlPreview={html}
       result={versaoId ? { proposta_id: propostaId, versao_id: versaoId } : null}
       outputPdfPath={outputPdfPath}
       outputDocxPath={outputDocxPath}
       externalPdfUrl={externalPdfUrl}
+      generationStatusOverride={effectiveGenerationStatus}
+      generationError={generationError}
     />
   );
 }
