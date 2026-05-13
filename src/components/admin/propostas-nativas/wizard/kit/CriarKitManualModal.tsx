@@ -17,7 +17,7 @@ import { CurrencyInput } from "@/components/ui-kit/inputs";
 import { type KitItemRow, formatBRL } from "../types";
 import { formatKwp } from "@/lib/formatters/index";
 import { useFornecedoresNomes } from "@/hooks/useFornecedoresNomes";
-import { KIT_TOPOLOGIA_SELECT_OPTIONS, normalizeTopologyLabel, normalizeTopologyValue } from "@/lib/tipoProjetoSolar";
+import { KIT_TOPOLOGIA_SELECT_OPTIONS, normalizeTopologyLabel, normalizeTopologyValue, type KitTopologiaLabel } from "@/lib/tipoProjetoSolar";
 
 interface CatalogoModulo {
   id: string; fabricante: string; modelo: string; potencia_wp: number | null;
@@ -480,7 +480,7 @@ export function CriarKitManualModal({ open, onOpenChange, modulos, inversores, o
   const [codigoKit, setCodigoKit] = useState(initialCardData?.codigoKit || "");
   const [sistema, setSistema] = useState<"on_grid" | "hibrido" | "off_grid">(initialCardData?.sistema || sistemaProp || "on_grid");
   const [tipoKit, setTipoKit] = useState<"customizado" | "fechado">("customizado");
-  const [topologia, setTopologia] = useState(
+  const [topologia, setTopologia] = useState<KitTopologiaLabel>(
     normalizeTopologyLabel(initialCardData?.topologia) ||
     (topologiasProp?.length === 1
       ? normalizeTopologyLabel(topologiasProp[0])
@@ -829,13 +829,14 @@ export function CriarKitManualModal({ open, onOpenChange, modulos, inversores, o
             <div className="space-y-1">
               <Label className="text-xs font-medium text-foreground">Topologia <span className="text-destructive">*</span></Label>
               <Select value={topologia} onValueChange={v => {
-                setTopologia(v);
+                const normalized = normalizeTopologyLabel(v);
+                setTopologia(normalized);
                 // Auto-add otimizador entry when switching to Otimizador
-                if (v === "Otimizador" && otimizadorEntries.length === 0) {
+                if (normalized === "Otimizador" && otimizadorEntries.length === 0) {
                   setOtimizadorEntries([createEmptyOtimizador()]);
                 }
                 // Clear otimizadores when switching away
-                if (v !== "Otimizador") {
+                if (normalized !== "Otimizador") {
                   setOtimizadorEntries([]);
                 }
                 // Reset inversor selections since the filtered list changed
