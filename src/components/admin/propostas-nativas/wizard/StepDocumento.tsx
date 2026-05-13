@@ -1025,115 +1025,105 @@ export function StepDocumento({
             </div>
           )}
 
-          {/* Action buttons */}
-          <Button
-            variant="success"
-            size="sm"
-            className="w-full gap-2"
-            onClick={() => setActiveTab("whatsapp")}
-          >
-            <MessageCircle className="h-4 w-4" />
-            Enviar por whatsapp
-          </Button>
-
-          <Button
-            variant="outline"
-            size="sm"
-            className="w-full gap-2 border-info text-info hover:bg-info/10"
-            onClick={() => setActiveTab("email")}
-          >
-            <Mail className="h-4 w-4" />
-            Enviar e-mail
-          </Button>
-
-          <div className="space-y-2">
-            {resolvedPublicUrl && (
-              <div className="rounded-lg border border-border/60 bg-muted/20 p-3 space-y-2">
-                <div className="mx-auto w-fit rounded-md bg-background p-2 border border-border/60">
-                  <QRCodeCanvas value={resolvedPublicUrl} size={132} includeMargin />
-                </div>
-                <p className="break-all text-[10px] leading-relaxed text-muted-foreground">{resolvedPublicUrl}</p>
+          {/* 5. AUXILIARY ACTIONS — QR/links/downloads (reduced visual weight) */}
+          {generationStatus === "ready" && (
+            <details className="group rounded-lg border border-border/40 bg-muted/10 open:bg-muted/20 transition-colors">
+              <summary className="flex items-center justify-between cursor-pointer select-none px-3 py-2 text-[11px] font-medium text-muted-foreground hover:text-foreground">
+                <span className="flex items-center gap-1.5">
+                  <LinkIcon className="h-3 w-3" />
+                  QR Code, links e downloads
+                </span>
+                <span className="text-[10px] opacity-60 group-open:rotate-180 transition-transform">▾</span>
+              </summary>
+              <div className="px-3 pb-3 pt-1 space-y-2">
+                {resolvedPublicUrl && (
+                  <div className="rounded-md border border-border/40 bg-background/60 p-2 flex items-center gap-2.5">
+                    <div className="rounded bg-background p-1 border border-border/40 shrink-0">
+                      <QRCodeCanvas value={resolvedPublicUrl} size={64} includeMargin={false} />
+                    </div>
+                    <p className="break-all text-[9px] leading-tight text-muted-foreground min-w-0">{resolvedPublicUrl}</p>
+                  </div>
+                )}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground w-full justify-start p-0 h-auto"
+                  onClick={handleDownloadPdf}
+                >
+                  <Download className="h-3.5 w-3.5" />
+                  Download de PDF
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground w-full justify-start p-0 h-auto"
+                  onClick={handleDownloadDocx}
+                >
+                  <FileDown className="h-3.5 w-3.5" />
+                  Download de Doc
+                </Button>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground w-full justify-start p-0 h-auto"
+                      onClick={() => handleCopyLink(true)}
+                      disabled={!result?.proposta_id || !result?.versao_id}
+                    >
+                      {copiedTracker ? <Check className="h-3.5 w-3.5 text-success" /> : <LinkIcon className="h-3.5 w-3.5" />}
+                      Copiar link com rastreio
+                    </Button>
+                  </TooltipTrigger>
+                  {(!result?.proposta_id || !result?.versao_id) && <TooltipContent>Gere a proposta primeiro</TooltipContent>}
+                </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground w-full justify-start p-0 h-auto"
+                      onClick={() => handleCopyLink(false)}
+                      disabled={!outputPdfPath && !externalPdfUrl && !pdfBlobUrl}
+                    >
+                      {copiedDirect ? <Check className="h-3.5 w-3.5 text-success" /> : <Copy className="h-3.5 w-3.5" />}
+                      Copiar link sem rastreio
+                    </Button>
+                  </TooltipTrigger>
+                  {!outputPdfPath && !externalPdfUrl && !pdfBlobUrl && <TooltipContent>Gere a proposta primeiro</TooltipContent>}
+                </Tooltip>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground w-full justify-start p-0 h-auto"
+                  onClick={handleCopySimulacaoLink}
+                >
+                  {copiedSimulacao ? <Check className="h-3.5 w-3.5 text-success" /> : <LinkIcon className="h-3.5 w-3.5" />}
+                  Copiar link simulação financeira
+                </Button>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground w-full justify-start p-0 h-auto"
+                    >
+                      <Calendar className="h-3.5 w-3.5" />
+                      Validade: {validade ? formatDate(validade + "T12:00:00") : "—"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-3" align="start">
+                    <Label className="text-xs text-muted-foreground mb-1.5 block">Alterar validade</Label>
+                    <DateInput
+                      value={validade}
+                      onChange={setValidade}
+                      className="h-8 text-xs w-44"
+                    />
+                  </PopoverContent>
+                </Popover>
               </div>
-            )}
-            <Button
-              variant="ghost"
-              size="sm"
-              className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground w-full justify-start p-0 h-auto"
-              onClick={handleDownloadPdf}
-            >
-              <Download className="h-3.5 w-3.5" />
-              Download de PDF
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground w-full justify-start p-0 h-auto"
-              onClick={handleDownloadDocx}
-            >
-              <FileDown className="h-3.5 w-3.5" />
-              Download de Doc
-            </Button>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground w-full justify-start p-0 h-auto"
-                  onClick={() => handleCopyLink(true)}
-                  disabled={!result?.proposta_id || !result?.versao_id}
-                >
-                  {copiedTracker ? <Check className="h-3.5 w-3.5 text-success" /> : <LinkIcon className="h-3.5 w-3.5" />}
-                  Copiar link com rastreio
-                </Button>
-              </TooltipTrigger>
-              {(!result?.proposta_id || !result?.versao_id) && <TooltipContent>Gere a proposta primeiro</TooltipContent>}
-            </Tooltip>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground w-full justify-start p-0 h-auto"
-                  onClick={() => handleCopyLink(false)}
-                  disabled={!outputPdfPath && !externalPdfUrl && !pdfBlobUrl}
-                >
-                  {copiedDirect ? <Check className="h-3.5 w-3.5 text-success" /> : <Copy className="h-3.5 w-3.5" />}
-                  Copiar link sem rastreio
-                </Button>
-              </TooltipTrigger>
-              {!outputPdfPath && !externalPdfUrl && !pdfBlobUrl && <TooltipContent>Gere a proposta primeiro</TooltipContent>}
-            </Tooltip>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground w-full justify-start p-0 h-auto"
-              onClick={handleCopySimulacaoLink}
-            >
-              {copiedSimulacao ? <Check className="h-3.5 w-3.5 text-success" /> : <LinkIcon className="h-3.5 w-3.5" />}
-              Copiar link simulação financeira
-            </Button>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground w-full justify-start p-0 h-auto"
-                >
-                  <Calendar className="h-3.5 w-3.5" />
-                  Validade da proposta: {validade ? formatDate(validade + "T12:00:00") : "—"}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-3" align="start">
-                <Label className="text-xs text-muted-foreground mb-1.5 block">Alterar validade</Label>
-                <DateInput
-                  value={validade}
-                  onChange={setValidade}
-                  className="h-8 text-xs w-44"
-                />
-              </PopoverContent>
-            </Popover>
-          </div>
-        </div>
+            </details>
+          )}
 
         {/* Right: Preview — PDF real only, no HTML fallback */}
         <div className="min-w-0 min-h-[300px] sm:min-h-[400px]">
