@@ -242,10 +242,17 @@ export function VendorLeadViewDialog({ lead, open, onOpenChange, vendedorNome }:
             </TabsContent>
 
             <TabsContent value="proposta" className="mt-4">
-              <ProposalGenerator 
-                lead={lead} 
-                vendedorNome={vendedorNome}
-              />
+              <div className="rounded-lg border-l-4 border-primary bg-muted/40 p-4 flex gap-3">
+                <Info className="w-5 h-5 text-primary shrink-0 mt-0.5" />
+                <div className="space-y-1">
+                  <p className="text-sm font-medium text-foreground">
+                    Propostas são geradas pelo setor responsável
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    Quando uma proposta oficial estiver disponível para este lead, ela aparecerá aqui para visualização e envio. Você poderá copiar o link público, enviar por WhatsApp/e-mail e baixar o PDF oficial.
+                  </p>
+                </div>
+              </div>
             </TabsContent>
 
             <TabsContent value="whatsapp" className="mt-4">
