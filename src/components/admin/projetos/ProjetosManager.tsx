@@ -115,6 +115,7 @@ function consultorColumnToOwner(c: ProjetoConsultorColumn, etapaMap: Map<string,
 export function ProjetosManager() {
   const { toast } = useToast();
   const { user } = useAuth();
+  const saveTimerRef = useRef<NodeJS.Timeout | null>(null);
   const {
     funis, etapas, etiquetas, projetos, consultores, loading,
     selectedFunilId, setSelectedFunilId,
