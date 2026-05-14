@@ -258,6 +258,14 @@ export function useOrcamentosAdmin({
         };
       });
 
+      // Phase 1 — telemetry: warn legacy ownership rows (FK NULL but consultor text set)
+      const legacyCount = displayItems.filter(o => !o.vendedor_id && o.vendedor).length;
+      if (legacyCount > 0) {
+        console.warn(
+          `[useOrcamentosAdmin] LEGACY ownership: ${legacyCount}/${displayItems.length} orçamento(s) com consultor_id NULL e consultor texto preenchido. Considere backfill (Fase 4).`
+        );
+      }
+
       setOrcamentos(displayItems);
       setTotalCount(orcamentosRes.count || 0);
       setStats(statsRes?.data as unknown as ConversionStats || null);
