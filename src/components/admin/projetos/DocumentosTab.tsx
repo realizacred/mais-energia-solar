@@ -78,6 +78,7 @@ interface DocumentosTabProps {
   dealId: string;
   clienteTelefone?: string;
   consultorTelefone?: string;
+  enabled?: boolean;
 }
 
 // ─── Component ────────────────────────────────────
