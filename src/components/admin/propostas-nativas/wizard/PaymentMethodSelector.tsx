@@ -76,6 +76,8 @@ export interface FormaSelected {
   valor_total: number; // precoFinal or custom
   entrada: number;
   observacoes: string;
+  banco_id?: string;
+  tipo?: "direto" | "financiamento";
 }
 
 interface Props {
