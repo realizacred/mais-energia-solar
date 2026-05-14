@@ -62,6 +62,10 @@ export interface CalcGrupoBInput {
   custo_disponibilidade: CustoDisponibilidade;
   /** Ano-base do escalonamento Fio B. Se omitido, usa ano corrente. */
   ano?: number;
+  /** Fator de simultaneidade (autoconsumo direto). Default 0.3. 
+   *  Energia injetada = geracao * (1 - simultaneidade)
+   *  Apenas a energia injetada gera crédito com cobrança de Fio B. */
+  fator_simultaneidade?: number;
 }
 
 export interface CalcGrupoBResult {
