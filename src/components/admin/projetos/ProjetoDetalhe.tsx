@@ -118,15 +118,17 @@ interface Props {
   initialPipelineName?: string;
 }
 
+import { useUserRole } from "@/hooks/useUserRole";
+
 const TABS = [
   { id: "gerenciamento" as TabId, label: "Gerenciamento", icon: Settings, color: "text-secondary" },
-  { id: "comunicacao" as TabId, label: "Comunicação", icon: MessageSquare, color: "text-success" },
-  { id: "propostas" as TabId, label: "Propostas", icon: FileText, color: "text-primary" },
-  { id: "documentos" as TabId, label: "Documentos", icon: FolderOpen, color: "text-warning" },
-  { id: "instalacao" as TabId, label: "Instalação", icon: Zap, color: "text-success" },
-  { id: "suprimentos" as TabId, label: "Suprimentos", icon: ShoppingCart, color: "text-info" },
-  { id: "concessionaria" as TabId, label: "Concessionária", icon: Landmark, color: "text-primary" },
-  { id: "recibos" as TabId, label: "Recibos", icon: Receipt, color: "text-primary" },
+  { id: "comunicacao" as TabId, label: "Comunicação", icon: MessageSquare, color: "text-success", roles: ["admin", "consultor", "vendas", "gestor"] },
+  { id: "propostas" as TabId, label: "Propostas", icon: FileText, color: "text-primary", roles: ["admin", "consultor", "vendas", "gestor"] },
+  { id: "documentos" as TabId, label: "Documentos", icon: FolderOpen, color: "text-warning", roles: ["admin", "tecnico", "instalador", "engenheiro", "gestor"] },
+  { id: "instalacao" as TabId, label: "Instalação", icon: Zap, color: "text-success", roles: ["admin", "tecnico", "instalador", "engenheiro", "gestor"] },
+  { id: "suprimentos" as TabId, label: "Suprimentos", icon: ShoppingCart, color: "text-info", roles: ["admin", "tecnico", "instalador", "engenheiro", "gestor"] },
+  { id: "concessionaria" as TabId, label: "Concessionária", icon: Landmark, color: "text-primary", roles: ["admin", "tecnico", "instalador", "engenheiro", "gestor"] },
+  { id: "recibos" as TabId, label: "Recibos", icon: Receipt, color: "text-primary", roles: ["admin", "consultor", "vendas", "gestor"] },
 ] as const;
 
 // ─── CTA: Sinal pendente? (won deals sem recibo) ────────────
@@ -387,6 +389,22 @@ function ProjetoDetalheContent() {
       </div>
     );
   }
+  const { roles } = useUserRole();
+  const visibleTabs = useMemo(() => {
+    return TABS.filter(tab => {
+      // @ts-ignore
+      if (!tab.roles) return true;
+      if (roles.length === 0) return true;
+      // @ts-ignore
+      return roles.some(role => tab.roles.includes(role));
+    });
+  }, [roles]);
+
+  useEffect(() => {
+    if (roles.length > 0 && !visibleTabs.find(t => t.id === activeTab)) {
+      setActiveTab("gerenciamento");
+    }
+  }, [visibleTabs, activeTab, roles, setActiveTab]);
 
   return (
     <div className="min-h-screen bg-muted/30 -m-4 sm:-m-6 p-3 sm:p-6 max-w-full overflow-x-hidden">
@@ -398,6 +416,7 @@ function ProjetoDetalheContent() {
       </div>
 
       {/* ── Header Card ── */}
+
       <Card className="mb-2 overflow-hidden">
         <CardContent className="p-3 sm:p-4">
           {/* Row 1: Title + Etiquetas + Actions */}
@@ -585,7 +604,7 @@ function ProjetoDetalheContent() {
 
           <div className="border-b border-border/60 -mx-3 sm:-mx-4 px-3 sm:px-4 pt-2 pb-0">
             <div className="overflow-x-auto flex flex-wrap h-auto bg-transparent p-0 gap-0">
-              {TABS.map((tab) => {
+              {visibleTabs.map((tab) => {
                 const Icon = tab.icon;
                 const badge = tabBadge(tab.id);
                 const isActive = activeTab === tab.id;
@@ -611,6 +630,7 @@ function ProjetoDetalheContent() {
                   </button>
                 );
               })}
+
             </div>
           </div>
         </CardContent>
