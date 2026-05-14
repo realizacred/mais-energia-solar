@@ -74,7 +74,7 @@ async function resolveTenantId(): Promise<string | null> {
   return (profile as any)?.tenant_id ?? null;
 }
 
-export function ImportantFieldRow({ field, value, dealId, onSaved, showSeparator = true }: Props) {
+export function ImportantFieldRow({ field, value, dealId, onSaved, showSeparator = true, disabled = false }: Props) {
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [draft, setDraft] = useState("");
