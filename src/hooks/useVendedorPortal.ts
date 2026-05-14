@@ -97,11 +97,17 @@ const ADMIN_PROFILE: VendedorProfile = {
     // Advanced metrics hook
     const advancedMetrics = useAdvancedMetrics(safeVendedorId, vendedor?.nome || null);
  
-  // Orcamentos hook - when viewing as specific vendor, filter by that vendor
+  // Orcamentos hook — Phase 1: ownership SSOT via consultor_id (FK), server-side
+  // filters, no client-side slicing over partial page.
   const orcamentosData = useOrcamentosVendedor({
+    vendedorId: safeVendedorId,
     vendedorNome: vendedor?.nome || null,
     isAdminMode,
-    filterByVendedor: isViewingAsVendedor, // Force filter when viewing as specific vendor
+    filterByVendedor: isViewingAsVendedor,
+    searchTerm,
+    filterVisto,
+    filterEstado,
+    filterStatus,
   });
  
    // Load vendedor profile
