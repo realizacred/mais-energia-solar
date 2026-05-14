@@ -33,10 +33,11 @@ export default function MinhasInstalacoes() {
     queryKey: ["minhas-instalacoes", user?.id],
     enabled: !!user?.id,
     queryFn: async () => {
-      const { data, error } = await supabase
+      const query = supabase
         .from("projetos")
-        .select("id, codigo, projeto_num, nome, valor_total, potencia_kwp, updated_at")
-        .eq("responsavel_tecnico_id", user!.id);
+        .select("id, codigo, projeto_num, nome, valor_total, potencia_kwp, updated_at");
+      
+      const { data, error } = await query.eq("responsavel_tecnico_id", user!.id);
 
       if (error) throw error;
       return (data || []) as SimpleProject[];
