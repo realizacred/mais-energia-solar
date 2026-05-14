@@ -178,6 +178,9 @@ export function ProjetoRecibosTab({
         defaultClienteId={defaultClienteId}
         defaultProjetoId={defaultProjetoId}
         defaultDealId={defaultDealId}
+        onEmitted={() => {
+          toast.success("Recibo emitido com sucesso");
+        }}
       />
 
       <ReciboLogsDialog
