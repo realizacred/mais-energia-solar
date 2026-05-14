@@ -77,7 +77,7 @@ export function useConcessionaria(projetoId: string) {
       return data;
     },
     staleTime: 1000 * 60 * 5,
-    enabled: !!projetoId && enabled,
+    enabled: !!projetoId,
   });
 
   const salvarVistoriaMut = useMutation({
