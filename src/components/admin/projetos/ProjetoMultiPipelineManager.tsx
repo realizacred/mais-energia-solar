@@ -121,12 +121,27 @@ interface Props {
 export function ProjetoMultiPipelineManager({ dealId, dealStatus, pipelines, allStagesMap, onMembershipChange, initialPipelineId, initialPipelineName }: Props) {
   const isCommercialLocked = dealStatus === "lost" || dealStatus === "won";
   const isTechnicalLocked = dealStatus === "lost" || dealStatus === "canceled";
+  const { isAdmin } = useUserRole();
   const [memberships, setMemberships] = useState<DealPipelineMembership[]>([]);
   const [loading, setLoading] = useState(true);
   const [popoverOpen, setPopoverOpen] = useState(false);
   const [activePipelineId, setActivePipelineId] = useState<string | null>(initialPipelineId || null);
   const [expandedPipeline, setExpandedPipeline] = useState<string | null>(null);
   const [saving, setSaving] = useState<string | null>(null);
+
+  // Estados para o modal de validação de checklist
+  const [validationDialog, setValidationDialog] = useState<{
+    isOpen: boolean;
+    membershipId: string;
+    newStageId: string;
+    missingDocs: string[];
+  }>({
+    isOpen: false,
+    membershipId: "",
+    newStageId: "",
+    missingDocs: [],
+  });
+
 
   // Load memberships
   const fetchMemberships = async () => {
