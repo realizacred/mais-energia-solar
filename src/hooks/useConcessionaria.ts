@@ -61,7 +61,7 @@ const keys = {
   prereqs: (pid: string) => ["projeto_concessionaria_prereqs", pid] as const,
 };
 
-export function useConcessionaria(projetoId: string) {
+export function useConcessionaria(projetoId: string, enabled = true) {
   const qc = useQueryClient();
 
   // ── Vistoria ──
