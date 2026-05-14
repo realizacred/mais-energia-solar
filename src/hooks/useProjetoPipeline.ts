@@ -188,7 +188,7 @@ export function useProjetoPipeline() {
       .from("projetos")
       .select("id, deal_id, codigo, projeto_num, nome, lead_id, cliente_id, consultor_id, funil_id, etapa_id, proposta_id, potencia_kwp, valor_total, status, observacoes, created_at, updated_at, tipo_projeto_solar, clientes:cliente_id(nome, telefone)")
       .order("created_at", { ascending: false })
-      .limit(1000); // LIMIT adicionado para evitar timeouts com grandes volumes de dados
+      .limit(2000); // Aumentado para 2000 para suportar grandes volumes sem N+1 e com batching otimizado
 
     if (f.consultorId !== "todos") {
       query = query.eq("consultor_id", f.consultorId);
