@@ -707,10 +707,14 @@ function ProjetoDetalheContent() {
             <ProjetoInstalacaoTab dealId={deal.id} />
           )}
           {activeTab === "suprimentos" && (
-            <SuprimentosListPageInline projetoId={projetoId ?? deal.id} />
+            <div className="p-6">
+              <SuprimentosListPageInline projetoId={projetoId ?? deal.id} />
+            </div>
           )}
           {activeTab === "concessionaria" && (
-            <ProjetoConcessionariaTab dealId={deal.id} />
+            <div className="p-6">
+              <ProjetoConcessionariaTab dealId={deal.id} />
+            </div>
           )}
           {activeTab === "recibos" && (
             <ProjetoRecibosTab
