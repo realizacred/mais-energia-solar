@@ -193,6 +193,7 @@ export function ImportantFieldRow({ field, value, dealId, onSaved, showSeparator
               fieldKey={field.field_key}
               dealId={dealId}
               compact
+              disabled={disabled}
               onChange={async (jsonValue) => {
                 const tenantId = await resolveTenantId();
                 const { error } = await supabase
