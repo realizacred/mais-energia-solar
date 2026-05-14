@@ -50,6 +50,9 @@ export function StepPremissas({ premissas, onPremissasChange, isEditMode }: Prop
           sobredimensionamento: d.sobredimensionamento_padrao ?? premissas.sobredimensionamento,
           troca_inversor_anos: d.troca_inversor_anos_tradicional ?? premissas.troca_inversor_anos,
           troca_inversor_custo: d.custo_troca_inversor_tradicional ?? premissas.troca_inversor_custo,
+          fator_simultaneidade: d.fator_simultaneidade ?? premissas.fator_simultaneidade,
+          reajuste_tarifa_anual_percent: d.reajuste_tarifa_anual_percent ?? premissas.reajuste_tarifa_anual_percent,
+          ano_referencia_tarifa: d.ano_referencia_tarifa ?? premissas.ano_referencia_tarifa,
         });
         setSource("tenant");
       }
