@@ -140,6 +140,16 @@ export function CustomFieldFileInput({
         });
       }
       await persist([...items, ...uploaded]);
+      
+      // Se houver dealId, invalida o detalhe do projeto para refletir automações via trigger do banco
+      if (dealId) {
+        const qc = (window as any).queryClient;
+        if (qc) {
+          qc.invalidateQueries({ queryKey: ["projeto-detalhe", dealId] });
+          qc.invalidateQueries({ queryKey: ["project-documents", null, dealId] });
+        }
+      }
+
       toast({ title: uploaded.length === 1 ? "Arquivo enviado" : `${uploaded.length} arquivos enviados` });
     } catch (err: any) {
       console.error("[CustomFieldFileInput] upload error:", err);
