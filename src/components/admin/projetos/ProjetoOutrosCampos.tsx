@@ -337,6 +337,8 @@ function OutroCampoRowComp({ row, clienteId, onSaved }: { row: OutroCampoRow; cl
     const file = e.target.files?.[0];
     if (!file || !row.fieldPath) return;
     setSaving(true);
+    let tenantId: string | null = null;
+    let path: string | null = null;
     try {
       // Resolve tenant para respeitar RLS do bucket documentos-clientes
       const { data: userData } = await supabase.auth.getUser();
@@ -347,12 +349,12 @@ function OutroCampoRowComp({ row, clienteId, onSaved }: { row: OutroCampoRow; cl
         .select("tenant_id")
         .eq("user_id", userId)
         .maybeSingle();
-      const tenantId = (profile as any)?.tenant_id;
+      tenantId = (profile as any)?.tenant_id ?? null;
       if (!tenantId) throw new Error("Perfil sem tenant — contate o administrador");
 
       const ext = file.name.split(".").pop();
       // Path obrigatório: {tenant_id}/... (RLS do bucket documentos-clientes exige)
-      const path = `${tenantId}/clientes/${clienteId}/${row.key}_${Date.now()}.${ext}`;
+      path = `${tenantId}/clientes/${clienteId}/${row.key}_${Date.now()}.${ext}`;
       const { error: upErr } = await supabase.storage
         .from("documentos-clientes")
         .upload(path, file, { upsert: false, contentType: file.type || undefined });
@@ -367,7 +369,26 @@ function OutroCampoRowComp({ row, clienteId, onSaved }: { row: OutroCampoRow; cl
       toast({ title: "Arquivo anexado" });
       onSaved();
     } catch (err: any) {
-      toast({ title: "Erro no upload", description: err.message, variant: "destructive" });
+      console.error("[OutroCampoRowComp] upload error:", err);
+      const diag = await logUploadDiagnostics({
+        section: "Outros campos",
+        bucket: "documentos-clientes",
+        path,
+        tenant_id: tenantId,
+        field_key: row.key,
+        field_type: row.type,
+        cliente_id: clienteId,
+        file_name: file?.name ?? null,
+        file_size: file?.size ?? null,
+        file_mime: file?.type ?? null,
+        error: err,
+      });
+      const status = diag?.errorInfo?.status ? ` [HTTP ${diag.errorInfo.status}]` : "";
+      toast({
+        title: "Erro no upload",
+        description: `${err?.message || String(err)}${status} — ver console [ProjectUploadDiagnostics]`,
+        variant: "destructive",
+      });
     } finally {
       setSaving(false);
       if (fileRef.current) fileRef.current.value = "";
