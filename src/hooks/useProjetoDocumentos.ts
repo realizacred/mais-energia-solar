@@ -105,7 +105,7 @@ export function useProjetoDocumentosGerados(dealId: string) {
       });
     },
     staleTime: STALE_TIME,
-    enabled: !!dealId && enabled,
+    enabled: !!dealId,
   });
 }
 
