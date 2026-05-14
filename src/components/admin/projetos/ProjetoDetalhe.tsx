@@ -713,7 +713,7 @@ function ProjetoDetalheContent() {
           )}
           {activeTab === "concessionaria" && (
             <div className="p-6">
-              <ProjetoConcessionariaTab dealId={deal.id} />
+              <ProjetoConcessionariaTab dealId={deal.id} enabled={activeTab === "concessionaria"} />
             </div>
           )}
           {activeTab === "recibos" && (
