@@ -280,31 +280,42 @@ export function ProjetoMultiPipelineManager({ dealId, dealStatus, pipelines, all
     if (!force && membership?.pipeline_name.toLowerCase().includes("documentação") && newStage?.name.toLowerCase().includes("engenharia")) {
       setSaving(membershipId);
       try {
-        // Busca ids dos campos customizados de documentos
+        // Busca IDs dos campos customizados de documentos
         const requiredDocs = [
-          { key: "cap_identidade", label: "RG/CNH dos Proprietários" },
-          { key: "cap_comprovante_endereco", label: "Conta de Luz (Última fatura)" },
-          { key: "cap_documentos", label: "IPTU/Documento do Imóvel" }
+          { key: "cap_identidade", category: "rg_cnh", label: "RG/CNH dos Proprietários" },
+          { key: "cap_comprovante_endereco", category: "conta_luz", label: "Conta de Luz (Última fatura)" },
+          { key: "cap_documentos", category: "iptu", label: "IPTU/Documento do Imóvel" }
         ];
 
+        // 1. Verificar em deal_custom_field_values
         const { data: fields } = await supabase
           .from("deal_custom_fields")
           .select("id, field_key")
           .in("field_key", requiredDocs.map(d => d.key));
 
-        // Busca valores dos campos customizados de documentos para este deal
         const { data: customFieldValues } = await (supabase
           .from("deal_custom_field_values")
           .select("field_id, value_text")
           .eq("deal_id", dealId) as any);
 
+        // 2. Verificar em project_documents (SSOT)
+        const { data: projectDocuments } = await (supabase
+          .from("project_documents" as any)
+          .select("categoria")
+          .eq("deal_id", dealId)
+          .eq("is_deleted", false) as any);
+
         const missing = requiredDocs
           .filter(doc => {
+            // Check 1: Custom Field Value
             const fieldId = fields?.find(f => f.field_key === doc.key)?.id;
-            const value = customFieldValues?.find((v: any) => v.field_id === fieldId)?.value_text;
-            // Se value_text for nulo ou string vazia ou array vazio "[]", considera faltando
-            if (!value || value === "[]" || value === "") return true;
-            return false;
+            const customValue = customFieldValues?.find((v: any) => v.field_id === fieldId)?.value_text;
+            const hasCustomField = customValue && customValue !== "[]" && customValue !== "";
+            
+            // Check 2: Project Documents Category
+            const hasDocument = projectDocuments?.some((d: any) => d.categoria === doc.category);
+
+            return !hasCustomField && !hasDocument;
           })
           .map(doc => doc.label);
 
