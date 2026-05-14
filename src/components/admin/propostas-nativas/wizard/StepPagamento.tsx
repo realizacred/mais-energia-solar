@@ -22,23 +22,6 @@ import { useBancosCatalog } from "./useWizardDataLoaders";
 import { usePrecoFinal } from "@/hooks/usePrecoFinal";
 import { usePaymentInterestConfigs } from "@/hooks/usePaymentInterestConfig";
 
-interface BancoOpcao {
-  id: string;
-  banco_id: string;
-  banco_nome: string;
-  entrada: number;
-  num_parcelas: number;
-  taxa_mensal: number;
-  carencia_meses: number;
-  valor_parcela: number;
-  valor_financiado: number;
-}
-
-interface BancoGroup {
-  banco: BancoFinanciamento;
-  opcoes: BancoOpcao[];
-}
-
 interface StepPagamentoProps {
   onNext?: () => void;
   onBack?: () => void;
