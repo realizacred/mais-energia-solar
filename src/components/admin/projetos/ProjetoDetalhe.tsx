@@ -698,7 +698,7 @@ function ProjetoDetalheContent() {
             <ProjetoComunicacaoResumo customerId={deal.customer_id} customerPhone={customerPhone} />
           )}
           {activeTab === "propostas" && (
-            <PropostasTab customerId={deal.customer_id} dealId={deal.id} dealTitle={deal.title} navigate={navigate} isClosed={isClosed} dealStatus={deal.status} projetoId={projetoId} />
+            <PropostasTab customerId={deal.customer_id} dealId={deal.id} dealTitle={deal.title} navigate={navigate} isClosed={isClosed} dealStatus={deal.status} projetoId={projetoId} enabled={activeTab === "propostas"} />
           )}
           {activeTab === "documentos" && (
             <DocumentosTab dealId={deal.id} clienteTelefone={customerPhone} />
