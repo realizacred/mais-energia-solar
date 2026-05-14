@@ -138,6 +138,9 @@ export interface PremissasData {
   troca_inversor_anos: number;
   troca_inversor_custo: number;
   vpl_taxa_desconto: number;
+  fator_simultaneidade?: number;
+  reajuste_tarifa_anual_percent?: number;
+  ano_referencia_tarifa?: number;
 }
 
 /** Categorias canônicas para itens do kit gerador. Manter em sync com CATEGORIAS em StepKit.tsx */
