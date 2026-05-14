@@ -146,7 +146,11 @@ function resolveFioB(tariff: TariffComponentes): {
  * Função pura, determinística, auditável.
  */
 export function calcGrupoB(input: CalcGrupoBInput): CalcGrupoBResult {
-  const { regra, fase, geracao_mensal_kwh, consumo_mensal_kwh, tariff, custo_disponibilidade, ano = new Date().getFullYear() } = input;
+  const { 
+    regra, fase, geracao_mensal_kwh, consumo_mensal_kwh, tariff, custo_disponibilidade, 
+    ano = new Date().getFullYear(),
+    fator_simultaneidade = 0.3 
+  } = input;
   const alertas: string[] = [];
   let incompleto_gd3 = false;
 
@@ -156,12 +160,19 @@ export function calcGrupoB(input: CalcGrupoBInput): CalcGrupoBResult {
     fase === "bifasico"  ? custo_disponibilidade.bifasico :
     custo_disponibilidade.trifasico;
 
-  // 2. Consumo compensável (consumo acima do custo mínimo)
-  const consumo_compensavel_kwh = Math.max(consumo_mensal_kwh - custo_disp_kwh, 0);
+  // 2. Simular Autoconsumo vs Injeção
+  // Energia consumida localmente (simultânea) — economiza 100% da tarifa (TE + TUSD)
+  const energia_autoconsumo_kwh = geracao_mensal_kwh * fator_simultaneidade;
+  // Energia enviada para a rede (injetada) — sujeita às regras de Fio B conforme RegraGD
+  const energia_injetada_kwh = geracao_mensal_kwh * (1 - fator_simultaneidade);
 
-  // 3. Energia efetivamente compensada (limitada ao que foi gerado)
-  // @TODO: Injeção de energia (Créditos futuros) não contemplada, refinar usando saldo de crédito mensal equivalente a calcSeries25
-  const energia_compensada_kwh = Math.min(geracao_mensal_kwh, consumo_compensavel_kwh);
+  // 3. Consumo compensável (consumo acima do custo mínimo)
+  // O autoconsumo reduz o consumo da rede ANTES da compensação de créditos
+  const consumo_liquido_rede = Math.max(consumo_mensal_kwh - energia_autoconsumo_kwh, 0);
+  const consumo_compensavel_kwh = Math.max(consumo_liquido_rede - custo_disp_kwh, 0);
+
+  // 4. Energia efetivamente compensada (limitada ao que foi injetado)
+  const energia_compensada_kwh = Math.min(energia_injetada_kwh, consumo_compensavel_kwh);
 
   // 4. Resolver Fio B e nível de precisão
   const fioBResolvido = resolveFioB(tariff);
