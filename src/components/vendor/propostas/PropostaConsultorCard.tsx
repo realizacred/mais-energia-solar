@@ -58,12 +58,18 @@ function formatDate(s: string | null): string {
 }
 
 async function resolveOfficialUrl(proposta: PropostaConsultor): Promise<string> {
-  const token =
-    proposta.public_token ||
-    (proposta.versao_id
-      ? await getOrCreateProposalToken(proposta.id, proposta.versao_id, "tracked")
-      : null);
-  if (!token) throw new Error("Proposta ainda não foi gerada");
+  let token = proposta.public_token;
+  
+  // Se não tem token, tenta gerar via RPC ou service
+  if (!token && proposta.versao_id) {
+    try {
+      token = await getOrCreateProposalToken(proposta.id, proposta.versao_id, "tracked");
+    } catch (e) {
+      console.error("[PropostaConsultorCard] Falha ao obter token:", e);
+    }
+  }
+  
+  if (!token) throw new Error("Proposta ainda não possui um link público gerado");
   return getProposalWebUrl(token);
 }
 

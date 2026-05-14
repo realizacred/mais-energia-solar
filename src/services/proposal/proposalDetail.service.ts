@@ -153,12 +153,37 @@ export async function getOrCreateProposalToken(
 
   if ((existing as any)?.token) return (existing as any).token;
 
-  const { getCurrentTenantId } = await import("@/lib/getCurrentTenantId");
-  const { tenantId } = await getCurrentTenantId();
+  const { data: { user } } = await supabase.auth.getUser();
+  let tenantIdToUse: string | null = null;
+  
+  if (user?.id) {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("tenant_id")
+      .eq("user_id", user.id)
+      .maybeSingle();
+    tenantIdToUse = profile?.tenant_id || null;
+  }
+
+  // Fallback: tenta buscar o tenant_id da própria proposta se o usuário não estiver logado 
+  // (ex: link público sendo acessado, embora este service seja usado em área logada)
+  if (!tenantIdToUse) {
+    const { data: prop } = await supabase
+      .from("propostas_nativas")
+      .select("tenant_id")
+      .eq("id", propostaId)
+      .maybeSingle();
+    tenantIdToUse = (prop as any)?.tenant_id || null;
+  }
 
   const { data: created, error } = await supabase
     .from("proposta_aceite_tokens" as any)
-    .insert({ proposta_id: propostaId, versao_id: activeVersaoId, tipo, tenant_id: tenantId } as any)
+    .insert({ 
+      proposta_id: propostaId, 
+      versao_id: activeVersaoId, 
+      tipo, 
+      tenant_id: tenantIdToUse 
+    } as any)
     .select("token")
     .single();
 
