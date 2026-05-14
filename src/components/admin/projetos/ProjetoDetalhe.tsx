@@ -127,7 +127,7 @@ const TABS = [
   { id: "gerenciamento" as TabId, label: "Gerenciamento", icon: Settings, color: "text-secondary" },
   { id: "comunicacao" as TabId, label: "Comunicação", icon: MessageSquare, color: "text-success", roles: ["admin", "consultor", "vendas", "gestor"] },
   { id: "propostas" as TabId, label: "Propostas", icon: FileText, color: "text-primary", roles: ["admin", "consultor", "vendas", "gestor"] },
-  { id: "credito" as TabId, label: "Crédito", icon: CreditCard, color: "text-primary", roles: ["admin", "consultor", "vendas", "gestor"] },
+  { id: "credito" as TabId, label: "Crédito", icon: CreditCard, color: "text-primary", roles: ["admin", "gerente", "gestor", "consultor", "vendas"] },
   { id: "documentos" as TabId, label: "Documentos", icon: FolderOpen, color: "text-warning", roles: ["admin", "tecnico", "instalador", "engenheiro", "gestor"] },
   { id: "instalacao" as TabId, label: "Instalação", icon: Zap, color: "text-success", roles: ["admin", "tecnico", "instalador", "engenheiro", "gestor"] },
   { id: "suprimentos" as TabId, label: "Suprimentos", icon: ShoppingCart, color: "text-info", roles: ["admin", "tecnico", "instalador", "engenheiro", "gestor"] },
