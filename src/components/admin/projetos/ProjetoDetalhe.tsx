@@ -1044,6 +1044,9 @@ function GerenciamentoTab({
 
   // ── Inline edit popup for client fields ──
   const [inlineEditOpen, setInlineEditOpen] = useState(false);
+  
+  const canEdit = !readonly;
+
   const [inlineEditField, setInlineEditField] = useState<string>("");
   const [inlineEditLabel, setInlineEditLabel] = useState<string>("");
   const [inlineEditValue, setInlineEditValue] = useState<string>("");
