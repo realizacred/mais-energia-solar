@@ -57,7 +57,7 @@ export interface PipelineInfo {
   name: string;
 }
 
-export type TabId = "gerenciamento" | "comunicacao" | "propostas" | "documentos" | "instalacao" | "suprimentos" | "concessionaria" | "recibos" | "notificacoes";
+export type TabId = "gerenciamento" | "comunicacao" | "propostas" | "documentos" | "instalacao" | "suprimentos" | "concessionaria" | "recibos" | "notificacoes" | "credito";
 
 export interface EtiquetaItem {
   id: string;
