@@ -77,6 +77,7 @@ export interface OrdemCompraFiltros {
 export function useOrdensCompra(filtros?: OrdemCompraFiltros, enabled = true) {
   return useQuery<OrdemCompra[]>({
     queryKey: [...QK, filtros],
+    enabled,
     staleTime: STALE_TIME,
     queryFn: async () => {
       let query = (supabase as any)
