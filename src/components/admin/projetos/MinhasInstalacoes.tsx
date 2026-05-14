@@ -1,11 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
-import { createClient } from "@supabase/supabase-js";
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-const simpleSupabase = createClient(supabaseUrl, supabaseAnonKey);
-
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+
 import { formatBRLInteger as formatBRL } from "@/lib/formatters";
 import { PageHeader } from "@/components/ui-kit";
 import { Card, CardContent } from "@/components/ui/card";
