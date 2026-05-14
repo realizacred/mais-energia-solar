@@ -43,13 +43,13 @@ export default function MinhasInstalacoes() {
           potencia_kwp,
           updated_at,
           etapa_id,
-          projeto_etapas!inner (nome),
+          projeto_etapas (nome),
           clientes:cliente_id (nome, rua, numero, bairro, cidade, estado)
         `)
         .eq("responsavel_tecnico_id", user!.id)
-        .in("etapa_id", etapaIds)
         .neq("status", "concluido")
         .neq("status", "cancelado");
+
 
       if (error) throw error;
       return (data || []).map((p: any) => ({

@@ -177,6 +177,8 @@ const WhatsappInstanciasPage = lazy(() => import("@/pages/admin/integracoes/what
 const WhatsappIaResolucaoPage = lazy(() => import("@/pages/admin/integracoes/whatsapp/WhatsappIaResolucaoPage"));
 const WhatsappAutoRespostasPage = lazy(() => import("@/pages/admin/integracoes/whatsapp/WhatsappAutoRespostasPage"));
 const WhatsappFollowupPage = lazy(() => import("@/pages/admin/integracoes/whatsapp/WhatsappFollowupPage"));
+const MinhasInstalacoes = lazy(() => import("@/components/admin/projetos/MinhasInstalacoes"));
+
 const SolarmarketMigracaoPage = lazy(() => import("@/pages/admin/integracoes/solarmarket/SolarmarketMigracaoPage"));
 const SolarmarketFunisPage = lazy(() => import("@/pages/admin/integracoes/solarmarket/SolarmarketFunisPage"));
 const SolarmarketEtapasPage = lazy(() => import("@/pages/admin/integracoes/solarmarket/SolarmarketEtapasPage"));
@@ -686,6 +688,8 @@ export default function Admin() {
                 <Route path="recebimentos" element={<RecebimentosManager />} />
                 <Route path="inadimplencia" element={<InadimplenciaDashboard />} />
                 <Route path="comissoes" element={<ComissoesManager />} />
+                <Route path="minhas-instalacoes" element={<MinhasInstalacoes />} />
+
                 <Route path="fechamento-caixa" element={<FechamentoCaixaPage />} />
                 <Route path="dre" element={<DREPage />} />
                 <Route path="engenharia" element={<Navigate to="/admin/premissas" replace />} />

@@ -110,6 +110,8 @@ export const NAV_REGISTRY: NavRegistryItem[] = [
   { nav_key: "checklists", label_default: "Documentação", group_default: "Operações", order_default: 40, icon: "ClipboardList", description: "Checklists e documentos de projeto", keywords: ["checklist", "documento", "verificação", "projeto"], criticality: "normal", permission: "all", separator: true },
   { nav_key: "servicos", label_default: "Agenda de Serviços", group_default: "Operações", order_default: 50, icon: "CalendarClock", description: "Visitas técnicas e agendamentos", keywords: ["agenda", "visita", "instalação", "técnico"], criticality: "normal", permission: "all" },
   { nav_key: "visitas-tecnicas", label_default: "Visitas Técnicas", group_default: "Operações", order_default: 60, icon: "MapPin", description: "Calendário de visitas técnicas", keywords: ["visita", "técnica", "calendário", "agendamento", "campo"], criticality: "normal", permission: "all" },
+  { nav_key: "minhas-instalacoes", label_default: "Minhas Instalações", group_default: "Operações", order_default: 5, icon: "Zap", description: "Projetos em execução sob sua responsabilidade técnica", keywords: ["instalação", "execução", "técnico", "meus", "projetos"], criticality: "normal", permission: "all" },
+
 
   // ── 7. Financeiro ──
   { nav_key: "financeiro-dashboard", label_default: "Dashboard", group_default: "Financeiro", order_default: 0, icon: "TrendingUp", description: "Visão consolidada de receitas e comissões", keywords: ["financeiro", "dashboard", "receita", "visão geral"], criticality: "normal", permission: "admin_only" },
