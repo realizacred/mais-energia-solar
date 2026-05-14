@@ -185,7 +185,7 @@ export function useProjetoPipeline() {
 
     let query = supabase
       .from("projetos")
-      .select("id, deal_id, codigo, projeto_num, nome, lead_id, cliente_id, consultor_id, funil_id, etapa_id, proposta_id, potencia_kwp, valor_total, status, observacoes, created_at, updated_at, tipo_projeto_solar, clientes:cliente_id(nome, telefone)", { count: "exact" })
+      .select("id, deal_id, codigo, projeto_num, nome, lead_id, cliente_id, consultor_id, funil_id, etapa_id, proposta_id, potencia_kwp, valor_total, status, observacoes, created_at, updated_at, tipo_projeto_solar, clientes:cliente_id(nome, telefone)")
       .order("created_at", { ascending: false });
 
     if (f.consultorId !== "todos") {
@@ -366,25 +366,14 @@ export function useProjetoPipeline() {
           .map((p: any) => p.deal_id)
           .filter(Boolean);
 
-        const [byProjeto, byDeal] = await Promise.all([
-          supabase
-            .from("propostas_nativas")
-            .select("id, deal_id, projeto_id, status, is_principal, created_at")
-            .in("projeto_id", projetoChunk)
-            .order("created_at", { ascending: false }),
-          dealChunk.length > 0
-            ? supabase
-                .from("propostas_nativas")
-                .select("id, deal_id, projeto_id, status, is_principal, created_at")
-                .in("deal_id", dealChunk)
-                .order("created_at", { ascending: false })
-            : Promise.resolve({ data: [], error: null }),
-        ]);
+        const { data: byProjeto, error } = await supabase
+          .from("propostas_nativas")
+          .select("id, deal_id, projeto_id, status, is_principal, created_at")
+          .in("projeto_id", projetoChunk)
+          .order("created_at", { ascending: false });
 
-        if (byProjeto.error) throw byProjeto.error;
-        if (byDeal.error) throw byDeal.error;
-
-        propostaRows.push(...(byProjeto.data || []), ...(byDeal.data || []));
+        if (error) throw error;
+        propostaRows.push(...(byProjeto || []));
       }
     }
 
@@ -487,22 +476,16 @@ export function useProjetoPipeline() {
       }, delayMs);
     };
 
-    const onChange = () => refreshProjetos(1500);
+    const onChange = () => refreshProjetos(5000);
     // Subscribes únicos por tabela (RB-71/Realtime gov): 1 channel, sem listener duplicado.
     const channel = supabase
       .channel('projetos-pipeline-realtime')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'projetos' }, onChange)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'projeto_etapas' }, onChange)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'projeto_funis' }, onChange)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'pipelines' }, onChange)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'pipeline_stages' }, onChange)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'propostas_nativas' }, onChange)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'clientes' }, onChange)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'deals' }, onChange)
       .subscribe();
 
-    // Polling fallback (30s) — catches service_role inserts missed by Realtime
-    const pollInterval = setInterval(() => refreshProjetos(100), 30_000);
+    // Polling fallback (120s) — catches service_role inserts missed by Realtime
+    const pollInterval = setInterval(() => refreshProjetos(100), 120_000);
 
     const handleVisibility = () => {
       if (document.visibilityState === 'visible') refreshProjetos(300);
