@@ -476,8 +476,8 @@ export function useProjetoPipeline() {
   const fetchAll = useCallback(async () => {
     setLoading(true);
     try {
-      const metadata = await fetchMetadata();
-      const enriched = await fetchProjetos(filters, metadata.etapas, metadata.funis);
+      const metadataResult = await fetchMetadata();
+      const enriched = await fetchProjetos(filters, metadataResult.etapas, metadataResult.funis);
       setProjetos(enriched);
 
       // Auto-select first funil
@@ -853,6 +853,6 @@ export function useProjetoPipeline() {
     deleteEtapa,
     moveProjetoToEtapa,
     moveProjetoToConsultor,
-    dbPrefs: null, // This can be handled by the component using fetchMetadata result if needed
+    dbPrefs: null, // Pode ser acessado via fetchMetadata se necessário
   };
 }
