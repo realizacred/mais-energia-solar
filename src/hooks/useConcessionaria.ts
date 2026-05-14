@@ -239,7 +239,7 @@ export function useConcessionaria(projetoId: string) {
       return data as HomologacaoData | null;
     },
     staleTime: 1000 * 60 * 5,
-    enabled: !!projetoId && enabled,
+    enabled: !!projetoId,
   });
 
   const salvarHomologacaoMut = useMutation({
