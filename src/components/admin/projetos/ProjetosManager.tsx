@@ -445,18 +445,6 @@ export function ProjetosManager() {
       applyFilters({ etiquetaIds: value });
       savePrefs({ etiquetaIds: value });
       updateUrlFilter({ etiquetas: value });
-    }
-  };
-      savePrefs({ consultorId: value, consultor: value });
-      updateUrlFilter({ consultor: value });
-    } else if (key === "status") {
-      applyFilters({ status: value });
-      savePrefs({ status: value });
-      updateUrlFilter({ status: value });
-    } else if (key === "tipoProjetoSolar") {
-      applyFilters({ tipoProjetoSolar: value });
-      savePrefs({ tipoProjetoSolar: value, tipo_solar: value });
-      updateUrlFilter({ tipoSolar: value });
     } else if (key === "search") {
       applyFilters({ search: value });
     }
