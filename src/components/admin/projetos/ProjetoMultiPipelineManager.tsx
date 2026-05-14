@@ -229,7 +229,14 @@ export function ProjetoMultiPipelineManager({ dealId, dealStatus, pipelines, all
 
   const addToPipeline = async (pipelineId: string, stageId: string) => {
     const pipeline = pipelines.find(p => p.id === pipelineId);
-    const isComercial = pipeline?.name.toLowerCase().includes("comercial") || pipeline?.name.toLowerCase().includes("venda");
+    
+    const pipelineName = (
+      pipeline?.name || 
+      pipelines.find(p => p.id === pipelineId)?.name || 
+      ""
+    ).toLowerCase();
+
+    const isComercial = pipelineName.includes("comercial") || pipelineName.includes("venda");
     const locked = isComercial ? isCommercialLocked : isTechnicalLocked;
     
     if (locked) { 
@@ -264,7 +271,13 @@ export function ProjetoMultiPipelineManager({ dealId, dealStatus, pipelines, all
     const stages = allStagesMap.get(membership?.pipeline_id || "") || [];
     const newStage = stages.find(s => s.id === newStageId);
     
-    const isComercial = membership?.pipeline_name.toLowerCase().includes("comercial") || membership?.pipeline_name.toLowerCase().includes("venda");
+    const pipelineName = (
+      membership?.pipeline_name || 
+      pipelines.find(p => p.id === membership?.pipeline_id)?.name || 
+      ""
+    ).toLowerCase();
+
+    const isComercial = pipelineName.includes("comercial") || pipelineName.includes("venda");
     const locked = isComercial ? isCommercialLocked : isTechnicalLocked;
 
     if (locked) { 
@@ -355,7 +368,14 @@ export function ProjetoMultiPipelineManager({ dealId, dealStatus, pipelines, all
 
   const removeFromPipeline = async (membershipId: string) => {
     const membership = memberships.find(m => m.id === membershipId);
-    const isComercial = membership?.pipeline_name.toLowerCase().includes("comercial") || membership?.pipeline_name.toLowerCase().includes("venda");
+    
+    const pipelineName = (
+      membership?.pipeline_name || 
+      pipelines.find(p => p.id === membership?.pipeline_id)?.name || 
+      ""
+    ).toLowerCase();
+
+    const isComercial = pipelineName.includes("comercial") || pipelineName.includes("venda");
     const locked = isComercial ? isCommercialLocked : isTechnicalLocked;
 
     if (locked) { 

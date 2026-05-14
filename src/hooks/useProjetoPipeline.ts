@@ -853,6 +853,6 @@ export function useProjetoPipeline() {
     deleteEtapa,
     moveProjetoToEtapa,
     moveProjetoToConsultor,
-    dbPrefs: fetchMetadataResult?.dbPrefs,
+    dbPrefs: null, // This can be handled by the component using fetchMetadata result if needed
   };
 }
