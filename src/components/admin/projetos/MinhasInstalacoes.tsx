@@ -42,10 +42,10 @@ export default function MinhasInstalacoes() {
           valor_total,
           potencia_kwp,
           updated_at,
-          etapa_id,
-          clientes:cliente_id (nome, rua, numero, bairro, cidade, estado)
+          etapa_id
         `)
         .eq("responsavel_tecnico_id", user!.id);
+
 
 
 
@@ -53,8 +53,10 @@ export default function MinhasInstalacoes() {
       if (error) throw error;
       return (data || []).map((p: any) => ({
         ...p,
+        clientes: { nome: p.nome || "Cliente" },
         diasNaEtapa: differenceInDays(new Date(), new Date(p.updated_at))
       })).sort((a, b) => b.diasNaEtapa - a.diasNaEtapa);
+
     }
   });
 
