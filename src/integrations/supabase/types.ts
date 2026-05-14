@@ -381,6 +381,105 @@ export type Database = {
           },
         ]
       }
+      analise_credito: {
+        Row: {
+          banco: string | null
+          cliente_id: string | null
+          cpf_cnpj: string | null
+          created_at: string
+          criado_por: string | null
+          deal_id: string | null
+          id: string
+          lead_id: string | null
+          observacoes: string | null
+          prazo_meses: number | null
+          renda_mensal: number | null
+          score_credito: number | null
+          status: string
+          taxa_juros: number | null
+          tenant_id: string
+          updated_at: string
+          valor_aprovado: number | null
+          valor_solicitado: number | null
+        }
+        Insert: {
+          banco?: string | null
+          cliente_id?: string | null
+          cpf_cnpj?: string | null
+          created_at?: string
+          criado_por?: string | null
+          deal_id?: string | null
+          id?: string
+          lead_id?: string | null
+          observacoes?: string | null
+          prazo_meses?: number | null
+          renda_mensal?: number | null
+          score_credito?: number | null
+          status?: string
+          taxa_juros?: number | null
+          tenant_id: string
+          updated_at?: string
+          valor_aprovado?: number | null
+          valor_solicitado?: number | null
+        }
+        Update: {
+          banco?: string | null
+          cliente_id?: string | null
+          cpf_cnpj?: string | null
+          created_at?: string
+          criado_por?: string | null
+          deal_id?: string | null
+          id?: string
+          lead_id?: string | null
+          observacoes?: string | null
+          prazo_meses?: number | null
+          renda_mensal?: number | null
+          score_credito?: number | null
+          status?: string
+          taxa_juros?: number | null
+          tenant_id?: string
+          updated_at?: string
+          valor_aprovado?: number | null
+          valor_solicitado?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "analise_credito_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "analise_credito_criado_por_fkey"
+            columns: ["criado_por"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "analise_credito_deal_id_fkey"
+            columns: ["deal_id"]
+            isOneToOne: false
+            referencedRelation: "deals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "analise_credito_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "analise_credito_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       aneel_sync_runs: {
         Row: {
           created_at: string

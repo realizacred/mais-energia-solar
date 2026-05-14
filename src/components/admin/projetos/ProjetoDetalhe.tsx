@@ -19,7 +19,8 @@ import {
   Upload, Trash2, Download, Eye, Plus, ExternalLink, Phone, StickyNote, Filter,
   MoreVertical, Trophy, XCircle, UserCircle, Mail, MapPin, Hash, Check,
   AlertCircle, CheckCircle, Building, Paperclip, Copy, Pencil, Send, Activity,
-  ChevronDown, SunMedium, Bell, Users, Tag, Link2, ShoppingCart, Landmark, Receipt
+  ChevronDown, SunMedium, Bell, Users, Tag, Link2, ShoppingCart, Landmark, Receipt,
+  CreditCard
 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
@@ -52,6 +53,7 @@ import { ProjetoComunicacaoResumo } from "./ProjetoComunicacaoResumo";
 import { ScheduleWhatsAppDialog } from "@/components/vendor/ScheduleWhatsAppDialog";
 import { PropostaExpandedDetail } from "./PropostaExpandedDetail";
 import { GrupoKitsModal } from "./GrupoKitsModal";
+import { ProjetoCreditoTab } from "./ProjetoCreditoTab";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useProjetoCustomFieldValues } from "@/hooks/useProjetoCustomFields";
 import { useProjetoNotes } from "@/hooks/useProjetoNotes";
@@ -125,6 +127,7 @@ const TABS = [
   { id: "gerenciamento" as TabId, label: "Gerenciamento", icon: Settings, color: "text-secondary" },
   { id: "comunicacao" as TabId, label: "Comunicação", icon: MessageSquare, color: "text-success", roles: ["admin", "consultor", "vendas", "gestor"] },
   { id: "propostas" as TabId, label: "Propostas", icon: FileText, color: "text-primary", roles: ["admin", "consultor", "vendas", "gestor"] },
+  { id: "credito" as TabId, label: "Crédito", icon: CreditCard, color: "text-primary", roles: ["admin", "consultor", "vendas", "gestor"] },
   { id: "documentos" as TabId, label: "Documentos", icon: FolderOpen, color: "text-warning", roles: ["admin", "tecnico", "instalador", "engenheiro", "gestor"] },
   { id: "instalacao" as TabId, label: "Instalação", icon: Zap, color: "text-success", roles: ["admin", "tecnico", "instalador", "engenheiro", "gestor"] },
   { id: "suprimentos" as TabId, label: "Suprimentos", icon: ShoppingCart, color: "text-info", roles: ["admin", "tecnico", "instalador", "engenheiro", "gestor"] },
@@ -770,6 +773,16 @@ function ProjetoDetalheContent() {
           {activeTab === "concessionaria" && (
             <div className="p-6">
               <ProjetoConcessionariaTab dealId={deal.id} />
+            </div>
+          )}
+          {activeTab === "credito" && (
+            <div className="p-6">
+              <ProjetoCreditoTab 
+                dealId={deal.id} 
+                clienteId={deal.customer_id} 
+                clienteCpfCnpj={customerCpfCnpj}
+                valorProposta={deal.value}
+              />
             </div>
           )}
           {activeTab === "recibos" && (
