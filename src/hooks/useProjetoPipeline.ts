@@ -481,8 +481,8 @@ export function useProjetoPipeline() {
       setProjetos(enriched);
 
       // Auto-select first funil
-      if (metadata.funis.length > 0 && !selectedFunilId) {
-        const firstActive = metadata.funis.find((f: any) => f.ativo);
+      if (metadataResult.funis.length > 0 && !selectedFunilId) {
+        const firstActive = metadataResult.funis.find((f: any) => f.ativo);
         if (firstActive) {
           setSelectedFunilId(firstActive.id);
         }
