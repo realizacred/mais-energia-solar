@@ -1,6 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Bell, UserPlus, MessageCircle, Calendar, AlertTriangle, Eye } from "lucide-react";
+import { Bell, UserPlus, MessageCircle, Calendar, AlertTriangle, Eye, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";

@@ -45,9 +45,8 @@ export default function MinhasInstalacoes() {
           etapa_id,
           clientes:cliente_id (nome, rua, numero, bairro, cidade, estado)
         `)
-        .eq("responsavel_tecnico_id", user!.id)
-        .neq("status", "concluido")
-        .neq("status", "cancelado");
+        .eq("responsavel_tecnico_id", user!.id);
+
 
 
 
