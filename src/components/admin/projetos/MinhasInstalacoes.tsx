@@ -19,27 +19,29 @@ interface SimpleProject {
   valor_total: number | null;
   potencia_kwp: number | null;
   updated_at: string;
-  diasNaEtapa: number;
 }
 
+interface ProjectWithDays extends SimpleProject {
+  diasNaEtapa: number;
+}
 
 export default function MinhasInstalacoes() {
   const { user } = useAuth();
   const navigate = useNavigate();
 
-  const { data: projetosData, isLoading } = useQuery<any[]>({
+  const { data: projetosData, isLoading } = useQuery<SimpleProject[]>({
     queryKey: ["minhas-instalacoes", user?.id],
     enabled: !!user?.id,
     queryFn: async () => {
-      const { data, error } = await (supabase
+      const { data, error } = await supabase
         .from("projetos")
-        .select("id, codigo, projeto_num, nome, valor_total, potencia_kwp, updated_at") as any)
+        .select("id, codigo, projeto_num, nome, valor_total, potencia_kwp, updated_at")
         .eq("responsavel_tecnico_id", user!.id);
 
       if (error) throw error;
-      return data || [];
+      return (data || []) as SimpleProject[];
     }
-  } as any);
+  });
 
 
 
