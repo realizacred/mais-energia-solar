@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScheduleWhatsAppDialog } from "@/components/vendor/ScheduleWhatsAppDialog";
+import { ProjetoCreditoTab } from "@/components/admin/projetos/ProjetoCreditoTab";
 
 import type { Lead } from "@/types/lead";
 
