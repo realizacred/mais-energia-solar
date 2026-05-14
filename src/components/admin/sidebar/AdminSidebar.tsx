@@ -97,11 +97,13 @@ function SidebarItemButton({
       onDragOver={draggable ? (e) => onDragOver?.(e as any, item.id) : undefined}
       onDrop={draggable ? (e) => onDrop?.(e as any, item.id) : undefined}
       onDragEnd={draggable ? onDragEnd : undefined}
-      className="group/item relative overflow-visible"
+      className="group/item relative overflow-visible select-none touch-none"
     >
       <SidebarMenuButton
         onClick={handleClick}
         isActive={isActive}
+        draggable={false} // Prevent default browser link dragging interference
+
         tooltip={collapsed ? item.title : undefined}
         aria-label={item.title}
         className={`
@@ -301,7 +303,7 @@ function SidebarSectionGroup({
 
         <CollapsibleContent className="sidebar-collapsible-content">
           <SidebarGroupContent>
-            <SidebarMenu className="gap-0 mt-1 ml-2 pl-3 border-l border-sidebar-border/40">
+            <SidebarMenu className="gap-0 mt-1 ml-2 pl-3 border-l border-sidebar-border/40 min-h-[40px]">
               {orderedItems.map((item, idx) => {
                 const isActive = activeTab === item.id || (item.id === "monitoramento" && activeTab.startsWith("monitoramento") && !activeTab.includes("/"));
                 const badgeCount = badgeCounts?.[item.id] || 0;
@@ -311,11 +313,12 @@ function SidebarSectionGroup({
                 // Add spacing before subsection labels
                 const prevItem = idx > 0 ? orderedItems[idx - 1] : null;
                 const showExtraSpacing = item.subsectionLabel || (item.separator && !item.subsectionLabel);
+                const isDragPlaceholder = dragId && dragId !== item.id && overId === item.id;
 
                 return (
                   <React.Fragment key={item.id}>
                     {item.subsectionLabel && !dragId && (
-                      <div className={`mx-2 ${idx > 0 ? 'mt-3' : 'mt-1'} mb-1 flex items-center gap-2`}>
+                      <div className={`mx-2 ${idx > 0 ? 'mt-3' : 'mt-1'} mb-1 flex items-center gap-2 pointer-events-none`}>
                         <span className="text-[9px] font-extrabold uppercase tracking-[0.12em] text-foreground/40 select-none">
                           {item.subsectionLabel}
                         </span>
@@ -323,7 +326,7 @@ function SidebarSectionGroup({
                       </div>
                     )}
                     {item.separator && !item.subsectionLabel && !dragId && (
-                      <div className="mx-3 my-2 h-px bg-border/20" />
+                      <div className="mx-3 my-2 h-px bg-border/20 pointer-events-none" />
                     )}
                     <div
                       className={`transition-all duration-150 ${
