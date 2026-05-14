@@ -27,18 +27,19 @@ export default function MinhasInstalacoes() {
   const { user } = useAuth();
   const navigate = useNavigate();
 
-  const { data: projetosData, isLoading } = useQuery({
+  const { data: projetosData, isLoading } = useQuery<any[]>({
     queryKey: ["minhas-instalacoes", user?.id],
     enabled: !!user?.id,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("projetos")
-        .select("*")
+        .select("id, codigo, projeto_num, nome, valor_total, potencia_kwp, updated_at")
         .eq("responsavel_tecnico_id", user!.id);
       if (error) throw error;
-      return (data || []) as any[];
+      return data || [];
     }
   });
+
 
   if (isLoading) {
     return (
@@ -48,7 +49,7 @@ export default function MinhasInstalacoes() {
     );
   }
 
-  const projetos = (projetosData || []).map((p: any) => ({
+  const projetos: SimpleProject[] = (projetosData || []).map((p: any) => ({
     id: p.id,
     codigo: p.codigo,
     projeto_num: p.projeto_num,
@@ -57,7 +58,8 @@ export default function MinhasInstalacoes() {
     potencia_kwp: p.potencia_kwp,
     updated_at: p.updated_at,
     diasNaEtapa: differenceInDays(new Date(), new Date(p.updated_at))
-  })).sort((a: any, b: any) => b.diasNaEtapa - a.diasNaEtapa);
+  })).sort((a, b) => b.diasNaEtapa - a.diasNaEtapa);
+
 
   return (
     <div className="space-y-6">
