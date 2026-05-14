@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { handleSupabaseError } from "@/lib/errorHandler";
@@ -6,6 +6,7 @@ import type { OrcamentoDisplayItem } from "@/types/orcamento";
 import type { LeadStatus } from "@/types/lead";
 import type { VendedorFilter } from "@/hooks/useLeads";
 import { normalizeBrazilianPhone } from "@/utils/phone/normalizeBrazilianPhone";
+import { toCanonicalPhoneDigits } from "@/utils/phone/toCanonicalPhoneDigits";
 
 const PAGE_SIZE = 25;
 
