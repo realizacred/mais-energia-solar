@@ -324,12 +324,15 @@ export function ProjetosManager() {
       etiquetaIds: urlFilters.etiquetas,
       funilId: urlFilters.funil,
     };
+    
+    const dbFiltros = dbPrefs?.projetos_filtros || {};
+    
     const source = {
-      status: fromUrl.status ?? storedPrefs?.status ?? dbPrefs?.status,
-      consultorId: fromUrl.consultorId ?? storedPrefs?.consultorId ?? dbPrefs?.consultor,
-      tipoProjetoSolar: fromUrl.tipoProjetoSolar ?? storedPrefs?.tipoProjetoSolar ?? dbPrefs?.tipo_solar,
-      etiquetaIds: fromUrl.etiquetaIds ?? storedPrefs?.etiquetaIds,
-      funilId: fromUrl.funilId ?? storedPrefs?.funilId ?? dbPrefs?.funil,
+      status: fromUrl.status ?? storedPrefs?.status ?? dbFiltros.status,
+      consultorId: fromUrl.consultorId ?? storedPrefs?.consultorId ?? dbFiltros.consultorId,
+      tipoProjetoSolar: fromUrl.tipoProjetoSolar ?? storedPrefs?.tipoProjetoSolar ?? dbFiltros.tipoProjetoSolar,
+      etiquetaIds: fromUrl.etiquetaIds ?? storedPrefs?.etiquetaIds ?? dbFiltros.etiquetaIds,
+      funilId: fromUrl.funilId ?? storedPrefs?.funilId ?? dbFiltros.funilId,
     };
 
     const updates: Record<string, any> = {};
