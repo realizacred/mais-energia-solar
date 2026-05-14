@@ -372,6 +372,7 @@ export function ProjetoMultiPipelineManager({ dealId, dealStatus, pipelines, all
         }
       }
 
+
       toast({
         title: outcome === "won" ? "Funil marcado como Ganho" : "Funil marcado como Perdido",
         description: membership.pipeline_name,
@@ -386,7 +387,17 @@ export function ProjetoMultiPipelineManager({ dealId, dealStatus, pipelines, all
   };
 
   const autoCreateTechnicalPipelines = async () => {
+    // Busca dados do projeto para a notificação
+    const { data: projData } = await supabase
+      .from("projetos")
+      .select("id, tenant_id, valor_total, potencia_kwp, cliente_id, responsavel_tecnico_id, clientes:cliente_id(nome)")
+      .eq("deal_id", dealId)
+      .maybeSingle();
+
+    const projeto = projData as any;
+    
     // Busca funis configurados no tenant
+
     const technicalKeywords = ["engenharia", "equipamento", "instalação", "pós-venda", "execução"];
     const toAdd = pipelines.filter(p => 
       technicalKeywords.some(kw => p.name.toLowerCase().includes(kw)) &&
@@ -415,10 +426,61 @@ export function ProjetoMultiPipelineManager({ dealId, dealStatus, pipelines, all
         title: "Projeto em execução", 
         description: `${createdCount} funis técnicos criados automaticamente.` 
       });
+
+      // Dispara notificações de handoff
+      if (projeto && projeto.responsavel_tecnico_id) {
+        const clienteNome = projeto.clientes?.nome || "Cliente";
+        const valor = projeto.valor_total?.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) || 'R$ 0,00';
+        const kwp = projeto.potencia_kwp || 0;
+        
+        // 1. Notificação interna
+        await supabase.from("user_notifications").insert({
+          tenant_id: projeto.tenant_id,
+          user_id: projeto.responsavel_tecnico_id,
+          tipo: 'novo_projeto',
+          titulo: 'Novo projeto para execução',
+          mensagem: `Cliente: ${clienteNome} — ${valor} — ${kwp} kWp. Atribuído a você.`,
+          link: `/admin/projetos?projeto=${projeto.id}`,
+          metadata: { projeto_id: projeto.id, deal_id: dealId }
+        });
+
+        // 2. WhatsApp (se configurado)
+        try {
+          const { data: waConfig } = await supabase
+            .from("whatsapp_automation_config")
+            .select("ativo")
+            .eq("tenant_id", projeto.tenant_id)
+            .maybeSingle();
+
+          if (waConfig?.ativo) {
+            const { data: tecnico } = await supabase
+              .from("profiles")
+              .select("telefone")
+              .eq("user_id", projeto.responsavel_tecnico_id)
+              .maybeSingle();
+
+            if (tecnico?.telefone) {
+              const msg = `Novo projeto atribuído: ${clienteNome}. ${valor}, ${kwp} kWp. Acesse: ${window.location.origin}/admin/projetos?projeto=${projeto.id}`;
+              await supabase.functions.invoke("send-whatsapp-message", {
+                body: {
+                  telefone: tecnico.telefone,
+                  mensagem: msg,
+                  tenant_id: projeto.tenant_id,
+                  tipo: "automatico"
+                }
+              });
+            }
+          }
+        } catch (waErr) {
+          console.error("Erro ao enviar WA de handoff:", waErr);
+        }
+      }
+
       await fetchMemberships();
       onMembershipChange?.();
     }
   };
+
 
 
   if (loading) {
