@@ -93,11 +93,11 @@ export default function VendedorPortal() {
           </header>
 
           <main className="flex-1 relative overflow-hidden">
-            {/* WhatsApp — always mounted, hidden via CSS when inactive */}
+            {/* WhatsApp — always mounted, toggled via display for persistence */}
             <div
               className={cn(
                 "absolute inset-0 p-4 md:p-6 pb-20 md:pb-6 overflow-x-hidden",
-                !isWhatsApp && "invisible pointer-events-none"
+                !isWhatsApp && "hidden"
               )}
             >
               <Suspense fallback={<LoadingSpinner />}>
@@ -105,45 +105,48 @@ export default function VendedorPortal() {
               </Suspense>
             </div>
 
-            {/* Other views — rendered on top when not on WhatsApp */}
-            {!isWhatsApp && (
-              <div className="absolute inset-0 p-4 md:p-6 pb-20 md:pb-6 space-y-5 overflow-y-auto overflow-x-hidden animate-fade-in">
-                <Suspense fallback={<LoadingSpinner />}>
-                  <Routes>
-                    <Route index element={<Navigate to={dashboardRedirect} replace />} />
-                    <Route
-                      path="dashboard"
-                      element={<VendorDashboardView portal={portal} />}
-                    />
-                    <Route
-                      path="agenda"
-                      element={<VendorAgendaView />}
-                    />
-                    <Route
-                      path="orcamentos"
-                      element={<VendorOrcamentosView portal={portal} />}
-                    />
-                    <Route
-                      path="propostas"
-                      element={<VendorPropostasView portal={portal} />}
-                    />
-                    <Route
-                      path="gamificacao"
-                      element={<VendorGamificacaoView portal={portal} />}
-                    />
-                    <Route
-                      path="links"
-                      element={<VendorLinksView portal={portal} />}
-                    />
-                    <Route
-                      path="notificacoes"
-                      element={<VendorNotificacoesView portal={portal} />}
-                    />
-                    <Route path="*" element={<Navigate to={dashboardRedirect} replace />} />
-                  </Routes>
-                </Suspense>
-              </div>
-            )}
+            {/* Other views — also persistent container to avoid remounting Routes */}
+            <div 
+              className={cn(
+                "absolute inset-0 p-4 md:p-6 pb-20 md:pb-6 space-y-5 overflow-y-auto overflow-x-hidden animate-fade-in",
+                isWhatsApp && "hidden"
+              )}
+            >
+              <Suspense fallback={<LoadingSpinner />}>
+                <Routes>
+                  <Route index element={<Navigate to={dashboardRedirect} replace />} />
+                  <Route
+                    path="dashboard"
+                    element={<VendorDashboardView portal={portal} />}
+                  />
+                  <Route
+                    path="agenda"
+                    element={<VendorAgendaView />}
+                  />
+                  <Route
+                    path="orcamentos"
+                    element={<VendorOrcamentosView portal={portal} />}
+                  />
+                  <Route
+                    path="propostas"
+                    element={<VendorPropostasView portal={portal} />}
+                  />
+                  <Route
+                    path="gamificacao"
+                    element={<VendorGamificacaoView portal={portal} />}
+                  />
+                  <Route
+                    path="links"
+                    element={<VendorLinksView portal={portal} />}
+                  />
+                  <Route
+                    path="notificacoes"
+                    element={<VendorNotificacoesView portal={portal} />}
+                  />
+                  <Route path="*" element={<Navigate to={dashboardRedirect} replace />} />
+                </Routes>
+              </Suspense>
+            </div>
           </main>
         </SidebarInset>
 
