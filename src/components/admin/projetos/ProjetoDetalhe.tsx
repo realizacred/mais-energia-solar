@@ -390,50 +390,6 @@ function ProjetoDetalheContent() {
     );
   }
 
-  const { roles } = useUserRole();
-  const visibleTabs = useMemo(() => {
-    return TABS.filter(tab => {
-      // @ts-ignore - Dynamic roles check
-      if (!tab.roles) return true;
-      if (roles.length === 0) return true; // Fallback seguro
-      // @ts-ignore
-      return roles.some(role => tab.roles.includes(role));
-    });
-  }, [roles]);
-
-  // Redireciona se a aba ativa não for visível para o perfil
-  useEffect(() => {
-    if (roles.length > 0 && !visibleTabs.find(t => t.id === activeTab)) {
-      setActiveTab("gerenciamento");
-    }
-  }, [visibleTabs, activeTab, roles, setActiveTab]);
-
-  // ... keep existing code
-  return (
-    <div className="min-h-screen bg-muted/30 -m-4 sm:-m-6 p-3 sm:p-6 max-w-full overflow-x-hidden">
-      {/* ── Breadcrumbs ── */}
-      <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-3">
-        <Button variant="link" onClick={onBack} className="hover:text-foreground transition-colors h-auto p-0 text-xs text-muted-foreground">Projetos</Button>
-        <ChevronRight className="h-3 w-3" />
-        <span className="text-foreground font-medium">{projectCode}</span>
-      </div>
-
-  const { roles, isAdmin: isSystemAdmin } = useUserRole();
-  const visibleTabs = useMemo(() => {
-    return TABS.filter(tab => {
-      if (!tab.roles) return true;
-      if (roles.length === 0) return true; // Fallback seguro
-      return roles.some(role => tab.roles.includes(role as any));
-    });
-  }, [roles]);
-
-  // Redireciona se a aba ativa não for visível para o perfil
-  useEffect(() => {
-    if (roles.length > 0 && !visibleTabs.find(t => t.id === activeTab)) {
-      setActiveTab("gerenciamento");
-    }
-  }, [visibleTabs, activeTab, roles, setActiveTab]);
-...
       {/* ── Header Card ── */}
       <Card className="mb-2 overflow-hidden">
         <CardContent className="p-3 sm:p-4">
