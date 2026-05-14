@@ -641,10 +641,17 @@ export function ConvertLeadToClientDialog({
     const missingItems = getMissingItems();
     if (missingItems.length > 0) {
       toast({
-        title: "Documentação incompleta",
-        description: `Itens obrigatórios faltando: ${missingItems.join(", ")}. Use "Aguardando Documentação" para salvar parcialmente.`,
+        title: "Dados obrigatórios faltando",
+        description: `Para converter em venda, os seguintes campos são obrigatórios: ${missingItems.join(", ")}.`,
         variant: "destructive",
       });
+      
+      // Auto-navigate to the step with missing info
+      if (missingItems.some(item => ["E-mail", "CPF/CNPJ", "Bairro", "Rua", "Número"].includes(item))) {
+        setCurrentStep(0);
+      } else if (missingItems.some(item => ["Identidade (RG/CNH)", "Comprovante de Endereço", "Disjuntor", "Transformador", "Localização"].includes(item))) {
+        setCurrentStep(1);
+      }
       return;
     }
 
@@ -669,21 +676,37 @@ export function ConvertLeadToClientDialog({
     }
 
     setLoading(true);
+    let tenantId = "";
 
     try {
-      const { data: tenantId } = await supabase.rpc("get_user_tenant_id");
-      if (!tenantId) throw new Error("Não foi possível identificar o tenant. Faça login novamente.");
+      try {
+        const { data, error } = await supabase.rpc("get_user_tenant_id");
+        if (error) throw error;
+        if (!data) throw new Error("Tenant ID não retornado pelo servidor.");
+        tenantId = data;
+      } catch (err: any) {
+        console.error("Erro ao buscar tenant_id:", err);
+        throw new Error(`Erro de autenticação: ${err.message || "Não foi possível identificar o tenant. Faça login novamente."}`);
+      }
 
-      //   identidade: identidadeFiles.length,
-      //   comprovante: comprovanteFiles.length,
-      //   beneficiaria: beneficiariaFiles.length,
-      //   assinatura: assinaturaFiles.length,
-      // });
+      let identidadeUrls: string[] = [];
+      let comprovanteUrls: string[] = [];
+      let beneficiariaUrls: string[] = [];
+      let assinaturaUrls: string[] = [];
 
-      const identidadeUrls = await uploadDocumentFiles(identidadeFiles, `${tenantId}/identidade`, supabase);
-      const comprovanteUrls = await uploadDocumentFiles(comprovanteFiles, `${tenantId}/comprovante`, supabase);
-      const beneficiariaUrls = await uploadDocumentFiles(beneficiariaFiles, `${tenantId}/beneficiaria`, supabase);
-      const assinaturaUrls = await uploadDocumentFiles(assinaturaFiles, `${tenantId}/assinatura`, supabase);
+      try {
+        identidadeUrls = await uploadDocumentFiles(identidadeFiles, `${tenantId}/identidade`, supabase);
+        comprovanteUrls = await uploadDocumentFiles(comprovanteFiles, `${tenantId}/comprovante`, supabase);
+        beneficiariaUrls = await uploadDocumentFiles(beneficiariaFiles, `${tenantId}/beneficiaria`, supabase);
+        assinaturaUrls = await uploadDocumentFiles(assinaturaFiles, `${tenantId}/assinatura`, supabase);
+      } catch (uploadErr: any) {
+        console.warn("[ConvertLead] Document upload partial failure or issue:", uploadErr);
+        // We continue if at least some docs are uploaded or if the user wants to proceed
+        // But if it's a critical error (like bucket not found), we should probably let it throw or handle specifically
+        if (uploadErr.message?.includes("bucket") || uploadErr.message?.includes("permission")) {
+          throw new Error(`Erro de permissão no armazenamento: ${uploadErr.message}`);
+        }
+      }
 
       //   identidade: identidadeUrls,
       //   comprovante: comprovanteUrls,
@@ -1143,7 +1166,12 @@ export function ConvertLeadToClientDialog({
                         name="cpf_cnpj"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>CPF/CNPJ *</FormLabel>
+                            <FormLabel className="flex items-center gap-1">
+                              CPF/CNPJ *
+                              {(!field.value || field.value.length < 11) && (
+                                <span className="text-[10px] text-destructive animate-pulse">(Obrigatório para converter em venda)</span>
+                              )}
+                            </FormLabel>
                             <FormControl><CpfCnpjInput value={field.value || ""} onChange={field.onChange} label="" /></FormControl>
                             <FormMessage />
                           </FormItem>
