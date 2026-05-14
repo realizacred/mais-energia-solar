@@ -56,13 +56,19 @@ export function parseFileMeta(value: unknown): CustomFieldFileMeta | null {
 }
 
 async function getTenantId(): Promise<string> {
-  const { data: profile } = await supabase
+  const { data: userData } = await supabase.auth.getUser();
+  const userId = userData?.user?.id;
+  if (!userId) throw new Error("Sessão expirada — faça login novamente");
+  const { data: profile, error } = await supabase
     .from("profiles")
     .select("tenant_id")
+    .eq("user_id", userId)
     .limit(1)
-    .single();
-  if (!profile) throw new Error("Perfil não encontrado");
-  return (profile as any).tenant_id;
+    .maybeSingle();
+  if (error) throw new Error(`Falha ao resolver tenant: ${error.message}`);
+  const tenantId = (profile as any)?.tenant_id;
+  if (!tenantId) throw new Error("Perfil sem tenant — contate o administrador");
+  return tenantId;
 }
 
 interface Props {

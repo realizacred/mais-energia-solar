@@ -337,9 +337,24 @@ function OutroCampoRowComp({ row, clienteId, onSaved }: { row: OutroCampoRow; cl
     if (!file || !row.fieldPath) return;
     setSaving(true);
     try {
+      // Resolve tenant para respeitar RLS do bucket documentos-clientes
+      const { data: userData } = await supabase.auth.getUser();
+      const userId = userData?.user?.id;
+      if (!userId) throw new Error("Sessão expirada — faça login novamente");
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("tenant_id")
+        .eq("user_id", userId)
+        .maybeSingle();
+      const tenantId = (profile as any)?.tenant_id;
+      if (!tenantId) throw new Error("Perfil sem tenant — contate o administrador");
+
       const ext = file.name.split(".").pop();
-      const path = `${clienteId}/${row.key}_${Date.now()}.${ext}`;
-      const { error: upErr } = await supabase.storage.from("clientes").upload(path, file);
+      // Path obrigatório: {tenant_id}/... (RLS do bucket documentos-clientes exige)
+      const path = `${tenantId}/clientes/${clienteId}/${row.key}_${Date.now()}.${ext}`;
+      const { error: upErr } = await supabase.storage
+        .from("documentos-clientes")
+        .upload(path, file, { upsert: false, contentType: file.type || undefined });
       if (upErr) throw upErr;
 
       // Get current urls array and append
