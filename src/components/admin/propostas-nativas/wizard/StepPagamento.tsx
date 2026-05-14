@@ -27,7 +27,7 @@ interface StepPagamentoProps {
   onBack?: () => void;
 }
 
-const DEFAULT_PARCELAS = [12, 24, 36, 48, 60, 72, 84, 96, 120];
+
 
 export function StepPagamento({ onNext, onBack }: StepPagamentoProps) {
   const {
