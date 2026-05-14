@@ -38,7 +38,8 @@ export default function MinhasInstalacoes() {
       if (error) throw error;
       return data || [];
     }
-  });
+  } as any);
+
 
 
   if (isLoading) {
