@@ -66,44 +66,8 @@ export function StepPagamento({ onNext, onBack }: StepPagamentoProps) {
   const [activeTab, setActiveTab] = useState<"pagamento" | "fluxo">("pagamento");
   const [fluxoFinanciamento, setFluxoFinanciamento] = useState("sem_financiamento");
   const [selectedBankIds, setSelectedBankIds] = useState<Set<string>>(new Set());
-  const [bancoGroups, setBancoGroups] = useState<BancoGroup[]>([]);
   const [formasSelecionadas, setFormasSelecionadas] = useState<FormaSelected[]>([]);
-  const [valorEntradaGlobal, setValorEntradaGlobal] = useState<number>(0);
   const hydratedRef = useRef(false);
-
-  const calcParcela = useCallback((input: any) => {
-    return calcularPrestacao(input.valor_financiado - input.entrada, input.taxa_mensal, input.num_parcelas);
-  }, []);
-
-  const buildBancoGroups = useCallback((bankList: BancoFinanciamento[], price: number, selectedIds?: Set<string>): BancoGroup[] =>
-    bankList
-      .filter(b => !selectedIds || selectedIds.has(b.id))
-      .map((b) => ({
-        banco: b,
-        opcoes: DEFAULT_PARCELAS
-          .filter((p) => p <= b.max_parcelas)
-          .map((parcelas) => ({
-            id: crypto.randomUUID(),
-            banco_id: b.id,
-            banco_nome: b.nome,
-            entrada: valorEntradaGlobal,
-            num_parcelas: parcelas,
-            taxa_mensal: b.taxa_mensal,
-            carencia_meses: 2,
-            valor_financiado: price - valorEntradaGlobal,
-            valor_parcela: calcParcela({ valor_financiado: price, entrada: valorEntradaGlobal, num_parcelas: parcelas, taxa_mensal: b.taxa_mensal, tipo: "financiamento", carencia_meses: 2 }),
-          })),
-      })), [valorEntradaGlobal, calcParcela]);
-
-  useEffect(() => {
-    if (!loadingBancos && bancos.length > 0 && bancoGroups.length === 0) {
-      const groups = buildBancoGroups(bancos, precoFinal);
-      setBancoGroups(groups);
-      if (groups.length > 0) {
-        setSelectedBankIds(new Set([groups[0].banco.id]));
-      }
-    }
-  }, [loadingBancos, bancos, precoFinal, buildBancoGroups, bancoGroups.length]);
 
   // ── FASE 1: Hidratar formasSelecionadas a partir de pagamentoOpcoes restaurado
   //    OU semear 3 defaults para nova proposta vazia (FASE 2 — Opção A mínima segura).
