@@ -85,6 +85,9 @@ export function KanbanCard({
   const { data: scoresMap } = useLeadScoresMap();
   const leadScore = scoresMap?.get(lead.id);
 
+  const { data: analises } = useAnaliseCredito(null, lead.id);
+  const lastAnalise = analises?.[0];
+
   const kwp = lead.potencia_kwp || estimateKwp(lead.media_consumo);
   const valor = lead.valor_projeto || estimateValue(kwp);
 
