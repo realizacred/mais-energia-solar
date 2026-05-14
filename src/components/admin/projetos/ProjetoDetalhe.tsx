@@ -1430,6 +1430,7 @@ function GerenciamentoTab({
             pipeline_removed: "Removido do funil",
             consultor_changed: "Consultor alterado",
             consultant_changed: "Consultor alterado",
+            document_uploaded: "Documento anexado",
             proposal_message_sent: "Mensagem da proposta enviada",
             "proposal.sent": "Proposta enviada",
             "proposal.accepted": "Proposta aceita pelo cliente",
@@ -1493,6 +1494,18 @@ function GerenciamentoTab({
           }
 
           const buildSubtitle = (e: any): string | undefined => {
+            // Document uploaded: show label or file name
+            if (e.event_type === "document_uploaded") {
+              const meta = typeof e.metadata === "string" ? (() => { try { return JSON.parse(e.metadata); } catch { return {}; } })() : (e.metadata || {});
+              const fileName = meta?.file_name || "";
+              const label = e.to_value || "Documento";
+              const isCustom = meta?.categoria === "custom-fields";
+              
+              if (isCustom && label && label !== "custom-fields") {
+                return `${label} atualizada`;
+              }
+              return fileName || label;
+            }
             // For proposal events, show channel/metadata info
             if (PROPOSAL_EVENT_TYPES.has(e.event_type) && e.metadata) {
               const meta = typeof e.metadata === "string" ? JSON.parse(e.metadata) : e.metadata;
