@@ -88,6 +88,7 @@ export function ImportantFieldRow({ field, value, dealId, onSaved, showSeparator
   const FieldIcon = CustomIcon || TitleIcon || TYPE_ICON_MAP[field.field_type] || Type;
 
   function startEdit() {
+    if (disabled) return;
     if (field.field_type === "boolean") {
       setDraftBool(value?.value_boolean ?? false);
     } else if (field.field_type === "number" || field.field_type === "currency" || field.field_type === "percent") {
