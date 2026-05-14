@@ -21,7 +21,7 @@ export default function MinhasInstalacoes() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("projetos")
-        .select("id, codigo, projeto_num, nome, valor_total, potencia_kwp, updated_at")
+        .select("*")
         .eq("responsavel_tecnico_id", user!.id);
 
       if (error) throw error;
@@ -35,7 +35,7 @@ export default function MinhasInstalacoes() {
         potencia_kwp: p.potencia_kwp,
         updated_at: p.updated_at,
         diasNaEtapa: differenceInDays(new Date(), new Date(p.updated_at))
-      })).sort((a, b) => b.diasNaEtapa - a.diasNaEtapa);
+      })).sort((a: any, b: any) => b.diasNaEtapa - a.diasNaEtapa);
     }
   });
 
