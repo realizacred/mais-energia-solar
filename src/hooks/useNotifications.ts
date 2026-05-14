@@ -4,12 +4,14 @@ import { useAuth } from "@/hooks/useAuth";
 
 export interface NotificationItem {
   id: string;
-  type: "lead" | "whatsapp" | "appointment" | "sla" | "proposal_view";
+  type: "lead" | "whatsapp" | "appointment" | "sla" | "proposal_view" | "novo_projeto";
   title: string;
   description: string;
   timestamp: string;
   link?: string;
+  lida?: boolean;
 }
+
 
 const ADMIN_ROLES = ["admin", "gerente", "financeiro"];
 
@@ -200,7 +202,35 @@ export function useNotifications() {
         }
       } catch {}
 
+      // 6. User system notifications (user_notifications table)
+      try {
+        const { data: userNotifs } = await supabase
+          .from("user_notifications")
+          .select("id, titulo, mensagem, link, created_at, tipo, lida")
+          .eq("user_id", user.id)
+          .eq("lida", false)
+          .order("created_at", { ascending: false })
+          .limit(10);
+        
+        if (userNotifs) {
+          for (const un of userNotifs) {
+            items.push({
+              id: un.id,
+              type: un.tipo as any,
+              title: un.titulo,
+              description: un.mensagem,
+              timestamp: un.created_at,
+              link: un.link || undefined,
+              lida: un.lida
+            });
+          }
+        }
+      } catch (err) {
+        console.error("Error fetching user_notifications:", err);
+      }
+
       // Sort by timestamp desc
+
       items.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
 
       return items;

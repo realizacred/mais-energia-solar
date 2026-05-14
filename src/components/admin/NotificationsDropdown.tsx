@@ -16,13 +16,15 @@ import { useNotifications, type NotificationItem } from "@/hooks/useNotification
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
-const TYPE_CONFIG: Record<NotificationItem["type"], { icon: typeof Bell; color: string; bg: string }> = {
+const TYPE_CONFIG: Record<NotificationItem["type"] | "novo_projeto", { icon: typeof Bell; color: string; bg: string }> = {
   lead: { icon: UserPlus, color: "text-primary", bg: "bg-primary/10" },
   whatsapp: { icon: MessageCircle, color: "text-success", bg: "bg-success/10" },
   appointment: { icon: Calendar, color: "text-info", bg: "bg-info/10" },
   sla: { icon: AlertTriangle, color: "text-destructive", bg: "bg-destructive/10" },
   proposal_view: { icon: Eye, color: "text-warning", bg: "bg-warning/10" },
+  novo_projeto: { icon: Zap, color: "text-primary", bg: "bg-primary/10" },
 };
+
 
 export function NotificationsDropdown() {
   const { notifications, totalCount, isLoading } = useNotifications();

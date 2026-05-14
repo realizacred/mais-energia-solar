@@ -43,12 +43,12 @@ export default function MinhasInstalacoes() {
           potencia_kwp,
           updated_at,
           etapa_id,
-          projeto_etapas (nome),
           clientes:cliente_id (nome, rua, numero, bairro, cidade, estado)
         `)
         .eq("responsavel_tecnico_id", user!.id)
         .neq("status", "concluido")
         .neq("status", "cancelado");
+
 
 
       if (error) throw error;
@@ -91,8 +91,9 @@ export default function MinhasInstalacoes() {
                       <h3 className="font-bold text-lg leading-tight">{p.clientes?.nome || p.nome || "Sem nome"}</h3>
                     </div>
                     <Badge variant="outline" className="bg-primary/5 text-primary border-primary/20">
-                      {p.projeto_etapas?.nome}
+                      Execução
                     </Badge>
+
                   </div>
 
                   <div className="space-y-1.5">
