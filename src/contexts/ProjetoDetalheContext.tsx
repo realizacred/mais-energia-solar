@@ -458,12 +458,18 @@ export function ProjetoDetalheProvider({ dealId, onBack, initialPipelineId, init
       .on("postgres_changes", { event: "*", schema: "public", table: "deal_stage_history", filter: `deal_id=eq.${dealId}` }, () => {
         queryClient.invalidateQueries({ queryKey: projetoDetalheKeys.detail(dealId) });
       })
-      .on("postgres_changes", { event: "*", schema: "public", table: "clientes" }, () => {
-        queryClient.invalidateQueries({ queryKey: projetoDetalheKeys.detail(dealId) });
-        queryClient.invalidateQueries({ queryKey: ["clientes"] });
-        queryClient.invalidateQueries({ queryKey: ["clientes_list"] });
-        queryClient.invalidateQueries({ queryKey: ["clientes-ativos"] });
+      .on("postgres_changes", { event: "*", schema: "public", table: "clientes" }, (payload) => {
+        // Filtro manual de cliente já que clientes table não tem deal_id direto fácil para filter do pg_changes
+        // rpc get_projeto_detalhe retorna o customer_id vinculado
+        const currentCustomerId = queryClient.getQueryData<any>(projetoDetalheKeys.detail(dealId))?.deal?.customer_id;
+        if (currentCustomerId && payload.new && (payload.new as any).id === currentCustomerId) {
+          queryClient.invalidateQueries({ queryKey: projetoDetalheKeys.detail(dealId) });
+          queryClient.invalidateQueries({ queryKey: ["clientes"] });
+          queryClient.invalidateQueries({ queryKey: ["clientes_list"] });
+          queryClient.invalidateQueries({ queryKey: ["clientes-ativos"] });
+        }
       })
+
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
