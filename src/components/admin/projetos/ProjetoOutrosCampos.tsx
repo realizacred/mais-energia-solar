@@ -19,6 +19,7 @@ import {
   Wifi, Package, Zap, MapPin, Settings, FileText, Type, CheckCircle,
 } from "lucide-react";
 import { ImportantFieldRow } from "./ImportantFieldRow";
+import { logUploadDiagnostics } from "@/lib/projectUploadDiagnostics";
 
 // ─── Types ────────────────────────────────────────
 interface ClienteExtra {
