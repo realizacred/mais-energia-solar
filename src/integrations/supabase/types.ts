@@ -25650,6 +25650,53 @@ export type Database = {
           },
         ]
       }
+      user_notifications: {
+        Row: {
+          created_at: string | null
+          id: string
+          lida: boolean | null
+          link: string | null
+          mensagem: string
+          metadata: Json | null
+          tenant_id: string
+          tipo: string
+          titulo: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          lida?: boolean | null
+          link?: string | null
+          mensagem: string
+          metadata?: Json | null
+          tenant_id: string
+          tipo: string
+          titulo: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          lida?: boolean | null
+          link?: string | null
+          mensagem?: string
+          metadata?: Json | null
+          tenant_id?: string
+          tipo?: string
+          titulo?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_notifications_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_pricing_assignments: {
         Row: {
           commission_plan_id: string | null
