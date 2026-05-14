@@ -59,7 +59,7 @@ export function SuprimentosListPage({ projetoId }: SuprimentosListPageProps) {
   const { data: fornecedores = [] } = useFornecedoresNomes();
 
   // UX-07: Fetch accepted proposal and its kit
-  const { data: propostas = [] } = usePropostasProjetoTab(projetoId || "", null, enabled);
+  const { data: propostas = [] } = usePropostasProjetoTab(projetoId || "", null);
   const propostaAceita = useMemo(() => propostas.find(p => p.status === 'aceita'), [propostas]);
 
   const { data: kitAceito } = useQuery({
