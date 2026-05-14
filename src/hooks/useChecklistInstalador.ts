@@ -86,7 +86,7 @@ export function useChecklistsByProjeto(dealId: string, enabled = true) {
       return (data ?? []) as ChecklistInstalador[];
     },
     staleTime: STALE,
-    enabled: !!dealId,
+    enabled: !!dealId && enabled,
   });
 }
 
