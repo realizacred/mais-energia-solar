@@ -191,9 +191,10 @@ function SinalReciboCTA({
 }
 
 // ─── Recebimento CTA (won deals) ────────────
-function RecebimentoCTA({ dealId, customerId, customerName, navigate }: {
-  dealId: string; customerId: string | null; customerName: string; navigate: ReturnType<typeof useNavigate>;
+function RecebimentoCTA({ dealId, customerId, customerName, projetoId }: {
+  dealId: string; customerId: string | null; customerName: string; projetoId: string | null;
 }) {
+  const [emitirOpen, setEmitirOpen] = useState(false);
   const { data: hasRecebimento, isLoading } = useClienteHasRecebimento(customerId);
   const { data: recebimento } = useClienteRecebimentoDetalhes(
     hasRecebimento ? customerId : null
@@ -243,7 +244,10 @@ function RecebimentoCTA({ dealId, customerId, customerName, navigate }: {
             size="sm"
             variant="outline"
             className="shrink-0 gap-1.5"
-            onClick={() => navigate(`/admin/recebimentos?id=${recebimento.id}`)}
+            onClick={() => {
+              const url = `/admin/recebimentos?id=${recebimento.id}`;
+              window.open(url, "_blank");
+            }}
           >
             <Eye className="h-3.5 w-3.5" />
             Ver
@@ -255,31 +259,41 @@ function RecebimentoCTA({ dealId, customerId, customerName, navigate }: {
 
   // No recebimento — show create CTA
   return (
-    <Card className="mb-2 border-l-[3px] border-l-success">
-      <CardContent className="flex items-center gap-4 p-4">
-        <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-success/10 text-success shrink-0">
-          <DollarSign className="w-5 h-5" />
-        </div>
-        <div className="flex-1 min-w-0">
-          <p className="text-sm font-semibold text-foreground">Criar recebimento para este projeto</p>
-          <p className="text-xs text-muted-foreground">Nenhum recebimento vinculado a {customerName || "este cliente"}</p>
-        </div>
-        <Button
-          size="sm"
-          variant="outline"
-          className="shrink-0 gap-1.5 border-success/30 text-success hover:bg-success/10"
-          onClick={() => {
-            const params = new URLSearchParams();
-            if (customerId) params.set("cliente_id", customerId);
-            params.set("deal_id", dealId);
-            navigate(`/admin/recebimentos?${params.toString()}`);
-          }}
-        >
-          <Plus className="h-3.5 w-3.5" />
-          Criar
-        </Button>
-      </CardContent>
-    </Card>
+    <>
+      <Card className="mb-2 border-l-[3px] border-l-success">
+        <CardContent className="flex items-center gap-4 p-4">
+          <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-success/10 text-success shrink-0">
+            <DollarSign className="w-5 h-5" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-semibold text-foreground">Criar recebimento para este projeto</p>
+            <p className="text-xs text-muted-foreground">Nenhum recebimento vinculado a {customerName || "este cliente"}</p>
+          </div>
+          <Button
+            size="sm"
+            variant="outline"
+            className="shrink-0 gap-1.5 border-success/30 text-success hover:bg-success/10"
+            onClick={() => setEmitirOpen(true)}
+          >
+            <Plus className="h-3.5 w-3.5" />
+            Criar
+          </Button>
+        </CardContent>
+      </Card>
+      <EmitirReciboModal
+        open={emitirOpen}
+        onOpenChange={setEmitirOpen}
+        defaultClienteId={customerId ?? undefined}
+        defaultProjetoId={projetoId ?? undefined}
+        defaultDealId={dealId}
+        onEmitted={() => {
+          const queryClient = useQueryClient();
+          queryClient.invalidateQueries({ queryKey: ["cliente-has-recebimento", customerId] });
+          queryClient.invalidateQueries({ queryKey: ["projeto-detalhe"] });
+          queryClient.invalidateQueries({ queryKey: ["lancamentos-financeiros"] });
+        }}
+      />
+    </>
   );
 }
 
