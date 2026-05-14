@@ -248,6 +248,21 @@ export function LeadViewDialog({ lead, open, onOpenChange }: LeadViewDialogProps
           </div>
         </ScrollArea>
       </DialogContent>
+      <Dialog open={creditModalOpen} onOpenChange={setCreditModalOpen}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Gestão de Crédito - {lead.nome}</DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <ProjetoCreditoTab 
+              dealId={lead.id} 
+              clienteId={null} 
+              clienteCpfCnpj={null} 
+              valorProposta={lead.valor_estimado} 
+            />
+          </div>
+        </DialogContent>
+      </Dialog>
     </Dialog>
   );
 }
