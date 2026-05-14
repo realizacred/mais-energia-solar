@@ -56,6 +56,7 @@ export function EmitirReciboModal({
   const [valor, setValor] = useState<string>("");
   const [descricao, setDescricao] = useState<string>("");
   const [numero, setNumero] = useState<string>("");
+  const [formaPagamento, setFormaPagamento] = useState<string>("");
   const [dynFields, setDynFields] = useState<Record<string, string>>({});
   const [loadingContext, setLoadingContext] = useState(false);
   const [projectContext, setProjectContext] = useState<any>(null);
@@ -69,6 +70,7 @@ export function EmitirReciboModal({
       setValor("");
       setDescricao("");
       setNumero("");
+      setFormaPagamento("");
       setDynFields({});
       setProjectContext(null);
       setProposalContext(null);
@@ -145,8 +147,14 @@ export function EmitirReciboModal({
       proposalContext?.versao?.valor_total ??
       projectContext?.valor_total ??
       null;
-    if (v && Number(v) > 0) setValor(String(v));
-  }, [proposalContext, projectContext]); // eslint-disable-line react-hooks/exhaustive-deps
+    if (v && Number(v) > 0) {
+      // Padrão 30% se for sinal
+      const isSinal = template?.nome?.toLowerCase().includes("sinal") ||
+                     descricao?.toLowerCase().includes("sinal");
+      const finalValor = isSinal ? (Number(v) * 0.3) : Number(v);
+      setValor(finalValor.toFixed(2));
+    }
+  }, [proposalContext, projectContext, template, descricao]);
 
   // Auto-fill dynamic fields. Roda assim que houver projectContext/proposalContext,
   // e re-aplica quando um template é selecionado depois.
@@ -257,6 +265,7 @@ export function EmitirReciboModal({
     const dados: Record<string, unknown> = { ...dynFields };
     if (descricao) dados["descricao"] = descricao;
     if (valor) dados["valor"] = Number(valor);
+    if (formaPagamento) dados["forma_pagamento"] = formaPagamento;
 
     const id = await emitir.mutateAsync({
       template_id: templateId,
@@ -342,6 +351,20 @@ export function EmitirReciboModal({
           </div>
 
           <div className="space-y-1.5">
+            <Label className="text-xs">Forma de Pagamento</Label>
+            <Select value={formaPagamento} onValueChange={setFormaPagamento}>
+              <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Pix">Pix</SelectItem>
+                <SelectItem value="Boleto">Boleto</SelectItem>
+                <SelectItem value="Cartão de Crédito">Cartão de Crédito</SelectItem>
+                <SelectItem value="Transferência Bancária">Transferência Bancária</SelectItem>
+                <SelectItem value="Dinheiro">Dinheiro</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-1.5 sm:col-span-2">
             <Label className="text-xs">Número (opcional)</Label>
             <Input
               value={numero}

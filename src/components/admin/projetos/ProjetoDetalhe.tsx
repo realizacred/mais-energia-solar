@@ -1826,7 +1826,12 @@ function GerenciamentoTab({
             importantFields={importantFields}
             customFieldValues={customFieldValues}
             onReloadImportant={() => loadImportantFields()}
-          />
+        onEmitted={() => {
+          queryClient.invalidateQueries({ queryKey: ["recibos", { deal_id: dealId }] });
+          queryClient.invalidateQueries({ queryKey: ["projeto-detalhe"] });
+          queryClient.invalidateQueries({ queryKey: ["lancamentos-financeiros"] });
+        }}
+      />
 
           <ProjetoDocChecklist dealId={deal.id} />
         </div>
