@@ -21,8 +21,8 @@ interface Props {
 }
 
 export function ProjetoCreditoTab({ dealId, clienteId, clienteCpfCnpj, valorProposta }: Props) {
-  const { isAdmin, isManager } = useUserRole();
-  const canApprove = isAdmin || isManager;
+  const { isAdmin } = useUserRole();
+  const canApprove = isAdmin;
   
   const { data: analises, isLoading } = useAnaliseCredito(dealId);
   const createMutation = useCreateAnaliseCredito();
