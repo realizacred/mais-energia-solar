@@ -76,9 +76,10 @@ export function VendorLeadViewDialog({ lead, open, onOpenChange, vendedorNome }:
           <div className="overflow-y-auto max-h-[70vh]">
 
           <Tabs defaultValue="detalhes" className="w-full">
-            <TabsList className="grid w-full grid-cols-3">
+            <TabsList className="grid w-full grid-cols-4">
               <TabsTrigger value="detalhes">Detalhes</TabsTrigger>
               <TabsTrigger value="proposta">Proposta</TabsTrigger>
+              <TabsTrigger value="credito">Crédito</TabsTrigger>
               <TabsTrigger value="whatsapp">WhatsApp</TabsTrigger>
             </TabsList>
 
