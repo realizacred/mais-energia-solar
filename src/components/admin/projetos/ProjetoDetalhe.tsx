@@ -775,6 +775,16 @@ function ProjetoDetalheContent() {
               <ProjetoConcessionariaTab dealId={deal.id} />
             </div>
           )}
+          {activeTab === "credito" && (
+            <div className="p-6">
+              <ProjetoCreditoTab 
+                dealId={deal.id} 
+                clienteId={deal.customer_id} 
+                clienteCpfCnpj={customerCpfCnpj}
+                valorProposta={deal.value}
+              />
+            </div>
+          )}
           {activeTab === "recibos" && (
             <ProjetoRecibosTab
               filters={{ deal_id: deal.id }}
