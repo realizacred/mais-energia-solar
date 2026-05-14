@@ -15,7 +15,8 @@ import { formatDateTime } from "@/lib/dateUtils";
 import { cn } from "@/lib/utils";
 
 interface Props {
-  dealId: string;
+  dealId?: string | null;
+  leadId?: string | null;
   clienteId?: string | null;
   clienteCpfCnpj?: string | null;
   valorProposta?: number | null;
