@@ -71,16 +71,30 @@ export function useOrcamentosAdmin({
         .select(ORC_ADMIN_SELECT, { count: "exact" });
 
       // Apply standard filters
+      // Phase 1: search uses telefone_normalized (canonical digits) + cidade.
       if (searchTerm) {
+        const term = searchTerm.trim();
+        const digits = toCanonicalPhoneDigits(term) || term.replace(/\D/g, "");
+        const leadOr: string[] = [
+          `nome.ilike.%${term}%`,
+          `lead_code.ilike.%${term}%`,
+          `email.ilike.%${term}%`,
+        ];
+        if (digits && digits.length >= 4) {
+          leadOr.push(`telefone_normalized.ilike.%${digits}%`);
+        }
         const { data: matchingLeads } = await supabase
           .from("leads")
           .select("id")
-          .or(`nome.ilike.%${searchTerm}%,lead_code.ilike.%${searchTerm}%,telefone.ilike.%${searchTerm}%,email.ilike.%${searchTerm}%`)
+          .or(leadOr.join(","))
           .limit(500);
         const leadIds = (matchingLeads || []).map((lead) => lead.id);
-        query = leadIds.length > 0
-          ? query.or(`orc_code.ilike.%${searchTerm}%,lead_id.in.(${leadIds.join(",")})`)
-          : query.ilike("orc_code", `%${searchTerm}%`);
+        const orcOr: string[] = [
+          `orc_code.ilike.%${term}%`,
+          `cidade.ilike.%${term}%`,
+        ];
+        if (leadIds.length > 0) orcOr.push(`lead_id.in.(${leadIds.join(",")})`);
+        query = query.or(orcOr.join(","));
       }
 
       if (filterVisto === "visto") {
