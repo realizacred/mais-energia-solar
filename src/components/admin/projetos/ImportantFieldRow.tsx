@@ -298,7 +298,10 @@ export function ImportantFieldRow({ field, value, dealId, onSaved, showSeparator
   return (
     <>
       <div
-        className="flex items-center gap-2 py-1 px-1 group hover:bg-muted/40 -mx-1 rounded-md transition-colors cursor-pointer"
+        className={cn(
+          "flex items-center gap-2 py-1 px-1 group -mx-1 rounded-md transition-colors",
+          !disabled ? "hover:bg-muted/40 cursor-pointer" : "opacity-80"
+        )}
         onClick={startEdit}
       >
         <FieldIcon className="h-3.5 w-3.5 shrink-0 text-primary" />
@@ -311,7 +314,7 @@ export function ImportantFieldRow({ field, value, dealId, onSaved, showSeparator
         )}>
           {displayValue}
         </div>
-        <Pencil className="h-4 w-4 shrink-0 text-muted-foreground/30 group-hover:text-muted-foreground/70 transition-colors" />
+        {!disabled && <Pencil className="h-4 w-4 shrink-0 text-muted-foreground/30 group-hover:text-muted-foreground/70 transition-colors" />}
       </div>
       {showSeparator && <Separator />}
     </>
