@@ -50,7 +50,6 @@ export interface UseProjectDocumentsParams {
   projetoId?: string | null;
   dealId?: string | null;
   propostaId?: string | null;
-  enabled?: boolean;
 }
 
 const STALE = 1000 * 30;
