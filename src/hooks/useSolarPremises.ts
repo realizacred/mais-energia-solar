@@ -24,6 +24,9 @@ export interface SolarPremises {
   tarifa: number;
   imposto_energia: number;
   inflacao_energetica: number;
+  reajuste_tarifa_anual_percent: number;
+  ano_referencia_tarifa: number;
+  fator_simultaneidade: number;
   percentual_economia: number;
 
   // Sistema Solar
