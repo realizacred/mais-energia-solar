@@ -233,8 +233,14 @@ export function calcGrupoB(input: CalcGrupoBInput): CalcGrupoBResult {
     breakdown.pnd = pnd;
   }
 
-  // 5. Economia mensal
-  const economia_mensal_rs = Math.round(energia_compensada_kwh * valor_credito_kwh * 100) / 100;
+  // 6. Economia mensal
+  // Economia total = (Energia Autoconsumida * Tarifa Cheia) + (Energia Compensada * Valor do Crédito)
+  // Tarifa Cheia proxy: TE + TUSD Total
+  const tarifa_cheia = tariff.te_kwh + (tariff.tusd_total_kwh || fioBResolvido.fio_b_kwh);
+  const economia_autoconsumo = energia_autoconsumo_kwh * tarifa_cheia;
+  const economia_compensacao = energia_compensada_kwh * valor_credito_kwh;
+  
+  const economia_mensal_rs = Math.round((economia_autoconsumo + economia_compensacao) * 100) / 100;
 
   // Alertas adicionais
   if (tariff.validation_status === 'atencao') alertas.push("Tarifa com dados suspeitos — revisar com distribuidora");
