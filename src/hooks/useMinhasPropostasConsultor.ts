@@ -79,9 +79,12 @@ interface RawProposta {
     versao_numero: number;
     potencia_kwp: number | null;
     geracao_mensal: number | null;
+    economia_mensal: number | null;
+    payback_meses: number | null;
     valor_total: number | null;
     valido_ate: string | null;
     output_pdf_path: string | null;
+    public_slug: string | null;
     link_pdf: string | null;
     viewed_at: string | null;
   }> | null;
@@ -121,7 +124,7 @@ export function useMinhasPropostasConsultor(consultorId: string | null | undefin
             "consultor_id",
             "clientes(nome)",
             "leads(nome)",
-            "proposta_versoes(id,versao_numero,potencia_kwp,geracao_mensal,valor_total,valido_ate,output_pdf_path,link_pdf,viewed_at)",
+            "proposta_versoes(id,versao_numero,potencia_kwp,geracao_mensal,economia_mensal,payback_meses,valor_total,valido_ate,output_pdf_path,public_slug,link_pdf,viewed_at)",
           ].join(","),
         )
         .eq("consultor_id", consultorId)
@@ -164,9 +167,12 @@ export function useMinhasPropostasConsultor(consultorId: string | null | undefin
           versao_numero: latest?.versao_numero ?? null,
           potencia_kwp: latest?.potencia_kwp ?? null,
           geracao_mensal: latest?.geracao_mensal ?? null,
+          economia_mensal: latest?.economia_mensal ?? null,
+          payback_meses: latest?.payback_meses ?? null,
           valor_total: latest?.valor_total ?? null,
           valido_ate: latest?.valido_ate ?? null,
           output_pdf_path: latest?.output_pdf_path ?? null,
+          public_slug: latest?.public_slug ?? null,
           link_pdf: latest?.link_pdf ?? null,
           viewed_at: latest?.viewed_at ?? null,
         };
@@ -192,12 +198,22 @@ export function computePropostasKpis(rows: PropostaConsultor[]): PropostasConsul
   let aceitas = 0;
   let expiradas = 0;
   for (const p of rows) {
-    if (p.enviada_at) enviadas++;
-    if (p.primeiro_acesso_em || p.viewed_at) visualizadas++;
-    if (p.aceita_at) aceitas++;
+    // CORREÇÃO 4: Lógica de contagem correta
+    if (p.status === "enviada" || p.enviada_at) {
+      enviadas++;
+    }
+    if (p.primeiro_acesso_em || p.viewed_at || p.status === "vista") {
+      visualizadas++;
+    }
+    if (p.status === "aceita" || p.aceita_at) {
+      aceitas++;
+    }
+    
     if (p.valido_ate) {
       const v = new Date(p.valido_ate);
-      if (!Number.isNaN(v.getTime()) && v < today && !p.aceita_at) expiradas++;
+      if (!Number.isNaN(v.getTime()) && v < today && !p.aceita_at && p.status !== "aceita") {
+        expiradas++;
+      }
     }
   }
   return { total: rows.length, enviadas, visualizadas, aceitas, expiradas };
