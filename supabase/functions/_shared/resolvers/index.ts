@@ -202,10 +202,39 @@ export function resolveAllVariables(
 ): Record<string, string> {
   const snap = snapshot ?? {};
 
+  // ═══════════════════════════════════════════════════════════════════════════
+  // SSOT ARQUITETURAL — DADOS DO CLIENTE SÃO LIVE, NUNCA FROZEN
+  // ═══════════════════════════════════════════════════════════════════════════
+  // Regra: dados CADASTRAIS do cliente (nome, CPF/CNPJ, telefone, email,
+  // endereço completo) DEVEM sempre refletir o registro vivo em `clientes`.
+  // Dados COMERCIAIS / FINANCEIROS / ENGENHARIA / PREMISSAS permanecem
+  // FROZEN no snapshot da proposta (imutáveis após assinatura).
+  //
+  // Motivo jurídico/comercial:
+  //   - Contratos novos precisam refletir o cadastro atual do cliente
+  //     (correção de CPF, mudança de endereço, telefone, etc.).
+  //   - Valores, kit, payback, TIR, VPL, geração — JAMAIS podem mudar
+  //     retroativamente; isso quebraria histórico e auditoria.
+  //
+  // Implementação:
+  //   - `cliente` e `lead` são EXCLUÍDOS do flatten automático do Step 1.
+  //   - `resolveClienteComercial` (Step 2) é a AUTORIDADE CANÔNICA para
+  //     todas as chaves `cliente_*`, com precedência:
+  //         ext.cliente (LIVE)  →  ext.lead  →  snapshot.cliente (fallback)
+  //   - Se `ext.cliente` não vier (ex.: render legado/migrado SM), o
+  //     resolver cai para snapshot.cliente, garantindo retrocompatibilidade.
+  //
+  // ⚠ NÃO RE-INCLUIR `cliente`/`lead` no flatten do Step 1 — isso
+  //   reintroduz a regressão de cliente_* "frozen" via setIfMissing.
+  // Ver: mem://constraints/proposal-cliente-live-data
+  // ═══════════════════════════════════════════════════════════════════════════
+  const FROZEN_FLATTEN_BLOCKLIST = new Set(["cliente", "lead"]);
+
   // Step 1: Extract top-level primitives
   const vars: Record<string, string> = {};
   for (const [key, value] of Object.entries(snap)) {
     if (value === null || value === undefined || value === "") continue;
+    if (FROZEN_FLATTEN_BLOCKLIST.has(key)) continue; // SSOT: cliente/lead são LIVE via resolveClienteComercial
     if (typeof value === "object") {
       // Dot-flatten nested objects (one level) → prefix_subkey
       if (!Array.isArray(value)) {
