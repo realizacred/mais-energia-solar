@@ -270,36 +270,9 @@ const ADMIN_PROFILE: VendedorProfile = {
     }, [gamification.goals, vendedor?.id, advancedMetrics.checkAndCreateProgressNotifications]);
  
    // Filtered orcamentos
-    const filteredOrcamentos = useMemo(() => {
-      let filtered = orcamentosData.orcamentos.filter(orc => {
-        const q = searchTerm.toLowerCase();
-        return orc.nome.toLowerCase().includes(q) ||
-          orc.telefone.includes(searchTerm) ||
-          orc.cidade.toLowerCase().includes(q) ||
-          (orc.orc_code && orc.orc_code.toLowerCase().includes(q)) ||
-          (orc.lead_code && orc.lead_code.toLowerCase().includes(q));
-      });
- 
-     if (filterVisto === "visto") {
-       filtered = filtered.filter(orc => orc.visto);
-     } else if (filterVisto === "nao_visto") {
-       filtered = filtered.filter(orc => !orc.visto);
-     }
- 
-     if (filterEstado !== "todos") {
-       filtered = filtered.filter(orc => orc.estado === filterEstado);
-     }
- 
-     if (filterStatus !== "todos") {
-       if (filterStatus === "novo") {
-         filtered = filtered.filter(orc => !orc.status_id);
-       } else {
-         filtered = filtered.filter(orc => orc.status_id === filterStatus);
-       }
-     }
- 
-     return filtered;
-   }, [orcamentosData.orcamentos, searchTerm, filterVisto, filterEstado, filterStatus]);
+  // Phase 1: filtering is now server-side inside useOrcamentosVendedor.
+  // Keep `filteredOrcamentos` as alias for backward compat with consumers.
+  const filteredOrcamentos = orcamentosData.orcamentos;
  
   return {
     // Profile
