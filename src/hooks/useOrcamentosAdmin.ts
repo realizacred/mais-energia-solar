@@ -355,12 +355,6 @@ export function useOrcamentosAdmin({
     }
   }, [autoFetch, fetchOrcamentos]);
 
-  // ⚠️ HARDENING: Realtime with debounce, local updates for UPDATE, no full refetch
-  useEffect(() => {
-    if (!autoFetch) return;
-
-    let debounceTimer: ReturnType<typeof setTimeout> | null = null;
-
   // Phase 1 — Realtime stabilized via ref so the channel is NOT recreated on
   // every filter/search keystroke (deps no longer include fetchOrcamentos).
   const fetchRef = useRef(fetchOrcamentos);
