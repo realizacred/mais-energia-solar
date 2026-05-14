@@ -1,8 +1,10 @@
+import { useState } from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { formatPhoneBR } from "@/lib/formatters";
-import { FileText, Image, ExternalLink, User, History, Mail } from "lucide-react";
+import { FileText, Image, ExternalLink, User, History, Mail, CreditCard } from "lucide-react";
 import { LeadAuditHistory } from "./LeadAuditHistory";
+import { ProjetoCreditoTab } from "../projetos/ProjetoCreditoTab";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
@@ -33,6 +35,7 @@ function InfoField({ label, value }: { label: string; value: string | number | n
 
 export function LeadViewDialog({ lead, open, onOpenChange }: LeadViewDialogProps) {
   const { toast } = useToast();
+  const [creditModalOpen, setCreditModalOpen] = useState(false);
 
   const handleOpenFile = async (filePath: string) => {
     const { data, error } = await supabase.storage
@@ -70,6 +73,17 @@ export function LeadViewDialog({ lead, open, onOpenChange }: LeadViewDialogProps
               )}
               <p className="text-xs text-muted-foreground">Detalhes completos do lead</p>
             </div>
+          </div>
+          <div className="flex items-center gap-2 pr-4">
+            <Button 
+              size="sm" 
+              variant="outline" 
+              className="gap-2 border-primary/20 text-primary hover:bg-primary/5"
+              onClick={() => setCreditModalOpen(true)}
+            >
+              <CreditCard className="w-4 h-4" />
+              Análise de Crédito
+            </Button>
           </div>
         </DialogHeader>
 
@@ -234,6 +248,21 @@ export function LeadViewDialog({ lead, open, onOpenChange }: LeadViewDialogProps
           </div>
         </ScrollArea>
       </DialogContent>
+      <Dialog open={creditModalOpen} onOpenChange={setCreditModalOpen}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Gestão de Crédito - {lead.nome}</DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <ProjetoCreditoTab 
+              dealId={lead.id} 
+              clienteId={null} 
+              clienteCpfCnpj={null} 
+              valorProposta={lead.valor_estimado} 
+            />
+          </div>
+        </DialogContent>
+      </Dialog>
     </Dialog>
   );
 }

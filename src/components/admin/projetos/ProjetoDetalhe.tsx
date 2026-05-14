@@ -125,14 +125,14 @@ import { useUserRole } from "@/hooks/useUserRole";
 
 const TABS = [
   { id: "gerenciamento" as TabId, label: "Gerenciamento", icon: Settings, color: "text-secondary" },
-  { id: "comunicacao" as TabId, label: "Comunicação", icon: MessageSquare, color: "text-success", roles: ["admin", "consultor", "vendas", "gestor"] },
-  { id: "propostas" as TabId, label: "Propostas", icon: FileText, color: "text-primary", roles: ["admin", "consultor", "vendas", "gestor"] },
-  { id: "credito" as TabId, label: "Crédito", icon: CreditCard, color: "text-primary", roles: ["admin", "consultor", "vendas", "gestor"] },
-  { id: "documentos" as TabId, label: "Documentos", icon: FolderOpen, color: "text-warning", roles: ["admin", "tecnico", "instalador", "engenheiro", "gestor"] },
-  { id: "instalacao" as TabId, label: "Instalação", icon: Zap, color: "text-success", roles: ["admin", "tecnico", "instalador", "engenheiro", "gestor"] },
-  { id: "suprimentos" as TabId, label: "Suprimentos", icon: ShoppingCart, color: "text-info", roles: ["admin", "tecnico", "instalador", "engenheiro", "gestor"] },
-  { id: "concessionaria" as TabId, label: "Concessionária", icon: Landmark, color: "text-primary", roles: ["admin", "tecnico", "instalador", "engenheiro", "gestor"] },
-  { id: "recibos" as TabId, label: "Recibos", icon: Receipt, color: "text-primary", roles: ["admin", "consultor", "vendas", "gestor"] },
+  { id: "comunicacao" as TabId, label: "Comunicação", icon: MessageSquare, color: "text-success", roles: ["admin", "gerente", "gestor", "consultor", "vendas"] },
+  { id: "propostas" as TabId, label: "Propostas", icon: FileText, color: "text-primary", roles: ["admin", "gerente", "gestor", "consultor", "vendas"] },
+  { id: "credito" as TabId, label: "Crédito", icon: CreditCard, color: "text-primary", roles: ["admin", "gerente", "gestor", "consultor", "vendas"] },
+  { id: "documentos" as TabId, label: "Documentos", icon: FolderOpen, color: "text-warning", roles: ["admin", "gerente", "gestor", "tecnico", "instalador", "engenheiro"] },
+  { id: "instalacao" as TabId, label: "Instalação", icon: Zap, color: "text-success", roles: ["admin", "gerente", "gestor", "tecnico", "instalador", "engenheiro"] },
+  { id: "suprimentos" as TabId, label: "Suprimentos", icon: ShoppingCart, color: "text-info", roles: ["admin", "gerente", "gestor", "tecnico", "instalador", "engenheiro"] },
+  { id: "concessionaria" as TabId, label: "Concessionária", icon: Landmark, color: "text-primary", roles: ["admin", "gerente", "gestor", "tecnico", "instalador", "engenheiro"] },
+  { id: "recibos" as TabId, label: "Recibos", icon: Receipt, color: "text-primary", roles: ["admin", "gerente", "gestor", "consultor", "vendas"] },
 ] as const;
 
 // ─── CTA: Sinal pendente? (won deals sem recibo) ────────────
@@ -1006,6 +1006,8 @@ function GerenciamentoTab({
   onRefreshCustomer?: () => void;
   onEditCliente?: (clienteId: string) => void;
 }) {
+  const { isAdmin } = useUserRole();
+  const readonly = !isAdmin;
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [timelineFilter, setTimelineFilter] = useState<TimelineFilter>("todos");
@@ -1042,6 +1044,9 @@ function GerenciamentoTab({
 
   // ── Inline edit popup for client fields ──
   const [inlineEditOpen, setInlineEditOpen] = useState(false);
+  
+  const canEdit = !readonly;
+
   const [inlineEditField, setInlineEditField] = useState<string>("");
   const [inlineEditLabel, setInlineEditLabel] = useState<string>("");
   const [inlineEditValue, setInlineEditValue] = useState<string>("");

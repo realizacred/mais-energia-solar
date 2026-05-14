@@ -34,6 +34,7 @@ interface Props {
   dealId: string;
   onSaved: () => void;
   showSeparator?: boolean;
+  disabled?: boolean;
 }
 
 const TYPE_ICON_MAP: Record<string, typeof Type> = {
@@ -73,7 +74,7 @@ async function resolveTenantId(): Promise<string | null> {
   return (profile as any)?.tenant_id ?? null;
 }
 
-export function ImportantFieldRow({ field, value, dealId, onSaved, showSeparator = true }: Props) {
+export function ImportantFieldRow({ field, value, dealId, onSaved, showSeparator = true, disabled = false }: Props) {
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [draft, setDraft] = useState("");
@@ -87,6 +88,7 @@ export function ImportantFieldRow({ field, value, dealId, onSaved, showSeparator
   const FieldIcon = CustomIcon || TitleIcon || TYPE_ICON_MAP[field.field_type] || Type;
 
   function startEdit() {
+    if (disabled) return;
     if (field.field_type === "boolean") {
       setDraftBool(value?.value_boolean ?? false);
     } else if (field.field_type === "number" || field.field_type === "currency" || field.field_type === "percent") {
@@ -153,6 +155,7 @@ export function ImportantFieldRow({ field, value, dealId, onSaved, showSeparator
 
   // Boolean toggle - save immediately
   async function toggleBool() {
+    if (disabled) return;
     const newVal = !(value?.value_boolean ?? false);
     setSaving(true);
     try {
@@ -190,6 +193,7 @@ export function ImportantFieldRow({ field, value, dealId, onSaved, showSeparator
               fieldKey={field.field_key}
               dealId={dealId}
               compact
+              disabled={disabled}
               onChange={async (jsonValue) => {
                 const tenantId = await resolveTenantId();
                 const { error } = await supabase
@@ -225,11 +229,11 @@ export function ImportantFieldRow({ field, value, dealId, onSaved, showSeparator
         <div className="flex items-center gap-2 py-1 px-1">
           <FieldIcon className="h-3.5 w-3.5 shrink-0 text-primary" />
           <span className="text-xs text-foreground flex-1 min-w-0 truncate" title={field.title}>{field.title}</span>
-          <Switch
-            checked={value?.value_boolean ?? false}
-            onCheckedChange={() => toggleBool()}
-            disabled={saving}
-          />
+            <Switch
+              checked={value?.value_boolean ?? false}
+              onCheckedChange={() => toggleBool()}
+              disabled={saving || disabled}
+            />
         </div>
         {showSeparator && <Separator />}
       </>
@@ -294,7 +298,10 @@ export function ImportantFieldRow({ field, value, dealId, onSaved, showSeparator
   return (
     <>
       <div
-        className="flex items-center gap-2 py-1 px-1 group hover:bg-muted/40 -mx-1 rounded-md transition-colors cursor-pointer"
+        className={cn(
+          "flex items-center gap-2 py-1 px-1 group -mx-1 rounded-md transition-colors",
+          !disabled ? "hover:bg-muted/40 cursor-pointer" : "opacity-80"
+        )}
         onClick={startEdit}
       >
         <FieldIcon className="h-3.5 w-3.5 shrink-0 text-primary" />
@@ -307,7 +314,7 @@ export function ImportantFieldRow({ field, value, dealId, onSaved, showSeparator
         )}>
           {displayValue}
         </div>
-        <Pencil className="h-4 w-4 shrink-0 text-muted-foreground/30 group-hover:text-muted-foreground/70 transition-colors" />
+        {!disabled && <Pencil className="h-4 w-4 shrink-0 text-muted-foreground/30 group-hover:text-muted-foreground/70 transition-colors" />}
       </div>
       {showSeparator && <Separator />}
     </>

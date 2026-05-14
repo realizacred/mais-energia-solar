@@ -35,6 +35,7 @@ import { differenceInDays, differenceInHours } from "date-fns";
 import { cn } from "@/lib/utils";
 import { formatBRLCompact } from "@/lib/formatters";
 import { useLeadScoresMap } from "@/hooks/useLeadScoresMap";
+import { useAnaliseCredito } from "@/hooks/useAnaliseCredito";
 
 interface Lead {
   id: string;
@@ -84,6 +85,9 @@ export function KanbanCard({
   const { data: scoresMap } = useLeadScoresMap();
   const leadScore = scoresMap?.get(lead.id);
 
+  const { data: analises } = useAnaliseCredito(null, lead.id);
+  const lastAnalise = analises?.[0];
+
   const kwp = lead.potencia_kwp || estimateKwp(lead.media_consumo);
   const valor = lead.valor_projeto || estimateValue(kwp);
 
@@ -121,6 +125,19 @@ export function KanbanCard({
             </span>
             {leadScore && (
               <ScoreBadge score={leadScore.score} nivel={leadScore.nivel} />
+            )}
+            {lastAnalise && (
+              <Badge 
+                variant="outline" 
+                className={cn(
+                  "text-[9px] h-4 px-1 uppercase font-bold",
+                  lastAnalise.status === 'aprovado' ? "bg-success/10 text-success border-success/20" :
+                  lastAnalise.status === 'reprovado' ? "bg-destructive/10 text-destructive border-destructive/20" :
+                  "bg-warning/10 text-warning border-warning/20"
+                )}
+              >
+                Crédito: {lastAnalise.status === 'em_analise' ? 'ANÁLISE' : lastAnalise.status}
+              </Badge>
             )}
           </div>
           <div className="flex items-center gap-1">
