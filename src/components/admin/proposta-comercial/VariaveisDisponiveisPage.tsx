@@ -373,6 +373,8 @@ export function VariaveisDisponiveisPage() {
     // Tab filter
     if (tab === "custom") {
       items = items.filter((v) => v.isCustom || v.customId || v.source === "custom_vc" || v.key.startsWith("vc_"));
+    } else if (["projeto", "pre_dimensionamento", "pos_dimensionamento"].includes(tab)) {
+      items = items.filter((v) => v.domain === tab || v._dynamicContext === tab);
     } else if (tab !== "todas") {
       items = items.filter((v) => v.domain === tab);
     }
