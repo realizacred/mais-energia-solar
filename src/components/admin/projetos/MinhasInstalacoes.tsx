@@ -11,6 +11,18 @@ import { SunLoader } from "@/components/loading/SunLoader";
 import { useNavigate } from "react-router-dom";
 import { differenceInDays } from "date-fns";
 
+interface SimpleProject {
+  id: string;
+  codigo: string | null;
+  projeto_num: number | null;
+  nome: string | null;
+  valor_total: number | null;
+  potencia_kwp: number | null;
+  updated_at: string;
+  diasNaEtapa: number;
+}
+
+
 export default function MinhasInstalacoes() {
   const { user } = useAuth();
   const navigate = useNavigate();
