@@ -21,6 +21,9 @@ export interface FinancialSeriesInput {
     vpl_taxa_desconto?: number;
     troca_inversor_anos?: number;
     troca_inversor_custo?: number;
+    fator_simultaneidade?: number;
+    ano_referencia_tarifa?: number;
+    reajuste_tarifa_anual_percent?: number;
   } | null;
   regra?: "GD1" | "GD2" | "GD3";
   fase?: "monofasico" | "bifasico" | "trifasico";
