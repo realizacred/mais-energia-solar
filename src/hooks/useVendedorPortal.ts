@@ -110,15 +110,20 @@ export function useVendedorPortal() {
     filterStatus,
   });
 
-  // Load vendedor profile
+  // Load vendedor profile - use ref for navigate to stabilize dependencies
+  const navigateRef = useRef(navigate);
+  useEffect(() => {
+    navigateRef.current = navigate;
+  }, [navigate]);
+
   useEffect(() => {
     if (!user) {
-      navigate("/auth?from=consultor", { replace: true });
+      navigateRef.current("/auth?from=consultor", { replace: true });
       return;
     }
 
     loadVendedorProfile();
-  }, [user, navigate, adminAsVendedor]);
+  }, [user?.id]);
 
   const loadVendedorProfile = async () => {
     if (!user) return;
