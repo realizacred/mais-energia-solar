@@ -78,7 +78,8 @@ export interface ProjetoFiltersState {
 }
 
 const PROJETOS_FETCH_BATCH_SIZE = 1000;
-const MAX_CARDS_PER_STAGE = 200;
+const MAX_CARDS_PER_STAGE = 50; // Reduzido de 200 para melhorar performance inicial
+
 
 async function fetchAllProjetosRows(baseQuery: any) {
   const allRows: any[] = [];
