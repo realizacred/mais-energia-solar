@@ -74,6 +74,17 @@ export function LeadViewDialog({ lead, open, onOpenChange }: LeadViewDialogProps
               <p className="text-xs text-muted-foreground">Detalhes completos do lead</p>
             </div>
           </div>
+          <div className="flex items-center gap-2 pr-4">
+            <Button 
+              size="sm" 
+              variant="outline" 
+              className="gap-2 border-primary/20 text-primary hover:bg-primary/5"
+              onClick={() => setCreditModalOpen(true)}
+            >
+              <CreditCard className="w-4 h-4" />
+              Análise de Crédito
+            </Button>
+          </div>
         </DialogHeader>
 
         {/* §25 BODY — 2 columns */}
