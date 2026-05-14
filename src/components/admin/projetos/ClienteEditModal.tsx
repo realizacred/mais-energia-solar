@@ -110,10 +110,15 @@ export function ClienteEditModal({ open, onOpenChange, clienteId, onSaved }: Cli
       // Invalidate all client-related queries for real-time sync across screens
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ["deal-detail"] }),
+        queryClient.invalidateQueries({ queryKey: ["projeto-detalhe"] }),
         queryClient.invalidateQueries({ queryKey: ["clientes"] }),
         queryClient.invalidateQueries({ queryKey: ["clientes_list"] }),
         queryClient.invalidateQueries({ queryKey: ["clientes-ativos"] }),
         queryClient.invalidateQueries({ queryKey: ["cliente-detail", clienteId] }),
+        queryClient.invalidateQueries({ queryKey: ["cliente-detail"] }),
+        queryClient.invalidateQueries({ queryKey: ["projeto-cliente-validacao"] }),
+        queryClient.invalidateQueries({ queryKey: ["cliente-projetos"] }),
+        queryClient.invalidateQueries({ queryKey: ["cliente-propostas"] }),
         queryClient.invalidateQueries({ queryKey: ["post-sale-clients"] }),
       ]);
       onSaved?.();

@@ -309,6 +309,10 @@ export function ProjetoDetalheProvider({ dealId, onBack, initialPipelineId, init
       queryClient.invalidateQueries({ queryKey: ["clientes"] }),
       queryClient.invalidateQueries({ queryKey: ["clientes-ativos"] }),
       queryClient.invalidateQueries({ queryKey: ["clientes_list"] }),
+      queryClient.invalidateQueries({ queryKey: ["cliente-detail"] }),
+      queryClient.invalidateQueries({ queryKey: ["projeto-cliente-validacao", dealId] }),
+      queryClient.invalidateQueries({ queryKey: ["cliente-projetos"] }),
+      queryClient.invalidateQueries({ queryKey: ["cliente-propostas"] }),
     ]);
   }, [dealId, queryClient]);
 
