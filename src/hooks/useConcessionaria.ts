@@ -292,7 +292,7 @@ export function useConcessionaria(projetoId: string) {
         homologacaoAprovada: homolog?.status === "aprovada",
       };
     },
-    enabled: !!projetoId && !homologacaoQuery.isLoading && enabled,
+    enabled: !!projetoId && !homologacaoQuery.isLoading,
     staleTime: 1000 * 60 * 2,
   });
 
