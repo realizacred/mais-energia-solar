@@ -2,9 +2,9 @@ import { useState } from "react";
 import { useAnaliseCredito, useCreateAnaliseCredito, useUpdateAnaliseCredito, type AnaliseCredito } from "@/hooks/useAnaliseCredito";
 import { useUserRole } from "@/hooks/useUserRole";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Plus, CreditCard, History, CheckCircle2, XCircle, Clock, Landmark, Settings2 } from "lucide-react";
+import { Plus, CreditCard, History, CheckCircle2, XCircle, Clock } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -12,6 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { formatBRL } from "@/lib/formatters";
 import { formatDateTime } from "@/lib/dateUtils";
+import { cn } from "@/lib/utils";
 
 interface Props {
   dealId: string;
@@ -119,7 +120,23 @@ export function ProjetoCreditoTab({ dealId, clienteId, clienteCpfCnpj, valorProp
                         </div>
                       </div>
                     </div>
-                    {/* Botão de detalhes/edição se admin? */}
+                    {canApprove && analise.status === "pendente" && (
+                      <Button 
+                        size="sm" 
+                        variant="secondary"
+                        onClick={() => {
+                          setApprovingId(analise.id);
+                          setApproveData({
+                            valor_aprovado: (analise.valor_solicitado || 0).toString(),
+                            taxa_juros: "",
+                            prazo_meses: (analise.prazo_meses || 0).toString(),
+                            observacoes: analise.observacoes || ""
+                          });
+                        }}
+                      >
+                        Avaliar
+                      </Button>
+                    )}
                   </div>
                 </CardContent>
               </Card>
@@ -135,6 +152,65 @@ export function ProjetoCreditoTab({ dealId, clienteId, clienteCpfCnpj, valorProp
           </CardContent>
         </Card>
       )}
+
+      {/* Modal de Avaliação de Crédito (Admin/Gerente) */}
+      <Dialog open={!!approvingId} onOpenChange={open => !open && setApprovingId(null)}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Avaliar Análise de Crédito</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="v_aprovado">Valor Aprovado</Label>
+                <Input id="v_aprovado" type="number" value={approveData.valor_aprovado} onChange={e => setApproveData({...approveData, valor_aprovado: e.target.value})} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="taxa">Taxa de Juros (%)</Label>
+                <Input id="taxa" type="number" step="0.01" value={approveData.taxa_juros} onChange={e => setApproveData({...approveData, taxa_juros: e.target.value})} />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="prazo_a">Prazo Aprovado (meses)</Label>
+              <Input id="prazo_a" type="number" value={approveData.prazo_meses} onChange={e => setApproveData({...approveData, prazo_meses: e.target.value})} />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="obs_a">Parecer/Observações</Label>
+              <Textarea id="obs_a" value={approveData.observacoes} onChange={e => setApproveData({...approveData, observacoes: e.target.value})} />
+            </div>
+          </div>
+          <DialogFooter className="flex gap-2">
+            <Button 
+              variant="destructive" 
+              className="flex-1"
+              onClick={() => {
+                if (approvingId) updateMutation.mutate({ id: approvingId, status: 'reprovado', observacoes: approveData.observacoes });
+                setApprovingId(null);
+              }}
+            >
+              Reprovar
+            </Button>
+            <Button 
+              className="flex-1 bg-success hover:bg-success/90"
+              onClick={() => {
+                if (approvingId) {
+                  updateMutation.mutate({ 
+                    id: approvingId, 
+                    status: 'aprovado', 
+                    valor_aprovado: parseFloat(approveData.valor_aprovado),
+                    taxa_juros: parseFloat(approveData.taxa_juros),
+                    prazo_meses: parseInt(approveData.prazo_meses),
+                    observacoes: approveData.observacoes 
+                  });
+                }
+                setApprovingId(null);
+              }}
+            >
+              Aprovar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
         <DialogContent className="sm:max-w-[500px]">
@@ -193,5 +269,3 @@ export function ProjetoCreditoTab({ dealId, clienteId, clienteCpfCnpj, valorProp
     </div>
   );
 }
-
-import { cn } from "@/lib/utils";
