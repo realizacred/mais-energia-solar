@@ -109,7 +109,7 @@ export function ProjetoInstalacaoTab({ dealId, enabled = true }: Props) {
         .limit(1);
       return (data && data.length > 0) || false;
     },
-    enabled: !!dealId,
+    enabled: !!dealId && enabled,
     staleTime: 1000 * 60 * 5,
   });
 
