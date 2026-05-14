@@ -200,7 +200,18 @@ export function ProjetoMultiPipelineManager({ dealId, dealStatus, pipelines, all
   );
 
   const addToPipeline = async (pipelineId: string, stageId: string) => {
-    if (isLocked) { toast({ title: "Projeto bloqueado", description: "Não é possível alterar funis de um projeto ganho/perdido.", variant: "destructive" }); return; }
+    const pipeline = pipelines.find(p => p.id === pipelineId);
+    const isComercial = pipeline?.name.toLowerCase().includes("comercial") || pipeline?.name.toLowerCase().includes("venda");
+    const locked = isComercial ? isCommercialLocked : isTechnicalLocked;
+    
+    if (locked) { 
+      toast({ 
+        title: "Funil bloqueado", 
+        description: `Não é possível adicionar ao funil ${pipeline?.name} devido ao status do projeto.`, 
+        variant: "destructive" 
+      }); 
+      return; 
+    }
     setSaving(pipelineId);
     try {
       const { error } = await supabase.from("deal_pipeline_stages").insert({
@@ -221,7 +232,18 @@ export function ProjetoMultiPipelineManager({ dealId, dealStatus, pipelines, all
   };
 
   const changeStage = async (membershipId: string, newStageId: string) => {
-    if (isLocked) { toast({ title: "Projeto bloqueado", description: "Não é possível alterar etapas de um projeto ganho/perdido.", variant: "destructive" }); return; }
+    const membership = memberships.find(m => m.id === membershipId);
+    const isComercial = membership?.pipeline_name.toLowerCase().includes("comercial") || membership?.pipeline_name.toLowerCase().includes("venda");
+    const locked = isComercial ? isCommercialLocked : isTechnicalLocked;
+
+    if (locked) { 
+      toast({ 
+        title: "Funil bloqueado", 
+        description: `Não é possível alterar etapas no funil ${membership?.pipeline_name} devido ao status do projeto.`, 
+        variant: "destructive" 
+      }); 
+      return; 
+    }
     setSaving(membershipId);
     try {
       const { error } = await supabase
@@ -240,7 +262,18 @@ export function ProjetoMultiPipelineManager({ dealId, dealStatus, pipelines, all
   };
 
   const removeFromPipeline = async (membershipId: string) => {
-    if (isLocked) { toast({ title: "Projeto bloqueado", description: "Não é possível remover funis de um projeto ganho/perdido.", variant: "destructive" }); return; }
+    const membership = memberships.find(m => m.id === membershipId);
+    const isComercial = membership?.pipeline_name.toLowerCase().includes("comercial") || membership?.pipeline_name.toLowerCase().includes("venda");
+    const locked = isComercial ? isCommercialLocked : isTechnicalLocked;
+
+    if (locked) { 
+      toast({ 
+        title: "Funil bloqueado", 
+        description: `Não é possível remover do funil ${membership?.pipeline_name} devido ao status do projeto.`, 
+        variant: "destructive" 
+      }); 
+      return; 
+    }
 
     // Encontrar o membership alvo para validar regras de negócio
     const target = memberships.find(m => m.id === membershipId);
@@ -324,12 +357,18 @@ export function ProjetoMultiPipelineManager({ dealId, dealStatus, pipelines, all
       if (stageErr) throw stageErr;
 
       // Sincroniza deals.status apenas para o funil Comercial
-      if (membership.pipeline_name.trim().toLowerCase() === "comercial") {
+      const isComercial = membership.pipeline_name.trim().toLowerCase() === "comercial" || membership.pipeline_name.trim().toLowerCase() === "vendas";
+      if (isComercial) {
         const { error: dealErr } = await supabase
           .from("deals")
           .update({ status: outcome })
           .eq("id", dealId);
         if (dealErr) throw dealErr;
+
+        // Ao ganhar o funil comercial, dispara criação automática de funis técnicos
+        if (outcome === "won") {
+          autoCreateTechnicalPipelines();
+        }
       }
 
       toast({
@@ -342,6 +381,41 @@ export function ProjetoMultiPipelineManager({ dealId, dealStatus, pipelines, all
       toast({ title: "Erro", description: err.message, variant: "destructive" });
     } finally {
       setSaving(null);
+    }
+  };
+
+  const autoCreateTechnicalPipelines = async () => {
+    // Busca funis configurados no tenant
+    const technicalKeywords = ["engenharia", "equipamento", "instalação", "pós-venda", "execução"];
+    const toAdd = pipelines.filter(p => 
+      technicalKeywords.some(kw => p.name.toLowerCase().includes(kw)) &&
+      !memberships.some(m => m.pipeline_id === p.id)
+    );
+
+    if (toAdd.length === 0) return;
+
+    let createdCount = 0;
+    for (const pipeline of toAdd) {
+      const stages = allStagesMap.get(pipeline.id) || [];
+      const firstStage = stages.sort((a, b) => a.position - b.position)[0];
+      if (!firstStage) continue;
+
+      const { error } = await supabase.from("deal_pipeline_stages").insert({
+        deal_id: dealId,
+        pipeline_id: pipeline.id,
+        stage_id: firstStage.id,
+      } as any);
+
+      if (!error) createdCount++;
+    }
+
+    if (createdCount > 0) {
+      toast({ 
+        title: "Projeto em execução", 
+        description: `${createdCount} funis técnicos criados automaticamente.` 
+      });
+      await fetchMemberships();
+      onMembershipChange?.();
     }
   };
 
@@ -544,7 +618,7 @@ export function ProjetoMultiPipelineManager({ dealId, dealStatus, pipelines, all
                             size="icon"
                             className="h-6 w-6 text-muted-foreground hover:text-destructive"
                             onClick={() => removeFromPipeline(activeMembership.id)}
-                            disabled={saving === activeMembership.id || isLocked}
+                            disabled={saving === activeMembership.id || isTechnicalLocked}
                           >
                             {saving === activeMembership.id ? (
                               <Loader2 className="h-3 w-3 animate-spin" />
@@ -585,7 +659,12 @@ export function ProjetoMultiPipelineManager({ dealId, dealStatus, pipelines, all
                             <button
                               onClick={() => {
                                 if (stage.id !== activeMembership.stage_id) {
-                                  changeStage(activeMembership.id, stage.id);
+                                  const locked = isComercial ? isCommercialLocked : isTechnicalLocked;
+                                  if (!locked) {
+                                    changeStage(activeMembership.id, stage.id);
+                                  } else {
+                                    toast({ title: "Funil bloqueado", variant: "destructive" });
+                                  }
                                 }
                               }}
                               className="flex flex-col items-center z-10 group cursor-pointer gap-1"
@@ -634,7 +713,12 @@ export function ProjetoMultiPipelineManager({ dealId, dealStatus, pipelines, all
                             <button
                               onClick={() => {
                                 if (stage.id !== activeMembership.stage_id) {
-                                  changeStage(activeMembership.id, stage.id);
+                                  const locked = isComercial ? isCommercialLocked : isTechnicalLocked;
+                                  if (!locked) {
+                                    changeStage(activeMembership.id, stage.id);
+                                  } else {
+                                    toast({ title: "Funil bloqueado", variant: "destructive" });
+                                  }
                                 }
                               }}
                               className={cn(
