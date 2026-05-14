@@ -15,16 +15,16 @@ export default function MinhasInstalacoes() {
   const { user } = useAuth();
   const navigate = useNavigate();
 
-  const { data: pData, isLoading } = useQuery({
+  const { data: projetosData, isLoading } = useQuery({
     queryKey: ["minhas-instalacoes", user?.id],
     enabled: !!user?.id,
     queryFn: async () => {
-      const res = await supabase
+      const { data, error } = await supabase
         .from("projetos")
-        .select("id, codigo, projeto_num, nome, valor_total, potencia_kwp, updated_at")
+        .select("*")
         .eq("responsavel_tecnico_id", user!.id);
-      if (res.error) throw res.error;
-      return res.data;
+      if (error) throw error;
+      return (data || []) as any[];
     }
   });
 
@@ -36,8 +36,7 @@ export default function MinhasInstalacoes() {
     );
   }
 
-  const pRows = (pData || []);
-  const projetos = pRows.map((p: any) => ({
+  const projetos = (projetosData || []).map((p: any) => ({
     id: p.id,
     codigo: p.codigo,
     projeto_num: p.projeto_num,
