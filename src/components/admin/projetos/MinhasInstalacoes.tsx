@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+
 import { formatBRLInteger as formatBRL } from "@/lib/formatters";
 import { PageHeader } from "@/components/ui-kit";
 import { Card, CardContent } from "@/components/ui/card";
@@ -19,27 +20,31 @@ interface SimpleProject {
   valor_total: number | null;
   potencia_kwp: number | null;
   updated_at: string;
-  diasNaEtapa: number;
 }
 
+interface ProjectWithDays extends SimpleProject {
+  diasNaEtapa: number;
+}
 
 export default function MinhasInstalacoes() {
   const { user } = useAuth();
   const navigate = useNavigate();
 
-  const { data: projetosData, isLoading } = useQuery<any[]>({
+  const { data: projetosData, isLoading } = useQuery<SimpleProject[]>({
     queryKey: ["minhas-instalacoes", user?.id],
     enabled: !!user?.id,
     queryFn: async () => {
+      // Usamos .from('projetos') como any para evitar inferência de tipos recursiva do Supabase
+      // que está causando erro de build (TS2589: Type instantiation is excessively deep).
       const { data, error } = await (supabase
-        .from("projetos")
+        .from("projetos" as any)
         .select("id, codigo, projeto_num, nome, valor_total, potencia_kwp, updated_at") as any)
         .eq("responsavel_tecnico_id", user!.id);
 
       if (error) throw error;
-      return data || [];
+      return (data || []) as SimpleProject[];
     }
-  } as any);
+  });
 
 
 
