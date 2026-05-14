@@ -1,8 +1,8 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  Layers, Plus, X, Check, ChevronDown, ChevronRight, Trash2, Loader2, GripVertical, Trophy, XCircle
+  Layers, Plus, X, Check, ChevronDown, ChevronRight, Trash2, Loader2, GripVertical, Trophy, XCircle, AlertTriangle
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -12,6 +12,17 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
 import { useUserFunnelOrder } from "@/hooks/useUserFunnelOrder";
+import { useUserRole } from "@/hooks/useUserRole";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import {
   DndContext,
   PointerSensor,
@@ -27,6 +38,7 @@ import {
   arrayMove,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+
 
 // Aba arrastável de pipeline (funil) no detalhe do projeto.
 // UX: o chip inteiro é o handle — o clique ainda seleciona graças ao
@@ -109,12 +121,27 @@ interface Props {
 export function ProjetoMultiPipelineManager({ dealId, dealStatus, pipelines, allStagesMap, onMembershipChange, initialPipelineId, initialPipelineName }: Props) {
   const isCommercialLocked = dealStatus === "lost" || dealStatus === "won";
   const isTechnicalLocked = dealStatus === "lost" || dealStatus === "canceled";
+  const { isAdmin } = useUserRole();
   const [memberships, setMemberships] = useState<DealPipelineMembership[]>([]);
   const [loading, setLoading] = useState(true);
   const [popoverOpen, setPopoverOpen] = useState(false);
   const [activePipelineId, setActivePipelineId] = useState<string | null>(initialPipelineId || null);
   const [expandedPipeline, setExpandedPipeline] = useState<string | null>(null);
   const [saving, setSaving] = useState<string | null>(null);
+
+  // Estados para o modal de validação de checklist
+  const [validationDialog, setValidationDialog] = useState<{
+    isOpen: boolean;
+    membershipId: string;
+    newStageId: string;
+    missingDocs: string[];
+  }>({
+    isOpen: false,
+    membershipId: "",
+    newStageId: "",
+    missingDocs: [],
+  });
+
 
   // Load memberships
   const fetchMemberships = async () => {
@@ -232,8 +259,11 @@ export function ProjetoMultiPipelineManager({ dealId, dealStatus, pipelines, all
     }
   };
 
-  const changeStage = async (membershipId: string, newStageId: string) => {
+  const changeStage = async (membershipId: string, newStageId: string, force = false) => {
     const membership = memberships.find(m => m.id === membershipId);
+    const stages = allStagesMap.get(membership?.pipeline_id || "") || [];
+    const newStage = stages.find(s => s.id === newStageId);
+    
     const isComercial = membership?.pipeline_name.toLowerCase().includes("comercial") || membership?.pipeline_name.toLowerCase().includes("venda");
     const locked = isComercial ? isCommercialLocked : isTechnicalLocked;
 
@@ -245,6 +275,67 @@ export function ProjetoMultiPipelineManager({ dealId, dealStatus, pipelines, all
       }); 
       return; 
     }
+
+    // Validação de checklist Documentação -> Engenharia
+    if (!force && membership?.pipeline_name.toLowerCase().includes("documentação") && newStage?.name.toLowerCase().includes("engenharia")) {
+      setSaving(membershipId);
+      try {
+        // Busca IDs dos campos customizados de documentos
+        const requiredDocs = [
+          { key: "cap_identidade", category: "rg_cnh", label: "RG/CNH dos Proprietários" },
+          { key: "cap_comprovante_endereco", category: "conta_luz", label: "Conta de Luz (Última fatura)" },
+          { key: "cap_documentos", category: "iptu", label: "IPTU/Documento do Imóvel" }
+        ];
+
+        // 1. Verificar em deal_custom_field_values
+        const { data: fields } = await supabase
+          .from("deal_custom_fields")
+          .select("id, field_key")
+          .in("field_key", requiredDocs.map(d => d.key));
+
+        const { data: customFieldValues } = await (supabase
+          .from("deal_custom_field_values")
+          .select("field_id, value_text")
+          .eq("deal_id", dealId) as any);
+
+        // 2. Verificar em project_documents (SSOT)
+        const { data: projectDocuments } = await (supabase
+          .from("project_documents" as any)
+          .select("categoria")
+          .eq("deal_id", dealId)
+          .eq("is_deleted", false) as any);
+
+        const missing = requiredDocs
+          .filter(doc => {
+            // Check 1: Custom Field Value
+            const fieldId = fields?.find(f => f.field_key === doc.key)?.id;
+            const customValue = customFieldValues?.find((v: any) => v.field_id === fieldId)?.value_text;
+            const hasCustomField = customValue && customValue !== "[]" && customValue !== "";
+            
+            // Check 2: Project Documents Category
+            const hasDocument = projectDocuments?.some((d: any) => d.categoria === doc.category);
+
+            return !hasCustomField && !hasDocument;
+          })
+          .map(doc => doc.label);
+
+        if (missing.length > 0) {
+          setValidationDialog({
+            isOpen: true,
+            membershipId,
+            newStageId,
+            missingDocs: missing
+          });
+          setSaving(null);
+          return;
+        }
+      } catch (err) {
+        console.error("Erro ao validar checklist:", err);
+      } finally {
+        setSaving(null);
+      }
+    }
+
     setSaving(membershipId);
     try {
       const { error } = await supabase
@@ -494,6 +585,48 @@ export function ProjetoMultiPipelineManager({ dealId, dealStatus, pipelines, all
 
   return (
     <div className="space-y-3">
+      {/* Diálogo de Validação de Checklist */}
+      <AlertDialog 
+        open={validationDialog.isOpen} 
+        onOpenChange={(open) => !open && setValidationDialog(prev => ({ ...prev, isOpen: false }))}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-warning" />
+              Documentos Obrigatórios Faltando
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Para avançar para <strong>Engenharia</strong>, os seguintes documentos são obrigatórios:
+              <ul className="list-disc list-inside mt-2 space-y-1 text-foreground">
+                {validationDialog.missingDocs.map((doc, i) => (
+                  <li key={i}>{doc}</li>
+                ))}
+              </ul>
+              <p className="mt-4">
+                {isAdmin 
+                  ? "Deseja avançar mesmo assim? Como administrador, você pode forçar esta transição."
+                  : "Por favor, anexe os documentos necessários antes de avançar a etapa."}
+              </p>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Voltar e anexar</AlertDialogCancel>
+            {isAdmin && (
+              <AlertDialogAction
+                className="bg-warning hover:bg-warning/90 text-warning-foreground"
+                onClick={() => {
+                  changeStage(validationDialog.membershipId, validationDialog.newStageId, true);
+                  setValidationDialog(prev => ({ ...prev, isOpen: false }));
+                }}
+              >
+                Avançar mesmo assim
+              </AlertDialogAction>
+            )}
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
