@@ -34,6 +34,7 @@ interface Props {
   dealId: string;
   onSaved: () => void;
   showSeparator?: boolean;
+  disabled?: boolean;
 }
 
 const TYPE_ICON_MAP: Record<string, typeof Type> = {
