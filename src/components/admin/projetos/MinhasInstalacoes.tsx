@@ -15,22 +15,16 @@ export default function MinhasInstalacoes() {
   const { user } = useAuth();
   const navigate = useNavigate();
 
-  const { data: projetos = [], isLoading } = useQuery<any[]>({
+  const { data: projetosData, isLoading } = useQuery({
     queryKey: ["minhas-instalacoes", user?.id],
     enabled: !!user?.id,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("projetos")
-        .select("id, codigo, projeto_num, nome, valor_total, potencia_kwp, updated_at")
+        .select("*")
         .eq("responsavel_tecnico_id", user!.id);
-
       if (error) throw error;
-      
-      const rows = data || [];
-      return rows.map((p: any) => ({
-        ...p,
-        diasNaEtapa: differenceInDays(new Date(), new Date(p.updated_at))
-      })).sort((a: any, b: any) => b.diasNaEtapa - a.diasNaEtapa);
+      return data || [];
     }
   });
 
@@ -41,6 +35,17 @@ export default function MinhasInstalacoes() {
       </div>
     );
   }
+
+  const projetos = (projetosData || []).map((p: any) => ({
+    id: p.id,
+    codigo: p.codigo,
+    projeto_num: p.projeto_num,
+    nome: p.nome || "Cliente",
+    valor_total: p.valor_total,
+    potencia_kwp: p.potencia_kwp,
+    updated_at: p.updated_at,
+    diasNaEtapa: differenceInDays(new Date(), new Date(p.updated_at))
+  })).sort((a: any, b: any) => b.diasNaEtapa - a.diasNaEtapa);
 
   return (
     <div className="space-y-6">
@@ -56,14 +61,14 @@ export default function MinhasInstalacoes() {
         </Card>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {projetos.map((p) => (
+          {projetos.map((p: any) => (
             <Card key={p.id} className="overflow-hidden hover:shadow-md transition-shadow">
               <CardContent className="p-0">
                 <div className="p-4 space-y-3">
                   <div className="flex justify-between items-start">
                     <div>
                       <p className="text-xs font-mono text-muted-foreground">{p.codigo || `#${p.projeto_num}`}</p>
-                      <h3 className="font-bold text-lg leading-tight">{p.nome || "Cliente"}</h3>
+                      <h3 className="font-bold text-lg leading-tight">{p.nome}</h3>
                     </div>
                     <Badge variant="outline" className="bg-primary/5 text-primary border-primary/20">
                       Execução
