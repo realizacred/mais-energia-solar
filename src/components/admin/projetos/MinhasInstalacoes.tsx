@@ -19,24 +19,17 @@ export default function MinhasInstalacoes() {
     queryKey: ["minhas-instalacoes", user?.id],
     enabled: !!user?.id,
     queryFn: async () => {
-      const { data, error } = await supabase
+      const res = await supabase
         .from("projetos")
-        .select(`
-          id, 
-          codigo, 
-          projeto_num,
-          nome,
-          valor_total,
-          potencia_kwp,
-          updated_at
-        `)
+        .select("id, codigo, projeto_num, nome, valor_total, potencia_kwp, updated_at")
         .eq("responsavel_tecnico_id", user!.id)
         .neq("status", "concluido")
         .neq("status", "cancelado");
 
-      if (error) throw error;
+      if (res.error) throw res.error;
       
-      return (data || []).map((p: any) => ({
+      const rows = res.data || [];
+      return rows.map((p: any) => ({
         id: p.id,
         codigo: p.codigo,
         projeto_num: p.projeto_num,
