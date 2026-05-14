@@ -56,7 +56,7 @@ export function SuprimentosListPage({ projetoId, enabled = true }: SuprimentosLi
     ...(busca ? { busca } : {}),
   };
 
-  const { data: ordens, isLoading } = useOrdensCompra(filtros);
+  const { data: ordens, isLoading } = useOrdensCompra(filtros, enabled);
   const { data: fornecedores = [] } = useFornecedoresNomes();
 
   // UX-07: Fetch accepted proposal and its kit
