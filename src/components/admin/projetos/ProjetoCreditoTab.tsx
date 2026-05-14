@@ -22,14 +22,14 @@ interface Props {
   valorProposta?: number | null;
 }
 
-export function ProjetoCreditoTab({ dealId, clienteId, clienteCpfCnpj, valorProposta }: Props) {
+export function ProjetoCreditoTab({ dealId, leadId, clienteId, clienteCpfCnpj, valorProposta }: Props) {
   const { isAdmin } = useUserRole();
   const canApprove = isAdmin;
   
-  const { data: analises, isLoading } = useAnaliseCredito(dealId);
+  const { data: analises, isLoading } = useAnaliseCredito(dealId, leadId);
   const createMutation = useCreateAnaliseCredito();
   const updateMutation = useUpdateAnaliseCredito();
-  
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [approvingId, setApprovingId] = useState<string | null>(null);
   const [approveData, setApproveData] = useState({
