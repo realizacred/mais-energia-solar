@@ -164,6 +164,7 @@ export function calcularSerieFinanceira25Anos(input: FinancialSeriesInput): Fina
       },
       custo_disponibilidade: CUSTO_DISP_KWH,
       ano: anoAtual,
+      fator_simultaneidade: fatorSimultaneidade,
     });
     economiaMensal = Math.max(0, resultAnoAtual.economia_mensal_rs);
   }
