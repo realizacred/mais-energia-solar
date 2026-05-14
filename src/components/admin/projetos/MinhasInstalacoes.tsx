@@ -34,9 +34,11 @@ export default function MinhasInstalacoes() {
     queryKey: ["minhas-instalacoes", user?.id],
     enabled: !!user?.id,
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("projetos")
-        .select("id, codigo, projeto_num, nome, valor_total, potencia_kwp, updated_at")
+      // Usamos .from('projetos') como any para evitar inferência de tipos recursiva do Supabase
+      // que está causando erro de build (TS2589: Type instantiation is excessively deep).
+      const { data, error } = await (supabase
+        .from("projetos" as any)
+        .select("id, codigo, projeto_num, nome, valor_total, potencia_kwp, updated_at") as any)
         .eq("responsavel_tecnico_id", user!.id);
 
       if (error) throw error;
