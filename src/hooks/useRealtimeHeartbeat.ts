@@ -55,11 +55,11 @@ export function useRealtimeHeartbeat({ enabled = true }: UseRealtimeHeartbeatOpt
 
       if (!wasDisconnectedRef.current) {
         wasDisconnectedRef.current = true;
-        toast.warning("Conexão em tempo real perdida. Reconectando...", {
-          id: "realtime-disconnect",
-          duration: Infinity,
-        });
+        // console.log("[heartbeat] Conexão perdida detectada");
+        // Silenciamos o toast para evitar ruído constante se o Supabase estiver instável
+        // O sistema tentará reconectar silenciosamente em background
       }
+
     };
 
     const scheduleReconnect = () => {
