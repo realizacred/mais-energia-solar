@@ -91,9 +91,9 @@ export function DocumentosTab({ dealId, clienteTelefone, consultorTelefone: cons
   const [cancelDoc, setCancelDoc] = useState<GeneratedDocRow | null>(null);
   const [cancelMotivo, setCancelMotivo] = useState("");
   // §16: Queries em hooks — AP-01 resolvido
-  const { data: generatedDocs = [], isLoading: loadingDocs } = useProjetoDocumentosGerados(dealId, enabled);
+  const { data: generatedDocs = [], isLoading: loadingDocs } = useProjetoDocumentosGerados(dealId);
   const { data: templates = [] } = useDocTemplates();
-  const { data: allProjectDocs = [] } = useProjectDocuments({ dealId, enabled });
+  const { data: allProjectDocs = [] } = useProjectDocuments({ dealId });
   const recibos = useMemo(
     () => allProjectDocs.filter((d) => d.origem === "recibo"),
     [allProjectDocs],
