@@ -151,7 +151,7 @@ export function useSolarPremises() {
       const { data, error } = await supabase
         .from("tenant_premises")
         .select(
-          "tarifa, imposto_energia, inflacao_energetica, percentual_economia, " +
+          "tarifa, imposto_energia, inflacao_energetica, reajuste_tarifa_anual_percent, ano_referencia_tarifa, fator_simultaneidade, percentual_economia, " +
           "perda_eficiencia_tradicional, sobredimensionamento_padrao, " +
           "geracao_mensal_por_kwp, custo_por_kwp, vida_util_sistema, kg_co2_por_kwh, " +
           "base_irradiancia, grupo_tarifario, fase_tensao_rede, tipo_telhado_padrao, " +
