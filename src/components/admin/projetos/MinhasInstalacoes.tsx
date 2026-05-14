@@ -15,7 +15,7 @@ export default function MinhasInstalacoes() {
   const { user } = useAuth();
   const navigate = useNavigate();
 
-  const { data: projetos = [], isLoading } = useQuery({
+  const { data: projetosData, isLoading } = useQuery({
     queryKey: ["minhas-instalacoes", user?.id],
     enabled: !!user?.id,
     queryFn: async () => {
@@ -23,21 +23,21 @@ export default function MinhasInstalacoes() {
         .from("projetos")
         .select("*")
         .eq("responsavel_tecnico_id", user!.id);
-
       if (error) throw error;
-      
-      return (data || []).map((p: any) => ({
-        id: p.id,
-        codigo: p.codigo,
-        projeto_num: p.projeto_num,
-        nome: p.nome || "Cliente",
-        valor_total: p.valor_total,
-        potencia_kwp: p.potencia_kwp,
-        updated_at: p.updated_at,
-        diasNaEtapa: differenceInDays(new Date(), new Date(p.updated_at))
-      })).sort((a: any, b: any) => b.diasNaEtapa - a.diasNaEtapa);
+      return data || [];
     }
   });
+
+  const projetos = (projetosData || []).map((p: any) => ({
+    id: p.id,
+    codigo: p.codigo,
+    projeto_num: p.projeto_num,
+    nome: p.nome || "Cliente",
+    valor_total: p.valor_total,
+    potencia_kwp: p.potencia_kwp,
+    updated_at: p.updated_at,
+    diasNaEtapa: differenceInDays(new Date(), new Date(p.updated_at))
+  })).sort((a, b) => b.diasNaEtapa - a.diasNaEtapa);
 
   if (isLoading) {
     return (
