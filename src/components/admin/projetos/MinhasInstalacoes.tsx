@@ -31,10 +31,11 @@ export default function MinhasInstalacoes() {
     queryKey: ["minhas-instalacoes", user?.id],
     enabled: !!user?.id,
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase
         .from("projetos")
-        .select("id, codigo, projeto_num, nome, valor_total, potencia_kwp, updated_at")
+        .select("id, codigo, projeto_num, nome, valor_total, potencia_kwp, updated_at") as any)
         .eq("responsavel_tecnico_id", user!.id);
+
       if (error) throw error;
       return data || [];
     }
