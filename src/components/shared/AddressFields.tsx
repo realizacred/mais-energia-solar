@@ -183,9 +183,9 @@ export function AddressFields({
             <Input
               value={value.rua}
               onChange={(e) => update("rua", e.target.value)}
-              placeholder="Preenchido automaticamente pelo CEP"
+              placeholder="Rua, Avenida..."
               disabled={disabled || cepLoading}
-              className={cepLoading ? "opacity-60" : ""}
+              className={cepLoading ? "bg-muted/40" : ""}
             />
           </Field>
 
@@ -195,9 +195,9 @@ export function AddressFields({
               <Input
                 value={value.bairro}
                 onChange={(e) => update("bairro", e.target.value)}
-                placeholder="Preenchido pelo CEP"
+                placeholder="Bairro"
                 disabled={disabled || cepLoading}
-                className={cepLoading ? "opacity-60" : ""}
+                className={cepLoading ? "bg-muted/40" : ""}
               />
             </Field>
 
