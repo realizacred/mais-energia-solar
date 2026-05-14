@@ -52,6 +52,7 @@ import { ProjetoComunicacaoResumo } from "./ProjetoComunicacaoResumo";
 import { ScheduleWhatsAppDialog } from "@/components/vendor/ScheduleWhatsAppDialog";
 import { PropostaExpandedDetail } from "./PropostaExpandedDetail";
 import { GrupoKitsModal } from "./GrupoKitsModal";
+import { ProjetoCreditoTab } from "./ProjetoCreditoTab";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useProjetoCustomFieldValues } from "@/hooks/useProjetoCustomFields";
 import { useProjetoNotes } from "@/hooks/useProjetoNotes";
