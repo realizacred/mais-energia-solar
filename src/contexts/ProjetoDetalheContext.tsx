@@ -451,16 +451,32 @@ export function ProjetoDetalheProvider({ dealId, onBack, initialPipelineId, init
     if (!dealId) return;
 
     const channel = supabase
-      .channel(`deal-${dealId}`)
-      .on("postgres_changes", { event: "*", schema: "public", table: "deals", filter: `id=eq.${dealId}` }, () => {
+      .channel(`deal-status-${dealId}`)
+      .on("postgres_changes", { 
+        event: "*", 
+        schema: "public", 
+        table: "deals", 
+        filter: `id=eq.${dealId}` 
+      }, () => {
+        // Invalida o detalhe do projeto e as travas que dependem do status "won"
+        queryClient.invalidateQueries({ queryKey: projetoDetalheKeys.detail(dealId) });
+        queryClient.invalidateQueries({ queryKey: ["proposta-aceita-gate", dealId] });
+        queryClient.invalidateQueries({ queryKey: ["deal-pipeline", dealId] });
+        queryClient.invalidateQueries({ queryKey: ["deal-pipeline-stages", dealId] });
+      })
+      .on("postgres_changes", { 
+        event: "*", 
+        schema: "public", 
+        table: "deal_stage_history", 
+        filter: `deal_id=eq.${dealId}` 
+      }, () => {
         queryClient.invalidateQueries({ queryKey: projetoDetalheKeys.detail(dealId) });
       })
-      .on("postgres_changes", { event: "*", schema: "public", table: "deal_stage_history", filter: `deal_id=eq.${dealId}` }, () => {
-        queryClient.invalidateQueries({ queryKey: projetoDetalheKeys.detail(dealId) });
-      })
-      .on("postgres_changes", { event: "*", schema: "public", table: "clientes" }, (payload) => {
-        // Filtro manual de cliente já que clientes table não tem deal_id direto fácil para filter do pg_changes
-        // rpc get_projeto_detalhe retorna o customer_id vinculado
+      .on("postgres_changes", { 
+        event: "*", 
+        schema: "public", 
+        table: "clientes" 
+      }, (payload) => {
         const currentCustomerId = queryClient.getQueryData<any>(projetoDetalheKeys.detail(dealId))?.deal?.customer_id;
         if (currentCustomerId && payload.new && (payload.new as any).id === currentCustomerId) {
           queryClient.invalidateQueries({ queryKey: projetoDetalheKeys.detail(dealId) });
@@ -469,10 +485,11 @@ export function ProjetoDetalheProvider({ dealId, onBack, initialPipelineId, init
           queryClient.invalidateQueries({ queryKey: ["clientes-ativos"] });
         }
       })
-
       .subscribe();
 
-    return () => { supabase.removeChannel(channel); };
+    return () => { 
+      supabase.removeChannel(channel); 
+    };
   }, [dealId, queryClient]);
 
   // ── Context value ──
