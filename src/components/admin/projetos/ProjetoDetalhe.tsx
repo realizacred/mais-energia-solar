@@ -389,8 +389,34 @@ function ProjetoDetalheContent() {
       </div>
     );
   }
+  const { roles } = useUserRole();
+  const visibleTabs = useMemo(() => {
+    return TABS.filter(tab => {
+      // @ts-ignore
+      if (!tab.roles) return true;
+      if (roles.length === 0) return true;
+      // @ts-ignore
+      return roles.some(role => tab.roles.includes(role));
+    });
+  }, [roles]);
+
+  useEffect(() => {
+    if (roles.length > 0 && !visibleTabs.find(t => t.id === activeTab)) {
+      setActiveTab("gerenciamento");
+    }
+  }, [visibleTabs, activeTab, roles, setActiveTab]);
+
+  return (
+    <div className="min-h-screen bg-muted/30 -m-4 sm:-m-6 p-3 sm:p-6 max-w-full overflow-x-hidden">
+      {/* ── Breadcrumbs ── */}
+      <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-3">
+        <Button variant="link" onClick={onBack} className="hover:text-foreground transition-colors h-auto p-0 text-xs text-muted-foreground">Projetos</Button>
+        <ChevronRight className="h-3 w-3" />
+        <span className="text-foreground font-medium">{projectCode}</span>
+      </div>
 
       {/* ── Header Card ── */}
+
       <Card className="mb-2 overflow-hidden">
         <CardContent className="p-3 sm:p-4">
           {/* Row 1: Title + Etiquetas + Actions */}
