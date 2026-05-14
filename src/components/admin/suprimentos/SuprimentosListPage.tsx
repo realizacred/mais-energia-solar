@@ -39,9 +39,10 @@ const STATUS_COLORS: Record<OrdemCompraStatus, string> = {
 
 interface SuprimentosListPageProps {
   projetoId?: string;
+  enabled?: boolean;
 }
 
-export function SuprimentosListPage({ projetoId }: SuprimentosListPageProps) {
+export function SuprimentosListPage({ projetoId, enabled = true }: SuprimentosListPageProps) {
   const navigate = useNavigate();
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [fornecedorFilter, setFornecedorFilter] = useState<string>("all");
@@ -55,11 +56,11 @@ export function SuprimentosListPage({ projetoId }: SuprimentosListPageProps) {
     ...(busca ? { busca } : {}),
   };
 
-  const { data: ordens, isLoading } = useOrdensCompra(filtros);
+  const { data: ordens, isLoading } = useOrdensCompra(filtros, enabled);
   const { data: fornecedores = [] } = useFornecedoresNomes();
 
   // UX-07: Fetch accepted proposal and its kit
-  const { data: propostas = [] } = usePropostasProjetoTab(projetoId || "", null);
+  const { data: propostas = [] } = usePropostasProjetoTab(projetoId || "", null, enabled);
   const propostaAceita = useMemo(() => propostas.find(p => p.status === 'aceita'), [propostas]);
 
   const { data: kitAceito } = useQuery({

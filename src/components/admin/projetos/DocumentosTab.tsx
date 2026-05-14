@@ -78,10 +78,11 @@ interface DocumentosTabProps {
   dealId: string;
   clienteTelefone?: string;
   consultorTelefone?: string;
+  enabled?: boolean;
 }
 
 // ─── Component ────────────────────────────────────
-export function DocumentosTab({ dealId, clienteTelefone, consultorTelefone: consultorTelefoneProp }: DocumentosTabProps) {
+export function DocumentosTab({ dealId, clienteTelefone, consultorTelefone: consultorTelefoneProp, enabled = true }: DocumentosTabProps) {
   const [generateOpen, setGenerateOpen] = useState(false);
   const [selectedTemplateId, setSelectedTemplateId] = useState("");
   const [signConfirmDoc, setSignConfirmDoc] = useState<GeneratedDocRow | null>(null);
@@ -90,9 +91,9 @@ export function DocumentosTab({ dealId, clienteTelefone, consultorTelefone: cons
   const [cancelDoc, setCancelDoc] = useState<GeneratedDocRow | null>(null);
   const [cancelMotivo, setCancelMotivo] = useState("");
   // §16: Queries em hooks — AP-01 resolvido
-  const { data: generatedDocs = [], isLoading: loadingDocs } = useProjetoDocumentosGerados(dealId);
+  const { data: generatedDocs = [], isLoading: loadingDocs } = useProjetoDocumentosGerados(dealId, enabled);
   const { data: templates = [] } = useDocTemplates();
-  const { data: allProjectDocs = [] } = useProjectDocuments({ dealId });
+  const { data: allProjectDocs = [] } = useProjectDocuments({ dealId, enabled });
   const recibos = useMemo(
     () => allProjectDocs.filter((d) => d.origem === "recibo"),
     [allProjectDocs],
