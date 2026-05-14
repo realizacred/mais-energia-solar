@@ -163,6 +163,7 @@ export function CustomFieldFileInput({
         variant: "destructive",
       });
     } finally {
+      e.target.value = "";
       setBusy(false);
     }
   }
