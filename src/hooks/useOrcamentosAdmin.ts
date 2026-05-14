@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { handleSupabaseError } from "@/lib/errorHandler";
@@ -6,6 +6,7 @@ import type { OrcamentoDisplayItem } from "@/types/orcamento";
 import type { LeadStatus } from "@/types/lead";
 import type { VendedorFilter } from "@/hooks/useLeads";
 import { normalizeBrazilianPhone } from "@/utils/phone/normalizeBrazilianPhone";
+import { toCanonicalPhoneDigits } from "@/utils/phone/toCanonicalPhoneDigits";
 
 const PAGE_SIZE = 25;
 
@@ -70,16 +71,30 @@ export function useOrcamentosAdmin({
         .select(ORC_ADMIN_SELECT, { count: "exact" });
 
       // Apply standard filters
+      // Phase 1: search uses telefone_normalized (canonical digits) + cidade.
       if (searchTerm) {
+        const term = searchTerm.trim();
+        const digits = toCanonicalPhoneDigits(term) || term.replace(/\D/g, "");
+        const leadOr: string[] = [
+          `nome.ilike.%${term}%`,
+          `lead_code.ilike.%${term}%`,
+          `email.ilike.%${term}%`,
+        ];
+        if (digits && digits.length >= 4) {
+          leadOr.push(`telefone_normalized.ilike.%${digits}%`);
+        }
         const { data: matchingLeads } = await supabase
           .from("leads")
           .select("id")
-          .or(`nome.ilike.%${searchTerm}%,lead_code.ilike.%${searchTerm}%,telefone.ilike.%${searchTerm}%,email.ilike.%${searchTerm}%`)
+          .or(leadOr.join(","))
           .limit(500);
         const leadIds = (matchingLeads || []).map((lead) => lead.id);
-        query = leadIds.length > 0
-          ? query.or(`orc_code.ilike.%${searchTerm}%,lead_id.in.(${leadIds.join(",")})`)
-          : query.ilike("orc_code", `%${searchTerm}%`);
+        const orcOr: string[] = [
+          `orc_code.ilike.%${term}%`,
+          `cidade.ilike.%${term}%`,
+        ];
+        if (leadIds.length > 0) orcOr.push(`lead_id.in.(${leadIds.join(",")})`);
+        query = query.or(orcOr.join(","));
       }
 
       if (filterVisto === "visto") {
@@ -243,6 +258,14 @@ export function useOrcamentosAdmin({
         };
       });
 
+      // Phase 1 — telemetry: warn legacy ownership rows (FK NULL but consultor text set)
+      const legacyCount = displayItems.filter(o => !o.vendedor_id && o.vendedor).length;
+      if (legacyCount > 0) {
+        console.warn(
+          `[useOrcamentosAdmin] LEGACY ownership: ${legacyCount}/${displayItems.length} orçamento(s) com consultor_id NULL e consultor texto preenchido. Considere backfill (Fase 4).`
+        );
+      }
+
       setOrcamentos(displayItems);
       setTotalCount(orcamentosRes.count || 0);
       setStats(statsRes?.data as unknown as ConversionStats || null);
@@ -332,7 +355,13 @@ export function useOrcamentosAdmin({
     }
   }, [autoFetch, fetchOrcamentos]);
 
-  // ⚠️ HARDENING: Realtime with debounce, local updates for UPDATE, no full refetch
+  // Phase 1 — Realtime stabilized via ref so the channel is NOT recreated on
+  // every filter/search keystroke (deps no longer include fetchOrcamentos).
+  const fetchRef = useRef(fetchOrcamentos);
+  useEffect(() => {
+    fetchRef.current = fetchOrcamentos;
+  }, [fetchOrcamentos]);
+
   useEffect(() => {
     if (!autoFetch) return;
 
@@ -345,7 +374,7 @@ export function useOrcamentosAdmin({
         { event: 'INSERT', schema: 'public', table: 'orcamentos' },
         () => {
           if (debounceTimer) clearTimeout(debounceTimer);
-          debounceTimer = setTimeout(() => fetchOrcamentos(), 500);
+          debounceTimer = setTimeout(() => fetchRef.current(), 500);
         }
       )
       .on(
@@ -385,9 +414,8 @@ export function useOrcamentosAdmin({
         'postgres_changes',
         { event: '*', schema: 'public', table: 'leads' },
         () => {
-          // Lead name/phone/status changed — debounced refetch
           if (debounceTimer) clearTimeout(debounceTimer);
-          debounceTimer = setTimeout(() => fetchOrcamentos(), 800);
+          debounceTimer = setTimeout(() => fetchRef.current(), 800);
         }
       )
       .subscribe();
@@ -396,7 +424,8 @@ export function useOrcamentosAdmin({
       if (debounceTimer) clearTimeout(debounceTimer);
       supabase.removeChannel(channel);
     };
-  }, [autoFetch, fetchOrcamentos]);
+    // Channel lifecycle depends ONLY on autoFetch — not on filters/search.
+  }, [autoFetch]);
 
   // Computed values — filter by vendedor_id
   const totalKwh = orcamentos.reduce((acc, o) => acc + o.media_consumo, 0);

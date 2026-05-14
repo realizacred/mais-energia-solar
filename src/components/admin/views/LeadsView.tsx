@@ -9,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import * as XLSX from "xlsx";
 import { useOrcamentosAdmin } from "@/hooks/useOrcamentosAdmin";
+import { useVendedoresList } from "@/hooks/useVendedores";
 import { 
   OrcamentosTable, 
   LeadFilters, 
@@ -56,6 +57,11 @@ export function LeadsView() {
   const { hasPermission } = useUserPermissions();
   const canDeleteLeads = hasPermission("delete_leads");
   const { sortOption, updateSort } = useOrcamentoSort("admin_leads");
+  // Phase 1: Consultor dropdown sourced from master table (not derived from current page rows)
+  const { data: vendedoresMaster = [] } = useVendedoresList();
+  const vendedoresFilterOptions = vendedoresMaster
+    .filter((v: any) => v.ativo !== false)
+    .map((v: any) => ({ id: v.id, nome: v.nome }));
   const filteredOrcamentos = orcamentos; // Now filtered in backend
   const [selectedOrcamento, setSelectedOrcamento] = useState<OrcamentoDisplayItem | null>(null);
   const [isViewOpen, setIsViewOpen] = useState(false);
@@ -282,7 +288,7 @@ export function LeadsView() {
             onFilterStatusChange={setFilterStatus}
             filterConversao={filterConversao}
             onFilterConversaoChange={setFilterConversao}
-            vendedores={filters.vendedores}
+            vendedores={vendedoresFilterOptions}
             estados={filters.estados}
             statuses={statuses}
             conversionStats={hookStats?.conversion}
