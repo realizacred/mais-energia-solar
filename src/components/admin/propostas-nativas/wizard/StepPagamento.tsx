@@ -172,36 +172,32 @@ export function StepPagamento({ onNext, onBack }: StepPagamentoProps) {
   useEffect(() => {
     // ⚠ Não sobrescrever pagamentoOpcoes antes da hidratação concluir
     if (!hydratedRef.current) return;
-    const bancoOpcoes = bancoGroups.flatMap(g => 
-      g.opcoes.map(o => ({
-        id: o.id,
-        nome: `${o.banco_nome} - ${o.num_parcelas}x`,
-        tipo: "financiamento" as const,
-        valor_financiado: o.valor_financiado,
-        entrada: o.entrada,
-        taxa_mensal: o.taxa_mensal,
-        carencia_meses: o.carencia_meses,
-        num_parcelas: o.num_parcelas,
-        valor_parcela: o.valor_parcela,
-        financiador_id: o.banco_id,
-      }))
-    );
-
-    const formasOpcoes = formasSelecionadas.map(f => ({
-      id: crypto.randomUUID(),
-      nome: FORMA_PAGAMENTO_LABELS[f.forma_pagamento] || f.forma_pagamento,
-      tipo: "direto" as const,
-      valor_financiado: f.valor_total || precoFinal,
-      entrada: f.entrada,
-      taxa_mensal: f.taxa_mensal,
-      carencia_meses: 0,
-      num_parcelas: f.num_parcelas,
-      valor_parcela: f.num_parcelas > 1 ? calcularPrestacao(f.valor_total || precoFinal, f.taxa_mensal, f.num_parcelas) : (f.valor_total || precoFinal),
-      forma_pagamento: f.forma_pagamento,
-    }));
     
-    onOpcoesChange([...bancoOpcoes, ...formasOpcoes]);
-  }, [bancoGroups, precoFinal, formasSelecionadas, onOpcoesChange]);
+    // CORREÇÃO 1 & 4: Apenas opções EXPLICITAMENTE selecionadas pelo usuário devem ir para o contexto
+    const novasOpcoes = formasSelecionadas.map(f => {
+      const valorBase = f.valor_total || precoFinal;
+      const entrada = f.entrada || 0;
+      const principal = valorBase - entrada;
+      
+      return {
+        id: f.id,
+        nome: f.nome || FORMA_PAGAMENTO_LABELS[f.forma_pagamento] || f.forma_pagamento,
+        tipo: f.tipo || (f.forma_pagamento === "financiamento" ? "financiamento" : "direto"),
+        valor_financiado: valorBase,
+        entrada: entrada,
+        taxa_mensal: f.taxa_mensal || 0,
+        carencia_meses: f.forma_pagamento === "financiamento" ? 2 : 0,
+        num_parcelas: f.num_parcelas || 1,
+        valor_parcela: f.num_parcelas > 1 
+          ? calcularPrestacao(principal, f.taxa_mensal, f.num_parcelas) 
+          : valorBase,
+        forma_pagamento: f.forma_pagamento,
+        banco_id: f.banco_id,
+      };
+    });
+    
+    onOpcoesChange(novasOpcoes);
+  }, [formasSelecionadas, onOpcoesChange, precoFinal]);
 
   const handleNext = useCallback(() => {
     if (formasSelecionadas.length === 0) {
