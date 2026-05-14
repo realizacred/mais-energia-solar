@@ -82,7 +82,7 @@ interface DocumentosTabProps {
 }
 
 // ─── Component ────────────────────────────────────
-export function DocumentosTab({ dealId, clienteTelefone, consultorTelefone: consultorTelefoneProp }: DocumentosTabProps) {
+export function DocumentosTab({ dealId, clienteTelefone, consultorTelefone: consultorTelefoneProp, enabled = true }: DocumentosTabProps) {
   const [generateOpen, setGenerateOpen] = useState(false);
   const [selectedTemplateId, setSelectedTemplateId] = useState("");
   const [signConfirmDoc, setSignConfirmDoc] = useState<GeneratedDocRow | null>(null);
