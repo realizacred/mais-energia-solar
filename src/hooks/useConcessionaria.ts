@@ -146,7 +146,7 @@ export function useConcessionaria(projetoId: string, enabled = true) {
       return data;
     },
     staleTime: 1000 * 60 * 5,
-    enabled: !!projetoId,
+    enabled: !!projetoId && enabled,
   });
 
   const salvarMedidorMut = useMutation({
