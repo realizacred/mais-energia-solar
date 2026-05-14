@@ -885,6 +885,7 @@ export default function MigracaoSolarmarket() {
                   </AlertDialog>
                 </div>
 
+                {/* Painel de internalização movido para o fluxo principal (RB-76) */}
                 <DocumentsInternalizationStatus tenantId={tenantId} />
 
                 <p className="text-xs text-muted-foreground">
