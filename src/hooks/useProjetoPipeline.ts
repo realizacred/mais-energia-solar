@@ -78,7 +78,8 @@ export interface ProjetoFiltersState {
 }
 
 const PROJETOS_FETCH_BATCH_SIZE = 1000;
-const MAX_CARDS_PER_STAGE = 200;
+const MAX_CARDS_PER_STAGE = 50; // Reduzido de 200 para melhorar performance inicial
+
 
 async function fetchAllProjetosRows(baseQuery: any) {
   const allRows: any[] = [];
@@ -186,7 +187,8 @@ export function useProjetoPipeline() {
     let query = supabase
       .from("projetos")
       .select("id, deal_id, codigo, projeto_num, nome, lead_id, cliente_id, consultor_id, funil_id, etapa_id, proposta_id, potencia_kwp, valor_total, status, observacoes, created_at, updated_at, tipo_projeto_solar, clientes:cliente_id(nome, telefone)")
-      .order("created_at", { ascending: false });
+      .order("created_at", { ascending: false })
+      .limit(1000); // LIMIT adicionado para evitar timeouts com grandes volumes de dados
 
     if (f.consultorId !== "todos") {
       query = query.eq("consultor_id", f.consultorId);
