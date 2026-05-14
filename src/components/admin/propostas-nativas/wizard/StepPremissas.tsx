@@ -35,7 +35,7 @@ export function StepPremissas({ premissas, onPremissasChange, isEditMode }: Prop
       // Try canonical tenant_premises first
       const { data: tp } = await supabase
         .from("tenant_premises")
-        .select("inflacao_energetica, vpl_taxa_desconto, imposto_energia, perda_eficiencia_tradicional, sobredimensionamento_padrao, troca_inversor_anos_tradicional, custo_troca_inversor_tradicional")
+        .select("inflacao_energetica, vpl_taxa_desconto, imposto_energia, perda_eficiencia_tradicional, sobredimensionamento_padrao, troca_inversor_anos_tradicional, custo_troca_inversor_tradicional, fator_simultaneidade, reajuste_tarifa_anual_percent, ano_referencia_tarifa")
         .limit(1)
         .maybeSingle();
 
