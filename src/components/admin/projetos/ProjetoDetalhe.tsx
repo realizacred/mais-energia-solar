@@ -1006,6 +1006,8 @@ function GerenciamentoTab({
   onRefreshCustomer?: () => void;
   onEditCliente?: (clienteId: string) => void;
 }) {
+  const { isAdmin } = useUserRole();
+  const readonly = !isAdmin;
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [timelineFilter, setTimelineFilter] = useState<TimelineFilter>("todos");
