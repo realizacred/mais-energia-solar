@@ -2367,8 +2367,8 @@ interface LinkedOrcamento {
   created_at: string;
 }
 
-function PropostasTab({ customerId, dealId, dealTitle, navigate, isClosed, dealStatus, projetoId, enabled = true }: { customerId: string | null; dealId: string; dealTitle: string; navigate: any; isClosed?: boolean; dealStatus?: string; projetoId?: string | null; enabled?: boolean }) {
-  const { data: propostas = [], isLoading: loading, refetch } = usePropostasProjetoTab(dealId, customerId, enabled);
+function PropostasTab({ customerId, dealId, dealTitle, navigate, isClosed, dealStatus, projetoId }: { customerId: string | null; dealId: string; dealTitle: string; navigate: any; isClosed?: boolean; dealStatus?: string; projetoId?: string | null }) {
+  const { data: propostas = [], isLoading: loading, refetch } = usePropostasProjetoTab(dealId, customerId);
   usePropostasRealtimeSync(dealId, customerId);
   const setPrincipalMutation = useSetPropostaPrincipal();
   const arquivarMutation = useArquivarProposta();
