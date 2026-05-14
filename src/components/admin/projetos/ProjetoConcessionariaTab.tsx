@@ -27,8 +27,8 @@ const STATUS_CONFIG: Record<string, { label: string; variant: string; classes: s
   reprovada: { label: "Reprovada", variant: "destructive", classes: "bg-destructive/10 text-destructive border-destructive/20" },
 };
 
-export function ProjetoConcessionariaTab({ dealId }: Props) {
-  const ctx = useConcessionaria(dealId);
+export function ProjetoConcessionariaTab({ dealId, enabled = true }: Props) {
+  const ctx = useConcessionaria(dealId, enabled);
 
   if (ctx.vistoriaLoading || ctx.medidorLoading || ctx.ativacaoLoading || ctx.homologacaoLoading) {
     return (
