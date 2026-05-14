@@ -72,7 +72,7 @@ export function useProjetoArquivos(dealId: string) {
 }
 
 /** Lista documentos gerados do projeto com dados do template */
-export function useProjetoDocumentosGerados(dealId: string, enabled = true) {
+export function useProjetoDocumentosGerados(dealId: string) {
   return useQuery({
     queryKey: [QUERY_KEY_DOCS, dealId],
     queryFn: async () => {
@@ -105,7 +105,7 @@ export function useProjetoDocumentosGerados(dealId: string, enabled = true) {
       });
     },
     staleTime: STALE_TIME,
-    enabled: !!dealId && enabled,
+    enabled: !!dealId,
   });
 }
 

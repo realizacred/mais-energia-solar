@@ -75,7 +75,7 @@ import { TipoProjetoSolarAlert } from "./TipoProjetoSolarAlert";
 import { ProjetoRecibosTab } from "./ProjetoRecibosTab";
 import { EmitirReciboModal } from "@/components/admin/documentos/EmitirReciboModal";
 import { useRecibos } from "@/hooks/useRecibos";
-import { TabSkeleton } from "./TabSkeleton";
+
 
 // ─── Types (local to sub-components) ────────────
 interface PropostaNativa {
@@ -698,13 +698,13 @@ function ProjetoDetalheContent() {
             <ProjetoComunicacaoResumo customerId={deal.customer_id} customerPhone={customerPhone} />
           )}
           {activeTab === "propostas" && (
-            <PropostasTab customerId={deal.customer_id} dealId={deal.id} dealTitle={deal.title} navigate={navigate} isClosed={isClosed} dealStatus={deal.status} projetoId={projetoId} enabled={activeTab === "propostas"} />
+            <PropostasTab customerId={deal.customer_id} dealId={deal.id} dealTitle={deal.title} navigate={navigate} isClosed={isClosed} dealStatus={deal.status} projetoId={projetoId} />
           )}
           {activeTab === "documentos" && (
             <DocumentosTab dealId={deal.id} clienteTelefone={customerPhone} />
           )}
           {activeTab === "instalacao" && (
-            <ProjetoInstalacaoTab dealId={deal.id} enabled={activeTab === "instalacao"} />
+            <ProjetoInstalacaoTab dealId={deal.id} />
           )}
           {activeTab === "suprimentos" && (
             <div className="p-6">
@@ -713,7 +713,7 @@ function ProjetoDetalheContent() {
           )}
           {activeTab === "concessionaria" && (
             <div className="p-6">
-              <ProjetoConcessionariaTab dealId={deal.id} enabled={activeTab === "concessionaria"} />
+              <ProjetoConcessionariaTab dealId={deal.id} />
             </div>
           )}
           {activeTab === "recibos" && (
@@ -2367,8 +2367,8 @@ interface LinkedOrcamento {
   created_at: string;
 }
 
-function PropostasTab({ customerId, dealId, dealTitle, navigate, isClosed, dealStatus, projetoId, enabled = true }: { customerId: string | null; dealId: string; dealTitle: string; navigate: any; isClosed?: boolean; dealStatus?: string; projetoId?: string | null; enabled?: boolean }) {
-  const { data: propostas = [], isLoading: loading, refetch } = usePropostasProjetoTab(dealId, customerId, enabled);
+function PropostasTab({ customerId, dealId, dealTitle, navigate, isClosed, dealStatus, projetoId }: { customerId: string | null; dealId: string; dealTitle: string; navigate: any; isClosed?: boolean; dealStatus?: string; projetoId?: string | null }) {
+  const { data: propostas = [], isLoading: loading, refetch } = usePropostasProjetoTab(dealId, customerId);
   usePropostasRealtimeSync(dealId, customerId);
   const setPrincipalMutation = useSetPropostaPrincipal();
   const arquivarMutation = useArquivarProposta();

@@ -61,7 +61,7 @@ const keys = {
   prereqs: (pid: string) => ["projeto_concessionaria_prereqs", pid] as const,
 };
 
-export function useConcessionaria(projetoId: string, enabled = true) {
+export function useConcessionaria(projetoId: string) {
   const qc = useQueryClient();
 
   // ── Vistoria ──
@@ -77,7 +77,7 @@ export function useConcessionaria(projetoId: string, enabled = true) {
       return data;
     },
     staleTime: 1000 * 60 * 5,
-    enabled: !!projetoId && enabled,
+    enabled: !!projetoId,
   });
 
   const salvarVistoriaMut = useMutation({
@@ -146,7 +146,7 @@ export function useConcessionaria(projetoId: string, enabled = true) {
       return data;
     },
     staleTime: 1000 * 60 * 5,
-    enabled: !!projetoId && enabled,
+    enabled: !!projetoId,
   });
 
   const salvarMedidorMut = useMutation({
@@ -188,7 +188,7 @@ export function useConcessionaria(projetoId: string, enabled = true) {
       return data;
     },
     staleTime: 1000 * 60 * 5,
-    enabled: !!projetoId && enabled,
+    enabled: !!projetoId,
   });
 
   const salvarAtivacaoMut = useMutation({
@@ -239,7 +239,7 @@ export function useConcessionaria(projetoId: string, enabled = true) {
       return data as HomologacaoData | null;
     },
     staleTime: 1000 * 60 * 5,
-    enabled: !!projetoId && enabled,
+    enabled: !!projetoId,
   });
 
   const salvarHomologacaoMut = useMutation({
@@ -292,7 +292,7 @@ export function useConcessionaria(projetoId: string, enabled = true) {
         homologacaoAprovada: homolog?.status === "aprovada",
       };
     },
-    enabled: !!projetoId && !homologacaoQuery.isLoading && enabled,
+    enabled: !!projetoId && !homologacaoQuery.isLoading,
     staleTime: 1000 * 60 * 2,
   });
 

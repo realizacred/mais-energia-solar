@@ -49,7 +49,6 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface Props {
   dealId: string;
-  enabled?: boolean;
 }
 
 const STATUS_MAP: Record<string, { label: string; className: string }> = {
@@ -89,10 +88,10 @@ const TIPO_CONFIG: Record<string, {
   },
 };
 
-export function ProjetoInstalacaoTab({ dealId, enabled = true }: Props) {
+export function ProjetoInstalacaoTab({ dealId }: Props) {
   const { setActiveTab } = useProjetoDetalhe();
   const { data: templates = [], isLoading: loadingTemplates } = useChecklistTemplates();
-  const { data: checklists = [], isLoading: loadingChecklists } = useChecklistsByProjeto(dealId, enabled);
+  const { data: checklists = [], isLoading: loadingChecklists } = useChecklistsByProjeto(dealId);
   const criarChecklist = useCriarChecklist();
 
   // Gate: verificar se existe proposta aceita/principal
@@ -109,7 +108,7 @@ export function ProjetoInstalacaoTab({ dealId, enabled = true }: Props) {
         .limit(1);
       return (data && data.length > 0) || false;
     },
-    enabled: !!dealId && enabled,
+    enabled: !!dealId,
     staleTime: 1000 * 60 * 5,
   });
 
