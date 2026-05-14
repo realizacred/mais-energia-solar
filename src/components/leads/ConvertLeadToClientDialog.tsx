@@ -1166,7 +1166,12 @@ export function ConvertLeadToClientDialog({
                         name="cpf_cnpj"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>CPF/CNPJ *</FormLabel>
+                            <FormLabel className="flex items-center gap-1">
+                              CPF/CNPJ *
+                              {(!field.value || field.value.length < 11) && (
+                                <span className="text-[10px] text-destructive animate-pulse">(Obrigatório para converter em venda)</span>
+                              )}
+                            </FormLabel>
                             <FormControl><CpfCnpjInput value={field.value || ""} onChange={field.onChange} label="" /></FormControl>
                             <FormMessage />
                           </FormItem>
