@@ -47,6 +47,10 @@ export default function VendorOrcamentosView({ portal }: Props) {
     orcamentoToConvert,
     setOrcamentoToConvert,
     fetchOrcamentos,
+    loadMore,
+    hasMore,
+    totalCount,
+    loadingMore,
     toggleVisto,
     updateStatus,
     deleteOrcamento,
@@ -114,7 +118,7 @@ export default function VendorOrcamentosView({ portal }: Props) {
             <div>
               <CardTitle>Meus Orçamentos</CardTitle>
               <CardDescription>
-                Lista de todos os orçamentos captados através do seu link
+                Exibindo {filteredOrcamentos.length} de {totalCount} orçamentos captados através do seu link
               </CardDescription>
             </div>
             <OrcamentoSortSelector value={sortOption} onChange={updateSort} />
@@ -148,6 +152,26 @@ export default function VendorOrcamentosView({ portal }: Props) {
             }}
             onRefresh={fetchOrcamentos}
           />
+
+          {hasMore && (
+            <div className="flex justify-center pt-6 pb-2">
+              <Button 
+                variant="outline" 
+                onClick={loadMore} 
+                disabled={loadingMore}
+                className="w-full sm:w-auto min-w-[200px]"
+              >
+                {loadingMore ? (
+                  <>
+                    <span className="animate-spin mr-2">⏳</span>
+                    Carregando...
+                  </>
+                ) : (
+                  "Carregar mais orçamentos"
+                )}
+              </Button>
+            </div>
+          )}
         </CardContent>
       </Card>
 

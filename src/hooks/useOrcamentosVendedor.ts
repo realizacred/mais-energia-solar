@@ -49,7 +49,7 @@ interface UseOrcamentosVendedorOptions {
   filterStatus?: string;
 }
 
-const VENDEDOR_PAGE_SIZE = 25;
+const VENDEDOR_PAGE_SIZE = 50;
 
 const ORC_SELECT = `
   id, orc_code, lead_id, cep, estado, cidade, bairro, rua, numero, complemento,

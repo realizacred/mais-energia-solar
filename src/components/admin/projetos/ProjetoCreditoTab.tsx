@@ -15,20 +15,21 @@ import { formatDateTime } from "@/lib/dateUtils";
 import { cn } from "@/lib/utils";
 
 interface Props {
-  dealId: string;
+  dealId?: string | null;
+  leadId?: string | null;
   clienteId?: string | null;
   clienteCpfCnpj?: string | null;
   valorProposta?: number | null;
 }
 
-export function ProjetoCreditoTab({ dealId, clienteId, clienteCpfCnpj, valorProposta }: Props) {
+export function ProjetoCreditoTab({ dealId, leadId, clienteId, clienteCpfCnpj, valorProposta }: Props) {
   const { isAdmin } = useUserRole();
   const canApprove = isAdmin;
   
-  const { data: analises, isLoading } = useAnaliseCredito(dealId);
+  const { data: analises, isLoading } = useAnaliseCredito(dealId, leadId);
   const createMutation = useCreateAnaliseCredito();
   const updateMutation = useUpdateAnaliseCredito();
-  
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [approvingId, setApprovingId] = useState<string | null>(null);
   const [approveData, setApproveData] = useState({
@@ -66,6 +67,7 @@ export function ProjetoCreditoTab({ dealId, clienteId, clienteCpfCnpj, valorProp
   const handleSubmit = async () => {
     await createMutation.mutateAsync({
       deal_id: dealId,
+      lead_id: leadId,
       cliente_id: clienteId,
       cpf_cnpj: formData.cpf_cnpj,
       renda_mensal: parseFloat(formData.renda_mensal),

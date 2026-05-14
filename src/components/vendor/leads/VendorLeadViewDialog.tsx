@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScheduleWhatsAppDialog } from "@/components/vendor/ScheduleWhatsAppDialog";
+import { ProjetoCreditoTab } from "@/components/admin/projetos/ProjetoCreditoTab";
 
 import type { Lead } from "@/types/lead";
 
@@ -75,9 +76,10 @@ export function VendorLeadViewDialog({ lead, open, onOpenChange, vendedorNome }:
           <div className="overflow-y-auto max-h-[70vh]">
 
           <Tabs defaultValue="detalhes" className="w-full">
-            <TabsList className="grid w-full grid-cols-3">
+            <TabsList className="grid w-full grid-cols-4">
               <TabsTrigger value="detalhes">Detalhes</TabsTrigger>
               <TabsTrigger value="proposta">Proposta</TabsTrigger>
+              <TabsTrigger value="credito">Crédito</TabsTrigger>
               <TabsTrigger value="whatsapp">WhatsApp</TabsTrigger>
             </TabsList>
 
@@ -253,6 +255,15 @@ export function VendorLeadViewDialog({ lead, open, onOpenChange, vendedorNome }:
                   </p>
                 </div>
               </div>
+            </TabsContent>
+
+            <TabsContent value="credito" className="mt-4">
+              <ProjetoCreditoTab 
+                leadId={lead.id}
+                clienteId={null} // Lead might not be a client yet
+                clienteCpfCnpj={null}
+                valorProposta={null}
+              />
             </TabsContent>
 
             <TabsContent value="whatsapp" className="mt-4">
