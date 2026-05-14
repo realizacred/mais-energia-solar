@@ -191,7 +191,7 @@ function resolveFromContext(
   if (key.startsWith("customizada.") && !key.startsWith("customizada.vc_")) {
     const sub = key.substring("customizada.".length);
     const fs = ctx.finalSnapshot as any;
-    const cfv = fs?.customFieldValues ?? fs?.custom_field_values;
+    const cfv = fs?.customFieldValues ?? fs?.custom_field_values ?? fs?.snapshot?.customFieldValues;
     if (cfv && typeof cfv === "object") {
       // 1. lookup direto
       let val = cfv[sub];
