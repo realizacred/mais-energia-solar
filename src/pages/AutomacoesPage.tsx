@@ -6,11 +6,17 @@
 import { lazy, Suspense } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { LoadingState } from "@/components/ui-kit/LoadingState";
-import { Zap, Kanban, MessageCircle, Webhook, History } from "lucide-react";
+import { Zap, Kanban, MessageCircle, Webhook, History, FileCheck } from "lucide-react";
 
 const PipelineAutomations = lazy(() =>
   import("@/components/admin/pipeline/PipelineAutomations").then((m) => ({
     default: m.PipelineAutomations,
+  }))
+);
+
+const StageDocumentsManager = lazy(() =>
+  import("@/components/admin/automacoes/StageDocumentsManager").then((m) => ({
+    default: m.StageDocumentsManager,
   }))
 );
 
@@ -70,6 +76,12 @@ export default function AutomacoesPage() {
         <TabsContent value="pipeline" className="mt-0">
           <Suspense fallback={<LoadingState message="Carregando automações de funil..." />}>
             <PipelineAutomations />
+          </Suspense>
+        </TabsContent>
+
+        <TabsContent value="documentos" className="mt-0">
+          <Suspense fallback={<LoadingState message="Carregando configurações de documentos..." />}>
+            <StageDocumentsManager />
           </Suspense>
         </TabsContent>
 
