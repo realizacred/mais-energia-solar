@@ -188,7 +188,7 @@ export function useProjetoPipeline() {
       .from("projetos")
       .select("id, deal_id, codigo, projeto_num, nome, lead_id, cliente_id, consultor_id, funil_id, etapa_id, proposta_id, potencia_kwp, valor_total, status, observacoes, created_at, updated_at, tipo_projeto_solar, clientes:cliente_id(nome, telefone)")
       .order("created_at", { ascending: false })
-      .limit(1000); // LIMIT adicionado para evitar timeouts com grandes volumes de dados
+      .limit(2000); // Aumentado para 2000 para suportar grandes volumes sem N+1 e com batching otimizado
 
     if (f.consultorId !== "todos") {
       query = query.eq("consultor_id", f.consultorId);
@@ -353,62 +353,89 @@ export function useProjetoPipeline() {
     }
 
     const filteredProjetoIds = filteredData.map((p: any) => p.id);
+    const dealIds = filteredData.map((p: any) => p.deal_id).filter(Boolean);
     const dealToProjetoId = new Map<string, string>();
     filteredData.forEach((p: any) => {
       if (p.deal_id) dealToProjetoId.set(p.deal_id, p.id);
     });
 
     const propostaRows: any[] = [];
-    if (filteredProjetoIds.length > 0) {
-      const chunkSize = 500;
-      for (let i = 0; i < filteredProjetoIds.length; i += chunkSize) {
-        const projetoChunk = filteredProjetoIds.slice(i, i + chunkSize);
-        const dealChunk = filteredData
-          .slice(i, i + chunkSize)
-          .map((p: any) => p.deal_id)
-          .filter(Boolean);
-
-        const { data: byProjeto, error } = await supabase
+    if (dealIds.length > 0) {
+      const chunkSize = 200;
+      for (let i = 0; i < dealIds.length; i += chunkSize) {
+        const chunk = dealIds.slice(i, i + chunkSize);
+        
+        // Otimizado: Busca apenas propostas principais para os deals visíveis
+        const { data: propostas, error } = await supabase
           .from("propostas_nativas")
           .select("id, deal_id, projeto_id, status, is_principal, created_at")
-          .in("projeto_id", projetoChunk)
+          .in("deal_id", chunk)
+          .eq("is_principal", true)
           .order("created_at", { ascending: false });
 
         if (error) throw error;
-        propostaRows.push(...(byProjeto || []));
+        if (propostas) propostaRows.push(...propostas);
       }
     }
 
-    const uniquePropostas = new Map<string, any>();
-    propostaRows.forEach((proposta) => uniquePropostas.set(proposta.id, proposta));
+    // Fallback para projetos sem proposta principal (pega a melhor disponível)
+    const projsWithoutPrincipal = filteredData.filter(p => 
+      !propostaRows.some(pr => pr.deal_id === p.deal_id || pr.projeto_id === p.id)
+    );
 
-    const propostasByProjeto = new Map<string, any[]>();
-    Array.from(uniquePropostas.values()).forEach((proposta) => {
-      const projetoId = proposta.projeto_id || (proposta.deal_id ? dealToProjetoId.get(proposta.deal_id) : null);
-      if (!projetoId) return;
-      const arr = propostasByProjeto.get(projetoId) || [];
-      arr.push(proposta);
-      propostasByProjeto.set(projetoId, arr);
-    });
+    if (projsWithoutPrincipal.length > 0) {
+      const chunkSize = 200;
+      for (let i = 0; i < projsWithoutPrincipal.length; i += chunkSize) {
+        const chunk = projsWithoutPrincipal.slice(i, i + chunkSize);
+        const chunkProjetoIds = chunk.map(p => p.id);
+        const chunkDealIds = chunk.map(p => p.deal_id).filter(Boolean);
+
+        const { data: extras } = await supabase
+          .from("propostas_nativas")
+          .select("id, deal_id, projeto_id, status, is_principal, created_at")
+          .or(`projeto_id.in.(${chunkProjetoIds.join(",")}),deal_id.in.(${chunkDealIds.join(",")})`)
+          .order("created_at", { ascending: false });
+        
+        if (extras) propostaRows.push(...extras);
+      }
+    }
 
     const bestPropostaByProjeto = new Map<string, { id: string; status: string | null }>();
-    propostasByProjeto.forEach((propostas, projetoId) => {
-      const principal = propostas.find((p) => p.is_principal && !["excluida", "cancelada", "arquivada"].includes(String(p.status || "").toLowerCase()));
-      if (principal) {
-        bestPropostaByProjeto.set(projetoId, { id: principal.id, status: principal.status || null });
-        return;
+    const propostasByDeal = new Map<string, any[]>();
+    const propostasByProj = new Map<string, any[]>();
+
+    propostaRows.forEach((p) => {
+      if (p.deal_id) {
+        const arr = propostasByDeal.get(p.deal_id) || [];
+        arr.push(p);
+        propostasByDeal.set(p.deal_id, arr);
       }
+      if (p.projeto_id) {
+        const arr = propostasByProj.get(p.projeto_id) || [];
+        arr.push(p);
+        propostasByProj.set(p.projeto_id, arr);
+      }
+    });
 
-      const sorted = [...propostas].sort((a, b) => {
-        const pa = PROPOSTA_STATUS_PRIORITY[String(a.status || "").toLowerCase()] ?? 50;
-        const pb = PROPOSTA_STATUS_PRIORITY[String(b.status || "").toLowerCase()] ?? 50;
-        if (pa !== pb) return pa - pb;
-        return new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime();
-      });
+    filteredData.forEach((p: any) => {
+      const candidates = [
+        ...(p.deal_id ? (propostasByDeal.get(p.deal_id) || []) : []),
+        ...(propostasByProj.get(p.id) || [])
+      ];
 
-      const best = sorted[0];
-      if (best) {
-        bestPropostaByProjeto.set(projetoId, { id: best.id, status: best.status || null });
+      if (candidates.length === 0) return;
+
+      const principal = candidates.find(c => c.is_principal);
+      if (principal) {
+        bestPropostaByProjeto.set(p.id, { id: principal.id, status: principal.status || null });
+      } else {
+        const sorted = candidates.sort((a, b) => {
+          const pa = PROPOSTA_STATUS_PRIORITY[String(a.status || "").toLowerCase()] ?? 50;
+          const pb = PROPOSTA_STATUS_PRIORITY[String(b.status || "").toLowerCase()] ?? 50;
+          if (pa !== pb) return pa - pb;
+          return new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime();
+        });
+        bestPropostaByProjeto.set(p.id, { id: sorted[0].id, status: sorted[0].status || null });
       }
     });
 
