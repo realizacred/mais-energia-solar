@@ -588,7 +588,16 @@ function ProposalWizardContent() {
     if (s.grupo != null) setGrupo(s.grupo);
     if (s.potenciaKwp != null) setPotenciaKwp(s.potenciaKwp);
     if (s.customFieldValues != null) setCustomFieldValues(s.customFieldValues);
-    if (s.premissas != null) setPremissas(s.premissas);
+    if (s.premissas != null) {
+      setPremissas({
+        ...DEFAULT_PREMISSAS,
+        ...s.premissas,
+        // Enrich snapshot with Solar Brain defaults if missing
+        fator_simultaneidade: s.premissas.fator_simultaneidade ?? solarPremises?.fator_simultaneidade ?? 0.3,
+        ano_referencia_tarifa: s.premissas.ano_referencia_tarifa ?? solarPremises?.ano_referencia_tarifa ?? new Date().getFullYear(),
+        reajuste_tarifa_anual_percent: s.premissas.reajuste_tarifa_anual_percent ?? solarPremises?.reajuste_tarifa_anual_percent ?? 6.5,
+      });
+    }
     if (s.preDimensionamento != null) setPreDimensionamento(s.preDimensionamento);
     if (s.itens != null) setItens(s.itens);
     if (s.layouts != null) setLayouts(s.layouts);
