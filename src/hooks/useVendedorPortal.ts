@@ -1,15 +1,15 @@
- import { useState, useEffect, useMemo, useCallback, useRef } from "react";
- import { useNavigate, useSearchParams } from "react-router-dom";
- import { getPublicUrl } from "@/lib/getPublicUrl";
- import { useAuth } from "@/hooks/useAuth";
- import { supabase } from "@/integrations/supabase/client";
- import { toast } from "@/hooks/use-toast";
- import { useOrcamentosVendedor, OrcamentoVendedor } from "@/hooks/useOrcamentosVendedor";
- import { useGamification } from "@/hooks/useGamification";
- import { useAdvancedMetrics } from "@/hooks/useAdvancedMetrics";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { getPublicUrl } from "@/lib/getPublicUrl";
+import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "@/hooks/use-toast";
+import { useOrcamentosVendedor, OrcamentoVendedor } from "@/hooks/useOrcamentosVendedor";
+import { useGamification } from "@/hooks/useGamification";
+import { useAdvancedMetrics } from "@/hooks/useAdvancedMetrics";
 import type { Lead } from "@/types/lead";
 import { toCanonicalPhoneDigits } from "@/utils/phone/toCanonicalPhoneDigits";
- 
+
 export interface VendedorProfile {
   id: string;
   nome: string;
@@ -19,8 +19,8 @@ export interface VendedorProfile {
   email: string | null;
   user_id: string | null;
 }
- 
- // Special admin profile when admin accesses without vendedor record
+
+// Special admin profile when admin accesses without vendedor record
 const ADMIN_PROFILE: VendedorProfile = {
   id: "admin",
   nome: "Administrador",
@@ -30,73 +30,73 @@ const ADMIN_PROFILE: VendedorProfile = {
   email: null,
   user_id: null,
 };
- 
- // Convert orcamento to Lead format
- export const orcamentoToLead = (orc: OrcamentoVendedor): Lead => ({
-   id: orc.lead_id,
-   lead_code: orc.lead_code,
-   nome: orc.nome,
-   telefone: orc.telefone,
-   telefone_normalized: toCanonicalPhoneDigits(orc.telefone),
-   email: null,
-   cep: orc.cep,
-   estado: orc.estado,
-   cidade: orc.cidade,
-   bairro: orc.bairro,
-   rua: orc.rua,
-   numero: orc.numero,
-   complemento: orc.complemento,
-   area: orc.area,
-   tipo_telhado: orc.tipo_telhado,
-   rede_atendimento: orc.rede_atendimento,
-   media_consumo: orc.media_consumo,
-   consumo_previsto: orc.consumo_previsto,
-   observacoes: orc.observacoes,
-   arquivos_urls: orc.arquivos_urls,
-    consultor: orc.vendedor,
-    consultor_id: null,
-    visto: orc.visto,
-    visto_admin: orc.visto_admin,
-    status_id: orc.status_id,
-    ultimo_contato: orc.ultimo_contato,
-    proxima_acao: orc.proxima_acao,
-    data_proxima_acao: orc.data_proxima_acao,
-    valor_estimado: null,
-    motivo_perda_id: null,
-    motivo_perda_obs: null,
-    distribuido_em: null,
-    created_at: orc.created_at,
-    updated_at: orc.updated_at,
- });
- 
- export function useVendedorPortal() {
-   const { user, signOut } = useAuth();
-   const navigate = useNavigate();
-   const [searchParams] = useSearchParams();
-   const adminAsVendedor = searchParams.get("as"); // Admin viewing as specific vendor
+
+// Convert orcamento to Lead format
+export const orcamentoToLead = (orc: OrcamentoVendedor): Lead => ({
+  id: orc.lead_id,
+  lead_code: orc.lead_code,
+  nome: orc.nome,
+  telefone: orc.telefone,
+  telefone_normalized: toCanonicalPhoneDigits(orc.telefone),
+  email: null,
+  cep: orc.cep,
+  estado: orc.estado,
+  cidade: orc.cidade,
+  bairro: orc.bairro,
+  rua: orc.rua,
+  numero: orc.numero,
+  complemento: orc.complemento,
+  area: orc.area,
+  tipo_telhado: orc.tipo_telhado,
+  rede_atendimento: orc.rede_atendimento,
+  media_consumo: orc.media_consumo,
+  consumo_previsto: orc.consumo_previsto,
+  observacoes: orc.observacoes,
+  arquivos_urls: orc.arquivos_urls,
+  consultor: orc.vendedor,
+  consultor_id: null,
+  visto: orc.visto,
+  visto_admin: orc.visto_admin,
+  status_id: orc.status_id,
+  ultimo_contato: orc.ultimo_contato,
+  proxima_acao: orc.proxima_acao,
+  data_proxima_acao: orc.data_proxima_acao,
+  valor_estimado: null,
+  motivo_perda_id: null,
+  motivo_perda_obs: null,
+  distribuido_em: null,
+  created_at: orc.created_at,
+  updated_at: orc.updated_at,
+});
+
+export function useVendedorPortal() {
+  const { user, signOut } = useAuth();
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const adminAsVendedor = searchParams.get("as"); // Admin viewing as specific vendor
   const [vendedor, setVendedor] = useState<VendedorProfile | null>(null);
   const [isAdminMode, setIsAdminMode] = useState(false);
   const [isViewingAsVendedor, setIsViewingAsVendedor] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
- 
-   // Filter states
-   const [searchTerm, setSearchTerm] = useState("");
-   const [filterVisto, setFilterVisto] = useState("todos");
-   const [filterEstado, setFilterEstado] = useState("todos");
-   const [filterStatus, setFilterStatus] = useState("todos");
- 
-   // Dialog states
-   const [selectedOrcamento, setSelectedOrcamento] = useState<OrcamentoVendedor | null>(null);
-   const [isConvertOpen, setIsConvertOpen] = useState(false);
-   const [orcamentoToConvert, setOrcamentoToConvert] = useState<OrcamentoVendedor | null>(null);
- 
-    // Gamification hook — guard: only pass real UUID, never "admin" string
-    const safeVendedorId = vendedor?.id && vendedor.id !== "admin" ? vendedor.id : null;
-    const gamification = useGamification(safeVendedorId);
 
-    // Advanced metrics hook
-    const advancedMetrics = useAdvancedMetrics(safeVendedorId, vendedor?.nome || null);
- 
+  // Filter states
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filterVisto, setFilterVisto] = useState("todos");
+  const [filterEstado, setFilterEstado] = useState("todos");
+  const [filterStatus, setFilterStatus] = useState("todos");
+
+  // Dialog states
+  const [selectedOrcamento, setSelectedOrcamento] = useState<OrcamentoVendedor | null>(null);
+  const [isConvertOpen, setIsConvertOpen] = useState(false);
+  const [orcamentoToConvert, setOrcamentoToConvert] = useState<OrcamentoVendedor | null>(null);
+
+  // Gamification hook — guard: only pass real UUID, never "admin" string
+  const safeVendedorId = vendedor?.id && vendedor.id !== "admin" ? vendedor.id : null;
+  const gamification = useGamification(safeVendedorId);
+
+  // Advanced metrics hook
+  const advancedMetrics = useAdvancedMetrics(safeVendedorId, vendedor?.nome || null);
+
   // Orcamentos hook — Phase 1: ownership SSOT via consultor_id (FK), server-side
   // filters, no client-side slicing over partial page.
   const orcamentosData = useOrcamentosVendedor({
@@ -109,225 +109,229 @@ const ADMIN_PROFILE: VendedorProfile = {
     filterEstado,
     filterStatus,
   });
- 
-   // Load vendedor profile
-   useEffect(() => {
-     if (!user) {
-       navigate("/auth?from=consultor", { replace: true });
-       return;
-     }
- 
-     loadVendedorProfile();
-   }, [user, navigate, adminAsVendedor]);
- 
-   const loadVendedorProfile = async () => {
-     if (!user) return;
- 
-     try {
-       const { data: userRoles } = await supabase
-         .from("user_roles")
-         .select("role")
-         .eq("user_id", user.id);
- 
-       const isAdmin = userRoles?.some(r => r.role === "admin" || r.role === "gerente" || r.role === "financeiro");
- 
-       // If admin is viewing as specific vendor (via ?as=codigo parameter)
-        if (isAdmin && adminAsVendedor) {
-          const { data: targetVendedor, error: targetError } = await (supabase as any)
-            .from("consultores")
-            .select("id, nome, codigo, slug, telefone, email, ativo, user_id, percentual_comissao, tenant_id, created_at")
-            .eq("codigo", adminAsVendedor)
-            .eq("ativo", true)
-           .single();
- 
-         if (targetError || !targetVendedor) {
-            toast({
-              title: "Consultor não encontrado",
-              description: `Código "${adminAsVendedor}" não existe ou está inativo.`,
-             variant: "destructive",
-           });
-           navigate("/admin", { replace: true });
-           return;
-         }
- 
+
+  // Load vendedor profile
+  useEffect(() => {
+    if (!user) {
+      navigate("/auth?from=consultor", { replace: true });
+      return;
+    }
+
+    loadVendedorProfile();
+  }, [user, navigate, adminAsVendedor]);
+
+  const loadVendedorProfile = async () => {
+    if (!user) return;
+
+    try {
+      const { data: userRoles } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", user.id);
+
+      const isAdmin = userRoles?.some(r => r.role === "admin" || r.role === "gerente" || r.role === "financeiro");
+
+      // If admin is viewing as specific vendor (via ?as=codigo parameter)
+      if (isAdmin && adminAsVendedor) {
+        const { data: targetVendedor, error: targetError } = await (supabase as any)
+          .from("consultores")
+          .select("id, nome, codigo, slug, telefone, email, ativo, user_id, percentual_comissao, tenant_id, created_at")
+          .eq("codigo", adminAsVendedor)
+          .eq("ativo", true)
+          .single();
+
+        if (targetError || !targetVendedor) {
+          toast({
+            title: "Consultor não encontrado",
+            description: `Código "${adminAsVendedor}" não existe ou está inativo.`,
+            variant: "destructive",
+          });
+          navigate("/admin", { replace: true });
+          return;
+        }
+
         setIsAdminMode(true);
         setIsViewingAsVendedor(true);
         setVendedor(targetVendedor);
         setInitialLoading(false);
         return;
       }
- 
-       // Normal flow: load user's own vendedor profile
-        const { data: vendedorData, error: vendedorError } = await (supabase as any)
-          .from("consultores")
-          .select("id, nome, codigo, slug, telefone, email, ativo, user_id, percentual_comissao, tenant_id, created_at")
-          .eq("user_id", user.id)
-          .single();
- 
-       if (vendedorError || !vendedorData) {
-         if (isAdmin) {
-           setIsAdminMode(true);
-           setVendedor(ADMIN_PROFILE);
-         } else {
-           toast({
-             title: "Acesso negado",
-             description: "Seu usuário não está vinculado a um consultor.",
-             variant: "destructive",
-           });
-           await signOut();
-           navigate("/auth", { replace: true });
-           return;
-         }
-       } else {
-         setVendedor(vendedorData);
-       }
-     } catch (error) {
-       console.error("Error loading profile:", error);
-       toast({
-         title: "Erro",
-         description: "Erro ao carregar dados.",
-         variant: "destructive",
-       });
-     } finally {
-       setInitialLoading(false);
-     }
-   };
- 
-   const handleSignOut = async () => {
-     await signOut();
-     navigate("/auth");
-   };
- 
-    const copyLink = useCallback(() => {
-      if (!vendedor) return;
-      const link = `${getPublicUrl()}/v/${vendedor.slug || vendedor.codigo}`;
-      navigator.clipboard.writeText(link);
-       toast({
-         title: "Link copiado!",
-         description: "Seu link de consultor foi copiado para a área de transferência.",
-       });
-   }, [vendedor]);
- 
-   const handleClearFilters = useCallback(() => {
-     setFilterVisto("todos");
-     setFilterEstado("todos");
-     setFilterStatus("todos");
-   }, []);
- 
-    // Convert orcamentos to leads — exclude terminal statuses for alert-facing widgets
-    const leadsForAlerts = useMemo(() => {
-      // Find terminal status IDs from statuses list
-      const terminalNames = new Set(["Convertido", "Perdido"]);
-      const terminalIds = new Set(
-        orcamentosData.statuses
-          .filter(s => terminalNames.has(s.nome))
-          .map(s => s.id)
-      );
-      
-      return orcamentosData.orcamentos
-        .filter(orc => !terminalIds.has(orc.status_id || ""))
-        .map(orcamentoToLead);
-    }, [orcamentosData.orcamentos, orcamentosData.statuses]);
- 
-    // Calculate goals when data changes — use real conversion/value data from advancedMetrics
-    useEffect(() => {
-      if (vendedor && orcamentosData.orcamentos.length >= 0 && gamification.config) {
-        const startOfMonth = new Date();
-        startOfMonth.setDate(1);
-        startOfMonth.setHours(0, 0, 0, 0);
 
-        const monthlyOrcamentos = orcamentosData.orcamentos.filter(
-          (o) => new Date(o.created_at) >= startOfMonth
-        ).length;
+      // Normal flow: load user's own vendedor profile
+      const { data: vendedorData, error: vendedorError } = await (supabase as any)
+        .from("consultores")
+        .select("id, nome, codigo, slug, telefone, email, ativo, user_id, percentual_comissao, tenant_id, created_at")
+        .eq("user_id", user.id)
+        .single();
 
-        const conversoes = advancedMetrics.metrics?.leads_convertidos ?? 0;
-        const valorVendas = advancedMetrics.metrics?.valor_total_vendas ?? 0;
-
-        gamification.calculateGoals(monthlyOrcamentos, conversoes, valorVendas);
+      if (vendedorError || !vendedorData) {
+        if (isAdmin) {
+          setIsAdminMode(true);
+          setVendedor(ADMIN_PROFILE);
+        } else {
+          toast({
+            title: "Acesso negado",
+            description: "Seu usuário não está vinculado a um consultor.",
+            variant: "destructive",
+          });
+          await signOut();
+          navigate("/auth", { replace: true });
+          return;
+        }
+      } else {
+        setVendedor(vendedorData);
       }
-    }, [vendedor, orcamentosData.orcamentos, gamification.calculateGoals, gamification.config, advancedMetrics.metrics]);
- 
-   // Calculate advanced metrics
-   useEffect(() => {
-     if (vendedor) {
-       advancedMetrics.calculateMetrics();
-       advancedMetrics.fetchNotifications();
-     }
-   }, [vendedor, advancedMetrics.calculateMetrics, advancedMetrics.fetchNotifications]);
- 
-    // Create progress notifications — run once when goals are available
-    const notifiedRef = useRef(false);
-    useEffect(() => {
-      if (notifiedRef.current) return;
-      if (vendedor?.id && gamification.goals.length > 0) {
-        notifiedRef.current = true;
-        const goalsForNotification = gamification.goals.map(g => ({
-          type: g.type,
-          percentage: g.percentage,
-        }));
-        advancedMetrics.checkAndCreateProgressNotifications(goalsForNotification, vendedor.id);
-      }
-    }, [gamification.goals, vendedor?.id, advancedMetrics.checkAndCreateProgressNotifications]);
- 
-   // Filtered orcamentos
+    } catch (error) {
+      console.error("Error loading profile:", error);
+      toast({
+        title: "Erro",
+        description: "Erro ao carregar dados.",
+        variant: "destructive",
+      });
+    } finally {
+      setInitialLoading(false);
+    }
+  };
+
+  const handleSignOut = async () => {
+    await signOut();
+    navigate("/auth");
+  };
+
+  const copyLink = useCallback(() => {
+    if (!vendedor) return;
+    const link = `${getPublicUrl()}/v/${vendedor.slug || vendedor.codigo}`;
+    navigator.clipboard.writeText(link);
+    toast({
+      title: "Link copiado!",
+      description: "Seu link de consultor foi copiado para a área de transferência.",
+    });
+  }, [vendedor]);
+
+  const handleClearFilters = useCallback(() => {
+    setFilterVisto("todos");
+    setFilterEstado("todos");
+    setFilterStatus("todos");
+  }, []);
+
+  // Convert orcamentos to leads — exclude terminal statuses for alert-facing widgets
+  const leadsForAlerts = useMemo(() => {
+    // Find terminal status IDs from statuses list
+    const terminalNames = new Set(["Convertido", "Perdido"]);
+    const terminalIds = new Set(
+      orcamentosData.statuses
+        .filter(s => terminalNames.has(s.nome))
+        .map(s => s.id)
+    );
+
+    return orcamentosData.orcamentos
+      .filter(orc => !terminalIds.has(orc.status_id || ""))
+      .map(orcamentoToLead);
+  }, [orcamentosData.orcamentos, orcamentosData.statuses]);
+
+  // Calculate goals when data changes — use real conversion/value data from advancedMetrics
+  useEffect(() => {
+    if (vendedor && orcamentosData.orcamentos.length >= 0 && gamification.config) {
+      const startOfMonth = new Date();
+      startOfMonth.setDate(1);
+      startOfMonth.setHours(0, 0, 0, 0);
+
+      const monthlyOrcamentos = orcamentosData.orcamentos.filter(
+        (o) => new Date(o.created_at) >= startOfMonth
+      ).length;
+
+      const conversoes = advancedMetrics.metrics?.leads_convertidos ?? 0;
+      const valorVendas = advancedMetrics.metrics?.valor_total_vendas ?? 0;
+
+      gamification.calculateGoals(monthlyOrcamentos, conversoes, valorVendas);
+    }
+  }, [vendedor, orcamentosData.orcamentos, gamification.calculateGoals, gamification.config, advancedMetrics.metrics]);
+
+  // Calculate advanced metrics
+  useEffect(() => {
+    if (vendedor) {
+      advancedMetrics.calculateMetrics();
+      advancedMetrics.fetchNotifications();
+    }
+  }, [vendedor, advancedMetrics.calculateMetrics, advancedMetrics.fetchNotifications]);
+
+  // Create progress notifications — run once when goals are available
+  const notifiedRef = useRef(false);
+  useEffect(() => {
+    if (notifiedRef.current) return;
+    if (vendedor?.id && gamification.goals.length > 0) {
+      notifiedRef.current = true;
+      const goalsForNotification = gamification.goals.map(g => ({
+        type: g.type,
+        percentage: g.percentage,
+      }));
+      advancedMetrics.checkAndCreateProgressNotifications(goalsForNotification, vendedor.id);
+    }
+  }, [gamification.goals, vendedor?.id, advancedMetrics.checkAndCreateProgressNotifications]);
+
+  // Filtered orcamentos
   // Phase 1: filtering is now server-side inside useOrcamentosVendedor.
   // Keep `filteredOrcamentos` as alias for backward compat with consumers.
   const filteredOrcamentos = orcamentosData.orcamentos;
- 
+
   return {
     // Profile
     vendedor,
     isAdminMode,
     isViewingAsVendedor,
     loading: initialLoading || orcamentosData.loading,
- 
-     // Filters
-     searchTerm,
-     setSearchTerm,
-     filterVisto,
-     setFilterVisto,
-     filterEstado,
-     setFilterEstado,
-     filterStatus,
-     setFilterStatus,
-     handleClearFilters,
- 
-     // Dialogs
-     selectedOrcamento,
-     setSelectedOrcamento,
-     isConvertOpen,
-     setIsConvertOpen,
-     orcamentoToConvert,
-     setOrcamentoToConvert,
- 
-     // Orcamentos
-     orcamentos: orcamentosData.orcamentos,
-     filteredOrcamentos,
-     statuses: orcamentosData.statuses,
-     stats: orcamentosData.stats,
-     estados: orcamentosData.estados,
-     fetchOrcamentos: orcamentosData.fetchOrcamentos,
-     toggleVisto: orcamentosData.toggleVisto,
-     updateStatus: orcamentosData.updateStatus,
-     deleteOrcamento: orcamentosData.deleteOrcamento,
- 
-      // Gamification
-      achievements: gamification.achievements,
-      goals: gamification.goals,
-      totalPoints: gamification.totalPoints,
-      ranking: gamification.ranking,
-      myRankPosition: gamification.myRankPosition,
- 
-     // Advanced Metrics
-     advancedMetrics: advancedMetrics.metrics,
-     metricsLoading: advancedMetrics.loading,
-     goalNotifications: advancedMetrics.notifications,
-     markNotificationAsRead: advancedMetrics.markNotificationAsRead,
- 
-     // Actions
-     handleSignOut,
-     copyLink,
-     leadsForAlerts,
-     orcamentoToLead,
-   };
- }
+
+    // Filters
+    searchTerm,
+    setSearchTerm,
+    filterVisto,
+    setFilterVisto,
+    filterEstado,
+    setFilterEstado,
+    filterStatus,
+    setFilterStatus,
+    handleClearFilters,
+
+    // Dialogs
+    selectedOrcamento,
+    setSelectedOrcamento,
+    isConvertOpen,
+    setIsConvertOpen,
+    orcamentoToConvert,
+    setOrcamentoToConvert,
+
+    // Orcamentos
+    orcamentos: orcamentosData.orcamentos,
+    filteredOrcamentos,
+    statuses: orcamentosData.statuses,
+    stats: orcamentosData.stats,
+    estados: orcamentosData.estados,
+    fetchOrcamentos: orcamentosData.fetchOrcamentos,
+    loadMore: orcamentosData.loadMore,
+    hasMore: orcamentosData.hasMore,
+    totalCount: orcamentosData.totalCount,
+    loadingMore: orcamentosData.loadingMore,
+    toggleVisto: orcamentosData.toggleVisto,
+    updateStatus: orcamentosData.updateStatus,
+    deleteOrcamento: orcamentosData.deleteOrcamento,
+
+    // Gamification
+    achievements: gamification.achievements,
+    goals: gamification.goals,
+    totalPoints: gamification.totalPoints,
+    ranking: gamification.ranking,
+    myRankPosition: gamification.myRankPosition,
+
+    // Advanced Metrics
+    advancedMetrics: advancedMetrics.metrics,
+    metricsLoading: advancedMetrics.loading,
+    goalNotifications: advancedMetrics.notifications,
+    markNotificationAsRead: advancedMetrics.markNotificationAsRead,
+
+    // Actions
+    handleSignOut,
+    copyLink,
+    leadsForAlerts,
+    orcamentoToLead,
+  };
+}
