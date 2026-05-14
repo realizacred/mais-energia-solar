@@ -20,11 +20,22 @@ interface Props {
 }
 
 export function ProjetoCreditoTab({ dealId, clienteId, clienteCpfCnpj, valorProposta }: Props) {
+  const { isAdmin, isManager } = useUserRole();
+  const canApprove = isAdmin || isManager;
+  
   const { data: analises, isLoading } = useAnaliseCredito(dealId);
   const createMutation = useCreateAnaliseCredito();
   const updateMutation = useUpdateAnaliseCredito();
   
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [approvingId, setApprovingId] = useState<string | null>(null);
+  const [approveData, setApproveData] = useState({
+    valor_aprovado: "",
+    taxa_juros: "",
+    prazo_meses: "",
+    observacoes: ""
+  });
+
   const [formData, setFormData] = useState({
     cpf_cnpj: clienteCpfCnpj || "",
     renda_mensal: "",
