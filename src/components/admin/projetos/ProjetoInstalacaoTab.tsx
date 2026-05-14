@@ -49,6 +49,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface Props {
   dealId: string;
+  enabled?: boolean;
 }
 
 const STATUS_MAP: Record<string, { label: string; className: string }> = {
