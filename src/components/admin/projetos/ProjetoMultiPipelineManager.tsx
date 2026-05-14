@@ -1,8 +1,8 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  Layers, Plus, X, Check, ChevronDown, ChevronRight, Trash2, Loader2, GripVertical, Trophy, XCircle
+  Layers, Plus, X, Check, ChevronDown, ChevronRight, Trash2, Loader2, GripVertical, Trophy, XCircle, AlertTriangle
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -12,6 +12,17 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
 import { useUserFunnelOrder } from "@/hooks/useUserFunnelOrder";
+import { useUserRole } from "@/hooks/useUserRole";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import {
   DndContext,
   PointerSensor,
@@ -27,6 +38,7 @@ import {
   arrayMove,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+
 
 // Aba arrastável de pipeline (funil) no detalhe do projeto.
 // UX: o chip inteiro é o handle — o clique ainda seleciona graças ao
