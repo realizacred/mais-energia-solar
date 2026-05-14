@@ -138,7 +138,7 @@ export function useProjetoPipeline() {
   const [filters, setFilters] = useState<ProjetoFiltersState>({
     funilId: null,
     consultorId: "todos",
-    status: "todos",
+    status: "aberto",
     etiquetaIds: [],
     search: "",
   });
