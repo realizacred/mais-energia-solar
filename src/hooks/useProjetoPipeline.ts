@@ -127,6 +127,7 @@ const PROPOSTA_STATUS_PRIORITY: Record<string, number> = {
 // ─── Hook ────────────────────────────────────────────────────
 
 export function useProjetoPipeline() {
+  const { user } = useAuth();
   const [funis, setFunis] = useState<ProjetoFunil[]>([]);
   const [etapas, setEtapas] = useState<ProjetoEtapa[]>([]);
   const [etiquetas, setEtiquetas] = useState<ProjetoEtiqueta[]>([]);
@@ -141,6 +142,9 @@ export function useProjetoPipeline() {
     etiquetaIds: [],
     search: "",
   });
+
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const initializedRef = useRef(false);
   const { toast } = useToast();
 
   // ─── Fetch metadata (funis, etapas, etiquetas, consultores) ──
