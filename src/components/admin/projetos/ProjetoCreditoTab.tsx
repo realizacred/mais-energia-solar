@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { useAnaliseCredito, useCreateAnaliseCredito, useUpdateAnaliseCredito, type AnaliseCredito } from "@/hooks/useAnaliseCredito";
+import { useUserRole } from "@/hooks/useUserRole";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Plus, CreditCard, History, CheckCircle2, XCircle, Clock, Landmark } from "lucide-react";
+import { Plus, CreditCard, History, CheckCircle2, XCircle, Clock, Landmark, Settings2 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
