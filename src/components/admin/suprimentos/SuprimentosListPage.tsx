@@ -42,7 +42,7 @@ interface SuprimentosListPageProps {
   enabled?: boolean;
 }
 
-export function SuprimentosListPage({ projetoId }: SuprimentosListPageProps) {
+export function SuprimentosListPage({ projetoId, enabled = true }: SuprimentosListPageProps) {
   const navigate = useNavigate();
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [fornecedorFilter, setFornecedorFilter] = useState<string>("all");
