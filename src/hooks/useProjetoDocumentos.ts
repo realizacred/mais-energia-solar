@@ -351,8 +351,10 @@ export function useDocumentosRealtimeSync(dealId: string) {
 
     const channel = supabase
       .channel(`generated-docs-realtime-${dealId}`)
-      .on("postgres_changes", { event: "*", schema: "public", table: "generated_documents" }, invalidate)
+      .on("postgres_changes", { event: "*", schema: "public", table: "generated_documents", filter: `deal_id=eq.${dealId}` }, invalidate)
+      .on("postgres_changes", { event: "*", schema: "public", table: "project_documents", filter: `deal_id=eq.${dealId}` }, invalidate)
       .subscribe();
+
 
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);

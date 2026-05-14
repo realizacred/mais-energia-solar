@@ -9,9 +9,10 @@ import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
-const HEARTBEAT_INTERVAL_MS = 30_000; // 30s
-const RECONNECT_DELAY_MS = 3_000;
-const GRACE_PERIOD_MS = 10_000; // Wait 10s after mount before showing disconnect toast
+const HEARTBEAT_INTERVAL_MS = 60_000; // Aumentado para 60s
+const RECONNECT_DELAY_MS = 10_000; // Aumentado para 10s (backoff mais relaxado)
+const GRACE_PERIOD_MS = 20_000; // 20s de silêncio inicial
+
 const isLovablePreview = typeof window !== "undefined" && window.location.hostname.includes("lovableproject.com");
 
 interface UseRealtimeHeartbeatOptions {
@@ -54,11 +55,11 @@ export function useRealtimeHeartbeat({ enabled = true }: UseRealtimeHeartbeatOpt
 
       if (!wasDisconnectedRef.current) {
         wasDisconnectedRef.current = true;
-        toast.warning("Conexão em tempo real perdida. Reconectando...", {
-          id: "realtime-disconnect",
-          duration: Infinity,
-        });
+        // console.log("[heartbeat] Conexão perdida detectada");
+        // Silenciamos o toast para evitar ruído constante se o Supabase estiver instável
+        // O sistema tentará reconectar silenciosamente em background
       }
+
     };
 
     const scheduleReconnect = () => {
@@ -68,10 +69,12 @@ export function useRealtimeHeartbeat({ enabled = true }: UseRealtimeHeartbeatOpt
         reconnectTimeoutRef.current = null;
 
         if (channel.state !== "joined" && channel.state !== "joining") {
+          console.log("[heartbeat] Tentando reconectar canal...");
           channel.subscribe();
         }
       }, RECONNECT_DELAY_MS);
     };
+
 
     const handleDisconnected = () => {
       notifyDisconnected();
