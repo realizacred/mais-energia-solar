@@ -137,7 +137,8 @@ export function calcularSerieFinanceira25Anos(input: FinancialSeriesInput): Fina
 
   const tarifaFioB = (input.tarifaFioB ?? 0) > 0 ? input.tarifaFioB! : tarifaBase * 0.28;
   const regraGD = mapRegra(regra);
-  const anoAtual = new Date().getFullYear();
+  // CORREÇÃO 2: Ano de referência configurável
+  const anoAtual = prem?.ano_referencia_tarifa ?? new Date().getFullYear();
   const isGrupoA = grupo === "A";
 
   let gastoAtualMensal: number;
