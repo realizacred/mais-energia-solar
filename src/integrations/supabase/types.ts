@@ -5201,6 +5201,54 @@ export type Database = {
           },
         ]
       }
+      etapa_documentos_obrigatorios: {
+        Row: {
+          categoria: string
+          created_at: string | null
+          id: string
+          label: string
+          obrigatorio: boolean | null
+          pipeline_stage_id: string
+          tenant_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          categoria: string
+          created_at?: string | null
+          id?: string
+          label: string
+          obrigatorio?: boolean | null
+          pipeline_stage_id: string
+          tenant_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          categoria?: string
+          created_at?: string | null
+          id?: string
+          label?: string
+          obrigatorio?: boolean | null
+          pipeline_stage_id?: string
+          tenant_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "etapa_documentos_obrigatorios_pipeline_stage_id_fkey"
+            columns: ["pipeline_stage_id"]
+            isOneToOne: false
+            referencedRelation: "pipeline_stages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "etapa_documentos_obrigatorios_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       external_entity_links: {
         Row: {
           created_at: string
@@ -6331,6 +6379,74 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "fornecedores_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      funil_automacoes: {
+        Row: {
+          ativo: boolean | null
+          condicao: Json | null
+          created_at: string | null
+          etapa_destino_id: string
+          etapa_origem_id: string | null
+          id: string
+          pipeline_id: string
+          tenant_id: string
+          tipo: string
+          updated_at: string | null
+        }
+        Insert: {
+          ativo?: boolean | null
+          condicao?: Json | null
+          created_at?: string | null
+          etapa_destino_id: string
+          etapa_origem_id?: string | null
+          id?: string
+          pipeline_id: string
+          tenant_id: string
+          tipo: string
+          updated_at?: string | null
+        }
+        Update: {
+          ativo?: boolean | null
+          condicao?: Json | null
+          created_at?: string | null
+          etapa_destino_id?: string
+          etapa_origem_id?: string | null
+          id?: string
+          pipeline_id?: string
+          tenant_id?: string
+          tipo?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "funil_automacoes_etapa_destino_id_fkey"
+            columns: ["etapa_destino_id"]
+            isOneToOne: false
+            referencedRelation: "pipeline_stages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "funil_automacoes_etapa_origem_id_fkey"
+            columns: ["etapa_origem_id"]
+            isOneToOne: false
+            referencedRelation: "pipeline_stages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "funil_automacoes_pipeline_id_fkey"
+            columns: ["pipeline_id"]
+            isOneToOne: false
+            referencedRelation: "pipelines"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "funil_automacoes_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
