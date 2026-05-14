@@ -59,6 +59,10 @@ export default function AutomacoesPage() {
             <Kanban className="h-4 w-4" />
             Funil
           </TabsTrigger>
+          <TabsTrigger value="documentos" className="gap-2 shrink-0 whitespace-nowrap">
+            <FileCheck className="h-4 w-4" />
+            Checklist / Docs
+          </TabsTrigger>
           <TabsTrigger value="whatsapp" className="gap-2 shrink-0 whitespace-nowrap">
             <MessageCircle className="h-4 w-4" />
             WhatsApp
