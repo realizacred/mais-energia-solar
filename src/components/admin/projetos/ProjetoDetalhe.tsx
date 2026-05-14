@@ -75,7 +75,7 @@ import { TipoProjetoSolarAlert } from "./TipoProjetoSolarAlert";
 import { ProjetoRecibosTab } from "./ProjetoRecibosTab";
 import { EmitirReciboModal } from "@/components/admin/documentos/EmitirReciboModal";
 import { useRecibos } from "@/hooks/useRecibos";
-import { TabSkeleton } from "./TabSkeleton";
+
 
 // ─── Types (local to sub-components) ────────────
 interface PropostaNativa {
