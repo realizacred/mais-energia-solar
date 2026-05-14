@@ -641,10 +641,17 @@ export function ConvertLeadToClientDialog({
     const missingItems = getMissingItems();
     if (missingItems.length > 0) {
       toast({
-        title: "Documentação incompleta",
-        description: `Itens obrigatórios faltando: ${missingItems.join(", ")}. Use "Aguardando Documentação" para salvar parcialmente.`,
+        title: "Dados obrigatórios faltando",
+        description: `Para converter em venda, os seguintes campos são obrigatórios: ${missingItems.join(", ")}.`,
         variant: "destructive",
       });
+      
+      // Auto-navigate to the step with missing info
+      if (missingItems.some(item => ["E-mail", "CPF/CNPJ", "Bairro", "Rua", "Número"].includes(item))) {
+        setCurrentStep(0);
+      } else if (missingItems.some(item => ["Identidade (RG/CNH)", "Comprovante de Endereço", "Disjuntor", "Transformador", "Localização"].includes(item))) {
+        setCurrentStep(1);
+      }
       return;
     }
 
