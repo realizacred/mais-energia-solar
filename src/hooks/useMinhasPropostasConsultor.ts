@@ -158,7 +158,7 @@ export function useMinhasPropostasConsultor(consultorId: string | null | undefin
           aceita_at: p.aceita_at,
           recusada_at: p.recusada_at,
           validade_dias: p.validade_dias,
-          public_token: p.public_token,
+          public_token: p.public_token || p.proposta_versoes?.[0]?.public_slug || null,
           cliente_nome: p.clientes?.nome ?? p.leads?.nome ?? null,
           lead_id: p.lead_id,
           cliente_id: p.cliente_id,
