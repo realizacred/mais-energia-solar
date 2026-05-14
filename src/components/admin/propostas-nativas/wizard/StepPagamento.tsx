@@ -111,10 +111,14 @@ export function StepPagamento({ onNext, onBack }: StepPagamentoProps) {
   useEffect(() => {
     if (hydratedRef.current) return;
     if (!formasConfig) return;
-    const directExisting = (opcoes || []).filter(o => o.tipo === "direto" || !!o.forma_pagamento);
-    if (directExisting.length > 0) {
-      const restored: FormaSelected[] = directExisting.map(o => {
-        const fp = (o.forma_pagamento || "outro") as FormaPagamento;
+    // CORREÇÃO 2: Restaurar todos os tipos (direto e financiamento)
+    const existingOpcoes = (opcoes || []).filter(o => 
+      o.tipo === "direto" || o.tipo === "financiamento" || !!o.forma_pagamento || !!o.banco_id
+    );
+
+    if (existingOpcoes.length > 0) {
+      const restored: FormaSelected[] = existingOpcoes.map(o => {
+        const fp = (o.forma_pagamento || (o.banco_id ? "financiamento" : "outro")) as FormaPagamento;
         const cfg = formasConfig.find(c => c.forma_pagamento === fp);
         return {
           id: o.id || crypto.randomUUID(),
@@ -127,6 +131,8 @@ export function StepPagamento({ onNext, onBack }: StepPagamentoProps) {
           valor_total: o.valor_financiado || precoFinal,
           entrada: o.entrada || 0,
           observacoes: cfg?.observacoes || "",
+          banco_id: o.banco_id,
+          tipo: o.tipo === "financiamento" || !!o.banco_id ? "financiamento" : "direto",
         };
       });
       setFormasSelecionadas(restored);
