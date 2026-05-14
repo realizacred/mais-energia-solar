@@ -55,7 +55,7 @@ const QUERY_KEY = "propostas-projeto-tab" as const;
  * Hook canônico para a aba Propostas do Projeto.
  * Substitui o padrão useState+useEffect+refreshKey.
  */
-export function usePropostasProjetoTab(dealId: string, customerId: string | null, enabled = true) {
+export function usePropostasProjetoTab(dealId: string, customerId: string | null) {
   return useQuery({
     queryKey: [QUERY_KEY, dealId, customerId],
     queryFn: async () => {
