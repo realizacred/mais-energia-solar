@@ -116,16 +116,7 @@ export function useVendedorPortal() {
     navigateRef.current = navigate;
   }, [navigate]);
 
-  useEffect(() => {
-    if (!user) {
-      navigateRef.current("/auth?from=consultor", { replace: true });
-      return;
-    }
-
-    loadVendedorProfile();
-  }, [user?.id]);
-
-  const loadVendedorProfile = async () => {
+  const loadVendedorProfile = useCallback(async () => {
     if (!user) return;
 
     try {
@@ -151,7 +142,7 @@ export function useVendedorPortal() {
             description: `Código "${adminAsVendedor}" não existe ou está inativo.`,
             variant: "destructive",
           });
-          navigate("/admin", { replace: true });
+          navigateRef.current("/admin", { replace: true });
           return;
         }
 
@@ -180,7 +171,7 @@ export function useVendedorPortal() {
             variant: "destructive",
           });
           await signOut();
-          navigate("/auth", { replace: true });
+          navigateRef.current("/auth", { replace: true });
           return;
         }
       } else {
@@ -196,7 +187,16 @@ export function useVendedorPortal() {
     } finally {
       setInitialLoading(false);
     }
-  };
+  }, [user?.id, adminAsVendedor, signOut]);
+
+  useEffect(() => {
+    if (!user?.id) {
+      navigateRef.current("/auth?from=consultor", { replace: true });
+      return;
+    }
+
+    loadVendedorProfile();
+  }, [user?.id, loadVendedorProfile]);
 
   const handleSignOut = async () => {
     await signOut();
