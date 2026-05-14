@@ -31,13 +31,10 @@ export function StepPagamento({ onNext, onBack }: StepPagamentoProps) {
     locIrradiacao: irradiacao
   } = useWizardContext();
 
-  const { bancos, loadingBancos } = useBancosCatalog();
   const { data: formasConfig } = usePaymentInterestConfigs();
   const precoFinal = usePrecoFinal(itens, servicos, venda);
 
   const [activeTab, setActiveTab] = useState<"pagamento" | "fluxo">("pagamento");
-  const [fluxoFinanciamento, setFluxoFinanciamento] = useState("sem_financiamento");
-  const [selectedBankIds, setSelectedBankIds] = useState<Set<string>>(new Set());
   const [formasSelecionadas, setFormasSelecionadas] = useState<FormaSelected[]>([]);
   const hydratedRef = useRef(false);
 
