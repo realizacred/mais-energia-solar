@@ -259,8 +259,11 @@ export function ProjetoMultiPipelineManager({ dealId, dealStatus, pipelines, all
     }
   };
 
-  const changeStage = async (membershipId: string, newStageId: string) => {
+  const changeStage = async (membershipId: string, newStageId: string, force = false) => {
     const membership = memberships.find(m => m.id === membershipId);
+    const stages = allStagesMap.get(membership?.pipeline_id || "") || [];
+    const newStage = stages.find(s => s.id === newStageId);
+    
     const isComercial = membership?.pipeline_name.toLowerCase().includes("comercial") || membership?.pipeline_name.toLowerCase().includes("venda");
     const locked = isComercial ? isCommercialLocked : isTechnicalLocked;
 
@@ -272,6 +275,49 @@ export function ProjetoMultiPipelineManager({ dealId, dealStatus, pipelines, all
       }); 
       return; 
     }
+
+    // Validação de checklist Documentação -> Engenharia
+    if (!force && membership?.pipeline_name.toLowerCase().includes("documentação") && newStage?.name.toLowerCase().includes("engenharia")) {
+      setSaving(membershipId);
+      try {
+        // Busca valores dos campos customizados de documentos
+        const { data: customFieldValues } = await supabase
+          .from("deal_custom_field_values")
+          .select("field_key, value_text")
+          .eq("deal_id", dealId);
+
+        const requiredDocs = [
+          { key: "cap_identidade", label: "RG/CNH dos Proprietários" },
+          { key: "cap_comprovante_endereco", label: "Conta de Luz (Última fatura)" },
+          { key: "cap_documentos", label: "IPTU/Documento do Imóvel" }
+        ];
+
+        const missing = requiredDocs
+          .filter(doc => {
+            const value = customFieldValues?.find(v => v.field_key === doc.key)?.value_text;
+            // Se value_text for nulo ou string vazia ou array vazio "[]", considera faltando
+            if (!value || value === "[]") return true;
+            return false;
+          })
+          .map(doc => doc.label);
+
+        if (missing.length > 0) {
+          setValidationDialog({
+            isOpen: true,
+            membershipId,
+            newStageId,
+            missingDocs: missing
+          });
+          setSaving(null);
+          return;
+        }
+      } catch (err) {
+        console.error("Erro ao validar checklist:", err);
+      } finally {
+        setSaving(null);
+      }
+    }
+
     setSaving(membershipId);
     try {
       const { error } = await supabase
