@@ -15,6 +15,7 @@ import { formatDate as formatDateBR } from "@/lib/dateUtils";
 
 interface Props {
   dealId: string;
+  enabled?: boolean;
 }
 
 const STATUS_CONFIG: Record<string, { label: string; variant: string; classes: string }> = {
