@@ -71,7 +71,7 @@ export function useChecklistTemplates() {
 }
 
 // ── Checklists de um projeto (recebe dealId, resolve para projetos.id) ──
-export function useChecklistsByProjeto(dealId: string) {
+export function useChecklistsByProjeto(dealId: string, enabled = true) {
   return useQuery({
     queryKey: [QK, "projeto", dealId],
     queryFn: async () => {
