@@ -11,6 +11,7 @@ import {
   useToggleEtiqueta,
   projetoDetalheKeys,
 } from "@/hooks/useProjetoDetalheData";
+import { useClientesRealtime } from "@/hooks/useClientes";
 
 // ─── Shared Types ──────────────────────────────────
 export interface DealDetail {
