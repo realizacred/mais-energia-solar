@@ -126,6 +126,19 @@ export function KanbanCard({
             {leadScore && (
               <ScoreBadge score={leadScore.score} nivel={leadScore.nivel} />
             )}
+            {lastAnalise && (
+              <Badge 
+                variant="outline" 
+                className={cn(
+                  "text-[9px] h-4 px-1 uppercase font-bold",
+                  lastAnalise.status === 'aprovado' ? "bg-success/10 text-success border-success/20" :
+                  lastAnalise.status === 'reprovado' ? "bg-destructive/10 text-destructive border-destructive/20" :
+                  "bg-warning/10 text-warning border-warning/20"
+                )}
+              >
+                Crédito: {lastAnalise.status === 'em_analise' ? 'ANÁLISE' : lastAnalise.status}
+              </Badge>
+            )}
           </div>
           <div className="flex items-center gap-1">
             {isInactive && (
