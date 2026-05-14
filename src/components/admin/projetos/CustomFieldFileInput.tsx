@@ -15,6 +15,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { FilePreviewModal, type FilePreviewTarget } from "./FilePreviewModal";
+import { logUploadDiagnostics } from "@/lib/projectUploadDiagnostics";
 
 export interface CustomFieldFileMeta {
   storage_path: string;
