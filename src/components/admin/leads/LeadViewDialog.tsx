@@ -1,8 +1,10 @@
+import { useState } from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { formatPhoneBR } from "@/lib/formatters";
-import { FileText, Image, ExternalLink, User, History, Mail } from "lucide-react";
+import { FileText, Image, ExternalLink, User, History, Mail, CreditCard } from "lucide-react";
 import { LeadAuditHistory } from "./LeadAuditHistory";
+import { ProjetoCreditoTab } from "../projetos/ProjetoCreditoTab";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
