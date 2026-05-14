@@ -33,6 +33,7 @@ function InfoField({ label, value }: { label: string; value: string | number | n
 
 export function LeadViewDialog({ lead, open, onOpenChange }: LeadViewDialogProps) {
   const { toast } = useToast();
+  const [creditModalOpen, setCreditModalOpen] = useState(false);
 
   const handleOpenFile = async (filePath: string) => {
     const { data, error } = await supabase.storage
