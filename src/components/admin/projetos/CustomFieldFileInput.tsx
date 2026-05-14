@@ -111,14 +111,19 @@ export function CustomFieldFileInput({
     e.target.value = "";
     if (!fileList || fileList.length === 0 || !dealId) return;
     setBusy(true);
+    let tenantId: string | null = null;
+    let currentPath: string | null = null;
+    let currentFile: File | null = null;
     try {
-      const tenantId = await getTenantId();
+      tenantId = await getTenantId();
       const userId = (await supabase.auth.getUser()).data.user?.id;
       const uploaded: CustomFieldFileMeta[] = [];
       for (let i = 0; i < fileList.length; i++) {
         const file = fileList[i];
+        currentFile = file;
         const safeName = file.name.replace(/[^\w.\-]+/g, "_");
         const path = `${tenantId}/deals/${dealId}/custom-fields/${fieldKey}/${Date.now()}_${i}_${safeName}`;
+        currentPath = path;
         const { error } = await supabase.storage
           .from("projeto-documentos")
           .upload(path, file, { upsert: false, contentType: file.type || undefined });
@@ -136,7 +141,25 @@ export function CustomFieldFileInput({
       toast({ title: uploaded.length === 1 ? "Arquivo enviado" : `${uploaded.length} arquivos enviados` });
     } catch (err: any) {
       console.error("[CustomFieldFileInput] upload error:", err);
-      toast({ title: "Erro ao enviar", description: err.message || String(err), variant: "destructive" });
+      const diag = await logUploadDiagnostics({
+        section: "Campos importantes",
+        bucket: "projeto-documentos",
+        path: currentPath,
+        tenant_id: tenantId,
+        field_key: fieldKey,
+        field_type: "file",
+        deal_id: dealId ?? null,
+        file_name: currentFile?.name ?? null,
+        file_size: currentFile?.size ?? null,
+        file_mime: currentFile?.type ?? null,
+        error: err,
+      });
+      const status = diag?.errorInfo?.status ? ` [HTTP ${diag.errorInfo.status}]` : "";
+      toast({
+        title: "Erro ao enviar",
+        description: `${err?.message || String(err)}${status} — ver console [ProjectUploadDiagnostics]`,
+        variant: "destructive",
+      });
     } finally {
       setBusy(false);
     }
