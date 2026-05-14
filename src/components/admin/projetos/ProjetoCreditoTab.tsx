@@ -67,6 +67,7 @@ export function ProjetoCreditoTab({ dealId, leadId, clienteId, clienteCpfCnpj, v
   const handleSubmit = async () => {
     await createMutation.mutateAsync({
       deal_id: dealId,
+      lead_id: leadId,
       cliente_id: clienteId,
       cpf_cnpj: formData.cpf_cnpj,
       renda_mensal: parseFloat(formData.renda_mensal),
