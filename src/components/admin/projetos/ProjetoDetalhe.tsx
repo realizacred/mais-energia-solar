@@ -674,7 +674,12 @@ function ProjetoDetalheContent() {
       {/* ── Recebimento CTA for won deals ── */}
       {deal.status === "won" && activeTab === "gerenciamento" && (
         <>
-          <RecebimentoCTA dealId={deal.id} customerId={deal.customer_id} customerName={customerName} navigate={navigate} />
+          <RecebimentoCTA 
+            dealId={deal.id} 
+            customerId={deal.customer_id} 
+            customerName={customerName} 
+            projetoId={projetoId} 
+          />
           <SinalReciboCTA
             dealId={deal.id}
             customerId={deal.customer_id}
