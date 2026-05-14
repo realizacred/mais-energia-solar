@@ -280,23 +280,30 @@ export function ProjetoMultiPipelineManager({ dealId, dealStatus, pipelines, all
     if (!force && membership?.pipeline_name.toLowerCase().includes("documentação") && newStage?.name.toLowerCase().includes("engenharia")) {
       setSaving(membershipId);
       try {
-        // Busca valores dos campos customizados de documentos
-        const { data: customFieldValues } = await supabase
-          .from("deal_custom_field_values")
-          .select("field_key, value_text")
-          .eq("deal_id", dealId);
-
+        // Busca ids dos campos customizados de documentos
         const requiredDocs = [
           { key: "cap_identidade", label: "RG/CNH dos Proprietários" },
           { key: "cap_comprovante_endereco", label: "Conta de Luz (Última fatura)" },
           { key: "cap_documentos", label: "IPTU/Documento do Imóvel" }
         ];
 
+        const { data: fields } = await supabase
+          .from("deal_custom_fields")
+          .select("id, field_key")
+          .in("field_key", requiredDocs.map(d => d.key));
+
+        // Busca valores dos campos customizados de documentos para este deal
+        const { data: customFieldValues } = await (supabase
+          .from("deal_custom_field_values")
+          .select("field_id, value_text")
+          .eq("deal_id", dealId) as any);
+
         const missing = requiredDocs
           .filter(doc => {
-            const value = customFieldValues?.find(v => v.field_key === doc.key)?.value_text;
+            const fieldId = fields?.find(f => f.field_key === doc.key)?.id;
+            const value = customFieldValues?.find((v: any) => v.field_id === fieldId)?.value_text;
             // Se value_text for nulo ou string vazia ou array vazio "[]", considera faltando
-            if (!value || value === "[]") return true;
+            if (!value || value === "[]" || value === "") return true;
             return false;
           })
           .map(doc => doc.label);
