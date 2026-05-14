@@ -77,17 +77,17 @@ export function StepPremissas({ premissas, onPremissasChange, isEditMode }: Prop
       fields: [
         { key: "imposto" as const, label: "Imposto sobre energia", unit: "%", step: 0.1 },
         { key: "inflacao_energetica" as const, label: "Inflação Energética", unit: "%/ano", step: 0.1 },
-        { key: "inflacao_ipca" as const, label: "IPCA", unit: "%/ano", step: 0.1 },
+        { key: "reajuste_tarifa_anual_percent" as const, label: "Reajuste Tarifa", unit: "%/ano", step: 0.1 },
         { key: "vpl_taxa_desconto" as const, label: "Taxa de Desconto (VPL)", unit: "%", step: 0.1 },
       ],
     },
     {
       title: "Técnicas",
       fields: [
+        { key: "fator_simultaneidade" as const, label: "Simultaneidade", unit: "0-1", step: 0.05 },
         { key: "perda_eficiencia_anual" as const, label: "Degradação anual", unit: "%/ano", step: 0.01 },
-        { key: "sobredimensionamento" as const, label: "Sobredimensionamento", unit: "%", step: 1 },
         { key: "troca_inversor_anos" as const, label: "Troca de Inversor", unit: "anos", step: 1 },
-        { key: "troca_inversor_custo" as const, label: "Custo Troca Inversor", unit: "% sist.", step: 1 },
+        { key: "ano_referencia_tarifa" as const, label: "Ano Referência", unit: "ano", step: 1 },
       ],
     },
   ];
