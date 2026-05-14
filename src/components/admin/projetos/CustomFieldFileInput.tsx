@@ -107,9 +107,11 @@ export function CustomFieldFileInput({
   }
 
   async function handleUpload(e: React.ChangeEvent<HTMLInputElement>) {
-    const fileList = e.target.files;
-    e.target.value = "";
-    if (!fileList || fileList.length === 0 || !dealId) return;
+    const files = e.target.files ? Array.from(e.target.files) : [];
+    if (files.length === 0 || !dealId) {
+      e.target.value = "";
+      return;
+    }
     setBusy(true);
     let tenantId: string | null = null;
     let currentPath: string | null = null;
@@ -118,8 +120,8 @@ export function CustomFieldFileInput({
       tenantId = await getTenantId();
       const userId = (await supabase.auth.getUser()).data.user?.id;
       const uploaded: CustomFieldFileMeta[] = [];
-      for (let i = 0; i < fileList.length; i++) {
-        const file = fileList[i];
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
         currentFile = file;
         const safeName = file.name.replace(/[^\w.\-]+/g, "_");
         const path = `${tenantId}/deals/${dealId}/custom-fields/${fieldKey}/${Date.now()}_${i}_${safeName}`;
