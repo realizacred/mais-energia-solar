@@ -74,7 +74,7 @@ export interface OrdemCompraFiltros {
 
 // ─── List ───────────────────────────────────────────
 
-export function useOrdensCompra(filtros?: OrdemCompraFiltros) {
+export function useOrdensCompra(filtros?: OrdemCompraFiltros, enabled = true) {
   return useQuery<OrdemCompra[]>({
     queryKey: [...QK, filtros],
     staleTime: STALE_TIME,
