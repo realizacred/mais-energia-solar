@@ -170,17 +170,28 @@ export default function EconomiaDetailCards({ snapshot, economiaMensal, potencia
         </div>
       )}
 
-      {/* Nota sobre Fio B */}
-      {showFioB && fioBPercentDisplay !== null && (
-        <div className="flex items-start gap-2 bg-warning/5 border border-warning/20 rounded-lg p-3">
-          <Info className="w-4 h-4 text-warning shrink-0 mt-0.5" />
-          <div className="text-[10px] text-muted-foreground leading-relaxed">
-            <span className="font-medium text-foreground">Lei 14.300 (REN 1000)</span> — O valor do crédito
-            excedente é reduzido progressivamente até 2029. Em {anoAtual}, {fioBPercentDisplay}% do Fio B
-            é cobrado sobre a energia injetada na rede.
+      {/* Nota sobre Simultaneidade e Fio B */}
+      <div className="space-y-2">
+        {showFioB && fioBPercentDisplay !== null && (
+          <div className="flex items-start gap-2 bg-warning/5 border border-warning/20 rounded-lg p-3">
+            <Info className="w-4 h-4 text-warning shrink-0 mt-0.5" />
+            <div className="text-[10px] text-muted-foreground leading-relaxed">
+              <span className="font-medium text-foreground">Lei 14.300 (REN 1000)</span> — O valor do crédito
+              excedente é reduzido progressivamente até 2029. Em {snap(snapshot, "ano_referencia_tarifa") || anoAtual}, {fioBPercentDisplay}% do Fio B
+              é cobrado sobre a energia injetada na rede.
+            </div>
           </div>
-        </div>
-      )}
+        )}
+        
+        {snap(snapshot, "fator_simultaneidade") != null && (
+          <div className="px-3 py-1 border-l-2 border-primary/20">
+            <p className="text-[9px] text-muted-foreground italic">
+              * Cálculo considera {Math.round(snap(snapshot, "fator_simultaneidade") * 100)}% de autoconsumo 
+              simultâneo conforme premissas do projeto.
+            </p>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

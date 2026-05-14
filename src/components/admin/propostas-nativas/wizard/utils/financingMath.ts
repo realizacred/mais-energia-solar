@@ -21,6 +21,9 @@ export interface FinancialSeriesInput {
     vpl_taxa_desconto?: number;
     troca_inversor_anos?: number;
     troca_inversor_custo?: number;
+    fator_simultaneidade?: number;
+    ano_referencia_tarifa?: number;
+    reajuste_tarifa_anual_percent?: number;
   } | null;
   regra?: "GD1" | "GD2" | "GD3";
   fase?: "monofasico" | "bifasico" | "trifasico";
@@ -119,11 +122,14 @@ export function calcularSerieFinanceira25Anos(input: FinancialSeriesInput): Fina
     grupo = "B",
   } = input;
 
-  const inflacaoRate = ((prem?.inflacao_energetica ?? 9.5) / 100);
+  // CORREÇÃO 3: Priorizar reajuste_tarifa_anual_percent (premissas técnicas) sobre inflacao_energetica
+  const baseInflacao = prem?.reajuste_tarifa_anual_percent ?? prem?.inflacao_energetica ?? 9.5;
+  const inflacaoRate = (baseInflacao / 100);
   const degradacaoRate = ((prem?.perda_eficiencia_anual ?? 0.5) / 100);
   const trocaInversorAnos = prem?.troca_inversor_anos ?? 15;
   const trocaInversorCustoPct = (prem?.troca_inversor_custo ?? 30) / 100;
   const vplTaxaDesconto = (prem?.vpl_taxa_desconto ?? 10) / 100;
+  const fatorSimultaneidade = prem?.fator_simultaneidade ?? 0.3;
 
   const geracaoMensalCalculada = potenciaKwp * (irradiacao || 4.5) * 30 * 0.80;
   const geracaoMensalBase = geracaoMensalKwh > 0 ? geracaoMensalKwh : geracaoMensalCalculada;
@@ -131,7 +137,8 @@ export function calcularSerieFinanceira25Anos(input: FinancialSeriesInput): Fina
 
   const tarifaFioB = (input.tarifaFioB ?? 0) > 0 ? input.tarifaFioB! : tarifaBase * 0.28;
   const regraGD = mapRegra(regra);
-  const anoAtual = new Date().getFullYear();
+  // CORREÇÃO 2: Ano de referência configurável
+  const anoAtual = prem?.ano_referencia_tarifa ?? new Date().getFullYear();
   const isGrupoA = grupo === "A";
 
   let gastoAtualMensal: number;
@@ -157,6 +164,7 @@ export function calcularSerieFinanceira25Anos(input: FinancialSeriesInput): Fina
       },
       custo_disponibilidade: CUSTO_DISP_KWH,
       ano: anoAtual,
+      fator_simultaneidade: fatorSimultaneidade,
     });
     economiaMensal = Math.max(0, resultAnoAtual.economia_mensal_rs);
   }
@@ -204,6 +212,7 @@ export function calcularSerieFinanceira25Anos(input: FinancialSeriesInput): Fina
         },
         custo_disponibilidade: CUSTO_DISP_KWH,
         ano: anoProjecao,
+        fator_simultaneidade: fatorSimultaneidade,
       });
       economiaAnualCalc = Math.round(resultAno.economia_mensal_rs * 12 * 100) / 100;
     }

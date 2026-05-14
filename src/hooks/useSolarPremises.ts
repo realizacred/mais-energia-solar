@@ -24,6 +24,9 @@ export interface SolarPremises {
   tarifa: number;
   imposto_energia: number;
   inflacao_energetica: number;
+  reajuste_tarifa_anual_percent: number;
+  ano_referencia_tarifa: number;
+  fator_simultaneidade: number;
   percentual_economia: number;
 
   // Sistema Solar
@@ -71,6 +74,9 @@ export const SOLAR_DEFAULTS: SolarPremises = {
   tarifa: 0.99,
   imposto_energia: 0,
   inflacao_energetica: 9.5,
+  reajuste_tarifa_anual_percent: 6.5,
+  ano_referencia_tarifa: 2026,
+  fator_simultaneidade: 0.3,
   percentual_economia: 90,
   perda_eficiencia: 0.8,
   sobredimensionamento: 20,
@@ -107,6 +113,9 @@ function mapRowToSolarPremises(row: Record<string, unknown>): SolarPremises {
     tarifa: (row.tarifa as number) ?? SOLAR_DEFAULTS.tarifa,
     imposto_energia: (row.imposto_energia as number) ?? SOLAR_DEFAULTS.imposto_energia,
     inflacao_energetica: (row.inflacao_energetica as number) ?? SOLAR_DEFAULTS.inflacao_energetica,
+    reajuste_tarifa_anual_percent: (row.reajuste_tarifa_anual_percent as number) ?? SOLAR_DEFAULTS.reajuste_tarifa_anual_percent,
+    ano_referencia_tarifa: (row.ano_referencia_tarifa as number) ?? SOLAR_DEFAULTS.ano_referencia_tarifa,
+    fator_simultaneidade: (row.fator_simultaneidade as number) ?? SOLAR_DEFAULTS.fator_simultaneidade,
     percentual_economia: (row.percentual_economia as number) ?? SOLAR_DEFAULTS.percentual_economia,
     perda_eficiencia: (row.perda_eficiencia_tradicional as number) ?? SOLAR_DEFAULTS.perda_eficiencia,
     sobredimensionamento: (row.sobredimensionamento_padrao as number) ?? SOLAR_DEFAULTS.sobredimensionamento,
@@ -142,7 +151,7 @@ export function useSolarPremises() {
       const { data, error } = await supabase
         .from("tenant_premises")
         .select(
-          "tarifa, imposto_energia, inflacao_energetica, percentual_economia, " +
+          "tarifa, imposto_energia, inflacao_energetica, reajuste_tarifa_anual_percent, ano_referencia_tarifa, fator_simultaneidade, percentual_economia, " +
           "perda_eficiencia_tradicional, sobredimensionamento_padrao, " +
           "geracao_mensal_por_kwp, custo_por_kwp, vida_util_sistema, kg_co2_por_kwh, " +
           "base_irradiancia, grupo_tarifario, fase_tensao_rede, tipo_telhado_padrao, " +

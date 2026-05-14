@@ -588,7 +588,16 @@ function ProposalWizardContent() {
     if (s.grupo != null) setGrupo(s.grupo);
     if (s.potenciaKwp != null) setPotenciaKwp(s.potenciaKwp);
     if (s.customFieldValues != null) setCustomFieldValues(s.customFieldValues);
-    if (s.premissas != null) setPremissas(s.premissas);
+    if (s.premissas != null) {
+      setPremissas({
+        ...DEFAULT_PREMISSAS,
+        ...s.premissas,
+        // Enrich snapshot with Solar Brain defaults if missing
+        fator_simultaneidade: s.premissas.fator_simultaneidade ?? solarPremises?.fator_simultaneidade ?? 0.3,
+        ano_referencia_tarifa: s.premissas.ano_referencia_tarifa ?? solarPremises?.ano_referencia_tarifa ?? new Date().getFullYear(),
+        reajuste_tarifa_anual_percent: s.premissas.reajuste_tarifa_anual_percent ?? solarPremises?.reajuste_tarifa_anual_percent ?? 6.5,
+      });
+    }
     if (s.preDimensionamento != null) setPreDimensionamento(s.preDimensionamento);
     if (s.itens != null) setItens(s.itens);
     if (s.layouts != null) setLayouts(s.layouts);
@@ -1216,14 +1225,27 @@ function ProposalWizardContent() {
 
             if (!s.premissas || typeof s.premissas !== "object") {
               (s as any).premissas = {
+                ...DEFAULT_PREMISSAS,
                 imposto: 0,
-                inflacao_energetica: 6.5,
+                inflacao_energetica: solarPremises?.inflacao_energetica ?? 9.5,
+                reajuste_tarifa_anual_percent: solarPremises?.reajuste_tarifa_anual_percent ?? 6.5,
+                ano_referencia_tarifa: solarPremises?.ano_referencia_tarifa ?? new Date().getFullYear(),
+                fator_simultaneidade: solarPremises?.fator_simultaneidade ?? 0.3,
                 inflacao_ipca: 4.5,
                 perda_eficiencia_anual: 0.5,
                 sobredimensionamento: 0,
                 troca_inversor_anos: 15,
                 troca_inversor_custo: 30,
                 vpl_taxa_desconto: 10,
+              };
+            } else {
+              // Enrich existing premissas with missing fields
+              s.premissas = {
+                ...DEFAULT_PREMISSAS,
+                ...s.premissas,
+                fator_simultaneidade: s.premissas.fator_simultaneidade ?? solarPremises?.fator_simultaneidade ?? 0.3,
+                ano_referencia_tarifa: s.premissas.ano_referencia_tarifa ?? solarPremises?.ano_referencia_tarifa ?? new Date().getFullYear(),
+                reajuste_tarifa_anual_percent: s.premissas.reajuste_tarifa_anual_percent ?? solarPremises?.reajuste_tarifa_anual_percent ?? 6.5,
               };
             }
 

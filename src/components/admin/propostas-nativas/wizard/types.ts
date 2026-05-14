@@ -138,6 +138,9 @@ export interface PremissasData {
   troca_inversor_anos: number;
   troca_inversor_custo: number;
   vpl_taxa_desconto: number;
+  fator_simultaneidade?: number;
+  reajuste_tarifa_anual_percent?: number;
+  ano_referencia_tarifa?: number;
 }
 
 /** Categorias canônicas para itens do kit gerador. Manter em sync com CATEGORIAS em StepKit.tsx */
@@ -475,13 +478,16 @@ export function createEmptyUC(index: number): UCData {
 
 export const DEFAULT_PREMISSAS: PremissasData = {
   imposto: 0,
-  inflacao_energetica: 6.5,
+  inflacao_energetica: 9.5,
   inflacao_ipca: 4.5,
   perda_eficiencia_anual: 0.5,
   sobredimensionamento: 0,
   troca_inversor_anos: 15,
   troca_inversor_custo: 30,
   vpl_taxa_desconto: 10,
+  fator_simultaneidade: 0.3,
+  reajuste_tarifa_anual_percent: 6.5,
+  ano_referencia_tarifa: 2026,
 };
 
 export const UF_LIST = [
