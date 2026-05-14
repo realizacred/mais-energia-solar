@@ -288,6 +288,15 @@ export function useClientesRealtime() {
         if (debounceTimer) clearTimeout(debounceTimer);
         debounceTimer = setTimeout(() => {
           qc.invalidateQueries({ queryKey: [QUERY_KEY] });
+          qc.invalidateQueries({ queryKey: ["clientes_list"] });
+          qc.invalidateQueries({ queryKey: ["clientes-ativos"] });
+          qc.invalidateQueries({ queryKey: ["cliente-detail"] });
+          qc.invalidateQueries({ queryKey: ["projeto-cliente-validacao"] });
+          qc.invalidateQueries({ queryKey: ["projeto-detalhe"] });
+          qc.invalidateQueries({ queryKey: ["deal-detail"] });
+          qc.invalidateQueries({ queryKey: ["cliente-projetos"] });
+          qc.invalidateQueries({ queryKey: ["cliente-propostas"] });
+          qc.invalidateQueries({ queryKey: ["post-sale-clients"] });
         }, 500);
       })
       .subscribe();
