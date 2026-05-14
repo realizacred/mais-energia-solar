@@ -216,7 +216,7 @@ export function AddressFields({
                 onValueChange={(v) => update("estado", v)}
                 disabled={disabled || cepLoading}
               >
-                <SelectTrigger className={cepLoading ? "opacity-60" : ""}>
+                <SelectTrigger className={cepLoading ? "bg-muted/40" : ""}>
                   <SelectValue placeholder="UF" />
                 </SelectTrigger>
                 <SelectContent>
