@@ -37,6 +37,7 @@ import {
   type VariableDomain, type VariableNature, type VariableView,
 } from "@/lib/variablesCatalog";
 import { useVariaveisCustom, useSalvarVariavelCustom, useDeletarVariavelCustom, type VariavelCustom } from "@/hooks/useVariaveisCustom";
+import { useVariaveisDinamicas } from "@/hooks/useVariaveisDinamicas";
 import { useVariablesAudit, SOURCE_LABELS, type VariableSource } from "@/hooks/useVariablesAudit";
 import { useVariableUsage } from "@/hooks/useVariableUsage";
 import { useQuickAudit } from "@/hooks/useRealAudit";
@@ -112,12 +113,14 @@ function getGovernanceFallbackSource(record?: GovernanceRecord): VariableSource 
 }
 
 /* ── Tab config ── */
-type DomainTab = VariableDomain | "todas" | "custom";
+type DomainTab = VariableDomain | "todas" | "custom" | "pre_dimensionamento" | "pos_dimensionamento";
 
 const TAB_ORDER: { key: DomainTab; label: string; icon: string }[] = [
   { key: "todas", label: "Todas", icon: "📊" },
   { key: "cliente", label: "Cliente", icon: "👤" },
-  { key: "projeto", label: "Projeto", icon: "🏗️" },
+  { key: "projeto", label: "Campos Projeto", icon: "🏗️" },
+  { key: "pre_dimensionamento", label: "Pré-dimensionamento", icon: "📐" },
+  { key: "pos_dimensionamento", label: "Pós-dimensionamento", icon: "✅" },
   { key: "proposta", label: "Proposta", icon: "📋" },
   { key: "sistema_solar", label: "Sistema Solar", icon: "☀️" },
   { key: "financeiro", label: "Financeiro", icon: "💰" },
@@ -208,6 +211,7 @@ export function VariaveisDisponiveisPage() {
   const { usageMap } = useVariableUsage();
   const { data: quickAudit } = useQuickAudit();
   const { data: dealCustomFields = [] } = useDealCustomFields();
+  const { data: variaveisDinamicas = [] } = useVariaveisDinamicas();
   const { healthMap } = useVariableHealth();
   const queryClient = useQueryClient();
 
@@ -318,22 +322,30 @@ export function VariaveisDisponiveisPage() {
       }
     });
 
-    dealCustomFields.forEach((dcf) => {
-      const alreadyExists = items.some((i) => i.key === dcf.field_key);
+    variaveisDinamicas.forEach((vd) => {
+      const alreadyExists = items.some((i) => i.key === vd.key);
       if (!alreadyExists) {
-        const contextLabel = FIELD_CONTEXT_LABELS[dcf.field_context] ?? dcf.field_context;
-        const usageInfo = usageMap.get(dcf.field_key);
-        const domain = CONTEXT_TO_DOMAIN[dcf.field_context] ?? "proposta";
+        const usageInfo = usageMap.get(vd.key);
         items.push({
-          key: dcf.field_key, canonicalKey: `{{campo_custom.${dcf.field_key}}}`, legacyKey: `[${dcf.field_key}]`,
-          label: dcf.title, description: `Campo dinâmico (${contextLabel}) — tipo: ${dcf.field_type}`,
-          category: "customizada" as VariableCategory, domain: domain as VariableDomain,
-          nature: "campo_custom_entidade", views: ["negocio", "template", "tecnica"],
+          key: vd.key, 
+          canonicalKey: vd.canonicalKey, 
+          legacyKey: vd.legacyKey,
+          label: vd.label, 
+          description: `Campo dinâmico (${vd.categoria.replace(/_/g, " ")})`,
+          category: "customizada" as VariableCategory, 
+          domain: vd.categoria === 'projeto' ? 'projeto' : 'sistema_solar', 
+          nature: "campo_custom_entidade", 
+          views: ["negocio", "template", "tecnica"],
           unit: "", example: "", isCustom: false,
-          source: "snapshot" as VariableSource, resolver: "snapshot passthrough (customFieldValues)",
-          inDocx: usageInfo?.inDocx ?? false, docxBroken: false, docxNull: false,
-          status: "ok", tipoResultado: dcf.field_type === "number" || dcf.field_type === "currency" ? "number" : "text",
-          escopo: undefined, _dynamicContext: dcf.field_context,
+          source: vd.governance === 'bd_cliente' ? 'snapshot' : 'custom_vc', 
+          resolver: "snapshot passthrough (customFieldValues)",
+          inDocx: usageInfo?.inDocx ?? false, 
+          docxBroken: false, 
+          docxNull: false,
+          status: "ok", 
+          tipoResultado: vd.tipoResultado,
+          escopo: undefined, 
+          _dynamicContext: vd.categoria,
         });
       }
     });
@@ -361,6 +373,8 @@ export function VariaveisDisponiveisPage() {
     // Tab filter
     if (tab === "custom") {
       items = items.filter((v) => v.isCustom || v.customId || v.source === "custom_vc" || v.key.startsWith("vc_"));
+    } else if (["projeto", "pre_dimensionamento", "pos_dimensionamento"].includes(tab)) {
+      items = items.filter((v) => v.domain === tab || v._dynamicContext === tab);
     } else if (tab !== "todas") {
       items = items.filter((v) => v.domain === tab);
     }

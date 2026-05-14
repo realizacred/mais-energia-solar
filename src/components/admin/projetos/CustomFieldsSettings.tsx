@@ -151,6 +151,7 @@ export function CustomFieldsSettings() {
 
   const handleSaveFieldFromModal = async (payload: Record<string, any>, id?: string) => {
     await saveFieldMutation.mutateAsync({ id, data: payload });
+    queryClient.invalidateQueries({ queryKey: ["variables-catalog"] });
     toast({ title: id ? "Campo atualizado" : "Campo criado" });
   };
 
