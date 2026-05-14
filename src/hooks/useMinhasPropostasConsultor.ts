@@ -40,9 +40,12 @@ export interface PropostaConsultor {
   versao_numero: number | null;
   potencia_kwp: number | null;
   geracao_mensal: number | null;
+  economia_mensal: number | null;
+  payback_meses: number | null;
   valor_total: number | null;
   valido_ate: string | null;
   output_pdf_path: string | null;
+  public_slug: string | null;
   link_pdf: string | null;
   viewed_at: string | null;
 }
