@@ -361,6 +361,18 @@ export function useOrcamentosAdmin({
 
     let debounceTimer: ReturnType<typeof setTimeout> | null = null;
 
+  // Phase 1 — Realtime stabilized via ref so the channel is NOT recreated on
+  // every filter/search keystroke (deps no longer include fetchOrcamentos).
+  const fetchRef = useRef(fetchOrcamentos);
+  useEffect(() => {
+    fetchRef.current = fetchOrcamentos;
+  }, [fetchOrcamentos]);
+
+  useEffect(() => {
+    if (!autoFetch) return;
+
+    let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+
     const channel = supabase
       .channel('orcamentos-admin-changes')
       .on(
@@ -368,7 +380,7 @@ export function useOrcamentosAdmin({
         { event: 'INSERT', schema: 'public', table: 'orcamentos' },
         () => {
           if (debounceTimer) clearTimeout(debounceTimer);
-          debounceTimer = setTimeout(() => fetchOrcamentos(), 500);
+          debounceTimer = setTimeout(() => fetchRef.current(), 500);
         }
       )
       .on(
@@ -408,9 +420,8 @@ export function useOrcamentosAdmin({
         'postgres_changes',
         { event: '*', schema: 'public', table: 'leads' },
         () => {
-          // Lead name/phone/status changed — debounced refetch
           if (debounceTimer) clearTimeout(debounceTimer);
-          debounceTimer = setTimeout(() => fetchOrcamentos(), 800);
+          debounceTimer = setTimeout(() => fetchRef.current(), 800);
         }
       )
       .subscribe();
@@ -419,7 +430,8 @@ export function useOrcamentosAdmin({
       if (debounceTimer) clearTimeout(debounceTimer);
       supabase.removeChannel(channel);
     };
-  }, [autoFetch, fetchOrcamentos]);
+    // Channel lifecycle depends ONLY on autoFetch — not on filters/search.
+  }, [autoFetch]);
 
   // Computed values — filter by vendedor_id
   const totalKwh = orcamentos.reduce((acc, o) => acc + o.media_consumo, 0);
