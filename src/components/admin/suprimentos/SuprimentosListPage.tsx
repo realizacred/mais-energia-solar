@@ -39,6 +39,7 @@ const STATUS_COLORS: Record<OrdemCompraStatus, string> = {
 
 interface SuprimentosListPageProps {
   projetoId?: string;
+  enabled?: boolean;
 }
 
 export function SuprimentosListPage({ projetoId }: SuprimentosListPageProps) {
