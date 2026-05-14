@@ -24,7 +24,7 @@ export default function MinhasInstalacoes() {
         .select("*")
         .eq("responsavel_tecnico_id", user!.id);
       if (error) throw error;
-      return data || [];
+      return (data || []) as any[];
     }
   });
 
@@ -36,7 +36,8 @@ export default function MinhasInstalacoes() {
     );
   }
 
-  const projetos = (projetosData || []).map((p: any) => ({
+  const pRows = (projetosData || []);
+  const projetos = pRows.map((p: any) => ({
     id: p.id,
     codigo: p.codigo,
     projeto_num: p.projeto_num,
