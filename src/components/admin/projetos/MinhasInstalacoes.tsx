@@ -24,7 +24,7 @@ export default function MinhasInstalacoes() {
         .select("*")
         .eq("responsavel_tecnico_id", user!.id);
       if (error) throw error;
-      return data;
+      return (data || []) as any[];
     }
   });
 
