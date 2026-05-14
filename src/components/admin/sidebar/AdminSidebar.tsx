@@ -97,7 +97,7 @@ function SidebarItemButton({
       onDragOver={draggable ? (e) => onDragOver?.(e as any, item.id) : undefined}
       onDrop={draggable ? (e) => onDrop?.(e as any, item.id) : undefined}
       onDragEnd={draggable ? onDragEnd : undefined}
-      className="group/item relative overflow-visible"
+      className="group/item relative overflow-visible select-none touch-none"
     >
       <SidebarMenuButton
         onClick={handleClick}
