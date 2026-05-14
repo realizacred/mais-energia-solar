@@ -9,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import * as XLSX from "xlsx";
 import { useOrcamentosAdmin } from "@/hooks/useOrcamentosAdmin";
+import { useVendedoresList } from "@/hooks/useVendedores";
 import { 
   OrcamentosTable, 
   LeadFilters, 
