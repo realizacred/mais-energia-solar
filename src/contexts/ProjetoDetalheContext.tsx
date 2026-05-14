@@ -184,6 +184,9 @@ interface ProviderProps {
 export function ProjetoDetalheProvider({ dealId, onBack, initialPipelineId, initialPipelineName, children }: ProviderProps) {
   const queryClient = useQueryClient();
 
+  // Realtime: invalidate cliente-related queries when clientes table changes
+  useClientesRealtime();
+
   // ── Data from hooks ──
   const { data: fullData, isLoading: loadingData } = useProjetoDetalheData(dealId);
   const { data: etiquetasData } = useDealEtiquetas(dealId);
