@@ -341,6 +341,43 @@ function ProjetoDetalheContent() {
   const ctx = useProjetoDetalhe();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+
+  // Expose queryClient to window for PropostaExpandedDetail
+  useEffect(() => {
+    (window as any).queryClient = queryClient;
+    return () => {
+      delete (window as any).queryClient;
+    };
+  }, [queryClient]);
+
+  // Realtime subscription for deal status changes
+  useEffect(() => {
+    if (!ctx.dealId) return;
+
+    const channel = supabase
+      .channel(`deal-realtime-${ctx.dealId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "deals",
+          filter: `id=eq.${ctx.dealId}`,
+        },
+        (payload) => {
+          const oldStatus = (payload.old as any)?.status;
+          const newStatus = (payload.new as any)?.status;
+          if (oldStatus !== newStatus) {
+            queryClient.invalidateQueries({ queryKey: ["projeto-detalhe", ctx.dealId] });
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [ctx.dealId, queryClient]);
   const [editClienteId, setEditClienteId] = useState<string | null>(null);
   const [editingTitle, setEditingTitle] = useState(false);
   const [titleDraft, setTitleDraft] = useState("");
