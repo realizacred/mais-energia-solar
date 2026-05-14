@@ -289,50 +289,58 @@ export function ProjetoMultiPipelineManager({ dealId, dealStatus, pipelines, all
       return; 
     }
 
-    // Validação de checklist Documentação -> Engenharia
-    if (!force && membership?.pipeline_name.toLowerCase().includes("documentação") && newStage?.name.toLowerCase().includes("engenharia")) {
-      setSaving(membershipId);
-      try {
-        // Busca IDs dos campos customizados de documentos
-        const requiredDocs = [
-          { key: "cap_identidade", category: "rg_cnh", label: "RG/CNH dos Proprietários" },
-          { key: "cap_comprovante_endereco", category: "conta_luz", label: "Conta de Luz (Última fatura)" },
-          { key: "cap_documentos", category: "iptu", label: "IPTU/Documento do Imóvel" }
-        ];
+    // Validação dinâmica de documentos obrigatórios por etapa
+    setSaving(membershipId);
+    try {
+      // 1. Buscar documentos obrigatórios configurados para a etapa de destino
+      const { data: requiredDocs } = await supabase
+        .from("etapa_documentos_obrigatorios")
+        .select("categoria, label")
+        .eq("pipeline_stage_id", newStageId)
+        .eq("obrigatorio", true);
 
-        // 1. Verificar em deal_custom_field_values
-        const { data: fields } = await supabase
-          .from("deal_custom_fields")
-          .select("id, field_key")
-          .in("field_key", requiredDocs.map(d => d.key));
-
-        const { data: customFieldValues } = await (supabase
-          .from("deal_custom_field_values")
-          .select("field_id, value_text")
-          .eq("deal_id", dealId) as any);
-
-        // 2. Verificar em project_documents (SSOT)
-        const { data: projectDocuments } = await (supabase
+      if (requiredDocs && requiredDocs.length > 0) {
+        // 2. Verificar quais documentos o deal já possui
+        // Verificamos em project_documents
+        const { data: projectDocuments } = await supabase
           .from("project_documents" as any)
           .select("categoria")
           .eq("deal_id", dealId)
-          .eq("is_deleted", false) as any);
+          .eq("is_deleted", false) as any;
 
-        const missing = requiredDocs
-          .filter(doc => {
-            // Check 1: Custom Field Value
-            const fieldId = fields?.find(f => f.field_key === doc.key)?.id;
-            const customValue = customFieldValues?.find((v: any) => v.field_id === fieldId)?.value_text;
-            const hasCustomField = customValue && customValue !== "[]" && customValue !== "";
-            
-            // Check 2: Project Documents Category
-            const hasDocument = projectDocuments?.some((d: any) => d.categoria === doc.category);
+        // E verificamos em deal_custom_field_values para compatibilidade com campos legados
+        const { data: customFieldValues } = await supabase
+          .from("deal_custom_field_values")
+          .select("field_id, value_text")
+          .eq("deal_id", dealId) as any;
+          
+        const { data: fields } = await supabase
+          .from("deal_custom_fields")
+          .select("id, field_key");
 
-            return !hasCustomField && !hasDocument;
-          })
-          .map(doc => doc.label);
+        const missing = requiredDocs.filter(req => {
+          // Check in project_documents
+          const hasInDocs = projectDocuments?.some((d: any) => d.categoria === req.categoria);
+          if (hasInDocs) return false;
 
-        if (missing.length > 0) {
+          // Check in custom fields (mapeamento legado se houver)
+          // Mapeamento manual de categorias conhecidas para field_keys legadas
+          const categoryToKey: Record<string, string> = {
+            'rg_cnh': 'cap_identidade',
+            'conta_luz': 'cap_comprovante_endereco',
+            'iptu': 'cap_documentos'
+          };
+          const legacyKey = categoryToKey[req.categoria];
+          if (legacyKey) {
+            const fieldId = fields?.find(f => f.field_key === legacyKey)?.id;
+            const value = customFieldValues?.find((v: any) => v.field_id === fieldId)?.value_text;
+            if (value && value !== "[]" && value !== "") return false;
+          }
+
+          return true;
+        }).map(doc => doc.label);
+
+        if (!force && missing.length > 0) {
           setValidationDialog({
             isOpen: true,
             membershipId,
@@ -342,11 +350,11 @@ export function ProjetoMultiPipelineManager({ dealId, dealStatus, pipelines, all
           setSaving(null);
           return;
         }
-      } catch (err) {
-        console.error("Erro ao validar checklist:", err);
-      } finally {
-        setSaving(null);
       }
+    } catch (err) {
+      console.error("Erro ao validar documentos obrigatórios:", err);
+    } finally {
+      // Don't setSaving(null) yet if we are proceeding
     }
 
     setSaving(membershipId);
