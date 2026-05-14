@@ -39,10 +39,9 @@ const STATUS_COLORS: Record<OrdemCompraStatus, string> = {
 
 interface SuprimentosListPageProps {
   projetoId?: string;
-  enabled?: boolean;
 }
 
-export function SuprimentosListPage({ projetoId, enabled = true }: SuprimentosListPageProps) {
+export function SuprimentosListPage({ projetoId }: SuprimentosListPageProps) {
   const navigate = useNavigate();
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [fornecedorFilter, setFornecedorFilter] = useState<string>("all");
