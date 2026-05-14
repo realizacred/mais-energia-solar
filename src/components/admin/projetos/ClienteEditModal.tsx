@@ -152,52 +152,66 @@ export function ClienteEditModal({ open, onOpenChange, clienteId, onSaved }: Cli
               <Spinner size="md" />
             </div>
           ) : (
-            <div className="p-5 space-y-4">
-              {/* Dados Pessoais — §DS-06 */}
-              <div className="space-y-4">
-                <h3 className="text-base font-semibold text-foreground border-b border-border pb-2">Dados Pessoais</h3>
+            <div className="p-5 sm:p-6 space-y-6">
+              {/* ── Dados Pessoais ── */}
+              <section className="space-y-4">
+                <div className="flex items-center justify-between border-b border-border pb-2">
+                  <h3 className="text-sm font-semibold text-foreground uppercase tracking-wide">Dados Pessoais</h3>
+                </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium text-foreground">Nome <span className="text-destructive">*</span></Label>
+                  <div className="flex flex-col gap-1.5">
+                    <Label htmlFor="cliente-nome" className="text-sm font-medium text-foreground">
+                      Nome <span className="text-destructive ml-0.5">*</span>
+                    </Label>
                     <Input
+                      id="cliente-nome"
                       value={form.nome}
                       onChange={(e) => setForm({ ...form, nome: e.target.value })}
+                      placeholder="Nome completo"
                     />
                   </div>
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium text-foreground">Telefone <span className="text-destructive">*</span></Label>
+                  <div className="flex flex-col gap-1.5">
+                    <Label htmlFor="cliente-telefone" className="text-sm font-medium text-foreground">
+                      Telefone <span className="text-destructive ml-0.5">*</span>
+                    </Label>
                     <PhoneInput
+                      id="cliente-telefone"
                       value={form.telefone}
                       onChange={(raw) => setForm({ ...form, telefone: raw })}
                     />
                   </div>
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium text-foreground">E-mail</Label>
+                  <div className="flex flex-col gap-1.5">
+                    <Label htmlFor="cliente-email" className="text-sm font-medium text-foreground">E-mail</Label>
                     <EmailInput
+                      id="cliente-email"
                       value={form.email}
                       onChange={(v) => setForm({ ...form, email: v })}
                     />
                   </div>
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium text-foreground">CPF/CNPJ</Label>
-                    <CpfCnpjInput
-                      value={form.cpf_cnpj}
-                      onChange={(v) => setForm({ ...form, cpf_cnpj: v })}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium text-foreground">Data de Nascimento</Label>
+                  <CpfCnpjInput
+                    id="cliente-cpf-cnpj"
+                    value={form.cpf_cnpj}
+                    onChange={(v) => setForm({ ...form, cpf_cnpj: v })}
+                    label="CPF/CNPJ"
+                    placeholder="CPF ou CNPJ"
+                    showValidation
+                  />
+                  <div className="flex flex-col gap-1.5">
+                    <Label htmlFor="cliente-nascimento" className="text-sm font-medium text-foreground">Data de Nascimento</Label>
                     <DateInput
+                      id="cliente-nascimento"
                       value={form.data_nascimento}
                       onChange={(v) => setForm({ ...form, data_nascimento: v })}
                     />
                   </div>
                 </div>
-              </div>
+              </section>
 
-              {/* Endereço — §DS-06 */}
-              <div className="space-y-4">
-                <h3 className="text-base font-semibold text-foreground border-b border-border pb-2">Endereço</h3>
+              {/* ── Endereço ── */}
+              <section className="space-y-4">
+                <div className="flex items-center justify-between border-b border-border pb-2">
+                  <h3 className="text-sm font-semibold text-foreground uppercase tracking-wide">Endereço</h3>
+                </div>
                 <AddressFields
                   value={{
                     cep: form.cep,
@@ -221,18 +235,21 @@ export function ClienteEditModal({ open, onOpenChange, clienteId, onSaved }: Cli
                     }));
                   }}
                 />
-              </div>
+              </section>
 
-              {/* Observações — §DS-06 */}
-              <div className="space-y-2">
-                <Label className="text-sm font-medium text-foreground">Observações</Label>
+              {/* ── Observações ── */}
+              <section className="space-y-2">
+                <div className="flex items-center justify-between border-b border-border pb-2">
+                  <h3 className="text-sm font-semibold text-foreground uppercase tracking-wide">Observações</h3>
+                </div>
                 <Textarea
                   value={form.observacoes}
                   onChange={(e) => setForm({ ...form, observacoes: e.target.value })}
                   rows={3}
+                  placeholder="Notas internas sobre o cliente (opcional)"
                   className="text-sm resize-y"
                 />
-              </div>
+              </section>
             </div>
           )}
         </ScrollArea>
