@@ -257,6 +257,15 @@ export function VendorLeadViewDialog({ lead, open, onOpenChange, vendedorNome }:
               </div>
             </TabsContent>
 
+            <TabsContent value="credito" className="mt-4">
+              <ProjetoCreditoTab 
+                leadId={lead.id}
+                clienteId={null} // Lead might not be a client yet
+                clienteCpfCnpj={null}
+                valorProposta={null}
+              />
+            </TabsContent>
+
             <TabsContent value="whatsapp" className="mt-4">
               <div className="space-y-4">
                 <p className="text-sm text-muted-foreground">
