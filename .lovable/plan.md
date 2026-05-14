@@ -1,345 +1,371 @@
-# Refinamento Arquitetural — Pré-Fase 0
+# Realtime Domain Architecture — Mais Energia Solar CRM
 
-> Status: **DESENHO**. Nada vai para migration até este documento ser aprovado.
-> Objetivo: fechar os 10 riscos levantados antes de tocar em schema/código.
+> Status: **DESENHO**. Nada vai para código até este documento ser aprovado.
+> Escopo: arquitetura de sincronização multiusuário, não patch de subscription.
 
 ---
 
-## 1. Refinamento final dos aggregates
+## 0. Diagnóstico do estado atual
 
-### Aggregate roots (fontes da verdade)
+### Sintomas observados
+- Subscriptions espalhadas em hooks de tela (cada tab abre canal próprio).
+- Invalidações ad-hoc por mutation, sem dono claro.
+- Badges/contadores divergem entre header, sidebar, kanban.
+- Necessidade de F5 para ver estado real após ação de outro usuário.
+- Race conditions em mutations concorrentes.
+- Fan-out: ProjetoDetalhe abre ~6–9 canais (proposta, documentos, mensagens, financeiro, custom fields, kit, UCs).
 
-| Aggregate | Responsabilidade | Identidade |
-|---|---|---|
-| **Customer** | Pessoa/empresa cadastral. Sem estado comercial. | `customer_id` |
-| **Opportunity** | Intenção comercial (ex-lead/ex-deal). Lifecycle: `qualifying → proposing → negotiating → won/lost`. | `opportunity_id` |
-| **Proposal** | Documento comercial versionado. Pertence a 1 Opportunity. Lifecycle: `draft → sent → accepted/rejected/expired`. | `proposal_id` |
-| **Contract** | Vínculo jurídico-financeiro. Nasce de uma `Proposal.accepted`. Aggregate root do **Financeiro**. | `contract_id` |
-| **WorkOrder** (Execução) | Ordem operacional. **NÃO é aggregate root**: é projection derivada de `Contract` + `WorkflowState`. | `contract_id` (mesmo) |
-| **EnergyAsset** (UC/usina) | Cadastro físico. Pode existir sem contrato (monitoramento puro). | `asset_id` |
+### Causa raiz arquitetural
+Hoje o sistema mistura três coisas:
+1. **Estado persistido** (Supabase) — única fonte real.
+2. **Cache de query** (React Query) — SSOT do servidor *no cliente*.
+3. **Estado derivado** (badges, contadores, KPIs) — calculado em N lugares diferentes.
 
-### Mudança chave vs desenho anterior
-- **Financeiro deixa de ser aggregate solto.** Vira **`Contract` aggregate** com um *financial ledger* interno (entries imutáveis: `billing_scheduled`, `invoice_emitted`, `payment_received`, `commission_accrued`, `commission_paid`, `refund_issued`).
-- **Sem Contract → sem ledger.** Elimina financeiro órfão por construção.
-- **Execução é projection** sobre `Contract` + eventos de workflow. Não tem ledger próprio, não emite eventos canônicos do negócio (só *operational facts* que viram input para projections).
+Sem fronteira clara entre os três, qualquer mutação vira "quem invalida o quê?". A correção não é mais subscriptions — é **definir owners e canais por domínio**.
+
+---
+
+## 1. Classificação de entidades por necessidade de realtime
+
+### Crítico (latência < 2s, multiusuário ativo)
+- **Mensagens WhatsApp/conversa** — chat ao vivo.
+- **Atribuição de lead/oportunidade** — corrida entre consultores.
+- **Status de proposta** (sent/accepted/rejected) — gatilho de ação imediata.
+- **Locks de edição** (proposta sendo editada por outro).
+- **Notificações pessoais** (sino).
+
+### Importante (latência < 10s, colaborativo)
+- **Kanban comercial e operacional** — cards movem para outros vendo.
+- **Custom fields / documentos do projeto** — vários usuários no mesmo deal.
+- **Checklist de instalação** — equipe campo + escritório.
+- **Pagamentos recebidos / ledger financeiro** — visibilidade gerencial.
+- **Assinatura digital** (status do provedor).
+
+### Opcional (eventual, polling-on-focus aceita)
+- **Dashboards/KPIs agregados** — invalidate on focus + intervalo > 60s.
+- **Catálogo de kits/equipamentos** — raro mudar.
+- **Configurações de funil/templates** — admin-only.
+- **Concessionária / tarifas** — raríssimo.
+- **Estoque** (se entrar) — depende do volume; provavelmente importante.
+- **Logs de auditoria / migração SM** — opcional, on-demand.
+
+### Nunca realtime
+- Snapshots imutáveis (proposta congelada, eventos de domínio).
+- Relatórios pesados (carregar sob demanda).
+
+---
+
+## 2. Unidade canônica de sincronização — DECISÃO
+
+### Avaliação das opções
+
+| Opção | Prós | Contras | Veredito |
+|---|---|---|---|
+| Por tabela | Simples no Supabase | Fan-out gigante, vaza esquema, frontend acopla a DDL | ❌ |
+| Por tenant | 1 canal por user | Volume enorme, sem filtro útil, vaza dados | ❌ |
+| Por projeto/deal | Foco por contexto | N canais por usuário ativo, mas controlado | ✅ contexto |
+| Por aggregate (domínio) | Mapeia ao modelo de eventos | Requer event bus interno | ✅ base |
+| Event bus interno | Desacopla origem de canal | Custo de implementação | ✅ obrigatório |
+
+### Decisão arquitetural
+
+**Modelo híbrido em 2 camadas:**
+
+1. **Camada de domínio (event bus interno, server-side):** toda mutação relevante grava um *domain event* (envelope versionado, ver §3). Eventos são a SSOT do "o que aconteceu".
+
+2. **Camada de transporte realtime (Supabase Broadcast):** canais nomeados por **escopo de contexto**, não por tabela. Cada canal carrega *projection-change notifications* (UI-safe), não payload bruto.
+
+### Catálogo de canais (fechado)
 
 ```text
-Customer ──< Opportunity ──< Proposal ──┐
-                                        ▼
-                                    Contract (AGG ROOT financeiro)
-                                        │
-                          ┌─────────────┼─────────────┐
-                          ▼             ▼             ▼
-                    FinancialLedger  WorkflowState  WorkOrder
-                       (entries)     (transitions)  (projection)
-EnergyAsset ────────────────────────────┘
+tenant:{tenant_id}:notifications        — sino global do usuário
+tenant:{tenant_id}:assignments          — atribuições de lead/owner
+tenant:{tenant_id}:kanban:{pipeline_id} — movimentos no board
+deal:{deal_id}                          — tudo do deal (proposta, docs, custom fields, financeiro)
+project:{project_id}                    — execução, instalação, checklist
+conversation:{conversation_id}          — chat WhatsApp ativo
+user:{user_id}:presence                 — locks de edição, presença
 ```
 
----
-
-## 2. Estratégia de eventos — *business semantic*, não CRUD
-
-### Convenção de nome
-`{aggregate}.{fact_pretérito}` — sempre fato de negócio, nunca operação técnica.
-
-### Catálogo canônico (v1)
-
-**Opportunity**
-- `opportunity.qualified`
-- `opportunity.won` *(ex-`commercial.won`)*
-- `opportunity.lost { reason }`
-
-**Proposal**
-- `proposal.sent`
-- `proposal.accepted` *(canonical — substitui `proposal.contracted`)*
-- `proposal.rejected`
-- `proposal.expired`
-
-**Contract**
-- `contract.created` *(emitido como reação a `proposal.accepted`, não como gatilho direto)*
-- `contract.signed`
-- `contract.cancelled { reason }`
-- `contract.completed`
-
-**Financial (subdomínio do Contract)**
-- `billing.scheduled`
-- `invoice.issued`
-- `payment.received { amount, method }`
-- `payment.refunded`
-- `commission.accrued`
-- `commission.settled`
-
-**Execution (operational facts)**
-- `execution.authorized` *(gerado por policy, não por trigger direto de "won")*
-- `installation.scheduled`
-- `installation.completed`
-- `homologation.approved`
-- `project.energized`
-
-### Princípio de desacoplamento
-- Operacional **não consome** `payment.received`. Consome `execution.authorized`, que é emitido por uma **policy** que sabe ler ledger interno (ex.: "≥30% pago + contrato assinado").
-- Frontend operacional **nunca vê** valores financeiros via evento. Vê via projection autorizada.
-
-### Substituição dos gatilhos atuais
-| Antigo (acoplado) | Novo (semântico) |
-|---|---|
-| trigger `deal.stage=won` → cria projeto | policy assina `opportunity.won` → emite `contract.created` → policy assina `contract.signed + first_payment` → emite `execution.authorized` |
-| `proposal.contracted` | `proposal.accepted` (canonical) + `contract.created` (reação) |
-| trigger direto "iniciar instalação" | `execution.authorized` consumido por workflow engine |
+**Regras:**
+- Cliente assina **só os canais do contexto atual**: ao abrir DealDetalhe, assina `deal:{id}` + `tenant:{tenant_id}:notifications`. Sai da tela = unsubscribe síncrono.
+- Listas (kanban) assinam `tenant:{tenant_id}:kanban:{pipeline_id}`, **não** N canais de cada deal.
+- Server publica **um evento** no canal certo após `domain_events.insert`. Frontend nunca lê `postgres_changes` diretamente.
 
 ---
 
-## 3. Domain event envelope — governance
-
-Toda mensagem persistida em `domain_events` tem este envelope (imutável):
+## 3. Domain event envelope (transporte realtime)
 
 ```text
 {
-  event_id              uuid    -- PK
-  event_type            text    -- "proposal.accepted"
-  event_version         int     -- versão do contrato semântico (1, 2, ...)
-  schema_version        int     -- versão do payload JSON
-  aggregate_type        text    -- "proposal"
-  aggregate_id          uuid
-  aggregate_version     bigint  -- nº sequencial por aggregate (concurrency guard)
-  tenant_id             uuid
-  occurred_at           timestamptz
-  recorded_at           timestamptz
-  correlation_id        uuid    -- liga uma cadeia de causa-efeito
-  causation_id          uuid    -- event_id que causou este
-  actor                 jsonb   -- { type: user|system|policy, id, name }
-  payload               jsonb   -- imutável após persistido
-  metadata              jsonb   -- ip, user_agent, source_app
+  v: 1,                          // versão do envelope
+  event: "deal.proposal.accepted",
+  aggregate: { type, id },
+  tenant_id,
+  occurred_at,
+  correlation_id,
+  affects: [                     // hint p/ invalidação no cliente
+    { scope: "deal", id },
+    { scope: "kanban", pipeline_id }
+  ],
+  // SEM payload de negócio sensível
 }
 ```
 
-Regras:
-- `aggregate_version` aplica **optimistic concurrency**: insert falha se versão esperada não bate.
-- Migrações de schema **nunca** reescrevem eventos antigos. Usa-se *upcasters* na leitura.
-- `event_type` + `event_version` é o contrato público; `schema_version` é detalhe interno do payload.
+Cliente recebe → consulta tabela de roteamento (§8) → invalida só as queries afetadas.
 
 ---
 
-## 4. Estratégia de projections
+## 4. SSOTs duplicadas — mapa atual e correção
 
-### Tipos
-1. **Read models** (UI/listagens): `opportunities_list`, `contracts_kanban`, `financial_dashboard`, `execution_board`.
-2. **Capability projections** (ver §6).
-3. **Cross-aggregate projections** (ex: `customer_360` agrega Opportunity + Contract + Asset).
+### Mapa de duplicação detectado
 
-### Mecânica
-- Cada projection é uma **tabela materializada** alimentada por *projector workers* que consomem `domain_events` em ordem por `aggregate_id`.
-- Cada projector grava seu *checkpoint*: `(projection_name, last_event_id, last_aggregate_version)`.
-- Projections são **idempotentes**: reaplicar o mesmo evento não muda estado.
+| Estado | Quem deriva hoje (errado) | Quem deve ser dono |
+|---|---|---|
+| Badge "propostas pendentes" | Header lê count A, sidebar lê count B, dashboard outro | Projection `deal_summary.proposals_pending` |
+| Badge "documentos faltantes" | Tab Custom Fields conta, header conta separado | Projection `deal_summary.docs_missing` |
+| Status do deal no card kanban | Kanban deriva de `deals.status` cru | Projection `deal_kanban_card` (já existe parcialmente) |
+| Total proposta (R$) | 6 lugares calculam | `getCanonicalProposalTotal` (já é SSOT — auditar callers) |
+| Lock "alguém editando" | Não existe — race silenciosa | Channel `deal:{id}` + presence track |
+| Contadores de funil | Cada componente faz `count(*)` | Projection `pipeline_stage_counts` |
+| KPIs dashboard | Query direto em deals/projetos | Projections `dashboard_*` materializadas |
 
-### Invalidação
-- Realtime para o frontend é emitido **pela projection**, não pelo evento de domínio (ver §8).
-
----
-
-## 5. Multi-tenant — invariantes
-
-- `tenant_id` em **toda** linha de `domain_events`, projections e workflow tables. Não-nulo, indexado, presente em RLS.
-- Aggregate roots carregam `tenant_id`. Eventos herdam.
-- Projectors processam **partições por tenant** para isolamento de falha (um tenant travado não bloqueia outros).
-- Workflow definitions (§7) podem ser globais OU por tenant (override).
+### Princípio de correção
+**Toda contagem/derivação na UI vira projection no banco.** Frontend só *lê* projection e *invalida* via canal.
 
 ---
 
-## 6. Capabilities — projection-driven UI
+## 5. Ownership — perguntas respondidas
 
-### Tabela `entity_capabilities` (projection)
+| Pergunta | Resposta |
+|---|---|
+| Quem é dono do estado do projeto? | Aggregate `Project` no banco. Cache cliente: query `useProject(id)`. |
+| Quem é dono dos badges? | Projection `deal_summary` / `project_summary`. Frontend só lê. |
+| Quem é dono do lifecycle? | Workflow engine (estado persistido em `workflow_instances`). Status na tabela é *cache* da projeção. |
+| Quem pode invalidar quem? | Só o **owner hook** do scope (ex: `useDealRealtime` invalida queries `deal:*`). Componentes nunca chamam `invalidateQueries` direto. |
+| O que é derived state? | Tudo que pode ser recomputado de outro estado. Vai para projection ou `useMemo` local. |
+| O que é persisted state? | Tabelas raiz (`deals`, `proposals_native`, `projects`, ...). |
+| O que é aggregate state? | Composição de aggregate root + filhos imutáveis (ex: Proposal + versões + kits). Cache: 1 query por aggregate root. |
+
+---
+
+## 6. Fan-out e custo
+
+### Estimativa atual (ProjetoDetalhe aberto)
+- 6–9 `postgres_changes` subscriptions por tela aberta.
+- 1 conexão Supabase Realtime por usuário (correto — multiplexa canais).
+- Em tenant com 30 usuários ativos × 8 canais cada = ~240 subscriptions concorrentes.
+- Cada `UPDATE` em `deals` faz fan-out para todos os assinantes da tabela, mesmo sem afetar.
+
+### Após nova arquitetura
+- 2–3 canais por tela (deal/project + notifications + presence).
+- Server publica **só nos canais afetados** (filtro semântico, não por tabela).
+- 30 usuários × 3 canais = 90 subscriptions, com payload pequeno (só envelope).
+- Custo Supabase Realtime cai ~60%.
+
+### Limites operacionais
+- Hard cap: max 5 canais simultâneos por aba.
+- Idle disconnect: canal sem evento por 10min → pausa, reconecta on focus.
+- Backpressure: se cliente recebe > 50 eventos/min num canal, faz coalesce (1 invalidate por janela de 500ms).
+
+---
+
+## 7. Storms, loops, races — estratégias
+
+### Anti-storm (cascata de invalidações)
+- **Coalesce window** de 500ms por scope: múltiplos eventos no mesmo canal viram 1 invalidate.
+- Projections **idempotentes**: mesmo evento aplicado 2× = mesmo estado.
+- Server agrupa publishes em transação: 1 commit = 1 publish por canal afetado, não N.
+
+### Anti-loop (echo de optimistic updates)
+- Toda mutation carrega `client_request_id` (uuid).
+- Server inclui `originator_request_id` no envelope do evento.
+- Cliente ignora eventos cujo `originator_request_id` está em sua *pending mutations table* (já aplicou otimisticamente).
+
+### Anti-race (concurrent edits)
+- Aggregate version (`aggregate_version`) em toda mutation: server rejeita se versão desatualizada.
+- UI mostra conflito: "outro usuário alterou — recarregar".
+- Locks colaborativos via presence: ao focar campo, broadcast `editing:{field}`. Outros usuários veem indicador, podem optar por esperar.
+
+### Anti-fanout
+- Canal nunca por tabela. Sempre por contexto (§2).
+- Listas grandes (kanban) usam **1 canal de pipeline**, não N de deals.
+- Subscription só enquanto componente montado. Cleanup síncrono no unmount.
+
+### Anti-cache-duplication
+- 1 query key por aggregate root. Subqueries não criam cache paralelo.
+- `select` no React Query para derivar projeções leves no cliente sem nova query.
+- Counters/badges leem `deal_summary` projection — nunca `count(*)` no cliente.
+
+---
+
+## 8. Estratégia de invalidação
+
+### Roteador de invalidação (cliente)
+
+Tabela única em `src/realtime/invalidationMap.ts`:
 
 ```text
-tenant_id, aggregate_type, aggregate_id, capability, allowed boolean, reason text, computed_at
+event                          → query keys a invalidar
+deal.proposal.accepted         → ["deal", id], ["kanban", pipeline_id], ["deal-summary", id]
+deal.document.uploaded         → ["deal", id, "documents"], ["deal-summary", id]
+project.installation.completed → ["project", id], ["project-summary", id]
+conversation.message.received  → ["conversation", id], ["notifications"]
 ```
 
-### Catálogo inicial
-- `can_generate_contract` (Opportunity won + sem contrato ativo)
-- `can_send_proposal` (Proposal draft + cliente com email)
-- `can_accept_proposal` (Proposal sent + não expirada + assinatura ok)
-- `can_emit_invoice` (Contract signed + billing scheduled na data)
-- `can_register_payment` (Contract com saldo > 0)
-- `can_authorize_execution` (Contract signed + ledger atende policy)
-- `can_start_installation` (execution_authorized + agenda + equipe)
-- `can_finalize_project` (installation_completed + homologation_approved)
-- `can_cancel_contract` (Contract não completed)
+- **Único hook global** `useRealtimeRouter()` montado uma vez no shell autenticado.
+- Componentes nunca chamam `invalidateQueries` em response a realtime — só o router faz.
+- Mutations locais usam `setQueryData` (otimista) + dependem do echo do server para confirmar.
 
-### Regra de uso
-- **Frontend nunca decide habilitar botão por status.** Lê `capabilities[entity_id].can_X`.
-- Backend valida a mesma capability antes de aceitar comando (defense in depth).
-- Capability projection é recomputada por evento, com `reason` populado para tooltip.
+### Hierarquia de invalidação
+```text
+aggregate-level invalidate  →  invalida todas as queries do aggregate
+summary-level invalidate    →  invalida só projeção de badges
+list-level invalidate       →  invalida lista contendo o item
+```
+
+Server escolhe o nível mínimo necessário no campo `affects` do envelope.
 
 ---
 
-## 7. Workflow governance — sem hardcode
+## 9. Optimistic updates
 
-### Tabelas
+### Regras
+- Permitido em: mutations curtas e idempotentes (toggle, atribuição, status simples).
+- **Proibido** em: criação de aggregate, escrita financeira, transição de workflow.
+- Padrão: `mutationFn` recebe `client_request_id`, retorna server state, `onMutate` faz `setQueryData`, `onSettled` confia no echo do realtime para reconciliar.
+- Conflito: server retorna 409 com versão atual → cliente reverte e mostra toast.
+
+---
+
+## 10. Badges e contadores — desenho final
+
+### Tabelas de projection (resumos)
 ```text
-workflow_definitions       (id, tenant_id?, aggregate_type, name, version, active)
-workflow_states            (definition_id, key, label, is_initial, is_terminal)
-workflow_transition_rules  (definition_id, from_state, to_state, trigger_event, guard_expr, action_expr)
-workflow_instances         (id, definition_id, aggregate_id, current_state, version)
-workflow_transition_log    (instance_id, from, to, event_id, occurred_at)
+deal_summary           (deal_id, proposals_pending, docs_missing, last_activity_at, ...)
+project_summary        (project_id, tasks_pending, days_to_install, ...)
+pipeline_stage_counts  (tenant_id, pipeline_id, stage_id, count, value_sum)
+user_inbox_summary     (user_id, unread_messages, pending_assignments, ...)
 ```
 
 ### Princípios
-- Workflow é **dado**, não código. Adicionar etapa = `INSERT`, não deploy.
-- `tenant_id NULL` = definição global; tenant pode publicar override versionado.
-- `guard_expr` e `action_expr` em DSL restrita (whitelist de funções) — sem `eval` arbitrário.
-- Workflows operacionais (instalação, homologação) são instâncias separadas do contrato — múltiplos workflows convivem por aggregate.
+- Atualizadas por trigger ou projector após domain event.
+- Header/sidebar/kanban leem **a mesma projection**. Zero divergência.
+- Realtime: canal correspondente publica `summary.updated` → invalida só essa key.
+- Recompute completo é seguro (idempotente) — usado em rebuild.
 
 ---
 
-## 8. Realtime governance — frontend isolado de eventos brutos
-
-### Camadas
-1. `domain_events` (interno, **nunca** vai para o canal Realtime do cliente).
-2. `projection_changes` (broadcast leve: `{ projection, key, version, op }`).
-3. Cliente assina `projection_changes` filtrado por tenant + projection relevante.
-
-### UI-safe events
-Catálogo fechado e versionado:
-- `ui.opportunity.updated { id }`
-- `ui.contract.financial_summary.updated { id }`
-- `ui.execution.board.updated { contract_id }`
-- `ui.notification.new { id }`
-
-Frontend **só** chama `queryClient.invalidateQueries` baseado nesse catálogo. Nunca lê payload sensível do canal.
-
----
-
-## 9. Anti-falha — retries, DLQ, failed projections
-
-### Política por camada
-
-| Camada | Estratégia |
-|---|---|
-| **Command handler** | Falha = nada persiste (transação). Cliente recebe erro. |
-| **Event projector** | Retry exponencial (5x: 1s/5s/30s/2m/10m). Falha persistente → `failed_projections` (DLQ). Projector continua a partir do próximo evento (não bloqueia stream). |
-| **Policy/reactor** | Mesmo que projector + alertas críticos. Idempotência obrigatória via `causation_id` único. |
-| **External integrations** (signatário, gateway pagto) | Outbox pattern: evento gravado primeiro, worker tenta entregar com retry, registra em `integration_attempts`. |
-
-### Tabelas
-```text
-failed_projections      (projection_name, event_id, error, attempts, first_failed_at, last_attempt_at)
-integration_outbox      (id, target, payload, status, attempts, next_retry_at)
-dead_letter_events      (event_id, reason, moved_at)  -- ação manual obrigatória
-```
-
-### Observabilidade
-- Dashboard "saúde de projections": lag por projector, DLQ count, retries em andamento.
-- Alerta quando lag > 30s ou DLQ > 0.
-
----
-
-## 10. Replay & rebuild
-
-### Princípios
-- **`domain_events` é a única fonte da verdade.** Toda projection é descartável e reconstruível.
-- Snapshots são **otimização**, não correção.
-
-### Snapshot strategy
-- Snapshot de aggregate state a cada N eventos (default 100) em `aggregate_snapshots`.
-- Replay carrega último snapshot + eventos posteriores.
-- Snapshot é versionado pelo `aggregate_version` que ele representa.
-
-### Rebuild de projection (operação rotineira)
-1. `TRUNCATE` projection + checkpoint.
-2. Worker reprocessa `domain_events` em ordem por aggregate.
-3. Switchover atômico: rebuild em tabela `_new`, `RENAME` no fim.
-4. Tempo estimado por projection registrado em `projection_metadata`.
-
-### Replay seletivo
-- Por aggregate (`aggregate_id`), por janela de tempo, por `correlation_id` (auditoria de cadeia).
-
----
-
-## 11. Rollback strategy
-
-### Princípio
-Eventos são imutáveis. **Não se "deleta" evento.** Reverte-se com **evento compensatório**.
-
-| Cenário | Ação |
-|---|---|
-| Projeção corrompida | Rebuild (§10). |
-| Evento emitido errado | `*.compensated` event + correção semântica (`payment.refunded` para `payment.received` errado). |
-| Migration de schema com problema | Rollback DDL + nova migration. Eventos antigos lidos via upcaster. |
-| Workflow definition quebrada | Rollback para versão anterior (`workflow_definitions.active`). Instâncias em curso terminam na versão antiga. |
-| Bug em policy/reactor | Desativar policy, identificar eventos não-processados, re-enfileirar após fix. |
-
-### Feature flags
-Toda nova policy/reactor entra atrás de flag por tenant antes de virar default.
-
----
-
-## 12. Evolução futura
-
-### Princípios para não quebrar daqui pra frente
-1. **Aditivo > destrutivo.** Novo campo no payload = `schema_version++`, leitura via upcaster.
-2. **Novo evento > mudar evento.** Renomear/mudar semântica = `event_type` novo + deprecar antigo com janela de coexistência.
-3. **Capability nova** é só uma regra na projection — não exige mudança no frontend além de exibir botão se `allowed`.
-4. **Novo workflow** = `INSERT` em `workflow_definitions` v2; instâncias antigas continuam na v1.
-5. **Novo aggregate** entra como módulo isolado; integra via eventos, nunca via FK direta a tabelas de outro módulo.
-
-### Roadmap sugerido pós-Fase 0
-- Fase 1: aggregates Customer + Opportunity + Proposal + Contract + event store + projections básicas.
-- Fase 2: capability projections + frontend migrado para capabilities.
-- Fase 3: workflow engine genérico (substitui hardcodes restantes).
-- Fase 4: outbox + integrações externas (signatário, pagto).
-- Fase 5: snapshot/replay tooling + dashboard de saúde.
-- Fase 6: workflow custom por tenant.
-
----
-
-## Diagrama consolidado
+## 11. Mapa visual
 
 ```text
-                        ┌──────────────────────────┐
-   Comandos UI ───────► │   Command Handlers       │
-                        │ (validate + capability)  │
-                        └────────────┬─────────────┘
-                                     │ append
-                                     ▼
-                        ┌──────────────────────────┐
-                        │   domain_events (SSOT)   │◄────── snapshots
-                        │ envelope completo §3     │
-                        └────────────┬─────────────┘
-                                     │ stream ordenado
-              ┌──────────────────────┼──────────────────────┐
-              ▼                      ▼                      ▼
-        ┌──────────┐           ┌──────────┐          ┌──────────────┐
-        │Projectors│           │ Policies │          │  Outbox      │
-        │ (read    │           │/Reactors │          │ (integrações)│
-        │ models)  │           │ emitem   │          │              │
-        └────┬─────┘           │ novos    │          └──────┬───────┘
-             │                 │ eventos  │                 │
-             ▼                 └────┬─────┘                 ▼
-       ┌──────────┐                 │              external systems
-       │capability│                 │ append
-       │projection│                 ▼
-       └────┬─────┘           domain_events (loop)
-            │
-            ▼
-     ┌──────────────────┐
-     │projection_changes│──► Realtime (UI-safe)──► Frontend
-     └──────────────────┘                          (capabilities)
+┌──────────────── Mutation (UI) ─────────────────┐
+│ mutationFn → POST /api → server transaction:   │
+│   1. apply change                              │
+│   2. INSERT domain_event                       │
+│   3. UPDATE projections (mesma TX)             │
+│   4. NOTIFY broadcast(channel, envelope)       │
+└────────────────────────┬───────────────────────┘
+                         │
+                         ▼
+   ┌─────────────────────────────────────────┐
+   │ Supabase Realtime — canais por contexto │
+   │  tenant:X:notifications                 │
+   │  tenant:X:kanban:P                      │
+   │  deal:D                                 │
+   │  project:P                              │
+   │  conversation:C                         │
+   │  user:U:presence                        │
+   └────────────────────┬────────────────────┘
+                        │ envelope leve
+                        ▼
+   ┌─────────────────────────────────────────┐
+   │ Cliente: useRealtimeRouter (singleton)  │
+   │  - dedup por client_request_id          │
+   │  - coalesce 500ms                       │
+   │  - lookup invalidationMap               │
+   │  - queryClient.invalidateQueries        │
+   └────────────────────┬────────────────────┘
+                        │
+            ┌───────────┴───────────┐
+            ▼                       ▼
+       useDeal(id)            useDealSummary(id)
+       useProject(id)         usePipelineCounts(p)
+                                  ▼
+                             Header/Sidebar/Kanban
+                             (todos lendo mesma projection)
 ```
 
 ---
 
-## Riscos residuais a confirmar antes da Fase 0
+## 12. Plano de rollout em fases
 
-1. **Migração do legado**: como traduzir `deals` + `projetos` + `propostas_nativas` atuais em `Opportunity/Contract/Proposal` sem perder histórico → exige *backfill* gerando eventos sintéticos ordenados.
-2. **Performance event store** em escala (centenas de milhares por tenant): definir particionamento (`tenant_id` + mês) já na Fase 0.
-3. **Custo Realtime Supabase**: estimar canais simultâneos por tenant antes de habilitar `projection_changes` em massa.
-4. **DSL de guards/actions** (§7): definir gramática mínima para evitar reescrever em código depois.
+### Fase R0 — Fundação (sem realtime ainda)
+- Criar `domain_events` (envelope §3), `*_summary` projections vazias, helpers `publishDomainEvent`.
+- Migrar contadores hoje calculados no cliente para projections (trigger-based).
+- Centralizar `invalidationMap` + `useRealtimeRouter` (sem subscriptions ativas, só estrutura).
+- **Risco:** zero — código novo isolado.
+
+### Fase R1 — Canal `deal:{id}` (piloto)
+- Toda mutação de deal/proposta/documento publica no canal.
+- DealDetalhe substitui suas N subscriptions por 1 canal.
+- Validar coalesce, dedup, ausência de loops.
+- **Risco:** baixo — escopo único.
+
+### Fase R2 — Canais `tenant:X:kanban:P` e `tenant:X:notifications`
+- Kanban comercial e operacional migram para 1 canal por pipeline.
+- Sino de notificações via canal único.
+- Remove subscriptions antigas em listas.
+- **Risco:** médio — múltiplas telas tocadas; usar feature flag por tenant.
+
+### Fase R3 — Canal `project:{id}` + execução
+- Espelha R1 para mundo operacional.
+- Inclui checklist, instalação, homologação.
+- **Risco:** baixo — paralelo a R1.
+
+### Fase R4 — Conversations + presence
+- Canal `conversation:{id}` para chat WhatsApp.
+- Canal `user:{id}:presence` para locks colaborativos.
+- **Risco:** médio — volume de eventos alto, validar backpressure.
+
+### Fase R5 — Cleanup
+- Remover hooks antigos `useXyzRealtime` espalhados.
+- Remover invalidações ad-hoc dos componentes.
+- Deletar canais legados.
+- **Risco:** baixo se R1–R4 ok.
+
+### Fase R6 — Observabilidade
+- Dashboard interno: canais ativos, eventos/min, coalesce ratio, lag de projection, conflitos 409.
+- Alertas para storm/loop.
 
 ---
 
-## Decisão pedida
+## 13. Riscos por fase + mitigação
 
-Aprovar este refinamento (ou apontar pontos a revisar) **antes** de eu propor a Fase 0:
-- criar tabelas `domain_events`, `aggregate_snapshots`, `failed_projections`, `integration_outbox`;
-- scaffolding do command bus + projector runtime;
-- primeira projection (Opportunity) como prova de conceito.
+| Fase | Risco | Mitigação |
+|---|---|---|
+| R0 | Trigger de projection com bug = badge errado | Testes de idempotência + rebuild script |
+| R1 | Eventos perdidos (publish falha) | Outbox pattern: evento gravado primeiro, worker publica com retry |
+| R2 | Kanban grande (>500 cards) recebendo muitos eventos | Filtro por stage no canal; coalesce agressivo |
+| R3 | Workflow operacional emitindo eventos errados | Feature flag por tenant; rollback de policy |
+| R4 | Chat com volume alto saturar canal | Rate limit no publish; chat usa canal próprio, não compartilha |
+| R5 | Remover hook ainda em uso | Lint rule: proibir `postgres_changes` fora de `src/realtime/` |
+| Geral | Custo Supabase Realtime explodir | Métrica "canais ativos por tenant"; alerta em 80% do plano |
+
+---
+
+## 14. Decisões finais (pedindo aprovação)
+
+1. **Adotar canais por contexto** (deal/project/conversation/pipeline/tenant), não por tabela. ✅ recomendado
+2. **Toda mutation grava `domain_events`** e dispara broadcast no canal certo (mesma transação). ✅ recomendado
+3. **Projections substituem contadores no cliente** (`deal_summary`, `pipeline_stage_counts`, etc). ✅ recomendado
+4. **`useRealtimeRouter` singleton** + `invalidationMap` central; componentes não invalidam. ✅ recomendado
+5. **Optimistic updates restritos** a operações leves; mutations críticas esperam echo. ✅ recomendado
+6. **Lint rule** proibindo `postgres_changes` fora de `src/realtime/`. ✅ recomendado
+7. **Rollout faseado R0→R6**, feature flag por tenant em fases sensíveis. ✅ recomendado
+
+---
+
+## Próximo passo (somente após aprovação)
+
+Iniciar **Fase R0**: criar `domain_events`, primeiras `*_summary` projections, `invalidationMap` e router singleton — **sem ainda mover subscriptions existentes**. Isso valida a fundação sem risco em produção.
