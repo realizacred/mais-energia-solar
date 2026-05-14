@@ -55,10 +55,10 @@ export interface UseProjectDocumentsParams {
 
 const STALE = 1000 * 30;
 
-export function useProjectDocuments({ projetoId, dealId, propostaId }: UseProjectDocumentsParams) {
+export function useProjectDocuments({ projetoId, dealId, propostaId, enabled = true }: UseProjectDocumentsParams) {
   return useQuery<ProjectDocument[]>({
     queryKey: ["project-documents", projetoId, dealId, propostaId],
-    enabled: !!(projetoId || dealId || propostaId),
+    enabled: !!(projetoId || dealId || propostaId) && enabled,
     staleTime: STALE,
     queryFn: async () => {
       let q = supabase
