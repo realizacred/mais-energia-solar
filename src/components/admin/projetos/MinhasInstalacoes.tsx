@@ -1,4 +1,3 @@
-import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -7,7 +6,7 @@ import { PageHeader } from "@/components/ui-kit";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { User, MapPin, Clock, ChevronRight, Zap } from "lucide-react";
+import { MapPin, Clock, ChevronRight, Zap } from "lucide-react";
 import { SunLoader } from "@/components/loading/SunLoader";
 import { useNavigate } from "react-router-dom";
 import { differenceInDays } from "date-fns";
@@ -20,43 +19,33 @@ export default function MinhasInstalacoes() {
     queryKey: ["minhas-instalacoes", user?.id],
     enabled: !!user?.id,
     queryFn: async () => {
-      // Filtramos por etapas de execução (Engenharia, Equipamento, Instalação, Homologação)
-      // Buscamos etapas que pertençam a funis de execução
-      const { data: etapas } = await supabase
-        .from("projeto_etapas")
-        .select("id, nome")
-        .or('nome.ilike.%engenharia%,nome.ilike.%equipamento%,nome.ilike.%instalação%,nome.ilike.%homologação%');
-
-      const etapaIds = (etapas || []).map(e => e.id);
-
-      if (etapaIds.length === 0) return [];
-
       const { data, error } = await supabase
         .from("projetos")
         .select(`
           id, 
-          deal_id, 
           codigo, 
           projeto_num,
           nome,
           valor_total,
           potencia_kwp,
-          updated_at,
-          etapa_id
+          updated_at
         `)
-        .eq("responsavel_tecnico_id", user!.id);
-
-
-
-
+        .eq("responsavel_tecnico_id", user!.id)
+        .neq("status", "concluido")
+        .neq("status", "cancelado");
 
       if (error) throw error;
+      
       return (data || []).map((p: any) => ({
-        ...p,
-        clientes: { nome: p.nome || "Cliente" },
+        id: p.id,
+        codigo: p.codigo,
+        projeto_num: p.projeto_num,
+        nome: p.nome || "Cliente",
+        valor_total: p.valor_total,
+        potencia_kwp: p.potencia_kwp,
+        updated_at: p.updated_at,
         diasNaEtapa: differenceInDays(new Date(), new Date(p.updated_at))
       })).sort((a, b) => b.diasNaEtapa - a.diasNaEtapa);
-
     }
   });
 
@@ -89,20 +78,17 @@ export default function MinhasInstalacoes() {
                   <div className="flex justify-between items-start">
                     <div>
                       <p className="text-xs font-mono text-muted-foreground">{p.codigo || `#${p.projeto_num}`}</p>
-                      <h3 className="font-bold text-lg leading-tight">{p.clientes?.nome || p.nome || "Sem nome"}</h3>
+                      <h3 className="font-bold text-lg leading-tight">{p.nome}</h3>
                     </div>
                     <Badge variant="outline" className="bg-primary/5 text-primary border-primary/20">
                       Execução
                     </Badge>
-
                   </div>
 
                   <div className="space-y-1.5">
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
                       <MapPin className="h-3.5 w-3.5" />
-                      <span className="truncate">
-                        {p.clientes ? `${p.clientes.cidade} - ${p.clientes.estado}` : "Endereço não cadastrado"}
-                      </span>
+                      <span className="truncate">Obra em andamento</span>
                     </div>
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
                       <Clock className="h-3.5 w-3.5" />
