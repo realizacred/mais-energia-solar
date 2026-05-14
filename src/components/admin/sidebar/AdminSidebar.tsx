@@ -311,11 +311,12 @@ function SidebarSectionGroup({
                 // Add spacing before subsection labels
                 const prevItem = idx > 0 ? orderedItems[idx - 1] : null;
                 const showExtraSpacing = item.subsectionLabel || (item.separator && !item.subsectionLabel);
+                const isDragPlaceholder = dragId && dragId !== item.id && overId === item.id;
 
                 return (
                   <React.Fragment key={item.id}>
                     {item.subsectionLabel && !dragId && (
-                      <div className={`mx-2 ${idx > 0 ? 'mt-3' : 'mt-1'} mb-1 flex items-center gap-2`}>
+                      <div className={`mx-2 ${idx > 0 ? 'mt-3' : 'mt-1'} mb-1 flex items-center gap-2 pointer-events-none`}>
                         <span className="text-[9px] font-extrabold uppercase tracking-[0.12em] text-foreground/40 select-none">
                           {item.subsectionLabel}
                         </span>
@@ -323,7 +324,7 @@ function SidebarSectionGroup({
                       </div>
                     )}
                     {item.separator && !item.subsectionLabel && !dragId && (
-                      <div className="mx-3 my-2 h-px bg-border/20" />
+                      <div className="mx-3 my-2 h-px bg-border/20 pointer-events-none" />
                     )}
                     <div
                       className={`transition-all duration-150 ${
