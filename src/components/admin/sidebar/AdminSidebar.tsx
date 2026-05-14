@@ -102,6 +102,8 @@ function SidebarItemButton({
       <SidebarMenuButton
         onClick={handleClick}
         isActive={isActive}
+        draggable={false} // Prevent default browser link dragging interference
+
         tooltip={collapsed ? item.title : undefined}
         aria-label={item.title}
         className={`
