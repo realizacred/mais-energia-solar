@@ -11,22 +11,11 @@ import { SunLoader } from "@/components/loading/SunLoader";
 import { useNavigate } from "react-router-dom";
 import { differenceInDays } from "date-fns";
 
-interface SimpleProjeto {
-  id: string;
-  codigo: string | null;
-  projeto_num: number | null;
-  nome: string | null;
-  valor_total: number | null;
-  potencia_kwp: number | null;
-  updated_at: string;
-  diasNaEtapa: number;
-}
-
 export default function MinhasInstalacoes() {
   const { user } = useAuth();
   const navigate = useNavigate();
 
-  const { data: projetos = [], isLoading } = useQuery<SimpleProjeto[]>({
+  const { data: projetos = [], isLoading } = useQuery<any[]>({
     queryKey: ["minhas-instalacoes", user?.id],
     enabled: !!user?.id,
     queryFn: async () => {
@@ -39,15 +28,9 @@ export default function MinhasInstalacoes() {
       
       const rows = data || [];
       return rows.map((p: any) => ({
-        id: p.id,
-        codigo: p.codigo,
-        projeto_num: p.projeto_num,
-        nome: p.nome || "Cliente",
-        valor_total: p.valor_total,
-        potencia_kwp: p.potencia_kwp,
-        updated_at: p.updated_at,
+        ...p,
         diasNaEtapa: differenceInDays(new Date(), new Date(p.updated_at))
-      })).sort((a, b) => b.diasNaEtapa - a.diasNaEtapa);
+      })).sort((a: any, b: any) => b.diasNaEtapa - a.diasNaEtapa);
     }
   });
 
@@ -80,7 +63,7 @@ export default function MinhasInstalacoes() {
                   <div className="flex justify-between items-start">
                     <div>
                       <p className="text-xs font-mono text-muted-foreground">{p.codigo || `#${p.projeto_num}`}</p>
-                      <h3 className="font-bold text-lg leading-tight">{p.nome}</h3>
+                      <h3 className="font-bold text-lg leading-tight">{p.nome || "Cliente"}</h3>
                     </div>
                     <Badge variant="outline" className="bg-primary/5 text-primary border-primary/20">
                       Execução
