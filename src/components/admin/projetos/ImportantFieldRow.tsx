@@ -228,11 +228,11 @@ export function ImportantFieldRow({ field, value, dealId, onSaved, showSeparator
         <div className="flex items-center gap-2 py-1 px-1">
           <FieldIcon className="h-3.5 w-3.5 shrink-0 text-primary" />
           <span className="text-xs text-foreground flex-1 min-w-0 truncate" title={field.title}>{field.title}</span>
-          <Switch
-            checked={value?.value_boolean ?? false}
-            onCheckedChange={() => toggleBool()}
-            disabled={saving}
-          />
+            <Switch
+              checked={value?.value_boolean ?? false}
+              onCheckedChange={() => toggleBool()}
+              disabled={saving || disabled}
+            />
         </div>
         {showSeparator && <Separator />}
       </>
