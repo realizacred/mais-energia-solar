@@ -113,7 +113,7 @@ function getGovernanceFallbackSource(record?: GovernanceRecord): VariableSource 
 }
 
 /* ── Tab config ── */
-type DomainTab = VariableDomain | "todas" | "custom";
+type DomainTab = VariableDomain | "todas" | "custom" | "pre_dimensionamento" | "pos_dimensionamento";
 
 const TAB_ORDER: { key: DomainTab; label: string; icon: string }[] = [
   { key: "todas", label: "Todas", icon: "📊" },
