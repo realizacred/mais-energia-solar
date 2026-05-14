@@ -35,6 +35,7 @@ import { differenceInDays, differenceInHours } from "date-fns";
 import { cn } from "@/lib/utils";
 import { formatBRLCompact } from "@/lib/formatters";
 import { useLeadScoresMap } from "@/hooks/useLeadScoresMap";
+import { useAnaliseCredito } from "@/hooks/useAnaliseCredito";
 
 interface Lead {
   id: string;
