@@ -89,10 +89,10 @@ const TIPO_CONFIG: Record<string, {
   },
 };
 
-export function ProjetoInstalacaoTab({ dealId, enabled = true }: Props) {
+export function ProjetoInstalacaoTab({ dealId }: Props) {
   const { setActiveTab } = useProjetoDetalhe();
   const { data: templates = [], isLoading: loadingTemplates } = useChecklistTemplates();
-  const { data: checklists = [], isLoading: loadingChecklists } = useChecklistsByProjeto(dealId, enabled);
+  const { data: checklists = [], isLoading: loadingChecklists } = useChecklistsByProjeto(dealId);
   const criarChecklist = useCriarChecklist();
 
   // Gate: verificar se existe proposta aceita/principal
