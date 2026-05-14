@@ -168,9 +168,13 @@ export function useProjetoPipeline() {
     setEtiquetas(etiquetasRes.data || []);
     setConsultores(consultoresRes.data || []);
 
+    const dbSettings = profileRes?.data?.settings as any;
+    const dbPrefs = dbSettings?.projetos_filtros;
+
     return {
       funis: nextFunis,
       etapas: nextEtapas,
+      dbPrefs,
     };
   }, []);
 
