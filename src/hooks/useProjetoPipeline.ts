@@ -853,5 +853,6 @@ export function useProjetoPipeline() {
     deleteEtapa,
     moveProjetoToEtapa,
     moveProjetoToConsultor,
+    dbPrefs: fetchMetadataResult?.dbPrefs,
   };
 }
