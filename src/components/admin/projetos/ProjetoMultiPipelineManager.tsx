@@ -574,6 +574,48 @@ export function ProjetoMultiPipelineManager({ dealId, dealStatus, pipelines, all
 
   return (
     <div className="space-y-3">
+      {/* Diálogo de Validação de Checklist */}
+      <AlertDialog 
+        open={validationDialog.isOpen} 
+        onOpenChange={(open) => !open && setValidationDialog(prev => ({ ...prev, isOpen: false }))}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-warning" />
+              Documentos Obrigatórios Faltando
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Para avançar para <strong>Engenharia</strong>, os seguintes documentos são obrigatórios:
+              <ul className="list-disc list-inside mt-2 space-y-1 text-foreground">
+                {validationDialog.missingDocs.map((doc, i) => (
+                  <li key={i}>{doc}</li>
+                ))}
+              </ul>
+              <p className="mt-4">
+                {isAdmin 
+                  ? "Deseja avançar mesmo assim? Como administrador, você pode forçar esta transição."
+                  : "Por favor, anexe os documentos necessários antes de avançar a etapa."}
+              </p>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Voltar e anexar</AlertDialogCancel>
+            {isAdmin && (
+              <AlertDialogAction
+                className="bg-warning hover:bg-warning/90 text-warning-foreground"
+                onClick={() => {
+                  changeStage(validationDialog.membershipId, validationDialog.newStageId, true);
+                  setValidationDialog(prev => ({ ...prev, isOpen: false }));
+                }}
+              >
+                Avançar mesmo assim
+              </AlertDialogAction>
+            )}
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
