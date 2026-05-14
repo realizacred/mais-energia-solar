@@ -288,7 +288,7 @@ export function LeadsView() {
             onFilterStatusChange={setFilterStatus}
             filterConversao={filterConversao}
             onFilterConversaoChange={setFilterConversao}
-            vendedores={filters.vendedores}
+            vendedores={vendedoresFilterOptions}
             estados={filters.estados}
             statuses={statuses}
             conversionStats={hookStats?.conversion}
