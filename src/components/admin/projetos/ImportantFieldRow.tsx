@@ -155,6 +155,7 @@ export function ImportantFieldRow({ field, value, dealId, onSaved, showSeparator
 
   // Boolean toggle - save immediately
   async function toggleBool() {
+    if (disabled) return;
     const newVal = !(value?.value_boolean ?? false);
     setSaving(true);
     try {
