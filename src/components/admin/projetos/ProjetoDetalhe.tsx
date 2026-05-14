@@ -704,7 +704,7 @@ function ProjetoDetalheContent() {
             <DocumentosTab dealId={deal.id} clienteTelefone={customerPhone} />
           )}
           {activeTab === "instalacao" && (
-            <ProjetoInstalacaoTab dealId={deal.id} enabled={activeTab === "instalacao"} />
+            <ProjetoInstalacaoTab dealId={deal.id} />
           )}
           {activeTab === "suprimentos" && (
             <div className="p-6">
