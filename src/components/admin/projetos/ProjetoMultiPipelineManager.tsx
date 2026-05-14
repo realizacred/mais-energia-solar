@@ -107,7 +107,8 @@ interface Props {
 }
 
 export function ProjetoMultiPipelineManager({ dealId, dealStatus, pipelines, allStagesMap, onMembershipChange, initialPipelineId, initialPipelineName }: Props) {
-  const isLocked = dealStatus === "lost" || dealStatus === "won";
+  const isCommercialLocked = dealStatus === "lost" || dealStatus === "won";
+  const isTechnicalLocked = dealStatus === "lost" || dealStatus === "canceled";
   const [memberships, setMemberships] = useState<DealPipelineMembership[]>([]);
   const [loading, setLoading] = useState(true);
   const [popoverOpen, setPopoverOpen] = useState(false);
@@ -484,7 +485,7 @@ export function ProjetoMultiPipelineManager({ dealId, dealStatus, pipelines, all
                                 <button
                                   key={stage.id}
                                   onClick={() => addToPipeline(pipeline.id, stage.id)}
-                                  disabled={saving === pipeline.id}
+                                  disabled={saving === pipeline.id || (pipeline.name.toLowerCase().includes("comercial") ? isCommercialLocked : isTechnicalLocked)}
                                   className="w-full flex items-center gap-2 px-3 py-1.5 text-xs hover:bg-primary/5 rounded-md transition-colors text-left disabled:opacity-50"
                                 >
                                   {saving === pipeline.id ? (
