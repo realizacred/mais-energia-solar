@@ -176,7 +176,7 @@ export function useProjetoPipeline() {
       etapas: nextEtapas,
       dbPrefs,
     };
-  }, []);
+  }, [user?.id]);
 
   // ─── Fetch projetos with backend filters ──────────────────
   const fetchProjetos = useCallback(async (
