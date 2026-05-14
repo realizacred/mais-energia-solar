@@ -1,6 +1,7 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
 
 // ─── Types ───────────────────────────────────────────────────
 
@@ -126,6 +127,7 @@ const PROPOSTA_STATUS_PRIORITY: Record<string, number> = {
 // ─── Hook ────────────────────────────────────────────────────
 
 export function useProjetoPipeline() {
+  const { user } = useAuth();
   const [funis, setFunis] = useState<ProjetoFunil[]>([]);
   const [etapas, setEtapas] = useState<ProjetoEtapa[]>([]);
   const [etiquetas, setEtiquetas] = useState<ProjetoEtiqueta[]>([]);
@@ -140,15 +142,19 @@ export function useProjetoPipeline() {
     etiquetaIds: [],
     search: "",
   });
+
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const initializedRef = useRef(false);
   const { toast } = useToast();
 
   // ─── Fetch metadata (funis, etapas, etiquetas, consultores) ──
   const fetchMetadata = useCallback(async () => {
-    const [funisRes, etapasRes, etiquetasRes, consultoresRes] = await Promise.all([
+    const [funisRes, etapasRes, etiquetasRes, consultoresRes, profileRes] = await Promise.all([
       supabase.from("projeto_funis").select("id, nome, ordem, ativo, tenant_id").order("ordem"),
       supabase.from("projeto_etapas").select("id, funil_id, nome, cor, ordem, categoria, tenant_id").order("ordem"),
       supabase.from("projeto_etiquetas").select("id, nome, cor, tenant_id"),
       supabase.from("consultores").select("id, nome, ativo").order("nome"),
+      user?.id ? supabase.from("profiles").select("settings").eq("user_id", user.id).maybeSingle() : Promise.resolve({ data: null, error: null }),
     ]);
 
     if (funisRes.error) throw funisRes.error;
@@ -162,11 +168,15 @@ export function useProjetoPipeline() {
     setEtiquetas(etiquetasRes.data || []);
     setConsultores(consultoresRes.data || []);
 
+    const dbSettings = profileRes?.data?.settings as any;
+    const dbPrefs = dbSettings?.projetos_filtros;
+
     return {
       funis: nextFunis,
       etapas: nextEtapas,
+      dbPrefs,
     };
-  }, []);
+  }, [user?.id]);
 
   // ─── Fetch projetos with backend filters ──────────────────
   const fetchProjetos = useCallback(async (
@@ -843,5 +853,6 @@ export function useProjetoPipeline() {
     deleteEtapa,
     moveProjetoToEtapa,
     moveProjetoToConsultor,
+    dbPrefs: fetchMetadataResult?.dbPrefs,
   };
 }

@@ -126,6 +126,7 @@ export function ProjetosManager() {
     createEtapa, renameEtapa, updateEtapaCor, updateEtapaCategoria,
     reorderEtapas, deleteEtapa,
     moveProjetoToEtapa, moveProjetoToConsultor,
+    dbPrefs,
   } = useProjetoPipeline();
 
   // Build etapa map for adapters (canonical source: projeto_etapas)
@@ -216,13 +217,42 @@ export function ProjetosManager() {
     } catch { return null; }
   }, [STORAGE_KEY]);
 
-  const savePrefs = useCallback((prefs: Record<string, any>) => {
+  const savePrefs = useCallback(async (prefs: Record<string, any>) => {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
       const current = raw ? JSON.parse(raw) : {};
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...current, ...prefs }));
+      const updated = { ...current, ...prefs };
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+
+      if (!user?.id) return;
+
+      if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+      saveTimerRef.current = setTimeout(async () => {
+        try {
+          const { data: currentProfile } = await supabase
+            .from("profiles")
+            .select("settings")
+            .eq("user_id", user.id)
+            .maybeSingle();
+
+          const existingSettings = (currentProfile?.settings && typeof currentProfile.settings === "object")
+            ? currentProfile.settings as Record<string, unknown>
+            : {};
+
+          const currentFiltros = existingSettings.projetos_filtros as Record<string, any> || {};
+          const newFiltros = { ...currentFiltros, ...prefs };
+          const newSettings = { ...existingSettings, projetos_filtros: newFiltros };
+
+          await supabase
+            .from("profiles")
+            .update({ settings: newSettings as any })
+            .eq("user_id", user.id);
+        } catch (err) {
+          console.error("Erro ao salvar preferências no banco:", err);
+        }
+      }, 1500);
     } catch { /* ignore */ }
-  }, [STORAGE_KEY]);
+  }, [STORAGE_KEY, user?.id]);
 
   const storedPrefs = useMemo(() => getStoredPrefs(), [getStoredPrefs]);
 
@@ -255,6 +285,7 @@ export function ProjetosManager() {
   const initialView =
     (urlFilters.view as any) ||
     (storedPrefs?.viewMode as any) ||
+    (dbPrefs?.view as any) ||
     "kanban-consultor";
 
   const [viewMode, setViewModeRaw] = useState<"kanban-etapa" | "kanban-consultor" | "lista">(initialView);
@@ -283,7 +314,7 @@ export function ProjetosManager() {
     // Aguarda user.id resolver para não aplicar prefs do bucket "anon" e travar o flag.
     if (!user?.id) return;
 
-    // URL params têm precedência sobre localStorage para permitir
+    // URL params têm precedência sobre localStorage/DB para permitir
     // compartilhamento de URL e back/forward do navegador.
     const fromUrl = {
       status: urlFilters.status,
@@ -293,11 +324,11 @@ export function ProjetosManager() {
       funilId: urlFilters.funil,
     };
     const source = {
-      status: fromUrl.status ?? storedPrefs?.status,
-      consultorId: fromUrl.consultorId ?? storedPrefs?.consultorId,
-      tipoProjetoSolar: fromUrl.tipoProjetoSolar ?? storedPrefs?.tipoProjetoSolar,
+      status: fromUrl.status ?? storedPrefs?.status ?? dbPrefs?.status,
+      consultorId: fromUrl.consultorId ?? storedPrefs?.consultorId ?? dbPrefs?.consultor,
+      tipoProjetoSolar: fromUrl.tipoProjetoSolar ?? storedPrefs?.tipoProjetoSolar ?? dbPrefs?.tipo_solar,
       etiquetaIds: fromUrl.etiquetaIds ?? storedPrefs?.etiquetaIds,
-      funilId: fromUrl.funilId ?? storedPrefs?.funilId,
+      funilId: fromUrl.funilId ?? storedPrefs?.funilId ?? dbPrefs?.funil,
     };
 
     const updates: Record<string, any> = {};
@@ -342,7 +373,7 @@ export function ProjetosManager() {
         funil: viewMode === "kanban-consultor" ? null : (funilExiste ? source.funilId : null),
         tipoSolar: source.tipoProjetoSolar,
         etiquetas: source.etiquetaIds,
-        view: (storedPrefs?.viewMode as string) || viewMode,
+        view: (storedPrefs?.viewMode as string) || (dbPrefs?.view as string) || viewMode,
       });
     }
 
@@ -389,14 +420,14 @@ export function ProjetosManager() {
       const funilValue = value === "todos" ? null : value;
       setSelectedFunilId(funilValue);
       applyFilters({ funilId: funilValue });
-      savePrefs({ funilId: funilValue });
+      savePrefs({ funilId: funilValue, funil: funilValue });
       updateUrlFilter({ funil: funilValue });
       if (funilValue && viewMode === "kanban-consultor") {
         setViewMode("kanban-etapa");
       }
     } else if (key === "ownerId") {
       applyFilters({ consultorId: value });
-      savePrefs({ consultorId: value });
+      savePrefs({ consultorId: value, consultor: value });
       updateUrlFilter({ consultor: value });
     } else if (key === "status") {
       applyFilters({ status: value });
@@ -404,7 +435,7 @@ export function ProjetosManager() {
       updateUrlFilter({ status: value });
     } else if (key === "tipoProjetoSolar") {
       applyFilters({ tipoProjetoSolar: value });
-      savePrefs({ tipoProjetoSolar: value });
+      savePrefs({ tipoProjetoSolar: value, tipo_solar: value });
       updateUrlFilter({ tipoSolar: value });
     } else if (key === "search") {
       applyFilters({ search: value });
