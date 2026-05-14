@@ -273,7 +273,6 @@ export function ProjetoMultiPipelineManager({ dealId, dealStatus, pipelines, all
     
     const pipelineName = (
       membership?.pipeline_name || 
-      membership?.pipeline?.name || 
       pipelines.find(p => p.id === membership?.pipeline_id)?.name || 
       ""
     ).toLowerCase();
@@ -372,7 +371,6 @@ export function ProjetoMultiPipelineManager({ dealId, dealStatus, pipelines, all
     
     const pipelineName = (
       membership?.pipeline_name || 
-      membership?.pipeline?.name || 
       pipelines.find(p => p.id === membership?.pipeline_id)?.name || 
       ""
     ).toLowerCase();
