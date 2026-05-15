@@ -129,17 +129,20 @@ export function VendorOrcamentoCard({
 
         {/* Action Buttons */}
         <div className="flex items-center gap-2 pt-2 border-t">
-          {onQuickProposal && !isConverted && (
+          {orcamento.proposta_token ? (
             <Button
               variant="outline"
               size="sm"
-              className="flex-1 text-warning border-warning/30 hover:bg-warning/10"
-              onClick={onQuickProposal}
-              disabled={quickLoading}
+              className="flex-1 text-primary border-primary/30 hover:bg-primary/10"
+              onClick={() => window.open(`/pl/${orcamento.proposta_token}`, '_blank')}
             >
-              <ScrollText className="w-4 h-4 mr-2" />
-              Proposta Rápida
+              <ExternalLink className="w-4 h-4 mr-2" />
+              Ver Proposta
             </Button>
+          ) : (
+            <Badge variant="outline" className="flex-1 justify-center py-1.5 text-muted-foreground border-dashed">
+              Sem proposta
+            </Badge>
           )}
           {onConvert && !isConverted && (
             <Button
