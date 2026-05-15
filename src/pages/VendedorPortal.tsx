@@ -95,22 +95,17 @@ export default function VendedorPortal() {
           <main className="flex-1 relative overflow-hidden">
             {/* WhatsApp — always mounted, toggled via display for persistence */}
             <div
-              className={cn(
-                "absolute inset-0 p-4 md:p-6 pb-20 md:pb-6 overflow-x-hidden",
-                !isWhatsApp && "hidden"
-              )}
+              style={{ display: isWhatsApp ? 'block' : 'none' }}
+              className="absolute inset-0 p-4 md:p-6 pb-20 md:pb-6 overflow-x-hidden"
             >
               <Suspense fallback={<LoadingSpinner />}>
                 <VendorWhatsAppView portal={portal} />
               </Suspense>
             </div>
 
-            {/* Other views — also persistent container to avoid remounting Routes */}
             <div 
-              className={cn(
-                "absolute inset-0 p-4 md:p-6 pb-20 md:pb-6 space-y-5 overflow-y-auto overflow-x-hidden animate-fade-in",
-                isWhatsApp && "hidden"
-              )}
+              style={{ display: isWhatsApp ? 'none' : 'block' }}
+              className="absolute inset-0 p-4 md:p-6 pb-20 md:pb-6 space-y-5 overflow-y-auto overflow-x-hidden animate-fade-in"
             >
               <Suspense fallback={<LoadingSpinner />}>
                 <Routes>
