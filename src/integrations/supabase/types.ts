@@ -2137,6 +2137,205 @@ export type Database = {
           },
         ]
       }
+      cheque_movimentacoes: {
+        Row: {
+          actor_id: string | null
+          cheque_id: string
+          created_at: string
+          descricao: string | null
+          destino_id: string | null
+          destino_tipo: string | null
+          from_status: Database["public"]["Enums"]["cheque_status"] | null
+          id: string
+          metadata: Json | null
+          tenant_id: string
+          tipo_movimento: string
+          to_status: Database["public"]["Enums"]["cheque_status"]
+        }
+        Insert: {
+          actor_id?: string | null
+          cheque_id: string
+          created_at?: string
+          descricao?: string | null
+          destino_id?: string | null
+          destino_tipo?: string | null
+          from_status?: Database["public"]["Enums"]["cheque_status"] | null
+          id?: string
+          metadata?: Json | null
+          tenant_id: string
+          tipo_movimento: string
+          to_status: Database["public"]["Enums"]["cheque_status"]
+        }
+        Update: {
+          actor_id?: string | null
+          cheque_id?: string
+          created_at?: string
+          descricao?: string | null
+          destino_id?: string | null
+          destino_tipo?: string | null
+          from_status?: Database["public"]["Enums"]["cheque_status"] | null
+          id?: string
+          metadata?: Json | null
+          tenant_id?: string
+          tipo_movimento?: string
+          to_status?: Database["public"]["Enums"]["cheque_status"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cheque_movimentacoes_cheque_id_fkey"
+            columns: ["cheque_id"]
+            isOneToOne: false
+            referencedRelation: "cheques"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cheque_movimentacoes_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cheques: {
+        Row: {
+          agencia: string | null
+          banco: string
+          cliente_id: string
+          comprovante_url: string | null
+          conta: string | null
+          cpf_cnpj_titular: string | null
+          created_at: string
+          created_by: string | null
+          data_compensacao: string | null
+          data_emissao: string
+          data_vencimento: string
+          deleted_at: string | null
+          destino: string | null
+          entregue_para: string | null
+          id: string
+          numero_cheque: string
+          observacoes: string | null
+          origem: string | null
+          pagamento_id: string | null
+          parcela_id: string | null
+          projeto_id: string | null
+          recebido_de: string | null
+          recebimento_id: string | null
+          status: Database["public"]["Enums"]["cheque_status"]
+          tenant_id: string
+          titular: string
+          updated_at: string
+          updated_by: string | null
+          valor: number
+        }
+        Insert: {
+          agencia?: string | null
+          banco: string
+          cliente_id: string
+          comprovante_url?: string | null
+          conta?: string | null
+          cpf_cnpj_titular?: string | null
+          created_at?: string
+          created_by?: string | null
+          data_compensacao?: string | null
+          data_emissao?: string
+          data_vencimento: string
+          deleted_at?: string | null
+          destino?: string | null
+          entregue_para?: string | null
+          id?: string
+          numero_cheque: string
+          observacoes?: string | null
+          origem?: string | null
+          pagamento_id?: string | null
+          parcela_id?: string | null
+          projeto_id?: string | null
+          recebido_de?: string | null
+          recebimento_id?: string | null
+          status?: Database["public"]["Enums"]["cheque_status"]
+          tenant_id: string
+          titular: string
+          updated_at?: string
+          updated_by?: string | null
+          valor?: number
+        }
+        Update: {
+          agencia?: string | null
+          banco?: string
+          cliente_id?: string
+          comprovante_url?: string | null
+          conta?: string | null
+          cpf_cnpj_titular?: string | null
+          created_at?: string
+          created_by?: string | null
+          data_compensacao?: string | null
+          data_emissao?: string
+          data_vencimento?: string
+          deleted_at?: string | null
+          destino?: string | null
+          entregue_para?: string | null
+          id?: string
+          numero_cheque?: string
+          observacoes?: string | null
+          origem?: string | null
+          pagamento_id?: string | null
+          parcela_id?: string | null
+          projeto_id?: string | null
+          recebido_de?: string | null
+          recebimento_id?: string | null
+          status?: Database["public"]["Enums"]["cheque_status"]
+          tenant_id?: string
+          titular?: string
+          updated_at?: string
+          updated_by?: string | null
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cheques_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cheques_pagamento_id_fkey"
+            columns: ["pagamento_id"]
+            isOneToOne: false
+            referencedRelation: "pagamentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cheques_parcela_id_fkey"
+            columns: ["parcela_id"]
+            isOneToOne: false
+            referencedRelation: "parcelas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cheques_projeto_id_fkey"
+            columns: ["projeto_id"]
+            isOneToOne: false
+            referencedRelation: "projetos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cheques_recebimento_id_fkey"
+            columns: ["recebimento_id"]
+            isOneToOne: false
+            referencedRelation: "recebimentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cheques_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       client_portal_users: {
         Row: {
           created_at: string | null
@@ -5709,6 +5908,12 @@ export type Database = {
           cash_lock_on_close: boolean | null
           cash_multi_user: boolean | null
           cash_strict_opening: boolean | null
+          cheque_alert_days_before_due: number | null
+          cheque_allow_transfer: boolean | null
+          cheque_control_enabled: boolean | null
+          cheque_require_attachment_on_deposit: boolean | null
+          cheque_require_reason_on_return: boolean | null
+          cheque_treat_as_paid_on_receive: boolean | null
           commission_trigger: string | null
           created_at: string | null
           feature_flags: Json | null
@@ -5732,6 +5937,12 @@ export type Database = {
           cash_lock_on_close?: boolean | null
           cash_multi_user?: boolean | null
           cash_strict_opening?: boolean | null
+          cheque_alert_days_before_due?: number | null
+          cheque_allow_transfer?: boolean | null
+          cheque_control_enabled?: boolean | null
+          cheque_require_attachment_on_deposit?: boolean | null
+          cheque_require_reason_on_return?: boolean | null
+          cheque_treat_as_paid_on_receive?: boolean | null
           commission_trigger?: string | null
           created_at?: string | null
           feature_flags?: Json | null
@@ -5755,6 +5966,12 @@ export type Database = {
           cash_lock_on_close?: boolean | null
           cash_multi_user?: boolean | null
           cash_strict_opening?: boolean | null
+          cheque_alert_days_before_due?: number | null
+          cheque_allow_transfer?: boolean | null
+          cheque_control_enabled?: boolean | null
+          cheque_require_attachment_on_deposit?: boolean | null
+          cheque_require_reason_on_return?: boolean | null
+          cheque_treat_as_paid_on_receive?: boolean | null
           commission_trigger?: string | null
           created_at?: string | null
           feature_flags?: Json | null
@@ -31716,6 +31933,14 @@ export type Database = {
         | "pendente_correcao"
         | "finalizado"
         | "cancelado"
+      cheque_status:
+        | "recebido"
+        | "em_carteira"
+        | "depositado"
+        | "compensado"
+        | "devolvido"
+        | "repassado"
+        | "cancelado"
       commission_plan_type: "fixed" | "percentage" | "dynamic"
       cost_calc_strategy:
         | "fixed_amount"
@@ -32048,6 +32273,15 @@ export const Constants = {
         "pausado",
         "pendente_correcao",
         "finalizado",
+        "cancelado",
+      ],
+      cheque_status: [
+        "recebido",
+        "em_carteira",
+        "depositado",
+        "compensado",
+        "devolvido",
+        "repassado",
         "cancelado",
       ],
       commission_plan_type: ["fixed", "percentage", "dynamic"],
