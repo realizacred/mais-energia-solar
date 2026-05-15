@@ -40,12 +40,16 @@ export function ProposalCard({ proposta }: ProposalCardProps) {
           <div className="flex items-center gap-2 flex-1 min-w-0">
             <Checkbox checked={!!visto} disabled className="mt-0.5" />
             <div className="min-w-0">
-              <h3 className="font-semibold text-sm truncate text-primary">{proposta.cliente_nome}</h3>
-              <div className="flex flex-col gap-0.5 mt-0.5">
-                <p className="text-[10px] text-muted-foreground truncate" title={proposta.titulo || ""}>{proposta.titulo || "Sem título"}</p>
+              <h3 className="font-semibold text-sm truncate text-primary leading-tight">{proposta.cliente_nome}</h3>
+              <div className="flex flex-col gap-0.5 mt-1">
+                {proposta.titulo && proposta.titulo !== proposta.cliente_nome && (
+                  <p className="text-[11px] text-muted-foreground truncate leading-tight" title={proposta.titulo}>
+                    {proposta.titulo}
+                  </p>
+                )}
                 {proposta.versao_numero && (
-                  <span className="text-[9px] text-muted-foreground/60 font-medium leading-none">
-                    v{proposta.versao_numero}
+                  <span className="text-[10px] text-muted-foreground/60 font-medium leading-none">
+                    Versão {proposta.versao_numero}
                   </span>
                 )}
               </div>
