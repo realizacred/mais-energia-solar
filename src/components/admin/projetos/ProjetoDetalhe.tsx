@@ -346,6 +346,24 @@ function ProjetoDetalheContent() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
+  const {
+    deal, projetoId, loading, activeTab, setActiveTab, stages,
+    projetoNome, projetoCodigo, projetoNum, projetoDescricao,
+    customerName, customerPhone, customerEmail, customerCpfCnpj, customerEmpresa, customerAddress,
+    ownerName, pipelines, allStagesMap, userNamesMap,
+    currentStage, currentPipeline, projectCode,
+    dealEtiquetas, allEtiquetas, etiquetaPopoverOpen, setEtiquetaPopoverOpen, toggleEtiqueta,
+    deleteDialogOpen, setDeleteDialogOpen, deleteBlocking, deleting, handleDeleteProject, setDeleteBlocking,
+    confirmConsultorId, setConfirmConsultorId, handleConfirmConsultor,
+    lossDialogOpen, setLossDialogOpen, lossMotivo, setLossMotivo, lossObs, setLossObs, lossSaving,
+    motivos, loadingMotivos, handleConfirmLoss,
+    isClosed, silentRefresh, refreshCustomer, formatDate, getStageNameById, tabBadge,
+    dealId, onBack, initialPipelineId,
+  } = ctx;
+
+  const propostasQuery = usePropostasProjetoTab(deal?.id || "", deal?.customer_id || null);
+  const propostas = propostasQuery.data || [];
+
   // Expose queryClient to window for PropostaExpandedDetail
   useEffect(() => {
     (window as any).queryClient = queryClient;
@@ -382,6 +400,7 @@ function ProjetoDetalheContent() {
       supabase.removeChannel(channel);
     };
   }, [ctx.dealId, queryClient]);
+
   const [editClienteId, setEditClienteId] = useState<string | null>(null);
   const [editingTitle, setEditingTitle] = useState(false);
   const [titleDraft, setTitleDraft] = useState("");
@@ -392,44 +411,8 @@ function ProjetoDetalheContent() {
   const [savingProjeto, setSavingProjeto] = useState(false);
   const [reabrirDealOpen, setReabrirDealOpen] = useState(false);
 
-  const {
-    deal, projetoId, loading, activeTab, setActiveTab, stages,
-    projetoNome, projetoCodigo, projetoNum, projetoDescricao,
-    customerName, customerPhone, customerEmail, customerCpfCnpj, customerEmpresa, customerAddress,
-    ownerName, pipelines, allStagesMap, userNamesMap,
-    currentStage, currentPipeline, projectCode,
-    dealEtiquetas, allEtiquetas, etiquetaPopoverOpen, setEtiquetaPopoverOpen, toggleEtiqueta,
-    deleteDialogOpen, setDeleteDialogOpen, deleteBlocking, deleting, handleDeleteProject, setDeleteBlocking,
-    confirmConsultorId, setConfirmConsultorId, handleConfirmConsultor,
-    lossDialogOpen, setLossDialogOpen, lossMotivo, setLossMotivo, lossObs, setLossObs, lossSaving,
-    motivos, loadingMotivos, handleConfirmLoss,
-    isClosed, silentRefresh, refreshCustomer, formatDate, getStageNameById, tabBadge,
-    dealId, onBack, initialPipelineId,
-  } = ctx;
-
-  const handleSaveProjeto = async () => {
-    if (!projetoId) return;
-    setSavingProjeto(true);
-    const { error } = await supabase
-      .from("projetos")
-      .update({
-        nome: editProjetoNome.trim() || null,
-        observacoes: editProjetoDescricao.trim() || null,
-      })
-      .eq("id", projetoId);
-    setSavingProjeto(false);
-    if (error) {
-      toast({ title: "Erro ao salvar", description: error.message, variant: "destructive" });
-      return;
-    }
-    toast({ title: "Projeto atualizado" });
-    setEditProjetoOpen(false);
-    queryClient.invalidateQueries({ queryKey: ["projeto-detalhe"] });
-    queryClient.invalidateQueries({ queryKey: ["projetos-pipeline"] });
-    silentRefresh?.();
-  };
-
   const { roles } = useUserRole();
+
   const visibleTabs = useMemo(() => {
     return TABS.filter(tab => {
       // @ts-ignore
@@ -464,8 +447,6 @@ function ProjetoDetalheContent() {
     );
   }
 
-  const propostasQuery = usePropostasProjetoTab(deal.id, deal.customer_id);
-  const propostas = propostasQuery.data || [];
 
 
   return (
