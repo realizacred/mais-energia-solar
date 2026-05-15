@@ -382,7 +382,7 @@ function PropostaRow({
       <TableCell className="align-middle">
         <div className="flex flex-col min-w-0">
           <div className="flex items-center gap-2">
-            <span className={`truncate font-semibold text-foreground ${isSubRow ? "text-xs" : "text-sm"} ${!proposta.cliente_nome_real ? "italic opacity-80" : ""}`}>
+            <span className={`truncate font-medium text-sm text-foreground`}>
               {proposta.cliente_nome}
             </span>
             {!visto && !isSubRow && (
