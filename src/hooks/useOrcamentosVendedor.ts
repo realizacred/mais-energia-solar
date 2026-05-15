@@ -244,7 +244,7 @@ export function useOrcamentosVendedor({
 
       if (append) {
         setOrcamentos(prev => [...prev, ...newData]);
-        setHasMore(orcamentos.length + newData.length < totalForCount);
+        setHasMore(orcamentosLenRef.current + newData.length < totalForCount);
       } else {
         setOrcamentos(newData);
         setHasMore(newData.length < totalForCount);
