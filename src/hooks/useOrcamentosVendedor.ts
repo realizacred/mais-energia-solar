@@ -112,6 +112,12 @@ export function useOrcamentosVendedor({
   const [totalCount, setTotalCount] = useState(0);
   const { toast } = useToast();
 
+  // Stable ref to current orcamentos length (avoid recreating fetch callback on every load)
+  const orcamentosLenRef = useRef(0);
+  useEffect(() => {
+    orcamentosLenRef.current = orcamentos.length;
+  }, [orcamentos.length]);
+
   // Phase 1 — must-filter mode: vendedor view (own portal OR admin viewing-as)
   const mustFilterByVendedor = (filterByVendedor || !isAdminMode) && (!!vendedorId || !!vendedorNome);
 
@@ -125,7 +131,7 @@ export function useOrcamentosVendedor({
       if (append) setLoadingMore(true);
       else setLoading(true);
 
-      const from = append ? orcamentos.length : 0;
+      const from = append ? orcamentosLenRef.current : 0;
       const to = from + VENDEDOR_PAGE_SIZE - 1;
 
       // Build base query (server-side filters)
