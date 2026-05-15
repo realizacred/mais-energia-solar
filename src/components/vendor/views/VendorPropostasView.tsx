@@ -312,18 +312,20 @@ function PropostaRow({
             {isSubRow && <div className="w-1 border-l-2 border-muted-foreground/20 h-8 ml-2" />}
           </div>
           <div className="flex flex-col min-w-0">
-            <span className={`truncate ${isSubRow ? "text-xs text-muted-foreground" : "font-medium text-sm"}`}>
-              {isSubRow ? "Versão Anterior" : (proposta.cliente_nome || "Sem nome")}
+            <span className={`truncate ${isSubRow ? "text-xs font-normal" : "font-medium text-sm"}`}>
+              {proposta.cliente_nome || "Sem nome"}
             </span>
             {isMain && hasOthers && (
-              <span 
-                className="text-[10px] text-primary font-medium cursor-pointer hover:underline"
-                onClick={(e) => { e.stopPropagation(); onToggleExpand?.(); }}
-              >
-                +{othersCount} versões
-              </span>
+              <div className="flex items-center gap-2">
+                <span 
+                  className="text-[10px] text-primary font-medium cursor-pointer hover:underline"
+                  onClick={(e) => { e.stopPropagation(); onToggleExpand?.(); }}
+                >
+                  +{othersCount} versões
+                </span>
+              </div>
             )}
-            {isSubRow && <span className="text-[10px] text-muted-foreground">Versão {proposta.versao_numero}</span>}
+            {isSubRow && <span className="text-[10px] text-muted-foreground/70">Versão {proposta.versao_numero}</span>}
           </div>
         </div>
       </TableCell>
