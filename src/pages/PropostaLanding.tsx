@@ -12,7 +12,7 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { formatBRL } from "@/lib/formatters";
+import { formatBRL, formatNumberBR } from "@/lib/formatters";
 import { getCanonicalProposalTotal } from "@/services/proposal/proposalTotals";
 import { TemplateHtmlRenderer } from "@/components/proposal-landing/TemplateHtmlRenderer";
 import type { TemplateBlock } from "@/components/admin/proposal-builder/types";
