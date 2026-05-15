@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { TERMINAL_STATUS_KEYWORDS } from "@/modules/orcamentos/utils/operationalFilters";
 
 export interface LeadStatusRecord {
   id: string;
