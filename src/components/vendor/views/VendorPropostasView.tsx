@@ -372,7 +372,7 @@ function PropostaRow({
           "text-muted-foreground"
         }`}>
           <Clock className="h-3.5 w-3.5" />
-          {valDate ? valDate.toLocaleDateString("pt-BR") : "—"}
+          {valDate ? valDate.toLocaleDateString("pt-BR") : "Sem validade"}
         </div>
       </TableCell>
       <TableCell className="py-2.5 text-right">
