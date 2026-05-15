@@ -3553,32 +3553,38 @@ export type Database = {
       }
       credit_bank_checklists: {
         Row: {
+          applicable_to: string | null
           bank_config_id: string
           created_at: string | null
           description: string | null
           document_type_name: string
           id: string
           is_required: boolean | null
+          sort_order: number | null
           tenant_id: string
           updated_at: string | null
         }
         Insert: {
+          applicable_to?: string | null
           bank_config_id: string
           created_at?: string | null
           description?: string | null
           document_type_name: string
           id?: string
           is_required?: boolean | null
+          sort_order?: number | null
           tenant_id: string
           updated_at?: string | null
         }
         Update: {
+          applicable_to?: string | null
           bank_config_id?: string
           created_at?: string | null
           description?: string | null
           document_type_name?: string
           id?: string
           is_required?: boolean | null
+          sort_order?: number | null
           tenant_id?: string
           updated_at?: string | null
         }
@@ -3599,6 +3605,8 @@ export type Database = {
           icon_url: string | null
           id: string
           is_active: boolean | null
+          observacoes: string | null
+          prazo_medio: string | null
           slug: string
           tenant_id: string
           updated_at: string | null
@@ -3609,6 +3617,8 @@ export type Database = {
           icon_url?: string | null
           id?: string
           is_active?: boolean | null
+          observacoes?: string | null
+          prazo_medio?: string | null
           slug: string
           tenant_id: string
           updated_at?: string | null
@@ -3619,6 +3629,8 @@ export type Database = {
           icon_url?: string | null
           id?: string
           is_active?: boolean | null
+          observacoes?: string | null
+          prazo_medio?: string | null
           slug?: string
           tenant_id?: string
           updated_at?: string | null
