@@ -402,6 +402,8 @@ export function useDealPipeline() {
           proposta_id: proposta?.id || null,
           proposta_status: proposta?.status || null,
           proposta_economia_mensal: proposta ? (economiaMap.get(proposta.id) || null) : null,
+          proposta_draft_total: proposta?.draft_total || null,
+          proposta_has_unpublished_changes: proposta?.has_unpublished_changes || false,
           customer_city: loc?.city || null,
           customer_state: loc?.state || null,
           expected_close_date: closeDateMap.get(d.deal_id) || null,
