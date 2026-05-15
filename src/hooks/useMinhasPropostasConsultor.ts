@@ -174,6 +174,9 @@ export function useMinhasPropostasConsultor(consultorId: string | null | undefin
 
         const clienteNomeRealRaw = p.clientes?.nome || p.leads?.nome;
         const cliente_nome_real = clienteNomeRealRaw ? capitalize(clienteNomeRealRaw) : null;
+        
+        // CORREÇÃO: Prioridade total ao nome real do cliente se existir.
+        // Se existir cliente_id mas o JOIN retornar null (p.clientes?.nome é null), fallback para o título.
         const cliente_nome = cliente_nome_real || (p.titulo ? capitalize(p.titulo) : "Cliente não identificado");
 
         let valido_ate = latest?.valido_ate ?? null;

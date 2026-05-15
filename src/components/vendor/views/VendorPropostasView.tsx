@@ -337,8 +337,10 @@ function PropostaRow({
             <span className={`truncate ${isSubRow ? "text-xs font-normal" : "font-medium text-sm"} ${!proposta.cliente_nome_real && !isSubRow ? "text-muted-foreground italic" : "text-foreground"}`}>
               {proposta.cliente_nome}
             </span>
+            {/* CORREÇÃO: Mostrar título como subtexto se for diferente do nome real. 
+                Se não tem nome real, o título já está no cliente_nome (com fallback), então não repetimos. */}
             {!isSubRow && proposta.cliente_nome_real && proposta.titulo && normalize(proposta.titulo) !== normalize(proposta.cliente_nome_real) && (
-              <span className="text-[10px] text-muted-foreground truncate max-w-[200px]" title={proposta.titulo}>
+              <span className="text-[10px] text-muted-foreground truncate max-w-[200px] leading-tight" title={proposta.titulo}>
                 {proposta.titulo}
               </span>
             )}
