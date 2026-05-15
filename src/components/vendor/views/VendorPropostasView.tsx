@@ -209,6 +209,7 @@ function PropostaGroup({ propostas, onChanged }: { propostas: PropostaConsultor[
         onChanged={onChanged} 
         isMain={true} 
         hasOthers={hasOthers} 
+        othersCount={others.length}
         isExpanded={expanded} 
         onToggleExpand={() => setExpanded(!expanded)} 
       />
@@ -224,6 +225,7 @@ function PropostaRow({
   onChanged, 
   isMain, 
   hasOthers, 
+  othersCount,
   isExpanded, 
   onToggleExpand,
   isSubRow 
@@ -232,12 +234,13 @@ function PropostaRow({
   onChanged: () => void;
   isMain?: boolean;
   hasOthers?: boolean;
+  othersCount?: number;
   isExpanded?: boolean;
   onToggleExpand?: () => void;
   isSubRow?: boolean;
 }) {
   const status = STATUS_CONFIG[proposta.status] || { label: proposta.status, cls: "bg-muted text-muted-foreground" };
-  
+
   const codeLabel = proposta.codigo || (proposta.proposta_num ? `PROP-${proposta.proposta_num}` : proposta.titulo) || "—";
   
   const today = new Date();
