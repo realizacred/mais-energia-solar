@@ -200,6 +200,7 @@ export default function PropostaLanding() {
         const brandRow = Array.isArray(brandRes.data) ? brandRes.data[0] : brandRes.data;
         if (brandRow) setBrand(brandRow as any);
         if (tenantRes.data) setTenantNome(tenantRes.data.nome);
+        if (clienteRes.data) setClienteData(clienteRes.data);
         if (consultorRes.data) {
           setConsultorNome(consultorRes.data.nome);
           setConsultorTelefone(consultorRes.data.telefone);
