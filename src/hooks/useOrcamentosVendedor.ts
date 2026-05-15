@@ -262,15 +262,22 @@ export function useOrcamentosVendedor({
     }
   }, [queryClient, toast]);
 
+  const handleRealtimeChanges = useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: ["orcamentos-vendedor"] });
+  }, [queryClient]);
+
   useEffect(() => {
     if (!vendedorId && !vendedorNome && !isAdminMode) return;
-    const channel = supabase.channel(`orcamentos-vendedor-${vendedorId || "admin"}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'orcamentos' }, () => {
-        queryClient.invalidateQueries({ queryKey: ["orcamentos-vendedor"] });
-      })
+    
+    const channelId = `orcamentos-vendedor-${vendedorId || "admin"}`;
+    const channel = supabase.channel(channelId)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'orcamentos' }, handleRealtimeChanges)
       .subscribe();
-    return () => { supabase.removeChannel(channel); };
-  }, [vendedorId, vendedorNome, isAdminMode, queryClient]);
+
+    return () => { 
+      supabase.removeChannel(channel); 
+    };
+  }, [vendedorId, vendedorNome, isAdminMode, handleRealtimeChanges]);
 
   const stats = {
     total: orcamentos.length,
