@@ -357,6 +357,7 @@ function ProposalWizardContent() {
     staleTime: 1000 * 60 * 5,
   });
   const [savedClienteId, setSavedClienteId] = useState<string | null>(null);
+  const [officialTotal, setOfficialTotal] = useState<number>(0);
   // Track if editing a previously sent/generated proposal (will branch new version)
   const [editingsentProposal, setEditingSentProposal] = useState(false);
   const [proposalStatus, setProposalStatus] = useState<string | null>(null);
@@ -1319,9 +1320,13 @@ function ProposalWizardContent() {
         try {
           const { data: propostaMeta } = await supabase
             .from("propostas_nativas")
-            .select("lead_id, deal_id, projeto_id, cliente_id, status")
+            .select("lead_id, deal_id, projeto_id, cliente_id, status, official_total, draft_total")
             .eq("id", propostaIdFromUrl)
             .maybeSingle();
+
+          if (propostaMeta?.official_total) {
+            setOfficialTotal(propostaMeta.official_total);
+          }
 
           // Detect if proposal was already sent/generated — will branch new version on save
           const SENT_STATUSES = ["enviada", "vista", "aceita", "gerada", "sent", "accepted", "generated"];
@@ -2948,6 +2953,9 @@ function ProposalWizardContent() {
               generating={generating}
               rendering={rendering}
               result={result}
+              hasUnpublishedChanges={hasEditsAfterRestore}
+              officialTotal={officialTotal}
+              draftTotal={precoFinal}
               htmlPreview={htmlPreview}
               pdfBlobUrl={pdfBlobUrl}
               outputDocxPath={outputDocxPath}
