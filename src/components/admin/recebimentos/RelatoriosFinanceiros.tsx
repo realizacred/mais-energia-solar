@@ -71,13 +71,13 @@ import { formatBRL } from "@/lib/formatters";
        const mesesAtras = parseInt(periodo);
        const dataInicio = format(startOfMonth(subMonths(new Date(), mesesAtras - 1)), "yyyy-MM-dd");
        
-       // Buscar pagamentos
-       const { data: pagamentos, error: pagError } = await supabase
-         .from("pagamentos")
-         .select("id, valor_pago, forma_pagamento, data_pagamento")
-         .gte("data_pagamento", dataInicio)
-         .order("data_pagamento");
- 
+        // Buscar receitas canônicas (evita dupla contagem)
+        const { data: receitas, error: pagError } = await supabase
+          .from("vw_receitas_canonicas")
+          .select("original_id, valor, forma_pagamento, data_referencia")
+          .gte("data_referencia", dataInicio)
+          .order("data_referencia");
+
        if (pagError) throw pagError;
  
        // Buscar totais de recebimentos
