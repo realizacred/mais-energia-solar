@@ -1320,12 +1320,22 @@ function ProposalWizardContent() {
         try {
           const { data: propostaMeta } = await supabase
             .from("propostas_nativas")
-            .select("lead_id, deal_id, projeto_id, cliente_id, status, official_total, draft_total")
+            .select("lead_id, deal_id, projeto_id, cliente_id, status, draft_total")
             .eq("id", propostaIdFromUrl)
             .maybeSingle();
 
-          if (propostaMeta?.official_total) {
-            setOfficialTotal(propostaMeta.official_total);
+          // Fetch official total from the official version
+          const { data: officialVer } = await supabase
+            .from("proposta_versoes")
+            .select("valor_total")
+            .eq("proposta_id", propostaIdFromUrl)
+            .eq("is_official", true)
+            .order("created_at", { ascending: false })
+            .limit(1)
+            .maybeSingle();
+
+          if (officialVer?.valor_total) {
+            setOfficialTotal(officialVer.valor_total);
           }
 
           // Detect if proposal was already sent/generated — will branch new version on save
