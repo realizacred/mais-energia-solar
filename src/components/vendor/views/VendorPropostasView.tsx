@@ -423,28 +423,6 @@ function PropostaRow({
           <Badge variant="secondary" className="font-mono text-[10px] whitespace-nowrap bg-muted/40 text-muted-foreground border-transparent px-1.5 h-5">
             {codeLabel}
           </Badge>
-          
-          {isMain && hasOthers && (
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-5 p-0 hover:bg-transparent shrink-0"
-                    onClick={(e) => { e.stopPropagation(); onToggleExpand?.(); }}
-                  >
-                    <Badge className="bg-blue-50 text-blue-600 hover:bg-blue-100 border-blue-100/50 rounded-full font-medium text-[10px] h-5 px-2 transition-colors">
-                      {isExpanded ? <ChevronDown className="h-3 w-3" /> : `+${othersCount} ${othersCount === 1 ? 'opção' : 'opções'}`}
-                    </Badge>
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  Ver outras {othersCount} versões
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          )}
         </div>
       </TableCell>
 
