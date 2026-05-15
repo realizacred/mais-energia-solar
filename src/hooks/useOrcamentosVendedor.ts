@@ -56,7 +56,10 @@ const ORC_SELECT = `
   area, tipo_telhado, rede_atendimento, media_consumo, consumo_previsto,
   observacoes, arquivos_urls, consultor, consultor_id, visto, visto_admin,
   status_id, ultimo_contato, proxima_acao, data_proxima_acao, created_at, updated_at,
-  leads!inner (id, lead_code, nome, telefone, telefone_normalized)
+  leads!inner (
+    id, lead_code, nome, telefone, telefone_normalized,
+    propostas_nativas(id, status, public_token)
+  )
 `;
 
 function mapRow(orc: any): OrcamentoVendedor {
