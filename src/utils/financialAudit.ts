@@ -23,9 +23,11 @@ export async function checkFinancialLock(
 
   if (pError || !payment) return { locked: true, reason: 'Pagamento não encontrado' };
 
+  const paymentDate = new Date(payment.data_pagamento || payment.created_at);
+  const paymentDateOnly = paymentDate.toISOString().split('T')[0];
+
   // 2. Verificar trava por dias (se configurado)
   if (lockDays > 0) {
-    const paymentDate = new Date(payment.data_pagamento || payment.created_at);
     const now = new Date();
     const diffTime = Math.abs(now.getTime() - paymentDate.getTime());
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
@@ -36,14 +38,13 @@ export async function checkFinancialLock(
   }
 
   // 3. Verificar se está em um caixa fechado
-  // Nota: Isso será expandido na fase caixa_v2
   const { data: fechamento } = await supabase
     .from('fechamentos_caixa')
     .select('id')
     .eq('tenant_id', tenantId)
     .eq('status', 'fechado')
-    .filter('data_inicio', 'lte', payment.data_pagamento)
-    .filter('data_fim', 'gte', payment.data_pagamento)
+    .filter('data_inicio', 'lte', paymentDateOnly)
+    .filter('data_fim', 'gte', paymentDateOnly)
     .maybeSingle();
 
   if (fechamento) {
@@ -55,19 +56,43 @@ export async function checkFinancialLock(
 
 /**
  * Registra uma ação financeira para fins de auditoria.
+ * Agora persiste na tabela financial_audit_logs.
  */
 export async function logFinancialAction(
-  action: 'create' | 'update' | 'delete' | 'storno',
-  entity: 'pagamento' | 'recibo' | 'caixa',
+  action: string,
+  entityType: 'pagamento' | 'recibo' | 'caixa' | 'financial_settings',
   entityId: string,
-  details: any
+  details: {
+    reason?: string;
+    before_data?: any;
+    after_data?: any;
+    metadata?: any;
+  }
 ) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return;
 
-  // No futuro, isso persistirá em uma tabela dedicada 'financial_audit_logs'
-  console.log(`[AUDIT] ${action.toUpperCase()} on ${entity} (${entityId}) by ${user.id}`, details);
-  
-  // Por enquanto, usamos a estrutura de logs existente do sistema se disponível
-  // Ou preparamos o insert para a futura tabela
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('tenant_id')
+    .eq('user_id', user.id)
+    .single();
+
+  if (!profile?.tenant_id) return;
+
+  const { error } = await supabase.from('financial_audit_logs').insert({
+    tenant_id: profile.tenant_id,
+    actor_id: user.id,
+    entity_type: entityType,
+    entity_id: entityId,
+    action: action,
+    reason: details.reason,
+    before_data: details.before_data,
+    after_data: details.after_data,
+    metadata: details.metadata
+  });
+
+  if (error) {
+    console.error('[AUDIT ERROR]', error);
+  }
 }
