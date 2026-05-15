@@ -288,15 +288,7 @@ export function useOrcamentosVendedor({
     };
   }, [vendedorId, vendedorNome, isAdminMode, handleRealtimeChanges]);
 
-  const stats = {
-    total: orcamentos.length,
-    novos: orcamentos.filter((o) => !o.visto).length,
-    esteMes: orcamentos.filter((o) => {
-      const date = new Date(o.created_at);
-      const now = new Date();
-      return date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear();
-    }).length,
-  };
+  const stats = calculateOperationalStats(orcamentos, statuses);
 
   const estados = [...new Set(orcamentos.map((o) => o.estado).filter(Boolean))].sort();
   const hasMore = totalCount > orcamentos.length;
