@@ -85,6 +85,8 @@ export function useVendedorPortal() {
   const [filterVisto, setFilterVisto] = useState("todos");
   const [filterEstado, setFilterEstado] = useState("todos");
   const [filterStatus, setFilterStatus] = useState("todos");
+  const [excludeTerminal, setExcludeTerminal] = useState(true);
+  const [maxAgeDays, setMaxAgeDays] = useState<number | null>(90);
 
   // Dialog states
   const [selectedOrcamento, setSelectedOrcamento] = useState<OrcamentoVendedor | null>(null);
@@ -109,6 +111,8 @@ export function useVendedorPortal() {
     filterVisto,
     filterEstado,
     filterStatus,
+    excludeTerminal,
+    maxAgeDays,
   });
 
   // Load vendedor profile - use ref for navigate to stabilize dependencies
@@ -218,6 +222,8 @@ export function useVendedorPortal() {
     setFilterVisto("todos");
     setFilterEstado("todos");
     setFilterStatus("todos");
+    setExcludeTerminal(true);
+    setMaxAgeDays(90);
   }, []);
 
   // Convert orcamentos to leads — exclude terminal statuses for alert-facing widgets
@@ -299,6 +305,10 @@ export function useVendedorPortal() {
     filterStatus,
     setFilterStatus,
     handleClearFilters,
+    excludeTerminal,
+    setExcludeTerminal,
+    maxAgeDays,
+    setMaxAgeDays,
 
     // Dialogs
     selectedOrcamento,

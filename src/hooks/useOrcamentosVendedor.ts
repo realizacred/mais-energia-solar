@@ -48,6 +48,8 @@ interface UseOrcamentosVendedorOptions {
   filterVisto?: string;
   filterEstado?: string;
   filterStatus?: string;
+  excludeTerminal?: boolean;
+  maxAgeDays?: number | null;
 }
 
 const VENDEDOR_PAGE_SIZE = 50;
@@ -113,6 +115,8 @@ export function useOrcamentosVendedor({
   filterVisto = "todos",
   filterEstado = "todos",
   filterStatus = "todos",
+  excludeTerminal = false,
+  maxAgeDays = null,
 }: UseOrcamentosVendedorOptions) {
   const [page, setPage] = useState(0);
   const { toast } = useToast();
@@ -121,7 +125,7 @@ export function useOrcamentosVendedor({
   const mustFilterByVendedor = (filterByVendedor || !isAdminMode) && (!!vendedorId || !!vendedorNome);
 
   const { data, isLoading: loading, refetch: fetchOrcamentos } = useQuery({
-    queryKey: ["orcamentos-vendedor", vendedorId, vendedorNome, isAdminMode, searchTerm, filterVisto, filterEstado, filterStatus, page],
+    queryKey: ["orcamentos-vendedor", vendedorId, vendedorNome, isAdminMode, searchTerm, filterVisto, filterEstado, filterStatus, page, excludeTerminal, maxAgeDays],
     queryFn: async () => {
       if (!vendedorId && !vendedorNome && !isAdminMode) {
         return { orcamentos: [], totalCount: 0, statuses: [] };
@@ -130,7 +134,7 @@ export function useOrcamentosVendedor({
       const from = page * VENDEDOR_PAGE_SIZE;
       const to = from + VENDEDOR_PAGE_SIZE - 1;
 
-      const buildBase = () => {
+      const buildBase = (terminalIds: string[] = []) => {
         let q = supabase
           .from("orcamentos")
           .select(ORC_SELECT, { count: "exact" })
@@ -139,8 +143,20 @@ export function useOrcamentosVendedor({
         if (filterVisto === "visto") q = q.eq("visto", true);
         else if (filterVisto === "nao_visto") q = q.eq("visto", false);
         if (filterEstado !== "todos") q = q.eq("estado", filterEstado);
-        if (filterStatus === "novo") q = q.is("status_id", null);
-        else if (filterStatus !== "todos") q = q.eq("status_id", filterStatus);
+        
+        if (filterStatus === "novo") {
+          q = q.is("status_id", null);
+        } else if (filterStatus !== "todos") {
+          q = q.eq("status_id", filterStatus);
+        } else if (excludeTerminal && terminalIds.length > 0) {
+          q = q.not("status_id", "in", `(${terminalIds.join(",")})`);
+        }
+
+        if (maxAgeDays) {
+          const minDate = new Date();
+          minDate.setDate(minDate.getDate() - maxAgeDays);
+          q = q.gte("created_at", minDate.toISOString());
+        }
 
         return q;
       };
@@ -206,12 +222,12 @@ export function useOrcamentosVendedor({
       }
       mergedRaw.sort((a, b) => (a.created_at < b.created_at ? 1 : -1));
 
-      const statusesRes = await supabase.from("lead_status").select("id, nome, ordem, cor").order("ordem");
+      // statusesRes already fetched above
 
       return {
         orcamentos: mergedRaw.map(mapRow),
         totalCount: primaryCount + (page === 0 ? legacyRows.length : 0),
-        statuses: statusesRes.data || [],
+        statuses: allStatuses,
       };
     },
     staleTime: 2 * 60 * 1000,
@@ -223,7 +239,7 @@ export function useOrcamentosVendedor({
 
   const toggleVisto = useCallback(async (orcamento: OrcamentoVendedor) => {
     const newVisto = !orcamento.visto;
-    queryClient.setQueryData(["orcamentos-vendedor", vendedorId, vendedorNome, isAdminMode, searchTerm, filterVisto, filterEstado, filterStatus, page], (old: any) => {
+    queryClient.setQueryData(["orcamentos-vendedor", vendedorId, vendedorNome, isAdminMode, searchTerm, filterVisto, filterEstado, filterStatus, page, excludeTerminal, maxAgeDays], (old: any) => {
       if (!old) return old;
       return {
         ...old,

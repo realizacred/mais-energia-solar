@@ -101,8 +101,26 @@ export function VendorPendingDocumentation({
     const pendingStatus = statuses.find(s => s.nome === "Aguardando Documentação");
     if (!pendingStatus) return [];
     
+    // Find terminal status IDs
+    const terminalNames = ["convertido", "perdido", "cancelado", "recusado", "inativo", "fechado", "ganho", "cliente"];
+    const terminalIds = statuses
+      .filter(s => terminalNames.includes(s.nome.toLowerCase()))
+      .map(s => s.id);
+    
     return leads
-      .filter(lead => lead.status_id === pendingStatus.id)
+      .filter(lead => {
+        // Must be in pending status
+        if (lead.status_id !== pendingStatus.id) return false;
+        
+        // Exclude if terminal (already converted or lost)
+        if (terminalIds.includes(lead.status_id)) return false;
+
+        // Exclude older leads (archived logic) - 90 days
+        const daysOld = differenceInDays(new Date(), new Date(lead.created_at));
+        if (daysOld > 90) return false;
+
+        return true;
+      })
       .map(lead => {
         // First try to get missing items from localStorage (more accurate)
         let missingItems = getMissingItemsFromStorage(lead.id);
