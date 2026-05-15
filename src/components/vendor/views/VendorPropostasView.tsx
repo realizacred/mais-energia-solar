@@ -67,27 +67,27 @@ function normalize(s: string) {
 }
 
 const STATUS_CONFIG: Record<string, { label: string; cls: string }> = {
-  gerada: { label: "Gerada", cls: "bg-slate-100 text-slate-600 border-slate-200" },
-  enviada: { label: "Enviada", cls: "bg-blue-100 text-blue-600 border-blue-200" },
-  vista: { label: "Visualizada", cls: "bg-amber-100 text-amber-600 border-amber-200" },
-  aceita: { label: "Aceita", cls: "bg-emerald-100 text-emerald-600 border-emerald-200" },
-  expirada: { label: "Expirada", cls: "bg-red-100 text-red-600 border-red-200" },
-  recusada: { label: "Recusada", cls: "bg-red-100 text-red-600 border-red-200" },
+  gerada: { label: "Gerada", cls: "bg-muted text-muted-foreground border-border" },
+  enviada: { label: "Enviada", cls: "bg-info/10 text-info border-info/20" },
+  vista: { label: "Visualizada", cls: "bg-warning/10 text-warning border-warning/20" },
+  aceita: { label: "Aceita", cls: "bg-success/10 text-success border-success/20" },
+  expirada: { label: "Expirada", cls: "bg-destructive/10 text-destructive border-destructive/20" },
+  recusada: { label: "Recusada", cls: "bg-destructive/10 text-destructive border-destructive/20" },
 };
 
 const getStatusBadgeClass = (status: string) => {
   switch (status) {
     case 'aceita':
-      return 'bg-emerald-500 text-white border-transparent hover:bg-emerald-600';
+      return 'bg-success text-success-foreground border-transparent hover:bg-success/90';
     case 'vista':
-      return 'bg-amber-500 text-white border-transparent hover:bg-amber-600';
+      return 'bg-warning text-warning-foreground border-transparent hover:bg-warning/90';
     case 'enviada':
-      return 'bg-blue-500 text-white border-transparent hover:bg-blue-600';
+      return 'bg-info text-info-foreground border-transparent hover:bg-info/90';
     case 'expirada':
     case 'recusada':
-      return 'bg-red-500 text-white border-transparent hover:bg-red-600';
+      return 'bg-destructive text-destructive-foreground border-transparent hover:bg-destructive/90';
     default:
-      return 'bg-slate-500 text-white border-transparent hover:bg-slate-600';
+      return 'bg-muted text-muted-foreground border-transparent hover:bg-muted/90';
   }
 };
 
