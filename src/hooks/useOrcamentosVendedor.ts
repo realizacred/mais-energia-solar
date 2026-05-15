@@ -127,7 +127,7 @@ export function useOrcamentosVendedor({
   const mustFilterByVendedor = (filterByVendedor || !isAdminMode) && (!!vendedorId || !!vendedorNome);
 
   const { data, isLoading: loading, refetch: fetchOrcamentos } = useQuery({
-    queryKey: ["orcamentos-vendedor", vendedorId, vendedorNome, isAdminMode, searchTerm, filterVisto, filterEstado, filterStatus, page, excludeTerminal, maxAgeDays, operationalStatus, operationalStatus],
+    queryKey: ["orcamentos-vendedor", vendedorId, vendedorNome, isAdminMode, searchTerm, filterVisto, filterEstado, filterStatus, page, excludeTerminal, maxAgeDays, operationalStatus],
     queryFn: async () => {
       if (!vendedorId && !vendedorNome && !isAdminMode) {
         return { orcamentos: [], totalCount: 0, statuses: [] };
@@ -233,7 +233,7 @@ export function useOrcamentosVendedor({
 
   const toggleVisto = useCallback(async (orcamento: OrcamentoVendedor) => {
     const newVisto = !orcamento.visto;
-    queryClient.setQueryData(["orcamentos-vendedor", vendedorId, vendedorNome, isAdminMode, searchTerm, filterVisto, filterEstado, filterStatus, page, excludeTerminal, maxAgeDays, operationalStatus, operationalStatus], (old: any) => {
+    queryClient.setQueryData(["orcamentos-vendedor", vendedorId, vendedorNome, isAdminMode, searchTerm, filterVisto, filterEstado, filterStatus, page, excludeTerminal, maxAgeDays, operationalStatus], (old: any) => {
       if (!old) return old;
       return {
         ...old,
@@ -247,7 +247,7 @@ export function useOrcamentosVendedor({
       queryClient.invalidateQueries({ queryKey: ["orcamentos-vendedor"] });
       toast({ title: "Erro", description: "Não foi possível atualizar o status.", variant: "destructive" });
     }
-  }, [queryClient, vendedorId, vendedorNome, isAdminMode, searchTerm, filterVisto, filterEstado, filterStatus, page, excludeTerminal, maxAgeDays, operationalStatus, operationalStatus, toast]);
+  }, [queryClient, vendedorId, vendedorNome, isAdminMode, searchTerm, filterVisto, filterEstado, filterStatus, page, excludeTerminal, maxAgeDays, operationalStatus, toast]);
 
   const updateStatus = useCallback(async (orcamentoId: string, newStatusId: string | null) => {
     try {
