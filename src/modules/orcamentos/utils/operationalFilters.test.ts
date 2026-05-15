@@ -20,7 +20,8 @@ describe("operationalFilters", () => {
     status_id: null,
     visto: false,
     estado: "SP",
-    created_at: new Date().toISOString()
+    created_at: new Date().toISOString(),
+    ultimo_contato: null
   };
 
   it("should show new budget (status null) by default even with excludeTerminal", () => {
