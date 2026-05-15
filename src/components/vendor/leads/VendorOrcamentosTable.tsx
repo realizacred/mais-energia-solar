@@ -388,20 +388,28 @@ export function VendorOrcamentosTable({
                           </TooltipTrigger>
                           <TooltipContent>Ver detalhes</TooltipContent>
                         </Tooltip>
-                        {!isConverted && (
+                        {orc.proposta_token ? (
                           <Tooltip>
                             <TooltipTrigger asChild>
                               <Button
                                 variant="ghost"
                                 size="icon"
-                                className="text-warning hover:text-warning hover:bg-warning/10"
-                                onClick={() => quickConvertToProposal(orcToQuickLead(orc))}
-                                disabled={quickLoading}
+                                className="text-primary hover:text-primary hover:bg-primary/10"
+                                onClick={() => window.open(`/pl/${orc.proposta_token}`, '_blank')}
                               >
-                                {quickLoading && loadingLeadId === orc.lead_id ? <ButtonLoader /> : <ScrollText className="w-4 h-4" />}
+                                <ExternalLink className="w-4 h-4" />
                               </Button>
                             </TooltipTrigger>
-                            <TooltipContent>Gerar Proposta Rápida</TooltipContent>
+                            <TooltipContent>Ver Proposta</TooltipContent>
+                          </Tooltip>
+                        ) : (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <div className="h-8 w-8 flex items-center justify-center grayscale opacity-30">
+                                <ExternalLink className="w-4 h-4" />
+                              </div>
+                            </TooltipTrigger>
+                            <TooltipContent>Sem proposta vinculada</TooltipContent>
                           </Tooltip>
                         )}
                         {onConvert && !isConverted && (
