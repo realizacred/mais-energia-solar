@@ -55,15 +55,7 @@ export function VendorLeadsTable({
   const [whatsappDialogOpen, setWhatsappDialogOpen] = useState(false);
   const [selectedLeadForWhatsapp, setSelectedLeadForWhatsapp] = useState<Lead | null>(null);
   const { reopenLead, reopening } = useReopenLead();
-  const {
-    quickConvertToProposal,
-    loading: quickLoading,
-    loadingLeadId,
-    duplicateGuard,
-    confirmCreateAnyway,
-    openExistingDeal,
-    cancelDuplicateGuard,
-  } = usePropostaRapidaLead();
+  // usePropostaRapidaLead removed as consultant cannot generate proposals manually
 
   const handleWhatsappClick = (lead: Lead) => {
     setSelectedLeadForWhatsapp(lead);
