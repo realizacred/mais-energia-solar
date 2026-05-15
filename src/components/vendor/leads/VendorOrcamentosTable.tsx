@@ -36,6 +36,7 @@ import type { LeadStatus } from "@/types/lead";
 import type { OrcamentoVendedor } from "@/hooks/useOrcamentosVendedor";
 import type { OrcamentoDisplayItem } from "@/types/orcamento";
 import type { OrcamentoSortOption } from "@/hooks/useOrcamentoSort";
+import { getConvertedStatusIds } from "@/modules/orcamentos/utils/operationalFilters";
 
 interface VendorOrcamentosTableProps {
   orcamentos: OrcamentoVendedor[];
