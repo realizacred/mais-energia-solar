@@ -1,9 +1,7 @@
 import { useState } from "react";
-import { Phone, Eye, MapPin, Calendar, Trash2, ShoppingCart, UserCheck, MessageSquare, RotateCcw, ScrollText } from "lucide-react";
+import { Phone, Eye, MapPin, Calendar, Trash2, ShoppingCart, UserCheck, MessageSquare, RotateCcw, ExternalLink } from "lucide-react";
 import { useReopenLead } from "@/hooks/useReopenLead";
-import { usePropostaRapidaLead } from "@/hooks/usePropostaRapidaLead";
-import { DuplicateOpenDealModal } from "@/components/leads/DuplicateOpenDealModal";
-import { ButtonLoader } from "@/components/loading/ButtonLoader";
+// ... keep existing code
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { formatPhoneBR } from "@/lib/formatters";
@@ -57,15 +55,7 @@ export function VendorLeadsTable({
   const [whatsappDialogOpen, setWhatsappDialogOpen] = useState(false);
   const [selectedLeadForWhatsapp, setSelectedLeadForWhatsapp] = useState<Lead | null>(null);
   const { reopenLead, reopening } = useReopenLead();
-  const {
-    quickConvertToProposal,
-    loading: quickLoading,
-    loadingLeadId,
-    duplicateGuard,
-    confirmCreateAnyway,
-    openExistingDeal,
-    cancelDuplicateGuard,
-  } = usePropostaRapidaLead();
+  // usePropostaRapidaLead removed as consultant cannot generate proposals manually
 
   const handleWhatsappClick = (lead: Lead) => {
     setSelectedLeadForWhatsapp(lead);
@@ -216,31 +206,28 @@ export function VendorLeadsTable({
                       </TooltipTrigger>
                       <TooltipContent>Ver detalhes</TooltipContent>
                     </Tooltip>
-                    {!isConverted && (
+                    {lead.proposta_token ? (
                       <Tooltip>
                         <TooltipTrigger asChild>
                           <Button
                             variant="ghost"
                             size="icon"
-                            className="text-warning hover:text-warning hover:bg-warning/10"
-                            onClick={() => quickConvertToProposal({
-                              id: lead.id,
-                              nome: lead.nome,
-                              telefone: lead.telefone,
-                              cidade: lead.cidade,
-                              estado: lead.estado,
-                              bairro: lead.bairro,
-                              rua: lead.rua,
-                              cep: lead.cep,
-                              consultor_id: lead.consultor_id,
-                              valor_estimado: lead.valor_estimado,
-                            })}
-                            disabled={quickLoading}
+                            className="text-primary hover:text-primary hover:bg-primary/10"
+                            onClick={() => window.open(`/pl/${lead.proposta_token}`, '_blank')}
                           >
-                            {quickLoading && loadingLeadId === lead.id ? <ButtonLoader /> : <ScrollText className="w-4 h-4" />}
+                            <ExternalLink className="w-4 h-4" />
                           </Button>
                         </TooltipTrigger>
-                        <TooltipContent>Gerar Proposta Rápida</TooltipContent>
+                        <TooltipContent>Ver Proposta</TooltipContent>
+                      </Tooltip>
+                    ) : (
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <div className="h-8 w-8 flex items-center justify-center grayscale opacity-30">
+                            <ExternalLink className="w-4 h-4" />
+                          </div>
+                        </TooltipTrigger>
+                        <TooltipContent>Sem proposta vinculada</TooltipContent>
                       </Tooltip>
                     )}
                     {onConvert && !isConverted && (
@@ -339,14 +326,7 @@ export function VendorLeadsTable({
         open={whatsappDialogOpen}
         onOpenChange={setWhatsappDialogOpen}
       />
-      <DuplicateOpenDealModal
-        open={duplicateGuard.open}
-        matches={duplicateGuard.matches}
-        onOpenExisting={openExistingDeal}
-        onCreateAnyway={confirmCreateAnyway}
-        onCancel={cancelDuplicateGuard}
-        loading={quickLoading}
-      />
+      {/* DuplicateOpenDealModal removed as consultant cannot generate proposals manually */}
     </div>
   );
 }

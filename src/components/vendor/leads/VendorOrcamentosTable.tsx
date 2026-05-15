@@ -1,8 +1,6 @@
 import { useState } from "react";
-import { Phone, Eye, Trash2, ShoppingCart, UserCheck, MessageSquare, History, Pencil, ScrollText } from "lucide-react";
-import { usePropostaRapidaLead } from "@/hooks/usePropostaRapidaLead";
-import { DuplicateOpenDealModal } from "@/components/leads/DuplicateOpenDealModal";
-import { ButtonLoader } from "@/components/loading/ButtonLoader";
+import { Phone, Eye, Trash2, ShoppingCart, UserCheck, MessageSquare, History, Pencil, ExternalLink } from "lucide-react";
+// ... keep existing code
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { formatPhoneBR } from "@/lib/formatters";
@@ -69,15 +67,7 @@ export function VendorOrcamentosTable({
   const [editOpen, setEditOpen] = useState(false);
   const [editOrcamento, setEditOrcamento] = useState<OrcamentoVendedor | null>(null);
   const isMobile = useIsMobile();
-  const {
-    quickConvertToProposal,
-    loading: quickLoading,
-    loadingLeadId,
-    duplicateGuard,
-    confirmCreateAnyway,
-    openExistingDeal,
-    cancelDuplicateGuard,
-  } = usePropostaRapidaLead();
+  // usePropostaRapidaLead removed as consultant cannot generate proposals manually
 
   const orcToQuickLead = (orc: OrcamentoVendedor) => ({
     id: orc.lead_id,
@@ -171,8 +161,8 @@ export function VendorOrcamentosTable({
                       onConvert(orc);
                     }
                   } : undefined}
-                  onQuickProposal={() => quickConvertToProposal(orcToQuickLead(orc))}
-                  quickLoading={quickLoading && loadingLeadId === orc.lead_id}
+                  onQuickProposal={undefined}
+                  quickLoading={false}
                 />
               </div>
             );
@@ -388,20 +378,28 @@ export function VendorOrcamentosTable({
                           </TooltipTrigger>
                           <TooltipContent>Ver detalhes</TooltipContent>
                         </Tooltip>
-                        {!isConverted && (
+                        {orc.proposta_token ? (
                           <Tooltip>
                             <TooltipTrigger asChild>
                               <Button
                                 variant="ghost"
                                 size="icon"
-                                className="text-warning hover:text-warning hover:bg-warning/10"
-                                onClick={() => quickConvertToProposal(orcToQuickLead(orc))}
-                                disabled={quickLoading}
+                                className="text-primary hover:text-primary hover:bg-primary/10"
+                                onClick={() => window.open(`/pl/${orc.proposta_token}`, '_blank')}
                               >
-                                {quickLoading && loadingLeadId === orc.lead_id ? <ButtonLoader /> : <ScrollText className="w-4 h-4" />}
+                                <ExternalLink className="w-4 h-4" />
                               </Button>
                             </TooltipTrigger>
-                            <TooltipContent>Gerar Proposta Rápida</TooltipContent>
+                            <TooltipContent>Ver Proposta</TooltipContent>
+                          </Tooltip>
+                        ) : (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <div className="h-8 w-8 flex items-center justify-center grayscale opacity-30">
+                                <ExternalLink className="w-4 h-4" />
+                              </div>
+                            </TooltipTrigger>
+                            <TooltipContent>Sem proposta vinculada</TooltipContent>
                           </Tooltip>
                         )}
                         {onConvert && !isConverted && (
@@ -520,14 +518,7 @@ export function VendorOrcamentosTable({
           onSuccess={onRefresh}
         />
       )}
-      <DuplicateOpenDealModal
-        open={duplicateGuard.open}
-        matches={duplicateGuard.matches}
-        onOpenExisting={openExistingDeal}
-        onCreateAnyway={confirmCreateAnyway}
-        onCancel={cancelDuplicateGuard}
-        loading={quickLoading}
-      />
+      {/* DuplicateOpenDealModal removed as consultant cannot generate proposals manually */}
     </>
   );
 }

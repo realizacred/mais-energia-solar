@@ -35,6 +35,7 @@ export interface OrcamentoVendedor {
   data_proxima_acao: string | null;
   created_at: string;
   updated_at: string;
+  proposta_token?: string | null;
 }
 
 interface UseOrcamentosVendedorOptions {
@@ -56,10 +57,19 @@ const ORC_SELECT = `
   area, tipo_telhado, rede_atendimento, media_consumo, consumo_previsto,
   observacoes, arquivos_urls, consultor, consultor_id, visto, visto_admin,
   status_id, ultimo_contato, proxima_acao, data_proxima_acao, created_at, updated_at,
-  leads!inner (id, lead_code, nome, telefone, telefone_normalized)
+  leads!inner (
+    id, lead_code, nome, telefone, telefone_normalized,
+    propostas_nativas(id, status, public_token)
+  )
 `;
 
 function mapRow(orc: any): OrcamentoVendedor {
+  // Pegar a proposta mais recente vinculada ao lead, preferencialmente aceita ou enviada
+  const propostas = orc.leads?.propostas_nativas || [];
+  const propostaAtiva = propostas.find((p: any) => p.status === 'aceita') || 
+                        propostas.find((p: any) => p.status === 'enviada') || 
+                        propostas[0];
+
   return {
     id: orc.id,
     orc_code: orc.orc_code,
@@ -91,6 +101,7 @@ function mapRow(orc: any): OrcamentoVendedor {
     data_proxima_acao: orc.data_proxima_acao,
     created_at: orc.created_at,
     updated_at: orc.updated_at,
+    proposta_token: propostaAtiva?.public_token || null,
   };
 }
 

@@ -251,7 +251,22 @@ export function VendorLeadViewDialog({ lead, open, onOpenChange, vendedorNome }:
                     Propostas são geradas pelo setor responsável
                   </p>
                   <p className="text-sm text-muted-foreground">
-                    Quando uma proposta oficial estiver disponível para este lead, ela aparecerá aqui para visualização e envio. Você poderá copiar o link público, enviar por WhatsApp/e-mail e baixar o PDF oficial.
+                    {lead.proposta_token ? (
+                      <div className="space-y-3 mt-2">
+                        <p>Uma proposta oficial já está disponível para este lead.</p>
+                        <Button 
+                          variant="default" 
+                          size="sm"
+                          className="w-full"
+                          onClick={() => window.open(`/pl/${lead.proposta_token}`, '_blank')}
+                        >
+                          <ExternalLink className="w-4 h-4 mr-2" />
+                          Abrir Proposta Pública
+                        </Button>
+                      </div>
+                    ) : (
+                      "Quando uma proposta oficial estiver disponível para este lead, ela aparecerá aqui para visualização e envio. Você poderá copiar o link público, enviar por WhatsApp/e-mail e baixar o PDF oficial."
+                    )}
                   </p>
                 </div>
               </div>

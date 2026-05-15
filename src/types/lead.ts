@@ -47,6 +47,7 @@ export interface Lead {
   /** Soft delete */
   deleted_at?: string | null;
   deleted_by?: string | null;
+  proposta_token?: string | null;
 }
 
 export interface LeadStatus {

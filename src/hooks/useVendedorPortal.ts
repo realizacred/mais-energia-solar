@@ -67,6 +67,7 @@ export const orcamentoToLead = (orc: OrcamentoVendedor): Lead => ({
   distribuido_em: null,
   created_at: orc.created_at,
   updated_at: orc.updated_at,
+  proposta_token: orc.proposta_token,
 });
 
 export function useVendedorPortal() {
