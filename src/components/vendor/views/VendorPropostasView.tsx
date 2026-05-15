@@ -363,7 +363,7 @@ function PropostaRow({
       isSubRow ? "bg-muted/20" : 
       "hover:bg-muted/30"
     }`}>
-      <TableCell className="align-middle">
+      <TableCell className="py-2 align-middle">
         <Checkbox
           checked={visto}
           disabled
