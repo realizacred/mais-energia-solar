@@ -78,6 +78,7 @@ interface RawProposta {
   proposta_versoes?: Array<{
     id: string;
     versao_numero: number;
+    created_at: string;
     potencia_kwp: number | null;
     geracao_mensal: number | null;
     economia_mensal: number | null;
