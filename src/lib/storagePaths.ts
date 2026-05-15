@@ -2,7 +2,6 @@ import { supabase } from "@/integrations/supabase/client";
 
 /**
  * Normalizes a string into a safe storage slug.
- * Removes accents, emojis, and replaces spaces/special chars with hyphens.
  */
 export function toSafeSlug(text: string): string {
   if (!text) return "unnamed";
@@ -50,4 +49,20 @@ export async function buildStoragePath(...segments: string[]): Promise<string> {
     throw new Error("Não foi possível determinar o tenant para upload. Faça login novamente.");
   }
   return tenantPath(tenantId, ...segments);
+}
+
+/**
+ * Resolve tenant_id for anonymous uploads (public forms).
+ * Resolves tenant_id from consultor code.
+ */
+export async function resolvePublicTenantId(consultorCode?: string | null): Promise<string | null> {
+  if (!consultorCode) return null;
+
+  const { data: consultor } = await supabase
+    .rpc("resolve_consultor_public", { _codigo: consultorCode })
+    .maybeSingle();
+  
+  if ((consultor as any)?.tenant_id) return (consultor as any).tenant_id;
+
+  return null;
 }
