@@ -336,13 +336,34 @@ function PropostaRow({
             <span className={`truncate ${isSubRow ? "text-xs font-normal" : "font-medium text-sm"} ${!proposta.cliente_nome_real && !isSubRow ? "text-muted-foreground italic" : "text-foreground"}`}>
               {proposta.cliente_nome}
             </span>
-            {/* CORREÇÃO: Mostrar título como subtexto se for diferente do nome real. 
-                Se não tem nome real, o título já está no cliente_nome (com fallback), então não repetimos. */}
-            {!isSubRow && proposta.cliente_nome_real && proposta.titulo && normalize(proposta.titulo) !== normalize(proposta.cliente_nome_real) && (
-              <span className="text-[10px] text-muted-foreground truncate max-w-[200px] leading-tight" title={proposta.titulo}>
-                {proposta.titulo}
-              </span>
-            )}
+            {/* 
+              Regra de exibição de subtexto:
+              1. Versões expandidas (isSubRow): Mostrar "Versão X" ou título se for diferente do cliente.
+              2. Linha principal: Mostrar título só se for diferente do nome do cliente.
+            */}
+            {(() => {
+              const titulo = proposta.titulo?.trim();
+              const nomeCliente = proposta.cliente_nome?.trim();
+              const showSubtitle = titulo && nomeCliente && titulo.toLowerCase() !== nomeCliente.toLowerCase();
+              
+              if (isSubRow) {
+                return (
+                  <span className="text-[10px] text-muted-foreground/70 truncate max-w-[200px]">
+                    {showSubtitle ? titulo : `Versão ${proposta.versao_numero}`}
+                  </span>
+                );
+              }
+
+              if (proposta.cliente_nome_real && showSubtitle) {
+                return (
+                  <span className="text-[10px] text-muted-foreground truncate max-w-[200px] leading-tight" title={titulo}>
+                    {titulo}
+                  </span>
+                );
+              }
+
+              return null;
+            })()}
             {isMain && hasOthers && (
               <div className="flex items-center gap-2 mt-0.5">
                 <span 
