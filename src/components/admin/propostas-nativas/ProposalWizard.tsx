@@ -2597,29 +2597,30 @@ function ProposalWizardContent() {
         custoInstalacao: instalacaoVal,
         propostaId: genResult.proposta_id,
       }).catch(e => console.error("Error saving pricing history:", e));
-          }
-        } else {
-          // HTML template: use proposal-render as before
-          const renderResult = await renderProposal(genResult.versao_id);
-          setHtmlPreview(renderResult.html);
-          setGenerationStatus("ready");
-        }
-      } catch (e: any) {
-        setGenerationStatus("error");
-        setGenerationError(e.message || "Erro ao renderizar documento");
-        toast({ title: "Erro ao renderizar", description: e.message, variant: "destructive" });
-      } finally { setRendering(false); }
-
-      // Save pricing history for smart defaults in future proposals
-      const instalacaoVal = servicos.find(s => s.categoria === "instalacao")?.valor || 0;
-      savePricingHistory({
-        potenciaKwp,
-        margemPercentual: venda.margem_percentual,
-        custoComissao: venda.custo_comissao,
-        custoOutros: venda.custo_outros,
-        custoInstalacao: instalacaoVal,
-        propostaId: genResult.proposta_id,
-      }).catch(e => console.error("Error saving pricing history:", e));
+    } catch (e: any) {
+      // ── Handle structured 422 errors from backend enforcement ──
+      const errorCode = (e as any).errorCode;
+      if (errorCode === "missing_required_variables") {
+        setBlockReason("missing_required");
+        setBlockMissing((e as any).missing || []);
+        setShowBlockModal(true);
+        setGenerationStatus("idle");
+        setGenerating(false);
+        return;
+      }
+      if (errorCode === "estimativa_not_accepted") {
+        setBlockReason("estimativa_not_accepted");
+        setBlockMissing([]);
+        setShowBlockModal(true);
+        setGenerationStatus("idle");
+        setGenerating(false);
+        return;
+      }
+      setGenerationStatus("error");
+      setGenerationError(e.message || "Erro ao publicar proposta");
+      toast({ title: "Erro na publicação", description: e.message, variant: "destructive" });
+      setGenerating(false);
+    }
     } catch (e: any) {
       // ── Handle structured 422 errors from backend enforcement ──
       const errorCode = (e as any).errorCode;
