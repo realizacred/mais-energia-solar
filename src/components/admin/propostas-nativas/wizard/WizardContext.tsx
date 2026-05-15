@@ -9,7 +9,7 @@ import {
 import { type AdicionalItem } from "./StepAdicionais";
 import { useTenantTarifas, applyTenantTarifasToUC } from "./useWizardDataLoaders";
 
-type GenerationStatus = "idle" | "calculating" | "generating_docx" | "converting_pdf" | "saving" | "ready" | "docx_only" | "error";
+type GenerationStatus = "idle" | "calculating" | "publishing" | "published" | "rendering_pdf" | "ready" | "docx_only" | "error";
 
 interface WizardContextType {
   // Shared state
