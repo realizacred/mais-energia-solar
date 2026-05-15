@@ -540,20 +540,20 @@ export function StepDocumento({
     // ── Generation in progress
     if (generating) {
       const statusMsg = generationStatus === "calculating" ? "Calculando dimensionamento..."
-        : generationStatus === "generating_docx" ? "Gerando documento..."
-        : generationStatus === "converting_pdf" ? "Convertendo para PDF..."
-        : generationStatus === "saving" ? "Finalizando..."
+        : generationStatus === "publishing" ? "Publicando versão oficial no CRM..."
+        : generationStatus === "published" ? "Versão publicada com sucesso!"
+        : generationStatus === "rendering_pdf" ? "Iniciando geração do PDF..."
         : "Gerando proposta comercial...";
       return (
         <div className="flex flex-col items-center justify-center py-20 gap-4">
           <Sun className="h-12 w-12 text-primary animate-spin" style={{ animationDuration: "2s" }} />
           <p className="text-sm font-medium text-muted-foreground animate-pulse">{statusMsg}</p>
           <div className="flex items-center gap-2">
-            {["calculating", "generating_docx", "converting_pdf", "saving"].map((s, i) => (
+            {["calculating", "publishing", "rendering_pdf"].map((s, i) => (
               <div key={s} className={cn(
                 "h-1.5 w-8 rounded-full transition-colors",
                 generationStatus === s ? "bg-primary animate-pulse" :
-                ["calculating", "generating_docx", "converting_pdf", "saving"].indexOf(generationStatus) > i ? "bg-primary" : "bg-muted"
+                ["calculating", "publishing", "rendering_pdf"].indexOf(generationStatus) > i ? "bg-primary" : "bg-muted"
               )} />
             ))}
           </div>
