@@ -42,7 +42,7 @@ export function useLeadStatusMap() {
 
   /** First non-terminal status — used as "reopen" target. */
   const reopenTarget =
-    statuses.find((s) => !TERMINAL_NAMES.includes(s.nome)) ?? null;
+    statuses.find((s) => !TERMINAL_NAMES.some(kw => s.nome.toLowerCase().includes(kw))) ?? null;
 
   return {
     statuses,
