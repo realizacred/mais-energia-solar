@@ -349,7 +349,12 @@ export function useDealPipeline() {
       propostasByDeal.forEach((dealPropostas, did) => {
         const principal = dealPropostas.find((p: any) => p.is_principal && !['excluida', 'cancelada', 'arquivada'].includes(p.status?.toLowerCase()));
         if (principal) {
-          bestPropostaByDeal.set(did, { id: principal.id, status: principal.status });
+          bestPropostaByDeal.set(did, { 
+            id: principal.id, 
+            status: principal.status,
+            draft_total: principal.draft_total,
+            has_unpublished_changes: principal.has_unpublished_changes
+          });
           return;
         }
         const sorted = [...dealPropostas].sort((a: any, b: any) => {
