@@ -364,6 +364,57 @@ function ProjetoDetalheContent() {
   const propostasQuery = usePropostasProjetoTab(deal?.id || "", deal?.customer_id || null);
   const propostas = propostasQuery.data || [];
 
+  const { roles } = useUserRole();
+
+  const visibleTabs = useMemo(() => {
+    return TABS.filter(tab => {
+      // @ts-ignore
+      if (!tab.roles) return true;
+      if (roles.length === 0) return true;
+      // @ts-ignore
+      return roles.some(role => tab.roles.includes(role));
+    });
+  }, [roles]);
+
+  useEffect(() => {
+    if (roles.length > 0 && !visibleTabs.find(t => t.id === activeTab)) {
+      setActiveTab("gerenciamento");
+    }
+  }, [visibleTabs, activeTab, roles, setActiveTab]);
+
+  const handleSaveProjeto = async () => {
+    if (!projetoId) return;
+    setSavingProjeto(true);
+    const { error } = await supabase
+      .from("projetos")
+      .update({
+        nome: editProjetoNome.trim() || null,
+        observacoes: editProjetoDescricao.trim() || null,
+      })
+      .eq("id", projetoId);
+    setSavingProjeto(false);
+    if (error) {
+      toast({ title: "Erro ao salvar", description: error.message, variant: "destructive" });
+      return;
+    }
+    toast({ title: "Projeto atualizado" });
+    setEditProjetoOpen(false);
+    queryClient.invalidateQueries({ queryKey: ["projeto-detalhe"] });
+    queryClient.invalidateQueries({ queryKey: ["projetos-pipeline"] });
+    silentRefresh?.();
+  };
+
+  const [editClienteId, setEditClienteId] = useState<string | null>(null);
+  const [editingTitle, setEditingTitle] = useState(false);
+  const [titleDraft, setTitleDraft] = useState("");
+  const [savingTitle, setSavingTitle] = useState(false);
+  const [editProjetoOpen, setEditProjetoOpen] = useState(false);
+  const [editProjetoNome, setEditProjetoNome] = useState("");
+  const [editProjetoDescricao, setEditProjetoDescricao] = useState("");
+  const [savingProjeto, setSavingProjeto] = useState(false);
+  const [reabrirDealOpen, setReabrirDealOpen] = useState(false);
+
+
   // Expose queryClient to window for PropostaExpandedDetail
   useEffect(() => {
     (window as any).queryClient = queryClient;
