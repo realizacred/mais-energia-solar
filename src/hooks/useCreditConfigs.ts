@@ -165,9 +165,14 @@ export function useCreateCreditChecklistItem() {
       const { data, error } = await supabase
         .from("credit_bank_checklists")
         .insert({
-          ...values,
+          bank_config_id: values.bank_config_id,
+          document_type_name: values.document_type_name,
+          is_required: values.is_required,
+          applicable_to: values.applicable_to,
+          description: values.description,
+          sort_order: values.sort_order,
           tenant_id: profile.tenant_id,
-        })
+        } as any)
         .select()
         .single();
 
