@@ -346,6 +346,36 @@ function ProjetoDetalheContent() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
+  const {
+    deal, projetoId, loading, activeTab, setActiveTab, stages,
+    projetoNome, projetoCodigo, projetoNum, projetoDescricao,
+    customerName, customerPhone, customerEmail, customerCpfCnpj, customerEmpresa, customerAddress,
+    ownerName, pipelines, allStagesMap, userNamesMap,
+    currentStage, currentPipeline, projectCode,
+    dealEtiquetas, allEtiquetas, etiquetaPopoverOpen, setEtiquetaPopoverOpen, toggleEtiqueta,
+    deleteDialogOpen, setDeleteDialogOpen, deleteBlocking, deleting, handleDeleteProject, setDeleteBlocking,
+    confirmConsultorId, setConfirmConsultorId, handleConfirmConsultor,
+    lossDialogOpen, setLossDialogOpen, lossMotivo, setLossMotivo, lossObs, setLossObs, lossSaving,
+    motivos, loadingMotivos, handleConfirmLoss,
+    isClosed, silentRefresh, refreshCustomer, formatDate, getStageNameById, tabBadge,
+    dealId, onBack, initialPipelineId,
+  } = ctx;
+
+  const propostasQuery = usePropostasProjetoTab(deal?.id || "", deal?.customer_id || null);
+  const propostas = propostasQuery.data || [];
+
+  const { roles } = useUserRole();
+
+  const [editClienteId, setEditClienteId] = useState<string | null>(null);
+  const [editingTitle, setEditingTitle] = useState(false);
+  const [titleDraft, setTitleDraft] = useState("");
+  const [savingTitle, setSavingTitle] = useState(false);
+  const [editProjetoOpen, setEditProjetoOpen] = useState(false);
+  const [editProjetoNome, setEditProjetoNome] = useState("");
+  const [editProjetoDescricao, setEditProjetoDescricao] = useState("");
+  const [savingProjeto, setSavingProjeto] = useState(false);
+  const [reabrirDealOpen, setReabrirDealOpen] = useState(false);
+
   // Expose queryClient to window for PropostaExpandedDetail
   useEffect(() => {
     (window as any).queryClient = queryClient;
@@ -382,30 +412,22 @@ function ProjetoDetalheContent() {
       supabase.removeChannel(channel);
     };
   }, [ctx.dealId, queryClient]);
-  const [editClienteId, setEditClienteId] = useState<string | null>(null);
-  const [editingTitle, setEditingTitle] = useState(false);
-  const [titleDraft, setTitleDraft] = useState("");
-  const [savingTitle, setSavingTitle] = useState(false);
-  const [editProjetoOpen, setEditProjetoOpen] = useState(false);
-  const [editProjetoNome, setEditProjetoNome] = useState("");
-  const [editProjetoDescricao, setEditProjetoDescricao] = useState("");
-  const [savingProjeto, setSavingProjeto] = useState(false);
-  const [reabrirDealOpen, setReabrirDealOpen] = useState(false);
 
-  const {
-    deal, projetoId, loading, activeTab, setActiveTab, stages,
-    projetoNome, projetoCodigo, projetoNum, projetoDescricao,
-    customerName, customerPhone, customerEmail, customerCpfCnpj, customerEmpresa, customerAddress,
-    ownerName, pipelines, allStagesMap, userNamesMap,
-    currentStage, currentPipeline, projectCode,
-    dealEtiquetas, allEtiquetas, etiquetaPopoverOpen, setEtiquetaPopoverOpen, toggleEtiqueta,
-    deleteDialogOpen, setDeleteDialogOpen, deleteBlocking, deleting, handleDeleteProject, setDeleteBlocking,
-    confirmConsultorId, setConfirmConsultorId, handleConfirmConsultor,
-    lossDialogOpen, setLossDialogOpen, lossMotivo, setLossMotivo, lossObs, setLossObs, lossSaving,
-    motivos, loadingMotivos, handleConfirmLoss,
-    isClosed, silentRefresh, refreshCustomer, formatDate, getStageNameById, tabBadge,
-    dealId, onBack, initialPipelineId,
-  } = ctx;
+  const visibleTabs = useMemo(() => {
+    return TABS.filter(tab => {
+      // @ts-ignore
+      if (!tab.roles) return true;
+      if (roles.length === 0) return true;
+      // @ts-ignore
+      return roles.some(role => tab.roles.includes(role));
+    });
+  }, [roles]);
+
+  useEffect(() => {
+    if (roles.length > 0 && !visibleTabs.find(t => t.id === activeTab)) {
+      setActiveTab("gerenciamento");
+    }
+  }, [visibleTabs, activeTab, roles, setActiveTab]);
 
   const handleSaveProjeto = async () => {
     if (!projetoId) return;
@@ -429,23 +451,6 @@ function ProjetoDetalheContent() {
     silentRefresh?.();
   };
 
-  const { roles } = useUserRole();
-  const visibleTabs = useMemo(() => {
-    return TABS.filter(tab => {
-      // @ts-ignore
-      if (!tab.roles) return true;
-      if (roles.length === 0) return true;
-      // @ts-ignore
-      return roles.some(role => tab.roles.includes(role));
-    });
-  }, [roles]);
-
-  useEffect(() => {
-    if (roles.length > 0 && !visibleTabs.find(t => t.id === activeTab)) {
-      setActiveTab("gerenciamento");
-    }
-  }, [visibleTabs, activeTab, roles, setActiveTab]);
-
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center py-24">
@@ -464,7 +469,8 @@ function ProjetoDetalheContent() {
     );
   }
 
-  const { data: propostas = [] } = usePropostasProjetoTab(deal.id, deal.customer_id);
+
+
 
   return (
     <div className="min-h-screen bg-muted/30 -m-4 sm:-m-6 p-3 sm:p-6 max-w-full overflow-x-hidden">
