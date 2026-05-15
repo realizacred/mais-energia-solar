@@ -345,6 +345,73 @@ function ProposalWizardContent() {
   const [savedProjetoId, setSavedProjetoId] = useState<string | null>(projetoIdFromUrl || null);
   const [savedDealId, setSavedDealId] = useState<string | null>(null);
 
+  // ─── Polling for background rendering
+  useEffect(() => {
+    if (!rendering || !savedVersaoId) return;
+
+    let pollInterval: NodeJS.Timeout;
+    let attempts = 0;
+    const maxAttempts = 60; // ~3 minutes polling
+
+    const poll = async () => {
+      attempts++;
+      if (attempts > maxAttempts) {
+        setRendering(false);
+        setGenerationStatus("error");
+        setGenerationError("Tempo limite de renderização atingido (3 min). Verifique o PDF no detalhe do projeto.");
+        clearInterval(pollInterval);
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from("proposta_versoes")
+        .select("output_pdf_path, output_docx_path, generation_status, generation_error, generation_audit_json")
+        .eq("id", savedVersaoId)
+        .maybeSingle();
+
+      if (error) {
+        console.error("[ProposalWizard] Polling error:", error);
+        return;
+      }
+
+      if (data) {
+        // Stop polling if status is final or path is present
+        if (data.generation_status === "ready" || data.output_pdf_path) {
+          setOutputPdfPath(data.output_pdf_path);
+          setOutputDocxPath(data.output_docx_path);
+          setGenerationStatus("ready");
+          setRendering(false);
+          if (data.generation_audit_json) {
+            setGenerationAuditReport(data.generation_audit_json as any);
+          }
+          clearInterval(pollInterval);
+          
+          if (data.output_pdf_path) {
+            const { data: signedData } = await supabase.storage
+              .from("proposta-documentos")
+              .createSignedUrl(data.output_pdf_path, 3600);
+            if (signedData?.signedUrl) {
+              setPdfBlobUrl(signedData.signedUrl);
+            }
+          }
+        } else if (data.generation_status === "error") {
+          setGenerationStatus("error");
+          setGenerationError(data.generation_error || "Erro na geração em background");
+          setRendering(false);
+          clearInterval(pollInterval);
+        } else if (data.generation_status === "docx_only") {
+          setGenerationStatus("docx_only");
+          setOutputDocxPath(data.output_docx_path);
+          setRendering(false);
+          clearInterval(pollInterval);
+        }
+      }
+    };
+
+    pollInterval = setInterval(poll, 3000);
+    return () => clearInterval(pollInterval);
+  }, [rendering, savedVersaoId]);
+
   // Fetch projeto codigo for breadcrumb (Projetos > Projeto #XXXX > Nova Proposta)
   const { data: projetoBreadcrumb } = useQuery({
     queryKey: ["projeto-breadcrumb", savedProjetoId],
