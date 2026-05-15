@@ -133,7 +133,8 @@ export function WizardProvider({ children, initialData = {} }: { children: React
   const [ucs, setUcs] = useState<UCData[]>([createEmptyUC(1)]);
   const [ucsRestoreEpoch, setUcsRestoreEpoch] = useState(0);
   const bumpUcsRestoreEpoch = useCallback(() => setUcsRestoreEpoch(e => e + 1), []);
-  const [grupo, setGrupo] = useState("B1");
+  const [grupo, setGrupo] = useState("B");
+  const [subgrupo, setSubgrupo] = useState("B1");
   const [potenciaKwp, setPotenciaKwp] = useState<number>(0);
 
   const [itens, setItens] = useState<KitItemRow[]>([

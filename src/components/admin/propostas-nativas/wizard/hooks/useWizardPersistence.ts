@@ -177,6 +177,7 @@ function sanitizeSnapshot(snapshot: any): Record<string, unknown> {
   const result: Record<string, unknown> = {
     ...rest,
     grupo: normalizeGrupo(rest.grupo),
+    subgrupo: rest.subgrupo || rest.grupo, // Preserva subgrupo original se existir, ou usa grupo como fallback
     schema_version: SNAPSHOT_SCHEMA_VERSION,
     customFieldValues: rootCustomFieldValues,
     descricaoProposta: rest.descricaoProposta ?? "",
@@ -370,7 +371,7 @@ async function persistProposalAtomic(
             p_valor_total: params.precoFinal,
             p_economia_mensal: params.economiaMensal || null,
             p_geracao_mensal: params.geracaoMensal || null,
-            p_grupo: params.snapshot?.grupo || null,
+            p_grupo: normalizeGrupo(params.snapshot?.grupo),
             p_intent: "active",
           },
         );
@@ -446,7 +447,7 @@ async function persistProposalAtomic(
         p_valor_total: params.precoFinal,
         p_economia_mensal: params.economiaMensal || null,
         p_geracao_mensal: params.geracaoMensal || null,
-        p_grupo: params.snapshot?.grupo || null,
+        p_grupo: normalizeGrupo(params.snapshot?.grupo),
         p_intent: intent,
       },
     );
