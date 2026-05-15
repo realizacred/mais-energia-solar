@@ -48,6 +48,7 @@ import { ProjetoConcessionariaTab } from "./ProjetoConcessionariaTab";
 import { ImportantFieldRow } from "./ImportantFieldRow";
 import { ProjetoOutrosCampos } from "./ProjetoOutrosCampos";
 import { ProjetoMultiPipelineManager } from "./ProjetoMultiPipelineManager";
+import { ReabrirNegociacaoDialog } from "./ReabrirNegociacaoDialog";
 import { AddressFields, type AddressData } from "@/components/shared/AddressFields";
 import { ProjetoComunicacaoResumo } from "./ProjetoComunicacaoResumo";
 import { ScheduleWhatsAppDialog } from "@/components/vendor/ScheduleWhatsAppDialog";
