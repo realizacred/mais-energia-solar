@@ -72,10 +72,7 @@ import { getLostStatusIds } from "@/modules/orcamentos/utils/operationalFilters"
          .from("lead_status")
          .select("id, nome");
  
-       const perdidoStatus = statuses?.find(s => 
-         s.nome.toLowerCase().includes("perdido") || 
-         s.nome.toLowerCase().includes("cancelado")
-       );
+        const perdidoStatusIds = getLostStatusIds(statuses || []);
  
         const totalOrcamentos = orcamentos?.length || 0;
         
