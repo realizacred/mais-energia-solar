@@ -47,6 +47,7 @@ export interface NormalizedKitItem {
   categoria: string;
   avulso: boolean;
   produto_ref: string | null;
+  garantia_anos: number;
 }
 
 // ─── Serviço normalizado ──────────────────────────────────
