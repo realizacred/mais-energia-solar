@@ -59,7 +59,8 @@ export function VendorLeadFilters({
     filterEstado !== "todos" ||
     filterStatus !== "todos" ||
     excludeTerminal ||
-    maxAgeDays !== null;
+    maxAgeDays !== null ||
+    operationalStatus !== "todos";
 
   const FilterControls = () => (
     <div className="grid grid-cols-1 sm:flex sm:flex-wrap gap-2 w-full sm:w-auto">
