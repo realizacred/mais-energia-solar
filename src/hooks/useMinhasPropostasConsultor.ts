@@ -31,6 +31,7 @@ export interface PropostaConsultor {
   validade_dias: number | null;
   public_token: string | null;
   cliente_nome: string | null;
+  cliente_nome_real: string | null;
   lead_id: string | null;
   cliente_id: string | null;
   projeto_id: string | null;
@@ -150,10 +151,9 @@ export function useMinhasPropostasConsultor(consultorId: string | null | undefin
         const latest =
           versoes.find((v) => v.versao_numero === p.versao_atual) ?? versoes[0] ?? null;
 
-        const clienteNomeRaw = p.clientes?.nome ?? p.leads?.nome;
-        const cliente_nome = clienteNomeRaw 
-          ? capitalize(clienteNomeRaw) 
-          : (p.titulo ?? "Cliente não identificado");
+        const clienteNomeRealRaw = p.clientes?.nome || p.leads?.nome;
+        const cliente_nome_real = clienteNomeRealRaw ? capitalize(clienteNomeRealRaw) : null;
+        const cliente_nome = cliente_nome_real || (p.titulo ? capitalize(p.titulo) : "Cliente não identificado");
 
         let valido_ate = latest?.valido_ate ?? null;
         if (!valido_ate && latest?.created_at) {
@@ -180,6 +180,7 @@ export function useMinhasPropostasConsultor(consultorId: string | null | undefin
           validade_dias: p.validade_dias,
           public_token: p.public_token || p.proposta_versoes?.[0]?.public_slug || null,
           cliente_nome,
+          cliente_nome_real,
           lead_id: p.lead_id,
           cliente_id: p.cliente_id,
           projeto_id: p.projeto_id,
