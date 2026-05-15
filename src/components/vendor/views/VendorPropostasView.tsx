@@ -20,6 +20,8 @@ import {
   Clock,
   Filter
 } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { LoadingState } from "@/components/ui-kit/LoadingState";
@@ -72,6 +74,23 @@ const STATUS_CONFIG: Record<string, { label: string; cls: string }> = {
   expirada: { label: "Expirada", cls: "bg-red-100 text-red-600 border-red-200" },
   recusada: { label: "Recusada", cls: "bg-red-100 text-red-600 border-red-200" },
 };
+
+const getStatusBadgeClass = (status: string) => {
+  switch (status) {
+    case 'aceita':
+      return 'bg-emerald-500 text-white border-transparent hover:bg-emerald-600';
+    case 'vista':
+      return 'bg-amber-500 text-white border-transparent hover:bg-amber-600';
+    case 'enviada':
+      return 'bg-blue-500 text-white border-transparent hover:bg-blue-600';
+    case 'expirada':
+    case 'recusada':
+      return 'bg-red-500 text-white border-transparent hover:bg-red-600';
+    default:
+      return 'bg-slate-500 text-white border-transparent hover:bg-slate-600';
+  }
+};
+
 
 export default function VendorPropostasView({ portal }: Props) {
   const consultorId = portal.vendedor?.id ?? null;
@@ -210,21 +229,22 @@ export default function VendorPropostasView({ portal }: Props) {
           </CardContent>
         </Card>
       ) : (
-        <div className="rounded-md border bg-card overflow-hidden">
+        <div className="overflow-x-auto rounded-lg border bg-card">
           <TooltipProvider>
             <Table>
-              <TableHeader className="bg-muted/50">
-                <TableRow>
-                  <TableHead className="w-[300px] text-xs font-semibold">Cliente</TableHead>
-                  <TableHead className="text-xs font-semibold">Código</TableHead>
-                  <TableHead className="text-xs font-semibold">Status</TableHead>
-                  <TableHead className="text-xs font-semibold">kWp</TableHead>
-                  <TableHead className="text-xs font-semibold">Geração</TableHead>
-                  <TableHead className="text-xs font-semibold">Consumo</TableHead>
-                  <TableHead className="text-xs font-semibold">Valor</TableHead>
-                  <TableHead className="text-xs font-semibold">Aberturas</TableHead>
-                  <TableHead className="text-xs font-semibold">Validade</TableHead>
-                  <TableHead className="text-right text-xs font-semibold">Ações</TableHead>
+              <TableHeader>
+                <TableRow className="bg-muted/50 hover:bg-muted/50">
+
+                  <TableHead className="w-12">Visto</TableHead>
+                  <TableHead className="w-24">Proposta</TableHead>
+                  <TableHead className="w-32">Cliente</TableHead>
+                  <TableHead>kWp / Geração</TableHead>
+                  <TableHead>Consumo</TableHead>
+                  <TableHead>Valor</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Validade</TableHead>
+                  <TableHead className="text-right">Ações</TableHead>
+
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -317,104 +337,114 @@ function PropostaRow({
 
   const aberturas = proposta.total_aberturas || 0;
 
+  const visto = proposta.status === 'vista' || proposta.status === 'aceita' || (proposta.total_aberturas && proposta.total_aberturas > 0);
+
   return (
-    <TableRow className={`${isSubRow ? "bg-muted/20" : ""} hover:bg-muted/30 transition-colors`}>
-      <TableCell className="py-2.5">
-        <div className="flex items-center gap-2">
-          <div className="w-6 flex items-center justify-center shrink-0">
-            {isMain && hasOthers && (
-              <button 
-                onClick={(e) => { e.stopPropagation(); onToggleExpand?.(); }}
-                className="p-1 hover:bg-muted rounded-sm text-muted-foreground transition-colors"
-              >
-                {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-              </button>
-            )}
-            {isSubRow && <div className="w-px bg-muted-foreground/30 h-8 ml-1" />}
-          </div>
-          <div className="flex flex-col min-w-0">
-            <span className={`truncate ${isSubRow ? "text-xs font-normal" : "font-medium text-sm"} text-foreground ${!proposta.cliente_nome_real ? "italic opacity-80" : ""}`}>
-              {proposta.cliente_nome}
-            </span>
-            {/* 
-              Regra de exibição de subtexto:
-              1. Versões expandidas (isSubRow): Mostrar "Versão X" ou título se for diferente do cliente.
-              2. Linha principal: Mostrar título só se for diferente do nome do cliente.
-            */}
-            {(() => {
-              const titulo = proposta.titulo?.trim();
-              const nomeCliente = proposta.cliente_nome?.trim();
-              const showSubtitle = titulo && nomeCliente && titulo.toLowerCase() !== nomeCliente.toLowerCase();
-              
-              if (isSubRow) {
-                return (
-                  <span className="text-[10px] text-muted-foreground/70 truncate max-w-[200px]">
-                    {showSubtitle ? titulo : `Versão ${proposta.versao_numero}`}
-                  </span>
-                );
-              }
+    <TableRow className={`align-middle ${visto ? "bg-success/5" : ""} ${proposta.status === 'aceita' ? "bg-primary/5" : ""} ${isSubRow ? "bg-muted/20" : ""} hover:bg-muted/30 transition-colors`}>
+      <TableCell className="align-middle">
+        <Checkbox
+          checked={visto}
+          disabled
+          className="data-[state=checked]:bg-primary data-[state=checked]:border-primary opacity-70"
+        />
+      </TableCell>
 
-              if (showSubtitle) {
-                return (
-                  <span className="text-[10px] text-muted-foreground truncate max-w-[200px] leading-tight" title={titulo}>
-                    {titulo}
-                  </span>
-                );
-              }
-
-              return null;
-            })()}
-            {isMain && hasOthers && (
-              <div className="flex items-center gap-2 mt-0.5">
-                <span 
-                  className="text-[10px] text-primary font-medium cursor-pointer hover:underline"
-                  onClick={(e) => { e.stopPropagation(); onToggleExpand?.(); }}
-                >
-                  +{othersCount} versões
-                </span>
-              </div>
-            )}
-            
-          </div>
+      <TableCell className="align-middle">
+        <div className="flex items-center gap-1">
+          <Badge variant="default" className="font-mono text-[10px] px-1.5 py-0 h-5">
+            {codeLabel}
+          </Badge>
+          {isMain && hasOthers && (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 w-6 p-0 text-muted-foreground hover:text-primary"
+                    onClick={(e) => { e.stopPropagation(); onToggleExpand?.(); }}
+                  >
+                    <Badge variant="secondary" className="h-5 min-w-5 p-0 flex items-center justify-center text-[10px]">
+                      {isExpanded ? <ChevronDown className="h-3 w-3" /> : `+${othersCount}`}
+                    </Badge>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  Ver outras {othersCount} versões
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          )}
         </div>
       </TableCell>
-      <TableCell className="py-2.5">
-        <span className="text-xs font-mono text-muted-foreground">{codeLabel}</span>
+
+      <TableCell className="align-middle py-3">
+        <div className="flex flex-col min-w-0">
+          <div className="flex items-center gap-2">
+            <span className={`truncate font-semibold text-foreground ${isSubRow ? "text-xs" : "text-sm"} ${!proposta.cliente_nome_real ? "italic opacity-80" : ""}`}>
+              {proposta.cliente_nome}
+            </span>
+            {!visto && !isSubRow && (
+              <Badge variant="default" className="bg-primary text-primary-foreground text-[10px] h-4 px-1 py-0">
+                Novo
+              </Badge>
+            )}
+          </div>
+          {(() => {
+            const titulo = proposta.titulo?.trim();
+            const nomeCliente = proposta.cliente_nome?.trim();
+            const showSubtitle = titulo && nomeCliente && titulo.toLowerCase() !== nomeCliente.toLowerCase();
+            
+            if (isSubRow) {
+              return (
+                <span className="text-[10px] text-muted-foreground/70 truncate max-w-[200px]">
+                  {showSubtitle ? titulo : `Versão ${proposta.versao_numero}`}
+                </span>
+              );
+            }
+
+            if (showSubtitle) {
+              return (
+                <span className="text-[10px] text-muted-foreground truncate max-w-[200px] leading-tight" title={titulo}>
+                  {titulo}
+                </span>
+              );
+            }
+
+            return null;
+          })()}
+        </div>
       </TableCell>
-      <TableCell className="py-2.5">
-        <Badge variant="outline" className={`text-[10px] px-1.5 py-0 h-5 font-normal whitespace-nowrap ${status.cls}`}>
+
+      <TableCell className="align-middle">
+        <div className="flex flex-col gap-0.5">
+          <span className="text-sm font-medium">
+            {proposta.potencia_kwp != null ? `${Number(proposta.potencia_kwp).toFixed(2)} kWp` : "—"}
+          </span>
+          <span className="text-[10px] text-muted-foreground whitespace-nowrap">
+            Geração: {proposta.geracao_mensal != null ? `${Math.round(proposta.geracao_mensal)} kWh` : "—"}
+          </span>
+        </div>
+      </TableCell>
+
+      <TableCell className="align-middle">
+        <span className="text-sm text-muted-foreground whitespace-nowrap">
+          {proposta.consumo_mensal != null ? `${Math.round(proposta.consumo_mensal)}` : "—"}
+          <span className="text-[10px] ml-0.5 font-normal">kWh/mês</span>
+        </span>
+      </TableCell>
+
+      <TableCell className="align-middle text-sm font-semibold">
+        {proposta.valor_total != null ? formatBRL(Number(proposta.valor_total)) : "—"}
+      </TableCell>
+
+      <TableCell className="align-middle">
+        <Badge className={`text-[10px] px-2 py-0 h-5 font-medium shadow-none ${getStatusBadgeClass(proposta.status)}`}>
           {status.label}
         </Badge>
       </TableCell>
-      <TableCell className="py-2.5">
-        <span className="text-xs font-medium">
-          {proposta.potencia_kwp != null ? `${Number(proposta.potencia_kwp).toFixed(2)}` : "—"}
-        </span>
-      </TableCell>
-      <TableCell className="py-2.5">
-        <span className="text-xs text-muted-foreground whitespace-nowrap">
-          {proposta.geracao_mensal != null ? `${Math.round(proposta.geracao_mensal)}` : "—"}
-          <span className="text-[10px] ml-0.5">kWh/mês</span>
-        </span>
-      </TableCell>
-      <TableCell className="py-2.5">
-        <span className="text-xs text-muted-foreground whitespace-nowrap">
-          {proposta.consumo_mensal != null ? `${Math.round(proposta.consumo_mensal)}` : "—"}
-          <span className="text-[10px] ml-0.5">kWh/mês</span>
-        </span>
-      </TableCell>
-      <TableCell className="py-2.5">
-        <span className="text-xs font-semibold">
-          {proposta.valor_total != null ? formatBRL(Number(proposta.valor_total)) : "—"}
-        </span>
-      </TableCell>
-      <TableCell className="py-2.5">
-        <div className={`flex items-center gap-1.5 text-xs ${aberturas > 0 ? "text-amber-600 font-medium" : "text-slate-400"}`}>
-          <Eye className="h-3.5 w-3.5" />
-          {aberturas}
-        </div>
-      </TableCell>
-      <TableCell className="py-2.5">
+
+      <TableCell className="align-middle">
         <div className={`flex items-center gap-1.5 text-xs ${
           isExpired ? "text-red-500 font-medium" : 
           isNearExpiring ? "text-amber-500 font-medium" : 
@@ -424,12 +454,16 @@ function PropostaRow({
           {valDate ? valDate.toLocaleDateString("pt-BR") : "Sem validade"}
         </div>
       </TableCell>
-      <TableCell className="py-2.5 text-right">
-        <PropostaRowActions proposta={proposta} />
+
+      <TableCell className="align-middle text-right">
+        <div className="flex items-center justify-end gap-1">
+          <PropostaRowActions proposta={proposta} />
+        </div>
       </TableCell>
     </TableRow>
   );
 }
+
 
 function PropostaRowActions({ proposta }: { proposta: PropostaConsultor }) {
   const [busy, setBusy] = useState<string | null>(null);
@@ -488,50 +522,68 @@ function PropostaRowActions({ proposta }: { proposta: PropostaConsultor }) {
   };
 
   return (
-    <div className="flex items-center justify-end gap-1.5">
-      <Button 
-        variant="outline" 
-        size="sm" 
-        className="h-7 px-2 text-[10px] gap-1"
-        onClick={handleOpenPublic}
-        disabled={!!busy}
-      >
-        {busy === "open" ? <Loader2 className="h-3 w-3 animate-spin" /> : <ExternalLink className="h-3 w-3" />}
-        Abrir
-      </Button>
+    <div className="flex items-center justify-end gap-1">
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="h-8 w-8 text-primary hover:text-primary hover:bg-primary/10"
+              onClick={handleOpenPublic}
+              disabled={!!busy}
+            >
+              {busy === "open" ? <Loader2 className="h-4 w-4 animate-spin" /> : <ExternalLink className="h-4 w-4" />}
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>Abrir Proposta</TooltipContent>
+        </Tooltip>
 
-      <Button 
-        variant="outline" 
-        size="sm" 
-        className="h-7 px-2 text-[10px] gap-1"
-        onClick={handleCopyPdf}
-        disabled={!!busy || !proposta.output_pdf_path}
-      >
-        {busy === "copy" ? <Loader2 className="h-3 w-3 animate-spin" /> : <FileText className="h-3 w-3" />}
-        PDF
-      </Button>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-muted"
+              onClick={handleCopyPdf}
+              disabled={!!busy || !proposta.output_pdf_path}
+            >
+              {busy === "copy" ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileText className="h-4 w-4" />}
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>Copiar PDF</TooltipContent>
+        </Tooltip>
 
-      <Button 
-        variant="outline" 
-        size="sm" 
-        className="h-7 px-2 text-[10px] gap-1"
-        onClick={handleWhatsApp}
-        disabled={!!busy || !proposta.versao_id}
-      >
-        <MessageCircle className="h-3 w-3" />
-        WhatsApp
-      </Button>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="h-8 w-8 text-success hover:text-success hover:bg-success/10"
+              onClick={handleWhatsApp}
+              disabled={!!busy || !proposta.versao_id}
+            >
+              <MessageCircle className="h-4 w-4" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>WhatsApp</TooltipContent>
+        </Tooltip>
 
-      <Button 
-        variant="outline" 
-        size="sm" 
-        className="h-7 px-2 text-[10px] gap-1"
-        onClick={handleEmail}
-        disabled={!!busy}
-      >
-        {busy === "email" ? <Loader2 className="h-3 w-3 animate-spin" /> : <Mail className="h-3 w-3" />}
-        E-mail
-      </Button>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="h-8 w-8 text-info hover:text-info hover:bg-info/10"
+              onClick={handleEmail}
+              disabled={!!busy}
+            >
+              {busy === "email" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mail className="h-4 w-4" />}
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>Enviar por E-mail</TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
 
       {proposta.versao_id && proposta.projeto_id && (
         <ProposalMessageDrawer
@@ -559,6 +611,7 @@ function PropostaRowActions({ proposta }: { proposta: PropostaConsultor }) {
     </div>
   );
 }
+
 
 function TooltipAction({ 
   label, 
