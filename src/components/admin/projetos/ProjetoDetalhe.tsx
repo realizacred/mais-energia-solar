@@ -427,6 +427,23 @@ function ProjetoDetalheContent() {
     silentRefresh?.();
   };
 
+  const { roles } = useUserRole();
+  const visibleTabs = useMemo(() => {
+    return TABS.filter(tab => {
+      // @ts-ignore
+      if (!tab.roles) return true;
+      if (roles.length === 0) return true;
+      // @ts-ignore
+      return roles.some(role => tab.roles.includes(role));
+    });
+  }, [roles]);
+
+  useEffect(() => {
+    if (roles.length > 0 && !visibleTabs.find(t => t.id === activeTab)) {
+      setActiveTab("gerenciamento");
+    }
+  }, [visibleTabs, activeTab, roles, setActiveTab]);
+
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center py-24">
@@ -444,22 +461,6 @@ function ProjetoDetalheContent() {
       </div>
     );
   }
-  const { roles } = useUserRole();
-  const visibleTabs = useMemo(() => {
-    return TABS.filter(tab => {
-      // @ts-ignore
-      if (!tab.roles) return true;
-      if (roles.length === 0) return true;
-      // @ts-ignore
-      return roles.some(role => tab.roles.includes(role));
-    });
-  }, [roles]);
-
-  useEffect(() => {
-    if (roles.length > 0 && !visibleTabs.find(t => t.id === activeTab)) {
-      setActiveTab("gerenciamento");
-    }
-  }, [visibleTabs, activeTab, roles, setActiveTab]);
 
   return (
     <div className="min-h-screen bg-muted/30 -m-4 sm:-m-6 p-3 sm:p-6 max-w-full overflow-x-hidden">
