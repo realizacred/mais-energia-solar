@@ -77,7 +77,7 @@ export function ReabrirNegociacaoDialog({
             {isLost ? "Reativar negociação" : "Remover ganho / Reabrir"}
           </DialogTitle>
           <DialogDescription>
-            Status atual: <Badge variant="secondary" className="font-bold">{STATUS_LABEL[currentStatus] ?? currentStatus}</Badge>.
+            Status atual: <Badge variant="secondary" className="font-bold">{currentStatus === "won" ? "Negociação ganha" : (STATUS_LABEL[currentStatus] ?? currentStatus)}</Badge>.
             A negociação voltará para a primeira etapa aberta do funil.
           </DialogDescription>
         </DialogHeader>
