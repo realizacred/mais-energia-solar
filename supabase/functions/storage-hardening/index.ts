@@ -31,16 +31,14 @@ Deno.serve(async (req) => {
   );
 
   try {
-    const { proposal_id, version_id, action = 'health' } = await req.json();
+    const body = await req.json().catch(() => ({ action: 'health' }));
+    const { action = 'health' } = body;
 
     if (action === 'health') {
       return new Response(JSON.stringify({ status: 'ok', worker: 'resilient-storage' }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-
-    // This is a stub for the normalization worker if needed in edge functions
-    // Actual implementation depends on where the generation logic lives
     
     return new Response(JSON.stringify({ success: true }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
