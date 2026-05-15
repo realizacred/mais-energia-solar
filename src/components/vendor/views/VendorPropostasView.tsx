@@ -374,7 +374,7 @@ function PropostaRow({
                 </span>
               </div>
             )}
-            {isSubRow && <span className="text-[10px] text-muted-foreground/70">Versão {proposta.versao_numero}</span>}
+            
           </div>
         </div>
       </TableCell>
