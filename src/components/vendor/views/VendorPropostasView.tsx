@@ -251,18 +251,15 @@ export default function VendorPropostasView({ portal }: Props) {
           <TooltipProvider>
             <Table>
               <TableHeader>
-                <TableRow className="bg-muted/50 hover:bg-muted/50">
-
-                  <TableHead className="w-12">Visto</TableHead>
-                  <TableHead className="w-[300px]">Cliente</TableHead>
-                  <TableHead className="w-24">Proposta</TableHead>
-                  <TableHead>kWp / Geração</TableHead>
-                  <TableHead>Consumo</TableHead>
-                  <TableHead>Valor</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Validade</TableHead>
-                  <TableHead className="text-right">Ações</TableHead>
-
+                <TableRow className="bg-muted/50 hover:bg-muted/50 border-b-0">
+                  <TableHead className="w-12 h-9 text-[10px] uppercase font-semibold">Visto</TableHead>
+                  <TableHead className="w-[280px] h-9 text-[10px] uppercase font-semibold">Cliente</TableHead>
+                  <TableHead className="w-32 h-9 text-[10px] uppercase font-semibold">Proposta</TableHead>
+                  <TableHead className="h-9 text-[10px] uppercase font-semibold">Potência / Energia</TableHead>
+                  <TableHead className="h-9 text-[10px] uppercase font-semibold">Valor</TableHead>
+                  <TableHead className="h-9 text-[10px] uppercase font-semibold">Status</TableHead>
+                  <TableHead className="h-9 text-[10px] uppercase font-semibold">Validade</TableHead>
+                  <TableHead className="text-right h-9 text-[10px] uppercase font-semibold">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -366,7 +363,7 @@ function PropostaRow({
       isSubRow ? "bg-muted/20" : 
       "hover:bg-muted/30"
     }`}>
-      <TableCell className="align-middle">
+      <TableCell className="py-2 align-middle">
         <Checkbox
           checked={visto}
           disabled
@@ -374,41 +371,34 @@ function PropostaRow({
         />
       </TableCell>
 
-      <TableCell className="align-middle">
-        <div className="flex flex-col min-w-0 py-1">
+      <TableCell className="py-2 align-middle">
+        <div className="flex flex-col min-w-0">
           <div className="flex items-center gap-2 group/name">
-            <span className="truncate font-medium text-sm text-primary max-w-[240px]" title={proposta.cliente_nome || ""}>
+            <span className="truncate font-semibold text-sm text-primary max-w-[240px]" title={proposta.cliente_nome || ""}>
               {proposta.cliente_nome}
             </span>
             {!visto && !isSubRow && (
-              <Badge variant="default" className="bg-primary text-primary-foreground text-[10px] h-4 px-1 py-0 shrink-0">
-                Novo
-              </Badge>
+              <div className="h-1.5 w-1.5 rounded-full bg-primary shrink-0" title="Novo" />
             )}
           </div>
           <div className="flex flex-col gap-0.5 mt-0.5">
             {proposta.titulo && proposta.titulo !== proposta.cliente_nome && (
-              <span className="text-[10px] text-muted-foreground truncate leading-tight max-w-[200px]" title={proposta.titulo}>
+              <span className="text-[11px] text-muted-foreground truncate leading-tight max-w-[220px]" title={proposta.titulo}>
                 {proposta.titulo}
               </span>
             )}
             {proposta.versao_numero && (
               <span className="text-[10px] text-muted-foreground/60 font-medium">
-                v{proposta.versao_numero}
+                Versão {proposta.versao_numero}
               </span>
-            )}
-            {isSubRow && !proposta.titulo && (
-               <span className="text-[10px] text-muted-foreground/70 truncate max-w-[200px]">
-                  Versão {proposta.versao_numero}
-               </span>
             )}
           </div>
         </div>
       </TableCell>
 
-      <TableCell className="align-middle">
+      <TableCell className="py-2 align-middle">
         <div className="flex items-center gap-2">
-          <Badge variant="secondary" className="font-mono text-[10px] whitespace-nowrap bg-muted/50 text-muted-foreground border-transparent">
+          <Badge variant="secondary" className="font-mono text-[10px] whitespace-nowrap bg-muted/40 text-muted-foreground border-transparent px-1.5 h-5">
             {codeLabel}
           </Badge>
           
@@ -419,12 +409,11 @@ function PropostaRow({
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="h-6 w-6 p-0 text-muted-foreground hover:text-primary shrink-0"
-                    aria-label="Ver outras versões"
+                    className="h-5 p-0 hover:bg-transparent shrink-0"
                     onClick={(e) => { e.stopPropagation(); onToggleExpand?.(); }}
                   >
-                    <Badge variant="outline" className="h-5 min-w-5 p-0 flex items-center justify-center text-[10px] bg-background">
-                      {isExpanded ? <ChevronDown className="h-3 w-3" /> : `+${othersCount}`}
+                    <Badge className="bg-blue-50 text-blue-600 hover:bg-blue-100 border-blue-100/50 rounded-full font-medium text-[10px] h-5 px-2 transition-colors">
+                      {isExpanded ? <ChevronDown className="h-3 w-3" /> : `+${othersCount} ${othersCount === 1 ? 'opção' : 'opções'}`}
                     </Badge>
                   </Button>
                 </TooltipTrigger>
@@ -437,46 +426,41 @@ function PropostaRow({
         </div>
       </TableCell>
 
-      <TableCell className="align-middle">
-        <div className="flex flex-col gap-0.5">
-          <span className="text-sm font-medium">
+      <TableCell className="py-2 align-middle">
+        <div className="flex flex-col">
+          <span className="text-sm font-semibold text-foreground">
             {proposta.potencia_kwp != null ? `${Number(proposta.potencia_kwp).toFixed(2)} kWp` : "—"}
           </span>
-          <span className="text-[10px] text-muted-foreground whitespace-nowrap">
-            Geração: {proposta.geracao_mensal != null ? `${Math.round(proposta.geracao_mensal)} kWh` : "—"}
-          </span>
+          <div className="flex items-center gap-1 text-[10px] text-muted-foreground whitespace-nowrap">
+            <span>{proposta.geracao_mensal != null ? `${Math.round(proposta.geracao_mensal)} kWh geração` : "—"}</span>
+            <span className="opacity-40">•</span>
+            <span>{proposta.consumo_mensal != null ? `${Math.round(proposta.consumo_mensal)} kWh/mês` : "—"}</span>
+          </div>
         </div>
       </TableCell>
 
-      <TableCell className="align-middle">
-        <span className="text-sm text-muted-foreground whitespace-nowrap">
-          {proposta.consumo_mensal != null ? `${Math.round(proposta.consumo_mensal)}` : "—"}
-          <span className="text-[10px] ml-0.5 font-normal">kWh/mês</span>
-        </span>
-      </TableCell>
-
-      <TableCell className="align-middle text-sm font-semibold">
+      <TableCell className="py-2 align-middle text-sm font-bold text-foreground">
         {proposta.valor_total != null ? formatBRL(Number(proposta.valor_total)) : "—"}
       </TableCell>
 
-      <TableCell className="align-middle">
+      <TableCell className="py-2 align-middle">
         <Badge
           variant="outline"
-          className={`gap-1.5 px-2 py-0.5 text-xs font-medium ${getStatusBadgeClass(proposta.status)}`}
+          className={`gap-1 px-1.5 py-0 text-[10px] font-semibold uppercase tracking-wider ${getStatusBadgeClass(proposta.status)}`}
         >
-          <span className={`h-1.5 w-1.5 rounded-full ${STATUS_DOT[proposta.status] || 'bg-muted-foreground'}`} />
+          <span className={`h-1 w-1 rounded-full ${STATUS_DOT[proposta.status] || 'bg-muted-foreground'}`} />
           {status.label}
         </Badge>
       </TableCell>
 
-      <TableCell className="align-middle">
-        <div className={`flex items-center gap-1.5 text-xs ${
+      <TableCell className="py-2 align-middle">
+        <div className={`flex items-center gap-1 text-[10px] ${
           isExpired ? "text-destructive font-medium" : 
           isNearExpiring ? "text-warning font-medium" : 
           "text-muted-foreground"
         }`}>
-          <Clock className="h-3.5 w-3.5" />
-          {valDate ? valDate.toLocaleDateString("pt-BR") : "Sem validade"}
+          <Clock className="h-3 w-3" />
+          {valDate ? valDate.toLocaleDateString("pt-BR") : "—"}
         </div>
       </TableCell>
 
