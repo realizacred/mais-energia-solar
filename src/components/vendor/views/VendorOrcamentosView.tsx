@@ -100,6 +100,7 @@ export default function VendorOrcamentosView({ portal }: Props) {
       <VendorPendingDocumentation
         leads={leadsForAlerts}
         statuses={statuses}
+        showAll={!excludeTerminal}
         onConvertClick={(lead) => {
           const orc = orcamentos.find((o) => o.lead_id === lead.id);
           if (orc) {
