@@ -449,7 +449,11 @@ function PropostaRow({
       </TableCell>
 
       <TableCell className="align-middle">
-        <Badge className={`text-[10px] px-2 py-0 h-5 font-medium shadow-none ${getStatusBadgeClass(proposta.status)}`}>
+        <Badge
+          variant="outline"
+          className={`gap-1.5 px-2 py-0.5 text-xs font-medium ${getStatusBadgeClass(proposta.status)}`}
+        >
+          <span className={`h-1.5 w-1.5 rounded-full ${STATUS_DOT[proposta.status] || 'bg-muted-foreground'}`} />
           {status.label}
         </Badge>
       </TableCell>
