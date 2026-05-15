@@ -10,6 +10,7 @@
  */
 import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useQuery } from "@tanstack/react-query";
 
 const STALE_TIME = 1000 * 60 * 2;
 
