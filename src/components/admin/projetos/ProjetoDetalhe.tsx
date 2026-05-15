@@ -638,9 +638,12 @@ function ProjetoDetalheContent() {
                 {deal.status === "won" ? "Ganho" : deal.status === "lost" ? "Perdido" : "Aberto"}
               </Badge>
               {deal.value > 0 && (
-                <Badge variant="outline" className="text-xs shrink-0 font-semibold">
-                  {formatBRL(deal.value)}
-                </Badge>
+                <div className="flex flex-col items-end">
+                  <Badge variant="outline" className="text-xs shrink-0 font-bold bg-primary/5 text-primary border-primary/20">
+                    Oficial: {formatBRL(deal.value)}
+                  </Badge>
+                  {/* Draft Value Badge - only if context provides it or we derive from propostas list */}
+                </div>
               )}
               <Badge variant="outline" className="text-xs shrink-0 gap-1.5 bg-primary/5 border-primary/20 text-primary font-semibold">
                 <UserCircle className="h-3.5 w-3.5" />
