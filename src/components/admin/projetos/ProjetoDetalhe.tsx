@@ -575,11 +575,21 @@ function ProjetoDetalheContent() {
                     Alterar Projeto
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
+                  {(deal.status === "won" || deal.status === "lost" || deal.status === "canceled") && (
+                    <DropdownMenuItem
+                      className="text-warning focus:text-warning"
+                      onClick={() => setReabrirDealOpen(true)}
+                    >
+                      <RotateCcw className="h-4 w-4 mr-2" />
+                      {deal.status === "won" ? "Remover ganho" : "Reativar negociação"}
+                    </DropdownMenuItem>
+                  )}
                   <DropdownMenuItem
                     className="text-destructive focus:text-destructive"
                     onClick={() => { setDeleteBlocking([]); handleDeleteProject(); }}
                     disabled={deleting}
                   >
+                    <RotateCcw className="h-4 w-4 mr-2 hidden" /> {/* dummy for spacing consistency if needed, but not needed here */}
                     <Trash2 className="h-4 w-4 mr-2" />
                     {deleting ? "Excluindo..." : "Excluir Projeto"}
                   </DropdownMenuItem>
