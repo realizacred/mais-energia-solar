@@ -53,6 +53,8 @@ interface WizardContextType {
   bumpUcsRestoreEpoch: () => void;
   grupo: string;
   setGrupo: (g: string) => void;
+  subgrupo: string;
+  setSubgrupo: (s: string) => void;
   potenciaKwp: number;
   setPotenciaKwp: (p: number) => void;
 
@@ -282,6 +284,7 @@ export function WizardProvider({ children, initialData = {} }: { children: React
     ucs, setUcs,
     ucsRestoreEpoch, bumpUcsRestoreEpoch,
     grupo, setGrupo,
+    subgrupo, setSubgrupo,
     potenciaKwp, setPotenciaKwp,
     itens, setItens,
     manualKits, setManualKits,
@@ -308,7 +311,7 @@ export function WizardProvider({ children, initialData = {} }: { children: React
     locTipoTelhado, locDistribuidoraId, locDistribuidoraNome, locIrradiacao,
     locGhiSeries, locSkipPoa, locLatitude, mapSnapshots, distanciaKm,
     projectAddress, ucs, ucsRestoreEpoch, bumpUcsRestoreEpoch,
-    grupo, potenciaKwp, itens, manualKits,
+    grupo, subgrupo, potenciaKwp, itens, manualKits,
     selectedManualIdx, layouts, adicionais, preDimensionamento,
     premissas, servicos, venda, pagamentoOpcoes, customFieldValues,
     templateSelecionado, generationStatus, editAceitaDialogOpen, editAceitaMotivo,

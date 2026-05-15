@@ -27,6 +27,7 @@ export interface WizardSnapshot {
   // UCs
   ucs: any[];
   grupo: string;
+  subgrupo?: string;
   potenciaKwp: number;
 
   // Custom Fields
