@@ -45,6 +45,8 @@ export interface PropostaNativaProjetoTab {
   enviada_at: string | null;
   recusada_at: string | null;
   origem: string | null;
+  draft_total: number | null;
+  has_unpublished_changes: boolean;
   versoes: VersaoProjetoTab[];
 }
 
