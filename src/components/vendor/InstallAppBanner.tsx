@@ -43,11 +43,11 @@ export function InstallAppBanner({ vendedorNome }: InstallAppBannerProps) {
   // iOS: show inline A2HS instructions (no fake "Instalar" button)
   if (isIOS) {
     return (
-      <Card className="mx-4 mt-4 border-primary/30 bg-gradient-to-r from-primary/5 to-primary/10">
-        <CardContent className="p-3">
-          <div className="flex items-start gap-3">
-            <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center flex-shrink-0">
-              <Smartphone className="w-5 h-5 text-primary-foreground" />
+      <Card className="mx-3 sm:mx-4 mt-3 sm:mt-4 border-primary/30 bg-gradient-to-r from-primary/5 to-primary/10 shadow-sm">
+        <CardContent className="p-2 sm:p-3">
+          <div className="flex items-start gap-2 sm:gap-3">
+            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl bg-primary flex items-center justify-center flex-shrink-0">
+              <Smartphone className="w-4 h-4 sm:w-5 sm:h-5 text-primary-foreground" />
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium">
@@ -76,11 +76,11 @@ export function InstallAppBanner({ vendedorNome }: InstallAppBannerProps) {
   // Android/Desktop with native install available
   if (canInstall) {
     return (
-      <Card className="mx-4 mt-4 border-primary/30 bg-gradient-to-r from-primary/5 to-primary/10">
-        <CardContent className="p-3">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center flex-shrink-0">
-              <Smartphone className="w-5 h-5 text-primary-foreground" />
+      <Card className="mx-3 sm:mx-4 mt-3 sm:mt-4 border-primary/30 bg-gradient-to-r from-primary/5 to-primary/10 shadow-sm">
+        <CardContent className="p-2 sm:p-3">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl bg-primary flex items-center justify-center flex-shrink-0">
+              <Smartphone className="w-4 h-4 sm:w-5 sm:h-5 text-primary-foreground" />
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium truncate">
@@ -113,11 +113,11 @@ export function InstallAppBanner({ vendedorNome }: InstallAppBannerProps) {
   // Android without native prompt: show manual instructions
   if (isAndroid) {
     return (
-      <Card className="mx-4 mt-4 border-primary/30 bg-gradient-to-r from-primary/5 to-primary/10">
-        <CardContent className="p-3">
-          <div className="flex items-start gap-3">
-            <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center flex-shrink-0">
-              <Smartphone className="w-5 h-5 text-primary-foreground" />
+      <Card className="mx-3 sm:mx-4 mt-3 sm:mt-4 border-primary/30 bg-gradient-to-r from-primary/5 to-primary/10 shadow-sm">
+        <CardContent className="p-2 sm:p-3">
+          <div className="flex items-start gap-2 sm:gap-3">
+            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl bg-primary flex items-center justify-center flex-shrink-0">
+              <Smartphone className="w-4 h-4 sm:w-5 sm:h-5 text-primary-foreground" />
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium">

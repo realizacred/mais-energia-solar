@@ -80,40 +80,39 @@ export function VendorOrcamentoCard({
         </div>
 
         {/* Codes Row */}
-        <div className="flex flex-wrap gap-2">
-          <Badge variant="default" className="font-mono text-xs bg-primary">
+        <div className="flex flex-wrap gap-1.5 sm:gap-2">
+          <Badge variant="default" className="font-mono text-[10px] sm:text-xs bg-primary px-1.5 h-5 sm:h-6">
             {orcamento.orc_code || "-"}
           </Badge>
-          <Badge variant="outline" className="font-mono text-xs">
+          <Badge variant="outline" className="font-mono text-[10px] sm:text-xs px-1.5 h-5 sm:h-6">
             {orcamento.lead_code || "-"}
           </Badge>
         </div>
 
         {/* Info Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-3 gap-y-2 text-sm">
           <a 
             href={`https://wa.me/55${orcamento.telefone.replace(/\D/g, '')}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center gap-1.5 text-muted-foreground hover:text-primary"
+            className="flex items-center gap-1.5 text-muted-foreground hover:text-primary min-w-0"
           >
-            <Phone className="w-3.5 h-3.5" />
-            <span className="truncate">{formatPhoneBR(orcamento.telefone)}</span>
+            <Phone className="w-3.5 h-3.5 shrink-0" />
+            <span className="truncate text-xs sm:text-sm">{formatPhoneBR(orcamento.telefone)}</span>
           </a>
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-1.5 min-w-0">
             <MapPin className="w-3.5 h-3.5 shrink-0 text-primary" />
-            <span className="truncate font-medium text-primary">{orcamento.cidade}, {orcamento.estado}</span>
+            <span className="truncate font-medium text-primary text-xs sm:text-sm">{orcamento.cidade}, {orcamento.estado}</span>
           </div>
-          <div className="flex flex-col gap-0.5 text-muted-foreground">
+          <div className="flex flex-col gap-0.5 text-muted-foreground min-w-0">
             <div className="flex items-center gap-1.5">
-              <Zap className="w-3.5 h-3.5" />
-              <span>{orcamento.media_consumo} kWh</span>
+              <Zap className="w-3.5 h-3.5 shrink-0" />
+              <span className="text-xs sm:text-sm font-medium text-foreground">{orcamento.media_consumo} kWh</span>
             </div>
-            <span className="text-xs ml-5">Geração: {orcamento.consumo_previsto} kWh</span>
           </div>
           <div className="flex items-center gap-1.5 text-muted-foreground">
-            <Calendar className="w-3.5 h-3.5" />
-            <span>{format(new Date(orcamento.created_at), "dd/MM/yyyy", { locale: ptBR })}</span>
+            <Calendar className="w-3.5 h-3.5 shrink-0" />
+            <span className="text-xs sm:text-sm">{format(new Date(orcamento.created_at), "dd/MM/yy", { locale: ptBR })}</span>
           </div>
         </div>
 
@@ -133,14 +132,14 @@ export function VendorOrcamentoCard({
             <Button
               variant="outline"
               size="sm"
-              className="flex-1 text-primary border-primary/30 hover:bg-primary/10"
+              className="flex-1 text-primary border-primary/30 hover:bg-primary/10 h-9 text-[11px] sm:text-xs"
               onClick={() => window.open(`/pl/${orcamento.proposta_token}`, '_blank')}
             >
-              <ExternalLink className="w-4 h-4 mr-2" />
-              Ver Proposta
+              <ExternalLink className="w-3.5 h-3.5 mr-1.5" />
+              Proposta
             </Button>
           ) : (
-            <Badge variant="outline" className="flex-1 justify-center py-1.5 text-muted-foreground border-dashed">
+            <Badge variant="outline" className="flex-1 justify-center py-1.5 text-[10px] text-muted-foreground border-dashed">
               Sem proposta
             </Badge>
           )}
@@ -148,10 +147,10 @@ export function VendorOrcamentoCard({
             <Button
               variant="outline"
               size="sm"
-              className="flex-1 text-primary border-primary/30 hover:bg-primary/10"
+              className="flex-1 text-primary border-primary/30 hover:bg-primary/10 h-9 text-[11px] sm:text-xs"
               onClick={onConvert}
             >
-              <ShoppingCart className="w-4 h-4 mr-2" />
+              <ShoppingCart className="w-3.5 h-3.5 mr-1.5" />
               Converter
             </Button>
           )}
@@ -159,7 +158,7 @@ export function VendorOrcamentoCard({
             <Button
               variant="outline"
               size="sm"
-              className="text-destructive border-destructive/30 hover:bg-destructive/10"
+              className="text-destructive border-destructive/30 hover:bg-destructive/10 h-9 w-9 px-0 shrink-0"
               onClick={onDelete}
             >
               <Trash2 className="w-4 h-4" />

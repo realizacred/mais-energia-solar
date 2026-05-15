@@ -40,7 +40,7 @@ export function FollowUpStatsCards({ leads }: FollowUpStatsCardsProps) {
   }, [leads]);
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
+    <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-3 gap-2.5 sm:gap-4">
       {/* Urgentes (6+ dias) */}
       <Card className="border-l-[3px] border-l-destructive border-border/60">
         <CardContent className="flex items-center gap-3 p-3 sm:p-4">

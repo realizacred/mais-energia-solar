@@ -84,19 +84,21 @@ export default function VendedorPortal() {
           badgeCounts={badgeCounts}
         />
 
-        <SidebarInset className="flex-1 min-w-0">
+        <SidebarInset className="flex-1 min-w-0 w-full overflow-hidden">
           <InstallAppBanner vendedorNome={portal.vendedor?.nome} />
-          <header className="page-header">
-            <SidebarTrigger className="-ml-1 sm:-ml-2 h-9 w-9 sm:h-10 sm:w-10">
-              <Menu className="h-5 w-5" />
-            </SidebarTrigger>
+          <header className="page-header border-b border-border/50 bg-background/80 backdrop-blur-md sticky top-0 z-30">
+            <div className="flex items-center h-14 px-4 sm:px-6">
+              <SidebarTrigger className="-ml-1 h-9 w-9">
+                <Menu className="h-5 w-5" />
+              </SidebarTrigger>
+            </div>
           </header>
 
-          <main className="flex-1 relative overflow-hidden">
+          <main className="flex-1 relative min-h-[calc(100vh-3.5rem)]">
             {/* WhatsApp — always mounted, toggled via display for persistence */}
             <div
               style={{ display: isWhatsApp ? 'block' : 'none' }}
-              className="absolute inset-0 p-4 md:p-6 pb-20 md:pb-6 overflow-x-hidden"
+              className="absolute inset-0 p-3 sm:p-4 md:p-6 pb-20 md:pb-6 overflow-x-hidden"
             >
               <Suspense fallback={<LoadingSpinner />}>
                 <VendorWhatsAppView portal={portal} />
@@ -105,7 +107,7 @@ export default function VendedorPortal() {
 
             <div 
               style={{ display: isWhatsApp ? 'none' : 'block' }}
-              className="absolute inset-0 p-4 md:p-6 pb-20 md:pb-6 space-y-5 overflow-y-auto overflow-x-hidden animate-fade-in"
+              className="absolute inset-0 p-3 sm:p-4 md:p-6 pb-24 md:pb-6 space-y-4 sm:space-y-5 overflow-y-auto overflow-x-hidden animate-fade-in"
             >
               <Suspense fallback={<LoadingSpinner />}>
                 <Routes>

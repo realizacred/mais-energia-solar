@@ -3,6 +3,8 @@
  * Layout em tabela densa com agrupamento por cliente e ações compactas.
  */
 import { useMemo, useState } from "react";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { ProposalCard } from "../leads/ProposalCard";
 import { 
   FileText, 
   Send, 
@@ -102,6 +104,7 @@ const getStatusBadgeClass = (status: string) => {
 
 
 export default function VendorPropostasView({ portal }: Props) {
+  const isMobile = useIsMobile();
   const consultorId = portal.vendedor?.id ?? null;
   const { data = [], isLoading, refetch, loadMore, hasMore, loadingMore, totalCount, kpis } = useMinhasPropostasConsultor(consultorId);
   const [search, setSearch] = useState("");
@@ -185,7 +188,7 @@ export default function VendorPropostasView({ portal }: Props) {
       </div>
 
       {/* KPIs */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+      <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
         <KpiCard label="Total" value={totalCount || kpis.total} icon={FileText} accent="primary" />
         <KpiCard label="Enviadas" value={kpis.enviadas} icon={Send} accent="info" />
         <KpiCard label="Visualizadas" value={kpis.visualizadas} icon={Eye} accent="warning" />
@@ -226,7 +229,7 @@ export default function VendorPropostasView({ portal }: Props) {
         </div>
       </div>
 
-      {/* Table */}
+      {/* Grid/Table Toggle based on Screen Size */}
       {grouped.length === 0 ? (
         <Card className="border-dashed">
           <CardContent className="p-10 text-center space-y-2">
@@ -237,6 +240,12 @@ export default function VendorPropostasView({ portal }: Props) {
             </p>
           </CardContent>
         </Card>
+      ) : isMobile ? (
+        <div className="space-y-4">
+          {filtered.map((proposta) => (
+            <ProposalCard key={proposta.id} proposta={proposta} />
+          ))}
+        </div>
       ) : (
         <div className="overflow-x-auto rounded-lg border border-border bg-card">
           <TooltipProvider>

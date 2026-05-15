@@ -62,7 +62,7 @@ export function VendorLeadViewDialog({ lead, open, onOpenChange, vendedorNome }:
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="w-[90vw] max-w-2xl p-0 gap-0 overflow-hidden">
+        <DialogContent className="w-full sm:w-[90vw] max-w-2xl p-0 gap-0 overflow-hidden h-full sm:h-auto sm:max-h-[85vh] flex flex-col rounded-none sm:rounded-xl">
           <DialogHeader className="flex flex-row items-center gap-3 p-5 pb-4 border-b border-border">
             <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
               <Eye className="w-5 h-5 text-primary" />
@@ -73,14 +73,14 @@ export function VendorLeadViewDialog({ lead, open, onOpenChange, vendedorNome }:
             </div>
           </DialogHeader>
 
-          <div className="overflow-y-auto max-h-[70vh]">
+          <div className="overflow-y-auto flex-1 p-4 sm:p-0">
 
           <Tabs defaultValue="detalhes" className="w-full">
-            <TabsList className="grid w-full grid-cols-4">
-              <TabsTrigger value="detalhes">Detalhes</TabsTrigger>
-              <TabsTrigger value="proposta">Proposta</TabsTrigger>
-              <TabsTrigger value="credito">Crédito</TabsTrigger>
-              <TabsTrigger value="whatsapp">WhatsApp</TabsTrigger>
+            <TabsList className="grid w-full grid-cols-4 mb-4">
+              <TabsTrigger value="detalhes" className="text-[10px] sm:text-sm">Detalhes</TabsTrigger>
+              <TabsTrigger value="proposta" className="text-[10px] sm:text-sm">Proposta</TabsTrigger>
+              <TabsTrigger value="credito" className="text-[10px] sm:text-sm">Crédito</TabsTrigger>
+              <TabsTrigger value="whatsapp" className="text-[10px] sm:text-sm">WhatsApp</TabsTrigger>
             </TabsList>
 
             <TabsContent value="detalhes" className="space-y-4 mt-4">

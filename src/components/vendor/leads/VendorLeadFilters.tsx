@@ -1,4 +1,13 @@
-import { Search, Filter } from "lucide-react";
+import { Search, Filter, SlidersHorizontal } from "lucide-react";
+import { useIsMobile } from "@/hooks/use-mobile";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
@@ -36,81 +45,117 @@ export function VendorLeadFilters({
   statuses,
   onClearFilters,
 }: VendorLeadFiltersProps) {
+  const isMobile = useIsMobile();
   const hasActiveFilters =
     filterVisto !== "todos" ||
     filterEstado !== "todos" ||
     filterStatus !== "todos";
 
-  return (
-    <div className="flex flex-col gap-4">
-      <div className="relative w-full">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-        <Input
-          placeholder="Buscar por nome, telefone, cidade..."
-          value={searchTerm}
-          onChange={(e) => onSearchChange(e.target.value)}
-          className="pl-10"
-        />
+  const FilterControls = () => (
+    <div className="grid grid-cols-1 sm:flex sm:flex-wrap gap-2 w-full sm:w-auto">
+      <div className="space-y-1.5 sm:space-y-0">
+        <label className="text-[10px] font-medium uppercase text-muted-foreground sm:hidden px-1">Visualização</label>
+        <Select value={filterVisto} onValueChange={onFilterVistoChange}>
+          <SelectTrigger className="w-full sm:w-[130px] h-9">
+            <SelectValue placeholder="Visualização" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="todos">Todos</SelectItem>
+            <SelectItem value="visto">Vistos</SelectItem>
+            <SelectItem value="nao_visto">Não Vistos</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
-      <div className="flex flex-col sm:flex-row sm:flex-wrap items-start sm:items-center gap-3 pt-2 border-t">
+      <div className="space-y-1.5 sm:space-y-0">
+        <label className="text-[10px] font-medium uppercase text-muted-foreground sm:hidden px-1">Status</label>
+        <Select value={filterStatus} onValueChange={onFilterStatusChange}>
+          <SelectTrigger className="w-full sm:w-[140px] h-9">
+            <SelectValue placeholder="Status" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="todos">Todos Status</SelectItem>
+            <SelectItem value="novo">Novo</SelectItem>
+            {statuses.map((s) => (
+              <SelectItem key={s.id} value={s.id}>
+                {s.nome}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className="space-y-1.5 sm:space-y-0">
+        <label className="text-[10px] font-medium uppercase text-muted-foreground sm:hidden px-1">Estado</label>
+        <Select value={filterEstado} onValueChange={onFilterEstadoChange}>
+          <SelectTrigger className="w-full sm:w-[120px] h-9">
+            <SelectValue placeholder="Estado" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="todos">Todos Estados</SelectItem>
+            {estados.map((e) => (
+              <SelectItem key={e} value={e}>
+                {e}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      {hasActiveFilters && (
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={onClearFilters}
+          className="text-muted-foreground hover:text-foreground w-full sm:w-auto mt-2 sm:mt-0"
+        >
+          Limpar filtros
+        </Button>
+      )}
+    </div>
+  );
+
+  return (
+    <div className="flex flex-col gap-3 sm:gap-4">
+      <div className="flex items-center gap-2">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Input
+            placeholder="Buscar por nome, telefone, cidade..."
+            value={searchTerm}
+            onChange={(e) => onSearchChange(e.target.value)}
+            className="pl-10 h-10"
+          />
+        </div>
+        {isMobile && (
+          <Sheet>
+            <SheetTrigger asChild>
+              <Button variant="outline" size="icon" className="h-10 w-10 shrink-0 border-primary/20 bg-primary/5 text-primary relative">
+                <SlidersHorizontal className="h-4 w-4" />
+                {hasActiveFilters && (
+                  <span className="absolute -top-1 -right-1 h-3 w-3 rounded-full bg-primary ring-2 ring-background" />
+                )}
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="bottom" className="rounded-t-2xl px-6 pb-8 h-[60vh]">
+              <SheetHeader className="mb-6 text-left">
+                <SheetTitle>Filtros</SheetTitle>
+                <SheetDescription>Refine sua lista de orçamentos</SheetDescription>
+              </SheetHeader>
+              <div className="space-y-6">
+                <FilterControls />
+              </div>
+            </SheetContent>
+          </Sheet>
+        )}
+      </div>
+
+      <div className="hidden sm:flex flex-row flex-wrap items-center gap-3 pt-2 border-t">
         <div className="flex items-center gap-2 text-sm text-muted-foreground shrink-0">
           <Filter className="w-4 h-4" />
           <span>Filtros:</span>
         </div>
-
-        <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2 w-full sm:w-auto">
-          <Select value={filterVisto} onValueChange={onFilterVistoChange}>
-            <SelectTrigger className="w-full sm:w-[130px] h-9">
-              <SelectValue placeholder="Visualização" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="todos">Todos</SelectItem>
-              <SelectItem value="visto">Vistos</SelectItem>
-              <SelectItem value="nao_visto">Não Vistos</SelectItem>
-            </SelectContent>
-          </Select>
-
-          <Select value={filterStatus} onValueChange={onFilterStatusChange}>
-            <SelectTrigger className="w-full sm:w-[140px] h-9">
-              <SelectValue placeholder="Status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="todos">Todos Status</SelectItem>
-              <SelectItem value="novo">Novo</SelectItem>
-              {statuses.map((s) => (
-                <SelectItem key={s.id} value={s.id}>
-                  {s.nome}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
-          <Select value={filterEstado} onValueChange={onFilterEstadoChange}>
-            <SelectTrigger className="w-full sm:w-[120px] h-9">
-              <SelectValue placeholder="Estado" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="todos">Todos Estados</SelectItem>
-              {estados.map((e) => (
-                <SelectItem key={e} value={e}>
-                  {e}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
-          {hasActiveFilters && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={onClearFilters}
-              className="text-muted-foreground hover:text-foreground col-span-2 sm:col-span-1"
-            >
-              Limpar filtros
-            </Button>
-          )}
-        </div>
+        <FilterControls />
       </div>
     </div>
   );
