@@ -104,11 +104,8 @@ export function VendorPendingDocumentation({
     const pendingStatus = statuses.find(s => s.nome === "Aguardando Documentação");
     if (!pendingStatus) return [];
     
-    // Find terminal status IDs
-    const terminalNames = ["convertido", "perdido", "cancelado", "recusado", "inativo", "fechado", "ganho", "cliente"];
-    const terminalIds = statuses
-      .filter(s => terminalNames.includes(s.nome.toLowerCase()))
-      .map(s => s.id);
+    // Centralized terminal status logic
+    const terminalIds = getTerminalStatusIds(statuses);
     
     return leads
       .filter(lead => {
