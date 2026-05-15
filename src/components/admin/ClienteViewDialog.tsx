@@ -62,7 +62,7 @@ interface ClienteData {
   comprovante_beneficiaria_urls: string[] | null;
   disjuntor_id: string | null;
   transformador_id: string | null;
-  cliente_code: string | null;
+  cliente_code?: string | null;
 }
 
 interface ClienteViewDialogProps {
