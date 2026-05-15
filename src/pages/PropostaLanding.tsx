@@ -70,6 +70,7 @@ export default function PropostaLanding() {
   const [cenarios, setCenarios] = useState<CenarioData[]>([]);
   const [selectedCenario, setSelectedCenario] = useState<string | null>(null);
   const [brand, setBrand] = useState<BrandData | null>(null);
+  const [clienteData, setClienteData] = useState<any>(null);
   const [tenantNome, setTenantNome] = useState<string | null>(null);
   const [consultorNome, setConsultorNome] = useState<string | null>(null);
   const [consultorTelefone, setConsultorTelefone] = useState<string | null>(null);
