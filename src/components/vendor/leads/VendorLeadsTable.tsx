@@ -326,14 +326,7 @@ export function VendorLeadsTable({
         open={whatsappDialogOpen}
         onOpenChange={setWhatsappDialogOpen}
       />
-      <DuplicateOpenDealModal
-        open={duplicateGuard.open}
-        matches={duplicateGuard.matches}
-        onOpenExisting={openExistingDeal}
-        onCreateAnyway={confirmCreateAnyway}
-        onCancel={cancelDuplicateGuard}
-        loading={quickLoading}
-      />
+      {/* DuplicateOpenDealModal removed as consultant cannot generate proposals manually */}
     </div>
   );
 }
