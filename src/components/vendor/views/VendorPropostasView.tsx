@@ -369,12 +369,17 @@ function PropostaRow({
 
       <TableCell className="align-middle">
         <div className="flex items-center gap-2">
-          <div className="flex flex-col gap-0.5">
+          <div className="flex flex-col gap-0.5 min-w-0 max-w-[200px]">
             <Badge variant="default" className="font-mono text-[10px] whitespace-nowrap w-fit">
               {codeLabel}
             </Badge>
+            {proposta.titulo && proposta.titulo !== proposta.cliente_nome && (
+              <span className="text-[10px] text-muted-foreground truncate leading-tight" title={proposta.titulo}>
+                {proposta.titulo}
+              </span>
+            )}
             {proposta.versao_numero && (
-              <span className="text-[10px] text-muted-foreground font-medium ml-1">
+              <span className="text-[10px] text-muted-foreground/60 font-medium">
                 v{proposta.versao_numero}
               </span>
             )}
@@ -386,7 +391,7 @@ function PropostaRow({
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="h-6 w-6 p-0 text-muted-foreground hover:text-primary"
+                    className="h-6 w-6 p-0 text-muted-foreground hover:text-primary shrink-0"
                     aria-label="Ver outras versões"
                     onClick={(e) => { e.stopPropagation(); onToggleExpand?.(); }}
                   >
@@ -407,38 +412,20 @@ function PropostaRow({
       <TableCell className="align-middle">
         <div className="flex flex-col min-w-0">
           <div className="flex items-center gap-2">
-            <span className={`truncate font-medium text-sm text-foreground`}>
+            <span className="truncate font-medium text-sm text-foreground" title={proposta.cliente_nome || ""}>
               {proposta.cliente_nome}
             </span>
             {!visto && !isSubRow && (
-              <Badge variant="default" className="bg-primary text-primary-foreground text-[10px] h-4 px-1 py-0">
+              <Badge variant="default" className="bg-primary text-primary-foreground text-[10px] h-4 px-1 py-0 shrink-0">
                 Novo
               </Badge>
             )}
           </div>
-          {(() => {
-            const titulo = proposta.titulo?.trim();
-            const nomeCliente = proposta.cliente_nome?.trim();
-            const showSubtitle = titulo && nomeCliente && titulo.toLowerCase() !== nomeCliente.toLowerCase();
-            
-            if (isSubRow) {
-              return (
-                <span className="text-[10px] text-muted-foreground/70 truncate max-w-[200px]">
-                  {showSubtitle ? titulo : `Versão ${proposta.versao_numero}`}
-                </span>
-              );
-            }
-
-            if (showSubtitle) {
-              return (
-                <span className="text-[10px] text-muted-foreground truncate max-w-[200px] leading-tight" title={titulo}>
-                  {titulo}
-                </span>
-              );
-            }
-
-            return null;
-          })()}
+          {isSubRow && !proposta.titulo && (
+             <span className="text-[10px] text-muted-foreground/70 truncate max-w-[200px]">
+                Versão {proposta.versao_numero}
+             </span>
+          )}
         </div>
       </TableCell>
 
