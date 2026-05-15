@@ -1324,7 +1324,7 @@ function ProposalWizardContent() {
             .maybeSingle();
 
           // Detect if proposal was already sent/generated — will branch new version on save
-          const SENT_STATUSES = ["enviada", "vista", "aceita", "gerada"];
+          const SENT_STATUSES = ["enviada", "vista", "aceita", "gerada", "sent", "accepted", "generated"];
           if (propostaMeta?.status && SENT_STATUSES.includes(propostaMeta.status)) {
             setEditingSentProposal(true);
             setProposalStatus(propostaMeta.status);
