@@ -126,6 +126,7 @@ export default function ChequesPage() {
                   <TableHead>Banco</TableHead>
                   <TableHead>Titular / Cliente</TableHead>
                   <TableHead className="text-right">Valor</TableHead>
+                  <TableHead>Destino</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead className="text-right">Ações</TableHead>
                 </TableRow>
@@ -156,6 +157,9 @@ export default function ChequesPage() {
                         </TableCell>
                         <TableCell className="text-right font-bold">
                           {formatBRL(cheque.valor)}
+                        </TableCell>
+                        <TableCell>
+                          {cheque.destino || <span className="text-muted-foreground text-xs italic">Em carteira</span>}
                         </TableCell>
                         <TableCell>
                           <Badge variant="outline" className={status.color}>
