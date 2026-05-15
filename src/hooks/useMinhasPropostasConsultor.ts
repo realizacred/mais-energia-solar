@@ -298,11 +298,17 @@ export function useMinhasPropostasConsultor(consultorId: string | null | undefin
  * Separated from main hook to maintain stability and avoid re-renders.
  */
 function usePropostasConsultorRealtime(consultorId: string | null | undefined, queryClient: any) {
+  const onChanges = useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: ['propostas-consultor-kpis', consultorId] });
+    queryClient.invalidateQueries({ queryKey: ['propostas-consultor-list', consultorId] });
+  }, [consultorId, queryClient]);
+
   useEffect(() => {
     if (!consultorId || consultorId === "admin") return;
 
+    const channelId = `propostas-consultor-${consultorId}`;
     const channel = supabase
-      .channel(`propostas-consultor-${consultorId}`)
+      .channel(channelId)
       .on(
         'postgres_changes',
         { 
@@ -311,17 +317,14 @@ function usePropostasConsultorRealtime(consultorId: string | null | undefined, q
           table: 'propostas_nativas',
           filter: `consultor_id=eq.${consultorId}`
         },
-        () => {
-          queryClient.invalidateQueries({ queryKey: ['propostas-consultor-kpis', consultorId] });
-          queryClient.invalidateQueries({ queryKey: ['propostas-consultor-list', consultorId] });
-        }
+        onChanges
       )
       .subscribe();
 
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [consultorId, queryClient]);
+  }, [consultorId, onChanges]);
 }
 
 /** Métricas do portal consultor — calculadas em memória, sem custo/margem. */
