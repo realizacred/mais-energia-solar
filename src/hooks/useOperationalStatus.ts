@@ -69,7 +69,7 @@ const STATUS_CONFIG: Record<OperationalStatus, OperationalStatusInfo> = {
   em_operacao: { 
     status: "em_operacao", 
     label: "Usina em Operação", 
-    colorClass: "bg-success/10 text-success border-success/20" 
+    colorClass: "bg-success/10 text-success border-success/20 font-bold" 
   },
   desconhecido: { 
     status: "desconhecido", 
@@ -96,10 +96,10 @@ export function useOperationalStatus(dealId: string | null) {
 
       const { activation, vistoria, homologacao, checklists, os_instalacao, deal } = data;
 
-      // 1. Em Operação (Highest Priority)
+      // 1. Em Operação (Highest Priority - Final state)
       if (activation?.data_ativacao) return STATUS_CONFIG.em_operacao;
 
-      // 2. Homologação Aprovada
+      // 2. Homologação Aprovada (Requires proof from concessionaria)
       if (homologacao?.status === "aprovada") return STATUS_CONFIG.homologacao_aprovada;
 
       // 3. Aguardando Homologação (If installation finished or homologation in progress)
@@ -108,30 +108,32 @@ export function useOperationalStatus(dealId: string | null) {
         return STATUS_CONFIG.aguardando_homologacao;
       }
 
-      // 4. Instalação Concluída
+      // 4. Instalação Concluída (Derived from OS)
       if (installationFinished) return STATUS_CONFIG.instalacao_concluida;
 
-      // 5. Em Instalação / Agendada
+      // 5. Em Instalação (Installation OS active)
       const installationInProgress = (os_instalacao || []).some((os: any) => os.status === "em_execucao");
       if (installationInProgress) return STATUS_CONFIG.em_instalacao;
 
+      // 6. Instalação Agendada
       const installationScheduled = (os_instalacao || []).some((os: any) => os.status === "agendado");
       if (installationScheduled) return STATUS_CONFIG.instalacao_agendada;
 
-      // 6. Engenharia Aprovada (Checklists finished but no OS yet)
+      // 7. Engenharia Aprovada (Checklists finished but no OS yet)
       const engineeringFinished = (checklists || []).some((c: any) => c.status === "finalizado");
       if (engineeringFinished) return STATUS_CONFIG.engenharia_aprovada;
 
-      // 7. Em Engenharia (Checklists started)
+      // 8. Em Engenharia (Checklists started)
       if ((checklists || []).length > 0) return STATUS_CONFIG.em_engenharia;
 
-      // 8. Aguardando Documentos
+      // 9. Aguardando Documentos (If deal is won but docs missing)
       const docChecklist = deal?.doc_checklist as Record<string, any> | null;
       const DOC_KEYS = ["rg_cnh", "conta_luz", "iptu_imovel"]; 
       const hasMissingDocs = docChecklist ? DOC_KEYS.some(k => !docChecklist[k]) : true;
-      if (hasMissingDocs) return STATUS_CONFIG.aguardando_documentos;
+      
+      if (deal?.status === "won" && hasMissingDocs) return STATUS_CONFIG.aguardando_documentos;
 
-      // 9. Operacional não iniciado (If deal is won but nothing else happened)
+      // 10. Operacional não iniciado (If deal is won and docs are OK but no work yet)
       if (deal?.status === "won") return STATUS_CONFIG.operacional_nao_iniciado;
 
       return STATUS_CONFIG.desconhecido;
