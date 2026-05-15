@@ -689,6 +689,8 @@ export default function Admin() {
                 <Route path="financeiro-dashboard" element={<FinanceiroDashboard />} />
                 <Route path="lancamentos" element={<LancamentosPage />} />
                 <Route path="recebimentos" element={<RecebimentosManager />} />
+                <Route path="financeiro/cheques" element={<ChequesPage />} />
+
                 <Route path="inadimplencia" element={<InadimplenciaDashboard />} />
                 <Route path="comissoes" element={<ComissoesManager />} />
                 <Route path="minhas-instalacoes" element={<MinhasInstalacoes />} />
