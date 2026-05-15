@@ -283,6 +283,7 @@ export function useOrcamentosVendedor({
   };
 
   const estados = [...new Set(orcamentos.map((o) => o.estado).filter(Boolean))].sort();
+  const hasMore = totalCount > orcamentos.length;
 
   return {
     orcamentos,
@@ -290,8 +291,11 @@ export function useOrcamentosVendedor({
     stats,
     estados,
     loading,
+    loadingMore: false,
+    hasMore,
     totalCount,
     fetchOrcamentos,
+    loadMore: () => setPage(p => p + 1),
     toggleVisto,
     updateStatus,
     deleteOrcamento,
