@@ -630,13 +630,16 @@ function TooltipAction({
   return (
     <Tooltip>
       <TooltipTrigger asChild>
-        <button
+        <Button
+          variant="ghost"
+          size="sm"
           onClick={(e) => { e.stopPropagation(); onClick(); }}
           disabled={loading || disabled}
-          className="p-1.5 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition-colors disabled:opacity-30"
+          className="h-8 w-8 p-0 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition-colors disabled:opacity-30"
+          aria-label={label}
         >
           {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Icon className="h-3.5 w-3.5" />}
-        </button>
+        </Button>
       </TooltipTrigger>
       <TooltipContent side="top">
         <p className="text-[10px]">{label}</p>
