@@ -111,10 +111,10 @@ import { getLostStatusIds } from "@/modules/orcamentos/utils/operationalFilters"
          }
        }
  
-       // Orçamentos perdidos
-       const orcamentosPerdidos = orcamentos?.filter(o => 
-         perdidoStatus && o.status_id === perdidoStatus.id
-       ).length || 0;
+        // Orçamentos perdidos
+        const orcamentosPerdidos = orcamentos?.filter(o => 
+          o.status_id && perdidoStatusIds.includes(o.status_id)
+        ).length || 0;
  
        // Calcular valor total
        const valorTotal = clientesDoVendedor.reduce(
