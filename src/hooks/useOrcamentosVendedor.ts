@@ -177,9 +177,7 @@ export function useOrcamentosVendedor({
 
       const statusesRes = await supabase.from("lead_status").select("id, nome, ordem, cor").order("ordem");
       const allStatuses = statusesRes.data || [];
-      const terminalStatusIds = allStatuses
-        .filter(s => ["convertido", "perdido", "cancelado", "recusado", "inativo", "fechado", "ganho", "cliente"].includes(s.nome.toLowerCase()))
-        .map(s => s.id);
+      const terminalStatusIds = getTerminalStatusIds(allStatuses);
 
       let primaryRows: any[] = [];
       let primaryCount = 0;
