@@ -48,7 +48,6 @@ import {
 } from "@/components/ui/tooltip";
 import { 
   useMinhasPropostasConsultor, 
-  computePropostasKpis, 
   type PropostaConsultor 
 } from "@/hooks/useMinhasPropostasConsultor";
 import { formatBRL } from "@/lib/formatters";
