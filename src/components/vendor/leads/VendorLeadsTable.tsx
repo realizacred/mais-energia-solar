@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Phone, Eye, MapPin, Calendar, Trash2, ShoppingCart, UserCheck, MessageSquare, RotateCcw, ScrollText } from "lucide-react";
+import { Phone, Eye, MapPin, Calendar, Trash2, ShoppingCart, UserCheck, MessageSquare, RotateCcw, ExternalLink } from "lucide-react";
 import { useReopenLead } from "@/hooks/useReopenLead";
 import { usePropostaRapidaLead } from "@/hooks/usePropostaRapidaLead";
 import { DuplicateOpenDealModal } from "@/components/leads/DuplicateOpenDealModal";
