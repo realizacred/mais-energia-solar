@@ -154,7 +154,7 @@ Deno.serve(async (req) => {
 
   let lockAcquired = false;
   try {
-    const { data: lockResult } = await supabase.rpc("try_webhook_lock");
+    const { data: lockResult } = await supabase.rpc("try_webhook_lock_v2");
     lockAcquired = lockResult === true;
 
     if (!lockAcquired) {
