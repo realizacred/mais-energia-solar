@@ -101,7 +101,7 @@ export function useOperationalStatus(dealId: string | null) {
         .neq("status", "cancelado");
       
       if (checklists && checklists.length > 0) {
-        const hasFinished = checklists.some(c => c.status === "concluido" || c.status === "finalizado");
+        const hasFinished = checklists.some(c => c.status === "finalizado");
         if (!hasFinished) return STATUS_CONFIG.instalacao;
         // Se algum concluiu, mas não chegou na homologação/ativação, pode estar no limbo ou aguardando próximo passo
       }
