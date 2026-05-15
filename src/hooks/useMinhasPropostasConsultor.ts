@@ -93,6 +93,7 @@ interface RawProposta {
     link_pdf: string | null;
     viewed_at: string | null;
     consumo_mensal: number | null;
+    snapshot: any;
     proposta_versao_ucs?: Array<{ consumo_mensal_kwh: number | null }> | null;
   }> | null;
 }
@@ -178,6 +179,7 @@ export function useMinhasPropostasConsultor(consultorId: string | null | undefin
             id, versao_numero, created_at, valor_total, potencia_kwp,
             geracao_mensal, economia_mensal, payback_meses,
             valido_ate, output_pdf_path, link_pdf, viewed_at,
+            snapshot,
             proposta_versao_ucs(consumo_mensal_kwh)
           )
         `, { count: "exact" })
@@ -201,11 +203,20 @@ export function useMinhasPropostasConsultor(consultorId: string | null | undefin
           const latest =
             versoes.find((v) => v.versao_numero === p.versao_atual) ?? versoes[0] ?? null;
 
+          const snapshot = latest?.snapshot;
+          const snapshot_nome = 
+            snapshot?.cliente?.nome || 
+            snapshot?.clienteNome || 
+            snapshot?.cliente_nome ||
+            snapshot?._wizard_state?.cliente?.nome;
+
           const cliente_nome_real = 
             (p as any).clientes?.nome ?? 
             (p as any).leads?.nome ?? 
+            snapshot_nome ??
             null;
-          const cliente_nome = cliente_nome_real ? capitalize(cliente_nome_real) : (p.titulo ? capitalize(p.titulo) : "Cliente não identificado");
+
+          const cliente_nome = cliente_nome_real ? capitalize(cliente_nome_real) : "Cliente não identificado";
 
           let valido_ate = latest?.valido_ate ?? null;
           if (!valido_ate && latest?.created_at) {
