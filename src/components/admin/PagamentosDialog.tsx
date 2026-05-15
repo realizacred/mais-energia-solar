@@ -127,13 +127,22 @@ export function PagamentosDialog({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await registrarMut.mutateAsync({
+      if (finSettings?.cash_strict_opening) {
+        // TODO: Validar se existe caixa aberto (na fase caixa_v2)
+        console.warn("Validação de caixa aberto ativada");
+      }
+
+      const res = await registrarMut.mutateAsync({
         recebimentoId: recebimento.id,
         valor_pago: parseFloat(formData.valor_pago),
         forma_pagamento: formData.forma_pagamento,
         data_pagamento: formData.data_pagamento,
         observacoes: formData.observacoes || null,
       });
+
+      if (tenantId) {
+        await logFinancialAction('create', 'pagamento', (res as any)?.id || 'new', formData);
+      }
       toast({ title: "Pagamento registrado e parcelas atualizadas!" });
       resetForm();
       onUpdate();
