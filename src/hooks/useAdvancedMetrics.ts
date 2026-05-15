@@ -1,5 +1,6 @@
- import { useState, useCallback, useRef } from "react";
- import { supabase } from "@/integrations/supabase/client";
+import { useState, useCallback, useRef } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { getLostStatusIds } from "@/modules/orcamentos/utils/operationalFilters";
  
  export interface AdvancedMetrics {
    tempo_medio_fechamento_dias: number;
