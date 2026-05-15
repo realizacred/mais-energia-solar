@@ -464,7 +464,9 @@ function ProjetoDetalheContent() {
     );
   }
 
-  const { data: propostas = [] } = usePropostasProjetoTab(deal.id, deal.customer_id);
+  const propostasQuery = usePropostasProjetoTab(deal.id, deal.customer_id);
+  const propostas = propostasQuery.data || [];
+
 
   return (
     <div className="min-h-screen bg-muted/30 -m-4 sm:-m-6 p-3 sm:p-6 max-w-full overflow-x-hidden">
