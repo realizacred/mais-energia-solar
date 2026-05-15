@@ -1635,6 +1635,60 @@ export function StepDocumento({
           {renderEmailTab()}
         </TabsContent>
       </Tabs>
+      <AlertDialog open={!!showConfirmPublishDialog} onOpenChange={(open) => !open && setShowConfirmPublishDialog(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2 text-warning">
+              <AlertCircle className="h-5 w-5" />
+              Publicar rascunho divergente?
+            </AlertDialogTitle>
+            <AlertDialogDescription className="space-y-3">
+              <p>Existe um rascunho mais recente que a versão oficial. Deseja publicar a nova versão antes de enviar?</p>
+              <div className="p-3 rounded-lg bg-muted/50 border border-border space-y-2">
+                <div className="flex justify-between text-xs items-center">
+                  <span className="text-muted-foreground flex items-center gap-1.5"><Badge variant="outline" className="text-[9px] px-1 py-0 h-4 uppercase">Oficial</Badge> atual</span>
+                  <span className="font-semibold">{formatBRL(officialTotal)}</span>
+                </div>
+                <div className="flex justify-between text-xs items-center">
+                  <span className="text-muted-foreground flex items-center gap-1.5"><Badge variant="default" className="text-[9px] px-1 py-0 h-4 uppercase bg-amber-500 text-white border-0">Rascunho</Badge> novo</span>
+                  <span className="font-bold text-amber-600">{formatBRL(draftTotal)}</span>
+                </div>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex-col sm:flex-row gap-2 sm:gap-0">
+            <div className="flex flex-col sm:flex-row gap-2 w-full justify-between">
+              <AlertDialogCancel className="mt-0">Cancelar</AlertDialogCancel>
+              <div className="flex flex-col sm:flex-row gap-2">
+                <AlertDialogAction
+                  className="bg-transparent text-foreground border border-input hover:bg-accent hover:text-accent-foreground"
+                  onClick={() => {
+                    if (showConfirmPublishDialog?.action) {
+                      showConfirmPublishDialog.action();
+                    }
+                    setShowConfirmPublishDialog(null);
+                  }}
+                >
+                  Enviar oficial atual
+                </AlertDialogAction>
+                <AlertDialogAction
+                  onClick={async () => {
+                    const action = showConfirmPublishDialog?.action;
+                    setShowConfirmPublishDialog(null);
+                    if (onGenerate) {
+                      await onGenerate();
+                      // After generating, the user usually wants to see the result.
+                      // We'll let them click send again on the new official version.
+                    }
+                  }}
+                >
+                  Publicar e enviar
+                </AlertDialogAction>
+              </div>
+            </div>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
