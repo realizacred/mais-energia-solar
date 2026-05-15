@@ -364,7 +364,12 @@ export function useDealPipeline() {
         });
         const best = sorted[0];
         if (best) {
-          bestPropostaByDeal.set(did, { id: best.id, status: best.status });
+          bestPropostaByDeal.set(did, { 
+            id: best.id, 
+            status: best.status,
+            draft_total: best.draft_total,
+            has_unpublished_changes: best.has_unpublished_changes
+          });
         }
       });
 
