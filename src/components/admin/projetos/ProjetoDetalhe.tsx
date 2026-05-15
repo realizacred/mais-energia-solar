@@ -80,7 +80,7 @@ import { EmitirReciboModal } from "@/components/admin/documentos/EmitirReciboMod
 import { useRecibos } from "@/hooks/useRecibos";
 
 
-// ─── Types (local to sub-components) ────────────
+import { useOperationalStatus } from "@/hooks/useOperationalStatus";
 interface PropostaNativa {
   id: string;
   titulo: string;
@@ -191,6 +191,24 @@ function SinalReciboCTA({
         defaultDealId={dealId}
       />
     </>
+  );
+}
+
+function OperationalBadge({ dealId }: { dealId: string }) {
+  const { data: opStatus, isLoading } = useOperationalStatus(dealId);
+  if (isLoading || !opStatus) return null;
+
+  return (
+    <Badge
+      variant="outline"
+      className={cn(
+        "text-xs shrink-0 font-bold px-3 py-1 border-2",
+        opStatus.colorClass
+      )}
+    >
+      {opStatus.status === "em_operacao" ? <Zap className="h-3 w-3 mr-1" /> : <Clock className="h-3 w-3 mr-1" />}
+      {opStatus.label}
+    </Badge>
   );
 }
 
@@ -538,6 +556,12 @@ function ProjetoDetalheContent() {
                     >
                       {projetoNome?.trim() || customerName?.trim() || (projetoNum != null ? `Projeto #${projetoNum}` : null) || projetoCodigo || "Projeto sem nome"}
                     </h1>
+                    {deal.status === "won" && (
+                      <Badge variant="outline" className="text-xs font-bold bg-success/10 text-success border-success/20 py-1">
+                        <Trophy className="h-3 w-3 mr-1" />
+                        Negociação ganha
+                      </Badge>
+                    )}
                     {projetoCodigo && (
                       <Badge variant="outline" className="text-[10px] font-mono text-muted-foreground shrink-0">
                         {projetoCodigo}
@@ -653,8 +677,11 @@ function ProjetoDetalheContent() {
                   deal.status === "open" && "bg-info/10 text-info border-info/20"
                 )}
               >
-                {deal.status === "won" ? "Ganho" : deal.status === "lost" ? "Perdido" : "Aberto"}
+                {deal.status === "won" ? "Venda concluída" : deal.status === "lost" ? "Perdido" : "Aberto"}
               </Badge>
+              {deal.status === "won" && (
+                <OperationalBadge dealId={deal.id} />
+              )}
               {deal.value > 0 && (
                 <div className="flex flex-col items-end gap-1.5">
                   <Badge variant="outline" className="text-xs shrink-0 font-bold bg-primary/5 text-primary border-primary/20 h-7 px-3">

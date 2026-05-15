@@ -948,7 +948,7 @@ export function ProjetosManager() {
                   <div className="space-y-2.5">
                     <div className="flex items-center gap-2.5">
                       <span className="w-1 h-5 rounded-full shrink-0 bg-success" />
-                      <span className="text-[11px] text-foreground font-medium">Projeto concluído</span>
+                      <span className="text-[11px] text-foreground font-medium">Negociação ganha</span>
                     </div>
                     <div className="flex items-center gap-2.5">
                       <span className="w-1 h-5 rounded-full shrink-0 bg-destructive" />
