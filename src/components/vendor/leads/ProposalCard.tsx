@@ -40,8 +40,15 @@ export function ProposalCard({ proposta }: ProposalCardProps) {
           <div className="flex items-center gap-2 flex-1 min-w-0">
             <Checkbox checked={!!visto} disabled className="mt-0.5" />
             <div className="min-w-0">
-              <h3 className="font-semibold text-sm truncate text-foreground">{proposta.cliente_nome}</h3>
-              <p className="text-xs text-muted-foreground truncate">{proposta.titulo || "Sem título"}</p>
+              <h3 className="font-semibold text-sm truncate text-primary">{proposta.cliente_nome}</h3>
+              <div className="flex flex-col gap-0.5 mt-0.5">
+                <p className="text-[10px] text-muted-foreground truncate" title={proposta.titulo || ""}>{proposta.titulo || "Sem título"}</p>
+                {proposta.versao_numero && (
+                  <span className="text-[9px] text-muted-foreground/60 font-medium leading-none">
+                    v{proposta.versao_numero}
+                  </span>
+                )}
+              </div>
             </div>
           </div>
           <Badge variant="outline" className={`gap-1.5 h-6 px-2 text-[10px] ${status.cls}`}>
