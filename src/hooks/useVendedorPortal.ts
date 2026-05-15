@@ -9,7 +9,7 @@ import { useGamification } from "@/hooks/useGamification";
 import { useAdvancedMetrics } from "@/hooks/useAdvancedMetrics";
 import type { Lead } from "@/types/lead";
 import { toCanonicalPhoneDigits } from "@/utils/phone/toCanonicalPhoneDigits";
-import { getTerminalStatusIds } from "@/modules/orcamentos/utils/operationalFilters";
+import { getTerminalStatusIds, shouldShowOrcamento } from "@/modules/orcamentos/utils/operationalFilters";
 
 export interface VendedorProfile {
   id: string;
@@ -88,6 +88,7 @@ export function useVendedorPortal() {
   const [filterStatus, setFilterStatus] = useState("todos");
   const [excludeTerminal, setExcludeTerminal] = useState(false);
   const [maxAgeDays, setMaxAgeDays] = useState<number | null>(null);
+  const [operationalStatus, setOperationalStatus] = useState("todos");
 
   // Dialog states
   const [selectedOrcamento, setSelectedOrcamento] = useState<OrcamentoVendedor | null>(null);
@@ -114,6 +115,7 @@ export function useVendedorPortal() {
     filterStatus,
     excludeTerminal,
     maxAgeDays,
+    operationalStatus,
   });
 
   // Load vendedor profile - use ref for navigate to stabilize dependencies
@@ -225,6 +227,7 @@ export function useVendedorPortal() {
     setFilterStatus("todos");
     setExcludeTerminal(false);
     setMaxAgeDays(null);
+    setOperationalStatus("todos");
   }, []);
 
   // Convert orcamentos to leads — exclude terminal statuses for alert-facing widgets
@@ -279,7 +282,17 @@ export function useVendedorPortal() {
   // Filtered orcamentos
   // Phase 1: filtering is now server-side inside useOrcamentosVendedor.
   // Keep `filteredOrcamentos` as alias for backward compat with consumers.
-  const filteredOrcamentos = orcamentosData.orcamentos;
+  const filteredOrcamentos = useMemo(() => {
+    const terminalIds = getTerminalStatusIds(orcamentosData.statuses);
+    return orcamentosData.orcamentos.filter(o => shouldShowOrcamento(o, {
+      filterVisto,
+      filterEstado,
+      filterStatus,
+      excludeTerminal,
+      maxAgeDays,
+      operationalStatus
+    }, terminalIds));
+  }, [orcamentosData.orcamentos, filterVisto, filterEstado, filterStatus, excludeTerminal, maxAgeDays, operationalStatus, orcamentosData.statuses]);
 
   return {
     // Profile
@@ -304,6 +317,8 @@ export function useVendedorPortal() {
     setExcludeTerminal,
     maxAgeDays,
     setMaxAgeDays,
+    operationalStatus,
+    setOperationalStatus,
 
     // Dialogs
     selectedOrcamento,
