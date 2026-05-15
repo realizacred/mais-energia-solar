@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { TERMINAL_STATUS_KEYWORDS } from "@/modules/orcamentos/utils/operationalFilters";
 
 export interface LeadStatusRecord {
   id: string;
@@ -8,7 +9,7 @@ export interface LeadStatusRecord {
   ordem: number;
 }
 
-const TERMINAL_NAMES = ["Convertido", "Perdido", "Arquivado", "Aguardando Validação"];
+const TERMINAL_NAMES = TERMINAL_STATUS_KEYWORDS;
 
 /**
  * Centralized hook to fetch all lead_status records.
@@ -41,7 +42,7 @@ export function useLeadStatusMap() {
 
   /** First non-terminal status — used as "reopen" target. */
   const reopenTarget =
-    statuses.find((s) => !TERMINAL_NAMES.includes(s.nome)) ?? null;
+    statuses.find((s) => !TERMINAL_NAMES.some(kw => s.nome.toLowerCase().includes(kw))) ?? null;
 
   return {
     statuses,

@@ -9,6 +9,7 @@ import { useGamification } from "@/hooks/useGamification";
 import { useAdvancedMetrics } from "@/hooks/useAdvancedMetrics";
 import type { Lead } from "@/types/lead";
 import { toCanonicalPhoneDigits } from "@/utils/phone/toCanonicalPhoneDigits";
+import { getTerminalStatusIds } from "@/modules/orcamentos/utils/operationalFilters";
 
 export interface VendedorProfile {
   id: string;
@@ -228,16 +229,10 @@ export function useVendedorPortal() {
 
   // Convert orcamentos to leads — exclude terminal statuses for alert-facing widgets
   const leadsForAlerts = useMemo(() => {
-    // Find terminal status IDs from statuses list
-    const terminalNames = new Set(["Convertido", "Perdido"]);
-    const terminalIds = new Set(
-      orcamentosData.statuses
-        .filter(s => terminalNames.has(s.nome))
-        .map(s => s.id)
-    );
+    const terminalIds = getTerminalStatusIds(orcamentosData.statuses);
 
     return orcamentosData.orcamentos
-      .filter(orc => !terminalIds.has(orc.status_id || ""))
+      .filter(orc => !terminalIds.includes(orc.status_id || ""))
       .map(orcamentoToLead);
   }, [orcamentosData.orcamentos, orcamentosData.statuses]);
 

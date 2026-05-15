@@ -36,6 +36,7 @@ import type { LeadStatus } from "@/types/lead";
 import type { OrcamentoVendedor } from "@/hooks/useOrcamentosVendedor";
 import type { OrcamentoDisplayItem } from "@/types/orcamento";
 import type { OrcamentoSortOption } from "@/hooks/useOrcamentoSort";
+import { getConvertedStatusIds } from "@/modules/orcamentos/utils/operationalFilters";
 
 interface VendorOrcamentosTableProps {
   orcamentos: OrcamentoVendedor[];
@@ -111,7 +112,7 @@ export function VendorOrcamentosTable({
     window.open(getWhatsAppUrl(telefone), '_blank');
   };
 
-  const getConvertedStatus = () => statuses.find(s => s.nome === "Convertido");
+  const convertedIds = getConvertedStatusIds(statuses);
 
   if (groupedOrcamentos.length === 0) {
     return (
@@ -123,14 +124,14 @@ export function VendorOrcamentosTable({
 
   // Mobile: Card Layout
   if (isMobile) {
-    const convertidoStatus = getConvertedStatus();
+    const isConverted = (statusId: string | null) => statusId && convertedIds.includes(statusId);
     
     return (
       <>
         <div className="space-y-3">
           {groupedOrcamentos.map((group) => {
             const orc = group.latestOrcamento as OrcamentoVendedor;
-            const isConverted = convertidoStatus && orc.status_id === convertidoStatus.id;
+            const isConverted = orc.status_id && convertedIds.includes(orc.status_id);
             
             return (
               <div key={group.lead_id}>
@@ -225,8 +226,7 @@ export function VendorOrcamentosTable({
           <TableBody>
             {groupedOrcamentos.map((group) => {
               const orc = group.latestOrcamento as OrcamentoVendedor;
-              const convertidoStatus = getConvertedStatus();
-              const isConverted = convertidoStatus && orc.status_id === convertidoStatus.id;
+              const isConverted = orc.status_id && convertedIds.includes(orc.status_id);
               const hasHistory = group.count > 1;
               
               return (

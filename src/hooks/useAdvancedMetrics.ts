@@ -1,5 +1,6 @@
- import { useState, useCallback, useRef } from "react";
- import { supabase } from "@/integrations/supabase/client";
+import { useState, useCallback, useRef } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { getLostStatusIds } from "@/modules/orcamentos/utils/operationalFilters";
  
  export interface AdvancedMetrics {
    tempo_medio_fechamento_dias: number;
@@ -71,10 +72,7 @@
          .from("lead_status")
          .select("id, nome");
  
-       const perdidoStatus = statuses?.find(s => 
-         s.nome.toLowerCase().includes("perdido") || 
-         s.nome.toLowerCase().includes("cancelado")
-       );
+        const perdidoStatusIds = getLostStatusIds(statuses || []);
  
         const totalOrcamentos = orcamentos?.length || 0;
         
@@ -113,10 +111,10 @@
          }
        }
  
-       // Orçamentos perdidos
-       const orcamentosPerdidos = orcamentos?.filter(o => 
-         perdidoStatus && o.status_id === perdidoStatus.id
-       ).length || 0;
+        // Orçamentos perdidos
+        const orcamentosPerdidos = orcamentos?.filter(o => 
+          o.status_id && perdidoStatusIds.includes(o.status_id)
+        ).length || 0;
  
        // Calcular valor total
        const valorTotal = clientesDoVendedor.reduce(

@@ -23,10 +23,11 @@
    Bar,
    Cell,
  } from "recharts";
- import { format, subDays, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, differenceInDays, parseISO } from "date-fns";
- import { ptBR } from "date-fns/locale";
- import type { OrcamentoVendedor } from "@/hooks/useOrcamentosVendedor";
- import type { LeadStatus } from "@/types/lead";
+import { format, subDays, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, differenceInDays, parseISO } from "date-fns";
+import { ptBR } from "date-fns/locale";
+import type { OrcamentoVendedor } from "@/hooks/useOrcamentosVendedor";
+import type { LeadStatus } from "@/types/lead";
+import { getConvertedStatusIds } from "@/modules/orcamentos/utils/operationalFilters";
  
  interface VendorPersonalDashboardProps {
    orcamentos: OrcamentoVendedor[];
@@ -34,8 +35,7 @@
    vendedorNome: string;
  }
  
- // Status IDs that represent "converted/won" leads
- const CONVERTED_STATUS_NAMES = ["convertido", "fechado", "ganho", "cliente"];
+// Status identification is now centralized in operationalFilters.ts
  
  export function VendorPersonalDashboard({
    orcamentos,
@@ -43,15 +43,9 @@
    vendedorNome,
  }: VendorPersonalDashboardProps) {
    // Find converted status IDs
-   const convertedStatusIds = useMemo(() => {
-     return statuses
-       .filter((s) =>
-         CONVERTED_STATUS_NAMES.some((name) =>
-           s.nome.toLowerCase().includes(name)
-         )
-       )
-       .map((s) => s.id);
-   }, [statuses]);
+    const convertedStatusIds = useMemo(() => {
+      return getConvertedStatusIds(statuses);
+    }, [statuses]);
  
    // Calculate metrics
    const metrics = useMemo(() => {

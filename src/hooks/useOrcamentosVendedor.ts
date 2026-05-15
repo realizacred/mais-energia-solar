@@ -4,6 +4,7 @@ import { useToast } from "@/hooks/use-toast";
 import type { LeadStatus } from "@/types/lead";
 import { toCanonicalPhoneDigits } from "@/utils/phone/toCanonicalPhoneDigits";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { buildOperationalFilters, getTerminalStatusIds, calculateOperationalStats } from "@/modules/orcamentos/utils/operationalFilters";
 
 export interface OrcamentoVendedor {
   id: string;
@@ -140,25 +141,13 @@ export function useOrcamentosVendedor({
           .select(ORC_SELECT, { count: "exact" })
           .order("created_at", { ascending: false });
 
-        if (filterVisto === "visto") q = q.eq("visto", true);
-        else if (filterVisto === "nao_visto") q = q.eq("visto", false);
-        if (filterEstado !== "todos") q = q.eq("estado", filterEstado);
-        
-        if (filterStatus === "novo") {
-          q = q.is("status_id", null);
-        } else if (filterStatus !== "todos") {
-          q = q.eq("status_id", filterStatus);
-        } else if (excludeTerminal && terminalIds.length > 0) {
-          q = q.or(`status_id.is.null,status_id.not.in.(${terminalIds.join(",")})`);
-        }
-
-        if (maxAgeDays) {
-          const minDate = new Date();
-          minDate.setDate(minDate.getDate() - maxAgeDays);
-          q = q.gte("created_at", minDate.toISOString());
-        }
-
-        return q;
+        return buildOperationalFilters(q, {
+          filterVisto,
+          filterEstado,
+          filterStatus,
+          excludeTerminal,
+          maxAgeDays
+        }, terminalIds);
       };
 
       let searchLeadIds: string[] | null = null;
@@ -188,9 +177,7 @@ export function useOrcamentosVendedor({
 
       const statusesRes = await supabase.from("lead_status").select("id, nome, ordem, cor").order("ordem");
       const allStatuses = statusesRes.data || [];
-      const terminalStatusIds = allStatuses
-        .filter(s => ["convertido", "perdido", "cancelado", "recusado", "inativo", "fechado", "ganho", "cliente"].includes(s.nome.toLowerCase()))
-        .map(s => s.id);
+      const terminalStatusIds = getTerminalStatusIds(allStatuses);
 
       let primaryRows: any[] = [];
       let primaryCount = 0;
@@ -301,15 +288,7 @@ export function useOrcamentosVendedor({
     };
   }, [vendedorId, vendedorNome, isAdminMode, handleRealtimeChanges]);
 
-  const stats = {
-    total: orcamentos.length,
-    novos: orcamentos.filter((o) => !o.visto).length,
-    esteMes: orcamentos.filter((o) => {
-      const date = new Date(o.created_at);
-      const now = new Date();
-      return date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear();
-    }).length,
-  };
+  const stats = calculateOperationalStats(orcamentos, statuses);
 
   const estados = [...new Set(orcamentos.map((o) => o.estado).filter(Boolean))].sort();
   const hasMore = totalCount > orcamentos.length;
