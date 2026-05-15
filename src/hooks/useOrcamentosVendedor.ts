@@ -272,7 +272,7 @@ export function useOrcamentosVendedor({
   }, [
     vendedorId, vendedorNome, isAdminMode, mustFilterByVendedor,
     searchTerm, filterVisto, filterEstado, filterStatus,
-    orcamentos.length, toast,
+    toast,
   ]);
 
   const toggleVisto = useCallback(async (orcamento: OrcamentoVendedor) => {
