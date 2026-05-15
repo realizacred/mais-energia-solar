@@ -2598,62 +2598,31 @@ function ProposalWizardContent() {
         propostaId: genResult.proposta_id,
       }).catch(e => console.error("Error saving pricing history:", e));
     } catch (e: any) {
-      // ── Handle structured 422 errors from backend enforcement ──
+      // ── Consolidate catch for handleGenerate ──
       const errorCode = (e as any).errorCode;
       if (errorCode === "missing_required_variables") {
         setBlockReason("missing_required");
         setBlockMissing((e as any).missing || []);
         setShowBlockModal(true);
-        setGenerationStatus("idle");
-        setGenerating(false);
-        return;
-      }
-      if (errorCode === "estimativa_not_accepted") {
+      } else if (errorCode === "estimativa_not_accepted") {
         setBlockReason("estimativa_not_accepted");
         setBlockMissing([]);
         setShowBlockModal(true);
-        setGenerationStatus("idle");
-        setGenerating(false);
-        return;
-      }
-      setGenerationStatus("error");
-      setGenerationError(e.message || "Erro ao publicar proposta");
-      toast({ title: "Erro na publicação", description: e.message, variant: "destructive" });
-      setGenerating(false);
-    }
-    } catch (e: any) {
-      // ── Handle structured 422 errors from backend enforcement ──
-      const errorCode = (e as any).errorCode;
-      if (errorCode === "missing_required_variables") {
-        setBlockReason("missing_required");
-        setBlockMissing((e as any).missing || []);
-        setShowBlockModal(true);
-        setGenerationStatus("idle");
-        setGenerating(false);
-        return;
-      }
-      if (errorCode === "estimativa_not_accepted") {
-        setBlockReason("estimativa_not_accepted");
-        setBlockMissing([]);
-        setShowBlockModal(true);
-        setGenerationStatus("idle");
-        setGenerating(false);
-        return;
-      }
-      if (errorCode === "mixed_grupos" || errorCode === "grupo_indefinido") {
+      } else if (errorCode === "mixed_grupos" || errorCode === "grupo_indefinido") {
         toast({
           title: "Erro de grupo tarifário",
           description: e.message || "Não é permitido misturar Grupo A e Grupo B na mesma proposta.",
           variant: "destructive",
         });
-        setGenerationStatus("idle");
-        setGenerating(false);
-        return;
+      } else {
+        setGenerationStatus("error");
+        setGenerationError(e.message || "Erro desconhecido ao publicar proposta");
+        toast({ title: "Erro na publicação", description: e.message, variant: "destructive" });
       }
-      setGenerationStatus("error");
-      setGenerationError(e.message || "Erro desconhecido ao gerar proposta");
-      toast({ title: "Erro ao gerar proposta", description: e.message, variant: "destructive" });
-    } finally { setGenerating(false); }
+      setGenerationStatus("idle");
+    } finally {
+      setGenerating(false);
+    }
   };
 
   // ─── Invalidate artifacts when template changes
