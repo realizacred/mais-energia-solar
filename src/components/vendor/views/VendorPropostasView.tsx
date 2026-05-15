@@ -432,7 +432,7 @@ function PropostaRow({
             {proposta.potencia_kwp != null ? `${Number(proposta.potencia_kwp).toFixed(2)} kWp` : "—"}
           </span>
           <div className="flex items-center gap-1 text-[10px] text-muted-foreground whitespace-nowrap">
-            <span>{proposta.geracao_mensal != null ? `${Math.round(proposta.geracao_mensal)} kWh` : "—"}</span>
+            <span>{proposta.geracao_mensal != null ? `${Math.round(proposta.geracao_mensal)} kWh geração` : "—"}</span>
             <span className="opacity-40">•</span>
             <span>{proposta.consumo_mensal != null ? `${Math.round(proposta.consumo_mensal)} kWh/mês` : "—"}</span>
           </div>
