@@ -20529,6 +20529,7 @@ export type Database = {
           irradiance_dataset_code: string | null
           irradiance_source_point: Json | null
           irradiance_version_id: string | null
+          is_official: boolean | null
           link_pdf: string | null
           motivo_rejeicao: string | null
           observacoes: string | null
@@ -20589,6 +20590,7 @@ export type Database = {
           irradiance_dataset_code?: string | null
           irradiance_source_point?: Json | null
           irradiance_version_id?: string | null
+          is_official?: boolean | null
           link_pdf?: string | null
           motivo_rejeicao?: string | null
           observacoes?: string | null
@@ -20649,6 +20651,7 @@ export type Database = {
           irradiance_dataset_code?: string | null
           irradiance_source_point?: Json | null
           irradiance_version_id?: string | null
+          is_official?: boolean | null
           link_pdf?: string | null
           motivo_rejeicao?: string | null
           observacoes?: string | null
@@ -21008,12 +21011,14 @@ export type Database = {
           data_aceite_estimativa: string | null
           deal_id: string | null
           deleted_at: string | null
+          draft_total: number | null
           enviada_at: string | null
           enviada_por: string | null
           enviada_via: string | null
           external_id: string | null
           external_source: string | null
           fio_b_percent_aplicado: number | null
+          has_unpublished_changes: boolean | null
           id: string
           is_principal: boolean
           lead_id: string | null
@@ -21064,12 +21069,14 @@ export type Database = {
           data_aceite_estimativa?: string | null
           deal_id?: string | null
           deleted_at?: string | null
+          draft_total?: number | null
           enviada_at?: string | null
           enviada_por?: string | null
           enviada_via?: string | null
           external_id?: string | null
           external_source?: string | null
           fio_b_percent_aplicado?: number | null
+          has_unpublished_changes?: boolean | null
           id?: string
           is_principal?: boolean
           lead_id?: string | null
@@ -21120,12 +21127,14 @@ export type Database = {
           data_aceite_estimativa?: string | null
           deal_id?: string | null
           deleted_at?: string | null
+          draft_total?: number | null
           enviada_at?: string | null
           enviada_por?: string | null
           enviada_via?: string | null
           external_id?: string | null
           external_source?: string | null
           fio_b_percent_aplicado?: number | null
+          has_unpublished_changes?: boolean | null
           id?: string
           is_principal?: boolean
           lead_id?: string | null

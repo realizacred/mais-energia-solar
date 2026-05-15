@@ -464,6 +464,8 @@ function ProjetoDetalheContent() {
     );
   }
 
+  const { data: propostas = [] } = usePropostasProjetoTab(deal.id, deal.customer_id);
+
   return (
     <div className="min-h-screen bg-muted/30 -m-4 sm:-m-6 p-3 sm:p-6 max-w-full overflow-x-hidden">
       {/* ── Breadcrumbs ── */}
@@ -638,9 +640,24 @@ function ProjetoDetalheContent() {
                 {deal.status === "won" ? "Ganho" : deal.status === "lost" ? "Perdido" : "Aberto"}
               </Badge>
               {deal.value > 0 && (
-                <Badge variant="outline" className="text-xs shrink-0 font-semibold">
-                  {formatBRL(deal.value)}
-                </Badge>
+                <div className="flex flex-col items-end gap-1">
+                  <Badge variant="outline" className="text-xs shrink-0 font-bold bg-primary/5 text-primary border-primary/20">
+                    Oficial: {formatBRL(deal.value)}
+                  </Badge>
+                  {propostas.some(p => p.has_unpublished_changes) && (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Badge variant="outline" className="text-[10px] shrink-0 font-medium bg-amber-50 text-amber-700 border-amber-200 animate-pulse cursor-help">
+                          <AlertCircle className="h-2.5 w-2.5 mr-1" />
+                          Rascunho: {formatBRL(propostas.find(p => p.has_unpublished_changes)?.draft_total || 0)}
+                        </Badge>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        Existem alterações não publicadas nesta proposta.
+                      </TooltipContent>
+                    </Tooltip>
+                  )}
+                </div>
               )}
               <Badge variant="outline" className="text-xs shrink-0 gap-1.5 bg-primary/5 border-primary/20 text-primary font-semibold">
                 <UserCircle className="h-3.5 w-3.5" />

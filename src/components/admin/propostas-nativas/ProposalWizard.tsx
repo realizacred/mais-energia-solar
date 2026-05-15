@@ -8,7 +8,7 @@ import { useQuery } from "@tanstack/react-query";
 import {
   ChevronLeft, ChevronRight, MapPin, User, BarChart3, Settings2,
   Wrench, DollarSign, CreditCard, FileText, Check, Cpu, Link2, ClipboardList, Box,
-  Zap, AlertTriangle, Phone, Save, CheckCircle2,
+  Zap, AlertTriangle, Phone, Save, CheckCircle2, AlertCircle, RefreshCw,
   SunMedium, LayoutGrid, HardHat, Calculator, Wallet, ClipboardCheck, ScrollText,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -1324,7 +1324,7 @@ function ProposalWizardContent() {
             .maybeSingle();
 
           // Detect if proposal was already sent/generated — will branch new version on save
-          const SENT_STATUSES = ["enviada", "vista", "aceita", "gerada"];
+          const SENT_STATUSES = ["enviada", "vista", "aceita", "gerada", "sent", "accepted", "generated"];
           if (propostaMeta?.status && SENT_STATUSES.includes(propostaMeta.status)) {
             setEditingSentProposal(true);
             setProposalStatus(propostaMeta.status);
@@ -1549,6 +1549,7 @@ function ProposalWizardContent() {
     if (res.projetoId) setSavedProjetoId(res.projetoId);
     if (res.dealId) setSavedDealId(res.dealId);
     if (res.clienteId) setSavedClienteId(res.clienteId);
+    setHasEditsAfterRestore(false); // Reset draft flag after successful save
   }, []);
 
   // ─── Fire-and-forget: sync template_id_used on proposta_versoes (RB-25)
@@ -1596,7 +1597,15 @@ function ProposalWizardContent() {
         syncCustomFieldValues(res.dealId || resolvedDealId);
         syncTemplateIdUsed(res.versaoId);
         invalidateProposalCaches(res.dealId || resolvedDealId, res.projetoId);
-        toast({ title: "✅ Rascunho salvo" });
+        toast({ 
+          title: "✅ Rascunho salvo",
+          description: "O valor oficial do projeto no CRM não foi alterado.",
+          action: (
+            <Button variant="outline" size="sm" onClick={() => window.location.reload()} className="h-7 text-[10px] gap-1 px-2">
+              <RefreshCw className="h-3 w-3" /> Atualizar telas
+            </Button>
+          )
+        });
         break;
       case "reused":
         applyPersistResult(res);
@@ -1646,7 +1655,15 @@ function ProposalWizardContent() {
         if (res.newVersionCreated) {
           toast({ title: "Nova versão criada", description: res.message });
         } else if (res.status !== "reused") {
-          toast({ title: setActive ? "✅ Proposta ativada!" : "✅ Rascunho salvo!" });
+          toast({ 
+            title: setActive ? "✅ Proposta ativada!" : "✅ Rascunho salvo!",
+            description: setActive ? "O valor oficial do projeto no CRM foi atualizado." : "O valor oficial no CRM não foi alterado.",
+            action: (
+              <Button variant="outline" size="sm" onClick={() => window.location.reload()} className="h-7 text-[10px] gap-1 px-2">
+                <RefreshCw className="h-3 w-3" /> Atualizar telas
+              </Button>
+            )
+          });
         }
         break;
       case "blocked":
@@ -3159,6 +3176,23 @@ function ProposalWizardContent() {
       {/* ── Body: Content — responsive padding, max-width for readability */}
       <div className="flex-1 min-h-0 overflow-y-auto scrollbar-thin">
         <div className="w-full px-2 sm:px-3 lg:px-4 py-2 lg:py-3 pb-24 sm:pb-20">
+          {editingsentProposal && hasEditsAfterRestore && (
+            <motion.div 
+              initial={{ opacity: 0, height: 0 }} 
+              animate={{ opacity: 1, height: "auto" }}
+              className="mb-4"
+            >
+              <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 flex items-start gap-3 shadow-sm">
+                <AlertCircle className="h-5 w-5 text-amber-500 shrink-0 mt-0.5" />
+                <div className="flex-1">
+                  <p className="text-sm font-bold text-amber-900">Alterações não publicadas</p>
+                  <p className="text-xs text-amber-800 leading-relaxed">
+                    O valor oficial do projeto continuará sendo <span className="font-bold">{formatBRL(precoFinal)}</span> até que você salve uma nova versão.
+                  </p>
+                </div>
+              </div>
+            </motion.div>
+          )}
           <AnimatePresence mode="wait">
             {renderStepContent()}
           </AnimatePresence>

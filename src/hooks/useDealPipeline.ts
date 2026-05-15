@@ -61,6 +61,8 @@ export interface DealKanbanCard {
   proposta_status?: string | null;
   proposta_economia_mensal?: number | null;
   proposta_id?: string | null;
+  proposta_draft_total?: number | null;
+  proposta_has_unpublished_changes?: boolean;
   customer_id?: string | null;
   // Enriched location
   customer_city?: string | null;
@@ -130,7 +132,7 @@ async function fetchPropostasInBatches(dealIds: string[], projetoIds: string[]) 
     ...chunkValues(projetoIds, QUERY_BATCH_SIZE).map((chunk) =>
       supabase
         .from("propostas_nativas")
-        .select("id, deal_id, projeto_id, status, is_principal")
+        .select("id, deal_id, projeto_id, status, is_principal, draft_total, has_unpublished_changes")
         .in("projeto_id", chunk)
         .order("created_at", { ascending: false }),
     ),
@@ -343,11 +345,16 @@ export function useDealPipeline() {
       });
 
       // Select best proposal per deal (without economia yet)
-      const bestPropostaByDeal = new Map<string, { id: string; status: string }>();
+      const bestPropostaByDeal = new Map<string, { id: string; status: string; draft_total?: number | null; has_unpublished_changes?: boolean }>();
       propostasByDeal.forEach((dealPropostas, did) => {
         const principal = dealPropostas.find((p: any) => p.is_principal && !['excluida', 'cancelada', 'arquivada'].includes(p.status?.toLowerCase()));
         if (principal) {
-          bestPropostaByDeal.set(did, { id: principal.id, status: principal.status });
+          bestPropostaByDeal.set(did, { 
+            id: principal.id, 
+            status: principal.status,
+            draft_total: principal.draft_total,
+            has_unpublished_changes: principal.has_unpublished_changes
+          });
           return;
         }
         const sorted = [...dealPropostas].sort((a: any, b: any) => {
@@ -357,7 +364,12 @@ export function useDealPipeline() {
         });
         const best = sorted[0];
         if (best) {
-          bestPropostaByDeal.set(did, { id: best.id, status: best.status });
+          bestPropostaByDeal.set(did, { 
+            id: best.id, 
+            status: best.status,
+            draft_total: best.draft_total,
+            has_unpublished_changes: best.has_unpublished_changes
+          });
         }
       });
 
@@ -390,6 +402,8 @@ export function useDealPipeline() {
           proposta_id: proposta?.id || null,
           proposta_status: proposta?.status || null,
           proposta_economia_mensal: proposta ? (economiaMap.get(proposta.id) || null) : null,
+          proposta_draft_total: proposta?.draft_total || null,
+          proposta_has_unpublished_changes: proposta?.has_unpublished_changes || false,
           customer_city: loc?.city || null,
           customer_state: loc?.state || null,
           expected_close_date: closeDateMap.get(d.deal_id) || null,
