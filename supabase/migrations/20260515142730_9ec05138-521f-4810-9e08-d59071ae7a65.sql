@@ -1,0 +1,1 @@
+ALTER FUNCTION public.handle_financial_settings_updated_at() SET search_path = public;
