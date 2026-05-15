@@ -300,18 +300,20 @@ function PropostaRow({
     <TableRow className={`${isSubRow ? "bg-muted/20" : ""} hover:bg-muted/30 transition-colors`}>
       <TableCell className="py-2.5">
         <div className="flex items-center gap-2">
-          {isMain && hasOthers && (
-            <button 
-              onClick={(e) => { e.stopPropagation(); onToggleExpand?.(); }}
-              className="p-1 hover:bg-muted rounded-sm text-muted-foreground transition-colors"
-            >
-              {isExpanded ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
-            </button>
-          )}
-          {isSubRow && <div className="w-5" />}
+          <div className="w-6 flex justify-center shrink-0">
+            {isMain && hasOthers && (
+              <button 
+                onClick={(e) => { e.stopPropagation(); onToggleExpand?.(); }}
+                className="p-1 hover:bg-muted rounded-sm text-muted-foreground transition-colors"
+              >
+                {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+              </button>
+            )}
+            {isSubRow && <div className="w-1 border-l-2 border-muted-foreground/20 h-8 ml-2" />}
+          </div>
           <div className="flex flex-col min-w-0">
-            <span className="font-medium text-sm truncate">
-              {proposta.cliente_nome || "Sem nome"}
+            <span className={`truncate ${isSubRow ? "text-xs text-muted-foreground" : "font-medium text-sm"}`}>
+              {isSubRow ? "Versão Anterior" : (proposta.cliente_nome || "Sem nome")}
             </span>
             {isMain && hasOthers && (
               <span 
