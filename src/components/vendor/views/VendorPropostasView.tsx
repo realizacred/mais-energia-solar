@@ -351,7 +351,7 @@ function PropostaRow({
 
       <TableCell className="align-middle">
         <div className="flex items-center gap-1">
-          <Badge variant="default" className="font-mono text-[10px] px-1.5 py-0 h-5">
+          <Badge variant="default" className="font-mono text-[10px] px-1.5 py-0 h-5 bg-orange-500/10 text-orange-600 border-orange-500/20 max-w-[80px] truncate block">
             {codeLabel}
           </Badge>
           {isMain && hasOthers && (
