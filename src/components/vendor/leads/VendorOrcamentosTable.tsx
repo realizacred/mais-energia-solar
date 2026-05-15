@@ -226,8 +226,7 @@ export function VendorOrcamentosTable({
           <TableBody>
             {groupedOrcamentos.map((group) => {
               const orc = group.latestOrcamento as OrcamentoVendedor;
-              const convertidoStatus = getConvertedStatus();
-              const isConverted = convertidoStatus && orc.status_id === convertidoStatus.id;
+              const isConverted = orc.status_id && convertedIds.includes(orc.status_id);
               const hasHistory = group.count > 1;
               
               return (
