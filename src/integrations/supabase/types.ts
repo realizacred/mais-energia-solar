@@ -31309,6 +31309,10 @@ export type Database = {
           peak_power_kw: number
         }[]
       }
+      get_project_operational_data: {
+        Args: { _deal_id: string }
+        Returns: Json
+      }
       get_projeto_detalhe: { Args: { _deal_id: string }; Returns: Json }
       get_proposal_funnel_metrics: { Args: { p_days?: number }; Returns: Json }
       get_proposal_template_for_landing: {

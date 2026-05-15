@@ -2,11 +2,15 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
 export type OperationalStatus = 
+  | "operacional_nao_iniciado"
   | "aguardando_documentos"
-  | "engenharia"
-  | "instalacao"
-  | "homologacao"
-  | "vistoria"
+  | "em_engenharia"
+  | "engenharia_aprovada"
+  | "instalacao_agendada"
+  | "em_instalacao"
+  | "instalacao_concluida"
+  | "aguardando_homologacao"
+  | "homologacao_aprovada"
   | "em_operacao"
   | "desconhecido";
 
@@ -17,35 +21,55 @@ export interface OperationalStatusInfo {
 }
 
 const STATUS_CONFIG: Record<OperationalStatus, OperationalStatusInfo> = {
+  operacional_nao_iniciado: { 
+    status: "operacional_nao_iniciado", 
+    label: "Operacional não iniciado", 
+    colorClass: "bg-slate-100 text-slate-600 border-slate-200" 
+  },
   aguardando_documentos: { 
     status: "aguardando_documentos", 
     label: "Aguardando Documentos", 
     colorClass: "bg-amber-100 text-amber-700 border-amber-200" 
   },
-  engenharia: { 
-    status: "engenharia", 
+  em_engenharia: { 
+    status: "em_engenharia", 
     label: "Em Engenharia", 
     colorClass: "bg-blue-100 text-blue-700 border-blue-200" 
   },
-  instalacao: { 
-    status: "instalacao", 
-    label: "Em Instalação", 
+  engenharia_aprovada: { 
+    status: "engenharia_aprovada", 
+    label: "Engenharia Aprovada", 
+    colorClass: "bg-blue-500 text-white border-blue-600" 
+  },
+  instalacao_agendada: { 
+    status: "instalacao_agendada", 
+    label: "Instalação Agendada", 
     colorClass: "bg-indigo-100 text-indigo-700 border-indigo-200" 
   },
-  homologacao: { 
-    status: "homologacao", 
+  em_instalacao: { 
+    status: "em_instalacao", 
+    label: "Em Instalação", 
+    colorClass: "bg-indigo-500 text-white border-indigo-600" 
+  },
+  instalacao_concluida: { 
+    status: "instalacao_concluida", 
+    label: "Instalação Concluída", 
+    colorClass: "bg-emerald-100 text-emerald-700 border-emerald-200" 
+  },
+  aguardando_homologacao: { 
+    status: "aguardando_homologacao", 
     label: "Aguardando Homologação", 
     colorClass: "bg-purple-100 text-purple-700 border-purple-200" 
   },
-  vistoria: { 
-    status: "vistoria", 
-    label: "Aguardando Vistoria", 
-    colorClass: "bg-cyan-100 text-cyan-700 border-cyan-200" 
+  homologacao_aprovada: { 
+    status: "homologacao_aprovada", 
+    label: "Homologação Aprovada", 
+    colorClass: "bg-purple-500 text-white border-purple-600" 
   },
   em_operacao: { 
     status: "em_operacao", 
     label: "Usina em Operação", 
-    colorClass: "bg-success/10 text-success border-success/20" 
+    colorClass: "bg-success/10 text-success border-success/20 font-bold" 
   },
   desconhecido: { 
     status: "desconhecido", 
@@ -62,65 +86,57 @@ export function useOperationalStatus(dealId: string | null) {
     queryFn: async (): Promise<OperationalStatusInfo> => {
       if (!dealId) return STATUS_CONFIG.desconhecido;
 
-      // 1. Check Activation (Highest priority - Final Stage)
-      const { data: activ } = await supabase
-        .from("projeto_ativacao")
-        .select("id, data_ativacao")
-        .eq("projeto_id", dealId)
-        .maybeSingle();
+      // Single consolidated call (Anti-N+1)
+      const { data, error } = await (supabase as any).rpc("get_project_operational_data", { _deal_id: dealId });
       
-      if (activ?.data_ativacao) return STATUS_CONFIG.em_operacao;
-
-      // 2. Check Vistoria/Medidor (Final operational stages)
-      const { data: vistoria } = await supabase
-        .from("projeto_vistoria")
-        .select("status, resultado")
-        .eq("projeto_id", dealId)
-        .maybeSingle();
-
-      if (vistoria?.status === "aprovada" || vistoria?.status === "agendada") return STATUS_CONFIG.vistoria;
-
-      // 3. Check Homologação
-      const { data: homolog } = await supabase
-        .from("projeto_homologacao")
-        .select("status")
-        .eq("projeto_id", dealId)
-        .maybeSingle();
-      
-      if (homolog?.status === "aprovada") {
-        // Se homologado mas sem vistoria/ativação, ainda está em fluxo
-        return STATUS_CONFIG.vistoria;
-      }
-      if (homolog?.status === "solicitada" || homolog?.status === "em_analise") return STATUS_CONFIG.homologacao;
-
-      // 4. Check Installation (Checklists)
-      const { data: checklists } = await supabase
-        .from("checklists_instalador")
-        .select("status")
-        .eq("projeto_id", dealId)
-        .neq("status", "cancelado");
-      
-      if (checklists && checklists.length > 0) {
-        const hasFinished = checklists.some(c => c.status === "finalizado");
-        if (!hasFinished) return STATUS_CONFIG.instalacao;
-        // Se algum concluiu, mas não chegou na homologação/ativação, pode estar no limbo ou aguardando próximo passo
+      if (error || !data) {
+        console.error("Error fetching operational data:", error);
+        return STATUS_CONFIG.desconhecido;
       }
 
-      // 5. Check Proposta/Documentos
-      const { data: dealData } = await supabase
-        .from("deals")
-        .select("doc_checklist")
-        .eq("id", dealId)
-        .single();
-      
-      const docChecklist = dealData?.doc_checklist as Record<string, any> | null;
-      const DOC_KEYS = ["rg_cnh", "conta_luz", "iptu_imovel"]; // Basic docs
+      const { activation, vistoria, homologacao, checklists, os_instalacao, deal } = data;
+
+      // 1. Em Operação (Highest Priority - Final state)
+      if (activation?.data_ativacao) return STATUS_CONFIG.em_operacao;
+
+      // 2. Homologação Aprovada (Requires proof from concessionaria)
+      if (homologacao?.status === "aprovada") return STATUS_CONFIG.homologacao_aprovada;
+
+      // 3. Aguardando Homologação (If installation finished or homologation in progress)
+      const installationFinished = (os_instalacao || []).some((os: any) => os.status === "concluida");
+      if (installationFinished || (homologacao?.status && homologacao.status !== "nao_solicitada")) {
+        return STATUS_CONFIG.aguardando_homologacao;
+      }
+
+      // 4. Instalação Concluída (Derived from OS)
+      if (installationFinished) return STATUS_CONFIG.instalacao_concluida;
+
+      // 5. Em Instalação (Installation OS active)
+      const installationInProgress = (os_instalacao || []).some((os: any) => os.status === "em_execucao");
+      if (installationInProgress) return STATUS_CONFIG.em_instalacao;
+
+      // 6. Instalação Agendada
+      const installationScheduled = (os_instalacao || []).some((os: any) => os.status === "agendado");
+      if (installationScheduled) return STATUS_CONFIG.instalacao_agendada;
+
+      // 7. Engenharia Aprovada (Checklists finished but no OS yet)
+      const engineeringFinished = (checklists || []).some((c: any) => c.status === "finalizado");
+      if (engineeringFinished) return STATUS_CONFIG.engenharia_aprovada;
+
+      // 8. Em Engenharia (Checklists started)
+      if ((checklists || []).length > 0) return STATUS_CONFIG.em_engenharia;
+
+      // 9. Aguardando Documentos (If deal is won but docs missing)
+      const docChecklist = deal?.doc_checklist as Record<string, any> | null;
+      const DOC_KEYS = ["rg_cnh", "conta_luz", "iptu_imovel"]; 
       const hasMissingDocs = docChecklist ? DOC_KEYS.some(k => !docChecklist[k]) : true;
+      
+      if (deal?.status === "won" && hasMissingDocs) return STATUS_CONFIG.aguardando_documentos;
 
-      if (hasMissingDocs) return STATUS_CONFIG.aguardando_documentos;
+      // 10. Operacional não iniciado (If deal is won and docs are OK but no work yet)
+      if (deal?.status === "won") return STATUS_CONFIG.operacional_nao_iniciado;
 
-      // 6. Fallback - Engenharia (Assumindo que pós-docs inicia engenharia)
-      return STATUS_CONFIG.engenharia;
+      return STATUS_CONFIG.desconhecido;
     }
   });
 }
