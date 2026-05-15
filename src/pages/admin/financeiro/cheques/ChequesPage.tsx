@@ -169,8 +169,17 @@ export default function ChequesPage() {
                             {status.label}
                           </Badge>
                         </TableCell>
-                        <TableCell className="text-right">
+                        <TableCell className="text-right space-x-1">
                           <Button variant="ghost" size="sm">Ver</Button>
+                          {!['devolvido','cancelado'].includes(cheque.status) && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setChequeParaDevolver(cheque)}
+                            >
+                              Devolver
+                            </Button>
+                          )}
                         </TableCell>
                       </TableRow>
                     );
@@ -181,6 +190,14 @@ export default function ChequesPage() {
           </div>
         </CardContent>
       </Card>
+
+      {chequeParaDevolver && (
+        <DevolverChequeDialog
+          open={!!chequeParaDevolver}
+          onOpenChange={(o) => !o && setChequeParaDevolver(null)}
+          cheque={chequeParaDevolver}
+        />
+      )}
     </div>
   );
 }
