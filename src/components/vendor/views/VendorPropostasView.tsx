@@ -435,31 +435,50 @@ function PropostaRowActions({ proposta }: { proposta: PropostaConsultor }) {
   };
 
   return (
-    <div className="flex items-center justify-end gap-1">
-      <TooltipAction 
-        label="Abrir" 
-        icon={ExternalLink} 
-        onClick={handleOpenPublic} 
-        loading={busy === "open"} 
-      />
-      <TooltipAction 
-        label="Copiar PDF" 
-        icon={Copy} 
-        onClick={handleCopyPdf} 
-        loading={busy === "copy"} 
-      />
-      <TooltipAction 
-        label="WhatsApp" 
-        icon={MessageCircle} 
-        onClick={handleWhatsApp} 
-        disabled={!proposta.versao_id} 
-      />
-      <TooltipAction 
-        label="Email" 
-        icon={Mail} 
-        onClick={handleEmail} 
-        loading={busy === "email"} 
-      />
+    <div className="flex items-center justify-end gap-1.5">
+      <Button 
+        variant="outline" 
+        size="sm" 
+        className="h-7 px-2 text-[10px] gap-1"
+        onClick={handleOpenPublic}
+        disabled={!!busy}
+      >
+        {busy === "open" ? <Loader2 className="h-3 w-3 animate-spin" /> : <ExternalLink className="h-3 w-3" />}
+        Abrir
+      </Button>
+
+      <Button 
+        variant="outline" 
+        size="sm" 
+        className="h-7 px-2 text-[10px] gap-1"
+        onClick={handleCopyPdf}
+        disabled={!!busy || !proposta.output_pdf_path}
+      >
+        {busy === "copy" ? <Loader2 className="h-3 w-3 animate-spin" /> : <FileText className="h-3 w-3" />}
+        PDF
+      </Button>
+
+      <Button 
+        variant="outline" 
+        size="sm" 
+        className="h-7 px-2 text-[10px] gap-1"
+        onClick={handleWhatsApp}
+        disabled={!!busy || !proposta.versao_id}
+      >
+        <MessageCircle className="h-3 w-3" />
+        WhatsApp
+      </Button>
+
+      <Button 
+        variant="outline" 
+        size="sm" 
+        className="h-7 px-2 text-[10px] gap-1"
+        onClick={handleEmail}
+        disabled={!!busy}
+      >
+        {busy === "email" ? <Loader2 className="h-3 w-3 animate-spin" /> : <Mail className="h-3 w-3" />}
+        E-mail
+      </Button>
 
       {proposta.versao_id && proposta.projeto_id && (
         <ProposalMessageDrawer
