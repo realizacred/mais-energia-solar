@@ -246,7 +246,7 @@ export function WaSaveContactModal({
             observacoes: observacoes.trim() || null,
             origem: "WhatsApp",
             lead_id: linkedLeadId,
-            cliente_code: `CLI-${Date.now()}`,
+            cliente_code: null, // Wave 3 Hardening: Trigger auto-generates profesional sequence
           } as any)
           .select("id")
           .single();

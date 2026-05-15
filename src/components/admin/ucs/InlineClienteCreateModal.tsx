@@ -91,7 +91,7 @@ export function InlineClienteCreateModal({ open, onOpenChange, existingClientes,
           telefone: telefone.trim(),
           email: email.trim() || null,
           cpf_cnpj: cpfCnpj.trim() || null,
-          cliente_code: `CLI-${Date.now()}`, // trigger will override
+          cliente_code: null, // Wave 3 Hardening: Trigger auto-generates profesional sequence
         } as any)
         .select("id")
         .single();

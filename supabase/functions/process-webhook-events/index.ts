@@ -154,10 +154,26 @@ Deno.serve(async (req) => {
 
   let lockAcquired = false;
   try {
-    const { data: lockResult } = await supabase.rpc("try_webhook_lock_v2");
+    // Wave 2 Hardening: Use a more resilient lock attempt with auto-unlock check
+    const { data: lockResult, error: lockError } = await supabase.rpc("try_webhook_lock_v2");
+    if (lockError) {
+      console.error("[process-webhook-events] Lock RPC error:", lockError);
+    }
     lockAcquired = lockResult === true;
 
     if (!lockAcquired) {
+      // Check for STUCK lock (older than 10 mins)
+      const { data: stuckLocks } = await supabase
+        .from("wa_webhook_processing_locks")
+        .select("created_at")
+        .lt("created_at", new Date(Date.now() - 10 * 60 * 1000).toISOString())
+        .limit(1);
+      
+      if (stuckLocks && stuckLocks.length > 0) {
+        console.warn("[HARDENING] Stuck lock detected. Releasing...");
+        await supabase.rpc("release_webhook_lock_v2");
+      }
+
       console.log("[METRIC] webhook_lock_skipped");
       return new Response(
         JSON.stringify({ processed: 0, skipped: "locked" }),
@@ -172,7 +188,7 @@ Deno.serve(async (req) => {
         .select("id", { count: "exact", head: true })
         .eq("processed", false)
         .lt("created_at", new Date(Date.now() - 5 * 60 * 1000).toISOString());
-      if (stuckCount && stuckCount > 10) {
+      if (stuckCount && stuckCount > 50) {
         console.error("[ALERT] webhook_backlog_stuck", { count: stuckCount });
       }
     }

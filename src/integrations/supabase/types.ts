@@ -30922,6 +30922,10 @@ export type Database = {
         }[]
       }
       fix_integration_health_cache: { Args: never; Returns: undefined }
+      fn_generate_client_code: {
+        Args: { _prefix?: string; _tenant_id: string }
+        Returns: string
+      }
       fn_monitor_open_alert_counts: {
         Args: { _tenant_id: string }
         Returns: {
@@ -31927,6 +31931,7 @@ export type Database = {
         Returns: Json
       }
       run_subscription_lifecycle: { Args: never; Returns: Json }
+      safe_storage_slug: { Args: { input_text: string }; Returns: string }
       save_payment_composition: {
         Args: { p_itens?: Json; p_observacoes?: string; p_venda_id: string }
         Returns: string
