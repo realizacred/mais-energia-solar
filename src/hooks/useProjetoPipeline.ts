@@ -855,6 +855,6 @@ export function useProjetoPipeline() {
     deleteEtapa,
     moveProjetoToEtapa,
     moveProjetoToConsultor,
-    dbPrefs: null, // Pode ser acessado via fetchMetadata se necessário
+    dbPrefs,
   };
 }
