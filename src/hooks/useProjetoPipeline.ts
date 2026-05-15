@@ -171,6 +171,7 @@ export function useProjetoPipeline() {
 
     const dbSettings = profileRes?.data?.settings as any;
     const dbPrefs = dbSettings?.projetos_filtros;
+    setDbPrefs(dbSettings || null);
 
     return {
       funis: nextFunis,
