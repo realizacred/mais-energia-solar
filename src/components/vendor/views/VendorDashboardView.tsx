@@ -30,6 +30,10 @@ export default function VendorDashboardView({ portal }: Props) {
     metricsLoading,
     selectedOrcamento,
     setSelectedOrcamento,
+    excludeTerminal,
+    setExcludeTerminal,
+    maxAgeDays,
+    setMaxAgeDays,
   } = portal;
 
   return (
@@ -42,6 +46,32 @@ export default function VendorDashboardView({ portal }: Props) {
           <div>
             <h1 className="text-xl font-bold text-foreground">Painel</h1>
             <p className="text-sm text-muted-foreground">Resumo das suas métricas e atividades</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2 bg-background/50 p-1 rounded-lg border border-border/40 scale-90 sm:scale-100 origin-right">
+          <div className="flex items-center gap-2 px-2 border-r border-border/40 mr-1">
+            <WaAutoMessageToggle compact />
+          </div>
+          <div className="flex items-center gap-4 px-2">
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input 
+                type="checkbox" 
+                checked={excludeTerminal} 
+                onChange={(e) => setExcludeTerminal(e.target.checked)}
+                className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary"
+              />
+              <span className="text-xs font-medium">Ocultar Finalizados</span>
+            </label>
+            <select 
+              value={maxAgeDays || "all"} 
+              onChange={(e) => setMaxAgeDays(e.target.value === "all" ? null : Number(e.target.value))}
+              className="bg-transparent border-none text-xs font-medium focus:ring-0 cursor-pointer"
+            >
+              <option value="30">Últimos 30 dias</option>
+              <option value="60">Últimos 60 dias</option>
+              <option value="90">Últimos 90 dias</option>
+              <option value="all">Todo histórico</option>
+            </select>
           </div>
         </div>
       </div>
@@ -67,7 +97,7 @@ export default function VendorDashboardView({ portal }: Props) {
         />
       )}
 
-      <WaAutoMessageToggle />
+      {/* Operacional filters moved to header */}
 
       <WaConnectionCard />
 

@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "@/hooks/use-toast";
+import { cn } from "@/lib/utils";
 import {
   getVendedorWaSettings,
   saveVendedorWaSettings,
@@ -105,22 +106,25 @@ export function WaAutoMessageToggle({ vendedorId: propVendedorId, compact }: WaA
   }
 
   return (
-    <div className="rounded-lg bg-muted/50 border">
+    <div className={cn("rounded-lg", !compact && "bg-muted/50 border")}>
       {/* Toggle row */}
-      <div className="flex items-center gap-3 p-3">
-        <MessageSquare className="h-4 w-4 text-primary shrink-0" />
+      <div className={cn("flex items-center gap-3", !compact && "p-3")}>
+        {!compact && <MessageSquare className="h-4 w-4 text-primary shrink-0" />}
         <div className="flex-1 min-w-0">
-          <Label htmlFor="wa-auto-msg" className="text-sm font-medium cursor-pointer">
-            Mensagem automática ao criar lead
+          <Label htmlFor="wa-auto-msg" className={cn("font-medium cursor-pointer", compact ? "text-[10px] uppercase text-muted-foreground" : "text-sm")}>
+            {compact ? "Autoresposta" : "Mensagem automática ao criar lead"}
           </Label>
-          <p className="text-xs text-muted-foreground">
-            Envia uma mensagem profissional de boas-vindas via WhatsApp
-          </p>
+          {!compact && (
+            <p className="text-xs text-muted-foreground">
+              Envia uma mensagem profissional de boas-vindas via WhatsApp
+            </p>
+          )}
         </div>
         <Switch
           id="wa-auto-msg"
           checked={enabled}
           onCheckedChange={handleToggle}
+          className={cn(compact && "scale-75")}
         />
       </div>
 
