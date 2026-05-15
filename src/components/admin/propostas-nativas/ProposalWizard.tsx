@@ -1655,7 +1655,15 @@ function ProposalWizardContent() {
         if (res.newVersionCreated) {
           toast({ title: "Nova versão criada", description: res.message });
         } else if (res.status !== "reused") {
-          toast({ title: setActive ? "✅ Proposta ativada!" : "✅ Rascunho salvo!" });
+          toast({ 
+            title: setActive ? "✅ Proposta ativada!" : "✅ Rascunho salvo!",
+            description: setActive ? "O valor oficial do projeto no CRM foi atualizado." : "O valor oficial no CRM não foi alterado.",
+            action: (
+              <Button variant="outline" size="sm" onClick={() => window.location.reload()} className="h-7 text-[10px] gap-1 px-2">
+                <RefreshCw className="h-3 w-3" /> Atualizar telas
+              </Button>
+            )
+          });
         }
         break;
       case "blocked":
