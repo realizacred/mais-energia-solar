@@ -75,19 +75,28 @@ const STATUS_CONFIG: Record<string, { label: string; cls: string }> = {
   recusada: { label: "Recusada", cls: "bg-destructive/10 text-destructive border-destructive/20" },
 };
 
+const STATUS_DOT: Record<string, string> = {
+  gerada: 'bg-muted-foreground',
+  enviada: 'bg-info',
+  vista: 'bg-warning',
+  aceita: 'bg-success',
+  expirada: 'bg-destructive',
+  recusada: 'bg-destructive',
+};
+
 const getStatusBadgeClass = (status: string) => {
   switch (status) {
     case 'aceita':
-      return 'bg-success/10 text-success border-success/20 hover:bg-success/20';
+      return 'border-success/30 bg-success/10 text-success hover:bg-success/15';
     case 'vista':
-      return 'bg-warning/10 text-warning border-warning/20 hover:bg-warning/20';
+      return 'border-warning/30 bg-warning/10 text-warning hover:bg-warning/15';
     case 'enviada':
-      return 'bg-info/10 text-info border-info/20 hover:bg-info/20';
+      return 'border-info/30 bg-info/10 text-info hover:bg-info/15';
     case 'expirada':
     case 'recusada':
-      return 'bg-destructive/10 text-destructive border-destructive/20 hover:bg-destructive/20';
+      return 'border-destructive/30 bg-destructive/10 text-destructive hover:bg-destructive/15';
     default:
-      return 'bg-muted text-muted-foreground border-border hover:bg-muted/20';
+      return 'border-border bg-muted/40 text-muted-foreground hover:bg-muted/60';
   }
 };
 
@@ -351,7 +360,7 @@ function PropostaRow({
 
       <TableCell className="align-middle">
         <div className="flex items-center gap-1">
-          <Badge variant="default" className="font-mono text-[10px] px-1.5 py-0 h-5 bg-orange-500/10 text-orange-600 border-orange-500/20 max-w-[80px] truncate block">
+          <Badge variant="default" className="font-mono text-xs whitespace-nowrap">
             {codeLabel}
           </Badge>
           {isMain && hasOthers && (
@@ -440,7 +449,11 @@ function PropostaRow({
       </TableCell>
 
       <TableCell className="align-middle">
-        <Badge className={`text-[10px] px-2 py-0 h-5 font-medium shadow-none ${getStatusBadgeClass(proposta.status)}`}>
+        <Badge
+          variant="outline"
+          className={`gap-1.5 px-2 py-0.5 text-xs font-medium ${getStatusBadgeClass(proposta.status)}`}
+        >
+          <span className={`h-1.5 w-1.5 rounded-full ${STATUS_DOT[proposta.status] || 'bg-muted-foreground'}`} />
           {status.label}
         </Badge>
       </TableCell>
