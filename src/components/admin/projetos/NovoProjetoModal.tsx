@@ -263,7 +263,9 @@ export function NovoProjetoModal({
             rua: values.rua?.trim() || null,
             numero: values.numero?.trim() || null,
             complemento: values.complemento?.trim() || null,
-            cliente_code: `CLI-${Date.now()}`,
+            // Wave 3 Hardening: The 'trg_assign_client_code' trigger handles generation server-side
+            // but we keep a legacy fallback for non-trigger paths.
+            cliente_code: null, 
             ativo: true,
           },
         });
