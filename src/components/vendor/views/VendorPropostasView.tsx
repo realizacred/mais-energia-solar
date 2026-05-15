@@ -362,6 +362,7 @@ function PropostaRow({
                     variant="ghost"
                     size="sm"
                     className="h-6 w-6 p-0 text-muted-foreground hover:text-primary"
+                    aria-label="Ver outras versões"
                     onClick={(e) => { e.stopPropagation(); onToggleExpand?.(); }}
                   >
                     <Badge variant="secondary" className="h-5 min-w-5 p-0 flex items-center justify-center text-[10px]">
