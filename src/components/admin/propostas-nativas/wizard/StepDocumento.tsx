@@ -67,6 +67,9 @@ interface StepDocumentoProps {
   missingVars?: string[];
   docxBlob?: Blob | null;
   generationAuditReport?: any;
+  hasUnpublishedChanges?: boolean;
+  officialTotal?: number;
+  draftTotal?: number;
 }
 
 // ─── Main Component ───────────────────────────────────────
@@ -90,6 +93,9 @@ export function StepDocumento({
   missingVars = [],
   docxBlob = null,
   generationAuditReport = null,
+  hasUnpublishedChanges = false,
+  officialTotal = 0,
+  draftTotal = 0,
 }: StepDocumentoProps) {
   const {
     cliente, selectedLead,
@@ -149,6 +155,7 @@ export function StepDocumento({
   // Signed URL gerada localmente quando temos outputPdfPath mas não temos pdfBlobUrl
   const [resolvedPdfPreviewUrl, setResolvedPdfPreviewUrl] = useState<string | null>(null);
   const [pdfPreviewError, setPdfPreviewError] = useState<string | null>(null);
+  const [showConfirmPublishDialog, setShowConfirmPublishDialog] = useState<{ open: boolean; action: () => void } | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -325,6 +332,13 @@ export function StepDocumento({
   };
 
   const handleCopyLink = async (withTracker: boolean) => {
+    if (hasUnpublishedChanges && !result) {
+      setShowConfirmPublishDialog({
+        open: true,
+        action: () => handleCopyLink(withTracker),
+      });
+      return;
+    }
     const propostaId = result?.proposta_id as string | undefined;
     const versaoId = result?.versao_id as string | undefined;
     const directPdfUrl = outputPdfPath
@@ -442,6 +456,13 @@ export function StepDocumento({
 
   // ─── Send via proposalApi (§33 — centralizar chamadas de edge function) ───
   const handleSendWhatsapp = async () => {
+    if (hasUnpublishedChanges && !result) {
+      setShowConfirmPublishDialog({
+        open: true,
+        action: handleSendWhatsapp,
+      });
+      return;
+    }
     if (!result?.proposta_id || !result?.versao_id) {
       toast({ title: "Gere a proposta primeiro", variant: "destructive" });
       return;
@@ -471,6 +492,13 @@ export function StepDocumento({
   };
 
   const handleSendEmail = async () => {
+    if (hasUnpublishedChanges && !result) {
+      setShowConfirmPublishDialog({
+        open: true,
+        action: handleSendEmail,
+      });
+      return;
+    }
     if (!result?.proposta_id || !result?.versao_id) {
       toast({ title: "Gere a proposta primeiro", variant: "destructive" });
       return;
@@ -723,6 +751,13 @@ export function StepDocumento({
     };
 
     const handleDownloadPdf = async () => {
+      if (hasUnpublishedChanges && !result) {
+        setShowConfirmPublishDialog({
+          open: true,
+          action: handleDownloadPdf,
+        });
+        return;
+      }
       try {
         const backendFileName = result?.file_name;
         const fallbackName = (() => {
