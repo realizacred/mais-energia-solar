@@ -278,6 +278,9 @@ export function useMinhasPropostasConsultor(consultorId: string | null | undefin
 
   const hasMore = (queryData?.totalCount ?? 0) > accumulatedPropostas.length;
 
+  // Realtime
+  usePropostasConsultorRealtime(consultorId, queryClient);
+
   return {
     data: accumulatedPropostas,
     isLoading: isLoadingList && page === 0,
