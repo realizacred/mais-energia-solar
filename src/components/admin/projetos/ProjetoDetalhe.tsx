@@ -2673,7 +2673,7 @@ function PropostasTab({ customerId, dealId, dealTitle, navigate, isClosed, dealS
         <div className="flex items-center justify-end gap-2">
           <Badge variant="secondary" className={cn("text-xs", dealStatus === "won" ? "bg-success/10 text-success border-success/20" : "bg-destructive/10 text-destructive border-destructive/20")}>
             <AlertCircle className="h-3 w-3 mr-1" />
-            {dealStatus === "won" ? "Projeto concluído" : "Projeto perdido"}
+            {dealStatus === "won" ? "Negociação ganha" : (dealStatus === "lost" ? "Negociação perdida" : "Negociação cancelada")}
           </Badge>
           <Button
             variant="outline"
