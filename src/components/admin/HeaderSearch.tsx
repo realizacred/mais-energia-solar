@@ -138,6 +138,7 @@ export function HeaderSearch({ className }: HeaderSearchProps) {
                     subtitle={[
                       formatPhoneBR(c.telefone) || c.telefone,
                       c.cidade,
+                      c.cliente_code,
                       c.cpf_cnpj,
                     ]
                       .filter(Boolean)

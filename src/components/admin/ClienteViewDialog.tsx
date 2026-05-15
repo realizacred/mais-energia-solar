@@ -248,9 +248,16 @@ export function ClienteViewDialog({ cliente, open, onOpenChange }: ClienteViewDi
               <User className="w-5 h-5 text-primary" />
             </div>
             <div className="flex-1 min-w-0">
-              <DialogTitle className="text-base font-semibold text-foreground truncate">
-                {cliente.nome}
-              </DialogTitle>
+              <div className="flex items-center gap-2">
+                <DialogTitle className="text-base font-semibold text-foreground truncate">
+                  {cliente.nome}
+                </DialogTitle>
+                {cliente.cliente_code && (
+                  <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4 font-mono">
+                    {cliente.cliente_code}
+                  </Badge>
+                )}
+              </div>
               <div className="flex items-center gap-3 mt-0.5 flex-wrap">
                 <span className="text-xs text-muted-foreground flex items-center gap-1">
                   <Phone className="w-3 h-3" />{formatPhoneBR(cliente.telefone) || cliente.telefone}
@@ -345,6 +352,7 @@ export function ClienteViewDialog({ cliente, open, onOpenChange }: ClienteViewDi
                       <User className="w-3 h-3" /> Dados do cliente
                     </p>
                     <div className="grid grid-cols-2 gap-3">
+                      <InfoField label="Código" value={cliente.cliente_code} />
                       <InfoField label="CPF/CNPJ" value={cliente.cpf_cnpj} />
                       <InfoField label="Data de nascimento" value={cliente.data_nascimento ? formatDate(cliente.data_nascimento + "T12:00:00") : null} />
                       <InfoField label="E-mail" value={cliente.email} />
