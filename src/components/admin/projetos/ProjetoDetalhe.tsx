@@ -413,6 +413,29 @@ function ProjetoDetalheContent() {
 
   const { roles } = useUserRole();
 
+  const handleSaveProjeto = async () => {
+    if (!projetoId) return;
+    setSavingProjeto(true);
+    const { error } = await supabase
+      .from("projetos")
+      .update({
+        nome: editProjetoNome.trim() || null,
+        observacoes: editProjetoDescricao.trim() || null,
+      })
+      .eq("id", projetoId);
+    setSavingProjeto(false);
+    if (error) {
+      toast({ title: "Erro ao salvar", description: error.message, variant: "destructive" });
+      return;
+    }
+    toast({ title: "Projeto atualizado" });
+    setEditProjetoOpen(false);
+    queryClient.invalidateQueries({ queryKey: ["projeto-detalhe"] });
+    queryClient.invalidateQueries({ queryKey: ["projetos-pipeline"] });
+    silentRefresh?.();
+  };
+
+
   const visibleTabs = useMemo(() => {
     return TABS.filter(tab => {
       // @ts-ignore
