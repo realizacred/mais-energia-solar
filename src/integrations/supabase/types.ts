@@ -31808,6 +31808,7 @@ export type Database = {
             Returns: undefined
           }
       release_webhook_lock: { Args: never; Returns: undefined }
+      release_webhook_lock_v2: { Args: never; Returns: boolean }
       reorder_pipeline_stages: {
         Args: { _ordered_ids: string[]; _pipeline_id: string }
         Returns: undefined
@@ -32116,6 +32117,7 @@ export type Database = {
             Returns: boolean
           }
       try_webhook_lock: { Args: never; Returns: boolean }
+      try_webhook_lock_v2: { Args: never; Returns: boolean }
       unaccent: { Args: { "": string }; Returns: string }
       unlink_lead_cliente: { Args: { p_lead_id: string }; Returns: boolean }
       update_parcelas_atrasadas: { Args: never; Returns: undefined }

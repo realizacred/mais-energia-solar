@@ -6,7 +6,7 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const BATCH_SIZE = 50;
+const BATCH_SIZE = 20;
 
 // ── Status priority (monotonic — never downgrade) ──
 const STATUS_PRIORITY: Record<string, number> = {
@@ -154,7 +154,7 @@ Deno.serve(async (req) => {
 
   let lockAcquired = false;
   try {
-    const { data: lockResult } = await supabase.rpc("try_webhook_lock");
+    const { data: lockResult } = await supabase.rpc("try_webhook_lock_v2");
     lockAcquired = lockResult === true;
 
     if (!lockAcquired) {
@@ -207,10 +207,20 @@ Deno.serve(async (req) => {
         const enqueued = await processEvent(supabase, event);
         jobsEnqueued += enqueued;
         
-        await supabase
+        const { error: updateError } = await supabase
           .from("wa_webhook_events")
-          .update({ processed: true, processed_at: new Date().toISOString() })
+          .update({ 
+            processed: true, 
+            processed_at: new Date().toISOString(),
+            error: null // Clear previous errors if any
+          })
           .eq("id", event.id);
+        
+        if (updateError) {
+          console.error(`[process-webhook-events] Failed to mark event ${event.id} as processed:`, updateError);
+          errors++;
+          continue;
+        }
         
         processed++;
       } catch (err) {
@@ -257,7 +267,7 @@ Deno.serve(async (req) => {
   } finally {
     if (lockAcquired) {
       try {
-        await supabase.rpc("release_webhook_lock");
+        await supabase.rpc("release_webhook_lock_v2");
       } catch (e) {
         console.warn("[process-webhook-events] Failed to release lock:", e);
       }
