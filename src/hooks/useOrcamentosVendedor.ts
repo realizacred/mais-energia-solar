@@ -50,7 +50,7 @@ interface UseOrcamentosVendedorOptions {
   filterEstado?: string;
   filterStatus?: string;
   excludeTerminal?: boolean;
-  maxAgeDays, operationalStatus?: number | null;
+  maxAgeDays?: number | null;
   operationalStatus?: string;
 }
 
@@ -118,7 +118,7 @@ export function useOrcamentosVendedor({
   filterEstado = "todos",
   filterStatus = "todos",
   excludeTerminal = false,
-  maxAgeDays, operationalStatus = null, operationalStatus = "todos",
+  maxAgeDays = null, operationalStatus = "todos",
 }: UseOrcamentosVendedorOptions) {
   const [page, setPage] = useState(0);
   const { toast } = useToast();
