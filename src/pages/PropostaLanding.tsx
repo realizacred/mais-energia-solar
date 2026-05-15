@@ -187,11 +187,14 @@ export default function PropostaLanding() {
         const tenantId = propostaRes.data.tenant_id;
         const src = (propostaRes.data as any).external_source;
         setIsLegacyMigrated(src === "solarmarket" || src === "solar_market");
-        const [brandRes, tenantRes, consultorRes] = await Promise.all([
+        const [brandRes, tenantRes, consultorRes, clienteRes] = await Promise.all([
           (supabase as any).rpc("get_public_brand_settings", { _tenant_id: tenantId }),
           supabase.from("tenants").select("nome").eq("id", tenantId).maybeSingle(),
           propostaRes.data.consultor_id
             ? (supabase as any).from("consultores").select("nome, telefone").eq("id", propostaRes.data.consultor_id).maybeSingle()
+            : Promise.resolve({ data: null }),
+          propostaRes.data.cliente_id
+            ? supabase.from("clientes").select("nome, cidade, estado").eq("id", propostaRes.data.cliente_id).maybeSingle()
             : Promise.resolve({ data: null }),
         ]);
         const brandRow = Array.isArray(brandRes.data) ? brandRes.data[0] : brandRes.data;
