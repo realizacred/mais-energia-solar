@@ -78,6 +78,7 @@ interface RawProposta {
   proposta_versoes?: Array<{
     id: string;
     versao_numero: number;
+    created_at: string;
     potencia_kwp: number | null;
     geracao_mensal: number | null;
     economia_mensal: number | null;
@@ -127,7 +128,7 @@ export function useMinhasPropostasConsultor(consultorId: string | null | undefin
             "consultor_id",
             "clientes(id, nome)",
             "leads(id, nome)",
-            "proposta_versoes(id,versao_numero,potencia_kwp,geracao_mensal,economia_mensal,payback_meses,valor_total,valido_ate,output_pdf_path,public_slug,link_pdf,viewed_at,consumo_mensal,proposta_versao_ucs(consumo_mensal_kwh))",
+            "proposta_versoes(id,versao_numero,created_at,potencia_kwp,geracao_mensal,economia_mensal,payback_meses,valor_total,valido_ate,output_pdf_path,public_slug,link_pdf,viewed_at,consumo_mensal,proposta_versao_ucs(consumo_mensal_kwh))",
           ].join(","),
         )
         .eq("consultor_id", consultorId)
@@ -140,11 +141,27 @@ export function useMinhasPropostasConsultor(consultorId: string | null | undefin
 
       const rows = (data ?? []) as RawProposta[];
       return rows.map((p): PropostaConsultor => {
+        const capitalize = (s: string) => 
+          s.trim().split(/\s+/).map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
+
         const versoes = (p.proposta_versoes ?? []).slice().sort(
           (a, b) => (b.versao_numero ?? 0) - (a.versao_numero ?? 0),
         );
         const latest =
           versoes.find((v) => v.versao_numero === p.versao_atual) ?? versoes[0] ?? null;
+
+        const clienteNomeRaw = p.clientes?.nome ?? p.leads?.nome;
+        const cliente_nome = clienteNomeRaw 
+          ? capitalize(clienteNomeRaw) 
+          : (p.titulo ?? "Cliente não identificado");
+
+        let valido_ate = latest?.valido_ate ?? null;
+        if (!valido_ate && latest?.created_at) {
+          const d = new Date(latest.created_at);
+          d.setDate(d.getDate() + 30);
+          valido_ate = d.toISOString();
+        }
+
         return {
           id: p.id,
           codigo: p.codigo,
@@ -162,7 +179,7 @@ export function useMinhasPropostasConsultor(consultorId: string | null | undefin
           recusada_at: p.recusada_at,
           validade_dias: p.validade_dias,
           public_token: p.public_token || p.proposta_versoes?.[0]?.public_slug || null,
-          cliente_nome: p.clientes?.nome ?? p.leads?.nome ?? p.titulo ?? "Cliente não identificado",
+          cliente_nome,
           lead_id: p.lead_id,
           cliente_id: p.cliente_id,
           projeto_id: p.projeto_id,
@@ -173,7 +190,7 @@ export function useMinhasPropostasConsultor(consultorId: string | null | undefin
           economia_mensal: latest?.economia_mensal ?? null,
           payback_meses: latest?.payback_meses ?? null,
           valor_total: latest?.valor_total ?? null,
-          valido_ate: latest?.valido_ate ?? null,
+          valido_ate,
           output_pdf_path: latest?.output_pdf_path ?? null,
           public_slug: latest?.public_slug ?? null,
           link_pdf: latest?.link_pdf ?? null,

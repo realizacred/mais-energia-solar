@@ -300,28 +300,32 @@ function PropostaRow({
     <TableRow className={`${isSubRow ? "bg-muted/20" : ""} hover:bg-muted/30 transition-colors`}>
       <TableCell className="py-2.5">
         <div className="flex items-center gap-2">
-          {isMain && hasOthers && (
-            <button 
-              onClick={(e) => { e.stopPropagation(); onToggleExpand?.(); }}
-              className="p-1 hover:bg-muted rounded-sm text-muted-foreground transition-colors"
-            >
-              {isExpanded ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
-            </button>
-          )}
-          {isSubRow && <div className="w-5" />}
+          <div className="w-6 flex items-center justify-center shrink-0">
+            {isMain && hasOthers && (
+              <button 
+                onClick={(e) => { e.stopPropagation(); onToggleExpand?.(); }}
+                className="p-1 hover:bg-muted rounded-sm text-muted-foreground transition-colors"
+              >
+                {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+              </button>
+            )}
+            {isSubRow && <div className="w-px bg-muted-foreground/30 h-8 ml-1" />}
+          </div>
           <div className="flex flex-col min-w-0">
-            <span className="font-medium text-sm truncate">
+            <span className={`truncate ${isSubRow ? "text-xs font-normal" : "font-medium text-sm"}`}>
               {proposta.cliente_nome || "Sem nome"}
             </span>
             {isMain && hasOthers && (
-              <span 
-                className="text-[10px] text-primary font-medium cursor-pointer hover:underline"
-                onClick={(e) => { e.stopPropagation(); onToggleExpand?.(); }}
-              >
-                +{othersCount} versões
-              </span>
+              <div className="flex items-center gap-2">
+                <span 
+                  className="text-[10px] text-primary font-medium cursor-pointer hover:underline"
+                  onClick={(e) => { e.stopPropagation(); onToggleExpand?.(); }}
+                >
+                  +{othersCount} versões
+                </span>
+              </div>
             )}
-            {isSubRow && <span className="text-[10px] text-muted-foreground">Versão {proposta.versao_numero}</span>}
+            {isSubRow && <span className="text-[10px] text-muted-foreground/70">Versão {proposta.versao_numero}</span>}
           </div>
         </div>
       </TableCell>
@@ -368,7 +372,7 @@ function PropostaRow({
           "text-muted-foreground"
         }`}>
           <Clock className="h-3.5 w-3.5" />
-          {valDate ? valDate.toLocaleDateString("pt-BR") : "—"}
+          {valDate ? valDate.toLocaleDateString("pt-BR") : "Sem validade"}
         </div>
       </TableCell>
       <TableCell className="py-2.5 text-right">
