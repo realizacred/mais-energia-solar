@@ -33,6 +33,7 @@ const STATUS_CONFIG: Record<ChequeStatus, { label: string, color: string, icon: 
 export default function ChequesPage() {
   const [statusFilter, setStatusFilter] = useState<ChequeStatus | 'todos'>('todos');
   const [search, setSearch] = useState("");
+  const [chequeParaDevolver, setChequeParaDevolver] = useState<any>(null);
   
   const { data: settings } = useFinancialSettings();
   const { data: cheques = [], isLoading } = useCheques({ status: statusFilter });
