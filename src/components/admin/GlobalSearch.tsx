@@ -53,6 +53,7 @@ export function useGlobalSearchResults(rawTerm: string) {
       const clienteOr = [
         `nome.ilike.${like}`,
         `email.ilike.${like}`,
+        `cliente_code.ilike.${like}`,
         `cpf_cnpj.ilike.${like}`,
         `cidade.ilike.${like}`,
         `telefone.ilike.${like}`,
@@ -92,7 +93,7 @@ export function useGlobalSearchResults(rawTerm: string) {
             .limit(PER_GROUP_LIMIT),
           supabase
             .from("clientes")
-            .select("id, nome, telefone, email, cidade, cpf_cnpj")
+            .select("id, nome, telefone, email, cidade, cpf_cnpj, cliente_code")
             .eq("ativo", true)
             .or(clienteOr)
             .limit(PER_GROUP_LIMIT),
@@ -259,7 +260,7 @@ export function GlobalSearch() {
             {results.clientes.map((cliente) => (
               <CommandItem
                 key={cliente.id}
-                value={`cliente-${cliente.id}-${cliente.nome}-${cliente.telefone}-${cliente.email ?? ""}-${cliente.cpf_cnpj ?? ""}`}
+                value={`cliente-${cliente.id}-${cliente.nome}-${cliente.telefone}-${cliente.email ?? ""}-${cliente.cpf_cnpj ?? ""}-${cliente.cliente_code ?? ""}`}
                 onSelect={() => go(`/admin/gestao-clientes`)}
                 className="flex items-center gap-2 cursor-pointer"
               >
@@ -269,6 +270,7 @@ export function GlobalSearch() {
                   <p className="text-xs text-muted-foreground truncate">
                     {formatPhoneBR(cliente.telefone) || cliente.telefone}
                     {cliente.cidade ? ` · ${cliente.cidade}` : ""}
+                    {cliente.cliente_code ? ` · ${cliente.cliente_code}` : ""}
                     {cliente.cpf_cnpj ? ` · ${cliente.cpf_cnpj}` : ""}
                   </p>
                 </div>

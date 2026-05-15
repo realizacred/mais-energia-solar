@@ -390,6 +390,7 @@ export function ClientesManager({ onSelectCliente }: ClientesManagerProps) {
           c.nome.toLowerCase().includes(term) ||
           c.telefone.includes(searchTerm) ||
           c.email?.toLowerCase().includes(term) ||
+          c.cliente_code?.toLowerCase().includes(term) ||
           c.cpf_cnpj?.includes(searchTerm);
         if (!matchesSearch) return false;
       }
@@ -756,8 +757,15 @@ export function ClientesManager({ onSelectCliente }: ClientesManagerProps) {
                   onClick={() => onSelectCliente?.(cliente)}
                 >
                   <TableCell>
-                    <div>
-                      <p className="font-medium">{cliente.nome}</p>
+                    <div className="flex flex-col gap-0.5">
+                      <div className="flex items-center gap-2">
+                        <p className="font-medium">{cliente.nome}</p>
+                        {cliente.cliente_code && (
+                          <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 bg-muted/50 text-muted-foreground font-mono">
+                            {cliente.cliente_code}
+                          </Badge>
+                        )}
+                      </div>
                       {cliente.cpf_cnpj && (
                         <p className="text-xs text-muted-foreground">{cliente.cpf_cnpj}</p>
                       )}
