@@ -166,15 +166,37 @@ export default function VendorPropostasView({ portal }: Props) {
         <KpiCard label="Expiradas" value={kpis.expiradas} icon={AlertTriangle} accent="destructive" />
       </div>
 
-      {/* Search */}
-      <div className="relative max-w-md">
-        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/60" />
-        <Input
-          placeholder="Buscar por cliente, código ou título..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="pl-8 h-9 text-sm"
-        />
+      {/* Filters */}
+      <div className="flex flex-col sm:flex-row gap-3 items-end sm:items-center">
+        <div className="relative flex-1 w-full max-w-md">
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/60" />
+          <Input
+            placeholder="Buscar por cliente, código ou título..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="pl-8 h-9 text-sm"
+          />
+        </div>
+        
+        <div className="flex items-center gap-2 w-full sm:w-auto">
+          <div className="flex items-center gap-2 text-xs text-muted-foreground shrink-0 ml-1">
+            <Filter className="w-3.5 h-3.5" />
+            <span>Status:</span>
+          </div>
+          <Select value={filterStatus} onValueChange={setFilterStatus}>
+            <SelectTrigger className="w-full sm:w-[150px] h-9 text-xs">
+              <SelectValue placeholder="Filtrar status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todas">Todas</SelectItem>
+              {Object.entries(STATUS_CONFIG).map(([id, cfg]) => (
+                <SelectItem key={id} value={id}>
+                  {cfg.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
       {/* Table */}
