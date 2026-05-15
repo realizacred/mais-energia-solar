@@ -35,8 +35,7 @@ import { getConvertedStatusIds } from "@/modules/orcamentos/utils/operationalFil
    vendedorNome: string;
  }
  
- // Status IDs that represent "converted/won" leads
- const CONVERTED_STATUS_NAMES = ["convertido", "fechado", "ganho", "cliente"];
+// Status identification is now centralized in operationalFilters.ts
  
  export function VendorPersonalDashboard({
    orcamentos,
