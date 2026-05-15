@@ -51,6 +51,8 @@ export function VendorLeadFilters({
   onExcludeTerminalChange,
   maxAgeDays,
   onMaxAgeDaysChange,
+  operationalStatus,
+  onOperationalStatusChange,
   estados,
   statuses,
   onClearFilters,
