@@ -44,6 +44,8 @@ export default function VendorOrcamentosView({ portal }: Props) {
     maxAgeDays,
     setMaxAgeDays,
     handleClearFilters,
+    operationalStatus,
+    setOperationalStatus,
     selectedOrcamento,
     setSelectedOrcamento,
     isConvertOpen,

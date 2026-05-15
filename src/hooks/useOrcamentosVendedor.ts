@@ -50,7 +50,8 @@ interface UseOrcamentosVendedorOptions {
   filterEstado?: string;
   filterStatus?: string;
   excludeTerminal?: boolean;
-  maxAgeDays?: number | null;
+  maxAgeDays, operationalStatus?: number | null;
+  operationalStatus?: string;
 }
 
 const VENDEDOR_PAGE_SIZE = 50;
@@ -117,7 +118,7 @@ export function useOrcamentosVendedor({
   filterEstado = "todos",
   filterStatus = "todos",
   excludeTerminal = false,
-  maxAgeDays = null,
+  maxAgeDays, operationalStatus = null, operationalStatus = "todos",
 }: UseOrcamentosVendedorOptions) {
   const [page, setPage] = useState(0);
   const { toast } = useToast();
@@ -126,7 +127,7 @@ export function useOrcamentosVendedor({
   const mustFilterByVendedor = (filterByVendedor || !isAdminMode) && (!!vendedorId || !!vendedorNome);
 
   const { data, isLoading: loading, refetch: fetchOrcamentos } = useQuery({
-    queryKey: ["orcamentos-vendedor", vendedorId, vendedorNome, isAdminMode, searchTerm, filterVisto, filterEstado, filterStatus, page, excludeTerminal, maxAgeDays],
+    queryKey: ["orcamentos-vendedor", vendedorId, vendedorNome, isAdminMode, searchTerm, filterVisto, filterEstado, filterStatus, page, excludeTerminal, maxAgeDays, operationalStatus],
     queryFn: async () => {
       if (!vendedorId && !vendedorNome && !isAdminMode) {
         return { orcamentos: [], totalCount: 0, statuses: [] };
@@ -146,7 +147,7 @@ export function useOrcamentosVendedor({
           filterEstado,
           filterStatus,
           excludeTerminal,
-          maxAgeDays
+          maxAgeDays, operationalStatus
         }, terminalIds);
       };
 
@@ -232,7 +233,7 @@ export function useOrcamentosVendedor({
 
   const toggleVisto = useCallback(async (orcamento: OrcamentoVendedor) => {
     const newVisto = !orcamento.visto;
-    queryClient.setQueryData(["orcamentos-vendedor", vendedorId, vendedorNome, isAdminMode, searchTerm, filterVisto, filterEstado, filterStatus, page, excludeTerminal, maxAgeDays], (old: any) => {
+    queryClient.setQueryData(["orcamentos-vendedor", vendedorId, vendedorNome, isAdminMode, searchTerm, filterVisto, filterEstado, filterStatus, page, excludeTerminal, maxAgeDays, operationalStatus], (old: any) => {
       if (!old) return old;
       return {
         ...old,
@@ -246,7 +247,7 @@ export function useOrcamentosVendedor({
       queryClient.invalidateQueries({ queryKey: ["orcamentos-vendedor"] });
       toast({ title: "Erro", description: "Não foi possível atualizar o status.", variant: "destructive" });
     }
-  }, [queryClient, vendedorId, vendedorNome, isAdminMode, searchTerm, filterVisto, filterEstado, filterStatus, page, toast]);
+  }, [queryClient, vendedorId, vendedorNome, isAdminMode, searchTerm, filterVisto, filterEstado, filterStatus, page, excludeTerminal, maxAgeDays, operationalStatus, toast]);
 
   const updateStatus = useCallback(async (orcamentoId: string, newStatusId: string | null) => {
     try {

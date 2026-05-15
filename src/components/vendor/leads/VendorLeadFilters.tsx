@@ -31,6 +31,8 @@ interface VendorLeadFiltersProps {
   onExcludeTerminalChange: (value: boolean) => void;
   maxAgeDays: number | null;
   onMaxAgeDaysChange: (value: number | null) => void;
+  operationalStatus: string;
+  onOperationalStatusChange: (value: string) => void;
   estados: string[];
   statuses: { id: string; nome: string }[];
   onClearFilters: () => void;
@@ -49,6 +51,8 @@ export function VendorLeadFilters({
   onExcludeTerminalChange,
   maxAgeDays,
   onMaxAgeDaysChange,
+  operationalStatus,
+  onOperationalStatusChange,
   estados,
   statuses,
   onClearFilters,
@@ -59,10 +63,28 @@ export function VendorLeadFilters({
     filterEstado !== "todos" ||
     filterStatus !== "todos" ||
     excludeTerminal ||
-    maxAgeDays !== null;
+    maxAgeDays !== null ||
+    operationalStatus !== "todos";
 
   const FilterControls = () => (
     <div className="grid grid-cols-1 sm:flex sm:flex-wrap gap-2 w-full sm:w-auto">
+      <div className="space-y-1.5 sm:space-y-0">
+        <label className="text-[10px] font-medium uppercase text-muted-foreground sm:hidden px-1">Prioridade</label>
+        <Select value={operationalStatus} onValueChange={onOperationalStatusChange}>
+          <SelectTrigger className="w-full sm:w-[150px] h-9">
+            <SelectValue placeholder="Prioridade" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="todos">Todas Prioridades</SelectItem>
+            <SelectItem value="em_dia">Em dia</SelectItem>
+            <SelectItem value="atencao">Atenção</SelectItem>
+            <SelectItem value="urgente">Urgente</SelectItem>
+            <SelectItem value="reativacao">Reativação</SelectItem>
+            <SelectItem value="backlog_antigo">Backlog Antigo</SelectItem>
+            <SelectItem value="finalizado">Finalizado</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
       <div className="space-y-1.5 sm:space-y-0">
         <label className="text-[10px] font-medium uppercase text-muted-foreground sm:hidden px-1">Visualização</label>
         <Select value={filterVisto} onValueChange={onFilterVistoChange}>
@@ -77,6 +99,23 @@ export function VendorLeadFilters({
         </Select>
       </div>
 
+      <div className="space-y-1.5 sm:space-y-0">
+        <label className="text-[10px] font-medium uppercase text-muted-foreground sm:hidden px-1">Prioridade</label>
+        <Select value={operationalStatus} onValueChange={onOperationalStatusChange}>
+          <SelectTrigger className="w-full sm:w-[150px] h-9">
+            <SelectValue placeholder="Prioridade" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="todos">Todas Prioridades</SelectItem>
+            <SelectItem value="em_dia">Em dia</SelectItem>
+            <SelectItem value="atencao">Atenção</SelectItem>
+            <SelectItem value="urgente">Urgente</SelectItem>
+            <SelectItem value="reativacao">Reativação</SelectItem>
+            <SelectItem value="backlog_antigo">Backlog Antigo</SelectItem>
+            <SelectItem value="finalizado">Finalizado</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
       <div className="space-y-1.5 sm:space-y-0">
         <label className="text-[10px] font-medium uppercase text-muted-foreground sm:hidden px-1">Status</label>
         <Select value={filterStatus} onValueChange={onFilterStatusChange}>
@@ -96,6 +135,23 @@ export function VendorLeadFilters({
       </div>
 
       <div className="space-y-1.5 sm:space-y-0">
+        <label className="text-[10px] font-medium uppercase text-muted-foreground sm:hidden px-1">Prioridade</label>
+        <Select value={operationalStatus} onValueChange={onOperationalStatusChange}>
+          <SelectTrigger className="w-full sm:w-[150px] h-9">
+            <SelectValue placeholder="Prioridade" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="todos">Todas Prioridades</SelectItem>
+            <SelectItem value="em_dia">Em dia</SelectItem>
+            <SelectItem value="atencao">Atenção</SelectItem>
+            <SelectItem value="urgente">Urgente</SelectItem>
+            <SelectItem value="reativacao">Reativação</SelectItem>
+            <SelectItem value="backlog_antigo">Backlog Antigo</SelectItem>
+            <SelectItem value="finalizado">Finalizado</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+      <div className="space-y-1.5 sm:space-y-0">
         <label className="text-[10px] font-medium uppercase text-muted-foreground sm:hidden px-1">Período</label>
         <Select 
           value={maxAgeDays?.toString() || "todos"} 
@@ -113,6 +169,23 @@ export function VendorLeadFilters({
         </Select>
       </div>
 
+      <div className="space-y-1.5 sm:space-y-0">
+        <label className="text-[10px] font-medium uppercase text-muted-foreground sm:hidden px-1">Prioridade</label>
+        <Select value={operationalStatus} onValueChange={onOperationalStatusChange}>
+          <SelectTrigger className="w-full sm:w-[150px] h-9">
+            <SelectValue placeholder="Prioridade" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="todos">Todas Prioridades</SelectItem>
+            <SelectItem value="em_dia">Em dia</SelectItem>
+            <SelectItem value="atencao">Atenção</SelectItem>
+            <SelectItem value="urgente">Urgente</SelectItem>
+            <SelectItem value="reativacao">Reativação</SelectItem>
+            <SelectItem value="backlog_antigo">Backlog Antigo</SelectItem>
+            <SelectItem value="finalizado">Finalizado</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
       <div className="space-y-1.5 sm:space-y-0">
         <label className="text-[10px] font-medium uppercase text-muted-foreground sm:hidden px-1">Estado</label>
         <Select value={filterEstado} onValueChange={onFilterEstadoChange}>
