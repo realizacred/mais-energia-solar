@@ -130,7 +130,7 @@ async function fetchPropostasInBatches(dealIds: string[], projetoIds: string[]) 
     ...chunkValues(projetoIds, QUERY_BATCH_SIZE).map((chunk) =>
       supabase
         .from("propostas_nativas")
-        .select("id, deal_id, projeto_id, status, is_principal")
+        .select("id, deal_id, projeto_id, status, is_principal, draft_total, has_unpublished_changes")
         .in("projeto_id", chunk)
         .order("created_at", { ascending: false }),
     ),
