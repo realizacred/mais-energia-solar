@@ -229,7 +229,7 @@ export default function VendorPropostasView({ portal }: Props) {
           </CardContent>
         </Card>
       ) : (
-        <div className="overflow-x-auto rounded-lg border bg-card">
+        <div className="overflow-x-auto rounded-lg border border-border bg-card">
           <TooltipProvider>
             <Table>
               <TableHeader>
@@ -362,6 +362,7 @@ function PropostaRow({
                     variant="ghost"
                     size="sm"
                     className="h-6 w-6 p-0 text-muted-foreground hover:text-primary"
+                    aria-label="Ver outras versões"
                     onClick={(e) => { e.stopPropagation(); onToggleExpand?.(); }}
                   >
                     <Badge variant="secondary" className="h-5 min-w-5 p-0 flex items-center justify-center text-[10px]">
@@ -378,7 +379,7 @@ function PropostaRow({
         </div>
       </TableCell>
 
-      <TableCell className="align-middle py-3">
+      <TableCell className="align-middle">
         <div className="flex flex-col min-w-0">
           <div className="flex items-center gap-2">
             <span className={`truncate font-semibold text-foreground ${isSubRow ? "text-xs" : "text-sm"} ${!proposta.cliente_nome_real ? "italic opacity-80" : ""}`}>
@@ -629,13 +630,16 @@ function TooltipAction({
   return (
     <Tooltip>
       <TooltipTrigger asChild>
-        <button
+        <Button
+          variant="ghost"
+          size="sm"
           onClick={(e) => { e.stopPropagation(); onClick(); }}
           disabled={loading || disabled}
-          className="p-1.5 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition-colors disabled:opacity-30"
+          className="h-8 w-8 p-0 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition-colors disabled:opacity-30"
+          aria-label={label}
         >
           {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Icon className="h-3.5 w-3.5" />}
-        </button>
+        </Button>
       </TooltipTrigger>
       <TooltipContent side="top">
         <p className="text-[10px]">{label}</p>

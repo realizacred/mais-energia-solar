@@ -8,7 +8,7 @@
  * AGENTS.md §16 (queries só em hooks), §23 (staleTime obrigatório).
  * Boundary consultor/admin — Fase 3 da auditoria do Portal Consultor.
  */
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 
@@ -278,6 +278,9 @@ export function useMinhasPropostasConsultor(consultorId: string | null | undefin
 
   const hasMore = (queryData?.totalCount ?? 0) > accumulatedPropostas.length;
 
+  // Realtime
+  usePropostasConsultorRealtime(consultorId, queryClient);
+
   return {
     data: accumulatedPropostas,
     isLoading: isLoadingList && page === 0,
@@ -288,6 +291,40 @@ export function useMinhasPropostasConsultor(consultorId: string | null | undefin
     refetch,
     loadMore,
   };
+}
+
+/**
+ * ⚠️ HARDENING: Realtime subscription for Proposals.
+ * Separated from main hook to maintain stability and avoid re-renders.
+ */
+function usePropostasConsultorRealtime(consultorId: string | null | undefined, queryClient: any) {
+  const onChanges = useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: ['propostas-consultor-kpis', consultorId] });
+    queryClient.invalidateQueries({ queryKey: ['propostas-consultor-list', consultorId] });
+  }, [consultorId, queryClient]);
+
+  useEffect(() => {
+    if (!consultorId || consultorId === "admin") return;
+
+    const channelId = `propostas-consultor-${consultorId}`;
+    const channel = supabase
+      .channel(channelId)
+      .on(
+        'postgres_changes',
+        { 
+          event: '*', 
+          schema: 'public', 
+          table: 'propostas_nativas',
+          filter: `consultor_id=eq.${consultorId}`
+        },
+        onChanges
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [consultorId, onChanges]);
 }
 
 /** Métricas do portal consultor — calculadas em memória, sem custo/margem. */

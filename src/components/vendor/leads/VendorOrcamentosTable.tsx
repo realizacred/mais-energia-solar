@@ -206,7 +206,7 @@ export function VendorOrcamentosTable({
   // Desktop: Table Layout
   return (
     <>
-      <div className="overflow-x-auto rounded-lg border">
+      <div className="overflow-x-auto rounded-lg border border-border">
         <Table>
           <TableHeader>
             <TableRow className="bg-muted/50 hover:bg-muted/50">

@@ -168,6 +168,10 @@ export function useLeads({ autoFetch = true, pageSize = PAGE_SIZE }: UseLeadsOpt
   }, [queryClient, toast]);
 
   // ⚠️ HARDENING: Realtime subscription
+  const handleRealtimeChanges = useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: ["leads"] });
+  }, [queryClient]);
+
   useEffect(() => {
     if (!autoFetch) return;
 
@@ -176,16 +180,14 @@ export function useLeads({ autoFetch = true, pageSize = PAGE_SIZE }: UseLeadsOpt
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'leads' },
-        () => {
-          queryClient.invalidateQueries({ queryKey: ["leads"] });
-        }
+        handleRealtimeChanges
       )
       .subscribe();
 
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [autoFetch, queryClient]);
+  }, [autoFetch, handleRealtimeChanges]);
 
   const totalKwh = leads.reduce((acc, l) => acc + l.media_consumo, 0);
   const uniqueEstados = new Set(leads.map((l) => l.estado)).size;
