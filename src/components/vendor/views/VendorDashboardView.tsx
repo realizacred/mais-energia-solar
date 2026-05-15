@@ -50,8 +50,7 @@ export default function VendorDashboardView({ portal }: Props) {
         </div>
         <div className="flex items-center gap-2 bg-background/50 p-1 rounded-lg border border-border/40 scale-90 sm:scale-100 origin-right">
           <div className="flex items-center gap-2 px-2 border-r border-border/40 mr-1">
-            <span className="text-[10px] uppercase font-bold text-muted-foreground">Filtro Operacional</span>
-            <WaAutoMessageToggle />
+            <WaAutoMessageToggle compact />
           </div>
           <div className="flex items-center gap-4 px-2">
             <label className="flex items-center gap-2 cursor-pointer">
