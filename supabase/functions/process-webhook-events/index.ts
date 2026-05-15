@@ -207,10 +207,20 @@ Deno.serve(async (req) => {
         const enqueued = await processEvent(supabase, event);
         jobsEnqueued += enqueued;
         
-        await supabase
+        const { error: updateError } = await supabase
           .from("wa_webhook_events")
-          .update({ processed: true, processed_at: new Date().toISOString() })
+          .update({ 
+            processed: true, 
+            processed_at: new Date().toISOString(),
+            error: null // Clear previous errors if any
+          })
           .eq("id", event.id);
+        
+        if (updateError) {
+          console.error(`[process-webhook-events] Failed to mark event ${event.id} as processed:`, updateError);
+          errors++;
+          continue;
+        }
         
         processed++;
       } catch (err) {
