@@ -2444,6 +2444,8 @@ function ProposalWizardContent() {
       const genResult = await generateProposal(payload);
       setResult(genResult);
       clearLocal(); // Proposta gerada — limpar rascunho local
+      setOfficialTotal(precoFinal); // Update official total state to hide divergence banner
+      setHasEditsAfterRestore(false); // Reset edit tracking
 
       // Sync template_id_used on the new version (RB-54) — belt-and-suspenders
       // proposal-generate already sets it server-side, but sync as fallback
