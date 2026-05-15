@@ -72,10 +72,14 @@ export function useCreateCreditBankConfig() {
       const { data, error } = await supabase
         .from("credit_bank_configs")
         .insert({
-          ...values,
+          bank_name: values.bank_name || "",
+          is_active: values.is_active ?? true,
+          icon_url: values.icon_url,
+          prazo_medio: values.prazo_medio,
+          observacoes: values.observacoes,
           tenant_id: profile.tenant_id,
           slug
-        })
+        } as any)
         .select()
         .single();
 
