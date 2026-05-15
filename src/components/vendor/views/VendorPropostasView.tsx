@@ -101,7 +101,7 @@ export default function VendorPropostasView({ portal }: Props) {
     return result;
   }, [data, search, filterStatus]);
 
-  const kpis = useMemo(() => computePropostasKpis(data), [data]);
+  // const kpis = useMemo(() => computePropostasKpis(data), [data]); // Removido em favor dos KPIs vindos do hook
 
   const grouped = useMemo(() => {
     const map = new Map<string, PropostaConsultor[]>();
