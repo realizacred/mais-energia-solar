@@ -220,6 +220,8 @@ export default function VendorPropostasView({ portal }: Props) {
                   <TableHead className="text-xs font-semibold">Código</TableHead>
                   <TableHead className="text-xs font-semibold">Status</TableHead>
                   <TableHead className="text-xs font-semibold">kWp</TableHead>
+                  <TableHead className="text-xs font-semibold">Geração</TableHead>
+                  <TableHead className="text-xs font-semibold">Consumo</TableHead>
                   <TableHead className="text-xs font-semibold">Valor</TableHead>
                   <TableHead className="text-xs font-semibold">Aberturas</TableHead>
                   <TableHead className="text-xs font-semibold">Validade</TableHead>
