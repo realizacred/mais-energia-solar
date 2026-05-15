@@ -78,16 +78,16 @@ const STATUS_CONFIG: Record<string, { label: string; cls: string }> = {
 const getStatusBadgeClass = (status: string) => {
   switch (status) {
     case 'aceita':
-      return 'bg-success text-success-foreground border-transparent hover:bg-success/90';
+      return 'bg-success/10 text-success border-success/20 hover:bg-success/20';
     case 'vista':
-      return 'bg-warning text-warning-foreground border-transparent hover:bg-warning/90';
+      return 'bg-warning/10 text-warning border-warning/20 hover:bg-warning/20';
     case 'enviada':
-      return 'bg-info text-info-foreground border-transparent hover:bg-info/90';
+      return 'bg-info/10 text-info border-info/20 hover:bg-info/20';
     case 'expirada':
     case 'recusada':
-      return 'bg-destructive text-destructive-foreground border-transparent hover:bg-destructive/90';
+      return 'bg-destructive/10 text-destructive border-destructive/20 hover:bg-destructive/20';
     default:
-      return 'bg-muted text-muted-foreground border-transparent hover:bg-muted/90';
+      return 'bg-muted text-muted-foreground border-border hover:bg-muted/20';
   }
 };
 
