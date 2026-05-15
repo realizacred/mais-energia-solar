@@ -229,7 +229,7 @@ export default function VendorPropostasView({ portal }: Props) {
           </CardContent>
         </Card>
       ) : (
-        <div className="overflow-x-auto rounded-lg border bg-card">
+        <div className="overflow-x-auto rounded-lg border border-border bg-card">
           <TooltipProvider>
             <Table>
               <TableHeader>
