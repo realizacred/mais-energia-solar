@@ -540,20 +540,20 @@ export function StepDocumento({
     // ── Generation in progress
     if (generating) {
       const statusMsg = generationStatus === "calculating" ? "Calculando dimensionamento..."
-        : generationStatus === "generating_docx" ? "Gerando documento..."
-        : generationStatus === "converting_pdf" ? "Convertendo para PDF..."
-        : generationStatus === "saving" ? "Finalizando..."
+        : generationStatus === "publishing" ? "Publicando versão oficial no CRM..."
+        : generationStatus === "published" ? "Versão publicada com sucesso!"
+        : generationStatus === "rendering_pdf" ? "Iniciando geração do PDF..."
         : "Gerando proposta comercial...";
       return (
         <div className="flex flex-col items-center justify-center py-20 gap-4">
           <Sun className="h-12 w-12 text-primary animate-spin" style={{ animationDuration: "2s" }} />
           <p className="text-sm font-medium text-muted-foreground animate-pulse">{statusMsg}</p>
           <div className="flex items-center gap-2">
-            {["calculating", "generating_docx", "converting_pdf", "saving"].map((s, i) => (
+            {["calculating", "publishing", "rendering_pdf"].map((s, i) => (
               <div key={s} className={cn(
                 "h-1.5 w-8 rounded-full transition-colors",
                 generationStatus === s ? "bg-primary animate-pulse" :
-                ["calculating", "generating_docx", "converting_pdf", "saving"].indexOf(generationStatus) > i ? "bg-primary" : "bg-muted"
+                ["calculating", "publishing", "rendering_pdf"].indexOf(generationStatus) > i ? "bg-primary" : "bg-muted"
               )} />
             ))}
           </div>
@@ -723,7 +723,7 @@ export function StepDocumento({
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Button onClick={onGenerate} disabled={!templateSelecionado || generating || estimativaBlocked} title={estimativaBlocked ? "Marque o aceite de estimativa acima para continuar" : undefined} className="w-full gap-2">
+                  <Button onClick={onGenerate} disabled={!templateSelecionado || generating || rendering || estimativaBlocked} title={estimativaBlocked ? "Marque o aceite de estimativa acima para continuar" : undefined} className="w-full gap-2">
                     {generating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Zap className="h-4 w-4" />}
                     Publicar nova versão
                   </Button>
@@ -849,14 +849,18 @@ export function StepDocumento({
     const isReady = !isBusy && (generationStatus === "ready" || hasArtifact);
     const statusLabel = isReady
       ? "Proposta pronta"
-      : isBusy
-        ? "Gerando proposta..."
-        : generationStatus === "error"
-          ? "Erro na geração"
-          : "Proposta desatualizada";
+      : generationStatus === "rendering_pdf"
+        ? "PDF sendo processado..."
+        : generationStatus === "published"
+          ? "Versão publicada"
+          : isBusy
+            ? "Gerando proposta..."
+            : generationStatus === "error"
+              ? "Erro na geração"
+              : "Proposta desatualizada";
     const statusTone = isReady
       ? "success"
-      : isBusy
+      : (isBusy || generationStatus === "published" || generationStatus === "rendering_pdf")
         ? "info"
         : generationStatus === "error"
           ? "destructive"
@@ -889,11 +893,15 @@ export function StepDocumento({
             <p className="text-[10px] leading-tight text-muted-foreground pl-6">
               {isReady
                 ? "PDF, link público e QR Code prontos para envio"
-                : isBusy
-                  ? "Aguarde, isso pode levar alguns segundos"
-                  : generationStatus === "error"
-                    ? "Revise os dados e tente regenerar"
-                    : "Gere a proposta para liberar envio e link público"}
+                : generationStatus === "rendering_pdf"
+                  ? "A versão oficial foi salva. O PDF está sendo gerado em background."
+                  : generationStatus === "published"
+                    ? "Versão oficial sincronizada com o CRM. Iniciando geração do documento..."
+                    : isBusy
+                      ? "Aguarde, isso pode levar alguns segundos"
+                      : generationStatus === "error"
+                        ? "Revise os dados e tente regenerar"
+                        : "Gere a proposta para liberar envio e link público"}
             </p>
             {isReady && (
               <div className="flex items-center gap-1.5 pl-6 pt-0.5 text-[10px] text-muted-foreground">
@@ -1222,7 +1230,7 @@ export function StepDocumento({
 
         {/* Right: Preview — PDF real only, no HTML fallback */}
         <div className="min-w-0 min-h-[300px] sm:min-h-[400px]">
-          {rendering ? (
+          {rendering && !(pdfBlobUrl || resolvedPdfPreviewUrl) ? (
             <div className="flex flex-col items-center justify-center py-20 gap-4">
               <Sun className="h-10 w-10 text-primary animate-spin" style={{ animationDuration: "2s" }} />
               <p className="text-sm text-muted-foreground animate-pulse">

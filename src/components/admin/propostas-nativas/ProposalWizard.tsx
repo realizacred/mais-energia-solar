@@ -345,6 +345,73 @@ function ProposalWizardContent() {
   const [savedProjetoId, setSavedProjetoId] = useState<string | null>(projetoIdFromUrl || null);
   const [savedDealId, setSavedDealId] = useState<string | null>(null);
 
+  // ─── Polling for background rendering
+  useEffect(() => {
+    if (!rendering || !savedVersaoId) return;
+
+    let pollInterval: NodeJS.Timeout;
+    let attempts = 0;
+    const maxAttempts = 60; // ~3 minutes polling
+
+    const poll = async () => {
+      attempts++;
+      if (attempts > maxAttempts) {
+        setRendering(false);
+        setGenerationStatus("error");
+        setGenerationError("Tempo limite de renderização atingido (3 min). Verifique o PDF no detalhe do projeto.");
+        clearInterval(pollInterval);
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from("proposta_versoes")
+        .select("output_pdf_path, output_docx_path, generation_status, generation_error, generation_audit_json")
+        .eq("id", savedVersaoId)
+        .maybeSingle();
+
+      if (error) {
+        console.error("[ProposalWizard] Polling error:", error);
+        return;
+      }
+
+      if (data) {
+        // Stop polling if status is final or path is present
+        if (data.generation_status === "ready" || data.output_pdf_path) {
+          setOutputPdfPath(data.output_pdf_path);
+          setOutputDocxPath(data.output_docx_path);
+          setGenerationStatus("ready");
+          setRendering(false);
+          if (data.generation_audit_json) {
+            setGenerationAuditReport(data.generation_audit_json as any);
+          }
+          clearInterval(pollInterval);
+          
+          if (data.output_pdf_path) {
+            const { data: signedData } = await supabase.storage
+              .from("proposta-documentos")
+              .createSignedUrl(data.output_pdf_path, 3600);
+            if (signedData?.signedUrl) {
+              setPdfBlobUrl(signedData.signedUrl);
+            }
+          }
+        } else if (data.generation_status === "error") {
+          setGenerationStatus("error");
+          setGenerationError(data.generation_error || "Erro na geração em background");
+          setRendering(false);
+          clearInterval(pollInterval);
+        } else if (data.generation_status === "docx_only") {
+          setGenerationStatus("docx_only");
+          setOutputDocxPath(data.output_docx_path);
+          setRendering(false);
+          clearInterval(pollInterval);
+        }
+      }
+    };
+
+    pollInterval = setInterval(poll, 3000);
+    return () => clearInterval(pollInterval);
+  }, [rendering, savedVersaoId]);
+
   // Fetch projeto codigo for breadcrumb (Projetos > Projeto #XXXX > Nova Proposta)
   const { data: projetoBreadcrumb } = useQuery({
     queryKey: ["projeto-breadcrumb", savedProjetoId],
@@ -2445,6 +2512,7 @@ function ProposalWizardContent() {
         },
       };
 
+      setGenerationStatus("publishing");
       const genResult = await generateProposal(payload);
       setResult(genResult);
       clearLocal(); // Proposta gerada — limpar rascunho local
@@ -2461,168 +2529,64 @@ function ProposalWizardContent() {
 
       // Audit is now persisted by the backend — no need for frontend persistAudit
 
-      // Determine if selected template is DOCX or HTML
+      // ── Background Rendering Logic (Decoupled)
       const selectedTpl = proposalTemplates.find(t => t.id === templateSelecionado);
       const isDocxTemplate = selectedTpl?.tipo === "docx";
 
-      setRendering(true);
-      setGenerationStatus("generating_docx");
+      setGenerationStatus("published");
+      setGenerating(false); // Liberar UI imediatamente
+      toast({
+        title: "Proposta publicada!",
+        description: "A versão oficial foi salva. O PDF está sendo gerado em background.",
+      });
 
-      try {
-        if (isDocxTemplate && genResult.proposta_id) {
-          // DOCX template: call template-preview with JSON response to get persisted paths
-          const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID || "bguhckqkpnziykpbwbeu";
-          const anonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJndWhja3FrcG56aXlrcGJ3YmV1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA0NzgwNzQsImV4cCI6MjA4NjA1NDA3NH0.BQAdNsi05xoWHhYJnnvmW3MIwnm8gbXTqosCTe5Ykxw";
-          const { data: { session } } = await supabase.auth.getSession();
-          const rawResp = await fetch(`https://${projectId}.supabase.co/functions/v1/template-preview`, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              "Accept": "application/json",
-              "Authorization": `Bearer ${session?.access_token || anonKey}`,
-              "apikey": anonKey,
-              "x-client-timeout": "120",
-            },
-            body: JSON.stringify({
-              template_id: templateSelecionado,
-              proposta_id: genResult.proposta_id,
-              response_format: "json",
-            }),
-          });
-          setGenerationStatus("converting_pdf");
-          if (!rawResp.ok) {
-            const errBody = await rawResp.text();
-            let parsedBody: any = null;
-            try { parsedBody = JSON.parse(errBody); } catch { /* ignore */ }
-
-            // Handle backend audit blocking (422)
-            if (rawResp.status === 422 && parsedBody?.blocked_by_audit) {
-              console.error("[ProposalWizard] Generation blocked by backend audit:", parsedBody.critical_variables);
-
-              // Use audit from backend if available
-              if (parsedBody.audit) {
-                setGenerationAuditReport(parsedBody.audit as GenerationAuditReport);
-              }
-              setMissingVars(parsedBody.missing_vars ?? []);
-              setGenerationStatus("error");
-              setGenerationError(
-                `Variáveis críticas não resolvidas: ${(parsedBody.critical_variables || []).join(", ")}. Corrija os dados antes de gerar.`
-              );
-              toast({
-                title: "Geração bloqueada",
-                description: `${(parsedBody.critical_variables || []).length} variável(is) crítica(s) com erro. PDF não foi gerado.`,
-                variant: "destructive",
-              });
-              setRendering(false);
-              setGenerating(false);
-              return;
-            }
-
-            let errorMsg = "Erro ao gerar DOCX";
-            try { errorMsg = parsedBody?.error || errorMsg; } catch { errorMsg = errBody || errorMsg; }
-            throw new Error(errorMsg);
+      if (isDocxTemplate && genResult.proposta_id) {
+        setRendering(true);
+        setGenerationStatus("rendering_pdf");
+        
+        // Trigger Edge Function in background without awaiting its completion for the UI
+        (async () => {
+          try {
+            const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID || "bguhckqkpnziykpbwbeu";
+            const anonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJndWhja3FrcG56aXlrcGJ3YmV1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA0NzgwNzQsImV4cCI6MjA4NjA1NDA3NH0.BQAdNsi05xoWHhYJnnvmW3MIwnm8gbXTqosCTe5Ykxw";
+            const { data: { session } } = await supabase.auth.getSession();
+            
+            // We still fire the request to start the process
+            await fetch(`https://${projectId}.supabase.co/functions/v1/template-preview`, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json",
+                "Authorization": `Bearer ${session?.access_token || anonKey}`,
+                "apikey": anonKey,
+                "x-client-timeout": "10", // Low timeout since we poll anyway
+              },
+              body: JSON.stringify({
+                template_id: templateSelecionado,
+                proposta_id: genResult.proposta_id,
+                response_format: "json",
+              }),
+            }).catch(e => console.warn("[ProposalWizard] Background trigger fetch finished/aborted:", e.message));
+          } catch (e) {
+            console.warn("[ProposalWizard] Background trigger error (expected if timeout is low):", e);
           }
-
-          const artifactResult = await rawResp.json();
-
-          // Handle missing_vars from backend — store for UI display
-          const backendMissing: string[] = artifactResult.missing_vars ?? [];
-          const backendEmpty: string[] = artifactResult.empty_vars ?? [];
-          const resolvedCount: number = artifactResult.resolved_vars_count ?? 0;
-          setMissingVars(backendMissing);
-
-          // Use audit report from backend (already persisted server-side)
-          if (artifactResult.audit) {
-            setGenerationAuditReport(artifactResult.audit as GenerationAuditReport);
-            //   health: artifactResult.audit.health,
-            //   score: artifactResult.audit.healthScore,
-            //   errors: artifactResult.audit.errorCount,
-            //   warnings: artifactResult.audit.warningCount,
-            // });
-          } else {
-            // Fallback: build audit locally if backend didn't provide it
-            const customVarResults = artifactResult.custom_var_results ?? artifactResult.variaveis_custom ?? [];
-            const auditReport = buildGenerationAuditReport({
-              templateId: templateSelecionado,
-              templateName: artifactResult.template_name || "",
-              propostaId: genResult.proposta_id || "",
-              versaoId: genResult.versao_id || undefined,
-              totalVarsProvided: resolvedCount + backendMissing.length,
-              missingVars: backendMissing,
-              emptyVars: backendEmpty,
-              resolvedCount,
-              customVarResults: customVarResults.length > 0 ? customVarResults.map((cv: any) => ({
-                nome: cv.nome,
-                expressao: cv.expressao,
-                valor_calculado: cv.valor_calculado,
-                error: cv.error ?? false,
-                error_message: cv.error_message,
-              })) : undefined,
-            });
-            setGenerationAuditReport(auditReport);
-          }
-
-          // Store persisted paths
-          setOutputDocxPath(artifactResult.output_docx_path || null);
-          setOutputPdfPath(artifactResult.output_pdf_path || null);
-
-          // Handle generation status from backend
-          if (artifactResult.generation_status === "error" || (!artifactResult.output_pdf_path && !artifactResult.output_docx_path)) {
+        })();
+      } else if (!isDocxTemplate) {
+        // HTML templates are fast, but let's follow the same pattern for consistency
+        setRendering(true);
+        setGenerationStatus("rendering_pdf");
+        (async () => {
+          try {
+            const renderResult = await renderProposal(genResult.versao_id);
+            setHtmlPreview(renderResult.html);
+            setGenerationStatus("ready");
+            setRendering(false);
+          } catch (e: any) {
             setGenerationStatus("error");
-            // Translate raw URL errors to friendly messages
-            const rawError = artifactResult.generation_error || "Falha na geração do documento";
-            const friendlyError = rawError.includes("Invalid URL") || rawError.includes("Configuração inválida")
-              ? "Falha na configuração do serviço de conversão PDF. Verifique a variável GOTENBERG_URL nas configurações do projeto."
-              : rawError;
-            setGenerationError(friendlyError);
-            toast({
-              title: "Erro na geração",
-              description: friendlyError,
-              variant: "destructive",
-            });
-          } else if (artifactResult.output_pdf_path) {
-            // Generate signed URL for PDF preview from persisted storage
-            setGenerationStatus("saving");
-            const { data: signedData } = await supabase.storage
-              .from("proposta-documentos")
-              .createSignedUrl(artifactResult.output_pdf_path, 3600);
-            if (signedData?.signedUrl) {
-              setPdfBlobUrl(signedData.signedUrl);
-              setGenerationStatus("ready");
-              toast({
-                title: "Proposta gerada!",
-                description: "PDF salvo e preview exibido. Use os botões para baixar ou enviar.",
-              });
-            } else {
-              setGenerationStatus("error");
-              setGenerationError("Não foi possível gerar URL de preview do PDF");
-            }
-          } else {
-            // DOCX only (PDF conversion failed) - show as partial success, not full error
-            setGenerationStatus("docx_only");
-            const rawPdfError = artifactResult.generation_error || "";
-            const friendlyPdfError = rawPdfError.includes("Invalid URL") || rawPdfError.includes("Configuração inválida")
-              ? "Falha na configuração do serviço de conversão PDF. O DOCX foi salvo e está disponível para download."
-              : `Conversão PDF falhou. O DOCX foi salvo e está disponível para download.`;
-            setGenerationError(friendlyPdfError);
-            console.warn("[ProposalWizard] PDF conversion failed, DOCX available:", rawPdfError);
-            toast({
-              title: "Proposta parcialmente gerada",
-              description: friendlyPdfError + " Você pode baixar o DOCX ou tentar gerar o PDF novamente.",
-              variant: "default",
-            });
+            setGenerationError(e.message || "Erro ao renderizar HTML");
           }
-        } else {
-          // HTML template: use proposal-render as before
-          const renderResult = await renderProposal(genResult.versao_id);
-          setHtmlPreview(renderResult.html);
-          setGenerationStatus("ready");
-        }
-      } catch (e: any) {
-        setGenerationStatus("error");
-        setGenerationError(e.message || "Erro ao renderizar documento");
-        toast({ title: "Erro ao renderizar", description: e.message, variant: "destructive" });
-      } finally { setRendering(false); }
+        })();
+      }
 
       // Save pricing history for smart defaults in future proposals
       const instalacaoVal = servicos.find(s => s.categoria === "instalacao")?.valor || 0;
@@ -2635,38 +2599,31 @@ function ProposalWizardContent() {
         propostaId: genResult.proposta_id,
       }).catch(e => console.error("Error saving pricing history:", e));
     } catch (e: any) {
-      // ── Handle structured 422 errors from backend enforcement ──
+      // ── Consolidate catch for handleGenerate ──
       const errorCode = (e as any).errorCode;
       if (errorCode === "missing_required_variables") {
         setBlockReason("missing_required");
         setBlockMissing((e as any).missing || []);
         setShowBlockModal(true);
-        setGenerationStatus("idle");
-        setGenerating(false);
-        return;
-      }
-      if (errorCode === "estimativa_not_accepted") {
+      } else if (errorCode === "estimativa_not_accepted") {
         setBlockReason("estimativa_not_accepted");
         setBlockMissing([]);
         setShowBlockModal(true);
-        setGenerationStatus("idle");
-        setGenerating(false);
-        return;
-      }
-      if (errorCode === "mixed_grupos" || errorCode === "grupo_indefinido") {
+      } else if (errorCode === "mixed_grupos" || errorCode === "grupo_indefinido") {
         toast({
           title: "Erro de grupo tarifário",
           description: e.message || "Não é permitido misturar Grupo A e Grupo B na mesma proposta.",
           variant: "destructive",
         });
-        setGenerationStatus("idle");
-        setGenerating(false);
-        return;
+      } else {
+        setGenerationStatus("error");
+        setGenerationError(e.message || "Erro desconhecido ao publicar proposta");
+        toast({ title: "Erro na publicação", description: e.message, variant: "destructive" });
       }
-      setGenerationStatus("error");
-      setGenerationError(e.message || "Erro desconhecido ao gerar proposta");
-      toast({ title: "Erro ao gerar proposta", description: e.message, variant: "destructive" });
-    } finally { setGenerating(false); }
+      setGenerationStatus("idle");
+    } finally {
+      setGenerating(false);
+    }
   };
 
   // ─── Invalidate artifacts when template changes
