@@ -53,6 +53,8 @@ interface WizardContextType {
   bumpUcsRestoreEpoch: () => void;
   grupo: string;
   setGrupo: (g: string) => void;
+  subgrupo: string;
+  setSubgrupo: (s: string) => void;
   potenciaKwp: number;
   setPotenciaKwp: (p: number) => void;
 
@@ -133,7 +135,8 @@ export function WizardProvider({ children, initialData = {} }: { children: React
   const [ucs, setUcs] = useState<UCData[]>([createEmptyUC(1)]);
   const [ucsRestoreEpoch, setUcsRestoreEpoch] = useState(0);
   const bumpUcsRestoreEpoch = useCallback(() => setUcsRestoreEpoch(e => e + 1), []);
-  const [grupo, setGrupo] = useState("B1");
+  const [grupo, setGrupo] = useState("B");
+  const [subgrupo, setSubgrupo] = useState("B1");
   const [potenciaKwp, setPotenciaKwp] = useState<number>(0);
 
   const [itens, setItens] = useState<KitItemRow[]>([
@@ -281,6 +284,7 @@ export function WizardProvider({ children, initialData = {} }: { children: React
     ucs, setUcs,
     ucsRestoreEpoch, bumpUcsRestoreEpoch,
     grupo, setGrupo,
+    subgrupo, setSubgrupo,
     potenciaKwp, setPotenciaKwp,
     itens, setItens,
     manualKits, setManualKits,
@@ -307,7 +311,7 @@ export function WizardProvider({ children, initialData = {} }: { children: React
     locTipoTelhado, locDistribuidoraId, locDistribuidoraNome, locIrradiacao,
     locGhiSeries, locSkipPoa, locLatitude, mapSnapshots, distanciaKm,
     projectAddress, ucs, ucsRestoreEpoch, bumpUcsRestoreEpoch,
-    grupo, potenciaKwp, itens, manualKits,
+    grupo, subgrupo, potenciaKwp, itens, manualKits,
     selectedManualIdx, layouts, adicionais, preDimensionamento,
     premissas, servicos, venda, pagamentoOpcoes, customFieldValues,
     templateSelecionado, generationStatus, editAceitaDialogOpen, editAceitaMotivo,
