@@ -130,7 +130,7 @@ import { formatBRL } from "@/lib/formatters";
        );
  
        // Calcular totais
-       const totalRecebido = pagamentos?.reduce((acc: number, p: Pagamento) => acc + p.valor_pago, 0) || 0;
+       const totalRecebido = receitas?.reduce((acc: number, p: any) => acc + Number(p.valor), 0) || 0;
        const totalPendente = recebimentos
          ?.filter((r: { status: string }) => r.status !== "quitado" && r.status !== "cancelado")
          .reduce((acc: number, r: { valor_total: number }) => acc + r.valor_total, 0) || 0;
