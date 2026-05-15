@@ -1328,7 +1328,7 @@ function ProposalWizardContent() {
           // Fetch official total and template used from the official version
           const { data: officialVer } = await supabase
             .from("proposta_versoes")
-            .select("valor_total, template_id")
+            .select("valor_total, template_id_used")
             .eq("proposta_id", propostaIdFromUrl)
             .eq("is_official", true)
             .order("created_at", { ascending: false })
@@ -1338,8 +1338,8 @@ function ProposalWizardContent() {
           if (officialVer?.valor_total) {
             setOfficialTotal(officialVer.valor_total);
           }
-          if (officialVer?.template_id) {
-            setOfficialTemplateId(officialVer.template_id);
+          if (officialVer?.template_id_used) {
+            setOfficialTemplateId(officialVer.template_id_used);
           }
 
           // Detect if proposal was already sent/generated — will branch new version on save
