@@ -3159,6 +3159,23 @@ function ProposalWizardContent() {
       {/* ── Body: Content — responsive padding, max-width for readability */}
       <div className="flex-1 min-h-0 overflow-y-auto scrollbar-thin">
         <div className="w-full px-2 sm:px-3 lg:px-4 py-2 lg:py-3 pb-24 sm:pb-20">
+          {editingsentProposal && hasEditsAfterRestore && (
+            <motion.div 
+              initial={{ opacity: 0, height: 0 }} 
+              animate={{ opacity: 1, height: "auto" }}
+              className="mb-4"
+            >
+              <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 flex items-start gap-3 shadow-sm">
+                <AlertCircle className="h-5 w-5 text-amber-500 shrink-0 mt-0.5" />
+                <div className="flex-1">
+                  <p className="text-sm font-bold text-amber-900">Alterações não publicadas</p>
+                  <p className="text-xs text-amber-800 leading-relaxed">
+                    O valor oficial do projeto continuará sendo <span className="font-bold">{formatBRL(precoFinal)}</span> até que você salve uma nova versão.
+                  </p>
+                </div>
+              </div>
+            </motion.div>
+          )}
           <AnimatePresence mode="wait">
             {renderStepContent()}
           </AnimatePresence>
