@@ -128,7 +128,7 @@ export function useMinhasPropostasConsultor(consultorId: string | null | undefin
             "consultor_id",
             "clientes(id, nome)",
             "leads(id, nome)",
-            "proposta_versoes(id,versao_numero,potencia_kwp,geracao_mensal,economia_mensal,payback_meses,valor_total,valido_ate,output_pdf_path,public_slug,link_pdf,viewed_at,consumo_mensal,proposta_versao_ucs(consumo_mensal_kwh))",
+            "proposta_versoes(id,versao_numero,created_at,potencia_kwp,geracao_mensal,economia_mensal,payback_meses,valor_total,valido_ate,output_pdf_path,public_slug,link_pdf,viewed_at,consumo_mensal,proposta_versao_ucs(consumo_mensal_kwh))",
           ].join(","),
         )
         .eq("consultor_id", consultorId)
