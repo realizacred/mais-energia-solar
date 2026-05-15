@@ -8,7 +8,7 @@
  * AGENTS.md §16 (queries só em hooks), §23 (staleTime obrigatório).
  * Boundary consultor/admin — Fase 3 da auditoria do Portal Consultor.
  */
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 
