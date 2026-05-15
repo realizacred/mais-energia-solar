@@ -51,7 +51,7 @@ export const DEFAULT_FINANCIAL_SETTINGS: FinancialSettings = {
  * Hook para acessar as configurações financeiras do tenant atual.
  */
 export function useFinancialSettings() {
-  const { tenantId } = useTenantId();
+  const { data: tenantId } = useTenantId();
 
   return useQuery({
     queryKey: ['financial-settings', tenantId],
