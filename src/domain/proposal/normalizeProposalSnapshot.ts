@@ -292,6 +292,7 @@ function adaptSmSnapshot(s: Record<string, any>): Record<string, any> {
       categoria: mapCategoria(it.category ?? it.categoria),
       avulso: false,
       produto_ref: null,
+      garantia_anos: Number(it.garantia_anos ?? 0),
     };
   });
 
