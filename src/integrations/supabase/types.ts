@@ -5647,6 +5647,86 @@ export type Database = {
           },
         ]
       }
+      financial_settings: {
+        Row: {
+          audit_allow_hard_delete: boolean | null
+          audit_lock_days: number | null
+          audit_require_justification: boolean | null
+          audit_storno_approval_required: boolean | null
+          automation_email_enabled: boolean | null
+          automation_whatsapp_enabled: boolean | null
+          cash_daily_closing: boolean | null
+          cash_lock_on_close: boolean | null
+          cash_multi_user: boolean | null
+          cash_strict_opening: boolean | null
+          commission_trigger: string | null
+          created_at: string | null
+          feature_flags: Json | null
+          id: string
+          receipt_allow_standalone: boolean | null
+          receipt_auto_emit: boolean | null
+          receipt_auto_numbering: boolean | null
+          receipt_digital_signature: boolean | null
+          receipt_show_qrcode: boolean | null
+          tenant_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          audit_allow_hard_delete?: boolean | null
+          audit_lock_days?: number | null
+          audit_require_justification?: boolean | null
+          audit_storno_approval_required?: boolean | null
+          automation_email_enabled?: boolean | null
+          automation_whatsapp_enabled?: boolean | null
+          cash_daily_closing?: boolean | null
+          cash_lock_on_close?: boolean | null
+          cash_multi_user?: boolean | null
+          cash_strict_opening?: boolean | null
+          commission_trigger?: string | null
+          created_at?: string | null
+          feature_flags?: Json | null
+          id?: string
+          receipt_allow_standalone?: boolean | null
+          receipt_auto_emit?: boolean | null
+          receipt_auto_numbering?: boolean | null
+          receipt_digital_signature?: boolean | null
+          receipt_show_qrcode?: boolean | null
+          tenant_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          audit_allow_hard_delete?: boolean | null
+          audit_lock_days?: number | null
+          audit_require_justification?: boolean | null
+          audit_storno_approval_required?: boolean | null
+          automation_email_enabled?: boolean | null
+          automation_whatsapp_enabled?: boolean | null
+          cash_daily_closing?: boolean | null
+          cash_lock_on_close?: boolean | null
+          cash_multi_user?: boolean | null
+          cash_strict_opening?: boolean | null
+          commission_trigger?: string | null
+          created_at?: string | null
+          feature_flags?: Json | null
+          id?: string
+          receipt_allow_standalone?: boolean | null
+          receipt_auto_emit?: boolean | null
+          receipt_auto_numbering?: boolean | null
+          receipt_digital_signature?: boolean | null
+          receipt_show_qrcode?: boolean | null
+          tenant_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "financial_settings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       financiamento_api_config: {
         Row: {
           api_key: string | null
