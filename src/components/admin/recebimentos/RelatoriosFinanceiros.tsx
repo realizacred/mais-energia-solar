@@ -118,11 +118,11 @@ import { formatBRL } from "@/lib/formatters";
  
        // Processar dados por forma de pagamento
        const formasMap = new Map<string, number>();
-       pagamentos?.forEach((p: Pagamento) => {
-         const forma = FORMAS_PAGAMENTO[p.forma_pagamento] || p.forma_pagamento;
-         formasMap.set(forma, (formasMap.get(forma) || 0) + p.valor_pago);
-       });
- 
+        receitas?.forEach((p: any) => {
+          const forma = FORMAS_PAGAMENTO[p.forma_pagamento] || p.forma_pagamento;
+          formasMap.set(forma, (formasMap.get(forma) || 0) + Number(p.valor));
+        });
+
        setDadosFormaPagamento(
          Array.from(formasMap.entries())
            .map(([name, value]) => ({ name, value }))
