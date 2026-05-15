@@ -1,4 +1,5 @@
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { SidebarRail } from "@/components/ui/sidebar";
 import {
   LogOut,
   Sun,
