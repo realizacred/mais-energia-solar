@@ -4,6 +4,9 @@ import { Printer } from "lucide-react";
 import { ReciboDialog } from "./recebimentos/ReciboDialog";
 import { toast } from "@/hooks/use-toast";
 import { useRegistrarPagamento, useDeletarPagamento } from "@/hooks/usePagamentos";
+import { useFinancialSettings } from "@/hooks/useFinancialSettings";
+import { checkFinancialLock, logFinancialAction } from "@/utils/financialAudit";
+import { useTenantId } from "@/hooks/useTenantId";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { DateInput } from "@/components/ui-kit/inputs/DateInput";
@@ -110,6 +113,9 @@ export function PagamentosDialog({
     observacoes: "",
   });
 
+  const { data: finSettings } = useFinancialSettings();
+  const { data: tenantId } = useTenantId();
+
   const registrarMut = useRegistrarPagamento();
   const deletarMut = useDeletarPagamento();
 
@@ -121,13 +127,22 @@ export function PagamentosDialog({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await registrarMut.mutateAsync({
+      if (finSettings?.cash_strict_opening) {
+        // TODO: Validar se existe caixa aberto (na fase caixa_v2)
+        console.warn("Validação de caixa aberto ativada");
+      }
+
+      const res = await registrarMut.mutateAsync({
         recebimentoId: recebimento.id,
         valor_pago: parseFloat(formData.valor_pago),
         forma_pagamento: formData.forma_pagamento,
         data_pagamento: formData.data_pagamento,
         observacoes: formData.observacoes || null,
       });
+
+      if (tenantId) {
+        await logFinancialAction('create', 'pagamento', (res as any)?.id || 'new', formData);
+      }
       toast({ title: "Pagamento registrado e parcelas atualizadas!" });
       resetForm();
       onUpdate();
@@ -137,9 +152,31 @@ export function PagamentosDialog({
   };
 
   const handleDelete = async (id: string) => {
+    if (finSettings?.audit_allow_hard_delete === false) {
+      toast({ 
+        title: "Ação não permitida", 
+        description: "A política de auditoria proíbe a exclusão física de pagamentos. Use o estorno.",
+        variant: "destructive" 
+      });
+      return;
+    }
+
+    if (tenantId) {
+      const { locked, reason } = await checkFinancialLock(id, tenantId, finSettings?.audit_lock_days);
+      if (locked) {
+        toast({ title: "Pagamento Travado", description: reason, variant: "destructive" });
+        return;
+      }
+    }
+
     if (!confirm("Excluir este pagamento? As parcelas vinculadas voltarão a pendente.")) return;
     try {
       await deletarMut.mutateAsync(id);
+      
+      if (tenantId) {
+        await logFinancialAction('delete', 'pagamento', id, { motive: "Exclusão manual" });
+      }
+      
       toast({ title: "Pagamento excluído e parcelas restauradas!" });
       onUpdate();
     } catch {

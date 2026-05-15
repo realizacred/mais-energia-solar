@@ -119,6 +119,7 @@ const EngenhariaFinanceiraConfig = lazy(() => import("@/components/admin/Engenha
 const ProposalMessageConfigPage = lazy(() => import("@/pages/admin/ProposalMessageConfigPage"));
 const CommercialDirectorDashboard = lazy(() => import("@/components/admin/director").then(m => ({ default: m.CommercialDirectorDashboard })));
 const ConsultorDashboard = lazy(() => import("@/pages/ConsultorDashboard"));
+const FinancialSettingsPage = lazy(() => import("@/components/admin/settings/FinancialSettingsPage"));
 
 const TasksSlaDashboard = lazy(() => import("@/components/admin/tasks").then(m => ({ default: m.TasksSlaDashboard })));
 const WaInbox = lazy(() => import("@/components/admin/inbox/WaInbox").then(m => ({ default: m.WaInbox })));
@@ -771,6 +772,7 @@ export default function Admin() {
                 <Route path="obras" element={<ObrasManager />} />
                 
                 {/* Administração */}
+                <Route path="configuracoes-financeiras" element={<FinancialSettingsPage />} />
                 <Route path="tenant-settings" element={<TenantSettings />} />
                 <Route path="custom-fields" element={<CustomFieldsSettings />} />
                 <Route path="auditoria" element={<AuditLogsViewer />} />
