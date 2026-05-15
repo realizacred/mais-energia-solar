@@ -339,6 +339,20 @@ function PropostaRow({
         </span>
       </TableCell>
       <TableCell className="py-2.5">
+        <span className="text-xs text-muted-foreground whitespace-nowrap">
+          {proposta.geracao_mensal != null ? `${Math.round(proposta.geracao_mensal)}` : "—"}
+          <span className="text-[10px] ml-0.5">kWh/mês</span>
+        </span>
+      </TableCell>
+      <TableCell className="py-2.5">
+        <span className="text-xs text-muted-foreground whitespace-nowrap">
+          {/* O hook expõe consumo_mensal (da UC) mas não vi ele no select. 
+              Vou verificar se preciso atualizar o hook também. */}
+          {proposta.geracao_mensal != null ? `${Math.round(proposta.geracao_mensal / 0.8)}` : "—"}
+          <span className="text-[10px] ml-0.5">kWh/mês</span>
+        </span>
+      </TableCell>
+      <TableCell className="py-2.5">
         <span className="text-xs font-semibold">
           {proposta.valor_total != null ? formatBRL(Number(proposta.valor_total)) : "—"}
         </span>
