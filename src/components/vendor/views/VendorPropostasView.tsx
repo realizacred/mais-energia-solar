@@ -251,17 +251,15 @@ export default function VendorPropostasView({ portal }: Props) {
           <TooltipProvider>
             <Table>
               <TableHeader>
-                <TableRow className="bg-muted/50 hover:bg-muted/50">
-
-                  <TableHead className="w-12">Visto</TableHead>
-                  <TableHead className="w-[280px]">Cliente</TableHead>
-                  <TableHead className="w-32">Proposta</TableHead>
-                  <TableHead>Potência / Energia</TableHead>
-                  <TableHead>Valor</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Validade</TableHead>
-                  <TableHead className="text-right">Ações</TableHead>
-
+                <TableRow className="bg-muted/50 hover:bg-muted/50 border-b-0">
+                  <TableHead className="w-12 h-9 text-[10px] uppercase font-semibold">Visto</TableHead>
+                  <TableHead className="w-[280px] h-9 text-[10px] uppercase font-semibold">Cliente</TableHead>
+                  <TableHead className="w-32 h-9 text-[10px] uppercase font-semibold">Proposta</TableHead>
+                  <TableHead className="h-9 text-[10px] uppercase font-semibold">Potência / Energia</TableHead>
+                  <TableHead className="h-9 text-[10px] uppercase font-semibold">Valor</TableHead>
+                  <TableHead className="h-9 text-[10px] uppercase font-semibold">Status</TableHead>
+                  <TableHead className="h-9 text-[10px] uppercase font-semibold">Validade</TableHead>
+                  <TableHead className="text-right h-9 text-[10px] uppercase font-semibold">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
