@@ -89,6 +89,7 @@ interface RawProposta {
     link_pdf: string | null;
     viewed_at: string | null;
     consumo_mensal: number | null;
+    proposta_versao_ucs?: Array<{ consumo_mensal_kwh: number | null }> | null;
   }> | null;
 }
 
@@ -126,7 +127,7 @@ export function useMinhasPropostasConsultor(consultorId: string | null | undefin
             "consultor_id",
             "clientes(id, nome)",
             "leads(id, nome)",
-            "proposta_versoes(id,versao_numero,potencia_kwp,geracao_mensal,economia_mensal,payback_meses,valor_total,valido_ate,output_pdf_path,public_slug,link_pdf,viewed_at,consumo_mensal)",
+            "proposta_versoes(id,versao_numero,potencia_kwp,geracao_mensal,economia_mensal,payback_meses,valor_total,valido_ate,output_pdf_path,public_slug,link_pdf,viewed_at,consumo_mensal,proposta_versao_ucs(consumo_mensal_kwh))",
           ].join(","),
         )
         .eq("consultor_id", consultorId)
@@ -161,7 +162,7 @@ export function useMinhasPropostasConsultor(consultorId: string | null | undefin
           recusada_at: p.recusada_at,
           validade_dias: p.validade_dias,
           public_token: p.public_token || p.proposta_versoes?.[0]?.public_slug || null,
-          cliente_nome: p.clientes?.nome ?? p.leads?.nome ?? null,
+          cliente_nome: p.clientes?.nome ?? p.leads?.nome ?? p.titulo ?? "Cliente não identificado",
           lead_id: p.lead_id,
           cliente_id: p.cliente_id,
           projeto_id: p.projeto_id,
@@ -177,7 +178,7 @@ export function useMinhasPropostasConsultor(consultorId: string | null | undefin
           public_slug: latest?.public_slug ?? null,
           link_pdf: latest?.link_pdf ?? null,
           viewed_at: latest?.viewed_at ?? null,
-          consumo_mensal: latest?.consumo_mensal ?? null,
+          consumo_mensal: latest?.consumo_mensal || (latest?.proposta_versao_ucs?.reduce((acc, uc) => acc + (Number(uc.consumo_mensal_kwh) || 0), 0) || null),
         };
       });
     },
