@@ -178,7 +178,7 @@ export function useMinhasPropostasConsultor(consultorId: string | null | undefin
           public_slug: latest?.public_slug ?? null,
           link_pdf: latest?.link_pdf ?? null,
           viewed_at: latest?.viewed_at ?? null,
-          consumo_mensal: latest?.consumo_mensal || (latest?.proposta_versao_ucs?.reduce((acc, uc) => acc + (Number(uc.consumo_mensal_kwh) || 0), 0) || null),
+          consumo_mensal: latest?.consumo_mensal || (latest?.proposta_versao_ucs && latest.proposta_versao_ucs.length > 0 ? latest.proposta_versao_ucs.reduce((acc, uc) => acc + (Number(uc.consumo_mensal_kwh) || 0), 0) : null),
         };
       });
     },
