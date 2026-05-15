@@ -445,24 +445,24 @@ function PropostaRow({
         {proposta.valor_total != null ? formatBRL(Number(proposta.valor_total)) : "—"}
       </TableCell>
 
-      <TableCell className="align-middle">
+      <TableCell className="py-2 align-middle">
         <Badge
           variant="outline"
-          className={`gap-1.5 px-2 py-0.5 text-xs font-medium ${getStatusBadgeClass(proposta.status)}`}
+          className={`gap-1 px-1.5 py-0 text-[10px] font-semibold uppercase tracking-wider ${getStatusBadgeClass(proposta.status)}`}
         >
-          <span className={`h-1.5 w-1.5 rounded-full ${STATUS_DOT[proposta.status] || 'bg-muted-foreground'}`} />
+          <span className={`h-1 w-1 rounded-full ${STATUS_DOT[proposta.status] || 'bg-muted-foreground'}`} />
           {status.label}
         </Badge>
       </TableCell>
 
-      <TableCell className="align-middle">
-        <div className={`flex items-center gap-1.5 text-xs ${
+      <TableCell className="py-2 align-middle">
+        <div className={`flex items-center gap-1 text-[10px] ${
           isExpired ? "text-destructive font-medium" : 
           isNearExpiring ? "text-warning font-medium" : 
           "text-muted-foreground"
         }`}>
-          <Clock className="h-3.5 w-3.5" />
-          {valDate ? valDate.toLocaleDateString("pt-BR") : "Sem validade"}
+          <Clock className="h-3 w-3" />
+          {valDate ? valDate.toLocaleDateString("pt-BR") : "—"}
         </div>
       </TableCell>
 
