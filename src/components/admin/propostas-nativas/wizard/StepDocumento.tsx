@@ -893,11 +893,15 @@ export function StepDocumento({
             <p className="text-[10px] leading-tight text-muted-foreground pl-6">
               {isReady
                 ? "PDF, link público e QR Code prontos para envio"
-                : isBusy
-                  ? "Aguarde, isso pode levar alguns segundos"
-                  : generationStatus === "error"
-                    ? "Revise os dados e tente regenerar"
-                    : "Gere a proposta para liberar envio e link público"}
+                : generationStatus === "rendering_pdf"
+                  ? "A versão oficial foi salva. O PDF está sendo gerado em background."
+                  : generationStatus === "published"
+                    ? "Versão oficial sincronizada com o CRM. Iniciando geração do documento..."
+                    : isBusy
+                      ? "Aguarde, isso pode levar alguns segundos"
+                      : generationStatus === "error"
+                        ? "Revise os dados e tente regenerar"
+                        : "Gere a proposta para liberar envio e link público"}
             </p>
             {isReady && (
               <div className="flex items-center gap-1.5 pl-6 pt-0.5 text-[10px] text-muted-foreground">
