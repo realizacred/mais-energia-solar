@@ -254,8 +254,8 @@ export default function VendorPropostasView({ portal }: Props) {
                 <TableRow className="bg-muted/50 hover:bg-muted/50">
 
                   <TableHead className="w-12">Visto</TableHead>
+                  <TableHead className="w-[300px]">Cliente</TableHead>
                   <TableHead className="w-24">Proposta</TableHead>
-                  <TableHead className="w-32">Cliente</TableHead>
                   <TableHead>kWp / Geração</TableHead>
                   <TableHead>Consumo</TableHead>
                   <TableHead>Valor</TableHead>
@@ -368,13 +368,20 @@ function PropostaRow({
       </TableCell>
 
       <TableCell className="align-middle">
-        <div className="flex items-center gap-2">
-          <div className="flex flex-col gap-0.5 min-w-0 max-w-[200px]">
-            <Badge variant="default" className="font-mono text-[10px] whitespace-nowrap w-fit">
-              {codeLabel}
-            </Badge>
+        <div className="flex flex-col min-w-0 py-1">
+          <div className="flex items-center gap-2 group/name">
+            <span className="truncate font-medium text-sm text-primary max-w-[240px]" title={proposta.cliente_nome || ""}>
+              {proposta.cliente_nome}
+            </span>
+            {!visto && !isSubRow && (
+              <Badge variant="default" className="bg-primary text-primary-foreground text-[10px] h-4 px-1 py-0 shrink-0">
+                Novo
+              </Badge>
+            )}
+          </div>
+          <div className="flex flex-col gap-0.5 mt-0.5">
             {proposta.titulo && proposta.titulo !== proposta.cliente_nome && (
-              <span className="text-[10px] text-muted-foreground truncate leading-tight" title={proposta.titulo}>
+              <span className="text-[10px] text-muted-foreground truncate leading-tight max-w-[200px]" title={proposta.titulo}>
                 {proposta.titulo}
               </span>
             )}
@@ -383,7 +390,21 @@ function PropostaRow({
                 v{proposta.versao_numero}
               </span>
             )}
+            {isSubRow && !proposta.titulo && (
+               <span className="text-[10px] text-muted-foreground/70 truncate max-w-[200px]">
+                  Versão {proposta.versao_numero}
+               </span>
+            )}
           </div>
+        </div>
+      </TableCell>
+
+      <TableCell className="align-middle">
+        <div className="flex items-center gap-2">
+          <Badge variant="secondary" className="font-mono text-[10px] whitespace-nowrap bg-muted/50 text-muted-foreground border-transparent">
+            {codeLabel}
+          </Badge>
+          
           {isMain && hasOthers && (
             <TooltipProvider>
               <Tooltip>
@@ -395,7 +416,7 @@ function PropostaRow({
                     aria-label="Ver outras versões"
                     onClick={(e) => { e.stopPropagation(); onToggleExpand?.(); }}
                   >
-                    <Badge variant="secondary" className="h-5 min-w-5 p-0 flex items-center justify-center text-[10px]">
+                    <Badge variant="outline" className="h-5 min-w-5 p-0 flex items-center justify-center text-[10px] bg-background">
                       {isExpanded ? <ChevronDown className="h-3 w-3" /> : `+${othersCount}`}
                     </Badge>
                   </Button>
@@ -405,26 +426,6 @@ function PropostaRow({
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
-          )}
-        </div>
-      </TableCell>
-
-      <TableCell className="align-middle">
-        <div className="flex flex-col min-w-0">
-          <div className="flex items-center gap-2">
-            <span className="truncate font-medium text-sm text-foreground" title={proposta.cliente_nome || ""}>
-              {proposta.cliente_nome}
-            </span>
-            {!visto && !isSubRow && (
-              <Badge variant="default" className="bg-primary text-primary-foreground text-[10px] h-4 px-1 py-0 shrink-0">
-                Novo
-              </Badge>
-            )}
-          </div>
-          {isSubRow && !proposta.titulo && (
-             <span className="text-[10px] text-muted-foreground/70 truncate max-w-[200px]">
-                Versão {proposta.versao_numero}
-             </span>
           )}
         </div>
       </TableCell>
