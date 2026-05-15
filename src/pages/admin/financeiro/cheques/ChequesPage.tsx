@@ -18,6 +18,7 @@ import {
   Plus, Search, Filter, Wallet, ArrowUpRight, CheckCircle2, AlertCircle, Share2 
 } from "lucide-react";
 import { LoadingState } from "@/components/ui-kit/LoadingState";
+import { DevolverChequeDialog } from "@/components/admin/cheques/DevolverChequeDialog";
 
 const STATUS_CONFIG: Record<ChequeStatus, { label: string, color: string, icon: any }> = {
   recebido: { label: "Recebido", color: "bg-blue-100 text-blue-700 border-blue-200", icon: Wallet },
