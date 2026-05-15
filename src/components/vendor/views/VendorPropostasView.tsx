@@ -240,7 +240,7 @@ function PropostaRow({
   isSubRow?: boolean;
 }) {
   const status = STATUS_CONFIG[proposta.status] || { label: proposta.status, cls: "bg-muted text-muted-foreground" };
-
+  
   const codeLabel = proposta.codigo || (proposta.proposta_num ? `PROP-${proposta.proposta_num}` : proposta.titulo) || "—";
   
   const today = new Date();
@@ -257,7 +257,7 @@ function PropostaRow({
         <div className="flex items-center gap-2">
           {isMain && hasOthers && (
             <button 
-              onClick={onToggleExpand} 
+              onClick={(e) => { e.stopPropagation(); onToggleExpand?.(); }}
               className="p-1 hover:bg-muted rounded-sm text-muted-foreground transition-colors"
             >
               {isExpanded ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
@@ -271,9 +271,9 @@ function PropostaRow({
             {isMain && hasOthers && (
               <span 
                 className="text-[10px] text-primary font-medium cursor-pointer hover:underline"
-                onClick={onToggleExpand}
+                onClick={(e) => { e.stopPropagation(); onToggleExpand?.(); }}
               >
-                +{othersCount(propostasCount(proposta))} versões
+                +{othersCount} versões
               </span>
             )}
             {isSubRow && <span className="text-[10px] text-muted-foreground">Versão {proposta.versao_numero}</span>}
@@ -320,10 +320,6 @@ function PropostaRow({
     </TableRow>
   );
 }
-
-// Helpers placeholders for row logic
-function propostasCount(p: any) { return 0; } // Not used directly, logic moved inside
-function othersCount(n: number) { return n; } // Placeholder
 
 function PropostaRowActions({ proposta }: { proposta: PropostaConsultor }) {
   const [busy, setBusy] = useState<string | null>(null);
