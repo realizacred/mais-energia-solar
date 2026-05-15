@@ -17,12 +17,14 @@ import {
   ChevronDown, 
   ChevronRight,
   Loader2,
-  Clock
+  Clock,
+  Filter
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { LoadingState } from "@/components/ui-kit/LoadingState";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { 
   Table, 
   TableBody, 
@@ -31,6 +33,13 @@ import {
   TableHeader, 
   TableRow 
 } from "@/components/ui/table";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Tooltip,
   TooltipContent,
