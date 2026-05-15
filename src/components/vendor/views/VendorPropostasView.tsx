@@ -354,7 +354,7 @@ function PropostaRow({
                 );
               }
 
-              if (proposta.cliente_nome_real && showSubtitle) {
+              if (showSubtitle) {
                 return (
                   <span className="text-[10px] text-muted-foreground truncate max-w-[200px] leading-tight" title={titulo}>
                     {titulo}
