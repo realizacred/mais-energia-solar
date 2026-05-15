@@ -120,6 +120,7 @@ const ProposalMessageConfigPage = lazy(() => import("@/pages/admin/ProposalMessa
 const CommercialDirectorDashboard = lazy(() => import("@/components/admin/director").then(m => ({ default: m.CommercialDirectorDashboard })));
 const ConsultorDashboard = lazy(() => import("@/pages/ConsultorDashboard"));
 const FinancialSettingsPage = lazy(() => import("@/components/admin/settings/FinancialSettingsPage"));
+const CreditConfigPage = lazy(() => import("@/pages/admin/CreditConfigPage"));
 const ChequesPage = lazy(() => import("@/pages/admin/financeiro/cheques/ChequesPage"));
 
 
