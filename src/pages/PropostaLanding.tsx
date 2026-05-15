@@ -270,59 +270,93 @@ export default function PropostaLanding() {
   const templateVariables = useMemo(() => {
     if (!snapshot || !versaoData) return {};
     try {
-    const s = snapshot;
-    const raw = (s as any)?._raw || {};
-    const vars: Record<string, string> = {};
-    for (const [k, v] of Object.entries(raw)) {
-      if (v !== null && v !== undefined) vars[k] = String(v);
-    }
+      const s = snapshot;
+      const raw = (s as any)?._raw || {};
+      const vars: Record<string, string> = {};
+      
+      // Mapeamento inicial de campos brutos
+      for (const [k, v] of Object.entries(raw)) {
+        if (v !== null && v !== undefined) vars[k] = String(v);
+      }
 
-    // SSOT: total canônico recomposto via getCanonicalProposalTotal
-    // (substitui re-implementação local de calcPrecoFinal — não duplicar).
-    const snapshotValorTotal = getCanonicalProposalTotal({
-      valor_total: versaoData.valor_total,
-      snapshot: raw,
-    });
+      // SSOT: total canônico recomposto via getCanonicalProposalTotal
+      const snapshotValorTotal = getCanonicalProposalTotal({
+        valor_total: versaoData.valor_total,
+        snapshot: raw,
+      });
 
-    // Use cenario > canonical total > DB column > 0
-    const bestValorTotal = activeCenario?.preco_final
-      ?? (snapshotValorTotal > 0 ? snapshotValorTotal : null)
-      ?? versaoData.valor_total
-      ?? 0;
+      // Use cenario > canonical total > DB column > 0
+      const bestValorTotal = activeCenario?.preco_final
+        ?? (snapshotValorTotal > 0 ? snapshotValorTotal : null)
+        ?? versaoData.valor_total
+        ?? 0;
 
-    vars["cliente_nome"] = s.clienteNome || "";
-    vars["potencia_kwp"] = String(s.potenciaKwp || versaoData.potencia_kwp || 0);
-    vars["valor_total"] = formatBRL(bestValorTotal);
-    vars["economia_mensal"] = formatBRL(versaoData.economia_mensal ?? s.economiaMensal ?? 0);
-    vars["economia_anual"] = formatBRL((versaoData.economia_mensal ?? s.economiaMensal ?? 0) * 12);
-    vars["payback_meses"] = String(activeCenario?.payback_meses ?? versaoData.payback_meses ?? s.paybackMeses ?? 0);
-    vars["consumo_mensal"] = String(s.consumoTotal || 0);
-    vars["geracao_mensal"] = String(s.geracaoMensalEstimada || 0);
-    vars["cidade"] = s.locCidade || "";
-    vars["estado"] = s.locEstado || "";
-    vars["empresa_nome"] = tenantNome || "";
-    vars["consultor_nome"] = consultorNome || "";
-    vars["consultor_telefone"] = consultorTelefone || "";
-    const modulos = s.itens.filter(i => i.categoria === "modulo" || i.categoria === "modulos");
-    const inversores = s.itens.filter(i => i.categoria === "inversor" || i.categoria === "inversores");
-    if (modulos[0]) {
-      vars["modulo_modelo"] = modulos[0].modelo || "";
-      vars["modulo_fabricante"] = modulos[0].fabricante || "";
-      vars["modulo_potencia_w"] = String(modulos[0].potencia_w || 0);
-      vars["modulo_quantidade"] = String(modulos.reduce((a, m) => a + m.quantidade, 0));
-    }
-    if (inversores[0]) {
-      vars["inversor_modelo"] = inversores[0].modelo || "";
-      vars["inversor_fabricante"] = inversores[0].fabricante || "";
-    }
-    if (brand?.logo_url) vars["logo_url"] = brand.logo_url;
-    if (brand?.logo_white_url) vars["logo_white_url"] = brand.logo_white_url;
-    return vars;
+      const economiaMensalNum = Number(versaoData.economia_mensal ?? s.economiaMensal ?? 0);
+      const eco25Num = economiaMensalNum * 12 * 25;
+
+      // ─── Variáveis Principais (Sem R$ para evitar duplicação) ───
+      vars["valor_total"] = formatNumberBR(bestValorTotal);
+      vars["economia_mensal"] = formatNumberBR(economiaMensalNum);
+      vars["economia_anual"] = formatNumberBR(economiaMensalNum * 12);
+      vars["economia_25_anos"] = formatNumberBR(eco25Num);
+      vars["lucro_25_anos"] = formatNumberBR(eco25Num);
+      vars["roi_25_anos"] = formatNumberBR(eco25Num);
+
+      // ─── Variantes com R$ (para templates que não têm o prefixo no HTML) ───
+      vars["valor_total_rs"] = formatBRL(bestValorTotal);
+      vars["economia_mensal_rs"] = formatBRL(economiaMensalNum);
+      vars["economia_anual_rs"] = formatBRL(economiaMensalNum * 12);
+      vars["economia_25_anos_rs"] = formatBRL(eco25Num);
+
+      // ─── Identificação e Localização ───
+      vars["cliente_nome"] = s.clienteNome || clienteData?.nome || "";
+      vars["cliente_cidade"] = s.locCidade || clienteData?.cidade || "";
+      vars["cliente_estado"] = s.locEstado || clienteData?.estado || "";
+      vars["cidade"] = vars["cliente_cidade"]; // Alias
+      vars["estado"] = vars["cliente_estado"]; // Alias
+
+      vars["empresa_nome"] = tenantNome || "";
+      vars["consultor_nome"] = consultorNome || "";
+      vars["consultor_telefone"] = consultorTelefone || "";
+
+      // ─── Payback Aliases ───
+      const pbMeses = Number(activeCenario?.payback_meses ?? versaoData.payback_meses ?? s.paybackMeses ?? 0);
+      vars["payback_meses"] = String(pbMeses);
+      vars["payback"] = String(pbMeses); // Alias comum em templates
+      vars["payback_anos"] = String(Math.floor(pbMeses / 12));
+
+      // ─── Técnica e Fallbacks de Coluna Viva ───
+      vars["potencia_kwp"] = String(s.potenciaKwp || versaoData.potencia_kwp || 0);
+      vars["consumo_mensal"] = String(s.consumoTotal || 0);
+      vars["geracao_mensal"] = String(s.geracaoMensalEstimada || versaoData.geracao_mensal || 0);
+
+      // ─── Equipamentos ───
+      const modulos = s.itens.filter(i => i.categoria === "modulo" || i.categoria === "modulos");
+      const inversores = s.itens.filter(i => i.categoria === "inversor" || i.categoria === "inversores");
+      
+      if (modulos[0]) {
+        vars["modulo_modelo"] = modulos[0].modelo || "";
+        vars["modulo_fabricante"] = modulos[0].fabricante || "";
+        vars["modulo_potencia_w"] = String(modulos[0].potencia_w || 0);
+        vars["modulo_potencia"] = vars["modulo_potencia_w"]; // Alias
+        vars["modulo_quantidade"] = String(modulos.reduce((a, m) => a + m.quantidade, 0));
+      }
+      if (inversores[0]) {
+        vars["inversor_modelo"] = inversores[0].modelo || "";
+        vars["inversor_fabricante"] = inversores[0].fabricante || "";
+        vars["inversor_garantia"] = String(inversores[0].garantia_anos || "");
+      }
+
+      // ─── Branding ───
+      if (brand?.logo_url) vars["logo_url"] = brand.logo_url;
+      if (brand?.logo_white_url) vars["logo_white_url"] = brand.logo_white_url;
+
+      return vars;
     } catch (e) {
       console.error("[PropostaLanding] Erro ao construir variáveis do template:", e);
       return {};
     }
-  }, [snapshot, versaoData, activeCenario, tenantNome, consultorNome, consultorTelefone, brand]);
+  }, [snapshot, versaoData, activeCenario, tenantNome, consultorNome, consultorTelefone, brand, clienteData]);
 
   // ─── Shared section props (safe defaults) ───
   const sectionProps = useMemo(() => ({
