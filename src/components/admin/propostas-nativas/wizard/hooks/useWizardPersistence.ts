@@ -500,6 +500,7 @@ async function persistProposalAtomic(
         kwp: params.potenciaKwp,
         updated_at: new Date().toISOString(),
       };
+      // For rascunhos, we NEVER touch deal.value. Trigger in backend handles official update.
       if (setActive) dealUpdate.value = params.precoFinal;
       await supabase.from("deals").update(dealUpdate as any).eq("id", syncDealId);
     }
@@ -515,13 +516,14 @@ async function persistProposalAtomic(
       syncProjetoId = (pn as any)?.projeto_id ?? null;
     }
     if (syncProjetoId && (params.potenciaKwp > 0 || params.precoFinal > 0)) {
+      const projUpdate: Record<string, any> = {
+        potencia_kwp: params.potenciaKwp,
+        updated_at: new Date().toISOString(),
+      };
+      if (setActive) projUpdate.valor_total = params.precoFinal;
       await supabase
         .from("projetos")
-        .update({
-          valor_total: params.precoFinal,
-          potencia_kwp: params.potenciaKwp,
-          updated_at: new Date().toISOString(),
-        } as any)
+        .update(projUpdate as any)
         .eq("id", syncProjetoId);
     }
 
