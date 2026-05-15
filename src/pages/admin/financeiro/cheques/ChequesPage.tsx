@@ -18,6 +18,7 @@ import {
   Plus, Search, Filter, Wallet, ArrowUpRight, CheckCircle2, AlertCircle, Share2 
 } from "lucide-react";
 import { LoadingState } from "@/components/ui-kit/LoadingState";
+import { DevolverChequeDialog } from "@/components/admin/cheques/DevolverChequeDialog";
 
 const STATUS_CONFIG: Record<ChequeStatus, { label: string, color: string, icon: any }> = {
   recebido: { label: "Recebido", color: "bg-blue-100 text-blue-700 border-blue-200", icon: Wallet },
@@ -32,6 +33,7 @@ const STATUS_CONFIG: Record<ChequeStatus, { label: string, color: string, icon: 
 export default function ChequesPage() {
   const [statusFilter, setStatusFilter] = useState<ChequeStatus | 'todos'>('todos');
   const [search, setSearch] = useState("");
+  const [chequeParaDevolver, setChequeParaDevolver] = useState<any>(null);
   
   const { data: settings } = useFinancialSettings();
   const { data: cheques = [], isLoading } = useCheques({ status: statusFilter });
@@ -167,8 +169,17 @@ export default function ChequesPage() {
                             {status.label}
                           </Badge>
                         </TableCell>
-                        <TableCell className="text-right">
+                        <TableCell className="text-right space-x-1">
                           <Button variant="ghost" size="sm">Ver</Button>
+                          {!['devolvido','cancelado'].includes(cheque.status) && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setChequeParaDevolver(cheque)}
+                            >
+                              Devolver
+                            </Button>
+                          )}
                         </TableCell>
                       </TableRow>
                     );
@@ -179,6 +190,14 @@ export default function ChequesPage() {
           </div>
         </CardContent>
       </Card>
+
+      {chequeParaDevolver && (
+        <DevolverChequeDialog
+          open={!!chequeParaDevolver}
+          onOpenChange={(o) => !o && setChequeParaDevolver(null)}
+          cheque={chequeParaDevolver}
+        />
+      )}
     </div>
   );
 }

@@ -2214,6 +2214,7 @@ export type Database = {
           destino: string | null
           entregue_para: string | null
           id: string
+          motivo_status: string | null
           numero_cheque: string
           observacoes: string | null
           origem: string | null
@@ -2245,6 +2246,7 @@ export type Database = {
           destino?: string | null
           entregue_para?: string | null
           id?: string
+          motivo_status?: string | null
           numero_cheque: string
           observacoes?: string | null
           origem?: string | null
@@ -2276,6 +2278,7 @@ export type Database = {
           destino?: string | null
           entregue_para?: string | null
           id?: string
+          motivo_status?: string | null
           numero_cheque?: string
           observacoes?: string | null
           origem?: string | null
@@ -14431,9 +14434,13 @@ export type Database = {
           comprovante_url: string | null
           created_at: string
           data_pagamento: string
+          estornado: boolean
+          estornado_em: string | null
+          estornado_por: string | null
           forma_pagamento: string
           gateway_utilizado: string | null
           id: string
+          motivo_estorno: string | null
           numero_autorizacao: string | null
           numero_cheque: string | null
           numero_parcelas_cartao: number | null
@@ -14449,9 +14456,13 @@ export type Database = {
           comprovante_url?: string | null
           created_at?: string
           data_pagamento?: string
+          estornado?: boolean
+          estornado_em?: string | null
+          estornado_por?: string | null
           forma_pagamento: string
           gateway_utilizado?: string | null
           id?: string
+          motivo_estorno?: string | null
           numero_autorizacao?: string | null
           numero_cheque?: string | null
           numero_parcelas_cartao?: number | null
@@ -14467,9 +14478,13 @@ export type Database = {
           comprovante_url?: string | null
           created_at?: string
           data_pagamento?: string
+          estornado?: boolean
+          estornado_em?: string | null
+          estornado_por?: string | null
           forma_pagamento?: string
           gateway_utilizado?: string | null
           id?: string
+          motivo_estorno?: string | null
           numero_autorizacao?: string | null
           numero_cheque?: string | null
           numero_parcelas_cartao?: number | null
