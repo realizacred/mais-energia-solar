@@ -380,6 +380,28 @@ function PropostaRow({
             {!visto && !isSubRow && (
               <div className="h-1.5 w-1.5 rounded-full bg-primary shrink-0" title="Novo" />
             )}
+
+            {isMain && hasOthers && (
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-5 p-0 hover:bg-transparent shrink-0"
+                      onClick={(e) => { e.stopPropagation(); onToggleExpand?.(); }}
+                    >
+                      <Badge className="bg-blue-50 text-blue-600 hover:bg-blue-100 border-blue-100/50 rounded-full font-medium text-[10px] h-5 px-1.5 transition-colors">
+                        {isExpanded ? <ChevronDown className="h-3 w-3" /> : `+${othersCount} ${othersCount === 1 ? 'opção' : 'opções'}`}
+                      </Badge>
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    Ver outras {othersCount} versões
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            )}
           </div>
           <div className="flex flex-col gap-0.5 mt-0.5">
             {proposta.titulo && proposta.titulo !== proposta.cliente_nome && (
