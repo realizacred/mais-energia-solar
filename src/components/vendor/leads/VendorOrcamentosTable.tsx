@@ -112,7 +112,7 @@ export function VendorOrcamentosTable({
     window.open(getWhatsAppUrl(telefone), '_blank');
   };
 
-  const getConvertedStatus = () => statuses.find(s => s.nome === "Convertido");
+  const convertedIds = getConvertedStatusIds(statuses);
 
   if (groupedOrcamentos.length === 0) {
     return (
