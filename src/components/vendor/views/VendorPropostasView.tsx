@@ -358,7 +358,14 @@ function PropostaRow({
   const visto = proposta.status === 'vista' || proposta.status === 'aceita' || (proposta.total_aberturas && proposta.total_aberturas > 0);
 
   return (
-    <TableRow className={`align-middle ${visto ? "bg-success/5" : ""} ${proposta.status === 'aceita' ? "bg-primary/5" : ""} ${isSubRow ? "bg-muted/20" : ""} hover:bg-muted/30 transition-colors`}>
+    <TableRow className={`align-middle transition-colors ${
+      proposta.status === 'aceita' ? "bg-green-50/80 border-green-100 hover:bg-green-100/60" : 
+      proposta.status === 'enviada' ? "bg-blue-50/80 border-blue-100 hover:bg-blue-100/60" :
+      proposta.status === 'expirada' || proposta.status === 'recusada' ? "bg-red-50/80 border-red-100 hover:bg-red-100/60" :
+      visto ? "bg-success/5" : 
+      isSubRow ? "bg-muted/20" : 
+      "hover:bg-muted/30"
+    }`}>
       <TableCell className="align-middle">
         <Checkbox
           checked={visto}
