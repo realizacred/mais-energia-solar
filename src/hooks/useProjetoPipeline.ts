@@ -135,6 +135,7 @@ export function useProjetoPipeline() {
   const [consultores, setConsultores] = useState<{ id: string; nome: string; ativo: boolean }[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedFunilId, setSelectedFunilId] = useState<string | null>(null);
+  const [dbPrefs, setDbPrefs] = useState<any>(null);
   const [filters, setFilters] = useState<ProjetoFiltersState>({
     funilId: null,
     consultorId: "todos",
@@ -170,6 +171,7 @@ export function useProjetoPipeline() {
 
     const dbSettings = profileRes?.data?.settings as any;
     const dbPrefs = dbSettings?.projetos_filtros;
+    setDbPrefs(dbSettings || null);
 
     return {
       funis: nextFunis,
@@ -853,6 +855,6 @@ export function useProjetoPipeline() {
     deleteEtapa,
     moveProjetoToEtapa,
     moveProjetoToConsultor,
-    dbPrefs: null, // Pode ser acessado via fetchMetadata se necessário
+    dbPrefs,
   };
 }
