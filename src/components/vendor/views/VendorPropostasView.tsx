@@ -333,7 +333,7 @@ function PropostaRow({
             {isSubRow && <div className="w-px bg-muted-foreground/30 h-8 ml-1" />}
           </div>
           <div className="flex flex-col min-w-0">
-            <span className={`truncate ${isSubRow ? "text-xs font-normal" : "font-medium text-sm"} text-foreground`}>
+            <span className={`truncate ${isSubRow ? "text-xs font-normal" : "font-medium text-sm"} text-foreground ${!proposta.cliente_nome_real ? "italic opacity-80" : ""}`}>
               {proposta.cliente_nome}
             </span>
             {/* 
