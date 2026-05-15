@@ -142,7 +142,7 @@ export function useMinhasPropostasConsultor(consultorId: string | null | undefin
       const rows = (data ?? []) as RawProposta[];
       return rows.map((p): PropostaConsultor => {
         const capitalize = (s: string) => 
-          s.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
+          s.trim().split(/\s+/).map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
 
         const versoes = (p.proposta_versoes ?? []).slice().sort(
           (a, b) => (b.versao_numero ?? 0) - (a.versao_numero ?? 0),
