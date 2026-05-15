@@ -218,9 +218,7 @@ export function useMinhasPropostasConsultor(consultorId: string | null | undefin
         const latest =
           versoes.find((v) => v.versao_numero === p.versao_atual) ?? versoes[0] ?? null;
 
-        const clienteNomeRealRaw = p.clientes?.nome || p.leads?.nome;
-        const cliente_nome_real = clienteNomeRealRaw ? capitalize(clienteNomeRealRaw) : null;
-        
+        const cliente_nome_real = (p.clientes?.nome || p.leads?.nome) ? capitalize(p.clientes?.nome || p.leads?.nome || "") : null;
         const cliente_nome = cliente_nome_real || (p.titulo ? capitalize(p.titulo) : "Cliente não identificado");
 
         let valido_ate = latest?.valido_ate ?? null;
