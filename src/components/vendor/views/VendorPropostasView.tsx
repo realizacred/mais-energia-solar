@@ -403,10 +403,6 @@ function PropostaRow({
           )}
         </div>
       </TableCell>
-            </TooltipProvider>
-          )}
-        </div>
-      </TableCell>
 
       <TableCell className="align-middle">
         <div className="flex flex-col min-w-0">
