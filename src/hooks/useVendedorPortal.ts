@@ -284,7 +284,9 @@ export function useVendedorPortal() {
     vendedor,
     isAdminMode,
     isViewingAsVendedor,
-    loading: initialLoading || orcamentosData.loading,
+    // Phase 1 — only block portal on initial profile load. Refetches por filtro
+    // não devem desmontar a UI (causa "página recarregando" ao trocar filtro).
+    loading: initialLoading,
 
     // Filters
     searchTerm,
