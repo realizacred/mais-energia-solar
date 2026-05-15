@@ -1230,7 +1230,7 @@ export function StepDocumento({
 
         {/* Right: Preview — PDF real only, no HTML fallback */}
         <div className="min-w-0 min-h-[300px] sm:min-h-[400px]">
-          {rendering ? (
+          {rendering && !(pdfBlobUrl || resolvedPdfPreviewUrl) ? (
             <div className="flex flex-col items-center justify-center py-20 gap-4">
               <Sun className="h-10 w-10 text-primary animate-spin" style={{ animationDuration: "2s" }} />
               <p className="text-sm text-muted-foreground animate-pulse">
