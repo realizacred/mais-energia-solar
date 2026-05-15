@@ -101,13 +101,13 @@ import { formatBRL } from "@/lib/formatters";
          mesesMap.set(chave, 0);
        }
  
-       pagamentos?.forEach((p: Pagamento) => {
-         const chave = format(new Date(p.data_pagamento), "MMM/yy", { locale: ptBR });
-         if (mesesMap.has(chave)) {
-           mesesMap.set(chave, (mesesMap.get(chave) || 0) + p.valor_pago);
-         }
-       });
- 
+        receitas?.forEach((p: any) => {
+          const chave = format(new Date(p.data_referencia), "MMM/yy", { locale: ptBR });
+          if (mesesMap.has(chave)) {
+            mesesMap.set(chave, (mesesMap.get(chave) || 0) + Number(p.valor));
+          }
+        });
+
        setDadosMensais(
          Array.from(mesesMap.entries()).map(([mes, recebido], idx) => ({
            mes,
