@@ -17,7 +17,7 @@ export async function checkFinancialLock(
   // 1. Verificar se o pagamento existe e sua data
   const { data: payment, error: pError } = await supabase
     .from('pagamentos')
-    .select('created_at, data_pagamento, status')
+    .select('created_at, data_pagamento')
     .eq('id', paymentId)
     .single();
 
