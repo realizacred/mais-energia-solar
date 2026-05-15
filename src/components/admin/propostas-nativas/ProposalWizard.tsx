@@ -1549,6 +1549,7 @@ function ProposalWizardContent() {
     if (res.projetoId) setSavedProjetoId(res.projetoId);
     if (res.dealId) setSavedDealId(res.dealId);
     if (res.clienteId) setSavedClienteId(res.clienteId);
+    setHasEditsAfterRestore(false); // Reset draft flag after successful save
   }, []);
 
   // ─── Fire-and-forget: sync template_id_used on proposta_versoes (RB-25)
