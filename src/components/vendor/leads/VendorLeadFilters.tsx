@@ -27,6 +27,10 @@ interface VendorLeadFiltersProps {
   onFilterEstadoChange: (value: string) => void;
   filterStatus: string;
   onFilterStatusChange: (value: string) => void;
+  excludeTerminal: boolean;
+  onExcludeTerminalChange: (value: boolean) => void;
+  maxAgeDays: number | null;
+  onMaxAgeDaysChange: (value: number | null) => void;
   estados: string[];
   statuses: { id: string; nome: string }[];
   onClearFilters: () => void;
@@ -41,6 +45,10 @@ export function VendorLeadFilters({
   onFilterEstadoChange,
   filterStatus,
   onFilterStatusChange,
+  excludeTerminal,
+  onExcludeTerminalChange,
+  maxAgeDays,
+  onMaxAgeDaysChange,
   estados,
   statuses,
   onClearFilters,
@@ -49,7 +57,9 @@ export function VendorLeadFilters({
   const hasActiveFilters =
     filterVisto !== "todos" ||
     filterEstado !== "todos" ||
-    filterStatus !== "todos";
+    filterStatus !== "todos" ||
+    excludeTerminal ||
+    maxAgeDays !== null;
 
   const FilterControls = () => (
     <div className="grid grid-cols-1 sm:flex sm:flex-wrap gap-2 w-full sm:w-auto">
@@ -86,6 +96,24 @@ export function VendorLeadFilters({
       </div>
 
       <div className="space-y-1.5 sm:space-y-0">
+        <label className="text-[10px] font-medium uppercase text-muted-foreground sm:hidden px-1">Período</label>
+        <Select 
+          value={maxAgeDays?.toString() || "todos"} 
+          onValueChange={(val) => onMaxAgeDaysChange(val === "todos" ? null : parseInt(val))}
+        >
+          <SelectTrigger className="w-full sm:w-[130px] h-9">
+            <SelectValue placeholder="Período" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="todos">Todo o período</SelectItem>
+            <SelectItem value="30">Últimos 30 dias</SelectItem>
+            <SelectItem value="60">Últimos 60 dias</SelectItem>
+            <SelectItem value="90">Últimos 90 dias</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className="space-y-1.5 sm:space-y-0">
         <label className="text-[10px] font-medium uppercase text-muted-foreground sm:hidden px-1">Estado</label>
         <Select value={filterEstado} onValueChange={onFilterEstadoChange}>
           <SelectTrigger className="w-full sm:w-[120px] h-9">
@@ -100,6 +128,17 @@ export function VendorLeadFilters({
             ))}
           </SelectContent>
         </Select>
+      </div>
+
+      <div className="space-y-1.5 sm:space-y-0 flex items-center gap-2">
+        <Button
+          variant={excludeTerminal ? "secondary" : "outline"}
+          size="sm"
+          className="h-9 px-3 gap-2 text-xs font-medium"
+          onClick={() => onExcludeTerminalChange(!excludeTerminal)}
+        >
+          {excludeTerminal ? "Ocultar Finalizados" : "Mostrar Finalizados"}
+        </Button>
       </div>
 
       {hasActiveFilters && (

@@ -39,6 +39,10 @@ export default function VendorOrcamentosView({ portal }: Props) {
     setFilterEstado,
     filterStatus,
     setFilterStatus,
+    excludeTerminal,
+    setExcludeTerminal,
+    maxAgeDays,
+    setMaxAgeDays,
     handleClearFilters,
     selectedOrcamento,
     setSelectedOrcamento,
@@ -96,6 +100,7 @@ export default function VendorOrcamentosView({ portal }: Props) {
       <VendorPendingDocumentation
         leads={leadsForAlerts}
         statuses={statuses}
+        showAll={!excludeTerminal}
         onConvertClick={(lead) => {
           const orc = orcamentos.find((o) => o.lead_id === lead.id);
           if (orc) {
@@ -120,6 +125,18 @@ export default function VendorOrcamentosView({ portal }: Props) {
               <CardDescription>
                 Exibindo {filteredOrcamentos.length} de {totalCount} orçamentos captados através do seu link
               </CardDescription>
+              {(excludeTerminal || maxAgeDays !== null) && (
+                <div className="mt-2 flex items-center gap-2 px-3 py-1.5 bg-yellow-50 dark:bg-yellow-950/20 border border-yellow-100 dark:border-yellow-900/30 rounded-md text-[11px] text-yellow-700 dark:text-yellow-400 font-medium animate-in fade-in slide-in-from-top-1">
+                  <span className="flex h-1.5 w-1.5 rounded-full bg-yellow-500 animate-pulse" />
+                  Alguns orçamentos estão ocultos por filtros operacionais.
+                  <button 
+                    onClick={handleClearFilters}
+                    className="ml-auto underline hover:no-underline"
+                  >
+                    Mostrar todos
+                  </button>
+                </div>
+              )}
             </div>
             <OrcamentoSortSelector value={sortOption} onChange={updateSort} />
           </div>
@@ -134,6 +151,10 @@ export default function VendorOrcamentosView({ portal }: Props) {
             onFilterStatusChange={setFilterStatus}
             estados={estados}
             statuses={statuses}
+            excludeTerminal={excludeTerminal}
+            onExcludeTerminalChange={setExcludeTerminal}
+            maxAgeDays={maxAgeDays}
+            onMaxAgeDaysChange={setMaxAgeDays}
             onClearFilters={handleClearFilters}
           />
         </CardHeader>

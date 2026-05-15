@@ -149,7 +149,7 @@ export function useOrcamentosVendedor({
         } else if (filterStatus !== "todos") {
           q = q.eq("status_id", filterStatus);
         } else if (excludeTerminal && terminalIds.length > 0) {
-          q = q.not("status_id", "in", `(${terminalIds.join(",")})`);
+          q = q.or(`status_id.is.null,status_id.not.in.(${terminalIds.join(",")})`);
         }
 
         if (maxAgeDays) {

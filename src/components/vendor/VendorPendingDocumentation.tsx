@@ -23,6 +23,7 @@ interface VendorPendingDocumentationProps {
   statuses: LeadStatus[];
   onLeadClick?: (lead: Lead) => void;
   onConvertClick?: (lead: Lead) => void;
+  showAll?: boolean;
 }
 
 // Helper to parse missing docs from observacoes - format: [Documentação Pendente: item1, item2]
@@ -94,7 +95,8 @@ export function VendorPendingDocumentation({
   leads, 
   statuses,
   onLeadClick,
-  onConvertClick
+  onConvertClick,
+  showAll = false
 }: VendorPendingDocumentationProps) {
   const pendingLeads = useMemo(() => {
     // Find status "Aguardando Documentação"
@@ -115,9 +117,11 @@ export function VendorPendingDocumentation({
         // Exclude if terminal (already converted or lost)
         if (terminalIds.includes(lead.status_id)) return false;
 
-        // Exclude older leads (archived logic) - 90 days
-        const daysOld = differenceInDays(new Date(), new Date(lead.created_at));
-        if (daysOld > 90) return false;
+        // Archive logic: exclude older leads unless showAll is true
+        if (!showAll) {
+          const daysOld = differenceInDays(new Date(), new Date(lead.created_at));
+          if (daysOld > 90) return false;
+        }
 
         return true;
       })
@@ -168,7 +172,7 @@ export function VendorPendingDocumentation({
   };
 
   return (
-    <Card className="border-primary/30 bg-primary/5">
+    <Card className={`border-primary/30 bg-primary/5 transition-all duration-300 ${pendingLeads.length === 0 && !showAll ? 'opacity-50 grayscale' : ''}`}>
       <CardHeader className="pb-2 sm:pb-3 px-3 sm:px-6">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2 flex-wrap">
