@@ -118,7 +118,7 @@ export function useOrcamentosVendedor({
   filterEstado = "todos",
   filterStatus = "todos",
   excludeTerminal = false,
-  maxAgeDays, operationalStatus = null, operationalStatus = "todos",
+  maxAgeDays = null, operationalStatus = "todos",
 }: UseOrcamentosVendedorOptions) {
   const [page, setPage] = useState(0);
   const { toast } = useToast();
