@@ -76,7 +76,7 @@ const STATUS_CONFIG: Record<string, { label: string; cls: string }> = {
 
 export default function VendorPropostasView({ portal }: Props) {
   const consultorId = portal.vendedor?.id ?? null;
-  const { data = [], isLoading, isError, refetch } = useMinhasPropostasConsultor(consultorId);
+  const { data = [], isLoading, refetch, loadMore, hasMore, loadingMore, totalCount } = useMinhasPropostasConsultor(consultorId);
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState("todas");
 
@@ -132,7 +132,7 @@ export default function VendorPropostasView({ portal }: Props) {
     return <LoadingState message="Carregando propostas..." size="md" />;
   }
 
-  if (isError) {
+  /* if (isError) {
     return (
       <Card>
         <CardContent className="p-6 text-sm text-destructive">
@@ -140,7 +140,7 @@ export default function VendorPropostasView({ portal }: Props) {
         </CardContent>
       </Card>
     );
-  }
+  } */
 
   return (
     <div className="space-y-5">
@@ -159,7 +159,7 @@ export default function VendorPropostasView({ portal }: Props) {
 
       {/* KPIs */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-        <KpiCard label="Total" value={kpis.total} icon={FileText} accent="primary" />
+        <KpiCard label="Total" value={totalCount || kpis.total} icon={FileText} accent="primary" />
         <KpiCard label="Enviadas" value={kpis.enviadas} icon={Send} accent="info" />
         <KpiCard label="Visualizadas" value={kpis.visualizadas} icon={Eye} accent="warning" />
         <KpiCard label="Aceitas" value={kpis.aceitas} icon={CheckCircle2} accent="success" />
@@ -235,6 +235,28 @@ export default function VendorPropostasView({ portal }: Props) {
               </TableBody>
             </Table>
           </TooltipProvider>
+        </div>
+      )}
+
+      {/* Pagination */}
+      {hasMore && (
+        <div className="flex justify-center py-4">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={loadMore} 
+            disabled={loadingMore}
+            className="w-full sm:w-auto min-w-[200px] h-10"
+          >
+            {loadingMore ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Carregando...
+              </>
+            ) : (
+              'Carregar mais propostas'
+            )}
+          </Button>
         </div>
       )}
     </div>
