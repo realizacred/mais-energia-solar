@@ -345,7 +345,7 @@ export function useDealPipeline() {
       });
 
       // Select best proposal per deal (without economia yet)
-      const bestPropostaByDeal = new Map<string, { id: string; status: string }>();
+      const bestPropostaByDeal = new Map<string, { id: string; status: string; draft_total?: number | null; has_unpublished_changes?: boolean }>();
       propostasByDeal.forEach((dealPropostas, did) => {
         const principal = dealPropostas.find((p: any) => p.is_principal && !['excluida', 'cancelada', 'arquivada'].includes(p.status?.toLowerCase()));
         if (principal) {
