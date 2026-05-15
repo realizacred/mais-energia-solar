@@ -379,29 +379,15 @@ async function persistProposalAtomic(
         }
       }
 
-    // Sync deal value + kwp so kanban projection reflects proposal data.
-    // IMPORTANTE: só atualiza deals.value em ações finais (intent='active').
-    // Em rascunhos, evita disparar trigger audit_deal_changes (value_changed)
-    // por edições intermediárias do wizard.
-    const syncDealId = params.dealId || result.projeto_id;
-    if (syncDealId && (params.potenciaKwp > 0 || params.precoFinal > 0)) {
-      const dealUpdate: Record<string, any> = {
-        kwp: params.potenciaKwp,
-        updated_at: new Date().toISOString(),
-      };
-      // For rascunhos, we NEVER touch deal.value. Trigger in backend handles official update.
-      if (setActive) dealUpdate.value = params.precoFinal;
-      await supabase.from("deals").update(dealUpdate as any).eq("id", syncDealId);
-    }
-
-    // Sync canonical projeto
-    if (result.projeto_id && (params.potenciaKwp > 0 || params.precoFinal > 0)) {
-      const projUpdate: Record<string, any> = {
-        potencia_kwp: params.potenciaKwp,
-        updated_at: new Date().toISOString(),
-      };
-      if (setActive) projUpdate.valor_total = params.precoFinal;
-      await supabase.from("projetos").update(projUpdate as any).eq("id", result.projeto_id);
+    // SSOT backend: trigger tr_sync_proposal_value propaga valor_total/potencia_kwp
+    // de proposta_versoes oficiais para deals e projetos. Frontend NÃO sincroniza
+    // valor financeiro/comercial. Apenas mantém kwp técnico no deal (não-oficial).
+    const syncDealId = params.dealId || null;
+    if (syncDealId && params.potenciaKwp > 0) {
+      await supabase
+        .from("deals")
+        .update({ kwp: params.potenciaKwp, updated_at: new Date().toISOString() } as any)
+        .eq("id", syncDealId);
     }
 
       return {
@@ -492,20 +478,17 @@ async function persistProposalAtomic(
     //   reason: result.reason,
     // });
 
-    // Sync deal value + kwp — só em ações finais (intent='active'). Rascunhos
-    // não devem mexer em deals.value para não gerar evento "Valor alterado".
+    // SSOT backend: trigger tr_sync_proposal_value propaga valor_total/potencia_kwp
+    // de proposta_versoes oficiais para deals e projetos. Frontend NÃO toca em
+    // deals.value nem projetos.valor_total. Apenas mantém kwp técnico no deal.
     const syncDealId = params.dealId;
-    if (syncDealId && (params.potenciaKwp > 0 || params.precoFinal > 0)) {
-      const dealUpdate: Record<string, any> = {
-        kwp: params.potenciaKwp,
-        updated_at: new Date().toISOString(),
-      };
-      // For rascunhos, we NEVER touch deal.value. Trigger in backend handles official update.
-      if (setActive) dealUpdate.value = params.precoFinal;
-      await supabase.from("deals").update(dealUpdate as any).eq("id", syncDealId);
+    if (syncDealId && params.potenciaKwp > 0) {
+      await supabase
+        .from("deals")
+        .update({ kwp: params.potenciaKwp, updated_at: new Date().toISOString() } as any)
+        .eq("id", syncDealId);
     }
 
-    // Sync canonical projeto. Resolve projeto_id from proposta when not in params.
     let syncProjetoId = params.projetoId || null;
     if (!syncProjetoId && effectivePropostaId) {
       const { data: pn } = await supabase
@@ -515,15 +498,10 @@ async function persistProposalAtomic(
         .maybeSingle();
       syncProjetoId = (pn as any)?.projeto_id ?? null;
     }
-    if (syncProjetoId && (params.potenciaKwp > 0 || params.precoFinal > 0)) {
-      const projUpdate: Record<string, any> = {
-        potencia_kwp: params.potenciaKwp,
-        updated_at: new Date().toISOString(),
-      };
-      if (setActive) projUpdate.valor_total = params.precoFinal;
+    if (syncProjetoId && params.potenciaKwp > 0) {
       await supabase
         .from("projetos")
-        .update(projUpdate as any)
+        .update({ potencia_kwp: params.potenciaKwp, updated_at: new Date().toISOString() } as any)
         .eq("id", syncProjetoId);
     }
 
