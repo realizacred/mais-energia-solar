@@ -772,6 +772,7 @@ export default function Admin() {
                 <Route path="obras" element={<ObrasManager />} />
                 
                 {/* Administração */}
+                <Route path="configuracoes-financeiras" element={<FinancialSettingsPage />} />
                 <Route path="tenant-settings" element={<TenantSettings />} />
                 <Route path="custom-fields" element={<CustomFieldsSettings />} />
                 <Route path="auditoria" element={<AuditLogsViewer />} />
