@@ -257,9 +257,21 @@ export function StageDealCard({
                     if (["rascunho", "draft"].includes(normalized)) return "rascunho";
                     return "gerada"; // fallback
                   })() as any}
-                  className={cn("text-[8px] h-[16px] px-1 py-0 font-medium border bg-transparent", propostaInfo.className)} 
                 />
-
+                {deal.proposta_has_unpublished_changes && (
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <div className="flex h-4 w-4 items-center justify-center rounded-full bg-amber-500 text-[10px] text-white animate-pulse">
+                          !
+                        </div>
+                      </TooltipTrigger>
+                      <TooltipContent side="top" className="text-[10px] p-2 max-w-[150px]">
+                        Alterações não publicadas (R$ {deal.proposta_draft_total?.toLocaleString('pt-BR')})
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                )}
               </>
             )}
             {deal.deal_num != null && (
