@@ -124,7 +124,7 @@ export function VendorOrcamentosTable({
 
   // Mobile: Card Layout
   if (isMobile) {
-    const convertidoStatus = getConvertedStatus();
+    const isConverted = (statusId: string | null) => statusId && convertedIds.includes(statusId);
     
     return (
       <>
