@@ -1,5 +1,6 @@
 // §16: Queries só em hooks — NUNCA em componentes
 // §23: staleTime obrigatório
+// §76: Consolidação de SSOT Financeiro (DA-48)
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
