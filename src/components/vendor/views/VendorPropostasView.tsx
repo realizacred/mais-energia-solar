@@ -368,10 +368,16 @@ function PropostaRow({
       </TableCell>
 
       <TableCell className="align-middle">
-        <div className="flex items-center gap-1">
-          <Badge variant="default" className="font-mono text-xs whitespace-nowrap">
+        <div className="flex flex-col gap-1">
+          <Badge variant="default" className="font-mono text-xs whitespace-nowrap w-fit">
             {codeLabel}
           </Badge>
+          {proposta.versao_numero && (
+            <span className="text-[10px] text-muted-foreground font-medium ml-1">
+              Versão {proposta.versao_numero}
+            </span>
+          )}
+        </div>
           {isMain && hasOthers && (
             <TooltipProvider>
               <Tooltip>
