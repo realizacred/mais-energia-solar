@@ -68,7 +68,8 @@ export function useRecebimentosFull() {
         .select(`
           *,
           clientes (id, nome, telefone),
-          pagamentos (id, valor_pago, forma_pagamento, data_pagamento, observacoes)
+          pagamentos (id, valor_pago, forma_pagamento, data_pagamento, observacoes, tenant_id),
+          parcelas (id, numero_parcela, valor, data_vencimento, status, pagamento_id)
         `)
         .order("created_at", { ascending: false });
       if (error) throw error;
