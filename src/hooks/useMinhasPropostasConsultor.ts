@@ -110,6 +110,62 @@ export function useMinhasPropostasConsultor(consultorId: string | null | undefin
     propostasLenRef.current = propostas.length;
   }, [propostas.length]);
 
+  // CORREÇÃO: Buscar KPIs direto do banco para garantir precisão com paginação
+  const { data: kpis, isLoading: isLoadingKpis } = useQuery({
+    queryKey: ['propostas-consultor-kpis', consultorId],
+    enabled: !!consultorId && consultorId !== "admin",
+    staleTime: STALE_TIME,
+    queryFn: async () => {
+      const today = new Date().toISOString();
+      
+      const [total, enviadas, visualizadas, aceitas, expiradas] = await Promise.all([
+        supabase
+          .from("propostas_nativas")
+          .select("*", { count: "exact", head: true })
+          .eq("consultor_id", consultorId)
+          .is("deleted_at", null)
+          .neq("status", "excluida"),
+        
+        supabase
+          .from("propostas_nativas")
+          .select("*", { count: "exact", head: true })
+          .eq("consultor_id", consultorId)
+          .is("deleted_at", null)
+          .in("status", ["enviada"]),
+
+        supabase
+          .from("propostas_nativas")
+          .select("*", { count: "exact", head: true })
+          .eq("consultor_id", consultorId)
+          .is("deleted_at", null)
+          .or("primeiro_acesso_em.not.is.null,status.eq.vista"),
+
+        supabase
+          .from("propostas_nativas")
+          .select("*", { count: "exact", head: true })
+          .eq("consultor_id", consultorId)
+          .is("deleted_at", null)
+          .eq("status", "aceita"),
+
+        supabase
+          .from("propostas_nativas")
+          .select("*", { count: "exact", head: true })
+          .eq("consultor_id", consultorId)
+          .is("deleted_at", null)
+          .neq("status", "aceita")
+          .lt("valido_ate", today)
+      ]);
+
+      return {
+        total: total.count || 0,
+        enviadas: enviadas.count || 0,
+        visualizadas: visualizadas.count || 0,
+        aceitas: aceitas.count || 0,
+        expiradas: expiradas.count || 0
+      };
+    }
+  });
+
   const fetchPropostas = useCallback(async (append = false) => {
     if (!consultorId || consultorId === "admin") {
       setLoading(false);
@@ -176,8 +232,6 @@ export function useMinhasPropostasConsultor(consultorId: string | null | undefin
         const clienteNomeRealRaw = p.clientes?.nome || p.leads?.nome;
         const cliente_nome_real = clienteNomeRealRaw ? capitalize(clienteNomeRealRaw) : null;
         
-        // CORREÇÃO: Prioridade total ao nome real do cliente se existir.
-        // Se existir cliente_id mas o JOIN retornar null (p.clientes?.nome é null), fallback para o título.
         const cliente_nome = cliente_nome_real || (p.titulo ? capitalize(p.titulo) : "Cliente não identificado");
 
         let valido_ate = latest?.valido_ate ?? null;
@@ -249,10 +303,11 @@ export function useMinhasPropostasConsultor(consultorId: string | null | undefin
 
   return {
     data: propostas,
-    isLoading: loading,
+    isLoading: loading || isLoadingKpis,
     loadingMore,
     hasMore,
-    totalCount,
+    totalCount: kpis?.total || totalCount,
+    kpis: kpis || { total: 0, enviadas: 0, visualizadas: 0, aceitas: 0, expiradas: 0 },
     refetch: () => fetchPropostas(),
     loadMore: () => fetchPropostas(true),
   };
