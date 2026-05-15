@@ -47,6 +47,7 @@ export interface NormalizedKitItem {
   categoria: string;
   avulso: boolean;
   produto_ref: string | null;
+  garantia_anos: number;
 }
 
 // ─── Serviço normalizado ──────────────────────────────────
@@ -191,6 +192,7 @@ function normalizeKitItem(raw: any): NormalizedKitItem {
     categoria: str(raw.categoria, "outros"),
     avulso: !!raw.avulso,
     produto_ref: raw.produto_ref ?? null,
+    garantia_anos: num(raw.garantia_anos),
   };
 }
 
@@ -290,6 +292,7 @@ function adaptSmSnapshot(s: Record<string, any>): Record<string, any> {
       categoria: mapCategoria(it.category ?? it.categoria),
       avulso: false,
       produto_ref: null,
+      garantia_anos: Number(it.garantia_anos ?? 0),
     };
   });
 
