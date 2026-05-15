@@ -9,7 +9,7 @@ export interface LeadStatusRecord {
   ordem: number;
 }
 
-const TERMINAL_NAMES = ["Convertido", "Perdido", "Arquivado", "Aguardando Validação"];
+const TERMINAL_NAMES = TERMINAL_STATUS_KEYWORDS;
 
 /**
  * Centralized hook to fetch all lead_status records.
