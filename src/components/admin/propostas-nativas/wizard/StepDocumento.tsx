@@ -849,14 +849,18 @@ export function StepDocumento({
     const isReady = !isBusy && (generationStatus === "ready" || hasArtifact);
     const statusLabel = isReady
       ? "Proposta pronta"
-      : isBusy
-        ? "Gerando proposta..."
-        : generationStatus === "error"
-          ? "Erro na geração"
-          : "Proposta desatualizada";
+      : generationStatus === "rendering_pdf"
+        ? "PDF sendo processado..."
+        : generationStatus === "published"
+          ? "Versão publicada"
+          : isBusy
+            ? "Gerando proposta..."
+            : generationStatus === "error"
+              ? "Erro na geração"
+              : "Proposta desatualizada";
     const statusTone = isReady
       ? "success"
-      : isBusy
+      : (isBusy || generationStatus === "published" || generationStatus === "rendering_pdf")
         ? "info"
         : generationStatus === "error"
           ? "destructive"
