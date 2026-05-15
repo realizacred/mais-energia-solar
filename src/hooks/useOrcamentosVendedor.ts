@@ -64,6 +64,12 @@ const ORC_SELECT = `
 `;
 
 function mapRow(orc: any): OrcamentoVendedor {
+  // Pegar a proposta mais recente vinculada ao lead, preferencialmente aceita ou enviada
+  const propostas = orc.leads?.propostas_nativas || [];
+  const propostaAtiva = propostas.find((p: any) => p.status === 'aceita') || 
+                        propostas.find((p: any) => p.status === 'enviada') || 
+                        propostas[0];
+
   return {
     id: orc.id,
     orc_code: orc.orc_code,
@@ -95,6 +101,7 @@ function mapRow(orc: any): OrcamentoVendedor {
     data_proxima_acao: orc.data_proxima_acao,
     created_at: orc.created_at,
     updated_at: orc.updated_at,
+    proposta_token: propostaAtiva?.public_token || null,
   };
 }
 
