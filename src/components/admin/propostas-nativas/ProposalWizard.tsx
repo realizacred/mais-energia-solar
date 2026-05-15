@@ -2512,6 +2512,7 @@ function ProposalWizardContent() {
         },
       };
 
+      setGenerationStatus("publishing");
       const genResult = await generateProposal(payload);
       setResult(genResult);
       clearLocal(); // Proposta gerada — limpar rascunho local
