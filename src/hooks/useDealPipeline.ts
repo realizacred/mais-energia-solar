@@ -61,6 +61,8 @@ export interface DealKanbanCard {
   proposta_status?: string | null;
   proposta_economia_mensal?: number | null;
   proposta_id?: string | null;
+  proposta_draft_total?: number | null;
+  proposta_has_unpublished_changes?: boolean;
   customer_id?: string | null;
   // Enriched location
   customer_city?: string | null;
