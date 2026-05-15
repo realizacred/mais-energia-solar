@@ -69,16 +69,28 @@ export default function VendorPropostasView({ portal }: Props) {
   const consultorId = portal.vendedor?.id ?? null;
   const { data = [], isLoading, isError, refetch } = useMinhasPropostasConsultor(consultorId);
   const [search, setSearch] = useState("");
+  const [filterStatus, setFilterStatus] = useState("todas");
 
   const filtered = useMemo<PropostaConsultor[]>(() => {
+    let result = data;
+    
+    // Status filter
+    if (filterStatus !== "todas") {
+      result = result.filter(p => p.status === filterStatus);
+    }
+
+    // Search filter
     const q = normalize(search.trim());
-    if (!q) return data;
-    return data.filter((p) =>
-      [p.codigo, p.titulo, p.cliente_nome, p.proposta_num?.toString()]
-        .filter(Boolean)
-        .some((v) => normalize(String(v)).includes(q)),
-    );
-  }, [data, search]);
+    if (q) {
+      result = result.filter((p) =>
+        [p.codigo, p.titulo, p.cliente_nome, p.proposta_num?.toString()]
+          .filter(Boolean)
+          .some((v) => normalize(String(v)).includes(q)),
+      );
+    }
+
+    return result;
+  }, [data, search, filterStatus]);
 
   const kpis = useMemo(() => computePropostasKpis(data), [data]);
 
