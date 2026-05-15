@@ -20,7 +20,7 @@ import {
   MoreVertical, Trophy, XCircle, UserCircle, Mail, MapPin, Hash, Check,
   AlertCircle, CheckCircle, Building, Paperclip, Copy, Pencil, Send, Activity,
   ChevronDown, SunMedium, Bell, Users, Tag, Link2, ShoppingCart, Landmark, Receipt,
-  CreditCard
+  CreditCard, RotateCcw
 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
@@ -575,11 +575,21 @@ function ProjetoDetalheContent() {
                     Alterar Projeto
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
+                  {(deal.status === "won" || deal.status === "lost" || deal.status === "canceled") && (
+                    <DropdownMenuItem
+                      className="text-warning focus:text-warning"
+                      onClick={() => setReabrirDealOpen(true)}
+                    >
+                      <RotateCcw className="h-4 w-4 mr-2" />
+                      {deal.status === "won" ? "Remover ganho" : "Reativar negociação"}
+                    </DropdownMenuItem>
+                  )}
                   <DropdownMenuItem
                     className="text-destructive focus:text-destructive"
                     onClick={() => { setDeleteBlocking([]); handleDeleteProject(); }}
                     disabled={deleting}
                   >
+                    <RotateCcw className="h-4 w-4 mr-2 hidden" /> {/* dummy for spacing consistency if needed, but not needed here */}
                     <Trash2 className="h-4 w-4 mr-2" />
                     {deleting ? "Excluindo..." : "Excluir Projeto"}
                   </DropdownMenuItem>
@@ -723,27 +733,7 @@ function ProjetoDetalheContent() {
       {/* ── Tipo de projeto solar — alerta de adaptação (Fase C) ── */}
       <TipoProjetoSolarAlert projetoId={projetoId ?? deal.id} />
 
-      {/* ── Banner de reabertura comercial ── */}
-      {(deal.status === "won" || deal.status === "lost" || deal.status === "canceled") && (
-        <Card className="border-l-4 border-l-warning bg-warning/5">
-          <CardContent className="p-3 flex items-center justify-between gap-3">
-            <div className="flex items-center gap-2 text-sm">
-              <AlertCircle className="h-4 w-4 text-warning shrink-0" />
-              <span className="text-foreground">
-                Negociação <strong>{deal.status === "won" ? "ganha" : deal.status === "lost" ? "perdida" : "cancelada"}</strong>
-                {(deal as any).reopened_count > 0 && (
-                  <span className="ml-2 text-xs text-muted-foreground">
-                    (já reaberta {(deal as any).reopened_count}x)
-                  </span>
-                )}
-              </span>
-            </div>
-            <Button variant="outline" size="sm" onClick={() => setReabrirDealOpen(true)}>
-              {deal.status === "won" ? "Remover ganho" : "Reativar"}
-            </Button>
-          </CardContent>
-        </Card>
-      )}
+      {/* ── Banner de reabertura comercial (REMOVIDO conforme solicitado na FASE 1, movido para ⋮) ── */}
       <ReabrirNegociacaoDialog
         open={reabrirDealOpen}
         onOpenChange={setReabrirDealOpen}
