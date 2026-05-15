@@ -17,12 +17,14 @@ import {
   ChevronDown, 
   ChevronRight,
   Loader2,
-  Clock
+  Clock,
+  Filter
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { LoadingState } from "@/components/ui-kit/LoadingState";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { 
   Table, 
   TableBody, 
@@ -31,6 +33,13 @@ import {
   TableHeader, 
   TableRow 
 } from "@/components/ui/table";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Tooltip,
   TooltipContent,
@@ -69,16 +78,28 @@ export default function VendorPropostasView({ portal }: Props) {
   const consultorId = portal.vendedor?.id ?? null;
   const { data = [], isLoading, isError, refetch } = useMinhasPropostasConsultor(consultorId);
   const [search, setSearch] = useState("");
+  const [filterStatus, setFilterStatus] = useState("todas");
 
   const filtered = useMemo<PropostaConsultor[]>(() => {
+    let result = data;
+    
+    // Status filter
+    if (filterStatus !== "todas") {
+      result = result.filter(p => p.status === filterStatus);
+    }
+
+    // Search filter
     const q = normalize(search.trim());
-    if (!q) return data;
-    return data.filter((p) =>
-      [p.codigo, p.titulo, p.cliente_nome, p.proposta_num?.toString()]
-        .filter(Boolean)
-        .some((v) => normalize(String(v)).includes(q)),
-    );
-  }, [data, search]);
+    if (q) {
+      result = result.filter((p) =>
+        [p.codigo, p.titulo, p.cliente_nome, p.proposta_num?.toString()]
+          .filter(Boolean)
+          .some((v) => normalize(String(v)).includes(q)),
+      );
+    }
+
+    return result;
+  }, [data, search, filterStatus]);
 
   const kpis = useMemo(() => computePropostasKpis(data), [data]);
 
@@ -145,15 +166,37 @@ export default function VendorPropostasView({ portal }: Props) {
         <KpiCard label="Expiradas" value={kpis.expiradas} icon={AlertTriangle} accent="destructive" />
       </div>
 
-      {/* Search */}
-      <div className="relative max-w-md">
-        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/60" />
-        <Input
-          placeholder="Buscar por cliente, código ou título..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="pl-8 h-9 text-sm"
-        />
+      {/* Filters */}
+      <div className="flex flex-col sm:flex-row gap-3 items-end sm:items-center">
+        <div className="relative flex-1 w-full max-w-md">
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/60" />
+          <Input
+            placeholder="Buscar por cliente, código ou título..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="pl-8 h-9 text-sm"
+          />
+        </div>
+        
+        <div className="flex items-center gap-2 w-full sm:w-auto">
+          <div className="flex items-center gap-2 text-xs text-muted-foreground shrink-0 ml-1">
+            <Filter className="w-3.5 h-3.5" />
+            <span>Status:</span>
+          </div>
+          <Select value={filterStatus} onValueChange={setFilterStatus}>
+            <SelectTrigger className="w-full sm:w-[150px] h-9 text-xs">
+              <SelectValue placeholder="Filtrar status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todas">Todas</SelectItem>
+              {Object.entries(STATUS_CONFIG).map(([id, cfg]) => (
+                <SelectItem key={id} value={id}>
+                  {cfg.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
       {/* Table */}
@@ -177,6 +220,8 @@ export default function VendorPropostasView({ portal }: Props) {
                   <TableHead className="text-xs font-semibold">Código</TableHead>
                   <TableHead className="text-xs font-semibold">Status</TableHead>
                   <TableHead className="text-xs font-semibold">kWp</TableHead>
+                  <TableHead className="text-xs font-semibold">Geração</TableHead>
+                  <TableHead className="text-xs font-semibold">Consumo</TableHead>
                   <TableHead className="text-xs font-semibold">Valor</TableHead>
                   <TableHead className="text-xs font-semibold">Aberturas</TableHead>
                   <TableHead className="text-xs font-semibold">Validade</TableHead>
@@ -294,6 +339,18 @@ function PropostaRow({
         </span>
       </TableCell>
       <TableCell className="py-2.5">
+        <span className="text-xs text-muted-foreground whitespace-nowrap">
+          {proposta.geracao_mensal != null ? `${Math.round(proposta.geracao_mensal)}` : "—"}
+          <span className="text-[10px] ml-0.5">kWh/mês</span>
+        </span>
+      </TableCell>
+      <TableCell className="py-2.5">
+        <span className="text-xs text-muted-foreground whitespace-nowrap">
+          {proposta.consumo_mensal != null ? `${Math.round(proposta.consumo_mensal)}` : "—"}
+          <span className="text-[10px] ml-0.5">kWh/mês</span>
+        </span>
+      </TableCell>
+      <TableCell className="py-2.5">
         <span className="text-xs font-semibold">
           {proposta.valor_total != null ? formatBRL(Number(proposta.valor_total)) : "—"}
         </span>
@@ -378,31 +435,50 @@ function PropostaRowActions({ proposta }: { proposta: PropostaConsultor }) {
   };
 
   return (
-    <div className="flex items-center justify-end gap-1">
-      <TooltipAction 
-        label="Abrir" 
-        icon={ExternalLink} 
-        onClick={handleOpenPublic} 
-        loading={busy === "open"} 
-      />
-      <TooltipAction 
-        label="Copiar PDF" 
-        icon={Copy} 
-        onClick={handleCopyPdf} 
-        loading={busy === "copy"} 
-      />
-      <TooltipAction 
-        label="WhatsApp" 
-        icon={MessageCircle} 
-        onClick={handleWhatsApp} 
-        disabled={!proposta.versao_id} 
-      />
-      <TooltipAction 
-        label="Email" 
-        icon={Mail} 
-        onClick={handleEmail} 
-        loading={busy === "email"} 
-      />
+    <div className="flex items-center justify-end gap-1.5">
+      <Button 
+        variant="outline" 
+        size="sm" 
+        className="h-7 px-2 text-[10px] gap-1"
+        onClick={handleOpenPublic}
+        disabled={!!busy}
+      >
+        {busy === "open" ? <Loader2 className="h-3 w-3 animate-spin" /> : <ExternalLink className="h-3 w-3" />}
+        Abrir
+      </Button>
+
+      <Button 
+        variant="outline" 
+        size="sm" 
+        className="h-7 px-2 text-[10px] gap-1"
+        onClick={handleCopyPdf}
+        disabled={!!busy || !proposta.output_pdf_path}
+      >
+        {busy === "copy" ? <Loader2 className="h-3 w-3 animate-spin" /> : <FileText className="h-3 w-3" />}
+        PDF
+      </Button>
+
+      <Button 
+        variant="outline" 
+        size="sm" 
+        className="h-7 px-2 text-[10px] gap-1"
+        onClick={handleWhatsApp}
+        disabled={!!busy || !proposta.versao_id}
+      >
+        <MessageCircle className="h-3 w-3" />
+        WhatsApp
+      </Button>
+
+      <Button 
+        variant="outline" 
+        size="sm" 
+        className="h-7 px-2 text-[10px] gap-1"
+        onClick={handleEmail}
+        disabled={!!busy}
+      >
+        {busy === "email" ? <Loader2 className="h-3 w-3 animate-spin" /> : <Mail className="h-3 w-3" />}
+        E-mail
+      </Button>
 
       {proposta.versao_id && proposta.projeto_id && (
         <ProposalMessageDrawer

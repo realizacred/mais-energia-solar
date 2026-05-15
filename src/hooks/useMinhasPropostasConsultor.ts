@@ -48,6 +48,7 @@ export interface PropostaConsultor {
   public_slug: string | null;
   link_pdf: string | null;
   viewed_at: string | null;
+  consumo_mensal: number | null;
 }
 
 interface RawProposta {
@@ -87,6 +88,7 @@ interface RawProposta {
     public_slug: string | null;
     link_pdf: string | null;
     viewed_at: string | null;
+    consumo_mensal: number | null;
   }> | null;
 }
 
@@ -122,9 +124,9 @@ export function useMinhasPropostasConsultor(consultorId: string | null | undefin
             "cliente_id",
             "projeto_id",
             "consultor_id",
-            "clientes(nome)",
-            "leads(nome)",
-            "proposta_versoes(id,versao_numero,potencia_kwp,geracao_mensal,economia_mensal,payback_meses,valor_total,valido_ate,output_pdf_path,public_slug,link_pdf,viewed_at)",
+            "clientes(id, nome)",
+            "leads(id, nome)",
+            "proposta_versoes(id,versao_numero,potencia_kwp,geracao_mensal,economia_mensal,payback_meses,valor_total,valido_ate,output_pdf_path,public_slug,link_pdf,viewed_at,consumo_mensal)",
           ].join(","),
         )
         .eq("consultor_id", consultorId)
@@ -175,6 +177,7 @@ export function useMinhasPropostasConsultor(consultorId: string | null | undefin
           public_slug: latest?.public_slug ?? null,
           link_pdf: latest?.link_pdf ?? null,
           viewed_at: latest?.viewed_at ?? null,
+          consumo_mensal: latest?.consumo_mensal ?? null,
         };
       });
     },
