@@ -254,10 +254,9 @@ export default function VendorPropostasView({ portal }: Props) {
                 <TableRow className="bg-muted/50 hover:bg-muted/50">
 
                   <TableHead className="w-12">Visto</TableHead>
-                  <TableHead className="w-[300px]">Cliente</TableHead>
-                  <TableHead className="w-24">Proposta</TableHead>
-                  <TableHead>kWp / Geração</TableHead>
-                  <TableHead>Consumo</TableHead>
+                  <TableHead className="w-[280px]">Cliente</TableHead>
+                  <TableHead className="w-32">Proposta</TableHead>
+                  <TableHead>Potência / Energia</TableHead>
                   <TableHead>Valor</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Validade</TableHead>
