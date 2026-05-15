@@ -358,6 +358,7 @@ function ProposalWizardContent() {
   });
   const [savedClienteId, setSavedClienteId] = useState<string | null>(null);
   const [officialTotal, setOfficialTotal] = useState<number>(0);
+  const [officialTemplateId, setOfficialTemplateId] = useState<string | null>(null);
   // Track if editing a previously sent/generated proposal (will branch new version)
   const [editingsentProposal, setEditingSentProposal] = useState(false);
   const [proposalStatus, setProposalStatus] = useState<string | null>(null);
@@ -1324,10 +1325,10 @@ function ProposalWizardContent() {
             .eq("id", propostaIdFromUrl)
             .maybeSingle();
 
-          // Fetch official total from the official version
+          // Fetch official total and template used from the official version
           const { data: officialVer } = await supabase
             .from("proposta_versoes")
-            .select("valor_total")
+            .select("valor_total, template_id_used")
             .eq("proposta_id", propostaIdFromUrl)
             .eq("is_official", true)
             .order("created_at", { ascending: false })
@@ -1336,6 +1337,9 @@ function ProposalWizardContent() {
 
           if (officialVer?.valor_total) {
             setOfficialTotal(officialVer.valor_total);
+          }
+          if (officialVer?.template_id_used) {
+            setOfficialTemplateId(officialVer.template_id_used);
           }
 
           // Detect if proposal was already sent/generated — will branch new version on save
@@ -2445,6 +2449,7 @@ function ProposalWizardContent() {
       setResult(genResult);
       clearLocal(); // Proposta gerada — limpar rascunho local
       setOfficialTotal(precoFinal); // Update official total state to hide divergence banner
+      setOfficialTemplateId(templateSelecionado); // Update official template to hide divergence banner
       setHasEditsAfterRestore(false); // Reset edit tracking
 
       // Sync template_id_used on the new version (RB-54) — belt-and-suspenders
@@ -3118,7 +3123,7 @@ function ProposalWizardContent() {
       )}
 
       {/* Unpublished Changes Banner */}
-      {hasEditsAfterRestore && officialTotal > 0 && Math.abs(precoFinal - officialTotal) > 0.01 && (
+      {hasEditsAfterRestore && officialTotal > 0 && (Math.abs(precoFinal - officialTotal) > 0.01 || (officialTemplateId && templateSelecionado !== officialTemplateId)) && (
         <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-4 lg:px-6 py-3 border-b border-amber-500/50 bg-amber-50 shrink-0">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-full bg-amber-100/50 flex items-center justify-center shrink-0">
@@ -3128,10 +3133,15 @@ function ProposalWizardContent() {
               <p className="text-sm font-bold text-amber-900 leading-tight">Você possui alterações não publicadas</p>
               <p className="text-[11px] text-amber-700 mt-0.5">Para atualizar o projeto e os indicadores do CRM, publique uma nova versão.</p>
               <div className="flex items-center gap-3 text-xs text-amber-700 mt-1.5">
-                <span className="flex items-center gap-1.5"><Badge variant="outline" className="text-[9px] px-1 py-0 h-4 border-amber-300 text-amber-700 bg-white">OFICIAL ATUAL</Badge> {formatBRL(officialTotal)}</span>
+                <span className="flex items-center gap-1.5"><Badge variant="outline" className="text-[9px] px-1 py-0 h-4 border-amber-300 text-amber-700 bg-white uppercase">OFICIAL</Badge> {formatBRL(officialTotal)}</span>
                 <ChevronRight className="h-3 w-3 opacity-50" />
-                <span className="flex items-center gap-1.5"><Badge variant="default" className="text-[9px] px-1 py-0 h-4 bg-amber-500 text-white border-0">RASCUNHO</Badge> {formatBRL(precoFinal)}</span>
+                <span className="flex items-center gap-1.5"><Badge variant="default" className="text-[9px] px-1 py-0 h-4 bg-amber-500 text-white border-0 uppercase">RASCUNHO</Badge> {formatBRL(precoFinal)}</span>
               </div>
+              {officialTemplateId && templateSelecionado !== officialTemplateId && (
+                <p className="text-[10px] text-amber-600 mt-1 font-medium italic">
+                  * Template alterado: {proposalTemplates.find(t => t.id === officialTemplateId)?.nome || "Antigo"} → {proposalTemplates.find(t => t.id === templateSelecionado)?.nome || "Novo"}
+                </p>
+              )}
             </div>
           </div>
           <Button 
