@@ -312,11 +312,16 @@ function PropostaRow({
             {isSubRow && <div className="w-px bg-muted-foreground/30 h-8 ml-1" />}
           </div>
           <div className="flex flex-col min-w-0">
-            <span className={`truncate ${isSubRow ? "text-xs font-normal" : "font-medium text-sm"}`}>
-              {proposta.cliente_nome || "Sem nome"}
+            <span className={`truncate ${isSubRow ? "text-xs font-normal" : "font-medium text-sm"} ${!proposta.cliente_nome_real && !isSubRow ? "text-muted-foreground italic" : "text-foreground"}`}>
+              {proposta.cliente_nome}
             </span>
+            {!isSubRow && proposta.cliente_nome_real && proposta.titulo && normalize(proposta.titulo) !== normalize(proposta.cliente_nome_real) && (
+              <span className="text-[10px] text-muted-foreground truncate max-w-[200px]" title={proposta.titulo}>
+                {proposta.titulo}
+              </span>
+            )}
             {isMain && hasOthers && (
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 mt-0.5">
                 <span 
                   className="text-[10px] text-primary font-medium cursor-pointer hover:underline"
                   onClick={(e) => { e.stopPropagation(); onToggleExpand?.(); }}
