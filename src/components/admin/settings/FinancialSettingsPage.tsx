@@ -14,7 +14,7 @@ import { LoadingSpinner } from "@/components/ui/loading-spinner";
 
 const FinancialSettingsPage = () => {
   const { data: settings, isLoading, refetch } = useFinancialSettings();
-  const { tenantId } = useTenantId();
+  const { data: tenantId } = useTenantId();
   const { toast } = useToast();
 
   const handleUpdate = async (updates: Partial<FinancialSettings>) => {
