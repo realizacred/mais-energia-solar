@@ -264,6 +264,7 @@ export function VendorSidebar({
           {!collapsed && <span className="text-sm">Sair</span>}
         </Button>
       </SidebarFooter>
+      <SidebarRail />
     </Sidebar>
   );
 }
