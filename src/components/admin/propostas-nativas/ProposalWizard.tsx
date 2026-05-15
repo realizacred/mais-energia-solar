@@ -1597,7 +1597,15 @@ function ProposalWizardContent() {
         syncCustomFieldValues(res.dealId || resolvedDealId);
         syncTemplateIdUsed(res.versaoId);
         invalidateProposalCaches(res.dealId || resolvedDealId, res.projetoId);
-        toast({ title: "✅ Rascunho salvo" });
+        toast({ 
+          title: "✅ Rascunho salvo",
+          description: "O valor oficial do projeto no CRM não foi alterado.",
+          action: (
+            <Button variant="outline" size="sm" onClick={() => window.location.reload()} className="h-7 text-[10px] gap-1 px-2">
+              <RefreshCw className="h-3 w-3" /> Atualizar telas
+            </Button>
+          )
+        });
         break;
       case "reused":
         applyPersistResult(res);
