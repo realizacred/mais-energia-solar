@@ -114,6 +114,7 @@ export default function VendedorPortal() {
                     path="dashboard"
                     element={<VendorDashboardView portal={portal} />}
                   />
+                  <Route path="whatsapp" element={<div />} />
                   <Route
                     path="agenda"
                     element={<VendorAgendaView />}
