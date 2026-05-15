@@ -138,3 +138,30 @@ export function applyOperationalVisibility<T extends { status_id: string | null;
 ): T[] {
   return orcamentos.filter(o => shouldShowOrcamento(o, options, terminalStatusIds));
 }
+
+/**
+ * Calcula estatísticas básicas respeitando a lógica centralizada
+ */
+export function calculateOperationalStats(
+  orcamentos: any[],
+  statuses: LeadStatus[]
+) {
+  const convertedIds = getConvertedStatusIds(statuses);
+  const terminalIds = getTerminalStatusIds(statuses);
+  
+  const now = new Date();
+  const thisMonth = now.getMonth();
+  const thisYear = now.getFullYear();
+
+  return {
+    total: orcamentos.length,
+    naoVistos: orcamentos.filter(o => !o.visto).length,
+    esteMes: orcamentos.filter(o => {
+      const d = new Date(o.created_at);
+      return d.getMonth() === thisMonth && d.getFullYear() === thisYear;
+    }).length,
+    convertidos: orcamentos.filter(o => o.status_id && convertedIds.includes(o.status_id)).length,
+    terminais: orcamentos.filter(o => o.status_id && terminalIds.includes(o.status_id)).length,
+  };
+}
+
