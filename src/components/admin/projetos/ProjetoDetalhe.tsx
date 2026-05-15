@@ -390,6 +390,7 @@ function ProjetoDetalheContent() {
   const [editProjetoNome, setEditProjetoNome] = useState("");
   const [editProjetoDescricao, setEditProjetoDescricao] = useState("");
   const [savingProjeto, setSavingProjeto] = useState(false);
+  const [reabrirDealOpen, setReabrirDealOpen] = useState(false);
 
   const {
     deal, projetoId, loading, activeTab, setActiveTab, stages,
