@@ -75,19 +75,28 @@ const STATUS_CONFIG: Record<string, { label: string; cls: string }> = {
   recusada: { label: "Recusada", cls: "bg-destructive/10 text-destructive border-destructive/20" },
 };
 
+const STATUS_DOT: Record<string, string> = {
+  gerada: 'bg-muted-foreground',
+  enviada: 'bg-info',
+  vista: 'bg-warning',
+  aceita: 'bg-success',
+  expirada: 'bg-destructive',
+  recusada: 'bg-destructive',
+};
+
 const getStatusBadgeClass = (status: string) => {
   switch (status) {
     case 'aceita':
-      return 'bg-success/10 text-success border-success/20 hover:bg-success/20';
+      return 'border-success/30 bg-success/10 text-success hover:bg-success/15';
     case 'vista':
-      return 'bg-warning/10 text-warning border-warning/20 hover:bg-warning/20';
+      return 'border-warning/30 bg-warning/10 text-warning hover:bg-warning/15';
     case 'enviada':
-      return 'bg-info/10 text-info border-info/20 hover:bg-info/20';
+      return 'border-info/30 bg-info/10 text-info hover:bg-info/15';
     case 'expirada':
     case 'recusada':
-      return 'bg-destructive/10 text-destructive border-destructive/20 hover:bg-destructive/20';
+      return 'border-destructive/30 bg-destructive/10 text-destructive hover:bg-destructive/15';
     default:
-      return 'bg-muted text-muted-foreground border-border hover:bg-muted/20';
+      return 'border-border bg-muted/40 text-muted-foreground hover:bg-muted/60';
   }
 };
 
