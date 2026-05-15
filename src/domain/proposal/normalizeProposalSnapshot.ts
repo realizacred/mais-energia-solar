@@ -192,6 +192,7 @@ function normalizeKitItem(raw: any): NormalizedKitItem {
     categoria: str(raw.categoria, "outros"),
     avulso: !!raw.avulso,
     produto_ref: raw.produto_ref ?? null,
+    garantia_anos: num(raw.garantia_anos),
   };
 }
 
