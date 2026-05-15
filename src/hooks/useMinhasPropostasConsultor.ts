@@ -177,6 +177,7 @@ export function useMinhasPropostasConsultor(consultorId: string | null | undefin
           public_slug: latest?.public_slug ?? null,
           link_pdf: latest?.link_pdf ?? null,
           viewed_at: latest?.viewed_at ?? null,
+          consumo_mensal: latest?.consumo_mensal ?? null,
         };
       });
     },
