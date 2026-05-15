@@ -267,7 +267,7 @@ Deno.serve(async (req) => {
   } finally {
     if (lockAcquired) {
       try {
-        await supabase.rpc("release_webhook_lock");
+        await supabase.rpc("release_webhook_lock_v2");
       } catch (e) {
         console.warn("[process-webhook-events] Failed to release lock:", e);
       }
