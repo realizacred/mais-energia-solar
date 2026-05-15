@@ -135,6 +135,7 @@ export function useProjetoPipeline() {
   const [consultores, setConsultores] = useState<{ id: string; nome: string; ativo: boolean }[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedFunilId, setSelectedFunilId] = useState<string | null>(null);
+  const [dbPrefs, setDbPrefs] = useState<any>(null);
   const [filters, setFilters] = useState<ProjetoFiltersState>({
     funilId: null,
     consultorId: "todos",
