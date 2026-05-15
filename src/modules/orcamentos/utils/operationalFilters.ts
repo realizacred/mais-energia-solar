@@ -1,4 +1,5 @@
 import { LeadStatus } from "@/types/lead";
+import { differenceInDays, parseISO } from "date-fns";
 
 export const TERMINAL_STATUS_KEYWORDS = [
   "convertido", "perdido", "cancelado", "recusado", 
@@ -19,7 +20,29 @@ export interface OperationalFilterOptions {
   filterStatus?: string;
   excludeTerminal?: boolean;
   maxAgeDays?: number | null;
+  operationalStatus?: string;
 }
+
+export type OperationalStatus = 
+  | "em_dia" 
+  | "atencao" 
+  | "urgente" 
+  | "reativacao" 
+  | "backlog_antigo" 
+  | "finalizado"
+  | "documentacao_ativa"
+  | "documentacao_antiga";
+
+export const OPERATIONAL_STATUS_LABELS: Record<OperationalStatus, string> = {
+  em_dia: "Em dia",
+  atencao: "Atenção",
+  urgente: "Urgente",
+  reativacao: "Reativação",
+  backlog_antigo: "Backlog Antigo",
+  finalizado: "Finalizado",
+  documentacao_ativa: "Documentação Ativa",
+  documentacao_antiga: "Documentação Antiga"
+};
 
 /**
  * Identifica IDs de status que são considerados terminais (finalizados/arquivados)
@@ -49,6 +72,38 @@ export function getLostStatusIds(statuses: { id: string; nome: string }[]): stri
 }
 
 /**
+ * Helper único para classificação operacional conforme matriz de auditoria
+ */
+export function classifyOrcamentoOperationalStatus(
+  orcamento: { 
+    status_id: string | null; 
+    ultimo_contato: string | null; 
+    created_at: string;
+  },
+  terminalStatusIds: string[]
+): OperationalStatus {
+  // 1. Verificar se é finalizado
+  if (orcamento.status_id && terminalStatusIds.includes(orcamento.status_id)) {
+    return "finalizado";
+  }
+
+  // TODO: Em uma implementação futura, verificar 'documentacao_ativa' baseada em metadados de pendências.
+  // Por enquanto, seguimos a lógica temporal de contato.
+
+  const now = new Date();
+  const lastContact = orcamento.ultimo_contato 
+    ? parseISO(orcamento.ultimo_contato) 
+    : parseISO(orcamento.created_at);
+  const daysSinceContact = differenceInDays(now, lastContact);
+
+  if (daysSinceContact >= 45) return "backlog_antigo";
+  if (daysSinceContact >= 16) return "reativacao";
+  if (daysSinceContact >= 8) return "urgente";
+  if (daysSinceContact >= 3) return "atencao";
+  return "em_dia";
+}
+
+/**
  * Constrói a query base do Supabase aplicando os filtros operacionais centralizados.
  * PROTEÇÃO: Garante que status_id NULL (novos) não sejam filtrados por engano.
  */
@@ -70,7 +125,6 @@ export function buildOperationalFilters(
   } else if (filterStatus && filterStatus !== "todos") {
     q = q.eq("status_id", filterStatus);
   } else if (excludeTerminal && terminalStatusIds.length > 0) {
-    // A lógica 'or' garante que NULL (novos) apareçam, e apenas os terminais sejam removidos
     q = q.or(`status_id.is.null,status_id.not.in.(${terminalStatusIds.join(",")})`);
   }
 
@@ -85,14 +139,19 @@ export function buildOperationalFilters(
 
 /**
  * Verifica se um orçamento individual deve ser exibido baseado nos filtros.
- * Útil para filtragem em memória (KPIs, Badges, etc)
  */
 export function shouldShowOrcamento(
-  orcamento: { status_id: string | null; visto: boolean; estado: string | null; created_at: string },
+  orcamento: { 
+    status_id: string | null; 
+    visto: boolean; 
+    estado: string | null; 
+    created_at: string;
+    ultimo_contato: string | null;
+  },
   options: OperationalFilterOptions,
   terminalStatusIds: string[] = []
 ): boolean {
-  const { filterVisto, filterEstado, filterStatus, excludeTerminal, maxAgeDays } = options;
+  const { filterVisto, filterEstado, filterStatus, excludeTerminal, maxAgeDays, operationalStatus } = options;
 
   if (filterVisto === "visto" && !orcamento.visto) return false;
   if (filterVisto === "nao_visto" && orcamento.visto) return false;
@@ -113,55 +172,42 @@ export function shouldShowOrcamento(
     if (new Date(orcamento.created_at) < minDate) return false;
   }
 
+  if (operationalStatus && operationalStatus !== "todos") {
+    const currentOpStatus = classifyOrcamentoOperationalStatus(orcamento, terminalStatusIds);
+    if (currentOpStatus !== operationalStatus) return false;
+  }
+
   return true;
 }
 
 /**
- * Calcula quantos itens estão sendo ocultados pela regra operacional (terminal/idade)
- */
-export function getHiddenCounts(
-  allOrcamentos: any[],
-  options: OperationalFilterOptions,
-  terminalStatusIds: string[]
-): number {
-  const visible = allOrcamentos.filter(o => shouldShowOrcamento(o, options, terminalStatusIds));
-  return allOrcamentos.length - visible.length;
-}
-
-/**
- * Atalho para aplicar filtros em uma lista (in-memory)
- */
-export function applyOperationalVisibility<T extends { status_id: string | null; visto: boolean; estado: string | null; created_at: string }>(
-  orcamentos: T[],
-  options: OperationalFilterOptions,
-  terminalStatusIds: string[]
-): T[] {
-  return orcamentos.filter(o => shouldShowOrcamento(o, options, terminalStatusIds));
-}
-
-/**
- * Calcula estatísticas básicas respeitando a lógica centralizada
+ * Calcula estatísticas operacionais respeitando a nova matriz de priorização
  */
 export function calculateOperationalStats(
   orcamentos: any[],
   statuses: LeadStatus[]
 ) {
-  const convertedIds = getConvertedStatusIds(statuses);
   const terminalIds = getTerminalStatusIds(statuses);
   
-  const now = new Date();
-  const thisMonth = now.getMonth();
-  const thisYear = now.getFullYear();
-
-  return {
+  const stats = {
     total: orcamentos.length,
+    em_dia: 0,
+    atencao: 0,
+    urgente: 0,
+    reativacao: 0,
+    backlog_antigo: 0,
+    finalizado: 0,
     naoVistos: orcamentos.filter(o => !o.visto).length,
-    esteMes: orcamentos.filter(o => {
-      const d = new Date(o.created_at);
-      return d.getMonth() === thisMonth && d.getFullYear() === thisYear;
-    }).length,
-    convertidos: orcamentos.filter(o => o.status_id && convertedIds.includes(o.status_id)).length,
-    terminais: orcamentos.filter(o => o.status_id && terminalIds.includes(o.status_id)).length,
   };
+
+  orcamentos.forEach(o => {
+    const opStatus = classifyOrcamentoOperationalStatus(o, terminalIds);
+    if (opStatus in stats) {
+      (stats as any)[opStatus]++;
+    }
+  });
+
+  return stats;
 }
+
 
