@@ -194,7 +194,7 @@
        </div>
  
        {/* Metric Cards */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <div className="grid grid-cols-1 xs:grid-cols-2 lg:grid-cols-4 gap-3">
           {/* This Month */}
           <Card className="border-l-[3px] border-l-primary border-border/60">
             <CardContent className="flex items-center gap-4 p-4">

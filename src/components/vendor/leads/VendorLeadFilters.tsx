@@ -1,4 +1,13 @@
-import { Search, Filter } from "lucide-react";
+import { Search, Filter, SlidersHorizontal } from "lucide-react";
+import { useIsMobile } from "@/hooks/use-mobile";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
