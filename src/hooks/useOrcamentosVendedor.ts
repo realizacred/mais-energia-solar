@@ -186,13 +186,19 @@ export function useOrcamentosVendedor({
         return q.or(orParts.join(","));
       };
 
+      const statusesRes = await supabase.from("lead_status").select("id, nome, ordem, cor").order("ordem");
+      const allStatuses = statusesRes.data || [];
+      const terminalStatusIds = allStatuses
+        .filter(s => ["convertido", "perdido", "cancelado", "recusado", "inativo", "fechado", "ganho", "cliente"].includes(s.nome.toLowerCase()))
+        .map(s => s.id);
+
       let primaryRows: any[] = [];
       let primaryCount = 0;
       let legacyRows: any[] = [];
 
       if (mustFilterByVendedor) {
         if (vendedorId) {
-          const q1 = applySearch(buildBase().eq("consultor_id", vendedorId)).range(from, to);
+          const q1 = applySearch(buildBase(terminalStatusIds).eq("consultor_id", vendedorId)).range(from, to);
           const r1 = await q1;
           if (r1.error) throw r1.error;
           primaryRows = r1.data || [];
@@ -200,12 +206,12 @@ export function useOrcamentosVendedor({
         }
 
         if (page === 0 && vendedorNome) {
-          const q2 = applySearch(buildBase().is("consultor_id", null).eq("consultor", vendedorNome)).limit(100);
+          const q2 = applySearch(buildBase(terminalStatusIds).is("consultor_id", null).eq("consultor", vendedorNome)).limit(100);
           const r2 = await q2;
           if (!r2.error && r2.data) legacyRows = r2.data;
         }
       } else {
-        const q1 = applySearch(buildBase()).range(from, to);
+        const q1 = applySearch(buildBase(terminalStatusIds)).range(from, to);
         const r1 = await q1;
         if (r1.error) throw r1.error;
         primaryRows = r1.data || [];
