@@ -2592,14 +2592,31 @@ function PropostasTab({ customerId, dealId, dealTitle, navigate, isClosed, dealS
     );
   };
 
+  const [reabrirOpen, setReabrirOpen] = useState(false);
+
   return (
     <div className="space-y-6">
       {isClosed && (
-        <div className="flex items-center justify-end">
+        <div className="flex items-center justify-end gap-2">
           <Badge variant="secondary" className={cn("text-xs", dealStatus === "won" ? "bg-success/10 text-success border-success/20" : "bg-destructive/10 text-destructive border-destructive/20")}>
             <AlertCircle className="h-3 w-3 mr-1" />
             {dealStatus === "won" ? "Projeto concluído" : "Projeto perdido"}
           </Badge>
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-7 text-xs"
+            onClick={() => setReabrirOpen(true)}
+          >
+            {dealStatus === "won" ? "Remover ganho" : "Reativar negociação"}
+          </Button>
+          <ReabrirNegociacaoDialog
+            open={reabrirOpen}
+            onOpenChange={setReabrirOpen}
+            dealId={dealId}
+            currentStatus={dealStatus ?? "open"}
+            onReopened={() => refetch()}
+          />
         </div>
       )}
 
