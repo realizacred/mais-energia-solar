@@ -48,6 +48,7 @@ import { ProjetoConcessionariaTab } from "./ProjetoConcessionariaTab";
 import { ImportantFieldRow } from "./ImportantFieldRow";
 import { ProjetoOutrosCampos } from "./ProjetoOutrosCampos";
 import { ProjetoMultiPipelineManager } from "./ProjetoMultiPipelineManager";
+import { ReabrirNegociacaoDialog } from "./ReabrirNegociacaoDialog";
 import { AddressFields, type AddressData } from "@/components/shared/AddressFields";
 import { ProjetoComunicacaoResumo } from "./ProjetoComunicacaoResumo";
 import { ScheduleWhatsAppDialog } from "@/components/vendor/ScheduleWhatsAppDialog";
@@ -389,6 +390,7 @@ function ProjetoDetalheContent() {
   const [editProjetoNome, setEditProjetoNome] = useState("");
   const [editProjetoDescricao, setEditProjetoDescricao] = useState("");
   const [savingProjeto, setSavingProjeto] = useState(false);
+  const [reabrirDealOpen, setReabrirDealOpen] = useState(false);
 
   const {
     deal, projetoId, loading, activeTab, setActiveTab, stages,
@@ -694,6 +696,35 @@ function ProjetoDetalheContent() {
 
       {/* ── Tipo de projeto solar — alerta de adaptação (Fase C) ── */}
       <TipoProjetoSolarAlert projetoId={projetoId ?? deal.id} />
+
+      {/* ── Banner de reabertura comercial ── */}
+      {(deal.status === "won" || deal.status === "lost" || deal.status === "canceled") && (
+        <Card className="border-l-4 border-l-warning bg-warning/5">
+          <CardContent className="p-3 flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2 text-sm">
+              <AlertCircle className="h-4 w-4 text-warning shrink-0" />
+              <span className="text-foreground">
+                Negociação <strong>{deal.status === "won" ? "ganha" : deal.status === "lost" ? "perdida" : "cancelada"}</strong>
+                {(deal as any).reopened_count > 0 && (
+                  <span className="ml-2 text-xs text-muted-foreground">
+                    (já reaberta {(deal as any).reopened_count}x)
+                  </span>
+                )}
+              </span>
+            </div>
+            <Button variant="outline" size="sm" onClick={() => setReabrirDealOpen(true)}>
+              {deal.status === "won" ? "Remover ganho" : "Reativar"}
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+      <ReabrirNegociacaoDialog
+        open={reabrirDealOpen}
+        onOpenChange={setReabrirDealOpen}
+        dealId={deal.id}
+        currentStatus={deal.status}
+        onReopened={silentRefresh}
+      />
 
       {/* ── Multi-Pipeline Manager ── */}
       {activeTab === "gerenciamento" && (
@@ -2591,14 +2622,31 @@ function PropostasTab({ customerId, dealId, dealTitle, navigate, isClosed, dealS
     );
   };
 
+  const [reabrirOpen, setReabrirOpen] = useState(false);
+
   return (
     <div className="space-y-6">
       {isClosed && (
-        <div className="flex items-center justify-end">
+        <div className="flex items-center justify-end gap-2">
           <Badge variant="secondary" className={cn("text-xs", dealStatus === "won" ? "bg-success/10 text-success border-success/20" : "bg-destructive/10 text-destructive border-destructive/20")}>
             <AlertCircle className="h-3 w-3 mr-1" />
             {dealStatus === "won" ? "Projeto concluído" : "Projeto perdido"}
           </Badge>
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-7 text-xs"
+            onClick={() => setReabrirOpen(true)}
+          >
+            {dealStatus === "won" ? "Remover ganho" : "Reativar negociação"}
+          </Button>
+          <ReabrirNegociacaoDialog
+            open={reabrirOpen}
+            onOpenChange={setReabrirOpen}
+            dealId={dealId}
+            currentStatus={dealStatus ?? "open"}
+            onReopened={() => refetch()}
+          />
         </div>
       )}
 

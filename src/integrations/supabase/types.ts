@@ -4144,7 +4144,12 @@ export type Database = {
           origem: string | null
           owner_id: string
           pipeline_id: string
+          previous_status: string | null
           projeto_id: string
+          reopened_at: string | null
+          reopened_by: string | null
+          reopened_count: number
+          reopened_reason: string | null
           stage_id: string | null
           status: string
           tenant_id: string
@@ -4168,7 +4173,12 @@ export type Database = {
           origem?: string | null
           owner_id: string
           pipeline_id: string
+          previous_status?: string | null
           projeto_id: string
+          reopened_at?: string | null
+          reopened_by?: string | null
+          reopened_count?: number
+          reopened_reason?: string | null
           stage_id?: string | null
           status?: string
           tenant_id?: string
@@ -4192,7 +4202,12 @@ export type Database = {
           origem?: string | null
           owner_id?: string
           pipeline_id?: string
+          previous_status?: string | null
           projeto_id?: string
+          reopened_at?: string | null
+          reopened_by?: string | null
+          reopened_count?: number
+          reopened_reason?: string | null
           stage_id?: string | null
           status?: string
           tenant_id?: string
@@ -30711,6 +30726,10 @@ export type Database = {
           open_count: number
           solar_plant_id: string
         }[]
+      }
+      fn_reopen_deal: {
+        Args: { p_deal_id: string; p_reason: string }
+        Returns: Json
       }
       format_phone_br: { Args: { raw: string }; Returns: string }
       generate_consultor_slug: { Args: { nome: string }; Returns: string }
