@@ -141,13 +141,18 @@ export function PagamentosDialog({
       });
 
       if (tenantId) {
-        await logFinancialAction('create', 'pagamento', (res as any)?.id || 'new', formData);
+        await logFinancialAction('create', 'pagamento', (res as any)?.id || 'new', {
+          after_data: formData,
+          metadata: { context: 'PagamentosDialog' }
+        });
       }
       toast({ title: "Pagamento registrado e parcelas atualizadas!" });
       resetForm();
       onUpdate();
-    } catch {
-      toast({ title: "Erro ao registrar pagamento", variant: "destructive" });
+    } catch (error: any) {
+      console.error(error);
+      const message = error.message || "Erro ao registrar pagamento";
+      toast({ title: "Erro", description: message, variant: "destructive" });
     }
   };
 
@@ -173,14 +178,14 @@ export function PagamentosDialog({
     try {
       await deletarMut.mutateAsync(id);
       
-      if (tenantId) {
-        await logFinancialAction('delete', 'pagamento', id, { motive: "Exclusão manual" });
-      }
+      // O log de sucesso agora é gerado pelo trigger no backend
       
       toast({ title: "Pagamento excluído e parcelas restauradas!" });
       onUpdate();
-    } catch {
-      toast({ title: "Erro ao excluir pagamento", variant: "destructive" });
+    } catch (error: any) {
+      console.error(error);
+      const message = error.message || "Erro ao excluir pagamento";
+      toast({ title: "Erro", description: message, variant: "destructive" });
     }
   };
 
