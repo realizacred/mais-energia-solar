@@ -35,6 +35,7 @@ export interface OrcamentoVendedor {
   data_proxima_acao: string | null;
   created_at: string;
   updated_at: string;
+  proposta_token?: string | null;
 }
 
 interface UseOrcamentosVendedorOptions {
