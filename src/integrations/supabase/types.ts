@@ -388,16 +388,22 @@ export type Database = {
           cpf_cnpj: string | null
           created_at: string
           criado_por: string | null
+          data_envio: string | null
+          data_retorno: string | null
           deal_id: string | null
+          entrada: number | null
           id: string
           lead_id: string | null
           observacoes: string | null
           prazo_meses: number | null
+          protocolo_banco: string | null
           renda_mensal: number | null
+          responsavel_id: string | null
           score_credito: number | null
           status: string
           taxa_juros: number | null
           tenant_id: string
+          tipo_pessoa: string | null
           updated_at: string
           valor_aprovado: number | null
           valor_solicitado: number | null
@@ -408,16 +414,22 @@ export type Database = {
           cpf_cnpj?: string | null
           created_at?: string
           criado_por?: string | null
+          data_envio?: string | null
+          data_retorno?: string | null
           deal_id?: string | null
+          entrada?: number | null
           id?: string
           lead_id?: string | null
           observacoes?: string | null
           prazo_meses?: number | null
+          protocolo_banco?: string | null
           renda_mensal?: number | null
+          responsavel_id?: string | null
           score_credito?: number | null
           status?: string
           taxa_juros?: number | null
           tenant_id: string
+          tipo_pessoa?: string | null
           updated_at?: string
           valor_aprovado?: number | null
           valor_solicitado?: number | null
@@ -428,16 +440,22 @@ export type Database = {
           cpf_cnpj?: string | null
           created_at?: string
           criado_por?: string | null
+          data_envio?: string | null
+          data_retorno?: string | null
           deal_id?: string | null
+          entrada?: number | null
           id?: string
           lead_id?: string | null
           observacoes?: string | null
           prazo_meses?: number | null
+          protocolo_banco?: string | null
           renda_mensal?: number | null
+          responsavel_id?: string | null
           score_credito?: number | null
           status?: string
           taxa_juros?: number | null
           tenant_id?: string
+          tipo_pessoa?: string | null
           updated_at?: string
           valor_aprovado?: number | null
           valor_solicitado?: number | null
@@ -476,6 +494,95 @@ export type Database = {
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      analise_credito_documentos: {
+        Row: {
+          analise_id: string
+          created_at: string | null
+          file_id: string
+          id: string
+          observacoes: string | null
+          status_verificacao: string | null
+          tenant_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          analise_id: string
+          created_at?: string | null
+          file_id: string
+          id?: string
+          observacoes?: string | null
+          status_verificacao?: string | null
+          tenant_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          analise_id?: string
+          created_at?: string | null
+          file_id?: string
+          id?: string
+          observacoes?: string | null
+          status_verificacao?: string | null
+          tenant_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "analise_credito_documentos_analise_id_fkey"
+            columns: ["analise_id"]
+            isOneToOne: false
+            referencedRelation: "analise_credito"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "analise_credito_documentos_file_id_fkey"
+            columns: ["file_id"]
+            isOneToOne: false
+            referencedRelation: "entity_files"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      analise_credito_historico: {
+        Row: {
+          analise_id: string
+          created_at: string | null
+          id: string
+          motivo: string | null
+          novo_status: string
+          status_anterior: string | null
+          tenant_id: string
+          usuario_id: string | null
+        }
+        Insert: {
+          analise_id: string
+          created_at?: string | null
+          id?: string
+          motivo?: string | null
+          novo_status: string
+          status_anterior?: string | null
+          tenant_id: string
+          usuario_id?: string | null
+        }
+        Update: {
+          analise_id?: string
+          created_at?: string | null
+          id?: string
+          motivo?: string | null
+          novo_status?: string
+          status_anterior?: string | null
+          tenant_id?: string
+          usuario_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "analise_credito_historico_analise_id_fkey"
+            columns: ["analise_id"]
+            isOneToOne: false
+            referencedRelation: "analise_credito"
             referencedColumns: ["id"]
           },
         ]
@@ -3443,6 +3550,80 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      credit_bank_checklists: {
+        Row: {
+          bank_config_id: string
+          created_at: string | null
+          description: string | null
+          document_type_name: string
+          id: string
+          is_required: boolean | null
+          tenant_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          bank_config_id: string
+          created_at?: string | null
+          description?: string | null
+          document_type_name: string
+          id?: string
+          is_required?: boolean | null
+          tenant_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          bank_config_id?: string
+          created_at?: string | null
+          description?: string | null
+          document_type_name?: string
+          id?: string
+          is_required?: boolean | null
+          tenant_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "credit_bank_checklists_bank_config_id_fkey"
+            columns: ["bank_config_id"]
+            isOneToOne: false
+            referencedRelation: "credit_bank_configs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      credit_bank_configs: {
+        Row: {
+          bank_name: string
+          created_at: string | null
+          icon_url: string | null
+          id: string
+          is_active: boolean | null
+          slug: string
+          tenant_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          bank_name: string
+          created_at?: string | null
+          icon_url?: string | null
+          id?: string
+          is_active?: boolean | null
+          slug: string
+          tenant_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          bank_name?: string
+          created_at?: string | null
+          icon_url?: string | null
+          id?: string
+          is_active?: boolean | null
+          slug?: string
+          tenant_id?: string
+          updated_at?: string | null
+        }
+        Relationships: []
       }
       cron_execution_logs: {
         Row: {
@@ -30811,6 +30992,7 @@ export type Database = {
           possui_isencao_scee: boolean
         }[]
       }
+      get_current_tenant_id: { Args: never; Returns: string }
       get_dashboard_consultor_performance: {
         Args: never
         Returns: {
