@@ -206,7 +206,10 @@ export function useConcessionaria(projetoId: string) {
           .insert({ projeto_id: projetoId, ...dados } as any);
         if (error) throw error;
       }
-      // Mark project as won
+      // Mark project as operational won? 
+      // User requested NOT to change deals.status automatically in this phase 
+      // so we will comment out this side effect to respect the audit rules.
+      /*
       const { error: dealErr } = await supabase
         .from("deals")
         .update({ status: "won" })
@@ -214,6 +217,7 @@ export function useConcessionaria(projetoId: string) {
       if (dealErr) {
         console.error("[useConcessionaria] Erro ao marcar projeto como concluído:", dealErr);
       }
+      */
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: keys.ativacao(projetoId) });
