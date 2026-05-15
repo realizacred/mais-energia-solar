@@ -157,6 +157,8 @@ export default function VendorOrcamentosView({ portal }: Props) {
             onExcludeTerminalChange={setExcludeTerminal}
             maxAgeDays={maxAgeDays}
             onMaxAgeDaysChange={setMaxAgeDays}
+            operationalStatus={operationalStatus}
+            onOperationalStatusChange={setOperationalStatus}
             onClearFilters={handleClearFilters}
           />
         </CardHeader>
