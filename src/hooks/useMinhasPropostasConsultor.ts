@@ -88,6 +88,7 @@ interface RawProposta {
     public_slug: string | null;
     link_pdf: string | null;
     viewed_at: string | null;
+    consumo_mensal: number | null;
   }> | null;
 }
 
