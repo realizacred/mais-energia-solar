@@ -137,7 +137,7 @@ export default function PropostaLanding() {
           .select("id, ordem, nome, tipo, is_default, preco_final, entrada_valor, num_parcelas, valor_parcela, taxa_juros_mensal, payback_meses, tir_anual, roi_25_anos, economia_primeiro_ano")
           .eq("versao_id", td.versao_id).order("ordem"),
         (supabase as any).from("propostas_nativas")
-          .select("tenant_id, consultor_id, titulo, proposta_num, created_at, external_source")
+          .select("tenant_id, consultor_id, titulo, proposta_num, created_at, external_source, cliente_id")
           .eq("id", td.proposta_id).maybeSingle(),
       ]);
 
