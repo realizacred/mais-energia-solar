@@ -131,7 +131,7 @@ export function VendorOrcamentosTable({
         <div className="space-y-3">
           {groupedOrcamentos.map((group) => {
             const orc = group.latestOrcamento as OrcamentoVendedor;
-            const isConverted = convertidoStatus && orc.status_id === convertidoStatus.id;
+            const isCurrentlyConverted = orc.status_id && convertedIds.includes(orc.status_id);
             
             return (
               <div key={group.lead_id}>
