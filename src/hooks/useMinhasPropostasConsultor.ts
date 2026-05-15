@@ -122,8 +122,8 @@ export function useMinhasPropostasConsultor(consultorId: string | null | undefin
             "cliente_id",
             "projeto_id",
             "consultor_id",
-            "clientes(nome)",
-            "leads(nome)",
+            "clientes(id, nome)",
+            "leads(id, nome)",
             "proposta_versoes(id,versao_numero,potencia_kwp,geracao_mensal,economia_mensal,payback_meses,valor_total,valido_ate,output_pdf_path,public_slug,link_pdf,viewed_at)",
           ].join(","),
         )
