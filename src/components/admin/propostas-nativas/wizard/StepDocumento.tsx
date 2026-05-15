@@ -4,7 +4,7 @@ import type { GenerationAuditReport } from "@/services/generationAudit";
 import {
   FileText, Sun, Zap, Loader2, Globe, FileDown, Upload, MessageCircle, Mail,
   Download, Link2, LinkIcon, Calendar, Copy, Check, Info, Send, Bold, Italic, Underline, Code,
-  AlertTriangle, ExternalLink, Sparkles, RefreshCw,
+  AlertTriangle, ExternalLink, Sparkles, RefreshCw, AlertCircle,
 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
@@ -20,6 +20,16 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
 import { sendProposal } from "@/services/proposalApi";
 import { supabase } from "@/integrations/supabase/client";
@@ -578,7 +588,7 @@ export function StepDocumento({
             </div>
             <Button onClick={onGenerate} disabled={!templateSelecionado || estimativaBlocked} title={estimativaBlocked ? "Marque o aceite de estimativa acima para continuar" : undefined} className="w-full gap-2">
               <Zap className="h-4 w-4" />
-              Gerar Proposta
+              Publicar nova versão
             </Button>
           </div>
           <div className="rounded-xl border border-destructive/30 bg-destructive/5 flex flex-col items-center justify-center min-h-[300px] sm:min-h-[400px] p-6 text-center">
@@ -589,7 +599,7 @@ export function StepDocumento({
             <p className="text-xs text-muted-foreground max-w-md">{generationError}</p>
             <Button variant="outline" size="sm" className="mt-4 gap-2 border-destructive text-destructive hover:bg-destructive/10" onClick={onGenerate} disabled={estimativaBlocked} title={estimativaBlocked ? "Marque o aceite de estimativa acima para continuar" : undefined}>
               <Zap className="h-3.5 w-3.5" />
-              Gerar Proposta
+              Publicar nova versão
             </Button>
           </div>
         </div>
@@ -623,7 +633,7 @@ export function StepDocumento({
             </div>
             <Button onClick={onGenerate} disabled={!templateSelecionado || estimativaBlocked} title={estimativaBlocked ? "Marque o aceite de estimativa acima para continuar" : undefined} className="w-full gap-2">
               <Zap className="h-4 w-4" />
-              Gerar Proposta
+              Publicar nova versão
             </Button>
             <Button variant="outline" size="sm" className="w-full gap-2" onClick={async () => {
               const { data } = await supabase.storage.from("proposta-documentos").createSignedUrl(outputDocxPath, 3600);
@@ -715,7 +725,7 @@ export function StepDocumento({
                 <TooltipTrigger asChild>
                   <Button onClick={onGenerate} disabled={!templateSelecionado || generating || estimativaBlocked} title={estimativaBlocked ? "Marque o aceite de estimativa acima para continuar" : undefined} className="w-full gap-2">
                     {generating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Zap className="h-4 w-4" />}
-                    Gerar Proposta
+                    Publicar nova versão
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent side="bottom" className="text-xs">
@@ -1270,7 +1280,7 @@ export function StepDocumento({
               <p className="text-xs text-muted-foreground max-w-sm">{generationError}</p>
               <Button variant="outline" size="sm" className="mt-3 gap-2 border-destructive text-destructive hover:bg-destructive/10" onClick={onGenerate} disabled={estimativaBlocked} title={estimativaBlocked ? "Marque o aceite de estimativa acima para continuar" : undefined}>
                 <Zap className="h-3.5 w-3.5" />
-                Gerar Proposta
+                Publicar nova versão
               </Button>
             </div>
           ) : outputPdfPath ? (
@@ -1355,7 +1365,7 @@ export function StepDocumento({
               <p className="text-sm text-muted-foreground">Nenhuma proposta gerada ainda</p>
               <Button variant="default" size="sm" className="gap-2" onClick={onGenerate} disabled={estimativaBlocked} title={estimativaBlocked ? "Marque o aceite de estimativa acima para continuar" : undefined}>
                 <Zap className="h-3.5 w-3.5" />
-                Gerar Proposta
+                Publicar nova versão
               </Button>
             </div>
           )}
