@@ -1,9 +1,7 @@
 import { useState } from "react";
 import { Phone, Eye, MapPin, Calendar, Trash2, ShoppingCart, UserCheck, MessageSquare, RotateCcw, ExternalLink } from "lucide-react";
 import { useReopenLead } from "@/hooks/useReopenLead";
-import { usePropostaRapidaLead } from "@/hooks/usePropostaRapidaLead";
-import { DuplicateOpenDealModal } from "@/components/leads/DuplicateOpenDealModal";
-import { ButtonLoader } from "@/components/loading/ButtonLoader";
+// ... keep existing code
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { formatPhoneBR } from "@/lib/formatters";
