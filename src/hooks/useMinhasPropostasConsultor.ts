@@ -322,31 +322,6 @@ export interface PropostasConsultorKpis {
   expiradas: number;
 }
 
-export function computePropostasKpis(rows: PropostaConsultor[]): PropostasConsultorKpis {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  let enviadas = 0;
-  let visualizadas = 0;
-  let aceitas = 0;
-  let expiradas = 0;
-  for (const p of rows) {
-    // CORREÇÃO 4: Lógica de contagem correta
-    if (p.status === "enviada" || p.enviada_at) {
-      enviadas++;
-    }
-    if (p.primeiro_acesso_em || p.viewed_at || p.status === "vista") {
-      visualizadas++;
-    }
-    if (p.status === "aceita" || p.aceita_at) {
-      aceitas++;
-    }
-    
-    if (p.valido_ate) {
-      const v = new Date(p.valido_ate);
-      if (!Number.isNaN(v.getTime()) && v < today && !p.aceita_at && p.status !== "aceita") {
-        expiradas++;
-      }
-    }
-  }
-  return { total: rows.length, enviadas, visualizadas, aceitas, expiradas };
-}
+// export function computePropostasKpis(rows: PropostaConsultor[]): PropostasConsultorKpis {
+//   ... (mantido comentado caso queira restaurar ou para referência de lógica)
+// }
