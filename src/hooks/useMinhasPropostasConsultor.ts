@@ -183,19 +183,14 @@ export function useMinhasPropostasConsultor(consultorId: string | null | undefin
         .from("propostas_nativas")
         .select(`
           id, codigo, titulo, status, consultor_id,
-          cliente_id, lead_id, template_id,
-          proposta_num, status_visualizacao, is_principal,
-          created_at, enviada_at, primeiro_acesso_em,
-          ultimo_acesso_em, total_aberturas, aceita_at,
-          recusada_at, validade_dias, public_token, versao_atual,
+          cliente_id, lead_id,
           proposta_aceite_tokens(token),
-          clientes!cliente_id(id, nome, cidade, estado),
-          leads!lead_id(id, nome),
+          clientes!cliente_id(nome),
+          leads!lead_id(nome),
           proposta_versoes(
             id, versao_numero, valor_total, potencia_kwp,
             geracao_mensal, economia_mensal, payback_meses,
             valido_ate, output_pdf_path, primeiro_acesso_em,
-            created_at, public_slug, link_pdf, viewed_at, consumo_mensal,
             proposta_versao_ucs(consumo_mensal_kwh)
           )
         `, { count: "exact" })
@@ -218,8 +213,11 @@ export function useMinhasPropostasConsultor(consultorId: string | null | undefin
         const latest =
           versoes.find((v) => v.versao_numero === p.versao_atual) ?? versoes[0] ?? null;
 
-        const cliente_nome_real = (p.clientes?.nome || p.leads?.nome) ? capitalize(p.clientes?.nome || p.leads?.nome || "") : null;
-        const cliente_nome = cliente_nome_real || (p.titulo ? capitalize(p.titulo) : "Cliente não identificado");
+        const cliente_nome_real = 
+          (p as any).clientes?.nome ?? 
+          (p as any).leads?.nome ?? 
+          null;
+        const cliente_nome = cliente_nome_real ? capitalize(cliente_nome_real) : (p.titulo ? capitalize(p.titulo) : "Cliente não identificado");
 
         let valido_ate = latest?.valido_ate ?? null;
         if (!valido_ate && latest?.created_at) {
