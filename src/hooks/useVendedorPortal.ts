@@ -9,6 +9,7 @@ import { useGamification } from "@/hooks/useGamification";
 import { useAdvancedMetrics } from "@/hooks/useAdvancedMetrics";
 import type { Lead } from "@/types/lead";
 import { toCanonicalPhoneDigits } from "@/utils/phone/toCanonicalPhoneDigits";
+import { getTerminalStatusIds } from "@/modules/orcamentos/utils/operationalFilters";
 
 export interface VendedorProfile {
   id: string;
