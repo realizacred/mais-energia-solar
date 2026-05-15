@@ -113,6 +113,9 @@ export function PagamentosDialog({
     observacoes: "",
   });
 
+  const { data: finSettings } = useFinancialSettings();
+  const { data: tenantId } = useTenantId();
+
   const registrarMut = useRegistrarPagamento();
   const deletarMut = useDeletarPagamento();
 
