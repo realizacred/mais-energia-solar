@@ -8,7 +8,7 @@
  * AGENTS.md §16 (queries só em hooks), §23 (staleTime obrigatório).
  * Boundary consultor/admin — Fase 3 da auditoria do Portal Consultor.
  */
-import { useQuery } from "@tanstack/react-query";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
 const STALE_TIME = 1000 * 60 * 2;
@@ -95,14 +95,34 @@ interface RawProposta {
   }> | null;
 }
 
+const PAGE_SIZE = 50;
+
 export function useMinhasPropostasConsultor(consultorId: string | null | undefined) {
-  return useQuery<PropostaConsultor[]>({
-    queryKey: ["minhas-propostas-consultor", consultorId],
-    enabled: !!consultorId && consultorId !== "admin",
-    staleTime: STALE_TIME,
-    queryFn: async () => {
-      // Select EXPLICITAMENTE sanitizado — nenhum snapshot, nenhum custo, nenhuma margem
-      const { data, error } = await (supabase as any)
+  const [propostas, setPropostas] = useState<PropostaConsultor[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+  const [totalCount, setTotalCount] = useState(0);
+
+  const propostasLenRef = useRef(0);
+  useEffect(() => {
+    propostasLenRef.current = propostas.length;
+  }, [propostas.length]);
+
+  const fetchPropostas = useCallback(async (append = false) => {
+    if (!consultorId || consultorId === "admin") {
+      setLoading(false);
+      return;
+    }
+
+    try {
+      if (append) setLoadingMore(true);
+      else setLoading(true);
+
+      const from = append ? propostasLenRef.current : 0;
+      const to = from + PAGE_SIZE - 1;
+
+      const { data, error, count } = await (supabase as any)
         .from("propostas_nativas")
         .select(
           [
@@ -131,17 +151,18 @@ export function useMinhasPropostasConsultor(consultorId: string | null | undefin
             "leads(id, nome)",
             "proposta_versoes(id,versao_numero,created_at,potencia_kwp,geracao_mensal,economia_mensal,payback_meses,valor_total,valido_ate,output_pdf_path,public_slug,link_pdf,viewed_at,consumo_mensal,proposta_versao_ucs(consumo_mensal_kwh))",
           ].join(","),
+          { count: "exact" }
         )
         .eq("consultor_id", consultorId)
         .is("deleted_at", null)
         .neq("status", "excluida")
         .order("created_at", { ascending: false })
-        .limit(200);
+        .range(from, to);
 
       if (error) throw error;
 
       const rows = (data ?? []) as RawProposta[];
-      return rows.map((p): PropostaConsultor => {
+      const newData = rows.map((p): PropostaConsultor => {
         const capitalize = (s: string) => 
           s.trim().split(/\s+/).map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
 
@@ -199,8 +220,38 @@ export function useMinhasPropostasConsultor(consultorId: string | null | undefin
           consumo_mensal: latest?.consumo_mensal || (latest?.proposta_versao_ucs && latest.proposta_versao_ucs.length > 0 ? latest.proposta_versao_ucs.reduce((acc, uc) => acc + (Number(uc.consumo_mensal_kwh) || 0), 0) : null),
         };
       });
-    },
-  });
+
+      const total = count || 0;
+      setTotalCount(total);
+
+      if (append) {
+        setPropostas(prev => [...prev, ...newData]);
+        setHasMore(propostasLenRef.current + newData.length < total);
+      } else {
+        setPropostas(newData);
+        setHasMore(newData.length < total);
+      }
+    } catch (error) {
+      console.error("Erro ao carregar propostas:", error);
+    } finally {
+      setLoading(false);
+      setLoadingMore(false);
+    }
+  }, [consultorId]);
+
+  useEffect(() => {
+    fetchPropostas();
+  }, [fetchPropostas]);
+
+  return {
+    data: propostas,
+    isLoading: loading,
+    loadingMore,
+    hasMore,
+    totalCount,
+    refetch: () => fetchPropostas(),
+    loadMore: () => fetchPropostas(true),
+  };
 }
 
 /** Métricas do portal consultor — calculadas em memória, sem custo/margem. */
