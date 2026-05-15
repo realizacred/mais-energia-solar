@@ -2,11 +2,15 @@ import { LeadStatus } from "@/types/lead";
 
 export const TERMINAL_STATUS_KEYWORDS = [
   "convertido", "perdido", "cancelado", "recusado", 
-  "inativo", "fechado", "ganho", "cliente"
+  "inativo", "fechado", "ganho", "cliente", "arquivado", "aguardando validação"
 ];
 
 export const CONVERTED_STATUS_KEYWORDS = [
   "convertido", "fechado", "ganho", "cliente"
+];
+
+export const LOST_STATUS_KEYWORDS = [
+  "perdido", "cancelado", "recusado", "inativo"
 ];
 
 export interface OperationalFilterOptions {
@@ -32,6 +36,15 @@ export function getTerminalStatusIds(statuses: LeadStatus[]): string[] {
 export function getConvertedStatusIds(statuses: LeadStatus[]): string[] {
   return statuses
     .filter(s => CONVERTED_STATUS_KEYWORDS.some(kw => s.nome.toLowerCase().includes(kw)))
+    .map(s => s.id);
+}
+
+/**
+ * Identifica IDs de status que representam perda
+ */
+export function getLostStatusIds(statuses: { id: string; nome: string }[]): string[] {
+  return statuses
+    .filter(s => LOST_STATUS_KEYWORDS.some(kw => s.nome.toLowerCase().includes(kw)))
     .map(s => s.id);
 }
 
