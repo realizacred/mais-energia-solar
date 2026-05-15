@@ -141,25 +141,13 @@ export function useOrcamentosVendedor({
           .select(ORC_SELECT, { count: "exact" })
           .order("created_at", { ascending: false });
 
-        if (filterVisto === "visto") q = q.eq("visto", true);
-        else if (filterVisto === "nao_visto") q = q.eq("visto", false);
-        if (filterEstado !== "todos") q = q.eq("estado", filterEstado);
-        
-        if (filterStatus === "novo") {
-          q = q.is("status_id", null);
-        } else if (filterStatus !== "todos") {
-          q = q.eq("status_id", filterStatus);
-        } else if (excludeTerminal && terminalIds.length > 0) {
-          q = q.or(`status_id.is.null,status_id.not.in.(${terminalIds.join(",")})`);
-        }
-
-        if (maxAgeDays) {
-          const minDate = new Date();
-          minDate.setDate(minDate.getDate() - maxAgeDays);
-          q = q.gte("created_at", minDate.toISOString());
-        }
-
-        return q;
+        return buildOperationalFilters(q, {
+          filterVisto,
+          filterEstado,
+          filterStatus,
+          excludeTerminal,
+          maxAgeDays
+        }, terminalIds);
       };
 
       let searchLeadIds: string[] | null = null;
