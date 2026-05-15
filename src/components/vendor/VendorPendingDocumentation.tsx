@@ -12,6 +12,7 @@ import {
   MapPinOff,
   Zap
 } from "lucide-react";
+import { getTerminalStatusIds } from "@/modules/orcamentos/utils/operationalFilters";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
