@@ -23,10 +23,11 @@
    Bar,
    Cell,
  } from "recharts";
- import { format, subDays, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, differenceInDays, parseISO } from "date-fns";
- import { ptBR } from "date-fns/locale";
- import type { OrcamentoVendedor } from "@/hooks/useOrcamentosVendedor";
- import type { LeadStatus } from "@/types/lead";
+import { format, subDays, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, differenceInDays, parseISO } from "date-fns";
+import { ptBR } from "date-fns/locale";
+import type { OrcamentoVendedor } from "@/hooks/useOrcamentosVendedor";
+import type { LeadStatus } from "@/types/lead";
+import { getConvertedStatusIds } from "@/modules/orcamentos/utils/operationalFilters";
  
  interface VendorPersonalDashboardProps {
    orcamentos: OrcamentoVendedor[];
