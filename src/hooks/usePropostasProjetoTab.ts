@@ -136,6 +136,8 @@ export function usePropostasProjetoTab(dealId: string, customerId: string | null
         enviada_at: p.enviada_at || null,
         recusada_at: p.recusada_at || null,
         origem: p.origem || null,
+        draft_total: p.draft_total || null,
+        has_unpublished_changes: p.has_unpublished_changes ?? false,
         versoes: (versoes || [])
           .filter((v: any) => v.proposta_id === p.id)
           .map((v: any) => {
