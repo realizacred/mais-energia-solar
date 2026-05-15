@@ -108,11 +108,11 @@ export function useResumoFechamento(dataInicio: string, dataFim: string) {
         }
       }
 
-      const totalReceitas = total + receitasAvulsas;
+      const totalReceitas = items.reduce((s, p: any) => s + Number(p.valor || 0), 0);
       const saldoPeriodo = totalReceitas - despesas;
 
       return {
-        total,
+        total: totalPagamentos,
         quantidade: items.length,
         formas,
         receitasAvulsas,
