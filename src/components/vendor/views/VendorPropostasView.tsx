@@ -76,7 +76,7 @@ const STATUS_CONFIG: Record<string, { label: string; cls: string }> = {
 
 export default function VendorPropostasView({ portal }: Props) {
   const consultorId = portal.vendedor?.id ?? null;
-  const { data = [], isLoading, refetch, loadMore, hasMore, loadingMore, totalCount } = useMinhasPropostasConsultor(consultorId);
+  const { data = [], isLoading, refetch, loadMore, hasMore, loadingMore, totalCount, kpis } = useMinhasPropostasConsultor(consultorId);
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState("todas");
 
