@@ -3115,6 +3115,37 @@ function ProposalWizardContent() {
         </div>
       )}
 
+      {/* Unpublished Changes Banner */}
+      {hasEditsAfterRestore && officialTotal > 0 && Math.abs(precoFinal - officialTotal) > 0.01 && (
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-4 lg:px-6 py-3 border-b border-amber-500/50 bg-amber-50 shrink-0">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-amber-100/50 flex items-center justify-center shrink-0">
+              <AlertCircle className="h-5 w-5 text-amber-600" />
+            </div>
+            <div>
+              <p className="text-sm font-bold text-amber-900 leading-tight">Você possui alterações não publicadas</p>
+              <p className="text-[11px] text-amber-700 mt-0.5">Para atualizar o projeto e os indicadores do CRM, publique uma nova versão.</p>
+              <div className="flex items-center gap-3 text-xs text-amber-700 mt-1.5">
+                <span className="flex items-center gap-1.5"><Badge variant="outline" className="text-[9px] px-1 py-0 h-4 border-amber-300 text-amber-700 bg-white">OFICIAL ATUAL</Badge> {formatBRL(officialTotal)}</span>
+                <ChevronRight className="h-3 w-3 opacity-50" />
+                <span className="flex items-center gap-1.5"><Badge variant="default" className="text-[9px] px-1 py-0 h-4 bg-amber-500 text-white border-0">RASCUNHO</Badge> {formatBRL(precoFinal)}</span>
+              </div>
+            </div>
+          </div>
+          <Button 
+            size="sm" 
+            className="bg-amber-600 hover:bg-amber-700 text-white border-0 shadow-sm gap-2 w-full sm:w-auto"
+            onClick={() => {
+              const propostaIndex = activeSteps.findIndex(s => s.key === STEP_KEYS.PROPOSTA);
+              if (propostaIndex >= 0) setStep(propostaIndex);
+            }}
+          >
+            <RefreshCw className="h-3.5 w-3.5" />
+            Publicar nova versão agora
+          </Button>
+        </div>
+      )}
+
       {/* Migrated proposal without editable kit */}
       {migratedKitMissing && (
         <div className="flex items-center gap-2 px-4 lg:px-6 py-2 border-b border-amber-500/30 bg-amber-500/10 shrink-0">
