@@ -43,15 +43,9 @@ import { getConvertedStatusIds } from "@/modules/orcamentos/utils/operationalFil
    vendedorNome,
  }: VendorPersonalDashboardProps) {
    // Find converted status IDs
-   const convertedStatusIds = useMemo(() => {
-     return statuses
-       .filter((s) =>
-         CONVERTED_STATUS_NAMES.some((name) =>
-           s.nome.toLowerCase().includes(name)
-         )
-       )
-       .map((s) => s.id);
-   }, [statuses]);
+    const convertedStatusIds = useMemo(() => {
+      return getConvertedStatusIds(statuses);
+    }, [statuses]);
  
    // Calculate metrics
    const metrics = useMemo(() => {
