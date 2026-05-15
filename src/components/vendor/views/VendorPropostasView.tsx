@@ -368,16 +368,17 @@ function PropostaRow({
       </TableCell>
 
       <TableCell className="align-middle">
-        <div className="flex flex-col gap-1">
-          <Badge variant="default" className="font-mono text-xs whitespace-nowrap w-fit">
-            {codeLabel}
-          </Badge>
-          {proposta.versao_numero && (
-            <span className="text-[10px] text-muted-foreground font-medium ml-1">
-              Versão {proposta.versao_numero}
-            </span>
-          )}
-        </div>
+        <div className="flex items-center gap-2">
+          <div className="flex flex-col gap-0.5">
+            <Badge variant="default" className="font-mono text-[10px] whitespace-nowrap w-fit">
+              {codeLabel}
+            </Badge>
+            {proposta.versao_numero && (
+              <span className="text-[10px] text-muted-foreground font-medium ml-1">
+                v{proposta.versao_numero}
+              </span>
+            )}
+          </div>
           {isMain && hasOthers && (
             <TooltipProvider>
               <Tooltip>
@@ -398,6 +399,10 @@ function PropostaRow({
                   Ver outras {othersCount} versões
                 </TooltipContent>
               </Tooltip>
+            </TooltipProvider>
+          )}
+        </div>
+      </TableCell>
             </TooltipProvider>
           )}
         </div>
