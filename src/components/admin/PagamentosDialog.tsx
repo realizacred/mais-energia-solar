@@ -152,9 +152,31 @@ export function PagamentosDialog({
   };
 
   const handleDelete = async (id: string) => {
+    if (finSettings?.audit_allow_hard_delete === false) {
+      toast({ 
+        title: "Ação não permitida", 
+        description: "A política de auditoria proíbe a exclusão física de pagamentos. Use o estorno.",
+        variant: "destructive" 
+      });
+      return;
+    }
+
+    if (tenantId) {
+      const { locked, reason } = await checkFinancialLock(id, tenantId, finSettings?.audit_lock_days);
+      if (locked) {
+        toast({ title: "Pagamento Travado", description: reason, variant: "destructive" });
+        return;
+      }
+    }
+
     if (!confirm("Excluir este pagamento? As parcelas vinculadas voltarão a pendente.")) return;
     try {
       await deletarMut.mutateAsync(id);
+      
+      if (tenantId) {
+        await logFinancialAction('delete', 'pagamento', id, { motive: "Exclusão manual" });
+      }
+      
       toast({ title: "Pagamento excluído e parcelas restauradas!" });
       onUpdate();
     } catch {
