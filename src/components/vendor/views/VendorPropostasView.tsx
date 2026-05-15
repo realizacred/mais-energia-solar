@@ -446,8 +446,8 @@ function PropostaRow({
 
       <TableCell className="align-middle">
         <div className={`flex items-center gap-1.5 text-xs ${
-          isExpired ? "text-red-500 font-medium" : 
-          isNearExpiring ? "text-amber-500 font-medium" : 
+          isExpired ? "text-destructive font-medium" : 
+          isNearExpiring ? "text-warning font-medium" : 
           "text-muted-foreground"
         }`}>
           <Clock className="h-3.5 w-3.5" />
