@@ -357,6 +357,7 @@ function ProposalWizardContent() {
     staleTime: 1000 * 60 * 5,
   });
   const [savedClienteId, setSavedClienteId] = useState<string | null>(null);
+  const [officialTotal, setOfficialTotal] = useState<number>(0);
   // Track if editing a previously sent/generated proposal (will branch new version)
   const [editingsentProposal, setEditingSentProposal] = useState(false);
   const [proposalStatus, setProposalStatus] = useState<string | null>(null);
@@ -1319,9 +1320,23 @@ function ProposalWizardContent() {
         try {
           const { data: propostaMeta } = await supabase
             .from("propostas_nativas")
-            .select("lead_id, deal_id, projeto_id, cliente_id, status")
+            .select("lead_id, deal_id, projeto_id, cliente_id, status, draft_total")
             .eq("id", propostaIdFromUrl)
             .maybeSingle();
+
+          // Fetch official total from the official version
+          const { data: officialVer } = await supabase
+            .from("proposta_versoes")
+            .select("valor_total")
+            .eq("proposta_id", propostaIdFromUrl)
+            .eq("is_official", true)
+            .order("created_at", { ascending: false })
+            .limit(1)
+            .maybeSingle();
+
+          if (officialVer?.valor_total) {
+            setOfficialTotal(officialVer.valor_total);
+          }
 
           // Detect if proposal was already sent/generated — will branch new version on save
           const SENT_STATUSES = ["enviada", "vista", "aceita", "gerada", "sent", "accepted", "generated"];
@@ -2429,6 +2444,8 @@ function ProposalWizardContent() {
       const genResult = await generateProposal(payload);
       setResult(genResult);
       clearLocal(); // Proposta gerada — limpar rascunho local
+      setOfficialTotal(precoFinal); // Update official total state to hide divergence banner
+      setHasEditsAfterRestore(false); // Reset edit tracking
 
       // Sync template_id_used on the new version (RB-54) — belt-and-suspenders
       // proposal-generate already sets it server-side, but sync as fallback
@@ -2948,6 +2965,9 @@ function ProposalWizardContent() {
               generating={generating}
               rendering={rendering}
               result={result}
+              hasUnpublishedChanges={hasEditsAfterRestore}
+              officialTotal={officialTotal}
+              draftTotal={precoFinal}
               htmlPreview={htmlPreview}
               pdfBlobUrl={pdfBlobUrl}
               outputDocxPath={outputDocxPath}
@@ -3094,6 +3114,37 @@ function ProposalWizardContent() {
           <p className="text-sm font-bold">
             ESTA PROPOSTA ESTÁ ACEITA PELO CLIENTE. QUALQUER ALTERAÇÃO PODE INVALIDAR O CONTRATO ASSINADO.
           </p>
+        </div>
+      )}
+
+      {/* Unpublished Changes Banner */}
+      {hasEditsAfterRestore && officialTotal > 0 && Math.abs(precoFinal - officialTotal) > 0.01 && (
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-4 lg:px-6 py-3 border-b border-amber-500/50 bg-amber-50 shrink-0">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-amber-100/50 flex items-center justify-center shrink-0">
+              <AlertCircle className="h-5 w-5 text-amber-600" />
+            </div>
+            <div>
+              <p className="text-sm font-bold text-amber-900 leading-tight">Você possui alterações não publicadas</p>
+              <p className="text-[11px] text-amber-700 mt-0.5">Para atualizar o projeto e os indicadores do CRM, publique uma nova versão.</p>
+              <div className="flex items-center gap-3 text-xs text-amber-700 mt-1.5">
+                <span className="flex items-center gap-1.5"><Badge variant="outline" className="text-[9px] px-1 py-0 h-4 border-amber-300 text-amber-700 bg-white">OFICIAL ATUAL</Badge> {formatBRL(officialTotal)}</span>
+                <ChevronRight className="h-3 w-3 opacity-50" />
+                <span className="flex items-center gap-1.5"><Badge variant="default" className="text-[9px] px-1 py-0 h-4 bg-amber-500 text-white border-0">RASCUNHO</Badge> {formatBRL(precoFinal)}</span>
+              </div>
+            </div>
+          </div>
+          <Button 
+            size="sm" 
+            className="bg-amber-600 hover:bg-amber-700 text-white border-0 shadow-sm gap-2 w-full sm:w-auto"
+            onClick={() => {
+              const propostaIndex = activeSteps.findIndex(s => s.key === STEP_KEYS.PROPOSTA);
+              if (propostaIndex >= 0) setStep(propostaIndex);
+            }}
+          >
+            <RefreshCw className="h-3.5 w-3.5" />
+            Publicar nova versão agora
+          </Button>
         </div>
       )}
 

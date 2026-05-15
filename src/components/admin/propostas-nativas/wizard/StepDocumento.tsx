@@ -4,7 +4,7 @@ import type { GenerationAuditReport } from "@/services/generationAudit";
 import {
   FileText, Sun, Zap, Loader2, Globe, FileDown, Upload, MessageCircle, Mail,
   Download, Link2, LinkIcon, Calendar, Copy, Check, Info, Send, Bold, Italic, Underline, Code,
-  AlertTriangle, ExternalLink, Sparkles, RefreshCw,
+  AlertTriangle, ExternalLink, Sparkles, RefreshCw, AlertCircle,
 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
@@ -20,6 +20,16 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
 import { sendProposal } from "@/services/proposalApi";
 import { supabase } from "@/integrations/supabase/client";
@@ -67,6 +77,9 @@ interface StepDocumentoProps {
   missingVars?: string[];
   docxBlob?: Blob | null;
   generationAuditReport?: any;
+  hasUnpublishedChanges?: boolean;
+  officialTotal?: number;
+  draftTotal?: number;
 }
 
 // ─── Main Component ───────────────────────────────────────
@@ -90,6 +103,9 @@ export function StepDocumento({
   missingVars = [],
   docxBlob = null,
   generationAuditReport = null,
+  hasUnpublishedChanges = false,
+  officialTotal = 0,
+  draftTotal = 0,
 }: StepDocumentoProps) {
   const {
     cliente, selectedLead,
@@ -149,6 +165,7 @@ export function StepDocumento({
   // Signed URL gerada localmente quando temos outputPdfPath mas não temos pdfBlobUrl
   const [resolvedPdfPreviewUrl, setResolvedPdfPreviewUrl] = useState<string | null>(null);
   const [pdfPreviewError, setPdfPreviewError] = useState<string | null>(null);
+  const [showConfirmPublishDialog, setShowConfirmPublishDialog] = useState<{ open: boolean; action: () => void } | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -325,6 +342,13 @@ export function StepDocumento({
   };
 
   const handleCopyLink = async (withTracker: boolean) => {
+    if (hasUnpublishedChanges && !result) {
+      setShowConfirmPublishDialog({
+        open: true,
+        action: () => handleCopyLink(withTracker),
+      });
+      return;
+    }
     const propostaId = result?.proposta_id as string | undefined;
     const versaoId = result?.versao_id as string | undefined;
     const directPdfUrl = outputPdfPath
@@ -442,6 +466,13 @@ export function StepDocumento({
 
   // ─── Send via proposalApi (§33 — centralizar chamadas de edge function) ───
   const handleSendWhatsapp = async () => {
+    if (hasUnpublishedChanges && !result) {
+      setShowConfirmPublishDialog({
+        open: true,
+        action: handleSendWhatsapp,
+      });
+      return;
+    }
     if (!result?.proposta_id || !result?.versao_id) {
       toast({ title: "Gere a proposta primeiro", variant: "destructive" });
       return;
@@ -471,6 +502,13 @@ export function StepDocumento({
   };
 
   const handleSendEmail = async () => {
+    if (hasUnpublishedChanges && !result) {
+      setShowConfirmPublishDialog({
+        open: true,
+        action: handleSendEmail,
+      });
+      return;
+    }
     if (!result?.proposta_id || !result?.versao_id) {
       toast({ title: "Gere a proposta primeiro", variant: "destructive" });
       return;
@@ -550,7 +588,7 @@ export function StepDocumento({
             </div>
             <Button onClick={onGenerate} disabled={!templateSelecionado || estimativaBlocked} title={estimativaBlocked ? "Marque o aceite de estimativa acima para continuar" : undefined} className="w-full gap-2">
               <Zap className="h-4 w-4" />
-              Gerar Proposta
+              Publicar nova versão
             </Button>
           </div>
           <div className="rounded-xl border border-destructive/30 bg-destructive/5 flex flex-col items-center justify-center min-h-[300px] sm:min-h-[400px] p-6 text-center">
@@ -561,7 +599,7 @@ export function StepDocumento({
             <p className="text-xs text-muted-foreground max-w-md">{generationError}</p>
             <Button variant="outline" size="sm" className="mt-4 gap-2 border-destructive text-destructive hover:bg-destructive/10" onClick={onGenerate} disabled={estimativaBlocked} title={estimativaBlocked ? "Marque o aceite de estimativa acima para continuar" : undefined}>
               <Zap className="h-3.5 w-3.5" />
-              Gerar Proposta
+              Publicar nova versão
             </Button>
           </div>
         </div>
@@ -595,7 +633,7 @@ export function StepDocumento({
             </div>
             <Button onClick={onGenerate} disabled={!templateSelecionado || estimativaBlocked} title={estimativaBlocked ? "Marque o aceite de estimativa acima para continuar" : undefined} className="w-full gap-2">
               <Zap className="h-4 w-4" />
-              Gerar Proposta
+              Publicar nova versão
             </Button>
             <Button variant="outline" size="sm" className="w-full gap-2" onClick={async () => {
               const { data } = await supabase.storage.from("proposta-documentos").createSignedUrl(outputDocxPath, 3600);
@@ -687,7 +725,7 @@ export function StepDocumento({
                 <TooltipTrigger asChild>
                   <Button onClick={onGenerate} disabled={!templateSelecionado || generating || estimativaBlocked} title={estimativaBlocked ? "Marque o aceite de estimativa acima para continuar" : undefined} className="w-full gap-2">
                     {generating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Zap className="h-4 w-4" />}
-                    Gerar Proposta
+                    Publicar nova versão
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent side="bottom" className="text-xs">
@@ -723,6 +761,13 @@ export function StepDocumento({
     };
 
     const handleDownloadPdf = async () => {
+      if (hasUnpublishedChanges && !result) {
+        setShowConfirmPublishDialog({
+          open: true,
+          action: handleDownloadPdf,
+        });
+        return;
+      }
       try {
         const backendFileName = result?.file_name;
         const fallbackName = (() => {
@@ -1235,7 +1280,7 @@ export function StepDocumento({
               <p className="text-xs text-muted-foreground max-w-sm">{generationError}</p>
               <Button variant="outline" size="sm" className="mt-3 gap-2 border-destructive text-destructive hover:bg-destructive/10" onClick={onGenerate} disabled={estimativaBlocked} title={estimativaBlocked ? "Marque o aceite de estimativa acima para continuar" : undefined}>
                 <Zap className="h-3.5 w-3.5" />
-                Gerar Proposta
+                Publicar nova versão
               </Button>
             </div>
           ) : outputPdfPath ? (
@@ -1320,7 +1365,7 @@ export function StepDocumento({
               <p className="text-sm text-muted-foreground">Nenhuma proposta gerada ainda</p>
               <Button variant="default" size="sm" className="gap-2" onClick={onGenerate} disabled={estimativaBlocked} title={estimativaBlocked ? "Marque o aceite de estimativa acima para continuar" : undefined}>
                 <Zap className="h-3.5 w-3.5" />
-                Gerar Proposta
+                Publicar nova versão
               </Button>
             </div>
           )}
@@ -1590,6 +1635,60 @@ export function StepDocumento({
           {renderEmailTab()}
         </TabsContent>
       </Tabs>
+      <AlertDialog open={!!showConfirmPublishDialog} onOpenChange={(open) => !open && setShowConfirmPublishDialog(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2 text-warning">
+              <AlertCircle className="h-5 w-5" />
+              Publicar rascunho divergente?
+            </AlertDialogTitle>
+            <AlertDialogDescription className="space-y-3">
+              <p>Existe um rascunho mais recente que a versão oficial. Deseja publicar a nova versão antes de enviar?</p>
+              <div className="p-3 rounded-lg bg-muted/50 border border-border space-y-2">
+                <div className="flex justify-between text-xs items-center">
+                  <span className="text-muted-foreground flex items-center gap-1.5"><Badge variant="outline" className="text-[9px] px-1 py-0 h-4 uppercase">Oficial</Badge> atual</span>
+                  <span className="font-semibold">{formatBRL(officialTotal)}</span>
+                </div>
+                <div className="flex justify-between text-xs items-center">
+                  <span className="text-muted-foreground flex items-center gap-1.5"><Badge variant="default" className="text-[9px] px-1 py-0 h-4 uppercase bg-amber-500 text-white border-0">Rascunho</Badge> novo</span>
+                  <span className="font-bold text-amber-600">{formatBRL(draftTotal)}</span>
+                </div>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex-col sm:flex-row gap-2 sm:gap-0">
+            <div className="flex flex-col sm:flex-row gap-2 w-full justify-between">
+              <AlertDialogCancel className="mt-0">Cancelar</AlertDialogCancel>
+              <div className="flex flex-col sm:flex-row gap-2">
+                <AlertDialogAction
+                  className="bg-transparent text-foreground border border-input hover:bg-accent hover:text-accent-foreground"
+                  onClick={() => {
+                    if (showConfirmPublishDialog?.action) {
+                      showConfirmPublishDialog.action();
+                    }
+                    setShowConfirmPublishDialog(null);
+                  }}
+                >
+                  Enviar oficial atual
+                </AlertDialogAction>
+                <AlertDialogAction
+                  onClick={async () => {
+                    const action = showConfirmPublishDialog?.action;
+                    setShowConfirmPublishDialog(null);
+                    if (onGenerate) {
+                      await onGenerate();
+                      // After generating, the user usually wants to see the result.
+                      // We'll let them click send again on the new official version.
+                    }
+                  }}
+                >
+                  Publicar e enviar
+                </AlertDialogAction>
+              </div>
+            </div>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

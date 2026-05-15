@@ -22,7 +22,7 @@ import {
   ChevronDown, SunMedium, Bell, Users, Tag, Link2, ShoppingCart, Landmark, Receipt,
   CreditCard
 } from "lucide-react";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -646,22 +646,25 @@ function ProjetoDetalheContent() {
                 {deal.status === "won" ? "Ganho" : deal.status === "lost" ? "Perdido" : "Aberto"}
               </Badge>
               {deal.value > 0 && (
-                <div className="flex flex-col items-end gap-1">
-                  <Badge variant="outline" className="text-xs shrink-0 font-bold bg-primary/5 text-primary border-primary/20">
+                <div className="flex flex-col items-end gap-1.5">
+                  <Badge variant="outline" className="text-xs shrink-0 font-bold bg-primary/5 text-primary border-primary/20 h-7 px-3">
                     Oficial: {formatBRL(deal.value)}
                   </Badge>
-                  {propostas.some(p => p.has_unpublished_changes) && (
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Badge variant="outline" className="text-[10px] shrink-0 font-medium bg-amber-50 text-amber-700 border-amber-200 animate-pulse cursor-help">
-                          <AlertCircle className="h-2.5 w-2.5 mr-1" />
-                          Rascunho: {formatBRL(propostas.find(p => p.has_unpublished_changes)?.draft_total || 0)}
-                        </Badge>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        Existem alterações não publicadas nesta proposta.
-                      </TooltipContent>
-                    </Tooltip>
+                  {propostas.some(p => p.has_unpublished_changes && p.draft_total && Math.abs(p.draft_total - deal.value) > 0.01) && (
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Badge variant="outline" className="text-[10px] shrink-0 font-bold bg-amber-50 text-amber-700 border-amber-200 h-6 px-2 animate-pulse cursor-help">
+                            <AlertCircle className="h-3 w-3 mr-1" />
+                            Rascunho: {formatBRL(propostas.find(p => p.has_unpublished_changes)?.draft_total || 0)}
+                          </Badge>
+                        </TooltipTrigger>
+                        <TooltipContent className="text-xs bg-amber-50 text-amber-900 border-amber-200">
+                          Existem alterações não publicadas nesta proposta.<br />
+                          O rascunho possui valor divergente do oficial.
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
                   )}
                 </div>
               )}

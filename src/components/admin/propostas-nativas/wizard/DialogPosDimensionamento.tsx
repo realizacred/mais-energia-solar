@@ -265,7 +265,7 @@ export function DialogPosDimensionamento({
               }}
               disabled={loading || hasRequired || saving}
             >
-              {saving ? "Salvando..." : "Salvar"}
+              {saving ? "Salvando..." : "Salvar rascunho"}
             </Button>
           )}
           {onSaveActive && (
@@ -284,7 +284,7 @@ export function DialogPosDimensionamento({
               }}
               disabled={loading || hasRequired || saving}
             >
-              {saving ? "Salvando..." : "⭐ Salvar como Ativa"}
+              {saving ? "Salvando..." : "⭐ Publicar nova versão"}
             </Button>
           )}
         </div>
