@@ -31,6 +31,8 @@ interface VendorLeadFiltersProps {
   onExcludeTerminalChange: (value: boolean) => void;
   maxAgeDays: number | null;
   onMaxAgeDaysChange: (value: number | null) => void;
+  operationalStatus: string;
+  onOperationalStatusChange: (value: string) => void;
   estados: string[];
   statuses: { id: string; nome: string }[];
   onClearFilters: () => void;
