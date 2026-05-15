@@ -290,6 +290,37 @@ export function useMinhasPropostasConsultor(consultorId: string | null | undefin
   };
 }
 
+/**
+ * ⚠️ HARDENING: Realtime subscription for Proposals.
+ * Separated from main hook to maintain stability and avoid re-renders.
+ */
+function usePropostasConsultorRealtime(consultorId: string | null | undefined, queryClient: any) {
+  useEffect(() => {
+    if (!consultorId || consultorId === "admin") return;
+
+    const channel = supabase
+      .channel(`propostas-consultor-${consultorId}`)
+      .on(
+        'postgres_changes',
+        { 
+          event: '*', 
+          schema: 'public', 
+          table: 'propostas_nativas',
+          filter: `consultor_id=eq.${consultorId}`
+        },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ['propostas-consultor-kpis', consultorId] });
+          queryClient.invalidateQueries({ queryKey: ['propostas-consultor-list', consultorId] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [consultorId, queryClient]);
+}
+
 /** Métricas do portal consultor — calculadas em memória, sem custo/margem. */
 export interface PropostasConsultorKpis {
   total: number;
