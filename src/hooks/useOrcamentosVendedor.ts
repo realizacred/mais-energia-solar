@@ -4,6 +4,7 @@ import { useToast } from "@/hooks/use-toast";
 import type { LeadStatus } from "@/types/lead";
 import { toCanonicalPhoneDigits } from "@/utils/phone/toCanonicalPhoneDigits";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { buildOperationalFilters, getTerminalStatusIds } from "@/modules/orcamentos/utils/operationalFilters";
 
 export interface OrcamentoVendedor {
   id: string;
