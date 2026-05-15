@@ -50,7 +50,7 @@ interface UseOrcamentosVendedorOptions {
   filterEstado?: string;
   filterStatus?: string;
   excludeTerminal?: boolean;
-  maxAgeDays, operationalStatus?: number | null;
+  maxAgeDays?: number | null;
   operationalStatus?: string;
 }
 
