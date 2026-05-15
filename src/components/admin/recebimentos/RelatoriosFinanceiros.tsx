@@ -71,13 +71,13 @@ import { formatBRL } from "@/lib/formatters";
        const mesesAtras = parseInt(periodo);
        const dataInicio = format(startOfMonth(subMonths(new Date(), mesesAtras - 1)), "yyyy-MM-dd");
        
-       // Buscar pagamentos
-       const { data: pagamentos, error: pagError } = await supabase
-         .from("pagamentos")
-         .select("id, valor_pago, forma_pagamento, data_pagamento")
-         .gte("data_pagamento", dataInicio)
-         .order("data_pagamento");
- 
+        // Buscar receitas canônicas (evita dupla contagem)
+        const { data: receitas, error: pagError } = await supabase
+          .from("vw_receitas_canonicas")
+          .select("original_id, valor, forma_pagamento, data_referencia")
+          .gte("data_referencia", dataInicio)
+          .order("data_referencia");
+
        if (pagError) throw pagError;
  
        // Buscar totais de recebimentos
@@ -101,13 +101,13 @@ import { formatBRL } from "@/lib/formatters";
          mesesMap.set(chave, 0);
        }
  
-       pagamentos?.forEach((p: Pagamento) => {
-         const chave = format(new Date(p.data_pagamento), "MMM/yy", { locale: ptBR });
-         if (mesesMap.has(chave)) {
-           mesesMap.set(chave, (mesesMap.get(chave) || 0) + p.valor_pago);
-         }
-       });
- 
+        receitas?.forEach((p: any) => {
+          const chave = format(new Date(p.data_referencia), "MMM/yy", { locale: ptBR });
+          if (mesesMap.has(chave)) {
+            mesesMap.set(chave, (mesesMap.get(chave) || 0) + Number(p.valor));
+          }
+        });
+
        setDadosMensais(
          Array.from(mesesMap.entries()).map(([mes, recebido], idx) => ({
            mes,
@@ -118,11 +118,11 @@ import { formatBRL } from "@/lib/formatters";
  
        // Processar dados por forma de pagamento
        const formasMap = new Map<string, number>();
-       pagamentos?.forEach((p: Pagamento) => {
-         const forma = FORMAS_PAGAMENTO[p.forma_pagamento] || p.forma_pagamento;
-         formasMap.set(forma, (formasMap.get(forma) || 0) + p.valor_pago);
-       });
- 
+        receitas?.forEach((p: any) => {
+          const forma = FORMAS_PAGAMENTO[p.forma_pagamento] || p.forma_pagamento;
+          formasMap.set(forma, (formasMap.get(forma) || 0) + Number(p.valor));
+        });
+
        setDadosFormaPagamento(
          Array.from(formasMap.entries())
            .map(([name, value]) => ({ name, value }))
@@ -130,7 +130,7 @@ import { formatBRL } from "@/lib/formatters";
        );
  
        // Calcular totais
-       const totalRecebido = pagamentos?.reduce((acc: number, p: Pagamento) => acc + p.valor_pago, 0) || 0;
+       const totalRecebido = receitas?.reduce((acc: number, p: any) => acc + Number(p.valor), 0) || 0;
        const totalPendente = recebimentos
          ?.filter((r: { status: string }) => r.status !== "quitado" && r.status !== "cancelado")
          .reduce((acc: number, r: { valor_total: number }) => acc + r.valor_total, 0) || 0;

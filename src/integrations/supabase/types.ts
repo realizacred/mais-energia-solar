@@ -10793,8 +10793,10 @@ export type Database = {
           descricao: string
           forma_pagamento: string | null
           id: string
+          is_automatic: boolean | null
           observacoes: string | null
           projeto_id: string | null
+          source_id: string | null
           status: string
           tenant_id: string
           tipo: string
@@ -10811,8 +10813,10 @@ export type Database = {
           descricao: string
           forma_pagamento?: string | null
           id?: string
+          is_automatic?: boolean | null
           observacoes?: string | null
           projeto_id?: string | null
+          source_id?: string | null
           status?: string
           tenant_id: string
           tipo: string
@@ -10829,8 +10833,10 @@ export type Database = {
           descricao?: string
           forma_pagamento?: string | null
           id?: string
+          is_automatic?: boolean | null
           observacoes?: string | null
           projeto_id?: string | null
+          source_id?: string | null
           status?: string
           tenant_id?: string
           tipo?: string
@@ -21759,8 +21765,11 @@ export type Database = {
           emitido_em: string
           id: string
           numero: string | null
+          pagamento_id: string | null
+          parcela_id: string | null
           pdf_path: string | null
           projeto_id: string | null
+          recebimento_id: string | null
           status: string
           template_id: string
           tenant_id: string
@@ -21779,8 +21788,11 @@ export type Database = {
           emitido_em?: string
           id?: string
           numero?: string | null
+          pagamento_id?: string | null
+          parcela_id?: string | null
           pdf_path?: string | null
           projeto_id?: string | null
+          recebimento_id?: string | null
           status?: string
           template_id: string
           tenant_id?: string
@@ -21799,8 +21811,11 @@ export type Database = {
           emitido_em?: string
           id?: string
           numero?: string | null
+          pagamento_id?: string | null
+          parcela_id?: string | null
           pdf_path?: string | null
           projeto_id?: string | null
+          recebimento_id?: string | null
           status?: string
           template_id?: string
           tenant_id?: string
@@ -21824,10 +21839,31 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "recibos_emitidos_pagamento_id_fkey"
+            columns: ["pagamento_id"]
+            isOneToOne: false
+            referencedRelation: "pagamentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recibos_emitidos_parcela_id_fkey"
+            columns: ["parcela_id"]
+            isOneToOne: false
+            referencedRelation: "parcelas"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "recibos_emitidos_projeto_id_fkey"
             columns: ["projeto_id"]
             isOneToOne: false
             referencedRelation: "projetos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recibos_emitidos_recebimento_id_fkey"
+            columns: ["recebimento_id"]
+            isOneToOne: false
+            referencedRelation: "recebimentos"
             referencedColumns: ["id"]
           },
           {
@@ -30239,6 +30275,20 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      vw_receitas_canonicas: {
+        Row: {
+          data_referencia: string | null
+          descricao: string | null
+          forma_pagamento: string | null
+          origem: string | null
+          original_id: string | null
+          parcela_id: string | null
+          recebimento_id: string | null
+          tenant_id: string | null
+          valor: number | null
+        }
+        Relationships: []
       }
       vw_wa_integrity_audit: {
         Row: {

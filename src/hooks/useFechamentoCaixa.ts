@@ -62,19 +62,22 @@ export function useResumoFechamento(dataInicio: string, dataFim: string) {
   return useQuery({
     queryKey: ["resumo-fechamento", dataInicio, dataFim],
     queryFn: async (): Promise<ResumoFechamento> => {
-      // 1. Pagamentos (parcelas pagas)
-      const { data: pagData, error: pagErr } = await supabase
-        .from("pagamentos")
-        .select("valor_pago, forma_pagamento, data_pagamento")
-        .gte("data_pagamento", dataInicio)
-        .lte("data_pagamento", dataFim);
-      if (pagErr) throw pagErr;
+      // 1. Receitas Canônicas (evita dupla contagem)
+      const { data: receitasData, error: recErr } = await supabase
+        .from("vw_receitas_canonicas")
+        .select("valor, forma_pagamento, data_referencia")
+        .gte("data_referencia", dataInicio)
+        .lte("data_referencia", dataFim);
+      if (recErr) throw recErr;
 
-      const items = pagData || [];
-      const total = items.reduce((s, p) => s + Number(p.valor_pago || 0), 0);
-      const formas = items.reduce((acc, p) => {
+      const items = receitasData || [];
+      const totalPagamentos = items
+        .filter((r: any) => r.origem === 'pagamento')
+        .reduce((s, p) => s + Number(p.valor || 0), 0);
+      
+      const formas = items.reduce((acc, p: any) => {
         const f = p.forma_pagamento || "outros";
-        acc[f] = (acc[f] || 0) + Number(p.valor_pago || 0);
+        acc[f] = (acc[f] || 0) + Number(p.valor || 0);
         return acc;
       }, {} as Record<string, number>);
 
@@ -105,11 +108,11 @@ export function useResumoFechamento(dataInicio: string, dataFim: string) {
         }
       }
 
-      const totalReceitas = total + receitasAvulsas;
+      const totalReceitas = items.reduce((s, p: any) => s + Number(p.valor || 0), 0);
       const saldoPeriodo = totalReceitas - despesas;
 
       return {
-        total,
+        total: totalPagamentos,
         quantidade: items.length,
         formas,
         receitasAvulsas,
