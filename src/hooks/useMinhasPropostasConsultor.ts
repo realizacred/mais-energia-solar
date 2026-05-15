@@ -121,35 +121,35 @@ export function useMinhasPropostasConsultor(consultorId: string | null | undefin
       const [total, enviadas, visualizadas, aceitas, expiradas] = await Promise.all([
         supabase
           .from("propostas_nativas")
-          .select("*", { count: "exact", head: true })
+          .select("id", { count: "exact", head: true })
           .eq("consultor_id", consultorId)
           .is("deleted_at", null)
           .neq("status", "excluida"),
         
         supabase
           .from("propostas_nativas")
-          .select("*", { count: "exact", head: true })
+          .select("id", { count: "exact", head: true })
           .eq("consultor_id", consultorId)
           .is("deleted_at", null)
-          .in("status", ["enviada"]),
+          .eq("status", "enviada"),
 
         supabase
           .from("propostas_nativas")
-          .select("*", { count: "exact", head: true })
+          .select("id", { count: "exact", head: true })
           .eq("consultor_id", consultorId)
           .is("deleted_at", null)
           .or("primeiro_acesso_em.not.is.null,status.eq.vista"),
 
         supabase
           .from("propostas_nativas")
-          .select("*", { count: "exact", head: true })
+          .select("id", { count: "exact", head: true })
           .eq("consultor_id", consultorId)
           .is("deleted_at", null)
           .eq("status", "aceita"),
 
         supabase
           .from("propostas_nativas")
-          .select("*", { count: "exact", head: true })
+          .select("id", { count: "exact", head: true })
           .eq("consultor_id", consultorId)
           .is("deleted_at", null)
           .neq("status", "aceita")
