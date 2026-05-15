@@ -48,7 +48,6 @@ import {
 } from "@/components/ui/tooltip";
 import { 
   useMinhasPropostasConsultor, 
-  computePropostasKpis, 
   type PropostaConsultor 
 } from "@/hooks/useMinhasPropostasConsultor";
 import { formatBRL } from "@/lib/formatters";
@@ -76,7 +75,7 @@ const STATUS_CONFIG: Record<string, { label: string; cls: string }> = {
 
 export default function VendorPropostasView({ portal }: Props) {
   const consultorId = portal.vendedor?.id ?? null;
-  const { data = [], isLoading, refetch, loadMore, hasMore, loadingMore, totalCount } = useMinhasPropostasConsultor(consultorId);
+  const { data = [], isLoading, refetch, loadMore, hasMore, loadingMore, totalCount, kpis } = useMinhasPropostasConsultor(consultorId);
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState("todas");
 
@@ -101,7 +100,7 @@ export default function VendorPropostasView({ portal }: Props) {
     return result;
   }, [data, search, filterStatus]);
 
-  const kpis = useMemo(() => computePropostasKpis(data), [data]);
+  // const kpis = useMemo(() => computePropostasKpis(data), [data]); // Removido em favor dos KPIs vindos do hook
 
   const grouped = useMemo(() => {
     const map = new Map<string, PropostaConsultor[]>();
