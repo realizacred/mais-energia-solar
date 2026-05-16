@@ -412,7 +412,8 @@ function ProjetoDetalheContent() {
 
       if (error) throw error;
 
-      toast({ title: "Valor comercial atualizado", description: `Novo valor: ${formatBRLInteger(data.new_value)}` });
+      const result = data as any;
+      toast({ title: "Valor comercial atualizado", description: `Novo valor: ${formatBRLInteger(result.new_value)}` });
       setIsUpdateValueModalOpen(false);
       setUpdateValueReason("");
       queryClient.invalidateQueries({ queryKey: ["projeto-detalhe", dealId] });
