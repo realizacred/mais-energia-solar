@@ -175,7 +175,7 @@ export default function SystemHealthPage() {
   const [expandedRow, setExpandedRow] = useState<string | null>(null);
   const queryClient = useQueryClient();
   const {
-    integrations, outboxStats, docStats, tenantHealth,
+    integrations, outboxStats, docStats, tenantHealth, jobStats,
     healthy, degraded, down, notConfigured,
     avgLatency, errorRate, overallStatus, isLoading,
   } = useSystemHealth();
