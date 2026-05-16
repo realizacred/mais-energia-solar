@@ -158,6 +158,7 @@ export function useUpdateAnaliseCredito() {
     },
     onSuccess: (data: any) => {
       queryClient.invalidateQueries({ queryKey: ["analise-credito"] });
+      queryClient.invalidateQueries({ queryKey: ["analise-credito", data.id] });
       if (data.deal_id) {
         queryClient.invalidateQueries({ queryKey: ["projeto-detalhe", data.deal_id] });
       }

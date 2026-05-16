@@ -11,7 +11,8 @@ import {
   User, 
   Calendar,
   Send,
-  Eye
+  Eye,
+  Edit2
 } from "lucide-react";
 import { 
   useAnaliseCredito, 
@@ -194,11 +195,24 @@ export function ProjetoCreditoTab({ dealId, leadId, clienteId, clienteCpfCnpj, v
                               </DropdownMenuItem>
                               {canManage && (
                                 <>
-                                  <DropdownMenuItem>
-                                    <CheckCircle2 className="mr-2 h-4 w-4 text-success" /> Aprovar (Rápido)
+                                  <DropdownMenuItem onClick={() => handleEditAnalysis(analise)}>
+                                    <Edit2 className="mr-2 h-4 w-4" /> Editar / Gerenciar
                                   </DropdownMenuItem>
-                                  <DropdownMenuItem>
-                                    <XCircle className="mr-2 h-4 w-4 text-destructive" /> Reprovar (Rápido)
+                                  <DropdownMenuItem 
+                                    className="text-success"
+                                    onClick={async () => {
+                                      await updateMutation.mutateAsync({ id: analise.id, status: 'aprovado' });
+                                    }}
+                                  >
+                                    <CheckCircle2 className="mr-2 h-4 w-4" /> Aprovar (Direto)
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem 
+                                    className="text-destructive"
+                                    onClick={async () => {
+                                      await updateMutation.mutateAsync({ id: analise.id, status: 'reprovado' });
+                                    }}
+                                  >
+                                    <XCircle className="mr-2 h-4 w-4" /> Reprovar (Direto)
                                   </DropdownMenuItem>
                                 </>
                               )}
