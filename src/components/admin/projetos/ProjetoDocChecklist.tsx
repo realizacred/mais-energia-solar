@@ -38,7 +38,8 @@ interface Props {
 
 export function ProjetoDocChecklist({ dealId, compact = false }: Props) {
   // Sync with project_documents SSOT
-  const { data: canonicalDocs = [] } = useProjectDocuments({ dealId });
+  const { data: canonicalData } = useProjectDocuments({ dealId });
+  const canonicalDocs = canonicalData?.documents || [];
 
   // Dynamic items
   const { data: items = [], isLoading: loadingItems } = useChecklistItems();
