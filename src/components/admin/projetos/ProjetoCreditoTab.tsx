@@ -12,7 +12,8 @@ import {
   Calendar,
   Send,
   Eye,
-  Edit2
+  Edit2,
+  AlertCircle
 } from "lucide-react";
 import { 
   useAnaliseCredito, 
@@ -34,6 +35,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { CreditAnalysisWizard } from "./CreditAnalysisWizard";
+import { useCreditSimulations } from "@/hooks/useCreditDomain";
 
 interface Props {
   dealId?: string | null;
