@@ -592,6 +592,40 @@ export function RolePermissionsManager() {
           </SectionCard>
         ))}
       </div>
+
+      <Separator className="my-8" />
+
+      <SectionCard title="Matriz de Governança Crítica" variant="neutral">
+        <div className="space-y-4">
+          <p className="text-sm text-muted-foreground">
+            Ações de alto risco protegidas por travas de backend (Hard Lock) e auditoria obrigatória.
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {[
+              { action: "Excluir Proposta Oficial", status: "Bloqueado (Backend)", roles: ["Admin"] },
+              { action: "Reabrir Negociação Ganha", status: "Auditado", roles: ["Admin", "Gerente"] },
+              { action: "Ver Saúde Operacional", status: "Restrito", roles: ["Admin", "TI"] },
+              { action: "Editar Contrato Assinado", status: "Bloqueado", roles: ["Ninguém"] },
+              { action: "Estornar Pagamento", status: "Auditado", roles: ["Admin", "Financeiro"] },
+              { action: "Excluir Projeto com Financeiro", status: "Bloqueado (Backend)", roles: ["Ninguém"] },
+            ].map((item, i) => (
+              <div key={i} className="p-3 border rounded-lg bg-card flex flex-col gap-2">
+                <div className="flex justify-between items-start">
+                  <span className="text-sm font-semibold">{item.action}</span>
+                  <Badge variant={item.status.includes("Bloqueado") ? "destructive" : "secondary"} className="text-[10px]">
+                    {item.status}
+                  </Badge>
+                </div>
+                <div className="flex flex-wrap gap-1">
+                  {item.roles.map(r => (
+                    <Badge key={r} variant="outline" className="text-[9px] opacity-70">{r}</Badge>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </SectionCard>
     </div>
   );
 }
