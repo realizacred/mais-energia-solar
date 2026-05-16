@@ -83,9 +83,13 @@ export function CreditAnalysisWizard({
   const { data: banks } = useCreditBankConfigs();
   const { data: checklist } = useCreditBankChecklist(formData.bank_config_id || undefined);
   const { data: creditDocs } = useAnaliseCreditoDocumentos(initialData?.id || "");
+  const { data: projectDocs } = useProjectDocuments({ dealId, leadId });
 
   const createMutation = useCreateAnaliseCredito();
   const updateMutation = useUpdateAnaliseCredito();
+  const vincularDocMutation = useVincularDocumentoCredito();
+
+  const [isLinkingDoc, setIsLinkingDoc] = useState<{checklistId: string, itemName: string} | null>(null);
 
   const handleNext = () => setStep((s) => (s + 1) as Step);
   const handleBack = () => setStep((s) => (s - 1) as Step);
@@ -276,11 +280,22 @@ export function CreditAnalysisWizard({
                                 {item.is_required && <Badge variant="destructive" className="text-[9px] h-3 px-1">Obrigatório</Badge>}
                               </p>
                               <p className="text-[11px] text-muted-foreground">{item.description || "Sem descrição"}</p>
+                              {linkedDoc && (
+                                <p className="text-[10px] text-success font-medium flex items-center gap-1 mt-0.5">
+                                  <Paperclip className="h-3 w-3" /> {linkedDoc.document?.display_name || linkedDoc.document?.file_name}
+                                </p>
+                              )}
                             </div>
                           </div>
                           
-                          <Button variant="outline" size="sm" className="h-8 gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <Paperclip className="h-3.5 w-3.5" /> Vincular
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            className={cn("h-8 gap-1.5", linkedDoc ? "opacity-40 hover:opacity-100" : "opacity-0 group-hover:opacity-100")}
+                            onClick={() => setIsLinkingDoc({ checklistId: item.id, itemName: item.document_type_name })}
+                            disabled={!initialData?.id}
+                          >
+                            <Paperclip className="h-3.5 w-3.5" /> {linkedDoc ? "Trocar" : "Vincular"}
                           </Button>
                         </div>
                       );
@@ -351,6 +366,47 @@ export function CreditAnalysisWizard({
           </div>
         </DialogFooter>
       </DialogContent>
+      <Dialog open={!!isLinkingDoc} onOpenChange={(open) => !open && setIsLinkingDoc(null)}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Vincular Documento: {isLinkingDoc?.itemName}</DialogTitle>
+          </DialogHeader>
+          <ScrollArea className="max-h-[50vh] pr-4 py-4">
+            <div className="space-y-2">
+              {projectDocs?.documents.length === 0 ? (
+                <div className="text-center py-8 bg-muted/20 rounded-lg border border-dashed">
+                  <p className="text-sm text-muted-foreground">Nenhum documento encontrado no projeto.</p>
+                </div>
+              ) : (
+                projectDocs?.documents.map((doc) => (
+                  <Button
+                    key={doc.id}
+                    variant="outline"
+                    className="w-full justify-start h-auto py-3 px-4 flex-col items-start gap-1"
+                    onClick={async () => {
+                      if (isLinkingDoc && initialData?.id) {
+                        await vincularDocMutation.mutateAsync({
+                          analise_credito_id: initialData.id,
+                          project_document_id: doc.id,
+                          checklist_item_id: isLinkingDoc.checklistId
+                        });
+                        setIsLinkingDoc(null);
+                      }
+                    }}
+                  >
+                    <div className="flex items-center gap-2 w-full">
+                      <FileText className="h-4 w-4 text-primary shrink-0" />
+                      <span className="font-semibold truncate flex-1 text-left">{doc.display_name || doc.file_name}</span>
+                      <Badge variant="outline" className="text-[9px] shrink-0 uppercase">{doc.categoria}</Badge>
+                    </div>
+                    <span className="text-[10px] text-muted-foreground ml-6">Enviado em {formatDateTime(doc.created_at)}</span>
+                  </Button>
+                ))
+              )}
+            </div>
+          </ScrollArea>
+        </DialogContent>
+      </Dialog>
     </Dialog>
   );
 }
