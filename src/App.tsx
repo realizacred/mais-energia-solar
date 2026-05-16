@@ -17,8 +17,8 @@ import { DevToolsProvider } from "@/contexts/DevToolsContext";
 import { DevToolsOverlay } from "@/components/dev/DevToolsOverlay";
 import { RealtimeHeartbeatProvider } from "@/components/providers/RealtimeHeartbeatProvider";
 import { PublicErrorBoundary } from "@/components/proposal-landing/PublicErrorBoundary";
+import { PublicLeadShell, InternalAppShell, ConsultantFieldShell } from "@/components/layout/AppShells";
 
-// Lazy load all page components for code splitting
 const Index = lazy(() => import("./pages/Index"));
 const Auth = lazy(() => import("./pages/Auth"));
 const Admin = lazy(() => import("./pages/Admin"));
