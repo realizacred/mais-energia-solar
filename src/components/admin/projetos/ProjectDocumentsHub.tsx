@@ -77,9 +77,11 @@ import {
   useUploadProjectDocument,
   useDeleteProjectDocument,
   useRenameProjectDocument,
+  useUpdateProjectDocumentCategory,
   type ProjectDocument,
   type ProjectDocumentOrigem,
 } from "@/hooks/useProjectDocuments";
+
 import { useProjetoArquivos, useDeletarArquivo } from "@/hooks/useProjetoDocumentos";
 import { useProjetoCustomFieldFiles } from "@/hooks/useProjetoCustomFieldFiles";
 import { normalizeFilename, logicalSuffix } from "@/lib/documentDedup";
