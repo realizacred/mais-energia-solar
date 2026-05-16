@@ -648,12 +648,57 @@ export function ProjectDocumentsHub({ projetoId, dealId }: Props) {
 
       <FilePreviewModal target={preview} onClose={() => setPreview(null)} />
 
+      <Dialog open={!!renamingDoc} onOpenChange={(o) => !o && setRenamingDoc(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Renomear documento</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Nome original</Label>
+              <Input value={renamingDoc?.file_name || ""} disabled className="bg-muted" />
+            </div>
+            <div className="space-y-2">
+              <Label>Novo nome</Label>
+              <Input
+                value={newName}
+                onChange={(e) => setNewName(e.target.value)}
+                placeholder="Ex: Comprovante de Endereço - Luiz Alberto"
+                maxLength={120}
+                autoFocus
+              />
+              <p className="text-[10px] text-muted-foreground">
+                A extensão do arquivo será preservada automaticamente.
+              </p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setRenamingDoc(null)}>
+              Cancelar
+            </Button>
+            <Button
+              onClick={async () => {
+                if (!renamingDoc || !newName.trim()) return;
+                const ext = renamingDoc.file_name.split('.').pop();
+                const finalName = `${newName.trim()}.${ext}`;
+                await renameMutation.mutateAsync({ docId: renamingDoc.id, newName: finalName });
+                setRenamingDoc(null);
+              }}
+              disabled={renameMutation.isPending || !newName.trim()}
+            >
+              {renameMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+              Salvar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <AlertDialog open={!!confirmDelete} onOpenChange={(o) => !o && setConfirmDelete(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Excluir documento?</AlertDialogTitle>
             <AlertDialogDescription>
-              "{confirmDelete?.file_name}" será removido permanentemente. Esta ação não pode ser desfeita.
+              "{confirmDelete?.display_name || confirmDelete?.file_name}" será removido permanentemente. Esta ação não pode ser desfeita.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -672,3 +717,4 @@ export function ProjectDocumentsHub({ projetoId, dealId }: Props) {
     </div>
   );
 }
+
