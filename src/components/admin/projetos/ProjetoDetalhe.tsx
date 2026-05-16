@@ -1065,6 +1065,63 @@ function ProjetoDetalheContent() {
         clienteId={editClienteId || ""}
         onSaved={() => refreshCustomer?.()}
       />
+
+      {/* ── Atualizar valor comercial pelo contratado modal ── */}
+      <Dialog open={isUpdateValueModalOpen} onOpenChange={setIsUpdateValueModalOpen}>
+        <DialogContent onOpenAutoFocus={(e) => e.preventDefault()}>
+          <DialogHeader>
+            <DialogTitle>Atualizar valor comercial</DialogTitle>
+            <DialogDescription>
+              Alinhar o valor da negociação com o valor real do contrato.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground">Valor Atual (Comercial)</Label>
+                <div className="text-sm font-medium">{formatBRLInteger(deal?.value || 0)}</div>
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground">Novo Valor (Contratado)</Label>
+                <div className="text-sm font-medium text-success">{formatBRLInteger(finSummary?.valorContratado || 0)}</div>
+              </div>
+            </div>
+            
+            <div className="bg-amber-50 border border-amber-200 p-3 rounded-md">
+              <div className="flex gap-2">
+                <AlertCircle className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
+                <p className="text-xs text-amber-700 leading-relaxed">
+                  Esta ação impacta diretamente o <strong>Kanban</strong>, o <strong>forecast de vendas</strong> e todas as <strong>métricas comerciais</strong>.
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="update-reason" className="text-sm font-medium">Motivo da alteração <span className="text-destructive">*</span></Label>
+              <Textarea 
+                id="update-reason"
+                placeholder="Ex: Diferença de valor após vistoria técnica / ajuste de kit..."
+                value={updateValueReason}
+                onChange={(e) => setUpdateValueReason(e.target.value)}
+                className="min-h-[80px]"
+              />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setIsUpdateValueModalOpen(false)} disabled={isUpdatingValue}>Cancelar</Button>
+            <Button 
+              onClick={handleUpdateValueFromContract} 
+              disabled={!updateValueReason.trim() || isUpdatingValue}
+              className="gap-2"
+            >
+              {isUpdatingValue && <Loader2 className="h-4 w-4 animate-spin" />}
+              Confirmar Atualização
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
