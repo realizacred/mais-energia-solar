@@ -179,6 +179,7 @@ const AuditoriaTelefonesPage = lazy(() => import("@/pages/admin/AuditoriaTelefon
 const WaSaudePage = lazy(() => import("@/pages/admin/WaSaudePage"));
 const WhatsappInstanciasPage = lazy(() => import("@/pages/admin/integracoes/whatsapp/WhatsappInstanciasPage"));
 const WhatsappIaResolucaoPage = lazy(() => import("@/pages/admin/integracoes/whatsapp/WhatsappIaResolucaoPage"));
+const DesignSystemGuide = lazy(() => import("@/pages/admin/DesignSystemGuide"));
 const WhatsappAutoRespostasPage = lazy(() => import("@/pages/admin/integracoes/whatsapp/WhatsappAutoRespostasPage"));
 const WhatsappFollowupPage = lazy(() => import("@/pages/admin/integracoes/whatsapp/WhatsappFollowupPage"));
 const MinhasInstalacoes = lazy(() => import("@/components/admin/projetos/MinhasInstalacoes"));
