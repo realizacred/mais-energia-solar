@@ -1,143 +1,187 @@
-import React, { useState } from "react";
-import { Book, AlertTriangle, Search, Terminal, AlertCircle, ChevronRight, ChevronDown } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import React from "react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { PLAYBOOKS, type Playbook } from "./playbookData";
-import { cn } from "@/lib/utils";
-import { toast } from "sonner";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { AlertCircle, BookOpen, CheckCircle2, Search, Terminal, AlertTriangle } from "lucide-react";
 
-export default function PlaybooksPage() {
-  const [search, setSearch] = useState("");
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+interface Playbook {
+  id: string;
+  title: string;
+  category: "WhatsApp" | "Financeiro" | "Operacional" | "Infra";
+  severity: "Crítico" | "Médio" | "Baixo";
+  symptoms: string[];
+  causes: string[];
+  diagnosis: string;
+  sqlQuery?: string;
+  solution: string;
+  escalation: string;
+  risk: string;
+}
 
-  const filtered = PLAYBOOKS.filter(p => 
-    p.title.toLowerCase().includes(search.toLowerCase()) ||
-    p.symptoms.some(s => s.toLowerCase().includes(search.toLowerCase()))
-  );
+const playbooks: Playbook[] = [
+  {
+    id: "wa-backlog",
+    title: "WhatsApp Backlog / Mensagens Paradas",
+    category: "WhatsApp",
+    severity: "Crítico",
+    symptoms: ["Mensagens não saem do 'Enviando'", "Clientes reclamam de demora", "Status 'pending' na tabela wa_messages"],
+    causes: ["Instância desconectada", "Celular sem internet", "Rate limit do WhatsApp"],
+    diagnosis: "Verificar status da instância no Dashboard de Saúde WhatsApp. Checar se 'last_heartbeat' está atualizado.",
+    sqlQuery: "SELECT count(*) FROM wa_messages WHERE status = 'pending' AND created_at < now() - interval '5 minutes';",
+    solution: "Reiniciar a instância no painel de controle ou reconectar o QR Code.",
+    escalation: "Se após reinício persistir, acionar suporte N3 (Infra).",
+    risk: "Alto - Interrupção total da comunicação comercial."
+  },
+  {
+    id: "pdf-fail",
+    title: "Falha na Geração de PDF",
+    category: "Infra",
+    severity: "Médio",
+    symptoms: ["Botão de 'Gerar PDF' gira infinitamente", "Erro 500 no console", "Arquivo corrompido"],
+    causes: ["Edge Function timeout", "Imagens muito pesadas no template", "Variáveis mal formatadas"],
+    diagnosis: "Checar logs da Edge Function 'generate-proposal-pdf'. Verificar se o tamanho do payload excede 5MB.",
+    solution: "Tentar gerar novamente. Se persistir, simplificar o template removendo imagens de alta resolução.",
+    escalation: "Acionar time de Produto se for erro de renderização.",
+    risk: "Médio - Atraso no envio de propostas comerciais."
+  },
+  {
+    id: "drift-financeiro",
+    title: "Drift Comercial/Financeiro (Mismatch de Valores)",
+    category: "Financeiro",
+    severity: "Crítico",
+    symptoms: ["Valor da proposta diferente do valor do projeto", "Saldo do cliente não bate com lançamentos"],
+    causes: ["Exclusão não atômica de versões", "Edição manual de projeto ignorando propostas", "Falha em trigger de atualização"],
+    diagnosis: "Comparar 'valor_total' na tabela 'projetos' com a proposta marcada como 'principal' ou 'oficial'.",
+    sqlQuery: "SELECT p.id, p.valor_total, pr.valor_final FROM projetos p JOIN propostas pr ON p.proposta_principal_id = pr.id WHERE p.valor_total != pr.valor_final;",
+    solution: "Executar RPC 'fix_project_commercial_snapshot' para o ID do projeto afetado.",
+    escalation: "Suporte Financeiro / Auditoria se houver suspeita de fraude.",
+    risk: "Crítico - Erro em contratos e cobranças reais."
+  },
+  {
+    id: "webhook-stop",
+    title: "Webhook de Pagamento Parado",
+    category: "Financeiro",
+    severity: "Crítico",
+    symptoms: ["Pagamento confirmado no banco mas não no CRM", "Webhook logs com erros 4xx/5xx"],
+    causes: ["Chave de API expirada", "URL de callback alterada", "Downtime do provedor (Asaas/Stripe)"],
+    diagnosis: "Verificar 'webhook_logs' no Supabase. Procurar por entradas sem sucesso nas últimas 2 horas.",
+    sqlQuery: "SELECT * FROM webhook_logs WHERE status != 'success' ORDER BY created_at DESC LIMIT 50;",
+    solution: "Sincronizar pagamentos manualmente via botão 'Recuperar Pagamentos' no módulo financeiro.",
+    escalation: "Infra se for problema de conectividade.",
+    risk: "Crítico - Fluxo de caixa e inadimplência falsa."
+  }
+];
 
-  const copySql = (sql: string) => {
-    navigator.clipboard.writeText(sql);
-    toast.success("SQL copiado!");
-  };
-
+const PlaybooksPage = () => {
   return (
-    <div className="p-4 md:p-6 space-y-6 max-w-6xl mx-auto">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <Book className="h-6 w-6 text-primary" />
-            Playbooks Operacionais
-          </h1>
-          <p className="text-muted-foreground">Guias de diagnóstico e resolução de incidentes</p>
-        </div>
-        <div className="relative w-full md:w-72">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input 
-            placeholder="Buscar sintoma ou título..." 
-            className="pl-9"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-        </div>
+    <div className="p-6 space-y-6">
+      <div className="flex flex-col gap-2">
+        <h1 className="text-3xl font-bold tracking-tight">Playbooks Operacionais</h1>
+        <p className="text-muted-foreground">
+          Guia de resolução de incidentes e diagnósticos do sistema.
+        </p>
       </div>
 
-      <div className="grid grid-cols-1 gap-4">
-        {filtered.map((p) => (
-          <Card key={p.id} className={cn(
-            "overflow-hidden transition-all",
-            selectedId === p.id ? "ring-2 ring-primary/20" : "hover:border-primary/30"
-          )}>
-            <div 
-              className="p-4 cursor-pointer flex items-center justify-between bg-muted/30"
-              onClick={() => setSelectedId(selectedId === p.id ? null : p.id)}
-            >
-              <div className="flex items-center gap-3">
-                <Badge variant={p.severity === "critical" ? "destructive" : p.severity === "warning" ? "warning" : "outline"}>
-                  {p.severity.toUpperCase()}
-                </Badge>
-                <h3 className="font-semibold">{p.title}</h3>
-              </div>
-              {selectedId === p.id ? <ChevronDown className="h-5 w-5" /> : <ChevronRight className="h-5 w-5" />}
-            </div>
+      <div className="grid gap-4 md:grid-cols-4">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Playbooks</CardTitle>
+            <BookOpen className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{playbooks.length}</div>
+          </CardContent>
+        </Card>
+      </div>
 
-            {selectedId === p.id && (
-              <CardContent className="p-6 space-y-6 animate-in slide-in-from-top-2">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="space-y-4">
+        <Accordion type="single" collapsible className="w-full">
+          {playbooks.map((pb) => (
+            <AccordionItem key={pb.id} value={pb.id} className="border rounded-lg px-4 mb-2 bg-card">
+              <AccordionTrigger className="hover:no-underline">
+                <div className="flex items-center gap-4 text-left">
+                  <div className={`p-2 rounded-full ${
+                    pb.severity === 'Crítico' ? 'bg-destructive/10 text-destructive' : 
+                    pb.severity === 'Médio' ? 'bg-warning/10 text-warning' : 'bg-info/10 text-info'
+                  }`}>
+                    {pb.severity === 'Crítico' ? <AlertCircle className="h-5 w-5" /> : <AlertTriangle className="h-5 w-5" />}
+                  </div>
+                  <div>
+                    <div className="font-semibold">{pb.title}</div>
+                    <div className="flex gap-2 mt-1">
+                      <Badge variant="secondary" className="text-[10px]">{pb.category}</Badge>
+                      <Badge variant={pb.severity === 'Crítico' ? 'destructive' : 'outline'} className="text-[10px]">
+                        {pb.severity}
+                      </Badge>
+                    </div>
+                  </div>
+                </div>
+              </AccordionTrigger>
+              <AccordionContent className="pt-4 pb-6 space-y-4">
+                <div className="grid md:grid-cols-2 gap-6">
                   <div className="space-y-4">
                     <section>
                       <h4 className="text-sm font-bold flex items-center gap-2 mb-2">
-                        <AlertTriangle className="h-4 w-4 text-warning" />
-                        Sintomas
+                        <Search className="h-4 w-4 text-primary" /> Sintomas
                       </h4>
-                      <ul className="list-disc list-inside text-sm space-y-1 text-muted-foreground">
-                        {p.symptoms.map((s, i) => <li key={i}>{s}</li>)}
+                      <ul className="list-disc list-inside text-sm text-muted-foreground">
+                        {pb.symptoms.map((s, i) => <li key={i}>{s}</li>)}
                       </ul>
                     </section>
+
                     <section>
                       <h4 className="text-sm font-bold flex items-center gap-2 mb-2">
-                        <AlertCircle className="h-4 w-4 text-info" />
-                        Causas Prováveis
+                        <AlertTriangle className="h-4 w-4 text-warning" /> Causas Prováveis
                       </h4>
-                      <ul className="list-disc list-inside text-sm space-y-1 text-muted-foreground">
-                        {p.causes.map((c, i) => <li key={i}>{c}</li>)}
+                      <ul className="list-disc list-inside text-sm text-muted-foreground">
+                        {pb.causes.map((c, i) => <li key={i}>{c}</li>)}
                       </ul>
+                    </section>
+
+                    <section>
+                      <h4 className="text-sm font-bold flex items-center gap-2 mb-2 text-info">
+                        <CheckCircle2 className="h-4 w-4" /> Diagnóstico
+                      </h4>
+                      <p className="text-sm text-muted-foreground">{pb.diagnosis}</p>
                     </section>
                   </div>
 
                   <div className="space-y-4">
+                    {pb.sqlQuery && (
+                      <section className="bg-muted p-3 rounded-md">
+                        <h4 className="text-xs font-mono font-bold flex items-center gap-2 mb-2 uppercase text-muted-foreground">
+                          <Terminal className="h-3 w-3" /> Query de Diagnóstico
+                        </h4>
+                        <pre className="text-[11px] font-mono bg-black/5 p-2 rounded overflow-x-auto whitespace-pre-wrap">
+                          {pb.sqlQuery}
+                        </pre>
+                      </section>
+                    )}
+
                     <section>
-                      <h4 className="text-sm font-bold flex items-center gap-2 mb-2">
-                        <Terminal className="h-4 w-4 text-primary" />
-                        Diagnóstico
-                      </h4>
-                      <ul className="list-decimal list-inside text-sm space-y-1 text-muted-foreground mb-3">
-                        {p.diagnosis.steps.map((s, i) => <li key={i}>{s}</li>)}
-                      </ul>
-                      {p.diagnosis.sql && (
-                        <div className="relative group">
-                          <pre className="bg-slate-950 text-slate-50 p-3 rounded text-xs font-mono overflow-x-auto">
-                            {p.diagnosis.sql}
-                          </pre>
-                          <Button 
-                            size="sm" 
-                            variant="ghost" 
-                            className="absolute top-1 right-1 h-7 text-[10px] opacity-0 group-hover:opacity-100 transition-opacity bg-slate-800 hover:bg-slate-700"
-                            onClick={() => copySql(p.diagnosis.sql!)}
-                          >
-                            Copiar SQL
-                          </Button>
-                        </div>
-                      )}
+                      <h4 className="text-sm font-bold text-success mb-2">Como Resolver</h4>
+                      <p className="text-sm p-3 bg-success/5 border border-success/20 rounded-md">{pb.solution}</p>
                     </section>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <section>
+                        <h4 className="text-xs font-bold uppercase text-muted-foreground mb-1">Escalonamento</h4>
+                        <p className="text-xs">{pb.escalation}</p>
+                      </section>
+                      <section>
+                        <h4 className="text-xs font-bold uppercase text-muted-foreground mb-1">Risco</h4>
+                        <p className="text-xs text-destructive">{pb.risk}</p>
+                      </section>
+                    </div>
                   </div>
                 </div>
-
-                <div className="pt-4 border-t grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <section>
-                    <h4 className="text-sm font-bold mb-2">Resolução</h4>
-                    <ul className="list-decimal list-inside text-sm space-y-1 text-muted-foreground">
-                      {p.resolution.map((r, i) => <li key={i}>{r}</li>)}
-                    </ul>
-                  </section>
-                  <section className="bg-muted/50 p-4 rounded-lg">
-                    <h4 className="text-sm font-bold mb-1">Escalação</h4>
-                    <p className="text-sm text-muted-foreground mb-3">{p.escalation}</p>
-                    <h4 className="text-sm font-bold mb-1">Risco Operacional</h4>
-                    <p className="text-sm text-destructive">{p.operational_risk}</p>
-                  </section>
-                </div>
-              </CardContent>
-            )}
-          </Card>
-        ))}
-        {filtered.length === 0 && (
-          <div className="text-center py-12 text-muted-foreground bg-muted/20 rounded-lg border-2 border-dashed">
-            Nenhum playbook encontrado para "{search}"
-          </div>
-        )}
+              </AccordionContent>
+            </AccordionItem>
+          ))}
+        </Accordion>
       </div>
     </div>
   );
-}
+};
+
+export default PlaybooksPage;
