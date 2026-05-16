@@ -156,8 +156,77 @@ export default function CreditGlobalArea() {
           </Table>
         </CardContent>
       </Card>
-    </div>
-  );
+    </TabsContent>
+
+    <TabsContent value="jobs">
+      <Card className="border-border/40 shadow-sm overflow-hidden">
+        <CardHeader className="bg-muted/30 pb-4">
+          <CardTitle className="text-lg">Fila de Operações Assíncronas</CardTitle>
+        </CardHeader>
+        <CardContent className="p-0">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Operação</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Tentativas</TableHead>
+                <TableHead>Último Erro</TableHead>
+                <TableHead>Criado em</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              <TableRow>
+                <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                  Nenhum job em processamento no momento.
+                </TableCell>
+              </TableRow>
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+    </TabsContent>
+
+    <TabsContent value="logs">
+      <Card className="border-border/40 shadow-sm overflow-hidden">
+        <CardHeader className="bg-muted/30 pb-4">
+          <CardTitle className="text-lg flex items-center gap-2">
+            <Terminal className="h-4 w-4" /> Histórico de Governança
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="p-0">
+          <ScrollArea className="h-[400px]">
+            <div className="p-4 space-y-3">
+              {operationLogs?.map((log) => (
+                <div key={log.id} className="text-xs font-mono p-2 border-l-2 border-primary bg-muted/20 flex flex-col gap-1">
+                  <div className="flex justify-between items-center">
+                    <Badge variant="outline" className="text-[9px] h-4 uppercase">{log.level}</Badge>
+                    <span className="text-muted-foreground">{formatDateTime(log.created_at)}</span>
+                  </div>
+                  <p className="font-semibold">{log.message}</p>
+                  {log.context && <pre className="text-[10px] opacity-60 overflow-hidden">{JSON.stringify(log.context)}</pre>}
+                </div>
+              ))}
+              {!operationLogs?.length && (
+                <div className="text-center py-12 text-muted-foreground">
+                  Nenhum log operacional registrado.
+                </div>
+              )}
+            </div>
+          </ScrollArea>
+        </CardContent>
+      </Card>
+    </TabsContent>
+  </Tabs>
+</div>
+);
+}
+
+function formatDateTime(dateStr: string) {
+  try {
+    return new Date(dateStr).toLocaleString('pt-BR');
+  } catch (e) {
+    return dateStr;
+  }
 }
 
 function StatCard({ title, value, icon: Icon, color }: any) {
