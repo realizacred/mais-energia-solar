@@ -509,6 +509,19 @@ export default function LeadsPipeline() {
               </CardContent>
             </Card>
           </div>
+          {hasMore && (
+            <div className="flex justify-center py-6">
+              <Button 
+                variant="outline" 
+                onClick={() => setPage(p => p + 1)} 
+                disabled={loadingMore}
+                className="gap-2"
+              >
+                {loadingMore ? <Spinner className="w-4 h-4" /> : null}
+                Carregar mais leads
+              </Button>
+            </div>
+          )}
         </TabsContent>
       </Tabs>
 
