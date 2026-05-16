@@ -354,6 +354,9 @@ export function useVendedorPortal() {
     toggleVisto: orcamentosData.toggleVisto,
     updateStatus: orcamentosData.updateStatus,
     deleteOrcamento: orcamentosData.deleteOrcamento,
+    page: orcamentosData.page,
+    setPage: orcamentosData.setPage,
+
 
     // Gamification
     achievements: gamification.achievements,
