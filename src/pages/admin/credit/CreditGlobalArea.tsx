@@ -181,7 +181,7 @@ export default function CreditGlobalArea() {
 
       // Idempotency check: Don't update if status is already approved/rejected
       if (['aprovado', 'aprovada', 'reprovado', 'reprovada'].includes(selectedAnalysis.status) && actionType !== 'reassign') {
-        toast({ title: "Esta análise já foi finalizada", variant: "warning" });
+        toast({ title: "Esta análise já foi finalizada", variant: "destructive" });
         return;
       }
 
