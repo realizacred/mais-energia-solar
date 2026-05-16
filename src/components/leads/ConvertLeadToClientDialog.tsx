@@ -792,13 +792,16 @@ export function ConvertLeadToClientDialog({
       // SSOT — Use atomic RPC for conversion
       const { data: rpcRes, error: rpcError } = await supabase.rpc("convert_lead_to_venda_v2", {
         _lead_id: lead.id,
-        _payload: clientePayload,
-        _payment_composition: paymentItems,
+        _payload: clientePayload as any,
+        _payment_composition: paymentItems as any,
         _idempotency_key: lead.id // Use lead_id as idempotency key for now
       });
 
+      const result = rpcRes as { success?: boolean; message?: string } | null;
+
       if (rpcError) throw rpcError;
-      if (!rpcRes?.success) throw new Error(rpcRes?.message || "Falha na conversão");
+      if (!result?.success) throw new Error(result?.message || "Falha na conversão");
+
 
       const storageKey = `lead_conversion_${lead.id}`;
       localStorage.removeItem(storageKey);
