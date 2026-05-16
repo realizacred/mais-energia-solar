@@ -30937,6 +30937,10 @@ export type Database = {
         Args: { p_deal_id: string; p_reason: string }
         Returns: Json
       }
+      fn_update_deal_value_from_contract: {
+        Args: { p_deal_id: string; p_reason: string }
+        Returns: Json
+      }
       format_phone_br: { Args: { raw: string }; Returns: string }
       generate_consultor_slug: { Args: { nome: string }; Returns: string }
       get_active_financing_banks: {
