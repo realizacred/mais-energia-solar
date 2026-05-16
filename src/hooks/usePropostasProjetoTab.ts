@@ -308,7 +308,16 @@ export function useExcluirProposta() {
       toast({ title: "Proposta excluída" });
     },
     onError: (err: any) => {
-      toast({ title: "Erro ao excluir proposta", description: err.message, variant: "destructive" });
+      const message = err.message || "Erro desconhecido";
+      const dependencies = (err as any).dependencies;
+      
+      toast({ 
+        title: "Não é possível excluir", 
+        description: dependencies 
+          ? `Dependências: ${dependencies.join(", ")}` 
+          : message, 
+        variant: "destructive" 
+      });
     },
   });
 }
