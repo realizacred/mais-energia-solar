@@ -39,6 +39,7 @@ import {
 import { useProjectDocuments } from "@/hooks/useProjectDocuments";
 import { useCreditBankConfigs, useCreditBankChecklist } from "@/hooks/useCreditConfigs";
 import { formatBRL } from "@/lib/formatters";
+import { formatDateTime } from "@/lib/dateUtils";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -83,9 +84,13 @@ export function CreditAnalysisWizard({
   const { data: banks } = useCreditBankConfigs();
   const { data: checklist } = useCreditBankChecklist(formData.bank_config_id || undefined);
   const { data: creditDocs } = useAnaliseCreditoDocumentos(initialData?.id || "");
+  const { data: projectDocs } = useProjectDocuments({ dealId });
 
   const createMutation = useCreateAnaliseCredito();
   const updateMutation = useUpdateAnaliseCredito();
+  const vincularDocMutation = useVincularDocumentoCredito();
+
+  const [isLinkingDoc, setIsLinkingDoc] = useState<{checklistId: string, itemName: string} | null>(null);
 
   const handleNext = () => setStep((s) => (s + 1) as Step);
   const handleBack = () => setStep((s) => (s - 1) as Step);
@@ -125,7 +130,7 @@ export function CreditAnalysisWizard({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-[700px] p-0 overflow-hidden bg-card border-border/40 shadow-2xl">
+      <DialogContent className="sm:max-w-[700px] p-0 overflow-hidden bg-card border-border/40 shadow-2xl h-[95vh] sm:h-[80vh] flex flex-col">
         <DialogHeader className="p-6 pb-0">
           <DialogTitle className="text-xl font-bold flex items-center gap-2">
             <CreditCard className="h-5 w-5 text-primary" />
@@ -149,8 +154,9 @@ export function CreditAnalysisWizard({
           </div>
         </DialogHeader>
 
-        <div className="p-6">
-          <ScrollArea className="max-h-[60vh] pr-4">
+        <div className="p-0 flex-1 overflow-hidden">
+          <ScrollArea className="h-full">
+            <div className="p-6">
             {step === 1 && (
               <div className="space-y-6 animate-in slide-in-from-right-2 duration-300">
                 <div className="grid grid-cols-2 gap-4">
@@ -276,11 +282,22 @@ export function CreditAnalysisWizard({
                                 {item.is_required && <Badge variant="destructive" className="text-[9px] h-3 px-1">Obrigatório</Badge>}
                               </p>
                               <p className="text-[11px] text-muted-foreground">{item.description || "Sem descrição"}</p>
+                              {linkedDoc && (
+                                <p className="text-[10px] text-success font-medium flex items-center gap-1 mt-0.5">
+                                  <Paperclip className="h-3 w-3" /> {linkedDoc.document?.display_name || linkedDoc.document?.file_name}
+                                </p>
+                              )}
                             </div>
                           </div>
                           
-                          <Button variant="outline" size="sm" className="h-8 gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <Paperclip className="h-3.5 w-3.5" /> Vincular
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            className={cn("h-8 gap-1.5", linkedDoc ? "opacity-40 hover:opacity-100" : "opacity-0 group-hover:opacity-100")}
+                            onClick={() => setIsLinkingDoc({ checklistId: item.id, itemName: item.document_type_name })}
+                            disabled={!initialData?.id}
+                          >
+                            <Paperclip className="h-3.5 w-3.5" /> {linkedDoc ? "Trocar" : "Vincular"}
                           </Button>
                         </div>
                       );
@@ -319,38 +336,80 @@ export function CreditAnalysisWizard({
                 </div>
               </div>
             )}
+            </div>
           </ScrollArea>
         </div>
 
         <Separator className="bg-border/40" />
         
         <DialogFooter className="p-6 bg-muted/10">
-          <div className="flex items-center justify-between w-full">
+          <div className="flex items-center justify-between w-full flex-wrap gap-2">
             <Button variant="ghost" onClick={handleBack} disabled={step === 1} className="gap-1.5">
               <ChevronLeft className="h-4 w-4" /> Anterior
             </Button>
             
-            <div className="flex gap-2">
-              <Button variant="outline" onClick={() => handleSave(true)} disabled={createMutation.isPending || updateMutation.isPending}>
-                Salvar Rascunho
+            <div className="flex gap-2 flex-1 sm:flex-initial">
+              <Button variant="outline" onClick={() => handleSave(true)} disabled={createMutation.isPending || updateMutation.isPending} className="flex-1 sm:flex-none">
+                Salvar
               </Button>
               {step < 4 ? (
-                <Button onClick={handleNext} className="gap-1.5">
+                <Button onClick={handleNext} className="gap-1.5 flex-1 sm:flex-none">
                   Próximo <ChevronRight className="h-4 w-4" />
                 </Button>
               ) : (
                 <Button 
                   onClick={() => handleSave(false)} 
-                  className="bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/20 gap-1.5"
-                  disabled={createMutation.isPending || updateMutation.isPending}
+                  className="bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/20 gap-1.5 flex-1 sm:flex-none"
+                  disabled={createMutation.isPending || updateMutation.isPending || (filteredChecklist.some(item => item.is_required && !creditDocs?.some((cd: any) => cd.checklist_item_id === item.id)))}
                 >
-                  <Check className="h-4 w-4" /> Finalizar e Solicitar
+                  <Check className="h-4 w-4" /> Finalizar
                 </Button>
               )}
             </div>
           </div>
         </DialogFooter>
       </DialogContent>
+      <Dialog open={!!isLinkingDoc} onOpenChange={(open) => !open && setIsLinkingDoc(null)}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Vincular Documento: {isLinkingDoc?.itemName}</DialogTitle>
+          </DialogHeader>
+          <ScrollArea className="max-h-[50vh] pr-4 py-4">
+            <div className="space-y-2">
+              {projectDocs?.documents.length === 0 ? (
+                <div className="text-center py-8 bg-muted/20 rounded-lg border border-dashed">
+                  <p className="text-sm text-muted-foreground">Nenhum documento encontrado no projeto.</p>
+                </div>
+              ) : (
+                projectDocs?.documents.map((doc) => (
+                  <Button
+                    key={doc.id}
+                    variant="outline"
+                    className="w-full justify-start h-auto py-3 px-4 flex-col items-start gap-1"
+                    onClick={async () => {
+                      if (isLinkingDoc && initialData?.id) {
+                        await vincularDocMutation.mutateAsync({
+                          analise_credito_id: initialData.id,
+                          project_document_id: doc.id,
+                          checklist_item_id: isLinkingDoc.checklistId
+                        });
+                        setIsLinkingDoc(null);
+                      }
+                    }}
+                  >
+                    <div className="flex items-center gap-2 w-full">
+                      <FileText className="h-4 w-4 text-primary shrink-0" />
+                      <span className="font-semibold truncate flex-1 text-left">{doc.display_name || doc.file_name}</span>
+                      <Badge variant="outline" className="text-[9px] shrink-0 uppercase">{doc.categoria}</Badge>
+                    </div>
+                    <span className="text-[10px] text-muted-foreground ml-6">Enviado em {formatDateTime(doc.created_at)}</span>
+                  </Button>
+                ))
+              )}
+            </div>
+          </ScrollArea>
+        </DialogContent>
+      </Dialog>
     </Dialog>
   );
 }

@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Plus, Trash2, Edit2, FileText, CheckCircle2, User, Users } from "lucide-react";
+import { useState, useMemo } from "react";
+import { Plus, Trash2, Edit2, FileText, CheckCircle2, User, Users, ChevronUp, ChevronDown } from "lucide-react";
 import { 
   CreditBankConfig, 
   CreditChecklistItem, 
@@ -46,6 +46,20 @@ export function CreditChecklistManager({ bank }: Props) {
     setIsDialogOpen(true);
   };
 
+  const handleMove = async (item: CreditChecklistItem, direction: 'up' | 'down') => {
+    if (!checklist) return;
+    const idx = checklist.findIndex(i => i.id === item.id);
+    if (direction === 'up' && idx > 0) {
+      const prev = checklist[idx - 1];
+      await updateMutation.mutateAsync({ id: item.id, sort_order: prev.sort_order });
+      await updateMutation.mutateAsync({ id: prev.id, sort_order: item.sort_order });
+    } else if (direction === 'down' && idx < checklist.length - 1) {
+      const next = checklist[idx + 1];
+      await updateMutation.mutateAsync({ id: item.id, sort_order: next.sort_order });
+      await updateMutation.mutateAsync({ id: next.id, sort_order: item.sort_order });
+    }
+  };
+
   const handleDelete = async () => {
     if (itemToDelete) {
       await deleteMutation.mutateAsync({ id: itemToDelete.id, bank_config_id: bank.id });
@@ -77,12 +91,32 @@ export function CreditChecklistManager({ bank }: Props) {
             <p className="text-sm text-muted-foreground">Nenhum requisito documental configurado.</p>
           </div>
         ) : (
-          checklist.map((item) => (
+        checklist.map((item, idx) => (
             <div 
               key={item.id} 
               className="group p-4 bg-background border border-border/50 rounded-xl hover:border-primary/30 transition-all shadow-sm flex items-center justify-between"
             >
               <div className="flex items-center gap-4">
+                <div className="flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className="h-6 w-6" 
+                    disabled={idx === 0}
+                    onClick={() => handleMove(item, 'up')}
+                  >
+                    <ChevronUp className="h-3 w-3" />
+                  </Button>
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className="h-6 w-6" 
+                    disabled={idx === (checklist?.length || 0) - 1}
+                    onClick={() => handleMove(item, 'down')}
+                  >
+                    <ChevronDown className="h-3 w-3" />
+                  </Button>
+                </div>
                 <div className={cn(
                   "w-10 h-10 rounded-lg flex items-center justify-center shrink-0",
                   item.is_required ? "bg-destructive/5 text-destructive" : "bg-muted text-muted-foreground"
@@ -104,7 +138,7 @@ export function CreditChecklistManager({ bank }: Props) {
                     {item.description && (
                       <>
                         <span>•</span>
-                        <span className="truncate max-w-[200px] italic">"{item.description}"</span>
+                        <span className="truncate max-w-[150px] italic">"{item.description}"</span>
                       </>
                     )}
                   </div>

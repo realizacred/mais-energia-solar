@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { CreditChecklistItem, useCreateCreditChecklistItem, useUpdateCreditChecklistItem } from "@/hooks/useCreditConfigs";
+import { useProjectDocuments } from "@/hooks/useProjectDocuments";
 
 interface CreditChecklistDialogProps {
   open: boolean;
@@ -26,7 +27,11 @@ const DOCUMENT_SUGGESTIONS = [
   "Conta de luz",
   "Proposta/orçamento",
   "Documentos do imóvel",
-  "Selfie com documento"
+  "Selfie com documento",
+  "IPTU",
+  "Fotos Telhado",
+  "ART",
+  "Contrato"
 ];
 
 export function CreditChecklistDialog({ open, onOpenChange, bankConfigId, item }: CreditChecklistDialogProps) {
@@ -145,7 +150,7 @@ export function CreditChecklistDialog({ open, onOpenChange, bankConfigId, item }
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancelar
             </Button>
-            <Button type="submit" disabled={createMutation.isPending || updateMutation.isPending}>
+            <Button type="submit" disabled={createMutation.isPending || updateMutation.isPending} className="bg-primary hover:bg-primary/90 text-primary-foreground">
               {isEditing ? "Salvar Alterações" : "Adicionar Documento"}
             </Button>
           </DialogFooter>

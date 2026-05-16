@@ -116,7 +116,8 @@ export function useCreateAnaliseCredito() {
         ...values,
         tenant_id: profile.tenant_id,
         criado_por: user.id,
-        status: values.status || 'rascunho'
+        status: values.status || 'rascunho',
+        updated_at: new Date().toISOString()
       };
 
       const { data, error } = await supabase
@@ -148,7 +149,7 @@ export function useUpdateAnaliseCredito() {
     mutationFn: async ({ id, ...values }: Partial<AnaliseCredito> & { id: string }) => {
       const { data, error } = await supabase
         .from("analise_credito")
-        .update(values as any)
+        .update({ ...values, updated_at: new Date().toISOString() } as any)
         .eq("id", id)
         .select()
         .single();
@@ -158,6 +159,7 @@ export function useUpdateAnaliseCredito() {
     },
     onSuccess: (data: any) => {
       queryClient.invalidateQueries({ queryKey: ["analise-credito"] });
+      queryClient.invalidateQueries({ queryKey: ["analise-credito", data.id] });
       if (data.deal_id) {
         queryClient.invalidateQueries({ queryKey: ["projeto-detalhe", data.deal_id] });
       }
@@ -178,7 +180,7 @@ export function useAnaliseCreditoHistorico(analiseId: string) {
     queryKey: ["analise-credito-historico", analiseId],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("analise_credito_historico" as any)
+        .from("analise_credito_historico")
         .select("*, actor:profiles(nome)")
         .eq("analise_credito_id", analiseId)
         .order("created_at", { ascending: false });
@@ -196,7 +198,7 @@ export function useAnaliseCreditoDocumentos(analiseId?: string) {
     queryFn: async () => {
       if (!analiseId) return [];
       const { data, error } = await supabase
-        .from("analise_credito_documentos" as any)
+        .from("analise_credito_documentos")
         .select("*, document:project_documents(*)")
         .eq("analise_credito_id", analiseId);
 
@@ -230,7 +232,7 @@ export function useVincularDocumentoCredito() {
       };
 
       const { data, error } = await supabase
-        .from("analise_credito_documentos" as any)
+        .from("analise_credito_documentos")
         .upsert(upsertData as any, { onConflict: 'analise_credito_id,project_document_id' })
         .select()
         .single();
