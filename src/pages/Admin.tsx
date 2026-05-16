@@ -600,6 +600,8 @@ const AdminRoutes = () => (
     
     {/* Projetos & Propostas */}
     <Route path="proposta-comercial" element={<PropostaComercialPage />} />
+    <Route path="credit/global" element={<CreditGlobalArea />} />
+
     
     {/* IA */}
     <Route path="diretor" element={<CommercialDirectorDashboard />} />
@@ -724,10 +726,16 @@ export default function Admin() {
     // For nested modules (e.g. monitoramento/usinas), try 2-segment match first
     if (segments.length >= 2) {
       const twoSegment = `${segments[0]}/${segments[1]}`;
-      // Check if this is a registered nav_key (e.g. monitoramento/usinas)
+      if (segments[0] === "credit" && segments[1] === "global") return "credito";
+      if (segments[0] === "configuracoes" && segments[1] === "credito") return "configuracoes/credito";
+      if (segments[0] === "integracoes" && segments[1] === "financeiras") {
+        if (segments[2] === "eos") return "integracoes/financeiras/eos";
+      }
+
       const knownTwoSegments = ["monitoramento/usinas", "monitoramento/alertas", "monitoramento/relatorios"];
       if (knownTwoSegments.includes(twoSegment)) return twoSegment;
     }
+
     return segments[0] || "leads";
   }, [location.pathname]);
   const isInboxLayout = activeTab === "inbox";
