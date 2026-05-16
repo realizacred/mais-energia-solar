@@ -71,6 +71,7 @@ export function ProjetoCreditoTab({ dealId, leadId, clienteId, clienteCpfCnpj, v
   const canManage = isAdmin || isGerente;
   
   const { data: analises, isLoading } = useAnaliseCredito(dealId, leadId);
+  const { data: simulations } = useCreditSimulations(dealId || leadId);
   const updateMutation = useUpdateAnaliseCredito();
   const [isWizardOpen, setIsWizardOpen] = useState(false);
   const [editingAnalise, setEditingAnalise] = useState<AnaliseCredito | undefined>(undefined);
