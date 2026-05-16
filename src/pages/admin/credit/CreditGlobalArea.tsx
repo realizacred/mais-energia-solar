@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { 
@@ -22,7 +22,16 @@ import {
   MoreVertical,
   Check,
   ChevronRight,
-  ChevronLeft
+  ChevronLeft,
+  Send,
+  Calculator,
+  ExternalLink,
+  BarChart3,
+  FileDown,
+  Download,
+  Printer,
+  CalendarDays,
+  FileSpreadsheet
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -37,7 +46,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { formatBRL } from "@/lib/formatters";
-import { formatDistanceToNow, isWithinInterval, startOfDay, endOfDay } from "date-fns";
+import { formatDistanceToNow, isWithinInterval, startOfDay, endOfDay, differenceInDays, startOfMonth, format, subDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useCreditMetrics } from "@/hooks/useCreditDomain";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -66,7 +75,6 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { DateRange } from "react-day-picker";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
-import { format } from "date-fns";
 import { 
   DropdownMenu,
   DropdownMenuContent,
@@ -74,10 +82,27 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useCreditBankChecklist } from "@/hooks/useCreditConfigs";
+import { 
+  LineChart, 
+  Line, 
+  XAxis, 
+  YAxis, 
+  CartesianGrid, 
+  Tooltip as RechartsTooltip, 
+  Legend, 
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+  BarChart,
+  Bar
+} from 'recharts';
+import * as XLSX from 'xlsx';
 
 /**
- * REUSED TABLES: analise_credito, credit_analysis_events, analise_credito_documentos, profiles, deals, leads
- * REUSED HOOKS: useCreditMetrics, useAuth, useUsuariosList, useCreditBankChecklist
+ * Tabelas: analise_credito, credit_analysis_events, analise_credito_documentos, profiles, deals, leads
+ * Hooks: useCreditDomain, useCreditConfigs, useCreditMetrics
+ * Substitui: nenhum (evolução do existente)
  */
 
 export default function CreditGlobalArea() {
@@ -94,7 +119,7 @@ export default function CreditGlobalArea() {
       status: "all",
       consultantId: "all",
       bank: "all",
-      dateRange: undefined as DateRange | undefined,
+      dateRange: { from: startOfMonth(new Date()), to: new Date() } as DateRange,
       search: ""
     };
   });
@@ -144,7 +169,6 @@ export default function CreditGlobalArea() {
   const [simulationOptions, setSimulationOptions] = useState<any[]>([]);
   const [isSendingToEos, setIsSendingToEos] = useState(false);
 
-  // Fetch checklist for the selected analysis bank
   const { data: checklist } = useCreditBankChecklist(selectedAnalysis?.bank_config_id || undefined);
   
   const filteredChecklist = useMemo(() => {
@@ -182,13 +206,11 @@ export default function CreditGlobalArea() {
         updatePayload.responsavel_id = targetManagerId;
       }
 
-      // Idempotency check: Don't update if status is already approved/rejected
       if (['aprovado', 'aprovada', 'reprovado', 'reprovada'].includes(selectedAnalysis.status) && actionType !== 'reassign') {
         toast({ title: "Esta análise já foi finalizada", variant: "destructive" });
         return;
       }
 
-      // 1. Update Analysis
       const { error: updateError } = await supabase
         .from("analise_credito")
         .update(updatePayload)
@@ -196,7 +218,6 @@ export default function CreditGlobalArea() {
       
       if (updateError) throw updateError;
 
-      // 2. Log Event
       await supabase.from("credit_analysis_events").insert({
         tenant_id: selectedAnalysis.tenant_id,
         analise_id: selectedAnalysis.id,
@@ -209,7 +230,6 @@ export default function CreditGlobalArea() {
         idempotency_key: `${actionType}_${selectedAnalysis.id}_${Date.now()}`
       } as any);
 
-      // 3. Notify Consultant
       await supabase.rpc('create_notification' as any, {
         p_tenant_id: selectedAnalysis.tenant_id,
         p_title: actionType === 'approve' ? "Crédito Aprovado Internamente" : 
@@ -229,11 +249,7 @@ export default function CreditGlobalArea() {
       setActionNotes("");
       setPendingDocs([]);
     } catch (error: any) {
-      toast({ 
-        title: "Erro ao processar ação", 
-        description: error.message, 
-        variant: "destructive" 
-      });
+      toast({ title: "Erro ao processar ação", description: error.message, variant: "destructive" });
     }
   };
 
@@ -241,7 +257,6 @@ export default function CreditGlobalArea() {
     setIsSimulating(true);
     try {
       const { data: profile } = await supabase.from("profiles").select("tenant_id").eq("user_id", user?.id).single();
-      
       const { data, error } = await supabase.functions.invoke('eos-simular', {
         body: {
           analise_id: analysis.id,
@@ -268,7 +283,6 @@ export default function CreditGlobalArea() {
     setIsSendingToEos(true);
     try {
       const { data: profile } = await supabase.from("profiles").select("tenant_id").eq("user_id", user?.id).single();
-      
       const { data, error } = await supabase.functions.invoke('eos-enviar-proposta', {
         body: {
           analise_id: analysis.id,
@@ -286,6 +300,21 @@ export default function CreditGlobalArea() {
     } finally {
       setIsSendingToEos(false);
     }
+  };
+
+  const exportToExcel = () => {
+    const ws = XLSX.utils.json_to_sheet(filteredAnalyses?.map(a => ({
+      Cliente: a.deal?.title || a.lead?.nome,
+      Consultor: a.consultor?.nome || 'Sistema',
+      Banco: a.banco,
+      Valor: a.valor_solicitado,
+      Prazo: a.prazo_meses,
+      Status: a.status,
+      "Data": a.created_at
+    })) || []);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Detalhado");
+    XLSX.writeFile(wb, `relatorio_credito_${new Date().toISOString().split('T')[0]}.xlsx`);
   };
 
   const filteredAnalyses = analyses?.filter(a => {
@@ -312,8 +341,8 @@ export default function CreditGlobalArea() {
   ).sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()) || [];
 
   return (
-    <div className="container mx-auto p-6 space-y-8 animate-in fade-in duration-500">
-      <div className="flex justify-between items-end">
+    <div className="container mx-auto p-6 space-y-8 animate-in fade-in duration-500 print:p-0">
+      <div className="flex justify-between items-end print:hidden">
         <div>
           <h1 className="text-3xl font-bold tracking-tight flex items-center gap-3">
             <Activity className="h-8 w-8 text-primary" />
@@ -342,20 +371,6 @@ export default function CreditGlobalArea() {
                 </Select>
               </div>
               <div className="space-y-2">
-                <label className="text-xs font-medium uppercase text-muted-foreground">Status</label>
-                <Select value={filters.status} onValueChange={(v) => setFilters(f => ({ ...f, status: v }))}>
-                  <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Todos</SelectItem>
-                    <SelectItem value="pendente_documentos">Pendente Documentos</SelectItem>
-                    <SelectItem value="em_analise">Em Análise</SelectItem>
-                    <SelectItem value="aprovado_interno">Aprovado Interno</SelectItem>
-                    <SelectItem value="aprovada">Aprovada Banco</SelectItem>
-                    <SelectItem value="reprovada">Reprovada</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
                 <label className="text-xs font-medium uppercase text-muted-foreground">Período</label>
                 <div className="grid gap-2">
                   <Popover>
@@ -364,9 +379,7 @@ export default function CreditGlobalArea() {
                         <Calendar className="mr-2 h-4 w-4" />
                         {filters.dateRange?.from ? (
                           filters.dateRange.to ? (
-                            <>
-                              {format(filters.dateRange.from, "LLL dd, y")} - {format(filters.dateRange.to, "LLL dd, y")}
-                            </>
+                            <>{format(filters.dateRange.from, "LLL dd, y")} - {format(filters.dateRange.to, "LLL dd, y")}</>
                           ) : (
                             format(filters.dateRange.from, "LLL dd, y")
                           )
@@ -379,7 +392,6 @@ export default function CreditGlobalArea() {
                       <CalendarComponent
                         initialFocus
                         mode="range"
-                        defaultMonth={filters.dateRange?.from}
                         selected={filters.dateRange}
                         onSelect={(r) => setFilters(f => ({ ...f, dateRange: r }))}
                         numberOfMonths={2}
@@ -391,14 +403,7 @@ export default function CreditGlobalArea() {
               <Button 
                 variant="ghost" 
                 className="w-full text-xs" 
-                onClick={() => setFilters({
-                  managerId: "all",
-                  status: "all",
-                  consultantId: "all",
-                  bank: "all",
-                  dateRange: undefined,
-                  search: ""
-                })}
+                onClick={() => setFilters({ managerId: "all", status: "all", consultantId: "all", bank: "all", dateRange: undefined, search: "" })}
               >
                 Limpar Filtros
               </Button>
@@ -410,7 +415,7 @@ export default function CreditGlobalArea() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 print:hidden">
         <StatCard title="Aguardando Análise" value={metrics?.pendingJobs || 0} icon={Clock} color="text-yellow-500" />
         <StatCard title="Aprovados (Mês)" value={metrics?.approvedThisMonth || 0} icon={TrendingUp} color="text-green-500" />
         <StatCard title="Taxa de Aprovação" value={`${metrics?.approvalRate || 0}%`} icon={CheckCircle2} color="text-blue-500" />
@@ -418,19 +423,47 @@ export default function CreditGlobalArea() {
       </div>
 
       <Tabs defaultValue="my-queue" className="w-full">
-        <TabsList className="grid w-full grid-cols-4 lg:w-[800px] mb-4">
-          <TabsTrigger value="my-queue" className="relative">
-            Minha Fila
-            {myQueue.length > 0 && (
-              <Badge className="ml-2 bg-primary text-white text-[10px] h-4 w-4 flex items-center justify-center p-0">
-                {myQueue.length}
-              </Badge>
-            )}
-          </TabsTrigger>
+        <TabsList className="grid w-full grid-cols-5 lg:w-[900px] mb-4 print:hidden">
+          <TabsTrigger value="my-queue">Minha Fila</TabsTrigger>
           <TabsTrigger value="analyses">Global de Análises</TabsTrigger>
+          <TabsTrigger value="reports">Relatórios</TabsTrigger>
           <TabsTrigger value="jobs">Orquestração</TabsTrigger>
           <TabsTrigger value="logs">Logs Operacionais</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="reports" className="space-y-6">
+          <Card className="print:border-0 print:shadow-none">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 print:hidden">
+              <CardTitle>Relatórios de Crédito</CardTitle>
+              <div className="flex gap-2">
+                <Button onClick={exportToExcel} variant="outline" size="sm" className="gap-2"><FileSpreadsheet className="h-4 w-4"/> Excel</Button>
+                <Button onClick={() => window.print()} variant="outline" size="sm" className="gap-2"><Printer className="h-4 w-4"/> PDF</Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-3 gap-4 mb-8">
+                <StatCard title="Total Solicitações" value={filteredAnalyses?.length || 0} icon={CreditCard} color="text-primary"/>
+                <StatCard title="Aprovadas" value={filteredAnalyses?.filter(a => ['aprovado', 'aprovada', 'aprovado_interno'].includes(a.status)).length} icon={CheckCircle2} color="text-green-500"/>
+                <StatCard title="Reprovadas" value={filteredAnalyses?.filter(a => ['reprovado', 'reprovada'].includes(a.status)).length} icon={XCircle} color="text-red-500"/>
+              </div>
+              <div className="h-[300px] w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={[
+                    { name: 'Aprovadas', value: filteredAnalyses?.filter(a => ['aprovado', 'aprovada', 'aprovado_interno'].includes(a.status)).length || 0 },
+                    { name: 'Reprovadas', value: filteredAnalyses?.filter(a => ['reprovado', 'reprovada'].includes(a.status)).length || 0 },
+                    { name: 'Em análise', value: filteredAnalyses?.filter(a => !['aprovado', 'aprovada', 'reprovado', 'reprovada', 'cancelada'].includes(a.status)).length || 0 }
+                  ]}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="name" />
+                    <YAxis />
+                    <RechartsTooltip />
+                    <Bar dataKey="value" fill="#8884d8" />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
 
         <TabsContent value="my-queue">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -590,10 +623,7 @@ export default function CreditGlobalArea() {
       </Tabs>
 
       {/* Action Modals */}
-      <Dialog 
-        open={!!actionType} 
-        onOpenChange={(open) => { if(!open) { setActionType(null); setSelectedAnalysis(null); setPendingDocs([]); setSimulationOptions([]); }}}
-      >
+      <Dialog open={!!actionType} onOpenChange={(open) => !open && setActionType(null)}>
         <DialogContent className={cn("sm:max-w-[425px]", actionType === 'eos_integrate' && "sm:max-w-[600px]")}>
           <DialogHeader>
             <DialogTitle>
