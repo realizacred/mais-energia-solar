@@ -193,7 +193,7 @@ export function StageDealCard({
       {/* Left color bar */}
       <div className="kanban-card__top-bar" style={topBarStyle} />
 
-      <div className="relative px-2.5 pt-2 pb-2 space-y-1.5 flex-1 min-w-0">
+      <div className="relative px-2.5 pt-1.5 pb-1.5 space-y-1 flex-1 min-w-0">
         {/* Accepted check icon */}
         {isPropostaAceita && (
           <div className="absolute top-2 right-2.5">
@@ -231,7 +231,7 @@ export function StageDealCard({
 
         {/* METRICS — value + time + status */}
         {visibleFields.has("valor_projeto") && (
-          <div className="flex items-center gap-1.5 text-[11px] px-0.5">
+          <div className="flex items-center gap-1 text-[10px] px-0.5">
             <span className="font-bold tabular-nums text-foreground text-xs">
               {hasValue ? formatBRL(deal.deal_value) : "R$ —"}
             </span>
