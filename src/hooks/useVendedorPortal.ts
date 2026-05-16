@@ -311,7 +311,8 @@ export function useVendedorPortal() {
     // Phase 1 — only block portal on initial profile load. Refetches por filtro
     // não devem desmontar a UI (causa "página recarregando" ao trocar filtro).
     loading: initialLoading,
-    serverStats: orcamentosData.serverStats as ConsultorServerStats | undefined,
+    serverStats: orcamentosData.serverStats as unknown as ConsultorServerStats | undefined,
+
 
     // Filters
     searchTerm,
