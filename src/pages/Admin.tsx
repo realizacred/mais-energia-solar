@@ -560,7 +560,7 @@ const AdminRoutes = () => (
     <Route path="fechamento-caixa" element={<FechamentoCaixaPage />} />
     <Route path="dre" element={<DREPage />} />
     <Route path="engenharia" element={<Navigate to="/admin/premissas" replace />} />
-    <Route path="financiamento" element={<FinanciamentoConfig />} />
+    <Route path="financiamento" element={<Navigate to="/admin/configuracoes/credito" replace />} />
     <Route path="formas-pagamento" element={<FormasPagamentoPage />} />
 
     <Route path="fiscal" element={<FiscalPage />} />

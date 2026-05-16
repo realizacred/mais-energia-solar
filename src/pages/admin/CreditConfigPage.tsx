@@ -1,3 +1,9 @@
+/**
+ * Reutiliza:
+ * - Tabelas: credit_bank_configs, credit_workflow_configs
+ * - Substitui: financiamento_bancos, FinanciamentoConfig.tsx (deprecated)
+ * - Hooks: useCreditConfigs
+ */
 import { useState } from "react";
 import { Plus, Settings2, ArrowLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";

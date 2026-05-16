@@ -153,13 +153,17 @@ export function useBancosCatalog() {
   useEffect(() => {
     setLoadingBancos(true);
     supabase
-      .from("financiamento_bancos")
-      .select("id, nome, taxa_mensal, max_parcelas")
-      .eq("ativo", true)
-      .order("ordem", { ascending: true })
-      .order("nome", { ascending: true })
+      .from("credit_bank_configs")
+      .select("id, bank_name, technical_metadata")
+      .eq("is_active", true)
       .then(({ data }) => {
-        setBancos((data || []) as BancoFinanciamento[]);
+        const adapted = (data || []).map(b => ({
+          id: b.id,
+          nome: b.bank_name,
+          taxa_mensal: (b.technical_metadata as any)?.taxa_mensal || 0,
+          max_parcelas: (b.technical_metadata as any)?.max_parcelas || 60
+        }));
+        setBancos(adapted as BancoFinanciamento[]);
         setLoadingBancos(false);
       });
   }, []);

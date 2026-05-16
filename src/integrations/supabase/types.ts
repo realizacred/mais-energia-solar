@@ -14,6 +14,62 @@ export type Database = {
   }
   public: {
     Tables: {
+      _deprecated_financiamento_bancos: {
+        Row: {
+          api_customizada_url: string | null
+          ativo: boolean
+          codigo_bcb: string | null
+          created_at: string
+          fonte_sync: string | null
+          id: string
+          max_parcelas: number
+          nome: string
+          ordem: number
+          taxa_mensal: number
+          tenant_id: string
+          ultima_sync: string | null
+          updated_at: string
+        }
+        Insert: {
+          api_customizada_url?: string | null
+          ativo?: boolean
+          codigo_bcb?: string | null
+          created_at?: string
+          fonte_sync?: string | null
+          id?: string
+          max_parcelas?: number
+          nome: string
+          ordem?: number
+          taxa_mensal: number
+          tenant_id?: string
+          ultima_sync?: string | null
+          updated_at?: string
+        }
+        Update: {
+          api_customizada_url?: string | null
+          ativo?: boolean
+          codigo_bcb?: string | null
+          created_at?: string
+          fonte_sync?: string | null
+          id?: string
+          max_parcelas?: number
+          nome?: string
+          ordem?: number
+          taxa_mensal?: number
+          tenant_id?: string
+          ultima_sync?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "financiamento_bancos_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       _wa_merge_backup: {
         Row: {
           absorbed_data: Json
@@ -3760,6 +3816,7 @@ export type Database = {
           observacoes: string | null
           prazo_medio: string | null
           slug: string
+          technical_metadata: Json | null
           tenant_id: string
           updated_at: string | null
         }
@@ -3772,6 +3829,7 @@ export type Database = {
           observacoes?: string | null
           prazo_medio?: string | null
           slug: string
+          technical_metadata?: Json | null
           tenant_id: string
           updated_at?: string | null
         }
@@ -3784,6 +3842,7 @@ export type Database = {
           observacoes?: string | null
           prazo_medio?: string | null
           slug?: string
+          technical_metadata?: Json | null
           tenant_id?: string
           updated_at?: string | null
         }
@@ -6752,62 +6811,6 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "financiamento_api_config_tenant_id_fkey"
-            columns: ["tenant_id"]
-            isOneToOne: false
-            referencedRelation: "tenants"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      financiamento_bancos: {
-        Row: {
-          api_customizada_url: string | null
-          ativo: boolean
-          codigo_bcb: string | null
-          created_at: string
-          fonte_sync: string | null
-          id: string
-          max_parcelas: number
-          nome: string
-          ordem: number
-          taxa_mensal: number
-          tenant_id: string
-          ultima_sync: string | null
-          updated_at: string
-        }
-        Insert: {
-          api_customizada_url?: string | null
-          ativo?: boolean
-          codigo_bcb?: string | null
-          created_at?: string
-          fonte_sync?: string | null
-          id?: string
-          max_parcelas?: number
-          nome: string
-          ordem?: number
-          taxa_mensal: number
-          tenant_id?: string
-          ultima_sync?: string | null
-          updated_at?: string
-        }
-        Update: {
-          api_customizada_url?: string | null
-          ativo?: boolean
-          codigo_bcb?: string | null
-          created_at?: string
-          fonte_sync?: string | null
-          id?: string
-          max_parcelas?: number
-          nome?: string
-          ordem?: number
-          taxa_mensal?: number
-          tenant_id?: string
-          ultima_sync?: string | null
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "financiamento_bancos_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
@@ -19345,7 +19348,7 @@ export type Database = {
             foreignKeyName: "proposta_cenarios_financiador_id_fkey"
             columns: ["financiador_id"]
             isOneToOne: false
-            referencedRelation: "financiamento_bancos"
+            referencedRelation: "_deprecated_financiamento_bancos"
             referencedColumns: ["id"]
           },
           {
