@@ -39,6 +39,7 @@ import {
 import { useProjectDocuments } from "@/hooks/useProjectDocuments";
 import { useCreditBankConfigs, useCreditBankChecklist } from "@/hooks/useCreditConfigs";
 import { formatBRL } from "@/lib/formatters";
+import { formatDateTime } from "@/lib/dateUtils";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -83,7 +84,7 @@ export function CreditAnalysisWizard({
   const { data: banks } = useCreditBankConfigs();
   const { data: checklist } = useCreditBankChecklist(formData.bank_config_id || undefined);
   const { data: creditDocs } = useAnaliseCreditoDocumentos(initialData?.id || "");
-  const { data: projectDocs } = useProjectDocuments({ dealId, leadId });
+  const { data: projectDocs } = useProjectDocuments({ dealId });
 
   const createMutation = useCreateAnaliseCredito();
   const updateMutation = useUpdateAnaliseCredito();
