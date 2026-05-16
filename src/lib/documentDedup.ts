@@ -83,11 +83,13 @@ export function normalizeProjectDocuments(rawDocs: ProjectDocument[]): {
 
   for (const doc of rawDocs) {
     const storageKey = `${doc.bucket}::${doc.storage_path}`;
-    const heuristicKey = doc.file_name;
+    // Use bucket + storage_path as primary key, fallback to ID if needed
+    // Do NOT deduplicate based on file_name alone if paths are different (could be same file name for different documents)
+    const primaryKey = storageKey;
+    const checksumKey = doc.checksum;
 
-    let existing = byStorageKey.get(storageKey) || 
-                   (doc.checksum ? byChecksum.get(doc.checksum) : undefined) ||
-                   byHeuristic.get(heuristicKey);
+    let existing = byStorageKey.get(primaryKey) || 
+                   (checksumKey ? byChecksum.get(checksumKey) : undefined);
 
     if (existing) {
       existing.metadata = {
@@ -105,9 +107,8 @@ export function normalizeProjectDocuments(rawDocs: ProjectDocument[]): {
     }
 
     const newDoc = { ...doc };
-    byStorageKey.set(storageKey, newDoc);
-    if (doc.checksum) byChecksum.set(doc.checksum, newDoc);
-    byHeuristic.set(heuristicKey, newDoc);
+    byStorageKey.set(primaryKey, newDoc);
+    if (checksumKey) byChecksum.set(checksumKey, newDoc);
     uniqueDocs.push(newDoc);
   }
 
