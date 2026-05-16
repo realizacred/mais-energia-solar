@@ -343,26 +343,26 @@ export function CreditAnalysisWizard({
         <Separator className="bg-border/40" />
         
         <DialogFooter className="p-6 bg-muted/10">
-          <div className="flex items-center justify-between w-full">
+          <div className="flex items-center justify-between w-full flex-wrap gap-2">
             <Button variant="ghost" onClick={handleBack} disabled={step === 1} className="gap-1.5">
               <ChevronLeft className="h-4 w-4" /> Anterior
             </Button>
             
-            <div className="flex gap-2">
-              <Button variant="outline" onClick={() => handleSave(true)} disabled={createMutation.isPending || updateMutation.isPending}>
-                Salvar Rascunho
+            <div className="flex gap-2 flex-1 sm:flex-initial">
+              <Button variant="outline" onClick={() => handleSave(true)} disabled={createMutation.isPending || updateMutation.isPending} className="flex-1 sm:flex-none">
+                Salvar
               </Button>
               {step < 4 ? (
-                <Button onClick={handleNext} className="gap-1.5">
+                <Button onClick={handleNext} className="gap-1.5 flex-1 sm:flex-none">
                   Próximo <ChevronRight className="h-4 w-4" />
                 </Button>
               ) : (
                 <Button 
                   onClick={() => handleSave(false)} 
-                  className="bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/20 gap-1.5"
+                  className="bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/20 gap-1.5 flex-1 sm:flex-none"
                   disabled={createMutation.isPending || updateMutation.isPending || (filteredChecklist.some(item => item.is_required && !creditDocs?.some((cd: any) => cd.checklist_item_id === item.id)))}
                 >
-                  <Check className="h-4 w-4" /> Finalizar e Solicitar
+                  <Check className="h-4 w-4" /> Finalizar
                 </Button>
               )}
             </div>
