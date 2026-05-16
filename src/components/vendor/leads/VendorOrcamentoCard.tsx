@@ -146,42 +146,63 @@ export function VendorOrcamentoCard({
 
         </div>
 
-        {/* Critical Actions */}
+        {/* Critical Actions — Phase 3: Single primary CTA */}
         <div className="flex items-center gap-2 pt-2 border-t border-border/50">
-          <Button
-            variant="outline"
-            size="sm"
-            className="flex-1 h-10 text-xs gap-2 font-semibold"
-            onClick={onView}
-          >
-            <Eye className="w-4 h-4" />
-            Detalhes
-          </Button>
-          
-          {onConvert && !isConverted && (
+          {!isConverted ? (
             <Button
-              variant="default"
+              variant={orcamento.proposta_token ? "default" : "outline"}
               size="sm"
-              className="flex-[1.5] h-10 text-xs gap-2 bg-primary hover:bg-primary/90 font-bold"
-              onClick={onConvert}
-              disabled={!orcamento.proposta_token}
+              className={cn(
+                "flex-1 h-11 text-xs gap-2 font-bold transition-all shadow-sm",
+                orcamento.proposta_token ? "bg-primary hover:bg-primary/90" : "text-muted-foreground"
+              )}
+              onClick={() => orcamento.proposta_token ? onConvert?.() : onView()}
             >
-              <ShoppingCart className="w-4 h-4" />
-              Converter Venda
+              {orcamento.proposta_token ? (
+                <>
+                  <ShoppingCart className="w-4 h-4" />
+                  Converter em Venda
+                </>
+              ) : (
+                <>
+                  <Eye className="w-4 h-4" />
+                  Ver Detalhes
+                </>
+              )}
             </Button>
-          )}
-          
-          {onDelete && (
+          ) : (
             <Button
               variant="outline"
               size="sm"
-              className="text-destructive border-destructive/30 hover:bg-destructive/10 h-10 w-10 px-0 shrink-0"
+              className="flex-1 h-11 text-xs gap-2 font-semibold bg-success/5 text-success border-success/20"
+              onClick={onView}
+            >
+              <UserCheck className="w-4 h-4" />
+              Venda Convertida
+            </Button>
+          )}
+          
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-11 w-11 rounded-full text-success hover:bg-success/10 shrink-0"
+            onClick={() => window.open(`https://wa.me/55${orcamento.telefone.replace(/\D/g, '')}`, '_blank')}
+          >
+            <Phone className="w-5 h-5" />
+          </Button>
+          
+          {onDelete && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="text-destructive/50 hover:text-destructive hover:bg-destructive/10 h-11 w-11 rounded-full shrink-0"
               onClick={onDelete}
             >
               <Trash2 className="w-4 h-4" />
             </Button>
           )}
         </div>
+
       </CardContent>
     </Card>
   );
