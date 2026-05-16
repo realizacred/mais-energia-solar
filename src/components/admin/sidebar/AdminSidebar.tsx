@@ -436,12 +436,12 @@ function FavoritesSection({
 }
 
 /* ─── Main Sidebar ─── */
-export function AdminSidebar({
+export const AdminSidebar = React.memo(({
   activeTab,
   userEmail,
   onSignOut,
   badgeCounts,
-}: AdminSidebarProps) {
+}: AdminSidebarProps) => {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
   const logo = useLogo({ variant: "small" });
@@ -621,4 +621,4 @@ export function AdminSidebar({
     </Sidebar>
     </TooltipProvider>
   );
-}
+});

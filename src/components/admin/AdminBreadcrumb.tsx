@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, memo } from "react";
 import { ChevronRight, Home } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useNavConfig } from "@/hooks/useNavConfig";
@@ -7,7 +7,7 @@ interface AdminBreadcrumbProps {
   activeTab: string;
 }
 
-export function AdminBreadcrumb({ activeTab }: AdminBreadcrumbProps) {
+export const AdminBreadcrumb = memo(({ activeTab }: AdminBreadcrumbProps) => {
   const { sections } = useNavConfig();
 
   const crumbs = useMemo(() => {
@@ -39,4 +39,4 @@ export function AdminBreadcrumb({ activeTab }: AdminBreadcrumbProps) {
       <span className="font-semibold text-foreground">{crumbs.item}</span>
     </nav>
   );
-}
+});
