@@ -109,6 +109,16 @@
     --sidebar-section-atendimento: 25 95% 52%;
     --sidebar-section-cadastros: 218 25% 55%;
     --sidebar-section-marketing: 215 65% 50%;
+
+    /* --- LuminaSolar Semantic Tokens (Canonical) --- */
+    --solar-gold: 38 100% 50%;
+    --solar-gold-foreground: 0 0% 0%;
+    --nature-green: 142 76% 36%;
+    --nature-green-foreground: 0 0% 100%;
+    --structural-blue: 218 72% 28%;
+    --structural-blue-foreground: 0 0% 100%;
+    --energy-white: 0 0% 100%;
+    --energy-black: 220 50% 8%;
   }
 
   .dark {

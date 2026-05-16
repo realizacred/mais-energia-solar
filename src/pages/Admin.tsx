@@ -179,6 +179,7 @@ const AuditoriaTelefonesPage = lazy(() => import("@/pages/admin/AuditoriaTelefon
 const WaSaudePage = lazy(() => import("@/pages/admin/WaSaudePage"));
 const WhatsappInstanciasPage = lazy(() => import("@/pages/admin/integracoes/whatsapp/WhatsappInstanciasPage"));
 const WhatsappIaResolucaoPage = lazy(() => import("@/pages/admin/integracoes/whatsapp/WhatsappIaResolucaoPage"));
+const DesignSystemGuide = lazy(() => import("@/pages/admin/DesignSystemGuide"));
 const WhatsappAutoRespostasPage = lazy(() => import("@/pages/admin/integracoes/whatsapp/WhatsappAutoRespostasPage"));
 const WhatsappFollowupPage = lazy(() => import("@/pages/admin/integracoes/whatsapp/WhatsappFollowupPage"));
 const MinhasInstalacoes = lazy(() => import("@/components/admin/projetos/MinhasInstalacoes"));
@@ -806,6 +807,7 @@ export default function Admin() {
                 <Route path="system-health" element={<SystemHealthPage />} />
                 <Route path="playbooks" element={<PlaybooksPage />} />
                 <Route path="governanca" element={<GovernancePage />} />
+                <Route path="design-system" element={<DesignSystemGuide />} />
                 <Route path="cron-jobs" element={<CronJobsPage />} />
                 <Route path="dev/seed" element={<DevToolsPage />} />
                 <Route path="dev/reset-seed" element={<DevToolsPage />} />
