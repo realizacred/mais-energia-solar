@@ -57,7 +57,7 @@ export function VendorBottomNav({ unreadWhatsApp = 0, badgeOrcamentos = 0 }: Ven
   };
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 flex md:hidden h-16 bg-background border-t border-border shadow-[0_-2px_10px_-3px_hsl(var(--foreground)/0.08)]">
+    <nav className="fixed bottom-0 left-0 right-0 z-50 flex md:hidden h-[calc(4rem+safe-area-inset-bottom)] pb-[safe-area-inset-bottom] bg-background border-t border-border shadow-[0_-2px_10px_-3px_hsl(var(--foreground)/0.08)]">
       {NAV_ITEMS.map((item) => {
         const isActive = activeTab === item.id;
         const badge = getBadge(item.id);

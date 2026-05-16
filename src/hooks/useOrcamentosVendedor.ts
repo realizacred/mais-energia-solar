@@ -118,8 +118,10 @@ export function useOrcamentosVendedor({
   filterEstado = "todos",
   filterStatus = "todos",
   excludeTerminal = false,
-  maxAgeDays = null, operationalStatus = "todos",
+  maxAgeDays = null, 
+  operationalStatus = "todos",
 }: UseOrcamentosVendedorOptions) {
+  const isViewingAsVendedor = filterByVendedor; // Alias for clarity in queryKey
   const [page, setPage] = useState(0);
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -127,7 +129,7 @@ export function useOrcamentosVendedor({
   const mustFilterByVendedor = (filterByVendedor || !isAdminMode) && (!!vendedorId || !!vendedorNome);
 
   const { data, isLoading: loading, refetch: fetchOrcamentos } = useQuery({
-    queryKey: ["orcamentos-vendedor", vendedorId, vendedorNome, isAdminMode, searchTerm, filterVisto, filterEstado, filterStatus, page, excludeTerminal, maxAgeDays, operationalStatus],
+    queryKey: ["orcamentos-vendedor", vendedorId, vendedorNome, isAdminMode, searchTerm, filterVisto, filterEstado, filterStatus, page, excludeTerminal, maxAgeDays, operationalStatus, isViewingAsVendedor],
     queryFn: async () => {
       if (!vendedorId && !vendedorNome && !isAdminMode) {
         return { orcamentos: [], totalCount: 0, statuses: [] };
@@ -233,7 +235,7 @@ export function useOrcamentosVendedor({
 
   const toggleVisto = useCallback(async (orcamento: OrcamentoVendedor) => {
     const newVisto = !orcamento.visto;
-    queryClient.setQueryData(["orcamentos-vendedor", vendedorId, vendedorNome, isAdminMode, searchTerm, filterVisto, filterEstado, filterStatus, page, excludeTerminal, maxAgeDays, operationalStatus], (old: any) => {
+    queryClient.setQueryData(["orcamentos-vendedor", vendedorId, vendedorNome, isAdminMode, searchTerm, filterVisto, filterEstado, filterStatus, page, excludeTerminal, maxAgeDays, operationalStatus, isViewingAsVendedor], (old: any) => {
       if (!old) return old;
       return {
         ...old,
