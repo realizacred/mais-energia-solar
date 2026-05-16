@@ -61,6 +61,9 @@ export interface CreditAnalysis {
   sla_vencimento: string | null;
   status_detalhado: string | null;
   observacoes: string | null;
+  version: number;
+  is_locked: boolean;
+  checklist_snapshot: any;
   created_at: string;
   updated_at: string;
 }

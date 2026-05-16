@@ -38,6 +38,9 @@ export interface AnaliseCredito {
   responsavel_id: string | null;
   observacoes: string | null;
   criado_por: string | null;
+  version: number;
+  is_locked: boolean;
+  checklist_snapshot: any;
   created_at: string;
   updated_at: string;
 }
