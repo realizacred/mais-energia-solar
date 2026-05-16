@@ -183,7 +183,7 @@ const normalizeCategoria = resolveDocumentCategory;
 
 export function ProjectDocumentsHub({ projetoId, dealId }: Props) {
   const { data, isLoading } = useProjectDocuments({ projetoId, dealId });
-  const { documents: docs = [], totalUnique: totalCount = 0, totalSize = 0, groupedByCategory } = data || {};
+  const { documents: docs = [], totalUnique: totalCount = 0, totalSize = 0 } = data || {};
   
   const upload = useUploadProjectDocument();
   const remove = useDeleteProjectDocument();
