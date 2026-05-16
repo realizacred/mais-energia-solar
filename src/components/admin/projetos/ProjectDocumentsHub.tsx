@@ -76,12 +76,13 @@ import {
   useProjectDocuments,
   useUploadProjectDocument,
   useDeleteProjectDocument,
+  useRenameProjectDocument,
   type ProjectDocument,
   type ProjectDocumentOrigem,
 } from "@/hooks/useProjectDocuments";
 import { useProjetoArquivos, useDeletarArquivo } from "@/hooks/useProjetoDocumentos";
 import { useProjetoCustomFieldFiles } from "@/hooks/useProjetoCustomFieldFiles";
-import { normalizeFilename, logicalSuffix } from "@/lib/documentDedup";
+
 
 interface Props {
   projetoId?: string | null;
