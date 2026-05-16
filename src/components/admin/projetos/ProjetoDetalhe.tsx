@@ -81,6 +81,8 @@ import { useRecibos } from "@/hooks/useRecibos";
 
 
 import { useOperationalStatus } from "@/hooks/useOperationalStatus";
+import { useFinancialSummary } from "@/hooks/useFinancialSummary";
+import { ProjetoFinancialBadges } from "./ProjetoFinancialBadges";
 interface PropostaNativa {
   id: string;
   titulo: string;
