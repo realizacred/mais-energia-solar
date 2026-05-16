@@ -219,6 +219,7 @@ const PostSalePlansPage = lazy(() => import("@/components/admin/post-sale/PostSa
 const PostSaleUpsellPage = lazy(() => import("@/components/admin/post-sale/PostSaleUpsellList"));
 const PostSaleVisitDetailPage = lazy(() => import("@/components/admin/post-sale/PostSaleVisitDetail"));
 const PostSaleChecklistsPage = lazy(() => import("@/components/admin/post-sale/PostSaleChecklistsPage"));
+const SystemIntegrityPage = lazy(() => import("@/pages/admin/SystemIntegrityPage"));
 // Atendimento consolidado no WaInbox
 const ProposalWizardPage = lazy(() =>
   import("@/components/admin/propostas-nativas/ProposalWizard")
@@ -394,6 +395,7 @@ const TAB_TITLES: Record<string, string> = {
   "pos-venda-planos": "Planos pós-venda",
   "pos-venda-upsell": "Oportunidades",
   "pos-venda-checklists": "Checklists pós-venda",
+  integridade: "Integridade do Sistema",
 
   "payment-gateway": "Pagamentos (Asaas)",
   "meu-plano": "Meu Plano & Uso",
@@ -805,6 +807,7 @@ export default function Admin() {
                 <Route path="menus" element={<MenuConfigPage />} />
                 <Route path="dev" element={<DevToolsPage />} />
                 <Route path="system-health" element={<SystemHealthPage />} />
+                <Route path="integridade" element={<SystemIntegrityPage />} />
                 <Route path="playbooks" element={<PlaybooksPage />} />
                 <Route path="governanca" element={<GovernancePage />} />
                 <Route path="design-system" element={<DesignSystemGuide />} />
