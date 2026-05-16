@@ -317,28 +317,69 @@ export default function CreditGlobalArea() {
     XLSX.writeFile(wb, `relatorio_credito_${new Date().toISOString().split('T')[0]}.xlsx`);
   };
 
-  const filteredAnalyses = analyses?.filter(a => {
-    if (filters.managerId !== "all" && a.responsavel_id !== filters.managerId) return false;
-    if (filters.status !== "all" && a.status !== filters.status) return false;
-    if (filters.consultantId !== "all" && a.criado_por !== filters.consultantId) return false;
-    if (filters.bank !== "all" && a.banco !== filters.bank) return false;
-    if (filters.search) {
-      const search = filters.search.toLowerCase();
-      const matchName = (a.deal?.title || a.lead?.nome || "").toLowerCase().includes(search);
-      const matchCPF = (a.cpf_cnpj || "").includes(search);
-      if (!matchName && !matchCPF) return false;
-    }
-    if (filters.dateRange?.from && filters.dateRange?.to) {
-      const date = new Date(a.created_at);
-      if (!isWithinInterval(date, { start: startOfDay(filters.dateRange.from), end: endOfDay(filters.dateRange.to) })) return false;
-    }
-    return true;
-  });
+  const filteredAnalyses = useMemo(() => {
+    return analyses?.filter(a => {
+      if (filters.managerId !== "all" && a.responsavel_id !== filters.managerId) return false;
+      if (filters.status !== "all" && a.status !== filters.status) return false;
+      if (filters.consultantId !== "all" && a.criado_por !== filters.consultantId) return false;
+      if (filters.bank !== "all" && a.banco !== filters.bank) return false;
+      if (filters.search) {
+        const search = filters.search.toLowerCase();
+        const matchName = (a.deal?.title || a.lead?.nome || "").toLowerCase().includes(search);
+        const matchCPF = (a.cpf_cnpj || "").includes(search);
+        if (!matchName && !matchCPF) return false;
+      }
+      if (filters.dateRange?.from && filters.dateRange?.to) {
+        const date = new Date(a.created_at);
+        if (!isWithinInterval(date, { start: startOfDay(filters.dateRange.from), end: endOfDay(filters.dateRange.to) })) return false;
+      }
+      return true;
+    }) || [];
+  }, [analyses, filters]);
 
-  const myQueue = analyses?.filter(a => 
-    a.responsavel_id === user?.id && 
-    !['aprovado', 'aprovada', 'reprovado', 'reprovada', 'cancelada'].includes(a.status)
-  ).sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()) || [];
+  const myQueue = useMemo(() => {
+    return filteredAnalyses?.filter(a => 
+      a.responsavel_id === user?.id && 
+      ['aguardando_analise', 'aguardando_documentos'].includes(a.status)
+    ).sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+  }, [filteredAnalyses, user]);
+
+  const metricsData = useMemo(() => {
+    const total = filteredAnalyses.length;
+    const approved = filteredAnalyses.filter(a => ['aprovado_interno', 'aprovada', 'aprovado'].includes(a.status)).length;
+    const rejected = filteredAnalyses.filter(a => ['reprovado', 'reprovada'].includes(a.status)).length;
+    const inAnalysis = filteredAnalyses.filter(a => ['aguardando_analise', 'em_analise', 'aguardando_documentos'].includes(a.status)).length;
+    
+    const ticketMedio = total > 0 ? filteredAnalyses.reduce((acc, a) => acc + (a.valor_solicitado || 0), 0) / total : 0;
+    const approvalRate = (approved + rejected) > 0 ? (approved / (approved + rejected)) * 100 : 0;
+
+    const timelineMap: Record<string, any> = {};
+    filteredAnalyses.forEach(a => {
+      const month = format(new Date(a.created_at), 'MMM/yy', { locale: ptBR });
+      if (!timelineMap[month]) timelineMap[month] = { month, aprovadas: 0, reprovadas: 0, total: 0 };
+      timelineMap[month].total += 1;
+      if (['aprovado_interno', 'aprovada', 'aprovado'].includes(a.status)) timelineMap[month].aprovadas += 1;
+      if (['reprovado', 'reprovada'].includes(a.status)) timelineMap[month].reprovadas += 1;
+    });
+
+    const banksMap: Record<string, any> = {};
+    filteredAnalyses.forEach(a => {
+      const bank = a.banco || 'Não Definido';
+      if (!banksMap[bank]) banksMap[bank] = { name: bank, value: 0 };
+      banksMap[bank].value += 1;
+    });
+
+    return {
+      total,
+      approved,
+      rejected,
+      inAnalysis,
+      ticketMedio,
+      approvalRate,
+      timeline: Object.values(timelineMap),
+      banks: Object.values(banksMap)
+    };
+  }, [filteredAnalyses]);
 
   return (
     <div className="container mx-auto p-6 space-y-8 animate-in fade-in duration-500 print:p-0">
