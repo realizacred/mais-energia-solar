@@ -219,6 +219,7 @@ const PostSalePlansPage = lazy(() => import("@/components/admin/post-sale/PostSa
 const PostSaleUpsellPage = lazy(() => import("@/components/admin/post-sale/PostSaleUpsellList"));
 const PostSaleVisitDetailPage = lazy(() => import("@/components/admin/post-sale/PostSaleVisitDetail"));
 const PostSaleChecklistsPage = lazy(() => import("@/components/admin/post-sale/PostSaleChecklistsPage"));
+const SystemIntegrityPage = lazy(() => import("@/pages/admin/SystemIntegrityPage"));
 // Atendimento consolidado no WaInbox
 const ProposalWizardPage = lazy(() =>
   import("@/components/admin/propostas-nativas/ProposalWizard")
