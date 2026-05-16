@@ -143,6 +143,69 @@ export function useCreateCreditSimulation() {
   });
 }
 
+export function useConvertSimulationToAnalysis() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (simulationId: string) => {
+      const { data: sim, error: simError } = await supabase
+        .from("credit_simulations")
+        .select("*")
+        .eq("id", simulationId)
+        .single();
+      
+      if (simError || !sim) throw new Error("Simulação não encontrada");
+
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      const { data: analysis, error: anaError } = await supabase
+        .from("analise_credito")
+        .insert({
+          tenant_id: sim.tenant_id,
+          simulation_id: sim.id,
+          deal_id: sim.projeto_id,
+          lead_id: sim.lead_id,
+          status: 'pendente_documentos',
+          cpf_cnpj: sim.cpf_cnpj,
+          tipo_pessoa: sim.tipo_pessoa,
+          renda_mensal: sim.renda_mensal,
+          valor_solicitado: sim.valor_solicitado,
+          prazo_meses: sim.prazo_meses,
+          bank_config_id: sim.banco_id,
+          criado_por: user?.id,
+          updated_at: new Date().toISOString()
+        } as any)
+        .select()
+        .single();
+
+      if (anaError) throw anaError;
+
+      await supabase
+        .from("credit_simulations")
+        .update({ status: 'convertida_em_analise' } as any)
+        .eq("id", sim.id);
+
+      // Log Event
+      await supabase.from("credit_analysis_events").insert({
+        tenant_id: sim.tenant_id,
+        analise_id: analysis.id,
+        simulation_id: sim.id,
+        projeto_id: sim.projeto_id,
+        event_type: 'analysis_created',
+        actor_id: user?.id,
+        status_novo: 'pendente_documentos',
+        payload: { simulation: sim, analysis }
+      } as any);
+
+      return analysis;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["credit-simulations"] });
+      queryClient.invalidateQueries({ queryKey: ["analise-credito"] });
+      toast({ title: "Conversão concluída com sucesso" });
+    }
+  });
+}
+
 // Status Engine Helper
 export function resolveCreditAnalysisStatus(analysis: Partial<CreditAnalysis>, docs: any[], checklist: any[]): CreditAnalysisStatus {
   if (analysis.status === 'rascunho') return 'pendente_documentos' as any;
