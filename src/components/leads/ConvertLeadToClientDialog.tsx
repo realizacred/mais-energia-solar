@@ -1513,8 +1513,8 @@ export function ConvertLeadToClientDialog({
             </div>
           </form>
         </Form>
-      </DialogContent>
-    </Dialog>
+        </FormWrapper>
+
 
     <MissingDocsConfirmModal
       open={showMissingDocsModal}
