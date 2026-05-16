@@ -109,9 +109,14 @@ export function ProjetoCreditoTab({ dealId, leadId, clienteId, clienteCpfCnpj, v
             Gerencie as solicitações de financiamento e crédito para este projeto.
           </p>
         </div>
-        <Button onClick={handleNewAnalysis} className="gap-2 shadow-sm">
-          <Plus className="h-4 w-4" /> Nova Análise
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => setIsWizardOpen(true)} className="gap-2 shadow-sm">
+            <Plus className="h-4 w-4" /> Nova Simulação
+          </Button>
+          <Button onClick={handleNewAnalysis} className="gap-2 shadow-sm">
+            <Plus className="h-4 w-4" /> Nova Análise
+          </Button>
+        </div>
       </div>
 
       {latestAnalise && (
