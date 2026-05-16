@@ -4080,6 +4080,66 @@ export type Database = {
           },
         ]
       }
+      deal_financial_projection: {
+        Row: {
+          commission_value: number | null
+          contract_value: number | null
+          deal_id: string
+          is_overdue: boolean | null
+          last_updated_at: string | null
+          margin_percentage: number | null
+          pending_value: number | null
+          projeto_id: string | null
+          received_value: number | null
+          tenant_id: string
+          title: string | null
+          total_value: number | null
+        }
+        Insert: {
+          commission_value?: number | null
+          contract_value?: number | null
+          deal_id: string
+          is_overdue?: boolean | null
+          last_updated_at?: string | null
+          margin_percentage?: number | null
+          pending_value?: number | null
+          projeto_id?: string | null
+          received_value?: number | null
+          tenant_id: string
+          title?: string | null
+          total_value?: number | null
+        }
+        Update: {
+          commission_value?: number | null
+          contract_value?: number | null
+          deal_id?: string
+          is_overdue?: boolean | null
+          last_updated_at?: string | null
+          margin_percentage?: number | null
+          pending_value?: number | null
+          projeto_id?: string | null
+          received_value?: number | null
+          tenant_id?: string
+          title?: string | null
+          total_value?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "deal_financial_projection_deal_id_fkey"
+            columns: ["deal_id"]
+            isOneToOne: true
+            referencedRelation: "deals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deal_financial_projection_projeto_id_fkey"
+            columns: ["projeto_id"]
+            isOneToOne: false
+            referencedRelation: "projetos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       deal_kanban_projection: {
         Row: {
           cliente_code: string | null
@@ -5157,6 +5217,51 @@ export type Database = {
           },
         ]
       }
+      enterprise_job_queue: {
+        Row: {
+          created_at: string | null
+          error_message: string | null
+          heartbeat_at: string | null
+          id: string
+          job_type: string
+          max_retries: number | null
+          next_retry_at: string | null
+          payload: Json | null
+          retry_count: number | null
+          status: string
+          tenant_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          error_message?: string | null
+          heartbeat_at?: string | null
+          id?: string
+          job_type: string
+          max_retries?: number | null
+          next_retry_at?: string | null
+          payload?: Json | null
+          retry_count?: number | null
+          status?: string
+          tenant_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          error_message?: string | null
+          heartbeat_at?: string | null
+          id?: string
+          job_type?: string
+          max_retries?: number | null
+          next_retry_at?: string | null
+          payload?: Json | null
+          retry_count?: number | null
+          status?: string
+          tenant_id?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       entity_files: {
         Row: {
           category: string | null
@@ -5943,6 +6048,33 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      feature_flags: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: string
+          is_enabled_globally: boolean | null
+          name: string
+          rollout_percentage: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_enabled_globally?: boolean | null
+          name: string
+          rollout_percentage?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_enabled_globally?: boolean | null
+          name?: string
+          rollout_percentage?: number | null
+        }
+        Relationships: []
       }
       feature_flags_catalog: {
         Row: {
@@ -16988,6 +17120,106 @@ export type Database = {
           },
         ]
       }
+      project_operational_projection: {
+        Row: {
+          cliente_nome: string | null
+          codigo: string | null
+          data_instalacao: string | null
+          data_previsao_instalacao: string | null
+          data_venda: string | null
+          etapa_operacional: string | null
+          is_delayed: boolean | null
+          last_updated_at: string | null
+          potencia_kwp: number | null
+          project_id: string
+          sla_status: string | null
+          status_operacional: string | null
+          tenant_id: string
+        }
+        Insert: {
+          cliente_nome?: string | null
+          codigo?: string | null
+          data_instalacao?: string | null
+          data_previsao_instalacao?: string | null
+          data_venda?: string | null
+          etapa_operacional?: string | null
+          is_delayed?: boolean | null
+          last_updated_at?: string | null
+          potencia_kwp?: number | null
+          project_id: string
+          sla_status?: string | null
+          status_operacional?: string | null
+          tenant_id: string
+        }
+        Update: {
+          cliente_nome?: string | null
+          codigo?: string | null
+          data_instalacao?: string | null
+          data_previsao_instalacao?: string | null
+          data_venda?: string | null
+          etapa_operacional?: string | null
+          is_delayed?: boolean | null
+          last_updated_at?: string | null
+          potencia_kwp?: number | null
+          project_id?: string
+          sla_status?: string | null
+          status_operacional?: string | null
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_operational_projection_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: true
+            referencedRelation: "projetos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      project_timeline_events: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          description: string | null
+          event_type: string
+          id: string
+          metadata: Json | null
+          project_id: string | null
+          tenant_id: string
+          title: string
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          event_type: string
+          id?: string
+          metadata?: Json | null
+          project_id?: string | null
+          tenant_id: string
+          title: string
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          event_type?: string
+          id?: string
+          metadata?: Json | null
+          project_id?: string | null
+          tenant_id?: string
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_timeline_events_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projetos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       projeto_ativacao: {
         Row: {
           confirmado_por: string | null
@@ -24829,6 +25061,38 @@ export type Database = {
         }
         Relationships: []
       }
+      tenant_feature_flags: {
+        Row: {
+          created_at: string | null
+          feature_flag_id: string | null
+          id: string
+          is_enabled: boolean | null
+          tenant_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          feature_flag_id?: string | null
+          id?: string
+          is_enabled?: boolean | null
+          tenant_id: string
+        }
+        Update: {
+          created_at?: string | null
+          feature_flag_id?: string | null
+          id?: string
+          is_enabled?: boolean | null
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tenant_feature_flags_feature_flag_id_fkey"
+            columns: ["feature_flag_id"]
+            isOneToOne: false
+            referencedRelation: "feature_flags"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tenant_feature_overrides: {
         Row: {
           created_at: string
@@ -27862,6 +28126,50 @@ export type Database = {
           },
         ]
       }
+      wa_conversation_projection: {
+        Row: {
+          conversation_id: string
+          is_waiting_response: boolean | null
+          last_agent_message_at: string | null
+          last_customer_message_at: string | null
+          last_message_text: string | null
+          last_updated_at: string | null
+          sla_status: string | null
+          tenant_id: string
+          unread_count: number | null
+        }
+        Insert: {
+          conversation_id: string
+          is_waiting_response?: boolean | null
+          last_agent_message_at?: string | null
+          last_customer_message_at?: string | null
+          last_message_text?: string | null
+          last_updated_at?: string | null
+          sla_status?: string | null
+          tenant_id: string
+          unread_count?: number | null
+        }
+        Update: {
+          conversation_id?: string
+          is_waiting_response?: boolean | null
+          last_agent_message_at?: string | null
+          last_customer_message_at?: string | null
+          last_message_text?: string | null
+          last_updated_at?: string | null
+          sla_status?: string | null
+          tenant_id?: string
+          unread_count?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wa_conversation_projection_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: true
+            referencedRelation: "wa_conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       wa_conversation_resolution_events: {
         Row: {
           conversation_id: string
@@ -30557,6 +30865,10 @@ export type Database = {
       check_feature_access: {
         Args: { _feature_key: string; _tenant_id: string }
         Returns: Json
+      }
+      check_feature_flag: {
+        Args: { p_feature_name: string; p_tenant_id: string }
+        Returns: boolean
       }
       check_phone_duplicate: { Args: { _telefone: string }; Returns: boolean }
       check_proposal_dependencies: {
