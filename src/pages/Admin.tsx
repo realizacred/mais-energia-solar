@@ -447,6 +447,259 @@ function N8nPlaceholder() {
   );
 }
 
+const AdminRoutes = () => (
+  <Routes>
+    {/* Default redirect */}
+    <Route index element={<Navigate to="leads" replace />} />
+    
+    {/* Visão Geral */}
+    <Route path="meu-painel" element={<ConsultorDashboard />} />
+    <Route path="dashboard" element={<AnalyticsDashboard />} />
+    <Route path="performance" element={<PerformanceDashboard />} />
+    <Route path="release" element={<ReleaseChecklist />} />
+    
+    {/* Comercial */}
+    <Route path="leads" element={<LeadsView />} />
+    <Route path="pipeline" element={<LeadsPipeline />} />
+    <Route path="followup" element={<FollowUpManager diasAlerta={3} />} />
+    <Route path="followup-comercial" element={<FollowupComercialPage />} />
+    <Route path="preventiva" element={<PreventiveCenterPage />} />
+    <Route path="lixeira" element={<LeadsTrashPage />} />
+    <Route path="propostas" element={<PropostasManager />} />
+    <Route path="projetos" element={<ProjetosManagerPage />} />
+    <Route path="propostas-nativas/nova" element={<ProposalWizardErrorBoundary><ProposalWizardPage /></ProposalWizardErrorBoundary>} />
+    <Route path="propostas/novo" element={<Navigate to="/admin/propostas-nativas/nova" replace />} />
+    <Route path="propostas-nativas/templates" element={<Navigate to="/admin/proposta-comercial?tab=modelos-proposta" replace />} />
+    <Route path="propostas-nativas/variaveis" element={<VariaveisCustomPage />} />
+    <Route path="propostas-nativas/:propostaId/versoes/:versaoId" element={<ProposalDetailPage />} />
+    <Route path="aprovacao" element={<AprovacaoUsuarios />} />
+    <Route path="lead-status" element={<LeadStatusManager />} />
+    <Route path="inteligencia" element={<IntelligenceDashboard />} />
+    <Route path="inteligencia-config" element={<IntelligenceConfigPage />} />
+    <Route path="inteligencia-metricas" element={<IntelligenceMetricsPage />} />
+    <Route path="inteligencia-alertas" element={<IntelligenceAlertsPage />} />
+    <Route path="distribuicao" element={<DistributionConfig />} />
+    <Route path="sla-breaches" element={<SlaBreachDashboard />} />
+    <Route path="motivos-perda" element={<MotivoPerdaManager />} />
+    <Route path="origens-lead" element={<LeadOrigensManager />} />
+    
+    {/* Atendimento */}
+    <Route path="inbox" element={<WaInboxWithParams />} />
+    <Route path="respostas-rapidas" element={<WaQuickRepliesManager />} />
+    <Route path="followup-wa" element={<WaFollowupRulesManager />} />
+    <Route path="regras-retorno" element={<Navigate to="/admin/followup-wa" replace />} />
+    <Route path="followup-queue" element={<WaFollowupQueuePage />} />
+    <Route path="followup-wa-queue" element={<Navigate to="/admin/followup-queue" replace />} />
+    <Route path="metricas-atendimento" element={<WaAtendimentoMetrics />} />
+    <Route path="wa-health" element={<WaHealthDashboard />} />
+    <Route path="auditoria-telefones" element={<AuditoriaTelefonesPage />} />
+    <Route path="whatsapp/saude" element={<WaSaudePage />} />
+    <Route path="wa-etiquetas" element={<WaTagsManager />} />
+    <Route path="contatos" element={<ContactsPage />} />
+    <Route path="validacao" element={<ValidacaoVendasManager />} />
+    <Route path="tarefas" element={<TasksSlaDashboard />} />
+    
+    {/* Clientes */}
+    <Route path="clientes" element={<ClientesManager />} />
+    <Route path="checklists" element={<ChecklistsManager />} />
+    <Route path="avaliacoes" element={<AvaliacoesManager />} />
+    <Route path="servicos" element={<ServicosManager />} />
+    <Route path="visitas-tecnicas" element={<VisitasCalendario />} />
+    <Route path="documentos" element={<DocumentosPage />} />
+    <Route path="documentos-assinaturas" element={<DocumentosPage />} />
+    
+    {/* Pós-Venda */}
+    <Route path="pos-venda" element={<PostSaleDashboardPage />} />
+    <Route path="pos-venda-visitas" element={<PostSaleVisitsPage />} />
+    <Route path="pos-venda-visitas/:id" element={<PostSaleVisitDetailPage />} />
+    <Route path="pos-venda-planos" element={<PostSalePlansPage />} />
+    <Route path="pos-venda-upsell" element={<PostSaleUpsellPage />} />
+    <Route path="pos-venda-checklists" element={<PostSaleChecklistsPage />} />
+
+    {/* Operações */}
+    <Route path="instaladores" element={<InstaladorManager />} />
+    <Route path="estoque" element={<EstoquePage />} />
+    <Route path="depositos" element={<DepositosPage />} />
+    <Route path="categorias-estoque" element={<CategoriasEstoquePage />} />
+    <Route path="suprimentos" element={<SuprimentosListPage />} />
+    <Route path="suprimentos/:id" element={<OrdemCompraDetalhePage />} />
+    
+    {/* Medidores */}
+    <Route path="medidores" element={<MetersListPage />} />
+    <Route path="medidores/:id" element={<MeterDetailPage />} />
+    
+    {/* Faturas de Energia */}
+    <Route path="faturas-energia" element={<FaturasEnergiaPage />} />
+    <Route path="faturas-energia/revisao" element={<InvoiceReviewPage />} />
+    <Route path="central-extracao" element={<ExtractionCenterPage />} />
+    <Route path="alertas-energia" element={<EnergyAlertsPage />} />
+    <Route path="energia-dashboard" element={<EnergiaDashboard />} />
+    <Route path="automacoes-energia" element={<GdAutomationPage />} />
+    <Route path="financeiro-energia" element={<EnergyFinancialPage />} />
+    <Route path="painel-cliente-energia" element={<ClienteEnergiaDashboardPage />} />
+    <Route path="integracoes-email" element={<EmailIntegrationsPage />} />
+    
+    {/* Unidades Consumidoras */}
+    <Route path="ucs" element={<UCsListPage />} />
+    <Route path="ucs/:id" element={<UCDetailPage />} />
+    
+    {/* Financeiro */}
+    <Route path="financeiro-dashboard" element={<FinanceiroDashboard />} />
+    <Route path="lancamentos" element={<LancamentosPage />} />
+    <Route path="recebimentos" element={<RecebimentosManager />} />
+    <Route path="financeiro/cheques" element={<ChequesPage />} />
+
+    <Route path="inadimplencia" element={<InadimplenciaDashboard />} />
+    <Route path="comissoes" element={<ComissoesManager />} />
+    <Route path="minhas-instalacoes" element={<MinhasInstalacoes />} />
+
+    <Route path="fechamento-caixa" element={<FechamentoCaixaPage />} />
+    <Route path="dre" element={<DREPage />} />
+    <Route path="engenharia" element={<Navigate to="/admin/premissas" replace />} />
+    <Route path="financiamento" element={<FinanciamentoConfig />} />
+    <Route path="formas-pagamento" element={<FormasPagamentoPage />} />
+
+    <Route path="fiscal" element={<FiscalPage />} />
+    
+    {/* Cadastros */}
+    <Route path="vendedores" element={<VendedoresManager />} />
+    <Route path="usuarios" element={<UsuariosManager />} />
+    <Route path="equipamentos" element={<EquipamentosManager />} />
+    <Route path="modulos" element={<EquipmentTabs cadastro={<ModulosManager />} auditoria={<ModulosAuditPage />} />} />
+    <Route path="modulos-auditoria" element={<Navigate to="/admin/modulos?tab=auditoria" replace />} />
+    <Route path="inversores-cadastro" element={<EquipmentTabs cadastro={<InversoresManager />} auditoria={<InversoresAuditPage />} />} />
+    <Route path="inversores-auditoria" element={<Navigate to="/admin/inversores-cadastro?tab=auditoria" replace />} />
+    <Route path="baterias" element={<EquipmentTabs cadastro={<BateriasManager />} auditoria={<BateriasAuditPage />} />} />
+    <Route path="baterias-auditoria" element={<Navigate to="/admin/baterias?tab=auditoria" replace />} />
+    <Route path="otimizadores" element={<EquipmentTabs cadastro={<OtimizadoresManager />} auditoria={<OtimizadoresAuditPage />} />} />
+    <Route path="otimizadores-auditoria" element={<Navigate to="/admin/otimizadores?tab=auditoria" replace />} />
+    <Route path="fornecedores" element={<FornecedoresManager />} />
+    <Route path="concessionarias" element={<ConcessionariasManager />} />
+    <Route path="dicionario-aneel" element={<DicionarioAneelPage />} />
+    <Route path="tarifa-versoes" element={<TarifaVersoesPage />} />
+    <Route path="saude-tarifaria" element={<SaudeTarifariaPage />} />
+    <Route path="aneel-sync-status" element={<AneelSyncStatusPage />} />
+    <Route path="config" element={<CalculadoraConfig />} />
+    <Route path="conf-solar" element={<ConfSolarPage />} />
+    <Route path="variaveis-sistema" element={<Navigate to="/admin/proposta-comercial" replace />} />
+    <Route path="mensagens-proposta" element={<Suspense fallback={<LoadingSpinner />}><ProposalMessageConfigPage /></Suspense>} />
+    <Route path="premissas" element={<PremissasPage />} />
+    <Route path="irradiancia" element={<Navigate to="/admin/meteorologia" replace />} />
+    <Route path="insumos-irradiacao" element={<Navigate to="/admin/meteorologia" replace />} />
+    <Route path="base-meteorologica" element={<Navigate to="/admin/meteorologia" replace />} />
+    <Route path="meteorologia" element={<BaseMeteorologicaPage />} />
+    <Route path="pricing-policy" element={<PricingPolicyPage />} />
+    <Route path="politica-precos" element={<Navigate to="/admin/pricing-policy" replace />} />
+    <Route path="gamificacao" element={<GamificacaoConfig />} />
+    <Route path="loading-config" element={<LoadingConfigAdmin />} />
+    
+    {/* Projetos & Propostas */}
+    <Route path="proposta-comercial" element={<PropostaComercialPage />} />
+    
+    {/* IA */}
+    <Route path="diretor" element={<CommercialDirectorDashboard />} />
+    
+    {/* Integrações */}
+    <Route path="wa-instances" element={<Navigate to="/admin/catalogo-integracoes?tab=instancias" replace />} />
+    <Route path="whatsapp" element={<Navigate to="/admin/catalogo-integracoes?tab=automacao" replace />} />
+    <Route path="instagram" element={<Navigate to="/admin/catalogo-integracoes" replace />} />
+    
+    <Route path="webhooks" element={<Navigate to="/admin/catalogo-integracoes?tab=webhooks" replace />} />
+    <Route path="n8n" element={<N8nPlaceholder />} />
+    <Route path="automacoes" element={<AutomacoesPage />} />
+    <Route path="integracoes" element={<Navigate to="/admin/catalogo-integracoes" replace />} />
+    <Route path="aneel" element={<Navigate to="/admin/concessionarias" replace />} />
+    <Route path="saude-integracoes" element={<Navigate to="/admin/catalogo-integracoes?tab=saude" replace />} />
+    <Route path="monitoramento-solar" element={<Navigate to="/admin/monitoramento/integracoes" replace />} />
+    <Route path="monitoramento/*" element={<MonitoringModule />} />
+    <Route path="catalogo-integracoes" element={<IntegrationsCatalogPage />} />
+    <Route path="integracoes/edeltec" element={<EdeltecIntegrationPage />} />
+    <Route path="payment-gateway" element={<PaymentGatewayConfigPage />} />
+    <Route path="integracao-asaas" element={<AsaasIntegrationPage />} />
+    <Route path="asaas-conversao" element={<AsaasConversionPage />} />
+    <Route path="openai-config" element={<OpenAIConfigPage />} />
+    <Route path="gemini-config" element={<GeminiConfigPage />} />
+    <Route path="meta-facebook-config" element={<MetaFacebookConfigPage />} />
+    <Route path="meta-dashboard" element={<MetaDashboardPage />} />
+    <Route path="meta-leads" element={<MetaLeadsPage />} />
+    <Route path="meta-campaigns" element={<MetaCampaignsPage />} />
+    <Route path="meta-config" element={<Navigate to="/admin/meta-facebook-config" replace />} />
+    <Route path="google-maps-config" element={<Navigate to="/admin/catalogo-integracoes" replace />} />
+    <Route path="ai-config" element={<AiConfigPage />} />
+    
+    {/* Site */}
+    <Route path="site-config" element={<SiteSettingsUnified />} />
+    <Route path="brand" element={<SiteSettingsUnified />} />
+    <Route path="site-servicos" element={<SiteServicosManager />} />
+    <Route path="obras" element={<ObrasManager />} />
+    
+    {/* Administração */}
+    <Route path="configuracoes-financeiras" element={<FinancialSettingsPage />} />
+    <Route path="configuracoes/credito" element={<CreditConfigPage />} />
+    <Route path="tenant-settings" element={<TenantSettings />} />
+    <Route path="custom-fields" element={<CustomFieldsSettings />} />
+    <Route path="auditoria" element={<AuditLogsViewer />} />
+    <Route path="data-reset" element={<DataResetManager />} />
+    <Route path="backup" element={<BackupRestorePage />} />
+    <Route path="permissoes" element={<RolePermissionsManager />} />
+    <Route path="planos-features" element={<BillingFeaturesPage />} />
+    <Route path="planos" element={<ClientPlansPage />} />
+    <Route path="meu-plano" element={<MeuPlanoPage />} />
+    <Route path="planos-servico" element={<PlanoServicoManager />} />
+    <Route path="dashboard-comercial" element={<CommercialDashboardPage />} />
+    <Route path="funil-propostas" element={<ProposalFunnelDashboard />} />
+    <Route path="pricing" element={<PricingDashboardPage />} />
+    
+    <Route path="canais-captacao" element={<Navigate to="/admin/links-instalacao" replace />} />
+    <Route path="links-instalacao" element={<LinksInstalacaoPage isAdminView />} />
+    <Route path="changelog" element={<ChangelogViewer />} />
+    <Route path="notificacoes-config" element={<NotificationConfigAdmin />} />
+    <Route path="menus" element={<MenuConfigPage />} />
+    <Route path="dev" element={<DevToolsPage />} />
+    <Route path="system-health" element={<SystemHealthPage />} />
+    <Route path="integridade" element={<SystemIntegrityPage />} />
+    <Route path="playbooks" element={<PlaybooksPage />} />
+    <Route path="governanca" element={<GovernancePage />} />
+    <Route path="design-system" element={<DesignSystemGuide />} />
+    <Route path="cron-jobs" element={<CronJobsPage />} />
+    <Route path="dev/seed" element={<DevToolsPage />} />
+    <Route path="dev/reset-seed" element={<DevToolsPage />} />
+    <Route path="dev/rls-test" element={<RlsTestPage />} />
+    <Route path="migracao-solarmarket" element={<MigracaoSolarmarket />} />
+    <Route path="migracao-solarmarket/mapear" element={<MigracaoStep2Mapear />} />
+    <Route path="migracao-solarmarket/custom-fields" element={<MigracaoStep3CustomFields />} />
+    <Route path="migracao-solarmarket/migrar" element={<MigracaoStep3Migrar />} />
+    <Route path="importacao-solarmarket" element={<Navigate to="/admin/migracao-solarmarket" replace />} />
+    <Route path="promocao-solarmarket" element={<Navigate to="/admin/migracao-solarmarket" replace />} />
+    <Route path="solarmarket-mapeamentos" element={<Navigate to="/admin/migracao-solarmarket" replace />} />
+    <Route path="solarmarket-mapping" element={<Navigate to="/admin/migracao-solarmarket/mapear" replace />} />
+    <Route path="configuracoes/integracoes/solarmarket" element={<SolarmarketConfigPage />} />
+    <Route path="solarmarket-diagnostic" element={<SolarmarketDiagnosticPage />} />
+    <Route path="integracoes/whatsapp/saude" element={<WaSaudePage />} />
+    <Route path="integracoes/whatsapp/instancias" element={<WhatsappInstanciasPage />} />
+    <Route path="integracoes/whatsapp/ia-resolucao" element={<WhatsappIaResolucaoPage />} />
+    <Route path="integracoes/whatsapp/auto-respostas" element={<WhatsappAutoRespostasPage />} />
+    <Route path="integracoes/whatsapp/follow-up" element={<WhatsappFollowupPage />} />
+    <Route path="integracoes/solarmarket/migracao" element={<SolarmarketMigracaoPage />} />
+    <Route path="integracoes/solarmarket/configuracoes" element={<SolarmarketConfigPage />} />
+    <Route path="integracoes/solarmarket/funis" element={<SolarmarketFunisPage />} />
+    <Route path="integracoes/solarmarket/etapas" element={<SolarmarketEtapasPage />} />
+    <Route path="integracoes/solarmarket/consultores" element={<SolarmarketConsultoresPage />} />
+    <Route path="integracoes/solarmarket/logs" element={<SolarmarketLogsPage />} />
+    <Route path="integracoes/ia/provedores" element={<IaProvedoresPage />} />
+    <Route path="integracoes/ia/features" element={<IaFeaturesPage />} />
+    <Route path="integracoes/ia/lead-scoring" element={<IaLeadScoringPage />} />
+    <Route path="integracoes/conexoes/provedores" element={<ConexoesProvedoresPage />} />
+    <Route path="integracoes/conexoes/credenciais" element={<ConexoesCredenciaisPage />} />
+    <Route path="integracoes/conexoes/jobs" element={<ConexoesJobsPage />} />
+    <Route path="integracoes/conexoes/logs" element={<ConexoesLogsPage />} />
+    <Route path="integracoes/visao-geral" element={<Navigate to="/admin/catalogo-integracoes?tab=overview" replace />} />
+
+    {/* Catch-all */}
+    <Route path="*" element={<Navigate to="leads" replace />} />
+  </Routes>
+);
+
 export default function Admin() {
   const { user, signOut, loading: authLoading } = useAuth();
   const { pendingCount } = usePendingValidations();
