@@ -13,7 +13,8 @@ import {
   Send,
   Eye,
   Edit2,
-  AlertCircle
+  AlertCircle,
+  ArrowRight
 } from "lucide-react";
 import { 
   useAnaliseCredito, 
