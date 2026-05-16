@@ -74,7 +74,7 @@ function estimateValue(kwp: number): number {
   return kwp * 5000;
 }
 
-export function KanbanCard({
+export const KanbanCard = memo(({
   lead,
   onDragStart,
   isDragging,
