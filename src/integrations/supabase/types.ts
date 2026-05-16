@@ -3627,9 +3627,11 @@ export type Database = {
         Row: {
           actor_id: string | null
           analise_id: string | null
+          correlation_id: string | null
           created_at: string | null
           event_type: string
           id: string
+          idempotency_key: string | null
           observacoes: string | null
           payload: Json | null
           projeto_id: string | null
@@ -3641,9 +3643,11 @@ export type Database = {
         Insert: {
           actor_id?: string | null
           analise_id?: string | null
+          correlation_id?: string | null
           created_at?: string | null
           event_type: string
           id?: string
+          idempotency_key?: string | null
           observacoes?: string | null
           payload?: Json | null
           projeto_id?: string | null
@@ -3655,9 +3659,11 @@ export type Database = {
         Update: {
           actor_id?: string | null
           analise_id?: string | null
+          correlation_id?: string | null
           created_at?: string | null
           event_type?: string
           id?: string
+          idempotency_key?: string | null
           observacoes?: string | null
           payload?: Json | null
           projeto_id?: string | null
@@ -3783,6 +3789,101 @@ export type Database = {
         }
         Relationships: []
       }
+      credit_operation_jobs: {
+        Row: {
+          analysis_id: string | null
+          attempts: number | null
+          correlation_id: string | null
+          created_at: string | null
+          id: string
+          idempotency_key: string | null
+          last_error: string | null
+          max_attempts: number | null
+          operation_type: string
+          payload: Json | null
+          processed_at: string | null
+          scheduled_at: string | null
+          status: string
+          tenant_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          analysis_id?: string | null
+          attempts?: number | null
+          correlation_id?: string | null
+          created_at?: string | null
+          id?: string
+          idempotency_key?: string | null
+          last_error?: string | null
+          max_attempts?: number | null
+          operation_type: string
+          payload?: Json | null
+          processed_at?: string | null
+          scheduled_at?: string | null
+          status?: string
+          tenant_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          analysis_id?: string | null
+          attempts?: number | null
+          correlation_id?: string | null
+          created_at?: string | null
+          id?: string
+          idempotency_key?: string | null
+          last_error?: string | null
+          max_attempts?: number | null
+          operation_type?: string
+          payload?: Json | null
+          processed_at?: string | null
+          scheduled_at?: string | null
+          status?: string
+          tenant_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "credit_operation_jobs_analysis_id_fkey"
+            columns: ["analysis_id"]
+            isOneToOne: false
+            referencedRelation: "analise_credito"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      credit_operation_logs: {
+        Row: {
+          actor_id: string | null
+          context: Json | null
+          correlation_id: string | null
+          created_at: string | null
+          id: string
+          level: string
+          message: string
+          tenant_id: string
+        }
+        Insert: {
+          actor_id?: string | null
+          context?: Json | null
+          correlation_id?: string | null
+          created_at?: string | null
+          id?: string
+          level: string
+          message: string
+          tenant_id: string
+        }
+        Update: {
+          actor_id?: string | null
+          context?: Json | null
+          correlation_id?: string | null
+          created_at?: string | null
+          id?: string
+          level?: string
+          message?: string
+          tenant_id?: string
+        }
+        Relationships: []
+      }
       credit_simulations: {
         Row: {
           banco_id: string | null
@@ -3877,6 +3978,36 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      credit_workflow_configs: {
+        Row: {
+          bank_slug: string
+          config: Json
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          tenant_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          bank_slug: string
+          config?: Json
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          tenant_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          bank_slug?: string
+          config?: Json
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          tenant_id?: string
+          updated_at?: string | null
+        }
+        Relationships: []
       }
       cron_execution_logs: {
         Row: {

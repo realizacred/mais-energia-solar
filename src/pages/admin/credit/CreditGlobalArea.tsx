@@ -7,7 +7,10 @@ import {
   AlertCircle, 
   Search,
   Filter,
-  ArrowUpRight
+  ArrowUpRight,
+  Activity,
+  ShieldAlert,
+  Terminal
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -24,8 +27,12 @@ import { Button } from "@/components/ui/button";
 import { formatBRL } from "@/lib/formatters";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { useCreditMetrics } from "@/hooks/useCreditDomain";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 export default function CreditGlobalArea() {
+  const { data: metrics } = useCreditMetrics();
   const { data: analyses, isLoading } = useQuery({
     queryKey: ["admin-credit-analyses"],
     queryFn: async () => {
@@ -33,6 +40,19 @@ export default function CreditGlobalArea() {
         .from("analise_credito")
         .select("*, deal:deals(title), lead:leads(nome), criado_por_profile:profiles!analise_credito_criado_por_fkey(nome)")
         .order("created_at", { ascending: false });
+      if (error) throw error;
+      return data;
+    }
+  });
+
+  const { data: operationLogs } = useQuery({
+    queryKey: ["credit-operation-logs"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("credit_operation_logs")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .limit(20);
       if (error) throw error;
       return data;
     }
@@ -49,35 +69,51 @@ export default function CreditGlobalArea() {
     <div className="container mx-auto p-6 space-y-8 animate-in fade-in duration-500">
       <div className="flex justify-between items-end">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Gestão Global de Crédito</h1>
-          <p className="text-muted-foreground">Monitoramento de simulações e análises bancárias em tempo real.</p>
+          <h1 className="text-3xl font-bold tracking-tight flex items-center gap-3">
+            <Activity className="h-8 w-8 text-primary" />
+            Bank Operations Core
+          </h1>
+          <p className="text-muted-foreground">Governança, observabilidade e orquestração de crédito enterprise.</p>
         </div>
         <div className="flex gap-2">
           <Button variant="outline" className="gap-2">
             <Filter className="h-4 w-4" /> Filtros
           </Button>
+          <Button className="gap-2 shadow-lg shadow-primary/20">
+            <Terminal className="h-4 w-4" /> Console Ops
+          </Button>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard title="Total de Análises" value={stats.total} icon={CreditCard} color="text-blue-500" />
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+        <StatCard title="Total Análises" value={stats.total} icon={CreditCard} color="text-blue-500" />
         <StatCard title="Em Análise" value={stats.em_analise} icon={Clock} color="text-yellow-500" />
-        <StatCard title="Pendências" value={stats.pendentes} icon={AlertCircle} color="text-red-500" />
+        <StatCard title="Jobs Pendentes" value={metrics?.pendingJobs || 0} icon={Activity} color="text-purple-500" />
+        <StatCard title="SLA Vencido" value={metrics?.expiredSLA || 0} icon={ShieldAlert} color="text-red-500" />
         <StatCard title="Aprovados" value={stats.aprovados} icon={TrendingUp} color="text-green-500" />
       </div>
 
-      <Card className="border-border/40 shadow-sm overflow-hidden">
-        <CardHeader className="bg-muted/30 pb-4">
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-lg">Análises Recentes</CardTitle>
-            <div className="relative w-64">
-              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input placeholder="Buscar por cliente ou banco..." className="pl-9" />
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent className="p-0">
-          <Table>
+      <Tabs defaultValue="analyses" className="w-full">
+        <TabsList className="grid w-full grid-cols-3 lg:w-[600px] mb-4">
+          <TabsTrigger value="analyses">Lista de Análises</TabsTrigger>
+          <TabsTrigger value="jobs">Orquestração de Jobs</TabsTrigger>
+          <TabsTrigger value="logs">Logs Operacionais</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="analyses">
+          <Card className="border-border/40 shadow-sm overflow-hidden">
+            <CardHeader className="bg-muted/30 pb-4">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-lg">Análises Recentes</CardTitle>
+                <div className="relative w-64">
+                  <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Input placeholder="Buscar por cliente ou banco..." className="pl-9" />
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="p-0">
+              <Table>
+                {/* ... existing table header ... */}
             <TableHeader>
               <TableRow className="hover:bg-transparent">
                 <TableHead>Cliente</TableHead>
@@ -121,8 +157,77 @@ export default function CreditGlobalArea() {
           </Table>
         </CardContent>
       </Card>
-    </div>
-  );
+    </TabsContent>
+
+    <TabsContent value="jobs">
+      <Card className="border-border/40 shadow-sm overflow-hidden">
+        <CardHeader className="bg-muted/30 pb-4">
+          <CardTitle className="text-lg">Fila de Operações Assíncronas</CardTitle>
+        </CardHeader>
+        <CardContent className="p-0">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Operação</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Tentativas</TableHead>
+                <TableHead>Último Erro</TableHead>
+                <TableHead>Criado em</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              <TableRow>
+                <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                  Nenhum job em processamento no momento.
+                </TableCell>
+              </TableRow>
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+    </TabsContent>
+
+    <TabsContent value="logs">
+      <Card className="border-border/40 shadow-sm overflow-hidden">
+        <CardHeader className="bg-muted/30 pb-4">
+          <CardTitle className="text-lg flex items-center gap-2">
+            <Terminal className="h-4 w-4" /> Histórico de Governança
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="p-0">
+          <ScrollArea className="h-[400px]">
+            <div className="p-4 space-y-3">
+              {operationLogs?.map((log) => (
+                <div key={log.id} className="text-xs font-mono p-2 border-l-2 border-primary bg-muted/20 flex flex-col gap-1">
+                  <div className="flex justify-between items-center">
+                    <Badge variant="outline" className="text-[9px] h-4 uppercase">{log.level}</Badge>
+                    <span className="text-muted-foreground">{formatDateTime(log.created_at)}</span>
+                  </div>
+                  <p className="font-semibold">{log.message}</p>
+                  {log.context && <pre className="text-[10px] opacity-60 overflow-hidden">{JSON.stringify(log.context)}</pre>}
+                </div>
+              ))}
+              {!operationLogs?.length && (
+                <div className="text-center py-12 text-muted-foreground">
+                  Nenhum log operacional registrado.
+                </div>
+              )}
+            </div>
+          </ScrollArea>
+        </CardContent>
+      </Card>
+    </TabsContent>
+  </Tabs>
+</div>
+);
+}
+
+function formatDateTime(dateStr: string) {
+  try {
+    return new Date(dateStr).toLocaleString('pt-BR');
+  } catch (e) {
+    return dateStr;
+  }
 }
 
 function StatCard({ title, value, icon: Icon, color }: any) {

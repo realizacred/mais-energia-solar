@@ -107,12 +107,15 @@ export function useCreditSimulations(projectId?: string | null) {
 export function useCreateCreditSimulation() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (values: Partial<CreditSimulation>) => {
+    mutationFn: async (values: Partial<CreditSimulation> & { idempotency_key?: string }) => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Não autenticado");
 
       const { data: profile } = await supabase.from("profiles").select("tenant_id").eq("user_id", user.id).single();
       if (!profile?.tenant_id) throw new Error("Tenant não encontrado");
+
+      const correlation_id = crypto.randomUUID();
+      const idempotency_key = values.idempotency_key || `sim_${Date.now()}_${user.id}`;
 
       const { data, error } = await supabase
         .from("credit_simulations")
@@ -126,7 +129,7 @@ export function useCreateCreditSimulation() {
 
       if (error) throw error;
 
-      // Log Event
+      // Log Event with Bank Operations Core standards
       await supabase.from("credit_analysis_events").insert({
         tenant_id: profile.tenant_id,
         simulation_id: data.id,
@@ -134,10 +137,12 @@ export function useCreateCreditSimulation() {
         event_type: 'simulation_created',
         actor_id: user.id,
         status_novo: data.status,
-        payload: data
+        payload: data,
+        correlation_id,
+        idempotency_key: `evt_${idempotency_key}`
       } as any);
 
-      return data;
+      return { ...data, correlation_id };
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["credit-simulations"] });
@@ -150,6 +155,8 @@ export function useConvertSimulationToAnalysis() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (simulationId: string) => {
+      const correlation_id = crypto.randomUUID();
+      
       const { data: sim, error: simError } = await supabase
         .from("credit_simulations")
         .select("*")
@@ -187,7 +194,7 @@ export function useConvertSimulationToAnalysis() {
         .update({ status: 'convertida_em_analise' } as any)
         .eq("id", sim.id);
 
-      // Log Event
+      // Log Event with Correlation and Idempotency
       await supabase.from("credit_analysis_events").insert({
         tenant_id: sim.tenant_id,
         analise_id: analysis.id,
@@ -196,10 +203,12 @@ export function useConvertSimulationToAnalysis() {
         event_type: 'analysis_created',
         actor_id: user?.id,
         status_novo: 'pendente_documentos',
-        payload: { simulation: sim, analysis }
+        payload: { simulation: sim, analysis },
+        correlation_id,
+        idempotency_key: `conv_${simulationId}`
       } as any);
 
-      return analysis;
+      return { ...analysis, correlation_id };
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["credit-simulations"] });
@@ -222,4 +231,76 @@ export function resolveCreditAnalysisStatus(analysis: Partial<CreditAnalysis>, d
   if (analysis.protocolo_banco) return 'enviada_ao_banco';
   
   return analysis.status as CreditAnalysisStatus;
+}
+
+export function useCreditOperationJobs(analysisId?: string) {
+  return useQuery({
+    queryKey: ["credit-operation-jobs", analysisId],
+    queryFn: async () => {
+      let query = supabase
+        .from("credit_operation_jobs")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      if (analysisId) query = query.eq("analysis_id", analysisId);
+
+      const { data, error } = await query;
+      if (error) throw error;
+      return data;
+    },
+    refetchInterval: 10000, // Refresh every 10s for async status tracking
+  });
+}
+
+export function useCreditMetrics() {
+  return useQuery({
+    queryKey: ["credit-metrics"],
+    queryFn: async () => {
+      const { data: jobs, error: jobsError } = await supabase
+        .from("credit_operation_jobs")
+        .select("status, operation_type, attempts");
+
+      const { data: events, error: eventsError } = await supabase
+        .from("credit_analysis_events")
+        .select("event_type");
+
+      const { data: analyses, error: anaError } = await supabase
+        .from("analise_credito")
+        .select("sla_vencimento, status")
+        .not("sla_vencimento", "is", null);
+
+      if (jobsError || eventsError || anaError) throw jobsError || eventsError || anaError;
+
+      const now = new Date();
+      const metrics = {
+        pendingJobs: jobs?.filter(j => j.status === 'pending').length || 0,
+        failedJobs: jobs?.filter(j => j.status === 'failed').length || 0,
+        retries: jobs?.reduce((acc, j) => acc + (j.attempts || 0), 0) || 0,
+        expiredSLA: analyses?.filter(a => new Date(a.sla_vencimento!) < now && !['aprovada', 'reprovada', 'cancelada'].includes(a.status)).length || 0,
+        eventCounts: (events || []).reduce((acc: any, e) => {
+          acc[e.event_type] = (acc[e.event_type] || 0) + 1;
+          return acc;
+        }, {}),
+      };
+
+      return metrics;
+    },
+  });
+}
+
+export function useCreditWorkflowConfig(bankSlug: string) {
+  return useQuery({
+    queryKey: ["credit-workflow-config", bankSlug],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("credit_workflow_configs")
+        .select("*")
+        .eq("bank_slug", bankSlug)
+        .maybeSingle();
+
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!bankSlug,
+  });
 }
