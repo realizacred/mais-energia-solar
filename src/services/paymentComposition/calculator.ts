@@ -133,27 +133,40 @@ export function validateComposition(
     return errors;
   }
 
+  if (valorVenda <= 0) {
+    errors.push("O valor da venda deve ser maior que zero.");
+  }
+
   for (let i = 0; i < items.length; i++) {
     const item = items[i];
+    const prefix = `Item ${i + 1} (${FORMA_PAGAMENTO_LABELS[item.forma_pagamento] || "Pagamento"})`;
+    
     if (item.valor_base <= 0) {
-      errors.push(`Item ${i + 1}: valor deve ser maior que zero.`);
+      errors.push(`${prefix}: o valor base deve ser maior que zero.`);
     }
-    if (FORMAS_PARCELAVEIS.includes(item.forma_pagamento) && item.parcelas > 1 && !item.data_primeiro_vencimento) {
-      errors.push(`Item ${i + 1}: informe a data do primeiro vencimento.`);
+    
+    if (FORMAS_PARCELAVEIS.includes(item.forma_pagamento) && item.parcelas > 1) {
+      if (!item.data_primeiro_vencimento) {
+        errors.push(`${prefix}: Falta definir a data da primeira parcela do financiamento.`);
+      }
     }
-    // Validate interest responsibility
+
+    if (!item.data_pagamento && !item.data_primeiro_vencimento) {
+      errors.push(`${prefix}: informe a data do pagamento ou primeiro vencimento.`);
+    }
+
     if (item.juros_tipo !== "sem_juros" && item.juros_valor > 0 && item.juros_responsavel === "nao_aplica") {
-      errors.push(`Item ${i + 1}: defina quem paga os juros (cliente ou empresa).`);
+      errors.push(`${prefix}: defina quem paga os juros (cliente ou empresa).`);
     }
   }
 
   const summary = computeSummary(items, valorVenda);
   if (!summary.is_valid) {
     const diff = summary.valor_restante;
-    if (diff > 0) {
-      errors.push(`Faltam R$ ${diff.toFixed(2)} para completar o valor da venda.`);
-    } else {
-      errors.push(`Valor alocado excede a venda em R$ ${Math.abs(diff).toFixed(2)}.`);
+    if (diff > 0.009) {
+      errors.push(`Composição incompleta: faltam R$ ${diff.toFixed(2)} para completar o valor da venda.`);
+    } else if (diff < -0.009) {
+      errors.push(`Composição inválida: o valor alocado excede a venda em R$ ${Math.abs(diff).toFixed(2)}.`);
     }
   }
 
