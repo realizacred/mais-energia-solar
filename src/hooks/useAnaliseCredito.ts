@@ -132,7 +132,7 @@ export function useCreateAnaliseCredito() {
 
       if (error) throw error;
 
-      // Log creation event with correlation
+      // 1. Log creation event with correlation
       await supabase.from("credit_analysis_events").insert({
         tenant_id: profile.tenant_id,
         analise_id: data.id,
@@ -143,6 +143,24 @@ export function useCreateAnaliseCredito() {
         correlation_id,
         idempotency_key: `create_analise_${data.id}`
       } as any);
+
+      // 2. Notify finance managers (DA-48, status engine)
+      if (data.status !== 'rascunho') {
+        try {
+          await supabase.from("notifications").insert({
+            tenant_id: profile.tenant_id,
+            user_id: null, // Broadcast to managers if needed, or specific user
+            title: "Nova Solicitação de Crédito",
+            message: `Uma nova análise de crédito foi iniciada para o cliente com CPF/CNPJ ${data.cpf_cnpj}.`,
+            type: "credit_request",
+            severity: "info",
+            metadata: { analise_id: data.id, deal_id: data.deal_id },
+            roles_permitidos: ["admin", "gerente", "super_admin"]
+          } as any);
+        } catch (nErr) {
+          console.warn("Falha ao enviar notificação de crédito:", nErr);
+        }
+      }
 
       return { ...data, correlation_id };
     },
@@ -210,6 +228,19 @@ export function useUpdateAnaliseCredito() {
           correlation_id,
           idempotency_key: `update_status_${id}_${Date.now()}`
         } as any);
+
+        // Notify if becoming active request
+        if (values.status === 'pendente_documentos' && current?.status === 'rascunho') {
+          await supabase.from("notifications").insert({
+            tenant_id: current?.tenant_id,
+            title: "Solicitação de Crédito Enviada",
+            message: `A análise de crédito ${id} foi enviada para conferência documental.`,
+            type: "credit_request",
+            severity: "info",
+            metadata: { analise_id: id },
+            roles_permitidos: ["admin", "gerente", "super_admin"]
+          } as any);
+        }
       }
 
       return { ...data, correlation_id };
