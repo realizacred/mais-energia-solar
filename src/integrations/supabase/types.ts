@@ -31812,6 +31812,21 @@ export type Database = {
         Args: { _tenant_id: string }
         Returns: Json
       }
+      get_system_integrity_findings: {
+        Args: never
+        Returns: {
+          description: string
+          detected_at: string
+          domain: string
+          entity_id: string
+          entity_type: string
+          id: string
+          recommended_action: string
+          severity: string
+          tenant_id: string
+          title: string
+        }[]
+      }
       get_tarifa_atual_concessionaria: {
         Args: { p_cidade?: string; p_estado?: string }
         Returns: {
