@@ -594,27 +594,9 @@ export default function Admin() {
           <FeatureDiscoveryLayer />
           <main className={`flex-1 admin-content overflow-x-hidden animate-fade-in ${isInboxLayout ? "min-h-0 overflow-y-hidden" : ""}`}>
             <AdminRouteBoundary>
-            <Suspense fallback={<LoadingSpinner />}>
-              <AdminRoutes />
-            </Suspense>
-                <Route path="integracoes/solarmarket/configuracoes" element={<SolarmarketConfigPage />} />
-                <Route path="integracoes/solarmarket/funis" element={<SolarmarketFunisPage />} />
-                <Route path="integracoes/solarmarket/etapas" element={<SolarmarketEtapasPage />} />
-                <Route path="integracoes/solarmarket/consultores" element={<SolarmarketConsultoresPage />} />
-                <Route path="integracoes/solarmarket/logs" element={<SolarmarketLogsPage />} />
-                <Route path="integracoes/ia/provedores" element={<IaProvedoresPage />} />
-                <Route path="integracoes/ia/features" element={<IaFeaturesPage />} />
-                <Route path="integracoes/ia/lead-scoring" element={<IaLeadScoringPage />} />
-                <Route path="integracoes/conexoes/provedores" element={<ConexoesProvedoresPage />} />
-                <Route path="integracoes/conexoes/credenciais" element={<ConexoesCredenciaisPage />} />
-                <Route path="integracoes/conexoes/jobs" element={<ConexoesJobsPage />} />
-                <Route path="integracoes/conexoes/logs" element={<ConexoesLogsPage />} />
-                <Route path="integracoes/visao-geral" element={<Navigate to="/admin/catalogo-integracoes?tab=overview" replace />} />
-
-                {/* Catch-all */}
-                <Route path="*" element={<Navigate to="leads" replace />} />
-              </Routes>
-            </Suspense>
+              <Suspense fallback={<LoadingSpinner />}>
+                <AdminRoutes />
+              </Suspense>
             </AdminRouteBoundary>
           </main>
         </SidebarInset>
