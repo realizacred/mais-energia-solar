@@ -113,6 +113,42 @@ export default defineConfig(({ mode }) => {
       },
     }),
   ].filter(Boolean),
+  build: {
+    target: "esnext",
+    minify: "esbuild",
+    cssMinify: true,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'vendor-react': ['react', 'react-dom', 'react-router-dom'],
+          'vendor-ui': [
+            '@radix-ui/react-accordion',
+            '@radix-ui/react-alert-dialog',
+            '@radix-ui/react-avatar',
+            '@radix-ui/react-checkbox',
+            '@radix-ui/react-dialog',
+            '@radix-ui/react-dropdown-menu',
+            '@radix-ui/react-label',
+            '@radix-ui/react-popover',
+            '@radix-ui/react-select',
+            '@radix-ui/react-tabs',
+            '@radix-ui/react-toast',
+            '@radix-ui/react-tooltip'
+          ],
+          'vendor-utils': ['date-fns', 'clsx', 'tailwind-merge', 'zod'],
+          'vendor-charts': ['recharts'],
+          'vendor-pdf': ['jspdf', 'jspdf-autotable', 'html2canvas'],
+          'vendor-excel': ['xlsx'],
+          'vendor-maps': ['leaflet', 'react-leaflet'],
+          'vendor-supabase': ['@supabase/supabase-js'],
+          'vendor-query': ['@tanstack/react-query'],
+          'vendor-motion': ['framer-motion'],
+        }
+      }
+    },
+    chunkSizeWarningLimit: 1000,
+    reportCompressedSize: false,
+  },
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
