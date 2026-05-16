@@ -12,14 +12,12 @@ import {
   ChevronRight, 
   ChevronLeft, 
   FileText, 
-  Building2, 
-  User as UserIcon, 
   ShieldCheck, 
   Paperclip,
-  Search,
   CheckCircle2,
   Circle,
-  AlertCircle
+  AlertCircle,
+  CreditCard
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -31,12 +29,12 @@ import {
   SelectValue 
 } from "@/components/ui/select";
 import { 
-  useAnaliseCreditoById, 
   useCreateAnaliseCredito, 
   useUpdateAnaliseCredito,
   useAnaliseCreditoDocumentos,
   useVincularDocumentoCredito,
-  type AnaliseCredito
+  type AnaliseCredito,
+  type AnaliseCreditoStatus
 } from "@/hooks/useAnaliseCredito";
 import { useProjectDocuments } from "@/hooks/useProjectDocuments";
 import { useCreditBankConfigs, useCreditBankChecklist } from "@/hooks/useCreditConfigs";
@@ -45,7 +43,6 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
-import { toast } from "@/hooks/use-toast";
 
 interface Props {
   isOpen: boolean;
@@ -85,18 +82,17 @@ export function CreditAnalysisWizard({
 
   const { data: banks } = useCreditBankConfigs();
   const { data: checklist } = useCreditBankChecklist(formData.bank_config_id || undefined);
-  const { data: projectDocs } = useProjectDocuments({ dealId, propostaId: null });
   const { data: creditDocs } = useAnaliseCreditoDocumentos(initialData?.id || "");
 
   const createMutation = useCreateAnaliseCredito();
   const updateMutation = useUpdateAnaliseCredito();
-  const linkDocMutation = useVincularDocumentoCredito();
 
   const handleNext = () => setStep((s) => (s + 1) as Step);
   const handleBack = () => setStep((s) => (s - 1) as Step);
 
   const handleSave = async (asDraft = true) => {
-    const data = {
+    const status: AnaliseCreditoStatus = asDraft ? 'rascunho' : 'pendente_documentos';
+    const data: any = {
       ...formData,
       renda_mensal: parseFloat(formData.renda_mensal) || 0,
       valor_solicitado: parseFloat(formData.valor_solicitado) || 0,
@@ -105,7 +101,7 @@ export function CreditAnalysisWizard({
       deal_id: dealId,
       lead_id: leadId,
       cliente_id: clienteId,
-      status: asDraft ? 'rascunho' : 'pendente_documentos'
+      status
     };
 
     try {
@@ -119,8 +115,6 @@ export function CreditAnalysisWizard({
       // toast handled in hook
     }
   };
-
-  const currentBank = banks?.find(b => b.id === formData.bank_config_id);
 
   const filteredChecklist = useMemo(() => {
     if (!checklist) return [];
@@ -164,7 +158,7 @@ export function CreditAnalysisWizard({
                     <Label className="text-sm font-semibold">Tipo de Proponente</Label>
                     <Select 
                       value={formData.tipo_pessoa} 
-                      onValueChange={v => setFormData({...formData, tipo_pessoa: v as 'pf'|'pj'})}
+                      onValueChange={v => setFormData({...formData, tipo_pessoa: v as any})}
                     >
                       <SelectTrigger className="bg-muted/30">
                         <SelectValue />
@@ -313,15 +307,6 @@ export function CreditAnalysisWizard({
                     <div className="font-semibold text-right">{formData.prazo_meses} meses</div>
                   </div>
                 </div>
-
-                {filteredChecklist.some(item => item.is_required && !creditDocs?.some((cd: any) => cd.checklist_item_id === item.id)) && (
-                  <div className="p-3 bg-warning/10 border border-warning/20 rounded-lg flex items-start gap-3">
-                    <AlertCircle className="h-4 w-4 text-warning mt-0.5" />
-                    <p className="text-xs text-warning font-medium">
-                      Existem documentos obrigatórios pendentes. Você pode salvar como rascunho agora e completar depois.
-                    </p>
-                  </div>
-                )}
 
                 <div className="space-y-2">
                   <Label className="text-sm font-semibold">Observações Internas</Label>
