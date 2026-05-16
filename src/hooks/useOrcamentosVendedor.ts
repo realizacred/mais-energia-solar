@@ -306,7 +306,8 @@ export function useOrcamentosVendedor({
   return {
     orcamentos,
     statuses,
-    stats,
+    stats: serverStats || stats,
+    serverStats,
     estados,
     loading,
     loadingMore: false,
