@@ -133,7 +133,7 @@ function formatSize(bytes?: number | null) {
 
 
 /** Normaliza nome de categoria para evitar duplicação visual ("CAMPO: X" vs "X"). */
-function normalizeCategoria(raw?: string | null): string {
+export function resolveDocumentCategory(raw?: string | null): string {
   if (!raw) return "Outros";
   let c = raw.trim().replace(/^campo[:\s]+/i, "");
   const slug = c
@@ -142,6 +142,7 @@ function normalizeCategoria(raw?: string | null): string {
     .replace(/[\u0300-\u036f]/g, "")
     .replace(/[^a-z0-9]+/g, "_")
     .replace(/^_+|_+$/g, "");
+    
   const ALIASES: Record<string, string> = {
     identidade: "Identidade",
     rg: "Identidade",
@@ -156,15 +157,25 @@ function normalizeCategoria(raw?: string | null): string {
     art: "ART",
     contrato: "Contrato",
     proposta: "Proposta",
-    anexos_manuais: "Anexos manuais",
+    anexos_manuais: "Outros",
+    transformador: "Transformador",
+    disjuntor: "Disjuntor",
+    wi_fi: "Wi-Fi",
+    localizacao: "Localização",
+    equipamento: "Equipamento",
   };
+  
   if (ALIASES[slug]) return ALIASES[slug];
-  // title case fallback
+  
+  // Title case fallback
   return c
     .split(/\s+/)
     .map((w) => (w ? w[0].toUpperCase() + w.slice(1).toLowerCase() : w))
     .join(" ");
 }
+
+const normalizeCategoria = resolveDocumentCategory;
+
 
 export function ProjectDocumentsHub({ projetoId, dealId }: Props) {
   const { data: canonicalDocs = [], isLoading } = useProjectDocuments({ projetoId, dealId });
