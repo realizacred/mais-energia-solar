@@ -225,32 +225,9 @@ export function ProjectDocumentsHub({ projetoId, dealId }: Props) {
 
 
 
-  const filtered = useMemo(() => {
-    const s = search.toLowerCase().trim();
-    return docs.filter((d) => {
-      // Recibos e documentos gerados aparecem em seções dedicadas acima
-      if (d.origem === 'generated' || d.origem === 'recibo') return false;
-      if (origemFilter !== "all" && d.origem !== origemFilter) return false;
-      if (s && !d.file_name.toLowerCase().includes(s) && !(d.categoria || "").toLowerCase().includes(s))
-        return false;
-      return true;
-    });
-  }, [docs, search, origemFilter]);
+  // Deduplication logic is handled server-side in normalizeProjectDocuments 
+  // so we use data.documents directly.
 
-  const groups = useMemo(() => {
-    const out: Record<string, ProjectDocument[]> = {};
-    for (const d of filtered) {
-      const k = normalizeCategoria(d.categoria || ORIGEM_LABEL[d.origem] || "Outros");
-      (out[k] ||= []).push(d);
-    }
-    return Object.entries(out).sort(([a], [b]) => a.localeCompare(b));
-  }, [filtered]);
-
-  const totalCount = docs.length;
-  const totalSize = useMemo(
-    () => docs.reduce((acc, d) => acc + (d.size_bytes || 0), 0),
-    [docs],
-  );
 
   const handleFiles = useCallback(
     async (files: FileList | File[]) => {
