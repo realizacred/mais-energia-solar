@@ -630,6 +630,19 @@ function ProjetoDetalheContent() {
                     <Pencil className="h-4 w-4 mr-2" />
                     Alterar Projeto
                   </DropdownMenuItem>
+
+                  {finSummary?.hasContrato && Math.abs((finSummary.valorContratado || 0) - (deal?.value || 0)) > 0.01 && (
+                    <DropdownMenuItem
+                      onClick={() => {
+                        setUpdateValueReason("");
+                        setIsUpdateValueModalOpen(true);
+                      }}
+                    >
+                      <DollarSign className="h-4 w-4 mr-2" />
+                      Atualizar valor comercial pelo contratado
+                    </DropdownMenuItem>
+                  )}
+
                   <DropdownMenuSeparator />
                   {(deal.status === "won" || deal.status === "lost" || deal.status === "canceled") && (
                     <DropdownMenuItem
