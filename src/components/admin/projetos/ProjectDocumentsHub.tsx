@@ -84,7 +84,7 @@ import {
 
 import { useProjetoArquivos, useDeletarArquivo } from "@/hooks/useProjetoDocumentos";
 import { useProjetoCustomFieldFiles } from "@/hooks/useProjetoCustomFieldFiles";
-import { normalizeFilename, logicalSuffix } from "@/lib/documentDedup";
+import { normalizeFilename, logicalSuffix, resolveDocumentCategory } from "@/lib/documentDedup";
 
 
 
