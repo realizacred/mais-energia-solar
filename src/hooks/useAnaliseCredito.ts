@@ -190,10 +190,11 @@ export function useAnaliseCreditoHistorico(analiseId: string) {
   });
 }
 
-export function useAnaliseCreditoDocumentos(analiseId: string) {
+export function useAnaliseCreditoDocumentos(analiseId?: string) {
   return useQuery({
     queryKey: ["analise-credito-documentos", analiseId],
     queryFn: async () => {
+      if (!analiseId) return [];
       const { data, error } = await supabase
         .from("analise_credito_documentos" as any)
         .select("*, document:project_documents(*)")
