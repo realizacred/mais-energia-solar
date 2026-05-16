@@ -31,6 +31,24 @@ export function normalizeFilename(name?: string | null): string {
 }
 
 /**
+ * Returns a suffix for deduplication visualization (e.g. "(2)")
+ * This is now managed by the normalization logic but we keep the helper for UI labels.
+ */
+export function logicalSuffix(count: number): string {
+  if (count <= 1) return "";
+  return ` (${count})`;
+}
+
+/**
+ * Heuristic count of logical documents based on categories.
+ */
+export function countLogicalDocs(docs: ProjectDocument[]): number {
+  const norm = normalizeProjectDocuments(docs);
+  return norm.totalUnique;
+}
+
+
+/**
  * Resolve a categoria canônica baseada na prioridade definida.
  */
 export function resolveDocumentCategory(doc: ProjectDocument): string {

@@ -12,6 +12,7 @@ import { WaNotificationProvider } from "@/components/notifications/WaNotificatio
 import { PushActivationBanner } from "@/components/notifications/PushActivationBanner";
 import { consumePWAReturnUrl } from "@/hooks/usePWAInstall";
 import { PWAAutoInstallPrompt } from "@/components/pwa/PWAAutoInstallPrompt";
+import { PWARouteManifestUpdater } from "@/components/pwa/PWARouteManifestUpdater";
 import { TenantGuardGate } from "@/components/guards/TenantGuardGate";
 import { DevToolsProvider } from "@/contexts/DevToolsContext";
 import { DevToolsOverlay } from "@/components/dev/DevToolsOverlay";
@@ -91,6 +92,7 @@ const App = () => (
         <Toaster />
         <Sonner />
         <BrowserRouter>
+          <PWARouteManifestUpdater />
           <PWAReturnRedirect />
           <PWAAutoInstallPrompt />
           <RealtimeHeartbeatProvider />

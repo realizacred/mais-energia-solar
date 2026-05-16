@@ -18,7 +18,7 @@ precacheAndRoute(self.__WB_MANIFEST);
 cleanupOutdatedCaches();
 
 // Navigation fallback (SPA)
-const denylist = [/^\/api/, /^\/~oauth/, /^\/v\//, /^\/w\//, /^\/p\//, /^\/uc\//];
+const denylist = [/^\/api/, /^\/~oauth/];
 registerRoute(new NavigationRoute(createHandlerBoundToURL("/index.html"), { denylist }));
 
 // Runtime cache: Supabase storage

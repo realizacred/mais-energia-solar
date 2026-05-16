@@ -246,7 +246,7 @@ export function useProjetoDetalheData(dealId: string) {
         }
       }
 
-      docsCount = countLogicalDocs(items);
+      docsCount = countLogicalDocs(items as any);
       // Fallback: SSOT vazio (projeto antigo) → soma generated do RPC.
       if (docsCount === 0) {
         docsCount = (rpcData.generated_docs_count as number) || 0;
