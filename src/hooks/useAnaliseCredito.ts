@@ -245,6 +245,17 @@ export function useVincularDocumentoCredito() {
       project_document_id: string; 
       checklist_item_id?: string 
     }) => {
+      // Check lock state first
+      const { data: current } = await supabase
+        .from("analise_credito")
+        .select("status, is_locked")
+        .eq("id", analise_credito_id)
+        .single();
+
+      if (current?.is_locked || ['enviada_ao_banco', 'aprovada', 'reprovada'].includes(current?.status || '')) {
+        throw new Error("Não é permitido alterar documentos de uma análise bloqueada ou enviada.");
+      }
+
       const { data: { user } } = await supabase.auth.getUser();
       const { data: profile } = await supabase.from("profiles").select("tenant_id").eq("user_id", user?.id).single();
       
@@ -266,6 +277,14 @@ export function useVincularDocumentoCredito() {
     },
     onSuccess: (_, vars) => {
       queryClient.invalidateQueries({ queryKey: ["analise-credito-documentos", vars.analise_credito_id] });
+      toast({ title: "Documento vinculado com sucesso" });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Erro ao vincular documento",
+        description: error.message,
+        variant: "destructive",
+      });
     }
   });
 }
