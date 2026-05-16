@@ -436,14 +436,14 @@ export default function CreditGlobalArea() {
                         {analysis.deal?.title || analysis.lead?.nome || "N/A"}
                       </TableCell>
                       <TableCell className="text-muted-foreground">
-                        {analysis.consultor?.[0]?.nome || analysis.consultor?.nome || "Sistema"}
+                        {analysis.consultor?.[0]?.nome || "Sistema"}
                       </TableCell>
                       <TableCell>{analysis.banco || "Não definido"}</TableCell>
                       <TableCell className="font-semibold text-primary">
                         {formatBRL(analysis.valor_solicitado || 0)}
                       </TableCell>
                       <TableCell>
-                        {analysis.responsavel?.[0]?.nome || analysis.responsavel?.nome || (
+                        {analysis.responsavel?.[0]?.nome || (
                           <span className="text-muted-foreground italic text-xs">Não atribuído</span>
                         )}
                       </TableCell>
