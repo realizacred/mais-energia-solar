@@ -232,3 +232,68 @@ export function resolveCreditAnalysisStatus(analysis: Partial<CreditAnalysis>, d
   
   return analysis.status as CreditAnalysisStatus;
 }
+
+export function useCreditOperationJobs(analysisId?: string) {
+  return useQuery({
+    queryKey: ["credit-operation-jobs", analysisId],
+    queryFn: async () => {
+      let query = supabase
+        .from("credit_operation_jobs")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      if (analysisId) query = query.eq("analysis_id", analysisId);
+
+      const { data, error } = await query;
+      if (error) throw error;
+      return data;
+    },
+    refetchInterval: 10000, // Refresh every 10s for async status tracking
+  });
+}
+
+export function useCreditMetrics() {
+  return useQuery({
+    queryKey: ["credit-metrics"],
+    queryFn: async () => {
+      const { data: jobs, error: jobsError } = await supabase
+        .from("credit_operation_jobs")
+        .select("status, operation_type");
+
+      const { data: events, error: eventsError } = await supabase
+        .from("credit_analysis_events")
+        .select("event_type");
+
+      if (jobsError || eventsError) throw jobsError || eventsError;
+
+      const metrics = {
+        pendingJobs: jobs?.filter(j => j.status === 'pending').length || 0,
+        failedJobs: jobs?.filter(j => j.status === 'failed').length || 0,
+        retries: jobs?.reduce((acc, j) => acc + (j.attempts || 0), 0) || 0,
+        eventCounts: (events || []).reduce((acc: any, e) => {
+          acc[e.event_type] = (acc[e.event_type] || 0) + 1;
+          return acc;
+        }, {}),
+      };
+
+      return metrics;
+    },
+  });
+}
+
+export function useCreditWorkflowConfig(bankSlug: string) {
+  return useQuery({
+    queryKey: ["credit-workflow-config", bankSlug],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("credit_workflow_configs")
+        .select("*")
+        .eq("bank_slug", bankSlug)
+        .maybeSingle();
+
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!bankSlug,
+  });
+}
