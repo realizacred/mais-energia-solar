@@ -395,6 +395,7 @@ export function RolePermissionsManager() {
   const [activeRole, setActiveRole] = useState<string>("gerente");
   const [localState, setLocalState] = useState<PermState | null>(null);
   const [hasChanges, setHasChanges] = useState(false);
+  const [showGovernanceMatrix, setShowGovernanceMatrix] = useState(false);
 
   // Fetch current permissions from DB
   const { data: dbPerms, isLoading } = useQuery({
