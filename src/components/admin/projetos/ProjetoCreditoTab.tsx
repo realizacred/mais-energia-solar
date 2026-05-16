@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { 
   CreditCard, 
   History, 
@@ -14,16 +14,25 @@ import {
   Eye,
   Edit2,
   AlertCircle,
-  ArrowRight
+  ArrowRight,
+  ChevronDown,
+  ChevronUp,
+  FileSearch,
+  UserPlus,
+  Activity,
+  Calculator,
+  ExternalLink
 } from "lucide-react";
 import { 
   useAnaliseCredito, 
-  useUpdateAnaliseCredito, 
+  useUpdateAnaliseCredito,
+  useAnaliseCreditoHistorico,
+  useAnaliseCreditoDocumentos,
   type AnaliseCredito 
 } from "@/hooks/useAnaliseCredito";
 import { useUserRole } from "@/hooks/useUserRole";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatBRL } from "@/lib/formatters";
 import { formatDateTime } from "@/lib/dateUtils";
@@ -37,33 +46,79 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { CreditAnalysisWizard } from "./CreditAnalysisWizard";
 import { useCreditSimulations } from "@/hooks/useCreditDomain";
+import { useAuth } from "@/hooks/useAuth";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Separator } from "@/components/ui/separator";
+import { formatDistanceToNow } from "date-fns";
+import { ptBR } from "date-fns/locale";
 
-interface Props {
-  dealId?: string | null;
-  leadId?: string | null;
-  clienteId?: string | null;
-  clienteCpfCnpj?: string | null;
-  valorProposta?: number | null;
-}
+/**
+ * Tabelas: analise_credito, credit_analysis_events, analise_credito_documentos, profiles, deals, leads
+ * Hooks: useAnaliseCredito, useAnaliseCreditoHistorico, useAnaliseCreditoDocumentos, useCreditSimulations, useUserRole
+ * Substitui: nenhum (evolução do existente)
+ */
 
-export const STATUS_CONFIG: Record<string, { label: string; color: string; icon: any }> = {
-  rascunho: { label: "Rascunho", color: "bg-muted text-muted-foreground border-muted/20", icon: Clock },
-  simulada: { label: "Simulada", color: "bg-blue-500/10 text-blue-500 border-blue-500/20", icon: CheckCircle2 },
-  descartada: { label: "Descartada", color: "bg-slate-500/10 text-slate-500 border-slate-500/20", icon: XCircle },
-  convertida_em_analise: { label: "Convertida", color: "bg-success/10 text-success border-success/20", icon: CheckCircle2 },
-  pendente_documentos: { label: "Pendente Docs", color: "bg-warning/10 text-warning border-warning/20", icon: FileText },
-  pronto_para_envio: { label: "Pronto p/ Envio", color: "bg-info/10 text-info border-info/20", icon: CheckCircle2 },
-  enviada_ao_banco: { label: "Enviada ao Banco", color: "bg-primary/10 text-primary border-primary/20", icon: Send },
-  em_analise: { label: "Em Análise", color: "bg-blue-600/10 text-blue-600 border-blue-600/20", icon: History },
-  pendencia_bancaria: { label: "Pendência Banco", color: "bg-red-500/10 text-red-500 border-red-500/20", icon: AlertCircle },
-  aprovada: { label: "Aprovada", color: "bg-success/10 text-success border-success/20", icon: CheckCircle2 },
-  aprovado: { label: "Aprovado", color: "bg-success/10 text-success border-success/20", icon: CheckCircle2 },
-  aprovado_com_condicoes: { label: "Aprovado c/ Condições", color: "bg-emerald-500/10 text-emerald-500 border-emerald-500/20", icon: CheckCircle2 },
-  reprovada: { label: "Reprovada", color: "bg-destructive/10 text-destructive border-destructive/20", icon: XCircle },
-  reprovado: { label: "Reprovado", color: "bg-destructive/10 text-destructive border-destructive/20", icon: XCircle },
-  cancelada: { label: "Cancelada", color: "bg-slate-500/10 text-slate-500 border-slate-500/20", icon: XCircle },
-  cancelado: { label: "Cancelado", color: "bg-slate-500/10 text-slate-500 border-slate-500/20", icon: XCircle },
-  pendente: { label: "Pendente", color: "bg-warning/10 text-warning border-warning/20", icon: Clock },
+export const STATUS_CONFIG: Record<string, { label: string; color: string; icon: any; actionMsg: string }> = {
+  rascunho: { 
+    label: "Rascunho", 
+    color: "bg-muted text-muted-foreground border-muted/20", 
+    icon: Clock,
+    actionMsg: "Solicitação em rascunho — clique em editar para submeter."
+  },
+  aguardando_analise: { 
+    label: "Aguardando Análise", 
+    color: "bg-amber-500/10 text-amber-600 border-amber-500/20", 
+    icon: History,
+    actionMsg: "Aguardando análise do gerente financeiro."
+  },
+  aguardando_documentos: { 
+    label: "Aguardando Documentos", 
+    color: "bg-blue-500/10 text-blue-600 border-blue-500/20", 
+    icon: FileText,
+    actionMsg: "Ação necessária: envie os documentos solicitados para prosseguir."
+  },
+  aprovado_interno: { 
+    label: "Aprovado Interno", 
+    color: "bg-green-500/10 text-green-600 border-green-500/20", 
+    icon: CheckCircle2,
+    actionMsg: "Aprovado internamente — aguardando simulação ou envio EOS."
+  },
+  enviada_ao_banco: { 
+    label: "Enviada ao Banco", 
+    color: "bg-primary/10 text-primary border-primary/20", 
+    icon: Send,
+    actionMsg: "Proposta em análise na financeira/banco."
+  },
+  aprovada: { 
+    label: "Aprovada", 
+    color: "bg-success/10 text-success border-success/20", 
+    icon: CheckCircle2,
+    actionMsg: "Crédito aprovado com sucesso!"
+  },
+  aprovado: { 
+    label: "Aprovado", 
+    color: "bg-success/10 text-success border-success/20", 
+    icon: CheckCircle2,
+    actionMsg: "Crédito aprovado com sucesso!"
+  },
+  reprovada: { 
+    label: "Reprovada", 
+    color: "bg-destructive/10 text-destructive border-destructive/20", 
+    icon: XCircle,
+    actionMsg: "Solicitação reprovada pelo gerente ou banco."
+  },
+  reprovado: { 
+    label: "Reprovado", 
+    color: "bg-destructive/10 text-destructive border-destructive/20", 
+    icon: XCircle,
+    actionMsg: "Solicitação reprovada pelo gerente ou banco."
+  },
+  cancelada: { 
+    label: "Cancelada", 
+    color: "bg-slate-500/10 text-slate-500 border-slate-500/20", 
+    icon: XCircle,
+    actionMsg: "Solicitação cancelada."
+  },
 };
 
 export function ProjetoCreditoTab({ dealId, leadId, clienteId, clienteCpfCnpj, valorProposta }: Props) {
