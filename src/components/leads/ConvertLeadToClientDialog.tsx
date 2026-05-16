@@ -780,129 +780,38 @@ export function ConvertLeadToClientDialog({
         transformador_id: data.transformador_id || null,
         localizacao: data.localizacao || null,
         observacoes: data.observacoes || null,
-        identidade_urls: identidadeUrls.length > 0 ? identidadeUrls : null,
-        comprovante_endereco_urls: comprovanteUrls.length > 0 ? comprovanteUrls : null,
-        comprovante_beneficiaria_urls: beneficiariaUrls.length > 0 ? beneficiariaUrls : null,
+        identidade_urls: identidadeUrls,
+        comprovante_endereco_urls: comprovanteUrls,
+        comprovante_beneficiaria_urls: beneficiariaUrls,
         simulacao_aceita_id: data.simulacao_aceita_id || null,
         assinatura_url: assinaturaUrls.length > 0 ? assinaturaUrls[0] : null,
         potencia_kwp: potenciaKwp,
         valor_projeto: valorProjeto,
       };
 
-      //   ...clientePayload,
-      //   identidade_urls: clientePayload.identidade_urls?.length || 0,
-      //   comprovante_endereco_urls: clientePayload.comprovante_endereco_urls?.length || 0,
-      // });
+      // SSOT — Use atomic RPC for conversion
+      const { data: rpcRes, error: rpcError } = await supabase.rpc("convert_lead_to_venda_v2", {
+        _lead_id: lead.id,
+        _payload: clientePayload,
+        _payment_composition: paymentItems,
+        _idempotency_key: lead.id // Use lead_id as idempotency key for now
+      });
 
-      // Check for existing client by lead_id OR by phone (to avoid duplicate cliente_code)
-      let existingCliente: { id: string } | null = null;
-      
-      const { data: byLeadId } = await supabase
-        .from("clientes")
-        .select("id")
-        .eq("lead_id", lead.id)
-        .maybeSingle();
-      
-      existingCliente = byLeadId || null;
-
-      // If not found by lead_id, check by phone to prevent duplicate
-      if (!existingCliente && data.telefone) {
-        const normalizedPhone = data.telefone.replace(/\D/g, "");
-        const { data: byPhone } = await supabase
-          .from("clientes")
-          .select("id")
-          .eq("telefone", data.telefone)
-          .maybeSingle();
-        
-        if (!byPhone && normalizedPhone.length >= 10) {
-          const { data: byNormalized } = await supabase
-            .from("clientes")
-            .select("id")
-            .eq("telefone_normalized", normalizedPhone.slice(-11))
-            .maybeSingle();
-          existingCliente = byNormalized || null;
-        } else {
-          existingCliente = byPhone || null;
-        }
-      }
-
-      let cliente: { id: string } | null = null;
-
-      if (existingCliente) {
-        const { data: updated, error: updateError } = await supabase
-          .from("clientes")
-          .update({ ...clientePayload, lead_id: lead.id, updated_at: new Date().toISOString() })
-          .eq("id", existingCliente.id)
-          .select("id")
-          .single();
-
-        if (updateError) throw updateError;
-        cliente = updated;
-      } else {
-        const { data: created, error: insertError } = await supabase
-          .from("clientes")
-          .insert({ ...clientePayload, lead_id: lead.id } as any)
-          .select("id")
-          .single();
-
-        if (insertError) throw insertError;
-        cliente = created;
-      }
-
-      if (!cliente) throw new Error("Falha ao criar/atualizar cliente.");
-
-      const { data: convertidoStatus } = await supabase
-        .from("lead_status")
-        .select("id")
-        .eq("nome", "Aguardando Validação")
-        .single();
-
-      if (convertidoStatus) {
-        const nowIso = new Date().toISOString();
-
-        const [leadStatusUpdate, orcamentoStatusUpdate] = await Promise.all([
-          supabase
-            .from("leads")
-            .update({ status_id: convertidoStatus.id, updated_at: nowIso })
-            .eq("id", lead.id),
-          orcamentoId
-            ? supabase
-                .from("orcamentos")
-                .update({ status_id: convertidoStatus.id, ultimo_contato: nowIso, updated_at: nowIso })
-                .eq("id", orcamentoId)
-            : Promise.resolve({ error: null } as any),
-        ]);
-
-        if (leadStatusUpdate?.error) throw leadStatusUpdate.error;
-        if (orcamentoStatusUpdate?.error) throw orcamentoStatusUpdate.error;
-      }
+      if (rpcError) throw rpcError;
+      if (!rpcRes?.success) throw new Error(rpcRes?.message || "Falha na conversão");
 
       const storageKey = `lead_conversion_${lead.id}`;
       localStorage.removeItem(storageKey);
+      localStorage.removeItem(`lead_payment_composition_${lead.id}`);
 
-      // Persist payment composition to DB (source of truth) + localStorage (cache)
-      if (paymentItems.length > 0 && cliente) {
-        const compositionJson = JSON.stringify(paymentItems);
-        // Save to DB
-        await supabase
-          .from("clientes")
-          .update({ payment_composition: paymentItems } as any)
-          .eq("id", cliente.id);
-        // Keep localStorage as cache/fallback
-        localStorage.setItem(
-          `lead_payment_composition_${lead.id}`,
-          compositionJson
-        );
-      }
-
-      const action = existingCliente ? "atualizado" : "cadastrado";
       toast({
         title: "Venda enviada para validação!",
-        description: `${data.nome} foi ${action}. Aguardando aprovação do administrador para gerar comissão.`,
+        description: `${data.nome} foi processado com sucesso. Aguardando aprovação do administrador.`,
       });
 
       onOpenChange(false);
       onSuccess?.();
+
     } catch (error: any) {
       console.error("Error converting lead:", error);
       toast({
