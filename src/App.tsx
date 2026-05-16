@@ -92,6 +92,7 @@ const App = () => (
         <Toaster />
         <Sonner />
         <BrowserRouter>
+          <PWARouteManifestUpdater />
           <PWAReturnRedirect />
           <PWAAutoInstallPrompt />
           <RealtimeHeartbeatProvider />
