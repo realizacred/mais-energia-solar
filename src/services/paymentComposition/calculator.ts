@@ -146,14 +146,17 @@ export function validateComposition(
       errors.push(`${prefix}: o valor base deve ser maior que zero.`);
     }
     
-    if (FORMAS_PARCELAVEIS.includes(item.forma_pagamento) && item.parcelas > 1) {
-      if (!item.data_primeiro_vencimento && !item.data_pagamento) {
-        errors.push(`${prefix}: Falta definir a data do primeiro vencimento ou pagamento.`);
-      }
-    }
+    const isParcelado = FORMAS_PARCELAVEIS.includes(item.forma_pagamento) && item.parcelas > 1;
 
-    if (!item.data_pagamento && !item.data_primeiro_vencimento) {
-      errors.push(`${prefix}: informe a data do pagamento ou primeiro vencimento.`);
+    if (isParcelado) {
+      if (!item.data_primeiro_vencimento) {
+        errors.push(`${prefix}: Falta definir a data do primeiro vencimento.`);
+      }
+    } else {
+      // Single payment (not installment)
+      if (!item.data_pagamento) {
+        errors.push(`${prefix}: informe a data do pagamento.`);
+      }
     }
 
     if (item.juros_tipo !== "sem_juros" && item.juros_valor > 0 && item.juros_responsavel === "nao_aplica") {
