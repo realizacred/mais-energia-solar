@@ -920,24 +920,53 @@ export function ConvertLeadToClientDialog({
 
   const handleBack = () => setCurrentStep((s) => Math.max(s - 1, 0));
 
+  const Title = () => (
+    <div className="flex flex-row items-center gap-3 p-5 pb-4 border-b border-border shrink-0">
+      <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+        <ShoppingCart className="w-5 h-5 text-primary" />
+      </div>
+      <div className="flex-1">
+        <h2 className="text-base font-semibold text-foreground leading-none">
+          Converter Lead em Venda
+        </h2>
+        <p className="text-xs text-muted-foreground mt-1.5">
+          {lead.nome} {lead.lead_code ? `· ${lead.lead_code}` : ""}
+        </p>
+      </div>
+    </div>
+  );
+
+  const FormWrapper = ({ children }: { children: React.ReactNode }) => {
+    if (isMobile) {
+      return (
+        <Sheet open={open} onOpenChange={(v) => { if (!v) setCurrentStep(0); onOpenChange(v); }}>
+          <SheetContent side="bottom" className="w-full h-[95vh] sm:h-[100dvh] p-0 flex flex-col overflow-hidden border-none rounded-t-xl">
+            <SheetHeader className="sr-only">
+              <SheetTitle>Converter Lead em Venda</SheetTitle>
+            </SheetHeader>
+            <Title />
+            {children}
+          </SheetContent>
+        </Sheet>
+      );
+    }
+    return (
+      <Dialog open={open} onOpenChange={(v) => { if (!v) setCurrentStep(0); onOpenChange(v); }}>
+        <DialogContent className="w-full sm:w-[90vw] max-w-[700px] p-0 gap-0 overflow-hidden flex flex-col h-[100dvh] sm:h-auto max-h-[100dvh] sm:max-h-[calc(100dvh-2rem)] rounded-none sm:rounded-lg border-none sm:border">
+          <DialogHeader className="sr-only">
+            <DialogTitle>Converter Lead em Venda</DialogTitle>
+          </DialogHeader>
+          <Title />
+          {children}
+        </DialogContent>
+      </Dialog>
+    );
+  };
+
   return (
     <>
-    <Dialog open={open} onOpenChange={(v) => { if (!v) setCurrentStep(0); onOpenChange(v); }}>
-      <DialogContent className="w-full sm:w-[90vw] max-w-[700px] p-0 gap-0 overflow-hidden flex flex-col h-[100dvh] sm:h-auto max-h-[100dvh] sm:max-h-[calc(100dvh-2rem)] rounded-none sm:rounded-lg border-none sm:border">
-        {/* ── HEADER §25 ─────────────────────────────────────── */}
-        <DialogHeader className="flex flex-row items-center gap-3 p-5 pb-4 border-b border-border shrink-0">
-          <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-            <ShoppingCart className="w-5 h-5 text-primary" />
-          </div>
-          <div className="flex-1">
-            <DialogTitle className="text-base font-semibold text-foreground">
-              Converter Lead em Venda
-            </DialogTitle>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              {lead.nome} {lead.lead_code ? `· ${lead.lead_code}` : ""}
-            </p>
-          </div>
-        </DialogHeader>
+    <FormWrapper>
+
 
         {/* ── STEPPER ── */}
         <div className="flex items-center gap-1 px-5 py-3 border-b border-border bg-muted/20 shrink-0">
