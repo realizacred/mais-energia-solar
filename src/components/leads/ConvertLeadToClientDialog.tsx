@@ -131,6 +131,8 @@ export function ConvertLeadToClientDialog({
   const [transformadores, setTransformadores] = useState<Transformador[]>([]);
   const [simulacoes, setSimulacoes] = useState<Simulacao[]>([]);
   const [currentStep, setCurrentStep] = useState(0);
+  const isMobile = useIsMobile();
+
 
   // Offline sync hook
   const {
