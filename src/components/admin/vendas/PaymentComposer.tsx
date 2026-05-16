@@ -10,6 +10,7 @@ import {
   useSensors,
   type DragEndEvent,
 } from "@dnd-kit/core";
+import { cn } from "@/lib/utils";
 import {
   arrayMove,
   SortableContext,
@@ -56,7 +57,7 @@ interface PaymentComposerProps {
 }
 
 export function PaymentComposer({ valorVenda, items, onChange, readOnly = false }: PaymentComposerProps) {
-  const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
+  const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set(items.length === 1 ? [items[0].id] : []));
   const { configMap } = usePaymentInterestConfigMap();
 
   const summary = useMemo(() => computeSummary(items, valorVenda), [items, valorVenda]);
@@ -81,6 +82,10 @@ export function PaymentComposer({ valorVenda, items, onChange, readOnly = false 
     // Set remaining value as default
     const remaining = valorVenda - items.reduce((s, i) => s + i.valor_base, 0);
     newItem.valor_base = Math.max(0, Math.round(remaining * 100) / 100);
+    
+    // Default date to today if empty
+    newItem.data_pagamento = new Date().toISOString().split('T')[0];
+    
     onChange([...items, newItem]);
     setExpandedItems((prev) => new Set([...prev, newItem.id]));
   }, [items, onChange, valorVenda]);
@@ -230,65 +235,72 @@ function PaymentItemCard({ item, index, isFirst, expanded, onToggle, onUpdate, o
       exit={{ opacity: 0, y: -16 }}
       transition={{ duration: 0.25 }}
     >
-      <Card className="border-border bg-card shadow-sm">
+      <Card className={cn(
+        "border-border bg-card shadow-sm transition-all",
+        !expanded && "hover:border-primary/30"
+      )}>
         {/* ── Header ── */}
         <div
-          className="flex items-center justify-between p-3 cursor-pointer hover:bg-muted/30 transition-colors"
+          className="flex items-center justify-between p-4 cursor-pointer hover:bg-muted/30 transition-colors min-h-[64px]"
           onClick={onToggle}
         >
-          <div className="flex items-center gap-2 min-w-0">
+          <div className="flex items-center gap-3 min-w-0">
             {/* Drag handle */}
             {!readOnly && (
               <div
-                className="cursor-grab active:cursor-grabbing p-1 rounded hover:bg-muted/50 shrink-0 touch-none"
+                className="cursor-grab active:cursor-grabbing p-2 rounded hover:bg-muted/50 shrink-0 touch-none flex items-center justify-center min-w-[44px] min-h-[44px]"
                 {...dragListeners}
                 onClick={(e) => e.stopPropagation()}
               >
-                <GripVertical className="w-4 h-4 text-muted-foreground" />
+                <GripVertical className="w-5 h-5 text-muted-foreground" />
               </div>
             )}
-            <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-              <span className="text-xs font-bold text-primary">{index + 1}</span>
+            <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center shrink-0 border border-primary/20">
+              <span className="text-sm font-bold text-primary">{index + 1}</span>
             </div>
             <div className="min-w-0">
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-semibold text-foreground">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-sm font-bold text-foreground">
                   {FORMA_PAGAMENTO_LABELS[item.forma_pagamento]}
                 </span>
                 {isFirst && (
-                  <Badge variant="outline" className="text-[10px] h-4 bg-primary/10 text-primary border-primary/20">
-                    Obrigatório
+                  <Badge variant="outline" className="text-[10px] h-4 bg-primary/5 text-primary border-primary/20 font-semibold">
+                    OBRIGATÓRIO
                   </Badge>
                 )}
                 {item.entrada && (
-                  <Badge variant="outline" className="text-[10px] h-4 bg-success/10 text-success border-success/20">
-                    Entrada
+                  <Badge variant="outline" className="text-[10px] h-4 bg-success/5 text-success border-success/20 font-semibold">
+                    ENTRADA
                   </Badge>
                 )}
               </div>
-              <p className="text-xs text-muted-foreground">
-                Base: {formatBRL(item.valor_base)}
+              <p className="text-[11px] text-muted-foreground font-medium mt-0.5">
+                {formatBRL(item.valor_base)}
                 {computed.valor_juros > 0 && (
-                  <> · Juros: {formatBRL(computed.valor_juros)} ({JUROS_RESPONSAVEL_LABELS[item.juros_responsavel]})</>
+                  <> · + {formatBRL(computed.valor_juros)} juros</>
                 )}
                 {item.parcelas > 1 && <> · {item.parcelas}x de {formatBRL(computed.parcelas_detalhes[0]?.valor ?? 0)}</>}
               </p>
             </div>
           </div>
           <div className="flex items-center gap-2 shrink-0">
-            <span className="text-sm font-bold text-primary">{formatBRL(computed.valor_com_juros)}</span>
+            <div className="text-right hidden sm:block">
+              <span className="text-sm font-bold text-primary block">{formatBRL(computed.valor_com_juros)}</span>
+            </div>
             {!readOnly && !isFirst && (
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-7 w-7 text-destructive hover:text-destructive/80"
+                className="h-10 w-10 text-destructive hover:text-destructive/80 hover:bg-destructive/10 shrink-0"
                 onClick={(e) => { e.stopPropagation(); onRemove(); }}
                 aria-label="Remover item"
               >
-                <Trash2 className="w-3.5 h-3.5" />
+                <Trash2 className="w-4 h-4" />
               </Button>
             )}
-            {expanded ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
+            <div className="p-2">
+              {expanded ? <ChevronUp className="w-5 h-5 text-muted-foreground" /> : <ChevronDown className="w-5 h-5 text-muted-foreground" />}
+            </div>
           </div>
         </div>
 

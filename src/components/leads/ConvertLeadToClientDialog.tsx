@@ -7,10 +7,11 @@ import { ShoppingCart, FileText, MapPin, Navigation, Save, WifiOff, Wifi, AlertT
 import { MissingDocsConfirmModal } from "./MissingDocsConfirmModal";
 import { PaymentComposer } from "@/components/admin/vendas/PaymentComposer";
 import type { PaymentItemInput } from "@/services/paymentComposition/types";
+import { useVendaFinanceSnapshot } from "@/hooks/useVendaFinanceSnapshot";
 import { useOfflineConversionSync, getCachedEquipment, setCachedEquipment } from "@/hooks/useOfflineConversionSync";
 import { useConversionEquipment } from "@/hooks/useConvertLeadToClient";
 import { createEmptyItem } from "@/services/paymentComposition/types";
-import { validateComposition } from "@/services/paymentComposition/calculator";
+import { validateComposition, computeSummary } from "@/services/paymentComposition/calculator";
 import { CpfCnpjInput } from "@/components/shared/CpfCnpjInput";
 import { AddressFields, type AddressData } from "@/components/shared/AddressFields";
 
@@ -177,6 +178,9 @@ export function ConvertLeadToClientDialog({
     }
     return (lead as any)?.valor_projeto ?? 0;
   }, [simulacaoAceitaId, simulacoes, lead]);
+
+  // ── SSOT Financial State §25 ──
+  const finance = useVendaFinanceSnapshot(valorVenda, paymentItems);
 
   // Explicit subscription so programmatic setValue always reflects in the UI
   const localizacaoValue = useWatch({ control: form.control, name: "localizacao" });
@@ -655,14 +659,12 @@ export function ConvertLeadToClientDialog({
       return;
     }
 
-    // Validate payment composition — skip if no sale value defined (no simulation/proposal selected)
-    const hasPaymentData = paymentItems.some(item => item.valor_base > 0);
-    if (valorVenda > 0 || hasPaymentData) {
-      const paymentErrors = validateComposition(paymentItems, valorVenda);
-      if (paymentErrors.length > 0) {
+    // Validate payment composition — using SSOT snapshot §25
+    if (valorVenda > 0 || paymentItems.some(item => item.valor_base > 0)) {
+      if (!finance.isValid) {
         toast({
-          title: "Composição de pagamento inválida",
-          description: paymentErrors[0],
+          title: "Atenção no Financeiro",
+          description: finance.errors[0] || "Composição de pagamento inválida.",
           variant: "destructive",
         });
         setCurrentStep(2); // Navigate to payment step
@@ -1002,7 +1004,7 @@ export function ConvertLeadToClientDialog({
   return (
     <>
     <Dialog open={open} onOpenChange={(v) => { if (!v) setCurrentStep(0); onOpenChange(v); }}>
-      <DialogContent className="w-[90vw] max-w-[700px] p-0 gap-0 overflow-hidden flex flex-col max-h-[calc(100dvh-2rem)]">
+      <DialogContent className="w-full sm:w-[90vw] max-w-[700px] p-0 gap-0 overflow-hidden flex flex-col h-full sm:h-auto max-h-[100dvh] sm:max-h-[calc(100dvh-2rem)] rounded-none sm:rounded-lg">
         {/* ── HEADER §25 ─────────────────────────────────────── */}
         <DialogHeader className="flex flex-row items-center gap-3 p-5 pb-4 border-b border-border shrink-0">
           <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
@@ -1406,6 +1408,23 @@ export function ConvertLeadToClientDialog({
                       </span>
                     </p>
                     <PaymentComposer valorVenda={valorVenda} items={paymentItems} onChange={setPaymentItems} />
+                    
+                    {/* Inline Validation §25 */}
+                    {!finance.isValid && finance.items.length > 0 && (
+                      <div className="mt-4 p-4 rounded-lg bg-destructive/10 border border-destructive/20 space-y-2">
+                        <div className="flex items-center gap-2 text-destructive">
+                          <AlertTriangle className="h-4 w-4" />
+                          <span className="text-sm font-bold">Problemas detectados:</span>
+                        </div>
+                        <ul className="list-disc list-inside space-y-1">
+                          {finance.errors.map((err, i) => (
+                            <li key={i} className="text-xs text-destructive/90 font-medium">
+                              {err}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
                   </div>
 
                   <div className="border-t border-border" />
@@ -1446,7 +1465,7 @@ export function ConvertLeadToClientDialog({
             </div>
 
             {/* ── FOOTER §25 — navigation + actions ── */}
-            <div className="flex items-center justify-between gap-2 p-4 border-t border-border bg-muted/30 shrink-0">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 p-4 border-t border-border bg-card/80 backdrop-blur-md shrink-0 sticky bottom-0 z-50 pb-[safe-area-inset-bottom]">
               <div>
                 {currentStep > 0 && (
                   <Button type="button" variant="ghost" onClick={handleBack} disabled={loading || savingAsLead}>
@@ -1455,9 +1474,9 @@ export function ConvertLeadToClientDialog({
                 )}
               </div>
 
-              <div className="flex items-center gap-2">
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
                 {currentStep < STEPS.length - 1 ? (
-                  <Button type="button" onClick={handleNext}>
+                  <Button type="button" onClick={handleNext} className="w-full sm:w-auto h-11 sm:h-9">
                     Próximo <ChevronRight className="w-4 h-4 ml-1" />
                   </Button>
                 ) : (
@@ -1465,6 +1484,7 @@ export function ConvertLeadToClientDialog({
                     <Button
                       type="button"
                       variant="outline"
+                      className="w-full sm:w-auto h-11 sm:h-9"
                       onClick={() => {
                         if (aguardandoStatusAvailable === false) {
                           toast({
@@ -1481,11 +1501,12 @@ export function ConvertLeadToClientDialog({
                       {savingAsLead ? (
                         <><Spinner size="sm" /> Salvando...</>
                       ) : (
-                        <><Save className="mr-2 h-4 w-4" /> Aguardando Documentação</>
+                        <><Save className="mr-2 h-4 w-4" /> Aguardar Docs</>
                       )}
                     </Button>
                     <Button
                       type="button"
+                      className="w-full sm:w-auto h-11 sm:h-9"
                       disabled={loading || savingAsLead}
                       onClick={async () => {
                         const valid = await form.trigger();
