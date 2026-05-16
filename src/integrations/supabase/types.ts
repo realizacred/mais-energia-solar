@@ -385,6 +385,7 @@ export type Database = {
         Row: {
           banco: string | null
           bank_config_id: string | null
+          checklist_snapshot: Json | null
           cliente_id: string | null
           cpf_cnpj: string | null
           created_at: string
@@ -394,12 +395,14 @@ export type Database = {
           deal_id: string | null
           entrada: number | null
           id: string
+          is_locked: boolean | null
           lead_id: string | null
           observacoes: string | null
           prazo_meses: number | null
           protocolo_banco: string | null
           renda_mensal: number | null
           responsavel_id: string | null
+          rules_snapshot: Json | null
           score_credito: number | null
           simulation_id: string | null
           sla_vencimento: string | null
@@ -412,10 +415,12 @@ export type Database = {
           updated_at: string
           valor_aprovado: number | null
           valor_solicitado: number | null
+          version: number | null
         }
         Insert: {
           banco?: string | null
           bank_config_id?: string | null
+          checklist_snapshot?: Json | null
           cliente_id?: string | null
           cpf_cnpj?: string | null
           created_at?: string
@@ -425,12 +430,14 @@ export type Database = {
           deal_id?: string | null
           entrada?: number | null
           id?: string
+          is_locked?: boolean | null
           lead_id?: string | null
           observacoes?: string | null
           prazo_meses?: number | null
           protocolo_banco?: string | null
           renda_mensal?: number | null
           responsavel_id?: string | null
+          rules_snapshot?: Json | null
           score_credito?: number | null
           simulation_id?: string | null
           sla_vencimento?: string | null
@@ -443,10 +450,12 @@ export type Database = {
           updated_at?: string
           valor_aprovado?: number | null
           valor_solicitado?: number | null
+          version?: number | null
         }
         Update: {
           banco?: string | null
           bank_config_id?: string | null
+          checklist_snapshot?: Json | null
           cliente_id?: string | null
           cpf_cnpj?: string | null
           created_at?: string
@@ -456,12 +465,14 @@ export type Database = {
           deal_id?: string | null
           entrada?: number | null
           id?: string
+          is_locked?: boolean | null
           lead_id?: string | null
           observacoes?: string | null
           prazo_meses?: number | null
           protocolo_banco?: string | null
           renda_mensal?: number | null
           responsavel_id?: string | null
+          rules_snapshot?: Json | null
           score_credito?: number | null
           simulation_id?: string | null
           sla_vencimento?: string | null
@@ -474,6 +485,7 @@ export type Database = {
           updated_at?: string
           valor_aprovado?: number | null
           valor_solicitado?: number | null
+          version?: number | null
         }
         Relationships: [
           {
