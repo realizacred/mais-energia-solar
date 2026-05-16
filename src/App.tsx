@@ -119,29 +119,29 @@ const App = () => (
               <Route path="/uc/:token" element={<PublicLeadShell><UCPublica /></PublicLeadShell>} />
 
 
-              {/* Protected routes — tenant guard active */}
-              <Route path="/portal" element={<TenantGuardGate><PortalSelector /></TenantGuardGate>} />
-              <Route path="/admin/*" element={<TenantGuardGate><Admin /></TenantGuardGate>} />
+              <Route path="/portal" element={<InternalAppShell><TenantGuardGate><PortalSelector /></TenantGuardGate></InternalAppShell>} />
+              <Route path="/admin/*" element={<InternalAppShell><TenantGuardGate><Admin /></TenantGuardGate></InternalAppShell>} />
               {/* Aliases funcionais — renderizam o mesmo Admin shell. /admin/* permanece canônico.
                   Permite URLs por área (Comercial / Comunicação / Energia / Automações / Operações /
                   Financeiro / Configurações / Integrações) sem alterar permissões, navRegistry ou backend. */}
-              <Route path="/comercial/*" element={<TenantGuardGate><Admin /></TenantGuardGate>} />
-              <Route path="/comunicacao/*" element={<TenantGuardGate><Admin /></TenantGuardGate>} />
-              <Route path="/energia/*" element={<TenantGuardGate><Admin /></TenantGuardGate>} />
-              <Route path="/automacoes/*" element={<TenantGuardGate><Admin /></TenantGuardGate>} />
-              <Route path="/operacoes/*" element={<TenantGuardGate><Admin /></TenantGuardGate>} />
-              <Route path="/financeiro/*" element={<TenantGuardGate><Admin /></TenantGuardGate>} />
-              <Route path="/configuracoes/*" element={<TenantGuardGate><Admin /></TenantGuardGate>} />
-              <Route path="/integracoes/*" element={<TenantGuardGate><Admin /></TenantGuardGate>} />
-              <Route path="/super-admin/*" element={<SuperAdmin />} />
-              <Route path="/consultor/*" element={<TenantGuardGate><VendedorPortal /></TenantGuardGate>} />
-              <Route path="/vendedor/*" element={<TenantGuardGate><VendedorPortal /></TenantGuardGate>} />
-              <Route path="/instalador" element={<TenantGuardGate><Instalador /></TenantGuardGate>} />
-              <Route path="/inbox" element={<TenantGuardGate><Inbox /></TenantGuardGate>} />
-              <Route path="/app" element={<TenantGuardGate><MessagingApp /></TenantGuardGate>} />
-              <Route path="/app/debug" element={<TenantGuardGate><AppDebug /></TenantGuardGate>} />
-              <Route path="/sistema" element={<TenantGuardGate><Sistema /></TenantGuardGate>} />
+              <Route path="/comercial/*" element={<InternalAppShell><TenantGuardGate><Admin /></TenantGuardGate></InternalAppShell>} />
+              <Route path="/comunicacao/*" element={<InternalAppShell><TenantGuardGate><Admin /></TenantGuardGate></InternalAppShell>} />
+              <Route path="/energia/*" element={<InternalAppShell><TenantGuardGate><Admin /></TenantGuardGate></InternalAppShell>} />
+              <Route path="/automacoes/*" element={<InternalAppShell><TenantGuardGate><Admin /></TenantGuardGate></InternalAppShell>} />
+              <Route path="/operacoes/*" element={<InternalAppShell><TenantGuardGate><Admin /></TenantGuardGate></InternalAppShell>} />
+              <Route path="/financeiro/*" element={<InternalAppShell><TenantGuardGate><Admin /></TenantGuardGate></InternalAppShell>} />
+              <Route path="/configuracoes/*" element={<InternalAppShell><TenantGuardGate><Admin /></TenantGuardGate></InternalAppShell>} />
+              <Route path="/integracoes/*" element={<InternalAppShell><TenantGuardGate><Admin /></TenantGuardGate></InternalAppShell>} />
+              <Route path="/super-admin/*" element={<InternalAppShell><SuperAdmin /></InternalAppShell>} />
+              <Route path="/consultor/*" element={<ConsultantFieldShell><TenantGuardGate><VendedorPortal /></TenantGuardGate></ConsultantFieldShell>} />
+              <Route path="/vendedor/*" element={<ConsultantFieldShell><TenantGuardGate><VendedorPortal /></TenantGuardGate></ConsultantFieldShell>} />
+              <Route path="/instalador" element={<ConsultantFieldShell><TenantGuardGate><Instalador /></TenantGuardGate></ConsultantFieldShell>} />
+              <Route path="/inbox" element={<InternalAppShell><TenantGuardGate><Inbox /></TenantGuardGate></InternalAppShell>} />
+              <Route path="/app" element={<InternalAppShell><TenantGuardGate><MessagingApp /></TenantGuardGate></InternalAppShell>} />
+              <Route path="/app/debug" element={<InternalAppShell><TenantGuardGate><AppDebug /></TenantGuardGate></InternalAppShell>} />
+              <Route path="/sistema" element={<InternalAppShell><TenantGuardGate><Sistema /></TenantGuardGate></InternalAppShell>} />
               <Route path="/pwa-debug" element={<PWADebugPage />} />
+
 
               {/* DEV-only sandbox (stripped in prod build) */}
               {import.meta.env.DEV && (
