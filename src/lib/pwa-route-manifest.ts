@@ -20,7 +20,7 @@ interface ManifestRoute {
 
 const ROUTES: ManifestRoute[] = [
   { prefix: "/v/",        manifest: "/manifest-captacao.json",    themeColor: "#FF6600" },
-  { prefix: "/app",       manifest: "/app-manifest.json",         themeColor: "#16a34a" },
+  { prefix: "/app",       manifest: "/manifest-whatsapp.json",    themeColor: "#16a34a" },
   { prefix: "/sistema",   manifest: "/sistema-manifest.json",     themeColor: "#e8760d" },
   { prefix: "/instalador",manifest: "/instalador-manifest.json",  themeColor: "#e8760d" },
 ];
