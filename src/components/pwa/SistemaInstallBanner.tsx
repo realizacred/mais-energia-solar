@@ -79,6 +79,7 @@ export function SistemaInstallBanner() {
             <p className="text-sm font-semibold text-foreground">
               Instale o App MaisEnergia 📲
             </p>
+
             <p className="text-xs text-muted-foreground mt-0.5">
               Acesse o sistema direto da tela inicial do seu celular.
             </p>

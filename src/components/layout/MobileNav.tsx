@@ -164,13 +164,14 @@ export function MobileNav({ showCalculadora = true, showAdmin = true }: MobileNa
               </>
             ) : (
               showAdmin && (
-                <Link to="/auth" onClick={() => setOpen(false)}>
+                <Link to="/auth?from=sistema" onClick={() => setOpen(false)}>
                   <Button className="w-full gap-2 rounded-xl font-bold">
                     <LogIn className="h-4 w-4" />
                     Acessar Sistema
                   </Button>
                 </Link>
               )
+
             )}
             <p className="text-[11px] text-center text-muted-foreground/50">
               © {new Date().getFullYear()} Mais Energia Solar

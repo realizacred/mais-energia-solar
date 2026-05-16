@@ -17,8 +17,8 @@ import { DevToolsProvider } from "@/contexts/DevToolsContext";
 import { DevToolsOverlay } from "@/components/dev/DevToolsOverlay";
 import { RealtimeHeartbeatProvider } from "@/components/providers/RealtimeHeartbeatProvider";
 import { PublicErrorBoundary } from "@/components/proposal-landing/PublicErrorBoundary";
+import { PublicLeadShell, InternalAppShell, ConsultantFieldShell } from "@/components/layout/AppShells";
 
-// Lazy load all page components for code splitting
 const Index = lazy(() => import("./pages/Index"));
 const Auth = lazy(() => import("./pages/Auth"));
 const Admin = lazy(() => import("./pages/Admin"));
@@ -98,49 +98,50 @@ const App = () => (
           <PushActivationBanner />
           <Suspense fallback={<LoadingSpinner />}>
             <Routes>
-              {/* Public routes — no tenant guard */}
-              <Route path="/" element={<Index />} />
-              <Route path="/v/:codigo" element={<VendorPage />} />
-              <Route path="/w/:slug" element={<WaChannelPage />} />
-              <Route path="/auth" element={<Auth />} />
-              <Route path="/calculadora" element={<Calculadora />} />
-              <Route path="/checklist" element={<Checklist />} />
-              <Route path="/instalar" element={<Instalar />} />
-              <Route path="/avaliacao" element={<Avaliacao />} />
-              <Route path="/ativar-conta" element={<AtivarConta />} />
-              <Route path="/aguardando-aprovacao" element={<PendingApproval />} />
-              <Route path="/proposta/:token" element={<PublicErrorBoundary><PropostaPublica /></PublicErrorBoundary>} />
-              <Route path="/pl/:token" element={<PublicErrorBoundary><PropostaLanding /></PublicErrorBoundary>} />
-              <Route path="/kits/:token" element={<KitsLanding />} />
-              <Route path="/oauth/google/callback" element={<OAuthGoogleCallback />} />
-              <Route path="/oauth/google-contacts/callback" element={<GoogleContactsCallbackPage />} />
-              <Route path="/politica-de-privacidade" element={<PoliticaPrivacidade />} />
-              <Route path="/uc/login" element={<UCLogin />} />
-              <Route path="/uc/:token" element={<UCPublica />} />
+              {/* Public routes — no tenant guard — wrapped in PublicLeadShell */}
+              <Route path="/" element={<PublicLeadShell><Index /></PublicLeadShell>} />
+              <Route path="/v/:codigo" element={<PublicLeadShell><VendorPage /></PublicLeadShell>} />
+              <Route path="/w/:slug" element={<PublicLeadShell><WaChannelPage /></PublicLeadShell>} />
+              <Route path="/auth" element={<PublicLeadShell><Auth /></PublicLeadShell>} />
+              <Route path="/calculadora" element={<PublicLeadShell><Calculadora /></PublicLeadShell>} />
+              <Route path="/checklist" element={<PublicLeadShell><Checklist /></PublicLeadShell>} />
+              <Route path="/instalar" element={<PublicLeadShell><Instalar /></PublicLeadShell>} />
+              <Route path="/avaliacao" element={<PublicLeadShell><Avaliacao /></PublicLeadShell>} />
+              <Route path="/ativar-conta" element={<PublicLeadShell><AtivarConta /></PublicLeadShell>} />
+              <Route path="/aguardando-aprovacao" element={<PublicLeadShell><PendingApproval /></PublicLeadShell>} />
+              <Route path="/proposta/:token" element={<PublicLeadShell><PublicErrorBoundary><PropostaPublica /></PublicErrorBoundary></PublicLeadShell>} />
+              <Route path="/pl/:token" element={<PublicLeadShell><PublicErrorBoundary><PropostaLanding /></PublicErrorBoundary></PublicLeadShell>} />
+              <Route path="/kits/:token" element={<PublicLeadShell><KitsLanding /></PublicLeadShell>} />
+              <Route path="/oauth/google/callback" element={<PublicLeadShell><OAuthGoogleCallback /></PublicLeadShell>} />
+              <Route path="/oauth/google-contacts/callback" element={<PublicLeadShell><GoogleContactsCallbackPage /></PublicLeadShell>} />
+              <Route path="/politica-de-privacidade" element={<PublicLeadShell><PoliticaPrivacidade /></PublicLeadShell>} />
+              <Route path="/uc/login" element={<PublicLeadShell><UCLogin /></PublicLeadShell>} />
+              <Route path="/uc/:token" element={<PublicLeadShell><UCPublica /></PublicLeadShell>} />
 
-              {/* Protected routes — tenant guard active */}
-              <Route path="/portal" element={<TenantGuardGate><PortalSelector /></TenantGuardGate>} />
-              <Route path="/admin/*" element={<TenantGuardGate><Admin /></TenantGuardGate>} />
+
+              <Route path="/portal" element={<InternalAppShell><TenantGuardGate><PortalSelector /></TenantGuardGate></InternalAppShell>} />
+              <Route path="/admin/*" element={<InternalAppShell><TenantGuardGate><Admin /></TenantGuardGate></InternalAppShell>} />
               {/* Aliases funcionais — renderizam o mesmo Admin shell. /admin/* permanece canônico.
                   Permite URLs por área (Comercial / Comunicação / Energia / Automações / Operações /
                   Financeiro / Configurações / Integrações) sem alterar permissões, navRegistry ou backend. */}
-              <Route path="/comercial/*" element={<TenantGuardGate><Admin /></TenantGuardGate>} />
-              <Route path="/comunicacao/*" element={<TenantGuardGate><Admin /></TenantGuardGate>} />
-              <Route path="/energia/*" element={<TenantGuardGate><Admin /></TenantGuardGate>} />
-              <Route path="/automacoes/*" element={<TenantGuardGate><Admin /></TenantGuardGate>} />
-              <Route path="/operacoes/*" element={<TenantGuardGate><Admin /></TenantGuardGate>} />
-              <Route path="/financeiro/*" element={<TenantGuardGate><Admin /></TenantGuardGate>} />
-              <Route path="/configuracoes/*" element={<TenantGuardGate><Admin /></TenantGuardGate>} />
-              <Route path="/integracoes/*" element={<TenantGuardGate><Admin /></TenantGuardGate>} />
-              <Route path="/super-admin/*" element={<SuperAdmin />} />
-              <Route path="/consultor/*" element={<TenantGuardGate><VendedorPortal /></TenantGuardGate>} />
-              <Route path="/vendedor/*" element={<TenantGuardGate><VendedorPortal /></TenantGuardGate>} />
-              <Route path="/instalador" element={<TenantGuardGate><Instalador /></TenantGuardGate>} />
-              <Route path="/inbox" element={<TenantGuardGate><Inbox /></TenantGuardGate>} />
-              <Route path="/app" element={<TenantGuardGate><MessagingApp /></TenantGuardGate>} />
-              <Route path="/app/debug" element={<TenantGuardGate><AppDebug /></TenantGuardGate>} />
-              <Route path="/sistema" element={<TenantGuardGate><Sistema /></TenantGuardGate>} />
+              <Route path="/comercial/*" element={<InternalAppShell><TenantGuardGate><Admin /></TenantGuardGate></InternalAppShell>} />
+              <Route path="/comunicacao/*" element={<InternalAppShell><TenantGuardGate><Admin /></TenantGuardGate></InternalAppShell>} />
+              <Route path="/energia/*" element={<InternalAppShell><TenantGuardGate><Admin /></TenantGuardGate></InternalAppShell>} />
+              <Route path="/automacoes/*" element={<InternalAppShell><TenantGuardGate><Admin /></TenantGuardGate></InternalAppShell>} />
+              <Route path="/operacoes/*" element={<InternalAppShell><TenantGuardGate><Admin /></TenantGuardGate></InternalAppShell>} />
+              <Route path="/financeiro/*" element={<InternalAppShell><TenantGuardGate><Admin /></TenantGuardGate></InternalAppShell>} />
+              <Route path="/configuracoes/*" element={<InternalAppShell><TenantGuardGate><Admin /></TenantGuardGate></InternalAppShell>} />
+              <Route path="/integracoes/*" element={<InternalAppShell><TenantGuardGate><Admin /></TenantGuardGate></InternalAppShell>} />
+              <Route path="/super-admin/*" element={<InternalAppShell><SuperAdmin /></InternalAppShell>} />
+              <Route path="/consultor/*" element={<ConsultantFieldShell><TenantGuardGate><VendedorPortal /></TenantGuardGate></ConsultantFieldShell>} />
+              <Route path="/vendedor/*" element={<ConsultantFieldShell><TenantGuardGate><VendedorPortal /></TenantGuardGate></ConsultantFieldShell>} />
+              <Route path="/instalador" element={<ConsultantFieldShell><TenantGuardGate><Instalador /></TenantGuardGate></ConsultantFieldShell>} />
+              <Route path="/inbox" element={<InternalAppShell><TenantGuardGate><Inbox /></TenantGuardGate></InternalAppShell>} />
+              <Route path="/app" element={<InternalAppShell><TenantGuardGate><MessagingApp /></TenantGuardGate></InternalAppShell>} />
+              <Route path="/app/debug" element={<InternalAppShell><TenantGuardGate><AppDebug /></TenantGuardGate></InternalAppShell>} />
+              <Route path="/sistema" element={<InternalAppShell><TenantGuardGate><Sistema /></TenantGuardGate></InternalAppShell>} />
               <Route path="/pwa-debug" element={<PWADebugPage />} />
+
 
               {/* DEV-only sandbox (stripped in prod build) */}
               {import.meta.env.DEV && (

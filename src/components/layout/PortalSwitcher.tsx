@@ -152,7 +152,10 @@ export function PortalSwitcher() {
     ? "instalador"
     : "admin";
 
-  const handleSwitchToAdmin = () => navigate("/admin");
+  const isMobile = /android|iphone|ipad|ipod|mobile/i.test(navigator.userAgent);
+
+
+  const handleSwitchToAdmin = () => navigate(isMobile ? "/sistema" : "/admin");
 
   const handleSwitchToInstalador = () => {
     if (access.admin && !access.instalador && instaladores.length > 1) {

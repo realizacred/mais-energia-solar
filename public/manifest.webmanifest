@@ -1,0 +1,55 @@
+{
+  "id": "/",
+  "name": "Mais Energia Solar",
+  "short_name": "MaisEnergia",
+  "description": "Soluções em energia solar fotovoltaica",
+  "theme_color": "#e8760d",
+  "background_color": "#ffffff",
+  "display": "standalone",
+  "orientation": "portrait",
+  "start_url": "/",
+  "scope": "/",
+  "categories": ["business", "productivity"],
+  "prefer_related_applications": false,
+  "icons": [
+    {
+      "src": "pwa-icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "pwa-icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "pwa-icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Novo Orçamento",
+      "short_name": "Orçamento",
+      "description": "Solicitar novo orçamento",
+      "url": "/v/geral",
+      "icons": [{ "src": "pwa-icon-leads-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Portal do Consultor",
+      "short_name": "Portal",
+      "description": "Acessar portal do consultor",
+      "url": "/consultor",
+      "icons": [{ "src": "pwa-icon-sistema-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "WhatsApp",
+      "short_name": "Chat",
+      "description": "Central de atendimento",
+      "url": "/app",
+      "icons": [{ "src": "pwa-icon-wa-192.png", "sizes": "192x192" }]
+    }
+  ]
+}

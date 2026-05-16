@@ -129,8 +129,11 @@ export default function PortalSelector() {
     if (rememberChoice) {
       localStorage.setItem(PORTAL_PREFERENCE_KEY, portal);
     }
-    navigate(`/${portal}`, { replace: true });
+    const isMobile = /android|iphone|ipad|ipod|mobile/i.test(navigator.userAgent);
+    const target = portal === "admin" && isMobile ? "sistema" : portal;
+    navigate(`/${target}`, { replace: true });
   };
+
 
   if (authLoading || loading) {
     return (

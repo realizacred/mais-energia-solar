@@ -13,6 +13,9 @@ import { useBrandSettings } from "@/hooks/useBrandSettings";
 const PORTAL_PREFERENCE_KEY = "preferred_portal";
 const ACCESS_ROLES = ["admin", "gerente", "financeiro", "consultor", "vendedor", "instalador", "super_admin"];
 
+const isMobileDevice = () => /android|iphone|ipad|ipod|mobile/i.test(navigator.userAgent);
+
+
 const features = [
   {
     icon: TrendingDown,
@@ -107,9 +110,10 @@ export default function Auth() {
 
           if (shouldBypassApprovalToAdmin) {
             clearTimeout(timeoutId);
-            navigate("/admin", { replace: true });
+            navigate(isMobileDevice() ? "/sistema" : "/admin", { replace: true });
             return;
           }
+
 
           const { data: profile, error: profileError } = await supabase
             .from("profiles")
@@ -174,7 +178,8 @@ export default function Auth() {
             if (savedPreference === "vendedor") {
               navigate("/consultor", { replace: true });
             } else if (savedPreference === "admin") {
-              navigate("/admin", { replace: true });
+              navigate(isMobileDevice() ? "/sistema" : "/admin", { replace: true });
+
             } else {
               navigate("/portal", { replace: true });
             }
@@ -188,7 +193,7 @@ export default function Auth() {
           } else if (isVendedor && !isAdmin && hasVendedorRecord) {
             navigate("/consultor", { replace: true });
           } else if (isAdmin) {
-            navigate("/admin", { replace: true });
+            navigate(isMobileDevice() ? "/sistema" : "/admin", { replace: true });
           }
         } catch (error) {
           clearTimeout(timeoutId);
