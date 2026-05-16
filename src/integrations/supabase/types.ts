@@ -384,6 +384,7 @@ export type Database = {
       analise_credito: {
         Row: {
           banco: string | null
+          bank_config_id: string | null
           cliente_id: string | null
           cpf_cnpj: string | null
           created_at: string
@@ -410,6 +411,7 @@ export type Database = {
         }
         Insert: {
           banco?: string | null
+          bank_config_id?: string | null
           cliente_id?: string | null
           cpf_cnpj?: string | null
           created_at?: string
@@ -436,6 +438,7 @@ export type Database = {
         }
         Update: {
           banco?: string | null
+          bank_config_id?: string | null
           cliente_id?: string | null
           cpf_cnpj?: string | null
           created_at?: string
@@ -461,6 +464,13 @@ export type Database = {
           valor_solicitado?: number | null
         }
         Relationships: [
+          {
+            foreignKeyName: "analise_credito_bank_config_id_fkey"
+            columns: ["bank_config_id"]
+            isOneToOne: false
+            referencedRelation: "credit_bank_configs"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "analise_credito_cliente_id_fkey"
             columns: ["cliente_id"]
@@ -500,7 +510,8 @@ export type Database = {
       }
       analise_credito_documentos: {
         Row: {
-          analise_id: string
+          analise_credito_id: string
+          checklist_item_id: string | null
           created_at: string | null
           file_id: string
           id: string
@@ -510,7 +521,8 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
-          analise_id: string
+          analise_credito_id: string
+          checklist_item_id?: string | null
           created_at?: string | null
           file_id: string
           id?: string
@@ -520,7 +532,8 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
-          analise_id?: string
+          analise_credito_id?: string
+          checklist_item_id?: string | null
           created_at?: string | null
           file_id?: string
           id?: string
@@ -532,9 +545,16 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "analise_credito_documentos_analise_id_fkey"
-            columns: ["analise_id"]
+            columns: ["analise_credito_id"]
             isOneToOne: false
             referencedRelation: "analise_credito"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "analise_credito_documentos_checklist_item_id_fkey"
+            columns: ["checklist_item_id"]
+            isOneToOne: false
+            referencedRelation: "credit_bank_checklists"
             referencedColumns: ["id"]
           },
           {
@@ -548,41 +568,62 @@ export type Database = {
       }
       analise_credito_historico: {
         Row: {
-          analise_id: string
+          actor_id: string | null
+          analise_credito_id: string
           created_at: string | null
           id: string
-          motivo: string | null
-          novo_status: string
+          observacoes: string | null
           status_anterior: string | null
+          status_novo: string
           tenant_id: string
-          usuario_id: string | null
         }
         Insert: {
-          analise_id: string
+          actor_id?: string | null
+          analise_credito_id: string
           created_at?: string | null
           id?: string
-          motivo?: string | null
-          novo_status: string
+          observacoes?: string | null
           status_anterior?: string | null
+          status_novo: string
           tenant_id: string
-          usuario_id?: string | null
         }
         Update: {
-          analise_id?: string
+          actor_id?: string | null
+          analise_credito_id?: string
           created_at?: string | null
           id?: string
-          motivo?: string | null
-          novo_status?: string
+          observacoes?: string | null
           status_anterior?: string | null
+          status_novo?: string
           tenant_id?: string
-          usuario_id?: string | null
         }
         Relationships: [
           {
-            foreignKeyName: "analise_credito_historico_analise_id_fkey"
-            columns: ["analise_id"]
+            foreignKeyName: "analise_credito_historico_actor_id_fkey"
+            columns: ["actor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "analise_credito_historico_analise_credito_id_fkey"
+            columns: ["analise_credito_id"]
             isOneToOne: false
             referencedRelation: "analise_credito"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "analise_credito_historico_analise_id_fkey"
+            columns: ["analise_credito_id"]
+            isOneToOne: false
+            referencedRelation: "analise_credito"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "analise_credito_historico_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
             referencedColumns: ["id"]
           },
         ]
