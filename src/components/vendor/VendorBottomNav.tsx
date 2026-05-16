@@ -1,5 +1,5 @@
 import { useNavigate, useLocation, useSearchParams } from "react-router-dom";
-import { LayoutDashboard, MessageCircle, FileText, CalendarCheck } from "lucide-react";
+import { LayoutDashboard, MessageCircle, FileText, CalendarCheck, CreditCard } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -13,8 +13,9 @@ interface VendorBottomNavProps {
 
 const NAV_ITEMS = [
   { id: "dashboard", label: "Painel", icon: LayoutDashboard },
-  { id: "whatsapp", label: "WhatsApp", icon: MessageCircle },
-  { id: "orcamentos", label: "Orçamentos", icon: FileText },
+  { id: "whatsapp", label: "Whats", icon: MessageCircle },
+  { id: "orcamentos", label: "Leads", icon: FileText },
+  { id: "credito", label: "Crédito", icon: CreditCard },
   { id: "agenda", label: "Agenda", icon: CalendarCheck },
 ] as const;
 

@@ -7,6 +7,7 @@ import {
   Trophy,
   Bell,
   Link2,
+  CreditCard,
 } from "lucide-react";
 
 export interface VendorMenuItem {
@@ -88,6 +89,12 @@ export const VENDOR_SIDEBAR_SECTIONS: VendorSidebarSection[] = [
         description: "Propostas oficiais geradas para seus clientes",
       },
       {
+        id: "credito",
+        title: "Crédito & Bancos",
+        icon: CreditCard,
+        description: "Análise de crédito para financiamento",
+      },
+      {
         id: "gamificacao",
         title: "Metas & Ranking",
         icon: Trophy,
@@ -132,4 +139,5 @@ export const VENDOR_TAB_TITLES: Record<string, string> = {
   gamificacao: "Metas & Ranking",
   links: "Captação & App",
   notificacoes: "Notificações",
+  credito: "Crédito & Bancos",
 };

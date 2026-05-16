@@ -31,6 +31,7 @@ const VendorPropostasView = lazy(() => import("@/components/vendor/views/VendorP
 const VendorGamificacaoView = lazy(() => import("@/components/vendor/views/VendorGamificacaoView"));
 const VendorLinksView = lazy(() => import("@/components/vendor/views/VendorLinksView"));
 const VendorNotificacoesView = lazy(() => import("@/components/vendor/views/VendorNotificacoesView"));
+const VendorCreditoView = lazy(() => import("@/components/vendor/views/VendorCreditoView"));
 
 export default function VendedorPortal() {
   const { user, loading: authLoading } = useAuth();
@@ -142,6 +143,10 @@ export default function VendedorPortal() {
                   <Route
                     path="notificacoes"
                     element={<VendorNotificacoesView portal={portal} />}
+                  />
+                  <Route
+                    path="credito"
+                    element={<VendorCreditoView />}
                   />
                   <Route path="*" element={<Navigate to={dashboardRedirect} replace />} />
                 </Routes>
