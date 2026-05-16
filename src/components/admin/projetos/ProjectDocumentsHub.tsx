@@ -196,8 +196,10 @@ export function ProjectDocumentsHub({ projetoId, dealId }: Props) {
   const [renamingDoc, setRenamingDoc] = useState<ProjectDocument | null>(null);
   const [newName, setNewName] = useState("");
   const renameMutation = useRenameProjectDocument();
+  const updateCategoryMutation = useUpdateProjectDocumentCategory();
   const [dragOver, setDragOver] = useState(false);
   const [uploading, setUploading] = useState<string[]>([]);
+
   const [selectedCategoria, setSelectedCategoria] = useState<string>("Manual");
   const fileInput = useRef<HTMLInputElement>(null);
 
