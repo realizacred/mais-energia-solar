@@ -490,72 +490,59 @@ export default function SystemHealthPage() {
         </CardContent>
       </Card>
 
-      {/* WhatsApp Integrity Audit */}
-      <Card className={cn(
-        "bg-card border-border shadow-sm",
-        (integrityAudit.duplicate_conversations > 0 || integrityAudit.technical_previews > 0) && "border-destructive/50",
-      )}>
+      {/* Seção 2: Documentos/PDF */}
+      <Card className="bg-card border-border shadow-sm">
         <CardHeader className="flex flex-row items-center justify-between pb-3 border-b border-border">
-          <div className="flex items-center gap-3">
-            <div className={cn(
-              "w-9 h-9 rounded-lg flex items-center justify-center shrink-0",
-              (integrityAudit.duplicate_conversations > 0 || integrityAudit.technical_previews > 0)
-                ? "bg-destructive/10 text-destructive"
-                : "bg-success/10 text-success",
-            )}>
-              <ShieldAlert className="w-5 h-5" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <CardTitle className="text-base font-semibold text-foreground">Integridade WhatsApp</CardTitle>
-                {(integrityAudit.duplicate_conversations > 0 || integrityAudit.technical_previews > 0) && (
-                  <Badge variant="destructive" className="text-xs">CRITICAL</Badge>
-                )}
-                {integrityAudit.duplicate_conversations === 0 && integrityAudit.technical_previews === 0 && integrityAudit.orphan_messages === 0 && !integrityLoading && (
-                  <Badge variant="outline" className="text-xs bg-success/10 text-success border-success/20">OK</Badge>
-                )}
-              </div>
-              <p className="text-sm text-muted-foreground mt-0.5">Verificação de duplicatas, previews técnicos e mensagens órfãs</p>
-            </div>
+          <div>
+            <CardTitle className="text-base font-semibold text-foreground">Documentos & PDFs</CardTitle>
+            <p className="text-sm text-muted-foreground mt-0.5">Status de geração de propostas e contratos</p>
           </div>
+          <FileText className="h-5 w-5 text-muted-foreground" />
         </CardHeader>
         <CardContent className="pt-4">
-          {integrityLoading ? (
-            <div className="space-y-3">
-              {Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-6 w-full" />)}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="p-3 rounded-lg bg-muted/50">
+              <span className="text-xs text-muted-foreground uppercase tracking-wider">Em processamento</span>
+              <p className="text-2xl font-bold mt-1">{docStats.pending}</p>
             </div>
-          ) : (
-            <div className="space-y-3">
-              {[
-                {
-                  label: "Conversas duplicadas",
-                  value: integrityAudit.duplicate_conversations,
-                  variant: integrityAudit.duplicate_conversations > 0 ? "destructive" : "success",
-                  hint: "Mesmo telefone + instância com remote_jid diferente",
-                },
-                {
-                  label: "Previews técnicos residuais",
-                  value: integrityAudit.technical_previews,
-                  variant: integrityAudit.technical_previews > 0 ? "destructive" : "success",
-                  hint: "Previews como [text], [contact], [image] não convertidos",
-                },
-                {
-                  label: "Mensagens órfãs",
-                  value: integrityAudit.orphan_messages,
-                  variant: integrityAudit.orphan_messages > 0 ? "warning" : "success",
-                  hint: "Mensagens sem conversa correspondente",
-                },
-              ].map((item) => (
-                <div key={item.label} className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
-                  <div>
-                    <span className="text-sm text-foreground">{item.label}</span>
-                    <p className="text-xs text-muted-foreground">{item.hint}</p>
-                  </div>
-                  <StatusBadge variant={item.variant as any} dot>{item.value}</StatusBadge>
-                </div>
-              ))}
+            <div className="p-3 rounded-lg bg-muted/50">
+              <span className="text-xs text-muted-foreground uppercase tracking-wider">Falhas</span>
+              <p className={cn("text-2xl font-bold mt-1", docStats.failed > 0 && "text-destructive")}>{docStats.failed}</p>
             </div>
-          )}
+            <div className="p-3 rounded-lg bg-muted/50">
+              <span className="text-xs text-muted-foreground uppercase tracking-wider">Tempo médio</span>
+              <p className="text-2xl font-bold mt-1">{docStats.avgGenTimeMinutes} min</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Seção 5: Saúde do Tenant */}
+      <Card className="bg-card border-border shadow-sm">
+        <CardHeader className="flex flex-row items-center justify-between pb-3 border-b border-border">
+          <div>
+            <CardTitle className="text-base font-semibold text-foreground">Saúde do Tenant (Integridade de Dados)</CardTitle>
+            <p className="text-sm text-muted-foreground mt-0.5">Detecção de órfãos e divergências entre módulos</p>
+          </div>
+          <ShieldAlert className="h-5 w-5 text-muted-foreground" />
+        </CardHeader>
+        <CardContent className="pt-4">
+          <div className="space-y-3">
+            <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
+              <div>
+                <span className="text-sm text-foreground">Propostas Órfãs</span>
+                <p className="text-xs text-muted-foreground">Propostas sem Deal ou Projeto vinculado (lixo de sistema)</p>
+              </div>
+              <StatusBadge variant={tenantHealth.orphanProposals > 0 ? "warning" : "success"} dot>{tenantHealth.orphanProposals}</StatusBadge>
+            </div>
+            <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
+              <div>
+                <span className="text-sm text-foreground">Divergência Comercial/Financeira</span>
+                <p className="text-xs text-muted-foreground">Check de projetos onde comercial difere do faturado</p>
+              </div>
+              <StatusBadge variant="muted" dot>Monitoramento em breve</StatusBadge>
+            </div>
+          </div>
         </CardContent>
       </Card>
 
