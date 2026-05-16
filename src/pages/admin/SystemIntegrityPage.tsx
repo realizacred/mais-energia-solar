@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { 
-  ShieldAlert, ShieldCheck, ShieldInfo, RefreshCw, Filter, 
+  ShieldAlert, ShieldCheck, RefreshCw, Filter, 
   AlertCircle, AlertTriangle, Info, ExternalLink, Database, 
   FileText, DollarSign, MessageSquare, Briefcase, History,
   Search
