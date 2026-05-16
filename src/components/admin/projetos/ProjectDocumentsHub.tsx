@@ -629,6 +629,22 @@ export function ProjectDocumentsHub({ projetoId, dealId }: Props) {
                               <Pencil className="h-3.5 w-3.5 mr-2" />
                               Renomear
                             </DropdownMenuItem>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                                  <Filter className="h-3.5 w-3.5 mr-2" />
+                                  Alterar categoria
+                                </DropdownMenuItem>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent side="left">
+                                <DropdownMenuItem onClick={() => updateCategoryMutation.mutate({ docId: d.id, newCategory: "Identidade" })}>Identidade</DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => updateCategoryMutation.mutate({ docId: d.id, newCategory: "Comprovante de endereço" })}>Comprovante de endereço</DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => updateCategoryMutation.mutate({ docId: d.id, newCategory: "Conta de luz" })}>Conta de luz</DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => updateCategoryMutation.mutate({ docId: d.id, newCategory: "IPTU" })}>IPTU</DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => updateCategoryMutation.mutate({ docId: d.id, newCategory: "Outros" })}>Outros</DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+
                             <DropdownMenuItem
                               className="text-destructive focus:text-destructive"
                               onClick={() => setConfirmDelete(d)}
