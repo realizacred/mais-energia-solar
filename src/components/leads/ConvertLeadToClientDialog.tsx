@@ -179,6 +179,9 @@ export function ConvertLeadToClientDialog({
     return (lead as any)?.valor_projeto ?? 0;
   }, [simulacaoAceitaId, simulacoes, lead]);
 
+  // ── SSOT Financial State §25 ──
+  const finance = useVendaFinanceSnapshot(valorVenda, paymentItems);
+
   // Explicit subscription so programmatic setValue always reflects in the UI
   const localizacaoValue = useWatch({ control: form.control, name: "localizacao" });
 
