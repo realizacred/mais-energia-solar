@@ -13,6 +13,9 @@ import { useBrandSettings } from "@/hooks/useBrandSettings";
 const PORTAL_PREFERENCE_KEY = "preferred_portal";
 const ACCESS_ROLES = ["admin", "gerente", "financeiro", "consultor", "vendedor", "instalador", "super_admin"];
 
+const isMobileDevice = () => /android|iphone|ipad|ipod|mobile/i.test(navigator.userAgent);
+
+
 const features = [
   {
     icon: TrendingDown,
