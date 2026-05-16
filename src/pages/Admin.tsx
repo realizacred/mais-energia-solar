@@ -631,7 +631,8 @@ const AdminRoutes = () => (
     <Route path="meta-config" element={<Navigate to="/admin/meta-facebook-config" replace />} />
     <Route path="google-maps-config" element={<Navigate to="/admin/catalogo-integracoes" replace />} />
     <Route path="ai-config" element={<AiConfigPage />} />
-    
+    <Route path="integracoes/financeiras/eos" element={<EosConfigPage />} />
+
     {/* Site */}
     <Route path="site-config" element={<SiteSettingsUnified />} />
     <Route path="brand" element={<SiteSettingsUnified />} />
