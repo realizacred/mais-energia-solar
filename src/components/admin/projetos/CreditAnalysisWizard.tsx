@@ -2,7 +2,7 @@
  * Reutiliza:
  * - Tabelas: analise_credito, project_documents, credit_bank_configs, credit_bank_checklists, credit_analysis_events
  * - Hooks: useCreateAnaliseCredito, useUpdateAnaliseCredito, useAnaliseCreditoDocumentos, useVincularDocumentoCredito, useProjectDocuments, useCreditBankConfigs, useCreditBankChecklist
- * - Libs: formatBRL, formatDateTime, cn, isValidCPF, isValidCNPJ
+ * - Libs: formatBRL, formatDateTime, cn, isValidCpf, isValidCnpj
  */
 import { useState, useMemo } from "react";
 import { 
@@ -46,7 +46,7 @@ import { useProjectDocuments } from "@/hooks/useProjectDocuments";
 import { useCreditBankConfigs, useCreditBankChecklist } from "@/hooks/useCreditConfigs";
 import { formatBRL } from "@/lib/formatters";
 import { formatDateTime } from "@/lib/dateUtils";
-import { isValidCPF, isValidCNPJ } from "@/lib/validators";
+import { isValidCpf, isValidCnpj, formatCpfCnpj } from "@/lib/cpfCnpjUtils";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";

@@ -147,16 +147,15 @@ export function useCreateAnaliseCredito() {
       // 2. Notify finance managers (DA-48, status engine)
       if (data.status !== 'rascunho') {
         try {
-          await supabase.from("notifications").insert({
-            tenant_id: profile.tenant_id,
-            user_id: null, // Broadcast to managers if needed, or specific user
-            title: "Nova Solicitação de Crédito",
-            message: `Uma nova análise de crédito foi iniciada para o cliente com CPF/CNPJ ${data.cpf_cnpj}.`,
-            type: "credit_request",
-            severity: "info",
-            metadata: { analise_id: data.id, deal_id: data.deal_id },
-            roles_permitidos: ["admin", "gerente", "super_admin"]
-          } as any);
+          await supabase.rpc('create_notification' as any, {
+            p_tenant_id: profile.tenant_id,
+            p_title: "Nova Solicitação de Crédito",
+            p_message: `Uma nova análise de crédito foi iniciada para o cliente com CPF/CNPJ ${data.cpf_cnpj}.`,
+            p_type: "credit_request",
+            p_severity: "info",
+            p_metadata: { analise_id: data.id, deal_id: data.deal_id },
+            p_roles_permitidos: ["admin", "gerente", "super_admin"]
+          });
         } catch (nErr) {
           console.warn("Falha ao enviar notificação de crédito:", nErr);
         }
