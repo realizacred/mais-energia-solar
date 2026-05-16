@@ -45,13 +45,20 @@ interface Props {
 
 export const STATUS_CONFIG: Record<string, { label: string; color: string; icon: any }> = {
   rascunho: { label: "Rascunho", color: "bg-muted text-muted-foreground border-muted/20", icon: Clock },
+  simulada: { label: "Simulada", color: "bg-blue-500/10 text-blue-500 border-blue-500/20", icon: CheckCircle2 },
+  descartada: { label: "Descartada", color: "bg-slate-500/10 text-slate-500 border-slate-500/20", icon: XCircle },
+  convertida_em_analise: { label: "Convertida", color: "bg-success/10 text-success border-success/20", icon: CheckCircle2 },
   pendente_documentos: { label: "Pendente Docs", color: "bg-warning/10 text-warning border-warning/20", icon: FileText },
   pronto_para_envio: { label: "Pronto p/ Envio", color: "bg-info/10 text-info border-info/20", icon: CheckCircle2 },
   enviada_ao_banco: { label: "Enviada ao Banco", color: "bg-primary/10 text-primary border-primary/20", icon: Send },
-  em_analise: { label: "Em Análise", color: "bg-blue-500/10 text-blue-500 border-blue-500/20", icon: History },
+  em_analise: { label: "Em Análise", color: "bg-blue-600/10 text-blue-600 border-blue-600/20", icon: History },
+  pendencia_bancaria: { label: "Pendência Banco", color: "bg-red-500/10 text-red-500 border-red-500/20", icon: AlertCircle },
+  aprovada: { label: "Aprovada", color: "bg-success/10 text-success border-success/20", icon: CheckCircle2 },
   aprovado: { label: "Aprovado", color: "bg-success/10 text-success border-success/20", icon: CheckCircle2 },
   aprovado_com_condicoes: { label: "Aprovado c/ Condições", color: "bg-emerald-500/10 text-emerald-500 border-emerald-500/20", icon: CheckCircle2 },
+  reprovada: { label: "Reprovada", color: "bg-destructive/10 text-destructive border-destructive/20", icon: XCircle },
   reprovado: { label: "Reprovado", color: "bg-destructive/10 text-destructive border-destructive/20", icon: XCircle },
+  cancelada: { label: "Cancelada", color: "bg-slate-500/10 text-slate-500 border-slate-500/20", icon: XCircle },
   cancelado: { label: "Cancelado", color: "bg-slate-500/10 text-slate-500 border-slate-500/20", icon: XCircle },
   pendente: { label: "Pendente", color: "bg-warning/10 text-warning border-warning/20", icon: Clock },
 };
