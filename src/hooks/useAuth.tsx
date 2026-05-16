@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, createContext, useContext, ReactNode, useRef } from "react";
 import { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
+import { useQueryClient } from "@tanstack/react-query";
 import { getPublicUrl } from "@/lib/getPublicUrl";
 import { useTenantGuard, type TenantGuardStatus } from "@/hooks/useTenantGuard";
 
