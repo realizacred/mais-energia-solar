@@ -204,13 +204,18 @@ export function useAnaliseCreditoHistorico(analiseId: string) {
     queryKey: ["analise-credito-historico", analiseId],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("analise_credito_historico")
+        .from("credit_analysis_events")
         .select("*, actor:profiles(nome)")
-        .eq("analise_credito_id", analiseId)
+        .eq("analise_id", analiseId)
         .order("created_at", { ascending: false });
 
       if (error) throw error;
-      return data as any as AnaliseCreditoHistorico[];
+      
+      // Adapt field names if necessary for frontend compatibility
+      return (data || []).map(e => ({
+        ...e,
+        analise_credito_id: e.analise_id
+      })) as any as AnaliseCreditoHistorico[];
     },
     enabled: !!analiseId,
   });
