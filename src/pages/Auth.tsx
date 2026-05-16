@@ -193,7 +193,7 @@ export default function Auth() {
           } else if (isVendedor && !isAdmin && hasVendedorRecord) {
             navigate("/consultor", { replace: true });
           } else if (isAdmin) {
-            navigate("/admin", { replace: true });
+            navigate(isMobileDevice() ? "/sistema" : "/admin", { replace: true });
           }
         } catch (error) {
           clearTimeout(timeoutId);
