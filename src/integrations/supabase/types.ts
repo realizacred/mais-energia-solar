@@ -30559,6 +30559,10 @@ export type Database = {
         Returns: Json
       }
       check_phone_duplicate: { Args: { _telefone: string }; Returns: boolean }
+      check_proposal_dependencies: {
+        Args: { p_proposta_id: string }
+        Returns: string[]
+      }
       check_proposta_projeto_deal_consistency: {
         Args: never
         Returns: {
