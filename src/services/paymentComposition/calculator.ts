@@ -147,8 +147,8 @@ export function validateComposition(
     }
     
     if (FORMAS_PARCELAVEIS.includes(item.forma_pagamento) && item.parcelas > 1) {
-      if (!item.data_primeiro_vencimento) {
-        errors.push(`${prefix}: Falta definir a data da primeira parcela do financiamento.`);
+      if (!item.data_primeiro_vencimento && !item.data_pagamento) {
+        errors.push(`${prefix}: Falta definir a data do primeiro vencimento ou pagamento.`);
       }
     }
 
