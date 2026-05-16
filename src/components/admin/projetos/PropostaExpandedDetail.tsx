@@ -1733,7 +1733,7 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
               <AlertDialogTitle>Excluir proposta</AlertDialogTitle>
             </div>
             <AlertDialogDescription>
-              Esta proposta será removida da listagem. O histórico de envios e visualizações será preservado.
+              Atenção: Propostas com movimentações financeiras (vendas, recebimentos ou comissões) ou obras vinculadas não podem ser excluídas. Deseja prosseguir com a exclusão?
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
