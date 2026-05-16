@@ -28,7 +28,17 @@ import {
   Loader2,
   Plus,
   Filter,
+  Pencil,
+  Info,
 } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -66,12 +76,17 @@ import {
   useProjectDocuments,
   useUploadProjectDocument,
   useDeleteProjectDocument,
+  useRenameProjectDocument,
+  useUpdateProjectDocumentCategory,
   type ProjectDocument,
   type ProjectDocumentOrigem,
 } from "@/hooks/useProjectDocuments";
+
 import { useProjetoArquivos, useDeletarArquivo } from "@/hooks/useProjetoDocumentos";
 import { useProjetoCustomFieldFiles } from "@/hooks/useProjetoCustomFieldFiles";
 import { normalizeFilename, logicalSuffix } from "@/lib/documentDedup";
+
+
 
 interface Props {
   projetoId?: string | null;
@@ -122,7 +137,7 @@ function formatSize(bytes?: number | null) {
 
 
 /** Normaliza nome de categoria para evitar duplicação visual ("CAMPO: X" vs "X"). */
-function normalizeCategoria(raw?: string | null): string {
+export function resolveDocumentCategory(raw?: string | null): string {
   if (!raw) return "Outros";
   let c = raw.trim().replace(/^campo[:\s]+/i, "");
   const slug = c
@@ -131,6 +146,7 @@ function normalizeCategoria(raw?: string | null): string {
     .replace(/[\u0300-\u036f]/g, "")
     .replace(/[^a-z0-9]+/g, "_")
     .replace(/^_+|_+$/g, "");
+    
   const ALIASES: Record<string, string> = {
     identidade: "Identidade",
     rg: "Identidade",
@@ -145,15 +161,25 @@ function normalizeCategoria(raw?: string | null): string {
     art: "ART",
     contrato: "Contrato",
     proposta: "Proposta",
-    anexos_manuais: "Anexos manuais",
+    anexos_manuais: "Outros",
+    transformador: "Transformador",
+    disjuntor: "Disjuntor",
+    wi_fi: "Wi-Fi",
+    localizacao: "Localização",
+    equipamento: "Equipamento",
   };
+  
   if (ALIASES[slug]) return ALIASES[slug];
-  // title case fallback
+  
+  // Title case fallback
   return c
     .split(/\s+/)
     .map((w) => (w ? w[0].toUpperCase() + w.slice(1).toLowerCase() : w))
     .join(" ");
 }
+
+const normalizeCategoria = resolveDocumentCategory;
+
 
 export function ProjectDocumentsHub({ projetoId, dealId }: Props) {
   const { data: canonicalDocs = [], isLoading } = useProjectDocuments({ projetoId, dealId });
@@ -167,10 +193,16 @@ export function ProjectDocumentsHub({ projetoId, dealId }: Props) {
   const [origemFilter, setOrigemFilter] = useState<string>("all");
   const [preview, setPreview] = useState<FilePreviewTarget | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<ProjectDocument | null>(null);
+  const [renamingDoc, setRenamingDoc] = useState<ProjectDocument | null>(null);
+  const [newName, setNewName] = useState("");
+  const renameMutation = useRenameProjectDocument();
+  const updateCategoryMutation = useUpdateProjectDocumentCategory();
   const [dragOver, setDragOver] = useState(false);
   const [uploading, setUploading] = useState<string[]>([]);
+
   const [selectedCategoria, setSelectedCategoria] = useState<string>("Manual");
   const fileInput = useRef<HTMLInputElement>(null);
+
 
   // Cache buster: ao montar/trocar projeto/deal, invalida as 3 fontes para
   // refletir imediatamente a nova lógica de dedup semântico (sem esperar
@@ -194,44 +226,15 @@ export function ProjectDocumentsHub({ projetoId, dealId }: Props) {
   const docs = useMemo<ProjectDocument[]>(() => {
     const out: ProjectDocument[] = [];
     const byPath = new Map<string, ProjectDocument>();
-    const byFn = new Map<string, ProjectDocument>();
-    const byLogical = new Map<string, ProjectDocument>();
-
-    const scopeOf = (d: { deal_id?: string | null; projeto_id?: string | null }) =>
-      d.deal_id || d.projeto_id || dealId || projetoId || "";
-    const fnKey = (scope: string, name: string) => `${scope}::${normalizeFilename(name)}`;
-    const fnSizeKey = (scope: string, name: string, size: number | null) =>
-      `${scope}::${normalizeFilename(name)}::${size ?? ""}`;
-    const logicalKey = (scope: string, name: string, mime: string | null) => {
-      const suf = logicalSuffix(name);
-      const ext = (name.split(".").pop() || "").toLowerCase();
-      return `${scope}::${suf}::${mime || ext || ""}`;
-    };
-
-    const findExisting = (scope: string, name: string, size: number | null, mime: string | null) =>
-      byFn.get(fnKey(scope, name)) ||
-      (size != null ? byFn.get(fnSizeKey(scope, name, size)) : undefined) ||
-      byLogical.get(logicalKey(scope, name, mime));
-
-    const indexAll = (item: ProjectDocument) => {
-      const scope = scopeOf(item);
-      byPath.set(`${item.bucket}::${item.storage_path}`, item);
-      byFn.set(fnKey(scope, item.file_name), item);
-      if (item.size_bytes != null) byFn.set(fnSizeKey(scope, item.file_name, item.size_bytes), item);
-      byLogical.set(logicalKey(scope, item.file_name, item.mime_type), item);
-    };
 
     // 1) project_documents — SSOT visual
     for (const d of canonicalDocs) {
       const norm: ProjectDocument = { ...d, categoria: normalizeCategoria(d.categoria) };
-      const scope = scopeOf(norm);
-      // dedup intra-canônico (mesmo arquivo lógico apareceu em duas rows pd)
-      const dup =
-        byPath.get(`${norm.bucket}::${norm.storage_path}`) ||
-        findExisting(scope, norm.file_name, norm.size_bytes, norm.mime_type);
+      // dedup apenas por path físico para não duplicar se vier de fontes diferentes apontando pro mesmo arquivo
+      const dup = byPath.get(`${norm.bucket}::${norm.storage_path}`);
       if (dup) continue;
       out.push(norm);
-      indexAll(norm);
+      byPath.set(`${norm.bucket}::${norm.storage_path}`, norm);
     }
 
     // 2) Legacy bucket scan
@@ -239,14 +242,8 @@ export function ProjectDocumentsHub({ projetoId, dealId }: Props) {
       if (!f.id || !f.metadata) continue;
       const path = `legacy/${dealId}/${f.name}`;
       const fname = f.name.replace(/^\d+_/, "");
-      const size = f.metadata?.size || null;
-      const mime = f.metadata?.mimetype || null;
-      const scope = dealId || projetoId || "";
-      if (
-        byPath.get(`projeto-documentos::${path}`) ||
-        findExisting(scope, fname, size, mime)
-      )
-        continue;
+      if (byPath.get(`projeto-documentos::${path}`)) continue;
+      
       const item: ProjectDocument = {
         id: `legacy:${f.name}`,
         tenant_id: "",
@@ -254,13 +251,14 @@ export function ProjectDocumentsHub({ projetoId, dealId }: Props) {
         deal_id: dealId || null,
         proposta_id: null,
         cliente_id: null,
-        categoria: "Anexos manuais",
+        categoria: "Outros",
+        display_name: null,
         origem: "legacy",
         bucket: "projeto-documentos",
         storage_path: path,
         file_name: fname,
-        mime_type: mime,
-        size_bytes: size,
+        mime_type: f.metadata?.mimetype || null,
+        size_bytes: f.metadata?.size || null,
         uploaded_by: null,
         metadata: { _legacyName: f.name },
         source_table: "storage",
@@ -270,45 +268,23 @@ export function ProjectDocumentsHub({ projetoId, dealId }: Props) {
         updated_at: f.created_at || new Date().toISOString(),
       };
       out.push(item);
-      indexAll(item);
+      byPath.set(`projeto-documentos::${path}`, item);
     }
 
-    // 3) Custom field files — preferir enriquecer + canonicalizar bucket
+    // 3) Custom field files
     for (const cf of cfFiles) {
-      const scope = dealId || projetoId || "";
-      const pathKey = `projeto-documentos::${cf.storage_path}`;
-      const existing =
-        byPath.get(pathKey) ||
-        findExisting(scope, cf.filename, cf.size ?? null, cf.mime || null);
-      if (existing) {
-        // Enriquece metadado + categoria + canonicaliza bucket/path para download
+      if (byPath.get(`projeto-documentos::${cf.storage_path}`)) {
+        const existing = byPath.get(`projeto-documentos::${cf.storage_path}`)!;
         existing.metadata = {
           ...(existing.metadata || {}),
           field_id: cf.field_id,
           field_key: cf.field_key,
           field_title: cf.field_title,
-          _alt_sources: [
-            ...(((existing.metadata as any)?._alt_sources as any[]) || []),
-            { bucket: existing.bucket, storage_path: existing.storage_path },
-          ],
+          is_custom_field: true,
         };
-        if (
-          !existing.categoria ||
-          existing.categoria === "Outros" ||
-          existing.categoria === "Anexos manuais"
-        ) {
-          existing.categoria = normalizeCategoria(cf.field_title);
-        }
-        // Se a row pd está em bucket legacy `project-documents` e o cf
-        // entrega arquivo no canônico `projeto-documentos`, prefere o canônico.
-        if (existing.bucket !== "projeto-documentos") {
-          existing.bucket = "projeto-documentos";
-          existing.storage_path = cf.storage_path;
-          if (existing.mime_type == null) existing.mime_type = cf.mime || null;
-          if (existing.size_bytes == null) existing.size_bytes = cf.size || null;
-        }
         continue;
       }
+      
       const item: ProjectDocument = {
         id: `cf:${cf.field_id}:${cf.storage_path}`,
         tenant_id: "",
@@ -317,6 +293,7 @@ export function ProjectDocumentsHub({ projetoId, dealId }: Props) {
         proposta_id: null,
         cliente_id: null,
         categoria: normalizeCategoria(cf.field_title),
+        display_name: null,
         origem: "custom_field",
         bucket: "projeto-documentos",
         storage_path: cf.storage_path,
@@ -324,7 +301,7 @@ export function ProjectDocumentsHub({ projetoId, dealId }: Props) {
         mime_type: cf.mime || null,
         size_bytes: cf.size || null,
         uploaded_by: null,
-        metadata: { field_id: cf.field_id, field_key: cf.field_key, field_title: cf.field_title },
+        metadata: { field_id: cf.field_id, field_key: cf.field_key, field_title: cf.field_title, is_custom_field: true },
         source_table: "deal_custom_field_values",
         source_id: cf.field_id,
         is_deleted: false,
@@ -332,11 +309,12 @@ export function ProjectDocumentsHub({ projetoId, dealId }: Props) {
         updated_at: cf.uploaded_at || new Date().toISOString(),
       };
       out.push(item);
-      indexAll(item);
+      byPath.set(`projeto-documentos::${cf.storage_path}`, item);
     }
 
     return out.sort((a, b) => b.created_at.localeCompare(a.created_at));
   }, [canonicalDocs, legacyFiles, cfFiles, dealId, projetoId]);
+
 
   const filtered = useMemo(() => {
     const s = search.toLowerCase().trim();
@@ -600,12 +578,23 @@ export function ProjectDocumentsHub({ projetoId, dealId }: Props) {
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <p className="text-sm font-medium text-foreground truncate">{d.file_name}</p>
+                          <p className="text-sm font-medium text-foreground truncate">
+                            {d.display_name || d.file_name}
+                          </p>
                           <Badge variant="outline" className={cn("text-[10px] py-0 px-1.5", ORIGEM_COLOR[d.origem])}>
                             {ORIGEM_LABEL[d.origem]}
                           </Badge>
+                          {(d.metadata as any)?.is_custom_field && (
+                            <Badge variant="secondary" className="text-[10px] py-0 px-1.5 gap-1">
+                              <Info className="h-3 w-3" />
+                              Campo customizado
+                            </Badge>
+                          )}
                         </div>
                         <p className="text-[11px] text-muted-foreground mt-0.5">
+                          {d.display_name ? (
+                            <span className="text-[10px] italic mr-2 opacity-70">({d.file_name})</span>
+                          ) : null}
                           {formatSize(d.size_bytes)} •{" "}
                           {formatDateTime(d.created_at, {
                             day: "2-digit",
@@ -631,6 +620,32 @@ export function ProjectDocumentsHub({ projetoId, dealId }: Props) {
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
                             <DropdownMenuItem
+                              onClick={() => {
+                                setRenamingDoc(d);
+                                setNewName(d.display_name || d.file_name.split('.').slice(0, -1).join('.'));
+                              }}
+                              disabled={d.id.startsWith("legacy:") || d.id.startsWith("cf:")}
+                            >
+                              <Pencil className="h-3.5 w-3.5 mr-2" />
+                              Renomear
+                            </DropdownMenuItem>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                                  <Filter className="h-3.5 w-3.5 mr-2" />
+                                  Alterar categoria
+                                </DropdownMenuItem>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent side="left">
+                                <DropdownMenuItem onClick={() => updateCategoryMutation.mutate({ docId: d.id, newCategory: "Identidade" })}>Identidade</DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => updateCategoryMutation.mutate({ docId: d.id, newCategory: "Comprovante de endereço" })}>Comprovante de endereço</DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => updateCategoryMutation.mutate({ docId: d.id, newCategory: "Conta de luz" })}>Conta de luz</DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => updateCategoryMutation.mutate({ docId: d.id, newCategory: "IPTU" })}>IPTU</DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => updateCategoryMutation.mutate({ docId: d.id, newCategory: "Outros" })}>Outros</DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+
+                            <DropdownMenuItem
                               className="text-destructive focus:text-destructive"
                               onClick={() => setConfirmDelete(d)}
                               disabled={d.origem !== "manual" && d.origem !== "legacy"}
@@ -641,6 +656,7 @@ export function ProjectDocumentsHub({ projetoId, dealId }: Props) {
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </div>
+
                     </Card>
                   );
                 })}
@@ -652,12 +668,57 @@ export function ProjectDocumentsHub({ projetoId, dealId }: Props) {
 
       <FilePreviewModal target={preview} onClose={() => setPreview(null)} />
 
+      <Dialog open={!!renamingDoc} onOpenChange={(o) => !o && setRenamingDoc(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Renomear documento</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Nome original</Label>
+              <Input value={renamingDoc?.file_name || ""} disabled className="bg-muted" />
+            </div>
+            <div className="space-y-2">
+              <Label>Novo nome</Label>
+              <Input
+                value={newName}
+                onChange={(e) => setNewName(e.target.value)}
+                placeholder="Ex: Comprovante de Endereço - Luiz Alberto"
+                maxLength={120}
+                autoFocus
+              />
+              <p className="text-[10px] text-muted-foreground">
+                A extensão do arquivo será preservada automaticamente.
+              </p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setRenamingDoc(null)}>
+              Cancelar
+            </Button>
+            <Button
+              onClick={async () => {
+                if (!renamingDoc || !newName.trim()) return;
+                const ext = renamingDoc.file_name.split('.').pop();
+                const finalName = `${newName.trim()}.${ext}`;
+                await renameMutation.mutateAsync({ docId: renamingDoc.id, newName: finalName });
+                setRenamingDoc(null);
+              }}
+              disabled={renameMutation.isPending || !newName.trim()}
+            >
+              {renameMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+              Salvar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <AlertDialog open={!!confirmDelete} onOpenChange={(o) => !o && setConfirmDelete(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Excluir documento?</AlertDialogTitle>
             <AlertDialogDescription>
-              "{confirmDelete?.file_name}" será removido permanentemente. Esta ação não pode ser desfeita.
+              "{confirmDelete?.display_name || confirmDelete?.file_name}" será removido permanentemente. Esta ação não pode ser desfeita.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -676,3 +737,4 @@ export function ProjectDocumentsHub({ projetoId, dealId }: Props) {
     </div>
   );
 }
+

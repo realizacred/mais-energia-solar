@@ -17009,6 +17009,7 @@ export type Database = {
           created_at: string
           deal_id: string | null
           deleted_at: string | null
+          display_name: string | null
           file_name: string
           id: string
           is_deleted: boolean
@@ -17033,6 +17034,7 @@ export type Database = {
           created_at?: string
           deal_id?: string | null
           deleted_at?: string | null
+          display_name?: string | null
           file_name: string
           id?: string
           is_deleted?: boolean
@@ -17057,6 +17059,7 @@ export type Database = {
           created_at?: string
           deal_id?: string | null
           deleted_at?: string | null
+          display_name?: string | null
           file_name?: string
           id?: string
           is_deleted?: boolean

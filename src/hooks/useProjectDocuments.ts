@@ -31,6 +31,7 @@ export interface ProjectDocument {
   proposta_id: string | null;
   cliente_id: string | null;
   categoria: string | null;
+  display_name: string | null;
   origem: ProjectDocumentOrigem;
   bucket: string;
   storage_path: string;
@@ -45,6 +46,7 @@ export interface ProjectDocument {
   created_at: string;
   updated_at: string;
 }
+
 
 export interface UseProjectDocumentsParams {
   projetoId?: string | null;
@@ -202,5 +204,67 @@ export function useDeleteProjectDocument() {
     },
     onError: (e: any) =>
       toast({ title: "Erro ao remover", description: e.message, variant: "destructive" }),
+  });
+}
+
+/** Renomeia documento (apenas display_name). */
+export function useRenameProjectDocument() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ docId, newName }: { docId: string; newName: string }) => {
+      const { tenantId, userId } = await getCurrentTenantId();
+      
+      const { error } = await supabase
+        .from("project_documents" as any)
+        .update({ display_name: newName, updated_at: new Date().toISOString() })
+        .eq("id", docId);
+        
+      if (error) throw error;
+      
+      await supabase.from("project_document_events" as any).insert({
+        tenant_id: tenantId,
+        document_id: docId,
+        event: "rename",
+        actor_id: userId,
+        metadata: { new_name: newName },
+      });
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["project-documents"] });
+      toast({ title: "Documento renomeado" });
+    },
+    onError: (e: any) =>
+      toast({ title: "Erro ao renomear", description: e.message, variant: "destructive" }),
+  });
+}
+
+/** Altera categoria do documento. */
+export function useUpdateProjectDocumentCategory() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ docId, newCategory }: { docId: string; newCategory: string }) => {
+      const { tenantId, userId } = await getCurrentTenantId();
+      
+      const { error } = await supabase
+        .from("project_documents" as any)
+        .update({ categoria: newCategory, updated_at: new Date().toISOString() })
+        .eq("id", docId);
+        
+      if (error) throw error;
+      
+      await supabase.from("project_document_events" as any).insert({
+        tenant_id: tenantId,
+        document_id: docId,
+        event: "category_change",
+        actor_id: userId,
+        metadata: { new_category: newCategory },
+      });
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["project-documents"] });
+      toast({ title: "Categoria atualizada" });
+    },
+    onError: (e: any) =>
+      toast({ title: "Erro ao atualizar categoria", description: e.message, variant: "destructive" }),
   });
 }
