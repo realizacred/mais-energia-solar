@@ -107,12 +107,15 @@ export function useCreditSimulations(projectId?: string | null) {
 export function useCreateCreditSimulation() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (values: Partial<CreditSimulation>) => {
+    mutationFn: async (values: Partial<CreditSimulation> & { idempotency_key?: string }) => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Não autenticado");
 
       const { data: profile } = await supabase.from("profiles").select("tenant_id").eq("user_id", user.id).single();
       if (!profile?.tenant_id) throw new Error("Tenant não encontrado");
+
+      const correlation_id = crypto.randomUUID();
+      const idempotency_key = values.idempotency_key || `sim_${Date.now()}_${user.id}`;
 
       const { data, error } = await supabase
         .from("credit_simulations")
@@ -126,7 +129,7 @@ export function useCreateCreditSimulation() {
 
       if (error) throw error;
 
-      // Log Event
+      // Log Event with Bank Operations Core standards
       await supabase.from("credit_analysis_events").insert({
         tenant_id: profile.tenant_id,
         simulation_id: data.id,
@@ -134,10 +137,12 @@ export function useCreateCreditSimulation() {
         event_type: 'simulation_created',
         actor_id: user.id,
         status_novo: data.status,
-        payload: data
+        payload: data,
+        correlation_id,
+        idempotency_key: `evt_${idempotency_key}`
       } as any);
 
-      return data;
+      return { ...data, correlation_id };
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["credit-simulations"] });
@@ -150,6 +155,8 @@ export function useConvertSimulationToAnalysis() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (simulationId: string) => {
+      const correlation_id = crypto.randomUUID();
+      
       const { data: sim, error: simError } = await supabase
         .from("credit_simulations")
         .select("*")
@@ -187,7 +194,7 @@ export function useConvertSimulationToAnalysis() {
         .update({ status: 'convertida_em_analise' } as any)
         .eq("id", sim.id);
 
-      // Log Event
+      // Log Event with Correlation and Idempotency
       await supabase.from("credit_analysis_events").insert({
         tenant_id: sim.tenant_id,
         analise_id: analysis.id,
@@ -196,10 +203,12 @@ export function useConvertSimulationToAnalysis() {
         event_type: 'analysis_created',
         actor_id: user?.id,
         status_novo: 'pendente_documentos',
-        payload: { simulation: sim, analysis }
+        payload: { simulation: sim, analysis },
+        correlation_id,
+        idempotency_key: `conv_${simulationId}`
       } as any);
 
-      return analysis;
+      return { ...analysis, correlation_id };
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["credit-simulations"] });
