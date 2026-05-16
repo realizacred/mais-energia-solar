@@ -34,6 +34,14 @@ export interface TenantHealthStats {
   commercialFinancialDrift: number;
 }
 
+export interface EnterpriseJobStats {
+  pending: number;
+  processing: number;
+  failed: number;
+  completed: number;
+  avgLatencyMs: number;
+}
+
 export function useSystemHealth() {
   // 1. Integration health cache
   const { data: integrations = [], isLoading: loadingIntegrations } = useQuery({
