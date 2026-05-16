@@ -1474,9 +1474,9 @@ export function ConvertLeadToClientDialog({
                 )}
               </div>
 
-              <div className="flex items-center gap-2">
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
                 {currentStep < STEPS.length - 1 ? (
-                  <Button type="button" onClick={handleNext}>
+                  <Button type="button" onClick={handleNext} className="w-full sm:w-auto h-11 sm:h-9">
                     Próximo <ChevronRight className="w-4 h-4 ml-1" />
                   </Button>
                 ) : (
@@ -1484,6 +1484,7 @@ export function ConvertLeadToClientDialog({
                     <Button
                       type="button"
                       variant="outline"
+                      className="w-full sm:w-auto h-11 sm:h-9"
                       onClick={() => {
                         if (aguardandoStatusAvailable === false) {
                           toast({
@@ -1500,11 +1501,12 @@ export function ConvertLeadToClientDialog({
                       {savingAsLead ? (
                         <><Spinner size="sm" /> Salvando...</>
                       ) : (
-                        <><Save className="mr-2 h-4 w-4" /> Aguardando Documentação</>
+                        <><Save className="mr-2 h-4 w-4" /> Aguardar Docs</>
                       )}
                     </Button>
                     <Button
                       type="button"
+                      className="w-full sm:w-auto h-11 sm:h-9"
                       disabled={loading || savingAsLead}
                       onClick={async () => {
                         const valid = await form.trigger();
