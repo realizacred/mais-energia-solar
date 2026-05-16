@@ -12,7 +12,9 @@ import {
   Calendar,
   Send,
   Eye,
-  Edit2
+  Edit2,
+  AlertCircle,
+  ArrowRight
 } from "lucide-react";
 import { 
   useAnaliseCredito, 
@@ -34,6 +36,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { CreditAnalysisWizard } from "./CreditAnalysisWizard";
+import { useCreditSimulations } from "@/hooks/useCreditDomain";
 
 interface Props {
   dealId?: string | null;
@@ -45,13 +48,20 @@ interface Props {
 
 export const STATUS_CONFIG: Record<string, { label: string; color: string; icon: any }> = {
   rascunho: { label: "Rascunho", color: "bg-muted text-muted-foreground border-muted/20", icon: Clock },
+  simulada: { label: "Simulada", color: "bg-blue-500/10 text-blue-500 border-blue-500/20", icon: CheckCircle2 },
+  descartada: { label: "Descartada", color: "bg-slate-500/10 text-slate-500 border-slate-500/20", icon: XCircle },
+  convertida_em_analise: { label: "Convertida", color: "bg-success/10 text-success border-success/20", icon: CheckCircle2 },
   pendente_documentos: { label: "Pendente Docs", color: "bg-warning/10 text-warning border-warning/20", icon: FileText },
   pronto_para_envio: { label: "Pronto p/ Envio", color: "bg-info/10 text-info border-info/20", icon: CheckCircle2 },
   enviada_ao_banco: { label: "Enviada ao Banco", color: "bg-primary/10 text-primary border-primary/20", icon: Send },
-  em_analise: { label: "Em Análise", color: "bg-blue-500/10 text-blue-500 border-blue-500/20", icon: History },
+  em_analise: { label: "Em Análise", color: "bg-blue-600/10 text-blue-600 border-blue-600/20", icon: History },
+  pendencia_bancaria: { label: "Pendência Banco", color: "bg-red-500/10 text-red-500 border-red-500/20", icon: AlertCircle },
+  aprovada: { label: "Aprovada", color: "bg-success/10 text-success border-success/20", icon: CheckCircle2 },
   aprovado: { label: "Aprovado", color: "bg-success/10 text-success border-success/20", icon: CheckCircle2 },
   aprovado_com_condicoes: { label: "Aprovado c/ Condições", color: "bg-emerald-500/10 text-emerald-500 border-emerald-500/20", icon: CheckCircle2 },
+  reprovada: { label: "Reprovada", color: "bg-destructive/10 text-destructive border-destructive/20", icon: XCircle },
   reprovado: { label: "Reprovado", color: "bg-destructive/10 text-destructive border-destructive/20", icon: XCircle },
+  cancelada: { label: "Cancelada", color: "bg-slate-500/10 text-slate-500 border-slate-500/20", icon: XCircle },
   cancelado: { label: "Cancelado", color: "bg-slate-500/10 text-slate-500 border-slate-500/20", icon: XCircle },
   pendente: { label: "Pendente", color: "bg-warning/10 text-warning border-warning/20", icon: Clock },
 };
@@ -62,6 +72,7 @@ export function ProjetoCreditoTab({ dealId, leadId, clienteId, clienteCpfCnpj, v
   const canManage = isAdmin || isGerente;
   
   const { data: analises, isLoading } = useAnaliseCredito(dealId, leadId);
+  const { data: simulations } = useCreditSimulations(dealId || leadId);
   const updateMutation = useUpdateAnaliseCredito();
   const [isWizardOpen, setIsWizardOpen] = useState(false);
   const [editingAnalise, setEditingAnalise] = useState<AnaliseCredito | undefined>(undefined);
@@ -99,9 +110,14 @@ export function ProjetoCreditoTab({ dealId, leadId, clienteId, clienteCpfCnpj, v
             Gerencie as solicitações de financiamento e crédito para este projeto.
           </p>
         </div>
-        <Button onClick={handleNewAnalysis} className="gap-2 shadow-sm">
-          <Plus className="h-4 w-4" /> Nova Análise
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => setIsWizardOpen(true)} className="gap-2 shadow-sm">
+            <Plus className="h-4 w-4" /> Nova Simulação
+          </Button>
+          <Button onClick={handleNewAnalysis} className="gap-2 shadow-sm">
+            <Plus className="h-4 w-4" /> Nova Análise
+          </Button>
+        </div>
       </div>
 
       {latestAnalise && (
@@ -133,10 +149,50 @@ export function ProjetoCreditoTab({ dealId, leadId, clienteId, clienteCpfCnpj, v
         </div>
       )}
 
+      {/* New Simulations Section */}
+      {simulations && simulations.length > 0 && (
+        <div className="space-y-4">
+          <h4 className="text-sm font-bold text-muted-foreground flex items-center gap-2">
+            <Clock className="h-4 w-4" /> Simulações Comerciais
+          </h4>
+          <div className="grid gap-3">
+            {simulations.map((sim) => {
+              const config = STATUS_CONFIG[sim.status] || STATUS_CONFIG.rascunho;
+              return (
+                <Card key={sim.id} className="group hover:border-blue-400 transition-colors shadow-sm overflow-hidden border-l-4 border-l-blue-400">
+                  <CardContent className="p-4 flex items-center justify-between">
+                    <div className="flex gap-4 items-center">
+                      <div className={cn("w-10 h-10 rounded-full flex items-center justify-center shrink-0 shadow-inner", config.color)}>
+                        <config.icon className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-bold">{sim.cliente_nome || "Simulação"}</span>
+                          <Badge variant="outline" className={cn("text-[9px] uppercase", config.color)}>{config.label}</Badge>
+                        </div>
+                        <p className="text-xs text-muted-foreground">{formatDateTime(sim.created_at)}</p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-bold text-primary">{formatBRL(sim.valor_solicitado || 0)}</p>
+                      <Button variant="ghost" size="sm" className="h-7 text-[10px] gap-1 px-2">
+                        Converter <ArrowRight className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       {analises && analises.length > 0 ? (
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <h4 className="text-sm font-medium text-muted-foreground">Histórico de Solicitações</h4>
+            <h4 className="text-sm font-bold text-muted-foreground flex items-center gap-2">
+              <History className="h-4 w-4" /> Histórico de Solicitações Reais
+            </h4>
           </div>
           <div className="grid gap-3">
             {analises.map((analise) => {
@@ -234,22 +290,27 @@ export function ProjetoCreditoTab({ dealId, leadId, clienteId, clienteCpfCnpj, v
             })}
           </div>
         </div>
-      ) : (
+      ) : !simulations?.length ? (
         <Card className="border-dashed bg-muted/20">
           <CardContent className="flex flex-col items-center justify-center py-16 text-center">
             <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-4">
               <CreditCard className="w-8 h-8 text-primary" />
             </div>
-            <h4 className="text-lg font-semibold">Sem análises registradas</h4>
+            <h4 className="text-lg font-semibold">Sem registros de crédito</h4>
             <p className="text-sm text-muted-foreground mt-2 max-w-[300px]">
-              Este projeto ainda não possui nenhuma solicitação de crédito. Inicie uma agora para acelerar o fechamento.
+              Este projeto ainda não possui nenhuma simulação ou solicitação de crédito.
             </p>
-            <Button onClick={handleNewAnalysis} className="mt-6 gap-2">
-              <Plus className="h-4 w-4" /> Nova Análise de Crédito
-            </Button>
+            <div className="flex gap-2 mt-6">
+              <Button variant="outline" onClick={() => setIsWizardOpen(true)} className="gap-2">
+                <Plus className="h-4 w-4" /> Nova Simulação
+              </Button>
+              <Button onClick={handleNewAnalysis} className="gap-2">
+                <Plus className="h-4 w-4" /> Nova Análise
+              </Button>
+            </div>
           </CardContent>
         </Card>
-      )}
+      ) : null}
 
       {isWizardOpen && (
         <CreditAnalysisWizard

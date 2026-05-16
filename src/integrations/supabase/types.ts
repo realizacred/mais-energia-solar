@@ -401,7 +401,11 @@ export type Database = {
           renda_mensal: number | null
           responsavel_id: string | null
           score_credito: number | null
+          simulation_id: string | null
+          sla_vencimento: string | null
+          snapshot_data: Json | null
           status: string
+          status_detalhado: string | null
           taxa_juros: number | null
           tenant_id: string
           tipo_pessoa: string | null
@@ -428,7 +432,11 @@ export type Database = {
           renda_mensal?: number | null
           responsavel_id?: string | null
           score_credito?: number | null
+          simulation_id?: string | null
+          sla_vencimento?: string | null
+          snapshot_data?: Json | null
           status?: string
+          status_detalhado?: string | null
           taxa_juros?: number | null
           tenant_id: string
           tipo_pessoa?: string | null
@@ -455,7 +463,11 @@ export type Database = {
           renda_mensal?: number | null
           responsavel_id?: string | null
           score_credito?: number | null
+          simulation_id?: string | null
+          sla_vencimento?: string | null
+          snapshot_data?: Json | null
           status?: string
+          status_detalhado?: string | null
           taxa_juros?: number | null
           tenant_id?: string
           tipo_pessoa?: string | null
@@ -497,6 +509,13 @@ export type Database = {
             columns: ["lead_id"]
             isOneToOne: false
             referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "analise_credito_simulation_id_fkey"
+            columns: ["simulation_id"]
+            isOneToOne: false
+            referencedRelation: "credit_simulations"
             referencedColumns: ["id"]
           },
           {
@@ -3592,6 +3611,80 @@ export type Database = {
           },
         ]
       }
+      credit_analysis_events: {
+        Row: {
+          actor_id: string | null
+          analise_id: string | null
+          created_at: string | null
+          event_type: string
+          id: string
+          observacoes: string | null
+          payload: Json | null
+          projeto_id: string | null
+          simulation_id: string | null
+          status_anterior: string | null
+          status_novo: string | null
+          tenant_id: string
+        }
+        Insert: {
+          actor_id?: string | null
+          analise_id?: string | null
+          created_at?: string | null
+          event_type: string
+          id?: string
+          observacoes?: string | null
+          payload?: Json | null
+          projeto_id?: string | null
+          simulation_id?: string | null
+          status_anterior?: string | null
+          status_novo?: string | null
+          tenant_id: string
+        }
+        Update: {
+          actor_id?: string | null
+          analise_id?: string | null
+          created_at?: string | null
+          event_type?: string
+          id?: string
+          observacoes?: string | null
+          payload?: Json | null
+          projeto_id?: string | null
+          simulation_id?: string | null
+          status_anterior?: string | null
+          status_novo?: string | null
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "credit_analysis_events_analise_id_fkey"
+            columns: ["analise_id"]
+            isOneToOne: false
+            referencedRelation: "analise_credito"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "credit_analysis_events_projeto_id_fkey"
+            columns: ["projeto_id"]
+            isOneToOne: false
+            referencedRelation: "deals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "credit_analysis_events_simulation_id_fkey"
+            columns: ["simulation_id"]
+            isOneToOne: false
+            referencedRelation: "credit_simulations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "credit_analysis_events_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       credit_bank_checklists: {
         Row: {
           applicable_to: string | null
@@ -3677,6 +3770,101 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: []
+      }
+      credit_simulations: {
+        Row: {
+          banco_id: string | null
+          cliente_nome: string | null
+          cpf_cnpj: string | null
+          created_at: string | null
+          criado_por: string | null
+          id: string
+          lead_id: string | null
+          observacoes: string | null
+          prazo_meses: number | null
+          projeto_id: string | null
+          renda_mensal: number | null
+          snapshot_proposta: Json | null
+          status: string
+          taxa_juros_estimada: number | null
+          tenant_id: string
+          tipo_pessoa: string | null
+          updated_at: string | null
+          valor_entrada: number | null
+          valor_solicitado: number | null
+        }
+        Insert: {
+          banco_id?: string | null
+          cliente_nome?: string | null
+          cpf_cnpj?: string | null
+          created_at?: string | null
+          criado_por?: string | null
+          id?: string
+          lead_id?: string | null
+          observacoes?: string | null
+          prazo_meses?: number | null
+          projeto_id?: string | null
+          renda_mensal?: number | null
+          snapshot_proposta?: Json | null
+          status?: string
+          taxa_juros_estimada?: number | null
+          tenant_id: string
+          tipo_pessoa?: string | null
+          updated_at?: string | null
+          valor_entrada?: number | null
+          valor_solicitado?: number | null
+        }
+        Update: {
+          banco_id?: string | null
+          cliente_nome?: string | null
+          cpf_cnpj?: string | null
+          created_at?: string | null
+          criado_por?: string | null
+          id?: string
+          lead_id?: string | null
+          observacoes?: string | null
+          prazo_meses?: number | null
+          projeto_id?: string | null
+          renda_mensal?: number | null
+          snapshot_proposta?: Json | null
+          status?: string
+          taxa_juros_estimada?: number | null
+          tenant_id?: string
+          tipo_pessoa?: string | null
+          updated_at?: string | null
+          valor_entrada?: number | null
+          valor_solicitado?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "credit_simulations_banco_id_fkey"
+            columns: ["banco_id"]
+            isOneToOne: false
+            referencedRelation: "credit_bank_configs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "credit_simulations_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "credit_simulations_projeto_id_fkey"
+            columns: ["projeto_id"]
+            isOneToOne: false
+            referencedRelation: "deals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "credit_simulations_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       cron_execution_logs: {
         Row: {

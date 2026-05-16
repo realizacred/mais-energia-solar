@@ -123,6 +123,8 @@ const ConsultorDashboard = lazy(() => import("@/pages/ConsultorDashboard"));
 const FinancialSettingsPage = lazy(() => import("@/components/admin/settings/FinancialSettingsPage"));
 const CreditConfigPage = lazy(() => import("@/pages/admin/CreditConfigPage"));
 const ChequesPage = lazy(() => import("@/pages/admin/financeiro/cheques/ChequesPage"));
+const CreditGlobalArea = lazy(() => import("@/pages/admin/credit/CreditGlobalArea"));
+
 
 
 const TasksSlaDashboard = lazy(() => import("@/components/admin/tasks").then(m => ({ default: m.TasksSlaDashboard })));
@@ -466,6 +468,8 @@ const AdminRoutes = () => (
     <Route path="preventiva" element={<PreventiveCenterPage />} />
     <Route path="lixeira" element={<LeadsTrashPage />} />
     <Route path="propostas" element={<PropostasManager />} />
+    <Route path="credito" element={<CreditGlobalArea />} />
+
     <Route path="projetos" element={<ProjetosManagerPage />} />
     <Route path="propostas-nativas/nova" element={<ProposalWizardErrorBoundary><ProposalWizardPage /></ProposalWizardErrorBoundary>} />
     <Route path="propostas/novo" element={<Navigate to="/admin/propostas-nativas/nova" replace />} />
