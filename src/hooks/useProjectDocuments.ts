@@ -1,16 +1,9 @@
-/**
- * SSOT canônico de documentos do projeto.
- * Lê de `project_documents` (tabela canônica espelhada via triggers
- * de `generated_documents`, `post_sale_attachments`, `doc_checklist_status`,
- * `checklist_cliente_arquivos`, `checklist_instalador_arquivos`).
- *
- * §16 queries só em hooks, §23 staleTime obrigatório.
- */
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { getCurrentTenantId } from "@/lib/getCurrentTenantId";
 import { buildStoragePath } from "@/lib/storagePaths";
+import { normalizeProjectDocuments, resolveDocumentCategory } from "@/lib/documentDedup";
 
 export type ProjectDocumentOrigem =
   | "manual"
@@ -55,15 +48,11 @@ export interface NormalizedProjectDocuments {
   groupedByCategory: Record<string, ProjectDocument[]>;
 }
 
-
-
 export interface UseProjectDocumentsParams {
   projetoId?: string | null;
   dealId?: string | null;
   propostaId?: string | null;
 }
-
-import { normalizeProjectDocuments } from "@/lib/documentDedup";
 
 const STALE = 1000 * 30;
 
@@ -74,21 +63,23 @@ export function useProjectDocuments({ projetoId, dealId, propostaId }: UseProjec
     staleTime: STALE,
     queryFn: async () => {
       let q = supabase
-        .from("project_documents" as any)
+        .from("project_documents")
         .select("*")
         .eq("is_deleted", false)
         .order("created_at", { ascending: false });
+
       if (projetoId) q = q.eq("projeto_id", projetoId);
       else if (dealId) q = q.eq("deal_id", dealId);
       else if (propostaId) q = q.eq("proposta_id", propostaId);
+
       const { data, error } = await q;
       if (error) throw error;
+
       const rawDocs = (data ?? []) as unknown as ProjectDocument[];
       return normalizeProjectDocuments(rawDocs);
     },
   });
 }
-
 
 /** Upload manual direto na tabela canônica (origem='manual'). */
 export function useUploadProjectDocument() {
@@ -117,27 +108,11 @@ export function useUploadProjectDocument() {
       const { error: upErr } = await supabase.storage
         .from("project-documents")
         .upload(storagePath, file, { upsert: false, contentType: file.type });
-      if (upErr) {
-        console.error("[useUploadProjectDocument] storage upload failed", {
-          storagePath,
-          bucket: "project-documents",
-          fileName: file.name,
-          mime: file.type,
-          size: file.size,
-          error: upErr,
-        });
-        const msg = (upErr as any)?.message || "Falha desconhecida no Storage";
-        const statusCode = (upErr as any)?.statusCode || (upErr as any)?.status;
-        throw new Error(
-          `Storage [${statusCode ?? "?"}]: ${msg}` +
-            (String(msg).toLowerCase().includes("row-level security")
-              ? " — verifique se as policies RLS do bucket 'project-documents' permitem INSERT para seu tenant."
-              : ""),
-        );
-      }
+
+      if (upErr) throw upErr;
 
       const { data, error } = await supabase
-        .from("project_documents" as any)
+        .from("project_documents")
         .insert({
           tenant_id: tenantId,
           projeto_id: projetoId ?? null,
@@ -151,14 +126,14 @@ export function useUploadProjectDocument() {
           size_bytes: file.size,
           uploaded_by: userId,
         })
-        .select("id, projeto_id, deal_id, tenant_id")
+        .select("id")
         .single();
+
       if (error) throw error;
 
-      // Auditoria
-      await supabase.from("project_document_events" as any).insert({
+      await supabase.from("project_document_events").insert({
         tenant_id: tenantId,
-        document_id: (data as any).id,
+        document_id: data.id,
         event: "upload",
         actor_id: userId,
         metadata: { file_name: file.name, size_bytes: file.size },
@@ -166,45 +141,29 @@ export function useUploadProjectDocument() {
 
       return data;
     },
-    onSuccess: async (data: any, variables) => {
+    onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["project-documents"] });
       toast({ title: "Documento enviado" });
-
-      // Invalida também a query do detalhe para refletir mudança de etapa via trigger do banco
-      const { dealId } = variables;
-      if (dealId) {
-        qc.invalidateQueries({ queryKey: ["projeto-detalhe", dealId] });
-      }
-    },
-    onError: (e: any) => {
-      console.error("[useUploadProjectDocument] mutation error", e);
-      toast({
-        title: "Erro ao enviar documento",
-        description: e?.message || "Erro desconhecido. Veja o console para detalhes.",
-        variant: "destructive",
-      });
     },
   });
 }
 
-/** Soft-delete (apenas documentos com origem='manual'). */
+/** Soft-delete. */
 export function useDeleteProjectDocument() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (doc: ProjectDocument) => {
       if (doc.origem !== "manual") {
-        throw new Error(
-          "Este documento é projetado de outro módulo. Remova-o pela origem (proposta, checklist, pós-venda).",
-        );
+        throw new Error("Este documento é gerenciado por outro módulo.");
       }
       const { tenantId, userId } = await getCurrentTenantId();
       const { error } = await supabase
-        .from("project_documents" as any)
+        .from("project_documents")
         .update({ is_deleted: true, deleted_at: new Date().toISOString() })
         .eq("id", doc.id);
       if (error) throw error;
-      await supabase.storage.from(doc.bucket).remove([doc.storage_path]).catch(() => {});
-      await supabase.from("project_document_events" as any).insert({
+
+      await supabase.from("project_document_events").insert({
         tenant_id: tenantId,
         document_id: doc.id,
         event: "delete",
@@ -215,26 +174,22 @@ export function useDeleteProjectDocument() {
       qc.invalidateQueries({ queryKey: ["project-documents"] });
       toast({ title: "Documento removido" });
     },
-    onError: (e: any) =>
-      toast({ title: "Erro ao remover", description: e.message, variant: "destructive" }),
   });
 }
 
-/** Renomeia documento (apenas display_name). */
+/** Renomeia documento. */
 export function useRenameProjectDocument() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ docId, newName }: { docId: string; newName: string }) => {
       const { tenantId, userId } = await getCurrentTenantId();
-      
       const { error } = await supabase
-        .from("project_documents" as any)
+        .from("project_documents")
         .update({ display_name: newName, updated_at: new Date().toISOString() })
         .eq("id", docId);
-        
       if (error) throw error;
-      
-      await supabase.from("project_document_events" as any).insert({
+
+      await supabase.from("project_document_events").insert({
         tenant_id: tenantId,
         document_id: docId,
         event: "rename",
@@ -246,26 +201,22 @@ export function useRenameProjectDocument() {
       qc.invalidateQueries({ queryKey: ["project-documents"] });
       toast({ title: "Documento renomeado" });
     },
-    onError: (e: any) =>
-      toast({ title: "Erro ao renomear", description: e.message, variant: "destructive" }),
   });
 }
 
-/** Altera categoria do documento. */
+/** Altera categoria. */
 export function useUpdateProjectDocumentCategory() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ docId, newCategory }: { docId: string; newCategory: string }) => {
       const { tenantId, userId } = await getCurrentTenantId();
-      
       const { error } = await supabase
-        .from("project_documents" as any)
+        .from("project_documents")
         .update({ categoria: newCategory, updated_at: new Date().toISOString() })
         .eq("id", docId);
-        
       if (error) throw error;
-      
-      await supabase.from("project_document_events" as any).insert({
+
+      await supabase.from("project_document_events").insert({
         tenant_id: tenantId,
         document_id: docId,
         event: "category_change",
@@ -277,7 +228,6 @@ export function useUpdateProjectDocumentCategory() {
       qc.invalidateQueries({ queryKey: ["project-documents"] });
       toast({ title: "Categoria atualizada" });
     },
-    onError: (e: any) =>
-      toast({ title: "Erro ao atualizar categoria", description: e.message, variant: "destructive" }),
   });
 }
+
