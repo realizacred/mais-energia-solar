@@ -130,7 +130,7 @@ export function CreditAnalysisWizard({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-[700px] p-0 overflow-hidden bg-card border-border/40 shadow-2xl">
+      <DialogContent className="sm:max-w-[700px] p-0 overflow-hidden bg-card border-border/40 shadow-2xl h-[95vh] sm:h-[80vh] flex flex-col">
         <DialogHeader className="p-6 pb-0">
           <DialogTitle className="text-xl font-bold flex items-center gap-2">
             <CreditCard className="h-5 w-5 text-primary" />
@@ -154,8 +154,9 @@ export function CreditAnalysisWizard({
           </div>
         </DialogHeader>
 
-        <div className="p-6">
-          <ScrollArea className="max-h-[60vh] pr-4">
+        <div className="p-0 flex-1 overflow-hidden">
+          <ScrollArea className="h-full">
+            <div className="p-6">
             {step === 1 && (
               <div className="space-y-6 animate-in slide-in-from-right-2 duration-300">
                 <div className="grid grid-cols-2 gap-4">
@@ -335,6 +336,7 @@ export function CreditAnalysisWizard({
                 </div>
               </div>
             )}
+            </div>
           </ScrollArea>
         </div>
 
