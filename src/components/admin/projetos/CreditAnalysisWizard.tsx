@@ -256,12 +256,19 @@ export function CreditAnalysisWizard({
                   </div>
                   <div className="space-y-2">
                     <Label className="text-sm font-semibold">Prazo (meses)</Label>
-                    <Input 
-                      type="number"
+                    <Select 
                       value={formData.prazo_meses} 
-                      onChange={e => setFormData({...formData, prazo_meses: e.target.value})}
-                      className="bg-muted/30"
-                    />
+                      onValueChange={v => setFormData({...formData, prazo_meses: v})}
+                    >
+                      <SelectTrigger className="bg-muted/30">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {[12, 24, 36, 48, 60, 72, 84, 96, 120].map(m => (
+                          <SelectItem key={m} value={m.toString()}>{m} meses</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                 </div>
                 <div className="space-y-2">
