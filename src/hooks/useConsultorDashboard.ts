@@ -100,7 +100,8 @@ async function fetchDashboardData(userId: string, isAdmin: boolean): Promise<Con
   // Build leads query — admin sees all, consultant sees own
   let leadsQuery = supabase
     .from("leads")
-    .select("id, nome, telefone, status_id, updated_at")
+    .select("id, nome, telefone, status_id, updated_at, tenant_id")
+    .eq("tenant_id", tenantId)
     .is("deleted_at", null);
   if (!isAdmin && consultorNome) {
     leadsQuery = leadsQuery.eq("consultor", consultorNome);

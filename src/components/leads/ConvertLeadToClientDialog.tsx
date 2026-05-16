@@ -1004,7 +1004,7 @@ export function ConvertLeadToClientDialog({
   return (
     <>
     <Dialog open={open} onOpenChange={(v) => { if (!v) setCurrentStep(0); onOpenChange(v); }}>
-      <DialogContent className="w-full sm:w-[90vw] max-w-[700px] p-0 gap-0 overflow-hidden flex flex-col h-full sm:h-auto max-h-[100dvh] sm:max-h-[calc(100dvh-2rem)] rounded-none sm:rounded-lg">
+      <DialogContent className="w-full sm:w-[90vw] max-w-[700px] p-0 gap-0 overflow-hidden flex flex-col h-[100dvh] sm:h-auto max-h-[100dvh] sm:max-h-[calc(100dvh-2rem)] rounded-none sm:rounded-lg border-none sm:border">
         {/* ── HEADER §25 ─────────────────────────────────────── */}
         <DialogHeader className="flex flex-row items-center gap-3 p-5 pb-4 border-b border-border shrink-0">
           <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
@@ -1035,7 +1035,7 @@ export function ConvertLeadToClientDialog({
                   type="button"
                   variant="ghost"
                   onClick={() => idx < currentStep && setCurrentStep(idx)}
-                  className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-colors w-full min-w-0 h-auto ${
+                  className={`flex items-center gap-2 px-2 sm:px-3 py-2 rounded-lg transition-colors w-full min-w-0 h-auto ${
                     isActive
                       ? "bg-primary/10 text-primary hover:bg-primary/15"
                       : stepComplete
@@ -1465,7 +1465,7 @@ export function ConvertLeadToClientDialog({
             </div>
 
             {/* ── FOOTER §25 — navigation + actions ── */}
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 p-4 border-t border-border bg-card/80 backdrop-blur-md shrink-0 sticky bottom-0 z-50 pb-[safe-area-inset-bottom]">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 p-4 border-t border-border bg-card/95 backdrop-blur-md shrink-0 sticky bottom-0 z-50 pb-[calc(1rem+safe-area-inset-bottom)] sm:pb-4">
               <div>
                 {currentStep > 0 && (
                   <Button type="button" variant="ghost" onClick={handleBack} disabled={loading || savingAsLead}>
