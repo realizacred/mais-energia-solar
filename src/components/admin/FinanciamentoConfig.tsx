@@ -1,21 +1,11 @@
+/**
+ * @deprecated — substituído por CreditConfigPage
+ * Reutiliza: credit_bank_configs
+ */
 import { useState, useEffect } from "react";
+import { Navigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
-import { Badge } from "@/components/ui/badge";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { FormModalTemplate, FormSection } from "@/components/ui-kit/FormModalTemplate";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Plus, Trash2, Edit2, Building2, Percent, CreditCard, RefreshCw, GripVertical, Check, Clock, AlertCircle, Globe, Banknote } from "lucide-react";
-import { InlineLoader } from "@/components/loading/InlineLoader";
-import { Spinner } from "@/components/ui-kit/Spinner";
-import { format } from "date-fns";
-import { ptBR } from "date-fns/locale";
 
 interface Banco {
   id: string;
@@ -31,6 +21,8 @@ interface Banco {
 }
 
 export default function FinanciamentoConfig() {
+  return <Navigate to="/admin/configuracoes/credito" replace />;
+  // ... keep existing code for history only
   const [bancos, setBancos] = useState<Banco[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
