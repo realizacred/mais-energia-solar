@@ -230,15 +230,15 @@ export function useUpdateAnaliseCredito() {
 
         // Notify if becoming active request
         if (values.status === 'pendente_documentos' && current?.status === 'rascunho') {
-          await supabase.from("notifications").insert({
-            tenant_id: current?.tenant_id,
-            title: "Solicitação de Crédito Enviada",
-            message: `A análise de crédito ${id} foi enviada para conferência documental.`,
-            type: "credit_request",
-            severity: "info",
-            metadata: { analise_id: id },
-            roles_permitidos: ["admin", "gerente", "super_admin"]
-          } as any);
+          await supabase.rpc('create_notification' as any, {
+            p_tenant_id: current?.tenant_id,
+            p_title: "Solicitação de Crédito Enviada",
+            p_message: `A análise de crédito ${id} foi enviada para conferência documental.`,
+            p_type: "credit_request",
+            p_severity: "info",
+            p_metadata: { analise_id: id },
+            p_roles_permitidos: ["admin", "gerente", "super_admin"]
+          });
         }
       }
 

@@ -118,6 +118,20 @@ export function CreditAnalysisWizard({
     };
 
     try {
+      // RB-62, RB-63: Validação de CPF/CNPJ antes de salvar
+      if (formData.cpf_cnpj) {
+        const digits = formData.cpf_cnpj.replace(/\D/g, "");
+        const isValid = formData.tipo_pessoa === 'pf' ? isValidCpf(digits) : isValidCnpj(digits);
+        if (!isValid) {
+          toast({
+            title: "Documento inválido",
+            description: `O ${formData.tipo_pessoa.toUpperCase()} informado não é válido.`,
+            variant: "destructive"
+          });
+          return;
+        }
+      }
+
       if (initialData?.id) {
         await updateMutation.mutateAsync({ id: initialData.id, ...data });
       } else {
@@ -188,7 +202,7 @@ export function CreditAnalysisWizard({
                     <Input 
                       placeholder="000.000.000-00" 
                       value={formData.cpf_cnpj} 
-                      onChange={e => setFormData({...formData, cpf_cnpj: e.target.value})}
+                      onChange={e => setFormData({...formData, cpf_cnpj: formatCpfCnpj(e.target.value)})}
                       className="bg-muted/30"
                     />
                   </div>
