@@ -82,7 +82,7 @@ export const KanbanCard = memo(({
   onQuickAction,
   onWin,
   onLose,
-}: KanbanCardProps) {
+}: KanbanCardProps) => {
   const { data: scoresMap } = useLeadScoresMap();
   const leadScore = scoresMap?.get(lead.id);
 
@@ -178,7 +178,7 @@ export const KanbanCard = memo(({
         <div className="flex items-center gap-3 text-xs text-muted-foreground">
           <span className="flex items-center gap-1 truncate">
             <MapPin className="w-3 h-3 shrink-0" />
-            {lead.cidade}/{lead.estado}
+            {lead.city || lead.cidade}/{lead.estado}
           </span>
           <span className="flex items-center gap-1">
             <Zap className="w-3 h-3" />
@@ -207,7 +207,7 @@ export const KanbanCard = memo(({
       </div>
     </motion.div>
   );
-}
+});
 
 /** Score badge — hot/warm/cold */
 function ScoreBadge({ score, nivel }: { score: number; nivel: "hot" | "warm" | "cold" }) {
@@ -268,3 +268,5 @@ function KanbanCardMenu({
     </DropdownMenu>
   );
 }
+
+KanbanCard.displayName = "KanbanCard";
