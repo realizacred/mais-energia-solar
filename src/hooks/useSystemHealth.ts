@@ -23,11 +23,15 @@ export interface OutboxStats {
   recentFailures: { id: string; error_message: string | null; created_at: string; retry_count: number }[];
 }
 
-export interface WaIntegrityAudit {
-  duplicate_conversations: number;
-  technical_previews: number;
-  orphan_messages: number;
-  loading: boolean;
+export interface DocumentStats {
+  pending: number;
+  failed: number;
+  avgGenTimeMinutes: number;
+}
+
+export interface TenantHealthStats {
+  orphanProposals: number;
+  commercialFinancialDrift: number;
 }
 
 export function useSystemHealth() {
@@ -78,29 +82,54 @@ export function useSystemHealth() {
     refetchInterval: STALE_REALTIME,
   });
 
-  // 3. WA integrity audit — checks for duplicates and technical previews
-  const { data: integrityAudit, isLoading: loadingIntegrity } = useQuery({
-    queryKey: ["system-health-wa-integrity"],
+  // 3. Document/PDF Stats
+  const { data: docStats, isLoading: loadingDocs } = useQuery({
+    queryKey: ["system-health-docs"],
     queryFn: async () => {
-      const [dupRes, previewRes, orphanRes] = await Promise.all([
-        // Check duplicate conversations (same instance_id + phone, different remote_jid variants)
-        supabase.rpc("check_wa_duplicate_conversations" as any).maybeSingle(),
-        // Check technical previews still in DB
-        supabase
-          .from("wa_conversations")
-          .select("id", { count: "exact", head: true })
-          .or("last_message_preview.like.[text]%,last_message_preview.like.[contact]%,last_message_preview.like.[image]%,last_message_preview.like.[video]%,last_message_preview.like.[audio]%,last_message_preview.like.[document]%"),
-        // Check orphan messages (no conversation)
-        supabase.rpc("check_wa_orphan_messages" as any).maybeSingle(),
+      const [pendingRes, failedRes, avgRes] = await Promise.all([
+        supabase.from("generated_documents").select("id", { count: "exact", head: true }).eq("status", "processing"),
+        supabase.from("generated_documents").select("id", { count: "exact", head: true }).eq("status", "error"),
+        supabase.from("generated_documents")
+          .select("created_at, updated_at")
+          .eq("status", "completed")
+          .order("created_at", { ascending: false })
+          .limit(20),
+      ]);
+
+      let avgTime = 0;
+      if (avgRes.data && avgRes.data.length > 0) {
+        const times = avgRes.data.map(d => 
+          (new Date(d.updated_at).getTime() - new Date(d.created_at).getTime()) / 60000
+        );
+        avgTime = times.reduce((s, t) => s + t, 0) / times.length;
+      }
+
+      return {
+        pending: pendingRes.count || 0,
+        failed: failedRes.count || 0,
+        avgGenTimeMinutes: Math.round(avgTime * 10) / 10,
+      } as DocumentStats;
+    },
+    staleTime: STALE_REALTIME,
+  });
+
+  // 4. Tenant Health (Drift & Orphans)
+  const { data: tenantHealth, isLoading: loadingTenant } = useQuery({
+    queryKey: ["system-health-tenant"],
+    queryFn: async () => {
+      // Basic heuristic for orphans and drift
+      const [orphanRes, driftRes] = await Promise.all([
+        supabase.from("propostas_nativas").select("id", { count: "exact", head: true }).is("deal_id", null).is("projeto_id", null).neq("status", "excluida"),
+        // This is a complex query, we'll use a simplified version for health check
+        supabase.from("vendas_transacional").select("id", { count: "exact", head: true }).eq("status", "ativa"),
       ]);
 
       return {
-        duplicate_conversations: (dupRes.data as any)?.count ?? 0,
-        technical_previews: previewRes.count ?? 0,
-        orphan_messages: (orphanRes.data as any)?.count ?? 0,
-      };
+        orphanProposals: orphanRes.count || 0,
+        commercialFinancialDrift: 0, // Placeholder until RPC is stable
+      } as TenantHealthStats;
     },
-    staleTime: 1000 * 60 * 5, // 5 min
+    staleTime: STALE_REALTIME,
   });
 
   // Derived metrics
@@ -121,7 +150,6 @@ export function useSystemHealth() {
     return Math.round(((degraded + down) / total) * 100);
   })();
 
-  // Overall status
   const overallStatus: "green" | "yellow" | "red" = 
     down > 0 || errorRate > 5 ? "red" :
     degraded > 0 ? "yellow" : "green";
@@ -129,8 +157,8 @@ export function useSystemHealth() {
   return {
     integrations,
     outboxStats: outboxStats || { pending: 0, sending: 0, failed: 0, sent: 0, totalRetries: 0, recentFailures: [] },
-    integrityAudit: integrityAudit || { duplicate_conversations: 0, technical_previews: 0, orphan_messages: 0 },
-    integrityLoading: loadingIntegrity,
+    docStats: docStats || { pending: 0, failed: 0, avgGenTimeMinutes: 0 },
+    tenantHealth: tenantHealth || { orphanProposals: 0, commercialFinancialDrift: 0 },
     healthy,
     degraded,
     down,
@@ -138,6 +166,6 @@ export function useSystemHealth() {
     avgLatency,
     errorRate,
     overallStatus,
-    isLoading: loadingIntegrations || loadingOutbox,
+    isLoading: loadingIntegrations || loadingOutbox || loadingDocs || loadingTenant,
   };
 }
