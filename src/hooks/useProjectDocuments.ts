@@ -206,3 +206,34 @@ export function useDeleteProjectDocument() {
       toast({ title: "Erro ao remover", description: e.message, variant: "destructive" }),
   });
 }
+
+/** Renomeia documento (apenas display_name). */
+export function useRenameProjectDocument() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ docId, newName }: { docId: string; newName: string }) => {
+      const { tenantId, userId } = await getCurrentTenantId();
+      
+      const { error } = await supabase
+        .from("project_documents" as any)
+        .update({ display_name: newName, updated_at: new Date().toISOString() })
+        .eq("id", docId);
+        
+      if (error) throw error;
+      
+      await supabase.from("project_document_events" as any).insert({
+        tenant_id: tenantId,
+        document_id: docId,
+        event: "rename",
+        actor_id: userId,
+        metadata: { new_name: newName },
+      });
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["project-documents"] });
+      toast({ title: "Documento renomeado" });
+    },
+    onError: (e: any) =>
+      toast({ title: "Erro ao renomear", description: e.message, variant: "destructive" }),
+  });
+}
