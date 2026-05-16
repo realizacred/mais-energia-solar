@@ -121,6 +121,14 @@ export const STATUS_CONFIG: Record<string, { label: string; color: string; icon:
   },
 };
 
+interface Props {
+  dealId?: string | null;
+  leadId?: string | null;
+  clienteId?: string | null;
+  clienteCpfCnpj?: string | null;
+  valorProposta?: number | null;
+}
+
 export function ProjetoCreditoTab({ dealId, leadId, clienteId, clienteCpfCnpj, valorProposta }: Props) {
   const { user } = useAuth();
   const { isAdmin, roles } = useUserRole();
@@ -400,22 +408,6 @@ function AnaliseTimeline({ analiseId, limit = 5 }: { analiseId: string, limit?: 
           </div>
         </div>
       ))}
-    </div>
-  );
-}
-
-      {isWizardOpen && (
-        <CreditAnalysisWizard
-          isOpen={isWizardOpen}
-          onClose={() => setIsWizardOpen(false)}
-          dealId={dealId}
-          leadId={leadId}
-          clienteId={clienteId}
-          initialData={editingAnalise}
-          clienteCpfCnpj={clienteCpfCnpj}
-          valorReferencia={valorProposta}
-        />
-      )}
     </div>
   );
 }
