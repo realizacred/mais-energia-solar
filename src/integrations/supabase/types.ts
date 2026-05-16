@@ -31026,6 +31026,15 @@ export type Database = {
         }
         Returns: Json
       }
+      convert_lead_to_venda_v2: {
+        Args: {
+          _idempotency_key?: string
+          _lead_id: string
+          _payload: Json
+          _payment_composition: Json
+        }
+        Returns: Json
+      }
       create_appointment_idempotent: {
         Args: {
           _all_day?: boolean
@@ -31342,6 +31351,14 @@ export type Database = {
           percentual_isencao: number
           possui_isencao_scee: boolean
         }[]
+      }
+      get_consultor_stats: {
+        Args: {
+          _consultor_id?: string
+          _consultor_nome?: string
+          _is_admin?: boolean
+        }
+        Returns: Json
       }
       get_current_tenant_id: { Args: never; Returns: string }
       get_dashboard_consultor_performance: {
