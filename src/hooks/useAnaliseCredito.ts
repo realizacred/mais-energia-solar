@@ -132,7 +132,7 @@ export function useCreateAnaliseCredito() {
 
       if (error) throw error;
 
-      // Log creation event with correlation
+      // 1. Log creation event with correlation
       await supabase.from("credit_analysis_events").insert({
         tenant_id: profile.tenant_id,
         analise_id: data.id,
@@ -143,6 +143,23 @@ export function useCreateAnaliseCredito() {
         correlation_id,
         idempotency_key: `create_analise_${data.id}`
       } as any);
+
+      // 2. Notify finance managers (DA-48, status engine)
+      if (data.status !== 'rascunho') {
+        try {
+          await supabase.rpc('create_notification' as any, {
+            p_tenant_id: profile.tenant_id,
+            p_title: "Nova Solicitação de Crédito",
+            p_message: `Uma nova análise de crédito foi iniciada para o cliente com CPF/CNPJ ${data.cpf_cnpj}.`,
+            p_type: "credit_request",
+            p_severity: "info",
+            p_metadata: { analise_id: data.id, deal_id: data.deal_id },
+            p_roles_permitidos: ["admin", "gerente", "super_admin"]
+          });
+        } catch (nErr) {
+          console.warn("Falha ao enviar notificação de crédito:", nErr);
+        }
+      }
 
       return { ...data, correlation_id };
     },
@@ -210,6 +227,19 @@ export function useUpdateAnaliseCredito() {
           correlation_id,
           idempotency_key: `update_status_${id}_${Date.now()}`
         } as any);
+
+        // Notify if becoming active request
+        if (values.status === 'pendente_documentos' && current?.status === 'rascunho') {
+          await supabase.rpc('create_notification' as any, {
+            p_tenant_id: current?.tenant_id,
+            p_title: "Solicitação de Crédito Enviada",
+            p_message: `A análise de crédito ${id} foi enviada para conferência documental.`,
+            p_type: "credit_request",
+            p_severity: "info",
+            p_metadata: { analise_id: id },
+            p_roles_permitidos: ["admin", "gerente", "super_admin"]
+          });
+        }
       }
 
       return { ...data, correlation_id };

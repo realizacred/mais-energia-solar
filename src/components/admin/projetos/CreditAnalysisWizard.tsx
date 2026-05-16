@@ -1,3 +1,9 @@
+/**
+ * Reutiliza:
+ * - Tabelas: analise_credito, project_documents, credit_bank_configs, credit_bank_checklists, credit_analysis_events
+ * - Hooks: useCreateAnaliseCredito, useUpdateAnaliseCredito, useAnaliseCreditoDocumentos, useVincularDocumentoCredito, useProjectDocuments, useCreditBankConfigs, useCreditBankChecklist
+ * - Libs: formatBRL, formatDateTime, cn, isValidCpf, isValidCnpj
+ */
 import { useState, useMemo } from "react";
 import { 
   Dialog, 
@@ -40,10 +46,12 @@ import { useProjectDocuments } from "@/hooks/useProjectDocuments";
 import { useCreditBankConfigs, useCreditBankChecklist } from "@/hooks/useCreditConfigs";
 import { formatBRL } from "@/lib/formatters";
 import { formatDateTime } from "@/lib/dateUtils";
+import { isValidCpf, isValidCnpj, formatCpfCnpj } from "@/lib/cpfCnpjUtils";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
+import { toast } from "@/hooks/use-toast";
 
 interface Props {
   isOpen: boolean;
@@ -110,6 +118,20 @@ export function CreditAnalysisWizard({
     };
 
     try {
+      // RB-62, RB-63: Validação de CPF/CNPJ antes de salvar
+      if (formData.cpf_cnpj) {
+        const digits = formData.cpf_cnpj.replace(/\D/g, "");
+        const isValid = formData.tipo_pessoa === 'pf' ? isValidCpf(digits) : isValidCnpj(digits);
+        if (!isValid) {
+          toast({
+            title: "Documento inválido",
+            description: `O ${formData.tipo_pessoa.toUpperCase()} informado não é válido.`,
+            variant: "destructive"
+          });
+          return;
+        }
+      }
+
       if (initialData?.id) {
         await updateMutation.mutateAsync({ id: initialData.id, ...data });
       } else {
@@ -180,7 +202,7 @@ export function CreditAnalysisWizard({
                     <Input 
                       placeholder="000.000.000-00" 
                       value={formData.cpf_cnpj} 
-                      onChange={e => setFormData({...formData, cpf_cnpj: e.target.value})}
+                      onChange={e => setFormData({...formData, cpf_cnpj: formatCpfCnpj(e.target.value)})}
                       className="bg-muted/30"
                     />
                   </div>
@@ -234,12 +256,19 @@ export function CreditAnalysisWizard({
                   </div>
                   <div className="space-y-2">
                     <Label className="text-sm font-semibold">Prazo (meses)</Label>
-                    <Input 
-                      type="number"
+                    <Select 
                       value={formData.prazo_meses} 
-                      onChange={e => setFormData({...formData, prazo_meses: e.target.value})}
-                      className="bg-muted/30"
-                    />
+                      onValueChange={v => setFormData({...formData, prazo_meses: v})}
+                    >
+                      <SelectTrigger className="bg-muted/30">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {[12, 24, 36, 48, 60, 72, 84, 96, 120].map(m => (
+                          <SelectItem key={m} value={m.toString()}>{m} meses</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                 </div>
                 <div className="space-y-2">
