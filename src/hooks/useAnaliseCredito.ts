@@ -12,7 +12,7 @@ export type AnaliseCreditoStatus =
   | 'aprovado_com_condicoes'
   | 'reprovado'
   | 'cancelado'
-  | 'pendente'; // Keep pendente for backward compatibility during transition
+  | 'pendente'; 
 
 export interface AnaliseCredito {
   id: string;
@@ -27,7 +27,7 @@ export interface AnaliseCredito {
   entrada: number | null;
   score_credito: number | null;
   banco: string | null;
-  bank_config_id: string | null;
+  bank_config_id?: string | null;
   valor_solicitado: number | null;
   valor_aprovado: number | null;
   prazo_meses: number | null;
@@ -112,14 +112,16 @@ export function useCreateAnaliseCredito() {
 
       if (!profile?.tenant_id) throw new Error("Tenant não encontrado");
 
+      const insertData = {
+        ...values,
+        tenant_id: profile.tenant_id,
+        criado_por: user.id,
+        status: values.status || 'rascunho'
+      };
+
       const { data, error } = await supabase
         .from("analise_credito")
-        .insert({
-          ...values,
-          tenant_id: profile.tenant_id,
-          criado_por: user.id,
-          status: values.status || 'rascunho'
-        } as any)
+        .insert(insertData as any)
         .select()
         .single();
 
@@ -176,7 +178,7 @@ export function useAnaliseCreditoHistorico(analiseId: string) {
     queryKey: ["analise-credito-historico", analiseId],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("analise_credito_historico")
+        .from("analise_credito_historico" as any)
         .select("*, actor:profiles(nome)")
         .eq("analise_credito_id", analiseId)
         .order("created_at", { ascending: false });
@@ -193,7 +195,7 @@ export function useAnaliseCreditoDocumentos(analiseId: string) {
     queryKey: ["analise-credito-documentos", analiseId],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("analise_credito_documentos")
+        .from("analise_credito_documentos" as any)
         .select("*, document:project_documents(*)")
         .eq("analise_credito_id", analiseId);
 
@@ -219,14 +221,16 @@ export function useVincularDocumentoCredito() {
       const { data: { user } } = await supabase.auth.getUser();
       const { data: profile } = await supabase.from("profiles").select("tenant_id").eq("user_id", user?.id).single();
       
+      const upsertData = {
+        tenant_id: profile?.tenant_id,
+        analise_credito_id,
+        project_document_id,
+        checklist_item_id
+      };
+
       const { data, error } = await supabase
-        .from("analise_credito_documentos")
-        .upsert({
-          tenant_id: profile?.tenant_id,
-          analise_credito_id,
-          project_document_id,
-          checklist_item_id
-        } as any, { onConflict: 'analise_credito_id,project_document_id' })
+        .from("analise_credito_documentos" as any)
+        .upsert(upsertData as any, { onConflict: 'analise_credito_id,project_document_id' })
         .select()
         .single();
 
