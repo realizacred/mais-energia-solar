@@ -193,7 +193,7 @@ export function StageDealCard({
       {/* Left color bar */}
       <div className="kanban-card__top-bar" style={topBarStyle} />
 
-      <div className="relative px-2.5 pt-2 pb-2 space-y-1.5 flex-1 min-w-0">
+      <div className="relative px-2.5 pt-1.5 pb-1.5 space-y-1 flex-1 min-w-0">
         {/* Accepted check icon */}
         {isPropostaAceita && (
           <div className="absolute top-2 right-2.5">
