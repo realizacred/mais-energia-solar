@@ -1408,6 +1408,23 @@ export function ConvertLeadToClientDialog({
                       </span>
                     </p>
                     <PaymentComposer valorVenda={valorVenda} items={paymentItems} onChange={setPaymentItems} />
+                    
+                    {/* Inline Validation §25 */}
+                    {!finance.isValid && finance.items.length > 0 && (
+                      <div className="mt-4 p-4 rounded-lg bg-destructive/10 border border-destructive/20 space-y-2">
+                        <div className="flex items-center gap-2 text-destructive">
+                          <AlertTriangle className="h-4 w-4" />
+                          <span className="text-sm font-bold">Problemas detectados:</span>
+                        </div>
+                        <ul className="list-disc list-inside space-y-1">
+                          {finance.errors.map((err, i) => (
+                            <li key={i} className="text-xs text-destructive/90 font-medium">
+                              {err}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
                   </div>
 
                   <div className="border-t border-border" />
