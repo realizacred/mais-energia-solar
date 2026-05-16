@@ -49,9 +49,11 @@ export default function VendedorPortal() {
   const dashboardRedirect = asParam ? `dashboard?as=${asParam}` : "dashboard";
 
   const badgeCounts = useMemo(() => {
-    const unseenCount = portal.orcamentos.filter((o) => !o.visto).length;
-    return { orcamentos: unseenCount };
-  }, [portal.orcamentos]);
+    return { 
+      orcamentos: portal.serverStats?.nao_vistos ?? 0,
+      pendentes: portal.serverStats?.pendentes ?? 0
+    };
+  }, [portal.serverStats]);
 
   // Read WA unread count from existing react-query cache (populated by WaNotificationProvider)
   const queryClient = useQueryClient();
