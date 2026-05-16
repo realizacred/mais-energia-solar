@@ -17013,6 +17013,8 @@ export type Database = {
           file_name: string
           id: string
           is_deleted: boolean
+          is_duplicate: boolean | null
+          merged_into_document_id: string | null
           metadata: Json
           mime_type: string | null
           origem: string
@@ -17038,6 +17040,8 @@ export type Database = {
           file_name: string
           id?: string
           is_deleted?: boolean
+          is_duplicate?: boolean | null
+          merged_into_document_id?: string | null
           metadata?: Json
           mime_type?: string | null
           origem: string
@@ -17063,6 +17067,8 @@ export type Database = {
           file_name?: string
           id?: string
           is_deleted?: boolean
+          is_duplicate?: boolean | null
+          merged_into_document_id?: string | null
           metadata?: Json
           mime_type?: string | null
           origem?: string
@@ -17076,7 +17082,15 @@ export type Database = {
           updated_at?: string
           uploaded_by?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "project_documents_merged_into_document_id_fkey"
+            columns: ["merged_into_document_id"]
+            isOneToOne: false
+            referencedRelation: "project_documents"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       project_events: {
         Row: {
@@ -32088,6 +32102,10 @@ export type Database = {
         Returns: string
       }
       preview_seed_data: { Args: never; Returns: Json }
+      proc_pd_sync_from_custom_field: {
+        Args: { _value_id: string }
+        Returns: undefined
+      }
       process_proposta_aceita: {
         Args: { p_proposta_id: string }
         Returns: Json
