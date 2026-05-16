@@ -1,4 +1,5 @@
 import { motion } from "framer-motion";
+import { memo } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -73,7 +74,7 @@ function estimateValue(kwp: number): number {
   return kwp * 5000;
 }
 
-export function KanbanCard({
+export const KanbanCard = memo(({
   lead,
   onDragStart,
   isDragging,
@@ -81,7 +82,7 @@ export function KanbanCard({
   onQuickAction,
   onWin,
   onLose,
-}: KanbanCardProps) {
+}: KanbanCardProps) => {
   const { data: scoresMap } = useLeadScoresMap();
   const leadScore = scoresMap?.get(lead.id);
 
@@ -206,7 +207,7 @@ export function KanbanCard({
       </div>
     </motion.div>
   );
-}
+});
 
 /** Score badge — hot/warm/cold */
 function ScoreBadge({ score, nivel }: { score: number; nivel: "hot" | "warm" | "cold" }) {
@@ -267,3 +268,5 @@ function KanbanCardMenu({
     </DropdownMenu>
   );
 }
+
+KanbanCard.displayName = "KanbanCard";

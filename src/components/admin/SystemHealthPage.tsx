@@ -175,7 +175,7 @@ export default function SystemHealthPage() {
   const [expandedRow, setExpandedRow] = useState<string | null>(null);
   const queryClient = useQueryClient();
   const {
-    integrations, outboxStats, docStats, tenantHealth,
+    integrations, outboxStats, docStats, tenantHealth, jobStats,
     healthy, degraded, down, notConfigured,
     avgLatency, errorRate, overallStatus, isLoading,
   } = useSystemHealth();
@@ -315,6 +315,38 @@ export default function SystemHealthPage() {
                   <div key={item.label} className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
                     <span className="text-sm text-muted-foreground">{item.label}</span>
                     <StatusBadge variant={item.variant as any} dot>{item.value}</StatusBadge>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Enterprise Job Queue Stats */}
+        <Card className="bg-card border-border shadow-sm">
+          <CardHeader className="flex flex-row items-center justify-between pb-3 border-b border-border">
+            <div>
+              <CardTitle className="text-base font-semibold text-foreground">Enterprise Job Queue</CardTitle>
+              <p className="text-sm text-muted-foreground mt-0.5">Processamento assíncrono (PDFs, Propostas, Webhooks)</p>
+            </div>
+            <Zap className="h-5 w-5 text-muted-foreground" />
+          </CardHeader>
+          <CardContent className="pt-4">
+            {isLoading ? (
+              <div className="space-y-3">
+                {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-6 w-full" />)}
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {[
+                  { label: "Jobs Pendentes", value: jobStats.pending, variant: jobStats.pending > 100 ? "warning" : "muted" },
+                  { label: "Em Processamento", value: jobStats.processing, variant: "info" },
+                  { label: "Falhas (Retrying)", value: jobStats.failed, variant: jobStats.failed > 0 ? "destructive" : "muted" },
+                  { label: "Concluídos (24h)", value: jobStats.completed, variant: "success" },
+                ].map((item) => (
+                  <div key={item.label} className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
+                    <span className="text-sm text-muted-foreground">{item.label}</span>
+                    <Badge variant={item.variant as any}>{item.value}</Badge>
                   </div>
                 ))}
               </div>

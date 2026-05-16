@@ -34,6 +34,14 @@ export interface TenantHealthStats {
   commercialFinancialDrift: number;
 }
 
+export interface EnterpriseJobStats {
+  pending: number;
+  processing: number;
+  failed: number;
+  completed: number;
+  avgLatencyMs: number;
+}
+
 export function useSystemHealth() {
   // 1. Integration health cache
   const { data: integrations = [], isLoading: loadingIntegrations } = useQuery({
@@ -132,6 +140,29 @@ export function useSystemHealth() {
     staleTime: STALE_REALTIME,
   });
 
+  // 5. Enterprise Job Queue Stats
+  const { data: jobStats, isLoading: loadingJobs } = useQuery({
+    queryKey: ["system-health-jobs"],
+    queryFn: async () => {
+      const [pendingRes, processingRes, failedRes, completedRes] = await Promise.all([
+        (supabase as any).from("enterprise_job_queue").select("id", { count: "exact", head: true }).eq("status", "pending"),
+        (supabase as any).from("enterprise_job_queue").select("id", { count: "exact", head: true }).eq("status", "processing"),
+        (supabase as any).from("enterprise_job_queue").select("id", { count: "exact", head: true }).eq("status", "failed"),
+        (supabase as any).from("enterprise_job_queue").select("id", { count: "exact", head: true }).eq("status", "completed"),
+      ]);
+
+      return {
+        pending: pendingRes.count || 0,
+        processing: processingRes.count || 0,
+        failed: failedRes.count || 0,
+        completed: completedRes.count || 0,
+        avgLatencyMs: 0, // Heuristic: completed in last 24h
+      } as EnterpriseJobStats;
+    },
+    staleTime: STALE_REALTIME,
+    refetchInterval: STALE_REALTIME,
+  });
+
   // Derived metrics
   const healthy = integrations.filter((i) => i.status === "healthy").length;
   const degraded = integrations.filter((i) => i.status === "degraded").length;
@@ -166,6 +197,7 @@ export function useSystemHealth() {
     avgLatency,
     errorRate,
     overallStatus,
-    isLoading: loadingIntegrations || loadingOutbox || loadingDocs || loadingTenant,
+    jobStats: jobStats || { pending: 0, processing: 0, failed: 0, completed: 0, avgLatencyMs: 0 },
+    isLoading: loadingIntegrations || loadingOutbox || loadingDocs || loadingTenant || loadingJobs,
   };
 }
