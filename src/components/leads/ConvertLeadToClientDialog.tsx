@@ -1465,7 +1465,7 @@ export function ConvertLeadToClientDialog({
             </div>
 
             {/* ── FOOTER §25 — navigation + actions ── */}
-            <div className="flex items-center justify-between gap-2 p-4 border-t border-border bg-muted/30 shrink-0">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 p-4 border-t border-border bg-card/80 backdrop-blur-md shrink-0 sticky bottom-0 z-50 pb-[safe-area-inset-bottom]">
               <div>
                 {currentStep > 0 && (
                   <Button type="button" variant="ghost" onClick={handleBack} disabled={loading || savingAsLead}>
