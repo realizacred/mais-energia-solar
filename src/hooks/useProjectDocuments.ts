@@ -31,6 +31,7 @@ export interface ProjectDocument {
   proposta_id: string | null;
   cliente_id: string | null;
   categoria: string | null;
+  display_name: string | null;
   origem: ProjectDocumentOrigem;
   bucket: string;
   storage_path: string;
@@ -45,6 +46,7 @@ export interface ProjectDocument {
   created_at: string;
   updated_at: string;
 }
+
 
 export interface UseProjectDocumentsParams {
   projetoId?: string | null;
