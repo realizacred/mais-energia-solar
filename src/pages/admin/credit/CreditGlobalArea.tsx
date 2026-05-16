@@ -590,20 +590,24 @@ export default function CreditGlobalArea() {
       </Tabs>
 
       {/* Action Modals */}
-      <Dialog open={!!actionType} onOpenChange={() => { setActionType(null); setSelectedAnalysis(null); setPendingDocs([]); }}>
-        <DialogContent className="sm:max-w-[425px]">
+      <Dialog 
+        open={!!actionType} 
+        onOpenChange={(open) => { if(!open) { setActionType(null); setSelectedAnalysis(null); setPendingDocs([]); setSimulationOptions([]); }}}
+      >
+        <DialogContent className={cn("sm:max-w-[425px]", actionType === 'eos_integrate' && "sm:max-w-[600px]")}>
           <DialogHeader>
             <DialogTitle>
               {actionType === 'approve' && "Confirmar Aprovação Interna"}
               {actionType === 'reject' && "Registrar Reprovação"}
               {actionType === 'request_docs' && "Solicitar Documentação Adicional"}
               {actionType === 'reassign' && "Reatribuir Gerente"}
+              {actionType === 'eos_integrate' && "Integração EOS Financiamento"}
             </DialogTitle>
             <DialogDescription>
               {selectedAnalysis?.deal?.title || selectedAnalysis?.lead?.nome} - {formatBRL(selectedAnalysis?.valor_solicitado || 0)}
             </DialogDescription>
           </DialogHeader>
-          
+
           <div className="grid gap-4 py-4">
             {actionType === 'reassign' && (
               <div className="space-y-2">
