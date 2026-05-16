@@ -395,6 +395,7 @@ const TAB_TITLES: Record<string, string> = {
   "pos-venda-planos": "Planos pós-venda",
   "pos-venda-upsell": "Oportunidades",
   "pos-venda-checklists": "Checklists pós-venda",
+  integridade: "Integridade do Sistema",
 
   "payment-gateway": "Pagamentos (Asaas)",
   "meu-plano": "Meu Plano & Uso",
