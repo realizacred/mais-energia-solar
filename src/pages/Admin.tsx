@@ -201,6 +201,8 @@ const BillingFeaturesPage = lazy(() => import("@/components/admin/billing/Billin
 const CommercialDashboardPage = lazy(() => import("@/components/admin/billing/CommercialDashboardPage"));
 const ProposalFunnelDashboard = lazy(() => import("@/components/admin/propostas-nativas/ProposalFunnelDashboard"));
 const SystemHealthPage = lazy(() => import("@/components/admin/SystemHealthPage"));
+const PlaybooksPage = lazy(() => import("@/components/admin/playbooks/PlaybooksPage"));
+const GovernancePage = lazy(() => import("@/components/admin/governanca/GovernancePage"));
 const CronJobsPage = lazy(() => import("@/components/admin/CronJobsPage"));
 const AsaasIntegrationPage = lazy(() => import("@/pages/admin/AsaasIntegrationPage"));
 const PlanoServicoManager = lazy(() => import("@/components/admin/PlanoServicoManager"));
@@ -802,6 +804,8 @@ export default function Admin() {
                 <Route path="menus" element={<MenuConfigPage />} />
                 <Route path="dev" element={<DevToolsPage />} />
                 <Route path="system-health" element={<SystemHealthPage />} />
+                <Route path="playbooks" element={<PlaybooksPage />} />
+                <Route path="governanca" element={<GovernancePage />} />
                 <Route path="cron-jobs" element={<CronJobsPage />} />
                 <Route path="dev/seed" element={<DevToolsPage />} />
                 <Route path="dev/reset-seed" element={<DevToolsPage />} />

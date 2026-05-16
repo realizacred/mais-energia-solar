@@ -47,6 +47,19 @@ interface ModuleCategory {
 
 const MODULE_CATEGORIES: ModuleCategory[] = [
   {
+    label: "Administração",
+    icon: <Shield className="h-4 w-4" />,
+    modules: [
+      { key: "tenant-settings", label: "Empresa", description: "Configurações do Tenant" },
+      { key: "usuarios", label: "Usuários", description: "Gestão de acessos" },
+      { key: "permissoes", label: "Permissões", description: "Configurar papéis" },
+      { key: "auditoria", label: "Auditoria", description: "Logs do sistema" },
+      { key: "system-health", label: "Saúde Operacional", description: "Monitoramento de infra" },
+      { key: "playbooks", label: "Playbooks", description: "Guias de resolução" },
+      { key: "governanca", label: "Governança", description: "Segurança e backup" },
+    ],
+  },
+  {
     label: "Visão Geral",
     icon: <BarChart3 className="h-4 w-4" />,
     modules: [
