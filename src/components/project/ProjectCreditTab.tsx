@@ -135,7 +135,14 @@ function AnalysisCard({ analysis }: { analysis: any }) {
               <p className="text-[10px] text-muted-foreground">Protocolo: {analysis.protocolo_banco || 'N/A'}</p>
             </div>
           </div>
-          <Badge className="font-bold uppercase text-[10px]">{analysis.status}</Badge>
+          <div className="flex items-center gap-2">
+            {analysis.is_locked && (
+              <Badge variant="secondary" className="gap-1 bg-slate-100 text-slate-600 border-slate-200">
+                <Clock className="h-3 w-3" /> Concluído
+              </Badge>
+            )}
+            <Badge className="font-bold uppercase text-[10px]">{analysis.status}</Badge>
+          </div>
         </div>
         <div className="flex justify-between items-end border-t border-border/40 pt-3">
           <div>
