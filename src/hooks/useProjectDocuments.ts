@@ -96,6 +96,17 @@ export function useUploadProjectDocument() {
       dealId?: string | null;
       categoria?: string | null;
     }) => {
+      // 1. MIME Validation
+      const allowedMimes = ['application/pdf', 'image/jpeg', 'image/png', 'image/webp'];
+      if (!allowedMimes.includes(file.type)) {
+        throw new Error("Tipo de arquivo não permitido. Use PDF, JPEG, PNG ou WEBP.");
+      }
+
+      // 2. Size Validation (10MB)
+      if (file.size > 10 * 1024 * 1024) {
+        throw new Error("Arquivo muito grande. Limite de 10MB.");
+      }
+
       const { tenantId, userId } = await getCurrentTenantId();
       const ext = file.name.split(".").pop() || "bin";
       const ref = projetoId || dealId || "misc";
@@ -107,7 +118,11 @@ export function useUploadProjectDocument() {
 
       const { error: upErr } = await supabase.storage
         .from("project-documents")
-        .upload(storagePath, file, { upsert: false, contentType: file.type });
+        .upload(storagePath, file, { 
+          upsert: false, 
+          contentType: file.type,
+          cacheControl: '3600'
+        });
 
       if (upErr) throw upErr;
 
@@ -231,3 +246,25 @@ export function useUpdateProjectDocumentCategory() {
   });
 }
 
+export function useDownloadDocument() {
+  return useMutation({
+    mutationFn: async (doc: ProjectDocument) => {
+      const { data, error } = await supabase.storage
+        .from(doc.bucket)
+        .createSignedUrl(doc.storage_path, 60); // 60 seconds expiry
+
+      if (error) throw error;
+      return data.signedUrl;
+    },
+    onSuccess: (url) => {
+      window.open(url, '_blank');
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Erro ao baixar arquivo",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  });
+}
