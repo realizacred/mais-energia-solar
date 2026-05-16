@@ -11,7 +11,8 @@ export type AnaliseCreditoStatus =
   | 'aprovado'
   | 'aprovado_com_condicoes'
   | 'reprovado'
-  | 'cancelado';
+  | 'cancelado'
+  | 'pendente'; // Keep pendente for backward compatibility during transition
 
 export interface AnaliseCredito {
   id: string;
@@ -51,7 +52,7 @@ export interface AnaliseCreditoHistorico {
   created_at: string;
   actor?: {
     nome: string | null;
-  };
+  } | null;
 }
 
 export function useAnaliseCredito(dealId?: string | null, leadId?: string | null) {
@@ -118,7 +119,7 @@ export function useCreateAnaliseCredito() {
           tenant_id: profile.tenant_id,
           criado_por: user.id,
           status: values.status || 'rascunho'
-        })
+        } as any)
         .select()
         .single();
 
@@ -145,7 +146,7 @@ export function useUpdateAnaliseCredito() {
     mutationFn: async ({ id, ...values }: Partial<AnaliseCredito> & { id: string }) => {
       const { data, error } = await supabase
         .from("analise_credito")
-        .update(values)
+        .update(values as any)
         .eq("id", id)
         .select()
         .single();
@@ -153,7 +154,7 @@ export function useUpdateAnaliseCredito() {
       if (error) throw error;
       return data;
     },
-    onSuccess: (data) => {
+    onSuccess: (data: any) => {
       queryClient.invalidateQueries({ queryKey: ["analise-credito"] });
       if (data.deal_id) {
         queryClient.invalidateQueries({ queryKey: ["projeto-detalhe", data.deal_id] });
@@ -181,7 +182,7 @@ export function useAnaliseCreditoHistorico(analiseId: string) {
         .order("created_at", { ascending: false });
 
       if (error) throw error;
-      return data as AnaliseCreditoHistorico[];
+      return data as any as AnaliseCreditoHistorico[];
     },
     enabled: !!analiseId,
   });
@@ -197,7 +198,7 @@ export function useAnaliseCreditoDocumentos(analiseId: string) {
         .eq("analise_credito_id", analiseId);
 
       if (error) throw error;
-      return data;
+      return data as any;
     },
     enabled: !!analiseId,
   });
@@ -225,7 +226,7 @@ export function useVincularDocumentoCredito() {
           analise_credito_id,
           project_document_id,
           checklist_item_id
-        }, { onConflict: 'analise_credito_id,project_document_id' })
+        } as any, { onConflict: 'analise_credito_id,project_document_id' })
         .select()
         .single();
 
