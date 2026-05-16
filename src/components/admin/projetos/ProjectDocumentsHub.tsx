@@ -137,7 +137,7 @@ function formatSize(bytes?: number | null) {
 
 
 /** Normaliza nome de categoria para evitar duplicação visual ("CAMPO: X" vs "X"). */
-export function resolveDocumentCategory(raw?: string | null): string {
+export function normalizeCategoriaLegacy(raw?: string | null): string {
   if (!raw) return "Outros";
   let c = raw.trim().replace(/^campo[:\s]+/i, "");
   const slug = c
