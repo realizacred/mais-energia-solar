@@ -29,6 +29,7 @@ import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useCreditMetrics } from "@/hooks/useCreditDomain";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 export default function CreditGlobalArea() {
   const { data: metrics } = useCreditMetrics();
