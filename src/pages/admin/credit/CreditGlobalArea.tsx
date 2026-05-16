@@ -140,6 +140,9 @@ export default function CreditGlobalArea() {
   const [actionNotes, setActionNotes] = useState("");
   const [targetManagerId, setTargetManagerId] = useState("");
   const [pendingDocs, setPendingDocs] = useState<string[]>([]);
+  const [isSimulating, setIsSimulating] = useState(false);
+  const [simulationOptions, setSimulationOptions] = useState<any[]>([]);
+  const [isSendingToEos, setIsSendingToEos] = useState(false);
 
   // Fetch checklist for the selected analysis bank
   const { data: checklist } = useCreditBankChecklist(selectedAnalysis?.bank_config_id || undefined);
