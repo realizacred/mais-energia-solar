@@ -434,5 +434,113 @@ DA-48 INTEGRAÇÕES USAM CATÁLOGO COMO SHELL CENTRAL
 - Páginas wrapper finas (≤30 linhas) são preferíveis a duplicar componente.
 
 =============================================================================
-FIM DO AGENTS.md v4.1
+BLOCO 26 — DOMÍNIO CRÉDITO & FINANCIAMENTO (v1.0 — concluído)
+=============================================================================
+
+ARQUITETURA DO DOMÍNIO:
+Motor central: Bank Operations Core
+Componente principal: CreditGlobalArea.tsx (/admin/credit/global)
+Portal consultor: VendorCreditoView.tsx (/consultor/credito)
+Configuração: CreditConfigPage.tsx (/admin/configuracoes/credito)
+Integração EOS: /admin/integracoes/financeiras/eos
+
+TABELAS CANÔNICAS (NÃO DUPLICAR):
+- analise_credito          → tabela principal, equivale a credit_requests
+- credit_analysis_events   → log imutável de todas as ações (correlation_id)
+- credit_simulations       → histórico de simulações
+- credit_bank_configs      → SSOT de bancos/financeiras (substituiu financiamento_bancos)
+- credit_bank_checklists   → documentos exigidos por banco
+- credit_workflow_configs  → configurações de fluxo
+- credit_operation_jobs    → fila de jobs de integração
+- credit_operation_logs    → log de execução de jobs e erros de API
+- analise_credito_documentos → documentos vinculados à análise
+- financeiras_config       → credenciais OAuth por tenant (RLS restrito a admin)
+
+TABELAS DEPRECIADAS (NÃO REFERENCIAR):
+- _deprecated_financiamento_bancos → migrada para credit_bank_configs
+
+HOOKS CANÔNICOS (NÃO DUPLICAR):
+- useAnaliseCredito
+- useCreditDomain
+- useCreditConfigs
+- useCreditMetrics
+- useCreateAnaliseCredito (com idempotency_key)
+- useFinanciamentoBancos  → adapter sobre credit_bank_configs (manter para compatibilidade)
+
+EDGE FUNCTIONS DE INTEGRAÇÃO EOS:
+- eos-get-token      → OAuth client_credentials, token em memória (nunca no banco)
+- eos-simular        → simulação com validação CPF/CNPJ antes de chamar API
+- eos-enviar-proposta → submissão com mapeamento cliente+projeto+financiamento
+
+FLUXO DE STATUS (analise_credito.status):
+rascunho
+  → aguardando_analise    (consultor submete)
+    → aprovado_interno     (gerente aprova)
+      → simulacao_concluida (EOS simula)
+        → enviado_financeira (EOS recebe proposta)
+    → reprovado            (gerente reprova — exige motivo ≥ 20 chars)
+    → aguardando_documentos (gerente solicita docs)
+      → aguardando_analise  (consultor resubmete)
+
+REGRAS BLOQUEANTES ESPECÍFICAS DO DOMÍNIO:
+
+RB-77 CRÉDITO — IDEMPOTÊNCIA VIA IDEMPOTENCY_KEY
+useCreateAnaliseCredito usa idempotency_key baseada em projeto_id.
+NUNCA criar duas análises para o mesmo projeto sem checar existência.
+SEMPRE verificar analise_credito WHERE projeto_id antes de INSERT.
+
+RB-78 CRÉDITO — EVENTOS SÃO IMUTÁVEIS
+credit_analysis_events NUNCA recebe UPDATE ou DELETE.
+Toda correção é um novo evento do tipo 'correcao' com referência ao evento anterior.
+NUNCA modificar evento existente.
+
+RB-79 CRÉDITO — CREDENCIAIS EOS NUNCA NO FRONTEND
+financeiras_config.api_credentials (JSONB com client_secret) só é lido
+por Edge Functions via service role.
+NUNCA retornar api_credentials para o cliente React.
+NUNCA logar client_secret em credit_operation_logs.
+
+RB-80 CRÉDITO — VALIDAR ANTES DE CHAMAR API EOS
+Antes de qualquer chamada a eos-simular ou eos-enviar-proposta:
+- CPF/CNPJ: algoritmo checksum (isValidCpf / isValidCnpj)
+- Valor > 0
+- Prazo entre 12 e 120
+- Email com @ e domínio
+- Telefone com 10-11 dígitos
+Se inválido: retornar 422, gravar em credit_operation_logs, NUNCA chamar API.
+
+RB-81 CRÉDITO — EXPORTAÇÃO SEM EDGE FUNCTION
+Exportação Excel (.xlsx via SheetJS) e PDF (window.print()) são gerados
+no frontend com dados já carregados.
+NUNCA criar Edge Function para geração de relatório de crédito.
+Dados sensíveis (client_secret, tokens) NUNCA incluídos na exportação.
+
+ANTI-PADRÕES ESPECÍFICOS:
+AP-35 CRIAR NOVA TABELA DE BANCOS
+✗ Errado: CREATE TABLE financiamento_parceiros ou similar
+✓ Certo: INSERT INTO credit_bank_configs
+
+AP-36 CRIAR NOVO HOOK DE MÉTRICAS
+✗ Errado: useCreditReportMetrics, useDashboardCredito
+✓ Certo: reaproveitar useCreditMetrics com filtros como parâmetro
+
+AP-37 GRAVAR TOKEN EOS NO BANCO
+✗ Errado: INSERT INTO financeiras_config (access_token)
+✓ Certo: token em memória da Edge Function, renovar via expires_in
+
+AP-38 NOVA PÁGINA DE RELATÓRIO
+✗ Errado: /admin/relatorios/credito (página nova)
+✓ Certo: aba "Relatórios" dentro de CreditGlobalArea.tsx
+
+CHECKLIST DE PR PARA FEATURES DE CRÉDITO:
+[ ] Nenhuma das tabelas depreciadas referenciada
+[ ] Evento gravado em credit_analysis_events com correlation_id
+[ ] Idempotência verificada antes de INSERT em analise_credito
+[ ] client_secret não trafega pelo frontend
+[ ] CPF/CNPJ validado por checksum antes de qualquer INSERT ou chamada API
+[ ] useCreditMetrics reaproveitado (não duplicado)
+[ ] Comentário no topo do componente declarando tabelas e hooks usados
+
+=============================================================================
+FIM DO AGENTS.md v4.2
 =============================================================================
