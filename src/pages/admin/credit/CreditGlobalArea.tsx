@@ -1,4 +1,5 @@
-import { useQuery } from "@tanstack/react-query";
+import { useState, useEffect } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { 
   CreditCard, 
@@ -10,7 +11,15 @@ import {
   ArrowUpRight,
   Activity,
   ShieldAlert,
-  Terminal
+  Terminal,
+  CheckCircle2,
+  XCircle,
+  FileSearch,
+  UserPlus,
+  Calendar,
+  User as UserIcon,
+  Banknote,
+  MoreVertical
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -25,20 +34,83 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { formatBRL } from "@/lib/formatters";
-import { formatDistanceToNow } from "date-fns";
+import { formatDistanceToNow, isWithinInterval, startOfDay, endOfDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useCreditMetrics } from "@/hooks/useCreditDomain";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { useAuth } from "@/hooks/useAuth";
+import { useUsuariosList } from "@/hooks/useUsuarios";
+import { toast } from "@/hooks/use-toast";
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogHeader, 
+  DialogTitle, 
+  DialogFooter,
+  DialogDescription
+} from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
+import { 
+  Select, 
+  SelectContent, 
+  SelectItem, 
+  SelectTrigger, 
+  SelectValue 
+} from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { DateRange } from "react-day-picker";
+import { Calendar as CalendarComponent } from "@/components/ui/calendar";
+import { cn } from "@/lib/utils";
+import { format } from "date-fns";
+import { 
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+
+/**
+ * REUSED TABLES: analise_credito, credit_analysis_events, analise_credito_documentos, profiles, deals, leads
+ * REUSED HOOKS: useCreditMetrics, useAuth, useUsuariosList
+ */
 
 export default function CreditGlobalArea() {
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
   const { data: metrics } = useCreditMetrics();
+  const { data: users } = useUsuariosList(true);
+  
+  // Persistent Filters State
+  const [filters, setFilters] = useState(() => {
+    const saved = localStorage.getItem("credit-global-filters");
+    return saved ? JSON.parse(saved) : {
+      managerId: "all",
+      status: "all",
+      consultantId: "all",
+      bank: "all",
+      dateRange: undefined as DateRange | undefined,
+      search: ""
+    };
+  });
+
+  useEffect(() => {
+    localStorage.setItem("credit-global-filters", JSON.stringify(filters));
+  }, [filters]);
+
   const { data: analyses, isLoading } = useQuery({
     queryKey: ["admin-credit-analyses"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("analise_credito")
-        .select("*, deal:deals(title), lead:leads(nome), criado_por_profile:profiles!analise_credito_criado_por_fkey(nome)")
+        .select(`
+          *, 
+          deal:deals(title), 
+          lead:leads(nome), 
+          consultor:profiles!analise_credito_criado_por_fkey(nome),
+          responsavel:profiles!analise_credito_responsavel_id_fkey(nome)
+        `)
         .order("created_at", { ascending: false });
       if (error) throw error;
       return data;
@@ -58,11 +130,115 @@ export default function CreditGlobalArea() {
     }
   });
 
+  // Action States
+  const [selectedAnalysis, setSelectedAnalysis] = useState<any>(null);
+  const [actionType, setActionType] = useState<'approve' | 'reject' | 'request_docs' | 'reassign' | null>(null);
+  const [actionNotes, setActionNotes] = useState("");
+  const [targetManagerId, setTargetManagerId] = useState("");
+  const [pendingDocs, setPendingDocs] = useState<string[]>([]);
+
+  const managers = users?.filter(u => u.roles.some(r => ['admin', 'gerente', 'super_admin'].includes(r))) || [];
+
+  const handleAction = async () => {
+    if (!selectedAnalysis || !actionType) return;
+
+    try {
+      const { data: { user: currentUser } } = await supabase.auth.getUser();
+      const correlation_id = crypto.randomUUID();
+      
+      let newStatus = selectedAnalysis.status;
+      let updatePayload: any = { updated_at: new Date().toISOString() };
+
+      if (actionType === 'approve') {
+        newStatus = 'aprovado_interno';
+        updatePayload.status = newStatus;
+      } else if (actionType === 'reject') {
+        newStatus = 'reprovado';
+        updatePayload.status = newStatus;
+        updatePayload.observacoes = actionNotes;
+      } else if (actionType === 'request_docs') {
+        newStatus = 'pendente_documentos';
+        updatePayload.status = newStatus;
+        updatePayload.observacoes = actionNotes;
+      } else if (actionType === 'reassign') {
+        updatePayload.responsavel_id = targetManagerId;
+      }
+
+      // 1. Update Analysis
+      const { error: updateError } = await supabase
+        .from("analise_credito")
+        .update(updatePayload)
+        .eq("id", selectedAnalysis.id);
+      
+      if (updateError) throw updateError;
+
+      // 2. Log Event
+      await supabase.from("credit_analysis_events").insert({
+        tenant_id: selectedAnalysis.tenant_id,
+        analise_id: selectedAnalysis.id,
+        event_type: actionType === 'reassign' ? 'manager_reassigned' : 'status_changed',
+        actor_id: currentUser?.id,
+        status_anterior: selectedAnalysis.status,
+        status_novo: newStatus,
+        payload: { notes: actionNotes, ...updatePayload },
+        correlation_id,
+        idempotency_key: `${actionType}_${selectedAnalysis.id}_${Date.now()}`
+      } as any);
+
+      // 3. Notify Consultant
+      await supabase.rpc('create_notification' as any, {
+        p_tenant_id: selectedAnalysis.tenant_id,
+        p_title: actionType === 'approve' ? "Crédito Aprovado Internamente" : 
+                 actionType === 'reject' ? "Crédito Reprovado" :
+                 actionType === 'request_docs' ? "Documentos Pendentes" : "Gerente Reatribuído",
+        p_message: `A análise para o cliente ${selectedAnalysis.deal?.title || selectedAnalysis.lead?.nome} foi atualizada.`,
+        p_type: "credit_request",
+        p_severity: actionType === 'approve' ? "success" : actionType === 'reject' ? "error" : "info",
+        p_metadata: { analise_id: selectedAnalysis.id },
+        p_roles_permitidos: ["vendedor", "consultor", "admin"]
+      });
+
+      toast({ title: "Ação realizada com sucesso" });
+      queryClient.invalidateQueries({ queryKey: ["admin-credit-analyses"] });
+      setSelectedAnalysis(null);
+      setActionType(null);
+      setActionNotes("");
+    } catch (error: any) {
+      toast({ 
+        title: "Erro ao processar ação", 
+        description: error.message, 
+        variant: "destructive" 
+      });
+    }
+  };
+
+  const filteredAnalyses = analyses?.filter(a => {
+    if (filters.managerId !== "all" && a.responsavel_id !== filters.managerId) return false;
+    if (filters.status !== "all" && a.status !== filters.status) return false;
+    if (filters.consultantId !== "all" && a.criado_por !== filters.consultantId) return false;
+    if (filters.bank !== "all" && a.banco !== filters.bank) return false;
+    if (filters.search) {
+      const search = filters.search.toLowerCase();
+      const matchName = (a.deal?.title || a.lead?.nome || "").toLowerCase().includes(search);
+      const matchCPF = (a.cpf_cnpj || "").includes(search);
+      if (!matchName && !matchCPF) return false;
+    }
+    if (filters.dateRange?.from && filters.dateRange?.to) {
+      const date = new Date(a.created_at);
+      if (!isWithinInterval(date, { start: startOfDay(filters.dateRange.from), end: endOfDay(filters.dateRange.to) })) return false;
+    }
+    return true;
+  });
+
+  const myQueue = filteredAnalyses?.filter(a => 
+    a.responsavel_id === user?.id && 
+    !['aprovado', 'aprovada', 'reprovado', 'reprovada', 'cancelada'].includes(a.status)
+  ) || [];
+
   const stats = {
     total: analyses?.length || 0,
-    em_analise: analyses?.filter(a => a.status === 'em_analise').length || 0,
-    pendentes: analyses?.filter(a => a.status === 'pendente_documentos').length || 0,
-    aprovados: analyses?.filter(a => ['aprovado', 'aprovada'].includes(a.status)).length || 0,
+    aguardando: analyses?.filter(a => !['aprovado', 'aprovada', 'reprovado', 'reprovada', 'cancelada'].includes(a.status)).length || 0,
+    aprovados: analyses?.filter(a => ['aprovado', 'aprovada', 'aprovado_interno'].includes(a.status)).length || 0,
   };
 
   return (
