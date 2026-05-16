@@ -123,6 +123,8 @@ const ConsultorDashboard = lazy(() => import("@/pages/ConsultorDashboard"));
 const FinancialSettingsPage = lazy(() => import("@/components/admin/settings/FinancialSettingsPage"));
 const CreditConfigPage = lazy(() => import("@/pages/admin/CreditConfigPage"));
 const ChequesPage = lazy(() => import("@/pages/admin/financeiro/cheques/ChequesPage"));
+const CreditGlobalArea = lazy(() => import("@/pages/admin/credit/CreditGlobalArea"));
+
 
 
 const TasksSlaDashboard = lazy(() => import("@/components/admin/tasks").then(m => ({ default: m.TasksSlaDashboard })));
