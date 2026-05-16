@@ -395,6 +395,35 @@ function ProjetoDetalheContent() {
   const [editProjetoDescricao, setEditProjetoDescricao] = useState("");
   const [savingProjeto, setSavingProjeto] = useState(false);
   const [reabrirDealOpen, setReabrirDealOpen] = useState(false);
+  const [isUpdateValueModalOpen, setIsUpdateValueModalOpen] = useState(false);
+  const [updateValueReason, setUpdateValueReason] = useState("");
+  const [isUpdatingValue, setIsUpdatingValue] = useState(false);
+
+  const { data: finSummary } = useFinancialSummary(dealId, projetoId);
+
+  const handleUpdateValueFromContract = async () => {
+    if (!dealId || !updateValueReason.trim()) return;
+    setIsUpdatingValue(true);
+    try {
+      const { data, error } = await supabase.rpc('fn_update_deal_value_from_contract', {
+        p_deal_id: dealId,
+        p_reason: updateValueReason.trim()
+      });
+
+      if (error) throw error;
+
+      toast({ title: "Valor comercial atualizado", description: `Novo valor: ${formatBRLInteger(data.new_value)}` });
+      setIsUpdateValueModalOpen(false);
+      setUpdateValueReason("");
+      queryClient.invalidateQueries({ queryKey: ["projeto-detalhe", dealId] });
+      queryClient.invalidateQueries({ queryKey: ["projetos-pipeline"] });
+      silentRefresh?.();
+    } catch (error: any) {
+      toast({ title: "Erro ao atualizar valor", description: error.message, variant: "destructive" });
+    } finally {
+      setIsUpdatingValue(false);
+    }
+  };
 
   // Expose queryClient to window for PropostaExpandedDetail
   useEffect(() => {
