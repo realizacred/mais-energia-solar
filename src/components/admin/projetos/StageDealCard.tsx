@@ -231,7 +231,7 @@ export function StageDealCard({
 
         {/* METRICS — value + time + status */}
         {visibleFields.has("valor_projeto") && (
-          <div className="flex items-center gap-1.5 text-[11px] px-0.5">
+          <div className="flex items-center gap-1 text-[10px] px-0.5">
             <span className="font-bold tabular-nums text-foreground text-xs">
               {hasValue ? formatBRL(deal.deal_value) : "R$ —"}
             </span>
