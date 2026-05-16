@@ -175,7 +175,7 @@ export default function SystemHealthPage() {
   const [expandedRow, setExpandedRow] = useState<string | null>(null);
   const queryClient = useQueryClient();
   const {
-    integrations, outboxStats, integrityAudit, integrityLoading,
+    integrations, outboxStats, docStats, tenantHealth,
     healthy, degraded, down, notConfigured,
     avgLatency, errorRate, overallStatus, isLoading,
   } = useSystemHealth();
@@ -216,7 +216,7 @@ export default function SystemHealthPage() {
         error_message: f.error_message,
         details: null,
         updated_at: f.created_at,
-      }))
+      } as any))
     );
 
   const overallIcon = overallStatus === "green" ? CheckCircle2 : overallStatus === "yellow" ? AlertTriangle : WifiOff;
