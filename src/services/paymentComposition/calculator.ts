@@ -7,6 +7,7 @@ import {
   type PaymentItemComputed,
   type ParcelaDetalhe,
   type CompositionSummary,
+  FORMA_PAGAMENTO_LABELS,
   FORMAS_PARCELAVEIS,
 } from "./types";
 import { resolveJuros } from "./resolveJuros";
