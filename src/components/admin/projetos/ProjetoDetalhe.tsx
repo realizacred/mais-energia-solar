@@ -684,28 +684,26 @@ function ProjetoDetalheContent() {
               {deal.status === "won" && (
                 <OperationalBadge dealId={deal.id} />
               )}
-              {deal.value > 0 && (
-                <div className="flex flex-col items-end gap-1.5">
-                  <Badge variant="outline" className="text-xs shrink-0 font-bold bg-primary/5 text-primary border-primary/20 h-7 px-3">
-                    Oficial: {formatBRL(deal.value)}
-                  </Badge>
-                  {propostas.some(p => p.has_unpublished_changes && p.draft_total && Math.abs(p.draft_total - deal.value) > 0.01) && (
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Badge variant="outline" className="text-[10px] shrink-0 font-bold bg-amber-50 text-amber-700 border-amber-200 h-6 px-2 animate-pulse cursor-help">
-                            <AlertCircle className="h-3 w-3 mr-1" />
-                            Rascunho: {formatBRL(propostas.find(p => p.has_unpublished_changes)?.draft_total || 0)}
-                          </Badge>
-                        </TooltipTrigger>
-                        <TooltipContent className="text-xs bg-amber-50 text-amber-900 border-amber-200">
-                          Existem alterações não publicadas nesta proposta.<br />
-                          O rascunho possui valor divergente do oficial.
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                  )}
-                </div>
+              <ProjetoFinancialBadges
+                dealId={deal.id}
+                projetoId={projetoId}
+                valorComercial={deal.value || 0}
+              />
+              {propostas.some(p => p.has_unpublished_changes && p.draft_total && Math.abs(p.draft_total - (deal.value || 0)) > 0.01) && (
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Badge variant="outline" className="text-[10px] shrink-0 font-bold bg-amber-50 text-amber-700 border-amber-200 h-6 px-2 animate-pulse cursor-help">
+                        <AlertCircle className="h-3 w-3 mr-1" />
+                        Rascunho: {formatBRL(propostas.find(p => p.has_unpublished_changes)?.draft_total || 0)}
+                      </Badge>
+                    </TooltipTrigger>
+                    <TooltipContent className="text-xs bg-amber-50 text-amber-900 border-amber-200">
+                      Existem alterações não publicadas nesta proposta.<br />
+                      O rascunho possui valor divergente do oficial.
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
               )}
               <Badge variant="outline" className="text-xs shrink-0 gap-1.5 bg-primary/5 border-primary/20 text-primary font-semibold">
                 <UserCircle className="h-3.5 w-3.5" />
