@@ -197,6 +197,7 @@ export function useSystemHealth() {
     avgLatency,
     errorRate,
     overallStatus,
-    isLoading: loadingIntegrations || loadingOutbox || loadingDocs || loadingTenant,
+    jobStats: jobStats || { pending: 0, processing: 0, failed: 0, completed: 0, avgLatencyMs: 0 },
+    isLoading: loadingIntegrations || loadingOutbox || loadingDocs || loadingTenant || loadingJobs,
   };
 }
