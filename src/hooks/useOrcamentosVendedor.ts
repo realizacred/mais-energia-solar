@@ -121,7 +121,7 @@ export function useOrcamentosVendedor({
   maxAgeDays = null, 
   operationalStatus = "todos",
 }: UseOrcamentosVendedorOptions) {
-  const isViewingAsVendedor = filterByVendedor; // Alias for clarity in queryKey
+  const isViewingAsVendedor = filterByVendedor;
   const [page, setPage] = useState(0);
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -132,11 +132,18 @@ export function useOrcamentosVendedor({
     queryKey: ["orcamentos-vendedor", vendedorId, vendedorNome, isAdminMode, searchTerm, filterVisto, filterEstado, filterStatus, page, excludeTerminal, maxAgeDays, operationalStatus, isViewingAsVendedor],
     queryFn: async () => {
       if (!vendedorId && !vendedorNome && !isAdminMode) {
-        return { orcamentos: [], totalCount: 0, statuses: [] };
+        return { orcamentos: [], totalCount: 0, statuses: [], serverStats: null };
       }
 
       const from = page * VENDEDOR_PAGE_SIZE;
       const to = from + VENDEDOR_PAGE_SIZE - 1;
+
+      // Stats fetch
+      const { data: serverStats } = await supabase.rpc("get_consultor_stats", {
+        _consultor_id: vendedorId,
+        _consultor_nome: vendedorNome,
+        _is_admin: isAdminMode
+      });
 
       const buildBase = (terminalIds: string[] = []) => {
         let q = supabase
@@ -218,12 +225,11 @@ export function useOrcamentosVendedor({
       }
       mergedRaw.sort((a, b) => (a.created_at < b.created_at ? 1 : -1));
 
-      // statusesRes already fetched above
-
       return {
         orcamentos: mergedRaw.map(mapRow),
         totalCount: primaryCount + (page === 0 ? legacyRows.length : 0),
         statuses: allStatuses,
+        serverStats
       };
     },
     staleTime: 2 * 60 * 1000,
@@ -232,6 +238,7 @@ export function useOrcamentosVendedor({
   const orcamentos = data?.orcamentos || [];
   const statuses = data?.statuses || [];
   const totalCount = data?.totalCount || 0;
+  const serverStats = data?.serverStats;
 
   const toggleVisto = useCallback(async (orcamento: OrcamentoVendedor) => {
     const newVisto = !orcamento.visto;
@@ -299,7 +306,8 @@ export function useOrcamentosVendedor({
   return {
     orcamentos,
     statuses,
-    stats,
+    stats: serverStats || stats,
+    serverStats,
     estados,
     loading,
     loadingMore: false,

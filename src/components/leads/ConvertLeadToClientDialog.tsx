@@ -31,6 +31,13 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
+import { useIsMobile } from "@/hooks/use-mobile";
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -124,6 +131,8 @@ export function ConvertLeadToClientDialog({
   const [transformadores, setTransformadores] = useState<Transformador[]>([]);
   const [simulacoes, setSimulacoes] = useState<Simulacao[]>([]);
   const [currentStep, setCurrentStep] = useState(0);
+  const isMobile = useIsMobile();
+
 
   // Offline sync hook
   const {
@@ -773,129 +782,41 @@ export function ConvertLeadToClientDialog({
         transformador_id: data.transformador_id || null,
         localizacao: data.localizacao || null,
         observacoes: data.observacoes || null,
-        identidade_urls: identidadeUrls.length > 0 ? identidadeUrls : null,
-        comprovante_endereco_urls: comprovanteUrls.length > 0 ? comprovanteUrls : null,
-        comprovante_beneficiaria_urls: beneficiariaUrls.length > 0 ? beneficiariaUrls : null,
+        identidade_urls: identidadeUrls,
+        comprovante_endereco_urls: comprovanteUrls,
+        comprovante_beneficiaria_urls: beneficiariaUrls,
         simulacao_aceita_id: data.simulacao_aceita_id || null,
         assinatura_url: assinaturaUrls.length > 0 ? assinaturaUrls[0] : null,
         potencia_kwp: potenciaKwp,
         valor_projeto: valorProjeto,
       };
 
-      //   ...clientePayload,
-      //   identidade_urls: clientePayload.identidade_urls?.length || 0,
-      //   comprovante_endereco_urls: clientePayload.comprovante_endereco_urls?.length || 0,
-      // });
+      // SSOT — Use atomic RPC for conversion
+      const { data: rpcRes, error: rpcError } = await supabase.rpc("convert_lead_to_venda_v2", {
+        _lead_id: lead.id,
+        _payload: clientePayload as any,
+        _payment_composition: paymentItems as any,
+        _idempotency_key: lead.id // Use lead_id as idempotency key for now
+      });
 
-      // Check for existing client by lead_id OR by phone (to avoid duplicate cliente_code)
-      let existingCliente: { id: string } | null = null;
-      
-      const { data: byLeadId } = await supabase
-        .from("clientes")
-        .select("id")
-        .eq("lead_id", lead.id)
-        .maybeSingle();
-      
-      existingCliente = byLeadId || null;
+      const result = rpcRes as { success?: boolean; message?: string } | null;
 
-      // If not found by lead_id, check by phone to prevent duplicate
-      if (!existingCliente && data.telefone) {
-        const normalizedPhone = data.telefone.replace(/\D/g, "");
-        const { data: byPhone } = await supabase
-          .from("clientes")
-          .select("id")
-          .eq("telefone", data.telefone)
-          .maybeSingle();
-        
-        if (!byPhone && normalizedPhone.length >= 10) {
-          const { data: byNormalized } = await supabase
-            .from("clientes")
-            .select("id")
-            .eq("telefone_normalized", normalizedPhone.slice(-11))
-            .maybeSingle();
-          existingCliente = byNormalized || null;
-        } else {
-          existingCliente = byPhone || null;
-        }
-      }
+      if (rpcError) throw rpcError;
+      if (!result?.success) throw new Error(result?.message || "Falha na conversão");
 
-      let cliente: { id: string } | null = null;
-
-      if (existingCliente) {
-        const { data: updated, error: updateError } = await supabase
-          .from("clientes")
-          .update({ ...clientePayload, lead_id: lead.id, updated_at: new Date().toISOString() })
-          .eq("id", existingCliente.id)
-          .select("id")
-          .single();
-
-        if (updateError) throw updateError;
-        cliente = updated;
-      } else {
-        const { data: created, error: insertError } = await supabase
-          .from("clientes")
-          .insert({ ...clientePayload, lead_id: lead.id } as any)
-          .select("id")
-          .single();
-
-        if (insertError) throw insertError;
-        cliente = created;
-      }
-
-      if (!cliente) throw new Error("Falha ao criar/atualizar cliente.");
-
-      const { data: convertidoStatus } = await supabase
-        .from("lead_status")
-        .select("id")
-        .eq("nome", "Aguardando Validação")
-        .single();
-
-      if (convertidoStatus) {
-        const nowIso = new Date().toISOString();
-
-        const [leadStatusUpdate, orcamentoStatusUpdate] = await Promise.all([
-          supabase
-            .from("leads")
-            .update({ status_id: convertidoStatus.id, updated_at: nowIso })
-            .eq("id", lead.id),
-          orcamentoId
-            ? supabase
-                .from("orcamentos")
-                .update({ status_id: convertidoStatus.id, ultimo_contato: nowIso, updated_at: nowIso })
-                .eq("id", orcamentoId)
-            : Promise.resolve({ error: null } as any),
-        ]);
-
-        if (leadStatusUpdate?.error) throw leadStatusUpdate.error;
-        if (orcamentoStatusUpdate?.error) throw orcamentoStatusUpdate.error;
-      }
 
       const storageKey = `lead_conversion_${lead.id}`;
       localStorage.removeItem(storageKey);
+      localStorage.removeItem(`lead_payment_composition_${lead.id}`);
 
-      // Persist payment composition to DB (source of truth) + localStorage (cache)
-      if (paymentItems.length > 0 && cliente) {
-        const compositionJson = JSON.stringify(paymentItems);
-        // Save to DB
-        await supabase
-          .from("clientes")
-          .update({ payment_composition: paymentItems } as any)
-          .eq("id", cliente.id);
-        // Keep localStorage as cache/fallback
-        localStorage.setItem(
-          `lead_payment_composition_${lead.id}`,
-          compositionJson
-        );
-      }
-
-      const action = existingCliente ? "atualizado" : "cadastrado";
       toast({
         title: "Venda enviada para validação!",
-        description: `${data.nome} foi ${action}. Aguardando aprovação do administrador para gerar comissão.`,
+        description: `${data.nome} foi processado com sucesso. Aguardando aprovação do administrador.`,
       });
 
       onOpenChange(false);
       onSuccess?.();
+
     } catch (error: any) {
       console.error("Error converting lead:", error);
       toast({
@@ -1001,24 +922,53 @@ export function ConvertLeadToClientDialog({
 
   const handleBack = () => setCurrentStep((s) => Math.max(s - 1, 0));
 
+  const Title = () => (
+    <div className="flex flex-row items-center gap-3 p-5 pb-4 border-b border-border shrink-0">
+      <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+        <ShoppingCart className="w-5 h-5 text-primary" />
+      </div>
+      <div className="flex-1">
+        <h2 className="text-base font-semibold text-foreground leading-none">
+          Converter Lead em Venda
+        </h2>
+        <p className="text-xs text-muted-foreground mt-1.5">
+          {lead.nome} {lead.lead_code ? `· ${lead.lead_code}` : ""}
+        </p>
+      </div>
+    </div>
+  );
+
+  const FormWrapper = ({ children }: { children: React.ReactNode }) => {
+    if (isMobile) {
+      return (
+        <Sheet open={open} onOpenChange={(v) => { if (!v) setCurrentStep(0); onOpenChange(v); }}>
+          <SheetContent side="bottom" className="w-full h-[95vh] sm:h-[100dvh] p-0 flex flex-col overflow-hidden border-none rounded-t-xl">
+            <SheetHeader className="sr-only">
+              <SheetTitle>Converter Lead em Venda</SheetTitle>
+            </SheetHeader>
+            <Title />
+            {children}
+          </SheetContent>
+        </Sheet>
+      );
+    }
+    return (
+      <Dialog open={open} onOpenChange={(v) => { if (!v) setCurrentStep(0); onOpenChange(v); }}>
+        <DialogContent className="w-full sm:w-[90vw] max-w-[700px] p-0 gap-0 overflow-hidden flex flex-col h-[100dvh] sm:h-auto max-h-[100dvh] sm:max-h-[calc(100dvh-2rem)] rounded-none sm:rounded-lg border-none sm:border">
+          <DialogHeader className="sr-only">
+            <DialogTitle>Converter Lead em Venda</DialogTitle>
+          </DialogHeader>
+          <Title />
+          {children}
+        </DialogContent>
+      </Dialog>
+    );
+  };
+
   return (
     <>
-    <Dialog open={open} onOpenChange={(v) => { if (!v) setCurrentStep(0); onOpenChange(v); }}>
-      <DialogContent className="w-full sm:w-[90vw] max-w-[700px] p-0 gap-0 overflow-hidden flex flex-col h-[100dvh] sm:h-auto max-h-[100dvh] sm:max-h-[calc(100dvh-2rem)] rounded-none sm:rounded-lg border-none sm:border">
-        {/* ── HEADER §25 ─────────────────────────────────────── */}
-        <DialogHeader className="flex flex-row items-center gap-3 p-5 pb-4 border-b border-border shrink-0">
-          <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-            <ShoppingCart className="w-5 h-5 text-primary" />
-          </div>
-          <div className="flex-1">
-            <DialogTitle className="text-base font-semibold text-foreground">
-              Converter Lead em Venda
-            </DialogTitle>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              {lead.nome} {lead.lead_code ? `· ${lead.lead_code}` : ""}
-            </p>
-          </div>
-        </DialogHeader>
+    <FormWrapper>
+
 
         {/* ── STEPPER ── */}
         <div className="flex items-center gap-1 px-5 py-3 border-b border-border bg-muted/20 shrink-0">
@@ -1565,8 +1515,8 @@ export function ConvertLeadToClientDialog({
             </div>
           </form>
         </Form>
-      </DialogContent>
-    </Dialog>
+        </FormWrapper>
+
 
     <MissingDocsConfirmModal
       open={showMissingDocsModal}

@@ -11,6 +11,15 @@ import type { Lead } from "@/types/lead";
 import { toCanonicalPhoneDigits } from "@/utils/phone/toCanonicalPhoneDigits";
 import { getTerminalStatusIds, shouldShowOrcamento } from "@/modules/orcamentos/utils/operationalFilters";
 
+export interface ConsultorServerStats {
+  total: number;
+  pendentes: number;
+  convertidos: number;
+  nao_vistos: number;
+  documentacao_pendente: number;
+}
+
+
 export interface VendedorProfile {
   id: string;
   nome: string;
@@ -302,6 +311,8 @@ export function useVendedorPortal() {
     // Phase 1 — only block portal on initial profile load. Refetches por filtro
     // não devem desmontar a UI (causa "página recarregando" ao trocar filtro).
     loading: initialLoading,
+    serverStats: orcamentosData.serverStats as unknown as ConsultorServerStats | undefined,
+
 
     // Filters
     searchTerm,
@@ -333,6 +344,7 @@ export function useVendedorPortal() {
     filteredOrcamentos,
     statuses: orcamentosData.statuses,
     stats: orcamentosData.stats,
+    
     estados: orcamentosData.estados,
     fetchOrcamentos: orcamentosData.fetchOrcamentos,
     loadMore: orcamentosData.loadMore,
@@ -342,6 +354,9 @@ export function useVendedorPortal() {
     toggleVisto: orcamentosData.toggleVisto,
     updateStatus: orcamentosData.updateStatus,
     deleteOrcamento: orcamentosData.deleteOrcamento,
+    page: orcamentosData.page,
+    setPage: orcamentosData.setPage,
+
 
     // Gamification
     achievements: gamification.achievements,

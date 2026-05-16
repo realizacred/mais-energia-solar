@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
+
 import { OrcamentoStatusSelector } from "@/components/vendor/OrcamentoStatusSelector";
 import type { LeadStatus } from "@/types/lead";
 import type { OrcamentoVendedor } from "@/hooks/useOrcamentosVendedor";
@@ -120,53 +122,90 @@ export function VendorOrcamentoCard({
             />
           </div>
           {orcamento.proposta_token ? (
-            <Badge className="bg-success/10 text-success border-success/20 h-8 px-2 flex items-center gap-1">
+            <Badge className="bg-success/10 text-success border-success/20 h-7 px-2 flex items-center gap-1">
               <FileText className="w-3 h-3" />
-              <span className="text-[10px]">COM PROPOSTA</span>
+              <span className="text-[10px]">PROPOSTA OK</span>
             </Badge>
           ) : (
-            <Badge variant="outline" className="border-dashed h-8 px-2 flex items-center gap-1 text-muted-foreground">
+            <Badge variant="outline" className="border-dashed h-7 px-2 flex items-center gap-1 text-muted-foreground bg-muted/30">
               <span className="text-[10px]">SEM PROPOSTA</span>
             </Badge>
           )}
+
+          {orcamento.status_id && statuses.find(s => s.id === orcamento.status_id)?.nome.toLowerCase().includes('documentação') ? (
+            <Badge variant="outline" className="border-warning/50 text-warning bg-warning/5 h-7 px-2 flex items-center gap-1">
+              <span className="text-[10px]">DOC. PENDENTE</span>
+            </Badge>
+          ) : orcamento.status_id && statuses.find(s => s.id === orcamento.status_id)?.nome.toLowerCase().includes('validação') ? (
+            <Badge variant="outline" className="border-primary/50 text-primary bg-primary/5 h-7 px-2 flex items-center gap-1">
+              <span className="text-[10px]">EM VALIDAÇÃO</span>
+            </Badge>
+          ) : (
+            <Badge variant="outline" className="border-success/30 text-success/70 bg-success/5 h-7 px-2 flex items-center gap-1">
+              <span className="text-[10px]">DOC OK</span>
+            </Badge>
+          )}
+
         </div>
 
-        {/* Critical Actions */}
+        {/* Critical Actions — Phase 3: Single primary CTA */}
         <div className="flex items-center gap-2 pt-2 border-t border-border/50">
-          <Button
-            variant="outline"
-            size="sm"
-            className="flex-1 h-10 text-xs gap-2 font-semibold"
-            onClick={onView}
-          >
-            <Eye className="w-4 h-4" />
-            Detalhes
-          </Button>
-          
-          {onConvert && !isConverted && (
+          {!isConverted ? (
             <Button
-              variant="default"
+              variant={orcamento.proposta_token ? "default" : "outline"}
               size="sm"
-              className="flex-[1.5] h-10 text-xs gap-2 bg-primary hover:bg-primary/90 font-bold"
-              onClick={onConvert}
-              disabled={!orcamento.proposta_token}
+              className={cn(
+                "flex-1 h-11 text-xs gap-2 font-bold transition-all shadow-sm",
+                orcamento.proposta_token ? "bg-primary hover:bg-primary/90" : "text-muted-foreground"
+              )}
+              onClick={() => orcamento.proposta_token ? onConvert?.() : onView()}
             >
-              <ShoppingCart className="w-4 h-4" />
-              Converter Venda
+              {orcamento.proposta_token ? (
+                <>
+                  <ShoppingCart className="w-4 h-4" />
+                  Converter em Venda
+                </>
+              ) : (
+                <>
+                  <Eye className="w-4 h-4" />
+                  Gerar Orçamento Primeiro
+                </>
+
+              )}
             </Button>
-          )}
-          
-          {onDelete && (
+          ) : (
             <Button
               variant="outline"
               size="sm"
-              className="text-destructive border-destructive/30 hover:bg-destructive/10 h-10 w-10 px-0 shrink-0"
+              className="flex-1 h-11 text-xs gap-2 font-semibold bg-success/5 text-success border-success/20"
+              onClick={onView}
+            >
+              <UserCheck className="w-4 h-4" />
+              Venda Convertida
+            </Button>
+          )}
+          
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-11 w-11 rounded-full text-success hover:bg-success/10 shrink-0"
+            onClick={() => window.open(`https://wa.me/55${orcamento.telefone.replace(/\D/g, '')}`, '_blank')}
+          >
+            <Phone className="w-5 h-5" />
+          </Button>
+          
+          {onDelete && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="text-destructive/50 hover:text-destructive hover:bg-destructive/10 h-11 w-11 rounded-full shrink-0"
               onClick={onDelete}
             >
               <Trash2 className="w-4 h-4" />
             </Button>
           )}
         </div>
+
       </CardContent>
     </Card>
   );

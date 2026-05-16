@@ -125,7 +125,8 @@ export default function VendorOrcamentosView({ portal }: Props) {
             <div>
               <CardTitle>Meus Orçamentos</CardTitle>
               <CardDescription>
-                Exibindo {filteredOrcamentos.length} de {totalCount} orçamentos captados através do seu link
+                Exibindo {filteredOrcamentos.length} {filteredOrcamentos.length === 1 ? 'orçamento' : 'orçamentos'} 
+                {totalCount > filteredOrcamentos.length ? ` (Página ${portal.page + 1})` : ""} de {totalCount} filtrados
               </CardDescription>
               {(excludeTerminal || maxAgeDays !== null) && (
                 <div className="mt-2 flex items-center gap-2 px-3 py-1.5 bg-yellow-50 dark:bg-yellow-950/20 border border-yellow-100 dark:border-yellow-900/30 rounded-md text-[11px] text-yellow-700 dark:text-yellow-400 font-medium animate-in fade-in slide-in-from-top-1">
