@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { 
   CreditCard, 
   History, 
@@ -14,16 +14,25 @@ import {
   Eye,
   Edit2,
   AlertCircle,
-  ArrowRight
+  ArrowRight,
+  ChevronDown,
+  ChevronUp,
+  FileSearch,
+  UserPlus,
+  Activity,
+  Calculator,
+  ExternalLink
 } from "lucide-react";
 import { 
   useAnaliseCredito, 
-  useUpdateAnaliseCredito, 
+  useUpdateAnaliseCredito,
+  useAnaliseCreditoHistorico,
+  useAnaliseCreditoDocumentos,
   type AnaliseCredito 
 } from "@/hooks/useAnaliseCredito";
 import { useUserRole } from "@/hooks/useUserRole";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatBRL } from "@/lib/formatters";
 import { formatDateTime } from "@/lib/dateUtils";
@@ -37,6 +46,80 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { CreditAnalysisWizard } from "./CreditAnalysisWizard";
 import { useCreditSimulations } from "@/hooks/useCreditDomain";
+import { useAuth } from "@/hooks/useAuth";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Separator } from "@/components/ui/separator";
+import { formatDistanceToNow } from "date-fns";
+import { ptBR } from "date-fns/locale";
+
+/**
+ * Tabelas: analise_credito, credit_analysis_events, analise_credito_documentos, profiles, deals, leads
+ * Hooks: useAnaliseCredito, useAnaliseCreditoHistorico, useAnaliseCreditoDocumentos, useCreditSimulations, useUserRole
+ * Substitui: nenhum (evolução do existente)
+ */
+
+export const STATUS_CONFIG: Record<string, { label: string; color: string; icon: any; actionMsg: string }> = {
+  rascunho: { 
+    label: "Rascunho", 
+    color: "bg-muted text-muted-foreground border-muted/20", 
+    icon: Clock,
+    actionMsg: "Solicitação em rascunho — clique em editar para submeter."
+  },
+  aguardando_analise: { 
+    label: "Aguardando Análise", 
+    color: "bg-amber-500/10 text-amber-600 border-amber-500/20", 
+    icon: History,
+    actionMsg: "Aguardando análise do gerente financeiro."
+  },
+  aguardando_documentos: { 
+    label: "Aguardando Documentos", 
+    color: "bg-blue-500/10 text-blue-600 border-blue-500/20", 
+    icon: FileText,
+    actionMsg: "Ação necessária: envie os documentos solicitados para prosseguir."
+  },
+  aprovado_interno: { 
+    label: "Aprovado Interno", 
+    color: "bg-green-500/10 text-green-600 border-green-500/20", 
+    icon: CheckCircle2,
+    actionMsg: "Aprovado internamente — aguardando simulação ou envio EOS."
+  },
+  enviada_ao_banco: { 
+    label: "Enviada ao Banco", 
+    color: "bg-primary/10 text-primary border-primary/20", 
+    icon: Send,
+    actionMsg: "Proposta em análise na financeira/banco."
+  },
+  aprovada: { 
+    label: "Aprovada", 
+    color: "bg-success/10 text-success border-success/20", 
+    icon: CheckCircle2,
+    actionMsg: "Crédito aprovado com sucesso!"
+  },
+  aprovado: { 
+    label: "Aprovado", 
+    color: "bg-success/10 text-success border-success/20", 
+    icon: CheckCircle2,
+    actionMsg: "Crédito aprovado com sucesso!"
+  },
+  reprovada: { 
+    label: "Reprovada", 
+    color: "bg-destructive/10 text-destructive border-destructive/20", 
+    icon: XCircle,
+    actionMsg: "Solicitação reprovada pelo gerente ou banco."
+  },
+  reprovado: { 
+    label: "Reprovado", 
+    color: "bg-destructive/10 text-destructive border-destructive/20", 
+    icon: XCircle,
+    actionMsg: "Solicitação reprovada pelo gerente ou banco."
+  },
+  cancelada: { 
+    label: "Cancelada", 
+    color: "bg-slate-500/10 text-slate-500 border-slate-500/20", 
+    icon: XCircle,
+    actionMsg: "Solicitação cancelada."
+  },
+};
 
 interface Props {
   dealId?: string | null;
@@ -46,27 +129,8 @@ interface Props {
   valorProposta?: number | null;
 }
 
-export const STATUS_CONFIG: Record<string, { label: string; color: string; icon: any }> = {
-  rascunho: { label: "Rascunho", color: "bg-muted text-muted-foreground border-muted/20", icon: Clock },
-  simulada: { label: "Simulada", color: "bg-blue-500/10 text-blue-500 border-blue-500/20", icon: CheckCircle2 },
-  descartada: { label: "Descartada", color: "bg-slate-500/10 text-slate-500 border-slate-500/20", icon: XCircle },
-  convertida_em_analise: { label: "Convertida", color: "bg-success/10 text-success border-success/20", icon: CheckCircle2 },
-  pendente_documentos: { label: "Pendente Docs", color: "bg-warning/10 text-warning border-warning/20", icon: FileText },
-  pronto_para_envio: { label: "Pronto p/ Envio", color: "bg-info/10 text-info border-info/20", icon: CheckCircle2 },
-  enviada_ao_banco: { label: "Enviada ao Banco", color: "bg-primary/10 text-primary border-primary/20", icon: Send },
-  em_analise: { label: "Em Análise", color: "bg-blue-600/10 text-blue-600 border-blue-600/20", icon: History },
-  pendencia_bancaria: { label: "Pendência Banco", color: "bg-red-500/10 text-red-500 border-red-500/20", icon: AlertCircle },
-  aprovada: { label: "Aprovada", color: "bg-success/10 text-success border-success/20", icon: CheckCircle2 },
-  aprovado: { label: "Aprovado", color: "bg-success/10 text-success border-success/20", icon: CheckCircle2 },
-  aprovado_com_condicoes: { label: "Aprovado c/ Condições", color: "bg-emerald-500/10 text-emerald-500 border-emerald-500/20", icon: CheckCircle2 },
-  reprovada: { label: "Reprovada", color: "bg-destructive/10 text-destructive border-destructive/20", icon: XCircle },
-  reprovado: { label: "Reprovado", color: "bg-destructive/10 text-destructive border-destructive/20", icon: XCircle },
-  cancelada: { label: "Cancelada", color: "bg-slate-500/10 text-slate-500 border-slate-500/20", icon: XCircle },
-  cancelado: { label: "Cancelado", color: "bg-slate-500/10 text-slate-500 border-slate-500/20", icon: XCircle },
-  pendente: { label: "Pendente", color: "bg-warning/10 text-warning border-warning/20", icon: Clock },
-};
-
 export function ProjetoCreditoTab({ dealId, leadId, clienteId, clienteCpfCnpj, valorProposta }: Props) {
+  const { user } = useAuth();
   const { isAdmin, roles } = useUserRole();
   const isGerente = roles.includes("gerente");
   const canManage = isAdmin || isGerente;
@@ -76,6 +140,7 @@ export function ProjetoCreditoTab({ dealId, leadId, clienteId, clienteCpfCnpj, v
   const updateMutation = useUpdateAnaliseCredito();
   const [isWizardOpen, setIsWizardOpen] = useState(false);
   const [editingAnalise, setEditingAnalise] = useState<AnaliseCredito | undefined>(undefined);
+  const [expandedAnaliseId, setExpandedAnaliseId] = useState<string | null>(null);
 
   const handleNewAnalysis = () => {
     setEditingAnalise(undefined);
@@ -97,6 +162,7 @@ export function ProjetoCreditoTab({ dealId, leadId, clienteId, clienteCpfCnpj, v
   }
 
   const latestAnalise = analises?.[0];
+  const previousAnalises = analises?.slice(1) || [];
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
@@ -104,213 +170,179 @@ export function ProjetoCreditoTab({ dealId, leadId, clienteId, clienteCpfCnpj, v
         <div className="space-y-1">
           <h3 className="text-lg font-semibold text-foreground flex items-center gap-2">
             <CreditCard className="h-5 w-5 text-primary" />
-            Análise de Crédito
+            Solicitações de Crédito
           </h3>
           <p className="text-sm text-muted-foreground">
-            Gerencie as solicitações de financiamento e crédito para este projeto.
+            Acompanhe o status das análises de crédito para este projeto.
           </p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" onClick={() => setIsWizardOpen(true)} className="gap-2 shadow-sm">
-            <Plus className="h-4 w-4" /> Nova Simulação
-          </Button>
-          <Button onClick={handleNewAnalysis} className="gap-2 shadow-sm">
-            <Plus className="h-4 w-4" /> Nova Análise
-          </Button>
+          {!latestAnalise || latestAnalise.status === 'reprovado' || latestAnalise.status === 'reprovada' ? (
+            <Button onClick={handleNewAnalysis} className="gap-2 shadow-sm">
+              <Plus className="h-4 w-4" /> Nova Solicitação
+            </Button>
+          ) : null}
         </div>
       </div>
 
-      {latestAnalise && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <Card className="border-l-4 border-l-primary shadow-sm">
-            <CardContent className="pt-4">
-              <p className="text-xs font-medium text-muted-foreground uppercase">Status Atual</p>
-              <div className="flex items-center gap-2 mt-1">
-                <Badge className={cn("px-2 py-0.5", STATUS_CONFIG[latestAnalise.status]?.color)}>
-                  {STATUS_CONFIG[latestAnalise.status]?.label}
-                </Badge>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="border-l-4 border-l-blue-500 shadow-sm">
-            <CardContent className="pt-4">
-              <p className="text-xs font-medium text-muted-foreground uppercase">Valor Solicitado</p>
-              <p className="text-xl font-bold mt-1">{formatBRL(latestAnalise.valor_solicitado || 0)}</p>
-            </CardContent>
-          </Card>
-          <Card className={cn("border-l-4 shadow-sm", latestAnalise.valor_aprovado ? "border-l-success" : "border-l-muted")}>
-            <CardContent className="pt-4">
-              <p className="text-xs font-medium text-muted-foreground uppercase">Valor Aprovado</p>
-              <p className="text-xl font-bold mt-1">
-                {latestAnalise.valor_aprovado ? formatBRL(latestAnalise.valor_aprovado) : "—"}
-              </p>
-            </CardContent>
-          </Card>
-        </div>
-      )}
-
-      {/* New Simulations Section */}
-      {simulations && simulations.length > 0 && (
+      {latestAnalise ? (
         <div className="space-y-4">
-          <h4 className="text-sm font-bold text-muted-foreground flex items-center gap-2">
-            <Clock className="h-4 w-4" /> Simulações Comerciais
-          </h4>
-          <div className="grid gap-3">
-            {simulations.map((sim) => {
-              const config = STATUS_CONFIG[sim.status] || STATUS_CONFIG.rascunho;
-              return (
-                <Card key={sim.id} className="group hover:border-blue-400 transition-colors shadow-sm overflow-hidden border-l-4 border-l-blue-400">
-                  <CardContent className="p-4 flex items-center justify-between">
-                    <div className="flex gap-4 items-center">
-                      <div className={cn("w-10 h-10 rounded-full flex items-center justify-center shrink-0 shadow-inner", config.color)}>
-                        <config.icon className="w-5 h-5" />
-                      </div>
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <span className="font-bold">{sim.cliente_nome || "Simulação"}</span>
-                          <Badge variant="outline" className={cn("text-[9px] uppercase", config.color)}>{config.label}</Badge>
-                        </div>
-                        <p className="text-xs text-muted-foreground">{formatDateTime(sim.created_at)}</p>
+          <Card className="border-l-4 border-l-primary shadow-sm overflow-hidden">
+            <CardHeader className="bg-muted/30 pb-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className={cn("p-2 rounded-lg", STATUS_CONFIG[latestAnalise.status]?.color)}>
+                    {(() => {
+                      const Icon = STATUS_CONFIG[latestAnalise.status]?.icon || Clock;
+                      return <Icon className="h-5 w-5" />;
+                    })()}
+                  </div>
+                  <div>
+                    <CardTitle className="text-base flex items-center gap-2">
+                      Análise Atual: <Badge variant="outline" className={cn("ml-1", STATUS_CONFIG[latestAnalise.status]?.color)}>
+                        {STATUS_CONFIG[latestAnalise.status]?.label}
+                      </Badge>
+                    </CardTitle>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      {STATUS_CONFIG[latestAnalise.status]?.actionMsg}
+                    </p>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <p className="text-xl font-bold text-primary">{formatBRL(latestAnalise.valor_solicitado || 0)}</p>
+                  <p className="text-[10px] text-muted-foreground uppercase font-semibold">
+                    {latestAnalise.banco || "Banco não definido"} • {latestAnalise.prazo_meses} meses
+                  </p>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="pt-6 space-y-6">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+                <div className="space-y-1">
+                  <p className="text-[10px] font-bold text-muted-foreground uppercase flex items-center gap-1.5">
+                    <Calendar className="h-3 w-3" /> Data Solicitação
+                  </p>
+                  <p className="text-sm font-medium">{formatDateTime(latestAnalise.created_at)}</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-[10px] font-bold text-muted-foreground uppercase flex items-center gap-1.5">
+                    <User className="h-3 w-3" /> Gerente Responsável
+                  </p>
+                  <p className="text-sm font-medium">Aguardando atribuição</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-[10px] font-bold text-muted-foreground uppercase flex items-center gap-1.5">
+                    <Clock className="h-3 w-3" /> Tempo em fila
+                  </p>
+                  <p className="text-sm font-medium">
+                    {formatDistanceToNow(new Date(latestAnalise.created_at), { locale: ptBR })}
+                  </p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-[10px] font-bold text-muted-foreground uppercase flex items-center gap-1.5">
+                    <CheckCircle2 className="h-3 w-3" /> Valor Aprovado
+                  </p>
+                  <p className={cn("text-sm font-bold", latestAnalise.valor_aprovado ? "text-success" : "text-muted-foreground")}>
+                    {latestAnalise.valor_aprovado ? formatBRL(latestAnalise.valor_aprovado) : "—"}
+                  </p>
+                </div>
+              </div>
+
+              {latestAnalise.status === 'aguardando_documentos' && (
+                <div className="bg-blue-50 border border-blue-100 rounded-lg p-4 space-y-3">
+                  <h5 className="text-sm font-bold text-blue-800 flex items-center gap-2">
+                    <FileSearch className="h-4 w-4" /> Documentos Pendentes
+                  </h5>
+                  <p className="text-xs text-blue-700">O gerente financeiro solicitou os seguintes documentos para prosseguir:</p>
+                  <AnaliseDocsList analiseId={latestAnalise.id} />
+                </div>
+              )}
+
+              {latestAnalise.status === 'reprovado' && latestAnalise.observacoes && (
+                <div className="bg-red-50 border border-red-100 rounded-lg p-4">
+                  <h5 className="text-sm font-bold text-red-800 flex items-center gap-2 mb-1">
+                    <XCircle className="h-4 w-4" /> Motivo da Reprovação
+                  </h5>
+                  <p className="text-xs text-red-700 italic">"{latestAnalise.observacoes}"</p>
+                </div>
+              )}
+
+              <Separator className="opacity-50" />
+
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h5 className="text-sm font-bold text-muted-foreground flex items-center gap-2">
+                    <Activity className="h-4 w-4" /> Histórico Recente
+                  </h5>
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="h-7 text-[10px] uppercase font-bold"
+                    onClick={() => setExpandedAnaliseId(expandedAnaliseId === latestAnalise.id ? null : latestAnalise.id)}
+                  >
+                    {expandedAnaliseId === latestAnalise.id ? "Recolher" : "Ver Histórico Completo"}
+                  </Button>
+                </div>
+                <AnaliseTimeline analiseId={latestAnalise.id} limit={expandedAnaliseId === latestAnalise.id ? 20 : 3} />
+              </div>
+
+              {canManage && (
+                <div className="flex gap-2 pt-2">
+                  <Button size="sm" className="gap-2" onClick={async () => await updateMutation.mutateAsync({ id: latestAnalise.id, status: 'aprovado_interno' })}>
+                    <CheckCircle2 className="h-4 w-4" /> Aprovar Internamente
+                  </Button>
+                  <Button size="sm" variant="outline" className="gap-2" onClick={() => handleEditAnalysis(latestAnalise)}>
+                    <FileSearch className="h-4 w-4" /> Solicitar Documentos
+                  </Button>
+                  <Button size="sm" variant="destructive" className="gap-2" onClick={() => handleEditAnalysis(latestAnalise)}>
+                    <XCircle className="h-4 w-4" /> Reprovar
+                  </Button>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {previousAnalises.length > 0 && (
+            <div className="space-y-3">
+              <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider px-1">Solicitações Anteriores</h4>
+              {previousAnalises.map(analise => (
+                <Card key={analise.id} className="bg-muted/20 border-muted opacity-80 hover:opacity-100 transition-opacity">
+                  <CardContent className="p-3 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <Badge variant="outline" className={cn("text-[10px]", STATUS_CONFIG[analise.status]?.color)}>
+                        {STATUS_CONFIG[analise.status]?.label}
+                      </Badge>
+                      <div className="text-xs font-medium">
+                        {formatBRL(analise.valor_solicitado || 0)} em {formatDateTime(analise.created_at)}
                       </div>
                     </div>
-                    <div className="text-right">
-                      <p className="font-bold text-primary">{formatBRL(sim.valor_solicitado || 0)}</p>
-                      <Button variant="ghost" size="sm" className="h-7 text-[10px] gap-1 px-2">
-                        Converter <ArrowRight className="h-3 w-3" />
-                      </Button>
-                    </div>
+                    <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => handleEditAnalysis(analise)}>
+                      <Eye className="h-3.5 w-3.5" />
+                    </Button>
                   </CardContent>
                 </Card>
-              );
-            })}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
-      )}
-
-      {analises && analises.length > 0 ? (
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h4 className="text-sm font-bold text-muted-foreground flex items-center gap-2">
-              <History className="h-4 w-4" /> Histórico de Solicitações Reais
-            </h4>
-          </div>
-          <div className="grid gap-3">
-            {analises.map((analise) => {
-              const config = STATUS_CONFIG[analise.status] || STATUS_CONFIG.rascunho;
-              const Icon = config.icon;
-              
-              return (
-                <Card key={analise.id} className="group hover:border-primary/30 transition-colors shadow-sm overflow-hidden">
-                  <div className="flex flex-col sm:flex-row">
-                    <div className={cn("w-1 sm:w-1.5", config.color.split(' ')[0])} />
-                    <CardContent className="p-4 flex-1">
-                      <div className="flex items-start justify-between gap-4">
-                        <div className="flex gap-4">
-                          <div className={cn("w-10 h-10 rounded-full flex items-center justify-center shrink-0 shadow-inner", config.color)}>
-                            <Icon className="w-5 h-5" />
-                          </div>
-                          <div className="space-y-1">
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <span className="font-bold text-base">{analise.banco || "Banco não definido"}</span>
-                              <Badge variant="outline" className={cn("text-[10px] uppercase font-bold tracking-wider", config.color)}>
-                                {config.label}
-                              </Badge>
-                            </div>
-                            <div className="flex items-center gap-4 text-xs text-muted-foreground flex-wrap">
-                              <div className="flex items-center gap-1.5">
-                                <User className="h-3 w-3" />
-                                {analise.cpf_cnpj || "Sem CPF/CNPJ"}
-                              </div>
-                              <div className="flex items-center gap-1.5">
-                                <Calendar className="h-3 w-3" />
-                                {formatDateTime(analise.created_at)}
-                              </div>
-                              {analise.protocolo_banco && (
-                                <div className="flex items-center gap-1.5 px-2 py-0.5 bg-muted rounded-full">
-                                  <span className="font-semibold text-[10px]">PROT:</span> {analise.protocolo_banco}
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                        
-                        <div className="flex items-center gap-2">
-                          <div className="hidden sm:flex flex-col items-end text-right">
-                            <span className="text-xs text-muted-foreground font-medium uppercase">Solicitado</span>
-                            <span className="text-sm font-bold">{formatBRL(analise.valor_solicitado || 0)}</span>
-                          </div>
-                          
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon" className="h-8 w-8">
-                                <MoreHorizontal className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="w-48">
-                              <DropdownMenuItem onClick={() => handleEditAnalysis(analise)}>
-                                <Eye className="mr-2 h-4 w-4" /> Detalhes / Editar
-                              </DropdownMenuItem>
-                              {canManage && (
-                                <>
-                                  <DropdownMenuItem onClick={() => handleEditAnalysis(analise)}>
-                                    <Edit2 className="mr-2 h-4 w-4" /> Editar / Gerenciar
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem 
-                                    className="text-success"
-                                    onClick={async () => {
-                                      await updateMutation.mutateAsync({ id: analise.id, status: 'aprovado' });
-                                    }}
-                                  >
-                                    <CheckCircle2 className="mr-2 h-4 w-4" /> Aprovar (Direto)
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem 
-                                    className="text-destructive"
-                                    onClick={async () => {
-                                      await updateMutation.mutateAsync({ id: analise.id, status: 'reprovado' });
-                                    }}
-                                  >
-                                    <XCircle className="mr-2 h-4 w-4" /> Reprovar (Direto)
-                                  </DropdownMenuItem>
-                                </>
-                              )}
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </div>
-                      </div>
-                      
-                      {analise.observacoes && (
-                        <div className="mt-3 p-2 bg-muted/50 rounded text-xs text-muted-foreground border-l-2 border-muted italic">
-                          "{analise.observacoes}"
-                        </div>
-                      )}
-                    </CardContent>
-                  </div>
-                </Card>
-              );
-            })}
-          </div>
-        </div>
-      ) : !simulations?.length ? (
+      ) : (
         <Card className="border-dashed bg-muted/20">
           <CardContent className="flex flex-col items-center justify-center py-16 text-center">
             <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-4">
               <CreditCard className="w-8 h-8 text-primary" />
             </div>
-            <h4 className="text-lg font-semibold">Sem registros de crédito</h4>
+            <h4 className="text-lg font-semibold">Nenhuma análise iniciada</h4>
             <p className="text-sm text-muted-foreground mt-2 max-w-[300px]">
-              Este projeto ainda não possui nenhuma simulação ou solicitação de crédito.
+              Solicite uma análise de crédito para transformar este projeto em um contrato financiado.
             </p>
             <div className="flex gap-2 mt-6">
-              <Button variant="outline" onClick={() => setIsWizardOpen(true)} className="gap-2">
-                <Plus className="h-4 w-4" /> Nova Simulação
-              </Button>
               <Button onClick={handleNewAnalysis} className="gap-2">
-                <Plus className="h-4 w-4" /> Nova Análise
+                <Plus className="h-4 w-4" /> Solicitar Financiamento
               </Button>
             </div>
           </CardContent>
         </Card>
-      ) : null}
+      )}
 
       {isWizardOpen && (
         <CreditAnalysisWizard
@@ -324,6 +356,58 @@ export function ProjetoCreditoTab({ dealId, leadId, clienteId, clienteCpfCnpj, v
           valorReferencia={valorProposta}
         />
       )}
+    </div>
+  );
+}
+
+function AnaliseDocsList({ analiseId }: { analiseId: string }) {
+  const { data: docs } = useAnaliseCreditoDocumentos(analiseId);
+  if (!docs || docs.length === 0) return <p className="text-xs text-muted-foreground italic">Nenhum documento pendente listado.</p>;
+  
+  return (
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+      {docs.map((doc: any) => (
+        <div key={doc.id} className="flex items-center justify-between bg-white/50 p-2 rounded border border-blue-100">
+          <span className="text-xs font-medium text-blue-900">{doc.document?.name || "Documento"}</span>
+          <Badge variant="outline" className="text-[9px] uppercase bg-blue-100 text-blue-700">Pendente</Badge>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function AnaliseTimeline({ analiseId, limit = 5 }: { analiseId: string, limit?: number }) {
+  const { data: events, isLoading } = useAnaliseCreditoHistorico(analiseId);
+
+  if (isLoading) return <div className="space-y-2"><Skeleton className="h-4 w-full" /><Skeleton className="h-4 w-2/3" /></div>;
+  if (!events || events.length === 0) return <p className="text-xs text-muted-foreground italic">Nenhum evento registrado.</p>;
+
+  return (
+    <div className="space-y-4">
+      {events.slice(0, limit).map((event: any, i: number) => (
+        <div key={event.id} className="flex gap-3">
+          <div className="flex flex-col items-center">
+            <div className={cn("w-2.5 h-2.5 rounded-full border-2 border-primary", i === 0 ? "bg-primary" : "bg-background")} />
+            {i < Math.min(events.length, limit) - 1 && <div className="w-0.5 h-full bg-border mt-1" />}
+          </div>
+          <div className="flex-1 pb-4">
+            <div className="flex items-center justify-between">
+              <Badge variant="outline" className="text-[9px] h-4 uppercase font-bold tracking-tighter">
+                {event.event_type.replace('_', ' ')}
+              </Badge>
+              <span className="text-[10px] text-muted-foreground">
+                {formatDistanceToNow(new Date(event.created_at), { addSuffix: true, locale: ptBR })}
+              </span>
+            </div>
+            <p className="text-xs font-medium mt-1">{event.actor?.nome || 'Sistema'}</p>
+            {event.status_novo && (
+              <p className="text-[10px] text-muted-foreground mt-0.5">
+                Alterou status para <span className="font-bold text-foreground">{STATUS_CONFIG[event.status_novo]?.label || event.status_novo}</span>
+              </p>
+            )}
+          </div>
+        </div>
+      ))}
     </div>
   );
 }

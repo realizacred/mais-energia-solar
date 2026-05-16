@@ -11,7 +11,12 @@ export type AnaliseCreditoStatus =
   | 'aprovado'
   | 'aprovado_com_condicoes'
   | 'reprovado'
+  | 'reprovada'
   | 'cancelado'
+  | 'cancelada'
+  | 'aguardando_analise'
+  | 'aguardando_documentos'
+  | 'aprovado_interno'
   | 'pendente'; 
 
 export interface AnaliseCredito {
