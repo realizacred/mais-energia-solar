@@ -7,10 +7,11 @@ import { ShoppingCart, FileText, MapPin, Navigation, Save, WifiOff, Wifi, AlertT
 import { MissingDocsConfirmModal } from "./MissingDocsConfirmModal";
 import { PaymentComposer } from "@/components/admin/vendas/PaymentComposer";
 import type { PaymentItemInput } from "@/services/paymentComposition/types";
+import { useVendaFinanceSnapshot } from "@/hooks/useVendaFinanceSnapshot";
 import { useOfflineConversionSync, getCachedEquipment, setCachedEquipment } from "@/hooks/useOfflineConversionSync";
 import { useConversionEquipment } from "@/hooks/useConvertLeadToClient";
 import { createEmptyItem } from "@/services/paymentComposition/types";
-import { validateComposition } from "@/services/paymentComposition/calculator";
+import { validateComposition, computeSummary } from "@/services/paymentComposition/calculator";
 import { CpfCnpjInput } from "@/components/shared/CpfCnpjInput";
 import { AddressFields, type AddressData } from "@/components/shared/AddressFields";
 
