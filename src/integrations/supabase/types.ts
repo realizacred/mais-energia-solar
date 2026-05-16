@@ -450,6 +450,8 @@ export type Database = {
           data_retorno: string | null
           deal_id: string | null
           entrada: number | null
+          eos_enviado_at: string | null
+          eos_proposta_id: string | null
           id: string
           is_locked: boolean | null
           lead_id: string | null
@@ -460,6 +462,8 @@ export type Database = {
           responsavel_id: string | null
           rules_snapshot: Json | null
           score_credito: number | null
+          simulacao_at: string | null
+          simulacao_resultado: Json | null
           simulation_id: string | null
           sla_vencimento: string | null
           snapshot_data: Json | null
@@ -485,6 +489,8 @@ export type Database = {
           data_retorno?: string | null
           deal_id?: string | null
           entrada?: number | null
+          eos_enviado_at?: string | null
+          eos_proposta_id?: string | null
           id?: string
           is_locked?: boolean | null
           lead_id?: string | null
@@ -495,6 +501,8 @@ export type Database = {
           responsavel_id?: string | null
           rules_snapshot?: Json | null
           score_credito?: number | null
+          simulacao_at?: string | null
+          simulacao_resultado?: Json | null
           simulation_id?: string | null
           sla_vencimento?: string | null
           snapshot_data?: Json | null
@@ -520,6 +528,8 @@ export type Database = {
           data_retorno?: string | null
           deal_id?: string | null
           entrada?: number | null
+          eos_enviado_at?: string | null
+          eos_proposta_id?: string | null
           id?: string
           is_locked?: boolean | null
           lead_id?: string | null
@@ -530,6 +540,8 @@ export type Database = {
           responsavel_id?: string | null
           rules_snapshot?: Json | null
           score_credito?: number | null
+          simulacao_at?: string | null
+          simulacao_resultado?: Json | null
           simulation_id?: string | null
           sla_vencimento?: string | null
           snapshot_data?: Json | null
@@ -6625,6 +6637,42 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      financeiras_config: {
+        Row: {
+          ambiente: string
+          ativo: boolean
+          client_id: string
+          client_secret: string
+          created_at: string
+          financeira: string
+          id: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          ambiente?: string
+          ativo?: boolean
+          client_id: string
+          client_secret: string
+          created_at?: string
+          financeira?: string
+          id?: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          ambiente?: string
+          ativo?: boolean
+          client_id?: string
+          client_secret?: string
+          created_at?: string
+          financeira?: string
+          id?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       financial_audit_logs: {
         Row: {
