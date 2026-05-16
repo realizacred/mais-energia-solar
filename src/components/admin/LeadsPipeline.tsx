@@ -404,7 +404,7 @@ export default function LeadsPipeline() {
                         <KanbanCard key={lead.id} lead={lead} onDragStart={handleDragStart} isDragging={draggedLead?.id === lead.id} onViewDetails={handleViewDetails} onQuickAction={handleQuickAction} onWin={handleWin} onLose={handleLose} />
                       </div>
                     </div>
-                  ))}
+                    ))}
                 </div>
               </div>
 
