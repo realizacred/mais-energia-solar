@@ -120,15 +120,30 @@ export function VendorOrcamentoCard({
             />
           </div>
           {orcamento.proposta_token ? (
-            <Badge className="bg-success/10 text-success border-success/20 h-8 px-2 flex items-center gap-1">
+            <Badge className="bg-success/10 text-success border-success/20 h-7 px-2 flex items-center gap-1">
               <FileText className="w-3 h-3" />
-              <span className="text-[10px]">COM PROPOSTA</span>
+              <span className="text-[10px]">PROPOSTA OK</span>
             </Badge>
           ) : (
-            <Badge variant="outline" className="border-dashed h-8 px-2 flex items-center gap-1 text-muted-foreground">
+            <Badge variant="outline" className="border-dashed h-7 px-2 flex items-center gap-1 text-muted-foreground bg-muted/30">
               <span className="text-[10px]">SEM PROPOSTA</span>
             </Badge>
           )}
+
+          {orcamento.status_id && statuses.find(s => s.id === orcamento.status_id)?.nome.toLowerCase().includes('documentação') ? (
+            <Badge variant="outline" className="border-warning/50 text-warning bg-warning/5 h-7 px-2 flex items-center gap-1">
+              <span className="text-[10px]">DOC. PENDENTE</span>
+            </Badge>
+          ) : orcamento.status_id && statuses.find(s => s.id === orcamento.status_id)?.nome.toLowerCase().includes('validação') ? (
+            <Badge variant="outline" className="border-primary/50 text-primary bg-primary/5 h-7 px-2 flex items-center gap-1">
+              <span className="text-[10px]">EM VALIDAÇÃO</span>
+            </Badge>
+          ) : (
+            <Badge variant="outline" className="border-success/30 text-success/70 bg-success/5 h-7 px-2 flex items-center gap-1">
+              <span className="text-[10px]">DOC OK</span>
+            </Badge>
+          )}
+
         </div>
 
         {/* Critical Actions */}
