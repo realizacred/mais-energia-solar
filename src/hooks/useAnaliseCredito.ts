@@ -115,6 +115,7 @@ export function useCreateAnaliseCredito() {
 
       if (!profile?.tenant_id) throw new Error("Tenant não encontrado");
 
+      const correlation_id = crypto.randomUUID();
       const insertData = {
         ...values,
         tenant_id: profile.tenant_id,
@@ -130,7 +131,20 @@ export function useCreateAnaliseCredito() {
         .single();
 
       if (error) throw error;
-      return data;
+
+      // Log creation event with correlation
+      await supabase.from("credit_analysis_events").insert({
+        tenant_id: profile.tenant_id,
+        analise_id: data.id,
+        event_type: 'analysis_created',
+        actor_id: user.id,
+        status_novo: data.status,
+        payload: data,
+        correlation_id,
+        idempotency_key: `create_analise_${data.id}`
+      } as any);
+
+      return { ...data, correlation_id };
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["analise-credito"] });
@@ -149,11 +163,13 @@ export function useCreateAnaliseCredito() {
 export function useUpdateAnaliseCredito() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({ id, version, ...values }: Partial<AnaliseCredito> & { id: string; version?: number }) => {
+    mutationFn: async ({ id, version, ...values }: Partial<AnaliseCredito> & { id: string; version?: number; correlation_id?: string }) => {
+      const correlation_id = values.correlation_id || crypto.randomUUID();
+      
       // First check if it's locked
       const { data: current } = await supabase
         .from("analise_credito")
-        .select("status, is_locked, version")
+        .select("status, is_locked, version, tenant_id")
         .eq("id", id)
         .single();
 
@@ -179,7 +195,24 @@ export function useUpdateAnaliseCredito() {
         }
         throw error;
       }
-      return data;
+
+      // Log update event
+      const { data: { user } } = await supabase.auth.getUser();
+      if (values.status && values.status !== current?.status) {
+        await supabase.from("credit_analysis_events").insert({
+          tenant_id: current?.tenant_id,
+          analise_id: id,
+          event_type: 'status_changed',
+          actor_id: user?.id,
+          status_anterior: current?.status,
+          status_novo: values.status,
+          payload: values,
+          correlation_id,
+          idempotency_key: `update_status_${id}_${Date.now()}`
+        } as any);
+      }
+
+      return { ...data, correlation_id };
     },
     onSuccess: (data: any) => {
       queryClient.invalidateQueries({ queryKey: ["analise-credito"] });
