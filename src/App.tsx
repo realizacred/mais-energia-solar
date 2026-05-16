@@ -98,25 +98,26 @@ const App = () => (
           <PushActivationBanner />
           <Suspense fallback={<LoadingSpinner />}>
             <Routes>
-              {/* Public routes — no tenant guard */}
-              <Route path="/" element={<Index />} />
-              <Route path="/v/:codigo" element={<VendorPage />} />
-              <Route path="/w/:slug" element={<WaChannelPage />} />
-              <Route path="/auth" element={<Auth />} />
-              <Route path="/calculadora" element={<Calculadora />} />
-              <Route path="/checklist" element={<Checklist />} />
-              <Route path="/instalar" element={<Instalar />} />
-              <Route path="/avaliacao" element={<Avaliacao />} />
-              <Route path="/ativar-conta" element={<AtivarConta />} />
-              <Route path="/aguardando-aprovacao" element={<PendingApproval />} />
-              <Route path="/proposta/:token" element={<PublicErrorBoundary><PropostaPublica /></PublicErrorBoundary>} />
-              <Route path="/pl/:token" element={<PublicErrorBoundary><PropostaLanding /></PublicErrorBoundary>} />
-              <Route path="/kits/:token" element={<KitsLanding />} />
-              <Route path="/oauth/google/callback" element={<OAuthGoogleCallback />} />
-              <Route path="/oauth/google-contacts/callback" element={<GoogleContactsCallbackPage />} />
-              <Route path="/politica-de-privacidade" element={<PoliticaPrivacidade />} />
-              <Route path="/uc/login" element={<UCLogin />} />
-              <Route path="/uc/:token" element={<UCPublica />} />
+              {/* Public routes — no tenant guard — wrapped in PublicLeadShell */}
+              <Route path="/" element={<PublicLeadShell><Index /></PublicLeadShell>} />
+              <Route path="/v/:codigo" element={<PublicLeadShell><VendorPage /></PublicLeadShell>} />
+              <Route path="/w/:slug" element={<PublicLeadShell><WaChannelPage /></PublicLeadShell>} />
+              <Route path="/auth" element={<PublicLeadShell><Auth /></PublicLeadShell>} />
+              <Route path="/calculadora" element={<PublicLeadShell><Calculadora /></PublicLeadShell>} />
+              <Route path="/checklist" element={<PublicLeadShell><Checklist /></PublicLeadShell>} />
+              <Route path="/instalar" element={<PublicLeadShell><Instalar /></PublicLeadShell>} />
+              <Route path="/avaliacao" element={<PublicLeadShell><Avaliacao /></PublicLeadShell>} />
+              <Route path="/ativar-conta" element={<PublicLeadShell><AtivarConta /></PublicLeadShell>} />
+              <Route path="/aguardando-aprovacao" element={<PublicLeadShell><PendingApproval /></PublicLeadShell>} />
+              <Route path="/proposta/:token" element={<PublicLeadShell><PublicErrorBoundary><PropostaPublica /></PublicErrorBoundary></PublicLeadShell>} />
+              <Route path="/pl/:token" element={<PublicLeadShell><PublicErrorBoundary><PropostaLanding /></PublicErrorBoundary></PublicLeadShell>} />
+              <Route path="/kits/:token" element={<PublicLeadShell><KitsLanding /></PublicLeadShell>} />
+              <Route path="/oauth/google/callback" element={<PublicLeadShell><OAuthGoogleCallback /></PublicLeadShell>} />
+              <Route path="/oauth/google-contacts/callback" element={<PublicLeadShell><GoogleContactsCallbackPage /></PublicLeadShell>} />
+              <Route path="/politica-de-privacidade" element={<PublicLeadShell><PoliticaPrivacidade /></PublicLeadShell>} />
+              <Route path="/uc/login" element={<PublicLeadShell><UCLogin /></PublicLeadShell>} />
+              <Route path="/uc/:token" element={<PublicLeadShell><UCPublica /></PublicLeadShell>} />
+
 
               {/* Protected routes — tenant guard active */}
               <Route path="/portal" element={<TenantGuardGate><PortalSelector /></TenantGuardGate>} />
