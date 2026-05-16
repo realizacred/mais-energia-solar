@@ -237,6 +237,57 @@ export default function CreditGlobalArea() {
     }
   };
 
+  const handleEosSimulate = async (analysis: any) => {
+    setIsSimulating(true);
+    try {
+      const { data: profile } = await supabase.from("profiles").select("tenant_id").eq("user_id", user?.id).single();
+      
+      const { data, error } = await supabase.functions.invoke('eos-simular', {
+        body: {
+          analise_id: analysis.id,
+          valor: analysis.valor_solicitado,
+          prazo_meses: analysis.prazo_meses || 60,
+          cpf_cnpj: analysis.cpf_cnpj,
+          tipo_pessoa: analysis.tipo_pessoa,
+          tenant_id: profile?.tenant_id
+        }
+      });
+
+      if (error) throw error;
+      setSimulationOptions(data.opcoes || []);
+      toast({ title: "Simulação EOS concluída" });
+      queryClient.invalidateQueries({ queryKey: ["admin-credit-analyses"] });
+    } catch (error: any) {
+      toast({ title: "Erro na simulação", description: error.message, variant: "destructive" });
+    } finally {
+      setIsSimulating(false);
+    }
+  };
+
+  const handleEosSend = async (analysis: any, option?: any) => {
+    setIsSendingToEos(true);
+    try {
+      const { data: profile } = await supabase.from("profiles").select("tenant_id").eq("user_id", user?.id).single();
+      
+      const { data, error } = await supabase.functions.invoke('eos-enviar-proposta', {
+        body: {
+          analise_id: analysis.id,
+          tenant_id: profile?.tenant_id,
+          opcao_escolhida: option
+        }
+      });
+
+      if (error) throw error;
+      toast({ title: "Proposta enviada para EOS", description: `Protocolo: ${data.id || data.protocolo}` });
+      queryClient.invalidateQueries({ queryKey: ["admin-credit-analyses"] });
+      setActionType(null);
+    } catch (error: any) {
+      toast({ title: "Erro no envio", description: error.message, variant: "destructive" });
+    } finally {
+      setIsSendingToEos(false);
+    }
+  };
+
   const filteredAnalyses = analyses?.filter(a => {
     if (filters.managerId !== "all" && a.responsavel_id !== filters.managerId) return false;
     if (filters.status !== "all" && a.status !== filters.status) return false;
