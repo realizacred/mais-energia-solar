@@ -258,7 +258,7 @@ export function useCreditMetrics() {
     queryFn: async () => {
       const { data: jobs, error: jobsError } = await supabase
         .from("credit_operation_jobs")
-        .select("status, operation_type");
+        .select("status, operation_type, attempts");
 
       const { data: events, error: eventsError } = await supabase
         .from("credit_analysis_events")
