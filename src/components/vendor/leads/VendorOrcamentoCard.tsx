@@ -168,8 +168,9 @@ export function VendorOrcamentoCard({
               ) : (
                 <>
                   <Eye className="w-4 h-4" />
-                  Ver Detalhes
+                  Gerar Orçamento Primeiro
                 </>
+
               )}
             </Button>
           ) : (
