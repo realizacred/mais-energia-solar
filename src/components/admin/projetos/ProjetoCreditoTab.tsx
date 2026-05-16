@@ -148,10 +148,50 @@ export function ProjetoCreditoTab({ dealId, leadId, clienteId, clienteCpfCnpj, v
         </div>
       )}
 
+      {/* New Simulations Section */}
+      {simulations && simulations.length > 0 && (
+        <div className="space-y-4">
+          <h4 className="text-sm font-bold text-muted-foreground flex items-center gap-2">
+            <Clock className="h-4 w-4" /> Simulações Comerciais
+          </h4>
+          <div className="grid gap-3">
+            {simulations.map((sim) => {
+              const config = STATUS_CONFIG[sim.status] || STATUS_CONFIG.rascunho;
+              return (
+                <Card key={sim.id} className="group hover:border-blue-400 transition-colors shadow-sm overflow-hidden border-l-4 border-l-blue-400">
+                  <CardContent className="p-4 flex items-center justify-between">
+                    <div className="flex gap-4 items-center">
+                      <div className={cn("w-10 h-10 rounded-full flex items-center justify-center shrink-0 shadow-inner", config.color)}>
+                        <config.icon className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-bold">{sim.cliente_nome || "Simulação"}</span>
+                          <Badge variant="outline" className={cn("text-[9px] uppercase", config.color)}>{config.label}</Badge>
+                        </div>
+                        <p className="text-xs text-muted-foreground">{formatDateTime(sim.created_at)}</p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-bold text-primary">{formatBRL(sim.valor_solicitado || 0)}</p>
+                      <Button variant="ghost" size="sm" className="h-7 text-[10px] gap-1 px-2">
+                        Converter <ArrowRight className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       {analises && analises.length > 0 ? (
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <h4 className="text-sm font-medium text-muted-foreground">Histórico de Solicitações</h4>
+            <h4 className="text-sm font-bold text-muted-foreground flex items-center gap-2">
+              <History className="h-4 w-4" /> Histórico de Solicitações Reais
+            </h4>
           </div>
           <div className="grid gap-3">
             {analises.map((analise) => {
@@ -249,22 +289,27 @@ export function ProjetoCreditoTab({ dealId, leadId, clienteId, clienteCpfCnpj, v
             })}
           </div>
         </div>
-      ) : (
+      ) : !simulations?.length ? (
         <Card className="border-dashed bg-muted/20">
           <CardContent className="flex flex-col items-center justify-center py-16 text-center">
             <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-4">
               <CreditCard className="w-8 h-8 text-primary" />
             </div>
-            <h4 className="text-lg font-semibold">Sem análises registradas</h4>
+            <h4 className="text-lg font-semibold">Sem registros de crédito</h4>
             <p className="text-sm text-muted-foreground mt-2 max-w-[300px]">
-              Este projeto ainda não possui nenhuma solicitação de crédito. Inicie uma agora para acelerar o fechamento.
+              Este projeto ainda não possui nenhuma simulação ou solicitação de crédito.
             </p>
-            <Button onClick={handleNewAnalysis} className="mt-6 gap-2">
-              <Plus className="h-4 w-4" /> Nova Análise de Crédito
-            </Button>
+            <div className="flex gap-2 mt-6">
+              <Button variant="outline" onClick={() => setIsWizardOpen(true)} className="gap-2">
+                <Plus className="h-4 w-4" /> Nova Simulação
+              </Button>
+              <Button onClick={handleNewAnalysis} className="gap-2">
+                <Plus className="h-4 w-4" /> Nova Análise
+              </Button>
+            </div>
           </CardContent>
         </Card>
-      )}
+      ) : null}
 
       {isWizardOpen && (
         <CreditAnalysisWizard
