@@ -116,7 +116,8 @@ export function useCreateAnaliseCredito() {
         ...values,
         tenant_id: profile.tenant_id,
         criado_por: user.id,
-        status: values.status || 'rascunho'
+        status: values.status || 'rascunho',
+        updated_at: new Date().toISOString()
       };
 
       const { data, error } = await supabase
@@ -148,7 +149,7 @@ export function useUpdateAnaliseCredito() {
     mutationFn: async ({ id, ...values }: Partial<AnaliseCredito> & { id: string }) => {
       const { data, error } = await supabase
         .from("analise_credito")
-        .update(values as any)
+        .update({ ...values, updated_at: new Date().toISOString() } as any)
         .eq("id", id)
         .select()
         .single();
