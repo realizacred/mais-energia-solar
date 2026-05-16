@@ -600,6 +600,8 @@ const AdminRoutes = () => (
     
     {/* Projetos & Propostas */}
     <Route path="proposta-comercial" element={<PropostaComercialPage />} />
+    <Route path="credit/global" element={<CreditGlobalArea />} />
+
     
     {/* IA */}
     <Route path="diretor" element={<CommercialDirectorDashboard />} />
