@@ -74,19 +74,19 @@ const DesignSystemGuide = () => {
             </div>
             <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6">
               <ColorSwatch 
-                name="Primary (Solar)" 
+                name="Solar Gold (New)" 
+                variable="--solar-gold" 
+                description="O novo padrão LuminaSolar para energia e vitalidade."
+              />
+              <ColorSwatch 
+                name="Primary (Legacy)" 
                 variable="--primary" 
-                description="Energia, vitalidade e ação."
+                description="Atual Solar Orange (em transição)."
               />
               <ColorSwatch 
                 name="Secondary (Authority)" 
                 variable="--secondary" 
-                description="Confiança técnica e solidez."
-              />
-              <ColorSwatch 
-                name="Primary Glow" 
-                variable="--primary-glow" 
-                description="Destaque de profundidade."
+                description="Confiança técnica e solidez (Structural Blue)."
               />
             </div>
           </section>
@@ -98,9 +98,14 @@ const DesignSystemGuide = () => {
             </div>
             <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6">
               <ColorSwatch 
-                name="Success (Sustainable)" 
+                name="Nature Green (New)" 
+                variable="--nature-green" 
+                description="O novo padrão LuminaSolar para sustentabilidade."
+              />
+              <ColorSwatch 
+                name="Success (Legacy)" 
                 variable="--success" 
-                description="Conformidade e meio ambiente."
+                description="Sinalização de sucesso atual."
               />
               <ColorSwatch 
                 name="Warning (Caution)" 
