@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { 
   CreditCard, 
@@ -20,7 +21,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { formatBRL } from "@/lib/formatters";
 import { formatDateTime } from "@/lib/dateUtils";
 import { cn } from "@/lib/utils";
-import { useState } from "react";
+
 import { STATUS_CONFIG } from "@/components/admin/projetos/ProjetoCreditoTab";
 import { CreditAnalysisWizard } from "@/components/admin/projetos/CreditAnalysisWizard";
 
@@ -183,4 +184,4 @@ export default function VendorCreditoView() {
   );
 }
 
-import { useMemo } from "react";
+
