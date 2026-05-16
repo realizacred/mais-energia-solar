@@ -358,7 +358,7 @@ export function CreditAnalysisWizard({
                 <Button 
                   onClick={() => handleSave(false)} 
                   className="bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/20 gap-1.5"
-                  disabled={createMutation.isPending || updateMutation.isPending}
+                  disabled={createMutation.isPending || updateMutation.isPending || (filteredChecklist.some(item => item.is_required && !creditDocs?.some((cd: any) => cd.checklist_item_id === item.id)))}
                 >
                   <Check className="h-4 w-4" /> Finalizar e Solicitar
                 </Button>
