@@ -344,7 +344,7 @@ export function useVendedorPortal() {
     filteredOrcamentos,
     statuses: orcamentosData.statuses,
     stats: orcamentosData.stats,
-    serverStats: orcamentosData.serverStats,
+    
     estados: orcamentosData.estados,
     fetchOrcamentos: orcamentosData.fetchOrcamentos,
     loadMore: orcamentosData.loadMore,
