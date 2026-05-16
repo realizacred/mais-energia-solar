@@ -266,17 +266,34 @@ export function useCreditMetrics() {
 
       const { data: analyses, error: anaError } = await supabase
         .from("analise_credito")
-        .select("sla_vencimento, status")
-        .not("sla_vencimento", "is", null);
+        .select("sla_vencimento, status, created_at, updated_at, valor_solicitado, valor_aprovado")
+        .not("created_at", "is", null);
 
       if (jobsError || eventsError || anaError) throw jobsError || eventsError || anaError;
 
       const now = new Date();
+      const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+      
+      const monthAnalyses = analyses?.filter(a => new Date(a.created_at) >= firstDayOfMonth) || [];
+      const approvedMonth = monthAnalyses.filter(a => ['aprovada', 'aprovado', 'aprovado_interno'].includes(a.status)).length;
+      
+      // Calculate AVG response time for finalized analyses (in days)
+      const finalized = analyses?.filter(a => ['aprovada', 'aprovado', 'aprovado_interno', 'reprovada', 'reprovado'].includes(a.status)) || [];
+      const totalDays = finalized.reduce((acc, a) => {
+        const start = new Date(a.created_at);
+        const end = new Date(a.updated_at);
+        return acc + (end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24);
+      }, 0);
+      const avgResponseTime = finalized.length > 0 ? (totalDays / finalized.length).toFixed(1) : 0;
+
       const metrics = {
         pendingJobs: jobs?.filter(j => j.status === 'pending').length || 0,
         failedJobs: jobs?.filter(j => j.status === 'failed').length || 0,
         retries: jobs?.reduce((acc, j) => acc + (j.attempts || 0), 0) || 0,
-        expiredSLA: analyses?.filter(a => new Date(a.sla_vencimento!) < now && !['aprovada', 'reprovada', 'cancelada'].includes(a.status)).length || 0,
+        expiredSLA: analyses?.filter(a => a.sla_vencimento && new Date(a.sla_vencimento) < now && !['aprovada', 'aprovado', 'aprovado_interno', 'reprovada', 'reprovado', 'cancelada'].includes(a.status)).length || 0,
+        approvedThisMonth: approvedMonth,
+        approvalRate: monthAnalyses.length > 0 ? ((approvedMonth / monthAnalyses.length) * 100).toFixed(1) : 0,
+        avgResponseTime: avgResponseTime,
         eventCounts: (events || []).reduce((acc: any, e) => {
           acc[e.event_type] = (acc[e.event_type] || 0) + 1;
           return acc;
