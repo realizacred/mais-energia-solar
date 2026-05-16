@@ -11,6 +11,15 @@ import type { Lead } from "@/types/lead";
 import { toCanonicalPhoneDigits } from "@/utils/phone/toCanonicalPhoneDigits";
 import { getTerminalStatusIds, shouldShowOrcamento } from "@/modules/orcamentos/utils/operationalFilters";
 
+export interface ConsultorServerStats {
+  total: number;
+  pendentes: number;
+  convertidos: number;
+  nao_vistos: number;
+  documentacao_pendente: number;
+}
+
+
 export interface VendedorProfile {
   id: string;
   nome: string;
