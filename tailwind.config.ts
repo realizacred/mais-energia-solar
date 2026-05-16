@@ -96,6 +96,18 @@ export default {
           2: "hsl(var(--surface-2))",
           3: "hsl(var(--surface-3))",
         },
+        solar: {
+          gold: {
+            DEFAULT: "hsl(var(--solar-gold))",
+            foreground: "hsl(var(--solar-gold-foreground))",
+          },
+        },
+        nature: {
+          green: {
+            DEFAULT: "hsl(var(--nature-green))",
+            foreground: "hsl(var(--nature-green-foreground))",
+          },
+        },
       },
       fontFamily: {
         sans: [
