@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { 
@@ -19,7 +19,10 @@ import {
   Calendar,
   User as UserIcon,
   Banknote,
-  MoreVertical
+  MoreVertical,
+  Check,
+  ChevronRight,
+  ChevronLeft
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -70,10 +73,11 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useCreditBankChecklist } from "@/hooks/useCreditConfigs";
 
 /**
  * REUSED TABLES: analise_credito, credit_analysis_events, analise_credito_documentos, profiles, deals, leads
- * REUSED HOOKS: useCreditMetrics, useAuth, useUsuariosList
+ * REUSED HOOKS: useCreditMetrics, useAuth, useUsuariosList, useCreditBankChecklist
  */
 
 export default function CreditGlobalArea() {
@@ -135,6 +139,17 @@ export default function CreditGlobalArea() {
   const [actionType, setActionType] = useState<'approve' | 'reject' | 'request_docs' | 'reassign' | null>(null);
   const [actionNotes, setActionNotes] = useState("");
   const [targetManagerId, setTargetManagerId] = useState("");
+  const [pendingDocs, setPendingDocs] = useState<string[]>([]);
+
+  // Fetch checklist for the selected analysis bank
+  const { data: checklist } = useCreditBankChecklist(selectedAnalysis?.bank_config_id || undefined);
+  
+  const filteredChecklist = useMemo(() => {
+    if (!checklist || !selectedAnalysis) return [];
+    return checklist.filter(item => 
+      item.applicable_to === 'both' || item.applicable_to === selectedAnalysis.tipo_pessoa
+    );
+  }, [checklist, selectedAnalysis]);
 
   const managers = users?.filter(u => u.roles.some(r => ['admin', 'gerente', 'super_admin'].includes(r))) || [];
 
@@ -158,9 +173,16 @@ export default function CreditGlobalArea() {
       } else if (actionType === 'request_docs') {
         newStatus = 'pendente_documentos';
         updatePayload.status = newStatus;
-        updatePayload.observacoes = actionNotes;
+        const docNames = pendingDocs.map(id => checklist?.find(c => c.id === id)?.document_type_name).filter(Boolean);
+        updatePayload.observacoes = `${actionNotes}\n\nDocumentos Pendentes:\n- ${docNames.join('\n- ')}`;
       } else if (actionType === 'reassign') {
         updatePayload.responsavel_id = targetManagerId;
+      }
+
+      // Idempotency check: Don't update if status is already approved/rejected
+      if (['aprovado', 'aprovada', 'reprovado', 'reprovada'].includes(selectedAnalysis.status) && actionType !== 'reassign') {
+        toast({ title: "Esta análise já foi finalizada", variant: "warning" });
+        return;
       }
 
       // 1. Update Analysis
@@ -179,7 +201,7 @@ export default function CreditGlobalArea() {
         actor_id: currentUser?.id,
         status_anterior: selectedAnalysis.status,
         status_novo: newStatus,
-        payload: { notes: actionNotes, ...updatePayload },
+        payload: { notes: actionNotes, ...updatePayload, pendingDocs },
         correlation_id,
         idempotency_key: `${actionType}_${selectedAnalysis.id}_${Date.now()}`
       } as any);
@@ -202,6 +224,7 @@ export default function CreditGlobalArea() {
       setSelectedAnalysis(null);
       setActionType(null);
       setActionNotes("");
+      setPendingDocs([]);
     } catch (error: any) {
       toast({ 
         title: "Erro ao processar ação", 
@@ -413,14 +436,14 @@ export default function CreditGlobalArea() {
                         {analysis.deal?.title || analysis.lead?.nome || "N/A"}
                       </TableCell>
                       <TableCell className="text-muted-foreground">
-                        {analysis.consultor?.nome || "Sistema"}
+                        {analysis.consultor?.[0]?.nome || analysis.consultor?.nome || "Sistema"}
                       </TableCell>
                       <TableCell>{analysis.banco || "Não definido"}</TableCell>
                       <TableCell className="font-semibold text-primary">
                         {formatBRL(analysis.valor_solicitado || 0)}
                       </TableCell>
                       <TableCell>
-                        {analysis.responsavel?.nome || (
+                        {analysis.responsavel?.[0]?.nome || analysis.responsavel?.nome || (
                           <span className="text-muted-foreground italic text-xs">Não atribuído</span>
                         )}
                       </TableCell>
@@ -513,7 +536,7 @@ export default function CreditGlobalArea() {
       </Tabs>
 
       {/* Action Modals */}
-      <Dialog open={!!actionType} onOpenChange={() => { setActionType(null); setSelectedAnalysis(null); }}>
+      <Dialog open={!!actionType} onOpenChange={() => { setActionType(null); setSelectedAnalysis(null); setPendingDocs([]); }}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
             <DialogTitle>
@@ -528,7 +551,7 @@ export default function CreditGlobalArea() {
           </DialogHeader>
           
           <div className="grid gap-4 py-4">
-            {actionType === 'reassign' ? (
+            {actionType === 'reassign' && (
               <div className="space-y-2">
                 <label className="text-sm font-medium">Novo Gerente</label>
                 <Select value={targetManagerId} onValueChange={setTargetManagerId}>
@@ -540,7 +563,40 @@ export default function CreditGlobalArea() {
                   </SelectContent>
                 </Select>
               </div>
-            ) : (
+            )}
+
+            {actionType === 'request_docs' && (
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Documentos Faltantes</label>
+                  <ScrollArea className="h-[200px] border rounded-md p-2">
+                    <div className="space-y-2">
+                      {filteredChecklist.map((item) => (
+                        <div key={item.id} className="flex items-center space-x-2 p-1 hover:bg-muted/50 rounded transition-colors">
+                          <Checkbox 
+                            id={item.id} 
+                            checked={pendingDocs.includes(item.id)}
+                            onCheckedChange={(checked) => {
+                              if (checked) setPendingDocs(p => [...p, item.id]);
+                              else setPendingDocs(p => p.filter(id => id !== item.id));
+                            }}
+                          />
+                          <label htmlFor={item.id} className="text-xs leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer">
+                            {item.document_type_name}
+                            {item.is_required && <span className="text-destructive ml-1">*</span>}
+                          </label>
+                        </div>
+                      ))}
+                      {filteredChecklist.length === 0 && (
+                        <p className="text-xs text-muted-foreground text-center py-4">Nenhum item de checklist configurado para este banco.</p>
+                      )}
+                    </div>
+                  </ScrollArea>
+                </div>
+              </div>
+            )}
+
+            {(actionType === 'reject' || actionType === 'request_docs' || actionType === 'approve') && (
               <div className="space-y-2">
                 <label className="text-sm font-medium">Observações / Motivo</label>
                 <Textarea 
@@ -558,7 +614,7 @@ export default function CreditGlobalArea() {
             <Button 
               onClick={handleAction} 
               variant={actionType === 'reject' ? 'destructive' : 'default'}
-              disabled={actionType === 'reject' && !actionNotes}
+              disabled={(actionType === 'reject' && !actionNotes) || (actionType === 'reassign' && !targetManagerId)}
             >
               Confirmar
             </Button>
@@ -585,7 +641,7 @@ function AnalysisCard({ analysis, onAction }: { analysis: any, onAction: (type: 
           {analysis.deal?.title || analysis.lead?.nome}
         </CardTitle>
         <p className="text-xs text-muted-foreground flex items-center gap-1">
-          <UserIcon className="h-3 w-3" /> Consultor: {analysis.consultor?.[0]?.nome || "N/A"}
+          <UserIcon className="h-3 w-3" /> Consultor: {analysis.consultor?.[0]?.nome || analysis.consultor?.nome || "N/A"}
         </p>
       </CardHeader>
       <CardContent className="space-y-4">
