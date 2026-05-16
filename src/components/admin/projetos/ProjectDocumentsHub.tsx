@@ -82,9 +82,8 @@ import {
   type ProjectDocumentOrigem,
 } from "@/hooks/useProjectDocuments";
 
-import { useProjetoArquivos, useDeletarArquivo } from "@/hooks/useProjetoDocumentos";
-import { useProjetoCustomFieldFiles } from "@/hooks/useProjetoCustomFieldFiles";
-import { normalizeFilename, logicalSuffix, resolveDocumentCategory } from "@/lib/documentDedup";
+import { useDeletarArquivo } from "@/hooks/useProjetoDocumentos";
+import { resolveDocumentCategory } from "@/lib/documentDedup";
 
 
 
@@ -136,54 +135,14 @@ function formatSize(bytes?: number | null) {
 }
 
 
-/** Normaliza nome de categoria para evitar duplicação visual ("CAMPO: X" vs "X"). */
-export function normalizeCategoriaLegacy(raw?: string | null): string {
-  if (!raw) return "Outros";
-  let c = raw.trim().replace(/^campo[:\s]+/i, "");
-  const slug = c
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^a-z0-9]+/g, "_")
-    .replace(/^_+|_+$/g, "");
-    
-  const ALIASES: Record<string, string> = {
-    identidade: "Identidade",
-    rg: "Identidade",
-    rg_cnh: "Identidade",
-    cnh: "Identidade",
-    comprovante_endereco: "Comprovante de endereço",
-    comprovante_de_endereco: "Comprovante de endereço",
-    conta_luz: "Conta de luz",
-    conta_de_luz: "Conta de luz",
-    iptu: "IPTU",
-    fotos_telhado: "Fotos do telhado",
-    art: "ART",
-    contrato: "Contrato",
-    proposta: "Proposta",
-    anexos_manuais: "Outros",
-    transformador: "Transformador",
-    disjuntor: "Disjuntor",
-    wi_fi: "Wi-Fi",
-    localizacao: "Localização",
-    equipamento: "Equipamento",
-  };
-  
-  if (ALIASES[slug]) return ALIASES[slug];
-  
-  // Title case fallback
-  return c
-    .split(/\s+/)
-    .map((w) => (w ? w[0].toUpperCase() + w.slice(1).toLowerCase() : w))
-    .join(" ");
-}
-
 const normalizeCategoria = resolveDocumentCategory;
 
 
 export function ProjectDocumentsHub({ projetoId, dealId }: Props) {
-  const { data, isLoading } = useProjectDocuments({ projetoId, dealId });
-  const { documents: docs = [], totalUnique: totalCount = 0, totalSize = 0 } = data || {};
+  const { data: projectDocsData, isLoading } = useProjectDocuments({ projetoId, dealId });
+  const docs = projectDocsData?.documents || [];
+  const totalCount = projectDocsData?.totalUnique || 0;
+  const totalSize = projectDocsData?.totalSize || 0;
   
   const upload = useUploadProjectDocument();
   const remove = useDeleteProjectDocument();
@@ -215,13 +174,16 @@ export function ProjectDocumentsHub({ projetoId, dealId }: Props) {
   }, [docs, search, origemFilter]);
 
   const groups = useMemo(() => {
+    if (!projectDocsData?.groupedByCategory) return [];
+    
+    // Use the groupedByCategory from the hook, but filtered if search/origemFilter active
     const out: Record<string, ProjectDocument[]> = {};
     for (const d of filtered) {
       const k = resolveDocumentCategory(d);
       (out[k] ||= []).push(d);
     }
     return Object.entries(out).sort(([a], [b]) => a.localeCompare(b));
-  }, [filtered]);
+  }, [filtered, projectDocsData?.groupedByCategory]);
 
 
 

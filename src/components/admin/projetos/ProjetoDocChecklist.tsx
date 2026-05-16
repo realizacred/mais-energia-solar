@@ -115,7 +115,12 @@ export function ProjetoDocChecklist({ dealId, compact = false }: Props) {
   const isLegacyItemChecked = (key: string) => {
     const isManuallyChecked = !!legacyChecklist[key];
     const canonicalCat = LEGACY_CAT_MAP[key];
-    const hasCanonicalDoc = canonicalDocs.some(d => d.categoria === canonicalCat);
+    const hasCanonicalDoc = canonicalDocs.some(d => {
+      const docCat = d.categoria?.toLowerCase().trim();
+      // Handle potential variations like "RG/CNH" vs "rg_cnh"
+      return docCat === canonicalCat || 
+             (canonicalCat === 'rg_cnh' && (docCat === 'identidade' || docCat === 'rg' || docCat === 'cnh'));
+    });
     return isManuallyChecked || hasCanonicalDoc;
   };
 
@@ -194,7 +199,12 @@ export function ProjetoDocChecklist({ dealId, compact = false }: Props) {
           // Legacy mode
           LEGACY_ITEMS.map(item => {
             const checked = isLegacyItemChecked(item.key);
-            const hasCanonicalDoc = canonicalDocs.some(d => d.categoria === LEGACY_CAT_MAP[item.key]);
+            const hasCanonicalDoc = canonicalDocs.some(d => {
+              const docCat = d.categoria?.toLowerCase().trim();
+              const canonicalCat = LEGACY_CAT_MAP[item.key];
+              return docCat === canonicalCat || 
+                     (canonicalCat === 'rg_cnh' && (docCat === 'identidade' || docCat === 'rg' || docCat === 'cnh'));
+            });
             
             return (
               <button
