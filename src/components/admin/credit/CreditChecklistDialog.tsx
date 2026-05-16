@@ -150,7 +150,7 @@ export function CreditChecklistDialog({ open, onOpenChange, bankConfigId, item }
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancelar
             </Button>
-            <Button type="submit" disabled={createMutation.isPending || updateMutation.isPending}>
+            <Button type="submit" disabled={createMutation.isPending || updateMutation.isPending} className="bg-primary hover:bg-primary/90 text-primary-foreground">
               {isEditing ? "Salvar Alterações" : "Adicionar Documento"}
             </Button>
           </DialogFooter>
