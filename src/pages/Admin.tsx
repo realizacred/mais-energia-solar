@@ -124,6 +124,7 @@ const FinancialSettingsPage = lazy(() => import("@/components/admin/settings/Fin
 const CreditConfigPage = lazy(() => import("@/pages/admin/CreditConfigPage"));
 const ChequesPage = lazy(() => import("@/pages/admin/financeiro/cheques/ChequesPage"));
 const CreditGlobalArea = lazy(() => import("@/pages/admin/credit/CreditGlobalArea"));
+const EosConfigPage = lazy(() => import("@/pages/admin/integracoes/financeiras/EosConfigPage"));
 
 
 
