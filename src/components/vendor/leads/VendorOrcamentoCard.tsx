@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
+
 import { OrcamentoStatusSelector } from "@/components/vendor/OrcamentoStatusSelector";
 import type { LeadStatus } from "@/types/lead";
 import type { OrcamentoVendedor } from "@/hooks/useOrcamentosVendedor";
