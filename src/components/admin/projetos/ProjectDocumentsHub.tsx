@@ -574,12 +574,23 @@ export function ProjectDocumentsHub({ projetoId, dealId }: Props) {
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <p className="text-sm font-medium text-foreground truncate">{d.file_name}</p>
+                          <p className="text-sm font-medium text-foreground truncate">
+                            {d.display_name || d.file_name}
+                          </p>
                           <Badge variant="outline" className={cn("text-[10px] py-0 px-1.5", ORIGEM_COLOR[d.origem])}>
                             {ORIGEM_LABEL[d.origem]}
                           </Badge>
+                          {(d.metadata as any)?.is_custom_field && (
+                            <Badge variant="secondary" className="text-[10px] py-0 px-1.5 gap-1">
+                              <Info className="h-3 w-3" />
+                              Campo customizado
+                            </Badge>
+                          )}
                         </div>
                         <p className="text-[11px] text-muted-foreground mt-0.5">
+                          {d.display_name ? (
+                            <span className="text-[10px] italic mr-2 opacity-70">({d.file_name})</span>
+                          ) : null}
                           {formatSize(d.size_bytes)} •{" "}
                           {formatDateTime(d.created_at, {
                             day: "2-digit",
@@ -605,6 +616,16 @@ export function ProjectDocumentsHub({ projetoId, dealId }: Props) {
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
                             <DropdownMenuItem
+                              onClick={() => {
+                                setRenamingDoc(d);
+                                setNewName(d.display_name || d.file_name.split('.').slice(0, -1).join('.'));
+                              }}
+                              disabled={d.id.startsWith("legacy:") || d.id.startsWith("cf:")}
+                            >
+                              <Pencil className="h-3.5 w-3.5 mr-2" />
+                              Renomear
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
                               className="text-destructive focus:text-destructive"
                               onClick={() => setConfirmDelete(d)}
                               disabled={d.origem !== "manual" && d.origem !== "legacy"}
@@ -615,6 +636,7 @@ export function ProjectDocumentsHub({ projetoId, dealId }: Props) {
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </div>
+
                     </Card>
                   );
                 })}
