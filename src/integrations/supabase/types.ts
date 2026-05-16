@@ -5223,7 +5223,9 @@ export type Database = {
           error_message: string | null
           heartbeat_at: string | null
           id: string
+          idempotency_key: string | null
           job_type: string
+          locked_by: string | null
           max_retries: number | null
           next_retry_at: string | null
           payload: Json | null
@@ -5237,7 +5239,9 @@ export type Database = {
           error_message?: string | null
           heartbeat_at?: string | null
           id?: string
+          idempotency_key?: string | null
           job_type: string
+          locked_by?: string | null
           max_retries?: number | null
           next_retry_at?: string | null
           payload?: Json | null
@@ -5251,7 +5255,9 @@ export type Database = {
           error_message?: string | null
           heartbeat_at?: string | null
           id?: string
+          idempotency_key?: string | null
           job_type?: string
+          locked_by?: string | null
           max_retries?: number | null
           next_retry_at?: string | null
           payload?: Json | null
