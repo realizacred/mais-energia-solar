@@ -74,104 +74,103 @@ const playbooks: Playbook[] = [
 
 const PlaybooksPage = () => {
   return (
-    <div className=\"p-6 space-y-6\">
-      <div className=\"flex flex-col gap-2\">
-        <h1 className=\"text-3xl font-bold tracking-tight\">Playbooks Operacionais</h1>
-        <p className=\"text-muted-foreground\">
+    <div className="p-6 space-y-6">
+      <div className="flex flex-col gap-2">
+        <h1 className="text-3xl font-bold tracking-tight">Playbooks Operacionais</h1>
+        <p className="text-muted-foreground">
           Guia de resolução de incidentes e diagnósticos do sistema.
         </p>
       </div>
 
-      <div className=\"grid gap-4 md:grid-cols-4\">
+      <div className="grid gap-4 md:grid-cols-4">
         <Card>
-          <CardHeader className=\"flex flex-row items-center justify-between space-y-0 pb-2\">
-            <CardTitle className=\"text-sm font-medium\">Total Playbooks</CardTitle>
-            <BookOpen className=\"h-4 w-4 text-muted-foreground\" />
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Playbooks</CardTitle>
+            <BookOpen className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className=\"text-2xl font-bold\">{playbooks.length}</div>
+            <div className="text-2xl font-bold">{playbooks.length}</div>
           </CardContent>
         </Card>
-        {/* Adicionar mais stats aqui se necessário */}
       </div>
 
-      <div className=\"space-y-4\">
-        <Accordion type=\"single\" collapsible className=\"w-full\">
+      <div className="space-y-4">
+        <Accordion type="single" collapsible className="w-full">
           {playbooks.map((pb) => (
-            <AccordionItem key={pb.id} value={pb.id} className=\"border rounded-lg px-4 mb-2 bg-card\">
-              <AccordionTrigger className=\"hover:no-underline\">
-                <div className=\"flex items-center gap-4 text-left\">
+            <AccordionItem key={pb.id} value={pb.id} className="border rounded-lg px-4 mb-2 bg-card">
+              <AccordionTrigger className="hover:no-underline">
+                <div className="flex items-center gap-4 text-left">
                   <div className={`p-2 rounded-full ${
                     pb.severity === 'Crítico' ? 'bg-destructive/10 text-destructive' : 
                     pb.severity === 'Médio' ? 'bg-warning/10 text-warning' : 'bg-info/10 text-info'
                   }`}>
-                    {pb.severity === 'Crítico' ? <AlertCircle className=\"h-5 w-5\" /> : <AlertTriangle className=\"h-5 w-5\" />}
+                    {pb.severity === 'Crítico' ? <AlertCircle className="h-5 w-5" /> : <AlertTriangle className="h-5 w-5" />}
                   </div>
                   <div>
-                    <div className=\"font-semibold\">{pb.title}</div>
-                    <div className=\"flex gap-2 mt-1\">
-                      <Badge variant=\"secondary\" className=\"text-[10px]\">{pb.category}</Badge>
-                      <Badge variant={pb.severity === 'Crítico' ? 'destructive' : 'outline'} className=\"text-[10px]\">
+                    <div className="font-semibold">{pb.title}</div>
+                    <div className="flex gap-2 mt-1">
+                      <Badge variant="secondary" className="text-[10px]">{pb.category}</Badge>
+                      <Badge variant={pb.severity === 'Crítico' ? 'destructive' : 'outline'} className="text-[10px]">
                         {pb.severity}
                       </Badge>
                     </div>
                   </div>
                 </div>
               </AccordionTrigger>
-              <AccordionContent className=\"pt-4 pb-6 space-y-4\">
-                <div className=\"grid md:grid-cols-2 gap-6\">
-                  <div className=\"space-y-4\">
+              <AccordionContent className="pt-4 pb-6 space-y-4">
+                <div className="grid md:grid-cols-2 gap-6">
+                  <div className="space-y-4">
                     <section>
-                      <h4 className=\"text-sm font-bold flex items-center gap-2 mb-2\">
-                        <Search className=\"h-4 w-4 text-primary\" /> Sintomas
+                      <h4 className="text-sm font-bold flex items-center gap-2 mb-2">
+                        <Search className="h-4 w-4 text-primary" /> Sintomas
                       </h4>
-                      <ul className=\"list-disc list-inside text-sm text-muted-foreground\">
+                      <ul className="list-disc list-inside text-sm text-muted-foreground">
                         {pb.symptoms.map((s, i) => <li key={i}>{s}</li>)}
                       </ul>
                     </section>
 
                     <section>
-                      <h4 className=\"text-sm font-bold flex items-center gap-2 mb-2\">
-                        <AlertTriangle className=\"h-4 w-4 text-warning\" /> Causas Prováveis
+                      <h4 className="text-sm font-bold flex items-center gap-2 mb-2">
+                        <AlertTriangle className="h-4 w-4 text-warning" /> Causas Prováveis
                       </h4>
-                      <ul className=\"list-disc list-inside text-sm text-muted-foreground\">
+                      <ul className="list-disc list-inside text-sm text-muted-foreground">
                         {pb.causes.map((c, i) => <li key={i}>{c}</li>)}
                       </ul>
                     </section>
 
                     <section>
-                      <h4 className=\"text-sm font-bold flex items-center gap-2 mb-2 text-info\">
-                        <CheckCircle2 className=\"h-4 w-4\" /> Diagnóstico
+                      <h4 className="text-sm font-bold flex items-center gap-2 mb-2 text-info">
+                        <CheckCircle2 className="h-4 w-4" /> Diagnóstico
                       </h4>
-                      <p className=\"text-sm text-muted-foreground\">{pb.diagnosis}</p>
+                      <p className="text-sm text-muted-foreground">{pb.diagnosis}</p>
                     </section>
                   </div>
 
-                  <div className=\"space-y-4\">
+                  <div className="space-y-4">
                     {pb.sqlQuery && (
-                      <section className=\"bg-muted p-3 rounded-md\">
-                        <h4 className=\"text-xs font-mono font-bold flex items-center gap-2 mb-2 uppercase text-muted-foreground\">
-                          <Terminal className=\"h-3 w-3\" /> Query de Diagnóstico
+                      <section className="bg-muted p-3 rounded-md">
+                        <h4 className="text-xs font-mono font-bold flex items-center gap-2 mb-2 uppercase text-muted-foreground">
+                          <Terminal className="h-3 w-3" /> Query de Diagnóstico
                         </h4>
-                        <pre className=\"text-[11px] font-mono bg-black/5 p-2 rounded overflow-x-auto whitespace-pre-wrap\">
+                        <pre className="text-[11px] font-mono bg-black/5 p-2 rounded overflow-x-auto whitespace-pre-wrap">
                           {pb.sqlQuery}
                         </pre>
                       </section>
                     )}
 
                     <section>
-                      <h4 className=\"text-sm font-bold text-success mb-2\">Como Resolver</h4>
-                      <p className=\"text-sm p-3 bg-success/5 border border-success/20 rounded-md\">{pb.solution}</p>
+                      <h4 className="text-sm font-bold text-success mb-2">Como Resolver</h4>
+                      <p className="text-sm p-3 bg-success/5 border border-success/20 rounded-md">{pb.solution}</p>
                     </section>
 
-                    <div className=\"grid grid-cols-2 gap-4\">
+                    <div className="grid grid-cols-2 gap-4">
                       <section>
-                        <h4 className=\"text-xs font-bold uppercase text-muted-foreground mb-1\">Escalonamento</h4>
-                        <p className=\"text-xs\">{pb.escalation}</p>
+                        <h4 className="text-xs font-bold uppercase text-muted-foreground mb-1">Escalonamento</h4>
+                        <p className="text-xs">{pb.escalation}</p>
                       </section>
                       <section>
-                        <h4 className=\"text-xs font-bold uppercase text-muted-foreground mb-1\">Risco</h4>
-                        <p className=\"text-xs text-destructive\">{pb.risk}</p>
+                        <h4 className="text-xs font-bold uppercase text-muted-foreground mb-1">Risco</h4>
+                        <p className="text-xs text-destructive">{pb.risk}</p>
                       </section>
                     </div>
                   </div>
