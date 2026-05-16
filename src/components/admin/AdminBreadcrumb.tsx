@@ -39,4 +39,4 @@ export const AdminBreadcrumb = React.memo(({ activeTab }: AdminBreadcrumbProps) 
       <span className="font-semibold text-foreground">{crumbs.item}</span>
     </nav>
   );
-}
+});

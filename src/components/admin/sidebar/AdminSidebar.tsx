@@ -621,4 +621,4 @@ export const AdminSidebar = React.memo(({
     </Sidebar>
     </TooltipProvider>
   );
-}
+});
