@@ -659,14 +659,12 @@ export function ConvertLeadToClientDialog({
       return;
     }
 
-    // Validate payment composition — skip if no sale value defined (no simulation/proposal selected)
-    const hasPaymentData = paymentItems.some(item => item.valor_base > 0);
-    if (valorVenda > 0 || hasPaymentData) {
-      const paymentErrors = validateComposition(paymentItems, valorVenda);
-      if (paymentErrors.length > 0) {
+    // Validate payment composition — using SSOT snapshot §25
+    if (valorVenda > 0 || paymentItems.some(item => item.valor_base > 0)) {
+      if (!finance.isValid) {
         toast({
-          title: "Composição de pagamento inválida",
-          description: paymentErrors[0],
+          title: "Atenção no Financeiro",
+          description: finance.errors[0] || "Composição de pagamento inválida.",
           variant: "destructive",
         });
         setCurrentStep(2); // Navigate to payment step
