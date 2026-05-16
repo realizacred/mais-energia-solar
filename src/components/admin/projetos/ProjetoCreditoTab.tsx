@@ -10,7 +10,8 @@ import {
   FileText, 
   User, 
   Calendar,
-  AlertCircle
+  Send,
+  Eye
 } from "lucide-react";
 import { 
   useAnaliseCredito, 
@@ -19,7 +20,7 @@ import {
 } from "@/hooks/useAnaliseCredito";
 import { useUserRole } from "@/hooks/useUserRole";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatBRL } from "@/lib/formatters";
 import { formatDateTime } from "@/lib/dateUtils";
@@ -54,10 +55,9 @@ export const STATUS_CONFIG: Record<string, { label: string; color: string; icon:
   pendente: { label: "Pendente", color: "bg-warning/10 text-warning border-warning/20", icon: Clock },
 };
 
-import { Send } from "lucide-react";
-
 export function ProjetoCreditoTab({ dealId, leadId, clienteId, clienteCpfCnpj, valorProposta }: Props) {
-  const { isAdmin, isGerente } = useUserRole();
+  const { isAdmin, roles } = useUserRole();
+  const isGerente = roles.includes("gerente");
   const canManage = isAdmin || isGerente;
   
   const { data: analises, isLoading } = useAnaliseCredito(dealId, leadId);
