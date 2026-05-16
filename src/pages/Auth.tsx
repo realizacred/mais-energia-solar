@@ -178,7 +178,8 @@ export default function Auth() {
             if (savedPreference === "vendedor") {
               navigate("/consultor", { replace: true });
             } else if (savedPreference === "admin") {
-              navigate("/admin", { replace: true });
+              navigate(isMobileDevice() ? "/sistema" : "/admin", { replace: true });
+
             } else {
               navigate("/portal", { replace: true });
             }
