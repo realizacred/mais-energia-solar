@@ -124,6 +124,7 @@ const FinancialSettingsPage = lazy(() => import("@/components/admin/settings/Fin
 const CreditConfigPage = lazy(() => import("@/pages/admin/CreditConfigPage"));
 const ChequesPage = lazy(() => import("@/pages/admin/financeiro/cheques/ChequesPage"));
 const CreditGlobalArea = lazy(() => import("@/pages/admin/credit/CreditGlobalArea"));
+const EosConfigPage = lazy(() => import("@/pages/admin/integracoes/financeiras/EosConfigPage"));
 
 
 
@@ -630,7 +631,8 @@ const AdminRoutes = () => (
     <Route path="meta-config" element={<Navigate to="/admin/meta-facebook-config" replace />} />
     <Route path="google-maps-config" element={<Navigate to="/admin/catalogo-integracoes" replace />} />
     <Route path="ai-config" element={<AiConfigPage />} />
-    
+    <Route path="integracoes/financeiras/eos" element={<EosConfigPage />} />
+
     {/* Site */}
     <Route path="site-config" element={<SiteSettingsUnified />} />
     <Route path="brand" element={<SiteSettingsUnified />} />

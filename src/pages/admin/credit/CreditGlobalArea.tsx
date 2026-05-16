@@ -136,10 +136,13 @@ export default function CreditGlobalArea() {
 
   // Action States
   const [selectedAnalysis, setSelectedAnalysis] = useState<any>(null);
-  const [actionType, setActionType] = useState<'approve' | 'reject' | 'request_docs' | 'reassign' | null>(null);
+  const [actionType, setActionType] = useState<'approve' | 'reject' | 'request_docs' | 'reassign' | 'eos_integrate' | null>(null);
   const [actionNotes, setActionNotes] = useState("");
   const [targetManagerId, setTargetManagerId] = useState("");
   const [pendingDocs, setPendingDocs] = useState<string[]>([]);
+  const [isSimulating, setIsSimulating] = useState(false);
+  const [simulationOptions, setSimulationOptions] = useState<any[]>([]);
+  const [isSendingToEos, setIsSendingToEos] = useState(false);
 
   // Fetch checklist for the selected analysis bank
   const { data: checklist } = useCreditBankChecklist(selectedAnalysis?.bank_config_id || undefined);
@@ -231,6 +234,57 @@ export default function CreditGlobalArea() {
         description: error.message, 
         variant: "destructive" 
       });
+    }
+  };
+
+  const handleEosSimulate = async (analysis: any) => {
+    setIsSimulating(true);
+    try {
+      const { data: profile } = await supabase.from("profiles").select("tenant_id").eq("user_id", user?.id).single();
+      
+      const { data, error } = await supabase.functions.invoke('eos-simular', {
+        body: {
+          analise_id: analysis.id,
+          valor: analysis.valor_solicitado,
+          prazo_meses: analysis.prazo_meses || 60,
+          cpf_cnpj: analysis.cpf_cnpj,
+          tipo_pessoa: analysis.tipo_pessoa,
+          tenant_id: profile?.tenant_id
+        }
+      });
+
+      if (error) throw error;
+      setSimulationOptions(data.opcoes || []);
+      toast({ title: "Simulação EOS concluída" });
+      queryClient.invalidateQueries({ queryKey: ["admin-credit-analyses"] });
+    } catch (error: any) {
+      toast({ title: "Erro na simulação", description: error.message, variant: "destructive" });
+    } finally {
+      setIsSimulating(false);
+    }
+  };
+
+  const handleEosSend = async (analysis: any, option?: any) => {
+    setIsSendingToEos(true);
+    try {
+      const { data: profile } = await supabase.from("profiles").select("tenant_id").eq("user_id", user?.id).single();
+      
+      const { data, error } = await supabase.functions.invoke('eos-enviar-proposta', {
+        body: {
+          analise_id: analysis.id,
+          tenant_id: profile?.tenant_id,
+          opcao_escolhida: option
+        }
+      });
+
+      if (error) throw error;
+      toast({ title: "Proposta enviada para EOS", description: `Protocolo: ${data.id || data.protocolo}` });
+      queryClient.invalidateQueries({ queryKey: ["admin-credit-analyses"] });
+      setActionType(null);
+    } catch (error: any) {
+      toast({ title: "Erro no envio", description: error.message, variant: "destructive" });
+    } finally {
+      setIsSendingToEos(false);
     }
   };
 
@@ -536,20 +590,24 @@ export default function CreditGlobalArea() {
       </Tabs>
 
       {/* Action Modals */}
-      <Dialog open={!!actionType} onOpenChange={() => { setActionType(null); setSelectedAnalysis(null); setPendingDocs([]); }}>
-        <DialogContent className="sm:max-w-[425px]">
+      <Dialog 
+        open={!!actionType} 
+        onOpenChange={(open) => { if(!open) { setActionType(null); setSelectedAnalysis(null); setPendingDocs([]); setSimulationOptions([]); }}}
+      >
+        <DialogContent className={cn("sm:max-w-[425px]", actionType === 'eos_integrate' && "sm:max-w-[600px]")}>
           <DialogHeader>
             <DialogTitle>
               {actionType === 'approve' && "Confirmar Aprovação Interna"}
               {actionType === 'reject' && "Registrar Reprovação"}
               {actionType === 'request_docs' && "Solicitar Documentação Adicional"}
               {actionType === 'reassign' && "Reatribuir Gerente"}
+              {actionType === 'eos_integrate' && "Integração EOS Financiamento"}
             </DialogTitle>
             <DialogDescription>
               {selectedAnalysis?.deal?.title || selectedAnalysis?.lead?.nome} - {formatBRL(selectedAnalysis?.valor_solicitado || 0)}
             </DialogDescription>
           </DialogHeader>
-          
+
           <div className="grid gap-4 py-4">
             {actionType === 'reassign' && (
               <div className="space-y-2">
