@@ -56,7 +56,7 @@ interface PaymentComposerProps {
 }
 
 export function PaymentComposer({ valorVenda, items, onChange, readOnly = false }: PaymentComposerProps) {
-  const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
+  const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set(items.length === 1 ? [items[0].id] : []));
   const { configMap } = usePaymentInterestConfigMap();
 
   const summary = useMemo(() => computeSummary(items, valorVenda), [items, valorVenda]);
@@ -81,6 +81,10 @@ export function PaymentComposer({ valorVenda, items, onChange, readOnly = false 
     // Set remaining value as default
     const remaining = valorVenda - items.reduce((s, i) => s + i.valor_base, 0);
     newItem.valor_base = Math.max(0, Math.round(remaining * 100) / 100);
+    
+    // Default date to today if empty
+    newItem.data_pagamento = new Date().toISOString().split('T')[0];
+    
     onChange([...items, newItem]);
     setExpandedItems((prev) => new Set([...prev, newItem.id]));
   }, [items, onChange, valorVenda]);
