@@ -32,13 +32,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const authInitializedRef = useRef(false);
 
   const tenantGuardState = useTenantGuard(user?.id);
+  const queryClient = useQueryClient();
 
   const signOut = useCallback(async (reason?: string) => {
     if (reason) {
       sessionStorage.setItem("logout_reason", reason);
     }
+    // ⚠️ HARDENING: Clear all cache on logout to prevent data leak between users/roles
+    queryClient.clear();
     await supabase.auth.signOut();
-  }, []);
+  }, [queryClient]);
 
   // Realtime: listen for profile deactivation AND role removal
   useEffect(() => {
