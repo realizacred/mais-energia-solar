@@ -191,10 +191,14 @@ export function ProjectDocumentsHub({ projetoId, dealId }: Props) {
   const [origemFilter, setOrigemFilter] = useState<string>("all");
   const [preview, setPreview] = useState<FilePreviewTarget | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<ProjectDocument | null>(null);
+  const [renamingDoc, setRenamingDoc] = useState<ProjectDocument | null>(null);
+  const [newName, setNewName] = useState("");
+  const renameMutation = useRenameProjectDocument();
   const [dragOver, setDragOver] = useState(false);
   const [uploading, setUploading] = useState<string[]>([]);
   const [selectedCategoria, setSelectedCategoria] = useState<string>("Manual");
   const fileInput = useRef<HTMLInputElement>(null);
+
 
   // Cache buster: ao montar/trocar projeto/deal, invalida as 3 fontes para
   // refletir imediatamente a nova lógica de dedup semântico (sem esperar
