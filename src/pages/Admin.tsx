@@ -807,6 +807,7 @@ export default function Admin() {
                 <Route path="menus" element={<MenuConfigPage />} />
                 <Route path="dev" element={<DevToolsPage />} />
                 <Route path="system-health" element={<SystemHealthPage />} />
+                <Route path="integridade" element={<SystemIntegrityPage />} />
                 <Route path="playbooks" element={<PlaybooksPage />} />
                 <Route path="governanca" element={<GovernancePage />} />
                 <Route path="design-system" element={<DesignSystemGuide />} />
