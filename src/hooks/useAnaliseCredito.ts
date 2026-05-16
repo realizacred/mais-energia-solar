@@ -149,15 +149,36 @@ export function useCreateAnaliseCredito() {
 export function useUpdateAnaliseCredito() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({ id, ...values }: Partial<AnaliseCredito> & { id: string }) => {
-      const { data, error } = await supabase
+    mutationFn: async ({ id, version, ...values }: Partial<AnaliseCredito> & { id: string; version?: number }) => {
+      // First check if it's locked
+      const { data: current } = await supabase
         .from("analise_credito")
-        .update({ ...values, updated_at: new Date().toISOString() } as any)
+        .select("status, is_locked, version")
         .eq("id", id)
-        .select()
         .single();
 
-      if (error) throw error;
+      if (current?.is_locked) {
+        throw new Error("Esta análise está bloqueada para alterações pois já foi finalizada ou enviada.");
+      }
+
+      const updateQuery = supabase
+        .from("analise_credito")
+        .update({ ...values, updated_at: new Date().toISOString() } as any)
+        .eq("id", id);
+
+      // Optimistic concurrency control
+      if (version !== undefined) {
+        updateQuery.eq("version", version);
+      }
+
+      const { data, error } = await updateQuery.select().single();
+
+      if (error) {
+        if (error.code === 'PGRST116') {
+          throw new Error("Concorrência detectada: esta análise foi alterada por outro usuário. Recarregue a página.");
+        }
+        throw error;
+      }
       return data;
     },
     onSuccess: (data: any) => {
