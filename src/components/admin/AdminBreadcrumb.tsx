@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, memo } from "react";
 import { ChevronRight, Home } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useNavConfig } from "@/hooks/useNavConfig";
@@ -7,7 +7,7 @@ interface AdminBreadcrumbProps {
   activeTab: string;
 }
 
-export const AdminBreadcrumb = React.memo(({ activeTab }: AdminBreadcrumbProps) => {
+export const AdminBreadcrumb = memo(({ activeTab }: AdminBreadcrumbProps) => {
   const { sections } = useNavConfig();
 
   const crumbs = useMemo(() => {
