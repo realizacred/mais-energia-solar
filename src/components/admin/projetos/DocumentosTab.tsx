@@ -92,10 +92,10 @@ export function DocumentosTab({ dealId, clienteTelefone, consultorTelefone: cons
   // §16: Queries em hooks — AP-01 resolvido
   const { data: generatedDocs = [], isLoading: loadingDocs } = useProjetoDocumentosGerados(dealId);
   const { data: templates = [] } = useDocTemplates();
-  const { data: allProjectDocs = [] } = useProjectDocuments({ dealId });
+  const { data: allProjectDocs } = useProjectDocuments({ dealId });
   const recibos = useMemo(
-    () => allProjectDocs.filter((d) => d.origem === "recibo"),
-    [allProjectDocs],
+    () => (allProjectDocs?.documents || []).filter((d) => d.origem === "recibo"),
+    [allProjectDocs?.documents],
   );
   useDocumentosRealtimeSync(dealId);
 
