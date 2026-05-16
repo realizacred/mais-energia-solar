@@ -468,6 +468,8 @@ const AdminRoutes = () => (
     <Route path="preventiva" element={<PreventiveCenterPage />} />
     <Route path="lixeira" element={<LeadsTrashPage />} />
     <Route path="propostas" element={<PropostasManager />} />
+    <Route path="credito" element={<CreditGlobalArea />} />
+
     <Route path="projetos" element={<ProjetosManagerPage />} />
     <Route path="propostas-nativas/nova" element={<ProposalWizardErrorBoundary><ProposalWizardPage /></ProposalWizardErrorBoundary>} />
     <Route path="propostas/novo" element={<Navigate to="/admin/propostas-nativas/nova" replace />} />
