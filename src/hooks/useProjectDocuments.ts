@@ -38,6 +38,7 @@ export interface ProjectDocument {
   file_name: string;
   mime_type: string | null;
   size_bytes: number | null;
+  checksum: string | null;
   uploaded_by: string | null;
   metadata: Record<string, any>;
   source_table: string | null;
@@ -47,6 +48,14 @@ export interface ProjectDocument {
   updated_at: string;
 }
 
+export interface NormalizedProjectDocuments {
+  documents: ProjectDocument[];
+  totalUnique: number;
+  totalSize: number;
+  groupedByCategory: Record<string, ProjectDocument[]>;
+}
+
+
 
 export interface UseProjectDocumentsParams {
   projetoId?: string | null;
@@ -54,10 +63,12 @@ export interface UseProjectDocumentsParams {
   propostaId?: string | null;
 }
 
+import { normalizeProjectDocuments } from "@/lib/documentDedup";
+
 const STALE = 1000 * 30;
 
 export function useProjectDocuments({ projetoId, dealId, propostaId }: UseProjectDocumentsParams) {
-  return useQuery<ProjectDocument[]>({
+  return useQuery<NormalizedProjectDocuments>({
     queryKey: ["project-documents", projetoId, dealId, propostaId],
     enabled: !!(projetoId || dealId || propostaId),
     staleTime: STALE,
@@ -72,10 +83,12 @@ export function useProjectDocuments({ projetoId, dealId, propostaId }: UseProjec
       else if (propostaId) q = q.eq("proposta_id", propostaId);
       const { data, error } = await q;
       if (error) throw error;
-      return (data ?? []) as unknown as ProjectDocument[];
+      const rawDocs = (data ?? []) as unknown as ProjectDocument[];
+      return normalizeProjectDocuments(rawDocs);
     },
   });
 }
+
 
 /** Upload manual direto na tabela canônica (origem='manual'). */
 export function useUploadProjectDocument() {

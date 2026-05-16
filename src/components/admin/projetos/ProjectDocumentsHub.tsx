@@ -182,9 +182,9 @@ const normalizeCategoria = resolveDocumentCategory;
 
 
 export function ProjectDocumentsHub({ projetoId, dealId }: Props) {
-  const { data: canonicalDocs = [], isLoading } = useProjectDocuments({ projetoId, dealId });
-  const { data: legacyFiles = [] } = useProjetoArquivos(dealId || "");
-  const { data: cfFiles = [] } = useProjetoCustomFieldFiles(dealId || "");
+  const { data, isLoading } = useProjectDocuments({ projetoId, dealId });
+  const { documents: docs = [], totalUnique: totalCount = 0, totalSize = 0, groupedByCategory } = data || {};
+  
   const upload = useUploadProjectDocument();
   const remove = useDeleteProjectDocument();
   const removeLegacy = useDeletarArquivo(dealId || "");
@@ -203,117 +203,26 @@ export function ProjectDocumentsHub({ projetoId, dealId }: Props) {
   const [selectedCategoria, setSelectedCategoria] = useState<string>("Manual");
   const fileInput = useRef<HTMLInputElement>(null);
 
+  const filtered = useMemo(() => {
+    const s = search.toLowerCase().trim();
+    return docs.filter((d) => {
+      if (d.origem === 'generated' || d.origem === 'recibo') return false;
+      if (origemFilter !== "all" && d.origem !== origemFilter) return false;
+      if (s && !d.file_name.toLowerCase().includes(s) && !(d.categoria || "").toLowerCase().includes(s))
+        return false;
+      return true;
+    });
+  }, [docs, search, origemFilter]);
 
-  // Cache buster: ao montar/trocar projeto/deal, invalida as 3 fontes para
-  // refletir imediatamente a nova lógica de dedup semântico (sem esperar
-  // staleTime — useProjetoArquivos=5min, useProjectDocuments=30s, cfFiles=60s).
-  const qc = useQueryClient();
-  useEffect(() => {
-    qc.invalidateQueries({ queryKey: ["project-documents"] });
-    if (dealId) {
-      qc.invalidateQueries({ queryKey: ["projeto-documentos-files", dealId] });
-      qc.invalidateQueries({ queryKey: ["projeto-custom-field-files", dealId] });
+  const groups = useMemo(() => {
+    const out: Record<string, ProjectDocument[]> = {};
+    for (const d of filtered) {
+      const k = resolveDocumentCategory(d);
+      (out[k] ||= []).push(d);
     }
-  }, [qc, projetoId, dealId]);
+    return Object.entries(out).sort(([a], [b]) => a.localeCompare(b));
+  }, [filtered]);
 
-  // Mescla canônico + legado bucket + custom fields como linhas virtuais.
-  // SSOT visual = project_documents. Dedup semântico em 3 camadas:
-  //   1) bucket+storage_path (mesmo arquivo físico)
-  //   2) scope + normalizedFilename (+ size opcional)
-  //   3) scope + logicalSuffix (frente/verso/comprovante)
-  // Quando há colisão, preferimos o bucket canônico `projeto-documentos`
-  // como destino de download/preview e enriquecemos com metadado de campo.
-  const docs = useMemo<ProjectDocument[]>(() => {
-    const out: ProjectDocument[] = [];
-    const byPath = new Map<string, ProjectDocument>();
-
-    // 1) project_documents — SSOT visual
-    for (const d of canonicalDocs) {
-      const norm: ProjectDocument = { ...d, categoria: normalizeCategoria(d.categoria) };
-      // dedup apenas por path físico para não duplicar se vier de fontes diferentes apontando pro mesmo arquivo
-      const dup = byPath.get(`${norm.bucket}::${norm.storage_path}`);
-      if (dup) continue;
-      out.push(norm);
-      byPath.set(`${norm.bucket}::${norm.storage_path}`, norm);
-    }
-
-    // 2) Legacy bucket scan
-    for (const f of legacyFiles) {
-      if (!f.id || !f.metadata) continue;
-      const path = `legacy/${dealId}/${f.name}`;
-      const fname = f.name.replace(/^\d+_/, "");
-      if (byPath.get(`projeto-documentos::${path}`)) continue;
-      
-      const item: ProjectDocument = {
-        id: `legacy:${f.name}`,
-        tenant_id: "",
-        projeto_id: projetoId || null,
-        deal_id: dealId || null,
-        proposta_id: null,
-        cliente_id: null,
-        categoria: "Outros",
-        display_name: null,
-        origem: "legacy",
-        bucket: "projeto-documentos",
-        storage_path: path,
-        file_name: fname,
-        mime_type: f.metadata?.mimetype || null,
-        size_bytes: f.metadata?.size || null,
-        uploaded_by: null,
-        metadata: { _legacyName: f.name },
-        source_table: "storage",
-        source_id: f.name,
-        is_deleted: false,
-        created_at: f.created_at || new Date().toISOString(),
-        updated_at: f.created_at || new Date().toISOString(),
-      };
-      out.push(item);
-      byPath.set(`projeto-documentos::${path}`, item);
-    }
-
-    // 3) Custom field files
-    for (const cf of cfFiles) {
-      if (byPath.get(`projeto-documentos::${cf.storage_path}`)) {
-        const existing = byPath.get(`projeto-documentos::${cf.storage_path}`)!;
-        existing.metadata = {
-          ...(existing.metadata || {}),
-          field_id: cf.field_id,
-          field_key: cf.field_key,
-          field_title: cf.field_title,
-          is_custom_field: true,
-        };
-        continue;
-      }
-      
-      const item: ProjectDocument = {
-        id: `cf:${cf.field_id}:${cf.storage_path}`,
-        tenant_id: "",
-        projeto_id: projetoId || null,
-        deal_id: dealId || null,
-        proposta_id: null,
-        cliente_id: null,
-        categoria: normalizeCategoria(cf.field_title),
-        display_name: null,
-        origem: "custom_field",
-        bucket: "projeto-documentos",
-        storage_path: cf.storage_path,
-        file_name: cf.filename,
-        mime_type: cf.mime || null,
-        size_bytes: cf.size || null,
-        uploaded_by: null,
-        metadata: { field_id: cf.field_id, field_key: cf.field_key, field_title: cf.field_title, is_custom_field: true },
-        source_table: "deal_custom_field_values",
-        source_id: cf.field_id,
-        is_deleted: false,
-        created_at: cf.uploaded_at || new Date().toISOString(),
-        updated_at: cf.uploaded_at || new Date().toISOString(),
-      };
-      out.push(item);
-      byPath.set(`projeto-documentos::${cf.storage_path}`, item);
-    }
-
-    return out.sort((a, b) => b.created_at.localeCompare(a.created_at));
-  }, [canonicalDocs, legacyFiles, cfFiles, dealId, projetoId]);
 
 
   const filtered = useMemo(() => {
