@@ -280,59 +280,16 @@ export function useExcluirProposta() {
 
   return useMutation({
     mutationFn: async (propostaId: string) => {
-      // Fetch deal_id before deleting so we can update deal values after
-      const { data: propostaInfo } = await supabase
-        .from("propostas_nativas")
-        .select("deal_id, projeto_id")
-        .eq("id", propostaId)
-        .single();
-
-      // Soft delete via SECURITY DEFINER RPC
-      const { data, error } = await supabase.rpc("proposal_delete" as any, {
+      // 100% Backend-driven atomic deletion
+      // Handles deals.value, projetos.valor_total, and principal proposal sync.
+      const { data, error } = await supabase.rpc("proposal_delete", {
         p_proposta_id: propostaId,
       });
+      
       if (error) throw error;
       if ((data as any)?.error) throw new Error((data as any).error);
-
-      // After deletion, recalculate deal value/kwp from remaining active proposals
-      const dealId = propostaInfo?.deal_id || propostaInfo?.projeto_id;
-      if (dealId) {
-        // Find remaining active proposals for this deal
-        const { data: remaining } = await supabase
-          .from("propostas_nativas")
-          .select("id")
-          .or(`deal_id.eq.${dealId},projeto_id.eq.${dealId}`)
-          .neq("status", "excluida")
-          .neq("id", propostaId)
-          .limit(1);
-
-        if (!remaining || remaining.length === 0) {
-          // No active proposals left — clear deal value/kwp
-          await supabase
-            .from("deals")
-            .update({ value: 0, kwp: 0 } as any)
-            .eq("id", dealId);
-        } else {
-          // Get latest active proposal's version values
-          const { data: latestVersion } = await supabase
-            .from("proposta_versoes")
-            .select("valor_total, potencia_kwp")
-            .eq("proposta_id", remaining[0].id)
-            .order("versao_numero", { ascending: false })
-            .limit(1)
-            .single();
-
-          if (latestVersion) {
-            await supabase
-              .from("deals")
-              .update({
-                value: latestVersion.valor_total || 0,
-                kwp: latestVersion.potencia_kwp || 0,
-              } as any)
-              .eq("id", dealId);
-          }
-        }
-      }
+      
+      return data;
     },
     onSuccess: () => {
       // Invalidate all proposal-related queries to ensure consistent state
