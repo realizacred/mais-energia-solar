@@ -7,7 +7,7 @@ interface AdminBreadcrumbProps {
   activeTab: string;
 }
 
-export function AdminBreadcrumb({ activeTab }: AdminBreadcrumbProps) {
+export const AdminBreadcrumb = React.memo(({ activeTab }: AdminBreadcrumbProps) => {
   const { sections } = useNavConfig();
 
   const crumbs = useMemo(() => {
