@@ -110,9 +110,10 @@ export default function Auth() {
 
           if (shouldBypassApprovalToAdmin) {
             clearTimeout(timeoutId);
-            navigate("/admin", { replace: true });
+            navigate(isMobileDevice() ? "/sistema" : "/admin", { replace: true });
             return;
           }
+
 
           const { data: profile, error: profileError } = await supabase
             .from("profiles")
