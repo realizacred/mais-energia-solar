@@ -264,12 +264,19 @@ export function useCreditMetrics() {
         .from("credit_analysis_events")
         .select("event_type");
 
-      if (jobsError || eventsError) throw jobsError || eventsError;
+      const { data: analyses, error: anaError } = await supabase
+        .from("analise_credito")
+        .select("sla_vencimento, status")
+        .not("sla_vencimento", "is", null);
 
+      if (jobsError || eventsError || anaError) throw jobsError || eventsError || anaError;
+
+      const now = new Date();
       const metrics = {
         pendingJobs: jobs?.filter(j => j.status === 'pending').length || 0,
         failedJobs: jobs?.filter(j => j.status === 'failed').length || 0,
         retries: jobs?.reduce((acc, j) => acc + (j.attempts || 0), 0) || 0,
+        expiredSLA: analyses?.filter(a => new Date(a.sla_vencimento!) < now && !['aprovada', 'reprovada', 'cancelada'].includes(a.status)).length || 0,
         eventCounts: (events || []).reduce((acc: any, e) => {
           acc[e.event_type] = (acc[e.event_type] || 0) + 1;
           return acc;
