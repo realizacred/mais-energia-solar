@@ -324,12 +324,10 @@ export function useDocumentsCount({ projetoId, dealId }: { projetoId?: string | 
       return physicalPaths.size + (genCount || 0);
 
 
-      return (pdCount || 0) + (genCount || 0) + cfCount;
-
-
     },
   });
 }
+
 
 function parseFileMetaArray(val: any): any[] {
   if (!val) return [];
