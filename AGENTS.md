@@ -307,6 +307,19 @@ NOVO — CHECKLIST ESPECÍFICO DE MIGRAÇÃO SM:
 BLOCO 10-22 — [mantidos v3.13]
 =============================================================================
 
+RB-89 STORAGE — BUCKET ÚNICO POR DOMÍNIO
+O sistema possui os seguintes buckets canônicos:
+- projeto-documentos  → documentos de projetos e campos customizados
+- credit-documents    → documentos de análise de crédito
+- generated-documents → contratos e fichas gerados pelo sistema
+- imported-files      → arquivos importados do SolarMarket
+- recibos             → recibos financeiros de projetos
+NUNCA criar novo bucket sem declarar aqui.
+NUNCA usar nome em inglês se o bucket canônico é em português.
+SEMPRE usar o helper getStorageBucket(origem) para determinar o bucket.
+NUNCA hardcodar string de bucket no componente.
+Helper canônico em src/lib/storage.ts.
+
 =============================================================================
 BLOCO 23 — CORREÇÕES E MELHORIAS v3.13 [mantido]
 =============================================================================

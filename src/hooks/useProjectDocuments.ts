@@ -4,6 +4,7 @@ import { toast } from "@/hooks/use-toast";
 import { getCurrentTenantId } from "@/lib/getCurrentTenantId";
 import { buildStoragePath } from "@/lib/storagePaths";
 import { normalizeProjectDocuments, resolveDocumentCategory } from "@/lib/documentDedup";
+import { getStorageBucket } from "@/lib/storage";
 
 export type ProjectDocumentOrigem =
   | "manual"
@@ -134,7 +135,7 @@ export function useUploadProjectDocument() {
           deal_id: dealId ?? null,
           categoria: categoria ?? "Manual",
           origem: "manual",
-          bucket: "project-documents",
+          bucket: bucket,
           storage_path: storagePath,
           file_name: file.name,
           mime_type: file.type || null,

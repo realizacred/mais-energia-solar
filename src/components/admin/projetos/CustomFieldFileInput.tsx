@@ -155,7 +155,7 @@ export function CustomFieldFileInput({
       console.error("[CustomFieldFileInput] upload error:", err);
       const diag = await logUploadDiagnostics({
         section: "Campos importantes",
-        bucket: "projeto-documentos",
+        bucket: getStorageBucket("campo_customizado"),
         path: currentPath,
         tenant_id: tenantId,
         field_key: fieldKey,
@@ -184,7 +184,7 @@ export function CustomFieldFileInput({
     setRemovingIdx(idx);
     try {
       try {
-        await supabase.storage.from("projeto-documentos").remove([target.storage_path]);
+        await supabase.storage.from(getStorageBucket("campo_customizado")).remove([target.storage_path]);
       } catch (err) {
         console.warn("[CustomFieldFileInput] remove storage error:", err);
       }
@@ -212,7 +212,7 @@ export function CustomFieldFileInput({
           {items.map((meta, idx) => {
               const isExternal = /^https?:\/\//i.test(meta.storage_path);
               const previewTarget: FilePreviewTarget = {
-                bucket: isExternal ? "external" : "projeto-documentos",
+                bucket: isExternal ? "external" : getStorageBucket("campo_customizado"),
                 storage_path: meta.storage_path,
                 filename: meta.filename,
                 mime: meta.mime,
