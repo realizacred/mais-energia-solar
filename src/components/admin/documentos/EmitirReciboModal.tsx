@@ -984,8 +984,8 @@ export function EmitirReciboModal({
                       />
                     ) : f.type === "currency" || f.key.toLowerCase().includes("valor") || f.key.toLowerCase().includes("saldo") ? (
                       <CurrencyInput
-                        value={Number(dynFields[f.key] || 0)}
-                        onChange={(val) => setDynFields((p) => ({ ...p, [f.key]: String(val) }))}
+                        value={Number(dynFields[f.key]?.replace(/[^\d,.-]/g, "").replace(",", ".") || 0)}
+                        onChange={(val) => setDynFields((p) => ({ ...p, [f.key]: formatBRL(val) }))}
                       />
                     ) : f.type === "textarea" ? (
                       <Textarea
@@ -1018,6 +1018,8 @@ export function EmitirReciboModal({
                   </div>
                 ))}
               </div>
+            </div>
+          )}
           {defaultProjetoId && (
             <div className="sm:col-span-2 border-t pt-4 space-y-4">
               <h4 className="font-bold flex items-center gap-2 text-sm uppercase tracking-wider text-muted-foreground">
@@ -1026,7 +1028,6 @@ export function EmitirReciboModal({
               <ReciboHistoryList projetoId={defaultProjetoId} />
             </div>
           )}
-        </div>
           )}
         </div>
 
