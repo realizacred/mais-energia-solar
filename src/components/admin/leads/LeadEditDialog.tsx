@@ -537,7 +537,6 @@ export function LeadEditDialog({
           )}
         </Button>
       </div>
-      </div>
 
       <AlertDialog open={showDuplicateDialog} onOpenChange={setShowDuplicateDialog}>
         <AlertDialogContent className="max-w-[90vw] sm:max-w-md">
