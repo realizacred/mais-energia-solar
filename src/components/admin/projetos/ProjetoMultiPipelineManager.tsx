@@ -342,7 +342,7 @@ export function ProjetoMultiPipelineManager({ dealId, dealStatus, pipelines, all
     if (locked) { 
       toast({ 
         title: "Funil bloqueado", 
-        description: `Não é possível alterar etapas no funil ${membership?.pipeline_name} devido ao status do projeto.`, 
+        description: `Não é possível alterar etapas no funil ${membership?.pipeline_name} due to status do projeto.`, 
         variant: "destructive" 
       }); 
       return; 
@@ -350,8 +350,6 @@ export function ProjetoMultiPipelineManager({ dealId, dealStatus, pipelines, all
 
     setSaving(membershipId);
     try {
-      // RB-76 / DA-48: Sistema de Validações Configuráveis por Etapa
-      // 1. Buscar validações configuradas para a etapa de destino
       const { data: validations } = await supabase
         .from("pipeline_stage_validations")
         .select("*")
@@ -359,7 +357,6 @@ export function ProjetoMultiPipelineManager({ dealId, dealStatus, pipelines, all
         .eq("ativo", true);
 
       if (validations && validations.length > 0) {
-        // 2. Coletar dados necessários para as validações
         const [projectDocsRes, customFieldsRes, fieldsRes, ordersRes] = await Promise.all([
           supabase.from("project_documents" as any).select("categoria").eq("deal_id", dealId).eq("is_deleted", false),
           supabase.from("deal_custom_field_values").select("field_id, value_text").eq("deal_id", dealId),
@@ -367,17 +364,18 @@ export function ProjetoMultiPipelineManager({ dealId, dealStatus, pipelines, all
           supabase.from("ordens_compra").select("id").eq("projeto_id", dealId).limit(1)
         ]);
 
-        const projectDocuments = projectDocsRes.data || [];
-        const customFieldValues = customFieldsRes.data || [];
-        const fields = fieldsRes.data || [];
+        const projectDocuments = (projectDocsRes.data || []) as any[];
+        const customFieldValues = (customFieldsRes.data || []) as any[];
+        const fields = (fieldsRes.data || []) as any[];
         const hasOrder = (ordersRes.data || []).length > 0;
 
         const results = validations.map(v => {
           let fulfilled = false;
+          const config = (v.configuracao || {}) as any;
+          
           switch (v.tipo_validacao) {
             case 'documento_obrigatorio':
-              fulfilled = projectDocuments.some((d: any) => d.categoria === v.configuracao.documento_tipo);
-              // Fallback legado
+              fulfilled = projectDocuments.some((d: any) => d.categoria === config.documento_tipo);
               if (!fulfilled) {
                 const categoryToKey: Record<string, string> = {
                   'rg_cnh': 'cap_identidade',
@@ -385,7 +383,7 @@ export function ProjetoMultiPipelineManager({ dealId, dealStatus, pipelines, all
                   'iptu': 'cap_documentos',
                   'contrato_assinado': 'cap_contrato'
                 };
-                const legacyKey = categoryToKey[v.configuracao.documento_tipo];
+                const legacyKey = categoryToKey[config.documento_tipo];
                 if (legacyKey) {
                   const fieldId = fields.find(f => f.field_key === legacyKey)?.id;
                   const val = customFieldValues.find((val: any) => val.field_id === fieldId)?.value_text;
@@ -397,24 +395,20 @@ export function ProjetoMultiPipelineManager({ dealId, dealStatus, pipelines, all
               fulfilled = hasOrder;
               break;
             case 'campo_preenchido':
-              // Verifica no registro do projeto (via projectData que já temos no hook)
-              // ou em custom fields
-              const directValue = projectData?.[v.configuracao.campo];
+              const directValue = projectData?.[config.campo];
               if (directValue !== undefined && directValue !== null && directValue !== "") {
                 fulfilled = true;
               } else {
-                const fId = fields.find(f => f.field_key === v.configuracao.campo)?.id;
+                const fId = fields.find(f => f.field_key === config.campo)?.id;
                 const cVal = customFieldValues.find((val: any) => val.field_id === fId)?.value_text;
                 if (cVal && cVal !== "" && cVal !== "[]") fulfilled = true;
               }
               break;
             case 'valor_minimo':
-              const fieldVal = projectData?.[v.configuracao.campo] || 0;
-              fulfilled = Number(fieldVal) >= (v.configuracao.valor_minimo || 0);
+              const fieldVal = projectData?.[config.campo] || 0;
+              fulfilled = Number(fieldVal) >= (config.valor_minimo || 0);
               break;
             case 'aprovacao_manual':
-              // Lógica de aprovação manual seria via tabela separada, 
-              // por enquanto tratamos como pendente se exigir.
               fulfilled = false; 
               break;
           }
@@ -429,29 +423,25 @@ export function ProjetoMultiPipelineManager({ dealId, dealStatus, pipelines, all
             isOpen: true,
             membershipId,
             newStageId,
-            missingDocs: blocking.map(b => b.mensagem_bloqueio || b.configuracao?.label || b.tipo_validacao)
+            missingDocs: blocking.map(b => b.mensagem_bloqueio || (b.configuracao as any)?.label || b.tipo_validacao)
           });
           setSaving(null);
           return;
         }
 
-        // Exibir avisos não bloqueantes
         warnings.forEach(w => {
           toast({
             title: "Atenção: Pendência",
-            description: w.mensagem_bloqueio || `A etapa requer: ${w.configuracao?.label || w.tipo_validacao}`,
+            description: w.mensagem_bloqueio || `A etapa requer: ${(w.configuracao as any)?.label || w.tipo_validacao}`,
             variant: "warning" as any
           });
         });
       }
     } catch (err) {
       console.error("Erro no sistema de validações:", err);
+    } finally {
+      // Logic continues to the standard stage change if not blocked
     }
-
-    // Interceptor: Pedido Efetuado
-    const stageName = newStage?.name?.toLowerCase() || "";
-    const isPedidoEfetuado = stageName.includes('pedido efetuado');
-    const isPedidoPago = stageName.includes('pedido pago');
 
     if (isPedidoEfetuado) {
       const { data: ordens } = await supabase
