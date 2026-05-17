@@ -398,7 +398,13 @@ function ProjetoDetalheContent() {
   const [updateValueReason, setUpdateValueReason] = useState("");
   const [isUpdatingValue, setIsUpdatingValue] = useState(false);
 
+  const { data: realDocsCount = 0 } = useDocumentsCount({ projetoId, dealId });
   const { data: finSummary } = useFinancialSummary(dealId, projetoId);
+
+  const tabBadge = (tabId: string) => {
+    if (tabId === "documentos") return realDocsCount;
+    return tabBadgeCtx(tabId);
+  };
 
   const handleUpdateValueFromContract = async () => {
     if (!dealId || !updateValueReason.trim()) return;
