@@ -24,6 +24,8 @@ import { useClientes } from "@/hooks/useClientes";
 import { useEmitirRecibo } from "@/hooks/useRecibos";
 import type { DocumentTemplate, FormFieldSchema } from "./types";
 import { supabase } from "@/integrations/supabase/client";
+import { cn } from "@/lib/utils";
+import { Switch } from "@/components/ui/switch";
 
 interface EmitirReciboModalProps {
   open: boolean;
