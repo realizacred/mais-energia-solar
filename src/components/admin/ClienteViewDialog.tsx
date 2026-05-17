@@ -26,9 +26,13 @@ import {
   TrendingDown, Send, ChevronRight, Sun, Receipt,
 } from "lucide-react";
 import { ProjetoRecibosTab } from "./projetos/ProjetoRecibosTab";
-import { formatDate, formatDateTime } from "@/lib/dateUtils";
-import { formatPhoneBR, formatBRL } from "@/lib/formatters";
-import { formatCpfCnpj } from "@/lib/cpfCnpjUtils";
+import {
+  displayDate,
+  displayPhone,
+  displayCpfCnpj,
+  displayCurrency,
+  formatKwp,
+} from "@/lib/formatters/index";
 import {
   useClienteProjetos,
   useClientePropostas,
