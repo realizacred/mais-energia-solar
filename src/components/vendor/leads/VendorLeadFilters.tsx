@@ -182,7 +182,7 @@ export function VendorLeadFilters({
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input
-            placeholder="Buscar por nome, telefone, cidade..."
+            placeholder="Buscar por nome, telefone, cidade ou ID..."
             value={searchTerm}
             onChange={(e) => onSearchChange(e.target.value)}
             className="pl-10 h-10"
@@ -201,7 +201,7 @@ export function VendorLeadFilters({
             <SheetContent side="bottom" className="rounded-t-2xl px-6 pb-8 h-[60vh]">
               <SheetHeader className="mb-6 text-left">
                 <SheetTitle>Filtros</SheetTitle>
-                <SheetDescription>Refine sua lista de orçamentos</SheetDescription>
+                <SheetDescription>Refine sua lista de leads</SheetDescription>
               </SheetHeader>
               <div className="space-y-6">
                 <FilterControls />
