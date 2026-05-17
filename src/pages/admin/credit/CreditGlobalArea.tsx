@@ -591,6 +591,13 @@ export default function CreditGlobalArea() {
           </div>
         </TabsContent>
 
+        <TabsContent value="banks_queue">
+          <BanksQueueView 
+            analyses={analyses || []} 
+            onFilterByBank={(bankId) => setFilters(f => ({ ...f, bank: bankId, status: "all" }))} 
+          />
+        </TabsContent>
+
         <TabsContent value="analyses">
           <Card className="border-border/40 shadow-sm overflow-hidden">
             <CardHeader className="bg-muted/30 pb-4">
