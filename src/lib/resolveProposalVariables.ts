@@ -379,7 +379,7 @@ function resolveFromContext(
     );
   }
   if (key === "comercial.representante_email") return s(ctx.comercial?.representante_email);
-  if (key === "comercial.representante_celular") return s(ctx.comercial?.representante_celular);
+  if (key === "comercial.representante_celular") return displayPhone(ctx.comercial?.representante_celular);
   if (key === "comercial.empresa_nome") return s(ctx.comercial?.empresa_nome ?? ctx.empresaNome);
   if (key === "comercial.empresa_razao_social") return s(ctx.empresaNome);
   if (key === "comercial.empresa_nome_fantasia") return s(ctx.empresaNome);
