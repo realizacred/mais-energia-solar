@@ -600,14 +600,21 @@ function SectionCard({
                     `}
                   >
                     {/* Drag handle */}
-                    <div
-                      className={`
-                        p-1 rounded cursor-grab active:cursor-grabbing
-                        ${canDrag ? "text-muted-foreground/50 hover:text-muted-foreground hover:bg-muted/40" : "opacity-20 cursor-not-allowed"}
-                      `}
-                    >
-                      <GripVertical className="h-4 w-4" />
-                    </div>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <div
+                          className={`
+                            p-1 rounded cursor-grab active:cursor-grabbing
+                            ${canDrag ? "text-muted-foreground/50 hover:text-muted-foreground hover:bg-muted/40" : "opacity-20 cursor-not-allowed"}
+                          `}
+                        >
+                          <GripVertical className="h-4 w-4" />
+                        </div>
+                      </TooltipTrigger>
+                      <TooltipContent side="right" className="text-xs">
+                        Arraste para reordenar
+                      </TooltipContent>
+                    </Tooltip>
 
                     {/* Icon */}
                     <ItemIcon className="h-4 w-4 text-muted-foreground shrink-0" />
