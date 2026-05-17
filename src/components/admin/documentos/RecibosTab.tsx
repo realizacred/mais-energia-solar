@@ -15,7 +15,7 @@ import {
   useReciboPDF,
   useDeleteRecibo,
   getReciboSignedUrl,
-  type ReciboEmitido,
+  type Recibo,
 } from "@/hooks/useRecibos";
 import type { DocumentTemplate } from "./types";
 import { format } from "date-fns";
