@@ -2,7 +2,8 @@ import { useState, useEffect, useMemo, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  Layers, Plus, X, Check, ChevronDown, ChevronRight, Trash2, Loader2, GripVertical, Trophy, XCircle, AlertTriangle
+  Layers, Plus, X, Check, ChevronDown, ChevronRight, Trash2, Loader2, GripVertical, Trophy, XCircle, AlertTriangle,
+  Package, Truck, DollarSign, Calendar
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -13,6 +14,8 @@ import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
 import { useUserFunnelOrder } from "@/hooks/useUserFunnelOrder";
 import { useUserRole } from "@/hooks/useUserRole";
+import { formatBRL } from "@/lib/formatters";
+import { VincularFornecedorModal } from "@/components/vendor/VincularFornecedorModal";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -141,6 +144,43 @@ export function ProjetoMultiPipelineManager({ dealId, dealStatus, pipelines, all
     newStageId: "",
     missingDocs: [],
   });
+
+  // Estado para interceptador de fornecedor
+  const [fornecedorModal, setFornecedorModal] = useState<{
+    projetoId: string;
+    etapaId: string;
+    etapaNome: string;
+    membershipId: string;
+  } | null>(null);
+
+  // Estado para exibir dados do fornecedor/ordem abaixo das bolinhas
+  const [ordemCompra, setOrdemCompra] = useState<any>(null);
+  const [loadingOrdem, setLoadingOrdem] = useState(false);
+
+  const fetchOrdemCompra = useCallback(async () => {
+    if (!dealId) return;
+    setLoadingOrdem(true);
+    try {
+      const { data, error } = await supabase
+        .from('ordens_compra')
+        .select('*, fornecedores(nome, telefone)')
+        .eq('projeto_id', dealId)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (error) throw error;
+      setOrdemCompra(data);
+    } catch (err) {
+      console.error("Erro ao buscar ordem de compra:", err);
+    } finally {
+      setLoadingOrdem(false);
+    }
+  }, [dealId]);
+
+  useEffect(() => {
+    fetchOrdemCompra();
+  }, [fetchOrdemCompra]);
 
 
   // Load memberships
@@ -357,6 +397,57 @@ export function ProjetoMultiPipelineManager({ dealId, dealStatus, pipelines, all
       // Don't setSaving(null) yet if we are proceeding
     }
 
+    // Interceptor: Pedido Efetuado
+    const stageName = newStage?.name?.toLowerCase() || "";
+    const isPedidoEfetuado = stageName.includes('pedido efetuado');
+    const isPedidoPago = stageName.includes('pedido pago');
+
+    if (isPedidoEfetuado) {
+      const { data: ordens } = await supabase
+        .from('ordens_compra')
+        .select('id, fornecedor_id, fornecedores(nome)')
+        .eq('projeto_id', dealId)
+        .limit(1);
+
+      if (ordens && ordens.length > 0) {
+        const confirmar = window.confirm(
+          `Fornecedor ${ordens[0].fornecedores?.nome} já vinculado.\nConfirmar avanço para "${newStage?.name}"?`
+        );
+        if (!confirmar) {
+          setSaving(null);
+          return;
+        }
+      } else {
+        setFornecedorModal({
+          projetoId: dealId,
+          etapaId: newStageId,
+          etapaNome: newStage?.name || "",
+          membershipId
+        });
+        setSaving(null);
+        return;
+      }
+    }
+
+    // Validação: Pedido Pago sem ordem
+    if (isPedidoPago) {
+      const { data: ordens } = await supabase
+        .from('ordens_compra')
+        .select('id')
+        .eq('projeto_id', dealId)
+        .limit(1);
+
+      if (!ordens || ordens.length === 0) {
+        toast({
+          title: "Ação bloqueada",
+          description: 'Registre o fornecedor em "Pedido Efetuado" antes de avançar.',
+          variant: "destructive"
+        });
+        setSaving(null);
+        return;
+      }
+    }
+
     setSaving(membershipId);
     try {
       const { error } = await supabase
@@ -364,6 +455,36 @@ export function ProjetoMultiPipelineManager({ dealId, dealStatus, pipelines, all
         .update({ stage_id: newStageId })
         .eq("id", membershipId);
       if (error) throw error;
+
+      // Sincronizar status da ordem com a etapa do funil de Equipamento
+      if (membership?.pipeline_name.toLowerCase().includes('equipamento') || membership?.pipeline_name.toLowerCase().includes('suprimentos')) {
+        let novoStatus: string | null = null;
+        if (stageName.includes('pedido efetuado')) novoStatus = 'pedido_efetuado';
+        else if (stageName.includes('pedido pago')) novoStatus = 'deposito_pago';
+        else if (stageName.includes('depósito')) novoStatus = 'deposito_confirmado';
+        else if (stageName.includes('cliente')) novoStatus = 'entregue_cliente';
+        else if (stageName.includes('instalação')) novoStatus = 'instalado';
+        else if (stageName.includes('sistema em operação')) novoStatus = 'concluido';
+
+        if (novoStatus) {
+          const { data: ordem } = await supabase
+            .from('ordens_compra')
+            .select('id')
+            .eq('projeto_id', dealId)
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .maybeSingle();
+
+          if (ordem) {
+            await supabase
+              .from('ordens_compra')
+              .update({ status: novoStatus } as any)
+              .eq('id', (ordem as any).id);
+            fetchOrdemCompra();
+          }
+        }
+      }
+
       toast({ title: "Etapa atualizada" });
       await fetchMemberships();
       onMembershipChange?.();
@@ -926,6 +1047,40 @@ export function ProjetoMultiPipelineManager({ dealId, dealStatus, pipelines, all
                   </div>
                 </div>
 
+                {/* Exibição do fornecedor se for funil de Equipamento */}
+                {(activeMembership.pipeline_name.toLowerCase().includes('equipamento') || activeMembership.pipeline_name.toLowerCase().includes('suprimentos')) && ordemCompra && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 5 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="mt-4 p-3 rounded-lg border border-border bg-muted/30 space-y-1.5"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-1.5 text-xs font-bold text-foreground">
+                        <Package className="h-3.5 w-3.5 text-primary" />
+                        {ordemCompra.fornecedores?.nome || "Fornecedor vinculado"}
+                      </div>
+                      <Badge variant="outline" className="text-[9px] uppercase h-4 px-1 bg-background">
+                        {ordemCompra.status || 'Pendente'}
+                      </Badge>
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-[10px] text-muted-foreground">
+                      <div className="flex items-center gap-1">
+                        <Truck className="h-3 w-3" />
+                        Pedido: {ordemCompra.numero_pedido || "—"}
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <DollarSign className="h-3 w-3" />
+                        {formatBRL(ordemCompra.valor_total || 0)}
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <Calendar className="h-3 w-3" />
+                        Entrega: {ordemCompra.data_previsao_entrega ? new Date(ordemCompra.data_previsao_entrega + "T12:00:00").toLocaleDateString("pt-BR") : "—"}
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+
                 {/* Terminal stages (e.g. "Perdido") — shown separately below the line */}
                 {terminalLostStages.length > 0 && (
                   <div className="flex items-center gap-2 pt-1">
@@ -968,6 +1123,31 @@ export function ProjetoMultiPipelineManager({ dealId, dealStatus, pipelines, all
               </div>
             );
           })()}
+
+          {/* Modal de Interceptação de Fornecedor */}
+          {fornecedorModal && (
+            <VincularFornecedorModal
+              open={!!fornecedorModal}
+              onOpenChange={(open) => !open && setFornecedorModal(null)}
+              projetoId={fornecedorModal.projetoId}
+              clienteNome={activeMembership.pipeline_name}
+              onSuccess={() => {
+                const { membershipId, etapaId } = fornecedorModal;
+                setFornecedorModal(null);
+                // Força atualização da etapa após vincular
+                supabase
+                  .from("deal_pipeline_stages")
+                  .update({ stage_id: etapaId })
+                  .eq("id", membershipId)
+                  .then(() => {
+                    fetchMemberships();
+                    onMembershipChange?.();
+                    fetchOrdemCompra();
+                  });
+              }}
+              onCancel={() => setFornecedorModal(null)}
+            />
+          )}
         </div>
       )}
     </div>

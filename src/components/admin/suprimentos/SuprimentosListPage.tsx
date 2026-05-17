@@ -1,6 +1,6 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Package, Plus, Search, Filter, ShoppingCart, UserCheck } from "lucide-react";
+import { Package, Plus, Search, Filter, ShoppingCart, UserCheck, Trash2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useOrdensCompra, OrdemCompraStatus } from "@/hooks/useOrdensCompra";
+import { useOrdensCompra, OrdemCompraStatus, useExcluirOrdem } from "@/hooks/useOrdensCompra";
 import { useFornecedoresNomes } from "@/hooks/useFornecedoresNomes";
 import { NovaOrdemDialog } from "./NovaOrdemDialog";
 import { VincularFornecedorModal } from "@/components/vendor/VincularFornecedorModal";
@@ -57,8 +57,16 @@ export function SuprimentosListPage({ projetoId }: SuprimentosListPageProps) {
     ...(busca ? { busca } : {}),
   };
 
-  const { data: ordens, isLoading } = useOrdensCompra(filtros);
+  const { data: ordens, isLoading, refetch } = useOrdensCompra(filtros);
   const { data: fornecedores = [] } = useFornecedoresNomes();
+  const excluirOrdem = useExcluirOrdem();
+
+  // Listen for storage events or custom events to refetch when an order is created via interceptor
+  useEffect(() => {
+    const handleOrderCreated = () => refetch();
+    window.addEventListener('ordem-compra-criada', handleOrderCreated);
+    return () => window.removeEventListener('ordem-compra-criada', handleOrderCreated);
+  }, [refetch]);
 
   // UX-07: Fetch accepted proposal and its kit
   const { data: propostas = [] } = usePropostasProjetoTab(projetoId || "", null);
@@ -247,8 +255,27 @@ export function SuprimentosListPage({ projetoId }: SuprimentosListPageProps) {
                       ? new Date(o.data_previsao_entrega + "T12:00:00").toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" })
                       : "—"}
                   </TableCell>
-                  <TableCell className="text-right font-mono text-sm text-foreground">
-                    {formatBRL(o.valor_total || 0)}
+                  <TableCell className="text-right">
+                    <div className="flex items-center justify-end gap-2">
+                      <span className="font-mono text-sm text-foreground">
+                        {formatBRL(o.valor_total || 0)}
+                      </span>
+                      {o.status === "rascunho" && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 text-destructive hover:text-destructive hover:bg-destructive/10"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (confirm("Excluir esta ordem de compra em rascunho?")) {
+                              excluirOrdem.mutate(o.id);
+                            }
+                          }}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      )}
+                    </div>
                   </TableCell>
                 </TableRow>
               ))
@@ -271,8 +298,7 @@ export function SuprimentosListPage({ projetoId }: SuprimentosListPageProps) {
         clienteNome={projetoId ? propostas?.[0]?.cliente_nome : "Vários"}
         onSuccess={() => {
           setVincularOpen(false);
-          // Query invalidation handled inside hook or via refetch
-          window.location.reload(); // Quick fix for full refresh on complex join
+          refetch();
         }}
         onCancel={() => setVincularOpen(false)}
       />
