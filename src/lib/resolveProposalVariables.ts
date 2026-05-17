@@ -314,9 +314,9 @@ function resolveFromContext(
   // ── Cliente ──
   if (key === "cliente.nome") return s(ctx.cliente?.nome);
   if (key === "cliente.empresa") return s(ctx.cliente?.empresa);
-  if (key === "cliente.cnpj_cpf") return s(ctx.cliente?.cnpj_cpf);
+  if (key === "cliente.cnpj_cpf") return displayCpfCnpj(ctx.cliente?.cnpj_cpf);
   if (key === "cliente.email") return s(ctx.cliente?.email);
-  if (key === "cliente.celular") return s(ctx.cliente?.celular);
+  if (key === "cliente.celular") return displayPhone(ctx.cliente?.celular);
   if (key === "cliente.endereco") {
     const c = ctx.cliente;
     if (!c) return null;
