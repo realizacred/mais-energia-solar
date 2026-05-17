@@ -486,6 +486,20 @@ export function ProjetoMultiPipelineManager({ dealId, dealStatus, pipelines, all
       }
 
       toast({ title: "Etapa atualizada" });
+
+      // Notificar Hub
+      supabase.functions.invoke('notification-hub', {
+        body: {
+          evento: 'projeto_status_mudou',
+          tenant_id: (membership as any)?.tenant_id || (projectContext as any)?.tenant_id,
+          dados: {
+            projeto_id: dealId,
+            status_novo: stageName,
+            cliente_id: (projectContext as any)?.cliente_id
+          }
+        }
+      }).catch(err => console.error("[notification-hub] Erro ao invocar:", err));
+
       await fetchMemberships();
       onMembershipChange?.();
     } catch (err: any) {
