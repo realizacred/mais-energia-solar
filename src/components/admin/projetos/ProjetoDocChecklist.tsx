@@ -23,12 +23,12 @@ import { useProjectDocuments } from "@/hooks/useProjectDocuments";
 
 // Legacy hardcoded items (fallback when tenant has no items configured)
 const LEGACY_ITEMS = [
-  { key: "rg_cnh", label: "RG/CNH dos Proprietários", icon: "🪪" },
-  { key: "conta_luz", label: "Conta de Luz (Última fatura)", icon: "⚡" },
-  { key: "iptu_imovel", label: "IPTU/Documento do Imóvel", icon: "🏠" },
-  { key: "fotos", label: "Fotos (Telhado, Padrão, Quadro)", icon: "📷" },
-  { key: "autorizacao_art", label: "Autorização Concessionária (ART)", icon: "📋" },
-  { key: "contrato_assinado", label: "Contrato Assinado", icon: "✍️" },
+  { key: "rg_cnh", label: "RG/CNH dos Proprietários", icon: CreditCard, color: "text-blue-500" },
+  { key: "conta_luz", label: "Conta de Luz (Última fatura)", icon: Zap, color: "text-yellow-500" },
+  { key: "iptu_imovel", label: "IPTU/Documento do Imóvel", icon: Home, color: "text-orange-500" },
+  { key: "fotos", label: "Fotos (Telhado, Padrão, Quadro)", icon: Camera, color: "text-purple-500" },
+  { key: "autorizacao_art", label: "Autorização Concessionária (ART)", icon: ClipboardList, color: "text-blue-600" },
+  { key: "contrato_assinado", label: "Contrato Assinado", icon: PenTool, color: "text-primary" },
 ];
 
 interface Props {
