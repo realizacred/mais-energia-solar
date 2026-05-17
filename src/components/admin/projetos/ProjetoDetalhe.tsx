@@ -372,7 +372,7 @@ function ProjetoDetalheContent() {
     projetoNome, projetoCodigo, projetoNum, projetoDescricao,
     customerName, customerPhone, customerEmail, customerCpfCnpj, customerEmpresa, customerAddress,
     ownerName, pipelines, allStagesMap, userNamesMap,
-    currentStage, currentPipeline, projectCode,
+    currentStage, currentPipeline, projectCode, portalToken,
     dealEtiquetas, allEtiquetas, etiquetaPopoverOpen, setEtiquetaPopoverOpen, toggleEtiqueta,
     deleteDialogOpen, setDeleteDialogOpen, deleteBlocking, deleting, handleDeleteProject, setDeleteBlocking,
     confirmConsultorId, setConfirmConsultorId, handleConfirmConsultor,
