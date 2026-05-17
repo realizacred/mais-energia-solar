@@ -43,9 +43,15 @@ export function RecibosTab() {
 
   const { data: templates, isLoading, upsert } = useDocumentTemplates("recibo");
   const { settings: brand } = useBrandSettings();
-  const { data: recibos, isLoading: loadingRecibos } = useRecibos({});
+  const { data: recibos, isLoading: loadingRecibos, refetch: refetchRecibos } = useRecibos({});
   const regenPdf = useReciboPDF();
   const deleteRecibo = useDeleteRecibo();
+
+  useEffect(() => {
+    if (innerTab === "emitidos") {
+      refetchRecibos();
+    }
+  }, [innerTab, refetchRecibos]);
 
   const seeding = upsert.isPending;
 
