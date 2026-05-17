@@ -8,6 +8,8 @@ import { supabase } from "@/integrations/supabase/client";
 export interface FornecedorNome {
   id: string;
   nome: string;
+  cidade: string | null;
+  tipo: string | null;
 }
 
 const STALE_TIME = 1000 * 60 * 10; // 10 min — dados semi-estáticos
@@ -18,7 +20,7 @@ export function useFornecedoresNomes() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("fornecedores")
-        .select("id, nome")
+        .select("id, nome, cidade, tipo")
         .eq("ativo", true)
         .order("nome", { ascending: true });
       if (error) throw error;
@@ -27,3 +29,4 @@ export function useFornecedoresNomes() {
     staleTime: STALE_TIME,
   });
 }
+
