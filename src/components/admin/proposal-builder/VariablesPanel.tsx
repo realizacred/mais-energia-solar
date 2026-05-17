@@ -27,6 +27,7 @@ import { cn } from "@/lib/utils";
 const FRIENDLY_CATEGORIES: VariableCategory[] = [
   "cliente",
   "sistema_solar",
+  "pagamento",
   "financeiro",
   "conta_energia",
   "comercial",
