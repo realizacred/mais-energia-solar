@@ -78,7 +78,8 @@ export default function EosIntegrationConfig() {
     ambiente: "sandbox",
     ativo: false,
     eos_onboarding_step: 1,
-    eos_integrador_id: ""
+    eos_integrador_id: "",
+    eos_webhook_secret: ""
   });
 
   useEffect(() => {
@@ -88,7 +89,8 @@ export default function EosIntegrationConfig() {
         ambiente: config.ambiente || "sandbox",
         ativo: config.ativo || false,
         eos_onboarding_step: config.eos_onboarding_step || 1,
-        eos_integrador_id: config.eos_integrador_id || ""
+        eos_integrador_id: config.eos_integrador_id || "",
+        eos_webhook_secret: config.eos_webhook_secret || ""
       });
       if (config.eos_api_key) setTestResult('success');
     }
