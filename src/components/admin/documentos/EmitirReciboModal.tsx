@@ -168,16 +168,33 @@ export function EmitirReciboModal({
   const [formaPagamento, setFormaPagamento] = useState<string>("");
   const [dataPagamento, setDataPagamento] = useState<string>(new Date().toISOString().slice(0, 10));
   const [instituicaoFinanceira, setInstituicaoFinanceira] = useState<string>("");
-  // BUG 4 — campos dinâmicos por forma de pagamento
+  
+  // Detalhes da Forma de Pagamento
+  const [pixChave, setPixChave] = useState<string>("");
   const [pixComprovante, setPixComprovante] = useState<string>("");
+  const [rastreio, setRastreio] = useState<string>("");
+  
   const [chequeBanco, setChequeBanco] = useState<string>("");
   const [chequeAgencia, setChequeAgencia] = useState<string>("");
   const [chequeConta, setChequeConta] = useState<string>("");
   const [chequeNumero, setChequeNumero] = useState<string>("");
+  const [chequeTitular, setChequeTitular] = useState<string>("");
+  const [chequeTitularCpf, setChequeTitularCpf] = useState<string>("");
+  const [isChequeTerceiro, setIsChequeTerceiro] = useState(false);
+  const [isChequePreDatado, setIsChequePreDatado] = useState(false);
+  const [chequeData, setChequeData] = useState<string>("");
+  const [chequeDataDeposito, setChequeDataDeposito] = useState<string>("");
+
   const [cartaoBandeira, setCartaoBandeira] = useState<string>("");
   const [cartaoParcelas, setCartaoParcelas] = useState<string>("1");
+  const [cartaoUltimosDigitos, setCartaoUltimosDigitos] = useState<string>("");
   const [cartaoNsu, setCartaoNsu] = useState<string>("");
+
+  const [boletoNumero, setBoletoNumero] = useState<string>("");
+  const [boletoVencimento, setBoletoVencimento] = useState<string>("");
+  const [boletoBanco, setBoletoBanco] = useState<string>("");
   const [boletoLinhaDigitavel, setBoletoLinhaDigitavel] = useState<string>("");
+
   const [dynFields, setDynFields] = useState<Record<string, string>>({});
   const [loadingContext, setLoadingContext] = useState(false);
   const [projectContext, setProjectContext] = useState<any>(null);
