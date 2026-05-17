@@ -2,7 +2,8 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { ClienteDocumentUpload } from "./ClienteDocumentUpload";
+import { ClienteDocsTab } from "./ClienteDocsTab";
+import { useClienteProjectDocuments } from "@/hooks/useClienteDetail";
 import { ClientLinkedPlants } from "./monitoring-v2/ClientLinkedPlants";
 import { ClienteEnergiaTab } from "./clientes/ClienteEnergiaTab";
 import { Spinner } from "@/components/ui-kit/Spinner";
@@ -128,7 +129,7 @@ function KpiCard({
           <Icon className="w-4 h-4" />
         </div>
         <div className="min-w-0">
-          <p className="text-lg font-bold tracking-tight text-foreground leading-none truncate">
+          <p className="text-sm sm:text-base font-bold tracking-tight text-foreground leading-tight whitespace-nowrap overflow-hidden text-ellipsis">
             {value}
           </p>
           <p className="text-xs text-muted-foreground mt-0.5">{label}</p>
@@ -217,6 +218,7 @@ export function ClienteViewDialog({ cliente, open, onOpenChange }: ClienteViewDi
       queryClient.invalidateQueries({ queryKey: ["cliente-projetos", cliente.id] });
       queryClient.invalidateQueries({ queryKey: ["cliente-propostas", cliente.id] });
       queryClient.invalidateQueries({ queryKey: ["cliente-proposta-versoes"] });
+      queryClient.invalidateQueries({ queryKey: ["cliente-project-documents", cliente.id] });
     }
   }, [open, cliente?.id, queryClient]);
 
@@ -229,6 +231,7 @@ export function ClienteViewDialog({ cliente, open, onOpenChange }: ClienteViewDi
   const propostaIds = propostas.map((p) => p.id);
   const { data: versoes = [] } = useClientePropostaVersoes(propostaIds);
   const { data: conversas = [], isLoading: loadingWa } = useClienteConversasWa(cliente?.telefone ?? null);
+  const { data: projectDocs = [] } = useClienteProjectDocuments(cliente?.id ?? null);
 
   // Estado local dos documentos (sincroniza com o cliente quando reabre)
   const [docs, setDocs] = useState({
@@ -272,7 +275,8 @@ export function ClienteViewDialog({ cliente, open, onOpenChange }: ClienteViewDi
   const totalDocs =
     (docs.identidade_urls?.length || 0) +
     (docs.comprovante_endereco_urls?.length || 0) +
-    (docs.comprovante_beneficiaria_urls?.length || 0);
+    (docs.comprovante_beneficiaria_urls?.length || 0) +
+    projectDocs.length;
 
   const handleDocsChange = async (updated: typeof docs) => {
     setDocs(updated);
@@ -563,10 +567,10 @@ export function ClienteViewDialog({ cliente, open, onOpenChange }: ClienteViewDi
 
               {/* ABA 5 — Documentos (com botão Anexar por tipo) */}
               <TabsContent value="docs" className="mt-0">
-                <ClienteDocumentUpload
+                <ClienteDocsTab
                   clienteId={cliente.id}
-                  documents={docs}
-                  onDocumentsChange={handleDocsChange}
+                  legacyDocs={docs}
+                  onLegacyDocsChange={setDocs}
                 />
               </TabsContent>
 
