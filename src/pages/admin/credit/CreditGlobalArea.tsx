@@ -32,7 +32,8 @@ import {
   Printer,
   CalendarDays,
   FileSpreadsheet,
-  RefreshCw
+  RefreshCw,
+  Building
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -1132,8 +1133,9 @@ function BanksQueueView({ analyses, onFilterByBank }: { analyses: any[], onFilte
       const reprovadas = bankAnalyses.filter(a => ['reprovado', 'reprovada'].includes(a.status)).length;
       const pre_aprovadas = bankAnalyses.filter(a => a.eos_status === 'pre_aprovada').length;
       
-      const type = bank.technical_metadata?.tipo === 'api_integrada' ? 'API' : 
-                   bank.technical_metadata?.fonte_sync === 'manual' ? 'Manual' : 'Parcial';
+      const metadata = (bank as any).technical_metadata;
+      const type = metadata?.tipo === 'api_integrada' ? 'API' : 
+                   metadata?.fonte_sync === 'manual' ? 'Manual' : 'Parcial';
 
       return {
         id: bank.id,
