@@ -35,7 +35,12 @@ const BACKFILL_STATUSES = new Set(["sent", "viewed", "partially_signed"]);
 export function DocumentSignersPanel({ documentId, signatureStatus }: Props) {
   const { data: signers = [], isLoading } = useDocumentSigners(documentId);
   const resend = useResendSigner();
+  const updateStatus = useUpdateSignerStatus();
   const qc = useQueryClient();
+
+  const [physicalSignModal, setPhysicalSignModal] = useState<DocumentSignerRow | null>(null);
+  const [physicalSignDate, setPhysicalSignDate] = useState(new Date().toISOString().split("T")[0]);
+  const [physicalSignObs, setPhysicalSignObs] = useState("");
 
   const triggeredRef = useRef<Set<string>>(new Set());
   const [backfilling, setBackfilling] = useState(false);
