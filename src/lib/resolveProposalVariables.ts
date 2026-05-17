@@ -384,7 +384,7 @@ function resolveFromContext(
   if (key === "comercial.empresa_razao_social") return s(ctx.empresaNome);
   if (key === "comercial.empresa_nome_fantasia") return s(ctx.empresaNome);
   if (key === "comercial.empresa_cnpj") {
-    return s(ctx.comercial?.empresa_cnpj_cpf ?? (ctx.finalSnapshot as any)?.empresa_cnpj);
+    return displayCpfCnpj(ctx.comercial?.empresa_cnpj_cpf ?? (ctx.finalSnapshot as any)?.empresa_cnpj);
   }
   if (key === "comercial.empresa_telefone") {
     return displayPhone(ctx.empresaTelefone ?? (ctx.finalSnapshot as any)?.empresa_telefone);
