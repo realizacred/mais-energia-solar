@@ -1,19 +1,12 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { consultantService } from "@/services/admin/consultantService";
 
 const STALE_TIME = 1000 * 60 * 5;
 
 export function useVendedoresList() {
   return useQuery({
     queryKey: ["vendedores-list"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("consultores")
-        .select("id, nome, telefone, email, codigo, slug, ativo, user_id, created_at, percentual_comissao")
-        .order("nome");
-      if (error) throw error;
-      return data || [];
-    },
+    queryFn: () => consultantService.fetchAll(),
     staleTime: STALE_TIME,
   });
 }
@@ -21,15 +14,7 @@ export function useVendedoresList() {
 export function useUserProfiles() {
   return useQuery({
     queryKey: ["user-profiles-active"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("user_id, nome")
-        .eq("ativo", true)
-        .order("nome");
-      if (error) throw error;
-      return data || [];
-    },
+    queryFn: () => consultantService.fetchActiveProfiles(),
     staleTime: STALE_TIME,
   });
 }

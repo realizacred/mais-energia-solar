@@ -5,7 +5,6 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { User, Phone, MapPin, Home, Zap, BarChart3, MessageSquare, Send, CheckCircle, FileText } from "lucide-react";
 import { Spinner } from "@/components/ui-kit/Spinner";
 import { PhoneInput } from "@/components/ui-kit/inputs/PhoneInput";
-import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -13,6 +12,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
+import { useMutation } from "@tanstack/react-query";
+import { leadService } from "@/services/leads/leadService";
 import {
   leadFormSchema,
   LeadFormData,
@@ -22,14 +23,12 @@ import {
 } from "@/lib/validations";
 import { formatPhoneBR as formatPhone, formatCEP, formatNameCapitalize as formatName } from "@/lib/formatters/index";
 
-
 import ConsumptionChart from "./ConsumptionChart";
 import FileUpload from "./FileUpload";
 import { useLogo } from "@/hooks/useLogo";
 
 export default function LeadForm() {
   const logo = useLogo();
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [uploadedFiles, setUploadedFiles] = useState<string[]>([]);
   const { toast } = useToast();
@@ -64,10 +63,9 @@ export default function LeadForm() {
     }
   };
 
-  const onSubmit = async (data: LeadFormData) => {
-    setIsSubmitting(true);
-    try {
-      const { error } = await supabase.from("leads").insert({
+  const createLeadMutation = useMutation({
+    mutationFn: (data: LeadFormData) => {
+      return leadService.insert({
         nome: data.nome,
         telefone: data.telefone,
         cep: data.cep || null,
@@ -80,11 +78,9 @@ export default function LeadForm() {
         consumo_previsto: data.consumo_previsto,
         observacoes: data.observacoes || null,
         arquivos_urls: uploadedFiles,
-        // vendedor_id is auto-resolved by trigger if not provided
       });
-
-      if (error) throw error;
-
+    },
+    onSuccess: () => {
       setIsSuccess(true);
       toast({
         title: "Cadastro enviado com sucesso! ☀️",
@@ -92,18 +88,20 @@ export default function LeadForm() {
       });
       form.reset();
       setUploadedFiles([]);
-      
       setTimeout(() => setIsSuccess(false), 3000);
-    } catch (error) {
+    },
+    onError: (error) => {
       console.error("Erro ao enviar cadastro:", error);
       toast({
         title: "Erro ao enviar cadastro",
         description: "Tente novamente mais tarde.",
         variant: "destructive",
       });
-    } finally {
-      setIsSubmitting(false);
     }
+  });
+
+  const onSubmit = (data: LeadFormData) => {
+    createLeadMutation.mutate(data);
   };
 
   if (isSuccess) {
@@ -414,9 +412,9 @@ export default function LeadForm() {
             <Button
               type="submit"
               className="w-full h-12 text-lg font-semibold"
-              disabled={isSubmitting}
+              disabled={createLeadMutation.isPending}
             >
-              {isSubmitting ? (
+              {createLeadMutation.isPending ? (
                 <>
                   <Spinner size="sm" />
                   Enviando...

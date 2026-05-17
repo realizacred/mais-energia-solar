@@ -264,103 +264,73 @@ export function getRoofLabel(f: RoofAreaFactor): string {
 
 // ─── Hook ──────────────────────────────────────────
 
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { tenantPremisesService } from "@/services/admin/tenantPremisesService";
+
 export function useTenantPremises() {
-  const [premises, setPremises] = useState<TenantPremises>(PREMISES_DEFAULTS);
-  const [roofFactors, setRoofFactors] = useState<RoofAreaFactor[]>(DEFAULT_ROOF_FACTORS);
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
+  const qc = useQueryClient();
   const savedRef = useRef<string>("");
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    try {
-      const [premRes, roofRes] = await Promise.all([
-        supabase.from("tenant_premises").select("id, tenant_id, concessionaria_id, inflacao_energetica, vpl_taxa_desconto, considerar_custo_disponibilidade, base_irradiancia, sobredimensionamento_padrao, perda_eficiencia_tradicional, perda_eficiencia_microinversor, perda_eficiencia_otimizador, troca_inversor_anos_tradicional, troca_inversor_anos_microinversor, troca_inversor_anos_otimizador, custo_troca_inversor_tradicional, custo_troca_inversor_microinversor, custo_troca_inversor_otimizador, margem_potencia_ideal, considerar_custo_disponibilidade_solar, grupo_tarifario, tarifa, tarifa_te_ponta, tarifa_tusd_ponta, tarifa_te_fora_ponta, tarifa_tusd_fora_ponta, tusd_fio_b_bt, tusd_fio_b_fora_ponta, tusd_fio_b_ponta, tarifacao_compensada_bt, tarifacao_compensada_fora_ponta, tarifacao_compensada_ponta, preco_demanda_geracao, preco_demanda, fase_tensao_rede, fator_simultaneidade, imposto_energia, outros_encargos_atual, outros_encargos_novo, tipo_telhado_padrao, desvio_azimutal, inclinacao_modulos, topologias, tipo_sistema, taxa_desempenho_tradicional, taxa_desempenho_microinversor, taxa_desempenho_otimizador, tipo_kits, considerar_kits_transformador, tipo_preco, dod, fornecedor_filtro, sombreamento_config, percentual_economia, vida_util_sistema, geracao_mensal_por_kwp, custo_por_kwp, kg_co2_por_kwh, solaryum_token_vertys, solaryum_token_jng, solaryum_cif_descarga, solaryum_ibge_fallback, gateway_preferido, pagseguro_token, pagseguro_sandbox, asaas_token, asaas_sandbox, inter_client_id, inter_client_secret, inter_sandbox, sicoob_client_id, sicoob_sandbox, cobranca_multa_percentual, cobranca_juros_percentual, cobranca_dias_vencimento, wa_notif_pagamento, wa_notif_quitado, wa_notif_numero, wa_template_agendamento_instalacao, wa_template_reagendamento_instalacao, concessionaria_motivos_reprovacao, concessionaria_prazo_vistoria_dias").limit(1).maybeSingle(),
-        supabase.from("tenant_roof_area_factors").select("id, tenant_id, tipo_telhado, label, fator_area, inclinacao_padrao, desvio_azimutal_padrao, topologias_permitidas, tipos_sistema_permitidos, enabled").order("tipo_telhado"),
-      ]);
+  const { data, isLoading: loading } = useQuery({
+    queryKey: ["tenant-premises"],
+    queryFn: () => tenantPremisesService.fetchAll(),
+    staleTime: 1000 * 60 * 5,
+  });
 
-      if (premRes.data) {
-        const d = premRes.data as any;
-        setPremises({ ...PREMISES_DEFAULTS, ...d });
-      }
-      savedRef.current = JSON.stringify(premRes.data || PREMISES_DEFAULTS);
+  const [premises, setPremises] = useState<TenantPremises>(PREMISES_DEFAULTS);
+  const [roofFactors, setRoofFactors] = useState<RoofAreaFactor[]>(DEFAULT_ROOF_FACTORS);
 
-      if (roofRes.data && roofRes.data.length > 0) {
-        setRoofFactors(roofRes.data as any);
-      }
-    } catch (e) {
-      console.error("Failed to load tenant premises:", e);
-    } finally {
-      setLoading(false);
+  useEffect(() => {
+    if (data?.premises) {
+      setPremises({ ...PREMISES_DEFAULTS, ...data.premises });
+      savedRef.current = JSON.stringify(data.premises);
     }
-  }, []);
+    if (data?.roofFactors && data.roofFactors.length > 0) {
+      setRoofFactors(data.roofFactors);
+    }
+  }, [data]);
 
-  useEffect(() => { load(); }, [load]);
+  const saveMutation = useMutation({
+    mutationFn: (p: Partial<TenantPremises>) => tenantPremisesService.savePremises(p),
+    onSuccess: (res: any) => {
+      if (res?.id) {
+        setPremises(prev => ({ ...prev, id: res.id, tenant_id: res.tenant_id }));
+      }
+      savedRef.current = JSON.stringify(premises);
+      qc.invalidateQueries({ queryKey: ["tenant-premises"] });
+      toast.success("Premissas salvas com sucesso");
+    },
+    onError: (e: any) => {
+      toast.error("Erro ao salvar premissas", { description: e.message });
+    }
+  });
+
+  const saveRoofFactorsMutation = useMutation({
+    mutationFn: (factors: RoofAreaFactor[]) => tenantPremisesService.saveRoofFactors(factors),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["tenant-premises"] });
+      toast.success("Fatores de telhado salvos");
+    },
+    onError: (e: any) => {
+      toast.error("Erro ao salvar fatores", { description: e.message });
+    }
+  });
 
   const isDirty = JSON.stringify(premises) !== savedRef.current;
 
   const save = useCallback(async () => {
-    // Validate critical tariff field
     if (!premises.tusd_fio_b_bt || premises.tusd_fio_b_bt <= 0) {
       toast.error("Tarifa Fio B obrigatória", {
         description: "Informe o valor do TUSD Fio B (BT) da sua concessionária na aba Valores Padrões → Tarifas.",
       });
       return;
     }
-    setSaving(true);
-    try {
-      const { id, tenant_id, ...payload } = premises as any;
-      if (id) {
-        const { error } = await supabase
-          .from("tenant_premises")
-          .update({ ...payload, updated_by: (await supabase.auth.getUser()).data.user?.id })
-          .eq("id", id);
-        if (error) throw error;
-      } else {
-        const { data: ins, error } = await supabase
-          .from("tenant_premises")
-          .insert({ ...payload, created_by: (await supabase.auth.getUser()).data.user?.id })
-          .select("id, tenant_id")
-          .single();
-        if (error) throw error;
-        setPremises((prev) => ({ ...prev, id: (ins as any).id, tenant_id: (ins as any).tenant_id }));
-      }
-      savedRef.current = JSON.stringify(premises);
-      toast.success("Premissas salvas com sucesso");
-    } catch (e: any) {
-      toast.error("Erro ao salvar premissas", { description: e.message });
-    } finally {
-      setSaving(false);
-    }
-  }, [premises]);
+    saveMutation.mutate(premises);
+  }, [premises, saveMutation]);
 
-  const saveRoofFactors = useCallback(async (factors: RoofAreaFactor[]) => {
-    setSaving(true);
-    try {
-      for (const f of factors) {
-        const { id, tenant_id, ...payload } = f as any;
-        if (id) {
-          await supabase.from("tenant_roof_area_factors").update(payload).eq("id", id);
-        } else {
-          const { data } = await supabase
-            .from("tenant_roof_area_factors")
-            .insert(payload)
-            .select("id, tenant_id")
-            .single();
-          if (data) {
-            f.id = (data as any).id;
-            f.tenant_id = (data as any).tenant_id;
-          }
-        }
-      }
-      setRoofFactors([...factors]);
-      toast.success("Fatores de telhado salvos");
-    } catch (e: any) {
-      toast.error("Erro ao salvar fatores", { description: e.message });
-    } finally {
-      setSaving(false);
-    }
-  }, []);
+  const saveRoofFactors = useCallback((factors: RoofAreaFactor[]) => {
+    saveRoofFactorsMutation.mutate(factors);
+  }, [saveRoofFactorsMutation]);
 
   const reset = useCallback(() => {
     const saved = savedRef.current ? JSON.parse(savedRef.current) : PREMISES_DEFAULTS;
@@ -370,7 +340,9 @@ export function useTenantPremises() {
   return {
     premises, setPremises,
     roofFactors, setRoofFactors,
-    loading, saving, isDirty,
-    save, saveRoofFactors, reset, reload: load,
+    loading, 
+    saving: saveMutation.isPending || saveRoofFactorsMutation.isPending, 
+    isDirty,
+    save, saveRoofFactors, reset, reload: () => qc.invalidateQueries({ queryKey: ["tenant-premises"] }),
   };
 }

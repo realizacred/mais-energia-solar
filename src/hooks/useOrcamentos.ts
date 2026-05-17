@@ -1,8 +1,12 @@
-import { useState, useEffect, useCallback } from "react";
+import { useEffect, useCallback } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import type { Orcamento, OrcamentoWithLead } from "@/types/orcamento";
 import type { LeadStatus } from "@/types/lead";
+import { orcamentoService } from "@/services/leads/orcamentoService";
+
+const QUERY_KEY = "orcamentos" as const;
 
 interface UseOrcamentosOptions {
   autoFetch?: boolean;
@@ -10,198 +14,133 @@ interface UseOrcamentosOptions {
 }
 
 export function useOrcamentos({ autoFetch = true, leadId }: UseOrcamentosOptions = {}) {
-  const [orcamentos, setOrcamentos] = useState<OrcamentoWithLead[]>([]);
-  const [statuses, setStatuses] = useState<LeadStatus[]>([]);
-  const [loading, setLoading] = useState(true);
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
-  const fetchOrcamentos = useCallback(async () => {
-    try {
-      setLoading(true);
+  const { data, isLoading: loading, refetch: fetchOrcamentos } = useQuery({
+    queryKey: [QUERY_KEY, leadId],
+    queryFn: () => orcamentoService.fetchOrcamentos(leadId),
+    enabled: autoFetch,
+    staleTime: 2 * 60 * 1000,
+  });
+
+  const orcamentos = data?.orcamentos || [];
+  const statuses = data?.statuses || [];
+
+  const toggleVistoMutation = useMutation({
+    mutationFn: (params: { orcamento: Orcamento; field: "visto" | "visto_admin" }) => {
+      const newVisto = !params.orcamento[params.field];
+      return orcamentoService.toggleVisto(params.orcamento.id, params.field, newVisto);
+    },
+    onMutate: async ({ orcamento, field }) => {
+      await queryClient.cancelQueries({ queryKey: [QUERY_KEY, leadId] });
+      const previous = queryClient.getQueryData([QUERY_KEY, leadId]);
       
-      let query = supabase
-        .from("orcamentos")
-        .select(`
-          *,
-          lead:leads!inner(
-            id,
-            lead_code,
-            nome,
-            telefone,
-            telefone_normalized
+      queryClient.setQueryData([QUERY_KEY, leadId], (old: any) => {
+        if (!old) return old;
+        return {
+          ...old,
+          orcamentos: old.orcamentos.map((o: any) => 
+            o.id === orcamento.id ? { ...o, [field]: !o[field] } : o
           )
-        `)
-        .order("created_at", { ascending: false });
-
-      if (leadId) {
-        query = query.eq("lead_id", leadId);
+        };
+      });
+      
+      return { previous };
+    },
+    onError: (err, variables, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData([QUERY_KEY, leadId], context.previous);
       }
-
-      const [orcamentosRes, statusesRes] = await Promise.all([
-        query,
-        supabase.from("lead_status").select("id, nome, cor, ordem, probabilidade_peso, motivo_perda_obrigatorio").order("ordem"),
-      ]);
-
-      if (orcamentosRes.error) throw orcamentosRes.error;
-      
-      // Transform the response to match our type
-      const transformedOrcamentos: OrcamentoWithLead[] = (orcamentosRes.data || []).map((orc: any) => ({
-        ...orc,
-        lead: orc.lead,
-      }));
-      
-      setOrcamentos(transformedOrcamentos);
-      
-      if (statusesRes.data) {
-        setStatuses(statusesRes.data);
-      }
-    } catch (error) {
-      console.error("Erro ao buscar orçamentos:", error);
       toast({
         title: "Erro",
-        description: "Não foi possível carregar os orçamentos.",
+        description: "Não foi possível atualizar o status.",
         variant: "destructive",
       });
-    } finally {
-      setLoading(false);
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEY, leadId] });
     }
-  }, [toast, leadId]);
+  });
 
-  const toggleVisto = useCallback(async (orcamento: Orcamento, field: "visto" | "visto_admin" = "visto_admin") => {
-    const newVisto = !orcamento[field];
-    
-    // Optimistic update
-    setOrcamentos((prev) =>
-      prev.map((o) => (o.id === orcamento.id ? { ...o, [field]: newVisto } : o))
-    );
-    
-    try {
-      const { error } = await supabase
-        .from("orcamentos")
-        .update({ [field]: newVisto })
-        .eq("id", orcamento.id);
-        
-      if (error) throw error;
-    } catch (error) {
-      console.error("Erro ao atualizar visto:", error);
-      // Revert on error
-      setOrcamentos((prev) =>
-        prev.map((o) => (o.id === orcamento.id ? { ...o, [field]: !newVisto } : o))
-      );
+  const updateStatusMutation = useMutation({
+    mutationFn: (params: { orcamentoId: string; statusId: string | null }) => 
+      orcamentoService.updateStatus(params.orcamentoId, params.statusId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEY, leadId] });
+    },
+    onError: () => {
       toast({
         title: "Erro",
         description: "Não foi possível atualizar o status.",
         variant: "destructive",
       });
     }
-  }, [toast]);
+  });
 
-  const updateStatus = useCallback(async (orcamentoId: string, statusId: string | null) => {
-    // Optimistic update
-    setOrcamentos((prev) =>
-      prev.map((o) => 
-        o.id === orcamentoId 
-          ? { ...o, status_id: statusId, ultimo_contato: new Date().toISOString() } 
-          : o
-      )
-    );
-    
-    try {
-      const { error } = await supabase
-        .from("orcamentos")
-        .update({ 
-          status_id: statusId,
-          ultimo_contato: new Date().toISOString(),
-        })
-        .eq("id", orcamentoId);
-        
-      if (error) throw error;
-    } catch (error) {
-      console.error("Erro ao atualizar status:", error);
-      // Revert on error - need to refetch to get correct state
-      fetchOrcamentos();
-      toast({
-        title: "Erro",
-        description: "Não foi possível atualizar o status.",
-        variant: "destructive",
-      });
-    }
-  }, [toast, fetchOrcamentos]);
-
-  const deleteOrcamento = useCallback(async (orcamentoId: string) => {
-    try {
-      const { error } = await supabase
-        .from("orcamentos")
-        .delete()
-        .eq("id", orcamentoId);
-
-      if (error) throw error;
-
-      setOrcamentos((prev) => prev.filter((o) => o.id !== orcamentoId));
+  const deleteMutation = useMutation({
+    mutationFn: (orcamentoId: string) => orcamentoService.delete(orcamentoId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEY, leadId] });
       toast({
         title: "Orçamento excluído",
         description: "O orçamento foi excluído com sucesso.",
       });
-      return true;
-    } catch (error) {
-      console.error("Erro ao excluir orçamento:", error);
+    },
+    onError: () => {
       toast({
         title: "Erro",
         description: "Não foi possível excluir o orçamento.",
         variant: "destructive",
       });
-      return false;
     }
-  }, [toast]);
+  });
 
-  useEffect(() => {
-    if (autoFetch) {
-      fetchOrcamentos();
-    }
-  }, [autoFetch, fetchOrcamentos]);
-
-  // ⚠️ HARDENING: Realtime subscription for cross-user sync
+  // Realtime subscription
   useEffect(() => {
     if (!autoFetch) return;
 
-    let debounceTimer: ReturnType<typeof setTimeout> | null = null;
-
     const channel = supabase
       .channel('orcamentos-base-realtime')
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'orcamentos' },
-        () => {
-          if (debounceTimer) clearTimeout(debounceTimer);
-          debounceTimer = setTimeout(() => fetchOrcamentos(), 600);
-        }
-      )
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'leads' },
-        () => {
-          if (debounceTimer) clearTimeout(debounceTimer);
-          debounceTimer = setTimeout(() => fetchOrcamentos(), 800);
-        }
-      )
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'orcamentos' }, () => {
+        queryClient.invalidateQueries({ queryKey: [QUERY_KEY, leadId] });
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'leads' }, () => {
+        queryClient.invalidateQueries({ queryKey: [QUERY_KEY, leadId] });
+      })
       .subscribe();
 
     return () => {
-      if (debounceTimer) clearTimeout(debounceTimer);
       supabase.removeChannel(channel);
     };
-  }, [autoFetch, fetchOrcamentos]);
+  }, [autoFetch, leadId, queryClient]);
 
-  // Computed values
-  const totalKwh = orcamentos.reduce((acc, o) => acc + o.media_consumo, 0);
-  const uniqueEstados = new Set(orcamentos.map((o) => o.estado)).size;
+  const toggleVisto = useCallback((orcamento: Orcamento, field: "visto" | "visto_admin" = "visto_admin") => {
+    toggleVistoMutation.mutate({ orcamento, field });
+  }, [toggleVistoMutation]);
+
+  const updateStatus = useCallback((orcamentoId: string, statusId: string | null) => {
+    updateStatusMutation.mutate({ orcamentoId, statusId });
+  }, [updateStatusMutation]);
+
+  const deleteOrcamento = useCallback(async (orcamentoId: string) => {
+    try {
+      await deleteMutation.mutateAsync(orcamentoId);
+      return true;
+    } catch {
+      return false;
+    }
+  }, [deleteMutation]);
+
+  const totalKwh = orcamentos.reduce((acc, o) => acc + (o.media_consumo || 0), 0);
+  const uniqueEstados = new Set(orcamentos.map((o) => o.estado).filter(Boolean)).size;
   const uniqueVendedores = [...new Set(orcamentos.map((o) => o.vendedor).filter(Boolean))] as string[];
-  const estadosList = [...new Set(orcamentos.map((o) => o.estado))].sort();
+  const estadosList = [...new Set(orcamentos.map((o) => o.estado).filter(Boolean))].sort();
 
   return {
     orcamentos,
     statuses,
-    loading,
+    loading: loading && !data,
     fetchOrcamentos,
     toggleVisto,
     updateStatus,
