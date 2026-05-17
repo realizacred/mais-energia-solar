@@ -87,6 +87,15 @@ function getSignedUrl(path: string): Promise<string | null> {
 const formatCurrency = (val: number | null) =>
   val ? formatBRL(val) : "—";
 
+// Formata valor para card de KPI sem truncar (RB-83)
+// < 100k: completo "R$ XX.XXX,XX"; >= 100k: abreviado "R$ XXXk" / "R$ X,XM"
+const formatCardValue = (val: number | null): string => {
+  if (val == null || isNaN(val)) return "—";
+  if (val >= 1_000_000) return `R$ ${(val / 1_000_000).toFixed(1).replace(".", ",")}M`;
+  if (val >= 100_000) return `R$ ${Math.round(val / 1000)}k`;
+  return formatBRL(val);
+};
+
 function InfoField({ label, value }: { label: string; value: string | null | undefined }) {
   if (!value) return null;
   return (
