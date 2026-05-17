@@ -256,22 +256,28 @@ export default function CreditGlobalArea() {
 
   const handleEosSimulate = async (analysis: any) => {
     setIsSimulating(true);
+    setSimulationOptions([]);
     try {
       const { data: profile } = await supabase.from("profiles").select("tenant_id").eq("user_id", user?.id).single();
       const { data, error } = await supabase.functions.invoke('eos-simular', {
         body: {
           analise_id: analysis.id,
-          valor: analysis.valor_solicitado,
-          prazo_meses: analysis.prazo_meses || 60,
-          cpf_cnpj: analysis.cpf_cnpj,
-          tipo_pessoa: analysis.tipo_pessoa,
           tenant_id: profile?.tenant_id
         }
       });
 
       if (error) throw error;
-      setSimulationOptions(data.opcoes || []);
-      toast({ title: "Simulação EOS concluída" });
+      
+      // EOS returns an array of options directly
+      const options = Array.isArray(data) ? data : (data.opcoes || []);
+      setSimulationOptions(options);
+      
+      if (options.length > 0) {
+        toast({ title: "Simulação EOS concluída", description: `${options.length} opções de prazo encontradas.` });
+      } else {
+        toast({ title: "Atenção", description: "Nenhuma opção de parcelamento retornada pela EOS.", variant: "destructive" });
+      }
+      
       queryClient.invalidateQueries({ queryKey: ["admin-credit-analyses"] });
     } catch (error: any) {
       toast({ title: "Erro na simulação", description: error.message, variant: "destructive" });
