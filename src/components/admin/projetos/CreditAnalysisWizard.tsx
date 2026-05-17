@@ -283,8 +283,13 @@ export function CreditAnalysisWizard({
     }
 
     if (currentStep === 4) {
-      if (!formData.prazo_meses) newErrors.prazo_meses = "Selecione um prazo";
-      if (!formData.carencia) newErrors.carencia = "Selecione a carência";
+      if (formData.bancos_selecionados.length === 0) {
+        newErrors.bancos = "Selecione pelo menos um banco";
+      }
+      formData.bancos_selecionados.forEach(bankId => {
+        const config = formData.bancos_config[bankId] || { prazo_meses: formData.prazo_meses, carencia: formData.carencia };
+        if (!config.prazo_meses) newErrors[`prazo_${bankId}`] = "Selecione um prazo";
+      });
     }
 
     setErrors(newErrors);
