@@ -14,7 +14,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
-import { formatDateTime } from "@/lib/dateUtils";
+import { formatDateTime } from "@/lib/formatters/index";
 
 import { getCurrentTenantId } from "@/lib/getCurrentTenantId";
 import { FilePreviewTarget } from "./FilePreviewModal";
