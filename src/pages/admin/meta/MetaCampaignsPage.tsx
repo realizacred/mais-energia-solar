@@ -7,9 +7,9 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { StatCard } from "@/components/ui-kit/StatCard";
 import { MetaNavTabs } from "@/components/admin/meta/MetaNavTabs";
-import { CampaignsGuideSheet } from "@/components/admin/meta/CampaignsGuideSheet";
+import { MarketingGuideModal } from "@/components/admin/marketing/MarketingGuideModal";
 import { SearchInput } from "@/components/ui-kit/SearchInput";
-import { Megaphone, ChevronDown, ChevronUp, ArrowUpDown, RefreshCw, DollarSign, Eye, MousePointerClick, Users } from "lucide-react";
+import { Megaphone, ChevronDown, ChevronUp, ArrowUpDown, RefreshCw, DollarSign, Eye, MousePointerClick, Users, Info } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -46,6 +46,7 @@ export default function MetaCampaignsPage() {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("ALL");
   const [search, setSearch] = useState("");
   const [syncing, setSyncing] = useState(false);
+  const [guideOpen, setGuideOpen] = useState(false);
 
   const toggleSort = (key: SortKey) => {
     if (sortKey === key) {
@@ -129,11 +130,15 @@ export default function MetaCampaignsPage() {
     <div className="space-y-6">
       <PageHeader
         icon={Megaphone}
-        title="Meta Ads — Campanhas"
+        title="Marketing — Campanhas"
         description="Visualize suas campanhas de anúncios"
         actions={
           <div className="flex items-center gap-2">
-            <CampaignsGuideSheet />
+            <MarketingGuideModal open={guideOpen} onOpenChange={setGuideOpen} />
+            <Button variant="outline" size="sm" onClick={() => setGuideOpen(true)} className="gap-1.5">
+              <Info className="w-4 h-4" />
+              Guia
+            </Button>
             <Button
               onClick={handleSync}
               disabled={syncing}
