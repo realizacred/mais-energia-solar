@@ -148,10 +148,10 @@ function SinalReciboCTA({
   setActiveTab: (t: TabId) => void;
 }) {
   const [emitirOpen, setEmitirOpen] = useState(false);
-  const { data: recibos } = useRecibos({ deal_id: dealId });
+  const { data: recibos } = useRecibos({ projeto_id: projetoId || "" });
   const hasSinal = (recibos ?? []).some((r) =>
     (r.descricao ?? "").toLowerCase().includes("sinal") ||
-    (r.template?.nome ?? "").toLowerCase().includes("sinal")
+    (r.template ?? "").toLowerCase().includes("sinal")
   );
   if (hasSinal) return null;
 
