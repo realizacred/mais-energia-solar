@@ -307,7 +307,8 @@ export const displayPhone = (v: string | null | undefined) =>
   v ? formatPhoneBR(v) : "—";
 
 export const displayCurrency = (v: number | null | undefined) =>
-  formatBRL(v);
+  v !== null && v !== undefined ? formatBRL(v) : "—";
+
 
 export const displayDate = (v: string | Date | null | undefined) =>
   formatDate(v);
