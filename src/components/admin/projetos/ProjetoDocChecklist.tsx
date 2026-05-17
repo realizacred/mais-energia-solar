@@ -365,12 +365,30 @@ export function ProjetoDocChecklist({ dealId, compact = false }: Props) {
           </div>
         )}
 
-        {completed < total && (
-          <div className="flex items-center gap-2 mt-3 px-3 py-2 rounded-lg bg-warning/5 border border-warning/20">
-            <AlertCircle className="h-3.5 w-3.5 text-warning shrink-0" />
-            <span className="text-[11px] text-warning">
-              {total - completed} documento(s) pendente(s)
+        {completed === total ? (
+          <div className="flex items-center gap-2 mt-4 px-4 py-3 rounded-lg bg-success/10 border border-success/20 animate-in fade-in slide-in-from-bottom-1">
+            <CheckCircle className="h-4 w-4 text-success shrink-0" />
+            <span className="text-xs font-semibold text-success">
+              Checklist completo! Todos os documentos foram entregues.
             </span>
+          </div>
+        ) : (
+          <div className="flex flex-col gap-2 mt-4 px-4 py-3 rounded-lg bg-warning/5 border border-warning/20">
+            <div className="flex items-center gap-2">
+              <AlertCircle className="h-4 w-4 text-warning shrink-0" />
+              <span className="text-xs font-semibold text-warning">
+                {total - completed} documento(s) necessários
+              </span>
+            </div>
+            {items.filter(i => i.obrigatorio && !statusMap.get(i.id)?.concluido).length > 0 && (
+              <div className="pl-6 space-y-1">
+                {items.filter(i => i.obrigatorio && !statusMap.get(i.id)?.concluido).map(i => (
+                  <p key={i.id} className="text-[10px] text-warning/80 flex items-center gap-1.5">
+                    <Info className="h-2.5 w-2.5" /> Faltando obrigatório: {i.label}
+                  </p>
+                ))}
+              </div>
+            )}
           </div>
         )}
       </CardContent>
