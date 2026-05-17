@@ -209,7 +209,7 @@ export function EmitirReciboModal({
       setTemplateId("");
       setClienteId(defaultClienteId ?? "");
       setProjetoId(defaultProjetoId ?? null);
-      setValor("");
+      setValor(0);
       setDescricao("");
       setNumero("");
       setFormaPagamento("");
