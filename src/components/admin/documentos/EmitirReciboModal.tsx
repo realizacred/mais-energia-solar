@@ -474,7 +474,13 @@ export function EmitirReciboModal({
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={(v) => {
+      if (!v) {
+        if (timeoutRefMain.current) clearTimeout(timeoutRefMain.current);
+        requestIdRefMain.current = 0;
+      }
+      onOpenChange(v);
+    }}>
       <DialogContent
         className="max-w-2xl max-h-[90vh] overflow-y-auto"
         onOpenAutoFocus={(e) => e.preventDefault()}
