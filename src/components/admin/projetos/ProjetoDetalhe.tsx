@@ -8,7 +8,7 @@ import { formatPhone } from "@/lib/validations";
 import { ClienteViewDialog } from "@/components/admin/ClienteViewDialog";
 import { upsertContactFromWhatsApp } from "@/services/contactWhatsAppService";
 import { formatCpfCnpj, isValidCpfCnpj, onlyDigits } from "@/lib/cpfCnpjUtils";
-import { Share2, Link } from "lucide-react";
+import { Share2, Link as LinkIcon } from "lucide-react";
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -752,7 +752,7 @@ function ProjetoDetalheContent() {
                   toast({ title: "Link copiado!" });
                 }}
               >
-                <Link className="h-3.5 w-3.5" />
+                <LinkIcon className="h-3.5 w-3.5" />
                 <span className="hidden sm:inline">Link do Portal</span>
               </Button>
               <Separator orientation="vertical" className="h-6 mx-1 hidden sm:block" />
