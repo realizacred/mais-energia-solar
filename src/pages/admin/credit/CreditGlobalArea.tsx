@@ -641,8 +641,9 @@ export default function CreditGlobalArea() {
                         {analysis.consultor?.[0]?.nome || "Sistema"}
                       </TableCell>
                       <TableCell>{analysis.banco || "Não definido"}</TableCell>
-                      <TableCell className="font-semibold text-primary">
-                        {formatBRL(analysis.valor_solicitado || 0)}
+                      <TableCell className="font-semibold text-primary flex flex-col">
+                        <span>{formatBRL(analysis.valor_solicitado || 0)}</span>
+                        <span className="text-[10px] text-muted-foreground font-normal">{analysis.prazo_meses} meses</span>
                       </TableCell>
                       <TableCell>
                         {analysis.responsavel?.[0]?.nome || (
