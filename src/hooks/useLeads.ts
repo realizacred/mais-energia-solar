@@ -4,6 +4,7 @@ import { useToast } from "@/hooks/use-toast";
 import { handleSupabaseError } from "@/lib/errorHandler";
 import type { Lead, LeadStatus } from "@/types/lead";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { leadService } from "@/services/leads/leadService";
 
 const PAGE_SIZE = 50;
 
@@ -24,45 +25,7 @@ export function useLeads({ autoFetch = true, pageSize = PAGE_SIZE }: UseLeadsOpt
 
   const { data, isLoading: loading, refetch: fetchLeads } = useQuery({
     queryKey: ["leads", page, pageSize],
-    queryFn: async () => {
-      const from = page * pageSize;
-      const to = from + pageSize - 1;
-
-      const [leadsRes, statusesRes] = await Promise.all([
-        supabase
-          .from("leads")
-          .select("id, nome, email, telefone, status_id, consultor_id, origem, media_consumo, valor_estimado, created_at, visto_admin, estado, cidade, consultores:consultor_id(id, nome), clientes!clientes_lead_id_fkey(id, potencia_kwp, valor_projeto)", { count: "exact" })
-          .is("deleted_at", null)
-          .order("created_at", { ascending: false })
-          .order("id", { ascending: false })
-          .range(from, to),
-        supabase
-          .from("lead_status")
-          .select("id, nome, cor, ordem, probabilidade_peso, motivo_perda_obrigatorio")
-          .order("ordem"),
-      ]);
-
-      if (leadsRes.error) throw leadsRes.error;
-
-      const enrichedLeads: Lead[] = (leadsRes.data || []).map((l: any) => {
-        const cliente = Array.isArray(l.clientes) ? l.clientes[0] : l.clientes;
-        return {
-          ...l,
-          consultor_nome: l.consultores?.nome || l.consultor || null,
-          cliente_potencia_kwp: cliente?.potencia_kwp ?? null,
-          cliente_valor_projeto: cliente?.valor_projeto ?? null,
-          cliente_id_vinculado: cliente?.id ?? null,
-          consultores: undefined,
-          clientes: undefined,
-        };
-      });
-
-      return {
-        leads: enrichedLeads,
-        statuses: statusesRes.data || [],
-        totalCount: leadsRes.count || 0,
-      };
-    },
+    queryFn: () => leadService.fetchLeads({ page, pageSize }),
     enabled: autoFetch,
     staleTime: 2 * 60 * 1000, // 2 minutes
   });
@@ -84,12 +47,7 @@ export function useLeads({ autoFetch = true, pageSize = PAGE_SIZE }: UseLeadsOpt
     });
     
     try {
-      const { error } = await supabase
-        .from("leads")
-        .update({ visto_admin: newVisto })
-        .eq("id", lead.id);
-        
-      if (error) throw error;
+      await leadService.toggleVisto(lead.id, newVisto);
     } catch (error) {
       const appError = handleSupabaseError(error, "toggle_visto_lead", { entityId: lead.id });
       // Revert on error
@@ -104,8 +62,7 @@ export function useLeads({ autoFetch = true, pageSize = PAGE_SIZE }: UseLeadsOpt
 
   const archiveLead = useCallback(async (leadId: string) => {
     try {
-      const { error } = await supabase.rpc("delete_lead_cascade", { p_lead_id: leadId });
-      if (error) throw error;
+      await leadService.delete(leadId);
 
       queryClient.invalidateQueries({ queryKey: ["leads"] });
       toast({
@@ -126,29 +83,7 @@ export function useLeads({ autoFetch = true, pageSize = PAGE_SIZE }: UseLeadsOpt
 
   const restoreLead = useCallback(async (leadId: string) => {
     try {
-      const { data: defaultStatus, error: statusError } = await supabase
-        .from("lead_status")
-        .select("id")
-        .neq("nome", "Arquivado")
-        .order("ordem", { ascending: true })
-        .limit(1)
-        .single();
-
-      if (statusError || !defaultStatus) {
-        toast({
-          title: "Erro",
-          description: "Não foi possível determinar o status padrão para restauração.",
-          variant: "destructive",
-        });
-        return false;
-      }
-
-      const { error } = await supabase
-        .from("leads")
-        .update({ status_id: defaultStatus.id })
-        .eq("id", leadId);
-
-      if (error) throw error;
+      await leadService.restore(leadId);
 
       toast({
         title: "Lead restaurado",
@@ -167,11 +102,7 @@ export function useLeads({ autoFetch = true, pageSize = PAGE_SIZE }: UseLeadsOpt
     }
   }, [queryClient, toast]);
 
-  // ⚠️ HARDENING: Realtime subscription
-  const handleRealtimeChanges = useCallback(() => {
-    queryClient.invalidateQueries({ queryKey: ["leads"] });
-  }, [queryClient]);
-
+  // Realtime subscription
   useEffect(() => {
     if (!autoFetch) return;
 
@@ -180,17 +111,19 @@ export function useLeads({ autoFetch = true, pageSize = PAGE_SIZE }: UseLeadsOpt
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'leads' },
-        handleRealtimeChanges
+        () => {
+          queryClient.invalidateQueries({ queryKey: ["leads"] });
+        }
       )
       .subscribe();
 
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [autoFetch, handleRealtimeChanges]);
+  }, [autoFetch, queryClient]);
 
-  const totalKwh = leads.reduce((acc, l) => acc + l.media_consumo, 0);
-  const uniqueEstados = new Set(leads.map((l) => l.estado)).size;
+  const totalKwh = leads.reduce((acc, l) => acc + (l.media_consumo || 0), 0);
+  const uniqueEstados = new Set(leads.map((l) => l.estado).filter(Boolean)).size;
 
   const vendedorFilterMap = new Map<string, string>();
   leads.forEach((l) => {
@@ -202,7 +135,7 @@ export function useLeads({ autoFetch = true, pageSize = PAGE_SIZE }: UseLeadsOpt
     .map(([id, nome]) => ({ id, nome }))
     .sort((a, b) => a.nome.localeCompare(b.nome));
 
-  const estadosList = [...new Set(leads.map((l) => l.estado))].sort();
+  const estadosList = [...new Set(leads.map((l) => l.estado).filter(Boolean))].sort();
   const totalPages = Math.ceil(totalCount / pageSize);
 
   return {
