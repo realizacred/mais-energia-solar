@@ -74,9 +74,9 @@ export function RecibosTab() {
     [brand],
   );
 
-  async function handleOpenPdf(r: ReciboEmitido) {
+  async function handleOpenPdf(r: Recibo) {
     try {
-      let path = r.pdf_path;
+      let path = r.pdf_url;
       if (!path) {
         const res = await regenPdf.mutateAsync(r.id);
         path = res.pdf_path;
