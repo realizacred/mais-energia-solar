@@ -97,9 +97,6 @@ export class DuplicateClienteError extends Error {
   }
 }
 
-const onlyDigits = (v: string) => v.replace(/\D/g, "");
-const normalizePhone = (v: string) => v.replace(/\D/g, "").replace(/^55/, "");
-
 export function useSalvarCliente() {
   const qc = useQueryClient();
   return useMutation({
@@ -119,9 +116,6 @@ export function useSalvarCliente() {
 
       if (id) {
         return customerService.save(id, payload);
-      }
-        if (error) throw error;
-        return updated;
       }
 
       // ---- Dedup check (apenas em INSERT) ----
@@ -176,18 +170,7 @@ export function useSalvarCliente() {
         }
       }
 
-      const payload = { ...data };
-      if (payload.telefone) {
-        payload.telefone_normalized = normalizePhone(String(payload.telefone));
-      }
-
-      const { data: created, error } = await supabase
-        .from("clientes")
-        .insert(payload as any)
-        .select()
-        .single();
-      if (error) throw error;
-      return created;
+      return customerService.save(undefined, payload);
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: [QUERY_KEY] });
