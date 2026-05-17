@@ -255,6 +255,7 @@ export function RecibosTab() {
                         <p className="text-[11px] text-muted-foreground mt-0.5">
                           {fmtBRL(Number(r.valor))} • {format(new Date(r.created_at), "dd/MM/yy HH:mm")}
                           {r.numero ? ` • Nº ${r.numero}` : ""}
+                          {r.forma_pagamento && <Badge variant="outline" className="text-[9px] ml-2 font-normal">{r.forma_pagamento}</Badge>}
                         </p>
                         {r.descricao && (
                           <p className="text-[11px] text-muted-foreground mt-0.5 truncate">{r.descricao}</p>
