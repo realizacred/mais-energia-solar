@@ -371,7 +371,7 @@ Deno.serve(async (req) => {
     }
 
     const { data: recibo, error: recErr } = await supa
-      .from("recibos_emitidos")
+      .from("recibos")
       .select("*")
       .eq("id", recibo_id)
       .eq("tenant_id", tenantId)

@@ -115,6 +115,13 @@ export function resolveFinanceiro(
     setCurIfMissing("economia_25_anos", econMensal * 12 * 25);
   }
 
+  // ── Saldo Devedor (RB-94) ──
+  const saldoDevedor = num(projeto.saldo_devedor) ?? num(snap.saldo_devedor) ?? 0;
+  setCur("saldo_devedor", saldoDevedor);
+  out["valor_por_extenso"] = valorPorExtenso(num(snap.valor_recibo) ?? valorTotal ?? 0);
+  out["data_pagamento_br"] = new Date().toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" });
+
+
   // ── Economia Percentual ──
   const econPercent = num(versao.economia_mensal_percent) ?? num(fin.economia_mensal_percent) ?? num(snap.economia_mensal_percent) ?? num(snap.economia_percentual);
   // AP-17: percentuais return pure number without %

@@ -182,7 +182,16 @@ export function resolveClienteComercial(
   set("representante_nome", brand.representante_legal ?? snap.representante_nome);
   set("representante_email", snap.representante_email);
   set("representante_celular", snap.representante_celular);
-  set("empresa_nome", ext?.tenantNome);
+  
+  // Empresa (tenant)
+  const empNome = str(tenant.nome_fantasia) || str(tenant.nome) || str(brand.nome_fantasia) || str(ext?.tenantNome);
+  set("empresa_nome", empNome);
+  set("empresa_cnpj", formatCpfCnpj(str(tenant.documento ?? brand.cnpj ?? brand.cpf_cnpj)));
+  set("empresa_telefone", formatPhone(str(tenant.telefone ?? brand.telefone)));
+  set("empresa_email", str(tenant.email ?? brand.email));
+  set("empresa_endereco", str(tenant.rua ? `${tenant.rua}, ${tenant.numero} - ${tenant.cidade}/${tenant.estado}` : brand.endereco));
+  set("empresa_responsavel", str(tenant.responsavel_nome ?? brand.representante_legal));
+
 
   // ── Proposta (metadados) ──
   set("proposta_status", proposta.status);
@@ -238,6 +247,12 @@ export function resolveClienteComercial(
   set("projeto_observacoes", snap.observacoes ?? projeto.observacoes);
   set("projeto_tipo_instalacao", projeto.tipo_instalacao ?? snap.tipo_instalacao);
   set("projeto_codigo", projeto.codigo);
+  set("projeto_nome", projeto.nome ?? snap.projeto_nome ?? nomeCliente);
+  set("projeto_numero", projeto.numero ?? (projeto.id ? String(projeto.id).substring(0, 8).toUpperCase() : ""));
+  set("projeto_potencia", `${num(projeto.potencia_kwp) ?? num(snap.potencia_kwp) ?? 0} kWp`);
+  set("projeto_valor_total", fmtVal(num(projeto.valor_total) ?? num(snap.valor_total) ?? 0));
+  set("projeto_endereco_completo", `${projeto.rua_instalacao ?? ""}, ${projeto.numero_instalacao ?? ""} - ${projeto.cidade_instalacao ?? ""}/${projeto.uf_instalacao ?? ""}`);
+
   set("projeto_data_comissionamento", fmtDate(projeto.data_comissionamento));
   set("projeto_prazo_estimado_dias", projeto.prazo_estimado_dias);
   set("projeto_prazo_vistoria_dias", projeto.prazo_vistoria_dias);
