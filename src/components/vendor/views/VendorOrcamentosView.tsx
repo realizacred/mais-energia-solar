@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { VendorFollowUpManager } from "@/components/vendor/VendorFollowUpManager";
 import { VendorPendingDocumentation } from "@/components/vendor/VendorPendingDocumentation";
 import { VendorLeadFilters, VendorOrcamentosTable, VendorLeadViewDialog } from "@/components/vendor/leads";
+import { CreditAnalysisWizard } from "@/components/admin/projetos/CreditAnalysisWizard";
 import { ConvertLeadToClientDialog } from "@/components/leads/ConvertLeadToClientDialog";
 import { OfflineConversionsManager } from "@/components/leads/OfflineConversionsManager";
 import { OfflineDuplicateResolver } from "@/components/vendor/OfflineDuplicateResolver";
