@@ -49,71 +49,74 @@ function inferKind(filename: string, mime?: string | null): "image" | "pdf" | "o
 export function FilePreviewModal({ target, onClose }: Props) {
   const [signedUrl, setSignedUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [errorState, setErrorState] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
     if (!target) {
       setSignedUrl(null);
+      setErrorState(null);
       return;
     }
     setLoading(true);
     setSignedUrl(null);
+    setErrorState(null);
+
+    const timer = setTimeout(() => {
+      if (!cancelled && loading) {
+        setLoading(false);
+        setErrorState("Tempo limite de carregamento excedido (10s)");
+      }
+    }, 10000);
+
     const checkAndSign = async () => {
       try {
-        // External bucket: storage_path is already a public URL (e.g. SolarMarket S3 import).
         if (target.bucket === "external") {
           if (cancelled) return;
           setSignedUrl(target.storage_path);
           return;
         }
-        const pathParts = target.storage_path.split("/");
-        const filename = pathParts.pop()!;
-        const parentPath = pathParts.join("/");
-
-        const { data: files, error: listError } = await supabase.storage
-          .from(target.bucket)
-          .list(parentPath, { search: filename });
-
-        if (listError) throw listError;
-
-        const exists = files?.some((f) => f.name === filename);
-        if (!exists) {
-          toast({
-            title: "Arquivo não encontrado",
-            description: "Arquivo não encontrado. Tente gerar o documento novamente.",
-            variant: "destructive",
-          });
-          onClose();
-          return;
-        }
-
+        
         const { data, error } = await supabase.storage
           .from(target.bucket)
           .createSignedUrl(target.storage_path, 3600);
 
         if (cancelled) return;
-        if (error || !data?.signedUrl) {
-          throw error || new Error("Não foi possível gerar URL de visualização");
+        
+        if (error) {
+          if (error.message === "Object not found") {
+            setErrorState("Arquivo não encontrado no servidor");
+          } else {
+            throw error;
+          }
+          return;
         }
+
+        if (!data?.signedUrl) {
+          throw new Error("Não foi possível gerar URL de visualização");
+        }
+        
         setSignedUrl(data.signedUrl);
       } catch (err: any) {
         if (cancelled) return;
+        setErrorState(err.message || "Erro desconhecido ao carregar arquivo");
         toast({
           title: "Erro ao abrir arquivo",
           description: err.message === "Object not found" ? "Arquivo não encontrado no servidor." : err.message,
           variant: "destructive",
         });
-        onClose();
       } finally {
         if (!cancelled) setLoading(false);
+        clearTimeout(timer);
       }
     };
 
     checkAndSign();
     return () => {
       cancelled = true;
+      clearTimeout(timer);
     };
-  }, [target, onClose]);
+  }, [target]);
 
   const handleDownload = async () => {
     if (!target) return;
