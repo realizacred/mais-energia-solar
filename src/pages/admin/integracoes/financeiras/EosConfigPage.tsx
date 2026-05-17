@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -14,13 +14,17 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "@/hooks/use-toast";
-import { ShieldCheck, Save, ExternalLink } from "lucide-react";
+import { ShieldCheck, Save, ExternalLink, Key, CheckCircle2, XCircle, RefreshCw } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
 
 export default function EosIntegrationConfig() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [isSaving, setIsSaving] = useState(false);
+  const [isTesting, setIsTesting] = useState(false);
+  const [testResult, setTestResult] = useState<'success' | 'error' | null>(null);
 
   const { data: config, isLoading } = useQuery({
     queryKey: ["financeiras-config", "eos"],
@@ -42,35 +46,20 @@ export default function EosIntegrationConfig() {
   });
 
   const [formData, setFormData] = useState({
-    client_id: "",
-    client_secret: "",
+    eos_api_key: "",
     ambiente: "sandbox",
     ativo: false
   });
 
-  // Update form when data is loaded
-  useState(() => {
+  useEffect(() => {
     if (config) {
       setFormData({
-        client_id: config.client_id || "",
-        client_secret: config.client_secret || "",
+        eos_api_key: config.eos_api_key || "",
         ambiente: config.ambiente || "sandbox",
         ativo: config.ativo || false
       });
     }
-  });
-
-  // Using useEffect to sync form with fetched data
-  const [initialized, setInitialized] = useState(false);
-  if (config && !initialized) {
-    setFormData({
-      client_id: config.client_id || "",
-      client_secret: config.client_secret || "",
-      ambiente: config.ambiente || "sandbox",
-      ativo: config.ativo || false
-    });
-    setInitialized(true);
-  }
+  }, [config]);
 
   const handleSave = async () => {
     setIsSaving(true);
@@ -104,6 +93,36 @@ export default function EosIntegrationConfig() {
     }
   };
 
+  const handleTestConnection = async () => {
+    setIsTesting(true);
+    setTestResult(null);
+    try {
+      const { data: profile } = await supabase.from("profiles").select("tenant_id").eq("user_id", user?.id).single();
+      
+      const { data, error } = await supabase.functions.invoke('eos-simular', {
+        body: {
+          analise_id: crypto.randomUUID(), // ID fictício para teste
+          tenant_id: profile?.tenant_id,
+          // Dados de teste para simulação fake
+          test_mode: true 
+        }
+      });
+
+      if (error) throw error;
+      setTestResult('success');
+      toast({ title: "Conexão estabelecida com sucesso" });
+    } catch (error: any) {
+      setTestResult('error');
+      toast({ 
+        title: "Erro de autenticação", 
+        description: error.message, 
+        variant: "destructive" 
+      });
+    } finally {
+      setIsTesting(false);
+    }
+  };
+
   if (isLoading) return <div className="p-8 text-center">Carregando configurações...</div>;
 
   return (
@@ -121,37 +140,43 @@ export default function EosIntegrationConfig() {
       <Card className="border-border/40 shadow-sm">
         <CardHeader>
           <CardTitle className="text-lg flex items-center justify-between">
-            Credenciais de Acesso
-            <a 
-              href="https://eos-loan.gitbook.io/eos-loan" 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="text-xs font-normal text-primary flex items-center gap-1 hover:underline"
-            >
-              Documentação <ExternalLink className="h-3 w-3" />
-            </a>
+            Configuração da API
+            <div className="flex items-center gap-2">
+              <a 
+                href="https://eos-loan.gitbook.io/eos-loan" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="text-xs font-normal text-primary flex items-center gap-1 hover:underline"
+              >
+                Documentação <ExternalLink className="h-3 w-3" />
+              </a>
+              {testResult === 'success' && (
+                <Badge variant="outline" className="bg-emerald-500/10 text-emerald-500 border-emerald-500/20 gap-1">
+                  <CheckCircle2 className="h-3 w-3" /> Conectado
+                </Badge>
+              )}
+              {testResult === 'error' && (
+                <Badge variant="destructive" className="gap-1">
+                  <XCircle className="h-3 w-3" /> Erro de autenticação
+                </Badge>
+              )}
+            </div>
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="space-y-2">
-            <Label htmlFor="client_id">Client ID</Label>
-            <Input 
-              id="client_id" 
-              placeholder="Digite o Client ID fornecido pela EOS"
-              value={formData.client_id}
-              onChange={(e) => setFormData({...formData, client_id: e.target.value})}
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="client_secret">Client Secret</Label>
-            <Input 
-              id="client_secret" 
-              type="password"
-              placeholder="••••••••••••••••"
-              value={formData.client_secret}
-              onChange={(e) => setFormData({...formData, client_secret: e.target.value})}
-            />
+            <Label htmlFor="eos_api_key">API Key</Label>
+            <div className="relative">
+              <Input 
+                id="eos_api_key" 
+                type="password"
+                placeholder="Obtida junto à EOS em eosfin.com.br"
+                value={formData.eos_api_key}
+                onChange={(e) => setFormData({...formData, eos_api_key: e.target.value})}
+                className="pr-10"
+              />
+              <Key className="absolute right-3 top-2.5 h-4 w-4 text-muted-foreground" />
+            </div>
           </div>
 
           <div className="grid grid-cols-2 gap-6">
@@ -185,7 +210,16 @@ export default function EosIntegrationConfig() {
             </div>
           </div>
 
-          <div className="pt-4 flex justify-end">
+          <div className="pt-4 flex justify-between gap-4">
+            <Button 
+              variant="outline"
+              className="gap-2"
+              onClick={handleTestConnection}
+              disabled={isTesting || !formData.eos_api_key}
+            >
+              <RefreshCw className={cn("h-4 w-4", isTesting && "animate-spin")} />
+              Testar conexão
+            </Button>
             <Button 
               className="gap-2" 
               onClick={handleSave} 
@@ -202,8 +236,8 @@ export default function EosIntegrationConfig() {
         <CardContent className="p-4 text-xs text-muted-foreground space-y-2">
           <p className="font-semibold text-foreground">Notas de Segurança:</p>
           <ul className="list-disc pl-4 space-y-1">
-            <li>As credenciais são armazenadas de forma segura e acessíveis apenas por administradores do seu tenant.</li>
-            <li>O token de acesso (access_token) nunca é armazenado em banco de dados, apenas em memória durante a execução das chamadas.</li>
+            <li>A API Key é armazenada de forma segura e acessível apenas pelo motor de crédito do servidor.</li>
+            <li>A EOS utiliza uma chave estática (x-api-key) que não expira. Caso suspeite de vazamento, regenere a chave no painel da EOS.</li>
             <li>Recomendamos validar as simulações em ambiente de Sandbox antes de ativar a Produção.</li>
           </ul>
         </CardContent>

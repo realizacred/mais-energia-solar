@@ -31,7 +31,8 @@ import {
   Download,
   Printer,
   CalendarDays,
-  FileSpreadsheet
+  FileSpreadsheet,
+  RefreshCw
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -169,6 +170,15 @@ export default function CreditGlobalArea() {
   const [simulationOptions, setSimulationOptions] = useState<any[]>([]);
   const [isSendingToEos, setIsSendingToEos] = useState(false);
 
+  useEffect(() => {
+    if (selectedAnalysis?.simulacao_resultado) {
+      const results = selectedAnalysis.simulacao_resultado;
+      setSimulationOptions(Array.isArray(results) ? results : (results.opcoes || []));
+    } else {
+      setSimulationOptions([]);
+    }
+  }, [selectedAnalysis]);
+
   const { data: checklist } = useCreditBankChecklist(selectedAnalysis?.bank_config_id || undefined);
   
   const filteredChecklist = useMemo(() => {
@@ -255,22 +265,28 @@ export default function CreditGlobalArea() {
 
   const handleEosSimulate = async (analysis: any) => {
     setIsSimulating(true);
+    setSimulationOptions([]);
     try {
       const { data: profile } = await supabase.from("profiles").select("tenant_id").eq("user_id", user?.id).single();
       const { data, error } = await supabase.functions.invoke('eos-simular', {
         body: {
           analise_id: analysis.id,
-          valor: analysis.valor_solicitado,
-          prazo_meses: analysis.prazo_meses || 60,
-          cpf_cnpj: analysis.cpf_cnpj,
-          tipo_pessoa: analysis.tipo_pessoa,
           tenant_id: profile?.tenant_id
         }
       });
 
       if (error) throw error;
-      setSimulationOptions(data.opcoes || []);
-      toast({ title: "Simulação EOS concluída" });
+      
+      // EOS returns an array of options directly
+      const options = Array.isArray(data) ? data : (data.opcoes || []);
+      setSimulationOptions(options);
+      
+      if (options.length > 0) {
+        toast({ title: "Simulação EOS concluída", description: `${options.length} opções de prazo encontradas.` });
+      } else {
+        toast({ title: "Atenção", description: "Nenhuma opção de parcelamento retornada pela EOS.", variant: "destructive" });
+      }
+      
       queryClient.invalidateQueries({ queryKey: ["admin-credit-analyses"] });
     } catch (error: any) {
       toast({ title: "Erro na simulação", description: error.message, variant: "destructive" });
@@ -597,6 +613,11 @@ export default function CreditGlobalArea() {
                             <DropdownMenuItem onClick={() => { setSelectedAnalysis(analysis); setActionType('request_docs'); }}>
                               <FileSearch className="h-4 w-4 mr-2" /> Solicitar Docs
                             </DropdownMenuItem>
+                            {analysis.banco?.toLowerCase().includes('eos') && (
+                              <DropdownMenuItem onClick={() => { setSelectedAnalysis(analysis); setActionType('eos_integrate'); }} className="text-primary">
+                                <Calculator className="h-4 w-4 mr-2" /> Simulação EOS
+                              </DropdownMenuItem>
+                            )}
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </TableCell>
@@ -672,10 +693,11 @@ export default function CreditGlobalArea() {
               {actionType === 'reject' && "Registrar Reprovação"}
               {actionType === 'request_docs' && "Solicitar Documentação Adicional"}
               {actionType === 'reassign' && "Reatribuir Gerente"}
-              {actionType === 'eos_integrate' && "Integração EOS Financiamento"}
+              {actionType === 'eos_integrate' && "Simulação EOS Financiamento Solar"}
             </DialogTitle>
             <DialogDescription>
               {selectedAnalysis?.deal?.title || selectedAnalysis?.lead?.nome} - {formatBRL(selectedAnalysis?.valor_solicitado || 0)}
+              {actionType === 'eos_integrate' && " - Utilize esta ferramenta para obter as condições reais de financiamento da EOS."}
             </DialogDescription>
           </DialogHeader>
 
@@ -722,6 +744,83 @@ export default function CreditGlobalArea() {
                     </div>
                   </ScrollArea>
                 </div>
+              </div>
+            )}
+
+            {actionType === 'eos_integrate' && (
+              <div className="space-y-6">
+                {!simulationOptions || simulationOptions.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-8 space-y-4 border-2 border-dashed rounded-lg bg-muted/20">
+                    <Calculator className="h-12 w-12 text-primary/40" />
+                    <div className="text-center">
+                      <p className="text-sm font-medium">Nenhuma simulação ativa</p>
+                      <p className="text-xs text-muted-foreground">Clique abaixo para buscar taxas reais na EOS.</p>
+                    </div>
+                    <Button 
+                      onClick={() => handleEosSimulate(selectedAnalysis)} 
+                      disabled={isSimulating}
+                      className="gap-2"
+                    >
+                      {isSimulating ? (
+                        <> <RefreshCw className="h-4 w-4 animate-spin" /> Processando... </>
+                      ) : (
+                        <> <Send className="h-4 w-4" /> Simular Taxas Reais </>
+                      )}
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                    <div className="flex justify-between items-center">
+                      <h4 className="text-sm font-semibold flex items-center gap-2">
+                        <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+                        Opções de Parcelamento EOS
+                      </h4>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="h-8 text-[10px]" 
+                        onClick={() => handleEosSimulate(selectedAnalysis)}
+                        disabled={isSimulating}
+                      >
+                        <RefreshCw className={cn("h-3 w-3 mr-1", isSimulating && "animate-spin")} />
+                        Recarregar
+                      </Button>
+                    </div>
+                    
+                    <div className="border rounded-md overflow-hidden">
+                      <Table>
+                        <TableHeader className="bg-muted/50">
+                          <TableRow>
+                            <TableHead className="h-9 text-[11px]">Prazo</TableHead>
+                            <TableHead className="h-9 text-[11px]">Parcela</TableHead>
+                            <TableHead className="h-9 text-[11px] text-right">Ação</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {(Array.isArray(simulationOptions) ? simulationOptions : []).map((opt, i) => (
+                            <TableRow key={i} className="hover:bg-muted/30">
+                              <TableCell className="py-2 font-medium">{opt.prazo}x</TableCell>
+                              <TableCell className="py-2">{formatBRL(opt.parcela)}</TableCell>
+                              <TableCell className="py-2 text-right">
+                                <Button 
+                                  size="sm" 
+                                  className="h-7 text-[10px] px-2"
+                                  onClick={() => handleEosSend(selectedAnalysis, opt)}
+                                  disabled={isSendingToEos}
+                                >
+                                  Escolher
+                                </Button>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                    <p className="text-[10px] text-muted-foreground italic">
+                      * Taxas e parcelas sujeitas a alteração pela financeira no momento da formalização.
+                    </p>
+                  </div>
+                )}
               </div>
             )}
 
@@ -799,6 +898,11 @@ function AnalysisCard({ analysis, onAction }: { analysis: any, onAction: (type: 
               <DropdownMenuItem onClick={() => onAction('reassign')}>
                 <UserPlus className="h-4 w-4 mr-2" /> Reatribuir
               </DropdownMenuItem>
+              {analysis.banco?.toLowerCase().includes('eos') && (
+                <DropdownMenuItem onClick={() => onAction('eos_integrate')} className="text-primary">
+                  <Calculator className="h-4 w-4 mr-2" /> Simulação EOS
+                </DropdownMenuItem>
+              )}
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
