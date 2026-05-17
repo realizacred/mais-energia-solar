@@ -120,7 +120,7 @@ const EngenhariaFinanceiraConfig = lazy(() => import("@/components/admin/Engenha
 const ProposalMessageConfigPage = lazy(() => import("@/pages/admin/ProposalMessageConfigPage"));
 const CommercialDirectorDashboard = lazy(() => import("@/components/admin/director").then(m => ({ default: m.CommercialDirectorDashboard })));
 const ConsultorDashboard = lazy(() => import("@/pages/ConsultorDashboard"));
-const FinancialSettingsPage = lazy(() => import("@/components/admin/settings/FinancialSettingsPage"));
+const FinancialSettingsPage = lazy(() => import("@/components/admin/FinancialSettingsPage"));
 const CreditConfigPage = lazy(() => import("@/pages/admin/CreditConfigPage"));
 const ChequesPage = lazy(() => import("@/pages/admin/financeiro/cheques/ChequesPage"));
 const CreditGlobalArea = lazy(() => import("@/pages/admin/credit/CreditGlobalArea"));
@@ -162,7 +162,7 @@ const MetaDashboardPage = lazy(() => import("@/pages/admin/meta/MetaDashboardPag
 const MetaLeadsPage = lazy(() => import("@/pages/admin/meta/MetaLeadsPage"));
 const MetaCampaignsPage = lazy(() => import("@/pages/admin/meta/MetaCampaignsPage"));
 const GoogleMapsConfigPage = lazy(() => import("@/pages/admin/GoogleMapsConfigPage"));
-const PaymentGatewayConfigPage = lazy(() => import("@/components/admin/settings/PaymentGatewayConfig").then(m => ({ default: m.PaymentGatewayConfig })));
+const PaymentGatewayConfigPage = lazy(() => import("@/components/admin/PaymentGatewayConfig").then(m => ({ default: m.PaymentGatewayConfig })));
 const MenuConfigPage = lazy(() => import("@/components/admin/MenuConfigPage"));
 const LoadingConfigAdmin = lazy(() => import("@/components/admin/LoadingConfigAdmin").then(m => ({ default: m.LoadingConfigAdmin })));
 // AgendaConfigPage removed

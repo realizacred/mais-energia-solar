@@ -84,7 +84,7 @@ const DEDICATED_COMPONENTS: Record<string, React.LazyExoticComponent<React.Compo
   google_calendar: lazy(() => import("@/components/admin/integrations/IntegrationsPage")),
   google_contacts: lazy(() => import("@/components/admin/integrations/GoogleContactsCard").then(m => ({ default: m.GoogleContactsCard }))),
   webhooks_generic: lazy(() => import("@/components/admin/WebhookManager")),
-  asaas: lazy(() => import("@/components/admin/settings/PaymentGatewayConfig").then(m => ({ default: m.PaymentGatewayConfig }))),
+  asaas: lazy(() => import("@/components/admin/PaymentGatewayConfig").then(m => ({ default: m.PaymentGatewayConfig }))),
   public_api: lazy(() => import("@/pages/admin/OpenAIConfigPage")),
   tuya_iot: lazy(() => import("@/components/admin/integrations-api/ApisPage")),
   gotenberg: lazy(() => import("@/components/admin/integrations-v2/GotenbergConfigPanel")),

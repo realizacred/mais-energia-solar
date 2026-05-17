@@ -3,6 +3,7 @@
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo } from "react";
+import { customerService } from "@/services/admin/customers/customerService";
 import { supabase } from "@/integrations/supabase/client";
 
 const STALE_TIME = 1000 * 60 * 5;
@@ -53,29 +54,7 @@ export interface LeadOption {
 export function useClientes() {
   return useQuery({
     queryKey: [QUERY_KEY],
-    queryFn: async () => {
-      const PAGE = 1000;
-      const cols =
-        "id, nome, telefone, email, empresa, cpf_cnpj, data_nascimento, cep, estado, cidade, bairro, rua, numero, complemento, potencia_kwp, valor_projeto, data_instalacao, numero_placas, modelo_inversor, observacoes, lead_id, localizacao, ativo, created_at, identidade_urls, comprovante_endereco_urls, comprovante_beneficiaria_urls, disjuntor_id, transformador_id, telefone_normalized, cliente_code";
-      const all: ClienteRow[] = [];
-      let from = 0;
-      // Paginate to bypass Supabase's default 1000-row cap
-      // eslint-disable-next-line no-constant-condition
-      while (true) {
-        const to = from + PAGE - 1;
-        const { data, error } = await supabase
-          .from("clientes")
-          .select(cols)
-          .order("created_at", { ascending: false })
-          .range(from, to);
-        if (error) throw error;
-        const chunk = (data || []) as ClienteRow[];
-        all.push(...chunk);
-        if (chunk.length < PAGE) break;
-        from += PAGE;
-      }
-      return all;
-    },
+    queryFn: () => customerService.fetchAll(),
     staleTime: STALE_TIME,
   });
 }
@@ -99,9 +78,6 @@ export function useLeadsForClientes() {
 
 /**
  * Erro de duplicidade detectado antes do INSERT.
- * - kind="block": cliente nativo já existe — bloqueia
- * - kind="sm-warning": duplicata vem de cliente migrado do SolarMarket — UI deve
- *   confirmar e reenviar com `allowSmDuplicate: true`
  */
 export class DuplicateClienteError extends Error {
   kind: "block" | "sm-warning";
@@ -136,20 +112,13 @@ export function useSalvarCliente() {
       data: Record<string, any>;
       allowSmDuplicate?: boolean;
     }) => {
-      if (id) {
-        const payload = { ...data };
-        if (payload.telefone) {
-          payload.telefone_normalized = normalizePhone(String(payload.telefone));
-        }
+      const payload = { ...data };
+      if (payload.telefone) {
+        payload.telefone_normalized = normalizePhone(String(payload.telefone));
+      }
 
-        const { data: updated, error } = await supabase
-          .from("clientes")
-          .update(payload)
-          .eq("id", id)
-          .select()
-          .single();
-        if (error) throw error;
-        return updated;
+      if (id) {
+        return customerService.save(id, payload);
       }
 
       // ---- Dedup check (apenas em INSERT) ----
@@ -204,18 +173,7 @@ export function useSalvarCliente() {
         }
       }
 
-      const payload = { ...data };
-      if (payload.telefone) {
-        payload.telefone_normalized = normalizePhone(String(payload.telefone));
-      }
-
-      const { data: created, error } = await supabase
-        .from("clientes")
-        .insert(payload as any)
-        .select()
-        .single();
-      if (error) throw error;
-      return created;
+      return customerService.save(undefined, payload);
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: [QUERY_KEY] });
@@ -322,16 +280,15 @@ export function useClientesProjetosCount(clienteIds: string[]) {
     queryFn: async () => {
       const counts = new Map<string, { projetos: number; deals: number }>();
       ids.forEach((id) => counts.set(id, { projetos: 0, deals: 0 }));
-      const [projRes, dealRes] = await Promise.all([
-        supabase.from("projetos").select("cliente_id").in("cliente_id", ids),
-        supabase.from("deals").select("customer_id").in("customer_id", ids),
-      ]);
-      for (const r of (projRes.data || []) as any[]) {
+      
+      const { projects, deals } = await customerService.fetchProjectsAndDealsCount(ids);
+      
+      for (const r of projects as any[]) {
         const id = r.cliente_id as string;
         const cur = counts.get(id);
         if (cur) cur.projetos += 1;
       }
-      for (const r of (dealRes.data || []) as any[]) {
+      for (const r of deals as any[]) {
         const id = r.customer_id as string;
         const cur = counts.get(id);
         if (cur) cur.deals += 1;

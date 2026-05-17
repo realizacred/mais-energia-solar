@@ -20,9 +20,9 @@ import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useLogo } from "@/hooks/useLogo";
 import { useTenantSettings, type TenantData, type TenantConfig } from "@/hooks/useTenantSettings";
-import { BusinessHoursConfig } from "./settings/BusinessHoursConfig";
-import { HolidaysConfig } from "./settings/HolidaysConfig";
-import { AutoReplyConfig } from "./settings/AutoReplyConfig";
+import { BusinessHoursConfig } from "./BusinessHoursConfig";
+import { HolidaysConfig } from "./HolidaysConfig";
+import { AutoReplyConfig } from "./AutoReplyConfig";
 
 const UF_LIST = [
   "AC","AL","AM","AP","BA","CE","DF","ES","GO","MA","MG","MS","MT",
