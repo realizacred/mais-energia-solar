@@ -342,78 +342,105 @@ export function ProjetoMultiPipelineManager({ dealId, dealStatus, pipelines, all
     if (locked) { 
       toast({ 
         title: "Funil bloqueado", 
-        description: `Não é possível alterar etapas no funil ${membership?.pipeline_name} devido ao status do projeto.`, 
+        description: `Não é possível alterar etapas no funil ${membership?.pipeline_name} due to status do projeto.`, 
         variant: "destructive" 
       }); 
       return; 
     }
 
-    // Validação dinâmica de documentos obrigatórios por etapa
     setSaving(membershipId);
     try {
-      // 1. Buscar documentos obrigatórios configurados para a etapa de destino
-      const { data: requiredDocs } = await supabase
-        .from("etapa_documentos_obrigatorios")
-        .select("categoria, label")
-        .eq("pipeline_stage_id", newStageId)
-        .eq("obrigatorio", true);
+      const { data: validations } = await supabase
+        .from("pipeline_stage_validations")
+        .select("*")
+        .eq("stage_id", newStageId)
+        .eq("ativo", true);
 
-      if (requiredDocs && requiredDocs.length > 0) {
-        // 2. Verificar quais documentos o deal já possui
-        // Verificamos em project_documents
-        const { data: projectDocuments } = await supabase
-          .from("project_documents" as any)
-          .select("categoria")
-          .eq("deal_id", dealId)
-          .eq("is_deleted", false) as any;
+      if (validations && validations.length > 0) {
+        const [projectDocsRes, customFieldsRes, fieldsRes, ordersRes] = await Promise.all([
+          supabase.from("project_documents" as any).select("categoria").eq("deal_id", dealId).eq("is_deleted", false),
+          supabase.from("deal_custom_field_values").select("field_id, value_text").eq("deal_id", dealId),
+          supabase.from("deal_custom_fields").select("id, field_key"),
+          supabase.from("ordens_compra").select("id").eq("projeto_id", dealId).limit(1)
+        ]);
 
-        // E verificamos em deal_custom_field_values para compatibilidade com campos legados
-        const { data: customFieldValues } = await supabase
-          .from("deal_custom_field_values")
-          .select("field_id, value_text")
-          .eq("deal_id", dealId) as any;
+        const projectDocuments = (projectDocsRes.data || []) as any[];
+        const customFieldValues = (customFieldsRes.data || []) as any[];
+        const fields = (fieldsRes.data || []) as any[];
+        const hasOrder = (ordersRes.data || []).length > 0;
+
+        const results = validations.map(v => {
+          let fulfilled = false;
+          const config = (v.configuracao || {}) as any;
           
-        const { data: fields } = await supabase
-          .from("deal_custom_fields")
-          .select("id, field_key");
-
-        const missing = requiredDocs.filter(req => {
-          // Check in project_documents
-          const hasInDocs = projectDocuments?.some((d: any) => d.categoria === req.categoria);
-          if (hasInDocs) return false;
-
-          // Check in custom fields (mapeamento legado se houver)
-          // Mapeamento manual de categorias conhecidas para field_keys legadas
-          const categoryToKey: Record<string, string> = {
-            'rg_cnh': 'cap_identidade',
-            'conta_luz': 'cap_comprovante_endereco',
-            'iptu': 'cap_documentos'
-          };
-          const legacyKey = categoryToKey[req.categoria];
-          if (legacyKey) {
-            const fieldId = fields?.find(f => f.field_key === legacyKey)?.id;
-            const value = customFieldValues?.find((v: any) => v.field_id === fieldId)?.value_text;
-            if (value && value !== "[]" && value !== "") return false;
+          switch (v.tipo_validacao) {
+            case 'documento_obrigatorio':
+              fulfilled = projectDocuments.some((d: any) => d.categoria === config.documento_tipo);
+              if (!fulfilled) {
+                const categoryToKey: Record<string, string> = {
+                  'rg_cnh': 'cap_identidade',
+                  'conta_luz': 'cap_comprovante_endereco',
+                  'iptu': 'cap_documentos',
+                  'contrato_assinado': 'cap_contrato'
+                };
+                const legacyKey = categoryToKey[config.documento_tipo];
+                if (legacyKey) {
+                  const fieldId = fields.find(f => f.field_key === legacyKey)?.id;
+                  const val = customFieldValues.find((val: any) => val.field_id === fieldId)?.value_text;
+                  if (val && val !== "[]" && val !== "") fulfilled = true;
+                }
+              }
+              break;
+            case 'fornecedor_vinculado':
+              fulfilled = hasOrder;
+              break;
+            case 'campo_preenchido':
+              const directValue = projectData?.[config.campo];
+              if (directValue !== undefined && directValue !== null && directValue !== "") {
+                fulfilled = true;
+              } else {
+                const fId = fields.find(f => f.field_key === config.campo)?.id;
+                const cVal = customFieldValues.find((val: any) => val.field_id === fId)?.value_text;
+                if (cVal && cVal !== "" && cVal !== "[]") fulfilled = true;
+              }
+              break;
+            case 'valor_minimo':
+              const fieldVal = projectData?.[config.campo] || 0;
+              fulfilled = Number(fieldVal) >= (config.valor_minimo || 0);
+              break;
+            case 'aprovacao_manual':
+              fulfilled = false; 
+              break;
           }
+          return { ...v, fulfilled };
+        });
 
-          return true;
-        }).map(doc => doc.label);
+        const blocking = results.filter(r => !r.fulfilled && r.bloquear_avanco);
+        const warnings = results.filter(r => !r.fulfilled && !r.bloquear_avanco);
 
-        if (!force && missing.length > 0) {
+        if (!force && blocking.length > 0) {
           setValidationDialog({
             isOpen: true,
             membershipId,
             newStageId,
-            missingDocs: missing
+            missingDocs: blocking.map(b => b.mensagem_bloqueio || (b.configuracao as any)?.label || b.tipo_validacao)
           });
           setSaving(null);
           return;
         }
+
+        warnings.forEach(w => {
+          toast({
+            title: "Atenção: Pendência",
+            description: w.mensagem_bloqueio || `A etapa requer: ${(w.configuracao as any)?.label || w.tipo_validacao}`,
+            variant: "warning" as any
+          });
+        });
       }
     } catch (err) {
-      console.error("Erro ao validar documentos obrigatórios:", err);
+      console.error("Erro no sistema de validações:", err);
     } finally {
-      // Don't setSaving(null) yet if we are proceeding
+      // Logic continues to the standard stage change if not blocked
     }
 
     // Interceptor: Pedido Efetuado
@@ -1113,6 +1140,53 @@ export function ProjetoMultiPipelineManager({ dealId, dealStatus, pipelines, all
                     </div>
                   </motion.div>
                 )}
+
+                {/* Bloco 1: Aviso de fornecedor ausente (GAP 1) */}
+                {(() => {
+                  const stageName = activeMembership.stage_name.toLowerCase();
+                  // Regra: Funil de Equipamento, etapa >= "Pedido Efetuado" (ou "Pedido Pago"), sem ordem de compra
+                  const isEquipamento = activeMembership.pipeline_name.toLowerCase().includes('equipamento') || 
+                                      activeMembership.pipeline_name.toLowerCase().includes('suprimentos');
+                  const needsOrdem = stageName.includes('pedido pago') || 
+                                    stageName.includes('depósito') || 
+                                    stageName.includes('cliente') || 
+                                    stageName.includes('instalação');
+                  
+                  if (isEquipamento && needsOrdem && !ordemCompra && !loadingOrdem) {
+                    return (
+                      <motion.div
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        className="mt-4 p-3 rounded-lg border border-warning/30 bg-warning/5 flex flex-col gap-2"
+                      >
+                        <div className="flex items-center gap-2 text-warning text-xs font-bold">
+                          <AlertTriangle className="h-4 w-4" />
+                          Fornecedor não vinculado
+                        </div>
+                        <p className="text-[11px] text-muted-foreground leading-snug">
+                          Este projeto está na etapa <strong>"{activeMembership.stage_name}"</strong> mas não possui um fornecedor registrado.
+                        </p>
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          className="h-7 text-[10px] w-fit gap-1 border-warning/40 hover:bg-warning/10"
+                          onClick={() => {
+                            setFornecedorModal({
+                              projetoId: dealId,
+                              etapaId: activeMembership.stage_id,
+                              etapaNome: activeMembership.stage_name,
+                              membershipId: activeMembership.id
+                            });
+                          }}
+                        >
+                          <Plus className="h-3 w-3" />
+                          Vincular Fornecedor
+                        </Button>
+                      </motion.div>
+                    );
+                  }
+                  return null;
+                })()}
 
                 {/* Terminal stages (e.g. "Perdido") — shown separately below the line */}
                 {terminalLostStages.length > 0 && (

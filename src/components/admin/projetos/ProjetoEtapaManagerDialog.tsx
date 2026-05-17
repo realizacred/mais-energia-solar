@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Layers, Trash2 } from "lucide-react";
+import { Layers, Trash2, ShieldCheck } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
 import {
@@ -25,9 +25,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { ProjetoEtapaManager } from "./ProjetoEtapaManager";
 import { ProjetoAutomacaoConfig } from "./ProjetoAutomacaoConfig";
+import { StageValidationsConfig } from "./StageValidationsConfig";
 import type { Pipeline, PipelineStage } from "@/hooks/useDealPipeline";
 
 interface Props {
@@ -116,30 +118,68 @@ export function ProjetoEtapaManagerDialog({
             </Button>
           </DialogHeader>
           <div className="flex-1 min-h-0 overflow-y-auto p-5 space-y-6 max-h-[70vh]">
-            <ProjetoEtapaManager
-              funilId={pipeline.id}
-              funilNome={pipeline.name}
-              etapas={pipelineStages.map(s => ({
-                id: s.id,
-                funil_id: s.pipeline_id,
-                nome: s.name,
-                cor: s.is_won ? "hsl(var(--success))" : s.is_closed ? "hsl(var(--destructive))" : "hsl(var(--info))",
-                ordem: s.position,
-                categoria: (s.is_won ? "ganho" : s.is_closed ? "perdido" : "aberto") as any,
-                tenant_id: s.tenant_id,
-              }))}
-              onCreate={onCreateStage}
-              onRename={onRenameStage}
-              onUpdateCor={() => {}}
-              onUpdateCategoria={() => {}}
-              onReorder={onReorderStages}
-              onDelete={onDeleteStage}
-            />
-            <Separator />
-            <ProjetoAutomacaoConfig
-              pipelineId={pipeline.id}
-              stages={pipelineStages.map(s => ({ id: s.id, name: s.name, position: s.position }))}
-            />
+            <Tabs defaultValue="etapas" className="flex-1 flex flex-col min-h-0">
+              <div className="px-5 border-b border-border bg-muted/20">
+                <TabsList className="h-10 bg-transparent gap-4 p-0">
+                  <TabsTrigger 
+                    value="etapas" 
+                    className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none h-10 px-1"
+                  >
+                    Estrutura de Etapas
+                  </TabsTrigger>
+                  <TabsTrigger 
+                    value="validacoes" 
+                    className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none h-10 px-1"
+                  >
+                    Validações (RB-76)
+                  </TabsTrigger>
+                  <TabsTrigger 
+                    value="automacoes" 
+                    className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none h-10 px-1"
+                  >
+                    Automações
+                  </TabsTrigger>
+                </TabsList>
+              </div>
+
+              <div className="flex-1 overflow-y-auto p-5">
+                <TabsContent value="etapas" className="m-0 space-y-6">
+                  <ProjetoEtapaManager
+                    funilId={pipeline.id}
+                    funilNome={pipeline.name}
+                    etapas={pipelineStages.map(s => ({
+                      id: s.id,
+                      funil_id: s.pipeline_id,
+                      nome: s.name,
+                      cor: s.is_won ? "hsl(var(--success))" : s.is_closed ? "hsl(var(--destructive))" : "hsl(var(--info))",
+                      ordem: s.position,
+                      categoria: (s.is_won ? "ganho" : s.is_closed ? "perdido" : "aberto") as any,
+                      tenant_id: s.tenant_id,
+                    }))}
+                    onCreate={onCreateStage}
+                    onRename={onRenameStage}
+                    onUpdateCor={() => {}}
+                    onUpdateCategoria={() => {}}
+                    onReorder={onReorderStages}
+                    onDelete={onDeleteStage}
+                  />
+                </TabsContent>
+
+                <TabsContent value="validacoes" className="m-0">
+                  <StageValidationsConfig
+                    pipelineId={pipeline.id}
+                    stages={pipelineStages.map(s => ({ id: s.id, name: s.name }))}
+                  />
+                </TabsContent>
+
+                <TabsContent value="automacoes" className="m-0">
+                  <ProjetoAutomacaoConfig
+                    pipelineId={pipeline.id}
+                    stages={pipelineStages.map(s => ({ id: s.id, name: s.name, position: s.position }))}
+                  />
+                </TabsContent>
+              </div>
+            </Tabs>
           </div>
         </DialogContent>
       </Dialog>

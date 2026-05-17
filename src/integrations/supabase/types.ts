@@ -16256,6 +16256,45 @@ export type Database = {
           },
         ]
       }
+      pipeline_stage_validations: {
+        Row: {
+          ativo: boolean | null
+          bloquear_avanco: boolean | null
+          configuracao: Json | null
+          created_at: string | null
+          id: string
+          mensagem_bloqueio: string | null
+          stage_id: string
+          tenant_id: string
+          tipo_validacao: string
+          updated_at: string | null
+        }
+        Insert: {
+          ativo?: boolean | null
+          bloquear_avanco?: boolean | null
+          configuracao?: Json | null
+          created_at?: string | null
+          id?: string
+          mensagem_bloqueio?: string | null
+          stage_id: string
+          tenant_id: string
+          tipo_validacao: string
+          updated_at?: string | null
+        }
+        Update: {
+          ativo?: boolean | null
+          bloquear_avanco?: boolean | null
+          configuracao?: Json | null
+          created_at?: string | null
+          id?: string
+          mensagem_bloqueio?: string | null
+          stage_id?: string
+          tenant_id?: string
+          tipo_validacao?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       pipeline_stages: {
         Row: {
           card_visible_fields: string[] | null
