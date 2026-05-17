@@ -1,12 +1,13 @@
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
-import { Check, X, Pencil, Type, Hash, ToggleLeft, Calendar, List, DollarSign, Percent, FileText, AlignLeft, Paperclip, Wifi, Package, Zap, MapPin, Settings, icons } from "lucide-react";
+import { Check, X, Pencil, Type, Hash, ToggleLeft, Calendar, List, DollarSign, Percent, FileText, AlignLeft, Paperclip, Wifi, Package, Zap, MapPin, Settings, icons, Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
+
 import { Separator } from "@/components/ui/separator";
 import { formatDateTime, formatDate, formatTime, formatDateShort } from "@/lib/dateUtils";
 import { CustomFieldFileInput } from "./CustomFieldFileInput";
