@@ -247,6 +247,12 @@ export function resolveClienteComercial(
   set("projeto_observacoes", snap.observacoes ?? projeto.observacoes);
   set("projeto_tipo_instalacao", projeto.tipo_instalacao ?? snap.tipo_instalacao);
   set("projeto_codigo", projeto.codigo);
+  set("projeto_nome", projeto.nome ?? snap.projeto_nome ?? nomeCliente);
+  set("projeto_numero", projeto.numero ?? (projeto.id ? String(projeto.id).substring(0, 8).toUpperCase() : ""));
+  set("projeto_potencia", `${num(projeto.potencia_kwp) ?? num(snap.potencia_kwp) ?? 0} kWp`);
+  set("projeto_valor_total", fmtVal(num(projeto.valor_total) ?? num(snap.valor_total) ?? 0));
+  set("projeto_endereco_completo", `${projeto.rua_instalacao ?? ""}, ${projeto.numero_instalacao ?? ""} - ${projeto.cidade_instalacao ?? ""}/${projeto.uf_instalacao ?? ""}`);
+
   set("projeto_data_comissionamento", fmtDate(projeto.data_comissionamento));
   set("projeto_prazo_estimado_dias", projeto.prazo_estimado_dias);
   set("projeto_prazo_vistoria_dias", projeto.prazo_vistoria_dias);
