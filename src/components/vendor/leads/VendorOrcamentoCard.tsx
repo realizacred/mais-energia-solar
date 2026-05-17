@@ -100,7 +100,7 @@ export function VendorOrcamentoCard({
                   className="flex items-center gap-1 text-success font-medium hover:underline"
                 >
                   <Phone className="w-3 h-3" />
-                  <span>{formatPhoneBR(orcamento.telefone)}</span>
+                  <span>{displayPhone(orcamento.telefone)}</span>
                 </a>
 
                 {!orcamento.proposta_token && (
