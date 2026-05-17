@@ -87,6 +87,21 @@ export function CreditAnalysisWizard({
     entrada: initialData?.entrada?.toString() || "0",
     prazo_meses: initialData?.prazo_meses?.toString() || "60",
     observacoes: initialData?.observacoes || "",
+    carencia: initialData?.carencia?.toString() || "1",
+    patrimonio: initialData?.patrimonio?.toString() || "0",
+    avalista_nome: (initialData as any)?.avalista_nome || "",
+    avalista_cpf: (initialData as any)?.avalista_cpf || "",
+    avalista_email: (initialData as any)?.avalista_email || "",
+    avalista_telefone: (initialData as any)?.avalista_telefone || "",
+    avalista_renda_mensal: (initialData as any)?.avalista_renda_mensal?.toString() || "",
+    avalista_patrimonio: (initialData as any)?.avalista_patrimonio?.toString() || "",
+    avalista_data_nascimento: (initialData as any)?.avalista_data_nascimento || "",
+    avalista_cep: (initialData as any)?.avalista_cep || "",
+    avalista_rua: (initialData as any)?.avalista_rua || "",
+    avalista_bairro: (initialData as any)?.avalista_bairro || "",
+    avalista_cidade: (initialData as any)?.avalista_cidade || "",
+    avalista_estado: (initialData as any)?.avalista_estado || "",
+    avalista_numero: (initialData as any)?.avalista_numero || "",
   });
 
   const { data: banks } = useCreditBankConfigs();
