@@ -18,12 +18,15 @@ export interface DocumentSignerRow {
   phone: string | null;
   role: string | null;
   order_index: number;
-  status: "pending" | "viewed" | "signed" | "refused";
+  status: "pending" | "viewed" | "signed" | "refused" | "signed_fisico" | "cancelled";
   sign_url: string | null;
   viewed_at: string | null;
   signed_at: string | null;
   refused_at: string | null;
   last_resent_at: string | null;
+  assinado_por_tipo: "digital" | "fisico";
+  observacao: string | null;
+  assinado_at: string | null;
 }
 
 const QUERY_KEY = "document-signers" as const;
