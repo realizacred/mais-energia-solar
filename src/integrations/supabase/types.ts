@@ -31652,6 +31652,10 @@ export type Database = {
       }
       canonical_phone_digits: { Args: { raw: string }; Returns: string }
       canonicalize_phone_br: { Args: { raw_phone: string }; Returns: string }
+      check_documentos_completos: {
+        Args: { p_projeto_id: string }
+        Returns: boolean
+      }
       check_feature_access: {
         Args: { _feature_key: string; _tenant_id: string }
         Returns: Json
