@@ -17,6 +17,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { formatCpfCnpj, isValidCpfCnpj, onlyDigits } from "@/lib/cpfCnpjUtils";
+import { useEffect, useRef } from "react";
 
 interface CpfCnpjInputProps {
   value: string;
