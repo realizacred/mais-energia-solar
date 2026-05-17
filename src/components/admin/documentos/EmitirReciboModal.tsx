@@ -962,7 +962,19 @@ export function EmitirReciboModal({
                     <Label className="text-xs">
                       {f.label}{f.required && <span className="text-destructive"> *</span>}
                     </Label>
-                    {f.type === "textarea" ? (
+                    {f.key.toLowerCase().includes("cpf") || f.key.toLowerCase().includes("cnpj") ? (
+                      <CpfCnpjInput
+                        value={dynFields[f.key] ?? ""}
+                        onChange={(val) => setDynFields((p) => ({ ...p, [f.key]: val }))}
+                        label=""
+                        showValidation={false}
+                      />
+                    ) : f.type === "currency" || f.key.toLowerCase().includes("valor") || f.key.toLowerCase().includes("saldo") ? (
+                      <CurrencyInput
+                        value={Number(dynFields[f.key] || 0)}
+                        onChange={(val) => setDynFields((p) => ({ ...p, [f.key]: String(val) }))}
+                      />
+                    ) : f.type === "textarea" ? (
                       <Textarea
                         value={dynFields[f.key] ?? ""}
                         onChange={(e) => setDynFields((p) => ({ ...p, [f.key]: e.target.value }))}
@@ -983,8 +995,7 @@ export function EmitirReciboModal({
                       </Select>
                     ) : (
                       <Input
-                        type={f.type === "number" || f.type === "currency" ? "number" : f.type === "date" ? "date" : "text"}
-                        step={f.type === "currency" ? "0.01" : undefined}
+                        type={f.type === "number" ? "number" : f.type === "date" ? "date" : "text"}
                         value={dynFields[f.key] ?? ""}
                         onChange={(e) => setDynFields((p) => ({ ...p, [f.key]: e.target.value }))}
                         placeholder={f.placeholder}
