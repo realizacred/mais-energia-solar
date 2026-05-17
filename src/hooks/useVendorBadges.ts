@@ -24,12 +24,12 @@ export function useVendorBadges() {
         .select("*", { count: "exact", head: true })
         .eq("consultor_id", user!.id)
         .is("deleted_at", null)
-        .not("status_id", "in", "('ganho', 'perdido', 'convertido')") // status terminals
+        .not("status_id", "in", "('ganho', 'perdido', 'convertido')")
         .or(`ultimo_contato.is.null,ultimo_contato.lt.${threeDaysAgo}`);
 
       // 2. Agenda (Tarefas vencidas ou para hoje)
       const todayEnd = endOfDay(now).toISOString();
-      const { count: overdueTasksCount } = await supabase
+      const { count: overdueTasksCount } = await (supabase as any)
         .from("tarefas")
         .select("*", { count: "exact", head: true })
         .eq("created_by", user!.id) 

@@ -192,9 +192,11 @@ export function VendorSidebar({
   isAdminMode,
   isViewingAsVendedor,
   onSignOut,
+  badgeCounts,
 }: VendorSidebarProps) {
   const { data: realBadgeCounts } = useVendorBadges();
   const mergedBadgeCounts = { ...badgeCounts, ...realBadgeCounts };
+
 
 
   const { state } = useSidebar();
