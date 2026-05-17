@@ -2,7 +2,9 @@ import { motion } from "framer-motion";
 import { MapPin, Building, Hash } from "lucide-react";
 import { FloatingInput } from "@/components/ui/floating-input";
 import { FloatingSelect } from "@/components/ui/floating-select";
-import { formatCEP, ESTADOS_BRASIL } from "@/lib/validations";
+import { ESTADOS_BRASIL } from "@/lib/validations";
+import { formatCEP } from "@/lib/formatters/index";
+
 import { useCidadesPorEstado } from "@/hooks/useCidadesPorEstado";
 import type { UseFormReturn } from "react-hook-form";
 import type { LeadFormData } from "@/lib/validations";
