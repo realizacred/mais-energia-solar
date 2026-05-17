@@ -10,6 +10,7 @@ import {
   useQueryClient,
 } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 
 export type FollowupClasse =
@@ -133,14 +134,18 @@ function sortKeyFromRow(row: FollowupInboxRow, sort: FollowupInboxSort): number 
  * Página de até 50 linhas; UI usa fetchNextPage para lazy-load.
  */
 export function useFollowupComercialInbox(filters: FollowupInboxFilters = {}) {
+  const { user } = useAuth();
   const sort: FollowupInboxSort = filters.sort ?? "dias_parado";
+  
   return useInfiniteQuery({
-    queryKey: ["followup-comercial-inbox", { ...filters, sort }],
+    queryKey: ["followup-comercial-inbox", { ...filters, sort, userId: user?.id }],
     initialPageParam: { value: null as number | null, id: null as string | null },
     queryFn: async ({ pageParam }): Promise<FollowupInboxRow[]> => {
+      const p_consultor_id = filters.consultorId || user?.id;
+
       const { data, error } = await supabase.rpc("get_followup_inbox_page", {
         p_classe: filters.classe && filters.classe !== "todos" ? filters.classe : null,
-        p_consultor_id: filters.consultorId ?? null,
+        p_consultor_id,
         p_dias_min: filters.diasMin && filters.diasMin > 0 ? filters.diasMin : null,
         p_search: filters.search && filters.search.trim().length >= 2 ? filters.search.trim() : null,
         p_sort: sort,
@@ -172,12 +177,15 @@ export interface FollowupInboxSummary {
  * Total e valor potencial NUNCA são derivados do que está renderizado.
  */
 export function useFollowupComercialInboxSummary(filters: FollowupInboxFilters = {}) {
+  const { user } = useAuth();
   return useQuery({
-    queryKey: ["followup-comercial-inbox-summary", filters],
+    queryKey: ["followup-comercial-inbox-summary", { ...filters, userId: user?.id }],
     queryFn: async (): Promise<FollowupInboxSummary> => {
+      const p_consultor_id = filters.consultorId || user?.id;
+
       const { data, error } = await supabase.rpc("get_followup_inbox_summary", {
         p_classe: filters.classe && filters.classe !== "todos" ? filters.classe : null,
-        p_consultor_id: filters.consultorId ?? null,
+        p_consultor_id,
         p_dias_min: filters.diasMin && filters.diasMin > 0 ? filters.diasMin : null,
         p_search: filters.search && filters.search.trim().length >= 2 ? filters.search.trim() : null,
       });

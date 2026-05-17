@@ -43,6 +43,8 @@ interface VendorSidebarProps {
   badgeCounts?: Record<string, number>;
 }
 
+import { useVendorBadges } from "@/hooks/useVendorBadges";
+
 function VendorSidebarItem({
   item,
   section,
@@ -192,6 +194,11 @@ export function VendorSidebar({
   onSignOut,
   badgeCounts,
 }: VendorSidebarProps) {
+  const { data: realBadgeCounts } = useVendorBadges();
+  const mergedBadgeCounts = { ...badgeCounts, ...realBadgeCounts };
+
+
+
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
   const logo = useLogo({ variant: "small" });
@@ -232,7 +239,7 @@ export function VendorSidebar({
             key={section.label}
             section={section}
             activeTab={activeTab}
-            badgeCounts={badgeCounts}
+            badgeCounts={mergedBadgeCounts}
           />
         ))}
       </SidebarContent>

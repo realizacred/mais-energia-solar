@@ -34,9 +34,9 @@ export function VendorFollowUpManager({ leads, diasAlerta = 3, onViewLead }: Ven
 
     // Only process leads in active sales statuses (exclude terminal/special)
     const activeLeads = leads.filter(lead => {
-      // Skip leads without status or in terminal statuses
-      // Terminal statuses are typically at higher ordem values
-      return lead.status_id != null;
+      // Skip leads in terminal statuses
+      const s = lead.status_id?.toLowerCase() || "";
+      return lead.status_id != null && !['ganho', 'perdido', 'convertido'].includes(s);
     });
 
     activeLeads.forEach((lead) => {
