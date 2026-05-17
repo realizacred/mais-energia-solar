@@ -443,6 +443,11 @@ export function ProjetoMultiPipelineManager({ dealId, dealStatus, pipelines, all
       // Logic continues to the standard stage change if not blocked
     }
 
+    // Interceptor: Pedido Efetuado
+    const stageName = newStage?.name?.toLowerCase() || "";
+    const isPedidoEfetuado = stageName.includes('pedido efetuado');
+    const isPedidoPago = stageName.includes('pedido pago');
+
     if (isPedidoEfetuado) {
       const { data: ordens } = await supabase
         .from('ordens_compra')
