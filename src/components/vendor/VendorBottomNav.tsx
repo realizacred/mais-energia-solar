@@ -9,7 +9,6 @@ import { useVendorBadges } from "@/hooks/useVendorBadges";
 
 interface VendorBottomNavProps {
   unreadWhatsApp?: number;
-  badgeOrcamentos?: number;
 }
 
 const NAV_ITEMS = [
