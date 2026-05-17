@@ -5,7 +5,7 @@ import {
   Plug, RefreshCw, Power, Sun, Clock, CheckCircle2,
   AlertCircle, AlertTriangle, Settings, Zap, Users, HardDrive, Calendar,
   Mail, MessageCircle, Video, CreditCard, ReceiptText,
-  Globe, Workflow, FileSignature, FileOutput, PackageSearch,
+  Globe, Workflow, FileSignature, FileOutput, PackageSearch, Landmark,
 } from "lucide-react";
 import type { IntegrationCategory } from "@/services/integrations/types";
 
