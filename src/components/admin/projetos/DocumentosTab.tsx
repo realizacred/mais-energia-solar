@@ -1,6 +1,7 @@
 import { useState, useRef, useMemo, useCallback } from "react";
 import { AlertTriangle, FileText, Trash2, Download, Plus, Loader2, Send, Eye, Ban, MoreVertical, MessageCircle, FileDown, PenLine } from "lucide-react";
 import { SignatureModal, type SignerEntry } from "./SignatureModal";
+import { WaSendDocModal } from "./WaSendDocModal";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -80,6 +81,7 @@ export function DocumentosTab({ dealId, clienteTelefone, consultorTelefone: cons
   const [cancelDoc, setCancelDoc] = useState<GeneratedDocRow | null>(null);
   const [cancelMotivo, setCancelMotivo] = useState("");
   const [cancelDescricao, setCancelDescricao] = useState("");
+  const [waSendDoc, setWaSendDoc] = useState<{ doc: GeneratedDocRow; target: "cliente" | "consultor" } | null>(null);
   
   const { data: generatedDocsRaw = [], isLoading: loadingDocs } = useProjetoDocumentosGerados(dealId);
   const { data: templates = [] } = useDocTemplates();
@@ -104,7 +106,7 @@ export function DocumentosTab({ dealId, clienteTelefone, consultorTelefone: cons
       if (!projeto?.cliente_id) return null;
       const { data: cliente } = await supabase
         .from("clientes")
-        .select("nome, cpf_cnpj, email, rua, numero, bairro, cidade, estado, cep")
+        .select("id, nome, cpf_cnpj, email, rua, numero, bairro, cidade, estado, cep")
         .eq("id", projeto.cliente_id)
         .maybeSingle();
       return cliente;
@@ -245,31 +247,7 @@ export function DocumentosTab({ dealId, clienteTelefone, consultorTelefone: cons
     }
   };
 
-  const enviarWhatsApp = async (doc: GeneratedDocRow, destinatario: "cliente" | "consultor") => {
-    const telefone = destinatario === "cliente" ? clienteTelefone : consultorTelefone;
-    if (!telefone) {
-      toast({
-        title: destinatario === "cliente" ? "Cliente sem telefone cadastrado" : "Consultor sem telefone cadastrado",
-        variant: "destructive",
-      });
-      return;
-    }
-    let mensagem = `Olá! Segue o documento: ${doc.title}`;
-    if (doc.pdf_path) {
-      try {
-        const { data } = await supabase.storage
-          .from("document-files")
-          .createSignedUrl(doc.pdf_path, 7 * 24 * 3600);
-        if (data?.signedUrl) {
-          mensagem += `\n\n${data.signedUrl}`;
-        }
-      } catch {
-      }
-    }
-    const tel = telefone.replace(/\D/g, "");
-    const url = `https://wa.me/55${tel}?text=${encodeURIComponent(mensagem)}`;
-    window.open(url, "_blank");
-  };
+  // Removed legacy enviarWhatsApp in favor of WaSendDocModal
 
   const docsByCategory = useMemo(() => {
     const groups: Record<string, GeneratedDocRow[]> = {};
@@ -457,10 +435,10 @@ export function DocumentosTab({ dealId, clienteTelefone, consultorTelefone: cons
                                   </Button>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="end">
-                                  <DropdownMenuItem onClick={() => enviarWhatsApp(doc, "cliente")} className="gap-2">
+                                  <DropdownMenuItem onClick={() => setWaSendDoc({ doc, target: "cliente" })} className="gap-2">
                                     Enviar para Cliente
                                   </DropdownMenuItem>
-                                  <DropdownMenuItem onClick={() => enviarWhatsApp(doc, "consultor")} className="gap-2">
+                                  <DropdownMenuItem onClick={() => setWaSendDoc({ doc, target: "consultor" })} className="gap-2">
                                     Enviar para Consultor
                                   </DropdownMenuItem>
                                 </DropdownMenuContent>
@@ -667,6 +645,18 @@ export function DocumentosTab({ dealId, clienteTelefone, consultorTelefone: cons
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {waSendDoc && (
+        <WaSendDocModal
+          open={!!waSendDoc}
+          onClose={() => setWaSendDoc(null)}
+          document={waSendDoc.doc}
+          projectId={dealId}
+          clienteId={clienteData?.id}
+          clienteNome={waSendDoc.target === "cliente" ? clienteData?.nome : consultorData?.nome}
+          clienteTelefone={waSendDoc.target === "cliente" ? clienteTelefone : consultorTelefone}
+        />
+      )}
     </div>
   );
 }
