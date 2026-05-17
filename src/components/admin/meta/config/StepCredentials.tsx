@@ -1,48 +1,54 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle2, Eye, EyeOff, Loader2, Save, Copy, ShieldCheck, Users, BarChart3 } from "lucide-react";
+import { CheckCircle2, Loader2, ShieldCheck, Users, BarChart3, Facebook } from "lucide-react";
 import { toast } from "sonner";
-import { META_KEYS, type MetaConfigMap, useSaveMetaKey } from "./useMetaFbConfigs";
+import { META_KEYS, type MetaConfigMap } from "./useMetaFbConfigs";
 import { supabase } from "@/integrations/supabase/client";
+import { useQuery } from "@tanstack/react-query";
 
 interface StepCredentialsProps {
   configs: MetaConfigMap;
   onNext: () => void;
 }
 
-interface FieldDef {
-  key: string;
-  label: string;
-  placeholder: string;
-  description: string;
-  isSecret: boolean;
-}
-
-const FIELDS: FieldDef[] = [
-  { key: META_KEYS.appId, label: "ID do Aplicativo", placeholder: "Ex: 744200091640333", description: "Encontrado em Configurações → Básico", isSecret: false },
-  { key: META_KEYS.appSecret, label: "Chave Secreta do Aplicativo", placeholder: "Cole a chave secreta...", description: "Usado para validar webhooks", isSecret: true },
-  { key: META_KEYS.accessToken, label: "Token de Acesso", placeholder: "Cole o token (começa com EAA...)", description: "Gere no Graph API Explorer", isSecret: true },
-  { key: META_KEYS.verifyToken, label: "Token de Verificação", placeholder: "Ex: minha-chave-2026", description: "Use a mesma frase no webhook do Meta", isSecret: false },
-];
-
 export function StepCredentials({ configs, onNext }: StepCredentialsProps) {
-  const [values, setValues] = useState<Record<string, string>>({});
-  const [showKeys, setShowKeys] = useState<Record<string, boolean>>({});
   const [diagStatus, setDiagStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [diagError, setDiagError] = useState("");
-  const saveMutation = useSaveMetaKey();
+  
+  const { data: profile } = useQuery({
+    queryKey: ["current-user-profile"],
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return null;
+      const { data } = await supabase.from("profiles").select("tenant_id").eq("user_id", user.id).single();
+      return data;
+    }
+  });
 
-  const allConfigured = FIELDS.every(f => configs[f.key]?.api_key);
+  const appId = configs[META_KEYS.appId]?.api_key || "1550819325829627";
+  const isConnected = !!configs[META_KEYS.accessToken]?.api_key;
 
-  const handleSave = async (key: string) => {
-    const val = values[key]?.trim();
-    if (!val) return;
-    await saveMutation.mutateAsync({ serviceKey: key, apiKey: val });
-    setValues(prev => ({ ...prev, [key]: "" }));
-    toast.success("Chave salva ✅");
+  const handleConnect = () => {
+    if (!profile?.tenant_id) {
+      toast.error("Tenant não encontrado");
+      return;
+    }
+
+    const SUPABASE_URL = "https://bguhckqkpnziykpbwbeu.supabase.co";
+    const REDIRECT_URI = `${SUPABASE_URL}/functions/v1/facebook-oauth-callback`;
+    const SCOPES = [
+      "ads_read",
+      "leads_retrieval",
+      "pages_read_engagement",
+      "pages_manage_metadata",
+      "pages_show_list",
+      "ads_management"
+    ].join(",");
+
+    const fbUrl = `https://www.facebook.com/v18.0/dialog/oauth?client_id=${appId}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&scope=${SCOPES}&state=${profile.tenant_id}`;
+    
+    window.location.href = fbUrl;
   };
 
   const handleValidateAndAdvance = async () => {
@@ -57,15 +63,13 @@ export function StepCredentials({ configs, onNext }: StepCredentialsProps) {
         return;
       }
       setDiagStatus("success");
-      toast.success("Token válido ✅");
+      toast.success("Conexão validada ✅");
       setTimeout(() => onNext(), 800);
     } catch (err: any) {
       setDiagStatus("error");
       setDiagError(err.message || "Erro inesperado");
     }
   };
-
-  const webhookUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/facebook-lead-webhook`;
 
   return (
     <div className="space-y-6">
@@ -123,11 +127,10 @@ export function StepCredentials({ configs, onNext }: StepCredentialsProps) {
             <p className="text-xs text-success/80">Sua conta está sincronizada e ativa.</p>
           </div>
           <Button variant="outline" size="sm" onClick={handleValidateAndAdvance}>
-            Validar conexão
+            {diagStatus === "loading" ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : "Validar conexão"}
           </Button>
         </div>
       )}
-
 
       {/* Validation status */}
       {diagStatus === "error" && (
@@ -147,7 +150,6 @@ export function StepCredentials({ configs, onNext }: StepCredentialsProps) {
           Avançar para Páginas
         </Button>
       </div>
-
     </div>
   );
 }
