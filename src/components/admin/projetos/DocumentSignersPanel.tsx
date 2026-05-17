@@ -91,14 +91,32 @@ export function DocumentSignersPanel({ documentId, signatureStatus }: Props) {
     return null;
   }
 
+  const handleConfirmPhysical = () => {
+    if (!physicalSignModal) return;
+    updateStatus.mutate({
+      signerId: physicalSignModal.id,
+      status: "signed_fisico",
+      assinadoAt: physicalSignDate,
+      observacao: physicalSignObs,
+      assinadoPorTipo: "fisico"
+    }, {
+      onSuccess: () => {
+        setPhysicalSignModal(null);
+        setPhysicalSignObs("");
+      }
+    });
+  };
+
   return (
     <div className="mx-3 mb-2 rounded-lg border border-border/60 bg-muted/20 p-2 space-y-1">
       <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground px-1">
-        Signatários ({signers.filter(s => s.status === "signed").length}/{signers.length})
+        Signatários ({signers.filter(s => s.status === "signed" || s.status === "signed_fisico").length}/{signers.length})
       </p>
       {signers.map((s) => {
         const cfg = STATUS_BADGE[s.status] ?? STATUS_BADGE.pending;
         const canResend = s.status === "pending" || s.status === "viewed";
+        const isCompleted = s.status === "signed" || s.status === "signed_fisico";
+
         return (
           <div key={s.id} className="flex items-center gap-2 px-2 py-1.5 rounded-md bg-card border border-border/40">
             <div className="flex-1 min-w-0">
@@ -109,26 +127,87 @@ export function DocumentSignersPanel({ documentId, signatureStatus }: Props) {
               {s.email && (
                 <p className="text-[10px] text-muted-foreground truncate">{s.email}</p>
               )}
+              {s.observacao && (
+                <p className="text-[9px] text-muted-foreground italic mt-0.5">Obs: {s.observacao}</p>
+              )}
             </div>
             <Badge variant="outline" className={cn("text-[10px] h-5 px-1.5 gap-1", cfg.cls)}>
               {cfg.icon}
               {cfg.label}
             </Badge>
-            {canResend && (
-              <Button
-                size="icon"
-                variant="ghost"
-                className="h-6 w-6 text-primary"
-                title={s.last_resent_at ? `Reenviado em ${new Date(s.last_resent_at).toLocaleString("pt-BR")}` : "Reenviar e-mail"}
-                onClick={() => resend.mutate(s.id)}
-                disabled={resend.isPending}
-              >
-                {resend.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <Mail className="h-3 w-3" />}
-              </Button>
-            )}
+
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button size="icon" variant="ghost" className="h-7 w-7">
+                  <MoreVertical className="h-3.5 w-3.5" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                {!isCompleted && s.status !== "cancelled" && (
+                  <DropdownMenuItem onClick={() => setPhysicalSignModal(s)} className="gap-2">
+                    <PenTool className="h-4 w-4" />
+                    Marcar como assinado fisicamente
+                  </DropdownMenuItem>
+                )}
+                {canResend && (
+                  <DropdownMenuItem onClick={() => resend.mutate(s.id)} className="gap-2">
+                    <Mail className="h-4 w-4" />
+                    Reenviar e-mail
+                  </DropdownMenuItem>
+                )}
+                {s.status !== "cancelled" && !isCompleted && (
+                  <DropdownMenuItem 
+                    onClick={() => updateStatus.mutate({ signerId: s.id, status: "cancelled" })} 
+                    className="gap-2 text-destructive"
+                  >
+                    <Ban className="h-4 w-4" />
+                    Cancelar envio
+                  </DropdownMenuItem>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         );
       })}
+
+      <Dialog open={!!physicalSignModal} onOpenChange={(open) => !open && setPhysicalSignModal(null)}>
+        <DialogContent className="sm:max-w-[400px]">
+          <DialogHeader>
+            <DialogTitle>Confirmar assinatura física</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label className="text-xs">Signatário</Label>
+              <p className="text-sm font-medium">{physicalSignModal?.name}</p>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="date" className="text-xs">Data da assinatura *</Label>
+              <Input
+                id="date"
+                type="date"
+                value={physicalSignDate}
+                onChange={(e) => setPhysicalSignDate(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="obs" className="text-xs">Observação (opcional)</Label>
+              <Textarea
+                id="obs"
+                placeholder="Assinou presencialmente em..."
+                value={physicalSignObs}
+                onChange={(e) => setPhysicalSignObs(e.target.value)}
+                className="resize-none"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setPhysicalSignModal(null)}>Cancelar</Button>
+            <Button onClick={handleConfirmPhysical} disabled={updateStatus.isPending}>
+              {updateStatus.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Confirmar"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
