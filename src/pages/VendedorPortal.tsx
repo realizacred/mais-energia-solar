@@ -91,13 +91,12 @@ export default function VendedorPortal() {
 
         <SidebarInset className="flex-1 min-w-0 w-full overflow-hidden">
           <InstallAppBanner vendedorNome={portal.vendedor?.nome} />
-          <header className="page-header border-b border-border/50 bg-background/80 backdrop-blur-md sticky top-0 z-30">
-            <div className="flex items-center h-14 px-4 sm:px-6">
-              <SidebarTrigger className="-ml-1 h-9 w-9">
-                <Menu className="h-5 w-5" />
-              </SidebarTrigger>
-            </div>
-          </header>
+          <VendedorHeader 
+            vendedorNome={portal.vendedor?.nome || ""}
+            isAdminMode={portal.isAdminMode}
+            isViewingAsVendedor={portal.isViewingAsVendedor}
+            onSignOut={portal.handleSignOut}
+          />
 
           <main className="flex-1 relative min-h-[calc(100vh-3.5rem)]">
             {/* WhatsApp — always mounted, toggled via display for persistence */}
