@@ -861,7 +861,7 @@ export function EmitirReciboModal({
                 </div>
                 <div className="space-y-1.5">
                   <Label className="text-xs font-semibold text-muted-foreground italic">Valor (readonly)</Label>
-                  <Input readOnly value={new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(valor || 0))} className="bg-muted" />
+                  <Input readOnly value={formatBRL(Number(valor || 0))} className="bg-muted" />
                 </div>
               </div>
 
