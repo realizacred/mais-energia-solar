@@ -437,12 +437,13 @@ function OutroCampoRowComp({ row, clienteId, onSaved }: { row: OutroCampoRow; cl
           )}
           <span className={cn("text-xs truncate", row.value ? "text-primary" : "text-foreground")}>{row.label}</span>
         </div>
-        <div className="flex items-center gap-1.5 shrink-0">
+        <div className="flex items-center gap-1.5 shrink-0 ml-auto">
           <Select
             value={row.selectedId || "none"}
             onValueChange={(v) => saveField(v === "none" ? "" : v)}
+            disabled={saving}
           >
-            <SelectTrigger className="h-8 text-sm w-[140px] bg-muted/30 border-border">
+            <SelectTrigger className="h-8 text-xs w-[140px] bg-background border-border">
               <SelectValue placeholder="Selecione" />
             </SelectTrigger>
             <SelectContent>
@@ -452,10 +453,8 @@ function OutroCampoRowComp({ row, clienteId, onSaved }: { row: OutroCampoRow; cl
               ))}
             </SelectContent>
           </Select>
-          <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={startEdit} disabled>
-            <Pencil className="h-4 w-4 text-muted-foreground" />
-          </Button>
         </div>
+
       </div>
     );
   }
