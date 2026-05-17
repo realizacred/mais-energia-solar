@@ -146,6 +146,7 @@ const ICON_MAP: Record<string, string> = {
   zapier: "zapier.svg",
   zapsign: "zapsign.svg",
   zevercloud: "zevercloud.svg",
+  "eos-financiamento-solar": "santander.svg", // Using santander.svg as a placeholder for financial/bank icon
 };
 
 /**
