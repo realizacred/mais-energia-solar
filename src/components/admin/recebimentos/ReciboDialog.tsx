@@ -134,9 +134,9 @@ import { useRef } from "react";
  }: ReciboDialogProps) {
    const reciboRef = useRef<HTMLDivElement>(null);
  
-   const formatCurrency = (value: number) => {
-     return formatBRL(value);
-   };
+    const formatCurrency = (value: number) => {
+      return formatBRL(value);
+    };
  
    const handlePrint = () => {
      const printContent = reciboRef.current;
