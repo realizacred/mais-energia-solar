@@ -33,6 +33,9 @@ export default function VendorCreditoView() {
   const { data: analises, isLoading } = useQuery({
     queryKey: ["vendor-credito-list"],
     queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return [];
+
       const { data, error } = await supabase
         .from("analise_credito")
         .select(`
@@ -40,6 +43,7 @@ export default function VendorCreditoView() {
           deal:deals(id, title),
           lead:leads(id, nome)
         `)
+        .eq("criado_por", user.id)
         .order("created_at", { ascending: false });
 
       if (error) throw error;
