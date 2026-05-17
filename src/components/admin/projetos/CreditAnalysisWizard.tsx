@@ -391,36 +391,85 @@ export function CreditAnalysisWizard({
                     <div className="grid grid-cols-2 gap-4">
                        <div className="col-span-2 space-y-1">
                          <Label>Nome Completo *</Label>
-                         <Input value={formData.cliente_nome} onChange={e => setFormData({...formData, cliente_nome: e.target.value})} placeholder="Nome completo" />
+                         <Input 
+                            value={formData.cliente_nome} 
+                            onChange={e => setFormData({...formData, cliente_nome: e.target.value})} 
+                            placeholder="Nome completo" 
+                            className={errors.cliente_nome ? "border-red-500" : ""}
+                         />
+                         {errors.cliente_nome && <p className="text-red-500 text-xs mt-1">{errors.cliente_nome}</p>}
                        </div>
                        <div className="space-y-1">
                          <Label>CPF *</Label>
-                         <Input value={formData.cpf_cnpj} onChange={e => setFormData({...formData, cpf_cnpj: formatCpfCnpj(e.target.value)})} placeholder="000.000.000-00" />
+                         <Input 
+                            value={formData.cpf_cnpj} 
+                            onChange={e => setFormData({...formData, cpf_cnpj: formatCpfCnpj(e.target.value)})} 
+                            placeholder="000.000.000-00" 
+                            className={errors.cpf_cnpj ? "border-red-500" : ""}
+                         />
+                         {errors.cpf_cnpj && <p className="text-red-500 text-xs mt-1">{errors.cpf_cnpj}</p>}
                        </div>
                        <div className="space-y-1">
                          <Label>Data de Nascimento *</Label>
-                         <Input type="date" value={formData.cliente_data_nascimento} onChange={e => setFormData({...formData, cliente_data_nascimento: e.target.value})} />
+                         <Input 
+                            type="date" 
+                            value={formData.cliente_data_nascimento} 
+                            onChange={e => setFormData({...formData, cliente_data_nascimento: e.target.value})} 
+                            className={errors.cliente_data_nascimento ? "border-red-500" : ""}
+                         />
+                         {errors.cliente_data_nascimento && <p className="text-red-500 text-xs mt-1">{errors.cliente_data_nascimento}</p>}
                        </div>
                        <div className="space-y-1">
                          <Label>Telefone *</Label>
-                         <Input value={formData.cliente_telefone} onChange={e => setFormData({...formData, cliente_telefone: e.target.value})} placeholder="(00) 00000-0000" />
+                         <Input 
+                            value={formData.cliente_telefone} 
+                            onChange={e => setFormData({...formData, cliente_telefone: formatPhone(e.target.value)})} 
+                            placeholder="(00) 00000-0000" 
+                            className={errors.cliente_telefone ? "border-red-500" : ""}
+                         />
+                         {errors.cliente_telefone && <p className="text-red-500 text-xs mt-1">{errors.cliente_telefone}</p>}
                        </div>
                        <div className="space-y-1">
                          <Label>E-mail *</Label>
-                         <Input value={formData.cliente_email} onChange={e => setFormData({...formData, cliente_email: e.target.value})} placeholder="email@exemplo.com" />
+                         <Input 
+                            value={formData.cliente_email} 
+                            onChange={e => setFormData({...formData, cliente_email: e.target.value})} 
+                            placeholder="email@exemplo.com" 
+                            className={errors.cliente_email ? "border-red-500" : ""}
+                         />
+                         {errors.cliente_email && <p className="text-red-500 text-xs mt-1">{errors.cliente_email}</p>}
                        </div>
                        <div className="space-y-1">
                          <Label>Renda Mensal *</Label>
                          <div className="relative">
                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">R$</span>
-                           <Input type="number" className="pl-9" value={formData.renda_mensal} onChange={e => setFormData({...formData, renda_mensal: e.target.value})} placeholder="0,00" />
+                           <Input 
+                              className={cn("pl-9", errors.renda_mensal ? "border-red-500" : "")} 
+                              value={formData.renda_mensal} 
+                              onChange={e => {
+                                const val = e.target.value.replace(/\D/g, "");
+                                const formatted = val ? (Number(val) / 100).toLocaleString('pt-BR', { minimumFractionDigits: 2 }) : "";
+                                setFormData({...formData, renda_mensal: formatted});
+                              }} 
+                              placeholder="0,00" 
+                           />
                          </div>
+                         {errors.renda_mensal && <p className="text-red-500 text-xs mt-1">{errors.renda_mensal}</p>}
                        </div>
                        <div className="space-y-1">
                          <Label>Patrimônio Estimado</Label>
                          <div className="relative">
                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">R$</span>
-                           <Input type="number" className="pl-9" value={formData.patrimonio} onChange={e => setFormData({...formData, patrimonio: e.target.value})} placeholder="0,00" />
+                           <Input 
+                              className="pl-9" 
+                              value={formData.patrimonio} 
+                              onChange={e => {
+                                const val = e.target.value.replace(/\D/g, "");
+                                const formatted = val ? (Number(val) / 100).toLocaleString('pt-BR', { minimumFractionDigits: 2 }) : "";
+                                setFormData({...formData, patrimonio: formatted});
+                              }} 
+                              placeholder="0,00" 
+                           />
                          </div>
                        </div>
                     </div>
