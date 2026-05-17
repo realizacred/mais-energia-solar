@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { Package, Plus, Search, Filter, ShoppingCart } from "lucide-react";
+import { Package, Plus, Search, Filter, ShoppingCart, UserCheck } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,6 +11,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useOrdensCompra, OrdemCompraStatus } from "@/hooks/useOrdensCompra";
 import { useFornecedoresNomes } from "@/hooks/useFornecedoresNomes";
 import { NovaOrdemDialog } from "./NovaOrdemDialog";
+import { VincularFornecedorModal } from "@/components/vendor/VincularFornecedorModal";
 import { formatBRL } from "@/lib/formatters";
 import { usePropostasProjetoTab } from "@/hooks/usePropostasProjetoTab";
 import { supabase } from "@/integrations/supabase/client";
@@ -47,6 +48,7 @@ export function SuprimentosListPage({ projetoId }: SuprimentosListPageProps) {
   const [fornecedorFilter, setFornecedorFilter] = useState<string>("all");
   const [busca, setBusca] = useState("");
   const [novaOrdemOpen, setNovaOrdemOpen] = useState(false);
+  const [vincularOpen, setVincularOpen] = useState(false);
 
   const filtros = {
     ...(statusFilter !== "all" ? { status: statusFilter as OrdemCompraStatus } : {}),
@@ -111,18 +113,28 @@ export function SuprimentosListPage({ projetoId }: SuprimentosListPageProps) {
               <p className="text-sm text-muted-foreground">Ordens de compra e acompanhamento de entregas</p>
             </div>
           </div>
-          <Button onClick={() => setNovaOrdemOpen(true)} className="gap-1.5 shrink-0">
-            <Plus className="h-4 w-4" /> Nova ordem
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => setVincularOpen(true)} className="gap-1.5 shrink-0 border-primary text-primary hover:bg-primary/5">
+              <UserCheck className="h-4 w-4" /> Vincular Fornecedor
+            </Button>
+            <Button onClick={() => setNovaOrdemOpen(true)} className="gap-1.5 shrink-0">
+              <Plus className="h-4 w-4" /> Nova ordem
+            </Button>
+          </div>
         </div>
       )}
 
       {projetoId && (
         <div className="flex items-center justify-between">
           <p className="text-sm text-muted-foreground">Ordens de compra deste projeto</p>
-          <Button size="sm" onClick={() => setNovaOrdemOpen(true)} className="gap-1.5">
-            <Plus className="h-4 w-4" /> Nova ordem
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={() => setVincularOpen(true)} className="gap-1.5 border-primary text-primary hover:bg-primary/5">
+              <UserCheck className="h-3.5 w-3.5" /> Vincular Fornecedor
+            </Button>
+            <Button size="sm" onClick={() => setNovaOrdemOpen(true)} className="gap-1.5">
+              <Plus className="h-4 w-4" /> Nova ordem
+            </Button>
+          </div>
         </div>
       )}
 
@@ -250,6 +262,19 @@ export function SuprimentosListPage({ projetoId }: SuprimentosListPageProps) {
         onOpenChange={setNovaOrdemOpen}
         defaultProjetoId={projetoId}
         prefilledItens={prefilledItens}
+      />
+
+      <VincularFornecedorModal
+        open={vincularOpen}
+        onOpenChange={setVincularOpen}
+        projetoId={projetoId || ""}
+        clienteNome={projetoId ? propostas?.[0]?.cliente_nome : "Vários"}
+        onSuccess={() => {
+          setVincularOpen(false);
+          // Query invalidation handled inside hook or via refetch
+          window.location.reload(); // Quick fix for full refresh on complex join
+        }}
+        onCancel={() => setVincularOpen(false)}
       />
 
     </div>
