@@ -162,15 +162,39 @@ export function FilePreviewModal({ target, onClose }: Props) {
           </Button>
         </DialogHeader>
         <div className="flex-1 min-h-0 bg-muted/30 overflow-auto">
-          {loading || !signedUrl ? (
+          {loading ? (
             <div className="flex items-center justify-center h-[60vh]">
-              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+              <div className="flex flex-col items-center gap-3">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                <p className="text-sm text-muted-foreground animate-pulse">Carregando arquivo...</p>
+              </div>
+            </div>
+          ) : errorState ? (
+            <div className="flex flex-col items-center justify-center py-20 text-center px-6">
+              <div className="w-16 h-16 rounded-lg bg-destructive/10 flex items-center justify-center mb-4">
+                <AlertCircle className="w-8 h-8 text-destructive" />
+              </div>
+              <h4 className="text-base font-bold text-foreground mb-1">Ops! Ocorreu um problema</h4>
+              <p className="text-sm text-muted-foreground max-w-xs mb-6">
+                {errorState}
+              </p>
+              <div className="flex flex-col sm:flex-row gap-3">
+                <Button onClick={onClose} variant="outline">Fechar</Button>
+                {errorState.includes("encontrado") && (
+                  <Button className="gap-2" onClick={() => {
+                    onClose();
+                    toast({ title: "Upload", description: "Use a aba de Documentos para fazer um novo upload." });
+                  }}>
+                    Fazer novo upload
+                  </Button>
+                )}
+              </div>
             </div>
           ) : kind === "pdf" ? (
-            <iframe src={signedUrl} className="w-full h-[75vh] border-0" title={target?.filename} />
+            <iframe src={signedUrl!} className="w-full h-[75vh] border-0" title={target?.filename} />
           ) : kind === "image" ? (
             <div className="flex items-center justify-center p-4 min-h-[40vh]">
-              <img src={signedUrl} alt={target?.filename} className="max-w-full max-h-[75vh] object-contain rounded" />
+              <img src={signedUrl!} alt={target?.filename} className="max-w-full max-h-[75vh] object-contain rounded shadow-lg" />
             </div>
           ) : (
             <div className="flex flex-col items-center justify-center py-16 text-center px-6">
