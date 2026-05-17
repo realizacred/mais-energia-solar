@@ -315,11 +315,11 @@ export function CreditAnalysisWizard({
   }, [checklist, formData.tipo_pessoa]);
 
   const valorTotalProjeto = useMemo(() => {
-    return (parseFloat(formData.kit_fotovoltaico || '0') + parseFloat(formData.mao_obra || '0'));
+    return (parseBRNumber(formData.kit_fotovoltaico || '0') + parseBRNumber(formData.mao_obra || '0'));
   }, [formData.kit_fotovoltaico, formData.mao_obra]);
 
   const valorFinanciado = useMemo(() => {
-    return valorTotalProjeto - parseFloat(formData.entrada || '0');
+    return valorTotalProjeto - parseBRNumber(formData.entrada || '0');
   }, [valorTotalProjeto, formData.entrada]);
 
   return (
