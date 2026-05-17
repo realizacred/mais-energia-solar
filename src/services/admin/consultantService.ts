@@ -6,7 +6,39 @@ export interface VendedorResolved {
   codigo: string | null;
 }
 
+export interface Vendedor {
+  id: string;
+  nome: string;
+  telefone: string | null;
+  email: string | null;
+  codigo: string | null;
+  slug: string | null;
+  ativo: boolean;
+  user_id: string | null;
+  created_at: string;
+  percentual_comissao: number | null;
+}
+
 export const consultantService = {
+  async fetchAll(): Promise<Vendedor[]> {
+    const { data, error } = await supabase
+      .from("consultores")
+      .select("id, nome, telefone, email, codigo, slug, ativo, user_id, created_at, percentual_comissao")
+      .order("nome");
+    if (error) throw error;
+    return (data || []) as Vendedor[];
+  },
+
+  async fetchActiveProfiles() {
+    const { data, error } = await supabase
+      .from("profiles")
+      .select("user_id, nome")
+      .eq("ativo", true)
+      .order("nome");
+    if (error) throw error;
+    return data || [];
+  },
+
   async resolveFromCode(codigo: string): Promise<VendedorResolved | null> {
     const { data, error } = await supabase.rpc("validate_consultor_code", {
       _codigo: codigo,
@@ -65,3 +97,4 @@ export const consultantService = {
     return (data as any)?.id ?? null;
   }
 };
+
