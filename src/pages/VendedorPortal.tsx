@@ -1,16 +1,15 @@
 import { lazy, Suspense, useMemo, Component, type ReactNode, type ErrorInfo } from "react";
 import { Routes, Route, Navigate, useLocation, useSearchParams } from "react-router-dom";
-import { Menu } from "lucide-react";
 import { LoadingState } from "@/components/ui-kit/LoadingState";
 import { useAuth } from "@/hooks/useAuth";
-import { SidebarProvider, SidebarTrigger, SidebarInset } from "@/components/ui/sidebar";
+import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 import { VendorSidebar } from "@/components/vendor/sidebar";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { useVendedorPortal } from "@/hooks/useVendedorPortal";
 import { VendorBottomNav } from "@/components/vendor/VendorBottomNav";
 import { useQueryClient } from "@tanstack/react-query";
-import { cn } from "@/lib/utils";
 import { InstallAppBanner } from "@/components/vendor/InstallAppBanner";
+import { VendedorHeader } from "@/components/vendor/portal";
 
 // Error boundary to prevent VendorBottomNav crashes from killing the whole portal
 class BottomNavErrorBoundary extends Component<{ children: ReactNode }, { hasError: boolean }> {
