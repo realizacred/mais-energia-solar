@@ -83,7 +83,9 @@ import { useRecibos } from "@/hooks/useRecibos";
 
 import { useOperationalStatus } from "@/hooks/useOperationalStatus";
 import { useFinancialSummary } from "@/hooks/useFinancialSummary";
+import { useDocumentsCount } from "@/hooks/useProjectDocuments";
 import { ProjetoFinancialBadges } from "./ProjetoFinancialBadges";
+
 interface PropostaNativa {
   id: string;
   titulo: string;
@@ -367,7 +369,7 @@ function ProjetoDetalheContent() {
     confirmConsultorId, setConfirmConsultorId, handleConfirmConsultor,
     lossDialogOpen, setLossDialogOpen, lossMotivo, setLossMotivo, lossObs, setLossObs, lossSaving,
     motivos, loadingMotivos, handleConfirmLoss,
-    isClosed, silentRefresh, refreshCustomer, formatDate, getStageNameById, tabBadge,
+    isClosed, silentRefresh, refreshCustomer, formatDate, getStageNameById, tabBadge: tabBadgeCtx,
     dealId, onBack, initialPipelineId,
   } = ctx;
 
