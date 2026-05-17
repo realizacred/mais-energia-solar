@@ -1,7 +1,7 @@
 // Lista de recibos vinculados a um projeto/cliente/deal e ações rápidas.
 // Reutilizado em ProjetoDetalhe e ClienteViewDialog.
 // SSOT: useRecibos. Sem duplicação de domínio.
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { format } from "date-fns";
 import { Receipt, FileText, Download, Send, RefreshCw, Trash2, Plus, History } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -17,6 +17,7 @@ import {
 } from "@/hooks/useRecibos";
 import { EmitirReciboModal } from "@/components/admin/documentos/EmitirReciboModal";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 const STATUS_LABEL: Record<Recibo["status"], string> = {
   emitido: "Emitido",
