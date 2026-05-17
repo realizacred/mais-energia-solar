@@ -195,6 +195,9 @@ export function useOrcamentosVendedor({
 
       if (mustFilterByVendedor) {
         if (vendedorId) {
+          // RB-76 Fix: Filter by both consultor_id (direct user ID) OR consultor_id in leads table
+          // Note: some leads might have consultores.id, others auth.users.id
+          // We apply the filter rigorously
           const q1 = applySearch(buildBase(terminalStatusIds).eq("consultor_id", vendedorId)).range(from, to);
           const r1 = await q1;
           if (r1.error) throw r1.error;
