@@ -8,6 +8,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -168,16 +169,33 @@ export function EmitirReciboModal({
   const [formaPagamento, setFormaPagamento] = useState<string>("");
   const [dataPagamento, setDataPagamento] = useState<string>(new Date().toISOString().slice(0, 10));
   const [instituicaoFinanceira, setInstituicaoFinanceira] = useState<string>("");
-  // BUG 4 — campos dinâmicos por forma de pagamento
+  
+  // Detalhes da Forma de Pagamento
+  const [pixChave, setPixChave] = useState<string>("");
   const [pixComprovante, setPixComprovante] = useState<string>("");
+  const [rastreio, setRastreio] = useState<string>("");
+  
   const [chequeBanco, setChequeBanco] = useState<string>("");
   const [chequeAgencia, setChequeAgencia] = useState<string>("");
   const [chequeConta, setChequeConta] = useState<string>("");
   const [chequeNumero, setChequeNumero] = useState<string>("");
+  const [chequeTitular, setChequeTitular] = useState<string>("");
+  const [chequeTitularCpf, setChequeTitularCpf] = useState<string>("");
+  const [isChequeTerceiro, setIsChequeTerceiro] = useState(false);
+  const [isChequePreDatado, setIsChequePreDatado] = useState(false);
+  const [chequeData, setChequeData] = useState<string>("");
+  const [chequeDataDeposito, setChequeDataDeposito] = useState<string>("");
+
   const [cartaoBandeira, setCartaoBandeira] = useState<string>("");
   const [cartaoParcelas, setCartaoParcelas] = useState<string>("1");
+  const [cartaoUltimosDigitos, setCartaoUltimosDigitos] = useState<string>("");
   const [cartaoNsu, setCartaoNsu] = useState<string>("");
+
+  const [boletoNumero, setBoletoNumero] = useState<string>("");
+  const [boletoVencimento, setBoletoVencimento] = useState<string>("");
+  const [boletoBanco, setBoletoBanco] = useState<string>("");
   const [boletoLinhaDigitavel, setBoletoLinhaDigitavel] = useState<string>("");
+
   const [dynFields, setDynFields] = useState<Record<string, string>>({});
   const [loadingContext, setLoadingContext] = useState(false);
   const [projectContext, setProjectContext] = useState<any>(null);
@@ -201,8 +219,14 @@ export function EmitirReciboModal({
       setTotalPagoHistorico(0);
       setUltimoNumeroRecibo(0);
       setInstituicaoFinanceira("");
-      setPixComprovante(""); setChequeBanco(""); setChequeAgencia(""); setChequeConta(""); setChequeNumero("");
-      setCartaoBandeira(""); setCartaoParcelas("1"); setCartaoNsu(""); setBoletoLinhaDigitavel("");
+      
+      // Reset campos específicos
+      setPixChave(""); setPixComprovante(""); setRastreio("");
+      setChequeBanco(""); setChequeAgencia(""); setChequeConta(""); setChequeNumero("");
+      setChequeTitular(""); setChequeTitularCpf(""); setIsChequeTerceiro(false);
+      setIsChequePreDatado(false); setChequeData(""); setChequeDataDeposito("");
+      setCartaoBandeira(""); setCartaoParcelas("1"); setCartaoUltimosDigitos(""); setCartaoNsu("");
+      setBoletoNumero(""); setBoletoVencimento(""); setBoletoBanco(""); setBoletoLinhaDigitavel("");
 
       if (defaultProjetoId) {
         setLoadingContext(true);
@@ -462,21 +486,73 @@ export function EmitirReciboModal({
 
   async function handleSubmit() {
     if (!canSubmit) return;
-    const camposExtras: Record<string, unknown> = { ...dynFields };
+    const camposExtras: Record<string, any> = { ...dynFields };
     if (instituicaoFinanceira) camposExtras["instituicao_financeira"] = instituicaoFinanceira;
-    if (formaPagamento === "PIX" && pixComprovante) camposExtras["pix_comprovante"] = pixComprovante;
+
+    // Metadados estruturados por forma de pagamento
+    if (formaPagamento === "PIX") {
+      camposExtras["pix"] = {
+        chave_pix: pixChave,
+        codigo_rastreio: rastreio,
+        comprovante: pixComprovante
+      };
+      // Aliases para variáveis de template
+      camposExtras["pix_chave"] = pixChave;
+      camposExtras["pix_comprovante"] = pixComprovante;
+    }
+
     if (formaPagamento === "Cheque") {
-      if (chequeBanco) camposExtras["cheque_banco"] = chequeBanco;
-      if (chequeAgencia) camposExtras["cheque_agencia"] = chequeAgencia;
-      if (chequeConta) camposExtras["cheque_conta"] = chequeConta;
-      if (chequeNumero) camposExtras["cheque_numero"] = chequeNumero;
+      camposExtras["cheque"] = {
+        banco: chequeBanco,
+        agencia: chequeAgencia,
+        conta: chequeConta,
+        numero: chequeNumero,
+        titular_nome: chequeTitular,
+        titular_cpf: chequeTitularCpf,
+        terceiro: isChequeTerceiro,
+        data_cheque: chequeData,
+        pre_datado: isChequePreDatado,
+        data_deposito: chequeDataDeposito,
+        valor: valor
+      };
+      // Aliases para variáveis de template
+      camposExtras["cheque_banco"] = chequeBanco;
+      camposExtras["cheque_numero"] = chequeNumero;
+      camposExtras["cheque_titular"] = chequeTitular;
+      camposExtras["cheque_data"] = chequeData;
     }
+
+    if (formaPagamento === "TED/DOC") {
+      camposExtras["transferencia"] = {
+        banco_origem: instituicaoFinanceira,
+        codigo_rastreio: rastreio,
+        comprovante: pixComprovante
+      };
+    }
+
     if (formaPagamento.startsWith("Cartão")) {
-      if (cartaoBandeira) camposExtras["cartao_bandeira"] = cartaoBandeira;
-      if (cartaoParcelas) camposExtras["cartao_parcelas"] = cartaoParcelas;
-      if (cartaoNsu) camposExtras["cartao_nsu"] = cartaoNsu;
+      camposExtras["cartao"] = {
+        bandeira: cartaoBandeira,
+        parcelas: cartaoParcelas,
+        ultimos_digitos: cartaoUltimosDigitos,
+        nsu: cartaoNsu,
+        valor_parcela: Number(cartaoParcelas) > 0 ? (Number(valor) / Number(cartaoParcelas)).toFixed(2) : valor
+      };
+      // Aliases para variáveis de template
+      camposExtras["cartao_bandeira"] = cartaoBandeira;
+      camposExtras["cartao_parcelas"] = cartaoParcelas;
+      camposExtras["cartao_valor_parcela"] = Number(cartaoParcelas) > 0 ? (Number(valor) / Number(cartaoParcelas)).toFixed(2) : valor;
+      camposExtras["cartao_ultimos_digitos"] = cartaoUltimosDigitos;
     }
-    if (formaPagamento === "Boleto" && boletoLinhaDigitavel) camposExtras["boleto_linha_digitavel"] = boletoLinhaDigitavel;
+
+    if (formaPagamento === "Boleto") {
+      camposExtras["boleto"] = {
+        numero: boletoNumero,
+        data_vencimento: boletoVencimento,
+        banco_emissor: boletoBanco,
+        linha_digitavel: boletoLinhaDigitavel
+      };
+    }
 
     try {
       // 1. Criar lançamento financeiro primeiro
@@ -492,7 +568,8 @@ export function EmitirReciboModal({
           data_lancamento: dataPagamento,
           status: 'confirmado',
           origem: 'recibo_emitido',
-          descricao: `Recibo: ${template?.nome || "Geral"}`
+          descricao: `Recibo: ${template?.nome || "Geral"}`,
+          metadata: camposExtras
         } as any)
         .select("id")
         .single();
@@ -663,58 +740,194 @@ export function EmitirReciboModal({
 
           {formaPagamento === "Financiamento" && (
             <div className="space-y-1.5 sm:col-span-2">
-              <Label className="text-xs">Instituição Financeira</Label>
+              <Label className="text-xs font-semibold">Instituição Financeira</Label>
               <Input value={instituicaoFinanceira} onChange={(e) => setInstituicaoFinanceira(e.target.value)} placeholder="Ex: EOS, BV, Santander..." />
             </div>
           )}
 
           {formaPagamento === "PIX" && (
-            <div className="space-y-1.5 sm:col-span-2">
-              <Label className="text-xs">ID / Comprovante do PIX</Label>
-              <Input value={pixComprovante} onChange={(e) => setPixComprovante(e.target.value)} placeholder="E2E ID ou nº do comprovante" />
+            <div className="sm:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold">Chave PIX do pagador</Label>
+                <Input value={pixChave} onChange={(e) => setPixChave(e.target.value)} placeholder="E-mail, CPF, Tel ou Chave" />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold text-muted-foreground italic">Código de Rastreio (opcional)</Label>
+                <Input value={rastreio} onChange={(e) => setRastreio(e.target.value)} placeholder="ID da transação" />
+              </div>
+              <div className="space-y-1.5 sm:col-span-2">
+                <Label className="text-xs font-semibold text-muted-foreground italic">ID / Comprovante do PIX (opcional)</Label>
+                <Input value={pixComprovante} onChange={(e) => setPixComprovante(e.target.value)} placeholder="E2E ID ou nº do comprovante" />
+              </div>
+            </div>
+          )}
+
+          {formaPagamento === "TED/DOC" && (
+            <div className="sm:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold">Banco de origem</Label>
+                <Input value={instituicaoFinanceira} onChange={(e) => setInstituicaoFinanceira(e.target.value)} placeholder="Nome do banco de origem" />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold text-muted-foreground italic">Código de Rastreio (opcional)</Label>
+                <Input value={rastreio} onChange={(e) => setRastreio(e.target.value)} placeholder="ID da transação" />
+              </div>
+              <div className="space-y-1.5 sm:col-span-2">
+                <Label className="text-xs font-semibold text-muted-foreground italic">ID / Comprovante (opcional)</Label>
+                <Input value={pixComprovante} onChange={(e) => setPixComprovante(e.target.value)} placeholder="Nº do comprovante" />
+              </div>
             </div>
           )}
 
           {formaPagamento === "Boleto" && (
-            <div className="space-y-1.5 sm:col-span-2">
-              <Label className="text-xs">Linha Digitável do Boleto</Label>
-              <Input value={boletoLinhaDigitavel} onChange={(e) => setBoletoLinhaDigitavel(e.target.value)} placeholder="00000.00000 00000.000000 00000.000000 0 00000000000000" />
+            <div className="sm:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold text-muted-foreground italic">Nº do boleto (opcional)</Label>
+                <Input value={boletoNumero} onChange={(e) => setBoletoNumero(e.target.value)} placeholder="Número do boleto" />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold text-muted-foreground italic">Banco emissor (opcional)</Label>
+                <Input value={boletoBanco} onChange={(e) => setBoletoBanco(e.target.value)} placeholder="Ex: Itaú, BB..." />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold text-muted-foreground italic">Data de vencimento (opcional)</Label>
+                <Input type="date" value={boletoVencimento} onChange={(e) => setBoletoVencimento(e.target.value)} />
+              </div>
+              <div className="space-y-1.5 sm:col-span-2">
+                <Label className="text-xs font-semibold text-muted-foreground italic">Linha Digitável do Boleto (opcional)</Label>
+                <Input value={boletoLinhaDigitavel} onChange={(e) => setBoletoLinhaDigitavel(e.target.value)} placeholder="00000.00000 00000.000000 00000.000000 0 00000000000000" />
+              </div>
             </div>
           )}
 
           {formaPagamento === "Cheque" && (
-            <div className="sm:col-span-2 grid grid-cols-2 gap-2">
-              <div className="space-y-1.5">
-                <Label className="text-xs">Banco</Label>
-                <Input value={chequeBanco} onChange={(e) => setChequeBanco(e.target.value)} placeholder="Ex: 341 - Itaú" />
+            <div className="sm:col-span-2 space-y-4 p-3 rounded-lg border bg-muted/20">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold">Banco *</Label>
+                  <Select value={chequeBanco} onValueChange={setChequeBanco}>
+                    <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Banco do Brasil">Banco do Brasil</SelectItem>
+                      <SelectItem value="Bradesco">Bradesco</SelectItem>
+                      <SelectItem value="Itaú">Itaú</SelectItem>
+                      <SelectItem value="Santander">Santander</SelectItem>
+                      <SelectItem value="Caixa">Caixa</SelectItem>
+                      <SelectItem value="Sicoob">Sicoob</SelectItem>
+                      <SelectItem value="Outro">Outro</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  {chequeBanco === "Outro" && (
+                    <Input className="mt-1.5" placeholder="Nome do banco" onChange={(e) => setChequeBanco(e.target.value)} />
+                  )}
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold">Nº do Cheque *</Label>
+                  <Input value={chequeNumero} onChange={(e) => setChequeNumero(e.target.value)} placeholder="000123" />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold">Agência *</Label>
+                  <Input value={chequeAgencia} onChange={(e) => setChequeAgencia(e.target.value)} placeholder="0000" />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold">Conta *</Label>
+                  <Input value={chequeConta} onChange={(e) => setChequeConta(e.target.value)} placeholder="00000-0" />
+                </div>
               </div>
+
               <div className="space-y-1.5">
-                <Label className="text-xs">Nº do Cheque</Label>
-                <Input value={chequeNumero} onChange={(e) => setChequeNumero(e.target.value)} placeholder="000123" />
+                <Label className="text-xs font-semibold">Nome do titular *</Label>
+                <Input value={chequeTitular} onChange={(e) => setChequeTitular(e.target.value)} placeholder="Nome completo do titular" />
               </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs">Agência</Label>
-                <Input value={chequeAgencia} onChange={(e) => setChequeAgencia(e.target.value)} placeholder="0000" />
+
+              <div className="flex items-center justify-between gap-2 p-2 rounded-md bg-background/50 border">
+                <div className="space-y-0.5">
+                  <Label className="text-xs font-semibold">É de terceiro?</Label>
+                  <p className="text-[10px] text-muted-foreground">O cheque pertence a outra pessoa</p>
+                </div>
+                <Switch checked={isChequeTerceiro} onCheckedChange={setIsChequeTerceiro} />
               </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs">Conta</Label>
-                <Input value={chequeConta} onChange={(e) => setChequeConta(e.target.value)} placeholder="00000-0" />
+
+              {isChequeTerceiro && (
+                <div className="space-y-1.5 animate-in slide-in-from-top-1 duration-200">
+                  <Label className="text-xs font-semibold">CPF do titular *</Label>
+                  <Input value={chequeTitularCpf} onChange={(e) => setChequeTitularCpf(e.target.value)} placeholder="000.000.000-00" />
+                </div>
+              )}
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold">Data do cheque *</Label>
+                  <Input type="date" value={chequeData} onChange={(e) => setChequeData(e.target.value)} />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold text-muted-foreground italic">Valor (readonly)</Label>
+                  <Input readOnly value={new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(valor || 0))} className="bg-muted" />
+                </div>
               </div>
+
+              <div className="flex items-center justify-between gap-2 p-2 rounded-md bg-background/50 border">
+                <div className="space-y-0.5">
+                  <Label className="text-xs font-semibold">Pré-datado?</Label>
+                  <p className="text-[10px] text-muted-foreground">Data para depósito posterior</p>
+                </div>
+                <Switch checked={isChequePreDatado} onCheckedChange={setIsChequePreDatado} />
+              </div>
+
+              {isChequePreDatado && (
+                <div className="space-y-1.5 animate-in slide-in-from-top-1 duration-200">
+                  <Label className="text-xs font-semibold">Data para depósito *</Label>
+                  <Input type="date" value={chequeDataDeposito} onChange={(e) => setChequeDataDeposito(e.target.value)} />
+                </div>
+              )}
             </div>
           )}
 
           {(formaPagamento === "Cartão de Crédito" || formaPagamento === "Cartão de Débito") && (
-            <div className="sm:col-span-2 grid grid-cols-3 gap-2">
-              <div className="space-y-1.5">
-                <Label className="text-xs">Bandeira</Label>
-                <Input value={cartaoBandeira} onChange={(e) => setCartaoBandeira(e.target.value)} placeholder="Visa, Master..." />
+            <div className="sm:col-span-2 space-y-4 p-3 rounded-lg border bg-muted/20">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold">Bandeira *</Label>
+                  <Select value={cartaoBandeira} onValueChange={setCartaoBandeira}>
+                    <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Visa">Visa</SelectItem>
+                      <SelectItem value="Mastercard">Mastercard</SelectItem>
+                      <SelectItem value="Elo">Elo</SelectItem>
+                      <SelectItem value="Amex">Amex</SelectItem>
+                      <SelectItem value="Hipercard">Hipercard</SelectItem>
+                      <SelectItem value="Outro">Outro</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                {formaPagamento === "Cartão de Crédito" && (
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-semibold">Nº de parcelas *</Label>
+                    <Select value={cartaoParcelas} onValueChange={setCartaoParcelas}>
+                      <SelectTrigger><SelectValue placeholder="1x" /></SelectTrigger>
+                      <SelectContent>
+                        {Array.from({ length: 18 }, (_, i) => i + 1).map((n) => (
+                          <SelectItem key={n} value={String(n)}>{n}x</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
               </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs">{formaPagamento === "Cartão de Crédito" ? "Parcelas" : "Parcelas (1)"}</Label>
-                <Input type="number" min={1} max={formaPagamento === "Cartão de Crédito" ? 24 : 1} value={cartaoParcelas} onChange={(e) => setCartaoParcelas(e.target.value)} disabled={formaPagamento === "Cartão de Débito"} />
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold text-muted-foreground italic">Valor da parcela</Label>
+                  <Input readOnly value={new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(valor || 0) / (Number(cartaoParcelas) || 1))} className="bg-muted" />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold text-muted-foreground italic">Últimos 4 dígitos</Label>
+                  <Input maxLength={4} value={cartaoUltimosDigitos} onChange={(e) => setCartaoUltimosDigitos(e.target.value)} placeholder="0000" />
+                </div>
               </div>
+              
               <div className="space-y-1.5">
-                <Label className="text-xs">NSU / Autorização</Label>
+                <Label className="text-xs font-semibold text-muted-foreground italic">NSU / Código de Autorização</Label>
                 <Input value={cartaoNsu} onChange={(e) => setCartaoNsu(e.target.value)} placeholder="000000" />
               </div>
             </div>

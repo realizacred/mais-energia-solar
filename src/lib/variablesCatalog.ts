@@ -1312,6 +1312,23 @@ export const VARIABLES_CATALOG: CatalogVariable[] = [
   v("pagamento", "pagamento.total", "pagamento_total", "Valor Total Pagamento", "Valor total do sistema para pagamento", "R$", "R$ 45.000,00", "BT e MT", { escopo: "documento" }),
   v("pagamento", "pagamento.parcelas", "pagamento_parcelas", "Parcelas (legacy)", "Número de parcelas (alias de pagamento_parcelas_quantidade)", "UN", "12", "BT e MT", { escopo: "documento" }),
   v("pagamento", "pagamento.valor_parcela", "pagamento_valor_parcela", "Valor Parcela (legacy)", "Valor de cada parcela (alias de pagamento_parcelas_valor)", "R$", "R$ 850,00", "BT e MT", { escopo: "documento" }),
+  
+  // ── Cheque ──
+  v("pagamento", "pagamento.cheque_banco", "pagamento_cheque_banco", "Banco do Cheque", "Nome do banco emissor do cheque", "-", "Bradesco", "BT e MT", { escopo: "documento" }),
+  v("pagamento", "pagamento.cheque_numero", "pagamento_cheque_numero", "Nº do Cheque", "Número de identificação do cheque", "-", "000123", "BT e MT", { escopo: "documento" }),
+  v("pagamento", "pagamento.cheque_titular", "pagamento_cheque_titular", "Titular do Cheque", "Nome impresso no cheque (titular)", "-", "João Silva", "BT e MT", { escopo: "documento" }),
+  v("pagamento", "pagamento.cheque_data", "pagamento_cheque_data", "Data do Cheque", "Data de emissão/depósito do cheque", "data", "15/05/2026", "BT e MT", { escopo: "documento" }),
+  
+  // ── PIX ──
+  v("pagamento", "pagamento.pix_chave", "pagamento_pix_chave", "Chave PIX", "Chave PIX utilizada para o pagamento", "-", "contato@empresa.com", "BT e MT", { escopo: "documento" }),
+  
+  // ── Cartão ──
+  v("pagamento", "pagamento.cartao_bandeira", "pagamento_cartao_bandeira", "Bandeira do Cartão", "Bandeira (Visa, Master, etc.)", "-", "Visa", "BT e MT", { escopo: "documento" }),
+  v("pagamento", "pagamento.cartao_parcelas", "pagamento_cartao_parcelas", "Parcelas no Cartão", "Número de parcelas no cartão", "UN", "10", "BT e MT", { escopo: "documento" }),
+  v("pagamento", "pagamento.cartao_valor_parcela", "pagamento_cartao_valor_parcela", "Valor da Parcela no Cartão", "Valor de cada parcela no cartão", "R$", "R$ 450,00", "BT e MT", { escopo: "documento" }),
+  v("pagamento", "pagamento.cartao_ultimos_digitos", "pagamento_cartao_ultimos_digitos", "Últimos 4 Dígitos do Cartão", "Últimos 4 dígitos para controle", "-", "4242", "BT e MT", { escopo: "documento" }),
+
+
   v("financeiro", "financeiro.saldo_devedor", "saldo_devedor", "Saldo Devedor", "Quanto falta pagar (considerando recibos emitidos)", "R$", "R$ 10.450,00", "BT e MT", { escopo: "documento" }),
 
   // ── Garantia de Serviço ──
