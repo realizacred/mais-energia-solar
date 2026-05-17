@@ -180,6 +180,7 @@ const FiscalPage = lazy(() => import("@/components/admin/fiscal/FiscalPage"));
 const RolePermissionsManager = lazy(() => import("@/components/admin/RolePermissionsManager").then(m => ({ default: m.RolePermissionsManager })));
 const WaHealthDashboard = lazy(() => import("@/pages/admin/WaHealthDashboard"));
 const AuditoriaTelefonesPage = lazy(() => import("@/pages/admin/AuditoriaTelefonesPage"));
+const NotificacoesConfigPage = lazy(() => import("@/pages/admin/configuracoes/NotificacoesConfigPage"));
 const WaSaudePage = lazy(() => import("@/pages/admin/WaSaudePage"));
 const WhatsappInstanciasPage = lazy(() => import("@/pages/admin/integracoes/whatsapp/WhatsappInstanciasPage"));
 const WhatsappIaResolucaoPage = lazy(() => import("@/pages/admin/integracoes/whatsapp/WhatsappIaResolucaoPage"));
