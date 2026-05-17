@@ -293,17 +293,17 @@ import { useRef } from "react";
                <span className="value">{descricaoRecebimento || "Pagamento de serviços"}</span>
              </div>
              
-             <div className="info-row flex justify-between py-2 border-b border-dashed border-muted-foreground/30">
-               <span className="label font-semibold text-muted-foreground">Forma de Pagamento:</span>
-               <span className="value">{FORMAS_PAGAMENTO[pagamento.forma_pagamento] || pagamento.forma_pagamento}</span>
-             </div>
-             
-             <div className="info-row flex justify-between py-2 border-b border-dashed border-muted-foreground/30">
-               <span className="label font-semibold text-muted-foreground">Data:</span>
-               <span className="value">
-                 {format(new Date(pagamento.data_pagamento), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
-               </span>
-             </div>
+              <div className="info-row flex justify-between py-2 border-b border-dashed border-muted-foreground/30">
+                <span className="label font-semibold text-muted-foreground">Forma de Pagamento:</span>
+                <span className="value">{formatNameCapitalize(pagamento.forma_pagamento)}</span>
+              </div>
+              
+              <div className="info-row flex justify-between py-2 border-b border-dashed border-muted-foreground/30">
+                <span className="label font-semibold text-muted-foreground">Data:</span>
+                <span className="value">
+                  {formatDate(pagamento.data_pagamento)}
+                </span>
+              </div>
  
              {pagamento.observacoes && (
                <div className="info-row flex justify-between py-2 border-b border-dashed border-muted-foreground/30">
