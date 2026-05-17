@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, useRef } from "react";
+import { useEffect, useMemo, useState, useRef, useCallback } from "react";
 import { Loader2, Send, FileText, Calculator, Landmark, ShieldCheck, History, Trash2, Download, RefreshCw, AlertCircle } from "lucide-react";
 import {
   Dialog,
@@ -27,9 +27,11 @@ import type { DocumentTemplate, FormFieldSchema } from "./types";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
-import { formatBRL, formatDateTime, formatNameCapitalize } from "@/lib/formatters/index";
+import { formatBRL, formatDateTime, formatNameCapitalize, formatNumberBR } from "@/lib/formatters/index";
 import { formatCpfCnpj } from "@/lib/formatters/index";
 import { toast } from "sonner";
+import { CurrencyInput } from "@/components/ui-kit/inputs/CurrencyInput";
+import { CpfCnpjInput } from "@/components/shared/CpfCnpjInput";
 
 interface EmitirReciboModalProps {
   open: boolean;
@@ -162,7 +164,7 @@ export function EmitirReciboModal({
   const [templateId, setTemplateId] = useState<string>("");
   const [clienteId, setClienteId] = useState<string>(defaultClienteId ?? "");
   const [projetoId, setProjetoId] = useState<string | null>(defaultProjetoId ?? null);
-  const [valor, setValor] = useState<string>("");
+  const [valor, setValor] = useState<number>(0);
   const [descricao, setDescricao] = useState<string>("");
   const [numero, setNumero] = useState<string>("");
   const [formaPagamento, setFormaPagamento] = useState<string>("");
@@ -207,7 +209,7 @@ export function EmitirReciboModal({
       setTemplateId("");
       setClienteId(defaultClienteId ?? "");
       setProjetoId(defaultProjetoId ?? null);
-      setValor("");
+      setValor(0);
       setDescricao("");
       setNumero("");
       setFormaPagamento("");
@@ -371,11 +373,11 @@ export function EmitirReciboModal({
     const nome = template.nome.toLowerCase();
     if (nome.includes("sinal")) {
       const sugerido = valorTotalVenda * 0.3;
-      setValor(sugerido.toFixed(2));
+      setValor(sugerido);
       setDescricao("Sinal referente ao contrato de instalação solar");
       setNumero(""); // Sinal geralmente é o primeiro
     } else if (nome.includes("quitação") || nome.includes("quitacao")) {
-      setValor(saldoDevedorAtual.toFixed(2));
+      setValor(saldoDevedorAtual);
       setDescricao("Quitação do contrato de instalação solar");
     } else if (nome.includes("parcela")) {
       setDescricao(`Parcela do contrato de instalação solar`);
@@ -383,8 +385,6 @@ export function EmitirReciboModal({
     }
   }, [template, valorTotalVenda, saldoDevedorAtual, ultimoNumeroRecibo]);
 
-  // Auto-fill dynamic fields. Roda assim que houver projectContext/proposalContext,
-  // e re-aplica quando um template é selecionado depois.
   useEffect(() => {
     if (!projectContext && !proposalContext) return;
 
@@ -397,7 +397,7 @@ export function EmitirReciboModal({
     const opcao = proposalContext?.opcao;
 
     const has = (key: string, ...tokens: string[]) =>
-      tokens.some((t) => key.includes(t));
+      tokens.some((t) => key.toLowerCase().includes(t));
 
     schema.forEach((field) => {
       const key = field.key.toLowerCase();
@@ -407,7 +407,7 @@ export function EmitirReciboModal({
           updates[field.key] = cliente.nome || "";
         }
         if (has(key, "cpf", "cnpj", "documento")) {
-          updates[field.key] = cliente.cpf_cnpj || "";
+          updates[field.key] = formatCpfCnpj(cliente.cpf_cnpj || "");
         }
         if (key === "email" || has(key, "e_mail", "email_cliente")) {
           updates[field.key] = cliente.email || "";
@@ -424,13 +424,24 @@ export function EmitirReciboModal({
       }
 
       if (has(key, "valor_total", "valor_venda", "valor_projeto", "valor_proposta")) {
-        const v = versao?.valor_total ?? projectContext?.valor_total;
-        if (v) updates[field.key] = String(v);
+        updates[field.key] = formatBRL(valorTotalVenda);
       }
 
       if (has(key, "potencia", "kwp")) {
         const p = versao?.potencia_kwp ?? projectContext?.potencia_kwp;
         if (p) updates[field.key] = String(p);
+      }
+
+      if (has(key, "valor_recibo", "valor_do_recibo")) {
+        updates[field.key] = formatBRL(valor);
+      }
+      
+      if (has(key, "saldo_devedor", "saldo_restante")) {
+        updates[field.key] = formatBRL(saldoRestanteAposRecibo);
+      }
+
+      if (has(key, "data_pagamento", "data_do_pagamento")) {
+        updates[field.key] = dataPagamento ? new Date(dataPagamento + 'T12:00:00').toLocaleDateString('pt-BR') : "";
       }
 
       // Parcelas (total)
@@ -452,26 +463,30 @@ export function EmitirReciboModal({
     if (Object.keys(updates).length > 0) {
       setDynFields((prev) => {
         const merged = { ...prev };
-        // Não sobrescreve valor já editado pelo usuário
+        // RB-83: Sempre sincroniza campos derivados (valor, saldo, data, cpf) para garantir formatação
         for (const k of Object.keys(updates)) {
-          if (!merged[k]) merged[k] = updates[k];
+          const lowerK = k.toLowerCase();
+          const isDerived = has(lowerK, "valor", "saldo", "total", "data", "cpf", "cnpj");
+          if (!merged[k] || isDerived) {
+            merged[k] = updates[k];
+          }
         }
         return merged;
       });
     }
 
-    // Auto-fill specialized fields for receipts
     if (template?.subcategoria) {
       setDynFields(prev => {
         const merged = { ...prev };
-        merged["valor_recibo"] = valor;
+        merged["valor_recibo"] = formatBRL(valor);
         merged["numero_recibo"] = numero || (ultimoNumeroRecibo + 1).toString();
-        merged["saldo_devedor"] = saldoRestanteAposRecibo.toFixed(2);
-        merged["projeto_valor_total"] = valorTotalVenda.toFixed(2);
+        merged["saldo_devedor"] = formatBRL(saldoRestanteAposRecibo);
+        merged["projeto_valor_total"] = formatBRL(valorTotalVenda);
+        merged["data_pagamento"] = dataPagamento ? new Date(dataPagamento + 'T12:00:00').toLocaleDateString('pt-BR') : "";
         return merged;
       });
     }
-  }, [template, projectContext, proposalContext, valor, numero, ultimoNumeroRecibo, saldoRestanteAposRecibo, valorTotalVenda]);
+  }, [template, projectContext, proposalContext, valor, numero, ultimoNumeroRecibo, saldoRestanteAposRecibo, valorTotalVenda, dataPagamento]);
 
 
 
@@ -698,15 +713,13 @@ export function EmitirReciboModal({
           </div>
 
           <div className="space-y-1.5">
-            <Label className="text-xs">Valor deste Recibo (R$)</Label>
-            <Input
-              type="number" step="0.01" min="0"
+            <Label className="text-xs font-semibold">Valor deste Recibo *</Label>
+            <CurrencyInput
               value={valor}
-              onChange={(e) => setValor(e.target.value)}
-              placeholder="0,00"
-              className={cn(Number(valor) > saldoDevedorAtual + 0.01 && "border-destructive text-destructive")}
+              onChange={(val) => setValor(val)}
+              className={cn(valor > saldoDevedorAtual + 0.01 && "border-destructive text-destructive")}
             />
-            {Number(valor) > saldoDevedorAtual + 0.01 && (
+            {valor > saldoDevedorAtual + 0.01 && (
               <p className="text-[10px] text-destructive font-medium italic">Valor maior que o saldo devedor!</p>
             )}
           </div>
@@ -962,7 +975,19 @@ export function EmitirReciboModal({
                     <Label className="text-xs">
                       {f.label}{f.required && <span className="text-destructive"> *</span>}
                     </Label>
-                    {f.type === "textarea" ? (
+                    {f.key.toLowerCase().includes("cpf") || f.key.toLowerCase().includes("cnpj") ? (
+                      <CpfCnpjInput
+                        value={dynFields[f.key] ?? ""}
+                        onChange={(val) => setDynFields((p) => ({ ...p, [f.key]: val }))}
+                        label=""
+                        showValidation={false}
+                      />
+                    ) : f.type === "currency" || f.key.toLowerCase().includes("valor") || f.key.toLowerCase().includes("saldo") ? (
+                      <CurrencyInput
+                        value={Number(dynFields[f.key]?.replace(/[^\d,.-]/g, "").replace(",", ".") || 0)}
+                        onChange={(val) => setDynFields((p) => ({ ...p, [f.key]: formatBRL(val) }))}
+                      />
+                    ) : f.type === "textarea" ? (
                       <Textarea
                         value={dynFields[f.key] ?? ""}
                         onChange={(e) => setDynFields((p) => ({ ...p, [f.key]: e.target.value }))}
@@ -983,8 +1008,7 @@ export function EmitirReciboModal({
                       </Select>
                     ) : (
                       <Input
-                        type={f.type === "number" || f.type === "currency" ? "number" : f.type === "date" ? "date" : "text"}
-                        step={f.type === "currency" ? "0.01" : undefined}
+                        type={f.type === "number" ? "number" : f.type === "date" ? "date" : "text"}
                         value={dynFields[f.key] ?? ""}
                         onChange={(e) => setDynFields((p) => ({ ...p, [f.key]: e.target.value }))}
                         placeholder={f.placeholder}
@@ -994,6 +1018,8 @@ export function EmitirReciboModal({
                   </div>
                 ))}
               </div>
+            </div>
+          )}
           {defaultProjetoId && (
             <div className="sm:col-span-2 border-t pt-4 space-y-4">
               <h4 className="font-bold flex items-center gap-2 text-sm uppercase tracking-wider text-muted-foreground">
@@ -1001,8 +1027,6 @@ export function EmitirReciboModal({
               </h4>
               <ReciboHistoryList projetoId={defaultProjetoId} />
             </div>
-          )}
-        </div>
           )}
         </div>
 
