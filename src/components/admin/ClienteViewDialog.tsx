@@ -218,6 +218,7 @@ export function ClienteViewDialog({ cliente, open, onOpenChange }: ClienteViewDi
       queryClient.invalidateQueries({ queryKey: ["cliente-projetos", cliente.id] });
       queryClient.invalidateQueries({ queryKey: ["cliente-propostas", cliente.id] });
       queryClient.invalidateQueries({ queryKey: ["cliente-proposta-versoes"] });
+      queryClient.invalidateQueries({ queryKey: ["cliente-project-documents", cliente.id] });
     }
   }, [open, cliente?.id, queryClient]);
 
