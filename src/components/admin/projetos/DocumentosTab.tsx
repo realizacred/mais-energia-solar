@@ -544,6 +544,8 @@ export function DocumentosTab({ dealId, clienteTelefone, consultorTelefone: cons
       <SignatureModal
         open={!!signConfirmDoc}
         onClose={() => setSignConfirmDoc(null)}
+        doc={signConfirmDoc}
+        dealId={dealId}
         onSend={handleSendForSignature}
         isPending={signMutation.isPending}
       />
