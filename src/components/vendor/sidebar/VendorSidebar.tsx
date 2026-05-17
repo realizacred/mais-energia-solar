@@ -260,7 +260,11 @@ export function VendorSidebar({
             )}
           </div>
         )}
-        {!collapsed && <PortalSwitcher className="w-full justify-start h-11 px-3 rounded-xl hover:bg-sidebar-accent/50 text-muted-foreground hover:text-foreground font-bold text-xs uppercase tracking-wide transition-all" />}
+        {!collapsed && (
+          <div className="portal-switcher-wrapper px-1">
+            <PortalSwitcher />
+          </div>
+        )}
         <Button
           variant="ghost"
           size={collapsed ? "icon" : "default"}
