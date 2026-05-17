@@ -459,10 +459,10 @@ export function DocumentosTab({ dealId, clienteTelefone, consultorTelefone: cons
                                   </Button>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="end">
-                                  <DropdownMenuItem onClick={() => enviarWhatsApp(doc, "cliente")} className="gap-2">
+                                  <DropdownMenuItem onClick={() => setWaSendDoc({ doc, target: "cliente" })} className="gap-2">
                                     Enviar para Cliente
                                   </DropdownMenuItem>
-                                  <DropdownMenuItem onClick={() => enviarWhatsApp(doc, "consultor")} className="gap-2">
+                                  <DropdownMenuItem onClick={() => setWaSendDoc({ doc, target: "consultor" })} className="gap-2">
                                     Enviar para Consultor
                                   </DropdownMenuItem>
                                 </DropdownMenuContent>
