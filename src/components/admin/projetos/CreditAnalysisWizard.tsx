@@ -65,7 +65,7 @@ interface Props {
   valorReferencia?: number | null;
 }
 
-type Step = 1 | 2 | 3 | 4;
+type Step = 1 | 2 | 3 | 4 | 5;
 
 export function CreditAnalysisWizard({ 
   isOpen, 
