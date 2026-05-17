@@ -107,18 +107,18 @@ import * as XLSX from 'xlsx';
  * Substitui: nenhum (evolução do existente)
  */
 
-const getEosStatusColor = (status: string) => {
-  const map: Record<string, string> = {
-    em_andamento: "bg-blue-500/10 text-blue-500 border-blue-500/20",
-    em_analise: "bg-amber-500/10 text-amber-500 border-amber-500/20",
-    pre_aprovada: "bg-teal-500/10 text-teal-500 border-teal-500/20",
-    formalizacao: "bg-purple-500/10 text-purple-500 border-purple-500/20",
-    paga: "bg-emerald-500/10 text-emerald-500 border-emerald-500/20",
-    recusada: "bg-destructive/10 text-destructive border-destructive/20",
-    cancelada: "bg-slate-500/10 text-slate-500 border-slate-500/20",
-    simulacao: "bg-blue-500/10 text-blue-500 border-blue-500/20"
+const getEosStatusConfig = (status: string) => {
+  const map: Record<string, { label: string, color: string }> = {
+    em_andamento: { label: "Em andamento", color: "bg-blue-500/10 text-blue-500 border-blue-500/20" },
+    em_analise: { label: "Em análise", color: "bg-amber-500/10 text-amber-500 border-amber-500/20" },
+    pre_aprovada: { label: "Pré-aprovada", color: "bg-teal-500/10 text-teal-500 border-teal-500/20" },
+    formalizacao: { label: "Formalização", color: "bg-purple-500/10 text-purple-500 border-purple-500/20" },
+    paga: { label: "Paga", color: "bg-emerald-500/10 text-emerald-500 border-emerald-100" },
+    recusada: { label: "Recusada", color: "bg-destructive/10 text-destructive border-destructive/20" },
+    cancelada: { label: "Cancelada", color: "bg-slate-500/10 text-slate-500 border-slate-500/20" },
+    simulacao: { label: "Simulação", color: "bg-blue-500/10 text-blue-500 border-blue-500/20" }
   };
-  return map[status] || "bg-slate-500/10 text-slate-500 border-slate-500/20";
+  return map[status] || { label: status || 'Pendente', color: "bg-slate-500/10 text-slate-500 border-slate-500/20" };
 };
 
 export default function CreditGlobalArea() {
@@ -656,8 +656,8 @@ export default function CreditGlobalArea() {
                       </TableCell>
                       <TableCell>
                         {analysis.eos_proposta_protocolo ? (
-                          <Badge variant="outline" className={cn("capitalize", getEosStatusColor(analysis.eos_status))}>
-                            {analysis.eos_status?.replace('_', ' ') || 'Pendente'}
+                          <Badge variant="outline" className={cn(getEosStatusConfig(analysis.eos_status).color)}>
+                            {getEosStatusConfig(analysis.eos_status).label}
                           </Badge>
                         ) : (
                           <span className="text-muted-foreground">-</span>
@@ -809,8 +809,8 @@ export default function CreditGlobalArea() {
                       </div>
                       <div className="space-y-1">
                         <label className="text-[10px] uppercase text-muted-foreground">Status EOS</label>
-                        <Badge variant="outline" className={cn("capitalize text-[10px]", getEosStatusColor(selectedAnalysis.eos_status))}>
-                          {selectedAnalysis.eos_status?.replace('_', ' ') || 'Sincronizando...'}
+                        <Badge variant="outline" className={cn("text-[10px]", getEosStatusConfig(selectedAnalysis.eos_status).color)}>
+                          {getEosStatusConfig(selectedAnalysis.eos_status).label}
                         </Badge>
                       </div>
                     </div>
