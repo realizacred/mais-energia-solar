@@ -85,5 +85,10 @@ export const leadService = {
       .eq("id", id);
 
     if (error) throw error;
+  },
+
+  async insert(data: any) {
+    const { error } = await supabase.from("leads").insert(data);
+    if (error) throw error;
   }
 };
