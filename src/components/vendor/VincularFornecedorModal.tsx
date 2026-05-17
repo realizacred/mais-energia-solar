@@ -78,6 +78,8 @@ export function VincularFornecedorModal({
       });
 
       toast({ title: "Fornecedor vinculado e etapa avançada!" });
+      // Notifica outros componentes que uma ordem foi criada
+      window.dispatchEvent(new CustomEvent('ordem-compra-criada'));
       onSuccess();
       onOpenChange(false);
       resetForm();
