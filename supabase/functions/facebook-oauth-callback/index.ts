@@ -82,9 +82,15 @@ Deno.serve(async (req) => {
     const expiresIn = longTokenData.expires_in; // in seconds
     const expiresAt = expiresIn 
       ? new Date(Date.now() + expiresIn * 1000).toISOString()
-      : new Date(Date.now() + 59 * 24 * 60 * 60 * 1000).toISOString(); // Default to 59 days if not provided
+      : new Date(Date.now() + 59 * 24 * 60 * 60 * 1000).toISOString();
+
+    // 2.5 Fetch user name
+    const userResponse = await fetch(`https://graph.facebook.com/v18.0/me?access_token=${longToken}&fields=name`);
+    const userData = await userResponse.json();
+    const userName = userData.name || "Conta Facebook";
 
     // 3. Save to database
+
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
@@ -98,8 +104,10 @@ Deno.serve(async (req) => {
         token_type: 'long_lived',
         expires_at: expiresAt,
         status: 'connected',
+        connected_account_name: userName,
         connected_at: new Date().toISOString(),
       }, { onConflict: 'tenant_id' });
+
 
     if (dbError) {
       console.error("Database Save Error:", dbError);
