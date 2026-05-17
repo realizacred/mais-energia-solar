@@ -628,6 +628,15 @@ export default function CreditGlobalArea() {
                           {analysis.status}
                         </Badge>
                       </TableCell>
+                      <TableCell>
+                        {analysis.eos_proposta_protocolo ? (
+                          <Badge variant="outline" className={cn("capitalize", getEosStatusColor(analysis.eos_status))}>
+                            {analysis.eos_status?.replace('_', ' ') || 'Pendente'}
+                          </Badge>
+                        ) : (
+                          <span className="text-muted-foreground">-</span>
+                        )}
+                      </TableCell>
                       <TableCell className="text-xs text-muted-foreground">
                         {format(new Date(analysis.created_at), "dd/MM/yy")}
                       </TableCell>
