@@ -397,6 +397,57 @@ export function ProjetoMultiPipelineManager({ dealId, dealStatus, pipelines, all
       // Don't setSaving(null) yet if we are proceeding
     }
 
+    // Interceptor: Pedido Efetuado
+    const stageName = newStage?.name?.toLowerCase() || "";
+    const isPedidoEfetuado = stageName.includes('pedido efetuado');
+    const isPedidoPago = stageName.includes('pedido pago');
+
+    if (isPedidoEfetuado) {
+      const { data: ordens } = await supabase
+        .from('ordens_compra')
+        .select('id, fornecedor_id, fornecedores(nome)')
+        .eq('projeto_id', dealId)
+        .limit(1);
+
+      if (ordens && ordens.length > 0) {
+        const confirmar = window.confirm(
+          `Fornecedor ${ordens[0].fornecedores?.nome} já vinculado.\nConfirmar avanço para "${newStage?.name}"?`
+        );
+        if (!confirmar) {
+          setSaving(null);
+          return;
+        }
+      } else {
+        setFornecedorModal({
+          projetoId: dealId,
+          etapaId: newStageId,
+          etapaNome: newStage?.name || "",
+          membershipId
+        });
+        setSaving(null);
+        return;
+      }
+    }
+
+    // Validação: Pedido Pago sem ordem
+    if (isPedidoPago) {
+      const { data: ordens } = await supabase
+        .from('ordens_compra')
+        .select('id')
+        .eq('projeto_id', dealId)
+        .limit(1);
+
+      if (!ordens || ordens.length === 0) {
+        toast({
+          title: "Ação bloqueada",
+          description: 'Registre o fornecedor em "Pedido Efetuado" antes de avançar.',
+          variant: "destructive"
+        });
+        setSaving(null);
+        return;
+      }
+    }
+
     setSaving(membershipId);
     try {
       const { error } = await supabase
@@ -404,6 +455,36 @@ export function ProjetoMultiPipelineManager({ dealId, dealStatus, pipelines, all
         .update({ stage_id: newStageId })
         .eq("id", membershipId);
       if (error) throw error;
+
+      // Sincronizar status da ordem com a etapa do funil de Equipamento
+      if (membership?.pipeline_name.toLowerCase().includes('equipamento') || membership?.pipeline_name.toLowerCase().includes('suprimentos')) {
+        let novoStatus: string | null = null;
+        if (stageName.includes('pedido efetuado')) novoStatus = 'pedido_efetuado';
+        else if (stageName.includes('pedido pago')) novoStatus = 'deposito_pago';
+        else if (stageName.includes('depósito')) novoStatus = 'deposito_confirmado';
+        else if (stageName.includes('cliente')) novoStatus = 'entregue_cliente';
+        else if (stageName.includes('instalação')) novoStatus = 'instalado';
+        else if (stageName.includes('sistema em operação')) novoStatus = 'concluido';
+
+        if (novoStatus) {
+          const { data: ordem } = await supabase
+            .from('ordens_compra')
+            .select('id')
+            .eq('projeto_id', dealId)
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .maybeSingle();
+
+          if (ordem) {
+            await supabase
+              .from('ordens_compra')
+              .update({ status: novoStatus } as any)
+              .eq('id', (ordem as any).id);
+            fetchOrdemCompra();
+          }
+        }
+      }
+
       toast({ title: "Etapa atualizada" });
       await fetchMemberships();
       onMembershipChange?.();
