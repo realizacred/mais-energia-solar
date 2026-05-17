@@ -220,7 +220,7 @@ export default function LeadsPipeline() {
     confirmStageChange(draggedLead, statusId);
   };
 
-  const confirmStageChange = async (lead: PipelineLead, statusId: string) => {
+  const confirmStageChange = useCallback(async (lead: PipelineLead, statusId: string) => {
     // Optimistic update
     setAllLeads(prev => prev.map(l => l.id === lead.id ? { ...l, status_id: statusId } : l));
     try {
@@ -233,7 +233,7 @@ export default function LeadsPipeline() {
     } finally {
       setDraggedLead(null);
     }
-  };
+  }, [updateLeadMutation, toast]);
 
   const getLeadsByStatus = (statusId: string | null): PipelineLead[] => {
     if (statusId === null) return filteredLeads.filter(l => !l.status_id);
