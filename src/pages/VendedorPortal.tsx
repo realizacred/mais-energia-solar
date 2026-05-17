@@ -51,11 +51,9 @@ export default function VendedorPortal() {
 
   const badgeCounts = useMemo(() => {
     return { 
-      // Badges only show actionable items per RB-76
-      orcamentos: portal.serverStats?.nao_vistos ?? 0,
       whatsapp: 0, // Will be updated by waUnreadCount below
     };
-  }, [portal.serverStats]);
+  }, []);
 
   // Read WA unread count from existing react-query cache (populated by WaNotificationProvider)
   const queryClient = useQueryClient();
