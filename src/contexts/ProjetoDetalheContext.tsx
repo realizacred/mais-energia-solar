@@ -87,6 +87,7 @@ export interface ProjetoDetalheContextValue {
   /** Descrição do projeto (projetos.observacoes). */
   projetoDescricao: string | null;
   history: StageHistory[];
+  portalToken: string | null;
   stages: StageInfo[];
   loading: boolean;
 
