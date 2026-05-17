@@ -630,8 +630,6 @@ function ProjetoDetalheContent() {
                 <DropdownMenuContent align="start">
                   <DropdownMenuItem
                     onClick={() => {
-                      setEditProjetoNome(projetoNome ?? "");
-                      setEditProjetoDescricao(projetoDescricao ?? "");
                       setEditProjetoOpen(true);
                     }}
                   >
