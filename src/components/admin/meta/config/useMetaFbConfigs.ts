@@ -156,7 +156,34 @@ export function useSaveMetaAutomation() {
             active: true,
           }]);
         if (error) throw error;
-      }
+
+export function useDisconnectMeta() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async () => {
+      // 1. Mark as disconnected in DB
+      const { error } = await supabase
+        .from("facebook_integrations")
+        .update({ status: 'disconnected', access_token: null })
+        .eq('status', 'connected'); // This will affect the current tenant due to RLS
+      
+      if (error) throw error;
+
+      // 2. Clear integration_configs too for backward compatibility
+      await supabase
+        .from("integration_configs")
+        .delete()
+        .eq("service_key", META_KEYS.accessToken);
+
+      return { success: true };
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEY] });
+      toast.success("Desconectado do Facebook");
+    },
+  });
+}
+
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["fb-lead-automation"] });
