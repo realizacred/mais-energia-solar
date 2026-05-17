@@ -376,6 +376,6 @@ export function useVendedorPortal() {
     copyLink,
     leadsForAlerts,
     orcamentoToLead,
-    fetchVendedorProfile, // Expose refetch
+    fetchVendedorProfile: loadVendedorProfile,
   };
 }
