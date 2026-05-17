@@ -47,7 +47,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { formatBRL } from "@/lib/formatters";
+import { formatBRL, displayDate, displayCpfCnpj } from "@/lib/formatters";
 import { formatDistanceToNow, isWithinInterval, startOfDay, endOfDay, differenceInDays, startOfMonth, format, subDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useCreditMetrics } from "@/hooks/useCreditDomain";
@@ -663,7 +663,7 @@ export default function CreditGlobalArea() {
                         )}
                       </TableCell>
                       <TableCell className="text-xs text-muted-foreground">
-                        {format(new Date(analysis.created_at), "dd/MM/yy")}
+                        {displayDate(analise.created_at)}
                       </TableCell>
                       <TableCell className="text-right">
                         <DropdownMenu>
@@ -740,7 +740,7 @@ export default function CreditGlobalArea() {
                     <div key={log.id} className="text-xs font-mono p-2 border-l-2 border-primary bg-muted/20 flex flex-col gap-1">
                       <div className="flex justify-between items-center">
                         <Badge variant="outline" className="text-[9px] h-4 uppercase">{log.level}</Badge>
-                        <span className="text-muted-foreground">{formatDateTime(log.created_at)}</span>
+                        <span className="text-muted-foreground">{displayDate(log.created_at)}</span>
                       </div>
                       <p className="font-semibold">{log.message}</p>
                       {log.context && <pre className="text-[10px] opacity-60 overflow-hidden">{JSON.stringify(log.context)}</pre>}
