@@ -1114,6 +1114,53 @@ export function ProjetoMultiPipelineManager({ dealId, dealStatus, pipelines, all
                   </motion.div>
                 )}
 
+                {/* Bloco 1: Aviso de fornecedor ausente (GAP 1) */}
+                {(() => {
+                  const stageName = activeMembership.stage_name.toLowerCase();
+                  // Regra: Funil de Equipamento, etapa >= "Pedido Efetuado" (ou "Pedido Pago"), sem ordem de compra
+                  const isEquipamento = activeMembership.pipeline_name.toLowerCase().includes('equipamento') || 
+                                      activeMembership.pipeline_name.toLowerCase().includes('suprimentos');
+                  const needsOrdem = stageName.includes('pedido pago') || 
+                                    stageName.includes('depósito') || 
+                                    stageName.includes('cliente') || 
+                                    stageName.includes('instalação');
+                  
+                  if (isEquipamento && needsOrdem && !ordemCompra && !loadingOrdem) {
+                    return (
+                      <motion.div
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        className="mt-4 p-3 rounded-lg border border-warning/30 bg-warning/5 flex flex-col gap-2"
+                      >
+                        <div className="flex items-center gap-2 text-warning text-xs font-bold">
+                          <AlertTriangle className="h-4 w-4" />
+                          Fornecedor não vinculado
+                        </div>
+                        <p className="text-[11px] text-muted-foreground leading-snug">
+                          Este projeto está na etapa <strong>"{activeMembership.stage_name}"</strong> mas não possui um fornecedor registrado.
+                        </p>
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          className="h-7 text-[10px] w-fit gap-1 border-warning/40 hover:bg-warning/10"
+                          onClick={() => {
+                            setFornecedorModal({
+                              projetoId: dealId,
+                              etapaId: activeMembership.stage_id,
+                              etapaNome: activeMembership.stage_name,
+                              membershipId: activeMembership.id
+                            });
+                          }}
+                        >
+                          <Plus className="h-3 w-3" />
+                          Vincular Fornecedor
+                        </Button>
+                      </motion.div>
+                    );
+                  }
+                  return null;
+                })()}
+
                 {/* Terminal stages (e.g. "Perdido") — shown separately below the line */}
                 {terminalLostStages.length > 0 && (
                   <div className="flex items-center gap-2 pt-1">
