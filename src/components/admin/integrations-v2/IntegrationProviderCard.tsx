@@ -11,6 +11,7 @@ import type { IntegrationCategory } from "@/services/integrations/types";
 
 const PROVIDER_ICON_OVERRIDES: Record<string, React.ElementType> = {
   gotenberg: FileOutput,
+  "eos-financiamento-solar": Landmark,
 };
 
 const CATEGORY_FALLBACK_ICONS: Record<IntegrationCategory, React.ElementType> = {
