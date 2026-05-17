@@ -462,6 +462,22 @@ export function EmitirReciboModal({
       });
       
       onEmitted?.(id);
+
+      // Notificar Hub
+      supabase.functions.invoke('notification-hub', {
+        body: {
+          evento: 'recibo_emitido',
+          tenant_id: projectContext?.tenant_id,
+          dados: {
+            projeto_id: projetoId,
+            recibo_id: id,
+            cliente_id: clienteId,
+            valor: Number(valor),
+            descricao: descricao || template?.nome
+          }
+        }
+      }).catch(err => console.error("[notification-hub] Erro ao invocar:", err));
+
       onOpenChange(false);
     } catch (err: any) {
       console.error("[handleSubmit] Error:", err);

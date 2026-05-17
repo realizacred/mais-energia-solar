@@ -14844,6 +14844,50 @@ export type Database = {
           },
         ]
       }
+      notification_rules: {
+        Row: {
+          ativo: boolean | null
+          canal: string
+          created_at: string | null
+          destinatario: string
+          evento: string
+          id: string
+          template_mensagem: string | null
+          tenant_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          ativo?: boolean | null
+          canal: string
+          created_at?: string | null
+          destinatario: string
+          evento: string
+          id?: string
+          template_mensagem?: string | null
+          tenant_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          ativo?: boolean | null
+          canal?: string
+          created_at?: string | null
+          destinatario?: string
+          evento?: string
+          id?: string
+          template_mensagem?: string | null
+          tenant_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notification_rules_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       obras: {
         Row: {
           ativo: boolean

@@ -383,6 +383,24 @@ export function CreditAnalysisWizard({
               body: { analise_id: result.id }
             }).catch(err => console.error("Simulação EOS falhou", err));
           }
+
+          // Notificar Hub
+          if (!asDraft) {
+            const statusEvento = 'credito_aguardando_documentos'; // Status inicial ao sair do rascunho
+            supabase.functions.invoke('notification-hub', {
+              body: {
+                evento: statusEvento,
+                tenant_id: bank?.tenant_id, // assuming bank has tenant_id or resolve from profile
+                dados: {
+                  projeto_id: dealId,
+                  analise_id: result?.id,
+                  cliente_id: clienteId,
+                  banco: bank?.bank_name,
+                  valor: commonData.valor_solicitado
+                }
+              }
+            }).catch(err => console.error("[notification-hub] Erro ao invocar:", err));
+          }
         }
       }
       onClose();

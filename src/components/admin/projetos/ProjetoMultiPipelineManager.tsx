@@ -157,6 +157,18 @@ export function ProjetoMultiPipelineManager({ dealId, dealStatus, pipelines, all
   const [ordemCompra, setOrdemCompra] = useState<any>(null);
   const [loadingOrdem, setLoadingOrdem] = useState(false);
 
+  const [projectData, setProjectData] = useState<any>(null);
+
+  const fetchProjectData = useCallback(async () => {
+    if (!dealId) return;
+    const { data } = await supabase
+      .from("projetos")
+      .select("tenant_id, cliente_id")
+      .eq("id", dealId)
+      .maybeSingle();
+    if (data) setProjectData(data);
+  }, [dealId]);
+
   const fetchOrdemCompra = useCallback(async () => {
     if (!dealId) return;
     setLoadingOrdem(true);
@@ -180,7 +192,8 @@ export function ProjetoMultiPipelineManager({ dealId, dealStatus, pipelines, all
 
   useEffect(() => {
     fetchOrdemCompra();
-  }, [fetchOrdemCompra]);
+    fetchProjectData();
+  }, [fetchOrdemCompra, fetchProjectData]);
 
 
   // Load memberships
@@ -486,6 +499,20 @@ export function ProjetoMultiPipelineManager({ dealId, dealStatus, pipelines, all
       }
 
       toast({ title: "Etapa atualizada" });
+
+      // Notificar Hub
+      supabase.functions.invoke('notification-hub', {
+        body: {
+          evento: 'projeto_status_mudou',
+          tenant_id: (membership as any)?.tenant_id || projectData?.tenant_id,
+          dados: {
+            projeto_id: dealId,
+            status_novo: stageName,
+            cliente_id: projectData?.cliente_id
+          }
+        }
+      }).catch(err => console.error("[notification-hub] Erro ao invocar:", err));
+
       await fetchMemberships();
       onMembershipChange?.();
     } catch (err: any) {
