@@ -43,7 +43,7 @@ export function useRecibos(filters: { cliente_id?: string; projeto_id?: string }
       let q = supabase
         .from("recibos")
         .select(
-          "*, cliente:clientes(id, nome, cpf_cnpj)"
+          "*, cliente:clientes(id, nome, cpf_cnpj), projeto:projetos(id, valor_total)"
         )
         .order("created_at", { ascending: false });
 
