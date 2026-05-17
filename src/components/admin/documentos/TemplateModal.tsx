@@ -182,17 +182,45 @@ export function TemplateModal({ open, onOpenChange, template, onSave, saving }: 
             </div>
 
             {/* Formulário fields */}
-            <Collapsible open={formOpen} onOpenChange={setFormOpen}>
-              <CollapsibleTrigger asChild>
-                <Button type="button" variant="ghost" className="w-full justify-between h-8 text-xs font-semibold">
-                  Formulário ({formFields.length} campo{formFields.length !== 1 ? "s" : ""})
-                  <ChevronDown className={`h-3.5 w-3.5 transition-transform ${formOpen ? "rotate-180" : ""}`} />
-                </Button>
-              </CollapsibleTrigger>
-              <CollapsibleContent className="pt-2">
-                <TemplateFormBuilder fields={formFields} onChange={setFormFields} />
-              </CollapsibleContent>
-            </Collapsible>
+            <div className="space-y-3">
+              <Collapsible open={formOpen} onOpenChange={setFormOpen}>
+                <CollapsibleTrigger asChild>
+                  <Button type="button" variant="ghost" className="w-full justify-between h-8 text-xs font-semibold">
+                    Formulário ({formFields.length} campo{formFields.length !== 1 ? "s" : ""})
+                    <ChevronDown className={`h-3.5 w-3.5 transition-transform ${formOpen ? "rotate-180" : ""}`} />
+                  </Button>
+                </CollapsibleTrigger>
+                <CollapsibleContent className="pt-2">
+                  <TemplateFormBuilder fields={formFields} onChange={setFormFields} />
+                </CollapsibleContent>
+              </Collapsible>
+
+              {categoria === "contrato" && formFields.length === 0 && (
+                <div className="p-3 border border-dashed rounded-lg bg-primary/5 space-y-2">
+                  <p className="text-[11px] font-medium text-primary">Sugestão: Condições de Pagamento</p>
+                  <p className="text-[10px] text-muted-foreground">Adicionar campos manuais para este contrato?</p>
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="h-6 text-[10px] px-2"
+                      onClick={() => {
+                        const suggested = [
+                          { key: "data_primeira_parcela", label: "Data da 1ª Parcela", type: "date" as const, required: true, order: 0 },
+                          { key: "banco_financiador", label: "Banco Financiador", type: "text" as const, required: false, order: 1 },
+                          { key: "numero_contrato_banco", label: "Nº Contrato Banco", type: "text" as const, required: false, order: 2 },
+                          { key: "observacoes_pagamento", label: "Observações de Pgto", type: "textarea" as const, required: false, order: 3 },
+                        ];
+                        setFormFields(suggested);
+                        setFormOpen(true);
+                      }}
+                    >
+                      Usar Sugestão
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </div>
 
             {/* Signature config */}
             <div className="flex items-center gap-3 p-3 rounded-lg border">
