@@ -537,6 +537,61 @@ export function LeadEditDialog({
           )}
         </Button>
       </div>
+      </div>
+
+      <AlertDialog open={showDuplicateDialog} onOpenChange={setShowDuplicateDialog}>
+        <AlertDialogContent className="max-w-[90vw] sm:max-w-md">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2 text-warning">
+              <AlertTriangle className="h-5 w-5" />
+              Lead já existe com este telefone
+            </AlertDialogTitle>
+            <AlertDialogDescription className="space-y-4 pt-2">
+              <div className="bg-muted/50 p-4 rounded-lg space-y-2 border border-border">
+                <div className="flex items-center gap-2">
+                  <UserPen className="h-4 w-4 text-muted-foreground shrink-0" />
+                  <span className="font-semibold text-foreground">{duplicateLead?.nome}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Mail className="h-4 w-4 text-muted-foreground shrink-0" />
+                  <span className="text-sm text-muted-foreground">
+                    Consultor: <span className="text-foreground">{duplicateLead?.consultor_nome || "Sem consultor"}</span>
+                  </span>
+                </div>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                Deseja abrir o cadastro existente ou salvar as alterações mesmo assim?
+              </p>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+
+          <AlertDialogFooter className="flex-col gap-2 sm:flex-row mt-4">
+            <AlertDialogCancel onClick={() => setShowDuplicateDialog(false)} className="sm:flex-1">
+              Cancelar
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                setShowDuplicateDialog(false);
+                onOpenChange(false);
+                navigate(`/admin/leads?id=${duplicateLead?.id}`);
+              }}
+              className="sm:flex-1 bg-secondary hover:bg-secondary/90 text-secondary-foreground"
+            >
+              <ExternalLink className="h-4 w-4 mr-2" />
+              Abrir Existente
+            </AlertDialogAction>
+            <AlertDialogAction
+              onClick={() => {
+                setShowDuplicateDialog(false);
+                handleSave(true);
+              }}
+              className="sm:flex-1"
+            >
+              Salvar mesmo assim
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </FormModalTemplate>
   );
 }
