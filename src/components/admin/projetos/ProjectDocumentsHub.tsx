@@ -148,6 +148,7 @@ export function ProjectDocumentsHub({ projetoId, dealId }: Props) {
   const totalCount = docs.length;
   const totalSize = projectDocsData?.totalSize || 0;
 
+
   
   const upload = useUploadProjectDocument();
   const remove = useDeleteProjectDocument();
