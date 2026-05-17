@@ -1088,9 +1088,15 @@ function AnalysisCard({ analysis, onAction }: { analysis: any, onAction: (type: 
         </p>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="flex justify-between items-center bg-muted/30 p-2 rounded-md">
-          <div className="text-xs font-medium">Valor Solicitado</div>
-          <div className="text-lg font-bold text-primary">{formatBRL(analysis.valor_solicitado || 0)}</div>
+        <div className="flex flex-col gap-1 bg-muted/30 p-2 rounded-md">
+          <div className="flex justify-between items-center text-xs font-medium">
+            <span>Valor Solicitado</span>
+            <span>Prazo</span>
+          </div>
+          <div className="flex justify-between items-center">
+            <div className="text-lg font-bold text-primary">{formatBRL(analysis.valor_solicitado || 0)}</div>
+            <div className="text-sm font-semibold">{analysis.prazo_meses} meses</div>
+          </div>
         </div>
         
         <div className="flex gap-2">
