@@ -182,7 +182,7 @@ export default function IntegrationsCatalogPage() {
       popularity: 90,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
-      logo_key: "Calculator",
+      logo_key: "/logos/eos-financiamento.svg",
     }] : [];
     
     const tuyaProvider: IntegrationProvider = {
