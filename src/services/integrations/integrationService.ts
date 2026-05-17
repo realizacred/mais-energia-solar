@@ -294,7 +294,7 @@ export async function listConnections(): Promise<IntegrationConnection[]> {
   }
 
   const mergedByProvider = new Map<string, IntegrationConnection>();
-  for (const conn of [...canonical, ...supplierConnections, ...signatureConnections]) {
+  for (const conn of [...canonical, ...supplierConnections, ...signatureConnections, ...eosConnection]) {
     if (!mergedByProvider.has(conn.provider_id)) {
       mergedByProvider.set(conn.provider_id, conn);
     }
