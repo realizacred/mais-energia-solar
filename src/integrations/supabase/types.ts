@@ -439,8 +439,22 @@ export type Database = {
       }
       analise_credito: {
         Row: {
+          avalista_bairro: string | null
+          avalista_cep: string | null
+          avalista_cidade: string | null
+          avalista_cpf: string | null
+          avalista_data_nascimento: string | null
+          avalista_email: string | null
+          avalista_estado: string | null
+          avalista_nome: string | null
+          avalista_numero: string | null
+          avalista_patrimonio: number | null
+          avalista_renda_mensal: number | null
+          avalista_rua: string | null
+          avalista_telefone: string | null
           banco: string | null
           bank_config_id: string | null
+          carencia: number | null
           checklist_snapshot: Json | null
           cliente_id: string | null
           cpf_cnpj: string | null
@@ -451,11 +465,12 @@ export type Database = {
           deal_id: string | null
           entrada: number | null
           eos_enviado_at: string | null
-          eos_proposta_id: string | null
+          eos_proposta_protocolo: string | null
           id: string
           is_locked: boolean | null
           lead_id: string | null
           observacoes: string | null
+          patrimonio: number | null
           prazo_meses: number | null
           protocolo_banco: string | null
           renda_mensal: number | null
@@ -478,8 +493,22 @@ export type Database = {
           version: number | null
         }
         Insert: {
+          avalista_bairro?: string | null
+          avalista_cep?: string | null
+          avalista_cidade?: string | null
+          avalista_cpf?: string | null
+          avalista_data_nascimento?: string | null
+          avalista_email?: string | null
+          avalista_estado?: string | null
+          avalista_nome?: string | null
+          avalista_numero?: string | null
+          avalista_patrimonio?: number | null
+          avalista_renda_mensal?: number | null
+          avalista_rua?: string | null
+          avalista_telefone?: string | null
           banco?: string | null
           bank_config_id?: string | null
+          carencia?: number | null
           checklist_snapshot?: Json | null
           cliente_id?: string | null
           cpf_cnpj?: string | null
@@ -490,11 +519,12 @@ export type Database = {
           deal_id?: string | null
           entrada?: number | null
           eos_enviado_at?: string | null
-          eos_proposta_id?: string | null
+          eos_proposta_protocolo?: string | null
           id?: string
           is_locked?: boolean | null
           lead_id?: string | null
           observacoes?: string | null
+          patrimonio?: number | null
           prazo_meses?: number | null
           protocolo_banco?: string | null
           renda_mensal?: number | null
@@ -517,8 +547,22 @@ export type Database = {
           version?: number | null
         }
         Update: {
+          avalista_bairro?: string | null
+          avalista_cep?: string | null
+          avalista_cidade?: string | null
+          avalista_cpf?: string | null
+          avalista_data_nascimento?: string | null
+          avalista_email?: string | null
+          avalista_estado?: string | null
+          avalista_nome?: string | null
+          avalista_numero?: string | null
+          avalista_patrimonio?: number | null
+          avalista_renda_mensal?: number | null
+          avalista_rua?: string | null
+          avalista_telefone?: string | null
           banco?: string | null
           bank_config_id?: string | null
+          carencia?: number | null
           checklist_snapshot?: Json | null
           cliente_id?: string | null
           cpf_cnpj?: string | null
@@ -529,11 +573,12 @@ export type Database = {
           deal_id?: string | null
           entrada?: number | null
           eos_enviado_at?: string | null
-          eos_proposta_id?: string | null
+          eos_proposta_protocolo?: string | null
           id?: string
           is_locked?: boolean | null
           lead_id?: string | null
           observacoes?: string | null
+          patrimonio?: number | null
           prazo_meses?: number | null
           protocolo_banco?: string | null
           renda_mensal?: number | null
@@ -6644,6 +6689,8 @@ export type Database = {
           ativo: boolean
           created_at: string
           eos_api_key: string
+          eos_integrador_id: string | null
+          eos_onboarding_step: number | null
           financeira: string
           id: string
           tenant_id: string
@@ -6654,6 +6701,8 @@ export type Database = {
           ativo?: boolean
           created_at?: string
           eos_api_key: string
+          eos_integrador_id?: string | null
+          eos_onboarding_step?: number | null
           financeira?: string
           id?: string
           tenant_id: string
@@ -6664,6 +6713,8 @@ export type Database = {
           ativo?: boolean
           created_at?: string
           eos_api_key?: string
+          eos_integrador_id?: string | null
+          eos_onboarding_step?: number | null
           financeira?: string
           id?: string
           tenant_id?: string
