@@ -398,27 +398,32 @@ function OutroCampoRowComp({ row, clienteId, onSaved }: { row: OutroCampoRow; cl
   // ── File type row ──
   if (row.type === "file") {
     return (
-      <div className="flex items-center justify-between py-1 gap-2">
+      <div className="flex flex-col py-2.5 px-1 space-y-2">
         <input ref={fileRef} type="file" className="hidden" onChange={handleFileUpload} />
-        <div className="flex items-center gap-2 min-w-0">
+        <div className="flex items-center gap-2">
           <Paperclip className="h-3.5 w-3.5 shrink-0 text-primary" />
-          <span className="text-xs text-foreground truncate">{row.label}</span>
+          <span className="text-xs font-bold text-foreground truncate">{row.label}</span>
           {row.hasFile && (
-            <span className="text-xs text-muted-foreground">({row.fileCount})</span>
+            <span className="text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded-full font-medium">
+              {row.fileCount} {row.fileCount === 1 ? "arquivo" : "arquivos"}
+            </span>
           )}
+          {saving && <Loader2 className="h-3 w-3 animate-spin text-muted-foreground ml-auto" />}
         </div>
         <Button
           size="sm"
-          className="h-8 text-xs gap-1.5 shrink-0"
+          variant="outline"
+          className="w-full h-9 text-xs gap-2 border-primary/30 bg-primary/5 hover:bg-primary/10 text-primary hover:text-primary transition-all border-dashed"
           onClick={() => fileRef.current?.click()}
           disabled={saving}
         >
-          {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Paperclip className="h-3.5 w-3.5" />}
+          {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}
           Anexar aqui
         </Button>
       </div>
     );
   }
+
 
   // ── Select type row ──
   if (row.type === "select" && row.options) {
