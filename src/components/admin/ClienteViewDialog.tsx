@@ -561,29 +561,13 @@ export function ClienteViewDialog({ cliente, open, onOpenChange }: ClienteViewDi
                 <ClientLinkedPlants clientId={cliente.id} />
               </TabsContent>
 
-              {/* ABA 5 — Documentos */}
-              <TabsContent value="docs" className="mt-0 space-y-4">
-                {[
-                  { label: "Identidade (RG/CNH)", paths: cliente.identidade_urls || [] },
-                  { label: "Comprovante de Endereço", paths: cliente.comprovante_endereco_urls || [] },
-                  { label: "Comprovante Beneficiária", paths: cliente.comprovante_beneficiaria_urls || [] },
-                ].map((cat) => (
-                  <div key={cat.label} className="space-y-2">
-                    <h4 className="text-xs font-medium text-muted-foreground">{cat.label}</h4>
-                    {cat.paths.length > 0 ? (
-                      <div className="flex flex-wrap gap-2">
-                        {cat.paths.map((path, idx) => (
-                          <DocumentThumbnail key={idx} path={path} onClick={() => handlePreviewDoc(path)} />
-                        ))}
-                      </div>
-                    ) : (
-                      <p className="text-xs text-muted-foreground italic">Nenhum documento anexado</p>
-                    )}
-                  </div>
-                ))}
-                {totalDocs === 0 && (
-                  <TabEmptyState icon={FileText} title="Nenhum documento" description="Nenhum documento foi anexado a este cliente" />
-                )}
+              {/* ABA 5 — Documentos (com botão Anexar por tipo) */}
+              <TabsContent value="docs" className="mt-0">
+                <ClienteDocumentUpload
+                  clienteId={cliente.id}
+                  documents={docs}
+                  onDocumentsChange={handleDocsChange}
+                />
               </TabsContent>
 
               {/* ABA — Recibos */}
