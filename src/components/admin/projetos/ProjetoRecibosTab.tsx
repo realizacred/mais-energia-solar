@@ -128,13 +128,13 @@ export function ProjetoRecibosTab({
           <Card className="bg-muted/30">
             <CardContent className="pt-4">
               <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">Valor Total</p>
-              <p className="text-xl font-bold">{fmtBRL(financeiro.valor_total)}</p>
+              <p className="text-xl font-bold">{formatBRL(financeiro.valor_total)}</p>
             </CardContent>
           </Card>
           <Card className="bg-success/5 border-success/20">
             <CardContent className="pt-4">
               <p className="text-[10px] text-success uppercase font-bold tracking-wider">Recebido ({financeiro.percentual_pago}%)</p>
-              <p className="text-xl font-bold text-success">{fmtBRL(financeiro.total_pago)}</p>
+              <p className="text-xl font-bold text-success">{formatBRL(financeiro.total_pago)}</p>
               <div className="w-full bg-success/20 h-1.5 rounded-full mt-2 overflow-hidden">
                 <div className="bg-success h-full transition-all" style={{ width: `${financeiro.percentual_pago}%` }} />
               </div>
@@ -143,7 +143,7 @@ export function ProjetoRecibosTab({
           <Card className="bg-destructive/5 border-destructive/20">
             <CardContent className="pt-4">
               <p className="text-[10px] text-destructive uppercase font-bold tracking-wider">Saldo Devedor</p>
-              <p className="text-xl font-bold text-destructive">{fmtBRL(financeiro.saldo_devedor)}</p>
+              <p className="text-xl font-bold text-destructive">{formatBRL(financeiro.saldo_devedor)}</p>
             </CardContent>
           </Card>
         </div>
