@@ -33,12 +33,12 @@ import { useProposalViewAlert } from "@/hooks/useProposalViewAlert";
 const LeadsView = lazy(() => import("@/components/admin/views/LeadsView").then(m => ({ default: m.LeadsView })));
 const LeadsPipeline = lazy(() => import("@/components/admin/LeadsPipeline"));
 const FollowUpManager = lazy(() => import("@/components/admin/FollowUpManager"));
-const AnalyticsDashboard = lazy(() => import("@/components/admin/AnalyticsDashboard"));
+const AnalyticsDashboard = lazy(() => import("@/components/admin/dashboard/AnalyticsDashboard"));
 const PerformanceDashboard = lazy(() => import("@/components/admin/PerformanceDashboard"));
 const VendedoresManager = lazy(() => import("@/components/admin/VendedoresManager"));
 const CalculadoraConfig = lazy(() => import("@/components/admin/CalculadoraConfig"));
 const FinanciamentoConfig = lazy(() => import("@/components/admin/FinanciamentoConfig"));
-const FormasPagamentoPage = lazy(() => import("@/components/admin/FormasPagamentoPage").then(m => ({ default: m.FormasPagamentoPage })));
+const FormasPagamentoPage = lazy(() => import("@/components/admin/financial/FormasPagamentoPage").then(m => ({ default: m.FormasPagamentoPage })));
 const WebhookManager = lazy(() => import("@/components/admin/WebhookManager"));
 const SolarmarketConfigPage = lazy(() => import("@/pages/admin/SolarmarketConfigPage"));
 const MigracaoSolarmarket = lazy(() => import("@/pages/admin/MigracaoSolarmarket"));
@@ -48,9 +48,9 @@ const MigracaoStep3Migrar = lazy(() => import("@/pages/admin/MigracaoStep3Migrar
 const SolarmarketDiagnosticPage = lazy(() => import("@/pages/admin/SolarmarketDiagnosticPage"));
 // Páginas órfãs removidas: SolarmarketMapeamentos, SolarmarketMappingPage, ImportacaoSolarmarket, PromocaoSolarmarket.
 // Todas as rotas legadas redirecionam para /admin/migracao-solarmarket (wizard unificado).
-const ClientesManager = lazy(() => import("@/components/admin/ClientesManager").then(m => ({ default: m.ClientesManager })));
-const RecebimentosManager = lazy(() => import("@/components/admin/RecebimentosManager").then(m => ({ default: m.RecebimentosManager })));
-const FinanceiroDashboard = lazy(() => import("@/components/admin/FinanceiroDashboard").then(m => ({ default: m.FinanceiroDashboard })));
+const ClientesManager = lazy(() => import("@/components/admin/customers/ClientesManager").then(m => ({ default: m.ClientesManager })));
+const RecebimentosManager = lazy(() => import("@/components/admin/financial/RecebimentosManager").then(m => ({ default: m.RecebimentosManager })));
+const FinanceiroDashboard = lazy(() => import("@/components/admin/financial/FinanceiroDashboard").then(m => ({ default: m.FinanceiroDashboard })));
 const InstagramConfig = lazy(() => import("@/components/admin/InstagramConfig").then(m => ({ default: m.InstagramConfig })));
 const UsuariosManager = lazy(() => import("@/components/admin/UsuariosManager").then(m => ({ default: m.UsuariosManager })));
 const EquipamentosManager = lazy(() => import("@/components/admin/EquipamentosManager").then(m => ({ default: m.EquipamentosManager })));
@@ -70,12 +70,12 @@ const TarifaVersoesPage = lazy(() => import("@/components/admin/concessionarias/
 const SaudeTarifariaPage = lazy(() => import("@/components/admin/concessionarias/SaudeTarifariaPage").then(m => ({ default: m.SaudeTarifariaPage })));
 const AneelSyncStatusPage = lazy(() => import("@/components/admin/concessionarias/AneelSyncStatusPage").then(m => ({ default: m.AneelSyncStatusPage })));
 const GamificacaoConfig = lazy(() => import("@/components/admin/GamificacaoConfig").then(m => ({ default: m.GamificacaoConfig })));
-const ComissoesManager = lazy(() => import("@/components/admin/ComissoesManager").then(m => ({ default: m.ComissoesManager })));
+const ComissoesManager = lazy(() => import("@/components/admin/financial/ComissoesManager").then(m => ({ default: m.ComissoesManager })));
 const ValidacaoVendasManager = lazy(() => import("@/components/admin/ValidacaoVendasManager").then(m => ({ default: m.ValidacaoVendasManager })));
-const PropostasManager = lazy(() => import("@/components/admin/PropostasManager").then(m => ({ default: m.PropostasManager })));
+const PropostasManager = lazy(() => import("@/components/admin/projects/PropostasManager").then(m => ({ default: m.PropostasManager })));
 const ChecklistsManager = lazy(() => import("@/components/admin/ChecklistsManager").then(m => ({ default: m.ChecklistsManager })));
 const AvaliacoesManager = lazy(() => import("@/components/admin/AvaliacoesManager").then(m => ({ default: m.AvaliacoesManager })));
-const ServicosManager = lazy(() => import("@/components/admin/ServicosManager").then(m => ({ default: m.ServicosManager })));
+const ServicosManager = lazy(() => import("@/components/admin/projects/ServicosManager").then(m => ({ default: m.ServicosManager })));
 const VisitasCalendario = lazy(() => import("@/components/admin/visitas/VisitasCalendario").then(m => ({ default: m.VisitasCalendario })));
 const InstaladorManager = lazy(() => import("@/components/admin/InstaladorManager").then(m => ({ default: m.InstaladorManager })));
 const EstoquePage = lazy(() => import("@/components/admin/estoque/EstoquePage"));
@@ -108,7 +108,7 @@ const AuditLogsViewer = lazy(() => import("@/components/admin/AuditLogsViewer").
 const ReleaseChecklist = lazy(() => import("@/components/admin/ReleaseChecklist").then(m => ({ default: m.ReleaseChecklist })));
 const ChangelogViewer = lazy(() => import("@/components/admin/ChangelogViewer").then(m => ({ default: m.ChangelogViewer })));
 const NotificationConfigAdmin = lazy(() => import("@/components/admin/NotificationConfigAdmin").then(m => ({ default: m.NotificationConfigAdmin })));
-const ObrasManager = lazy(() => import("@/components/admin/ObrasManager").then(m => ({ default: m.ObrasManager })));
+const ObrasManager = lazy(() => import("@/components/admin/projects/ObrasManager").then(m => ({ default: m.ObrasManager })));
 const SiteSettingsUnified = lazy(() => import("@/components/admin/SiteSettingsUnified").then(m => ({ default: m.SiteSettingsUnified })));
 const SiteServicosManager = lazy(() => import("@/components/admin/SiteServicosManager").then(m => ({ default: m.SiteServicosManager })));
 const LeadStatusManager = lazy(() => import("@/components/admin/LeadStatusManager").then(m => ({ default: m.LeadStatusManager })));
@@ -163,10 +163,10 @@ const MetaLeadsPage = lazy(() => import("@/pages/admin/meta/MetaLeadsPage"));
 const MetaCampaignsPage = lazy(() => import("@/pages/admin/meta/MetaCampaignsPage"));
 const GoogleMapsConfigPage = lazy(() => import("@/pages/admin/GoogleMapsConfigPage"));
 const PaymentGatewayConfigPage = lazy(() => import("@/components/admin/settings/PaymentGatewayConfig").then(m => ({ default: m.PaymentGatewayConfig })));
-const MenuConfigPage = lazy(() => import("@/components/admin/MenuConfigPage"));
+const MenuConfigPage = lazy(() => import("@/components/admin/settings/MenuConfigPage"));
 const LoadingConfigAdmin = lazy(() => import("@/components/admin/LoadingConfigAdmin").then(m => ({ default: m.LoadingConfigAdmin })));
 // AgendaConfigPage removed
-const TenantSettings = lazy(() => import("@/components/admin/TenantSettings").then(m => ({ default: m.TenantSettings })));
+const TenantSettings = lazy(() => import("@/components/admin/settings/TenantSettings").then(m => ({ default: m.TenantSettings })));
 const CustomFieldsSettings = lazy(() => import("@/components/admin/projetos/CustomFieldsSettings").then(m => ({ default: m.CustomFieldsSettings })));
 const DocumentosPage = lazy(() => import("@/components/admin/documentos/DocumentosPage").then(m => ({ default: m.DocumentosPage })));
 const ConfSolarPage = lazy(() => import("@/components/admin/conf-solar/ConfSolarPage").then(m => ({ default: m.ConfSolarPage })));
@@ -177,7 +177,7 @@ const PropostaComercialPage = lazy(() => import("@/components/admin/proposta-com
 const PricingPolicyPage = lazy(() => import("@/components/admin/pricing-policy/PricingPolicyPage").then(m => ({ default: m.PricingPolicyPage })));
 const ContactsPage = lazy(() => import("@/pages/admin/ContactsPage"));
 const FiscalPage = lazy(() => import("@/components/admin/fiscal/FiscalPage"));
-const RolePermissionsManager = lazy(() => import("@/components/admin/RolePermissionsManager").then(m => ({ default: m.RolePermissionsManager })));
+const RolePermissionsManager = lazy(() => import("@/components/admin/settings/RolePermissionsManager").then(m => ({ default: m.RolePermissionsManager })));
 const WaHealthDashboard = lazy(() => import("@/pages/admin/WaHealthDashboard"));
 const AuditoriaTelefonesPage = lazy(() => import("@/pages/admin/AuditoriaTelefonesPage"));
 const NotificacoesConfigPage = lazy(() => import("@/pages/admin/configuracoes/NotificacoesConfigPage"));
