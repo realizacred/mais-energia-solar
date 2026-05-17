@@ -232,22 +232,31 @@ export function CreditAnalysisWizard({
   const handleBack = () => setStep((s) => (s - 1) as Step);
 
   const handleSave = async (asDraft = true) => {
+    if (!asDraft && !validateStep(step)) return;
+
     const status: AnaliseCreditoStatus = asDraft ? 'rascunho' : 'pendente_documentos';
+    
+    // Converte data para ISO 8601 se existir
+    const isoNascimento = formData.cliente_data_nascimento 
+      ? new Date(formData.cliente_data_nascimento).toISOString() 
+      : null;
+    
     const data: any = {
       ...formData,
-      renda_mensal: parseFloat(formData.renda_mensal) || 0,
+      cliente_data_nascimento: isoNascimento,
+      renda_mensal: parseBRNumber(formData.renda_mensal) || 0,
       valor_solicitado: parseFloat(formData.valor_solicitado) || 0,
-      entrada: parseFloat(formData.entrada) || 0,
+      entrada: parseBRNumber(formData.entrada) || 0,
       prazo_meses: parseInt(formData.prazo_meses) || 0,
       carencia: parseInt(formData.carencia) || 1,
-      patrimonio: parseFloat(formData.patrimonio) || 0,
-      avalista_renda_mensal: parseFloat(formData.avalista_renda_mensal) || 0,
-      avalista_patrimonio: parseFloat(formData.avalista_patrimonio) || 0,
-      kit_fotovoltaico: parseFloat(formData.kit_fotovoltaico) || 0,
-      mao_obra: parseFloat(formData.mao_obra) || 0,
-      potencia_instalada: parseFloat(formData.potencia_instalada) || 0,
-      media_conta_energia: parseFloat(formData.media_conta_energia) || 0,
-      area_instalacao: parseFloat(formData.area_instalacao) || 0,
+      patrimonio: parseBRNumber(formData.patrimonio) || 0,
+      avalista_renda_mensal: parseBRNumber(formData.avalista_renda_mensal) || 0,
+      avalista_patrimonio: parseBRNumber(formData.avalista_patrimonio) || 0,
+      kit_fotovoltaico: parseBRNumber(formData.kit_fotovoltaico) || 0,
+      mao_obra: parseBRNumber(formData.mao_obra) || 0,
+      potencia_instalada: parseFloat(formData.potencia_instalada.toString().replace(",", ".")) || 0,
+      media_conta_energia: parseBRNumber(formData.media_conta_energia) || 0,
+      area_instalacao: parseFloat(formData.area_instalacao.toString().replace(",", ".")) || 0,
       deal_id: dealId,
       lead_id: leadId,
       cliente_id: clienteId,
@@ -255,21 +264,6 @@ export function CreditAnalysisWizard({
     };
 
     try {
-      // RB-62, RB-63: Validação de CPF/CNPJ antes de salvar
-      const documentToValidate = formData.tipo_pessoa === 'PF' ? formData.cpf_cnpj : formData.cnpj;
-      if (documentToValidate) {
-        const digits = documentToValidate.replace(/\D/g, "");
-        const isValid = formData.tipo_pessoa === 'PF' ? isValidCpf(digits) : isValidCnpj(digits);
-        if (!isValid) {
-          toast({
-            title: "Documento inválido",
-            description: `O ${formData.tipo_pessoa.toUpperCase()} informado não é válido.`,
-            variant: "destructive"
-          });
-          return;
-        }
-      }
-
       if (initialData?.id) {
         await updateMutation.mutateAsync({ id: initialData.id, ...data });
       } else {
@@ -291,7 +285,7 @@ export function CreditAnalysisWizard({
         if (isInstallation) {
           setFormData(prev => ({
             ...prev,
-            endereco_cep: cep,
+            endereco_cep: formatCEP(cep),
             endereco_logradouro: data.logradouro,
             endereco_bairro: data.bairro,
             endereco_cidade: data.localidade,
@@ -300,7 +294,7 @@ export function CreditAnalysisWizard({
         } else {
           setFormData(prev => ({
             ...prev,
-            avalista_cep: cep,
+            avalista_cep: formatCEP(cep),
             avalista_rua: data.logradouro,
             avalista_bairro: data.bairro,
             avalista_cidade: data.localidade,
