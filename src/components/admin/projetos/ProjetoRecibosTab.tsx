@@ -57,9 +57,9 @@ export function ProjetoRecibosTab({
   const [emitirOpen, setEmitirOpen] = useState(false);
   const [logsReciboId, setLogsReciboId] = useState<string | null>(null);
 
-  async function handleOpenPdf(r: ReciboEmitido) {
+  async function handleOpenPdf(r: Recibo) {
     try {
-      let path = r.pdf_path;
+      let path = r.pdf_url;
       if (!path) {
         const res = await regen.mutateAsync(r.id);
         path = res.pdf_path;
