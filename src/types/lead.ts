@@ -48,6 +48,15 @@ export interface Lead {
   deleted_at?: string | null;
   deleted_by?: string | null;
   proposta_token?: string | null;
+  /** Marketing Origin */
+  origem?: string | null;
+  campanha_nome?: string | null;
+  campanha_id?: string | null;
+  ad_nome?: string | null;
+  campaign_name?: string | null;
+  campaign_id?: string | null;
+  ad_name?: string | null;
+  facebook_lead_id?: string | null;
 }
 
 export interface LeadStatus {
