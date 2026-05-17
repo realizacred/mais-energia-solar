@@ -339,9 +339,6 @@ export default function IntegrationsCatalogPage() {
   const categoryCounts = useMemo(() => {
     const counts: Record<string, number> = {};
     providers.forEach((p) => {
-      const q = search.toLowerCase();
-      const matchSearch = !q || p.label.toLowerCase().includes(q) || p.description.toLowerCase().includes(q);
-      if (!matchSearch) return;
       const status = getConnectionStatus(p.id);
       const isActive = status === "connected";
       let passTab = true;
@@ -360,7 +357,7 @@ export default function IntegrationsCatalogPage() {
       }
     });
     return counts;
-  }, [providers, search, tabFilter, connections, legacyIntegrations]);
+  }, [providers, tabFilter, connections, legacyIntegrations]);
 
   // Auto-open integration config from URL params
   useEffect(() => {
