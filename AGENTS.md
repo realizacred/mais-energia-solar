@@ -646,5 +646,115 @@ AP-42 CEP SEM AUTOCOMPLETE
 ✓ Certo: CEP completo → ViaCEP → preencher campos automaticamente
 
 =============================================================================
-FIM DO AGENTS.md v4.3
+BLOCO 28 — DOMÍNIO FORNECEDORES & ORDENS DE COMPRA (v1.0)
+=============================================================================
+
+ARQUITETURA DO DOMÍNIO:
+Tabela principal: fornecedores (CRUD em /admin/fornecedores)
+Tabela de pedidos: ordens_compra (fornecedor_id + projeto_id)
+Componente modal: VincularFornecedorModal.tsx
+Interceptor: LeadsPipeline.tsx → handleDrop
+Visibilidade: KanbanCard.tsx → FornecedorPedidoInfo
+Gestão: SuprimentosListPage.tsx
+
+TABELAS CANÔNICAS (NÃO DUPLICAR):
+- fornecedores:
+    id, tenant_id, nome, cnpj, email, telefone
+    tipo (distribuidor/fabricante/integrador)
+    categorias[], ativo
+    RLS: por tenant_id
+- ordens_compra:
+    id, tenant_id, projeto_id, fornecedor_id
+    numero_pedido, valor_total, previsao_entrega
+    status, observacoes, created_by
+    RLS: por tenant_id
+
+STATUS DE ORDEM (fluxo obrigatório):
+  pedido_efetuado → deposito_pago → entregue
+  (cancelado em qualquer etapa)
+
+REGRA DO INTERCEPTOR:
+RB-90 FUNIL EQUIPAMENTO — FORNECEDOR OBRIGATÓRIO
+Ao avançar projeto para etapa "Pedido Efetuado":
+DEVE abrir VincularFornecedorModal antes de confirmar.
+NUNCA avançar etapa sem criar registro em ordens_compra.
+Se já existe ordem: mostrar confirmação simples.
+Se cancelar modal: card retorna posição anterior.
+Evento obrigatório em histórico: 'fornecedor_vinculado'
+
+RB-91 ORDENS DE COMPRA — VÍNCULO OBRIGATÓRIO
+ordens_compra SEMPRE tem projeto_id + fornecedor_id.
+NUNCA criar ordem sem vínculo com projeto.
+NUNCA criar ordem sem fornecedor cadastrado em fornecedores.
+Para novo fornecedor: cadastrar em fornecedores primeiro.
+
+AP-44 CRIAR FORNECEDOR_ID EM PROJETOS
+✗ Errado: adicionar coluna fornecedor_id direto em projetos
+✓ Certo: usar ordens_compra como tabela de relacionamento
+  (projeto pode ter múltiplos fornecedores)
+
+AP-45 AVANÇAR ETAPA SEM FORNECEDOR
+✗ Errado: handleDrop avança direto para "Pedido Efetuado"
+✓ Certo: interceptar → modal → INSERT ordens_compra → avançar
+
+CHECKLIST DE PR PARA FEATURES DE FORNECEDOR:
+[ ] VincularFornecedorModal reutilizado (não duplicado)
+[ ] ordens_compra tem projeto_id + fornecedor_id
+[ ] RLS ativo por tenant_id
+[ ] Evento gravado em histórico do projeto
+[ ] Card do kanban exibe fornecedor após vinculação
+[ ] SuprimentosListPage lista ordens do projeto
+
+=============================================================================
+BLOCO 29 — PORTAL DO CONSULTOR (v1.0)
+=============================================================================
+
+ARQUITETURA:
+Shell: VendedorPortal.tsx (/consultor/*)
+Sidebar: vendorSidebarConfig.ts
+Dashboard: VendorDashboard ou similar
+Leads: VendorOrcamentosView.tsx
+Crédito: VendorCreditoView.tsx
+WhatsApp: /consultor/whatsapp
+
+REGRAS DE ISOLAMENTO (CRÍTICO):
+RB-92 PORTAL CONSULTOR — FILTRO OBRIGATÓRIO auth.uid()
+TODA query no portal do consultor DEVE filtrar por:
+  consultor_id = auth.uid() OU criado_por = auth.uid()
+NUNCA retornar dados de outros consultores.
+NUNCA usar query sem filtro de ownership no portal.
+RLS obrigatório em analise_credito, leads, lead_atividades.
+
+RB-93 PORTAL CONSULTOR — BADGES APENAS DE AÇÃO
+Badges no menu do consultor SOMENTE para ação necessária:
+  Leads: urgentes (sem contato +3 dias) — NÃO total
+  Agenda: tarefas vencidas/hoje — NÃO total
+  Crédito: aguardando documentos — NÃO total
+  Atendimento: conversas não respondidas
+NUNCA badge de total de registros (não é ação).
+
+FUNCIONALIDADES IMPLEMENTADAS:
+- Busca CPF → pré-preencher ficha de crédito
+- Leads disponíveis (sem consultor) → auto-atribuição
+- Widget comissões (percentual_comissao em profiles)
+- Projetos em execução com alerta +7 dias parado
+- Fila de crédito filtrada por consultor_id
+
+AP-46 CONSULTOR VER DADOS DE OUTRO
+✗ Errado: query em analise_credito sem WHERE consultor_id
+✓ Certo: .eq('consultor_id', auth.uid()) em toda query
+
+AP-47 BADGE DE TOTAL NO MENU
+✗ Errado: badge mostrando "45" (total de orçamentos)
+✓ Certo: badge mostrando "3" (urgentes que precisam de ação)
+
+CHECKLIST DE PR PARA FEATURES DO PORTAL:
+[ ] Toda query filtra por auth.uid()
+[ ] RLS verificado nas tabelas envolvidas
+[ ] Badge representa ação (não total)
+[ ] Dados de comissão via percentual_comissao de profiles
+[ ] Leads disponíveis filtram consultor_id IS NULL
+
+=============================================================================
+FIM DO AGENTS.md v4.4
 =============================================================================
