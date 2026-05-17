@@ -2,6 +2,8 @@ import { motion } from "framer-motion";
 import { memo } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import {
   Tooltip,
   TooltipContent,
@@ -31,6 +33,7 @@ import {
   Flame,
   Thermometer,
   Snowflake,
+  Package,
 } from "lucide-react";
 import { differenceInDays, differenceInHours } from "date-fns";
 import { cn } from "@/lib/utils";
@@ -118,6 +121,8 @@ export const KanbanCard = memo(({
       )}
     >
       <div className="space-y-1.5">
+        <FornecedorPedidoInfo projetoId={lead.id} />
+
         {/* Line 1: Lead code + urgency badge */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-1">
@@ -266,6 +271,39 @@ function KanbanCardMenu({
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
+  );
+}
+
+
+function FornecedorPedidoInfo({ projetoId }: { projetoId: string }) {
+  const { data: ordem } = useQuery({
+    queryKey: ["projeto-fornecedor-card", projetoId],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("ordens_compra")
+        .select("id, numero_pedido, valor_total, data_previsao_entrega, status, fornecedores(nome)")
+        .eq("projeto_id", projetoId)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      return data;
+    },
+    staleTime: 1000 * 60 * 5,
+  });
+
+  if (!ordem) return null;
+
+  return (
+    <div className="mb-2 p-1.5 bg-primary/5 rounded border border-primary/10 space-y-1">
+      <div className="flex items-center gap-1.5 text-[10px] font-bold text-primary truncate">
+        <Package className="w-3 h-3 shrink-0" />
+        {((ordem as any).fornecedores?.nome || "Fornecedor").toUpperCase()}
+      </div>
+      <div className="flex items-center justify-between text-[9px] text-muted-foreground">
+        <span>Ped: {ordem.numero_pedido || "N/A"}</span>
+        <span className="font-mono">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(ordem.valor_total)}</span>
+      </div>
+    </div>
   );
 }
 
