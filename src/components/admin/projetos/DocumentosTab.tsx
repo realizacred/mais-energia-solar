@@ -1,5 +1,5 @@
 import { useState, useRef, useMemo, useCallback } from "react";
-import { AlertTriangle, FileText, Trash2, Download, Plus, Loader2, Send, Eye, Ban, MoreVertical } from "lucide-react";
+import { AlertTriangle, FileText, Trash2, Download, Plus, Loader2, Send, Eye, Ban, MoreVertical, MessageCircle, FileDown, PenLine } from "lucide-react";
 import { SignatureModal, type SignerEntry } from "./SignatureModal";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -420,6 +420,66 @@ export function DocumentosTab({ dealId, clienteTelefone, consultorTelefone: cons
                               </Button>
                             )}
 
+                            {hasPdf && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-7 w-7 text-[#EF4444] hover:text-[#EF4444] hover:bg-[#EF4444]/10"
+                                title="Baixar PDF"
+                                onClick={() => downloadGeneratedDoc(doc.pdf_path!)}
+                              >
+                                <FileDown className="h-3.5 w-3.5" />
+                              </Button>
+                            )}
+
+                            {doc.docx_filled_path && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-7 w-7 text-[#3B82F6] hover:text-[#3B82F6] hover:bg-[#3B82F6]/10"
+                                title="Baixar DOCX"
+                                onClick={() => downloadGeneratedDoc(doc.docx_filled_path!)}
+                              >
+                                <FileDown className="h-3.5 w-3.5" />
+                              </Button>
+                            )}
+
+                            {hasPdf && doc.status !== "cancelled" && (
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-7 w-7 text-[#25D366] hover:text-[#25D366] hover:bg-[#25D366]/10"
+                                    title="Enviar via WhatsApp"
+                                  >
+                                    <MessageCircle className="h-3.5 w-3.5" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                  <DropdownMenuItem onClick={() => enviarWhatsApp(doc, "cliente")} className="gap-2">
+                                    Enviar para Cliente
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => enviarWhatsApp(doc, "consultor")} className="gap-2">
+                                    Enviar para Consultor
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            )}
+
+                            {canSendForSignature && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-7 w-7 text-blue-500 hover:text-blue-600 hover:bg-blue-50"
+                                title="Enviar para assinatura"
+                                onClick={() => setSignConfirmDoc(doc)}
+                                disabled={signMutation.isPending}
+                              >
+                                {signMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <PenLine className="h-3.5 w-3.5" />}
+                              </Button>
+                            )}
+
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
                                 <Button size="icon" variant="ghost" className="h-7 w-7">
@@ -427,20 +487,8 @@ export function DocumentosTab({ dealId, clienteTelefone, consultorTelefone: cons
                                 </Button>
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end">
-                                {hasPdf && (
-                                  <DropdownMenuItem onClick={() => downloadGeneratedDoc(doc.pdf_path!)} className="gap-2">
-                                    <Download className="h-4 w-4" />
-                                    Baixar PDF
-                                  </DropdownMenuItem>
-                                )}
-                                
                                 {doc.status !== "cancelled" && (
                                   <>
-                                    <DropdownMenuItem onClick={() => setCancelDoc(doc)} className="gap-2 text-destructive">
-                                      <Ban className="h-4 w-4" />
-                                      Cancelar documento
-                                    </DropdownMenuItem>
-                                    
                                     <DropdownMenuItem 
                                       onClick={() => {
                                         cancelDocMutation.mutate({ 
@@ -455,6 +503,11 @@ export function DocumentosTab({ dealId, clienteTelefone, consultorTelefone: cons
                                     >
                                       <Plus className="h-4 w-4" />
                                       Substituir por nova versão
+                                    </DropdownMenuItem>
+
+                                    <DropdownMenuItem onClick={() => setCancelDoc(doc)} className="gap-2 text-destructive">
+                                      <Ban className="h-4 w-4" />
+                                      Cancelar documento
                                     </DropdownMenuItem>
                                   </>
                                 )}
@@ -475,42 +528,6 @@ export function DocumentosTab({ dealId, clienteTelefone, consultorTelefone: cons
                                 </DropdownMenuItem>
                               </DropdownMenuContent>
                             </DropdownMenu>
-
-                            {hasPdf && doc.status !== "cancelled" && (
-                              <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="h-7 w-7 text-success hover:text-success"
-                                    title="Enviar via WhatsApp"
-                                  >
-                                    <Send className="h-3.5 w-3.5" />
-                                  </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end">
-                                  <DropdownMenuItem onClick={() => enviarWhatsApp(doc, "cliente")} className="gap-2">
-                                    Enviar para Cliente
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem onClick={() => enviarWhatsApp(doc, "consultor")} className="gap-2">
-                                    Enviar para Consultor
-                                  </DropdownMenuItem>
-                                </DropdownMenuContent>
-                              </DropdownMenu>
-                            )}
-
-                            {canSendForSignature && (
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                className="h-7 px-2 text-[10px] font-semibold gap-1 border-primary/30 text-primary hover:bg-primary/10 shrink-0"
-                                onClick={() => setSignConfirmDoc(doc)}
-                                disabled={signMutation.isPending}
-                              >
-                                {signMutation.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <Send className="h-3 w-3" />}
-                                ASSINAR
-                              </Button>
-                            )}
                           </div>
                         </div>
 
