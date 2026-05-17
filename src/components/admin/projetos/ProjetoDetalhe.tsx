@@ -714,47 +714,37 @@ function ProjetoDetalheContent() {
 
             {/* Right side: status + consultor + nova proposta inline */}
             <div className="flex items-center gap-1.5 shrink-0 flex-wrap justify-end">
-              <Button
-                variant="outline"
-                size="sm"
-                className="h-8 gap-1.5"
-                onClick={async () => {
-                  if (!dealId) return;
-                  const { data } = await supabase.from('deals').select('portal_token').eq('id', dealId).single();
-                  const token = (data as any)?.portal_token;
-                  if (!token) {
-                    toast({ title: "Portal não disponível", variant: "destructive" });
-                    return;
-                  }
-                  const url = `${window.location.origin}/portal/${token}`;
-                  const msg = `Olá ${customerName}! Aqui está o link para acompanhar seu projeto solar: ${url}`;
-                  window.open(`https://wa.me/55${customerPhone.replace(/\D/g, "")}?text=${encodeURIComponent(msg)}`, "_blank");
-                }}
-              >
-                <Share2 className="h-3.5 w-3.5" />
-                <span className="hidden sm:inline">Enviar Portal</span>
-              </Button>
+              {portalToken && (
+                <>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-8 gap-1.5"
+                    onClick={async () => {
+                      const url = `${window.location.origin}/portal/${portalToken}`;
+                      const msg = `Olá ${customerName}! Aqui está o link para acompanhar seu projeto solar: ${url}`;
+                      window.open(`https://wa.me/55${customerPhone.replace(/\D/g, "")}?text=${encodeURIComponent(msg)}`, "_blank");
+                    }}
+                  >
+                    <Share2 className="h-3.5 w-3.5" />
+                    <span className="hidden sm:inline">Enviar Portal</span>
+                  </Button>
 
-              <Button
-                variant="outline"
-                size="sm"
-                className="h-8 gap-1.5"
-                onClick={async () => {
-                  if (!dealId) return;
-                  const { data } = await supabase.from('deals').select('portal_token').eq('id', dealId).single();
-                  const token = (data as any)?.portal_token;
-                  if (!token) {
-                    toast({ title: "Portal não disponível", variant: "destructive" });
-                    return;
-                  }
-                  const url = `${window.location.origin}/portal/${token}`;
-                  navigator.clipboard.writeText(url);
-                  toast({ title: "Link copiado!" });
-                }}
-              >
-                <LinkIcon className="h-3.5 w-3.5" />
-                <span className="hidden sm:inline">Link do Portal</span>
-              </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-8 gap-1.5"
+                    onClick={() => {
+                      const url = `${window.location.origin}/portal/${portalToken}`;
+                      navigator.clipboard.writeText(url);
+                      toast({ title: "Link copiado!" });
+                    }}
+                  >
+                    <LinkIcon className="h-3.5 w-3.5" />
+                    <span className="hidden sm:inline">Link do Portal</span>
+                  </Button>
+                </>
+              )}
               <Separator orientation="vertical" className="h-6 mx-1 hidden sm:block" />
 
               <Badge
