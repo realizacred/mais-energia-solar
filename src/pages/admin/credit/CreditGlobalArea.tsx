@@ -884,6 +884,11 @@ function AnalysisCard({ analysis, onAction }: { analysis: any, onAction: (type: 
               <DropdownMenuItem onClick={() => onAction('reassign')}>
                 <UserPlus className="h-4 w-4 mr-2" /> Reatribuir
               </DropdownMenuItem>
+              {analysis.banco?.toLowerCase().includes('eos') && (
+                <DropdownMenuItem onClick={() => onAction('eos_integrate')} className="text-primary">
+                  <Calculator className="h-4 w-4 mr-2" /> Simulação EOS
+                </DropdownMenuItem>
+              )}
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
