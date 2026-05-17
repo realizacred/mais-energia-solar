@@ -832,8 +832,54 @@ export function CreditAnalysisWizard({
 
               {step === 4 && (
                 <div className="space-y-6 animate-in slide-in-from-right-2 duration-300">
-                  <h3 className="font-bold text-lg">Condições de Pagamento</h3>
+                  <div className="flex flex-col gap-1">
+                    <h3 className="font-bold text-lg">Bancos para Análise</h3>
+                    <p className="text-sm text-muted-foreground">Selecione as instituições para enviar esta ficha</p>
+                  </div>
                   
+                  <div className="grid grid-cols-2 gap-3">
+                    {banks?.map((bank) => {
+                      const isSelected = formData.bancos_selecionados.includes(bank.id);
+                      const metadata = (bank as any).technical_metadata;
+                      const type = metadata?.tipo === 'api_integrada' ? 'API Integrada' : 
+                                   metadata?.fonte_sync === 'manual' ? 'Manual' : 'Parcial';
+                      
+                      return (
+                        <div 
+                          key={bank.id}
+                          onClick={() => {
+                            const newBancos = isSelected 
+                              ? formData.bancos_selecionados.filter(id => id !== bank.id)
+                              : [...formData.bancos_selecionados, bank.id];
+                            setFormData({...formData, bancos_selecionados: newBancos});
+                          }}
+                          className={cn(
+                            "p-4 rounded-xl border-2 cursor-pointer transition-all relative overflow-hidden group",
+                            isSelected 
+                              ? "border-primary bg-primary/5 shadow-md" 
+                              : "border-border hover:border-muted-foreground/30 bg-muted/5"
+                          )}
+                        >
+                          <div className="flex flex-col gap-1">
+                            <div className="flex justify-between items-center">
+                              <span className="font-bold text-sm truncate pr-6">{bank.bank_name}</span>
+                              {isSelected && <CheckCircle2 className="h-4 w-4 text-primary absolute top-4 right-4 animate-in zoom-in-50" />}
+                            </div>
+                            <Badge variant={type === 'API Integrada' ? 'success' : 'outline'} className="w-fit text-[9px] h-4">
+                              {type}
+                            </Badge>
+                            <span className="text-[10px] text-muted-foreground mt-1">
+                              {bank.prazo_medio ? `Até ${bank.prazo_medio}` : 'Prazo flexível'}
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  {errors.bancos && <p className="text-red-500 text-xs mt-1">{errors.bancos}</p>}
+
+                  <Separator />
+
                   <div className="grid grid-cols-2 gap-4">
                     <div className="p-4 rounded-xl border bg-muted/30">
                       <span className="text-xs text-muted-foreground block mb-1">Valor do projeto</span>
@@ -857,48 +903,70 @@ export function CreditAnalysisWizard({
                     />
                   </div>
 
-                  <div className="space-y-3">
-                    <Label className="font-bold">Prazo desejado *</Label>
-                    <div className="grid grid-cols-4 gap-2">
-                      {[12, 24, 36, 48, 60, 72, 84].map(p => (
-                        <Button 
-                          key={p} 
-                          variant={formData.prazo_meses === p.toString() ? "default" : "outline"}
-                          className="flex flex-col h-14 p-0"
-                          onClick={() => setFormData({...formData, prazo_meses: p.toString()})}
-                        >
-                          <span className="text-lg font-bold">{p}</span>
-                          <span className="text-[10px] uppercase">meses</span>
-                        </Button>
-                      ))}
+                  {formData.bancos_selecionados.length > 0 && (
+                    <div className="space-y-6 pt-4">
+                      <h4 className="font-bold text-sm flex items-center gap-2">
+                        <Calculator className="h-4 w-4" /> Configuração por Banco
+                      </h4>
+                      {formData.bancos_selecionados.map(bankId => {
+                        const bank = banks?.find(b => b.id === bankId);
+                        const config = formData.bancos_config[bankId] || { prazo_meses: formData.prazo_meses, carencia: formData.carencia };
+                        
+                        return (
+                          <div key={bankId} className="p-4 rounded-xl border bg-muted/10 space-y-4">
+                            <span className="text-sm font-bold text-primary">{bank?.bank_name}</span>
+                            <div className="grid grid-cols-2 gap-4">
+                              <div className="space-y-2">
+                                <Label className="text-xs">Prazo (meses)</Label>
+                                <Select 
+                                  value={config.prazo_meses} 
+                                  onValueChange={(val) => setFormData({
+                                    ...formData, 
+                                    bancos_config: { ...formData.bancos_config, [bankId]: { ...config, prazo_meses: val } }
+                                  })}
+                                >
+                                  <SelectTrigger className="h-9">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {[12, 24, 36, 48, 60, 72, 84, 96, 120].map(p => (
+                                      <SelectItem key={p} value={p.toString()}>{p} meses</SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                              <div className="space-y-2">
+                                <Label className="text-xs">Carência (meses)</Label>
+                                <Select 
+                                  value={config.carencia} 
+                                  onValueChange={(val) => setFormData({
+                                    ...formData, 
+                                    bancos_config: { ...formData.bancos_config, [bankId]: { ...config, carencia: val } }
+                                  })}
+                                >
+                                  <SelectTrigger className="h-9">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {[0, 1, 2, 3, 4, 5, 6].map(c => (
+                                      <SelectItem key={c} value={c.toString()}>{c} {c === 1 ? 'mês' : 'meses'}</SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
-                    {errors.prazo_meses && <p className="text-red-500 text-xs mt-1">{errors.prazo_meses}</p>}
-                  </div>
-
-                  <div className="space-y-3">
-                    <Label className="font-bold">Carência *</Label>
-                    <div className="grid grid-cols-6 gap-2">
-                      {[1, 2, 3, 4, 5, 6].map(c => (
-                        <Button 
-                          key={c} 
-                          variant={formData.carencia === c.toString() ? "default" : "outline"}
-                          className="flex flex-col h-12 p-0"
-                          onClick={() => setFormData({...formData, carencia: c.toString()})}
-                        >
-                          <span className="text-md font-bold">{c}</span>
-                          <span className="text-[9px] uppercase">{c === 1 ? 'mês' : 'meses'}</span>
-                        </Button>
-                      ))}
-                    </div>
-                    {errors.carencia && <p className="text-red-500 text-xs mt-1">{errors.carencia}</p>}
-                  </div>
+                  )}
 
                   <div className="flex items-center justify-between p-4 rounded-xl border bg-muted/10">
                     <div className="flex items-center gap-2">
                       <ShieldCheck className="h-5 w-5 text-success" />
                       <div>
                         <span className="font-bold block text-sm">Incluir Seguro</span>
-                        <span className="text-xs text-muted-foreground italic">Proteção adicional EOS</span>
+                        <span className="text-xs text-muted-foreground italic">Proteção adicional contra imprevistos</span>
                       </div>
                     </div>
                     <Switch checked={formData.com_seguro} onCheckedChange={v => setFormData({...formData, com_seguro: v})} />
