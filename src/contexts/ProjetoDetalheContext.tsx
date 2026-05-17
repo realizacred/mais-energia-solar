@@ -488,6 +488,7 @@ export function ProjetoDetalheProvider({ dealId, onBack, initialPipelineId, init
     projetoDescricao,
     history,
     stages,
+    portalToken,
     loading: loadingData,
     customerName,
     customerPhone,
