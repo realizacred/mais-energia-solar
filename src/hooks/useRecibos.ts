@@ -108,29 +108,28 @@ export function useEmitirRecibo() {
           });
 
           // Espelhar recibo emitido em project_documents para aparecer na aba Documentos
-          if (input.projeto_id || input.deal_id) {
+          if (input.projeto_id) {
             try {
               const { data: rec } = await supabase
-                .from("recibos_emitidos" as any)
-                .select("pdf_path, numero")
+                .from("recibos")
+                .select("pdf_url, numero")
                 .eq("id", reciboId)
                 .maybeSingle();
-              const pdfPath = (rec as any)?.pdf_path as string | null;
-              if (pdfPath) {
+              const pdfUrl = (rec as any)?.pdf_url as string | null;
+              if (pdfUrl) {
                 const fileName = `Recibo ${(rec as any)?.numero || reciboId.slice(0, 8)}.pdf`;
                 await supabase.from("project_documents" as any).insert({
                   tenant_id: tenantId,
-                  projeto_id: input.projeto_id ?? null,
-                  deal_id: input.deal_id ?? null,
-                  cliente_id: input.cliente_id,
+                  projeto_id: input.projeto_id,
+                  cliente_id: input.cliente_id ?? null,
                   categoria: "recibo",
                   origem: "recibo",
                   bucket: "recibos",
-                  storage_path: pdfPath,
+                  storage_path: pdfUrl, // assuming pdf_url is the path or url
                   file_name: fileName,
                   mime_type: "application/pdf",
                   uploaded_by: userId,
-                  source_table: "recibos_emitidos",
+                  source_table: "recibos",
                   source_id: reciboId,
                 });
                 qc.invalidateQueries({ queryKey: ["project-documents"] });
@@ -145,7 +144,6 @@ export function useEmitirRecibo() {
       }
 
       // Espelhar recibo no centro financeiro (lancamentos_financeiros)
-      // Tabela não tem coluna deal_id — vinculação ao deal vai em observacoes.
       try {
         const marker = `recibo_id:${reciboId}`;
         const { data: existing } = await supabase
@@ -156,15 +154,9 @@ export function useEmitirRecibo() {
           .maybeSingle();
 
         if (!existing) {
-          const { data: tplRow } = await supabase
-            .from("document_templates")
-            .select("nome")
-            .eq("id", input.template_id)
-            .maybeSingle();
-          const templateNome = (tplRow as any)?.nome || "Recibo";
+          const templateNome = input.template || "Recibo";
           const numeroSuffix = input.numero ? ` #${input.numero}` : "";
           const descricaoFinal = `${templateNome}${numeroSuffix}`;
-          const dealMarker = input.deal_id ? ` deal_id:${input.deal_id}` : "";
 
           const { error: lancErr } = await supabase
             .from("lancamentos_financeiros")
@@ -174,11 +166,11 @@ export function useEmitirRecibo() {
               categoria: "recibo",
               descricao: descricaoFinal,
               valor: input.valor,
-              data_lancamento: new Date().toISOString().slice(0, 10),
+              data_lancamento: input.data_pagamento || new Date().toISOString().slice(0, 10),
               status: "confirmado",
-              cliente_id: input.cliente_id,
-              projeto_id: input.projeto_id ?? null,
-              observacoes: `${marker}${dealMarker}`,
+              cliente_id: input.cliente_id ?? null,
+              projeto_id: input.projeto_id,
+              observacoes: `${marker}`,
               created_by: userId,
             });
           if (lancErr) {
