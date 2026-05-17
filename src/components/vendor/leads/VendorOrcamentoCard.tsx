@@ -1,4 +1,5 @@
-import { Phone, Eye, Trash2, ShoppingCart, UserCheck, Calendar, MapPin, Zap, ExternalLink, FileText, AlertTriangle, Clock, CheckCircle, CreditCard } from "lucide-react";
+import { Phone, Eye, Trash2, ShoppingCart, UserCheck, Calendar, MapPin, Zap, ExternalLink, FileText, AlertTriangle, Clock, CheckCircle, CreditCard, ChevronDown, ChevronUp } from "lucide-react";
+import { useState } from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { formatPhoneBR } from "@/lib/formatters";
@@ -40,6 +41,7 @@ export function VendorOrcamentoCard({
   onCreditRequest,
   quickLoading,
 }: VendorOrcamentoCardProps) {
+  const [isExpanded, setIsExpanded] = useState(false);
   const cardBg = orcamento.visto 
     ? "bg-success/5 border-success/20" 
     : isConverted 
@@ -62,112 +64,108 @@ export function VendorOrcamentoCard({
   })();
 
   return (
-    <Card className={cardBg}>
-      <CardContent className="p-3 sm:p-4 space-y-3">
-        {/* Header Row */}
-        <div className="flex items-start justify-between gap-2">
-          <div className="flex items-center gap-2 flex-1 min-w-0">
+    <Card className={cn(cardBg, "overflow-hidden transition-all duration-200")}>
+      <CardContent className="p-0">
+        {/* Main Visible Area — Compact Row */}
+        <div 
+          className="p-3 sm:p-4 cursor-pointer hover:bg-muted/50 transition-colors"
+          onClick={() => setIsExpanded(!isExpanded)}
+        >
+          <div className="flex items-center gap-3">
             <Checkbox
               checked={orcamento.visto}
               onCheckedChange={onToggleVisto}
-              className="data-[state=checked]:bg-success data-[state=checked]:border-success shrink-0"
+              onClick={(e) => e.stopPropagation()}
+              className="data-[state=checked]:bg-success data-[state=checked]:border-success shrink-0 h-5 w-5"
             />
-            <div className="min-w-0 flex-1">
-              <div className="flex flex-col">
-                <span className="font-bold text-sm sm:text-base truncate leading-tight">{orcamento.nome}</span>
-                <div className="flex items-center gap-1.5 mt-1">
-                  {!orcamento.visto && (
-                    <Badge variant="secondary" className="bg-primary/10 text-primary text-[10px] h-4 px-1.5 shrink-0">
-                      Novo
-                    </Badge>
-                  )}
-                  {isConverted && (
-                    <Badge variant="secondary" className="bg-success/10 text-success text-[10px] h-4 px-1.5 shrink-0">
-                      <UserCheck className="w-2.5 h-2.5 mr-1" />
-                      Cliente
-                    </Badge>
-                  )}
-                  <Badge variant="outline" className="text-[10px] h-4 px-1.5 font-mono opacity-70">
-                    {orcamento.orc_code || "-"}
-                  </Badge>
+            
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center justify-between gap-2">
+                <span className="font-bold text-sm sm:text-base truncate leading-tight">
+                  {orcamento.nome}
+                </span>
+                <div className="flex items-center gap-1 shrink-0">
                   {statusBadge}
+                  {isExpanded ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
                 </div>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1 text-[11px]">
+                <div className="flex items-center gap-1 text-muted-foreground">
+                  <MapPin className="w-3 h-3 text-primary/70" />
+                  <span className="truncate max-w-[80px]">{orcamento.cidade}</span>
+                </div>
+                
+                <a 
+                  href={`tel:${orcamento.telefone}`}
+                  onClick={(e) => e.stopPropagation()}
+                  className="flex items-center gap-1 text-success font-medium hover:underline"
+                >
+                  <Phone className="w-3 h-3" />
+                  <span>{formatPhoneBR(orcamento.telefone)}</span>
+                </a>
+
+                {!orcamento.proposta_token && (
+                  <Badge variant="warning" className="h-4 px-1 text-[9px] animate-pulse leading-none">
+                    SEM PROPOSTA
+                  </Badge>
+                )}
               </div>
             </div>
           </div>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="shrink-0 h-8 w-8 text-muted-foreground hover:text-primary"
-            onClick={onView}
-          >
-            <Eye className="w-4 h-4" />
-          </Button>
         </div>
 
-        {/* Info Grid - More compact on mobile */}
-        <div className="grid grid-cols-2 gap-2 text-[12px]">
-          <a 
-            href={`https://wa.me/55${orcamento.telefone.replace(/\D/g, '')}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-1.5 text-muted-foreground hover:text-primary min-w-0"
-          >
-            <Phone className="w-3.5 h-3.5 shrink-0 text-success" />
-            <span className="truncate">{formatPhoneBR(orcamento.telefone)}</span>
-          </a>
-          <div className="flex items-center gap-1.5 min-w-0">
-            <MapPin className="w-3.5 h-3.5 shrink-0 text-primary" />
-            <span className="truncate font-medium">{orcamento.cidade}, {orcamento.estado}</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <Zap className="w-3.5 h-3.5 shrink-0 text-amber-500" />
-            <span className="font-semibold">{orcamento.media_consumo} kWh</span>
-          </div>
-          <div className="flex items-center gap-1.5 text-muted-foreground">
-            <Calendar className="w-3.5 h-3.5 shrink-0" />
-            <span>{format(new Date(orcamento.created_at), "dd/MM/yy", { locale: ptBR })}</span>
-          </div>
-        </div>
+        {/* Expandable Info Area */}
+        {isExpanded && (
+          <div className="px-3 pb-3 sm:px-4 sm:pb-4 space-y-3 animate-in slide-in-from-top-2 duration-200">
+            <div className="grid grid-cols-2 gap-3 pt-2 border-t border-border/40">
+              <div className="space-y-1">
+                <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-tight">Consumo / Geração</p>
+                <div className="flex items-center gap-1.5">
+                  <Zap className="w-3.5 h-3.5 text-amber-500" />
+                  <span className="text-xs font-semibold">{orcamento.media_consumo} kWh</span>
+                </div>
+              </div>
+              <div className="space-y-1">
+                <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-tight">Data de Cadastro</p>
+                <div className="flex items-center gap-1.5">
+                  <Calendar className="w-3.5 h-3.5 text-muted-foreground" />
+                  <span className="text-xs">{format(new Date(orcamento.created_at), "dd/MM/yyyy", { locale: ptBR })}</span>
+                </div>
+              </div>
+              <div className="space-y-1">
+                <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-tight">Código do Orçamento</p>
+                <Badge variant="outline" className="text-[10px] h-5 px-1.5 font-mono opacity-70">
+                  {orcamento.orc_code || "-"}
+                </Badge>
+              </div>
+              <div className="space-y-1">
+                <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-tight">Status do Lead</p>
+                <OrcamentoStatusSelector
+                  orcamentoId={orcamento.id}
+                  currentStatusId={orcamento.status_id}
+                  statuses={statuses}
+                  onStatusChange={onStatusChange}
+                />
+              </div>
+            </div>
 
-        {/* Status + Proposta Status */}
-        <div className="flex items-center gap-2 pt-1">
-          <div className="flex-1">
-            <OrcamentoStatusSelector
-              orcamentoId={orcamento.id}
-              currentStatusId={orcamento.status_id}
-              statuses={statuses}
-              onStatusChange={onStatusChange}
-            />
+            <div className="flex items-center gap-2">
+              {orcamento.proposta_token ? (
+                <Badge className="bg-success/10 text-success border-success/20 h-6 px-2 flex items-center gap-1">
+                  <FileText className="w-3 h-3" />
+                  <span className="text-[10px]">PROPOSTA OK</span>
+                </Badge>
+              ) : (
+                <Badge variant="outline" className="h-6 px-2 text-muted-foreground bg-muted/30 border-dashed">
+                  <span className="text-[10px]">AGUARDANDO ORÇAMENTO</span>
+                </Badge>
+              )}
+            </div>
           </div>
-          {orcamento.proposta_token ? (
-            <Badge className="bg-success/10 text-success border-success/20 h-7 px-2 flex items-center gap-1">
-              <FileText className="w-3 h-3" />
-              <span className="text-[10px]">PROPOSTA OK</span>
-            </Badge>
-          ) : (
-            <Badge variant="warning" className="h-7 px-2 flex items-center gap-1 text-[10px] animate-pulse">
-              SEM PROPOSTA
-            </Badge>
-          )}
+        )}
 
-          {orcamento.status_id && statuses.find(s => s.id === orcamento.status_id)?.nome.toLowerCase().includes('documentação') ? (
-            <Badge variant="outline" className="border-warning/50 text-warning bg-warning/5 h-7 px-2 flex items-center gap-1">
-              <span className="text-[10px]">DOC. PENDENTE</span>
-            </Badge>
-          ) : orcamento.status_id && statuses.find(s => s.id === orcamento.status_id)?.nome.toLowerCase().includes('validação') ? (
-            <Badge variant="outline" className="border-primary/50 text-primary bg-primary/5 h-7 px-2 flex items-center gap-1">
-              <span className="text-[10px]">EM VALIDAÇÃO</span>
-            </Badge>
-          ) : (
-            <Badge variant="outline" className="border-success/30 text-success/70 bg-success/5 h-7 px-2 flex items-center gap-1">
-              <span className="text-[10px]">DOC OK</span>
-            </Badge>
-          )}
-
-        </div>
-
-        <div className="flex flex-col gap-2 pt-2 border-t border-border/50">
+        <div className="flex flex-col gap-2 p-3 sm:p-4 border-t border-border/50">
           <div className="flex items-center gap-2">
             {!isConverted ? (
               <Button
@@ -187,7 +185,7 @@ export function VendorOrcamentoCard({
                 ) : (
                   <>
                     <Eye className="w-4 h-4" />
-                    Orcamento
+                    Orçamento
                   </>
                 )}
               </Button>

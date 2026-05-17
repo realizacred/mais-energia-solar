@@ -345,9 +345,9 @@ export function VendorOrcamentosTable({
                               href={getWhatsAppUrl(orc.telefone)}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="inline-flex items-center justify-center h-8 w-8 rounded-md text-success hover:text-success hover:bg-success/10"
+                              className="inline-flex items-center justify-center h-9 w-9 rounded-lg text-success hover:text-success hover:bg-success/10 transition-colors border border-transparent hover:border-success/20"
                             >
-                              <MessageSquare className="w-4 h-4" />
+                              <MessageSquare className="w-5 h-5" />
                             </a>
                           </TooltipTrigger>
                           <TooltipContent>Abrir WhatsApp</TooltipContent>
@@ -357,13 +357,13 @@ export function VendorOrcamentosTable({
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="text-primary hover:text-primary hover:bg-primary/10"
+                              className="h-9 w-9 text-primary hover:text-primary hover:bg-primary/10 transition-colors border border-transparent hover:border-primary/20"
                               onClick={() => {
                                 setEditOrcamento(orc);
                                 setEditOpen(true);
                               }}
                             >
-                              <Pencil className="w-4 h-4" />
+                              <Pencil className="w-4.5 h-4.5" />
                             </Button>
                           </TooltipTrigger>
                           <TooltipContent>Editar lead</TooltipContent>
@@ -373,10 +373,10 @@ export function VendorOrcamentosTable({
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="text-secondary hover:text-secondary"
+                              className="h-9 w-9 text-secondary hover:text-secondary hover:bg-secondary/10 transition-colors border border-transparent hover:border-secondary/20"
                               onClick={() => onView(orc)}
                             >
-                              <Eye className="w-4 h-4" />
+                              <Eye className="w-5 h-5" />
                             </Button>
                           </TooltipTrigger>
                           <TooltipContent>Ver detalhes</TooltipContent>
@@ -386,10 +386,10 @@ export function VendorOrcamentosTable({
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="text-primary hover:text-primary hover:bg-primary/10"
+                              className="h-9 w-9 text-primary hover:text-primary hover:bg-primary/10 transition-colors border border-transparent hover:border-primary/20"
                               onClick={() => onCreditRequest?.(orc)}
                             >
-                              <CreditCard className="w-4 h-4" />
+                              <CreditCard className="w-5 h-5" />
                             </Button>
                           </TooltipTrigger>
                           <TooltipContent>Solicitar análise de crédito</TooltipContent>
@@ -400,10 +400,10 @@ export function VendorOrcamentosTable({
                               <Button
                                 variant="ghost"
                                 size="icon"
-                                className="text-primary hover:text-primary hover:bg-primary/10"
+                                className="h-9 w-9 text-primary hover:text-primary hover:bg-primary/10 transition-colors border border-transparent hover:border-primary/20"
                                 onClick={() => window.open(`/pl/${orc.proposta_token}`, '_blank')}
                               >
-                                <ExternalLink className="w-4 h-4" />
+                                <ExternalLink className="w-4.5 h-4.5" />
                               </Button>
                             </TooltipTrigger>
                             <TooltipContent>Ver Proposta</TooltipContent>
@@ -411,8 +411,8 @@ export function VendorOrcamentosTable({
                         ) : (
                           <Tooltip>
                             <TooltipTrigger asChild>
-                              <div className="h-8 w-8 flex items-center justify-center grayscale opacity-30">
-                                <ExternalLink className="w-4 h-4" />
+                              <div className="h-9 w-9 flex items-center justify-center grayscale opacity-30 cursor-not-allowed">
+                                <ExternalLink className="w-4.5 h-4.5" />
                               </div>
                             </TooltipTrigger>
                             <TooltipContent>Sem proposta vinculada</TooltipContent>
@@ -424,7 +424,7 @@ export function VendorOrcamentosTable({
                               <Button
                                 variant="ghost"
                                 size="icon"
-                                className="text-primary hover:text-primary hover:bg-primary/10"
+                                className="h-9 w-9 text-primary hover:text-primary hover:bg-primary/10 transition-colors border border-transparent hover:border-primary/20"
                                 onClick={() => {
                                   if (hasHistory) {
                                     handleOpenHistory(group);
@@ -433,7 +433,7 @@ export function VendorOrcamentosTable({
                                   }
                                 }}
                               >
-                                <ShoppingCart className="w-4 h-4" />
+                                <ShoppingCart className="w-4.5 h-4.5" />
                               </Button>
                             </TooltipTrigger>
                             <TooltipContent>
@@ -444,8 +444,8 @@ export function VendorOrcamentosTable({
                         {isConverted && (
                           <Tooltip>
                             <TooltipTrigger asChild>
-                              <span className="inline-flex items-center justify-center h-8 w-8 text-primary">
-                                <UserCheck className="w-4 h-4" />
+                              <span className="inline-flex items-center justify-center h-9 w-9 text-primary">
+                                <UserCheck className="w-5 h-5" />
                               </span>
                             </TooltipTrigger>
                             <TooltipContent>Já convertido em cliente</TooltipContent>
@@ -457,10 +457,10 @@ export function VendorOrcamentosTable({
                               <Button
                                 variant="ghost"
                                 size="icon"
-                                className="text-destructive hover:text-destructive"
+                                className="h-9 w-9 text-destructive hover:text-destructive hover:bg-destructive/10 transition-colors border border-transparent hover:border-destructive/20"
                                 onClick={() => handleDeleteClick(orc)}
                               >
-                                <Trash2 className="w-4 h-4" />
+                                <Trash2 className="w-4.5 h-4.5" />
                               </Button>
                             </TooltipTrigger>
                             <TooltipContent>Excluir orçamento</TooltipContent>

@@ -26,8 +26,8 @@ export function useVendorBadges() {
       const last24h = subDays(now, 1).toISOString();
       const todayEnd = endOfDay(now).toISOString();
 
-      // Use a more generic approach to avoid deep type instantiation errors
-      const urgentLeadsReq = supabase
+      // Inline queries using non-generic Supabase client to bypass complex type instantiation
+      const urgentLeads = await (supabase as any)
         .from("leads")
         .select("id", { count: "exact", head: true })
         .eq("consultor_id", currentUserId)
@@ -35,20 +35,20 @@ export function useVendorBadges() {
         .not("status_id", "in", "('ganho', 'perdido', 'convertido')")
         .or(`ultimo_contato.is.null,ultimo_contato.lt.${threeDaysAgo}`);
 
-      const overdueTasksReq = (supabase as any)
+      const overdueTasks = await (supabase as any)
         .from("tarefas")
         .select("id", { count: "exact", head: true })
         .eq("created_by", currentUserId) 
         .neq("status", "concluida")
         .lte("data_vencimento", todayEnd);
 
-      const pendingCreditReq = supabase
+      const pendingCredit = await (supabase as any)
         .from("analise_credito")
         .select("id", { count: "exact", head: true })
         .eq("criado_por", currentUserId)
         .eq("status", "aguardando_documentos");
 
-      const unreadChatsReq = supabase
+      const unreadChats = await (supabase as any)
         .from("wa_conversations")
         .select("id", { count: "exact", head: true })
         .eq("assigned_to", currentUserId)
@@ -56,13 +56,6 @@ export function useVendorBadges() {
         .eq("status", "aberta")
         .eq("ultima_mensagem_de", "cliente")
         .gt("ultima_mensagem_at", last24h);
-
-      const [urgentLeads, overdueTasks, pendingCredit, unreadChats] = await Promise.all([
-        urgentLeadsReq,
-        overdueTasksReq,
-        pendingCreditReq,
-        unreadChatsReq
-      ]);
 
       return {
         orcamentos: urgentLeads.count || 0,
