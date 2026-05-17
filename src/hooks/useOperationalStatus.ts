@@ -167,8 +167,6 @@ export function useOperationalStatus(dealId: string | null) {
       }
 
       return STATUS_CONFIG.desconhecido;
-
-      return STATUS_CONFIG.desconhecido;
     }
   });
 }
