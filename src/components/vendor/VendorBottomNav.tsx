@@ -62,7 +62,7 @@ export function VendorBottomNav({ unreadWhatsApp = 0 }: VendorBottomNavProps) {
   };
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 flex md:hidden h-[calc(4rem+safe-area-inset-bottom)] pb-[safe-area-inset-bottom] bg-background border-t border-border shadow-[0_-2px_10px_-3px_hsl(var(--foreground)/0.08)]">
+    <nav className="fixed bottom-0 left-0 right-0 z-50 flex md:hidden h-[calc(4rem+safe-area-inset-bottom)] pb-[safe-area-inset-bottom] bg-background/80 backdrop-blur-xl border-t border-border/50 shadow-[0_-8px_20px_-6px_rgba(0,0,0,0.1)]">
       {NAV_ITEMS.map((item) => {
         const isActive = activeTab === item.id;
         const badge = getBadge(item.id);
@@ -75,29 +75,35 @@ export function VendorBottomNav({ unreadWhatsApp = 0 }: VendorBottomNavProps) {
             variant="ghost"
             onClick={() => handleNavigate(item.id)}
             className={cn(
-              "flex-1 flex flex-col items-center justify-center gap-0.5 min-h-[44px] h-full rounded-none transition-colors duration-150 px-0",
+              "flex-1 flex flex-col items-center justify-center gap-1 min-h-[44px] h-full rounded-none transition-all duration-300 px-0 relative",
               isActive
-                ? "text-primary hover:text-primary"
-                : "text-muted-foreground hover:text-foreground"
+                ? "text-primary"
+                : "text-muted-foreground/70 hover:text-foreground"
             )}
           >
-            <div className="relative">
-              <Icon className={cn("h-5 w-5", isActive && "stroke-[2.5]")} />
+            {isActive && (
+              <span className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-1 bg-primary rounded-b-full shadow-[0_1px_6px_rgba(var(--primary),0.4)]" />
+            )}
+            <div className="relative transition-transform duration-300 group">
+              <Icon className={cn(
+                "h-5 w-5 transition-all duration-300", 
+                isActive ? "stroke-[2.5] scale-110" : "group-hover:scale-110"
+              )} />
               {showGreenDot && (
-                <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-success ring-1 ring-background" />
+                <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-success ring-2 ring-background animate-pulse" />
               )}
               {badge > 0 && (
                 <Badge
                   variant="secondary"
-                  className="absolute -top-2 -right-3 h-4 min-w-4 px-1 text-[9px] font-bold bg-destructive text-destructive-foreground border-0 rounded-full"
+                  className="absolute -top-2.5 -right-3.5 h-4.5 min-w-[18px] px-1 text-[10px] font-bold bg-destructive text-destructive-foreground border-2 border-background rounded-full flex items-center justify-center"
                 >
                   {badge > 99 ? "99+" : badge}
                 </Badge>
               )}
             </div>
             <span className={cn(
-              "text-[10px] leading-tight",
-              isActive ? "font-semibold" : "font-medium"
+              "text-[10px] transition-all duration-300",
+              isActive ? "font-bold tracking-tight" : "font-medium opacity-70"
             )}>
               {item.label}
             </span>
