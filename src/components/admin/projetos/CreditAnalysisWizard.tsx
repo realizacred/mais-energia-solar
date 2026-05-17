@@ -732,7 +732,14 @@ export function CreditAnalysisWizard({
 
                   <div className="space-y-2">
                     <Label>Valor de Entrada (R$)</Label>
-                    <Input type="number" value={formData.entrada} onChange={e => setFormData({...formData, entrada: e.target.value})} />
+                    <Input 
+                      value={formData.entrada} 
+                      onChange={e => {
+                        const val = e.target.value.replace(/\D/g, "");
+                        const formatted = val ? (Number(val) / 100).toLocaleString('pt-BR', { minimumFractionDigits: 2 }) : "";
+                        setFormData({...formData, entrada: formatted});
+                      }} 
+                    />
                   </div>
 
                   <div className="space-y-3">
