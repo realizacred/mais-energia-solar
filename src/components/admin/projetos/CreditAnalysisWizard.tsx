@@ -173,6 +173,21 @@ export function CreditAnalysisWizard({
     };
 
     try {
+      // RB-62, RB-63: Validação de CPF/CNPJ antes de salvar
+      const documentToValidate = formData.tipo_pessoa === 'PF' ? formData.cpf_cnpj : formData.cnpj;
+      if (documentToValidate) {
+        const digits = documentToValidate.replace(/\D/g, "");
+        const isValid = formData.tipo_pessoa === 'PF' ? isValidCpf(digits) : isValidCnpj(digits);
+        if (!isValid) {
+          toast({
+            title: "Documento inválido",
+            description: `O ${formData.tipo_pessoa.toUpperCase()} informado não é válido.`,
+            variant: "destructive"
+          });
+          return;
+        }
+      }
+
       if (initialData?.id) {
         await updateMutation.mutateAsync({ id: initialData.id, ...data });
       } else {
