@@ -191,10 +191,10 @@ export function VendorSidebar({
   isAdminMode,
   isViewingAsVendedor,
   onSignOut,
-  const { data: realBadgeCounts } = useVendorBadges();
-  const mergedBadgeCounts = { ...badgeCounts, ...realBadgeCounts };
-
 }: VendorSidebarProps) {
+  const { data: realBadgeCounts } = useVendorBadges();
+  const mergedBadgeCounts = realBadgeCounts;
+
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
   const logo = useLogo({ variant: "small" });
