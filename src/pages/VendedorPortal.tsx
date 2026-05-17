@@ -1,16 +1,15 @@
 import { lazy, Suspense, useMemo, Component, type ReactNode, type ErrorInfo } from "react";
 import { Routes, Route, Navigate, useLocation, useSearchParams } from "react-router-dom";
-import { Menu } from "lucide-react";
 import { LoadingState } from "@/components/ui-kit/LoadingState";
 import { useAuth } from "@/hooks/useAuth";
-import { SidebarProvider, SidebarTrigger, SidebarInset } from "@/components/ui/sidebar";
+import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 import { VendorSidebar } from "@/components/vendor/sidebar";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { useVendedorPortal } from "@/hooks/useVendedorPortal";
 import { VendorBottomNav } from "@/components/vendor/VendorBottomNav";
 import { useQueryClient } from "@tanstack/react-query";
-import { cn } from "@/lib/utils";
 import { InstallAppBanner } from "@/components/vendor/InstallAppBanner";
+import { VendedorHeader } from "@/components/vendor/portal";
 
 // Error boundary to prevent VendorBottomNav crashes from killing the whole portal
 class BottomNavErrorBoundary extends Component<{ children: ReactNode }, { hasError: boolean }> {
@@ -91,13 +90,12 @@ export default function VendedorPortal() {
 
         <SidebarInset className="flex-1 min-w-0 w-full overflow-hidden">
           <InstallAppBanner vendedorNome={portal.vendedor?.nome} />
-          <header className="page-header border-b border-border/50 bg-background/80 backdrop-blur-md sticky top-0 z-30">
-            <div className="flex items-center h-14 px-4 sm:px-6">
-              <SidebarTrigger className="-ml-1 h-9 w-9">
-                <Menu className="h-5 w-5" />
-              </SidebarTrigger>
-            </div>
-          </header>
+          <VendedorHeader 
+            vendedorNome={portal.vendedor?.nome || ""}
+            isAdminMode={portal.isAdminMode}
+            isViewingAsVendedor={portal.isViewingAsVendedor}
+            onSignOut={portal.handleSignOut}
+          />
 
           <main className="flex-1 relative min-h-[calc(100vh-3.5rem)]">
             {/* WhatsApp — always mounted, toggled via display for persistence */}

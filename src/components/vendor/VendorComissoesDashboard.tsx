@@ -117,63 +117,63 @@ export function VendorComissoesDashboard({ vendedor }: Props) {
   };
 
   return (
-    <div className="space-y-6 mb-8">
-      <div className="flex items-center gap-2 text-sm font-semibold text-muted-foreground">
-        <Wallet className="h-4 w-4" />
-        Minhas Comissões
+    <div className="space-y-6 mb-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+      <div className="flex items-center gap-2 text-xs font-bold text-muted-foreground uppercase tracking-[0.15em]">
+        <Wallet className="h-4 w-4 text-primary" />
+        Visão Financeira
       </div>
 
       {/* Row 1 — Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card className="border-l-[4px] border-l-amber-500 shadow-sm">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <Card className="border-none shadow-lg bg-gradient-to-br from-amber-500/10 via-background to-background relative overflow-hidden group">
+          <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-110 transition-transform">
+            <Clock className="h-12 w-12 text-amber-600" />
+          </div>
           <CardContent className="pt-6">
             <div className="flex justify-between items-start">
               <div>
-                <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">A Receber</p>
-                <h3 className="text-2xl font-bold mt-1 text-foreground">{formatBRL(stats.aReceber)}</h3>
-                <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
-                  <Clock className="h-3 w-3" />
-                  {stats.countAReceber} comissões pendentes
-                </p>
-              </div>
-              <div className="p-2 bg-amber-50 rounded-lg">
-                <Clock className="h-5 w-5 text-amber-600" />
+                <p className="text-[10px] font-black text-amber-600/80 uppercase tracking-widest">A Receber</p>
+                <h3 className="text-3xl font-black mt-1 text-foreground tracking-tight">{formatBRL(stats.aReceber)}</h3>
+                <div className="mt-2 flex items-center gap-1.5 py-1 px-2 bg-amber-500/10 rounded-full w-fit">
+                  <Clock className="h-3 w-3 text-amber-600" />
+                  <span className="text-[10px] font-bold text-amber-700">{stats.countAReceber} pendentes</span>
+                </div>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="border-l-[4px] border-l-green-500 shadow-sm">
+        <Card className="border-none shadow-lg bg-gradient-to-br from-green-500/10 via-background to-background relative overflow-hidden group">
+          <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-110 transition-transform">
+            <CheckCircle2 className="h-12 w-12 text-green-600" />
+          </div>
           <CardContent className="pt-6">
             <div className="flex justify-between items-start">
               <div>
-                <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Pagas</p>
-                <h3 className="text-2xl font-bold mt-1 text-foreground">{formatBRL(stats.pagas)}</h3>
-                <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
-                  <CheckCircle2 className="h-3 w-3" />
-                  {stats.countPagas} pagas com sucesso
-                </p>
-              </div>
-              <div className="p-2 bg-green-50 rounded-lg">
-                <CheckCircle2 className="h-5 w-5 text-green-600" />
+                <p className="text-[10px] font-black text-green-600/80 uppercase tracking-widest">Pagas</p>
+                <h3 className="text-3xl font-black mt-1 text-foreground tracking-tight">{formatBRL(stats.pagas)}</h3>
+                <div className="mt-2 flex items-center gap-1.5 py-1 px-2 bg-green-500/10 rounded-full w-fit">
+                  <CheckCircle2 className="h-3 w-3 text-green-600" />
+                  <span className="text-[10px] font-bold text-green-700">{stats.countPagas} liquidadas</span>
+                </div>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="border-l-[4px] border-l-primary shadow-sm">
+        <Card className="border-none shadow-lg bg-gradient-to-br from-primary/15 via-background to-background relative overflow-hidden group">
+          <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-110 transition-transform">
+            <TrendingUp className="h-12 w-12 text-primary" />
+          </div>
           <CardContent className="pt-6">
             <div className="flex justify-between items-start">
               <div>
-                <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Total do Ano (Vendas)</p>
-                <h3 className="text-2xl font-bold mt-1 text-foreground">{formatBRL(stats.totalAno)}</h3>
-                <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
-                  <TrendingUp className="h-3 w-3" />
-                  {stats.countVendasAno} vendas este ano
-                </p>
-              </div>
-              <div className="p-2 bg-primary/10 rounded-lg">
-                <TrendingUp className="h-5 w-5 text-primary" />
+                <p className="text-[10px] font-black text-primary/80 uppercase tracking-widest">Vendas do Ano</p>
+                <h3 className="text-3xl font-black mt-1 text-foreground tracking-tight">{formatBRL(stats.totalAno)}</h3>
+                <div className="mt-2 flex items-center gap-1.5 py-1 px-2 bg-primary/10 rounded-full w-fit">
+                  <TrendingUp className="h-3 w-3 text-primary" />
+                  <span className="text-[10px] font-bold text-primary">{stats.countVendasAno} fechamentos</span>
+                </div>
               </div>
             </div>
           </CardContent>

@@ -17,6 +17,7 @@ import {
   SidebarMenuItem,
   SidebarHeader,
   SidebarFooter,
+  SidebarTrigger,
   useSidebar,
 } from "@/components/ui/sidebar";
 import {
@@ -83,15 +84,15 @@ function VendorSidebarItem({
             : item.title
         }
         className={`
-          transition-all duration-200 rounded-lg mx-1 my-px text-[13px]
+          transition-all duration-300 rounded-xl mx-2 my-0.5 text-sm h-11 px-3
           ${
             isActive
-              ? "bg-sidebar-primary/8 text-sidebar-primary font-semibold border-l-[3px] border-sidebar-primary"
-              : "text-sidebar-foreground-muted hover:bg-sidebar-accent hover:text-sidebar-foreground"
+              ? "bg-primary text-primary-foreground font-bold shadow-lg shadow-primary/20 scale-[1.02] border-none"
+              : "text-sidebar-foreground-muted hover:bg-sidebar-accent/50 hover:text-sidebar-foreground hover:translate-x-1"
           }
         `}
       >
-        <item.icon className={`h-[18px] w-[18px] shrink-0 sidebar-icon ${isActive ? 'text-sidebar-primary' : section.iconColor || 'text-sidebar-foreground-muted'}`} data-active={isActive} />
+        <item.icon className={`h-[18px] w-[18px] shrink-0 sidebar-icon ${isActive ? 'text-primary-foreground' : section.iconColor || 'text-sidebar-foreground-muted'}`} data-active={isActive} />
         {item.description ? (
           <div className="flex flex-col items-start min-w-0 flex-1">
             <span className="text-[13px] truncate leading-tight">
@@ -109,7 +110,7 @@ function VendorSidebarItem({
             <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-50 ${
               isActive ? "bg-background" : "bg-primary"
             }`} />
-            <span className={`relative min-w-[20px] h-5 px-1 text-[10px] font-bold rounded-full flex items-center justify-center ${
+            <span className={`relative min-w-[20px] h-5 px-1.5 text-[10px] font-black rounded-full flex items-center justify-center shadow-sm ${
               isActive
                 ? "bg-background text-primary"
                 : "bg-primary text-primary-foreground"
@@ -147,11 +148,11 @@ function VendorSidebarSectionGroup({
         <CollapsibleTrigger asChild>
           <SidebarGroupLabel
             className={`
-              text-[10px] font-bold uppercase tracking-[0.12em] px-3 py-2.5
+              text-[10px] font-black uppercase tracking-[0.2em] px-3 py-3
               flex items-center gap-2.5 cursor-pointer select-none
-              transition-all duration-200 ease-in-out
-              hover:bg-sidebar-accent rounded-lg
-              text-sidebar-foreground/70
+              transition-all duration-300 ease-in-out
+              hover:bg-sidebar-accent/50 rounded-xl
+              text-sidebar-foreground/60
             `}
           >
             <div className={`w-6 h-6 rounded-md flex items-center justify-center shrink-0 ${section.indicatorClass || 'bg-sidebar-accent'}`}>
@@ -167,7 +168,7 @@ function VendorSidebarSectionGroup({
         </CollapsibleTrigger>
         <CollapsibleContent>
           <SidebarGroupContent>
-            <SidebarMenu className="gap-px mt-0.5 ml-4 pl-3 border-l border-sidebar-border/40">
+            <SidebarMenu className="gap-0.5 mt-1 ml-4 pl-3 border-l-2 border-sidebar-border/20">
               {section.items.map((item) => (
                 <VendorSidebarItem
                   key={item.id}
@@ -211,26 +212,33 @@ export function VendorSidebar({
       collapsible="icon"
       className="sidebar-premium border-0"
     >
-      <SidebarHeader className="border-b border-sidebar-border/50 px-3 py-3.5">
-        <Link
-          to="/"
-          className="flex items-center gap-3 transition-all duration-200 hover:opacity-80"
-        >
-          {collapsed ? (
-            <div className="p-1.5 rounded-xl bg-primary/10 hover:bg-primary/15 transition-colors mx-auto">
-              <Sun className="h-5 w-5 text-primary" />
-            </div>
-          ) : (
-            <div className="flex items-center gap-3">
-              <img src={logo} alt="Logo" className="h-8 w-auto" />
-              <div className="flex flex-col">
-                <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-primary/80">
-                  Consultor
-                </span>
+      <SidebarHeader className="border-b border-sidebar-border/30 px-4 py-5 bg-sidebar-background/50 backdrop-blur-sm">
+        <div className="flex items-center justify-between gap-2">
+          <Link
+            to="/"
+            className="flex items-center gap-3 transition-all duration-300 hover:opacity-80 min-w-0"
+          >
+            {collapsed ? (
+              <div className="p-1.5 rounded-xl bg-primary/10 hover:bg-primary/15 transition-colors mx-auto shadow-sm">
+                <Sun className="h-5 w-5 text-primary" />
               </div>
-            </div>
+            ) : (
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="p-1.5 rounded-xl bg-primary/5 border border-primary/10 shadow-inner shrink-0">
+                  <img src={logo} alt="Logo" className="h-8 w-auto" />
+                </div>
+                <div className="flex flex-col min-w-0">
+                  <span className="text-[10px] font-black uppercase tracking-[0.2em] text-primary truncate">
+                    Consultor
+                  </span>
+                </div>
+              </div>
+            )}
+          </Link>
+          {!collapsed && (
+            <SidebarTrigger className="h-8 w-8 rounded-lg hover:bg-sidebar-accent transition-colors shrink-0" />
           )}
-        </Link>
+        </div>
       </SidebarHeader>
 
       <SidebarContent className="scrollbar-thin py-2 space-y-0.5">
@@ -244,31 +252,38 @@ export function VendorSidebar({
         ))}
       </SidebarContent>
 
-      <SidebarFooter className="border-t border-sidebar-border/50 p-3 space-y-2">
+      <SidebarFooter className="border-t border-sidebar-border/30 p-4 space-y-3 bg-sidebar-background/30 backdrop-blur-sm">
         {!collapsed && (
-          <div className="px-3 py-2 rounded-lg bg-sidebar-accent/50 border border-sidebar-border/30">
-            <p className="text-[11px] text-sidebar-foreground/55 truncate font-medium">
+          <div className="px-3 py-2.5 rounded-xl bg-primary/5 border border-primary/10 shadow-inner">
+            <p className="text-[10px] font-black uppercase tracking-widest text-primary/70 mb-0.5">
+              Consultor
+            </p>
+            <p className="text-sm text-sidebar-foreground font-bold truncate">
               {displayName}
             </p>
             {isAdminMode && (
-              <span className="text-[10px] text-primary font-medium">
-                Modo Admin
-              </span>
+              <Badge variant="secondary" className="mt-1.5 h-4 text-[9px] bg-primary/10 text-primary border-none font-bold uppercase tracking-wider">
+                Admin Mode
+              </Badge>
             )}
           </div>
         )}
-        {!collapsed && <PortalSwitcher />}
+        {!collapsed && (
+          <div className="portal-switcher-wrapper px-1">
+            <PortalSwitcher />
+          </div>
+        )}
         <Button
           variant="ghost"
           size={collapsed ? "icon" : "default"}
           onClick={onSignOut}
           className={`
-            w-full justify-start gap-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10
-            ${collapsed ? "justify-center px-0" : ""}
+            w-full justify-start gap-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-xl transition-all
+            ${collapsed ? "justify-center px-0 h-10 w-10 mx-auto" : "h-11 px-3"}
           `}
         >
           <LogOut className="h-4 w-4 shrink-0" />
-          {!collapsed && <span className="text-sm">Sair</span>}
+          {!collapsed && <span className="text-xs font-bold uppercase tracking-wide">Sair</span>}
         </Button>
       </SidebarFooter>
       <SidebarRail />

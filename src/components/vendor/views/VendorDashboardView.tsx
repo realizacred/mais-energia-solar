@@ -46,39 +46,42 @@ export default function VendorDashboardView({ portal }: Props) {
 
   return (
     <div className="space-y-4 sm:space-y-6">
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-3">
-          <div className="p-2 rounded-lg bg-primary/10">
-            <LayoutDashboard className="h-5 w-5 text-primary" />
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+        <div className="flex items-center gap-4">
+          <div className="p-3 rounded-2xl bg-primary shadow-lg shadow-primary/20 rotate-3 hover:rotate-0 transition-transform duration-300">
+            <LayoutDashboard className="h-6 w-6 text-primary-foreground" />
           </div>
           <div>
-            <h1 className="text-xl font-bold text-foreground">Painel</h1>
-            <p className="text-sm text-muted-foreground">Resumo das suas métricas e atividades</p>
+            <h1 className="text-2xl font-black text-foreground tracking-tight">Painel de Controle</h1>
+            <p className="text-sm font-medium text-muted-foreground/80">Gestão centralizada e métricas de desempenho</p>
           </div>
         </div>
-        <div className="flex items-center gap-2 bg-background/50 p-1 rounded-lg border border-border/40 scale-90 sm:scale-100 origin-right">
-          <div className="flex items-center gap-2 px-2 border-r border-border/40 mr-1">
+        <div className="flex items-center gap-3 bg-card/40 backdrop-blur-md p-1.5 rounded-2xl border border-border/40 shadow-sm">
+          <div className="flex items-center gap-2 px-3 border-r border-border/40 mr-1">
             <WaAutoMessageToggle compact />
           </div>
-          <div className="flex items-center gap-4 px-2">
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input 
-                type="checkbox" 
-                checked={excludeTerminal} 
-                onChange={(e) => setExcludeTerminal(e.target.checked)}
-                className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary"
-              />
-              <span className="text-xs font-medium">Ocultar Finalizados</span>
+          <div className="flex items-center gap-4 px-3 pr-4">
+            <label className="flex items-center gap-2.5 cursor-pointer group">
+              <div className="relative flex items-center">
+                <input 
+                  type="checkbox" 
+                  checked={excludeTerminal} 
+                  onChange={(e) => setExcludeTerminal(e.target.checked)}
+                  className="w-4.5 h-4.5 rounded-md border-muted-foreground/30 text-primary focus:ring-primary/30 transition-all"
+                />
+              </div>
+              <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground/80 group-hover:text-primary transition-colors">Finalizados</span>
             </label>
+            <div className="h-4 w-px bg-border/40" />
             <select 
               value={maxAgeDays || "all"} 
               onChange={(e) => setMaxAgeDays(e.target.value === "all" ? null : Number(e.target.value))}
-              className="bg-transparent border-none text-xs font-medium focus:ring-0 cursor-pointer"
+              className="bg-transparent border-none text-[11px] font-bold uppercase tracking-wider text-muted-foreground/80 focus:ring-0 cursor-pointer hover:text-primary transition-colors pr-2"
             >
-              <option value="30">Últimos 30 dias</option>
-              <option value="60">Últimos 60 dias</option>
-              <option value="90">Últimos 90 dias</option>
-              <option value="all">Todo histórico</option>
+              <option value="30">30 dias</option>
+              <option value="60">60 dias</option>
+              <option value="90">90 dias</option>
+              <option value="all">Sempre</option>
             </select>
           </div>
         </div>
