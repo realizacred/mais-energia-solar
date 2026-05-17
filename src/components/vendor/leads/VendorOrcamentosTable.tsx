@@ -332,7 +332,7 @@ export function VendorOrcamentosTable({
                     />
                   </TableCell>
                   <TableCell className="align-middle">
-                    {format(new Date(orc.created_at), "dd/MM/yyyy", { locale: ptBR })}
+                    {displayDate(orc.created_at)}
                   </TableCell>
                   <TableCell className="text-right align-middle">
                     <TooltipProvider>
