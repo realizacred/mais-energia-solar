@@ -24,7 +24,13 @@ import {
   Circle,
   AlertCircle,
   CreditCard,
-  UserPlus
+  UserPlus,
+  Building,
+  User,
+  MapPin,
+  Calendar as CalendarIcon,
+  Calculator,
+  Edit2
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
