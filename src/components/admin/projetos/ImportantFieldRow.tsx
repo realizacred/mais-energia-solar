@@ -108,7 +108,8 @@ export function ImportantFieldRow({ field, value, dealId, onSaved, showSeparator
     }
   }, [editing]);
 
-  async function save() {
+  async function save(newValue?: any) {
+    const valToSave = newValue !== undefined ? newValue : draft;
     setSaving(true);
     try {
       const tenantId = await resolveTenantId();
@@ -123,21 +124,25 @@ export function ImportantFieldRow({ field, value, dealId, onSaved, showSeparator
       };
 
       if (field.field_type === "boolean") {
-        payload.value_boolean = draftBool;
+        payload.value_boolean = newValue !== undefined ? newValue : draftBool;
       } else if (field.field_type === "number" || field.field_type === "currency" || field.field_type === "percent") {
-        payload.value_number = draft ? parseFloat(draft) : null;
+        payload.value_number = valToSave ? parseFloat(valToSave) : null;
       } else if (field.field_type === "date") {
-        payload.value_date = draft || null;
+        payload.value_date = valToSave || null;
       } else {
-        payload.value_text = draft || null;
+        payload.value_text = valToSave || null;
       }
 
       const { error } = await supabase
         .from("deal_custom_field_values")
         .upsert(payload, { onConflict: "deal_id,field_id" });
 
-      if (error) console.error("Erro ao salvar campo:", error);
-      else onSaved();
+      if (error) {
+        console.error("Erro ao salvar campo:", error);
+        toast({ title: "Erro ao salvar", description: error.message, variant: "destructive" });
+      } else {
+        onSaved();
+      }
     } finally {
       setSaving(false);
       setEditing(false);
@@ -149,9 +154,13 @@ export function ImportantFieldRow({ field, value, dealId, onSaved, showSeparator
   }
 
   function handleKeyDown(e: React.KeyboardEvent) {
-    if (e.key === "Enter" && field.field_type !== "textarea") save();
+    if (e.key === "Enter" && field.field_type !== "textarea") {
+      save();
+      (e.target as HTMLElement).blur();
+    }
     if (e.key === "Escape") cancel();
   }
+
 
   // Boolean toggle - save immediately
   async function toggleBool() {
