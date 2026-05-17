@@ -205,18 +205,35 @@ export function DocumentosTab({ dealId, clienteTelefone, consultorTelefone: cons
   });
 
   const cancelDocMutation = useMutation({
-    mutationFn: async ({ docId, motivo }: { docId: string; motivo: string }) => {
+    mutationFn: async ({ docId, motivo, descricao }: { docId: string; motivo: string; descricao?: string }) => {
+      const { data: { user } } = await supabase.auth.getUser();
       const { error } = await supabase
         .from("generated_documents")
-        .update({ status: "cancelled", observacao: motivo || null } as any)
+        .update({ 
+          status: "cancelled", 
+          motivo_cancelamento: motivo,
+          descricao_cancelamento: descricao || null,
+          cancelado_at: new Date().toISOString(),
+          cancelado_por: user?.id
+        } as any)
         .eq("id", docId);
       if (error) throw error;
+
+      // Chama a função para gerar o PDF com a faixa (cancel-document)
+      try {
+        await supabase.functions.invoke("cancel-document", {
+          body: { document_id: docId, motivo }
+        });
+      } catch (e) {
+        console.warn("Falha ao gerar PDF cancelado:", e);
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["projeto-documentos-generated", dealId] });
       toast({ title: "Documento cancelado" });
       setCancelDoc(null);
       setCancelMotivo("");
+      setCancelDescricao("");
     },
     onError: (err: any) => {
       toast({ title: "Erro ao cancelar", description: err.message, variant: "destructive" });
