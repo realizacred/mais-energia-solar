@@ -23,7 +23,7 @@ export interface OperationalStatusInfo {
 const STATUS_CONFIG: Record<OperationalStatus, OperationalStatusInfo> = {
   operacional_nao_iniciado: { 
     status: "operacional_nao_iniciado", 
-    label: "Operacional não iniciado", 
+    label: "Pronto para Engenharia", 
     colorClass: "bg-slate-100 text-slate-600 border-slate-200" 
   },
   aguardando_documentos: { 
