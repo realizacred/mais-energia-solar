@@ -83,6 +83,8 @@ interface Props {
   clienteId?: string | null;
   initialData?: AnaliseCredito;
   clienteCpfCnpj?: string | null;
+  clienteNome?: string | null;
+  clienteTelefone?: string | null;
   valorReferencia?: number | null;
 }
 
@@ -96,6 +98,8 @@ export function CreditAnalysisWizard({
   clienteId, 
   initialData,
   clienteCpfCnpj,
+  clienteNome,
+  clienteTelefone,
   valorReferencia 
 }: Props) {
   const [step, setStep] = useState<Step>(1);
@@ -126,9 +130,9 @@ export function CreditAnalysisWizard({
     avalista_estado: initialData?.avalista_estado || "",
     avalista_numero: initialData?.avalista_numero || "",
     // Novos campos EOS
-    cliente_nome: initialData?.cliente_nome || "",
+    cliente_nome: initialData?.cliente_nome || clienteNome || "",
     cliente_email: initialData?.cliente_email || "",
-    cliente_telefone: initialData?.cliente_telefone || "",
+    cliente_telefone: initialData?.cliente_telefone || clienteTelefone || "",
     cliente_data_nascimento: initialData?.cliente_data_nascimento || "",
     cnpj: initialData?.cnpj || "",
     razao_social: initialData?.razao_social || "",
