@@ -144,9 +144,10 @@ export function ProjectDocumentsHub({ projetoId, dealId }: Props) {
   const { data: projectDocsData, isLoading } = useProjectDocuments({ projetoId, dealId });
   const docs = projectDocsData?.documents || [];
   
-  // Bug fix: use the actual unique documents count from projectDocsData
+  // Bug fix: use the actual unique physical documents count from projectDocsData
   const totalCount = docs.length;
   const totalSize = projectDocsData?.totalSize || 0;
+
 
 
   
