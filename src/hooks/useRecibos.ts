@@ -274,8 +274,8 @@ export function useDeleteRecibo() {
   return useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase
-        .from("recibos_emitidos" as any)
-        .update({ deleted_at: new Date().toISOString() } as any)
+        .from("recibos" as any)
+        .update({ status: "cancelado" } as any)
         .eq("id", id);
       if (error) throw error;
     },
