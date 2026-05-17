@@ -30,7 +30,11 @@ import {
 } from "@/services/monitoring/monitorService";
 import type { IntegrationProvider, IntegrationCategory, ConnectionStatus } from "@/services/integrations/types";
 import { CATEGORY_LABELS, CATEGORY_ICONS } from "@/services/integrations/types";
-import { PROVIDER_REGISTRY, toIntegrationProvider, LEGACY_ID_MAP } from "@/services/monitoring/providerRegistry";
+import { 
+  PROVIDER_REGISTRY, 
+  toIntegrationProvider, 
+  LEGACY_ID_MAP 
+} from "@/services/monitoring/providerRegistry";
 import { IntegrationProviderCard } from "./IntegrationProviderCard";
 import { IntegrationProviderDrawer } from "./IntegrationProviderDrawer";
 import { cn } from "@/lib/utils";
