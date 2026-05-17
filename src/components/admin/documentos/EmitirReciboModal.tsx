@@ -662,13 +662,61 @@ export function EmitirReciboModal({
           </div>
 
           {formaPagamento === "Financiamento" && (
-            <div className="space-y-1.5">
+            <div className="space-y-1.5 sm:col-span-2">
               <Label className="text-xs">Instituição Financeira</Label>
-              <Input
-                value={instituicaoFinanceira}
-                onChange={(e) => setInstituicaoFinanceira(e.target.value)}
-                placeholder="Ex: EOS, BV, Santander..."
-              />
+              <Input value={instituicaoFinanceira} onChange={(e) => setInstituicaoFinanceira(e.target.value)} placeholder="Ex: EOS, BV, Santander..." />
+            </div>
+          )}
+
+          {formaPagamento === "PIX" && (
+            <div className="space-y-1.5 sm:col-span-2">
+              <Label className="text-xs">ID / Comprovante do PIX</Label>
+              <Input value={pixComprovante} onChange={(e) => setPixComprovante(e.target.value)} placeholder="E2E ID ou nº do comprovante" />
+            </div>
+          )}
+
+          {formaPagamento === "Boleto" && (
+            <div className="space-y-1.5 sm:col-span-2">
+              <Label className="text-xs">Linha Digitável do Boleto</Label>
+              <Input value={boletoLinhaDigitavel} onChange={(e) => setBoletoLinhaDigitavel(e.target.value)} placeholder="00000.00000 00000.000000 00000.000000 0 00000000000000" />
+            </div>
+          )}
+
+          {formaPagamento === "Cheque" && (
+            <div className="sm:col-span-2 grid grid-cols-2 gap-2">
+              <div className="space-y-1.5">
+                <Label className="text-xs">Banco</Label>
+                <Input value={chequeBanco} onChange={(e) => setChequeBanco(e.target.value)} placeholder="Ex: 341 - Itaú" />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">Nº do Cheque</Label>
+                <Input value={chequeNumero} onChange={(e) => setChequeNumero(e.target.value)} placeholder="000123" />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">Agência</Label>
+                <Input value={chequeAgencia} onChange={(e) => setChequeAgencia(e.target.value)} placeholder="0000" />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">Conta</Label>
+                <Input value={chequeConta} onChange={(e) => setChequeConta(e.target.value)} placeholder="00000-0" />
+              </div>
+            </div>
+          )}
+
+          {(formaPagamento === "Cartão de Crédito" || formaPagamento === "Cartão de Débito") && (
+            <div className="sm:col-span-2 grid grid-cols-3 gap-2">
+              <div className="space-y-1.5">
+                <Label className="text-xs">Bandeira</Label>
+                <Input value={cartaoBandeira} onChange={(e) => setCartaoBandeira(e.target.value)} placeholder="Visa, Master..." />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">{formaPagamento === "Cartão de Crédito" ? "Parcelas" : "Parcelas (1)"}</Label>
+                <Input type="number" min={1} max={formaPagamento === "Cartão de Crédito" ? 24 : 1} value={cartaoParcelas} onChange={(e) => setCartaoParcelas(e.target.value)} disabled={formaPagamento === "Cartão de Débito"} />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">NSU / Autorização</Label>
+                <Input value={cartaoNsu} onChange={(e) => setCartaoNsu(e.target.value)} placeholder="000000" />
+              </div>
             </div>
           )}
 
