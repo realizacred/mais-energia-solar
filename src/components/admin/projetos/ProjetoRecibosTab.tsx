@@ -181,6 +181,11 @@ export function ProjetoRecibosTab({
                       <span className="text-sm font-medium truncate">
                         {r.cliente?.nome ?? "—"}
                       </span>
+                      {r.cliente?.cnpj_cpf && (
+                        <span className="text-xs text-muted-foreground">
+                          ({displayCpfCnpj(r.cliente.cnpj_cpf)})
+                        </span>
+                      )}
                       <Badge variant="outline" className={`text-[10px] ${STATUS_VARIANT[r.status]}`}>
                         {STATUS_LABEL[r.status]}
                       </Badge>
@@ -192,8 +197,12 @@ export function ProjetoRecibosTab({
                       )}
                     </div>
                     <p className="text-[11px] text-muted-foreground mt-0.5">
-                      {fmtBRL(Number(r.valor))} • {format(new Date(r.created_at), "dd/MM/yy HH:mm")}
-                      {r.forma_pagamento && <Badge variant="outline" className="text-[9px] ml-2">{r.forma_pagamento}</Badge>}
+                      {formatBRL(Number(r.valor))} • {formatDateTime(r.created_at)}
+                      {r.forma_pagamento && (
+                        <Badge variant="outline" className="text-[9px] ml-2">
+                          {formatNameCapitalize(r.forma_pagamento)}
+                        </Badge>
+                      )}
                     </p>
                     {r.descricao && (
                       <p className="text-[11px] text-muted-foreground mt-0.5 truncate">{r.descricao}</p>
