@@ -42,14 +42,12 @@ import {
   leadFormSchema,
   step1Schema,
   step2Schema,
-  step3Schema,
   LeadFormData,
-  formatPhone,
-  formatCEP,
-  formatName,
   ESTADOS_BRASIL,
   REDES_ATENDIMENTO,
 } from "@/lib/validations";
+import { formatPhoneBR as formatPhone, formatCEP, formatNameCapitalize as formatName } from "@/lib/formatters/index";
+
 import { useTiposTelhado } from "@/hooks/useTiposTelhado";
 
 const STEPS = [
