@@ -314,7 +314,7 @@ export function ImportantFieldRow({ field, value, dealId, onSaved, showSeparator
         )}>
           {displayValue === "—" ? "Clique para preencher" : displayValue}
         </div>
-        {!disabled && <Pencil className="h-4 w-4 shrink-0 text-muted-foreground/30 group-hover:text-muted-foreground/70 transition-colors" />}
+        {!disabled && <Pencil className="h-4 w-4 shrink-0 text-primary/40 group-hover:text-primary transition-colors" />}
       </div>
       {showSeparator && <Separator />}
     </>
