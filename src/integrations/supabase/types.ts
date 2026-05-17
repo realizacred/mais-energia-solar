@@ -6642,9 +6642,8 @@ export type Database = {
         Row: {
           ambiente: string
           ativo: boolean
-          client_id: string
-          client_secret: string
           created_at: string
+          eos_api_key: string
           financeira: string
           id: string
           tenant_id: string
@@ -6653,9 +6652,8 @@ export type Database = {
         Insert: {
           ambiente?: string
           ativo?: boolean
-          client_id: string
-          client_secret: string
           created_at?: string
+          eos_api_key: string
           financeira?: string
           id?: string
           tenant_id: string
@@ -6664,9 +6662,8 @@ export type Database = {
         Update: {
           ambiente?: string
           ativo?: boolean
-          client_id?: string
-          client_secret?: string
           created_at?: string
+          eos_api_key?: string
           financeira?: string
           id?: string
           tenant_id?: string
