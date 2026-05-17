@@ -447,9 +447,9 @@ export default function CreditGlobalArea() {
         <div>
           <h1 className="text-3xl font-bold tracking-tight flex items-center gap-3">
             <Activity className="h-8 w-8 text-primary" />
-            Bank Operations Core
+            Credit Operations
           </h1>
-          <p className="text-muted-foreground">Governança, observabilidade e orquestração de crédito enterprise.</p>
+          <p className="text-muted-foreground">Monitoramento e gestão centralizada de solicitações de crédito.</p>
         </div>
         <div className="flex gap-2">
           <Button variant="outline" size="sm" className="gap-2" onClick={handleSyncEos}>
