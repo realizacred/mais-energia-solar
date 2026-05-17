@@ -74,10 +74,7 @@ export function VendorOrcamentoCard({
           <div className="flex items-center gap-3">
             <Checkbox
               checked={orcamento.visto}
-              onCheckedChange={(checked) => {
-                // Prevent expanding card when clicking checkbox
-                onToggleVisto();
-              }}
+              onCheckedChange={onToggleVisto}
               onClick={(e) => e.stopPropagation()}
               className="data-[state=checked]:bg-success data-[state=checked]:border-success shrink-0 h-5 w-5"
             />
@@ -168,7 +165,7 @@ export function VendorOrcamentoCard({
           </div>
         )}
 
-        <div className="flex flex-col gap-2 pt-2 border-t border-border/50">
+        <div className="flex flex-col gap-2 p-3 sm:p-4 border-t border-border/50">
           <div className="flex items-center gap-2">
             {!isConverted ? (
               <Button
@@ -188,7 +185,7 @@ export function VendorOrcamentoCard({
                 ) : (
                   <>
                     <Eye className="w-4 h-4" />
-                    Orcamento
+                    Orçamento
                   </>
                 )}
               </Button>
