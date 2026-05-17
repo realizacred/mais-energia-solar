@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -11,37 +12,38 @@ serve(async (req) => {
   }
 
   try {
-    const { client_id, client_secret, ambiente } = await req.json()
+    const supabaseClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    )
 
-    if (!client_id || !client_secret) {
-      throw new Error('client_id and client_secret are required')
+    const { tenant_id } = await req.json()
+
+    if (!tenant_id) {
+      throw new Error('tenant_id is required')
     }
 
-    const baseUrl = ambiente === 'producao' 
+    // Buscar credenciais (agora simplificado para buscar a eos_api_key direta)
+    const { data: config, error: configError } = await supabaseClient
+      .from('financeiras_config')
+      .select('eos_api_key, ambiente')
+      .eq('tenant_id', tenant_id)
+      .eq('financeira', 'eos')
+      .eq('ativo', true)
+      .single()
+
+    if (configError || !config) {
+      throw new Error('Integração EOS não configurada ou inativa para este tenant')
+    }
+
+    const baseUrl = config.ambiente === 'producao' 
       ? 'https://api.eosfin.com.br' 
       : 'https://api.test.eosfin.com.br'
 
-    const params = new URLSearchParams()
-    params.append('grant_type', 'client_credentials')
-    params.append('client_id', client_id)
-    params.append('client_secret', client_secret)
-
-    const response = await fetch(`${baseUrl}/oauth/token`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-      body: params.toString(),
-    })
-
-    const data = await response.json()
-
-    if (!response.ok) {
-      console.error('EOS Token Error:', data)
-      throw new Error(data.message || 'Failed to get token from EOS')
-    }
-
-    return new Response(JSON.stringify(data), {
+    return new Response(JSON.stringify({ 
+      api_key: config.eos_api_key,
+      base_url: baseUrl
+    }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 200,
     })
