@@ -9,7 +9,7 @@
 import { useEffect, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Download, FileText, Loader2, ExternalLink } from "lucide-react";
+import { Download, FileText, Loader2, ExternalLink, AlertCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { formatDateTime } from "@/lib/dateUtils";
@@ -49,71 +49,74 @@ function inferKind(filename: string, mime?: string | null): "image" | "pdf" | "o
 export function FilePreviewModal({ target, onClose }: Props) {
   const [signedUrl, setSignedUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [errorState, setErrorState] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
     if (!target) {
       setSignedUrl(null);
+      setErrorState(null);
       return;
     }
     setLoading(true);
     setSignedUrl(null);
+    setErrorState(null);
+
+    const timer = setTimeout(() => {
+      if (!cancelled && loading) {
+        setLoading(false);
+        setErrorState("Tempo limite de carregamento excedido (10s)");
+      }
+    }, 10000);
+
     const checkAndSign = async () => {
       try {
-        // External bucket: storage_path is already a public URL (e.g. SolarMarket S3 import).
         if (target.bucket === "external") {
           if (cancelled) return;
           setSignedUrl(target.storage_path);
           return;
         }
-        const pathParts = target.storage_path.split("/");
-        const filename = pathParts.pop()!;
-        const parentPath = pathParts.join("/");
-
-        const { data: files, error: listError } = await supabase.storage
-          .from(target.bucket)
-          .list(parentPath, { search: filename });
-
-        if (listError) throw listError;
-
-        const exists = files?.some((f) => f.name === filename);
-        if (!exists) {
-          toast({
-            title: "Arquivo não encontrado",
-            description: "Arquivo não encontrado. Tente gerar o documento novamente.",
-            variant: "destructive",
-          });
-          onClose();
-          return;
-        }
-
+        
         const { data, error } = await supabase.storage
           .from(target.bucket)
           .createSignedUrl(target.storage_path, 3600);
 
         if (cancelled) return;
-        if (error || !data?.signedUrl) {
-          throw error || new Error("Não foi possível gerar URL de visualização");
+        
+        if (error) {
+          if (error.message === "Object not found") {
+            setErrorState("Arquivo não encontrado no servidor");
+          } else {
+            throw error;
+          }
+          return;
         }
+
+        if (!data?.signedUrl) {
+          throw new Error("Não foi possível gerar URL de visualização");
+        }
+        
         setSignedUrl(data.signedUrl);
       } catch (err: any) {
         if (cancelled) return;
+        setErrorState(err.message || "Erro desconhecido ao carregar arquivo");
         toast({
           title: "Erro ao abrir arquivo",
           description: err.message === "Object not found" ? "Arquivo não encontrado no servidor." : err.message,
           variant: "destructive",
         });
-        onClose();
       } finally {
         if (!cancelled) setLoading(false);
+        clearTimeout(timer);
       }
     };
 
     checkAndSign();
     return () => {
       cancelled = true;
+      clearTimeout(timer);
     };
-  }, [target, onClose]);
+  }, [target]);
 
   const handleDownload = async () => {
     if (!target) return;
@@ -159,15 +162,39 @@ export function FilePreviewModal({ target, onClose }: Props) {
           </Button>
         </DialogHeader>
         <div className="flex-1 min-h-0 bg-muted/30 overflow-auto">
-          {loading || !signedUrl ? (
+          {loading ? (
             <div className="flex items-center justify-center h-[60vh]">
-              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+              <div className="flex flex-col items-center gap-3">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                <p className="text-sm text-muted-foreground animate-pulse">Carregando arquivo...</p>
+              </div>
+            </div>
+          ) : errorState ? (
+            <div className="flex flex-col items-center justify-center py-20 text-center px-6">
+              <div className="w-16 h-16 rounded-lg bg-destructive/10 flex items-center justify-center mb-4">
+                <AlertCircle className="w-8 h-8 text-destructive" />
+              </div>
+              <h4 className="text-base font-bold text-foreground mb-1">Ops! Ocorreu um problema</h4>
+              <p className="text-sm text-muted-foreground max-w-xs mb-6">
+                {errorState}
+              </p>
+              <div className="flex flex-col sm:flex-row gap-3">
+                <Button onClick={onClose} variant="outline">Fechar</Button>
+                {errorState.includes("encontrado") && (
+                  <Button className="gap-2" onClick={() => {
+                    onClose();
+                    toast({ title: "Upload", description: "Use a aba de Documentos para fazer um novo upload." });
+                  }}>
+                    Fazer novo upload
+                  </Button>
+                )}
+              </div>
             </div>
           ) : kind === "pdf" ? (
-            <iframe src={signedUrl} className="w-full h-[75vh] border-0" title={target?.filename} />
+            <iframe src={signedUrl!} className="w-full h-[75vh] border-0" title={target?.filename} />
           ) : kind === "image" ? (
             <div className="flex items-center justify-center p-4 min-h-[40vh]">
-              <img src={signedUrl} alt={target?.filename} className="max-w-full max-h-[75vh] object-contain rounded" />
+              <img src={signedUrl!} alt={target?.filename} className="max-w-full max-h-[75vh] object-contain rounded shadow-lg" />
             </div>
           ) : (
             <div className="flex flex-col items-center justify-center py-16 text-center px-6">

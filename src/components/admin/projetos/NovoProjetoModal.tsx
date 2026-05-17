@@ -36,6 +36,8 @@ import {
   DEFAULT_TIPO_PROJETO_SOLAR,
   type TipoProjetoSolar,
 } from "@/lib/tipoProjetoSolar";
+import { formatCpfCnpj } from "@/lib/cpfCnpjUtils";
+import { formatPhone } from "@/lib/validations";
 
 const schema = z.object({
   nomeProjeto: z.string().trim().max(150, "Nome do projeto deve ter no máximo 150 caracteres").optional(),
@@ -538,7 +540,7 @@ export function NovoProjetoModal({
                         >
                           <div className="min-w-0">
                             <p className="text-xs font-medium text-foreground truncate">{c.nome}</p>
-                            <p className="text-[11px] text-muted-foreground truncate">{c.telefone}</p>
+                            <p className="text-[11px] text-muted-foreground truncate">{c.telefone ? formatPhone(c.telefone) : ""}{c.cpf_cnpj ? ` • ${formatCpfCnpj(c.cpf_cnpj)}` : ""}</p>
                             {c.email && <p className="text-[11px] text-muted-foreground truncate">{c.email}</p>}
                           </div>
                         </Button>

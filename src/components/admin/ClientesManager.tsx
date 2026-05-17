@@ -64,6 +64,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatPhone } from "@/lib/validations";
 import { formatPhoneBR, formatBRL } from "@/lib/formatters";
+import { formatCpfCnpj } from "@/lib/cpfCnpjUtils";
 import { CpfCnpjInput } from "@/components/shared/CpfCnpjInput";
 import { AddressFields, type AddressData } from "@/components/shared/AddressFields";
 import { PhoneInput } from "@/components/ui-kit/inputs/PhoneInput";
@@ -464,7 +465,7 @@ export function ClientesManager({ onSelectCliente }: ClientesManagerProps) {
       c.nome,
       c.telefone,
       c.email || "",
-      c.cpf_cnpj || "",
+      c.cpf_cnpj ? formatCpfCnpj(c.cpf_cnpj) : "",
       c.cidade || "",
       c.estado || "",
       c.potencia_kwp?.toString() || "",
@@ -767,7 +768,7 @@ export function ClientesManager({ onSelectCliente }: ClientesManagerProps) {
                         )}
                       </div>
                       {cliente.cpf_cnpj && (
-                        <p className="text-xs text-muted-foreground">{cliente.cpf_cnpj}</p>
+                        <p className="text-xs text-muted-foreground">{formatCpfCnpj(cliente.cpf_cnpj)}</p>
                       )}
                     </div>
                   </TableCell>

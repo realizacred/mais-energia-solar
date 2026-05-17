@@ -24,6 +24,7 @@ import {
 import { ProjetoRecibosTab } from "./projetos/ProjetoRecibosTab";
 import { formatDate, formatDateTime } from "@/lib/dateUtils";
 import { formatPhoneBR, formatBRL } from "@/lib/formatters";
+import { formatCpfCnpj } from "@/lib/cpfCnpjUtils";
 import {
   useClienteProjetos,
   useClientePropostas,
@@ -354,7 +355,7 @@ export function ClienteViewDialog({ cliente, open, onOpenChange }: ClienteViewDi
                     </p>
                     <div className="grid grid-cols-2 gap-3">
                       <InfoField label="Código" value={cliente.cliente_code} />
-                      <InfoField label="CPF/CNPJ" value={cliente.cpf_cnpj} />
+                      <InfoField label="CPF/CNPJ" value={formatCpfCnpj(cliente.cpf_cnpj || "")} />
                       <InfoField label="Data de nascimento" value={cliente.data_nascimento ? formatDate(cliente.data_nascimento + "T12:00:00") : null} />
                       <InfoField label="E-mail" value={cliente.email} />
                       <InfoField label="Telefone" value={cliente.telefone} />
