@@ -430,15 +430,12 @@ export function ProjectDocumentsHub({ projetoId, dealId }: Props) {
                           <p className="text-sm font-medium text-foreground truncate">
                             {d.display_name || d.file_name}
                           </p>
-                          <Badge variant="outline" className={cn("text-[10px] py-0 px-1.5", ORIGEM_COLOR[d.origem])}>
-                            {ORIGEM_LABEL[d.origem]}
-                          </Badge>
-                          {(d.metadata as any)?.is_custom_field && (
-                            <Badge variant="secondary" className="text-[10px] py-0 px-1.5 gap-1">
-                              <Info className="h-3 w-3" />
-                              Campo customizado
+                          {d.origem !== 'manual' && (
+                            <Badge variant="outline" className={cn("text-[10px] py-0 px-1.5", ORIGEM_COLOR[d.origem])}>
+                              {ORIGEM_LABEL[d.origem]}
                             </Badge>
                           )}
+
                         </div>
                         <p className="text-[11px] text-muted-foreground mt-0.5">
                           {d.display_name ? (
