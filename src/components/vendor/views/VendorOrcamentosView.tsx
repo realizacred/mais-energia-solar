@@ -74,8 +74,8 @@ export default function VendorOrcamentosView({ portal }: Props) {
             <FileText className="h-5 w-5 text-primary" />
           </div>
           <div>
-            <h1 className="text-xl font-bold text-foreground">Orçamentos</h1>
-            <p className="text-sm text-muted-foreground">Propostas e simulações enviadas</p>
+            <h1 className="text-xl font-bold text-foreground">Leads</h1>
+            <p className="text-sm text-muted-foreground">Oportunidades e solicitações de orçamento</p>
           </div>
         </div>
         <div className="flex md:hidden">
@@ -123,9 +123,9 @@ export default function VendorOrcamentosView({ portal }: Props) {
         <CardHeader>
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
-              <CardTitle>Meus Orçamentos</CardTitle>
+              <CardTitle>Meus Leads</CardTitle>
               <CardDescription>
-                Exibindo {filteredOrcamentos.length} {filteredOrcamentos.length === 1 ? 'orçamento' : 'orçamentos'} 
+                Exibindo {filteredOrcamentos.length} {filteredOrcamentos.length === 1 ? 'lead' : 'leads'} 
                 {totalCount > filteredOrcamentos.length ? ` (Página ${portal.page + 1})` : ""} de {totalCount} filtrados
               </CardDescription>
               {(excludeTerminal || maxAgeDays !== null) && (
@@ -193,7 +193,7 @@ export default function VendorOrcamentosView({ portal }: Props) {
                     Carregando...
                   </>
                 ) : (
-                  "Carregar mais orçamentos"
+                  "Carregar mais leads"
                 )}
               </Button>
             </div>
