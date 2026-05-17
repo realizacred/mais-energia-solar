@@ -46,7 +46,7 @@ export {
 };
 
 import {
-  formatPhone as formatPhoneMasked,
+  formatPhone as formatPhoneMaskedOriginal,
   formatCEP,
   formatName,
   normalizeEmail,
@@ -54,12 +54,13 @@ import {
 } from "../validations";
 
 export {
-  formatPhoneMasked,
+  formatPhoneMaskedOriginal as formatPhoneMasked,
   formatCEP,
   formatName,
   normalizeEmail,
   validateEmail,
 };
+
 
 
 // ─── DOCUMENT FORMATTERS ─────────────────────────────────────
