@@ -166,62 +166,75 @@ export function VendorOrcamentoCard({
 
         </div>
 
-        {/* Critical Actions — Phase 3: Single primary CTA */}
-        <div className="flex items-center gap-2 pt-2 border-t border-border/50">
-          {!isConverted ? (
-            <Button
-              variant={orcamento.proposta_token ? "default" : "outline"}
-              size="sm"
-              className={cn(
-                "flex-1 h-11 text-xs gap-2 font-bold transition-all shadow-sm",
-                orcamento.proposta_token ? "bg-primary hover:bg-primary/90" : "text-muted-foreground"
-              )}
-              onClick={() => orcamento.proposta_token ? onConvert?.() : onView()}
-            >
-              {orcamento.proposta_token ? (
-                <>
-                  <ShoppingCart className="w-4 h-4" />
-                  Converter em Venda
-                </>
-              ) : (
-                <>
-                  <Eye className="w-4 h-4" />
-                  Gerar Orçamento Primeiro
-                </>
+        <div className="flex flex-col gap-2 pt-2 border-t border-border/50">
+          <div className="flex items-center gap-2">
+            {!isConverted ? (
+              <Button
+                variant={orcamento.proposta_token ? "default" : "outline"}
+                size="sm"
+                className={cn(
+                  "flex-1 h-11 text-xs gap-2 font-bold transition-all shadow-sm",
+                  orcamento.proposta_token ? "bg-primary hover:bg-primary/90" : "text-muted-foreground"
+                )}
+                onClick={() => orcamento.proposta_token ? onConvert?.() : onView()}
+              >
+                {orcamento.proposta_token ? (
+                  <>
+                    <ShoppingCart className="w-4 h-4" />
+                    Venda
+                  </>
+                ) : (
+                  <>
+                    <Eye className="w-4 h-4" />
+                    Orcamento
+                  </>
+                )}
+              </Button>
+            ) : (
+              <Button
+                variant="outline"
+                size="sm"
+                className="flex-1 h-11 text-xs gap-2 font-semibold bg-success/5 text-success border-success/20"
+                onClick={onView}
+              >
+                <UserCheck className="w-4 h-4" />
+                Convertido
+              </Button>
+            )}
 
-              )}
-            </Button>
-          ) : (
             <Button
               variant="outline"
               size="sm"
-              className="flex-1 h-11 text-xs gap-2 font-semibold bg-success/5 text-success border-success/20"
-              onClick={onView}
+              className="flex-1 h-11 text-xs gap-2 font-semibold border-primary/30 text-primary hover:bg-primary/5"
+              onClick={() => onCreditRequest?.(orcamento)}
             >
-              <UserCheck className="w-4 h-4" />
-              Venda Convertida
+              <CreditCard className="w-4 h-4" />
+              Crédito
             </Button>
-          )}
+          </div>
           
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-11 w-11 rounded-full text-success hover:bg-success/10 shrink-0"
-            onClick={() => window.open(`https://wa.me/55${orcamento.telefone.replace(/\D/g, '')}`, '_blank')}
-          >
-            <Phone className="w-5 h-5" />
-          </Button>
-          
-          {onDelete && (
+          <div className="flex items-center gap-2">
             <Button
               variant="ghost"
-              size="icon"
-              className="text-destructive/50 hover:text-destructive hover:bg-destructive/10 h-11 w-11 rounded-full shrink-0"
-              onClick={onDelete}
+              size="sm"
+              className="flex-1 h-10 gap-2 text-success hover:bg-success/10"
+              onClick={() => window.open(`https://wa.me/55${orcamento.telefone.replace(/\D/g, '')}`, '_blank')}
             >
-              <Trash2 className="w-4 h-4" />
+              <Phone className="w-4 h-4" />
+              WhatsApp
             </Button>
-          )}
+            
+            {onDelete && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="text-destructive/50 hover:text-destructive hover:bg-destructive/10 h-10 w-10 rounded-full shrink-0"
+                onClick={onDelete}
+              >
+                <Trash2 className="w-4 h-4" />
+              </Button>
+            )}
+          </div>
         </div>
 
       </CardContent>
