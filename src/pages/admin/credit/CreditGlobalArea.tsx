@@ -34,7 +34,7 @@ import {
   FileSpreadsheet,
   RefreshCw
 } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { 
   Table, 
@@ -82,7 +82,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { useCreditBankChecklist } from "@/hooks/useCreditConfigs";
+import { useCreditBankChecklist, useCreditBankConfigs } from "@/hooks/useCreditConfigs";
 import { 
   LineChart, 
   Line, 
