@@ -64,6 +64,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatPhone } from "@/lib/validations";
 import { formatPhoneBR, formatBRL } from "@/lib/formatters";
+import { formatCpfCnpj } from "@/lib/cpfCnpjUtils";
 import { CpfCnpjInput } from "@/components/shared/CpfCnpjInput";
 import { AddressFields, type AddressData } from "@/components/shared/AddressFields";
 import { PhoneInput } from "@/components/ui-kit/inputs/PhoneInput";
