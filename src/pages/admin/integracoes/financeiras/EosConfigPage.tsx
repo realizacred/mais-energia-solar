@@ -201,6 +201,39 @@ export default function EosIntegrationConfig() {
     }
   };
 
+  const handleRegisterWebhook = async () => {
+    setIsRegisteringWebhook(true);
+    try {
+      const { data: profile } = await supabase.from("profiles").select("tenant_id").eq("user_id", user?.id).single();
+      
+      const { data, error } = await supabase.functions.invoke('eos-webhook-cadastro', {
+        body: { tenant_id: profile?.tenant_id }
+      });
+
+      if (error) throw error;
+
+      toast({ 
+        title: "Webhook cadastrado!", 
+        description: "Notificações automáticas ativadas com sucesso." 
+      });
+      
+      setFormData(prev => ({ 
+        ...prev, 
+        eos_onboarding_step: 3
+      }));
+      
+      queryClient.invalidateQueries({ queryKey: ["financeiras-config"] });
+    } catch (error: any) {
+      toast({ 
+        title: "Erro no webhook", 
+        description: error.message, 
+        variant: "destructive" 
+      });
+    } finally {
+      setIsRegisteringWebhook(false);
+    }
+  };
+
   if (isConfigLoading) return <div className="p-8 text-center">Carregando configurações...</div>;
 
   const currentStep = formData.eos_onboarding_step;
