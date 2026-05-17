@@ -127,11 +127,11 @@ export function RecibosTab() {
 
       <Tabs value={innerTab} onValueChange={(v) => setInnerTab(v as "templates" | "emitidos")}>
         <TabsList className="bg-muted/50 p-1 rounded-xl">
-          <TabsTrigger value="templates" className="text-xs gap-1.5">
+          <TabsTrigger value="templates" className="text-xs gap-1.5 font-bold">
             <Receipt className="h-3.5 w-3.5" />
             Templates
           </TabsTrigger>
-          <TabsTrigger value="emitidos" className="text-xs gap-1.5">
+          <TabsTrigger value="emitidos" className="text-xs gap-1.5 font-bold">
             <Sparkles className="h-3.5 w-3.5" />
             Recibos emitidos {recibos?.length ? `(${recibos.length})` : ""}
           </TabsTrigger>
