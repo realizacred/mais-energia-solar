@@ -2,8 +2,7 @@
 // Reutilizado em ProjetoDetalhe e ClienteViewDialog.
 // SSOT: useRecibos. Sem duplicação de domínio.
 import { useState, useEffect, useRef } from "react";
-import { format } from "date-fns";
-import { Receipt, FileText, Download, Send, RefreshCw, Trash2, Plus, History, Loader2 } from "lucide-react";
+import { Receipt, FileText, Download, Send, RefreshCw, Trash2, Plus, History } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -18,6 +17,12 @@ import {
 import { EmitirReciboModal } from "@/components/admin/documentos/EmitirReciboModal";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { 
+  formatBRL, 
+  formatDateTime, 
+  displayCpfCnpj, 
+  formatNameCapitalize 
+} from "@/lib/formatters";
 
 const STATUS_LABEL: Record<Recibo["status"], string> = {
   emitido: "Emitido",
