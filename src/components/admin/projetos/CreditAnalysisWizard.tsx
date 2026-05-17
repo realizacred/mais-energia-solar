@@ -698,12 +698,17 @@ export function CreditAnalysisWizard({
                        <div className="col-span-2 grid grid-cols-3 gap-2">
                           <div className="col-span-2 space-y-1">
                             <Label>Logradouro</Label>
-                            <Input value={formData.endereco_logradouro} onChange={e => setFormData({...formData, endereco_logradouro: e.target.value})} />
-                          </div>
-                          <div className="space-y-1">
-                            <Label>Número *</Label>
-                            <Input value={formData.endereco_numero} onChange={e => setFormData({...formData, endereco_numero: e.target.value})} />
-                          </div>
+                             <Input value={formData.endereco_logradouro} onChange={e => setFormData({...formData, endereco_logradouro: e.target.value})} />
+                           </div>
+                           <div className="space-y-1">
+                             <Label>Número *</Label>
+                             <Input 
+                                className={errors.endereco_numero ? "border-red-500" : ""} 
+                                value={formData.endereco_numero} 
+                                onChange={e => setFormData({...formData, endereco_numero: e.target.value})} 
+                             />
+                             {errors.endereco_numero && <p className="text-red-500 text-xs mt-1">{errors.endereco_numero}</p>}
+                           </div>
                        </div>
                     </div>
                   </div>
