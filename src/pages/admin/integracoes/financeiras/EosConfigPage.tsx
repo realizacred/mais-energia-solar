@@ -42,8 +42,7 @@ export default function EosIntegrationConfig() {
   });
 
   const [formData, setFormData] = useState({
-    client_id: "",
-    client_secret: "",
+    eos_api_key: "",
     ambiente: "sandbox",
     ativo: false
   });
