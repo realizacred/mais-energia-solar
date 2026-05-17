@@ -176,7 +176,7 @@ export default function CreditGlobalArea() {
 
   // Action States
   const [selectedAnalysis, setSelectedAnalysis] = useState<any>(null);
-  const [actionType, setActionType] = useState<'approve' | 'reject' | 'request_docs' | 'reassign' | 'eos_integrate' | null>(null);
+  const [actionType, setActionType] = useState<'approve' | 'reject' | 'request_docs' | 'reassign' | 'eos_integrate' | 'view_details' | null>(null);
   const [actionNotes, setActionNotes] = useState("");
   const [targetManagerId, setTargetManagerId] = useState("");
   const [pendingDocs, setPendingDocs] = useState<string[]>([]);
