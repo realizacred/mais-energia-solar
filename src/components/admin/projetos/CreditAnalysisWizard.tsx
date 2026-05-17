@@ -314,14 +314,12 @@ export function CreditAnalysisWizard({
       ? new Date(formData.cliente_data_nascimento).toISOString() 
       : null;
     
-    const data: any = {
+    const commonData: any = {
       ...formData,
       cliente_data_nascimento: isoNascimento,
       renda_mensal: parseBRNumber(formData.renda_mensal) || 0,
       valor_solicitado: parseFloat(formData.valor_solicitado) || 0,
       entrada: parseBRNumber(formData.entrada) || 0,
-      prazo_meses: parseInt(formData.prazo_meses) || 0,
-      carencia: parseInt(formData.carencia) || 1,
       patrimonio: parseBRNumber(formData.patrimonio) || 0,
       avalista_renda_mensal: parseBRNumber(formData.avalista_renda_mensal) || 0,
       avalista_patrimonio: parseBRNumber(formData.avalista_patrimonio) || 0,
@@ -338,9 +336,43 @@ export function CreditAnalysisWizard({
 
     try {
       if (initialData?.id) {
-        await updateMutation.mutateAsync({ id: initialData.id, ...data });
+        // Edit mode: updating the existing record (only first bank supported for now in edit)
+        const bankId = formData.bancos_selecionados[0];
+        const bank = banks?.find(b => b.id === bankId);
+        const config = formData.bancos_config[bankId] || { prazo_meses: formData.prazo_meses, carencia: formData.carencia };
+        
+        await updateMutation.mutateAsync({ 
+          id: initialData.id, 
+          ...commonData, 
+          bank_config_id: bankId,
+          banco: bank?.bank_name,
+          prazo_meses: parseInt(config.prazo_meses),
+          carencia: parseInt(config.carencia)
+        });
       } else {
-        await createMutation.mutateAsync(data);
+        // Multi-insert for new applications
+        for (const bankId of formData.bancos_selecionados) {
+          const bank = banks?.find(b => b.id === bankId);
+          const config = formData.bancos_config[bankId] || { prazo_meses: formData.prazo_meses, carencia: formData.carencia };
+          const timestamp = Date.now();
+          const idempotency_key = `${dealId || leadId}:${bank?.slug || bankId}:${timestamp}`;
+
+          const result = await createMutation.mutateAsync({
+            ...commonData,
+            bank_config_id: bankId,
+            banco: bank?.bank_name,
+            prazo_meses: parseInt(config.prazo_meses),
+            carencia: parseInt(config.carencia),
+            idempotency_key
+          } as any);
+
+          // If EOS and not draft, trigger simulation
+          if (!asDraft && bank?.slug?.toLowerCase() === 'eos' && result?.id) {
+            supabase.functions.invoke('eos-simular', {
+              body: { analise_id: result.id }
+            }).catch(err => console.error("Simulação EOS falhou", err));
+          }
+        }
       }
       onClose();
     } catch (e) {
