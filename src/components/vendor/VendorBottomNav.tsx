@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useVendorBadges } from "@/hooks/useVendorBadges";
 
 interface VendorBottomNavProps {
   unreadWhatsApp?: number;
@@ -19,7 +20,9 @@ const NAV_ITEMS = [
   { id: "agenda", label: "Agenda", icon: CalendarCheck },
 ] as const;
 
-export function VendorBottomNav({ unreadWhatsApp = 0, badgeOrcamentos = 0 }: VendorBottomNavProps) {
+export function VendorBottomNav({ unreadWhatsApp = 0 }: VendorBottomNavProps) {
+  const { data: realBadgeCounts } = useVendorBadges();
+
   const navigate = useNavigate();
   const location = useLocation();
   const [searchParams] = useSearchParams();
@@ -53,7 +56,9 @@ export function VendorBottomNav({ unreadWhatsApp = 0, badgeOrcamentos = 0 }: Ven
 
   const getBadge = (id: string) => {
     if (id === "whatsapp") return unreadWhatsApp;
-    if (id === "orcamentos") return badgeOrcamentos;
+    if (id === "orcamentos") return realBadgeCounts?.orcamentos || 0;
+    if (id === "credito") return realBadgeCounts?.credito || 0;
+    if (id === "agenda") return realBadgeCounts?.agenda || 0;
     return 0;
   };
 
