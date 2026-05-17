@@ -111,8 +111,9 @@ export function useUploadProjectDocument() {
       const { tenantId, userId } = await getCurrentTenantId();
       const ext = file.name.split(".").pop() || "bin";
       const ref = projetoId || dealId || "misc";
+      const bucket = getStorageBucket("projeto");
       const storagePath = await buildStoragePath(
-        "project-documents",
+        bucket,
         ref,
         `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`,
       );
