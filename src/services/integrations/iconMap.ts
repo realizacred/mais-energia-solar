@@ -155,7 +155,10 @@ const ICON_MAP: Record<string, string> = {
  */
 export function getProviderIconUrl(providerId: string): string | null {
   const file = ICON_MAP[providerId];
-  if (file) return `/integrations/${file}`;
+  if (file) {
+    if (file.startsWith('/')) return file;
+    return `/integrations/${file}`;
+  }
 
   // Try base ID (e.g. goodwe_sems → goodwe)
   const base = providerId.split("_")[0];
