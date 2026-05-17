@@ -5,6 +5,7 @@
  * - Libs: formatBRL, formatDateTime, cn, isValidCpf, isValidCnpj
  */
 import { useState, useMemo, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import { 
   Dialog, 
   DialogContent, 
