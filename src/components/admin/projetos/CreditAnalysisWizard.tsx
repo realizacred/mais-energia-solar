@@ -478,19 +478,43 @@ export function CreditAnalysisWizard({
                       <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-1">
                           <Label>CNPJ *</Label>
-                          <Input value={formData.cnpj} onChange={e => setFormData({...formData, cnpj: formatCpfCnpj(e.target.value)})} placeholder="00.000.000/0000-00" />
+                          <Input 
+                            value={formData.cnpj} 
+                            onChange={e => setFormData({...formData, cnpj: formatCpfCnpj(e.target.value)})} 
+                            placeholder="00.000.000/0000-00" 
+                            className={errors.cnpj ? "border-red-500" : ""}
+                          />
+                          {errors.cnpj && <p className="text-red-500 text-xs mt-1">{errors.cnpj}</p>}
                         </div>
                         <div className="space-y-1">
                           <Label>Nome Fantasia *</Label>
-                          <Input value={formData.razao_social} onChange={e => setFormData({...formData, razao_social: e.target.value})} placeholder="Nome da Empresa" />
+                          <Input 
+                            value={formData.razao_social} 
+                            onChange={e => setFormData({...formData, razao_social: e.target.value})} 
+                            placeholder="Nome da Empresa" 
+                            className={errors.razao_social ? "border-red-500" : ""}
+                          />
+                          {errors.razao_social && <p className="text-red-500 text-xs mt-1">{errors.razao_social}</p>}
                         </div>
                         <div className="space-y-1">
                           <Label>Telefone *</Label>
-                          <Input value={formData.cliente_telefone} onChange={e => setFormData({...formData, cliente_telefone: e.target.value})} placeholder="(00) 00000-0000" />
+                          <Input 
+                            value={formData.cliente_telefone} 
+                            onChange={e => setFormData({...formData, cliente_telefone: formatPhone(e.target.value)})} 
+                            placeholder="(00) 00000-0000" 
+                            className={errors.cliente_telefone ? "border-red-500" : ""}
+                          />
+                          {errors.cliente_telefone && <p className="text-red-500 text-xs mt-1">{errors.cliente_telefone}</p>}
                         </div>
                         <div className="space-y-1">
                           <Label>E-mail *</Label>
-                          <Input value={formData.cliente_email} onChange={e => setFormData({...formData, cliente_email: e.target.value})} placeholder="email@empresa.com" />
+                          <Input 
+                            value={formData.cliente_email} 
+                            onChange={e => setFormData({...formData, cliente_email: e.target.value})} 
+                            placeholder="email@empresa.com" 
+                            className={errors.cliente_email ? "border-red-500" : ""}
+                          />
+                          {errors.cliente_email && <p className="text-red-500 text-xs mt-1">{errors.cliente_email}</p>}
                         </div>
                       </div>
 
@@ -499,11 +523,21 @@ export function CreditAnalysisWizard({
                         <div className="grid grid-cols-2 gap-4 text-xs">
                           <div className="col-span-2 space-y-1">
                             <Label>Nome Completo *</Label>
-                            <Input className="h-8" value={formData.avalista_nome} onChange={e => setFormData({...formData, avalista_nome: e.target.value})} />
+                            <Input 
+                              className={cn("h-8", errors.avalista_nome ? "border-red-500" : "")} 
+                              value={formData.avalista_nome} 
+                              onChange={e => setFormData({...formData, avalista_nome: e.target.value})} 
+                            />
+                            {errors.avalista_nome && <p className="text-red-500 text-xs mt-1">{errors.avalista_nome}</p>}
                           </div>
                           <div className="space-y-1">
                             <Label>CPF *</Label>
-                            <Input className="h-8" value={formData.avalista_cpf} onChange={e => setFormData({...formData, avalista_cpf: formatCpfCnpj(e.target.value)})} />
+                            <Input 
+                              className={cn("h-8", errors.avalista_cpf ? "border-red-500" : "")} 
+                              value={formData.avalista_cpf} 
+                              onChange={e => setFormData({...formData, avalista_cpf: formatCpfCnpj(e.target.value)})} 
+                            />
+                            {errors.avalista_cpf && <p className="text-red-500 text-xs mt-1">{errors.avalista_cpf}</p>}
                           </div>
                           <div className="space-y-1">
                             <Label>Data de Nascimento *</Label>
