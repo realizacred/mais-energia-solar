@@ -1065,7 +1065,7 @@ export function CreditAnalysisWizard({
                               </div>
                               <div className="text-right">
                                 <span className="font-medium block">{config.prazo_meses} meses</span>
-                                <span className="text-[10px] text-muted-foreground italic">Carência: {config.carencia} m</span>
+                                <span className="text-[10px] text-muted-foreground italic">Carência: {config.carencia} meses</span>
                               </div>
                             </div>
                           );
