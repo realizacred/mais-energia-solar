@@ -6,7 +6,7 @@
  *
  * Usa signed URL temporária (1h) — nunca URL pública permanente.
  */
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Download, FileText, Loader2, ExternalLink, AlertCircle } from "lucide-react";
@@ -51,29 +51,39 @@ export function FilePreviewModal({ target, onClose }: Props) {
   const [loading, setLoading] = useState(false);
   const [errorState, setErrorState] = useState<string | null>(null);
 
+  const requestIdRef = useRef(0);
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+
   useEffect(() => {
-    let cancelled = false;
+    const currentId = ++requestIdRef.current;
+    
     if (!target) {
       setSignedUrl(null);
       setErrorState(null);
+      setLoading(false);
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
       return;
     }
+
     setLoading(true);
     setSignedUrl(null);
     setErrorState(null);
 
-    const timer = setTimeout(() => {
-      if (!cancelled && loading) {
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    timeoutRef.current = setTimeout(() => {
+      if (currentId === requestIdRef.current) {
         setLoading(false);
-        setErrorState("Tempo limite de carregamento excedido (10s)");
+        setErrorState("Tempo limite de carregamento excedido (8s). Tente baixar o arquivo.");
       }
-    }, 10000);
+    }, 8000);
 
     const checkAndSign = async () => {
       try {
         if (target.bucket === "external") {
-          if (cancelled) return;
+          if (currentId !== requestIdRef.current) return;
           setSignedUrl(target.storage_path);
+          setLoading(false);
+          if (timeoutRef.current) clearTimeout(timeoutRef.current);
           return;
         }
         
@@ -81,7 +91,7 @@ export function FilePreviewModal({ target, onClose }: Props) {
           .from(target.bucket)
           .createSignedUrl(target.storage_path, 3600);
 
-        if (cancelled) return;
+        if (currentId !== requestIdRef.current) return;
         
         if (error) {
           if (error.message === "Object not found") {
@@ -98,23 +108,21 @@ export function FilePreviewModal({ target, onClose }: Props) {
         
         setSignedUrl(data.signedUrl);
       } catch (err: any) {
-        if (cancelled) return;
+        if (currentId !== requestIdRef.current) return;
         setErrorState(err.message || "Erro desconhecido ao carregar arquivo");
-        toast({
-          title: "Erro ao abrir arquivo",
-          description: err.message === "Object not found" ? "Arquivo não encontrado no servidor." : err.message,
-          variant: "destructive",
-        });
+        console.error("[FilePreviewModal] Error:", err);
       } finally {
-        if (!cancelled) setLoading(false);
-        clearTimeout(timer);
+        if (currentId === requestIdRef.current) {
+          setLoading(false);
+          if (timeoutRef.current) clearTimeout(timeoutRef.current);
+        }
       }
     };
 
     checkAndSign();
+    
     return () => {
-      cancelled = true;
-      clearTimeout(timer);
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
     };
   }, [target]);
 
