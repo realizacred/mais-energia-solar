@@ -81,6 +81,7 @@ export function DocumentosTab({ dealId, clienteTelefone, consultorTelefone: cons
   const [cancelDoc, setCancelDoc] = useState<GeneratedDocRow | null>(null);
   const [cancelMotivo, setCancelMotivo] = useState("");
   const [cancelDescricao, setCancelDescricao] = useState("");
+  const [waSendDoc, setWaSendDoc] = useState<{ doc: GeneratedDocRow; target: "cliente" | "consultor" } | null>(null);
   
   const { data: generatedDocsRaw = [], isLoading: loadingDocs } = useProjetoDocumentosGerados(dealId);
   const { data: templates = [] } = useDocTemplates();
