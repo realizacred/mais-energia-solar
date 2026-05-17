@@ -34,7 +34,7 @@ import {
   listIntegrations as listLegacyIntegrations,
 } from "@/services/monitoring/monitorService";
 import type { IntegrationProvider, IntegrationCategory, ConnectionStatus } from "@/services/integrations/types";
-import { CATEGORY_LABELS, CATEGORY_ICONS } from "@/services/integrations/types";
+import { CATEGORY_LABELS, CATEGORY_ICONS, type ConnectionStatus } from "@/services/integrations/types";
 import { 
   PROVIDER_REGISTRY, 
   toIntegrationProvider, 
