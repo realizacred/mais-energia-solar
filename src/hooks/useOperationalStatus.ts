@@ -12,6 +12,7 @@ export type OperationalStatus =
   | "aguardando_homologacao"
   | "homologacao_aprovada"
   | "em_operacao"
+  | "pedido_em_andamento"
   | "desconhecido";
 
 export interface OperationalStatusInfo {
