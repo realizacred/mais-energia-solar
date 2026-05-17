@@ -155,7 +155,8 @@ export function WaSendDocModal({
       const { error: rpcError } = await supabase.rpc("enqueue_wa_outbox_item", {
         p_tenant_id: tenantId,
         p_instance_id: instance.id,
-        p_to_number: telDigits,
+        p_remote_jid: telDigits + "@s.whatsapp.net",
+        p_message_type: "document",
         p_message: finalMessage,
         p_media_url: signedUrl,
         p_conversation_id: conversationId,
