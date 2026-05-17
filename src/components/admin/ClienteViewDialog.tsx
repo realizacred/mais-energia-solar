@@ -351,7 +351,7 @@ export function ClienteViewDialog({ cliente, open, onOpenChange }: ClienteViewDi
             <KpiCard
               icon={DollarSign}
               label="Valor do projeto"
-              value={formatCurrency(valorProjetoEfetivo)}
+              value={formatCardValue(valorProjetoEfetivo)}
               borderColor="border-l-primary"
               iconBg="bg-primary/10 text-primary"
             />
