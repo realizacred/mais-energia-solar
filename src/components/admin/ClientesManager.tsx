@@ -465,7 +465,7 @@ export function ClientesManager({ onSelectCliente }: ClientesManagerProps) {
       c.nome,
       c.telefone,
       c.email || "",
-      c.cpf_cnpj || "",
+      c.cpf_cnpj ? formatCpfCnpj(c.cpf_cnpj) : "",
       c.cidade || "",
       c.estado || "",
       c.potencia_kwp?.toString() || "",
