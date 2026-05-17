@@ -57,8 +57,8 @@ export function useFinanceiroKpis() {
         receita_total: recs.reduce((s, r) => s + Number(r.valor_total || 0), 0),
         receita_pendente: recs.filter(r => r.status === "pendente").reduce((s, r) => s + Number(r.valor_total || 0), 0),
         receita_paga: recs.filter(r => r.status === "quitado").reduce((s, r) => s + Number(r.valor_total || 0), 0),
-        comissoes_pendentes: coms.filter(c => c.status === "pendente").reduce((s, c) => s + Number(c.valor_comissao || 0), 0),
-        comissoes_pagas: coms.filter(c => c.status === "pago").reduce((s, c) => s + Number(c.valor_comissao || 0), 0),
+        comissoes_pendentes: coms.filter(c => ["pendente", "aprovada"].includes(c.status)).reduce((s, c) => s + Number(c.valor_comissao || 0), 0),
+        comissoes_pagas: coms.filter(c => c.status === "paga").reduce((s, c) => s + Number(c.valor_comissao || 0), 0),
         parcelas_atrasadas: parcs.reduce((s, p) => s + Number(p.valor || 0), 0),
       } as FinanceiroKpis;
     },

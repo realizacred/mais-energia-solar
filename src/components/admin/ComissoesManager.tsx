@@ -629,12 +629,11 @@ export function ComissoesManager() {
                           />
                         </TableHead>
                         <TableHead>Vendedor</TableHead>
-                        <TableHead>Descrição</TableHead>
+                        <TableHead>Cliente / Projeto</TableHead>
+                        <TableHead className="text-right">Valor Venda</TableHead>
                         <TableHead className="text-right">Comissão</TableHead>
-                        <TableHead className="text-right">Pago</TableHead>
-                        <TableHead className="text-right">A Receber</TableHead>
                         <TableHead className="text-center">Status</TableHead>
-                        <TableHead className="w-24"></TableHead>
+                        <TableHead className="w-48 text-center">Ações</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -649,52 +648,121 @@ export function ComissoesManager() {
                                 onCheckedChange={() => toggleSelect(comissao.id)}
                               />
                             </TableCell>
-                            <TableCell className="font-medium">{comissao.consultores?.nome}</TableCell>
+                            <TableCell className="font-medium">
+                              {comissao.consultores?.nome}
+                            </TableCell>
                             <TableCell>
                               <div>
-                                <p className="truncate max-w-48" title={comissao.descricao}>{comissao.descricao}</p>
-                                {comissao.projetos?.codigo && (
-                                  <p className="text-xs text-muted-foreground">{comissao.projetos.codigo}</p>
-                                )}
+                                <p className="font-medium">{comissao.clientes?.nome || "—"}</p>
+                                <div className="flex items-center gap-1.5 mt-0.5">
+                                  {comissao.projetos?.codigo && (
+                                    <Badge variant="outline" className="text-[10px] h-4 px-1 font-mono">
+                                      {comissao.projetos.codigo}
+                                    </Badge>
+                                  )}
+                                  <span className="text-xs text-muted-foreground truncate max-w-32" title={comissao.descricao}>
+                                    {comissao.descricao}
+                                  </span>
+                                </div>
                               </div>
                             </TableCell>
-                            <TableCell className="text-right font-medium">
-                              {formatCurrency(comissao.valor_comissao)}
+                            <TableCell className="text-right text-sm">
+                              {formatCurrency(comissao.valor_base || 0)}
                             </TableCell>
-                            <TableCell className="text-right text-success">{formatCurrency(valorPago)}</TableCell>
-                            <TableCell className="text-right font-medium text-warning">
-                              {saldoRestante > 0 ? formatCurrency(saldoRestante) : "-"}
+                            <TableCell className="text-right font-bold text-primary">
+                              {formatCurrency(comissao.valor_comissao)}
                             </TableCell>
                             <TableCell className="text-center">{getStatusBadge(comissao.status)}</TableCell>
                             <TableCell>
-                              <div className="flex items-center gap-1">
-                                {comissao.status !== "pago" && saldoRestante > 0 && (
+                              <div className="flex items-center justify-center gap-1">
+                                {comissao.status === "pendente" && (
+                                  <>
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      className="h-8 w-8 p-0 text-success hover:bg-success/10"
+                                      title="Aprovar comissão"
+                                      onClick={() => handleApprove(comissao)}
+                                    >
+                                      <Check className="h-4 w-4" />
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      className="h-8 w-8 p-0 text-destructive hover:bg-destructive/10"
+                                      title="Cancelar comissão"
+                                      onClick={() => {
+                                        setSelectedComissao(comissao);
+                                        setMotivoCancelamento("");
+                                        setCancelDialogOpen(true);
+                                      }}
+                                    >
+                                      <X className="h-4 w-4" />
+                                    </Button>
+                                  </>
+                                )}
+
+                                {comissao.status === "aprovada" && (
+                                  <>
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      className="h-8 w-8 p-0 text-primary hover:bg-primary/10"
+                                      title="Marcar como Paga"
+                                      onClick={() => handlePay(comissao)}
+                                    >
+                                      <DollarSign className="h-4 w-4" />
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      className="h-8 w-8 p-0 text-destructive hover:bg-destructive/10"
+                                      title="Cancelar comissão"
+                                      onClick={() => {
+                                        setSelectedComissao(comissao);
+                                        setMotivoCancelamento("");
+                                        setCancelDialogOpen(true);
+                                      }}
+                                    >
+                                      <X className="h-4 w-4" />
+                                    </Button>
+                                  </>
+                                )}
+
+                                {comissao.status === "paga" && (
                                   <Button
                                     size="sm"
                                     variant="ghost"
-                                    className="min-h-[44px] min-w-[44px] md:min-h-0 md:min-w-0"
-                                    title="Pagar individual"
-                                    onClick={() => {
-                                      setSelectedComissao(comissao);
-                                      setPayDirectOpen(true);
-                                    }}
+                                    className="h-8 w-8 p-0 text-muted-foreground"
+                                    title="Ver comprovante (Em breve)"
+                                    disabled
                                   >
-                                    <DollarSign className="h-4 w-4 text-success" />
+                                    <FileText className="h-4 w-4" />
                                   </Button>
                                 )}
+
+                                <div className="w-px h-4 bg-border mx-1" />
+
                                 <Button
                                   size="sm"
                                   variant="ghost"
-                                  className="min-h-[44px] min-w-[44px] md:min-h-0 md:min-w-0"
+                                  className="h-8 w-8 p-0 text-muted-foreground"
                                   onClick={() => {
                                     setSelectedComissao(comissao);
                                     setPagamentosDialogOpen(true);
                                   }}
+                                  title="Ver pagamentos"
                                 >
                                   <Eye className="h-4 w-4" />
                                 </Button>
-                                <Button size="sm" variant="ghost" className="min-h-[44px] min-w-[44px] md:min-h-0 md:min-w-0" onClick={() => handleDelete(comissao.id)}>
-                                  <Trash2 className="h-4 w-4 text-destructive" />
+                                <Button 
+                                  size="sm" 
+                                  variant="ghost" 
+                                  className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive" 
+                                  onClick={() => handleDelete(comissao.id)}
+                                  title="Excluir"
+                                >
+                                  <Trash2 className="h-4 w-4" />
                                 </Button>
                               </div>
                             </TableCell>
@@ -718,6 +786,39 @@ export function ComissoesManager() {
               </div>
           </SectionCard>
         </TabsContent>
+
+      {/* Cancelation Reason Dialog */}
+      <Dialog open={cancelDialogOpen} onOpenChange={setCancelDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Cancelar Comissão</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="motivo">Motivo do Cancelamento *</Label>
+              <Textarea
+                id="motivo"
+                placeholder="Informe o motivo para o consultor..."
+                value={motivoCancelamento}
+                onChange={(e) => setMotivoCancelamento(e.target.value)}
+                rows={4}
+              />
+            </div>
+            <div className="flex justify-end gap-3">
+              <Button variant="ghost" onClick={() => setCancelDialogOpen(false)}>
+                Voltar
+              </Button>
+              <Button 
+                variant="destructive" 
+                onClick={handleCancel}
+                disabled={!motivoCancelamento.trim()}
+              >
+                Confirmar Cancelamento
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
         <TabsContent value="relatorios" className="mt-0">
           <ComissoesReports
