@@ -460,64 +460,54 @@ function OutroCampoRowComp({ row, clienteId, onSaved }: { row: OutroCampoRow; cl
     );
   }
 
-  // ── Text / Textarea type row (editing) ──
-  if (editing) {
+  // ── Text / Textarea type row (Always visible inputs for other fields) ──
+  if (row.type === "text" || row.type === "textarea") {
+    const isTextarea = row.type === "textarea" || row.key === "equipamento" || row.key === "localizacao" || row.key === "observacoes";
+    
     return (
-      <div className="py-1 space-y-1.5">
+      <div className="py-2.5 px-1 space-y-1.5">
         <div className="flex items-center gap-2">
-          <row.icon className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-          <span className="text-xs text-foreground">{row.label}</span>
+          <row.icon className="h-3.5 w-3.5 shrink-0 text-primary" />
+          <span className="text-xs font-bold text-foreground truncate">{row.label}</span>
+          {saving && <Loader2 className="h-3 w-3 animate-spin text-muted-foreground ml-auto" />}
         </div>
-        {row.type === "textarea" ? (
+        
+        {isTextarea ? (
           <Textarea
-            value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-            rows={3}
-            className="text-sm"
-            autoFocus
+            placeholder="Clique para preencher..."
+            className="w-full border border-border bg-background rounded-md p-2 text-sm resize-none focus-visible:ring-1 focus-visible:ring-primary min-h-[60px]"
+            rows={2}
+            defaultValue={row.value || ""}
+            onBlur={(e) => {
+              if (e.target.value !== (row.value || "")) {
+                saveField(e.target.value);
+              }
+            }}
+            disabled={saving}
           />
         ) : (
           <Input
-            value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-            className="h-8 text-sm"
-            autoFocus
-            onKeyDown={(e) => { if (e.key === "Enter") saveField(draft); if (e.key === "Escape") setEditing(false); }}
+            placeholder="Clique para preencher..."
+            className="h-8 text-sm w-full bg-background border-border focus-visible:ring-1 focus-visible:ring-primary"
+            defaultValue={row.value || ""}
+            onBlur={(e) => {
+              if (e.target.value !== (row.value || "")) {
+                saveField(e.target.value);
+              }
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") (e.target as HTMLInputElement).blur();
+            }}
+            disabled={saving}
           />
         )}
-        <div className="flex items-center gap-1.5 justify-end">
-          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setEditing(false)}>
-            <X className="h-3.5 w-3.5" />
-          </Button>
-          <Button variant="ghost" size="icon" className="h-7 w-7 text-primary" onClick={() => saveField(draft)} disabled={saving}>
-            {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}
-          </Button>
-        </div>
       </div>
     );
   }
 
-  // ── Text / Textarea display row ──
-  return (
-      <div className="flex items-center justify-between py-1 gap-2">
-      <div className="flex items-center gap-2 min-w-0">
-        <row.icon className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-        <span className={cn("text-xs truncate", row.value ? "text-primary" : "text-foreground")}>{row.label}</span>
-      </div>
-      <div className="flex items-center gap-1.5 shrink-0">
-        <div className={cn(
-          "text-xs px-2 py-0.5 rounded border text-center truncate w-[130px]",
-          row.value ? "border-border bg-muted/30 text-foreground" : "border-dashed border-border text-muted-foreground"
-        )}>
-          {row.value || "—"}
-        </div>
-        <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={startEdit}>
-          <Pencil className="h-4 w-4 text-muted-foreground" />
-        </Button>
-      </div>
-    </div>
-  );
+  return null;
 }
+
 
 // Reuse existing ImportantFieldRow directly
 
