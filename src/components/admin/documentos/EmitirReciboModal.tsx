@@ -36,6 +36,7 @@ interface EmitirReciboModalProps {
   defaultProjetoId?: string;
   defaultDealId?: string;
   onEmitted?: (reciboId: string) => void;
+  showHistory?: boolean;
 }
 
 /**
