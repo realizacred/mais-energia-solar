@@ -218,8 +218,14 @@ export function EmitirReciboModal({
       setTotalPagoHistorico(0);
       setUltimoNumeroRecibo(0);
       setInstituicaoFinanceira("");
-      setPixComprovante(""); setChequeBanco(""); setChequeAgencia(""); setChequeConta(""); setChequeNumero("");
-      setCartaoBandeira(""); setCartaoParcelas("1"); setCartaoNsu(""); setBoletoLinhaDigitavel("");
+      
+      // Reset campos específicos
+      setPixChave(""); setPixComprovante(""); setRastreio("");
+      setChequeBanco(""); setChequeAgencia(""); setChequeConta(""); setChequeNumero("");
+      setChequeTitular(""); setChequeTitularCpf(""); setIsChequeTerceiro(false);
+      setIsChequePreDatado(false); setChequeData(""); setChequeDataDeposito("");
+      setCartaoBandeira(""); setCartaoParcelas("1"); setCartaoUltimosDigitos(""); setCartaoNsu("");
+      setBoletoNumero(""); setBoletoVencimento(""); setBoletoBanco(""); setBoletoLinhaDigitavel("");
 
       if (defaultProjetoId) {
         setLoadingContext(true);
