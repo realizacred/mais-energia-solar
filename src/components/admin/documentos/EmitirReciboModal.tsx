@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Loader2, Send, FileText, Calculator, Landmark } from "lucide-react";
+import { Loader2, Send, FileText, Calculator, Landmark, ShieldCheck } from "lucide-react";
 import {
   Dialog,
   DialogContent,
