@@ -27,9 +27,8 @@ import type { DocumentTemplate, FormFieldSchema } from "./types";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
-import { formatBRL } from "@/lib/formatters";
+import { formatBRL, formatDateTime, formatNameCapitalize } from "@/lib/formatters/index";
 import { formatCpfCnpj } from "@/lib/formatters/index";
-import { format } from "date-fns";
 import { toast } from "sonner";
 
 interface EmitirReciboModalProps {
@@ -110,13 +109,13 @@ function ReciboHistoryList({ projetoId }: { projetoId: string }) {
         <div key={r.id} className="flex items-center justify-between p-2 rounded border bg-background/50 text-xs">
           <div className="flex flex-col gap-0.5">
             <div className="flex items-center gap-2">
-              <span className="font-bold">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(r.valor))}</span>
+              <span className="font-bold">{formatBRL(Number(r.valor))}</span>
               <Badge variant="outline" className={cn("text-[9px] uppercase", r.status === 'emitido' ? "text-success border-success/20 bg-success/5" : "text-destructive border-destructive/20 bg-destructive/5")}>
-                {r.status}
+                {formatNameCapitalize(r.status)}
               </Badge>
               {r.numero && <span className="text-muted-foreground">Nº {r.numero}</span>}
             </div>
-            <span className="text-muted-foreground">{format(new Date(r.created_at), "dd/MM/yy HH:mm")} • {r.forma_pagamento}</span>
+            <span className="text-muted-foreground">{formatDateTime(r.created_at)} • {formatNameCapitalize(r.forma_pagamento)}</span>
           </div>
           <div className="flex items-center gap-1">
             <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => handleOpenPdf(r)} title="Ver PDF">
@@ -677,22 +676,22 @@ export function EmitirReciboModal({
               {saldoRestanteAposRecibo <= 0 ? (
                 <span className="text-success font-bold flex items-center gap-1">Quitado ✓</span>
               ) : saldoRestanteAposRecibo < valorTotalVenda ? (
-                <span className="text-amber-500 font-bold">Restam {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(saldoRestanteAposRecibo)}</span>
+                <span className="text-amber-500 font-bold">Restam {formatBRL(saldoRestanteAposRecibo)}</span>
               ) : null}
             </div>
             <div className="grid grid-cols-3 gap-2 mt-2">
               <div className="flex flex-col">
                 <span className="text-[10px] text-muted-foreground uppercase">Valor Venda</span>
-                <span className="text-sm font-bold">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(valorTotalVenda)}</span>
+                <span className="text-sm font-bold">{formatBRL(valorTotalVenda)}</span>
               </div>
               <div className="flex flex-col border-l pl-2">
                 <span className="text-[10px] text-muted-foreground uppercase">Total Pago</span>
-                <span className="text-sm font-bold text-success">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalPagoHistorico)}</span>
+                <span className="text-sm font-bold text-success">{formatBRL(totalPagoHistorico)}</span>
               </div>
               <div className="flex flex-col border-l pl-2">
                 <span className="text-[10px] text-muted-foreground uppercase">Saldo Devedor</span>
                 <span className={cn("text-sm font-bold", saldoDevedorAtual > 0 ? "text-destructive" : "text-success")}>
-                  {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(saldoDevedorAtual)}
+                  {formatBRL(saldoDevedorAtual)}
                 </span>
               </div>
             </div>
@@ -862,7 +861,7 @@ export function EmitirReciboModal({
                 </div>
                 <div className="space-y-1.5">
                   <Label className="text-xs font-semibold text-muted-foreground italic">Valor (readonly)</Label>
-                  <Input readOnly value={new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(valor || 0))} className="bg-muted" />
+                  <Input readOnly value={formatBRL(Number(valor || 0))} className="bg-muted" />
                 </div>
               </div>
 
@@ -918,7 +917,7 @@ export function EmitirReciboModal({
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1.5">
                   <Label className="text-xs font-semibold text-muted-foreground italic">Valor da parcela</Label>
-                  <Input readOnly value={new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(valor || 0) / (Number(cartaoParcelas) || 1))} className="bg-muted" />
+                  <Input readOnly value={formatBRL(Number(valor || 0) / (Number(cartaoParcelas) || 1))} className="bg-muted" />
                 </div>
                 <div className="space-y-1.5">
                   <Label className="text-xs font-semibold text-muted-foreground italic">Últimos 4 dígitos</Label>

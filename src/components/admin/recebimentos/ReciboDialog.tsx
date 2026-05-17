@@ -2,12 +2,19 @@
  * @deprecated Este componente foi substituído pelo EmitirReciboModal.tsx
  * NÃO usar em novos desenvolvimentos.
  */
-import { formatBRL } from "@/lib/formatters"; import { Dialog, DialogContent } from "@/components/ui/dialog";
- import { Button } from "@/components/ui/button";
- import { Printer, X } from "lucide-react";
- import { format } from "date-fns";
- import { ptBR } from "date-fns/locale";
- import { useRef } from "react";
+import { 
+  formatBRL, 
+  formatDate, 
+  displayCpfCnpj, 
+  displayPhone, 
+  formatNameCapitalize 
+} from "@/lib/formatters/index";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Printer, X } from "lucide-react";
+import { ptBR } from "date-fns/locale";
+import { format } from "date-fns";
+import { useRef } from "react";
  
  interface Pagamento {
    id: string;
@@ -127,9 +134,9 @@ import { formatBRL } from "@/lib/formatters"; import { Dialog, DialogContent } f
  }: ReciboDialogProps) {
    const reciboRef = useRef<HTMLDivElement>(null);
  
-   const formatCurrency = (value: number) => {
-     return formatBRL(value);
-   };
+    const formatCurrency = (value: number) => {
+      return formatBRL(value);
+    };
  
    const handlePrint = () => {
      const printContent = reciboRef.current;
@@ -286,17 +293,17 @@ import { formatBRL } from "@/lib/formatters"; import { Dialog, DialogContent } f
                <span className="value">{descricaoRecebimento || "Pagamento de serviços"}</span>
              </div>
              
-             <div className="info-row flex justify-between py-2 border-b border-dashed border-muted-foreground/30">
-               <span className="label font-semibold text-muted-foreground">Forma de Pagamento:</span>
-               <span className="value">{FORMAS_PAGAMENTO[pagamento.forma_pagamento] || pagamento.forma_pagamento}</span>
-             </div>
-             
-             <div className="info-row flex justify-between py-2 border-b border-dashed border-muted-foreground/30">
-               <span className="label font-semibold text-muted-foreground">Data:</span>
-               <span className="value">
-                 {format(new Date(pagamento.data_pagamento), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
-               </span>
-             </div>
+              <div className="info-row flex justify-between py-2 border-b border-dashed border-muted-foreground/30">
+                <span className="label font-semibold text-muted-foreground">Forma de Pagamento:</span>
+                <span className="value">{formatNameCapitalize(pagamento.forma_pagamento)}</span>
+              </div>
+              
+              <div className="info-row flex justify-between py-2 border-b border-dashed border-muted-foreground/30">
+                <span className="label font-semibold text-muted-foreground">Data:</span>
+                <span className="value">
+                  {formatDate(pagamento.data_pagamento)}
+                </span>
+              </div>
  
              {pagamento.observacoes && (
                <div className="info-row flex justify-between py-2 border-b border-dashed border-muted-foreground/30">

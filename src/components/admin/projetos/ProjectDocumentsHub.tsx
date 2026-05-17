@@ -68,7 +68,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
-import { formatDateTime } from "@/lib/dateUtils";
+import { formatDateTime } from "@/lib/formatters/index";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { FilePreviewModal, type FilePreviewTarget } from "./FilePreviewModal";
@@ -94,12 +94,12 @@ interface Props {
 
 const ORIGEM_LABEL: Record<ProjectDocumentOrigem, string> = {
   manual: "Manual",
-  generated: "Proposta gerada",
-  custom_field: "Campo customizado",
-  checklist_cliente: "Checklist cliente",
-  checklist_instalador: "Checklist instalador",
-  checklist_doc: "Checklist documental",
-  post_sale: "Pós-venda",
+  generated: "Proposta Gerada",
+  custom_field: "Campo Customizado",
+  checklist_cliente: "Checklist Cliente",
+  checklist_instalador: "Checklist Instalador",
+  checklist_doc: "Checklist Documental",
+  post_sale: "Pós-Venda",
   legacy: "Legado",
   recibo: "Recibo",
 };
@@ -444,13 +444,7 @@ export function ProjectDocumentsHub({ projetoId, dealId }: Props) {
                             <span className="text-[10px] italic mr-2 opacity-70">({d.file_name})</span>
                           ) : null}
                           {formatSize(d.size_bytes)} •{" "}
-                          {formatDateTime(d.created_at, {
-                            day: "2-digit",
-                            month: "2-digit",
-                            year: "numeric",
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          })}
+                          {formatDateTime(d.created_at)}
                         </p>
                       </div>
                       <div className="flex items-center gap-1 shrink-0">

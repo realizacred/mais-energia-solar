@@ -2,8 +2,7 @@
 // Reutilizado em ProjetoDetalhe e ClienteViewDialog.
 // SSOT: useRecibos. Sem duplicação de domínio.
 import { useState, useEffect, useRef } from "react";
-import { format } from "date-fns";
-import { Receipt, FileText, Download, Send, RefreshCw, Trash2, Plus, History, Loader2 } from "lucide-react";
+import { Receipt, FileText, Download, Send, RefreshCw, Trash2, Plus, History } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -18,6 +17,12 @@ import {
 import { EmitirReciboModal } from "@/components/admin/documentos/EmitirReciboModal";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { 
+  formatBRL, 
+  formatDateTime, 
+  displayCpfCnpj, 
+  formatNameCapitalize 
+} from "@/lib/formatters/index";
 
 const STATUS_LABEL: Record<Recibo["status"], string> = {
   emitido: "Emitido",
@@ -28,10 +33,6 @@ const STATUS_VARIANT: Record<Recibo["status"], string> = {
   emitido: "bg-info/10 text-info border-info/20",
   cancelado: "bg-destructive/10 text-destructive border-destructive/20",
 };
-
-function fmtBRL(v: number) {
-  return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-}
 
 interface ProjetoRecibosTabProps {
   filters: ReciboFilters;            // { projeto_id?, cliente_id? }
@@ -127,13 +128,13 @@ export function ProjetoRecibosTab({
           <Card className="bg-muted/30">
             <CardContent className="pt-4">
               <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">Valor Total</p>
-              <p className="text-xl font-bold">{fmtBRL(financeiro.valor_total)}</p>
+              <p className="text-xl font-bold">{formatBRL(financeiro.valor_total)}</p>
             </CardContent>
           </Card>
           <Card className="bg-success/5 border-success/20">
             <CardContent className="pt-4">
               <p className="text-[10px] text-success uppercase font-bold tracking-wider">Recebido ({financeiro.percentual_pago}%)</p>
-              <p className="text-xl font-bold text-success">{fmtBRL(financeiro.total_pago)}</p>
+              <p className="text-xl font-bold text-success">{formatBRL(financeiro.total_pago)}</p>
               <div className="w-full bg-success/20 h-1.5 rounded-full mt-2 overflow-hidden">
                 <div className="bg-success h-full transition-all" style={{ width: `${financeiro.percentual_pago}%` }} />
               </div>
@@ -142,7 +143,7 @@ export function ProjetoRecibosTab({
           <Card className="bg-destructive/5 border-destructive/20">
             <CardContent className="pt-4">
               <p className="text-[10px] text-destructive uppercase font-bold tracking-wider">Saldo Devedor</p>
-              <p className="text-xl font-bold text-destructive">{fmtBRL(financeiro.saldo_devedor)}</p>
+              <p className="text-xl font-bold text-destructive">{formatBRL(financeiro.saldo_devedor)}</p>
             </CardContent>
           </Card>
         </div>
@@ -180,6 +181,11 @@ export function ProjetoRecibosTab({
                       <span className="text-sm font-medium truncate">
                         {r.cliente?.nome ?? "—"}
                       </span>
+                      {r.cliente?.cpf_cnpj && (
+                        <span className="text-xs text-muted-foreground">
+                          ({displayCpfCnpj(r.cliente.cpf_cnpj)})
+                        </span>
+                      )}
                       <Badge variant="outline" className={`text-[10px] ${STATUS_VARIANT[r.status]}`}>
                         {STATUS_LABEL[r.status]}
                       </Badge>
@@ -191,8 +197,12 @@ export function ProjetoRecibosTab({
                       )}
                     </div>
                     <p className="text-[11px] text-muted-foreground mt-0.5">
-                      {fmtBRL(Number(r.valor))} • {format(new Date(r.created_at), "dd/MM/yy HH:mm")}
-                      {r.forma_pagamento && <Badge variant="outline" className="text-[9px] ml-2">{r.forma_pagamento}</Badge>}
+                      {formatBRL(Number(r.valor))} • {formatDateTime(r.created_at)}
+                      {r.forma_pagamento && (
+                        <Badge variant="outline" className="text-[9px] ml-2">
+                          {formatNameCapitalize(r.forma_pagamento)}
+                        </Badge>
+                      )}
                     </p>
                     {r.descricao && (
                       <p className="text-[11px] text-muted-foreground mt-0.5 truncate">{r.descricao}</p>
@@ -291,7 +301,7 @@ function ReciboLogsDialog({ reciboId, onClose }: { reciboId: string | null; onCl
                     {l.canal && <Badge variant="outline" className="text-[10px]">{l.canal}</Badge>}
                   </div>
                   <span className="text-[10px] text-muted-foreground">
-                    {format(new Date(l.created_at), "dd/MM/yy HH:mm")}
+                    {formatDateTime(l.created_at)}
                   </span>
                 </div>
                 {l.destino && (

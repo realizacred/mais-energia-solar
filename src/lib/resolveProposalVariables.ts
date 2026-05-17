@@ -48,6 +48,13 @@ import type {
   PagamentoOpcao,
   ComercialData,
 } from "@/components/admin/propostas-nativas/wizard/types";
+import { 
+  formatBRL, 
+  formatDate, 
+  displayCpfCnpj, 
+  displayPhone, 
+  formatNumber 
+} from "./formatters/index";
 
 // ── Types ────────────────────────────────────────────────────
 
@@ -121,15 +128,15 @@ export interface ResolverResult {
 
 // ── Formatters ───────────────────────────────────────────────
 
-// AP-17: all monetary values return pure numbers without R$ — template adds currency symbol
+// AP-17: all monetary values return formatted with R$ for templates
 function fmtCurrency(v: number | null | undefined): string {
   if (v == null) return "-";
-  return new Intl.NumberFormat("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(v);
+  return formatBRL(v);
 }
 
 function fmtNumber(v: number | null | undefined, decimals = 2): string {
   if (v == null) return "-";
-  return new Intl.NumberFormat("pt-BR", { minimumFractionDigits: decimals, maximumFractionDigits: decimals }).format(v);
+  return formatNumber(v, decimals);
 }
 
 function fmtPercent(v: number | null | undefined): string {
@@ -307,9 +314,9 @@ function resolveFromContext(
   // ── Cliente ──
   if (key === "cliente.nome") return s(ctx.cliente?.nome);
   if (key === "cliente.empresa") return s(ctx.cliente?.empresa);
-  if (key === "cliente.cnpj_cpf") return s(ctx.cliente?.cnpj_cpf);
+  if (key === "cliente.cnpj_cpf") return displayCpfCnpj(ctx.cliente?.cnpj_cpf);
   if (key === "cliente.email") return s(ctx.cliente?.email);
-  if (key === "cliente.celular") return s(ctx.cliente?.celular);
+  if (key === "cliente.celular") return displayPhone(ctx.cliente?.celular);
   if (key === "cliente.endereco") {
     const c = ctx.cliente;
     if (!c) return null;
@@ -362,7 +369,7 @@ function resolveFromContext(
   }
   if (key === "comercial.responsavel_nome") return s(ctx.comercial?.responsavel_nome);
   if (key === "comercial.responsavel_email") return s(ctx.comercial?.responsavel_email);
-  if (key === "comercial.responsavel_celular") return s(ctx.comercial?.responsavel_celular);
+  if (key === "comercial.responsavel_celular") return displayPhone(ctx.comercial?.responsavel_celular);
   if (key === "comercial.representante_nome") {
     return s(
       ctx.comercial?.representante_nome
@@ -372,15 +379,15 @@ function resolveFromContext(
     );
   }
   if (key === "comercial.representante_email") return s(ctx.comercial?.representante_email);
-  if (key === "comercial.representante_celular") return s(ctx.comercial?.representante_celular);
+  if (key === "comercial.representante_celular") return displayPhone(ctx.comercial?.representante_celular);
   if (key === "comercial.empresa_nome") return s(ctx.comercial?.empresa_nome ?? ctx.empresaNome);
   if (key === "comercial.empresa_razao_social") return s(ctx.empresaNome);
   if (key === "comercial.empresa_nome_fantasia") return s(ctx.empresaNome);
   if (key === "comercial.empresa_cnpj") {
-    return s(ctx.comercial?.empresa_cnpj_cpf ?? (ctx.finalSnapshot as any)?.empresa_cnpj);
+    return displayCpfCnpj(ctx.comercial?.empresa_cnpj_cpf ?? (ctx.finalSnapshot as any)?.empresa_cnpj);
   }
   if (key === "comercial.empresa_telefone") {
-    return s(ctx.empresaTelefone ?? (ctx.finalSnapshot as any)?.empresa_telefone);
+    return displayPhone(ctx.empresaTelefone ?? (ctx.finalSnapshot as any)?.empresa_telefone);
   }
   if (key === "comercial.empresa_logo") {
     return s(ctx.empresaLogo ?? (ctx.finalSnapshot as any)?.empresa_logo);
