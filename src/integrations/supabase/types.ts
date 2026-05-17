@@ -6751,6 +6751,51 @@ export type Database = {
           },
         ]
       }
+      facebook_integrations: {
+        Row: {
+          access_token: string | null
+          ad_account_ids: string[] | null
+          connected_at: string | null
+          connected_by: string | null
+          created_at: string | null
+          expires_at: string | null
+          id: string
+          page_ids: string[] | null
+          status: string | null
+          tenant_id: string
+          token_type: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          access_token?: string | null
+          ad_account_ids?: string[] | null
+          connected_at?: string | null
+          connected_by?: string | null
+          created_at?: string | null
+          expires_at?: string | null
+          id?: string
+          page_ids?: string[] | null
+          status?: string | null
+          tenant_id: string
+          token_type?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          access_token?: string | null
+          ad_account_ids?: string[] | null
+          connected_at?: string | null
+          connected_by?: string | null
+          created_at?: string | null
+          expires_at?: string | null
+          id?: string
+          page_ids?: string[] | null
+          status?: string | null
+          tenant_id?: string
+          token_type?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       facebook_lead_automations: {
         Row: {
           active: boolean | null
