@@ -10,7 +10,8 @@ import {
   Clock,
   CheckCircle2,
   XCircle,
-  FileText
+  FileText,
+  FileDown
 } from "lucide-react";
 import { useAnaliseCredito } from "@/hooks/useAnaliseCredito";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
