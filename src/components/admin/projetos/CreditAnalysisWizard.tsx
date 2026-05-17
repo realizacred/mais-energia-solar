@@ -775,6 +775,7 @@ export function CreditAnalysisWizard({
                         </Button>
                       ))}
                     </div>
+                    {errors.carencia && <p className="text-red-500 text-xs mt-1">{errors.carencia}</p>}
                   </div>
 
                   <div className="flex items-center justify-between p-4 rounded-xl border bg-muted/10">
