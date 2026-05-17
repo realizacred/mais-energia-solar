@@ -133,13 +133,14 @@ function sortKeyFromRow(row: FollowupInboxRow, sort: FollowupInboxSort): number 
  * Página de até 50 linhas; UI usa fetchNextPage para lazy-load.
  */
 export function useFollowupComercialInbox(filters: FollowupInboxFilters = {}) {
+  const { user } = useAuth();
   const sort: FollowupInboxSort = filters.sort ?? "dias_parado";
+  
   return useInfiniteQuery({
-    queryKey: ["followup-comercial-inbox", { ...filters, sort }],
+    queryKey: ["followup-comercial-inbox", { ...filters, sort, userId: user?.id }],
     initialPageParam: { value: null as number | null, id: null as string | null },
     queryFn: async ({ pageParam }): Promise<FollowupInboxRow[]> => {
-      const { data: { user } } = await supabase.auth.getUser();
-      const p_consultor_id = filters.consultorId || (user?.id);
+      const p_consultor_id = filters.consultorId || user?.id;
 
       const { data, error } = await supabase.rpc("get_followup_inbox_page", {
         p_classe: filters.classe && filters.classe !== "todos" ? filters.classe : null,
@@ -175,11 +176,11 @@ export interface FollowupInboxSummary {
  * Total e valor potencial NUNCA são derivados do que está renderizado.
  */
 export function useFollowupComercialInboxSummary(filters: FollowupInboxFilters = {}) {
+  const { user } = useAuth();
   return useQuery({
-    queryKey: ["followup-comercial-inbox-summary", filters],
+    queryKey: ["followup-comercial-inbox-summary", { ...filters, userId: user?.id }],
     queryFn: async (): Promise<FollowupInboxSummary> => {
-      const { data: { user } } = await supabase.auth.getUser();
-      const p_consultor_id = filters.consultorId || (user?.id);
+      const p_consultor_id = filters.consultorId || user?.id;
 
       const { data, error } = await supabase.rpc("get_followup_inbox_summary", {
         p_classe: filters.classe && filters.classe !== "todos" ? filters.classe : null,
