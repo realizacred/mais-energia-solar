@@ -33,15 +33,20 @@ serve(async (req) => {
     if (tenantError || !tenant) throw new Error('Tenant não encontrado')
 
     // 2. Buscar Admin Profile (usando o owner_user_id do tenant)
+    // Note: owner_user_id in tenants refers to auth.users.id
     const { data: adminProfile, error: profileError } = await supabaseClient
       .from('profiles')
       .select('*')
-      .eq('id', tenant.owner_user_id)
+      .eq('user_id', tenant.owner_user_id)
       .single()
 
     if (profileError || !adminProfile) throw new Error('Perfil do administrador não encontrado')
 
-    // 3. Buscar credenciais EOS
+    // 3. Buscar Email do Admin
+    const { data: userData, error: userError } = await supabaseClient.auth.admin.getUserById(tenant.owner_user_id)
+    if (userError || !userData.user) throw new Error('Dados de autenticação do administrador não encontrados')
+
+    // 4. Buscar credenciais EOS
     const apikeyResponse = await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/eos-get-apikey`, {
       method: 'POST',
       headers: {
@@ -55,17 +60,17 @@ serve(async (req) => {
     if (!apikeyResponse.ok) throw new Error(apikeyData.error || 'Erro ao obter credenciais EOS')
     const { api_key, base_url } = apikeyData
 
-    // 4. Montar Payload
+    // 5. Montar Payload
     const payload = {
       cnpj: tenant.documento?.replace(/\D/g, ''),
       nomeFantasia: tenant.nome,
-      telefone: adminProfile.phone || "", // Fallback pro telefone do admin
-      nome: adminProfile.full_name?.split(' ')[0] || "Admin",
-      sobrenome: adminProfile.full_name?.split(' ').slice(1).join(' ') || "Tenant",
-      email: adminProfile.email
+      telefone: adminProfile.telefone || "",
+      nome: adminProfile.nome?.split(' ')[0] || "Admin",
+      sobrenome: adminProfile.nome?.split(' ').slice(1).join(' ') || "Tenant",
+      email: userData.user.email
     }
 
-    // 5. Chamada API EOS
+    // 6. Chamada API EOS
     const eosResponse = await fetch(`${base_url}/integrador/partner/api/create`, {
       method: 'POST',
       headers: {
@@ -83,7 +88,7 @@ serve(async (req) => {
 
     const integradorId = eosData.data
 
-    // 6. Atualizar financeiras_config
+    // 7. Atualizar financeiras_config
     await supabaseClient
       .from('financeiras_config')
       .update({
