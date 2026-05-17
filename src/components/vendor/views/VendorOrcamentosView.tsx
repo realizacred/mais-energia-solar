@@ -274,7 +274,8 @@ export default function VendorOrcamentosView({ portal }: Props) {
           }}
           leadId={orcamentoForWizard?.lead_id}
           clienteNome={orcamentoForWizard?.nome}
-          clienteCpfCnpj={null} // Wizard handles search by name/id internally
+          clienteTelefone={orcamentoForWizard?.telefone}
+          clienteCpfCnpj={null}
           valorReferencia={null}
         />
       )}
