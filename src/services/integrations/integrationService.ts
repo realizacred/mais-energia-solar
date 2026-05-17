@@ -218,7 +218,7 @@ export async function listConnections(): Promise<IntegrationConnection[]> {
   if (eosConfig) {
     let status: IntegrationConnection["status"] = "disconnected";
     if (eosConfig.eos_onboarding_step === 3) status = "connected";
-    else if (eosConfig.eos_onboarding_step > 0) status = "maintenance"; // Using maintenance as "config pendente" or just disconnected
+    else if (eosConfig.eos_onboarding_step > 0 || (eosConfig.eos_integrador_id && eosConfig.eos_integrador_id !== "")) status = "maintenance"; 
 
     eosConnection.push({
       id: `eos_${eosConfig.tenant_id}`,
