@@ -12,6 +12,12 @@ function formatCpf(cpf: string) {
   return clean.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, "$1.$2.$3-$4");
 }
 
+function formatCnpj(cnpj: string) {
+  const clean = cnpj.replace(/\D/g, '');
+  if (clean.length !== 14) return cnpj;
+  return clean.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, "$1.$2.$3/$4-$5");
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
@@ -29,20 +35,22 @@ serve(async (req) => {
       throw new Error('tenant_id is required')
     }
 
+    // 1. Obter API Key (Chamando a função interna)
+    const apikeyResponse = await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/eos-get-apikey`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`
+      },
+      body: JSON.stringify({ tenant_id })
+    })
+
+    const apikeyData = await apikeyResponse.json()
+    if (!apikeyResponse.ok) throw new Error(apikeyData.error || 'Erro ao obter credenciais EOS')
+    const { api_key, base_url } = apikeyData
+
     if (test_mode) {
       // Mock para teste de conexão
-      const apikeyResponse = await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/eos-get-apikey`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`
-        },
-        body: JSON.stringify({ tenant_id })
-      })
-      const apikeyData = await apikeyResponse.json()
-      if (!apikeyResponse.ok) throw new Error(apikeyData.error || 'Erro de autenticação')
-
-      const { api_key, base_url } = apikeyData
       const testPayload = {
         tipoPessoa: 'PF',
         valorMaoObra: 1000,
@@ -88,7 +96,7 @@ serve(async (req) => {
     // 2. Buscar Cliente
     const { data: cliente, error: clienteError } = await supabaseClient
       .from('clientes')
-      .select('nome, cpf_cnpj, data_nascimento, tipo_pessoa')
+      .select('nome, nome_fantasia, cpf_cnpj, data_nascimento, tipo_pessoa')
       .eq('id', analise.cliente_id)
       .single()
 
@@ -96,48 +104,44 @@ serve(async (req) => {
       throw new Error('Cliente não encontrado')
     }
 
-    // 3. Buscar Valores na Proposta (mais recente aceita ou oficial)
+    // 3. Buscar Valores na Proposta (mais recente)
     const { data: proposta, error: propostaError } = await supabaseClient
       .from('proposta_versoes')
       .select('valor_total, snapshot')
       .eq('tenant_id', tenant_id)
-      .eq('proposta_id', analise.deal_id) // Assumindo que proposta_id na tabela proposta_versoes refira-se ao deal_id em alguns contextos ou existe propostas
+      .eq('proposta_id', analise.deal_id)
       .order('created_at', { ascending: false })
       .limit(1)
       .maybeSingle()
 
-    // Fallback: se não encontrar proposta vinculada ao deal_id direto, tenta buscar na tabela propostas intermediária se existir
-    // Mas vamos simplificar usando o valor_solicitado da analise como total se não achar
     const valorTotal = proposta?.valor_total || analise.valor_solicitado;
     const snapshot = proposta?.snapshot as any;
     const valorMaoObra = snapshot?.precos?.mao_obra || 0;
     const valorProduto = (snapshot?.precos?.equipamentos || snapshot?.precos?.kit) || (valorTotal - valorMaoObra);
 
-    // 4. Obter API Key (Chamando a função interna)
-    const apikeyResponse = await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/eos-get-apikey`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`
-      },
-      body: JSON.stringify({ tenant_id })
-    })
-
-    const apikeyData = await apikeyResponse.json()
-    if (!apikeyResponse.ok) throw new Error(apikeyData.error || 'Erro ao obter credenciais EOS')
-
-    const { api_key, base_url } = apikeyData
-
     // 5. Construir Payload Real EOS
-    const payload = {
-      tipoPessoa: cliente.tipo_pessoa === 'PJ' ? 'PJ' : 'PF',
+    let payload: any = {
       valorMaoObra: Number(valorMaoObra),
       valorProduto: Number(valorProduto),
       entrada: Number(analise.entrada || 0),
-      carencia: 1, // Default conforme solicitado
-      cpf: formatCpf(cliente.cpf_cnpj),
-      dataNascimento: cliente.data_nascimento ? new Date(cliente.data_nascimento).toISOString() : null,
-      nomeCompleto: cliente.nome
+      carencia: Number(analise.carencia || 1),
+    }
+
+    if (cliente.tipo_pessoa === 'PJ') {
+      payload = {
+        ...payload,
+        tipoPessoa: 'PJ',
+        cnpj: formatCnpj(cliente.cpf_cnpj),
+        razaoSocial: cliente.nome_fantasia || cliente.nome
+      }
+    } else {
+      payload = {
+        ...payload,
+        tipoPessoa: 'PF',
+        cpf: formatCpf(cliente.cpf_cnpj),
+        dataNascimento: cliente.data_nascimento ? new Date(cliente.data_nascimento).toISOString() : null,
+        nomeCompleto: cliente.nome
+      }
     }
 
     // 6. Chamada API EOS
@@ -156,8 +160,7 @@ serve(async (req) => {
       throw new Error(eosData.message || eosData.error || 'Erro na simulação EOS')
     }
 
-    // 7. Salvar resultado (EOS retorna array de objetos { parcela, prazo })
-    // Salvar o retorno completo no campo simulacao_resultado
+    // 7. Salvar resultado
     await supabaseClient
       .from('analise_credito')
       .update({
