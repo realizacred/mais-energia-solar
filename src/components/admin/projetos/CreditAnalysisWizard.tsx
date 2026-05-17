@@ -1011,16 +1011,36 @@ export function CreditAnalysisWizard({
 
                     <div className="p-4 rounded-xl border bg-muted/10 space-y-3">
                       <div className="flex justify-between items-center mb-1">
-                        <h4 className="font-bold text-sm uppercase text-muted-foreground tracking-wider">Pagamento</h4>
+                        <h4 className="font-bold text-sm uppercase text-muted-foreground tracking-wider">Pagamento e Bancos</h4>
                         <Button variant="ghost" size="sm" onClick={() => setStep(4)} className="h-7 gap-1 text-xs"><Edit2 className="h-3 w-3" /> Editar</Button>
                       </div>
-                      <div className="grid grid-cols-2 gap-y-2 text-sm">
-                        <span className="text-muted-foreground">Prazo:</span>
-                        <span className="font-medium text-right">{formData.prazo_meses} meses</span>
-                        <span className="text-muted-foreground">Carência:</span>
-                        <span className="font-medium text-right">{formData.carencia} meses</span>
-                        <span className="text-muted-foreground">Seguro:</span>
-                        <span className="font-medium text-right">{formData.com_seguro ? 'Sim' : 'Não'}</span>
+                      <div className="space-y-3">
+                        {formData.bancos_selecionados.map(bankId => {
+                          const bank = banks?.find(b => b.id === bankId);
+                          const config = formData.bancos_config[bankId] || { prazo_meses: formData.prazo_meses, carencia: formData.carencia };
+                          const type = (bank as any).technical_metadata?.tipo === 'api_integrada' ? 'API' : 'Manual';
+                          
+                          return (
+                            <div key={bankId} className="flex justify-between items-center text-sm border-b border-border/40 pb-2 last:border-0 last:pb-0">
+                              <div className="flex flex-col">
+                                <span className="font-bold">{bank?.bank_name}</span>
+                                <span className="text-[10px] text-muted-foreground uppercase">{type}</span>
+                              </div>
+                              <div className="text-right">
+                                <span className="font-medium block">{config.prazo_meses} meses</span>
+                                <span className="text-[10px] text-muted-foreground italic">Carência: {config.carencia} m</span>
+                              </div>
+                            </div>
+                          );
+                        })}
+                        {formData.bancos_selecionados.length === 0 && (
+                          <span className="text-sm text-destructive font-medium">Nenhum banco selecionado!</span>
+                        )}
+                        <Separator />
+                        <div className="grid grid-cols-2 text-sm pt-1">
+                          <span className="text-muted-foreground">Seguro:</span>
+                          <span className="font-medium text-right">{formData.com_seguro ? 'Sim' : 'Não'}</span>
+                        </div>
                       </div>
                     </div>
                   </div>
