@@ -169,11 +169,10 @@ export function VendorPendingDocumentation({
     }
   };
 
-  return (
-    if (pendingLeads.length === 0) return null;
+  if (pendingLeads.length === 0) return null;
 
-    return (
-      <Card className="border-primary/30 bg-primary/5 transition-all duration-300">
+  return (
+    <Card className="border-primary/30 bg-primary/5 transition-all duration-300">
       <CardHeader className="pb-2 sm:pb-3 px-3 sm:px-6">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2 flex-wrap">
