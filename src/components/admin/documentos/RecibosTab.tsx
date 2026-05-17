@@ -43,7 +43,7 @@ export function RecibosTab() {
 
   const { data: templates, isLoading, upsert } = useDocumentTemplates("recibo");
   const { settings: brand } = useBrandSettings();
-  const { data: recibos, isLoading: loadingRecibos } = useRecibos();
+  const { data: recibos, isLoading: loadingRecibos } = useRecibos({});
   const regenPdf = useReciboPDF();
   const deleteRecibo = useDeleteRecibo();
 
