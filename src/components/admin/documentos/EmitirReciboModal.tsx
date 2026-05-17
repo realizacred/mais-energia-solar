@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, useRef } from "react";
+import { useEffect, useMemo, useState, useRef, useCallback } from "react";
 import { Loader2, Send, FileText, Calculator, Landmark, ShieldCheck, History, Trash2, Download, RefreshCw, AlertCircle } from "lucide-react";
 import {
   Dialog,
@@ -27,9 +27,11 @@ import type { DocumentTemplate, FormFieldSchema } from "./types";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
-import { formatBRL, formatDateTime, formatNameCapitalize } from "@/lib/formatters/index";
+import { formatBRL, formatDateTime, formatNameCapitalize, formatCurrency } from "@/lib/formatters/index";
 import { formatCpfCnpj } from "@/lib/formatters/index";
 import { toast } from "sonner";
+import { CurrencyInput } from "@/components/ui-kit/inputs/CurrencyInput";
+import { CpfCnpjInput } from "@/components/shared/CpfCnpjInput";
 
 interface EmitirReciboModalProps {
   open: boolean;
