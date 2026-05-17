@@ -37,25 +37,23 @@ export interface ReciboFilters {
   deal_id?: string;
 }
 
-export function useRecibos(filters: ReciboFilters = {}) {
+export function useRecibos(filters: { cliente_id?: string; projeto_id?: string }) {
   return useQuery({
     queryKey: [QUERY_KEY, filters],
     queryFn: async () => {
       let q = supabase
-        .from("recibos_emitidos" as any)
+        .from("recibos")
         .select(
-          "id, tenant_id, template_id, cliente_id, projeto_id, deal_id, numero, descricao, valor, dados_preenchidos, status, pdf_path, emitido_em, created_at, updated_at, cliente:clientes(id, nome, cpf_cnpj), template:document_templates(id, nome)"
+          "*, cliente:clientes(id, nome, cpf_cnpj)"
         )
-        .is("deleted_at", null)
-        .order("emitido_em", { ascending: false });
+        .order("created_at", { ascending: false });
 
       if (filters.cliente_id) q = q.eq("cliente_id", filters.cliente_id);
       if (filters.projeto_id) q = q.eq("projeto_id", filters.projeto_id);
-      if (filters.deal_id) q = q.eq("deal_id", filters.deal_id);
 
       const { data, error } = await q;
       if (error) throw error;
-      return (data ?? []) as unknown as ReciboEmitido[];
+      return (data ?? []) as unknown as Recibo[];
     },
     staleTime: STALE_TIME,
   });
