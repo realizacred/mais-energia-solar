@@ -752,7 +752,7 @@ export function DocumentosTab({ dealId, clienteTelefone, consultorTelefone: cons
       />
 
       {/* Cancel Document Dialog */}
-      <Dialog open={!!cancelDoc} onOpenChange={(open) => { if (!open) { setCancelDoc(null); setCancelMotivo(""); } }}>
+      <Dialog open={!!cancelDoc} onOpenChange={(open) => { if (!open) { setCancelDoc(null); setCancelMotivo(""); setCancelDescricao(""); } }}>
         <DialogContent className="w-[90vw] max-w-md">
           <DialogHeader>
             <div className="flex items-center gap-3">
@@ -762,27 +762,47 @@ export function DocumentosTab({ dealId, clienteTelefone, consultorTelefone: cons
               <div>
                 <DialogTitle className="text-base font-semibold text-foreground">Cancelar documento</DialogTitle>
                 <DialogDescription className="text-xs text-muted-foreground mt-0.5">
-                  O documento "{cancelDoc?.title}" será marcado como cancelado.
+                  O documento "{cancelDoc?.title}" será marcado como cancelado. Esta ação não pode ser desfeita.
                 </DialogDescription>
               </div>
             </div>
           </DialogHeader>
-          <div className="space-y-2 py-2">
-            <Label>Motivo do cancelamento</Label>
-            <Textarea
-              value={cancelMotivo}
-              onChange={(e) => setCancelMotivo(e.target.value)}
-              placeholder="Informe o motivo (opcional)"
-              rows={3}
-            />
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label>Motivo do cancelamento *</Label>
+              <Select value={cancelMotivo} onValueChange={setCancelMotivo}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione um motivo" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Erro no documento">Erro no documento</SelectItem>
+                  <SelectItem value="Condições alteradas">Condições alteradas</SelectItem>
+                  <SelectItem value="Cliente solicitou">Cliente solicitou</SelectItem>
+                  <SelectItem value="Substituído por nova versão">Substituído por nova versão</SelectItem>
+                  <SelectItem value="Outro">Outro</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Descrição adicional</Label>
+              <Textarea
+                value={cancelDescricao}
+                onChange={(e) => setCancelDescricao(e.target.value)}
+                placeholder="Ex: Valor estava incorreto..."
+                rows={3}
+              />
+            </div>
+            <p className="text-[10px] text-destructive font-medium uppercase tracking-wider">
+              ⚠ Esta ação não pode ser desfeita
+            </p>
           </div>
           <DialogFooter className="gap-2">
-            <Button variant="ghost" onClick={() => { setCancelDoc(null); setCancelMotivo(""); }}>Voltar</Button>
+            <Button variant="ghost" onClick={() => { setCancelDoc(null); setCancelMotivo(""); setCancelDescricao(""); }}>Voltar</Button>
             <Button
               variant="outline"
-              className="border-destructive text-destructive"
-              disabled={cancelDocMutation.isPending}
-              onClick={() => cancelDoc && cancelDocMutation.mutate({ docId: cancelDoc.id, motivo: cancelMotivo })}
+              className="border-destructive text-destructive hover:bg-destructive hover:text-white"
+              disabled={cancelDocMutation.isPending || !cancelMotivo}
+              onClick={() => cancelDoc && cancelDocMutation.mutate({ docId: cancelDoc.id, motivo: cancelMotivo, descricao: cancelDescricao })}
             >
               {cancelDocMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : <Ban className="h-4 w-4 mr-1.5" />}
               Cancelar documento
