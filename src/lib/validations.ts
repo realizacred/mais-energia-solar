@@ -175,7 +175,8 @@ export const signupSchema = z.object({
 
 export type SignupData = z.infer<typeof signupSchema>;
 
-// Format functions
+// Format functions (legacy re-exports for backward compatibility)
+/** @deprecated Use formatPhoneBR from src/lib/formatters/index.ts */
 export function formatPhone(value: string): string {
   const v = value.replace(/\D/g, "");
   if (v.length <= 10) {
@@ -184,11 +185,13 @@ export function formatPhone(value: string): string {
   return v.replace(/^(\d{2})(\d{5})(\d{4})$/, "($1) $2-$3");
 }
 
+/** @deprecated Use formatCEP from src/lib/formatters/index.ts */
 export function formatCEP(value: string): string {
   const v = value.replace(/\D/g, "");
   return v.replace(/^(\d{5})(\d{3})$/, "$1-$2");
 }
 
+/** @deprecated Use formatNameCapitalize from src/lib/formatters/index.ts */
 export function formatName(name: string): string {
   // Preserve trailing space so the user can type multi-word names
   const hasTrailingSpace = name.endsWith(" ");
@@ -203,6 +206,7 @@ export function formatName(name: string): string {
     .join(" ");
   return hasTrailingSpace ? formatted + " " : formatted;
 }
+
 
 export const ESTADOS_BRASIL = [
   { sigla: "AC", nome: "Acre" },
