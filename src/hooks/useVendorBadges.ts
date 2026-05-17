@@ -3,25 +3,20 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { subDays, endOfDay } from "date-fns";
 
-/**
- * Hook to fetch badge counts for the vendor sidebar.
- * RB-76: Real counts for urgent leads, overdue tasks, and pending credit docs.
- */
 export function useVendorBadges() {
   const { user } = useAuth();
 
   return useQuery({
     queryKey: ["vendor-sidebar-badges", user?.id],
     enabled: !!user?.id,
-    staleTime: 60 * 1000, // 1 minute
+    staleTime: 60 * 1000,
     queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return { orcamentos: 0, agenda: 0, credito: 0, whatsapp: 0 };
-
+      const currentUserId = user!.id;
+      
       const { data: profile } = await supabase
         .from("profiles")
         .select("tenant_id")
-        .eq("user_id", user.id)
+        .eq("user_id", currentUserId)
         .single();
 
       if (!profile?.tenant_id) return { orcamentos: 0, agenda: 0, credito: 0, whatsapp: 0 };
@@ -29,37 +24,34 @@ export function useVendorBadges() {
       const now = new Date();
       const threeDaysAgo = subDays(now, 3).toISOString();
       const last24h = subDays(now, 1).toISOString();
+      const todayEnd = endOfDay(now).toISOString();
 
       const [urgentLeads, overdueTasks, pendingCredit, unreadChats] = await Promise.all([
-        // 1. Leads Urgentes
         supabase
           .from("leads")
-          .select("*", { count: "exact", head: true })
-          .eq("consultor_id", user.id)
+          .select("id", { count: "exact", head: true })
+          .eq("consultor_id", currentUserId)
           .is("deleted_at", null)
           .not("status_id", "in", "('ganho', 'perdido', 'convertido')")
           .or(`ultimo_contato.is.null,ultimo_contato.lt.${threeDaysAgo}`),
 
-        // 2. Agenda
-        (supabase as any)
-          .from("tarefas")
-          .select("*", { count: "exact", head: true })
-          .eq("created_by", user.id) 
+        supabase
+          .from("tarefas" as any)
+          .select("id", { count: "exact", head: true })
+          .eq("created_by", currentUserId) 
           .neq("status", "concluida")
-          .lte("data_vencimento", endOfDay(now).toISOString()),
+          .lte("data_vencimento", todayEnd),
 
-        // 3. Crédito
         supabase
           .from("analise_credito")
-          .select("*", { count: "exact", head: true })
-          .eq("criado_por", user.id)
+          .select("id", { count: "exact", head: true })
+          .eq("criado_por", currentUserId)
           .eq("status", "aguardando_documentos"),
 
-        // 4. WhatsApp (não respondidas)
         supabase
           .from("wa_conversations")
-          .select("*", { count: "exact", head: true })
-          .eq("assigned_to", user.id)
+          .select("id", { count: "exact", head: true })
+          .eq("assigned_to", currentUserId)
           .eq("tenant_id", profile.tenant_id)
           .eq("status", "aberta")
           .eq("ultima_mensagem_de", "cliente")
