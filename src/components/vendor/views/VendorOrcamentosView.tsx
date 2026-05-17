@@ -276,9 +276,8 @@ function AvailableLeadsBadge() {
     }
   });
 
-  if (count === 0) return null;
   return (
-    <Badge variant="destructive" className="ml-1 px-1.5 h-4 min-w-[16px] text-[10px] flex items-center justify-center">
+    <Badge variant="secondary" className="ml-1 px-1.5 h-4 min-w-[16px] text-[10px] flex items-center justify-center bg-muted-foreground/20 text-muted-foreground">
       {count}
     </Badge>
   );
