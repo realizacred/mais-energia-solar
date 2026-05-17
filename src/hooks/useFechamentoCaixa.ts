@@ -133,7 +133,7 @@ export function usePagamentosPeriodo(dataInicio: string, dataFim: string) {
     queryKey: ["pagamentos-periodo", dataInicio, dataFim],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("pagamentos")
+        .from("_deprecated_pagamentos")
         .select(`
           id, valor_pago, forma_pagamento, data_pagamento, observacoes, created_at,
           recebimentos(

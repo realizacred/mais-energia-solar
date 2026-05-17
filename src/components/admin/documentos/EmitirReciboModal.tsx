@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Loader2, Send, FileText, Calculator, Landmark, ShieldCheck, History } from "lucide-react";
+import { Loader2, Send, FileText, Calculator, Landmark, ShieldCheck, History, Trash2, Download, RefreshCw } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -21,13 +21,14 @@ import {
 } from "@/components/ui/select";
 import { useDocumentTemplates } from "./useDocumentTemplates";
 import { useClientes } from "@/hooks/useClientes";
-import { useEmitirRecibo, useRecibos, type Recibo } from "@/hooks/useRecibos";
+import { useEmitirRecibo, useRecibos, type Recibo, useReciboPDF, useDeleteRecibo, getReciboSignedUrl } from "@/hooks/useRecibos";
 import type { DocumentTemplate, FormFieldSchema } from "./types";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { formatBRL } from "@/lib/formatters";
 import { format } from "date-fns";
+import { toast } from "sonner";
 
 interface EmitirReciboModalProps {
   open: boolean;
@@ -39,9 +40,63 @@ interface EmitirReciboModalProps {
   showHistory?: boolean;
 }
 
+function ReciboHistoryList({ projetoId }: { projetoId: string }) {
+  const { data: recibos, isLoading } = useRecibos({ projeto_id: projetoId });
+  const regen = useReciboPDF();
+  const del = useDeleteRecibo();
+
+  async function handleOpenPdf(r: Recibo) {
+    try {
+      let path = r.pdf_url;
+      if (!path) {
+        const res = await regen.mutateAsync(r.id);
+        path = res.pdf_url;
+      }
+      const url = await getReciboSignedUrl(path!);
+      window.open(url, "_blank", "noopener,noreferrer");
+    } catch (e: any) {
+      toast.error(e?.message || "Não foi possível abrir o PDF");
+    }
+  }
+
+  if (isLoading) return <div className="flex items-center gap-2 text-xs text-muted-foreground"><Loader2 className="h-3 w-3 animate-spin" /> Carregando histórico...</div>;
+  if (!recibos?.length) return <p className="text-xs text-muted-foreground italic">Nenhum recibo emitido para este projeto.</p>;
+
+  return (
+    <div className="space-y-2">
+      {recibos.map((r) => (
+        <div key={r.id} className="flex items-center justify-between p-2 rounded border bg-background/50 text-xs">
+          <div className="flex flex-col gap-0.5">
+            <div className="flex items-center gap-2">
+              <span className="font-bold">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(r.valor))}</span>
+              <Badge variant="outline" className={cn("text-[9px] uppercase", r.status === 'emitido' ? "text-success border-success/20 bg-success/5" : "text-destructive border-destructive/20 bg-destructive/5")}>
+                {r.status}
+              </Badge>
+              {r.numero && <span className="text-muted-foreground">Nº {r.numero}</span>}
+            </div>
+            <span className="text-muted-foreground">{format(new Date(r.created_at), "dd/MM/yy HH:mm")} • {r.forma_pagamento}</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => handleOpenPdf(r)} title="Ver PDF">
+              <Download className="h-3.5 w-3.5" />
+            </Button>
+            <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => regen.mutate(r.id)} disabled={regen.isPending} title="Regerar">
+              <RefreshCw className={cn("h-3.5 w-3.5", regen.isPending && "animate-spin")} />
+            </Button>
+            {r.status !== 'cancelado' && (
+              <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => { if(confirm("Cancelar recibo?")) del.mutate(r.id); }} title="Cancelar">
+                <Trash2 className="h-3.5 w-3.5" />
+              </Button>
+            )}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 /**
- * Modal de emissão de recibo. Reaproveita document_templates (categoria='recibo')
- * e renderiza form dinâmico baseado em template.form_schema.
+ * Modal de emissão de recibo.
  */
 export function EmitirReciboModal({
   open,
@@ -326,20 +381,48 @@ export function EmitirReciboModal({
     const camposExtras: Record<string, unknown> = { ...dynFields };
     if (instituicaoFinanceira) camposExtras["instituicao_financeira"] = instituicaoFinanceira;
 
-    const id = await emitir.mutateAsync({
-      template: template?.nome || "Recibo",
-      cliente_id: clienteId,
-      projeto_id: projetoId!,
-      descricao: descricao || undefined,
-      numero: numero || undefined,
-      valor: Number(valor),
-      forma_pagamento: formaPagamento,
-      data_pagamento: dataPagamento,
-      campos_extras: camposExtras,
-      generate_pdf: true,
-    });
-    onEmitted?.(id);
-    onOpenChange(false);
+    try {
+      // 1. Criar lançamento financeiro primeiro
+      const { data: lancamento, error: lancErr } = await supabase
+        .from("lancamentos_financeiros")
+        .insert({
+          tenant_id: projectContext?.tenant_id,
+          projeto_id: projetoId,
+          cliente_id: clienteId,
+          tipo: 'receita',
+          valor: Number(valor),
+          forma_pagamento: formaPagamento,
+          data_lancamento: dataPagamento,
+          status: 'confirmado',
+          origem: 'recibo_emitido',
+          descricao: `Recibo: ${template?.nome || "Geral"}`
+        } as any)
+        .select("id")
+        .single();
+
+      if (lancErr) throw lancErr;
+
+      // 2. Emitir recibo vinculado ao lançamento
+      const id = await emitir.mutateAsync({
+        template: template?.nome || "Recibo",
+        cliente_id: clienteId,
+        projeto_id: projetoId!,
+        descricao: descricao || undefined,
+        numero: numero || undefined,
+        valor: Number(valor),
+        forma_pagamento: formaPagamento,
+        data_pagamento: dataPagamento,
+        campos_extras: camposExtras,
+        generate_pdf: true,
+        lancamento_id: lancamento.id
+      });
+      
+      onEmitted?.(id);
+      onOpenChange(false);
+    } catch (err: any) {
+      console.error("[handleSubmit] Error:", err);
+      toast.error("Erro ao processar recibo: " + (err.message || "Erro desconhecido"));
+    }
   }
 
   return (

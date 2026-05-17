@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { useParcelasData } from "@/hooks/useParcelasManager";
@@ -84,26 +84,26 @@ export function ParcelasManager({ open, onOpenChange, recebimento, onUpdate }: P
   const [comprovantes, setComprovantes] = useState<Record<string, string>>({});
 
   // Load comprovantes on open
-  useState(() => {
-    if (!open || parcelas.length === 0) return;
+  useEffect(() => {
+    if (!open || !parcelas || parcelas.length === 0) return;
     const paidIds = parcelas.filter(p => p.pagamento_id).map(p => p.pagamento_id!);
     if (paidIds.length === 0) return;
 
     supabase
-      .from("pagamentos")
+      .from("_deprecated_pagamentos" as any)
       .select("parcela_id, comprovante_url")
       .in("id", paidIds)
       .then(({ data }) => {
         if (!data) return;
         const map: Record<string, string> = {};
-        data.forEach((p: any) => {
+        (data as any[]).forEach((p) => {
           if (p.parcela_id && p.comprovante_url) {
             map[p.parcela_id] = p.comprovante_url;
           }
         });
         setComprovantes(map);
       });
-  });
+  }, [open, parcelasData]);
 
   const refreshParcelas = () => {
     queryClient.invalidateQueries({ queryKey: ["parcelas-manager", recebimento.id] });

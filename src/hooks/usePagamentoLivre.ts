@@ -47,7 +47,7 @@ export function usePagamentosDoRecebimento(recebimentoId: string | null) {
     queryFn: async () => {
       if (!recebimentoId) return [];
       const { data, error } = await supabase
-        .from("pagamentos")
+        .from("_deprecated_pagamentos")
         .select("id, valor_pago, forma_pagamento, data_pagamento, observacoes, comprovante_url, observacoes_internas")
         .eq("recebimento_id", recebimentoId)
         .order("data_pagamento", { ascending: false });
@@ -76,8 +76,37 @@ export function usePagamentoLivre() {
         );
       }
 
+      // 2. Get project info
+      const { data: recData } = await supabase
+        .from("recebimentos")
+        .select("projeto_id, cliente_id")
+        .eq("id", params.recebimentoId)
+        .single();
+
+      // 3. Insert into lancamentos_financeiros
+      const { data: lancamento, error: lancErr } = await supabase
+        .from("lancamentos_financeiros")
+        .insert({
+          tenant_id: tenantId,
+          tipo: "receita",
+          valor: params.valorPago,
+          forma_pagamento: params.formaPagamento,
+          data_lancamento: params.dataPagamento,
+          status: "confirmado",
+          origem: "pagamento_livre",
+          projeto_id: recData?.projeto_id,
+          cliente_id: recData?.cliente_id,
+          descricao: `Pagamento Avulso - ${params.recebimentoId}`,
+          observacoes: params.observacoes
+        } as any)
+        .select("id")
+        .single();
+
+      if (lancErr) throw lancErr;
+
+      // 4. Insert legacy record
       const { data: pagamento, error } = await supabase
-        .from("pagamentos")
+        .from("_deprecated_pagamentos" as any)
         .insert({
           recebimento_id: params.recebimentoId,
           valor_pago: params.valorPago,
@@ -104,12 +133,13 @@ export function usePagamentoLivre() {
       qc.invalidateQueries({ queryKey: ["pagamentos-recebimento", params.recebimentoId] });
       qc.invalidateQueries({ queryKey: ["recebimentos"] });
       qc.invalidateQueries({ queryKey: ["financeiro-dashboard"] });
+      qc.invalidateQueries({ queryKey: ["lancamentos_financeiros"] });
 
       // Fire-and-forget WA notification
-      if (data?.id) {
+      if ((data as any)?.id) {
         supabase.functions.invoke("notificar-pagamento-wa", {
           body: {
-            pagamento_id: data.id,
+            pagamento_id: (data as any).id,
             tipo: "pagamento_recebido",
           },
         }).catch(() => { /* never block */ });

@@ -52,7 +52,7 @@ export function useDRE(anoMesInicio: string, anoMesFim: string) {
 
       const [pagRes, lancRes, comRes] = await Promise.all([
         supabase
-          .from("pagamentos")
+          .from("_deprecated_pagamentos")
           .select("valor_pago, data_pagamento")
           .gte("data_pagamento", firstDay)
           .lte("data_pagamento", lastDay),
