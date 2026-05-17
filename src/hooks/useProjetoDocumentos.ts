@@ -63,7 +63,7 @@ export function useProjetoArquivos(dealId: string) {
       const tenantId = await getTenantId();
       const path = `${tenantId}/deals/${dealId}`;
       const { data } = await supabase.storage
-        .from("projeto-documentos")
+        .from(getStorageBucket("projeto"))
         .list(path, { limit: 100, sortBy: { column: "created_at", order: "desc" } });
       return (data || []) as StorageFile[];
     },
@@ -145,7 +145,7 @@ export function useUploadArquivo(dealId: string) {
         const file = fileList[i];
         const fileName = `${Date.now()}_${file.name}`;
         const { error } = await supabase.storage
-          .from("projeto-documentos")
+          .from(getStorageBucket("projeto"))
           .upload(`${basePath}/${fileName}`, file, { upsert: false });
         if (error) throw error;
       }
