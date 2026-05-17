@@ -140,7 +140,10 @@ export default function VendorCreditoView() {
                   <div className="flex items-start justify-between gap-4">
                     <div className="space-y-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-bold text-base truncate">{clientName}</span>
+                        <div className="flex flex-col">
+                          <span className="font-bold text-base truncate">{clientName}</span>
+                          <span className="text-[10px] text-muted-foreground">{displayCpfCnpj(analise.cpf_cnpj)}</span>
+                        </div>
                         <Badge variant="outline" className={cn("text-[10px] uppercase font-bold", config.color)}>
                           {config.label}
                         </Badge>

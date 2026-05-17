@@ -633,8 +633,9 @@ export default function CreditGlobalArea() {
                 <TableBody>
                   {filteredAnalyses?.map((analysis) => (
                     <TableRow key={analysis.id} className="group">
-                      <TableCell className="font-medium">
-                        {analysis.deal?.title || analysis.lead?.nome || "N/A"}
+                      <TableCell className="font-medium flex flex-col">
+                        <span>{analysis.deal?.title || analysis.lead?.nome || "N/A"}</span>
+                        <span className="text-[10px] text-muted-foreground">{displayCpfCnpj(analysis.cpf_cnpj)}</span>
                       </TableCell>
                       <TableCell className="text-muted-foreground">
                         {analysis.consultor?.[0]?.nome || "Sistema"}
@@ -798,6 +799,10 @@ export default function CreditGlobalArea() {
                     </div>
 
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                      <div className="space-y-1">
+                        <label className="text-[10px] uppercase text-muted-foreground">Documento</label>
+                        <p className="text-sm font-mono">{displayCpfCnpj(selectedAnalysis.cpf_cnpj)}</p>
+                      </div>
                       <div className="space-y-1">
                         <label className="text-[10px] uppercase text-muted-foreground">Protocolo</label>
                         <p className="text-sm font-mono">{selectedAnalysis.eos_proposta_protocolo}</p>
@@ -1075,7 +1080,8 @@ function AnalysisCard({ analysis, onAction }: { analysis: any, onAction: (type: 
           </span>
         </div>
         <CardTitle className="text-md mt-2 leading-tight">
-          {analysis.deal?.title || analysis.lead?.nome}
+          <span>{analysis.deal?.title || analysis.lead?.nome}</span>
+          <span className="text-[10px] font-normal">({displayCpfCnpj(analysis.cpf_cnpj)})</span>
         </CardTitle>
         <p className="text-xs text-muted-foreground flex items-center gap-1">
           <UserIcon className="h-3 w-3" /> Consultor: {analysis.consultor?.[0]?.nome || analysis.consultor?.nome || "N/A"}
