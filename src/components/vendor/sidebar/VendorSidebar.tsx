@@ -244,7 +244,7 @@ export function VendorSidebar({
         ))}
       </SidebarContent>
 
-      <SidebarFooter className="border-t border-sidebar-border/50 p-3 space-y-2">
+      <SidebarFooter className="border-t border-sidebar-border/30 p-4 space-y-3 bg-sidebar-background/30 backdrop-blur-sm">
         {!collapsed && (
           <div className="px-3 py-2 rounded-lg bg-sidebar-accent/50 border border-sidebar-border/30">
             <p className="text-[11px] text-sidebar-foreground/55 truncate font-medium">
