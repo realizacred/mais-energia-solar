@@ -246,14 +246,17 @@ export function VendorSidebar({
 
       <SidebarFooter className="border-t border-sidebar-border/30 p-4 space-y-3 bg-sidebar-background/30 backdrop-blur-sm">
         {!collapsed && (
-          <div className="px-3 py-2 rounded-lg bg-sidebar-accent/50 border border-sidebar-border/30">
-            <p className="text-[11px] text-sidebar-foreground/55 truncate font-medium">
+          <div className="px-3 py-2.5 rounded-xl bg-primary/5 border border-primary/10 shadow-inner">
+            <p className="text-[10px] font-black uppercase tracking-widest text-primary/70 mb-0.5">
+              Consultor
+            </p>
+            <p className="text-sm text-sidebar-foreground font-bold truncate">
               {displayName}
             </p>
             {isAdminMode && (
-              <span className="text-[10px] text-primary font-medium">
-                Modo Admin
-              </span>
+              <Badge variant="secondary" className="mt-1.5 h-4 text-[9px] bg-primary/10 text-primary border-none font-bold uppercase tracking-wider">
+                Admin Mode
+              </Badge>
             )}
           </div>
         )}
