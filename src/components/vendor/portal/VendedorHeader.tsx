@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { LogOut } from "lucide-react";
 import { PortalSwitcher } from "@/components/layout/PortalSwitcher";
 import { useLogo } from "@/hooks/useLogo";
