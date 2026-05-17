@@ -111,7 +111,7 @@ function ReciboHistoryList({ projetoId }: { projetoId: string }) {
             <div className="flex items-center gap-2">
               <span className="font-bold">{formatBRL(Number(r.valor))}</span>
               <Badge variant="outline" className={cn("text-[9px] uppercase", r.status === 'emitido' ? "text-success border-success/20 bg-success/5" : "text-destructive border-destructive/20 bg-destructive/5")}>
-                {r.status}
+                {formatNameCapitalize(r.status)}
               </Badge>
               {r.numero && <span className="text-muted-foreground">Nº {r.numero}</span>}
             </div>
