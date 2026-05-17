@@ -12,6 +12,7 @@ export type OperationalStatus =
   | "aguardando_homologacao"
   | "homologacao_aprovada"
   | "em_operacao"
+  | "pedido_em_andamento"
   | "desconhecido";
 
 export interface OperationalStatusInfo {
@@ -21,40 +22,25 @@ export interface OperationalStatusInfo {
 }
 
 const STATUS_CONFIG: Record<OperationalStatus, OperationalStatusInfo> = {
-  operacional_nao_iniciado: { 
-    status: "operacional_nao_iniciado", 
-    label: "Pronto para Engenharia", 
-    colorClass: "bg-slate-100 text-slate-600 border-slate-200" 
-  },
-  aguardando_documentos: { 
-    status: "aguardando_documentos", 
-    label: "Aguardando Documentos", 
-    colorClass: "bg-amber-100 text-amber-700 border-amber-200" 
-  },
-  em_engenharia: { 
-    status: "em_engenharia", 
-    label: "Em Engenharia", 
-    colorClass: "bg-blue-100 text-blue-700 border-blue-200" 
-  },
-  engenharia_aprovada: { 
-    status: "engenharia_aprovada", 
-    label: "Engenharia Aprovada", 
-    colorClass: "bg-blue-500 text-white border-blue-600" 
-  },
-  instalacao_agendada: { 
-    status: "instalacao_agendada", 
-    label: "Instalação Agendada", 
-    colorClass: "bg-indigo-100 text-indigo-700 border-indigo-200" 
+  em_operacao: { 
+    status: "em_operacao", 
+    label: "Usina em Operação", 
+    colorClass: "bg-success/10 text-success border-success/20 font-bold" 
   },
   em_instalacao: { 
     status: "em_instalacao", 
     label: "Em Instalação", 
-    colorClass: "bg-indigo-500 text-white border-indigo-600" 
+    colorClass: "bg-blue-500 text-white border-blue-600" 
   },
   instalacao_concluida: { 
     status: "instalacao_concluida", 
     label: "Instalação Concluída", 
     colorClass: "bg-emerald-100 text-emerald-700 border-emerald-200" 
+  },
+  instalacao_agendada: { 
+    status: "instalacao_agendada", 
+    label: "Instalação Agendada", 
+    colorClass: "bg-indigo-100 text-indigo-700 border-indigo-200" 
   },
   aguardando_homologacao: { 
     status: "aguardando_homologacao", 
@@ -66,10 +52,30 @@ const STATUS_CONFIG: Record<OperationalStatus, OperationalStatusInfo> = {
     label: "Homologação Aprovada", 
     colorClass: "bg-purple-500 text-white border-purple-600" 
   },
-  em_operacao: { 
-    status: "em_operacao", 
-    label: "Usina em Operação", 
-    colorClass: "bg-success/10 text-success border-success/20 font-bold" 
+  em_engenharia: { 
+    status: "em_engenharia", 
+    label: "Em Engenharia", 
+    colorClass: "bg-purple-100 text-purple-700 border-purple-200" 
+  },
+  engenharia_aprovada: { 
+    status: "engenharia_aprovada", 
+    label: "Engenharia Aprovada", 
+    colorClass: "bg-blue-500 text-white border-blue-600" 
+  },
+  pedido_em_andamento: { 
+    status: "pedido_em_andamento", 
+    label: "Pedido em Andamento", 
+    colorClass: "bg-amber-100 text-amber-700 border-amber-200" 
+  },
+  operacional_nao_iniciado: { 
+    status: "operacional_nao_iniciado", 
+    label: "Pronto para Engenharia", 
+    colorClass: "bg-slate-100 text-slate-600 border-slate-200" 
+  },
+  aguardando_documentos: { 
+    status: "aguardando_documentos", 
+    label: "Aguardando Documentos", 
+    colorClass: "bg-amber-100 text-amber-700 border-amber-200" 
   },
   desconhecido: { 
     status: "desconhecido", 
@@ -94,46 +100,72 @@ export function useOperationalStatus(dealId: string | null) {
         return STATUS_CONFIG.desconhecido;
       }
 
-      const { activation, vistoria, homologacao, checklists, os_instalacao, deal } = data;
+      const { activation, homologacao, os_instalacao, deal, memberships } = data;
 
-      // 1. Em Operação (Highest Priority - Final state)
-      if (activation?.data_ativacao) return STATUS_CONFIG.em_operacao;
+      const funnelMemberships = memberships || [];
 
-      // 2. Homologação Aprovada (Requires proof from concessionaria)
+      // 1. Funil "Sistema em Operação" concluído ou ativação registrada?
+      // (Highest Priority - Final state)
+      const activationPipeline = funnelMemberships.find((m: any) => 
+        m.pipeline_name.toLowerCase().includes("operação") || 
+        m.pipeline_name.toLowerCase().includes("ativação")
+      );
+      if (activation?.data_ativacao || (activationPipeline && activationPipeline.stage_name.toLowerCase().includes("concluído"))) {
+        return STATUS_CONFIG.em_operacao;
+      }
+
+      // 2. Homologação Aprovada
       if (homologacao?.status === "aprovada") return STATUS_CONFIG.homologacao_aprovada;
 
-      // 3. Aguardando Homologação (If installation finished or homologation in progress)
+      // 3. Funil "Instalação" em andamento?
+      const instalacaoPipeline = funnelMemberships.find((m: any) => 
+        m.pipeline_name.toLowerCase().includes("instalação")
+      );
+      const installationInProgress = (os_instalacao || []).some((os: any) => os.status === "em_execucao");
+      const installationScheduled = (os_instalacao || []).some((os: any) => os.status === "agendado");
       const installationFinished = (os_instalacao || []).some((os: any) => os.status === "concluida");
+
+      if (instalacaoPipeline || installationInProgress || installationScheduled || installationFinished) {
+        if (installationFinished) return STATUS_CONFIG.instalacao_concluida;
+        if (installationInProgress) return STATUS_CONFIG.em_instalacao;
+        if (installationScheduled) return STATUS_CONFIG.instalacao_agendada;
+        return STATUS_CONFIG.em_instalacao; // Fallback if pipeline exists but no OS status
+      }
+
+      // 4. Aguardando Homologação (se instalação terminou ou homologação iniciou)
       if (installationFinished || (homologacao?.status && homologacao.status !== "nao_solicitada")) {
         return STATUS_CONFIG.aguardando_homologacao;
       }
 
-      // 4. Instalação Concluída (Derived from OS)
-      if (installationFinished) return STATUS_CONFIG.instalacao_concluida;
+      // 5. Funil "Engenharia" em andamento?
+      const engenhariaPipeline = funnelMemberships.find((m: any) => 
+        m.pipeline_name.toLowerCase().includes("engenharia")
+      );
+      if (engenhariaPipeline) {
+        if (engenhariaPipeline.stage_name.toLowerCase().includes("aprovado")) {
+          return STATUS_CONFIG.engenharia_aprovada;
+        }
+        return STATUS_CONFIG.em_engenharia;
+      }
 
-      // 5. Em Instalação (Installation OS active)
-      const installationInProgress = (os_instalacao || []).some((os: any) => os.status === "em_execucao");
-      if (installationInProgress) return STATUS_CONFIG.em_instalacao;
+      // 6. Funil "Equipamento" em andamento?
+      const equipamentoPipeline = funnelMemberships.find((m: any) => 
+        m.pipeline_name.toLowerCase().includes("equipamento") || 
+        m.pipeline_name.toLowerCase().includes("suprimentos") ||
+        m.pipeline_name.toLowerCase().includes("pedido")
+      );
+      if (equipamentoPipeline) {
+        return STATUS_CONFIG.pedido_em_andamento;
+      }
 
-      // 6. Instalação Agendada
-      const installationScheduled = (os_instalacao || []).some((os: any) => os.status === "agendado");
-      if (installationScheduled) return STATUS_CONFIG.instalacao_agendada;
+      // 7. Deal ganho + nenhum funil iniciado?
+      if (deal?.status === "won") {
+        // 8. Docs faltando?
+        const hasMissingDocs = deal?.docs_completos === false;
+        if (hasMissingDocs) return STATUS_CONFIG.aguardando_documentos;
 
-      // 7. Engenharia Aprovada (Checklists finished but no OS yet)
-      const engineeringFinished = (checklists || []).some((c: any) => c.status === "finalizado");
-      if (engineeringFinished) return STATUS_CONFIG.engenharia_aprovada;
-
-      // 8. Em Engenharia (Checklists started)
-      if ((checklists || []).length > 0) return STATUS_CONFIG.em_engenharia;
-
-      // 9. Aguardando Documentos (If deal is won but docs missing)
-      // Agora usamos o campo docs_completos retornado pelo RPC consolidado
-      const hasMissingDocs = deal?.docs_completos === false;
-      
-      if (deal?.status === "won" && hasMissingDocs) return STATUS_CONFIG.aguardando_documentos;
-
-      // 10. Operacional não iniciado (If deal is won and docs are OK but no work yet)
-      if (deal?.status === "won") return STATUS_CONFIG.operacional_nao_iniciado;
+        return STATUS_CONFIG.operacional_nao_iniciado;
+      }
 
       return STATUS_CONFIG.desconhecido;
     }
