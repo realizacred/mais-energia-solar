@@ -26,7 +26,7 @@ import type { DocumentTemplate, FormFieldSchema } from "./types";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
-import { formatBRL } from "@/lib/formatters";
+import { formatBRL, formatCpfCnpj } from "@/lib/formatters";
 import { format } from "date-fns";
 import { toast } from "sonner";
 
