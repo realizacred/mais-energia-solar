@@ -532,7 +532,15 @@ export function EmitirReciboModal({
                   </div>
                 ))}
               </div>
+          {defaultProjetoId && (
+            <div className="sm:col-span-2 border-t pt-4 space-y-4">
+              <h4 className="font-bold flex items-center gap-2 text-sm uppercase tracking-wider text-muted-foreground">
+                <History className="h-4 w-4" /> Histórico de Recibos
+              </h4>
+              <ReciboHistoryList projetoId={defaultProjetoId} />
             </div>
+          )}
+        </div>
           )}
         </div>
 
