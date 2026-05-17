@@ -5563,6 +5563,7 @@ export type Database = {
       }
       document_templates: {
         Row: {
+          arquivo_base_path: string | null
           categoria: string
           created_at: string
           created_by: string | null
@@ -5581,6 +5582,7 @@ export type Database = {
           version: number
         }
         Insert: {
+          arquivo_base_path?: string | null
           categoria?: string
           created_at?: string
           created_by?: string | null
@@ -5599,6 +5601,7 @@ export type Database = {
           version?: number
         }
         Update: {
+          arquivo_base_path?: string | null
           categoria?: string
           created_at?: string
           created_by?: string | null
