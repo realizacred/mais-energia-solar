@@ -62,6 +62,7 @@ export function useClienteProjetos(clienteId: string | null) {
       return data as ClienteProjeto[];
     },
     staleTime: STALE_TIME,
+    refetchOnMount: REFETCH_ON_MOUNT,
     enabled: !!clienteId,
   });
 }
@@ -88,6 +89,7 @@ export function useClientePropostas(clienteId: string | null, leadId: string | n
       return data as ClientePropostaNativa[];
     },
     staleTime: STALE_TIME,
+    refetchOnMount: REFETCH_ON_MOUNT,
     enabled: !!(clienteId || leadId),
   });
 }
@@ -109,6 +111,7 @@ export function useClientePropostaVersoes(propostaIds: string[]) {
       return data as ClientePropostaVersao[];
     },
     staleTime: STALE_TIME,
+    refetchOnMount: REFETCH_ON_MOUNT,
     enabled: propostaIds.length > 0,
   });
 }
@@ -132,6 +135,7 @@ export function useClienteConversasWa(telefone: string | null) {
       return data as ClienteConversaWa[];
     },
     staleTime: STALE_TIME,
+    refetchOnMount: REFETCH_ON_MOUNT,
     enabled: !!telefone,
   });
 }
