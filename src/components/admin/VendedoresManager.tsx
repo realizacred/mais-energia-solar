@@ -3,7 +3,7 @@ import { useVendedoresList, useUserProfiles, useRefreshVendedores } from "@/hook
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { WaAutoMessageToggle } from "@/components/vendor/WaAutoMessageToggle";
-import { ConsultorHorariosEdit } from "@/components/admin/settings/ConsultorHorariosEdit";
+import { ConsultorHorariosEdit } from "@/components/admin/ConsultorHorariosEdit";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
