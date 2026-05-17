@@ -87,6 +87,7 @@ export interface ProjetoDetalheContextValue {
   /** Descrição do projeto (projetos.observacoes). */
   projetoDescricao: string | null;
   history: StageHistory[];
+  portalToken: string | null;
   stages: StageInfo[];
   loading: boolean;
 
@@ -215,6 +216,7 @@ export function ProjetoDetalheProvider({ dealId, onBack, initialPipelineId, init
   const allStagesMap = fullData?.allStagesMap ?? new Map<string, StageInfo[]>();
   const docsCount = fullData?.docsCount ?? 0;
   const userNamesMap = fullData?.userNamesMap ?? new Map<string, string>();
+  const portalToken = fullData?.portalToken ?? null;
   const dealEtiquetas = etiquetasData?.dealEtiquetas ?? [];
   const allEtiquetas = etiquetasData?.allEtiquetas ?? [];
 
@@ -486,6 +488,7 @@ export function ProjetoDetalheProvider({ dealId, onBack, initialPipelineId, init
     projetoDescricao,
     history,
     stages,
+    portalToken,
     loading: loadingData,
     customerName,
     customerPhone,
