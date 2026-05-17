@@ -607,8 +607,18 @@ Deno.serve(async (req) => {
     const filledDocx = await processDocx(templateBytes, variables);
 
     // 6. Save filled DOCX to storage
+    const sanitizePath = (str: string): string => {
+      return str
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "") // remove acentos
+        .replace(/[^a-zA-Z0-9._-]/g, "_") // substitui especiais (incluindo espaços) por underscore
+        .replace(/_+/g, "_")              // remove underscores duplos
+        .trim()
+        .toLowerCase();
+    };
+
     const timestamp = Date.now();
-    const safeName = template.nome.replace(/[^a-zA-Z0-9_\-\sÀ-ú]/g, "").replace(/\s+/g, "_");
+    const safeName = sanitizePath(template.nome);
     const docxPath = `${tenantId}/deals/${deal_id}/generated/${timestamp}_${safeName}.docx`;
 
     const { error: uploadErr } = await supabase.storage
