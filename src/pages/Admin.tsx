@@ -2,29 +2,29 @@ import React, { useState, useEffect, useMemo, lazy, Suspense, useCallback } from
 import { useNavigate, Routes, Route, Navigate, useLocation, useSearchParams } from "react-router-dom";
 import { Menu, ShieldAlert } from "lucide-react";
 import { SistemaInstallBanner } from "@/components/pwa/SistemaInstallBanner";
-import { AdminBreadcrumb } from "@/components/admin/AdminBreadcrumb";
-import { AdminRouteBoundary } from "@/components/admin/AdminRouteBoundary";
+import { AdminBreadcrumb } from "@/components/admin/layout/AdminBreadcrumb";
+import { AdminRouteBoundary } from "@/components/admin/layout/AdminRouteBoundary";
 import { LoadingState } from "@/components/ui-kit/LoadingState";
 import { useAuth } from "@/hooks/useAuth";
 import { usePendingValidations } from "@/hooks/usePendingValidations";
 import { supabase } from "@/integrations/supabase/client";
 import { SidebarProvider, SidebarTrigger, SidebarInset } from "@/components/ui/sidebar";
-import { AdminSidebar } from "@/components/admin/sidebar/AdminSidebar";
-import { SidebarResizer } from "@/components/admin/sidebar/SidebarResizer";
+import { AdminSidebar } from "@/components/admin/layout/sidebar/AdminSidebar";
+import { SidebarResizer } from "@/components/admin/layout/sidebar/SidebarResizer";
 import { useNavConfig } from "@/hooks/useNavConfig";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
-import { GlobalSearch } from "@/components/admin/GlobalSearch";
+import { GlobalSearch } from "@/components/admin/layout/GlobalSearch";
 import { TrialBanner, UpsellBanner, PlanStatusBadge } from "@/components/plan";
 import { FeatureDiscoveryLayer } from "@/components/FeatureDiscoveryLayer";
 import { HelpCenterDrawer } from "@/components/help/HelpCenterDrawer";
-import { HeaderSearch } from "@/components/admin/HeaderSearch";
-import { NotificationsDropdown } from "@/components/admin/NotificationsDropdown";
+import { HeaderSearch } from "@/components/admin/layout/HeaderSearch";
+import { NotificationsDropdown } from "@/components/admin/layout/NotificationsDropdown";
 import { AgendaSheet } from "@/components/admin/AgendaSheet";
-import { ProfileDropdown } from "@/components/admin/ProfileDropdown";
-import { HelpDropdown } from "@/components/admin/HelpDropdown";
+import { ProfileDropdown } from "@/components/admin/layout/ProfileDropdown";
+import { HelpDropdown } from "@/components/admin/layout/HelpDropdown";
 import { useNewLeadAlert } from "@/hooks/useNewLeadAlert";
 import { useProposalViewAlert } from "@/hooks/useProposalViewAlert";
 
