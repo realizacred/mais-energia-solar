@@ -190,7 +190,7 @@ async function createCrmLead(
   // Also check facebook_leads record for pre-extracted fields
   const { data: fbRecord } = await supabase
     .from("facebook_leads")
-    .select("lead_name, lead_email, lead_phone, campaign_id, adset_id, raw_json")
+    .select("lead_name, lead_email, lead_phone, campaign_id, adset_id, ad_id, raw_json")
     .eq("facebook_lead_id", fbLeadId)
     .maybeSingle();
 
@@ -217,10 +217,16 @@ async function createCrmLead(
     utm_medium: "paid",
     facebook_lead_id: fbLeadId,
     campaign_id: campaignId,
-    ad_id: adId,
+    campanha_id: campaignId,
+    ad_id: adId || fbRecord?.ad_id,
     form_id: formId,
     page_id: pageId,
     adset_id: adsetId,
+    // Try to get names from raw_json if they were injected by some tool, 
+    // though usually they aren't in standard webhooks. 
+    // They will be updated later by meta-ads-sync.
+    campanha_nome: (leadgenValue as any)?.campaign_name || null,
+    ad_nome: (leadgenValue as any)?.ad_name || null,
   };
 
   // Only set consultor_id if we resolved a responsible user
