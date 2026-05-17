@@ -1,5 +1,8 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
+import { ClienteDocumentUpload } from "./ClienteDocumentUpload";
 import { ClientLinkedPlants } from "./monitoring-v2/ClientLinkedPlants";
 import { ClienteEnergiaTab } from "./clientes/ClienteEnergiaTab";
 import { Spinner } from "@/components/ui-kit/Spinner";
