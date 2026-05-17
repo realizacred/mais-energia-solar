@@ -83,11 +83,11 @@ function VendorSidebarItem({
             : item.title
         }
         className={`
-          transition-all duration-200 rounded-lg mx-1 my-px text-[13px]
+          transition-all duration-300 rounded-xl mx-2 my-0.5 text-sm h-11 px-3
           ${
             isActive
-              ? "bg-sidebar-primary/8 text-sidebar-primary font-semibold border-l-[3px] border-sidebar-primary"
-              : "text-sidebar-foreground-muted hover:bg-sidebar-accent hover:text-sidebar-foreground"
+              ? "bg-primary text-primary-foreground font-bold shadow-lg shadow-primary/20 scale-[1.02] border-none"
+              : "text-sidebar-foreground-muted hover:bg-sidebar-accent/50 hover:text-sidebar-foreground hover:translate-x-1"
           }
         `}
       >
