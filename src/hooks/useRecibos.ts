@@ -60,14 +60,15 @@ export function useRecibos(filters: { cliente_id?: string; projeto_id?: string }
 }
 
 export interface EmitirReciboInput {
-  template_id: string;
-  cliente_id: string;
-  projeto_id?: string | null;
-  deal_id?: string | null;
-  descricao?: string;
+  projeto_id: string;
+  cliente_id?: string | null;
+  template: string;
   numero?: string;
   valor: number;
-  dados_preenchidos: Record<string, unknown>;
+  forma_pagamento: string;
+  descricao?: string;
+  data_pagamento: string;
+  campos_extras?: Record<string, unknown>;
   generate_pdf?: boolean;
 }
 
@@ -79,21 +80,21 @@ export function useEmitirRecibo() {
       const { tenantId, userId } = await getCurrentTenantId();
 
       const { data, error } = await supabase
-        .from("recibos_emitidos" as any)
+        .from("recibos")
         .insert({
           tenant_id: tenantId,
-          template_id: input.template_id,
-          cliente_id: input.cliente_id,
-          projeto_id: input.projeto_id ?? null,
-          deal_id: input.deal_id ?? null,
+          projeto_id: input.projeto_id,
+          cliente_id: input.cliente_id ?? null,
+          template: input.template,
           numero: input.numero ?? null,
-          descricao: input.descricao ?? null,
           valor: input.valor,
-          dados_preenchidos: input.dados_preenchidos as any,
+          forma_pagamento: input.forma_pagamento,
+          descricao: input.descricao ?? null,
+          data_pagamento: input.data_pagamento,
+          campos_extras: input.campos_extras ?? {},
           status: "emitido",
           created_by: userId,
-          updated_by: userId,
-        } as any)
+        })
         .select("id")
         .single();
 
