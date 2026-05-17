@@ -93,7 +93,7 @@ export function useEmitirRecibo() {
           campos_extras: input.campos_extras ?? {},
           status: "emitido",
           created_by: userId,
-        })
+        } as any)
         .select("id")
         .single();
 
