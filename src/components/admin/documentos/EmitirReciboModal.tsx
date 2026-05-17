@@ -78,17 +78,19 @@ export function EmitirReciboModal({
       setDescricao("");
       setNumero("");
       setFormaPagamento("");
+      setDataPagamento(new Date().toISOString().slice(0, 10));
       setDynFields({});
       setProjectContext(null);
       setProposalContext(null);
-      setTotalPago(0);
+      setTotalPagoHistorico(0);
+      setUltimoNumeroRecibo(0);
       setInstituicaoFinanceira("");
 
       if (defaultProjetoId) {
         setLoadingContext(true);
         (async () => {
           try {
-            const [projRes, totalPagoRes] = await Promise.all([
+            const [projRes, recibosRes] = await Promise.all([
               supabase
                 .from("projetos")
                 .select("*, clientes(*)")
@@ -96,7 +98,7 @@ export function EmitirReciboModal({
                 .maybeSingle(),
               supabase
                 .from("recibos")
-                .select("valor")
+                .select("valor, numero")
                 .eq("projeto_id", defaultProjetoId)
                 .eq("status", "emitido")
             ]);
@@ -108,9 +110,14 @@ export function EmitirReciboModal({
                 setClienteId(projeto.cliente_id);
               }
 
-              // Calcular total pago
-              const pago = (totalPagoRes.data || []).reduce((acc, r) => acc + Number(r.valor), 0);
-              setTotalPago(pago);
+              // Calcular total pago e pegar último número
+              const pago = (recibosRes.data || []).reduce((acc, r) => acc + Number(r.valor), 0);
+              setTotalPagoHistorico(pago);
+              
+              const numeros = (recibosRes.data || [])
+                .map(r => parseInt(r.numero || "0"))
+                .filter(n => !isNaN(n));
+              setUltimoNumeroRecibo(numeros.length > 0 ? Math.max(...numeros) : 0);
 
               // Buscar proposta aceita
               const dealId = defaultDealId ?? (projeto as any).deal_id;
