@@ -1,14 +1,14 @@
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
-import { Check, X, Pencil, Type, Hash, ToggleLeft, Calendar, List, DollarSign, Percent, FileText, AlignLeft, Paperclip, Wifi, Package, Zap, MapPin, Settings, icons } from "lucide-react";
+import { Check, X, Pencil, Type, Hash, ToggleLeft, Calendar, List, DollarSign, Percent, FileText, AlignLeft, Paperclip, Wifi, Package, Zap, MapPin, Settings, icons, Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { Separator } from "@/components/ui/separator";
-import { formatDateTime, formatDate, formatTime, formatDateShort } from "@/lib/dateUtils";
+import { formatDate } from "@/lib/dateUtils";
 import { CustomFieldFileInput } from "./CustomFieldFileInput";
 import { toast } from "@/hooks/use-toast";
 
@@ -50,7 +50,6 @@ const TYPE_ICON_MAP: Record<string, typeof Type> = {
   file: FileText,
 };
 
-/** Contextual icon fallback based on field title keywords */
 const TITLE_ICON_MAP: Array<{ pattern: RegExp; icon: typeof Type }> = [
   { pattern: /identidade/i, icon: Paperclip },
   { pattern: /comprovante/i, icon: Paperclip },
@@ -75,40 +74,14 @@ async function resolveTenantId(): Promise<string | null> {
 }
 
 export function ImportantFieldRow({ field, value, dealId, onSaved, showSeparator = true, disabled = false }: Props) {
-  const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [draft, setDraft] = useState("");
-  const [draftBool, setDraftBool] = useState(false);
-  const inputRef = useRef<HTMLInputElement | HTMLTextAreaElement>(null);
-
-  const displayValue = getDisplayValue(field, value);
+  
   const toPascal = (s: string) => s.split("-").map(p => p.charAt(0).toUpperCase() + p.slice(1)).join("");
   const CustomIcon = field.icon ? (icons as any)[toPascal(field.icon)] : null;
   const TitleIcon = TITLE_ICON_MAP.find(m => m.pattern.test(field.title))?.icon;
   const FieldIcon = CustomIcon || TitleIcon || TYPE_ICON_MAP[field.field_type] || Type;
 
-  function startEdit() {
-    if (disabled) return;
-    if (field.field_type === "boolean") {
-      setDraftBool(value?.value_boolean ?? false);
-    } else if (field.field_type === "number" || field.field_type === "currency" || field.field_type === "percent") {
-      setDraft(value?.value_number != null ? String(value.value_number) : "");
-    } else if (field.field_type === "date") {
-      setDraft(value?.value_date ?? "");
-    } else {
-      setDraft(value?.value_text ?? "");
-    }
-    setEditing(true);
-  }
-
-  useEffect(() => {
-    if (editing && inputRef.current) {
-      inputRef.current.focus();
-      if ("select" in inputRef.current) inputRef.current.select();
-    }
-  }, [editing]);
-
-  async function save() {
+  async function save(newValue?: any) {
     setSaving(true);
     try {
       const tenantId = await resolveTenantId();
@@ -123,70 +96,37 @@ export function ImportantFieldRow({ field, value, dealId, onSaved, showSeparator
       };
 
       if (field.field_type === "boolean") {
-        payload.value_boolean = draftBool;
+        payload.value_boolean = newValue !== undefined ? newValue : value?.value_boolean;
       } else if (field.field_type === "number" || field.field_type === "currency" || field.field_type === "percent") {
-        payload.value_number = draft ? parseFloat(draft) : null;
+        payload.value_number = newValue != null && newValue !== "" ? parseFloat(newValue) : null;
       } else if (field.field_type === "date") {
-        payload.value_date = draft || null;
+        payload.value_date = newValue || null;
       } else {
-        payload.value_text = draft || null;
+        payload.value_text = newValue || null;
       }
 
       const { error } = await supabase
         .from("deal_custom_field_values")
         .upsert(payload, { onConflict: "deal_id,field_id" });
 
-      if (error) console.error("Erro ao salvar campo:", error);
-      else onSaved();
-    } finally {
-      setSaving(false);
-      setEditing(false);
-    }
-  }
-
-  function cancel() {
-    setEditing(false);
-  }
-
-  function handleKeyDown(e: React.KeyboardEvent) {
-    if (e.key === "Enter" && field.field_type !== "textarea") save();
-    if (e.key === "Escape") cancel();
-  }
-
-  // Boolean toggle - save immediately
-  async function toggleBool() {
-    if (disabled) return;
-    const newVal = !(value?.value_boolean ?? false);
-    setSaving(true);
-    try {
-      const tenantId = await resolveTenantId();
-      const { error } = await supabase
-        .from("deal_custom_field_values")
-        .upsert({
-          deal_id: dealId,
-          field_id: field.id,
-          tenant_id: tenantId,
-          value_text: null,
-          value_number: null,
-          value_boolean: newVal,
-          value_date: null,
-        } as any, { onConflict: "deal_id,field_id" });
-      if (error) console.error("Erro ao salvar campo booleano:", error);
-      else onSaved();
+      if (error) {
+        console.error("Erro ao salvar campo:", error);
+        toast({ title: "Erro ao salvar", description: error.message, variant: "destructive" });
+      } else {
+        onSaved();
+      }
     } finally {
       setSaving(false);
     }
   }
 
-  const options: string[] = Array.isArray(field.options) ? field.options : [];
-
-  // ── File row (upload directly, no edit/save toggle) ──
+  // ── File row (upload directly) ──
   if (field.field_type === "file") {
     return (
       <>
-        <div className="flex items-center gap-2 py-1 px-1 min-w-0">
+        <div className="flex items-center gap-2 py-2 px-1 min-w-0">
           <FieldIcon className="h-3.5 w-3.5 shrink-0 text-primary" />
-          <span className="text-xs text-foreground truncate min-w-0 w-[120px] shrink-0" title={field.title}>{field.title}</span>
+          <span className="text-xs font-bold text-foreground truncate min-w-0 w-[120px] shrink-0" title={field.title}>{field.title}</span>
           <div className="flex-1 min-w-0">
             <CustomFieldFileInput
               value={value?.value_text}
@@ -226,67 +166,18 @@ export function ImportantFieldRow({ field, value, dealId, onSaved, showSeparator
   if (field.field_type === "boolean") {
     return (
       <>
-        <div className="flex items-center gap-2 py-1 px-1">
+        <div className="flex items-center gap-2 py-2 px-1">
           <FieldIcon className="h-3.5 w-3.5 shrink-0 text-primary" />
-          <span className="text-xs text-foreground flex-1 min-w-0 truncate" title={field.title}>{field.title}</span>
+          <span className="text-xs font-bold text-foreground flex-1 min-w-0 truncate" title={field.title}>{field.title}</span>
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] text-muted-foreground uppercase font-medium">
+              {value?.value_boolean ? "Sim" : "Não"}
+            </span>
             <Switch
               checked={value?.value_boolean ?? false}
-              onCheckedChange={() => toggleBool()}
+              onCheckedChange={(val) => save(val)}
               disabled={saving || disabled}
             />
-        </div>
-        {showSeparator && <Separator />}
-      </>
-    );
-  }
-
-  // ── Editing row ──
-  if (editing) {
-    return (
-      <>
-        <div className="flex items-center gap-2 py-1 px-1 min-w-0">
-          <FieldIcon className="h-3.5 w-3.5 shrink-0 text-primary" />
-          <span className="text-xs text-foreground truncate min-w-0 w-[120px] shrink-0" title={field.title}>{field.title}</span>
-          <div className="flex-1 flex items-center gap-1.5 justify-end min-w-0">
-            {field.field_type === "select" && options.length > 0 ? (
-              <Select value={draft || "none"} onValueChange={(v) => setDraft(v === "none" ? "" : v)}>
-                <SelectTrigger className="h-8 text-xs w-full min-w-0">
-                  <SelectValue placeholder="Selecione" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">Nenhum</SelectItem>
-                  {options.map(opt => (
-                    <SelectItem key={opt} value={opt}>{opt}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            ) : field.field_type === "textarea" ? (
-              <Textarea
-                ref={inputRef as React.RefObject<HTMLTextAreaElement>}
-                value={draft}
-                onChange={e => setDraft(e.target.value)}
-                onKeyDown={handleKeyDown}
-                className="text-sm w-full min-w-0 min-h-[60px] resize-none"
-              />
-            ) : (
-              <Input
-                ref={inputRef as React.RefObject<HTMLInputElement>}
-                type={field.field_type === "number" || field.field_type === "currency" || field.field_type === "percent" ? "number" : field.field_type === "date" ? "date" : "text"}
-                value={draft}
-                onChange={e => setDraft(e.target.value)}
-                onKeyDown={handleKeyDown}
-                className="h-8 text-sm w-full min-w-0"
-                step={field.field_type === "currency" || field.field_type === "percent" ? "0.01" : undefined}
-                min={field.field_type === "percent" ? 0 : undefined}
-                max={field.field_type === "percent" ? 100 : undefined}
-              />
-            )}
-            <Button variant="ghost" size="icon" onClick={save} disabled={saving} className="h-7 w-7 shrink-0 hover:bg-primary/10 text-primary transition-colors">
-              <Check className="h-3.5 w-3.5" />
-            </Button>
-            <Button variant="ghost" size="icon" onClick={cancel} className="h-7 w-7 shrink-0 hover:bg-destructive/10 text-muted-foreground transition-colors">
-              <X className="h-3.5 w-3.5" />
-            </Button>
           </div>
         </div>
         {showSeparator && <Separator />}
@@ -294,38 +185,83 @@ export function ImportantFieldRow({ field, value, dealId, onSaved, showSeparator
     );
   }
 
-  // ── Display row ──
+  // ── Text / Input row ──
+  if (field.field_type === "text" || field.field_type === "textarea" || field.field_type === "number" || field.field_type === "currency" || field.field_type === "percent" || field.field_type === "date") {
+    const isTextarea = field.field_type === "textarea" || field.title.toLowerCase().includes("equipamento") || field.title.toLowerCase().includes("localiza") || field.title.toLowerCase().includes("wi-fi") || field.title.toLowerCase().includes("obs");
+    
+    return (
+      <>
+        <div className="py-2 px-1 space-y-1.5">
+          <div className="flex items-center gap-2">
+            <FieldIcon className="h-3.5 w-3.5 shrink-0 text-primary" />
+            <span className="text-xs font-bold text-foreground truncate" title={field.title}>{field.title}</span>
+            {saving && <Loader2 className="h-3 w-3 animate-spin text-muted-foreground ml-auto" />}
+          </div>
+          
+          {isTextarea ? (
+            <Textarea
+              placeholder="Clique para preencher..."
+              className="w-full border border-border bg-background rounded-md p-2 text-sm resize-none focus-visible:ring-1 focus-visible:ring-primary min-h-[60px]"
+              rows={2}
+              defaultValue={field.field_type === "number" ? (value?.value_number?.toString() ?? "") : (value?.value_text ?? "")}
+              onBlur={(e) => {
+                const currentVal = field.field_type === "number" ? (value?.value_number?.toString() ?? "") : (value?.value_text ?? "");
+                if (e.target.value !== currentVal) {
+                  save(e.target.value);
+                }
+              }}
+              disabled={disabled || saving}
+            />
+          ) : (
+            <Input
+              type={field.field_type === "number" || field.field_type === "currency" || field.field_type === "percent" ? "number" : field.field_type === "date" ? "date" : "text"}
+              placeholder="Clique para preencher..."
+              className="h-8 text-sm w-full bg-background border-border focus-visible:ring-1 focus-visible:ring-primary"
+              defaultValue={field.field_type === "number" || field.field_type === "currency" || field.field_type === "percent" ? (value?.value_number?.toString() ?? "") : field.field_type === "date" ? (value?.value_date ?? "") : (value?.value_text ?? "")}
+              onBlur={(e) => {
+                const currentVal = field.field_type === "number" || field.field_type === "currency" || field.field_type === "percent" ? (value?.value_number?.toString() ?? "") : field.field_type === "date" ? (value?.value_date ?? "") : (value?.value_text ?? "");
+                if (e.target.value !== currentVal) {
+                  save(e.target.value);
+                }
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") (e.target as HTMLInputElement).blur();
+              }}
+              disabled={disabled || saving}
+            />
+          )}
+        </div>
+        {showSeparator && <Separator />}
+      </>
+    );
+  }
+
+  // ── Select type row ──
+  const options: string[] = Array.isArray(field.options) ? field.options : [];
   return (
     <>
-      <div
-        className={cn(
-          "flex items-center gap-2 py-1 px-1 group -mx-1 rounded-md transition-colors",
-          !disabled ? "hover:bg-muted/40 cursor-pointer" : "opacity-80"
-        )}
-        onClick={startEdit}
-      >
-        <FieldIcon className="h-3.5 w-3.5 shrink-0 text-primary" />
-        <span className="text-xs text-foreground flex-1 min-w-0 truncate" title={field.title}>{field.title}</span>
-        <div className={cn(
-          "text-xs px-2 py-0.5 rounded border text-center truncate w-[130px] transition-all",
-          displayValue === "—"
-            ? "text-muted-foreground/40 border-dashed border-primary/30 group-hover:border-primary/60 group-hover:text-primary/70"
-            : "font-medium text-foreground border-border bg-muted/30"
-        )}>
-          {displayValue === "—" ? "Clique para preencher" : displayValue}
+      <div className="flex items-center justify-between gap-2 py-2 px-1">
+        <div className="flex items-center gap-2 min-w-0">
+          <FieldIcon className="h-3.5 w-3.5 shrink-0 text-primary" />
+          <span className="text-xs font-bold text-foreground truncate" title={field.title}>{field.title}</span>
         </div>
-        {!disabled && <Pencil className="h-4 w-4 shrink-0 text-primary/40 group-hover:text-primary transition-colors" />}
+        <Select 
+          value={value?.value_text || "none"} 
+          onValueChange={(v) => save(v === "none" ? null : v)}
+          disabled={disabled || saving}
+        >
+          <SelectTrigger className="h-8 text-xs w-[140px] bg-background border-border">
+            <SelectValue placeholder="Selecione" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="none">Nenhum</SelectItem>
+            {options.map(opt => (
+              <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
       {showSeparator && <Separator />}
     </>
   );
-}
-
-function getDisplayValue(field: FieldDef, val: FieldValue | undefined): string {
-  if (!val) return "—";
-  if (field.field_type === "boolean") return val.value_boolean ? "Sim" : "Não";
-  if (field.field_type === "number" || field.field_type === "currency") return val.value_number != null ? String(val.value_number) : "—";
-  if (field.field_type === "percent") return val.value_number != null ? `${val.value_number}%` : "—";
-  if (field.field_type === "date") return val.value_date ? formatDate(val.value_date) : "—";
-  return val.value_text || "—";
 }

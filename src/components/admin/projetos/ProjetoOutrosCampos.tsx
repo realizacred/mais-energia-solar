@@ -398,27 +398,32 @@ function OutroCampoRowComp({ row, clienteId, onSaved }: { row: OutroCampoRow; cl
   // ── File type row ──
   if (row.type === "file") {
     return (
-      <div className="flex items-center justify-between py-1 gap-2">
+      <div className="flex flex-col py-2.5 px-1 space-y-2">
         <input ref={fileRef} type="file" className="hidden" onChange={handleFileUpload} />
-        <div className="flex items-center gap-2 min-w-0">
+        <div className="flex items-center gap-2">
           <Paperclip className="h-3.5 w-3.5 shrink-0 text-primary" />
-          <span className="text-xs text-foreground truncate">{row.label}</span>
+          <span className="text-xs font-bold text-foreground truncate">{row.label}</span>
           {row.hasFile && (
-            <span className="text-xs text-muted-foreground">({row.fileCount})</span>
+            <span className="text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded-full font-medium">
+              {row.fileCount} {row.fileCount === 1 ? "arquivo" : "arquivos"}
+            </span>
           )}
+          {saving && <Loader2 className="h-3 w-3 animate-spin text-muted-foreground ml-auto" />}
         </div>
         <Button
           size="sm"
-          className="h-8 text-xs gap-1.5 shrink-0"
+          variant="outline"
+          className="w-full h-9 text-xs gap-2 border-primary/30 bg-primary/5 hover:bg-primary/10 text-primary hover:text-primary transition-all border-dashed"
           onClick={() => fileRef.current?.click()}
           disabled={saving}
         >
-          {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Paperclip className="h-3.5 w-3.5" />}
+          {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}
           Anexar aqui
         </Button>
       </div>
     );
   }
+
 
   // ── Select type row ──
   if (row.type === "select" && row.options) {
@@ -432,12 +437,13 @@ function OutroCampoRowComp({ row, clienteId, onSaved }: { row: OutroCampoRow; cl
           )}
           <span className={cn("text-xs truncate", row.value ? "text-primary" : "text-foreground")}>{row.label}</span>
         </div>
-        <div className="flex items-center gap-1.5 shrink-0">
+        <div className="flex items-center gap-1.5 shrink-0 ml-auto">
           <Select
             value={row.selectedId || "none"}
             onValueChange={(v) => saveField(v === "none" ? "" : v)}
+            disabled={saving}
           >
-            <SelectTrigger className="h-8 text-sm w-[140px] bg-muted/30 border-border">
+            <SelectTrigger className="h-8 text-xs w-[140px] bg-background border-border">
               <SelectValue placeholder="Selecione" />
             </SelectTrigger>
             <SelectContent>
@@ -447,72 +453,60 @@ function OutroCampoRowComp({ row, clienteId, onSaved }: { row: OutroCampoRow; cl
               ))}
             </SelectContent>
           </Select>
-          <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={startEdit} disabled>
-            <Pencil className="h-4 w-4 text-muted-foreground" />
-          </Button>
         </div>
+
       </div>
     );
   }
 
-  // ── Text / Textarea type row (editing) ──
-  if (editing) {
+  // ── Text / Textarea type row (Always visible inputs for other fields) ──
+  if (row.type === "text" || row.type === "textarea") {
+    const isTextarea = row.type === "textarea" || row.key === "equipamento" || row.key === "localizacao" || row.key === "observacoes";
+    
     return (
-      <div className="py-1 space-y-1.5">
+      <div className="py-2.5 px-1 space-y-1.5">
         <div className="flex items-center gap-2">
-          <row.icon className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-          <span className="text-xs text-foreground">{row.label}</span>
+          <row.icon className="h-3.5 w-3.5 shrink-0 text-primary" />
+          <span className="text-xs font-bold text-foreground truncate">{row.label}</span>
+          {saving && <Loader2 className="h-3 w-3 animate-spin text-muted-foreground ml-auto" />}
         </div>
-        {row.type === "textarea" ? (
+        
+        {isTextarea ? (
           <Textarea
-            value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-            rows={3}
-            className="text-sm"
-            autoFocus
+            placeholder="Clique para preencher..."
+            className="w-full border border-border bg-background rounded-md p-2 text-sm resize-none focus-visible:ring-1 focus-visible:ring-primary min-h-[60px]"
+            rows={2}
+            defaultValue={row.value || ""}
+            onBlur={(e) => {
+              if (e.target.value !== (row.value || "")) {
+                saveField(e.target.value);
+              }
+            }}
+            disabled={saving}
           />
         ) : (
           <Input
-            value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-            className="h-8 text-sm"
-            autoFocus
-            onKeyDown={(e) => { if (e.key === "Enter") saveField(draft); if (e.key === "Escape") setEditing(false); }}
+            placeholder="Clique para preencher..."
+            className="h-8 text-sm w-full bg-background border-border focus-visible:ring-1 focus-visible:ring-primary"
+            defaultValue={row.value || ""}
+            onBlur={(e) => {
+              if (e.target.value !== (row.value || "")) {
+                saveField(e.target.value);
+              }
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") (e.target as HTMLInputElement).blur();
+            }}
+            disabled={saving}
           />
         )}
-        <div className="flex items-center gap-1.5 justify-end">
-          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setEditing(false)}>
-            <X className="h-3.5 w-3.5" />
-          </Button>
-          <Button variant="ghost" size="icon" className="h-7 w-7 text-primary" onClick={() => saveField(draft)} disabled={saving}>
-            {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}
-          </Button>
-        </div>
       </div>
     );
   }
 
-  // ── Text / Textarea display row ──
-  return (
-      <div className="flex items-center justify-between py-1 gap-2">
-      <div className="flex items-center gap-2 min-w-0">
-        <row.icon className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-        <span className={cn("text-xs truncate", row.value ? "text-primary" : "text-foreground")}>{row.label}</span>
-      </div>
-      <div className="flex items-center gap-1.5 shrink-0">
-        <div className={cn(
-          "text-xs px-2 py-0.5 rounded border text-center truncate w-[130px]",
-          row.value ? "border-border bg-muted/30 text-foreground" : "border-dashed border-border text-muted-foreground"
-        )}>
-          {row.value || "—"}
-        </div>
-        <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={startEdit}>
-          <Pencil className="h-4 w-4 text-muted-foreground" />
-        </Button>
-      </div>
-    </div>
-  );
+  return null;
 }
+
 
 // Reuse existing ImportantFieldRow directly
 
