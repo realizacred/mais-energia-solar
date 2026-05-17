@@ -33,18 +33,44 @@ export function useMetaFbConfigs() {
     queryKey: [QUERY_KEY],
     queryFn: async () => {
       const keys = Object.values(META_KEYS);
-      const { data, error } = await supabase
+      
+      // Fetch from integration_configs
+      const { data: configs, error: configsError } = await supabase
         .from("integration_configs")
         .select("id, service_key, api_key, is_active, updated_at")
         .in("service_key", keys);
-      if (error) throw error;
+      
+      if (configsError) throw configsError;
+
+      // Fetch from facebook_integrations (the new OAuth system)
+      const { data: fbIntegrations, error: fbError } = await supabase
+        .from("facebook_integrations")
+        .select("*")
+        .maybeSingle();
+
+      if (fbError) throw fbError;
+
       const map: MetaConfigMap = {};
-      data?.forEach((c) => (map[c.service_key] = c));
+      configs?.forEach((c) => (map[c.service_key] = c));
+
+      // If we have an OAuth integration, override the access token in the map
+      if (fbIntegrations && fbIntegrations.status === 'connected') {
+        map[META_KEYS.accessToken] = {
+          id: fbIntegrations.id,
+          service_key: META_KEYS.accessToken,
+          api_key: fbIntegrations.access_token || "",
+          is_active: fbIntegrations.status === 'connected',
+          updated_at: fbIntegrations.connected_at || fbIntegrations.updated_at,
+        };
+        // Also ensure appId is synced if it was provided via OAuth (though usually fixed in SaaS)
+      }
+
       return map;
     },
     staleTime: STALE_TIME,
   });
 }
+
 
 export function useSaveMetaKey() {
   const queryClient = useQueryClient();
