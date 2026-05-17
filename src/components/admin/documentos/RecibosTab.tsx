@@ -272,9 +272,10 @@ export function RecibosTab() {
                         </Button>
                         <Button
                           size="icon" variant="ghost" className="h-7 w-7 text-destructive hover:text-destructive"
-                          title="Excluir"
+                          title={r.status === 'cancelado' ? "Já cancelado" : "Cancelar recibo"}
+                          disabled={r.status === 'cancelado'}
                           onClick={() => {
-                            if (confirm("Excluir este recibo?")) deleteRecibo.mutate(r.id);
+                            if (confirm("Deseja cancelar este recibo? O status será alterado para cancelado.")) deleteRecibo.mutate(r.id);
                           }}
                         >
                           <Trash2 className="h-3.5 w-3.5" />
