@@ -145,6 +145,43 @@ export function ProjetoMultiPipelineManager({ dealId, dealStatus, pipelines, all
     missingDocs: [],
   });
 
+  // Estado para interceptador de fornecedor
+  const [fornecedorModal, setFornecedorModal] = useState<{
+    projetoId: string;
+    etapaId: string;
+    etapaNome: string;
+    membershipId: string;
+  } | null>(null);
+
+  // Estado para exibir dados do fornecedor/ordem abaixo das bolinhas
+  const [ordemCompra, setOrdemCompra] = useState<any>(null);
+  const [loadingOrdem, setLoadingOrdem] = useState(false);
+
+  const fetchOrdemCompra = useCallback(async () => {
+    if (!dealId) return;
+    setLoadingOrdem(true);
+    try {
+      const { data, error } = await supabase
+        .from('ordens_compra')
+        .select('*, fornecedores(nome, telefone)')
+        .eq('projeto_id', dealId)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (error) throw error;
+      setOrdemCompra(data);
+    } catch (err) {
+      console.error("Erro ao buscar ordem de compra:", err);
+    } finally {
+      setLoadingOrdem(false);
+    }
+  }, [dealId]);
+
+  useEffect(() => {
+    fetchOrdemCompra();
+  }, [fetchOrdemCompra]);
+
 
   // Load memberships
   const fetchMemberships = async () => {
