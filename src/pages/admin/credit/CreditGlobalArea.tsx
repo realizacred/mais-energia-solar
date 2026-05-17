@@ -527,8 +527,9 @@ export default function CreditGlobalArea() {
       </div>
 
       <Tabs defaultValue="my-queue" className="w-full">
-        <TabsList className="grid w-full grid-cols-5 lg:w-[900px] mb-4 print:hidden">
+        <TabsList className="grid w-full grid-cols-6 lg:w-[1050px] mb-4 print:hidden">
           <TabsTrigger value="my-queue">Minha Fila</TabsTrigger>
+          <TabsTrigger value="banks_queue">Fila por Banco</TabsTrigger>
           <TabsTrigger value="analyses">Global de Análises</TabsTrigger>
           <TabsTrigger value="reports">Relatórios</TabsTrigger>
           <TabsTrigger value="jobs">Orquestração</TabsTrigger>
