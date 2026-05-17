@@ -40,9 +40,63 @@ interface EmitirReciboModalProps {
   showHistory?: boolean;
 }
 
+function ReciboHistoryList({ projetoId }: { projetoId: string }) {
+  const { data: recibos, isLoading } = useRecibos({ projeto_id: projetoId });
+  const regen = useReciboPDF();
+  const del = useDeleteRecibo();
+
+  async function handleOpenPdf(r: Recibo) {
+    try {
+      let path = r.pdf_url;
+      if (!path) {
+        const res = await regen.mutateAsync(r.id);
+        path = res.pdf_url;
+      }
+      const url = await getReciboSignedUrl(path!);
+      window.open(url, "_blank", "noopener,noreferrer");
+    } catch (e: any) {
+      toast.error(e?.message || "Não foi possível abrir o PDF");
+    }
+  }
+
+  if (isLoading) return <div className="flex items-center gap-2 text-xs text-muted-foreground"><Loader2 className="h-3 w-3 animate-spin" /> Carregando histórico...</div>;
+  if (!recibos?.length) return <p className="text-xs text-muted-foreground italic">Nenhum recibo emitido para este projeto.</p>;
+
+  return (
+    <div className="space-y-2">
+      {recibos.map((r) => (
+        <div key={r.id} className="flex items-center justify-between p-2 rounded border bg-background/50 text-xs">
+          <div className="flex flex-col gap-0.5">
+            <div className="flex items-center gap-2">
+              <span className="font-bold">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(r.valor))}</span>
+              <Badge variant="outline" className={cn("text-[9px] uppercase", r.status === 'emitido' ? "text-success border-success/20 bg-success/5" : "text-destructive border-destructive/20 bg-destructive/5")}>
+                {r.status}
+              </Badge>
+              {r.numero && <span className="text-muted-foreground">Nº {r.numero}</span>}
+            </div>
+            <span className="text-muted-foreground">{format(new Date(r.created_at), "dd/MM/yy HH:mm")} • {r.forma_pagamento}</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => handleOpenPdf(r)} title="Ver PDF">
+              <Download className="h-3.5 w-3.5" />
+            </Button>
+            <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => regen.mutate(r.id)} disabled={regen.isPending} title="Regerar">
+              <RefreshCw className={cn("h-3.5 w-3.5", regen.isPending && "animate-spin")} />
+            </Button>
+            {r.status !== 'cancelado' && (
+              <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => { if(confirm("Cancelar recibo?")) del.mutate(r.id); }} title="Cancelar">
+                <Trash2 className="h-3.5 w-3.5" />
+              </Button>
+            )}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 /**
- * Modal de emissão de recibo. Reaproveita document_templates (categoria='recibo')
- * e renderiza form dinâmico baseado em template.form_schema.
+ * Modal de emissão de recibo.
  */
 export function EmitirReciboModal({
   open,
