@@ -5230,6 +5230,8 @@ export type Database = {
           origem: string | null
           owner_id: string
           pipeline_id: string
+          portal_ativo: boolean | null
+          portal_token: string | null
           previous_status: string | null
           projeto_id: string
           reopened_at: string | null
@@ -5259,6 +5261,8 @@ export type Database = {
           origem?: string | null
           owner_id: string
           pipeline_id: string
+          portal_ativo?: boolean | null
+          portal_token?: string | null
           previous_status?: string | null
           projeto_id: string
           reopened_at?: string | null
@@ -5288,6 +5292,8 @@ export type Database = {
           origem?: string | null
           owner_id?: string
           pipeline_id?: string
+          portal_ativo?: boolean | null
+          portal_token?: string | null
           previous_status?: string | null
           projeto_id?: string
           reopened_at?: string | null
