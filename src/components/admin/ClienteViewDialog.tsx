@@ -424,10 +424,10 @@ export function ClienteViewDialog({ cliente, open, onOpenChange }: ClienteViewDi
                     </p>
                     <div className="grid grid-cols-2 gap-3">
                       <InfoField label="Código" value={cliente.cliente_code} />
-                      <InfoField label="CPF/CNPJ" value={formatCpfCnpj(cliente.cpf_cnpj || "")} />
-                      <InfoField label="Data de nascimento" value={cliente.data_nascimento ? formatDate(cliente.data_nascimento + "T12:00:00") : null} />
+                      <InfoField label="CPF/CNPJ" value={displayCpfCnpj(cliente.cpf_cnpj)} />
+                      <InfoField label="Data de nascimento" value={displayDate(cliente.data_nascimento)} />
                       <InfoField label="E-mail" value={cliente.email} />
-                      <InfoField label="Telefone" value={cliente.telefone} />
+                      <InfoField label="Telefone" value={displayPhone(cliente.telefone)} />
                     </div>
                   </div>
 
