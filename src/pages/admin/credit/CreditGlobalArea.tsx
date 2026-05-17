@@ -1112,6 +1112,20 @@ function AnalysisCard({ analysis, onAction }: { analysis: any, onAction: (type: 
                   <Calculator className="h-4 w-4 mr-2" /> Simulação EOS
                 </DropdownMenuItem>
               )}
+              <DropdownMenuItem onClick={async () => {
+                try {
+                  toast({ title: "Gerando PDF...", description: "Aguarde um instante." });
+                  const { data, error } = await supabase.functions.invoke('gerar-ficha-credito-pdf', {
+                    body: { analise_credito_id: analysis.id }
+                  });
+                  if (error) throw error;
+                  if (data?.url) window.open(data.url, '_blank');
+                } catch (err: any) {
+                  toast({ title: "Erro ao gerar PDF", description: err.message, variant: "destructive" });
+                }
+              }}>
+                <FileDown className="h-4 w-4 mr-2" /> Baixar Ficha PDF
+              </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
