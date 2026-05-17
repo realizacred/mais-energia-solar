@@ -652,7 +652,14 @@ export default function IntegrationsCatalogPage() {
 
         <TabsContent value="automacao" className="mt-6">
           <Suspense fallback={<LoadingState message="Carregando automação…" />}>
-            <WhatsAppAutomationConfigTab />
+            <div className="space-y-6">
+              <PageHeader 
+                title="Automação WhatsApp" 
+                description="Configure regras de auto-resposta, mensagens de boas-vindas e lembretes inteligentes."
+                icon={Bot}
+              />
+              <WhatsAppAutomationConfigTab />
+            </div>
           </Suspense>
         </TabsContent>
 
