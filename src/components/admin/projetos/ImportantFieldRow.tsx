@@ -307,14 +307,14 @@ export function ImportantFieldRow({ field, value, dealId, onSaved, showSeparator
         <FieldIcon className="h-3.5 w-3.5 shrink-0 text-primary" />
         <span className="text-xs text-foreground flex-1 min-w-0 truncate" title={field.title}>{field.title}</span>
         <div className={cn(
-          "text-xs px-2 py-0.5 rounded border text-center truncate w-[130px]",
+          "text-xs px-2 py-0.5 rounded border text-center truncate w-[130px] transition-all",
           displayValue === "—"
-            ? "text-muted-foreground/50 border-dashed border-border"
+            ? "text-muted-foreground/40 border-dashed border-primary/30 group-hover:border-primary/60 group-hover:text-primary/70"
             : "font-medium text-foreground border-border bg-muted/30"
         )}>
-          {displayValue}
+          {displayValue === "—" ? "Clique para preencher" : displayValue}
         </div>
-        {!disabled && <Pencil className="h-4 w-4 shrink-0 text-muted-foreground/30 group-hover:text-muted-foreground/70 transition-colors" />}
+        {!disabled && <Pencil className="h-4 w-4 shrink-0 text-primary/40 group-hover:text-primary transition-colors" />}
       </div>
       {showSeparator && <Separator />}
     </>
