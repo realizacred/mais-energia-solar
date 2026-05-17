@@ -183,19 +183,18 @@ export function EmitirReciboModal({
     [templates, templateId],
   );
 
-  // Bloco 1, 3 e 4: Cálculo de saldo e sugestões automáticas
   const valorTotalVenda = useMemo(() => {
     return Number(proposalContext?.versao?.valor_total ?? projectContext?.valor_total ?? 0);
   }, [proposalContext, projectContext]);
 
   const saldoDevedorAtual = useMemo(() => {
-    return Math.max(0, valorTotalVenda - totalPago);
-  }, [valorTotalVenda, totalPago]);
+    return Math.max(0, valorTotalVenda - totalPagoHistorico);
+  }, [valorTotalVenda, totalPagoHistorico]);
 
   const saldoRestanteAposRecibo = useMemo(() => {
     const vRecibo = Number(valor || 0);
-    return valorTotalVenda - totalPago - vRecibo;
-  }, [valorTotalVenda, totalPago, valor]);
+    return valorTotalVenda - totalPagoHistorico - vRecibo;
+  }, [valorTotalVenda, totalPagoHistorico, valor]);
 
   // Aplicar sugestões baseadas no template
   useEffect(() => {
@@ -206,14 +205,15 @@ export function EmitirReciboModal({
       const sugerido = valorTotalVenda * 0.3;
       setValor(sugerido.toFixed(2));
       setDescricao("Sinal referente ao contrato de instalação solar");
+      setNumero(""); // Sinal geralmente é o primeiro
     } else if (nome.includes("quitação") || nome.includes("quitacao")) {
       setValor(saldoDevedorAtual.toFixed(2));
       setDescricao("Quitação do contrato de instalação solar");
     } else if (nome.includes("parcela")) {
-      // Buscar último recibo para incrementar número? (Opcional, manual por enquanto ou auto se houver histórico)
       setDescricao(`Parcela do contrato de instalação solar`);
+      setNumero((ultimoNumeroRecibo + 1).toString());
     }
-  }, [template, valorTotalVenda, saldoDevedorAtual]);
+  }, [template, valorTotalVenda, saldoDevedorAtual, ultimoNumeroRecibo]);
 
   // Auto-fill dynamic fields. Roda assim que houver projectContext/proposalContext,
   // e re-aplica quando um template é selecionado depois.
