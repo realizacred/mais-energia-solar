@@ -100,3 +100,77 @@ export function useResendSigner() {
     },
   });
 }
+
+export function useUpdateSignerStatus() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ 
+      signerId, 
+      status, 
+      assinadoAt, 
+      observacao, 
+      assinadoPorTipo 
+    }: { 
+      signerId: string; 
+      status: DocumentSignerRow["status"]; 
+      assinadoAt?: string; 
+      observacao?: string;
+      assinadoPorTipo?: "digital" | "fisico";
+    }) => {
+      const updateData: any = { 
+        status, 
+        updated_at: new Date().toISOString() 
+      };
+      
+      if (assinadoAt) updateData.assinado_at = assinadoAt;
+      if (observacao) updateData.observacao = observacao;
+      if (assinadoPorTipo) updateData.assinado_por_tipo = assinadoPorTipo;
+      
+      // Se assinado físico, também preenchemos signed_at original para compatibilidade
+      if (status === "signed_fisico") {
+        updateData.signed_at = assinadoAt || new Date().toISOString();
+      }
+
+      const { data: signer, error: fetchError } = await supabase
+        .from("document_signers" as any)
+        .select("document_id")
+        .eq("id", signerId)
+        .single();
+      
+      if (fetchError) throw fetchError;
+
+      const { error } = await supabase
+        .from("document_signers" as any)
+        .update(updateData)
+        .eq("id", signerId);
+      
+      if (error) throw error;
+
+      // Verificar se todos assinaram para atualizar o documento
+      const { data: allSigners, error: signersError } = await supabase
+        .from("document_signers" as any)
+        .select("status")
+        .eq("document_id", signer.document_id);
+      
+      if (!signersError && allSigners) {
+        const allSigned = allSigners.every(s => s.status === "signed" || s.status === "signed_fisico");
+        if (allSigned) {
+          await supabase
+            .from("generated_documents")
+            .update({ status: "signed" }) // ou "assinado_completo" conforme sugerido, mas o código atual usa "signed"
+            .eq("id", signer.document_id);
+        }
+      }
+
+      return { documentId: signer.document_id };
+    },
+    onSuccess: (data) => {
+      qc.invalidateQueries({ queryKey: [QUERY_KEY, data.documentId] });
+      qc.invalidateQueries({ queryKey: ["projeto-documentos-generated"] });
+      toast({ title: "Signatário atualizado" });
+    },
+    onError: (err: any) => {
+      toast({ title: "Erro ao atualizar", description: err.message, variant: "destructive" });
+    },
+  });
+}
