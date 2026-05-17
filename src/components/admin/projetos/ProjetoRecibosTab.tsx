@@ -22,7 +22,7 @@ import {
   formatDateTime, 
   displayCpfCnpj, 
   formatNameCapitalize 
-} from "@/lib/formatters";
+} from "@/lib/formatters/index";
 
 const STATUS_LABEL: Record<Recibo["status"], string> = {
   emitido: "Emitido",
@@ -33,10 +33,6 @@ const STATUS_VARIANT: Record<Recibo["status"], string> = {
   emitido: "bg-info/10 text-info border-info/20",
   cancelado: "bg-destructive/10 text-destructive border-destructive/20",
 };
-
-function fmtBRL(v: number) {
-  return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-}
 
 interface ProjetoRecibosTabProps {
   filters: ReciboFilters;            // { projeto_id?, cliente_id? }
