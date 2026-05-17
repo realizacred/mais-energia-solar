@@ -566,7 +566,8 @@ export function EmitirReciboModal({
           data_lancamento: dataPagamento,
           status: 'confirmado',
           origem: 'recibo_emitido',
-          descricao: `Recibo: ${template?.nome || "Geral"}`
+          descricao: `Recibo: ${template?.nome || "Geral"}`,
+          metadata: camposExtras
         } as any)
         .select("id")
         .single();
