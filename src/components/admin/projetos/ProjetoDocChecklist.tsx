@@ -4,7 +4,7 @@
  * Fallback: uses legacy deals.doc_checklist if no tenant items configured.
  */
 import { useCallback, useRef } from "react";
-import { Check, FileText, AlertCircle, Upload, Paperclip, Loader2 } from "lucide-react";
+import { Check, FileText, AlertCircle, Upload, Paperclip, Loader2, CreditCard, Zap, Home, Camera, ClipboardList, PenTool, CheckCircle, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
