@@ -106,7 +106,7 @@ export function DocumentosTab({ dealId, clienteTelefone, consultorTelefone: cons
       if (!projeto?.cliente_id) return null;
       const { data: cliente } = await supabase
         .from("clientes")
-        .select("nome, cpf_cnpj, email, rua, numero, bairro, cidade, estado, cep")
+        .select("id, nome, cpf_cnpj, email, rua, numero, bairro, cidade, estado, cep")
         .eq("id", projeto.cliente_id)
         .maybeSingle();
       return cliente;
