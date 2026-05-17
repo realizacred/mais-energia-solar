@@ -5,7 +5,7 @@ import { toast } from "@/hooks/use-toast";
 import { handleSupabaseError } from "@/lib/errorHandler";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { DateInput } from "@/components/ui-kit/inputs/DateInput";
+import { DateInput, PhoneInput, CurrencyInput, CpfCnpjInput } from "@/components/ui-kit/inputs";
 import { EmailInput } from "@/components/ui/EmailInput";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -62,12 +62,13 @@ import {
   UserCheck,
 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
-import { formatPhone } from "@/lib/validations";
-import { formatPhoneBR, formatBRL } from "@/lib/formatters";
-import { formatCpfCnpj } from "@/lib/cpfCnpjUtils";
-import { CpfCnpjInput } from "@/components/shared/CpfCnpjInput";
+import { 
+  displayPhone as formatPhoneBR, 
+  displayCurrency as formatBRL,
+  displayCpfCnpj as formatCpfCnpj,
+  parseBRNumber
+} from "@/lib/formatters/index";
 import { AddressFields, type AddressData } from "@/components/shared/AddressFields";
-import { PhoneInput } from "@/components/ui-kit/inputs/PhoneInput";
 import { WhatsAppSendDialog } from "./WhatsAppSendDialog";
 import { ClienteViewDialog } from "./ClienteViewDialog";
 import { ClienteDocumentUpload } from "./ClienteDocumentUpload";
@@ -86,6 +87,7 @@ import {
   type ClienteRow,
 } from "@/hooks/useClientes";
 import { AlertTriangle } from "lucide-react";
+
 
 type Cliente = ClienteRow;
 
@@ -484,10 +486,10 @@ export function ClientesManager({ onSelectCliente }: ClientesManagerProps) {
     toast({ title: `${filteredClientes.length} clientes exportados` });
   }, [filteredClientes]);
 
-  const formatCurrency = (value: number | null) => {
-    if (!value) return "—";
+  const formatCurrencyValue = (value: number | null) => {
     return formatBRL(value);
   };
+
 
   return (
     <motion.div className="space-y-6" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
@@ -655,9 +657,9 @@ export function ClientesManager({ onSelectCliente }: ClientesManagerProps) {
                     <DateInput
                       value={formData.data_nascimento}
                       onChange={(v) => setFormData({ ...formData, data_nascimento: v })}
-                      className="h-8 text-sm"
                     />
                   </div>
+
                 </div>
               </div>
 
@@ -805,8 +807,9 @@ export function ClientesManager({ onSelectCliente }: ClientesManagerProps) {
                             </p>
                           )}
                           {hasKwp && cliente.valor_projeto && (
-                            <p className="text-xs text-muted-foreground">{formatCurrency(cliente.valor_projeto)}</p>
+                            <p className="text-xs text-muted-foreground">{formatCurrencyValue(cliente.valor_projeto)}</p>
                           )}
+
                         </div>
                       );
                     })()}
