@@ -27,9 +27,8 @@ import type { DocumentTemplate, FormFieldSchema } from "./types";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
-import { formatBRL } from "@/lib/formatters";
+import { formatBRL, formatDateTime, formatNameCapitalize } from "@/lib/formatters/index";
 import { formatCpfCnpj } from "@/lib/formatters/index";
-import { format } from "date-fns";
 import { toast } from "sonner";
 
 interface EmitirReciboModalProps {
