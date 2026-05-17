@@ -1,9 +1,9 @@
 // Lista de recibos vinculados a um projeto/cliente/deal e ações rápidas.
 // Reutilizado em ProjetoDetalhe e ClienteViewDialog.
 // SSOT: useRecibos. Sem duplicação de domínio.
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { format } from "date-fns";
-import { Receipt, FileText, Download, Send, RefreshCw, Trash2, Plus, History } from "lucide-react";
+import { Receipt, FileText, Download, Send, RefreshCw, Trash2, Plus, History, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
