@@ -36,37 +36,20 @@ serve(async (req) => {
 
     if (analiseError || !analise) throw new Error('Análise não encontrada')
 
-    // 2. Buscar credenciais EOS
-    const { data: config, error: configError } = await supabaseClient
-      .from('financeiras_config')
-      .select('*')
-      .eq('tenant_id', tenant_id)
-      .eq('financeira', 'eos')
-      .eq('ativo', true)
-      .single()
-
-    if (configError || !config) throw new Error('Integração EOS inativa')
-
-    // 3. Obter Token
-    const tokenResponse = await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/eos-get-token`, {
+    // 2. Buscar credenciais EOS via service role call to eos-get-apikey
+    const apikeyResponse = await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/eos-get-apikey`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`
       },
-      body: JSON.stringify({
-        client_id: config.client_id,
-        client_secret: config.client_secret,
-        ambiente: config.ambiente
-      })
+      body: JSON.stringify({ tenant_id })
     })
 
-    const tokenData = await tokenResponse.json()
-    if (!tokenResponse.ok) throw new Error('Erro ao obter token EOS')
+    const apikeyData = await apikeyResponse.json()
+    if (!apikeyResponse.ok) throw new Error(apikeyData.error || 'Erro ao obter credenciais EOS')
 
-    const baseUrl = config.ambiente === 'producao' 
-      ? 'https://api.eosfin.com.br' 
-      : 'https://api.test.eosfin.com.br'
+    const { api_key, base_url } = apikeyData
 
     // 4. Montar Payload conforme documentação EOS
     const cliente = analise.deal?.client || analise.lead
