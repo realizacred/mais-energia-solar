@@ -255,7 +255,8 @@ export function ProjetoDocChecklist({ dealId, compact = false }: Props) {
                       variant="ghost"
                       size="sm"
                       className="h-8 px-2 text-[10px] text-success hover:text-success hover:bg-success/10 gap-1.5"
-                      onClick={() => window.open(hasCanonicalDoc.path, '_blank')}
+                      onClick={() => downloadMutation.mutate(hasCanonicalDoc as ProjectDocument)}
+                      disabled={downloadMutation.isPending}
                     >
                       <Paperclip className="h-3 w-3" />
                       Visualizar
