@@ -2,8 +2,8 @@ import { useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { AlertTriangle, Clock, Phone, CheckCircle, Bell, MessageCircle } from "lucide-react";
-import { differenceInDays, parseISO } from "date-fns";
+import { AlertTriangle, Clock, Phone, CheckCircle, Bell, MessageCircle, TrendingUp } from "lucide-react";
+import { differenceInDays, parseISO, subDays } from "date-fns";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { ScheduleWhatsAppDialog } from "@/components/vendor/ScheduleWhatsAppDialog";
 import type { Lead } from "@/types/lead";
@@ -41,11 +41,13 @@ export function VendorFollowUpManager({ leads, diasAlerta = 3, onViewLead }: Ven
 
     activeLeads.forEach((lead) => {
       const lastContact = lead.ultimo_contato ? parseISO(lead.ultimo_contato) : parseISO(lead.created_at);
-      const daysSinceContact = differenceInDays(now, lastContact);
       
-      if (daysSinceContact >= diasAlerta * 2) {
+      const isUrgent = lastContact < subDays(now, 6);
+      const isPending = lastContact < subDays(now, 3) && lastContact >= subDays(now, 6);
+
+      if (isUrgent) {
         urgent.push(lead);
-      } else if (daysSinceContact >= diasAlerta) {
+      } else if (isPending) {
         pending.push(lead);
       } else {
         upToDate.push(lead);
@@ -89,36 +91,46 @@ export function VendorFollowUpManager({ leads, diasAlerta = 3, onViewLead }: Ven
     <div className="space-y-3 sm:space-y-4">
       {/* Stats - always show */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
-        <Card className="border-l-4 border-l-destructive">
+        <Card className="border-l-4 border-l-destructive bg-destructive/5 shadow-sm overflow-hidden relative">
           <CardContent className="flex items-center gap-3 p-3 sm:pt-6">
             <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-destructive/10 flex items-center justify-center shrink-0">
               <AlertTriangle className="w-5 h-5 sm:w-6 sm:h-6 text-destructive" />
             </div>
             <div className="min-w-0">
               <p className="text-xl sm:text-2xl font-bold text-foreground">{urgentLeads.length}</p>
-              <p className="text-xs sm:text-sm text-muted-foreground truncate">Urgentes ({diasAlerta * 2}+ dias)</p>
+              <div className="flex items-center gap-1">
+                <p className="text-xs sm:text-sm text-muted-foreground truncate">Urgentes</p>
+                {urgentLeads.length > 0 && <TrendingUp className="w-3 h-3 text-destructive" />}
+              </div>
+              <p className="text-[10px] text-muted-foreground/70">+6 dias s/ contato</p>
             </div>
           </CardContent>
         </Card>
-        <Card className="border-l-4 border-l-warning">
+        <Card className="border-l-4 border-l-warning bg-warning/5 shadow-sm">
           <CardContent className="flex items-center gap-3 p-3 sm:pt-6">
             <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-warning/10 flex items-center justify-center shrink-0">
               <Clock className="w-5 h-5 sm:w-6 sm:h-6 text-warning" />
             </div>
             <div className="min-w-0">
               <p className="text-xl sm:text-2xl font-bold text-foreground">{pendingLeads.length}</p>
-              <p className="text-xs sm:text-sm text-muted-foreground truncate">Pendentes ({diasAlerta}+ dias)</p>
+              <div className="flex items-center gap-1">
+                <p className="text-xs sm:text-sm text-muted-foreground truncate">Pendentes</p>
+              </div>
+              <p className="text-[10px] text-muted-foreground/70">+3 dias s/ contato</p>
             </div>
           </CardContent>
         </Card>
-        <Card className="border-l-4 border-l-success">
+        <Card className="border-l-4 border-l-success bg-success/5 shadow-sm">
           <CardContent className="flex items-center gap-3 p-3 sm:pt-6">
             <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-success/10 flex items-center justify-center shrink-0">
               <CheckCircle className="w-5 h-5 sm:w-6 sm:h-6 text-success" />
             </div>
             <div className="min-w-0">
               <p className="text-xl sm:text-2xl font-bold text-foreground">{upToDateLeads.length}</p>
-              <p className="text-xs sm:text-sm text-muted-foreground truncate">Em dia</p>
+              <div className="flex items-center gap-1">
+                <p className="text-xs sm:text-sm text-muted-foreground truncate">Em dia</p>
+                <CheckCircle className="w-3 h-3 text-success" />
+              </div>
             </div>
           </CardContent>
         </Card>
