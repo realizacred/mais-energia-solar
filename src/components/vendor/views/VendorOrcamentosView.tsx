@@ -65,6 +65,10 @@ export default function VendorOrcamentosView({ portal }: Props) {
     setIsConvertOpen,
     orcamentoToConvert,
     setOrcamentoToConvert,
+    isWizardOpen,
+    setIsWizardOpen,
+    orcamentoForWizard,
+    setOrcamentoForWizard,
     fetchOrcamentos,
     loadMore,
     hasMore,
@@ -205,6 +209,10 @@ export default function VendorOrcamentosView({ portal }: Props) {
                   setOrcamentoToConvert(orc);
                   setIsConvertOpen(true);
                 }}
+                onCreditRequest={(orc) => {
+                  setOrcamentoForWizard(orc);
+                  setIsWizardOpen(true);
+                }}
                 onRefresh={fetchOrcamentos}
               />
 
@@ -255,6 +263,20 @@ export default function VendorOrcamentosView({ portal }: Props) {
           if (!open) setSelectedOrcamento(null);
         }}
       />
+
+      {isWizardOpen && (
+        <CreditAnalysisWizard
+          isOpen={isWizardOpen}
+          onClose={() => {
+            setIsWizardOpen(false);
+            setOrcamentoForWizard(null);
+          }}
+          leadId={orcamentoForWizard?.lead_id}
+          clienteNome={orcamentoForWizard?.nome}
+          clienteCpfCnpj={null} // Wizard handles search by name/id internally
+          valorReferencia={null}
+        />
+      )}
     </div>
   );
 }
