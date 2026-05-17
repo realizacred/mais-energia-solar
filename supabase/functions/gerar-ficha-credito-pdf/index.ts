@@ -229,7 +229,7 @@ Deno.serve(async (req) => {
 
     await supa
       .from("analise_credito")
-      .update({ snapshot_data: { ...analysis.snapshot_data, ficha_pdf_url: publicUrl } as any })
+      .update({ ficha_pdf_url: publicUrl })
       .eq("id", analise_credito_id);
 
     return new Response(JSON.stringify({ url: publicUrl }), {
