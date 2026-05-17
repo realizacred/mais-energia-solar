@@ -51,6 +51,7 @@ export function ProjetoDocChecklist({ dealId, compact = false }: Props) {
   // Legacy fallback
   const { data: legacyChecklist = {}, isLoading: loadingLegacy } = useDealDocChecklist(dealId);
   const legacyMutation = useUpdateDealDocChecklist();
+  const downloadMutation = useDownloadDocument();
 
   const useLegacy = !loadingItems && items.length === 0;
   const isLoading = loadingItems || (useLegacy ? loadingLegacy : loadingStatus);
