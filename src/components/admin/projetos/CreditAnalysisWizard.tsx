@@ -604,14 +604,31 @@ export function CreditAnalysisWizard({
                        <Label>Valor do Kit Fotovoltaico *</Label>
                        <div className="relative">
                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">R$</span>
-                         <Input type="number" className="pl-9" value={formData.kit_fotovoltaico} onChange={e => setFormData({...formData, kit_fotovoltaico: e.target.value})} />
+                         <Input 
+                            className={cn("pl-9", errors.kit_fotovoltaico ? "border-red-500" : "")} 
+                            value={formData.kit_fotovoltaico} 
+                            onChange={e => {
+                                const val = e.target.value.replace(/\D/g, "");
+                                const formatted = val ? (Number(val) / 100).toLocaleString('pt-BR', { minimumFractionDigits: 2 }) : "";
+                                setFormData({...formData, kit_fotovoltaico: formatted});
+                            }} 
+                         />
                        </div>
+                       {errors.kit_fotovoltaico && <p className="text-red-500 text-xs mt-1">{errors.kit_fotovoltaico}</p>}
                      </div>
                      <div className="space-y-1">
                        <Label>Valor da Mão de Obra *</Label>
                        <div className="relative">
                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">R$</span>
-                         <Input type="number" className="pl-9" value={formData.mao_obra} onChange={e => setFormData({...formData, mao_obra: e.target.value})} />
+                         <Input 
+                            className="pl-9" 
+                            value={formData.mao_obra} 
+                            onChange={e => {
+                                const val = e.target.value.replace(/\D/g, "");
+                                const formatted = val ? (Number(val) / 100).toLocaleString('pt-BR', { minimumFractionDigits: 2 }) : "";
+                                setFormData({...formData, mao_obra: formatted});
+                            }} 
+                         />
                        </div>
                      </div>
                      <div className="col-span-2 bg-primary/10 p-4 rounded-xl flex justify-between items-center border border-primary/20">
@@ -623,20 +640,32 @@ export function CreditAnalysisWizard({
                      </div>
                      <div className="space-y-1">
                         <Label>Potência do Sistema (kWp) *</Label>
-                        <Input type="number" value={formData.potencia_instalada} onChange={e => setFormData({...formData, potencia_instalada: e.target.value})} />
+                        <Input 
+                            className={errors.potencia_instalada ? "border-red-500" : ""} 
+                            value={formData.potencia_instalada} 
+                            onChange={e => setFormData({...formData, potencia_instalada: e.target.value.replace(",", ".")})} 
+                        />
+                        {errors.potencia_instalada && <p className="text-red-500 text-xs mt-1">{errors.potencia_instalada}</p>}
                      </div>
                      <div className="space-y-1">
                         <Label>Valor da Conta de Energia (R$)</Label>
-                        <Input type="number" value={formData.media_conta_energia} onChange={e => setFormData({...formData, media_conta_energia: e.target.value})} />
+                        <Input 
+                            value={formData.media_conta_energia} 
+                            onChange={e => {
+                                const val = e.target.value.replace(/\D/g, "");
+                                const formatted = val ? (Number(val) / 100).toLocaleString('pt-BR', { minimumFractionDigits: 2 }) : "";
+                                setFormData({...formData, media_conta_energia: formatted});
+                            }} 
+                        />
                      </div>
                      <div className="space-y-1">
                         <Label>Área de Instalação (m²)</Label>
-                        <Input type="number" value={formData.area_instalacao} onChange={e => setFormData({...formData, area_instalacao: e.target.value})} />
+                        <Input value={formData.area_instalacao} onChange={e => setFormData({...formData, area_instalacao: e.target.value.replace(",", ".")})} />
                      </div>
                      <div className="space-y-1">
                         <Label>Situação do Imóvel *</Label>
                         <Select value={formData.situacao_imovel} onValueChange={v => setFormData({...formData, situacao_imovel: v})}>
-                          <SelectTrigger>
+                          <SelectTrigger className={errors.situacao_imovel ? "border-red-500" : ""}>
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
@@ -645,6 +674,7 @@ export function CreditAnalysisWizard({
                             <SelectItem value="ALUGADO">Alugado</SelectItem>
                           </SelectContent>
                         </Select>
+                        {errors.situacao_imovel && <p className="text-red-500 text-xs mt-1">{errors.situacao_imovel}</p>}
                      </div>
                   </div>
 
@@ -653,7 +683,13 @@ export function CreditAnalysisWizard({
                     <div className="grid grid-cols-2 gap-4">
                        <div className="space-y-1">
                          <Label>CEP *</Label>
-                         <Input value={formData.endereco_cep} onChange={e => setFormData({...formData, endereco_cep: e.target.value})} onBlur={() => fetchCep(formData.endereco_cep)} />
+                         <Input 
+                            className={errors.endereco_cep ? "border-red-500" : ""} 
+                            value={formData.endereco_cep} 
+                            onChange={e => setFormData({...formData, endereco_cep: formatCEP(e.target.value)})} 
+                            onBlur={() => fetchCep(formData.endereco_cep)} 
+                         />
+                         {errors.endereco_cep && <p className="text-red-500 text-xs mt-1">{errors.endereco_cep}</p>}
                        </div>
                        <div className="space-y-1">
                          <Label>Cidade / UF</Label>
