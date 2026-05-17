@@ -15,34 +15,41 @@ export function VendedorHeader({ vendedorNome, isAdminMode, isViewingAsVendedor,
   const displayName = isAdminMode && !isViewingAsVendedor ? "Administrador" : vendedorNome;
   
   return (
-    <header className="bg-card/95 backdrop-blur-xl border-b border-border/40 sticky top-0 z-50 shadow-xs">
-      <div className="container mx-auto px-4 h-14 sm:h-16 flex items-center justify-between">
-        <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
-          <img src={logo} alt="Logo" className="h-8 sm:h-10 shrink-0" />
+    <header className="bg-background/80 backdrop-blur-xl border-b border-border/30 sticky top-0 z-50 shadow-sm">
+      <div className="px-4 h-16 flex items-center justify-between max-w-[1600px] mx-auto">
+        <div className="flex items-center gap-4 min-w-0">
+          <div className="p-2 rounded-2xl bg-primary/5 border border-primary/10 shadow-inner">
+            <img src={logo} alt="Logo" className="h-8 w-auto shrink-0" />
+          </div>
           <div className="min-w-0">
             <div className="flex items-center gap-2">
-              <h1 className="font-bold text-sm sm:text-base truncate">
-                Portal do Consultor
+              <h1 className="font-black text-sm uppercase tracking-wider text-foreground">
+                Consultor<span className="text-primary">Portal</span>
               </h1>
               {isAdminMode && (
-                <span className="text-[10px] sm:text-xs px-1.5 py-0.5 bg-primary/10 text-primary rounded-md font-medium">
+                <Badge variant="secondary" className="text-[9px] px-1.5 h-4 bg-primary/10 text-primary border-none font-bold uppercase">
                   Admin
-                </span>
+                </Badge>
               )}
             </div>
-            <p className="text-xs text-muted-foreground truncate flex items-center gap-1">
-              <span className="font-medium text-foreground">{displayName}</span>
+            <p className="text-[11px] text-muted-foreground truncate flex items-center gap-1.5 font-medium mt-0.5">
+              <span className="text-foreground/80">{displayName}</span>
               {isViewingAsVendedor && (
-                <span className="text-[10px] text-muted-foreground">(visualizando)</span>
+                <span className="text-[10px] text-primary font-bold">(VIEWING)</span>
               )}
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+        <div className="flex items-center gap-2 shrink-0">
           <PortalSwitcher />
-          <Button variant="outline" size="sm" onClick={onSignOut} className="gap-1.5 sm:gap-2 rounded-lg">
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={onSignOut} 
+            className="h-9 px-3 gap-2 rounded-xl text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all"
+          >
             <LogOut className="h-4 w-4" />
-            <span className="hidden sm:inline">Sair</span>
+            <span className="hidden sm:inline font-bold text-xs uppercase tracking-wide">Sair</span>
           </Button>
         </div>
       </div>
