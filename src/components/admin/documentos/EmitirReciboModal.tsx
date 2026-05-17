@@ -738,58 +738,194 @@ export function EmitirReciboModal({
 
           {formaPagamento === "Financiamento" && (
             <div className="space-y-1.5 sm:col-span-2">
-              <Label className="text-xs">Instituição Financeira</Label>
+              <Label className="text-xs font-semibold">Instituição Financeira</Label>
               <Input value={instituicaoFinanceira} onChange={(e) => setInstituicaoFinanceira(e.target.value)} placeholder="Ex: EOS, BV, Santander..." />
             </div>
           )}
 
           {formaPagamento === "PIX" && (
-            <div className="space-y-1.5 sm:col-span-2">
-              <Label className="text-xs">ID / Comprovante do PIX</Label>
-              <Input value={pixComprovante} onChange={(e) => setPixComprovante(e.target.value)} placeholder="E2E ID ou nº do comprovante" />
+            <div className="sm:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold">Chave PIX do pagador</Label>
+                <Input value={pixChave} onChange={(e) => setPixChave(e.target.value)} placeholder="E-mail, CPF, Tel ou Chave" />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold text-muted-foreground italic">Código de Rastreio (opcional)</Label>
+                <Input value={rastreio} onChange={(e) => setRastreio(e.target.value)} placeholder="ID da transação" />
+              </div>
+              <div className="space-y-1.5 sm:col-span-2">
+                <Label className="text-xs font-semibold text-muted-foreground italic">ID / Comprovante do PIX (opcional)</Label>
+                <Input value={pixComprovante} onChange={(e) => setPixComprovante(e.target.value)} placeholder="E2E ID ou nº do comprovante" />
+              </div>
+            </div>
+          )}
+
+          {formaPagamento === "TED/DOC" && (
+            <div className="sm:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold">Banco de origem</Label>
+                <Input value={instituicaoFinanceira} onChange={(e) => setInstituicaoFinanceira(e.target.value)} placeholder="Nome do banco de origem" />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold text-muted-foreground italic">Código de Rastreio (opcional)</Label>
+                <Input value={rastreio} onChange={(e) => setRastreio(e.target.value)} placeholder="ID da transação" />
+              </div>
+              <div className="space-y-1.5 sm:col-span-2">
+                <Label className="text-xs font-semibold text-muted-foreground italic">ID / Comprovante (opcional)</Label>
+                <Input value={pixComprovante} onChange={(e) => setPixComprovante(e.target.value)} placeholder="Nº do comprovante" />
+              </div>
             </div>
           )}
 
           {formaPagamento === "Boleto" && (
-            <div className="space-y-1.5 sm:col-span-2">
-              <Label className="text-xs">Linha Digitável do Boleto</Label>
-              <Input value={boletoLinhaDigitavel} onChange={(e) => setBoletoLinhaDigitavel(e.target.value)} placeholder="00000.00000 00000.000000 00000.000000 0 00000000000000" />
+            <div className="sm:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold text-muted-foreground italic">Nº do boleto (opcional)</Label>
+                <Input value={boletoNumero} onChange={(e) => setBoletoNumero(e.target.value)} placeholder="Número do boleto" />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold text-muted-foreground italic">Banco emissor (opcional)</Label>
+                <Input value={boletoBanco} onChange={(e) => setBoletoBanco(e.target.value)} placeholder="Ex: Itaú, BB..." />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold text-muted-foreground italic">Data de vencimento (opcional)</Label>
+                <Input type="date" value={boletoVencimento} onChange={(e) => setBoletoVencimento(e.target.value)} />
+              </div>
+              <div className="space-y-1.5 sm:col-span-2">
+                <Label className="text-xs font-semibold text-muted-foreground italic">Linha Digitável do Boleto (opcional)</Label>
+                <Input value={boletoLinhaDigitavel} onChange={(e) => setBoletoLinhaDigitavel(e.target.value)} placeholder="00000.00000 00000.000000 00000.000000 0 00000000000000" />
+              </div>
             </div>
           )}
 
           {formaPagamento === "Cheque" && (
-            <div className="sm:col-span-2 grid grid-cols-2 gap-2">
-              <div className="space-y-1.5">
-                <Label className="text-xs">Banco</Label>
-                <Input value={chequeBanco} onChange={(e) => setChequeBanco(e.target.value)} placeholder="Ex: 341 - Itaú" />
+            <div className="sm:col-span-2 space-y-4 p-3 rounded-lg border bg-muted/20">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold">Banco *</Label>
+                  <Select value={chequeBanco} onValueChange={setChequeBanco}>
+                    <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Banco do Brasil">Banco do Brasil</SelectItem>
+                      <SelectItem value="Bradesco">Bradesco</SelectItem>
+                      <SelectItem value="Itaú">Itaú</SelectItem>
+                      <SelectItem value="Santander">Santander</SelectItem>
+                      <SelectItem value="Caixa">Caixa</SelectItem>
+                      <SelectItem value="Sicoob">Sicoob</SelectItem>
+                      <SelectItem value="Outro">Outro</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  {chequeBanco === "Outro" && (
+                    <Input className="mt-1.5" placeholder="Nome do banco" onChange={(e) => setChequeBanco(e.target.value)} />
+                  )}
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold">Nº do Cheque *</Label>
+                  <Input value={chequeNumero} onChange={(e) => setChequeNumero(e.target.value)} placeholder="000123" />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold">Agência *</Label>
+                  <Input value={chequeAgencia} onChange={(e) => setChequeAgencia(e.target.value)} placeholder="0000" />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold">Conta *</Label>
+                  <Input value={chequeConta} onChange={(e) => setChequeConta(e.target.value)} placeholder="00000-0" />
+                </div>
               </div>
+
               <div className="space-y-1.5">
-                <Label className="text-xs">Nº do Cheque</Label>
-                <Input value={chequeNumero} onChange={(e) => setChequeNumero(e.target.value)} placeholder="000123" />
+                <Label className="text-xs font-semibold">Nome do titular *</Label>
+                <Input value={chequeTitular} onChange={(e) => setChequeTitular(e.target.value)} placeholder="Nome completo do titular" />
               </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs">Agência</Label>
-                <Input value={chequeAgencia} onChange={(e) => setChequeAgencia(e.target.value)} placeholder="0000" />
+
+              <div className="flex items-center justify-between gap-2 p-2 rounded-md bg-background/50 border">
+                <div className="space-y-0.5">
+                  <Label className="text-xs font-semibold">É de terceiro?</Label>
+                  <p className="text-[10px] text-muted-foreground">O cheque pertence a outra pessoa</p>
+                </div>
+                <Switch checked={isChequeTerceiro} onCheckedChange={setIsChequeTerceiro} />
               </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs">Conta</Label>
-                <Input value={chequeConta} onChange={(e) => setChequeConta(e.target.value)} placeholder="00000-0" />
+
+              {isChequeTerceiro && (
+                <div className="space-y-1.5 animate-in slide-in-from-top-1 duration-200">
+                  <Label className="text-xs font-semibold">CPF do titular *</Label>
+                  <Input value={chequeTitularCpf} onChange={(e) => setChequeTitularCpf(e.target.value)} placeholder="000.000.000-00" />
+                </div>
+              )}
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold">Data do cheque *</Label>
+                  <Input type="date" value={chequeData} onChange={(e) => setChequeData(e.target.value)} />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold text-muted-foreground italic">Valor (readonly)</Label>
+                  <Input readOnly value={new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(valor || 0))} className="bg-muted" />
+                </div>
               </div>
+
+              <div className="flex items-center justify-between gap-2 p-2 rounded-md bg-background/50 border">
+                <div className="space-y-0.5">
+                  <Label className="text-xs font-semibold">Pré-datado?</Label>
+                  <p className="text-[10px] text-muted-foreground">Data para depósito posterior</p>
+                </div>
+                <Switch checked={isChequePreDatado} onCheckedChange={setIsChequePreDatado} />
+              </div>
+
+              {isChequePreDatado && (
+                <div className="space-y-1.5 animate-in slide-in-from-top-1 duration-200">
+                  <Label className="text-xs font-semibold">Data para depósito *</Label>
+                  <Input type="date" value={chequeDataDeposito} onChange={(e) => setChequeDataDeposito(e.target.value)} />
+                </div>
+              )}
             </div>
           )}
 
           {(formaPagamento === "Cartão de Crédito" || formaPagamento === "Cartão de Débito") && (
-            <div className="sm:col-span-2 grid grid-cols-3 gap-2">
-              <div className="space-y-1.5">
-                <Label className="text-xs">Bandeira</Label>
-                <Input value={cartaoBandeira} onChange={(e) => setCartaoBandeira(e.target.value)} placeholder="Visa, Master..." />
+            <div className="sm:col-span-2 space-y-4 p-3 rounded-lg border bg-muted/20">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold">Bandeira *</Label>
+                  <Select value={cartaoBandeira} onValueChange={setCartaoBandeira}>
+                    <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Visa">Visa</SelectItem>
+                      <SelectItem value="Mastercard">Mastercard</SelectItem>
+                      <SelectItem value="Elo">Elo</SelectItem>
+                      <SelectItem value="Amex">Amex</SelectItem>
+                      <SelectItem value="Hipercard">Hipercard</SelectItem>
+                      <SelectItem value="Outro">Outro</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                {formaPagamento === "Cartão de Crédito" && (
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-semibold">Nº de parcelas *</Label>
+                    <Select value={cartaoParcelas} onValueChange={setCartaoParcelas}>
+                      <SelectTrigger><SelectValue placeholder="1x" /></SelectTrigger>
+                      <SelectContent>
+                        {Array.from({ length: 18 }, (_, i) => i + 1).map((n) => (
+                          <SelectItem key={n} value={String(n)}>{n}x</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
               </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs">{formaPagamento === "Cartão de Crédito" ? "Parcelas" : "Parcelas (1)"}</Label>
-                <Input type="number" min={1} max={formaPagamento === "Cartão de Crédito" ? 24 : 1} value={cartaoParcelas} onChange={(e) => setCartaoParcelas(e.target.value)} disabled={formaPagamento === "Cartão de Débito"} />
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold text-muted-foreground italic">Valor da parcela</Label>
+                  <Input readOnly value={new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(valor || 0) / (Number(cartaoParcelas) || 1))} className="bg-muted" />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold text-muted-foreground italic">Últimos 4 dígitos</Label>
+                  <Input maxLength={4} value={cartaoUltimosDigitos} onChange={(e) => setCartaoUltimosDigitos(e.target.value)} placeholder="0000" />
+                </div>
               </div>
+              
               <div className="space-y-1.5">
-                <Label className="text-xs">NSU / Autorização</Label>
+                <Label className="text-xs font-semibold text-muted-foreground italic">NSU / Código de Autorização</Label>
                 <Input value={cartaoNsu} onChange={(e) => setCartaoNsu(e.target.value)} placeholder="000000" />
               </div>
             </div>
