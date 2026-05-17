@@ -30,7 +30,9 @@ import {
   MapPin,
   Calendar as CalendarIcon,
   Calculator,
-  Edit2
+  Edit2,
+  Zap,
+  Loader2
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
