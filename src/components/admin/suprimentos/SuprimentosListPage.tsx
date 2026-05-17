@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useOrdensCompra, OrdemCompraStatus } from "@/hooks/useOrdensCompra";
+import { useOrdensCompra, OrdemCompraStatus, useExcluirOrdem } from "@/hooks/useOrdensCompra";
 import { useFornecedoresNomes } from "@/hooks/useFornecedoresNomes";
 import { NovaOrdemDialog } from "./NovaOrdemDialog";
 import { VincularFornecedorModal } from "@/components/vendor/VincularFornecedorModal";
