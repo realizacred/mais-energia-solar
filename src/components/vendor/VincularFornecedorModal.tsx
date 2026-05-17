@@ -130,15 +130,15 @@ export function VincularFornecedorModal({
                     </div>
                   </SelectItem>
                 ))}
-                <div className="p-2 border-t border-border mt-1">
-                  <Button variant="ghost" size="sm" className="w-full justify-start gap-2 h-8 text-primary" asChild>
-                    <a href="/admin/fornecedores" target="_blank" rel="noopener noreferrer">
-                      <Plus className="h-3.5 w-3.5" /> Adicionar Novo Fornecedor
-                    </a>
-                  </Button>
-                </div>
               </SelectContent>
             </Select>
+            <div className="flex justify-end">
+              <Button variant="link" size="sm" className="h-auto p-0 text-[11px] gap-1" asChild>
+                <a href="/admin/fornecedores" target="_blank" rel="noopener noreferrer">
+                  <Plus className="h-3 w-3" /> Gerenciar Fornecedores
+                </a>
+              </Button>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
