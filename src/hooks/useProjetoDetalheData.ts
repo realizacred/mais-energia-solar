@@ -51,6 +51,7 @@ export interface ProjetoDetalheFullData {
   allStagesMap: Map<string, StageInfo[]>;
   userNamesMap: Map<string, string>;
   docsCount: number;
+  portalToken: string | null;
 }
 
 export interface DealEtiquetasData {
