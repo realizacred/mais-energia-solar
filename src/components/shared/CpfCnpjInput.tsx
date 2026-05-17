@@ -43,6 +43,19 @@ export function CpfCnpjInput({
   id = "cpf_cnpj",
 }: CpfCnpjInputProps) {
   const [touched, setTouched] = useState(false);
+  const prevValueRef = useRef(value);
+
+  // Auto-format value if it comes from outside (e.g. initial load, search)
+  useEffect(() => {
+    if (value && value !== prevValueRef.current) {
+      const digits = onlyDigits(value);
+      const formatted = formatCpfCnpj(digits);
+      if (formatted !== value) {
+        onChange(formatted);
+      }
+    }
+    prevValueRef.current = value;
+  }, [value, onChange]);
 
   const handleChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
