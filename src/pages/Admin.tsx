@@ -662,7 +662,7 @@ const AdminRoutes = () => (
     <Route path="canais-captacao" element={<Navigate to="/admin/links-instalacao" replace />} />
     <Route path="links-instalacao" element={<LinksInstalacaoPage isAdminView />} />
     <Route path="changelog" element={<ChangelogViewer />} />
-    <Route path="notificacoes-config" element={<NotificationConfigAdmin />} />
+    <Route path="notificacoes-config" element={<NotificacoesConfigPage />} />
     <Route path="menus" element={<MenuConfigPage />} />
     <Route path="dev" element={<DevToolsPage />} />
     <Route path="system-health" element={<SystemHealthPage />} />
