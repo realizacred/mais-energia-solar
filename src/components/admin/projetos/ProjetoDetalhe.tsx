@@ -139,62 +139,156 @@ const TABS = [
   { id: "recibos" as TabId, label: "Recibos", icon: Receipt, color: "text-primary", roles: ["admin", "gerente", "gestor", "consultor", "vendas"] },
 ] as const;
 
-// ─── CTA: Sinal pendente? (won deals sem recibo) ────────────
-function SinalReciboCTA({
-  dealId, customerId, projetoId, setActiveTab,
+// ─── Alertas Financeiros Consolidados (RB-76) ────────────
+function AlertasFinanceirosProjeto({
+  dealId, 
+  customerId, 
+  projetoId, 
+  setActiveTab,
+  customerName
 }: {
   dealId: string;
   customerId: string | null;
   projetoId: string | null;
   setActiveTab: (t: TabId) => void;
+  customerName: string;
 }) {
   const [emitirOpen, setEmitirOpen] = useState(false);
-  const { data: recibos } = useRecibos({ projeto_id: projetoId || "" });
-  const hasSinal = (recibos ?? []).some((r) =>
-    (r.descricao ?? "").toLowerCase().includes("sinal") ||
-    (r.template ?? "").toLowerCase().includes("sinal")
+  const { data: financial } = useFinancialSummary(dealId, projetoId);
+  const { data: hasRecebimento } = useClienteHasRecebimento(customerId);
+  const { data: recebimento } = useClienteRecebimentoDetalhes(
+    hasRecebimento ? customerId : null
   );
-  if (hasSinal) return null;
 
-  return (
-    <>
-      <Card className="mb-2 border-l-[3px] border-l-warning">
-        <CardContent className="flex items-center gap-4 p-4">
-          <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-warning/10 text-warning shrink-0">
-            <Receipt className="w-5 h-5" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-semibold text-foreground">Sinal pendente?</p>
-            <p className="text-xs text-muted-foreground">
-              Emita um recibo de entrada agora ou veja todos os recibos do projeto.
-            </p>
-          </div>
-          <Button
-            size="sm"
-            variant="outline"
-            className="shrink-0 gap-1.5"
-            onClick={() => setActiveTab("recibos")}
-          >
-            <Eye className="h-3.5 w-3.5" /> Ver
-          </Button>
-          <Button
-            size="sm"
-            className="shrink-0 gap-1.5"
-            onClick={() => setEmitirOpen(true)}
-          >
-            <Plus className="h-3.5 w-3.5" /> Emitir Recibo de Entrada
-          </Button>
-        </CardContent>
-      </Card>
-      <EmitirReciboModal
-        open={emitirOpen}
-        onOpenChange={setEmitirOpen}
-        defaultClienteId={customerId ?? undefined}
-        defaultProjetoId={projetoId ?? undefined}
-        defaultDealId={dealId}
-      />
-    </>
-  );
+  if (!financial) return null;
+
+  const { valorContratado, valorRecebido } = financial;
+  const saldoDevedor = valorContratado - valorRecebido;
+
+  // 1. SE saldo <= 0 → Nenhum alerta
+  if (valorContratado > 0 && saldoDevedor <= 0) return null;
+  
+  // Se não tem valor contratado, não mostramos alertas financeiros por enquanto
+  if (valorContratado <= 0) return null;
+
+  // 2. SE saldo_devedor = valor_total (nada pago) → Mostrar só "Sinal pendente?"
+  if (valorRecebido <= 0) {
+    return (
+      <>
+        <Card className="mb-2 border-l-[3px] border-l-warning">
+          <CardContent className="flex items-center gap-4 p-4">
+            <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-warning/10 text-warning shrink-0">
+              <Receipt className="w-5 h-5" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold text-foreground">Sinal pendente?</p>
+              <p className="text-xs text-muted-foreground">
+                Emita um recibo de entrada agora ou veja todos os recibos do projeto.
+              </p>
+            </div>
+            <div className="flex gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                className="shrink-0 gap-1.5"
+                onClick={() => setActiveTab("recibos")}
+              >
+                <Eye className="h-3.5 w-3.5" /> Ver
+              </Button>
+              <Button
+                size="sm"
+                className="shrink-0 gap-1.5"
+                onClick={() => setEmitirOpen(true)}
+              >
+                <Plus className="h-3.5 w-3.5" /> Emitir Recibo de Entrada
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+        <EmitirReciboModal
+          open={emitirOpen}
+          onOpenChange={setEmitirOpen}
+          defaultClienteId={customerId ?? undefined}
+          defaultProjetoId={projetoId ?? undefined}
+          defaultDealId={dealId}
+          onEmitted={() => {
+            const queryClient = useQueryClient();
+            queryClient.invalidateQueries({ queryKey: ["financial-summary"] });
+            queryClient.invalidateQueries({ queryKey: ["recibos"] });
+          }}
+        />
+      </>
+    );
+  }
+
+  // 3. SE tem recebimentos mas saldo > 0 → Mostrar "Pagamento pendente: R$ X,XX"
+  if (saldoDevedor > 0) {
+    const formatCurrency = (val: number) => 
+      val.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+
+    const isLinked = !!hasRecebimento && !!recebimento;
+
+    return (
+      <>
+        <Card className="mb-2 border-l-[3px] border-l-info">
+          <CardContent className="flex items-center gap-4 p-4">
+            <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-info/10 text-info shrink-0">
+              <DollarSign className="w-5 h-5" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2">
+                <p className="text-sm font-semibold text-foreground">
+                  Pagamento pendente: {formatCurrency(saldoDevedor)}
+                </p>
+                {isLinked && (
+                  <Badge variant="outline" className="text-[10px] bg-info/10 text-info border-info/20">
+                    {recebimento.status === 'parcial' ? 'Parcial' : 'Aguardando'}
+                  </Badge>
+                )}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {isLinked 
+                  ? `${recebimento.numero_parcelas} parcelas vinculadas ao cliente ${customerName}`
+                  : `Nenhum recebimento estruturado vinculado a ${customerName}`
+                }
+              </p>
+            </div>
+            <Button
+              size="sm"
+              variant="outline"
+              className="shrink-0 gap-1.5"
+              onClick={() => {
+                if (isLinked) {
+                  window.open(`/admin/recebimentos?id=${recebimento.id}`, "_blank");
+                } else {
+                  setEmitirOpen(true);
+                }
+              }}
+            >
+              {isLinked ? <Eye className="h-3.5 w-3.5" /> : <Plus className="h-3.5 w-3.5" />}
+              {isLinked ? 'Ver Recebimento' : 'Criar Recebimento'}
+            </Button>
+          </CardContent>
+        </Card>
+        {!isLinked && (
+          <EmitirReciboModal
+            open={emitirOpen}
+            onOpenChange={setEmitirOpen}
+            defaultClienteId={customerId ?? undefined}
+            defaultProjetoId={projetoId ?? undefined}
+            defaultDealId={dealId}
+            onEmitted={() => {
+              const queryClient = useQueryClient();
+              queryClient.invalidateQueries({ queryKey: ["financial-summary"] });
+              queryClient.invalidateQueries({ queryKey: ["cliente-has-recebimento"] });
+            }}
+          />
+        )}
+      </>
+    );
+  }
+
+  return null;
 }
 
 function OperationalBadge({ dealId }: { dealId: string }) {
