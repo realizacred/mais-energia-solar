@@ -131,7 +131,12 @@ export default function IntegrationsCatalogPage() {
 
   /** Open dedicated inline view or generic drawer */
   const handleConfigure = (provider: IntegrationProvider) => {
+    // If it has a dedicated component OR is a special redirect-only provider
     if (DEDICATED_COMPONENTS[provider.id]) {
+      setInlineProviderId(provider.id);
+    } else if (provider.id === "eos-financiamento-solar") {
+      // Direct navigation for EOS to its existing config page
+      setSearchParams({ integration: provider.id, tab: "catalogo" }, { replace: true });
       setInlineProviderId(provider.id);
     } else {
       setDrawerProvider(provider);
