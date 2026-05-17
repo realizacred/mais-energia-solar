@@ -70,6 +70,219 @@ export type Database = {
           },
         ]
       }
+      _deprecated_pagamentos: {
+        Row: {
+          banco_origem: string | null
+          comprovante_url: string | null
+          created_at: string
+          data_pagamento: string
+          estornado: boolean
+          estornado_em: string | null
+          estornado_por: string | null
+          forma_pagamento: string
+          gateway_utilizado: string | null
+          id: string
+          motivo_estorno: string | null
+          numero_autorizacao: string | null
+          numero_cheque: string | null
+          numero_parcelas_cartao: number | null
+          observacoes: string | null
+          observacoes_internas: string | null
+          parcela_id: string | null
+          recebimento_id: string
+          tenant_id: string
+          valor_pago: number
+        }
+        Insert: {
+          banco_origem?: string | null
+          comprovante_url?: string | null
+          created_at?: string
+          data_pagamento?: string
+          estornado?: boolean
+          estornado_em?: string | null
+          estornado_por?: string | null
+          forma_pagamento: string
+          gateway_utilizado?: string | null
+          id?: string
+          motivo_estorno?: string | null
+          numero_autorizacao?: string | null
+          numero_cheque?: string | null
+          numero_parcelas_cartao?: number | null
+          observacoes?: string | null
+          observacoes_internas?: string | null
+          parcela_id?: string | null
+          recebimento_id: string
+          tenant_id?: string
+          valor_pago: number
+        }
+        Update: {
+          banco_origem?: string | null
+          comprovante_url?: string | null
+          created_at?: string
+          data_pagamento?: string
+          estornado?: boolean
+          estornado_em?: string | null
+          estornado_por?: string | null
+          forma_pagamento?: string
+          gateway_utilizado?: string | null
+          id?: string
+          motivo_estorno?: string | null
+          numero_autorizacao?: string | null
+          numero_cheque?: string | null
+          numero_parcelas_cartao?: number | null
+          observacoes?: string | null
+          observacoes_internas?: string | null
+          parcela_id?: string | null
+          recebimento_id?: string
+          tenant_id?: string
+          valor_pago?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pagamentos_parcela_id_fkey"
+            columns: ["parcela_id"]
+            isOneToOne: false
+            referencedRelation: "parcelas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pagamentos_recebimento_id_fkey"
+            columns: ["recebimento_id"]
+            isOneToOne: false
+            referencedRelation: "recebimentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pagamentos_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      _deprecated_recibos_emitidos: {
+        Row: {
+          cliente_id: string
+          created_at: string
+          created_by: string | null
+          dados_preenchidos: Json
+          deal_id: string | null
+          deleted_at: string | null
+          descricao: string | null
+          emitido_em: string
+          id: string
+          numero: string | null
+          pagamento_id: string | null
+          parcela_id: string | null
+          pdf_path: string | null
+          projeto_id: string | null
+          recebimento_id: string | null
+          status: string
+          template_id: string
+          tenant_id: string
+          updated_at: string
+          updated_by: string | null
+          valor: number
+        }
+        Insert: {
+          cliente_id: string
+          created_at?: string
+          created_by?: string | null
+          dados_preenchidos?: Json
+          deal_id?: string | null
+          deleted_at?: string | null
+          descricao?: string | null
+          emitido_em?: string
+          id?: string
+          numero?: string | null
+          pagamento_id?: string | null
+          parcela_id?: string | null
+          pdf_path?: string | null
+          projeto_id?: string | null
+          recebimento_id?: string | null
+          status?: string
+          template_id: string
+          tenant_id?: string
+          updated_at?: string
+          updated_by?: string | null
+          valor?: number
+        }
+        Update: {
+          cliente_id?: string
+          created_at?: string
+          created_by?: string | null
+          dados_preenchidos?: Json
+          deal_id?: string | null
+          deleted_at?: string | null
+          descricao?: string | null
+          emitido_em?: string
+          id?: string
+          numero?: string | null
+          pagamento_id?: string | null
+          parcela_id?: string | null
+          pdf_path?: string | null
+          projeto_id?: string | null
+          recebimento_id?: string | null
+          status?: string
+          template_id?: string
+          tenant_id?: string
+          updated_at?: string
+          updated_by?: string | null
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recibos_emitidos_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recibos_emitidos_deal_id_fkey"
+            columns: ["deal_id"]
+            isOneToOne: false
+            referencedRelation: "deals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recibos_emitidos_pagamento_id_fkey"
+            columns: ["pagamento_id"]
+            isOneToOne: false
+            referencedRelation: "_deprecated_pagamentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recibos_emitidos_parcela_id_fkey"
+            columns: ["parcela_id"]
+            isOneToOne: false
+            referencedRelation: "parcelas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recibos_emitidos_projeto_id_fkey"
+            columns: ["projeto_id"]
+            isOneToOne: false
+            referencedRelation: "projetos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recibos_emitidos_recebimento_id_fkey"
+            columns: ["recebimento_id"]
+            isOneToOne: false
+            referencedRelation: "recebimentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recibos_emitidos_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "document_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       _wa_merge_backup: {
         Row: {
           absorbed_data: Json
@@ -2661,7 +2874,7 @@ export type Database = {
             foreignKeyName: "cheques_pagamento_id_fkey"
             columns: ["pagamento_id"]
             isOneToOne: false
-            referencedRelation: "pagamentos"
+            referencedRelation: "_deprecated_pagamentos"
             referencedColumns: ["id"]
           },
           {
@@ -11674,10 +11887,12 @@ export type Database = {
           created_by: string | null
           data_lancamento: string
           descricao: string
+          external_ref: string | null
           forma_pagamento: string | null
           id: string
           is_automatic: boolean | null
           observacoes: string | null
+          origem: string | null
           projeto_id: string | null
           source_id: string | null
           status: string
@@ -11694,10 +11909,12 @@ export type Database = {
           created_by?: string | null
           data_lancamento?: string
           descricao: string
+          external_ref?: string | null
           forma_pagamento?: string | null
           id?: string
           is_automatic?: boolean | null
           observacoes?: string | null
+          origem?: string | null
           projeto_id?: string | null
           source_id?: string | null
           status?: string
@@ -11714,10 +11931,12 @@ export type Database = {
           created_by?: string | null
           data_lancamento?: string
           descricao?: string
+          external_ref?: string | null
           forma_pagamento?: string | null
           id?: string
           is_automatic?: boolean | null
           observacoes?: string | null
+          origem?: string | null
           projeto_id?: string | null
           source_id?: string | null
           status?: string
@@ -15317,97 +15536,6 @@ export type Database = {
           },
         ]
       }
-      pagamentos: {
-        Row: {
-          banco_origem: string | null
-          comprovante_url: string | null
-          created_at: string
-          data_pagamento: string
-          estornado: boolean
-          estornado_em: string | null
-          estornado_por: string | null
-          forma_pagamento: string
-          gateway_utilizado: string | null
-          id: string
-          motivo_estorno: string | null
-          numero_autorizacao: string | null
-          numero_cheque: string | null
-          numero_parcelas_cartao: number | null
-          observacoes: string | null
-          observacoes_internas: string | null
-          parcela_id: string | null
-          recebimento_id: string
-          tenant_id: string
-          valor_pago: number
-        }
-        Insert: {
-          banco_origem?: string | null
-          comprovante_url?: string | null
-          created_at?: string
-          data_pagamento?: string
-          estornado?: boolean
-          estornado_em?: string | null
-          estornado_por?: string | null
-          forma_pagamento: string
-          gateway_utilizado?: string | null
-          id?: string
-          motivo_estorno?: string | null
-          numero_autorizacao?: string | null
-          numero_cheque?: string | null
-          numero_parcelas_cartao?: number | null
-          observacoes?: string | null
-          observacoes_internas?: string | null
-          parcela_id?: string | null
-          recebimento_id: string
-          tenant_id?: string
-          valor_pago: number
-        }
-        Update: {
-          banco_origem?: string | null
-          comprovante_url?: string | null
-          created_at?: string
-          data_pagamento?: string
-          estornado?: boolean
-          estornado_em?: string | null
-          estornado_por?: string | null
-          forma_pagamento?: string
-          gateway_utilizado?: string | null
-          id?: string
-          motivo_estorno?: string | null
-          numero_autorizacao?: string | null
-          numero_cheque?: string | null
-          numero_parcelas_cartao?: number | null
-          observacoes?: string | null
-          observacoes_internas?: string | null
-          parcela_id?: string | null
-          recebimento_id?: string
-          tenant_id?: string
-          valor_pago?: number
-        }
-        Relationships: [
-          {
-            foreignKeyName: "pagamentos_parcela_id_fkey"
-            columns: ["parcela_id"]
-            isOneToOne: false
-            referencedRelation: "parcelas"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "pagamentos_recebimento_id_fkey"
-            columns: ["recebimento_id"]
-            isOneToOne: false
-            referencedRelation: "recebimentos"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "pagamentos_tenant_id_fkey"
-            columns: ["tenant_id"]
-            isOneToOne: false
-            referencedRelation: "tenants"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       pagamentos_comissao: {
         Row: {
           comissao_id: string
@@ -15546,7 +15674,7 @@ export type Database = {
             foreignKeyName: "parcelas_pagamento_id_fkey"
             columns: ["pagamento_id"]
             isOneToOne: false
-            referencedRelation: "pagamentos"
+            referencedRelation: "_deprecated_pagamentos"
             referencedColumns: ["id"]
           },
           {
@@ -22757,7 +22885,7 @@ export type Database = {
             foreignKeyName: "recibo_logs_recibo_id_fkey"
             columns: ["recibo_id"]
             isOneToOne: false
-            referencedRelation: "recibos_emitidos"
+            referencedRelation: "_deprecated_recibos_emitidos"
             referencedColumns: ["id"]
           },
         ]
@@ -22768,11 +22896,14 @@ export type Database = {
           cliente_id: string | null
           created_at: string | null
           created_by: string | null
-          data_pagamento: string
+          data_pagamento: string | null
           descricao: string | null
-          forma_pagamento: string
+          external_ref: string | null
+          forma_pagamento: string | null
           id: string
+          lancamento_id: string | null
           numero: string | null
+          origem: string | null
           pdf_url: string | null
           projeto_id: string
           status: string | null
@@ -22785,11 +22916,14 @@ export type Database = {
           cliente_id?: string | null
           created_at?: string | null
           created_by?: string | null
-          data_pagamento: string
+          data_pagamento?: string | null
           descricao?: string | null
-          forma_pagamento: string
+          external_ref?: string | null
+          forma_pagamento?: string | null
           id?: string
+          lancamento_id?: string | null
           numero?: string | null
+          origem?: string | null
           pdf_url?: string | null
           projeto_id: string
           status?: string | null
@@ -22802,11 +22936,14 @@ export type Database = {
           cliente_id?: string | null
           created_at?: string | null
           created_by?: string | null
-          data_pagamento?: string
+          data_pagamento?: string | null
           descricao?: string | null
-          forma_pagamento?: string
+          external_ref?: string | null
+          forma_pagamento?: string | null
           id?: string
+          lancamento_id?: string | null
           numero?: string | null
+          origem?: string | null
           pdf_url?: string | null
           projeto_id?: string
           status?: string | null
@@ -22830,6 +22967,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "recibos_lancamento_id_fkey"
+            columns: ["lancamento_id"]
+            isOneToOne: false
+            referencedRelation: "lancamentos_financeiros"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "recibos_projeto_id_fkey"
             columns: ["projeto_id"]
             isOneToOne: false
@@ -22841,128 +22985,6 @@ export type Database = {
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      recibos_emitidos: {
-        Row: {
-          cliente_id: string
-          created_at: string
-          created_by: string | null
-          dados_preenchidos: Json
-          deal_id: string | null
-          deleted_at: string | null
-          descricao: string | null
-          emitido_em: string
-          id: string
-          numero: string | null
-          pagamento_id: string | null
-          parcela_id: string | null
-          pdf_path: string | null
-          projeto_id: string | null
-          recebimento_id: string | null
-          status: string
-          template_id: string
-          tenant_id: string
-          updated_at: string
-          updated_by: string | null
-          valor: number
-        }
-        Insert: {
-          cliente_id: string
-          created_at?: string
-          created_by?: string | null
-          dados_preenchidos?: Json
-          deal_id?: string | null
-          deleted_at?: string | null
-          descricao?: string | null
-          emitido_em?: string
-          id?: string
-          numero?: string | null
-          pagamento_id?: string | null
-          parcela_id?: string | null
-          pdf_path?: string | null
-          projeto_id?: string | null
-          recebimento_id?: string | null
-          status?: string
-          template_id: string
-          tenant_id?: string
-          updated_at?: string
-          updated_by?: string | null
-          valor?: number
-        }
-        Update: {
-          cliente_id?: string
-          created_at?: string
-          created_by?: string | null
-          dados_preenchidos?: Json
-          deal_id?: string | null
-          deleted_at?: string | null
-          descricao?: string | null
-          emitido_em?: string
-          id?: string
-          numero?: string | null
-          pagamento_id?: string | null
-          parcela_id?: string | null
-          pdf_path?: string | null
-          projeto_id?: string | null
-          recebimento_id?: string | null
-          status?: string
-          template_id?: string
-          tenant_id?: string
-          updated_at?: string
-          updated_by?: string | null
-          valor?: number
-        }
-        Relationships: [
-          {
-            foreignKeyName: "recibos_emitidos_cliente_id_fkey"
-            columns: ["cliente_id"]
-            isOneToOne: false
-            referencedRelation: "clientes"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "recibos_emitidos_deal_id_fkey"
-            columns: ["deal_id"]
-            isOneToOne: false
-            referencedRelation: "deals"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "recibos_emitidos_pagamento_id_fkey"
-            columns: ["pagamento_id"]
-            isOneToOne: false
-            referencedRelation: "pagamentos"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "recibos_emitidos_parcela_id_fkey"
-            columns: ["parcela_id"]
-            isOneToOne: false
-            referencedRelation: "parcelas"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "recibos_emitidos_projeto_id_fkey"
-            columns: ["projeto_id"]
-            isOneToOne: false
-            referencedRelation: "projetos"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "recibos_emitidos_recebimento_id_fkey"
-            columns: ["recebimento_id"]
-            isOneToOne: false
-            referencedRelation: "recebimentos"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "recibos_emitidos_template_id_fkey"
-            columns: ["template_id"]
-            isOneToOne: false
-            referencedRelation: "document_templates"
             referencedColumns: ["id"]
           },
         ]
@@ -32451,6 +32473,7 @@ export type Database = {
           tipo_telhado: string
         }[]
       }
+      get_saldo_projeto: { Args: { p_projeto_id: string }; Returns: Json }
       get_secret_by_name: { Args: { secret_name: string }; Returns: string }
       get_smtp_password: { Args: { secret: string }; Returns: string }
       get_super_admin_metrics: {
