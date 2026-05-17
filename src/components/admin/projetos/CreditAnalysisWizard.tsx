@@ -62,7 +62,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
 import { Switch } from "@/components/ui/switch";
-import { validateEmail, formatPhoneMasked as formatPhone } from "@/lib/validations";
+import { validateEmail, formatPhone, formatCEP } from "@/lib/validations";
 
 interface Props {
   isOpen: boolean;
