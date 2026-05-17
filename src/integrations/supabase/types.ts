@@ -5491,6 +5491,8 @@ export type Database = {
       }
       document_signers: {
         Row: {
+          assinado_at: string | null
+          assinado_por_tipo: string | null
           cpf: string | null
           created_at: string
           document_id: string
@@ -5498,6 +5500,7 @@ export type Database = {
           id: string
           last_resent_at: string | null
           name: string
+          observacao: string | null
           order_index: number
           phone: string | null
           provider_signer_id: string | null
@@ -5511,6 +5514,8 @@ export type Database = {
           viewed_at: string | null
         }
         Insert: {
+          assinado_at?: string | null
+          assinado_por_tipo?: string | null
           cpf?: string | null
           created_at?: string
           document_id: string
@@ -5518,6 +5523,7 @@ export type Database = {
           id?: string
           last_resent_at?: string | null
           name: string
+          observacao?: string | null
           order_index?: number
           phone?: string | null
           provider_signer_id?: string | null
@@ -5531,6 +5537,8 @@ export type Database = {
           viewed_at?: string | null
         }
         Update: {
+          assinado_at?: string | null
+          assinado_por_tipo?: string | null
           cpf?: string | null
           created_at?: string
           document_id?: string
@@ -5538,6 +5546,7 @@ export type Database = {
           id?: string
           last_resent_at?: string | null
           name?: string
+          observacao?: string | null
           order_index?: number
           phone?: string | null
           provider_signer_id?: string | null
@@ -8615,16 +8624,21 @@ export type Database = {
       }
       generated_documents: {
         Row: {
+          cancelado_at: string | null
+          cancelado_por: string | null
           cliente_id: string | null
           created_at: string
           created_by: string | null
           deal_id: string | null
+          descricao_cancelamento: string | null
           docx_filled_path: string | null
           envelope_id: string | null
           id: string
           input_payload: Json | null
           lead_id: string | null
+          motivo_cancelamento: string | null
           observacao: string | null
+          pdf_cancelado_url: string | null
           pdf_filled_path: string | null
           pdf_path: string | null
           projeto_id: string | null
@@ -8641,16 +8655,21 @@ export type Database = {
           updated_by: string | null
         }
         Insert: {
+          cancelado_at?: string | null
+          cancelado_por?: string | null
           cliente_id?: string | null
           created_at?: string
           created_by?: string | null
           deal_id?: string | null
+          descricao_cancelamento?: string | null
           docx_filled_path?: string | null
           envelope_id?: string | null
           id?: string
           input_payload?: Json | null
           lead_id?: string | null
+          motivo_cancelamento?: string | null
           observacao?: string | null
+          pdf_cancelado_url?: string | null
           pdf_filled_path?: string | null
           pdf_path?: string | null
           projeto_id?: string | null
@@ -8667,16 +8686,21 @@ export type Database = {
           updated_by?: string | null
         }
         Update: {
+          cancelado_at?: string | null
+          cancelado_por?: string | null
           cliente_id?: string | null
           created_at?: string
           created_by?: string | null
           deal_id?: string | null
+          descricao_cancelamento?: string | null
           docx_filled_path?: string | null
           envelope_id?: string | null
           id?: string
           input_payload?: Json | null
           lead_id?: string | null
+          motivo_cancelamento?: string | null
           observacao?: string | null
+          pdf_cancelado_url?: string | null
           pdf_filled_path?: string | null
           pdf_path?: string | null
           projeto_id?: string | null
