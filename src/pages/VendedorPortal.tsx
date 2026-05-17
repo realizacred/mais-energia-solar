@@ -51,8 +51,9 @@ export default function VendedorPortal() {
 
   const badgeCounts = useMemo(() => {
     return { 
+      // Badges only show actionable items per RB-76
       orcamentos: portal.serverStats?.nao_vistos ?? 0,
-      pendentes: portal.serverStats?.pendentes ?? 0
+      whatsapp: 0, // Will be updated by waUnreadCount below
     };
   }, [portal.serverStats]);
 
@@ -84,7 +85,10 @@ export default function VendedorPortal() {
           isAdminMode={portal.isAdminMode}
           isViewingAsVendedor={portal.isViewingAsVendedor}
           onSignOut={portal.handleSignOut}
-          badgeCounts={badgeCounts}
+          badgeCounts={{
+            ...badgeCounts,
+            whatsapp: waUnreadCount
+          }}
         />
 
         <SidebarInset className="flex-1 min-w-0 w-full overflow-hidden">

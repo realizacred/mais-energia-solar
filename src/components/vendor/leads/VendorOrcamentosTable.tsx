@@ -117,7 +117,7 @@ export function VendorOrcamentosTable({
   if (groupedOrcamentos.length === 0) {
     return (
       <div className="text-center py-12 text-muted-foreground">
-        Nenhum orçamento encontrado
+        Nenhum lead encontrado
       </div>
     );
   }
@@ -143,7 +143,7 @@ export function VendorOrcamentosTable({
                     onClick={() => handleOpenHistory(group)}
                   >
                     <History className="h-3 w-3" />
-                    {group.count} orçamentos
+                    {group.count} leads
                   </Button>
                 )}
                 <VendorOrcamentoCard
@@ -173,9 +173,9 @@ export function VendorOrcamentosTable({
         <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
           <AlertDialogContent>
             <AlertDialogHeader>
-              <AlertDialogTitle>Excluir Orçamento</AlertDialogTitle>
+              <AlertDialogTitle>Excluir Lead</AlertDialogTitle>
               <AlertDialogDescription>
-                Tem certeza que deseja excluir o orçamento de <strong>{orcamentoToDelete?.nome}</strong>?
+                Tem certeza que deseja excluir o lead de <strong>{orcamentoToDelete?.nome}</strong>?
                 Esta ação não pode ser desfeita.
               </AlertDialogDescription>
             </AlertDialogHeader>
@@ -212,7 +212,7 @@ export function VendorOrcamentosTable({
           <TableHeader>
             <TableRow className="bg-muted/50 hover:bg-muted/50">
               <TableHead className="w-12">Visto</TableHead>
-              <TableHead className="w-28">Orçamento</TableHead>
+              <TableHead className="w-28">ID</TableHead>
               <TableHead className="w-24">Cliente</TableHead>
               <TableHead>Nome</TableHead>
               <TableHead>Telefone</TableHead>
@@ -262,7 +262,7 @@ export function VendorOrcamentosTable({
                               </Button>
                             </TooltipTrigger>
                             <TooltipContent>
-                              Ver {group.count} orçamentos deste cliente
+                              Ver {group.count} registros deste cliente
                             </TooltipContent>
                           </Tooltip>
                         </TooltipProvider>

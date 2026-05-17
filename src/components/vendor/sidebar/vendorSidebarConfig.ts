@@ -78,9 +78,9 @@ export const VENDOR_SIDEBAR_SECTIONS: VendorSidebarSection[] = [
     items: [
       {
         id: "orcamentos",
-        title: "Orçamentos",
+        title: "Leads",
         icon: FileText,
-        description: "Leads captados pelo seu link",
+        description: "Novos leads e oportunidades",
       },
       {
         id: "propostas",
@@ -134,7 +134,7 @@ export const VENDOR_TAB_TITLES: Record<string, string> = {
   dashboard: "Painel",
   whatsapp: "Atendimento",
   agenda: "Agenda",
-  orcamentos: "Orçamentos",
+  orcamentos: "Leads",
   propostas: "Minhas Propostas",
   gamificacao: "Metas & Ranking",
   links: "Captação & App",
