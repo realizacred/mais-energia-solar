@@ -389,6 +389,57 @@ export default function EosIntegrationConfig() {
           </CardContent>
         </Card>
 
+        {/* Step 3: Webhooks */}
+        <Card className={cn(
+          "border-border/40 shadow-sm transition-all", 
+          (!formData.eos_integrador_id) && "opacity-40 grayscale pointer-events-none"
+        )}>
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center justify-between">
+              Passo 3: Notificações Automáticas
+              {formData.eos_onboarding_step >= 3 && (
+                <Badge variant="outline" className="bg-teal-500/10 text-teal-500 border-teal-500/20 gap-1">
+                  <CheckCircle2 className="h-3 w-3" /> Webhook Ativo
+                </Badge>
+              )}
+            </CardTitle>
+            <CardDescription>Ative o recebimento de atualizações de status em tempo real.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {formData.eos_onboarding_step < 3 ? (
+              <Button 
+                className="w-full gap-2"
+                onClick={handleRegisterWebhook}
+                disabled={isRegisteringWebhook}
+              >
+                <RefreshCw className={cn("h-4 w-4", isRegisteringWebhook && "animate-spin")} />
+                {isRegisteringWebhook ? "Ativando..." : "Ativar notificações automáticas"}
+              </Button>
+            ) : (
+              <div className="space-y-3">
+                <div className="p-3 bg-teal-500/5 border border-teal-500/20 rounded-lg flex items-start gap-3">
+                  <CheckCircle2 className="h-5 w-5 text-teal-500 mt-0.5" />
+                  <div>
+                    <p className="text-sm font-medium text-teal-700">Webhook configurado com sucesso</p>
+                    <p className="text-xs text-teal-600/80">Sua conta já está recebendo atualizações da EOS.</p>
+                  </div>
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs text-muted-foreground">URL de Recebimento</Label>
+                  <Input 
+                    value={`${window.location.origin.replace('8080', '54321')}/functions/v1/eos-webhook-receiver`} 
+                    readOnly 
+                    className="text-xs bg-muted/50 h-8" 
+                  />
+                  <p className="text-[10px] text-muted-foreground italic">
+                    * A URL real utiliza o domínio do seu projeto Supabase.
+                  </p>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
         {/* Global Controls */}
         <Card className="border-primary/20 bg-primary/5">
           <CardContent className="p-6 flex items-center justify-between gap-4">
