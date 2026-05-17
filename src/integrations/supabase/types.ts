@@ -6755,6 +6755,7 @@ export type Database = {
         Row: {
           access_token: string | null
           ad_account_ids: string[] | null
+          connected_account_name: string | null
           connected_at: string | null
           connected_by: string | null
           created_at: string | null
@@ -6769,6 +6770,7 @@ export type Database = {
         Insert: {
           access_token?: string | null
           ad_account_ids?: string[] | null
+          connected_account_name?: string | null
           connected_at?: string | null
           connected_by?: string | null
           created_at?: string | null
@@ -6783,6 +6785,7 @@ export type Database = {
         Update: {
           access_token?: string | null
           ad_account_ids?: string[] | null
+          connected_account_name?: string | null
           connected_at?: string | null
           connected_by?: string | null
           created_at?: string | null
