@@ -202,8 +202,16 @@ export default function IntegrationsCatalogPage() {
       logo_key: null,
     };
     
-    return [...nonMonitoring, ...monitoringFromRegistry, ...eosSynthetic, tuyaProvider];
-  }, [dbProviders]);
+    const allProviders = [...nonMonitoring, ...monitoringFromRegistry, ...eosSynthetic, tuyaProvider];
+
+    return allProviders.filter((p) => {
+      const q = search.toLowerCase();
+      const matchLabel = p.label.toLowerCase().includes(q);
+      const matchDesc = p.description.toLowerCase().includes(q);
+      const matchCat = CATEGORY_LABELS[p.category]?.toLowerCase().includes(q);
+      return !q || matchLabel || matchDesc || matchCat;
+    });
+  }, [dbProviders, search]);
 
   const { data: connections = [] } = useQuery({
     queryKey: ["integration-connections"],
