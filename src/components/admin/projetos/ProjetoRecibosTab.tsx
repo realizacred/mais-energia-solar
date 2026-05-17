@@ -181,127 +181,14 @@ export function ProjetoRecibosTab({
                       <span className="text-sm font-medium truncate">
                         {r.cliente?.nome ?? "—"}
                       </span>
-                      {r.cliente?.cnpj_cpf && (
+                      {r.cliente?.cpf_cnpj && (
                         <span className="text-xs text-muted-foreground">
-                          ({displayCpfCnpj(r.cliente.cnpj_cpf)})
+                          ({displayCpfCnpj(r.cliente.cpf_cnpj)})
                         </span>
                       )}
-                      <Badge variant="outline" className={`text-[10px] ${STATUS_VARIANT[r.status]}`}>
-                        {STATUS_LABEL[r.status]}
-                      </Badge>
-                      {r.template && (
-                        <Badge variant="secondary" className="text-[10px]">{r.template}</Badge>
-                      )}
-                      {r.numero && (
-                        <Badge variant="outline" className="text-[10px]">Nº {r.numero}</Badge>
-                      )}
-                    </div>
-                    <p className="text-[11px] text-muted-foreground mt-0.5">
-                      {formatBRL(Number(r.valor))} • {formatDateTime(r.created_at)}
-                      {r.forma_pagamento && (
-                        <Badge variant="outline" className="text-[9px] ml-2">
-                          {formatNameCapitalize(r.forma_pagamento)}
-                        </Badge>
-                      )}
-                    </p>
-                    {r.descricao && (
-                      <p className="text-[11px] text-muted-foreground mt-0.5 truncate">{r.descricao}</p>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-1 shrink-0">
-                    <Button
-                      size="icon" variant="ghost" className="h-7 w-7"
-                      title="Abrir PDF" onClick={() => handleOpenPdf(r)}
-                    >
-                      <Download className="h-3.5 w-3.5" />
-                    </Button>
-                    <Button
-                      size="icon" variant="ghost" className="h-7 w-7"
-                      title="Enviar por WhatsApp"
-                      disabled={enviar.isPending}
-                      onClick={() => enviar.mutate({ recibo_id: r.id })}
-                    >
-                      <Send className="h-3.5 w-3.5" />
-                    </Button>
-                    <Button
-                      size="icon" variant="ghost" className="h-7 w-7"
-                      title="Histórico de envios"
-                      onClick={() => setLogsReciboId(r.id)}
-                    >
-                      <History className="h-3.5 w-3.5" />
-                    </Button>
-                    <Button
-                      size="icon" variant="ghost" className="h-7 w-7"
-                      title="Regerar PDF"
-                      disabled={regen.isPending}
-                      onClick={() => regen.mutate(r.id)}
-                    >
-                      <RefreshCw className="h-3.5 w-3.5" />
-                    </Button>
-                    <Button
-                      size="icon" variant="ghost"
-                      className="h-7 w-7 text-destructive hover:text-destructive"
-                      title={r.status === 'cancelado' ? "Já cancelado" : "Cancelar recibo"}
-                      disabled={r.status === 'cancelado'}
-                      onClick={() => { if (confirm("Deseja cancelar este recibo? O status será alterado para cancelado.")) del.mutate(r.id); }}
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </Button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      <EmitirReciboModal
-        open={emitirOpen}
-        onOpenChange={setEmitirOpen}
-        defaultClienteId={defaultClienteId}
-        defaultProjetoId={defaultProjetoId}
-        defaultDealId={defaultDealId}
-        onEmitted={() => {
-          toast.success("Recibo emitido com sucesso");
-        }}
-      />
-
-      <ReciboLogsDialog
-        reciboId={logsReciboId}
-        onClose={() => setLogsReciboId(null)}
-      />
-    </div>
-  );
-}
-
-function ReciboLogsDialog({ reciboId, onClose }: { reciboId: string | null; onClose: () => void }) {
-  const { data: logs, isLoading } = useReciboLogs(reciboId);
-  return (
-    <Dialog open={!!reciboId} onOpenChange={(o) => { if (!o) onClose(); }}>
-      <DialogContent className="max-w-lg">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <History className="h-4 w-4 text-primary" /> Histórico do recibo
-          </DialogTitle>
-          <DialogDescription>Eventos de envio e geração registrados.</DialogDescription>
-        </DialogHeader>
-        {isLoading ? (
-          <LoadingState context="config" message="Carregando histórico..." />
-        ) : (logs ?? []).length === 0 ? (
-          <p className="text-xs text-muted-foreground py-6 text-center">
-            Nenhum evento registrado.
-          </p>
-        ) : (
-          <div className="space-y-2 max-h-[50vh] overflow-y-auto scrollbar-premium">
-            {logs!.map((l) => (
-              <div key={l.id} className="rounded border border-border p-2.5 text-xs">
-                <div className="flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-2">
-                    <Badge variant="secondary" className="text-[10px]">{l.tipo}</Badge>
-                    {l.canal && <Badge variant="outline" className="text-[10px]">{l.canal}</Badge>}
-                  </div>
+...
                   <span className="text-[10px] text-muted-foreground">
-                    {format(new Date(l.created_at), "dd/MM/yy HH:mm")}
+                    {formatDateTime(l.created_at)}
                   </span>
                 </div>
                 {l.destino && (
