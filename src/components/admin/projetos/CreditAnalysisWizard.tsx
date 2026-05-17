@@ -55,7 +55,7 @@ import {
 } from "@/hooks/useAnaliseCredito";
 import { useProjectDocuments } from "@/hooks/useProjectDocuments";
 import { useCreditBankConfigs, useCreditBankChecklist } from "@/hooks/useCreditConfigs";
-import { formatBRL, parseBRNumber } from "@/lib/formatters";
+import { formatBRL, parseBRNumber, displayCpfCnpj, displayDate, displayPhone } from "@/lib/formatters/index";
 import { formatDateTime } from "@/lib/dateUtils";
 import { isValidCpf, isValidCnpj, formatCpfCnpj } from "@/lib/cpfCnpjUtils";
 import { Badge } from "@/components/ui/badge";
@@ -1025,7 +1025,7 @@ export function CreditAnalysisWizard({
                         <span className="text-muted-foreground">Nome:</span>
                         <span className="font-medium text-right">{formData.cliente_nome || formData.razao_social}</span>
                         <span className="text-muted-foreground">CPF/CNPJ:</span>
-                        <span className="font-medium text-right">{formData.cpf_cnpj || formData.cnpj}</span>
+                        <span className="font-medium text-right">{displayCpfCnpj(formData.cpf_cnpj || formData.cnpj)}</span>
                         <span className="text-muted-foreground">Renda Mensal:</span>
                         <span className="font-medium text-right">{formatBRL(parseBRNumber(formData.renda_mensal || '0'))}</span>
                       </div>
@@ -1065,7 +1065,7 @@ export function CreditAnalysisWizard({
                               </div>
                               <div className="text-right">
                                 <span className="font-medium block">{config.prazo_meses} meses</span>
-                                <span className="text-[10px] text-muted-foreground italic">Carência: {config.carencia} m</span>
+                                <span className="text-[10px] text-muted-foreground italic">Carência: {config.carencia} meses</span>
                               </div>
                             </div>
                           );

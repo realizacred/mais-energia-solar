@@ -19,8 +19,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
-import { formatBRL } from "@/lib/formatters";
-import { formatDateTime } from "@/lib/dateUtils";
+import { formatBRL, displayDate, displayCpfCnpj } from "@/lib/formatters/index";
 import { cn } from "@/lib/utils";
 
 import { STATUS_CONFIG } from "@/components/admin/projetos/ProjetoCreditoTab";
@@ -141,7 +140,10 @@ export default function VendorCreditoView() {
                   <div className="flex items-start justify-between gap-4">
                     <div className="space-y-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-bold text-base truncate">{clientName}</span>
+                        <div className="flex flex-col">
+                          <span className="font-bold text-base truncate">{clientName}</span>
+                          <span className="text-[10px] text-muted-foreground">{displayCpfCnpj(analise.cpf_cnpj)}</span>
+                        </div>
                         <Badge variant="outline" className={cn("text-[10px] uppercase font-bold", config.color)}>
                           {config.label}
                         </Badge>
@@ -149,7 +151,7 @@ export default function VendorCreditoView() {
                       <div className="flex items-center gap-3 text-xs text-muted-foreground">
                         <span className="font-medium">{analise.banco || "Banco não definido"}</span>
                         <span>•</span>
-                        <span>{formatDateTime(analise.created_at)}</span>
+                        <span>{displayDate(analise.created_at)}</span>
                       </div>
                     </div>
                     <div className={cn("w-10 h-10 rounded-full flex items-center justify-center shrink-0 shadow-inner", config.color)}>

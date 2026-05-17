@@ -47,7 +47,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { formatBRL } from "@/lib/formatters";
+import { formatBRL, displayDate, displayCpfCnpj } from "@/lib/formatters/index";
 import { formatDistanceToNow, isWithinInterval, startOfDay, endOfDay, differenceInDays, startOfMonth, format, subDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useCreditMetrics } from "@/hooks/useCreditDomain";
@@ -107,18 +107,18 @@ import * as XLSX from 'xlsx';
  * Substitui: nenhum (evolução do existente)
  */
 
-const getEosStatusColor = (status: string) => {
-  const map: Record<string, string> = {
-    em_andamento: "bg-blue-500/10 text-blue-500 border-blue-500/20",
-    em_analise: "bg-amber-500/10 text-amber-500 border-amber-500/20",
-    pre_aprovada: "bg-teal-500/10 text-teal-500 border-teal-500/20",
-    formalizacao: "bg-purple-500/10 text-purple-500 border-purple-500/20",
-    paga: "bg-emerald-500/10 text-emerald-500 border-emerald-500/20",
-    recusada: "bg-destructive/10 text-destructive border-destructive/20",
-    cancelada: "bg-slate-500/10 text-slate-500 border-slate-500/20",
-    simulacao: "bg-blue-500/10 text-blue-500 border-blue-500/20"
+const getEosStatusConfig = (status: string) => {
+  const map: Record<string, { label: string, color: string }> = {
+    em_andamento: { label: "Em andamento", color: "bg-blue-500/10 text-blue-500 border-blue-500/20" },
+    em_analise: { label: "Em análise", color: "bg-amber-500/10 text-amber-500 border-amber-500/20" },
+    pre_aprovada: { label: "Pré-aprovada", color: "bg-teal-500/10 text-teal-500 border-teal-500/20" },
+    formalizacao: { label: "Formalização", color: "bg-purple-500/10 text-purple-500 border-purple-500/20" },
+    paga: { label: "Paga", color: "bg-emerald-500/10 text-emerald-500 border-emerald-100" },
+    recusada: { label: "Recusada", color: "bg-destructive/10 text-destructive border-destructive/20" },
+    cancelada: { label: "Cancelada", color: "bg-slate-500/10 text-slate-500 border-slate-500/20" },
+    simulacao: { label: "Simulação", color: "bg-blue-500/10 text-blue-500 border-blue-500/20" }
   };
-  return map[status] || "bg-slate-500/10 text-slate-500 border-slate-500/20";
+  return map[status] || { label: status || 'Pendente', color: "bg-slate-500/10 text-slate-500 border-slate-500/20" };
 };
 
 export default function CreditGlobalArea() {
@@ -633,15 +633,17 @@ export default function CreditGlobalArea() {
                 <TableBody>
                   {filteredAnalyses?.map((analysis) => (
                     <TableRow key={analysis.id} className="group">
-                      <TableCell className="font-medium">
-                        {analysis.deal?.title || analysis.lead?.nome || "N/A"}
+                      <TableCell className="font-medium flex flex-col">
+                        <span>{analysis.deal?.title || analysis.lead?.nome || "N/A"}</span>
+                        <span className="text-[10px] text-muted-foreground">{displayCpfCnpj(analysis.cpf_cnpj)}</span>
                       </TableCell>
                       <TableCell className="text-muted-foreground">
                         {analysis.consultor?.[0]?.nome || "Sistema"}
                       </TableCell>
                       <TableCell>{analysis.banco || "Não definido"}</TableCell>
-                      <TableCell className="font-semibold text-primary">
-                        {formatBRL(analysis.valor_solicitado || 0)}
+                      <TableCell className="font-semibold text-primary flex flex-col">
+                        <span>{formatBRL(analysis.valor_solicitado || 0)}</span>
+                        <span className="text-[10px] text-muted-foreground font-normal">{analysis.prazo_meses} meses</span>
                       </TableCell>
                       <TableCell>
                         {analysis.responsavel?.[0]?.nome || (
@@ -655,15 +657,15 @@ export default function CreditGlobalArea() {
                       </TableCell>
                       <TableCell>
                         {analysis.eos_proposta_protocolo ? (
-                          <Badge variant="outline" className={cn("capitalize", getEosStatusColor(analysis.eos_status))}>
-                            {analysis.eos_status?.replace('_', ' ') || 'Pendente'}
+                          <Badge variant="outline" className={cn(getEosStatusConfig(analysis.eos_status).color)}>
+                            {getEosStatusConfig(analysis.eos_status).label}
                           </Badge>
                         ) : (
                           <span className="text-muted-foreground">-</span>
                         )}
                       </TableCell>
                       <TableCell className="text-xs text-muted-foreground">
-                        {format(new Date(analysis.created_at), "dd/MM/yy")}
+                        {displayDate(analysis.created_at)}
                       </TableCell>
                       <TableCell className="text-right">
                         <DropdownMenu>
@@ -740,7 +742,7 @@ export default function CreditGlobalArea() {
                     <div key={log.id} className="text-xs font-mono p-2 border-l-2 border-primary bg-muted/20 flex flex-col gap-1">
                       <div className="flex justify-between items-center">
                         <Badge variant="outline" className="text-[9px] h-4 uppercase">{log.level}</Badge>
-                        <span className="text-muted-foreground">{formatDateTime(log.created_at)}</span>
+                        <span className="text-muted-foreground">{displayDate(log.created_at)}</span>
                       </div>
                       <p className="font-semibold">{log.message}</p>
                       {log.context && <pre className="text-[10px] opacity-60 overflow-hidden">{JSON.stringify(log.context)}</pre>}
@@ -799,13 +801,17 @@ export default function CreditGlobalArea() {
 
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                       <div className="space-y-1">
+                        <label className="text-[10px] uppercase text-muted-foreground">Documento</label>
+                        <p className="text-sm font-mono">{displayCpfCnpj(selectedAnalysis.cpf_cnpj)}</p>
+                      </div>
+                      <div className="space-y-1">
                         <label className="text-[10px] uppercase text-muted-foreground">Protocolo</label>
                         <p className="text-sm font-mono">{selectedAnalysis.eos_proposta_protocolo}</p>
                       </div>
                       <div className="space-y-1">
                         <label className="text-[10px] uppercase text-muted-foreground">Status EOS</label>
-                        <Badge variant="outline" className={cn("capitalize text-[10px]", getEosStatusColor(selectedAnalysis.eos_status))}>
-                          {selectedAnalysis.eos_status?.replace('_', ' ') || 'Sincronizando...'}
+                        <Badge variant="outline" className={cn("text-[10px]", getEosStatusConfig(selectedAnalysis.eos_status).color)}>
+                          {getEosStatusConfig(selectedAnalysis.eos_status).label}
                         </Badge>
                       </div>
                     </div>
@@ -1075,16 +1081,23 @@ function AnalysisCard({ analysis, onAction }: { analysis: any, onAction: (type: 
           </span>
         </div>
         <CardTitle className="text-md mt-2 leading-tight">
-          {analysis.deal?.title || analysis.lead?.nome}
+          <span>{analysis.deal?.title || analysis.lead?.nome}</span>
+          <span className="text-[10px] font-normal">({displayCpfCnpj(analysis.cpf_cnpj)})</span>
         </CardTitle>
         <p className="text-xs text-muted-foreground flex items-center gap-1">
           <UserIcon className="h-3 w-3" /> Consultor: {analysis.consultor?.[0]?.nome || analysis.consultor?.nome || "N/A"}
         </p>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="flex justify-between items-center bg-muted/30 p-2 rounded-md">
-          <div className="text-xs font-medium">Valor Solicitado</div>
-          <div className="text-lg font-bold text-primary">{formatBRL(analysis.valor_solicitado || 0)}</div>
+        <div className="flex flex-col gap-1 bg-muted/30 p-2 rounded-md">
+          <div className="flex justify-between items-center text-xs font-medium">
+            <span>Valor Solicitado</span>
+            <span>Prazo</span>
+          </div>
+          <div className="flex justify-between items-center">
+            <div className="text-lg font-bold text-primary">{formatBRL(analysis.valor_solicitado || 0)}</div>
+            <div className="text-sm font-semibold">{analysis.prazo_meses} meses</div>
+          </div>
         </div>
         
         <div className="flex gap-2">
@@ -1244,12 +1257,9 @@ function StatCard({ title, value, icon: Icon, color }: any) {
   );
 }
 
+// Note: Use displayDate from @/lib/formatters instead of this function if possible.
 function formatDateTime(dateStr: string) {
-  try {
-    return new Date(dateStr).toLocaleString('pt-BR');
-  } catch (e) {
-    return dateStr;
-  }
+  return displayDate(dateStr);
 }
 
 function getStatusVariant(status: string): any {
