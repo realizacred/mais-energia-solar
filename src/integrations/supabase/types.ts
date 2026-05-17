@@ -3145,13 +3145,20 @@ export type Database = {
       comissoes: {
         Row: {
           ano_referencia: number
+          aprovada_at: string | null
+          aprovada_por: string | null
           cliente_id: string | null
+          competencia: string | null
           consultor_id: string
           created_at: string
+          deal_id: string | null
           descricao: string
           id: string
           mes_referencia: number
+          motivo_cancelamento: string | null
           observacoes: string | null
+          paga_at: string | null
+          paga_por: string | null
           percentual_comissao: number
           projeto_id: string | null
           status: string
@@ -3162,13 +3169,20 @@ export type Database = {
         }
         Insert: {
           ano_referencia: number
+          aprovada_at?: string | null
+          aprovada_por?: string | null
           cliente_id?: string | null
+          competencia?: string | null
           consultor_id: string
           created_at?: string
+          deal_id?: string | null
           descricao: string
           id?: string
           mes_referencia: number
+          motivo_cancelamento?: string | null
           observacoes?: string | null
+          paga_at?: string | null
+          paga_por?: string | null
           percentual_comissao?: number
           projeto_id?: string | null
           status?: string
@@ -3179,13 +3193,20 @@ export type Database = {
         }
         Update: {
           ano_referencia?: number
+          aprovada_at?: string | null
+          aprovada_por?: string | null
           cliente_id?: string | null
+          competencia?: string | null
           consultor_id?: string
           created_at?: string
+          deal_id?: string | null
           descricao?: string
           id?: string
           mes_referencia?: number
+          motivo_cancelamento?: string | null
           observacoes?: string | null
+          paga_at?: string | null
+          paga_por?: string | null
           percentual_comissao?: number
           projeto_id?: string | null
           status?: string
@@ -3200,6 +3221,13 @@ export type Database = {
             columns: ["cliente_id"]
             isOneToOne: false
             referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "comissoes_deal_id_fkey"
+            columns: ["deal_id"]
+            isOneToOne: false
+            referencedRelation: "deals"
             referencedColumns: ["id"]
           },
           {
