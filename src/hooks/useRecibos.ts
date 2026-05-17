@@ -6,6 +6,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { getCurrentTenantId } from "@/lib/getCurrentTenantId";
+import { getStorageBucket } from "@/lib/storage";
 import { toast } from "sonner";
 
 const QUERY_KEY = "recibos" as const;
@@ -125,7 +126,7 @@ export function useEmitirRecibo() {
                   cliente_id: input.cliente_id ?? null,
                   categoria: "recibo",
                   origem: "recibo",
-                  bucket: "recibos",
+                  bucket: getStorageBucket("recibo"),
                   storage_path: pdfUrl, // assuming pdf_url is the path or url
                   file_name: fileName,
                   mime_type: "application/pdf",
@@ -218,7 +219,7 @@ export function useReciboPDF() {
 /** Retorna URL assinada para download/visualização do PDF. */
 export async function getReciboSignedUrl(pdfPath: string, expiresIn = 60 * 5): Promise<string> {
   const { data, error } = await supabase.storage
-    .from("recibos")
+    .from(getStorageBucket("recibo"))
     .createSignedUrl(pdfPath, expiresIn);
   if (error) throw error;
   return data.signedUrl;

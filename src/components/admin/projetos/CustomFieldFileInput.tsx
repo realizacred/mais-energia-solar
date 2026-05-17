@@ -16,6 +16,7 @@ import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { FilePreviewModal, type FilePreviewTarget } from "./FilePreviewModal";
 import { logUploadDiagnostics } from "@/lib/projectUploadDiagnostics";
+import { getStorageBucket } from "@/lib/storage";
 
 export interface CustomFieldFileMeta {
   storage_path: string;
@@ -120,6 +121,7 @@ export function CustomFieldFileInput({
       tenantId = await getTenantId();
       const userId = (await supabase.auth.getUser()).data.user?.id;
       const uploaded: CustomFieldFileMeta[] = [];
+      const bucket = getStorageBucket("campo_customizado");
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
         currentFile = file;
@@ -127,7 +129,7 @@ export function CustomFieldFileInput({
         const path = `${tenantId}/deals/${dealId}/custom-fields/${fieldKey}/${Date.now()}_${i}_${safeName}`;
         currentPath = path;
         const { error } = await supabase.storage
-          .from("projeto-documentos")
+          .from(bucket)
           .upload(path, file, { upsert: false, contentType: file.type || undefined });
         if (error) throw error;
         uploaded.push({
@@ -155,7 +157,7 @@ export function CustomFieldFileInput({
       console.error("[CustomFieldFileInput] upload error:", err);
       const diag = await logUploadDiagnostics({
         section: "Campos importantes",
-        bucket: "projeto-documentos",
+        bucket: getStorageBucket("campo_customizado"),
         path: currentPath,
         tenant_id: tenantId,
         field_key: fieldKey,
@@ -184,7 +186,7 @@ export function CustomFieldFileInput({
     setRemovingIdx(idx);
     try {
       try {
-        await supabase.storage.from("projeto-documentos").remove([target.storage_path]);
+        await supabase.storage.from(getStorageBucket("campo_customizado")).remove([target.storage_path]);
       } catch (err) {
         console.warn("[CustomFieldFileInput] remove storage error:", err);
       }
@@ -212,7 +214,7 @@ export function CustomFieldFileInput({
           {items.map((meta, idx) => {
               const isExternal = /^https?:\/\//i.test(meta.storage_path);
               const previewTarget: FilePreviewTarget = {
-                bucket: isExternal ? "external" : "projeto-documentos",
+                bucket: isExternal ? "external" : getStorageBucket("campo_customizado"),
                 storage_path: meta.storage_path,
                 filename: meta.filename,
                 mime: meta.mime,

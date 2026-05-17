@@ -4,6 +4,7 @@ import { toast } from "@/hooks/use-toast";
 import { getCurrentTenantId } from "@/lib/getCurrentTenantId";
 import { buildStoragePath } from "@/lib/storagePaths";
 import { normalizeProjectDocuments, resolveDocumentCategory } from "@/lib/documentDedup";
+import { getStorageBucket } from "@/lib/storage";
 
 export type ProjectDocumentOrigem =
   | "manual"
@@ -110,14 +111,15 @@ export function useUploadProjectDocument() {
       const { tenantId, userId } = await getCurrentTenantId();
       const ext = file.name.split(".").pop() || "bin";
       const ref = projetoId || dealId || "misc";
+      const bucket = getStorageBucket("projeto");
       const storagePath = await buildStoragePath(
-        "project-documents",
+        bucket,
         ref,
         `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`,
       );
 
       const { error: upErr } = await supabase.storage
-        .from("project-documents")
+        .from(bucket)
         .upload(storagePath, file, { 
           upsert: false, 
           contentType: file.type,
@@ -134,7 +136,7 @@ export function useUploadProjectDocument() {
           deal_id: dealId ?? null,
           categoria: categoria ?? "Manual",
           origem: "manual",
-          bucket: "project-documents",
+          bucket: bucket,
           storage_path: storagePath,
           file_name: file.name,
           mime_type: file.type || null,
