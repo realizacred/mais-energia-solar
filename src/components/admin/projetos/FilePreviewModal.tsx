@@ -6,7 +6,7 @@
  *
  * Usa signed URL temporária (1h) — nunca URL pública permanente.
  */
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Download, FileText, Loader2, ExternalLink, AlertCircle } from "lucide-react";
