@@ -207,6 +207,38 @@ export async function listConnections(): Promise<IntegrationConnection[]> {
 
   if (apiError) throw apiError;
 
+  // Fetch financeiras_config for EOS synthetic connection
+  const { data: eosConfig } = await supabase
+    .from("financeiras_config")
+    .select("tenant_id, eos_onboarding_step, eos_integrador_id, updated_at")
+    .eq("financeira", "eos")
+    .maybeSingle();
+
+  const eosConnection: IntegrationConnection[] = [];
+  if (eosConfig) {
+    let status: ConnectionStatus = "disconnected";
+    if (eosConfig.eos_onboarding_step === 3) status = "connected";
+    else if (eosConfig.eos_onboarding_step > 0) status = "maintenance"; // Using maintenance as "config pendente" or just disconnected
+
+    eosConnection.push({
+      id: `eos_${eosConfig.tenant_id}`,
+      tenant_id: eosConfig.tenant_id,
+      provider_id: "eos-financiamento-solar",
+      status,
+      credentials: {},
+      tokens: {},
+      config: { 
+        source: "financeiras_config",
+        onboarding_step: eosConfig.eos_onboarding_step,
+        integrador_id: eosConfig.eos_integrador_id
+      },
+      last_sync_at: null,
+      sync_error: null,
+      created_at: eosConfig.updated_at,
+      updated_at: eosConfig.updated_at,
+    } as IntegrationConnection);
+  }
+
   const supplierConnections: IntegrationConnection[] = ((apiConfigs as any[]) || [])
     .map((row) => {
       const settings = (row.settings || {}) as Record<string, unknown>;
