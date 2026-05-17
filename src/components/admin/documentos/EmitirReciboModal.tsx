@@ -164,7 +164,7 @@ export function EmitirReciboModal({
   const [templateId, setTemplateId] = useState<string>("");
   const [clienteId, setClienteId] = useState<string>(defaultClienteId ?? "");
   const [projetoId, setProjetoId] = useState<string | null>(defaultProjetoId ?? null);
-  const [valor, setValor] = useState<string>("");
+  const [valor, setValor] = useState<number>(0);
   const [descricao, setDescricao] = useState<string>("");
   const [numero, setNumero] = useState<string>("");
   const [formaPagamento, setFormaPagamento] = useState<string>("");
