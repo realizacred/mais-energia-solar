@@ -37,6 +37,7 @@ export default function EosIntegrationConfig() {
   const [isSaving, setIsSaving] = useState(false);
   const [isTesting, setIsTesting] = useState(false);
   const [isRegistering, setIsRegistering] = useState(false);
+  const [isRegisteringWebhook, setIsRegisteringWebhook] = useState(false);
   const [testResult, setTestResult] = useState<'success' | 'error' | null>(null);
 
   const { data: config, isLoading: isConfigLoading } = useQuery({
