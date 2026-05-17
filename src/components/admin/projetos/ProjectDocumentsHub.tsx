@@ -68,7 +68,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
-import { formatDateTime } from "@/lib/dateUtils";
+import { formatDateTime } from "@/lib/formatters/index";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { FilePreviewModal, type FilePreviewTarget } from "./FilePreviewModal";
