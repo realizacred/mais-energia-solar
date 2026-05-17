@@ -117,6 +117,7 @@ const ORIGEM_COLOR: Record<ProjectDocumentOrigem, string> = {
 };
 
 
+
 function iconFor(mime?: string | null, name?: string) {
   const m = (mime || "").toLowerCase();
   const ext = (name || "").split(".").pop()?.toLowerCase() || "";
