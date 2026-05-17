@@ -5,6 +5,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { parseEdgeFunctionError } from "@/lib/parseEdgeFunctionError";
+import { toast } from "sonner";
 
 export const META_KEYS = {
   appId: "meta_facebook_app_id",
@@ -62,7 +63,6 @@ export function useMetaFbConfigs() {
           is_active: fbIntegrations.status === 'connected',
           updated_at: fbIntegrations.connected_at || fbIntegrations.updated_at,
         };
-        // Also ensure appId is synced if it was provided via OAuth (though usually fixed in SaaS)
       }
 
       return map;
@@ -70,7 +70,6 @@ export function useMetaFbConfigs() {
     staleTime: STALE_TIME,
   });
 }
-
 
 export function useSaveMetaKey() {
   const queryClient = useQueryClient();
@@ -156,6 +155,13 @@ export function useSaveMetaAutomation() {
             active: true,
           }]);
         if (error) throw error;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["fb-lead-automation"] });
+    },
+  });
+}
 
 export function useDisconnectMeta() {
   const queryClient = useQueryClient();
@@ -165,7 +171,7 @@ export function useDisconnectMeta() {
       const { error } = await supabase
         .from("facebook_integrations")
         .update({ status: 'disconnected', access_token: null })
-        .eq('status', 'connected'); // This will affect the current tenant due to RLS
+        .eq('status', 'connected'); 
       
       if (error) throw error;
 
@@ -180,13 +186,6 @@ export function useDisconnectMeta() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [QUERY_KEY] });
       toast.success("Desconectado do Facebook");
-    },
-  });
-}
-
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["fb-lead-automation"] });
     },
   });
 }
