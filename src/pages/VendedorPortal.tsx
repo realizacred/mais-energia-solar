@@ -160,7 +160,6 @@ export default function VendedorPortal() {
         <BottomNavErrorBoundary>
           <VendorBottomNav
             unreadWhatsApp={waUnreadCount}
-            badgeOrcamentos={badgeCounts.orcamentos}
           />
         </BottomNavErrorBoundary>
       </div>
