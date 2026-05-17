@@ -260,18 +260,18 @@ export function VendorSidebar({
             )}
           </div>
         )}
-        {!collapsed && <PortalSwitcher />}
+        {!collapsed && <PortalSwitcher className="w-full justify-start h-11 px-3 rounded-xl hover:bg-sidebar-accent/50 text-muted-foreground hover:text-foreground font-bold text-xs uppercase tracking-wide transition-all" />}
         <Button
           variant="ghost"
           size={collapsed ? "icon" : "default"}
           onClick={onSignOut}
           className={`
-            w-full justify-start gap-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10
-            ${collapsed ? "justify-center px-0" : ""}
+            w-full justify-start gap-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-xl transition-all
+            ${collapsed ? "justify-center px-0 h-10 w-10 mx-auto" : "h-11 px-3"}
           `}
         >
           <LogOut className="h-4 w-4 shrink-0" />
-          {!collapsed && <span className="text-sm">Sair</span>}
+          {!collapsed && <span className="text-xs font-bold uppercase tracking-wide">Sair</span>}
         </Button>
       </SidebarFooter>
       <SidebarRail />
