@@ -121,44 +121,22 @@ export function VendorLeadFilters({
 
   return (
     <div className="flex flex-col gap-3 sm:gap-4">
-      <div className="flex items-center gap-2">
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input
-            placeholder="Buscar por nome, telefone, cidade ou ID..."
+            placeholder="Buscar por nome ou telefone..."
             value={searchTerm}
             onChange={(e) => onSearchChange(e.target.value)}
-            className="pl-10 h-10"
+            className="pl-10 h-10 shadow-sm"
           />
         </div>
-        {isMobile && (
-          <Sheet>
-            <SheetTrigger asChild>
-              <Button variant="outline" size="icon" className="h-10 w-10 shrink-0 border-primary/20 bg-primary/5 text-primary relative">
-                <SlidersHorizontal className="h-4 w-4" />
-                {hasActiveFilters && (
-                  <span className="absolute -top-1 -right-1 h-3 w-3 rounded-full bg-primary ring-2 ring-background" />
-                )}
-              </Button>
-            </SheetTrigger>
-            <SheetContent side="bottom" className="rounded-t-2xl px-6 pb-8 h-[60vh]">
-              <SheetHeader className="mb-6 text-left">
-                <SheetTitle>Filtros</SheetTitle>
-                <SheetDescription>Refine sua lista de leads</SheetDescription>
-              </SheetHeader>
-              <div className="space-y-6">
-                <FilterControls />
-              </div>
-            </SheetContent>
-          </Sheet>
-        )}
+        <div className="sm:hidden">
+          <FilterControls />
+        </div>
       </div>
 
-      <div className="hidden sm:flex flex-row flex-wrap items-center gap-3 pt-2 border-t">
-        <div className="flex items-center gap-2 text-sm text-muted-foreground shrink-0">
-          <Filter className="w-4 h-4" />
-          <span>Filtros:</span>
-        </div>
+      <div className="hidden sm:flex flex-row items-center justify-between pt-2 border-t border-border/40">
         <FilterControls />
       </div>
     </div>
