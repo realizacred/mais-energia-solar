@@ -20,7 +20,7 @@ import {
   type DocChecklistStatus,
 } from "@/hooks/useProjetoChecklist";
 import { useDealDocChecklist, useUpdateDealDocChecklist } from "@/hooks/useDealDocChecklist";
-import { useProjectDocuments } from "@/hooks/useProjectDocuments";
+import { useProjectDocuments, useDownloadDocument, type ProjectDocument } from "@/hooks/useProjectDocuments";
 
 // Legacy hardcoded items (fallback when tenant has no items configured)
 const LEGACY_ITEMS = [
