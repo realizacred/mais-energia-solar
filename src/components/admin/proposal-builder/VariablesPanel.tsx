@@ -40,6 +40,7 @@ export function VariablesPanel() {
   const [openCategories, setOpenCategories] = useState<Record<string, boolean>>({
     cliente: true,
     sistema_solar: true,
+    pagamento: true,
     financeiro: false,
     conta_energia: false,
     comercial: false,
