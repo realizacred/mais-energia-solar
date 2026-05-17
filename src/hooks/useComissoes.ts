@@ -11,6 +11,7 @@ export interface ComissaoRow {
   consultor_id: string;
   projeto_id: string | null;
   cliente_id: string | null;
+  deal_id: string | null;
   descricao: string;
   valor_base: number;
   percentual_comissao: number;
@@ -20,9 +21,14 @@ export interface ComissaoRow {
   status: string;
   observacoes: string | null;
   created_at: string;
+  aprovada_por: string | null;
+  aprovada_at: string | null;
+  paga_por: string | null;
+  paga_at: string | null;
+  motivo_cancelamento: string | null;
   consultores?: { nome: string };
   clientes?: { nome: string } | null;
-  projetos?: { codigo: string } | null;
+  projetos?: { codigo: string; nome?: string } | null;
   pagamentos_comissao?: { valor_pago: number; data_pagamento: string }[];
 }
 
@@ -44,7 +50,7 @@ export function useComissoes(filters?: ComissaoFilters) {
           *,
           consultores(nome),
           clientes(nome),
-          projetos(codigo),
+          projetos(codigo, nome),
           pagamentos_comissao(valor_pago, data_pagamento)
         `)
         .order("created_at", { ascending: false });
@@ -155,6 +161,47 @@ export function useDeletarComissao() {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["comissoes"] });
+    },
+  });
+}
+
+/** Mutation para atualizar status da comissão (Aprovar/Pagar/Cancelar) */
+export function useUpdateComissaoStatus() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      id,
+      status,
+      motivo_cancelamento,
+      paga_at,
+      paga_por,
+      aprovada_at,
+      aprovada_por,
+    }: {
+      id: string;
+      status: string;
+      motivo_cancelamento?: string;
+      paga_at?: string;
+      paga_por?: string;
+      aprovada_at?: string;
+      aprovada_por?: string;
+    }) => {
+      const updates: any = {
+        status,
+        updated_at: new Date().toISOString(),
+      };
+      if (motivo_cancelamento) updates.motivo_cancelamento = motivo_cancelamento;
+      if (paga_at) updates.paga_at = paga_at;
+      if (paga_por) updates.paga_por = paga_por;
+      if (aprovada_at) updates.aprovada_at = aprovada_at;
+      if (aprovada_por) updates.aprovada_por = aprovada_por;
+
+      const { error } = await supabase.from("comissoes").update(updates).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["comissoes"] });
+      qc.invalidateQueries({ queryKey: ["financeiro-kpis"] });
     },
   });
 }

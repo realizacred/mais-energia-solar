@@ -41,6 +41,9 @@ import {
   CreditCard,
   BarChart3,
   List,
+  Check,
+  X,
+  FileText
 } from "lucide-react";
 import { InlineLoader } from "@/components/loading/InlineLoader";
 import { Spinner } from "@/components/ui-kit/Spinner";
@@ -64,8 +67,10 @@ import {
   useClientesAtivos,
   useSalvarComissao,
   useDeletarComissao,
+  useUpdateComissaoStatus,
   type ComissaoRow,
 } from "@/hooks/useComissoes";
+import { useAuth } from "@/hooks/useAuth";
 import { useQueryClient } from "@tanstack/react-query";
 
 interface Comissao {
@@ -104,12 +109,15 @@ const MESES = [
 ];
 
 export function ComissoesManager() {
+  const { user } = useAuth();
   const queryClient = useQueryClient();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedComissao, setSelectedComissao] = useState<Comissao | null>(null);
   const [pagamentosDialogOpen, setPagamentosDialogOpen] = useState(false);
   const [bulkPaymentOpen, setBulkPaymentOpen] = useState(false);
   const [payDirectOpen, setPayDirectOpen] = useState(false);
+  const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
+  const [motivoCancelamento, setMotivoCancelamento] = useState("");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [activeView, setActiveView] = useState<"lista" | "relatorios">("lista");
   const [page, setPage] = useState(1);
@@ -149,6 +157,7 @@ export function ComissoesManager() {
 
   const salvarComissao = useSalvarComissao();
   const deletarComissao = useDeletarComissao();
+  const updateStatus = useUpdateComissaoStatus();
 
   const loading = loadingComissoes;
 
@@ -259,14 +268,68 @@ export function ComissoesManager() {
   const formatCurrency = (value: number) => formatBRL(value);
 
   const getStatusBadge = (status: string) => {
-    const variants: Record<string, { variant: "default" | "secondary" | "destructive" | "outline"; label: string }> = {
-      pendente: { variant: "destructive", label: "Pendente" },
-      parcial: { variant: "secondary", label: "Parcial" },
-      pago: { variant: "default", label: "Pago" },
+    const variants: Record<string, { variant: "default" | "secondary" | "destructive" | "outline" | "info"; label: string }> = {
+      pendente: { variant: "outline", label: "Aguardando" },
+      aprovada: { variant: "secondary", label: "Aprovada" },
+      pago: { variant: "default", label: "Paga" },
+      cancelada: { variant: "destructive", label: "Cancelada" },
     };
-    const config = variants[status] || { variant: "outline" as const, label: status };
-    return <Badge variant={config.variant}>{config.label}</Badge>;
+    const config = (variants[status] as any) || { variant: "outline" as const, label: status };
+    
+    // Customize badge style based on status
+    let className = "";
+    if (status === 'pendente') className = "bg-amber-100 text-amber-700 border-amber-200";
+    if (status === 'aprovada') className = "bg-blue-100 text-blue-700 border-blue-200";
+    if (status === 'paga') className = "bg-green-100 text-green-700 border-green-200";
+
+    return <Badge variant={config.variant} className={className}>{config.label}</Badge>;
   };
+
+  const handleApprove = async (comissao: Comissao) => {
+    try {
+      await updateStatus.mutateAsync({
+        id: comissao.id,
+        status: "aprovada",
+        aprovada_at: new Date().toISOString(),
+        aprovada_por: user?.id,
+      });
+      toast({ title: "Comissão aprovada com sucesso!" });
+    } catch (error) {
+      toast({ title: "Erro ao aprovar comissão", variant: "destructive" });
+    }
+  };
+
+  const handlePay = async (comissao: Comissao) => {
+    try {
+      await updateStatus.mutateAsync({
+        id: comissao.id,
+        status: "paga",
+        paga_at: new Date().toISOString(),
+        paga_por: user?.id,
+      });
+      toast({ title: "Comissão marcada como paga!" });
+    } catch (error) {
+      toast({ title: "Erro ao pagar comissão", variant: "destructive" });
+    }
+  };
+
+  const handleCancel = async () => {
+    if (!selectedComissao || !motivoCancelamento.trim()) return;
+    try {
+      await updateStatus.mutateAsync({
+        id: selectedComissao.id,
+        status: "cancelada",
+        motivo_cancelamento: motivoCancelamento,
+      });
+      toast({ title: "Comissão cancelada." });
+      setCancelDialogOpen(false);
+      setSelectedComissao(null);
+      setMotivoCancelamento("");
+    } catch (error) {
+      toast({ title: "Erro ao cancelar comissão", variant: "destructive" });
+    }
+  };
+
 
   const calcularValorPago = (comissao: Comissao) => {
     return comissao.pagamentos_comissao?.reduce((acc, p) => acc + p.valor_pago, 0) || 0;
@@ -335,8 +398,9 @@ export function ComissoesManager() {
 
   return (
     <div className="space-y-6">
-      <PageHeader icon={DollarSign} title="Comissões" description="Gerencie comissões dos consultores" />
-      {/* Stats Cards */}
+      <PageHeader icon={DollarSign} title="Gestão de Comissões" description="Aprovação e pagamento de comissões para consultores" />
+      
+      {/* Row 1 — Filtros e Ações de Aprovação */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div className="lg:col-span-3">
           <ComissoesStats
@@ -350,6 +414,7 @@ export function ComissoesManager() {
         </div>
         <VendorBalanceCard balances={vendorBalances} />
       </div>
+
 
       {/* View Tabs */}
       <Tabs value={activeView} onValueChange={(v) => setActiveView(v as "lista" | "relatorios")}>
