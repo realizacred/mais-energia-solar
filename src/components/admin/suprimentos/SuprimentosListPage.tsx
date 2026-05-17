@@ -57,8 +57,16 @@ export function SuprimentosListPage({ projetoId }: SuprimentosListPageProps) {
     ...(busca ? { busca } : {}),
   };
 
-  const { data: ordens, isLoading } = useOrdensCompra(filtros);
+  const { data: ordens, isLoading, refetch } = useOrdensCompra(filtros);
   const { data: fornecedores = [] } = useFornecedoresNomes();
+  const excluirOrdem = useExcluirOrdem();
+
+  // Listen for storage events or custom events to refetch when an order is created via interceptor
+  useEffect(() => {
+    const handleOrderCreated = () => refetch();
+    window.addEventListener('ordem-compra-criada', handleOrderCreated);
+    return () => window.removeEventListener('ordem-compra-criada', handleOrderCreated);
+  }, [refetch]);
 
   // UX-07: Fetch accepted proposal and its kit
   const { data: propostas = [] } = usePropostasProjetoTab(projetoId || "", null);
