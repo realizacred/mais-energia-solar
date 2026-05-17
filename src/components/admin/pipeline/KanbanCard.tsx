@@ -33,6 +33,7 @@ import {
   Flame,
   Thermometer,
   Snowflake,
+  Package,
 } from "lucide-react";
 import { differenceInDays, differenceInHours } from "date-fns";
 import { cn } from "@/lib/utils";
