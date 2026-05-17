@@ -444,13 +444,7 @@ export function ProjectDocumentsHub({ projetoId, dealId }: Props) {
                             <span className="text-[10px] italic mr-2 opacity-70">({d.file_name})</span>
                           ) : null}
                           {formatSize(d.size_bytes)} •{" "}
-                          {formatDateTime(d.created_at, {
-                            day: "2-digit",
-                            month: "2-digit",
-                            year: "numeric",
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          })}
+                          {formatDateTime(d.created_at)}
                         </p>
                       </div>
                       <div className="flex items-center gap-1 shrink-0">
