@@ -289,6 +289,33 @@ export function EmitirReciboModal({
     [templates, templateId],
   );
 
+  // BUG 3 — Auto-sugerir template ao abrir, baseado no estado do projeto
+  useEffect(() => {
+    if (!open || templateId || !templates || templates.length === 0) return;
+    // Aguarda contexto carregar para decidir
+    if (loadingContext) return;
+
+    const valorVenda = Number(proposalContext?.versao?.valor_total ?? projectContext?.valor_total ?? 0);
+    const pago = totalPagoHistorico;
+    const saldo = Math.max(0, valorVenda - pago);
+
+    const pick = (...tokens: string[]) =>
+      templates.find((t) => {
+        const n = (t.nome || "").toLowerCase();
+        return tokens.some((tok) => n.includes(tok));
+      });
+
+    let sugerido: DocumentTemplate | undefined;
+    if (valorVenda > 0 && saldo <= 0.01) {
+      sugerido = pick("quitação", "quitacao");
+    } else if (pago > 0) {
+      sugerido = pick("parcela");
+    } else if (proposalContext?.proposta) {
+      sugerido = pick("sinal", "entrada");
+    }
+    if (sugerido) setTemplateId(sugerido.id);
+  }, [open, templates, loadingContext, projectContext, proposalContext, totalPagoHistorico, templateId]);
+
   const valorTotalVenda = useMemo(() => {
     return Number(proposalContext?.versao?.valor_total ?? projectContext?.valor_total ?? 0);
   }, [proposalContext, projectContext]);
