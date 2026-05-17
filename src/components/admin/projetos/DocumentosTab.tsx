@@ -90,6 +90,7 @@ export function DocumentosTab({ dealId, clienteTelefone, consultorTelefone: cons
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [cancelDoc, setCancelDoc] = useState<GeneratedDocRow | null>(null);
   const [cancelMotivo, setCancelMotivo] = useState("");
+  const [cancelDescricao, setCancelDescricao] = useState("");
   // §16: Queries em hooks — AP-01 resolvido
   const { data: generatedDocsRaw = [], isLoading: loadingDocs } = useProjetoDocumentosGerados(dealId);
   const { data: templates = [] } = useDocTemplates();
