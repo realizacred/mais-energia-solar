@@ -8,7 +8,8 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { MetaLeadAdsDiagnosticsCard } from "@/components/admin/integrations/MetaLeadAdsDiagnosticsCard";
 import type { MetaConfigMap } from "./useMetaFbConfigs";
-import { META_KEYS } from "./useMetaFbConfigs";
+import { META_KEYS, useDisconnectMeta } from "./useMetaFbConfigs";
+import { LogOut } from "lucide-react";
 
 interface ConnectedPanelProps {
   configs: MetaConfigMap;
@@ -21,6 +22,7 @@ interface ConnectedPanelProps {
 
 export function ConnectedPanel({ configs, automation, pipelineName, stageName, responsibleName, onReconfigure }: ConnectedPanelProps) {
   const queryClient = useQueryClient();
+  const disconnectMutation = useDisconnectMeta();
 
   const toggleActive = useMutation({
     mutationFn: async (active: boolean) => {
