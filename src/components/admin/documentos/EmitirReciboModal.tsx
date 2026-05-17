@@ -1028,7 +1028,6 @@ export function EmitirReciboModal({
               <ReciboHistoryList projetoId={defaultProjetoId} />
             </div>
           )}
-          )}
         </div>
 
         <DialogFooter>
