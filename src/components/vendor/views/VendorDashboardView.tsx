@@ -169,25 +169,25 @@ function ComissoesWidget({ vendedor }: { vendedor: any }) {
       // 1. Get closed deals (sales) for this month
       const { data: monthDeals, error: monthErr } = await (supabase as any)
         .from("deals")
-        .select("id, deal_value")
-        .eq("consultor_id", user!.id)
+        .select("id, value")
+        .eq("owner_id", user!.id)
         .eq("status", "ganho")
-        .gte("closed_at", monthStart);
+        .gte("created_at", monthStart);
       
       if (monthErr) throw monthErr;
 
       // 2. Get closed deals for this year
       const { data: yearDeals, error: yearErr } = await (supabase as any)
         .from("deals")
-        .select("id, deal_value")
-        .eq("consultor_id", user!.id)
+        .select("id, value")
+        .eq("owner_id", user!.id)
         .eq("status", "ganho")
-        .gte("closed_at", yearStart);
+        .gte("created_at", yearStart);
 
       if (yearErr) throw yearErr;
 
-      const monthValue = monthDeals?.reduce((acc: number, d: any) => acc + (Number(d.deal_value) || 0), 0) || 0;
-      const yearValue = yearDeals?.reduce((acc: number, d: any) => acc + (Number(d.deal_value) || 0), 0) || 0;
+      const monthValue = monthDeals?.reduce((acc: number, d: any) => acc + (Number(d.value) || 0), 0) || 0;
+      const yearValue = yearDeals?.reduce((acc: number, d: any) => acc + (Number(d.value) || 0), 0) || 0;
 
       
       return {
