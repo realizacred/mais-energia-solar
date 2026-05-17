@@ -94,8 +94,8 @@ interface Props {
 
 const ORIGEM_LABEL: Record<ProjectDocumentOrigem, string> = {
   manual: "Manual",
-  generated: "Proposta Gerada",
-  custom_field: "Campo Customizado",
+  generated: "Gerado",
+  custom_field: "Campo customizado",
   checklist_cliente: "Checklist Cliente",
   checklist_instalador: "Checklist Instalador",
   checklist_doc: "Checklist Documental",
@@ -107,7 +107,7 @@ const ORIGEM_LABEL: Record<ProjectDocumentOrigem, string> = {
 const ORIGEM_COLOR: Record<ProjectDocumentOrigem, string> = {
   manual: "bg-primary/10 text-primary border-primary/20",
   generated: "bg-info/10 text-info border-info/20",
-  custom_field: "bg-accent text-accent-foreground border-border",
+  custom_field: "bg-primary/10 text-primary border-primary/20",
   checklist_cliente: "bg-warning/10 text-warning border-warning/20",
   checklist_instalador: "bg-warning/10 text-warning border-warning/20",
   checklist_doc: "bg-success/10 text-success border-success/20",
@@ -115,6 +115,7 @@ const ORIGEM_COLOR: Record<ProjectDocumentOrigem, string> = {
   legacy: "bg-muted text-muted-foreground border-border",
   recibo: "bg-success/10 text-success border-success/20",
 };
+
 
 function iconFor(mime?: string | null, name?: string) {
   const m = (mime || "").toLowerCase();
