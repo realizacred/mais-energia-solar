@@ -370,23 +370,13 @@ export function EmitirReciboModal({
 
           <div className="space-y-1.5 sm:col-span-2">
             <Label className="text-xs">Cliente</Label>
-            <Select
-              value={clienteId}
-              onValueChange={setClienteId}
-              disabled={loadingClientes || !!defaultProjetoId || !!defaultClienteId}
-            >
-              <SelectTrigger><SelectValue placeholder={loadingClientes ? "Carregando..." : "Selecione o cliente"} /></SelectTrigger>
-              <SelectContent>
-                {(clientes ?? []).map((c) => (
-                  <SelectItem key={c.id} value={c.id}>
-                    {c.nome}{c.cpf_cnpj ? ` — ${c.cpf_cnpj}` : ""}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {(!!defaultProjetoId || !!defaultClienteId) && (
-              <p className="text-[10px] text-muted-foreground">Cliente definido pelo projeto</p>
-            )}
+            <div className="p-2.5 rounded-lg border bg-muted/50 flex justify-between items-center">
+              <div className="flex flex-col">
+                <span className="text-sm font-semibold">{projectContext?.clientes?.nome || "Selecione um projeto"}</span>
+                <span className="text-[10px] text-muted-foreground uppercase tracking-tight">{projectContext?.clientes?.cpf_cnpj || "CPF/CNPJ não disponível"}</span>
+              </div>
+              <Badge variant="outline" className="text-[9px] uppercase">Projeto vinculado</Badge>
+            </div>
           </div>
 
           <div className="space-y-1.5 p-3 rounded-lg bg-muted/30 sm:col-span-2">
