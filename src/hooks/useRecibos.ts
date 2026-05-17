@@ -8,28 +8,27 @@ import { supabase } from "@/integrations/supabase/client";
 import { getCurrentTenantId } from "@/lib/getCurrentTenantId";
 import { toast } from "sonner";
 
-const QUERY_KEY = "recibos_emitidos" as const;
+const QUERY_KEY = "recibos" as const;
 const STALE_TIME = 1000 * 60 * 2;
 
-export interface ReciboEmitido {
+export interface Recibo {
   id: string;
   tenant_id: string;
-  template_id: string;
-  cliente_id: string;
-  projeto_id: string | null;
-  deal_id: string | null;
+  projeto_id: string;
+  cliente_id: string | null;
+  template: string;
   numero: string | null;
-  descricao: string | null;
   valor: number;
-  dados_preenchidos: Record<string, unknown>;
-  status: "emitido" | "enviado" | "assinado" | "cancelado";
-  pdf_path: string | null;
-  emitido_em: string;
+  forma_pagamento: string;
+  descricao: string | null;
+  data_pagamento: string;
+  status: "emitido" | "cancelado";
+  pdf_url: string | null;
+  campos_extras: Record<string, unknown>;
   created_at: string;
-  updated_at: string;
+  created_by: string | null;
   // join opcional
   cliente?: { id: string; nome: string; cpf_cnpj: string | null } | null;
-  template?: { id: string; nome: string } | null;
 }
 
 export interface ReciboFilters {
