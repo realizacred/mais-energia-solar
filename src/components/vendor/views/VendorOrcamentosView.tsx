@@ -265,7 +265,7 @@ function AvailableLeadsBadge() {
     queryKey: ["available-leads-count", user?.id],
     enabled: !!user?.id,
     queryFn: async () => {
-      const { count, error } = await supabase
+      const { count, error } = await (supabase as any)
         .from("leads")
         .select("*", { count: "exact", head: true })
         .is("consultor_id", null)
@@ -291,7 +291,7 @@ function StaleProjectsBadge() {
     enabled: !!user?.id,
     queryFn: async () => {
       const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
-      const { count, error } = await supabase
+      const { count, error } = await (supabase as any)
         .from("projetos")
         .select("*", { count: "exact", head: true })
         .eq("consultor_id", user!.id)
@@ -317,7 +317,7 @@ function AvailableLeadsList({ portal }: { portal: any }) {
     queryKey: ["available-leads"],
     enabled: !!user?.id,
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from("leads")
         .select("*, clientes(nome, telefone)")
         .is("consultor_id", null)
@@ -332,16 +332,16 @@ function AvailableLeadsList({ portal }: { portal: any }) {
   const assumeMutation = useMutation({
     mutationFn: async (leadId: string) => {
       // 1. Update lead
-      const { error: updateError } = await supabase
+      const { error: updateError } = await (supabase as any)
         .from("leads")
         .update({ consultor_id: user!.id })
         .eq("id", leadId);
       if (updateError) throw updateError;
 
       // 2. Log history
-      const { data: profile } = await supabase.from("profiles").select("tenant_id").eq("id", user!.id).single();
+      const { data: profile } = await (supabase as any).from("profiles").select("tenant_id").eq("id", user!.id).single();
       if (profile) {
-        await supabase.from("consultor_historico").insert({
+        await (supabase as any).from("consultor_historico").insert({
           lead_id: leadId,
           consultor_id: user!.id,
           acao: "assumiu_lead",
@@ -413,7 +413,7 @@ function MyProjectsList() {
     queryKey: ["my-active-projects", user?.id],
     enabled: !!user?.id,
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from("projetos")
         .select("*, clientes(nome), projeto_etapas(nome), projeto_funis(nome)")
         .eq("consultor_id", user!.id)
