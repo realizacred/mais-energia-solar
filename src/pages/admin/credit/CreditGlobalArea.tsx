@@ -672,10 +672,11 @@ export default function CreditGlobalArea() {
               {actionType === 'reject' && "Registrar Reprovação"}
               {actionType === 'request_docs' && "Solicitar Documentação Adicional"}
               {actionType === 'reassign' && "Reatribuir Gerente"}
-              {actionType === 'eos_integrate' && "Integração EOS Financiamento"}
+              {actionType === 'eos_integrate' && "Simulação EOS Financiamento Solar"}
             </DialogTitle>
             <DialogDescription>
               {selectedAnalysis?.deal?.title || selectedAnalysis?.lead?.nome} - {formatBRL(selectedAnalysis?.valor_solicitado || 0)}
+              {actionType === 'eos_integrate' && " - Utilize esta ferramenta para obter as condições reais de financiamento da EOS."}
             </DialogDescription>
           </DialogHeader>
 
