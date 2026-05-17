@@ -37,6 +37,7 @@ export function VendorOrcamentoCard({
   onDelete,
   onConvert,
   onQuickProposal,
+  onCreditRequest,
   quickLoading,
 }: VendorOrcamentoCardProps) {
   const cardBg = orcamento.visto 
