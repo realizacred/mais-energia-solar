@@ -64,7 +64,16 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
 import { Switch } from "@/components/ui/switch";
-import { validateEmail, formatPhone, formatCEP } from "@/lib/validations";
+import { validateEmail, formatCEP } from "@/lib/validations";
+import { 
+  CpfCnpjInput, 
+  PhoneInput, 
+  CurrencyInput, 
+  CepInput,
+  DateInput
+} from "@/components/ui-kit/inputs";
+import { onlyDigits } from "@/lib/cpfCnpjUtils";
+
 
 interface Props {
   isOpen: boolean;
