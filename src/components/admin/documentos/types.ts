@@ -175,6 +175,23 @@ export const TEMPLATE_VARIABLES = [
     ],
   },
   {
+    group: "Pagamento",
+    vars: [
+      { key: "{{pagamento_entrada_valor}}", desc: "Valor da entrada" },
+      { key: "{{pagamento_forma_entrada}}", desc: "Forma pgto entrada" },
+      { key: "{{pagamento_data_venc_entrada}}", desc: "Data vencimento entrada" },
+      { key: "{{pagamento_valor_restante}}", desc: "Valor restante" },
+      { key: "{{pagamento_forma_restante}}", desc: "Forma pgto restante" },
+      { key: "{{pagamento_data_venc_restante}}", desc: "Data pgto restante" },
+      { key: "{{pagamento_parcelas_quantidade}}", desc: "Nº de parcelas" },
+      { key: "{{pagamento_parcelas_valor}}", desc: "Valor da parcela" },
+      { key: "{{pagamento_parcelas_descricao}}", desc: "Ex: 12x de R$ X no cartão" },
+      { key: "{{pagamento_valor_equipamento}}", desc: "Valor do kit" },
+      { key: "{{pagamento_valor_mao_obra}}", desc: "Valor mão de obra" },
+      { key: "{{saldo_devedor}}", desc: "Saldo devedor (recibos)" },
+    ],
+  },
+  {
     group: "Projeto",
     vars: [
       { key: "{{projeto_nome}}", desc: "Nome do projeto" },
@@ -192,7 +209,6 @@ export const TEMPLATE_VARIABLES = [
       { key: "{{valor_por_extenso}}", desc: "Valor por extenso" },
       { key: "{{numero_recibo}}", desc: "Nº sequencial do recibo" },
       { key: "{{data_pagamento}}", desc: "Data do pagamento" },
-      { key: "{{saldo_devedor}}", desc: "Saldo devedor restante" },
       { key: "{{forma_pagamento}}", desc: "Método de pagamento" },
       { key: "{{descricao}}", desc: "Motivo do recebimento" },
     ],

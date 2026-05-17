@@ -813,8 +813,6 @@ function resolveFromContext(
 
   // ── pagamento_forma & pagamento.forma_descrita (AP-17 unificado) ──
   if (key === "pagamento_forma" || key === "pagamento.forma_descrita") {
-    // resolvePagamento já resolve e coloca no vars via resolveAllVariables (BE)
-    // No FE, tentamos buscar do snapshot canônico
     const fs = (fsCanon ?? ctx.finalSnapshot ?? {}) as any;
     const resolved = fs["pagamento.forma_descrita"] ?? fs["pagamento_forma_descrita"];
     if (resolved) return String(resolved);
@@ -823,22 +821,81 @@ function resolveFromContext(
     return forma ?? null;
   }
 
-  // ── pagamento.banco_nome ──
-  if (key === "pagamento.banco_nome") {
+  // ── Variáveis de Pagamento Dinâmicas (RB-76, RB-100) ──
+  if (key.startsWith("pagamento.")) {
     const fs = (fsCanon ?? ctx.finalSnapshot ?? {}) as any;
-    return s(fs["pagamento.banco_nome"] ?? fs["pagamento_banco_nome"]);
+    
+    // Tenta primeiro do snapshot (que pode ter vindo da venda_pagamento_itens via backend)
+    const sub = key.substring("pagamento.".length);
+    const snapVal = fs[key] ?? fs[`pagamento_${sub}`];
+    if (snapVal != null && snapVal !== "") return String(snapVal);
+
+    // Cálculos e fallbacks baseados no contexto
+    if (key === "pagamento.banco_nome") {
+      return s(fs.pagamento_banco_nome ?? fs.banco_nome);
+    }
+    
+    if (key === "pagamento.entrada_valor") {
+      const val = fs.pagamento_entrada_valor ?? fs.valor_entrada;
+      if (val != null) return fmtCurrency(Number(val));
+      const chosenOp = ctx.pagamentoOpcoes?.[0];
+      if (chosenOp?.entrada) return fmtCurrency(Number(chosenOp.entrada));
+      return null;
+    }
+
+    if (key === "pagamento.valor_restante") {
+      const total = Number(fs.valor_total ?? ctx.precoTotal ?? 0);
+      const entrada = Number(fs.pagamento_entrada_valor ?? fs.valor_entrada ?? ctx.pagamentoOpcoes?.[0]?.entrada ?? 0);
+      if (total > 0) return fmtCurrency(total - entrada);
+      return null;
+    }
+
+    if (key === "pagamento.parcelas_quantidade") {
+      const val = fs.pagamento_parcelas_quantidade ?? fs.numero_parcelas;
+      if (val != null) return String(val);
+      return ctx.pagamentoOpcoes?.[0]?.num_parcelas ? String(ctx.pagamentoOpcoes[0].num_parcelas) : null;
+    }
+
+    if (key === "pagamento.parcelas_valor") {
+      const val = fs.pagamento_parcelas_valor ?? fs.valor_parcela;
+      if (val != null) return fmtCurrency(Number(val));
+      return ctx.pagamentoOpcoes?.[0]?.valor_parcela ? fmtCurrency(Number(ctx.pagamentoOpcoes[0].valor_parcela)) : null;
+    }
+
+    if (key === "pagamento.parcelas_descricao") {
+      const qty = fs.pagamento_parcelas_quantidade ?? fs.numero_parcelas ?? ctx.pagamentoOpcoes?.[0]?.num_parcelas;
+      const val = fs.pagamento_parcelas_valor ?? fs.valor_parcela ?? ctx.pagamentoOpcoes?.[0]?.valor_parcela;
+      const forma = fs.pagamento_forma_restante ?? fs.forma_pagamento ?? "no cartão";
+      if (qty && val) return `${qty}x de R$ ${fmtCurrency(Number(val))} ${forma}`;
+      return null;
+    }
+
+    if (key === "pagamento.valor_equipamento") {
+      const val = fs.pagamento_valor_equipamento ?? fs.valor_equipamentos ?? fs.valor_kit;
+      if (val != null) return fmtCurrency(Number(val));
+      return null;
+    }
+
+    if (key === "pagamento.valor_mao_obra") {
+      const val = fs.pagamento_valor_mao_obra ?? fs.valor_mao_obra;
+      if (val != null) return fmtCurrency(Number(val));
+      return null;
+    }
+
+    if (key === "pagamento.entrada_percentual") {
+      const val = fs.pagamento_entrada_percentual ?? fs.entrada_percentual;
+      if (val != null) return String(val);
+      return null;
+    }
   }
 
-  // ── pagamento.entrada_valor & pagamento.entrada_percentual ──
-  if (key === "pagamento.entrada_valor") {
+  if (key === "financeiro.saldo_devedor") {
     const fs = (fsCanon ?? ctx.finalSnapshot ?? {}) as any;
-    const val = fs["pagamento.entrada_valor"] ?? fs["pagamento_entrada_valor"];
-    return val != null ? String(val) : null;
-  }
-  if (key === "pagamento.entrada_percentual") {
-    const fs = (fsCanon ?? ctx.finalSnapshot ?? {}) as any;
-    const val = fs["pagamento.entrada_percentual"] ?? fs["pagamento_entrada_percentual"];
-    return val != null ? String(val) : null;
+    const snapVal = fs["financeiro.saldo_devedor"] ?? fs["saldo_devedor"];
+    if (snapVal != null) return fmtCurrency(Number(snapVal));
+    
+    // Fallback básico: precoTotal se não houver pagamentos registrados
+    return ctx.precoTotal != null ? fmtCurrency(ctx.precoTotal) : null;
   }
 
   // ── capo_m — tipo de estrutura de fixação (legacy) ──
