@@ -2,35 +2,12 @@ import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
+import { projetoMetadataService, type ProjetoFunil, type ProjetoEtapa, type ProjetoEtiqueta } from "@/services/pipelines/projetoMetadataService";
 
 // ─── Types ───────────────────────────────────────────────────
 
-export interface ProjetoFunil {
-  id: string;
-  nome: string;
-  ordem: number;
-  ativo: boolean;
-  tenant_id: string;
-}
-
+export type { ProjetoFunil, ProjetoEtapa, ProjetoEtiqueta };
 export type ProjetoEtapaCategoria = "aberto" | "ganho" | "perdido" | "excluido";
-
-export interface ProjetoEtapa {
-  id: string;
-  funil_id: string;
-  nome: string;
-  cor: string;
-  ordem: number;
-  categoria: ProjetoEtapaCategoria;
-  tenant_id: string;
-}
-
-export interface ProjetoEtiqueta {
-  id: string;
-  nome: string;
-  cor: string;
-  tenant_id: string;
-}
 
 export interface ProjetoItem {
   id: string;
@@ -79,8 +56,7 @@ export interface ProjetoFiltersState {
 }
 
 const PROJETOS_FETCH_BATCH_SIZE = 1000;
-const MAX_CARDS_PER_STAGE = 50; // Reduzido de 200 para melhorar performance inicial
-
+const MAX_CARDS_PER_STAGE = 50;
 
 async function fetchAllProjetosRows(baseQuery: any) {
   const allRows: any[] = [];
@@ -148,35 +124,19 @@ export function useProjetoPipeline() {
   const initializedRef = useRef(false);
   const { toast } = useToast();
 
-  // ─── Fetch metadata (funis, etapas, etiquetas, consultores) ──
   const fetchMetadata = useCallback(async () => {
-    const [funisRes, etapasRes, etiquetasRes, consultoresRes, profileRes] = await Promise.all([
-      supabase.from("projeto_funis").select("id, nome, ordem, ativo, tenant_id").order("ordem"),
-      supabase.from("projeto_etapas").select("id, funil_id, nome, cor, ordem, categoria, tenant_id").order("ordem"),
-      supabase.from("projeto_etiquetas").select("id, nome, cor, tenant_id"),
-      supabase.from("consultores").select("id, nome, ativo").order("nome"),
-      user?.id ? supabase.from("profiles").select("settings").eq("user_id", user.id).maybeSingle() : Promise.resolve({ data: null, error: null }),
-    ]);
+    const data = await projetoMetadataService.fetchMetadata(user?.id);
 
-    if (funisRes.error) throw funisRes.error;
-    if (etapasRes.error) throw etapasRes.error;
-
-    const nextFunis = funisRes.data || [];
-    const nextEtapas = (etapasRes.data as ProjetoEtapa[]) || [];
-
-    setFunis(nextFunis);
-    setEtapas(nextEtapas);
-    setEtiquetas(etiquetasRes.data || []);
-    setConsultores(consultoresRes.data || []);
-
-    const dbSettings = profileRes?.data?.settings as any;
-    const dbPrefs = dbSettings?.projetos_filtros;
-    setDbPrefs(dbSettings || null);
+    setFunis(data.funis);
+    setEtapas(data.etapas);
+    setEtiquetas(data.etiquetas);
+    setConsultores(data.consultores);
+    setDbPrefs(data.dbSettings || null);
 
     return {
-      funis: nextFunis,
-      etapas: nextEtapas,
-      dbPrefs,
+      funis: data.funis,
+      etapas: data.etapas,
+      dbPrefs: data.dbSettings?.projetos_filtros,
     };
   }, [user?.id]);
 
