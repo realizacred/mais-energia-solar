@@ -143,8 +143,11 @@ const normalizeCategoria = resolveDocumentCategory;
 export function ProjectDocumentsHub({ projetoId, dealId }: Props) {
   const { data: projectDocsData, isLoading } = useProjectDocuments({ projetoId, dealId });
   const docs = projectDocsData?.documents || [];
-  const totalCount = projectDocsData?.totalUnique || 0;
+  
+  // Bug fix: use the actual unique documents count from projectDocsData
+  const totalCount = docs.length;
   const totalSize = projectDocsData?.totalSize || 0;
+
   
   const upload = useUploadProjectDocument();
   const remove = useDeleteProjectDocument();
