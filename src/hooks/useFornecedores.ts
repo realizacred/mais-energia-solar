@@ -43,4 +43,3 @@ export function useToggleFornecedorAtivo() {
     onSuccess: () => qc.invalidateQueries({ queryKey: QK }),
   });
 }
-}
