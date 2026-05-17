@@ -564,10 +564,10 @@ export function ClienteViewDialog({ cliente, open, onOpenChange }: ClienteViewDi
 
               {/* ABA 5 — Documentos (com botão Anexar por tipo) */}
               <TabsContent value="docs" className="mt-0">
-                <ClienteDocumentUpload
+                <ClienteDocsTab
                   clienteId={cliente.id}
-                  documents={docs}
-                  onDocumentsChange={handleDocsChange}
+                  legacyDocs={docs}
+                  onLegacyDocsChange={setDocs}
                 />
               </TabsContent>
 
