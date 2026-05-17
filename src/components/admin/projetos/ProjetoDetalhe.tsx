@@ -905,7 +905,7 @@ function ProjetoDetalheContent() {
           )}
           {activeTab === "recibos" && (
             <ProjetoRecibosTab
-              filters={{ deal_id: deal.id }}
+              filters={{ projeto_id: projetoId || "" }}
               defaultClienteId={deal.customer_id ?? undefined}
               defaultProjetoId={projetoId ?? undefined}
               defaultDealId={deal.id}
