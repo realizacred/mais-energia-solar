@@ -868,22 +868,15 @@ function ProjetoDetalheContent() {
         </Card>
       )}
 
-      {/* ── Recebimento CTA for won deals ── */}
+      {/* ── Alertas Financeiros Consolidados (RB-76) ── */}
       {deal.status === "won" && activeTab === "gerenciamento" && (
-        <>
-          <RecebimentoCTA 
-            dealId={deal.id} 
-            customerId={deal.customer_id} 
-            customerName={customerName} 
-            projetoId={projetoId} 
-          />
-          <SinalReciboCTA
-            dealId={deal.id}
-            customerId={deal.customer_id}
-            projetoId={projetoId ?? null}
-            setActiveTab={setActiveTab}
-          />
-        </>
+        <AlertasFinanceirosProjeto 
+          dealId={deal.id} 
+          customerId={deal.customer_id} 
+          customerName={customerName} 
+          projetoId={projetoId} 
+          setActiveTab={setActiveTab}
+        />
       )}
 
       {/* ── Tab Content ── */}
