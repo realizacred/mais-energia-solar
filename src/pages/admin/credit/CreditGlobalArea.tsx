@@ -106,6 +106,20 @@ import * as XLSX from 'xlsx';
  * Substitui: nenhum (evolução do existente)
  */
 
+const getEosStatusColor = (status: string) => {
+  const map: Record<string, string> = {
+    em_andamento: "bg-blue-500/10 text-blue-500 border-blue-500/20",
+    em_analise: "bg-amber-500/10 text-amber-500 border-amber-500/20",
+    pre_aprovada: "bg-teal-500/10 text-teal-500 border-teal-500/20",
+    formalizacao: "bg-purple-500/10 text-purple-500 border-purple-500/20",
+    paga: "bg-emerald-500/10 text-emerald-500 border-emerald-500/20",
+    recusada: "bg-destructive/10 text-destructive border-destructive/20",
+    cancelada: "bg-slate-500/10 text-slate-500 border-slate-500/20",
+    simulacao: "bg-blue-500/10 text-blue-500 border-blue-500/20"
+  };
+  return map[status] || "bg-slate-500/10 text-slate-500 border-slate-500/20";
+};
+
 export default function CreditGlobalArea() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
