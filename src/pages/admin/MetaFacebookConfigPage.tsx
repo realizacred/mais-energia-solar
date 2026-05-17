@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Facebook } from "lucide-react";
 import { PageHeader } from "@/components/ui-kit/PageHeader";
 import { Card, CardContent } from "@/components/ui/card";
@@ -13,22 +13,49 @@ import { ConnectedPanel } from "@/components/admin/meta/config/ConnectedPanel";
 import { useMetaFbConfigs, useMetaAutomation, META_KEYS } from "@/components/admin/meta/config/useMetaFbConfigs";
 import { Button } from "@/components/ui/button";
 import { CheckCircle2, ArrowRight, Settings } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { toast } from "sonner";
 
 const WIZARD_STEPS = [
-  { label: "Conectar", description: "Credenciais do Meta" },
+  { label: "Conectar", description: "Facebook OAuth" },
   { label: "Páginas", description: "Selecionar recursos" },
   { label: "Automação", description: "Funil e responsável" },
 ];
 
 export default function MetaFacebookConfigPage() {
   const navigate = useNavigate();
-  const { data: configs, isLoading: loadingConfigs } = useMetaFbConfigs();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const { data: configs, isLoading: loadingConfigs, refetch: refetchConfigs } = useMetaFbConfigs();
   const { data: automation, isLoading: loadingAutomation } = useMetaAutomation();
 
   const [wizardStep, setWizardStep] = useState(0);
   const [showWizard, setShowWizard] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
+
+  useEffect(() => {
+    const status = searchParams.get("fb_status");
+    const error = searchParams.get("fb_error");
+
+    if (status === "success") {
+      toast.success("Facebook conectado com sucesso!");
+      refetchConfigs();
+      setWizardStep(1); // Advance to pages
+      
+      // Clean up URL
+      const newParams = new URLSearchParams(searchParams);
+      newParams.delete("fb_status");
+      newParams.delete("fb_error");
+      setSearchParams(newParams);
+    } else if (status === "error") {
+      toast.error(`Erro ao conectar: ${error || "Erro desconhecido"}`);
+      
+      // Clean up URL
+      const newParams = new URLSearchParams(searchParams);
+      newParams.delete("fb_status");
+      newParams.delete("fb_error");
+      setSearchParams(newParams);
+    }
+  }, [searchParams, refetchConfigs, setSearchParams]);
 
   // Resolve pipeline/stage names for connected panel
   const pipelineId = automation?.pipeline_id;
