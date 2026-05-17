@@ -33,7 +33,8 @@ import {
   Calculator,
   Edit2,
   Zap,
-  Loader2
+  Loader2,
+  Search
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
