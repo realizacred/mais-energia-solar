@@ -207,11 +207,12 @@ export function useProjetoDetalheData(dealId: string) {
         size_bytes: number | null;
         mime_type: string | null;
         scope: string;
+        origem: string;
       }> = [];
 
       const { data: pdRows } = await supabase
         .from("project_documents")
-        .select("bucket,storage_path,file_name,size_bytes,mime_type,deal_id,projeto_id")
+        .select("bucket,storage_path,file_name,size_bytes,mime_type,deal_id,projeto_id,origem")
         .eq("is_deleted", false)
         .or(orFilter.join(","));
       for (const r of (pdRows || []) as any[]) {
@@ -222,6 +223,7 @@ export function useProjetoDetalheData(dealId: string) {
           size_bytes: r.size_bytes,
           mime_type: r.mime_type,
           scope: r.deal_id || r.projeto_id || scopeDefault,
+          origem: r.origem,
         });
       }
 
@@ -243,15 +245,22 @@ export function useProjetoDetalheData(dealId: string) {
             size_bytes: m.size ?? null,
             mime_type: m.mime ?? null,
             scope: d.id,
+            origem: "custom_field",
           });
         }
       }
 
-      docsCount = countLogicalDocs(items as any);
-      // Fallback: SSOT vazio (projeto antigo) → soma generated do RPC.
-      if (docsCount === 0) {
-        docsCount = (rpcData.generated_docs_count as number) || 0;
-      }
+      // Filtrar itens por origem antes de contar documentos lógicos
+      // Hub esconde 'generated' e 'recibo' no filtered que alimenta groups, 
+      // mas totalCount usa totalUnique do hook que NÃO filtra.
+      // Corrigindo para alinhar com a visão real do usuário (uploads + campos custom).
+      const finalItems = items.filter(it => it.origem !== 'generated' && it.origem !== 'recibo');
+      docsCount = countLogicalDocs(finalItems as any);
+      
+      // Generated count separado para somar ao total da aba
+      const generatedCount = items.filter(it => it.origem === 'generated').length;
+      docsCount += generatedCount;
+
 
       // Fetch projeto identity (nome próprio, código, num, descrição) — separado do cliente.
       let projetoNome: string | null = null;

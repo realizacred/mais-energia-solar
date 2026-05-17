@@ -270,3 +270,56 @@ export function useDownloadDocument() {
     }
   });
 }
+
+/** Hook leve para contar documentos (usado em badges/abas). */
+export function useDocumentsCount({ projetoId, dealId }: { projetoId?: string | null; dealId?: string | null }) {
+  return useQuery({
+    queryKey: ["project-documents-count", projetoId, dealId],
+    enabled: !!(projetoId || dealId),
+    staleTime: STALE,
+    queryFn: async () => {
+      const orFilter: string[] = [];
+      if (projetoId) orFilter.push(`projeto_id.eq.${projetoId}`);
+      if (dealId) orFilter.push(`deal_id.eq.${dealId}`);
+
+      // 1. Contar project_documents (excluindo gerados e recibos que têm abas próprias ou lógica diferente)
+      const { count: pdCount } = await supabase
+        .from("project_documents")
+        .select("*", { count: "exact", head: true })
+        .eq("is_deleted", false)
+        .not("origem", "in", "(generated,recibo)")
+        .or(orFilter.join(","));
+
+      // 2. Contar documentos gerados (generated_documents)
+      const { count: genCount } = await supabase
+        .from("generated_documents")
+        .select("*", { count: "exact", head: true })
+        .eq("deal_id", dealId || "");
+
+      // 3. Contar campos customizados do tipo arquivo (opcional, para precisão total)
+      const { data: cfRows } = await supabase
+        .from("deal_custom_field_values")
+        .select("value_text, deal_custom_fields!inner(field_type)")
+        .eq("deal_id", dealId || "");
+      
+      let cfCount = 0;
+      for (const row of (cfRows || []) as any[]) {
+        if (row.deal_custom_fields?.field_type === "file") {
+          const metas = parseFileMetaArray(row.value_text);
+          cfCount += metas.filter((m: any) => m?.storage_path).length;
+        }
+      }
+
+      return (pdCount || 0) + (genCount || 0) + cfCount;
+    },
+  });
+}
+
+function parseFileMetaArray(val: any): any[] {
+  if (!val) return [];
+  try {
+    const parsed = typeof val === 'string' ? JSON.parse(val) : val;
+    return Array.isArray(parsed) ? parsed : [parsed];
+  } catch { return []; }
+}
+

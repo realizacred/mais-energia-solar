@@ -94,8 +94,8 @@ interface Props {
 
 const ORIGEM_LABEL: Record<ProjectDocumentOrigem, string> = {
   manual: "Manual",
-  generated: "Proposta Gerada",
-  custom_field: "Campo Customizado",
+  generated: "Gerado",
+  custom_field: "Campo customizado",
   checklist_cliente: "Checklist Cliente",
   checklist_instalador: "Checklist Instalador",
   checklist_doc: "Checklist Documental",
@@ -107,7 +107,7 @@ const ORIGEM_LABEL: Record<ProjectDocumentOrigem, string> = {
 const ORIGEM_COLOR: Record<ProjectDocumentOrigem, string> = {
   manual: "bg-primary/10 text-primary border-primary/20",
   generated: "bg-info/10 text-info border-info/20",
-  custom_field: "bg-accent text-accent-foreground border-border",
+  custom_field: "bg-primary/10 text-primary border-primary/20",
   checklist_cliente: "bg-warning/10 text-warning border-warning/20",
   checklist_instalador: "bg-warning/10 text-warning border-warning/20",
   checklist_doc: "bg-success/10 text-success border-success/20",
@@ -115,6 +115,8 @@ const ORIGEM_COLOR: Record<ProjectDocumentOrigem, string> = {
   legacy: "bg-muted text-muted-foreground border-border",
   recibo: "bg-success/10 text-success border-success/20",
 };
+
+
 
 function iconFor(mime?: string | null, name?: string) {
   const m = (mime || "").toLowerCase();
@@ -429,15 +431,12 @@ export function ProjectDocumentsHub({ projetoId, dealId }: Props) {
                           <p className="text-sm font-medium text-foreground truncate">
                             {d.display_name || d.file_name}
                           </p>
-                          <Badge variant="outline" className={cn("text-[10px] py-0 px-1.5", ORIGEM_COLOR[d.origem])}>
-                            {ORIGEM_LABEL[d.origem]}
-                          </Badge>
-                          {(d.metadata as any)?.is_custom_field && (
-                            <Badge variant="secondary" className="text-[10px] py-0 px-1.5 gap-1">
-                              <Info className="h-3 w-3" />
-                              Campo customizado
+                          {d.origem !== 'manual' && (
+                            <Badge variant="outline" className={cn("text-[10px] py-0 px-1.5", ORIGEM_COLOR[d.origem])}>
+                              {ORIGEM_LABEL[d.origem]}
                             </Badge>
                           )}
+
                         </div>
                         <p className="text-[11px] text-muted-foreground mt-0.5">
                           {d.display_name ? (
