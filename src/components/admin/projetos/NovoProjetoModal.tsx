@@ -538,7 +538,7 @@ export function NovoProjetoModal({
                         >
                           <div className="min-w-0">
                             <p className="text-xs font-medium text-foreground truncate">{c.nome}</p>
-                            <p className="text-[11px] text-muted-foreground truncate">{c.telefone}</p>
+                            <p className="text-[11px] text-muted-foreground truncate">{c.telefone ? formatPhone(c.telefone) : ""}{c.cpf_cnpj ? ` • ${formatCpfCnpj(c.cpf_cnpj)}` : ""}</p>
                             {c.email && <p className="text-[11px] text-muted-foreground truncate">{c.email}</p>}
                           </div>
                         </Button>
