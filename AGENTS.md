@@ -967,5 +967,47 @@ AP-53 DATA ISO NA UI
 ✗ Errado: {created_at} → "2026-05-17T14:30:00"
 ✓ Certo: {formatDateBR(created_at)} → "17/05/2026"
 =============================================================================
-FIM DO AGENTS.md v5.1
+BLOCO 37 — WHATSAPP INTERNO PARA DOCUMENTOS (v1.0)
+=============================================================================
+COMPONENTE: WaSendDocModal.tsx
+FLUXO: DocumentosTab → WaSendDocModal → wa_outbox → WaInbox
+
+RB-105 WHATSAPP — USAR SISTEMA INTERNO
+NUNCA abrir wa.me externo para envio de documentos.
+SEMPRE usar WaSendDocModal que enfileira em wa_outbox 
+via RPC enqueue_wa_outbox_item.
+Mensagem gravada em wa_messages para rastreabilidade.
+
+AP-54 ABRIR WA.ME PARA DOCUMENTO
+✗ Errado: window.open('https://wa.me/...')
+✓ Certo: abrir WaSendDocModal com documento
+
+=============================================================================
+BLOCO 38 — VALIDAÇÕES CONFIGURÁVEIS POR ETAPA (v1.0)
+=============================================================================
+TABELA: pipeline_stage_validations
+TIPOS: documento_obrigatorio | valor_minimo | 
+       campo_preenchido | fornecedor_vinculado | 
+       aprovacao_manual
+COMPORTAMENTOS:
+  bloquear_avanco = true  → impede avanço de etapa
+  bloquear_avanco = false → só avisa (toast)
+
+RB-106 VALIDAÇÕES — NÃO DUPLICAR INTERCEPTOR
+O interceptor de fornecedor (RB-90) já existe em 
+ProjetoMultiPipelineManager.
+Novas validações de fornecedor usam 
+pipeline_stage_validations — não criar segundo interceptor.
+
+RB-107 ALERTAS FINANCEIROS — UM POR VEZ
+Componente AlertasFinanceirosProjeto gerencia 
+todos os alertas de recebimento.
+NUNCA renderizar 2 alertas financeiros simultâneos.
+Prioridade: Sinal > Pagamento Pendente > Nenhum
+
+AP-55 DOIS ALERTAS FINANCEIROS
+✗ Errado: "Criar recebimento" + "Sinal pendente" juntos
+✓ Certo: AlertasFinanceirosProjeto com lógica de prioridade
+=============================================================================
+FIM DO AGENTS.md v5.2
 =============================================================================
