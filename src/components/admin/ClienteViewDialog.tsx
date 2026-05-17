@@ -518,7 +518,40 @@ export function ClienteViewDialog({ cliente, open, onOpenChange }: ClienteViewDi
                               {melhorVersao?.potencia_kwp && (
                                 <span>{formatKwp(melhorVersao.potencia_kwp)}</span>
                               )}
-...
+                              {pVersoes.length > 0 && (
+                                <span>{pVersoes.length} versão(ões)</span>
+                              )}
+                            </div>
+                          </div>
+                          <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </TabsContent>
+
+              {/* ABA 3 — Projetos */}
+              <TabsContent value="projetos" className="mt-0">
+                {loadingProjetos ? (
+                  <div className="space-y-2">
+                    {Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-14 w-full rounded-lg" />)}
+                  </div>
+                ) : projetos.length === 0 ? (
+                  <TabEmptyState icon={FolderOpen} title="Nenhum projeto" description="Este cliente não possui projetos vinculados" />
+                ) : (
+                  <div className="space-y-2">
+                    {projetos.map((p) => (
+                      <div
+                        key={p.id}
+                        className="flex items-center justify-between p-3 rounded-lg border border-border/50 bg-card hover:bg-muted/30 transition-colors cursor-pointer"
+                        onClick={() => { onOpenChange(false); navigate(`/admin/projetos?projeto=${p.id}`); }}
+                      >
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2">
+                            <p className="text-sm font-medium text-foreground truncate">{p.codigo}</p>
+                            <StatusBadge status={p.status} />
+                          </div>
                           <div className="flex items-center gap-3 mt-0.5 text-xs text-muted-foreground">
                             <span>{displayDate(p.created_at)}</span>
                             {p.potencia_kwp && <span>{formatKwp(p.potencia_kwp)}</span>}
