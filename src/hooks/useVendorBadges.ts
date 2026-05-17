@@ -26,28 +26,42 @@ export function useVendorBadges() {
       const last24h = subDays(now, 1).toISOString();
       const todayEnd = endOfDay(now).toISOString();
 
-      // Use native count logic to avoid deep type instantiation issues
-      const { count: urgentLeadsCount } = await supabase
-        .rpc("get_vendor_urgent_leads_count", { p_user_id: currentUserId, p_three_days_ago: threeDaysAgo });
+      // Inline queries using non-generic Supabase client to bypass complex type instantiation
+      const urgentLeads = await (supabase as any)
+        .from("leads")
+        .select("id", { count: "exact", head: true })
+        .eq("consultor_id", currentUserId)
+        .is("deleted_at", null)
+        .not("status_id", "in", "('ganho', 'perdido', 'convertido')")
+        .or(`ultimo_contato.is.null,ultimo_contato.lt.${threeDaysAgo}`);
 
-      const { count: overdueTasksCount } = await supabase
-        .rpc("get_vendor_overdue_tasks_count", { p_user_id: currentUserId, p_today_end: todayEnd });
+      const overdueTasks = await (supabase as any)
+        .from("tarefas")
+        .select("id", { count: "exact", head: true })
+        .eq("created_by", currentUserId) 
+        .neq("status", "concluida")
+        .lte("data_vencimento", todayEnd);
 
-      const { count: pendingCreditCount } = await supabase
-        .rpc("get_vendor_pending_credit_count", { p_user_id: currentUserId });
+      const pendingCredit = await (supabase as any)
+        .from("analise_credito")
+        .select("id", { count: "exact", head: true })
+        .eq("criado_por", currentUserId)
+        .eq("status", "aguardando_documentos");
 
-      const { count: unreadChatsCount } = await supabase
-        .rpc("get_vendor_unread_chats_count", { 
-          p_user_id: currentUserId, 
-          p_tenant_id: profile.tenant_id,
-          p_last_24h: last24h
-        });
+      const unreadChats = await (supabase as any)
+        .from("wa_conversations")
+        .select("id", { count: "exact", head: true })
+        .eq("assigned_to", currentUserId)
+        .eq("tenant_id", profile.tenant_id)
+        .eq("status", "aberta")
+        .eq("ultima_mensagem_de", "cliente")
+        .gt("ultima_mensagem_at", last24h);
 
       return {
-        orcamentos: urgentLeadsCount || 0,
-        agenda: overdueTasksCount || 0,
-        credito: pendingCreditCount || 0,
-        whatsapp: unreadChatsCount || 0
+        orcamentos: urgentLeads.count || 0,
+        agenda: overdueTasks.count || 0,
+        credito: pendingCredit.count || 0,
+        whatsapp: unreadChats.count || 0
       };
     },
   });
