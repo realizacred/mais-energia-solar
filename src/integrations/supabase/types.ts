@@ -22762,6 +22762,89 @@ export type Database = {
           },
         ]
       }
+      recibos: {
+        Row: {
+          campos_extras: Json | null
+          cliente_id: string | null
+          created_at: string | null
+          created_by: string | null
+          data_pagamento: string
+          descricao: string | null
+          forma_pagamento: string
+          id: string
+          numero: string | null
+          pdf_url: string | null
+          projeto_id: string
+          status: string | null
+          template: string
+          tenant_id: string
+          valor: number
+        }
+        Insert: {
+          campos_extras?: Json | null
+          cliente_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          data_pagamento: string
+          descricao?: string | null
+          forma_pagamento: string
+          id?: string
+          numero?: string | null
+          pdf_url?: string | null
+          projeto_id: string
+          status?: string | null
+          template: string
+          tenant_id: string
+          valor: number
+        }
+        Update: {
+          campos_extras?: Json | null
+          cliente_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          data_pagamento?: string
+          descricao?: string | null
+          forma_pagamento?: string
+          id?: string
+          numero?: string | null
+          pdf_url?: string | null
+          projeto_id?: string
+          status?: string | null
+          template?: string
+          tenant_id?: string
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recibos_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recibos_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recibos_projeto_id_fkey"
+            columns: ["projeto_id"]
+            isOneToOne: false
+            referencedRelation: "projetos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recibos_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       recibos_emitidos: {
         Row: {
           cliente_id: string

@@ -8,69 +8,66 @@ import { supabase } from "@/integrations/supabase/client";
 import { getCurrentTenantId } from "@/lib/getCurrentTenantId";
 import { toast } from "sonner";
 
-const QUERY_KEY = "recibos_emitidos" as const;
+const QUERY_KEY = "recibos" as const;
 const STALE_TIME = 1000 * 60 * 2;
 
-export interface ReciboEmitido {
+export interface Recibo {
   id: string;
   tenant_id: string;
-  template_id: string;
-  cliente_id: string;
-  projeto_id: string | null;
-  deal_id: string | null;
+  projeto_id: string;
+  cliente_id: string | null;
+  template: string;
   numero: string | null;
-  descricao: string | null;
   valor: number;
-  dados_preenchidos: Record<string, unknown>;
-  status: "emitido" | "enviado" | "assinado" | "cancelado";
-  pdf_path: string | null;
-  emitido_em: string;
+  forma_pagamento: string;
+  descricao: string | null;
+  data_pagamento: string;
+  status: "emitido" | "cancelado";
+  pdf_url: string | null;
+  campos_extras: Record<string, unknown>;
   created_at: string;
-  updated_at: string;
+  created_by: string | null;
   // join opcional
   cliente?: { id: string; nome: string; cpf_cnpj: string | null } | null;
-  template?: { id: string; nome: string } | null;
 }
 
 export interface ReciboFilters {
   cliente_id?: string;
   projeto_id?: string;
-  deal_id?: string;
 }
 
-export function useRecibos(filters: ReciboFilters = {}) {
+export function useRecibos(filters: { cliente_id?: string; projeto_id?: string }) {
   return useQuery({
     queryKey: [QUERY_KEY, filters],
     queryFn: async () => {
       let q = supabase
-        .from("recibos_emitidos" as any)
+        .from("recibos")
         .select(
-          "id, tenant_id, template_id, cliente_id, projeto_id, deal_id, numero, descricao, valor, dados_preenchidos, status, pdf_path, emitido_em, created_at, updated_at, cliente:clientes(id, nome, cpf_cnpj), template:document_templates(id, nome)"
+          "*, cliente:clientes(id, nome, cpf_cnpj)"
         )
-        .is("deleted_at", null)
-        .order("emitido_em", { ascending: false });
+        .order("created_at", { ascending: false });
 
       if (filters.cliente_id) q = q.eq("cliente_id", filters.cliente_id);
       if (filters.projeto_id) q = q.eq("projeto_id", filters.projeto_id);
-      if (filters.deal_id) q = q.eq("deal_id", filters.deal_id);
 
       const { data, error } = await q;
       if (error) throw error;
-      return (data ?? []) as unknown as ReciboEmitido[];
+      return (data ?? []) as unknown as Recibo[];
     },
     staleTime: STALE_TIME,
   });
 }
 
 export interface EmitirReciboInput {
-  template_id: string;
-  cliente_id: string;
-  projeto_id?: string | null;
-  deal_id?: string | null;
-  descricao?: string;
+  projeto_id: string;
+  cliente_id?: string | null;
+  template: string;
   numero?: string;
   valor: number;
-  dados_preenchidos: Record<string, unknown>;
+  forma_pagamento: string;
+  descricao?: string;
+  data_pagamento: string;
+  campos_extras?: Record<string, unknown>;
   generate_pdf?: boolean;
 }
 
@@ -82,21 +79,21 @@ export function useEmitirRecibo() {
       const { tenantId, userId } = await getCurrentTenantId();
 
       const { data, error } = await supabase
-        .from("recibos_emitidos" as any)
+        .from("recibos" as any)
         .insert({
           tenant_id: tenantId,
-          template_id: input.template_id,
-          cliente_id: input.cliente_id,
-          projeto_id: input.projeto_id ?? null,
-          deal_id: input.deal_id ?? null,
+          projeto_id: input.projeto_id,
+          cliente_id: input.cliente_id ?? null,
+          template: input.template,
           numero: input.numero ?? null,
-          descricao: input.descricao ?? null,
           valor: input.valor,
-          dados_preenchidos: input.dados_preenchidos as any,
+          forma_pagamento: input.forma_pagamento,
+          descricao: input.descricao ?? null,
+          data_pagamento: input.data_pagamento,
+          campos_extras: input.campos_extras ?? {},
           status: "emitido",
           created_by: userId,
-          updated_by: userId,
-        } as any)
+        })
         .select("id")
         .single();
 
@@ -110,29 +107,28 @@ export function useEmitirRecibo() {
           });
 
           // Espelhar recibo emitido em project_documents para aparecer na aba Documentos
-          if (input.projeto_id || input.deal_id) {
+          if (input.projeto_id) {
             try {
               const { data: rec } = await supabase
-                .from("recibos_emitidos" as any)
-                .select("pdf_path, numero")
+                .from("recibos")
+                .select("pdf_url, numero")
                 .eq("id", reciboId)
                 .maybeSingle();
-              const pdfPath = (rec as any)?.pdf_path as string | null;
-              if (pdfPath) {
+              const pdfUrl = (rec as any)?.pdf_url as string | null;
+              if (pdfUrl) {
                 const fileName = `Recibo ${(rec as any)?.numero || reciboId.slice(0, 8)}.pdf`;
                 await supabase.from("project_documents" as any).insert({
                   tenant_id: tenantId,
-                  projeto_id: input.projeto_id ?? null,
-                  deal_id: input.deal_id ?? null,
-                  cliente_id: input.cliente_id,
+                  projeto_id: input.projeto_id,
+                  cliente_id: input.cliente_id ?? null,
                   categoria: "recibo",
                   origem: "recibo",
                   bucket: "recibos",
-                  storage_path: pdfPath,
+                  storage_path: pdfUrl, // assuming pdf_url is the path or url
                   file_name: fileName,
                   mime_type: "application/pdf",
                   uploaded_by: userId,
-                  source_table: "recibos_emitidos",
+                  source_table: "recibos",
                   source_id: reciboId,
                 });
                 qc.invalidateQueries({ queryKey: ["project-documents"] });
@@ -147,7 +143,6 @@ export function useEmitirRecibo() {
       }
 
       // Espelhar recibo no centro financeiro (lancamentos_financeiros)
-      // Tabela não tem coluna deal_id — vinculação ao deal vai em observacoes.
       try {
         const marker = `recibo_id:${reciboId}`;
         const { data: existing } = await supabase
@@ -158,15 +153,9 @@ export function useEmitirRecibo() {
           .maybeSingle();
 
         if (!existing) {
-          const { data: tplRow } = await supabase
-            .from("document_templates")
-            .select("nome")
-            .eq("id", input.template_id)
-            .maybeSingle();
-          const templateNome = (tplRow as any)?.nome || "Recibo";
+          const templateNome = input.template || "Recibo";
           const numeroSuffix = input.numero ? ` #${input.numero}` : "";
           const descricaoFinal = `${templateNome}${numeroSuffix}`;
-          const dealMarker = input.deal_id ? ` deal_id:${input.deal_id}` : "";
 
           const { error: lancErr } = await supabase
             .from("lancamentos_financeiros")
@@ -176,11 +165,11 @@ export function useEmitirRecibo() {
               categoria: "recibo",
               descricao: descricaoFinal,
               valor: input.valor,
-              data_lancamento: new Date().toISOString().slice(0, 10),
+              data_lancamento: input.data_pagamento || new Date().toISOString().slice(0, 10),
               status: "confirmado",
-              cliente_id: input.cliente_id,
-              projeto_id: input.projeto_id ?? null,
-              observacoes: `${marker}${dealMarker}`,
+              cliente_id: input.cliente_id ?? null,
+              projeto_id: input.projeto_id,
+              observacoes: `${marker}`,
               created_by: userId,
             });
           if (lancErr) {

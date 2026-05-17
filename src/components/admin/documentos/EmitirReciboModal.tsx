@@ -24,6 +24,9 @@ import { useClientes } from "@/hooks/useClientes";
 import { useEmitirRecibo } from "@/hooks/useRecibos";
 import type { DocumentTemplate, FormFieldSchema } from "./types";
 import { supabase } from "@/integrations/supabase/client";
+import { cn } from "@/lib/utils";
+import { Switch } from "@/components/ui/switch";
+import { Badge } from "@/components/ui/badge";
 
 interface EmitirReciboModalProps {
   open: boolean;
@@ -57,10 +60,13 @@ export function EmitirReciboModal({
   const [descricao, setDescricao] = useState<string>("");
   const [numero, setNumero] = useState<string>("");
   const [formaPagamento, setFormaPagamento] = useState<string>("");
+  const [dataPagamento, setDataPagamento] = useState<string>(new Date().toISOString().slice(0, 10));
+  const [instituicaoFinanceira, setInstituicaoFinanceira] = useState<string>("");
   const [dynFields, setDynFields] = useState<Record<string, string>>({});
   const [loadingContext, setLoadingContext] = useState(false);
   const [projectContext, setProjectContext] = useState<any>(null);
   const [proposalContext, setProposalContext] = useState<any>(null);
+  const [totalPago, setTotalPago] = useState(0);
 
   useEffect(() => {
     if (open) {
@@ -74,37 +80,64 @@ export function EmitirReciboModal({
       setDynFields({});
       setProjectContext(null);
       setProposalContext(null);
+      setTotalPago(0);
+      setInstituicaoFinanceira("");
 
-      // Auto-fetch context if project ID is provided
       if (defaultProjetoId) {
         setLoadingContext(true);
         (async () => {
           try {
-            const { data: projeto, error: projErr } = await supabase
-              .from("projetos")
-              .select("*, clientes(*)")
-              .eq("id", defaultProjetoId)
-              .maybeSingle();
+            const [projRes, totalPagoRes] = await Promise.all([
+              supabase
+                .from("projetos")
+                .select("*, clientes(*)")
+                .eq("id", defaultProjetoId)
+                .maybeSingle(),
+              supabase
+                .from("recibos")
+                .select("valor")
+                .eq("projeto_id", defaultProjetoId)
+                .eq("status", "emitido")
+            ]);
 
-            if (!projErr && projeto) {
+            if (projRes.data) {
+              const projeto = projRes.data;
               setProjectContext(projeto);
               if (!defaultClienteId && projeto.cliente_id) {
                 setClienteId(projeto.cliente_id);
               }
 
-              // Buscar proposta aceita do deal (suggestion para valor + parcelas)
+              // Calcular total pago
+              const pago = (totalPagoRes.data || []).reduce((acc, r) => acc + Number(r.valor), 0);
+              setTotalPago(pago);
+
+              // Buscar proposta aceita
               const dealId = defaultDealId ?? (projeto as any).deal_id;
               if (dealId) {
-                const { data: prop } = await supabase
-                  .from("propostas_nativas")
-                  .select("id, deal_id, status, created_at")
-                  .eq("deal_id", dealId)
-                  .eq("status", "aceita")
-                  .order("created_at", { ascending: false })
-                  .limit(1)
-                  .maybeSingle();
-                if (prop) {
-                  // Buscar versão atual + opção de pagamento principal
+                const [propRes, creditRes] = await Promise.all([
+                  supabase
+                    .from("propostas_nativas")
+                    .select("id, deal_id, status, created_at")
+                    .eq("deal_id", dealId)
+                    .eq("status", "aceita")
+                    .order("created_at", { ascending: false })
+                    .limit(1)
+                    .maybeSingle(),
+                  supabase
+                    .from("analise_credito")
+                    .select("banco")
+                    .eq("deal_id", dealId)
+                    .order("created_at", { ascending: false })
+                    .limit(1)
+                    .maybeSingle()
+                ]);
+
+                if (creditRes.data?.banco) {
+                  setInstituicaoFinanceira(creditRes.data.banco);
+                }
+
+                if (propRes.data) {
+                  const prop = propRes.data;
                   const { data: versao } = await supabase
                     .from("proposta_versoes")
                     .select("id, valor_total, potencia_kwp")
@@ -112,6 +145,7 @@ export function EmitirReciboModal({
                     .order("versao_numero", { ascending: false })
                     .limit(1)
                     .maybeSingle();
+                  
                   const { data: opcao } = versao
                     ? await supabase
                         .from("proposta_pagamento_opcoes")
@@ -121,6 +155,7 @@ export function EmitirReciboModal({
                         .limit(1)
                         .maybeSingle()
                     : { data: null as any };
+                    
                   setProposalContext({ proposta: prop, versao, opcao });
                 }
               }
@@ -140,21 +175,37 @@ export function EmitirReciboModal({
     [templates, templateId],
   );
 
-  // Sugestão de valor a partir da proposta aceita (independente de template)
+  // Bloco 1, 3 e 4: Cálculo de saldo e sugestões automáticas
+  const valorTotalVenda = useMemo(() => {
+    return Number(proposalContext?.versao?.valor_total ?? projectContext?.valor_total ?? 0);
+  }, [proposalContext, projectContext]);
+
+  const saldoDevedorAtual = useMemo(() => {
+    return Math.max(0, valorTotalVenda - totalPago);
+  }, [valorTotalVenda, totalPago]);
+
+  const saldoRestanteAposRecibo = useMemo(() => {
+    const vRecibo = Number(valor || 0);
+    return valorTotalVenda - totalPago - vRecibo;
+  }, [valorTotalVenda, totalPago, valor]);
+
+  // Aplicar sugestões baseadas no template
   useEffect(() => {
-    if (valor) return;
-    const v =
-      proposalContext?.versao?.valor_total ??
-      projectContext?.valor_total ??
-      null;
-    if (v && Number(v) > 0) {
-      // Padrão 30% se for sinal
-      const isSinal = template?.nome?.toLowerCase().includes("sinal") ||
-                     descricao?.toLowerCase().includes("sinal");
-      const finalValor = isSinal ? (Number(v) * 0.3) : Number(v);
-      setValor(finalValor.toFixed(2));
+    if (!template) return;
+    
+    const nome = template.nome.toLowerCase();
+    if (nome.includes("sinal")) {
+      const sugerido = valorTotalVenda * 0.3;
+      setValor(sugerido.toFixed(2));
+      setDescricao("Sinal referente ao contrato de instalação solar");
+    } else if (nome.includes("quitação") || nome.includes("quitacao")) {
+      setValor(saldoDevedorAtual.toFixed(2));
+      setDescricao("Quitação do contrato de instalação solar");
+    } else if (nome.includes("parcela")) {
+      // Buscar último recibo para incrementar número? (Opcional, manual por enquanto ou auto se houver histórico)
+      setDescricao(`Parcela do contrato de instalação solar`);
     }
-  }, [proposalContext, projectContext, template, descricao]);
+  }, [template, valorTotalVenda, saldoDevedorAtual]);
 
   // Auto-fill dynamic fields. Roda assim que houver projectContext/proposalContext,
   // e re-aplica quando um template é selecionado depois.
@@ -258,24 +309,23 @@ export function EmitirReciboModal({
   }, [template]);
 
   const canSubmit =
-    !!templateId && !!clienteId && Number(valor) > 0 && !emitir.isPending;
+    !!templateId && !!clienteId && Number(valor) > 0 && Number(valor) <= saldoDevedorAtual + 0.01 && !!formaPagamento && !emitir.isPending;
 
   async function handleSubmit() {
     if (!canSubmit) return;
-    const dados: Record<string, unknown> = { ...dynFields };
-    if (descricao) dados["descricao"] = descricao;
-    if (valor) dados["valor"] = Number(valor);
-    if (formaPagamento) dados["forma_pagamento"] = formaPagamento;
+    const camposExtras: Record<string, unknown> = { ...dynFields };
+    if (instituicaoFinanceira) camposExtras["instituicao_financeira"] = instituicaoFinanceira;
 
     const id = await emitir.mutateAsync({
-      template_id: templateId,
+      template: template?.nome || "Recibo",
       cliente_id: clienteId,
-      projeto_id: projetoId || null,
-      deal_id: defaultDealId ?? null,
+      projeto_id: projetoId!,
       descricao: descricao || undefined,
       numero: numero || undefined,
       valor: Number(valor),
-      dados_preenchidos: dados,
+      forma_pagamento: formaPagamento,
+      data_pagamento: dataPagamento,
+      campos_extras: camposExtras,
       generate_pdf: true,
     });
     onEmitted?.(id);
@@ -321,32 +371,62 @@ export function EmitirReciboModal({
 
           <div className="space-y-1.5 sm:col-span-2">
             <Label className="text-xs">Cliente</Label>
-            <Select
-              value={clienteId}
-              onValueChange={setClienteId}
-              disabled={loadingClientes || !!defaultProjetoId || !!defaultClienteId}
-            >
-              <SelectTrigger><SelectValue placeholder={loadingClientes ? "Carregando..." : "Selecione o cliente"} /></SelectTrigger>
-              <SelectContent>
-                {(clientes ?? []).map((c) => (
-                  <SelectItem key={c.id} value={c.id}>
-                    {c.nome}{c.cpf_cnpj ? ` — ${c.cpf_cnpj}` : ""}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {(!!defaultProjetoId || !!defaultClienteId) && (
-              <p className="text-[10px] text-muted-foreground">Cliente definido pelo projeto</p>
-            )}
+            <div className="p-2.5 rounded-lg border bg-muted/50 flex justify-between items-center">
+              <div className="flex flex-col">
+                <span className="text-sm font-semibold">{projectContext?.clientes?.nome || "Selecione um projeto"}</span>
+                <span className="text-[10px] text-muted-foreground uppercase tracking-tight">{projectContext?.clientes?.cpf_cnpj || "CPF/CNPJ não disponível"}</span>
+              </div>
+              <Badge variant="outline" className="text-[9px] uppercase">Projeto vinculado</Badge>
+            </div>
+          </div>
+
+          <div className="space-y-1.5 p-3 rounded-lg bg-muted/30 sm:col-span-2">
+            <div className="flex justify-between items-center text-xs">
+              <span className="text-muted-foreground font-medium uppercase tracking-wider">Resumo do Financeiro</span>
+              {saldoRestanteAposRecibo <= 0 ? (
+                <span className="text-success font-bold flex items-center gap-1">Quitado ✓</span>
+              ) : saldoRestanteAposRecibo < valorTotalVenda ? (
+                <span className="text-amber-500 font-bold">Restam {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(saldoRestanteAposRecibo)}</span>
+              ) : null}
+            </div>
+            <div className="grid grid-cols-3 gap-2 mt-2">
+              <div className="flex flex-col">
+                <span className="text-[10px] text-muted-foreground uppercase">Valor Venda</span>
+                <span className="text-sm font-bold">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(valorTotalVenda)}</span>
+              </div>
+              <div className="flex flex-col border-l pl-2">
+                <span className="text-[10px] text-muted-foreground uppercase">Total Pago</span>
+                <span className="text-sm font-bold text-success">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalPago)}</span>
+              </div>
+              <div className="flex flex-col border-l pl-2">
+                <span className="text-[10px] text-muted-foreground uppercase">Saldo Devedor</span>
+                <span className={cn("text-sm font-bold", saldoDevedorAtual > 0 ? "text-destructive" : "text-success")}>
+                  {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(saldoDevedorAtual)}
+                </span>
+              </div>
+            </div>
           </div>
 
           <div className="space-y-1.5">
-            <Label className="text-xs">Valor (R$)</Label>
+            <Label className="text-xs">Valor deste Recibo (R$)</Label>
             <Input
               type="number" step="0.01" min="0"
               value={valor}
               onChange={(e) => setValor(e.target.value)}
               placeholder="0,00"
+              className={cn(Number(valor) > saldoDevedorAtual + 0.01 && "border-destructive text-destructive")}
+            />
+            {Number(valor) > saldoDevedorAtual + 0.01 && (
+              <p className="text-[10px] text-destructive font-medium italic">Valor maior que o saldo devedor!</p>
+            )}
+          </div>
+
+          <div className="space-y-1.5">
+            <Label className="text-xs">Data do Pagamento</Label>
+            <Input
+              type="date"
+              value={dataPagamento}
+              onChange={(e) => setDataPagamento(e.target.value)}
             />
           </div>
 
@@ -355,14 +435,28 @@ export function EmitirReciboModal({
             <Select value={formaPagamento} onValueChange={setFormaPagamento}>
               <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="Pix">Pix</SelectItem>
-                <SelectItem value="Boleto">Boleto</SelectItem>
+                <SelectItem value="PIX">PIX</SelectItem>
+                <SelectItem value="TED/DOC">Transferência (TED/DOC)</SelectItem>
+                <SelectItem value="Boleto">Boleto Bancário</SelectItem>
                 <SelectItem value="Cartão de Crédito">Cartão de Crédito</SelectItem>
-                <SelectItem value="Transferência Bancária">Transferência Bancária</SelectItem>
+                <SelectItem value="Cartão de Débito">Cartão de Débito</SelectItem>
                 <SelectItem value="Dinheiro">Dinheiro</SelectItem>
+                <SelectItem value="Cheque">Cheque</SelectItem>
+                <SelectItem value="Financiamento">Financiamento (EOS / Banco)</SelectItem>
               </SelectContent>
             </Select>
           </div>
+
+          {formaPagamento === "Financiamento" && (
+            <div className="space-y-1.5">
+              <Label className="text-xs">Instituição Financeira</Label>
+              <Input
+                value={instituicaoFinanceira}
+                onChange={(e) => setInstituicaoFinanceira(e.target.value)}
+                placeholder="Ex: EOS, BV, Santander..."
+              />
+            </div>
+          )}
 
           <div className="space-y-1.5 sm:col-span-2">
             <Label className="text-xs">Número (opcional)</Label>

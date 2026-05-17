@@ -15,16 +15,14 @@ import {
   useReciboPDF,
   useDeleteRecibo,
   getReciboSignedUrl,
-  type ReciboEmitido,
+  type Recibo,
 } from "@/hooks/useRecibos";
 import type { DocumentTemplate } from "./types";
 import { format } from "date-fns";
 import { toast } from "sonner";
 
-const STATUS_LABEL: Record<ReciboEmitido["status"], string> = {
+const STATUS_LABEL: Record<Recibo["status"], string> = {
   emitido: "Emitido",
-  enviado: "Enviado",
-  assinado: "Assinado",
   cancelado: "Cancelado",
 };
 
@@ -45,7 +43,7 @@ export function RecibosTab() {
 
   const { data: templates, isLoading, upsert } = useDocumentTemplates("recibo");
   const { settings: brand } = useBrandSettings();
-  const { data: recibos, isLoading: loadingRecibos } = useRecibos();
+  const { data: recibos, isLoading: loadingRecibos } = useRecibos({});
   const regenPdf = useReciboPDF();
   const deleteRecibo = useDeleteRecibo();
 
@@ -76,9 +74,9 @@ export function RecibosTab() {
     [brand],
   );
 
-  async function handleOpenPdf(r: ReciboEmitido) {
+  async function handleOpenPdf(r: Recibo) {
     try {
-      let path = r.pdf_path;
+      let path = r.pdf_url;
       if (!path) {
         const res = await regenPdf.mutateAsync(r.id);
         path = res.pdf_path;
@@ -244,12 +242,12 @@ export function RecibosTab() {
                             {r.cliente?.nome ?? "—"}
                           </span>
                           <Badge variant="outline" className="text-[10px]">{STATUS_LABEL[r.status]}</Badge>
-                          {r.template?.nome && (
-                            <Badge variant="secondary" className="text-[10px]">{r.template.nome}</Badge>
+                          {r.template && (
+                            <Badge variant="secondary" className="text-[10px]">{r.template}</Badge>
                           )}
                         </div>
                         <p className="text-[11px] text-muted-foreground mt-0.5">
-                          {fmtBRL(Number(r.valor))} • {format(new Date(r.emitido_em), "dd/MM/yy HH:mm")}
+                          {fmtBRL(Number(r.valor))} • {format(new Date(r.created_at), "dd/MM/yy HH:mm")}
                           {r.numero ? ` • Nº ${r.numero}` : ""}
                         </p>
                         {r.descricao && (

@@ -13,22 +13,18 @@ import {
 } from "@/components/ui/dialog";
 import {
   useRecibos, useReciboPDF, useDeleteRecibo, useEnviarReciboWa,
-  useReciboLogs, getReciboSignedUrl, type ReciboEmitido, type ReciboFilters,
+  useReciboLogs, getReciboSignedUrl, type Recibo, type ReciboFilters,
 } from "@/hooks/useRecibos";
 import { EmitirReciboModal } from "@/components/admin/documentos/EmitirReciboModal";
 import { toast } from "sonner";
 
-const STATUS_LABEL: Record<ReciboEmitido["status"], string> = {
+const STATUS_LABEL: Record<Recibo["status"], string> = {
   emitido: "Emitido",
-  enviado: "Enviado",
-  assinado: "Assinado",
   cancelado: "Cancelado",
 };
 
-const STATUS_VARIANT: Record<ReciboEmitido["status"], string> = {
+const STATUS_VARIANT: Record<Recibo["status"], string> = {
   emitido: "bg-info/10 text-info border-info/20",
-  enviado: "bg-success/10 text-success border-success/20",
-  assinado: "bg-primary/10 text-primary border-primary/20",
   cancelado: "bg-destructive/10 text-destructive border-destructive/20",
 };
 
@@ -61,9 +57,9 @@ export function ProjetoRecibosTab({
   const [emitirOpen, setEmitirOpen] = useState(false);
   const [logsReciboId, setLogsReciboId] = useState<string | null>(null);
 
-  async function handleOpenPdf(r: ReciboEmitido) {
+  async function handleOpenPdf(r: Recibo) {
     try {
-      let path = r.pdf_path;
+      let path = r.pdf_url;
       if (!path) {
         const res = await regen.mutateAsync(r.id);
         path = res.pdf_path;
@@ -112,15 +108,15 @@ export function ProjetoRecibosTab({
                       <Badge variant="outline" className={`text-[10px] ${STATUS_VARIANT[r.status]}`}>
                         {STATUS_LABEL[r.status]}
                       </Badge>
-                      {r.template?.nome && (
-                        <Badge variant="secondary" className="text-[10px]">{r.template.nome}</Badge>
+                      {r.template && (
+                        <Badge variant="secondary" className="text-[10px]">{r.template}</Badge>
                       )}
                       {r.numero && (
                         <Badge variant="outline" className="text-[10px]">Nº {r.numero}</Badge>
                       )}
                     </div>
                     <p className="text-[11px] text-muted-foreground mt-0.5">
-                      {fmtBRL(Number(r.valor))} • {format(new Date(r.emitido_em), "dd/MM/yy HH:mm")}
+                      {fmtBRL(Number(r.valor))} • {format(new Date(r.created_at), "dd/MM/yy HH:mm")}
                     </p>
                     {r.descricao && (
                       <p className="text-[11px] text-muted-foreground mt-0.5 truncate">{r.descricao}</p>
