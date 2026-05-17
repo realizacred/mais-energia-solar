@@ -100,7 +100,7 @@ export function useOperationalStatus(dealId: string | null) {
         return STATUS_CONFIG.desconhecido;
       }
 
-      const { activation, homologacao, os_instalacao, deal, memberships } = data;
+      const { activation, homologacao, os_instalacao, deal, memberships, projeto } = data;
 
       const funnelMemberships = memberships || [];
 
