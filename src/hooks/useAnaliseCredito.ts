@@ -373,13 +373,13 @@ export function useVincularDocumentoCredito() {
       const upsertData = {
         tenant_id: profile?.tenant_id,
         analise_credito_id,
-        project_document_id,
+        file_id: project_document_id, // Corrigido de project_document_id para file_id
         checklist_item_id
       };
 
       const { data, error } = await supabase
         .from("analise_credito_documentos")
-        .upsert(upsertData as any, { onConflict: 'analise_credito_id,project_document_id' })
+        .upsert(upsertData as any, { onConflict: 'analise_credito_id,file_id' }) // Corrigido conflito
         .select()
         .single();
 
