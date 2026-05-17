@@ -34,8 +34,7 @@ import { useUserRole } from "@/hooks/useUserRole";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { formatBRL } from "@/lib/formatters";
-import { formatDateTime } from "@/lib/dateUtils";
+import { formatBRL, displayDate } from "@/lib/formatters/index";
 import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -318,7 +317,7 @@ export function ProjetoCreditoTab({ dealId, leadId, clienteId, clienteCpfCnpj, v
                         {STATUS_CONFIG[analise.status]?.label}
                       </Badge>
                       <div className="text-xs font-medium">
-                        {formatBRL(analise.valor_solicitado || 0)} em {formatDateTime(analise.created_at)}
+                        {formatBRL(analise.valor_solicitado || 0)} em {displayDate(analise.created_at)}
                       </div>
                     </div>
                     <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => handleEditAnalysis(analise)}>
