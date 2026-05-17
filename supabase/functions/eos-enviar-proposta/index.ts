@@ -73,10 +73,10 @@ serve(async (req) => {
     }
 
     // 5. Enviar para EOS
-    const eosResponse = await fetch(`${baseUrl}/propostas`, {
+    const eosResponse = await fetch(`${base_url}/propostas`, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${tokenData.access_token}`,
+        'x-api-key': api_key,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(payload),
