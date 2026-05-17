@@ -422,6 +422,9 @@ export default function CreditGlobalArea() {
           <p className="text-muted-foreground">Governança, observabilidade e orquestração de crédito enterprise.</p>
         </div>
         <div className="flex gap-2">
+          <Button variant="outline" size="sm" className="gap-2" onClick={handleSyncEos}>
+            <RefreshCw className="h-4 w-4" /> Sincronizar EOS
+          </Button>
           <Popover>
             <PopoverTrigger asChild>
               <Button variant="outline" className="gap-2">
