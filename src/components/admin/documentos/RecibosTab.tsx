@@ -21,10 +21,8 @@ import type { DocumentTemplate } from "./types";
 import { format } from "date-fns";
 import { toast } from "sonner";
 
-const STATUS_LABEL: Record<ReciboEmitido["status"], string> = {
+const STATUS_LABEL: Record<Recibo["status"], string> = {
   emitido: "Emitido",
-  enviado: "Enviado",
-  assinado: "Assinado",
   cancelado: "Cancelado",
 };
 
