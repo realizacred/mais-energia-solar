@@ -294,6 +294,20 @@ export function ComissoesManager() {
         aprovada_por: user?.id,
       });
       toast({ title: "Comissão aprovada com sucesso!" });
+
+      // Notificar Hub
+      supabase.functions.invoke('notification-hub', {
+        body: {
+          evento: 'comissao_aprovada',
+          tenant_id: (comissao as any).tenant_id,
+          dados: {
+            comissao_id: comissao.id,
+            consultor_id: comissao.consultor_id,
+            valor: comissao.valor_comissao,
+            descricao: comissao.descricao
+          }
+        }
+      }).catch(err => console.error("[notification-hub] Erro ao invocar:", err));
     } catch (error) {
       toast({ title: "Erro ao aprovar comissão", variant: "destructive" });
     }
