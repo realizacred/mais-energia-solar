@@ -9,7 +9,7 @@
  */
 
 // ─── Re-exports from existing SSOT files ─────────────────────
-export {
+import {
   formatBRL,
   formatBRLInteger,
   formatBRLCompact,
@@ -19,6 +19,15 @@ export {
 } from "../formatters";
 
 export {
+  formatBRL,
+  formatBRLInteger,
+  formatBRLCompact,
+  formatNumberBR,
+  parseBRNumber,
+  roundCurrency,
+};
+
+import {
   formatCpfCnpj,
   onlyDigits,
   isValidCpf,
@@ -28,12 +37,31 @@ export {
 } from "../cpfCnpjUtils";
 
 export {
-  formatPhone as formatPhoneMasked,
+  formatCpfCnpj,
+  onlyDigits,
+  isValidCpf,
+  isValidCnpj,
+  isValidCpfCnpj,
+  CPF_CNPJ_MAX_LENGTH,
+};
+
+import {
+  formatPhone as formatPhoneMaskedOriginal,
   formatCEP,
   formatName,
   normalizeEmail,
   validateEmail,
 } from "../validations";
+
+export {
+  formatPhoneMaskedOriginal as formatPhoneMasked,
+  formatCEP,
+  formatName,
+  normalizeEmail,
+  validateEmail,
+};
+
+
 
 // ─── DOCUMENT FORMATTERS ─────────────────────────────────────
 
@@ -259,6 +287,17 @@ export function formatUF(value: string | null | undefined): string {
   return value.trim().toUpperCase().slice(0, 2);
 }
 
+/**
+ * Capitalize first letter of each word
+ */
+export function formatNameCapitalize(v: string): string {
+  if (!v) return "";
+  return v.toLowerCase()
+    .split(' ')
+    .map(w => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(' ');
+}
+
 // ─── INSTALLMENT FORMATTER ───────────────────────────────────
 
 /**
@@ -286,3 +325,19 @@ export function formatKwhValue(value: number | null | undefined): string {
   if (value === null || value === undefined) return "—";
   return Math.round(value).toLocaleString("pt-BR");
 }
+
+// ─── DISPLAY HELPERS ─────────────────────────────────────────
+
+export const displayCpfCnpj = (v: string | null | undefined) =>
+  v ? formatDocument(v) : "—";
+
+export const displayPhone = (v: string | null | undefined) =>
+  v ? formatPhoneBR(v) : "—";
+
+export const displayCurrency = (v: number | null | undefined) =>
+  v !== null && v !== undefined ? formatBRL(v) : "—";
+
+
+export const displayDate = (v: string | Date | null | undefined) =>
+  formatDate(v);
+

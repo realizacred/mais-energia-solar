@@ -7,8 +7,12 @@ import { ConsultorHorariosEdit } from "@/components/admin/settings/ConsultorHora
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
-import { formatPhone, formatName } from "@/lib/validations";
-import { PhoneInput } from "@/components/ui-kit/inputs/PhoneInput";
+import { 
+  displayPhone as formatPhoneBR,
+  formatNameCapitalize as formatName
+} from "@/lib/formatters/index";
+import { PhoneInput } from "@/components/ui-kit/inputs";
+
 import { getPublicUrl } from "@/lib/getPublicUrl";
 import { isEmailAlreadyRegisteredError, parseInvokeError } from "@/lib/supabaseFunctionError";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -265,7 +269,8 @@ export default function VendedoresManager({ leads: propLeads }: VendedoresManage
         const { error } = await supabase
           .from("consultores")
           .update({
-            nome: formData.nome,
+            nome: formatName(formData.nome),
+
             telefone: formData.telefone,
             email: formData.email || null,
             user_id: formData.user_id || null,
@@ -493,7 +498,8 @@ export default function VendedoresManager({ leads: propLeads }: VendedoresManage
   const openEditDialog = (vendedor: Vendedor) => {
     setEditingVendedor(vendedor);
     setFormData({
-      nome: vendedor.nome,
+      nome: formatName(vendedor.nome),
+
       telefone: vendedor.telefone,
       email: vendedor.email || "",
       user_id: vendedor.user_id || "",
@@ -727,7 +733,7 @@ export default function VendedoresManager({ leads: propLeads }: VendedoresManage
                     <div className="space-y-1">
                       <div className="flex items-center gap-1 text-sm text-foreground">
                         <Phone className="w-3 h-3 text-muted-foreground" />
-                        {vendedor.telefone}
+                        {formatPhoneBR(vendedor.telefone)}
                       </div>
                       {vendedor.email && (
                         <div className="flex items-center gap-1 text-sm text-muted-foreground">

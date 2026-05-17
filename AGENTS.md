@@ -320,6 +320,21 @@ SEMPRE usar o helper getStorageBucket(origem) para determinar o bucket.
 NUNCA hardcodar string de bucket no componente.
 Helper canônico em src/lib/storage.ts.
 
+BIBLIOTECA CANÔNICA DE FORMATAÇÃO:
+src/lib/formatters/index.ts → SSOT de todas as funções (formatBRL, formatCPF, formatPhoneBR, displayCurrency, etc).
+src/components/ui-kit/inputs/ → Componentes padronizados (CpfCnpjInput, PhoneInput, CurrencyInput, DateInput, CepInput).
+
+PROIBIDO:
+- Implementar máscara inline no componente.
+- Duplicar função de formatação.
+- Usar biblioteca externa de máscara (react-input-mask, imask, etc) — usar formatters/index.ts.
+
+OBRIGATÓRIO em qualquer novo formulário:
+- Importar de src/lib/formatters/index.ts.
+- Usar componentes de src/components/ui-kit/inputs/.
+- NUNCA criar input de CPF/telefone/CEP do zero.
+
+
 =============================================================================
 BLOCO 23 — CORREÇÕES E MELHORIAS v3.13 [mantido]
 =============================================================================
