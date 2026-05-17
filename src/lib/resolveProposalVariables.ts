@@ -387,7 +387,7 @@ function resolveFromContext(
     return s(ctx.comercial?.empresa_cnpj_cpf ?? (ctx.finalSnapshot as any)?.empresa_cnpj);
   }
   if (key === "comercial.empresa_telefone") {
-    return s(ctx.empresaTelefone ?? (ctx.finalSnapshot as any)?.empresa_telefone);
+    return displayPhone(ctx.empresaTelefone ?? (ctx.finalSnapshot as any)?.empresa_telefone);
   }
   if (key === "comercial.empresa_logo") {
     return s(ctx.empresaLogo ?? (ctx.finalSnapshot as any)?.empresa_logo);
