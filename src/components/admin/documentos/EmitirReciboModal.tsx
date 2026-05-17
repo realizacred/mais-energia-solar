@@ -373,11 +373,11 @@ export function EmitirReciboModal({
     const nome = template.nome.toLowerCase();
     if (nome.includes("sinal")) {
       const sugerido = valorTotalVenda * 0.3;
-      setValor(sugerido.toFixed(2));
+      setValor(sugerido);
       setDescricao("Sinal referente ao contrato de instalação solar");
       setNumero(""); // Sinal geralmente é o primeiro
     } else if (nome.includes("quitação") || nome.includes("quitacao")) {
-      setValor(saldoDevedorAtual.toFixed(2));
+      setValor(saldoDevedorAtual);
       setDescricao("Quitação do contrato de instalação solar");
     } else if (nome.includes("parcela")) {
       setDescricao(`Parcela do contrato de instalação solar`);
