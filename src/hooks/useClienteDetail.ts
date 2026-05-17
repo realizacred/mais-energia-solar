@@ -116,6 +116,41 @@ export function useClientePropostaVersoes(propostaIds: string[]) {
   });
 }
 
+export interface ClienteProjectDocument {
+  id: string;
+  projeto_id: string | null;
+  categoria: string | null;
+  bucket: string;
+  storage_path: string;
+  file_name: string | null;
+  display_name: string | null;
+  mime_type: string | null;
+  created_at: string;
+}
+
+/**
+ * Todos os documentos de projetos do cliente (project_documents)
+ */
+export function useClienteProjectDocuments(clienteId: string | null) {
+  return useQuery({
+    queryKey: ["cliente-project-documents", clienteId],
+    queryFn: async () => {
+      if (!clienteId) return [];
+      const { data, error } = await supabase
+        .from("project_documents")
+        .select("id, projeto_id, categoria, bucket, storage_path, file_name, display_name, mime_type, created_at")
+        .eq("cliente_id", clienteId)
+        .eq("is_deleted", false)
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return (data || []) as ClienteProjectDocument[];
+    },
+    staleTime: STALE_TIME,
+    refetchOnMount: REFETCH_ON_MOUNT,
+    enabled: !!clienteId,
+  });
+}
+
 /**
  * Conversas WhatsApp vinculadas ao telefone do cliente
  */
