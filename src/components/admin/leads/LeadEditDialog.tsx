@@ -119,6 +119,10 @@ export function LeadEditDialog({
   const [sendingWa, setSendingWa] = useState(false);
   const [phoneChanged, setPhoneChanged] = useState(false);
 
+  const [duplicateLead, setDuplicateLead] = useState<{ id: string; nome: string; consultor_nome: string | null } | null>(null);
+  const [showDuplicateDialog, setShowDuplicateDialog] = useState(false);
+  const navigate = useNavigate();
+
   // Reset form when dialog opens
   useEffect(() => {
     if (open) {
