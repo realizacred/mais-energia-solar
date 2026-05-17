@@ -462,18 +462,18 @@ export function EmitirReciboModal({
       });
     }
 
-    // Auto-fill specialized fields for receipts
     if (template?.subcategoria) {
       setDynFields(prev => {
         const merged = { ...prev };
-        merged["valor_recibo"] = valor;
+        merged["valor_recibo"] = formatBRL(valor);
         merged["numero_recibo"] = numero || (ultimoNumeroRecibo + 1).toString();
-        merged["saldo_devedor"] = saldoRestanteAposRecibo.toFixed(2);
-        merged["projeto_valor_total"] = valorTotalVenda.toFixed(2);
+        merged["saldo_devedor"] = formatBRL(saldoRestanteAposRecibo);
+        merged["projeto_valor_total"] = formatBRL(valorTotalVenda);
+        merged["data_pagamento"] = dataPagamento ? new Date(dataPagamento + 'T12:00:00').toLocaleDateString('pt-BR') : "";
         return merged;
       });
     }
-  }, [template, projectContext, proposalContext, valor, numero, ultimoNumeroRecibo, saldoRestanteAposRecibo, valorTotalVenda]);
+  }, [template, projectContext, proposalContext, valor, numero, ultimoNumeroRecibo, saldoRestanteAposRecibo, valorTotalVenda, dataPagamento]);
 
 
 
