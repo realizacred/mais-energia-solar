@@ -149,6 +149,14 @@ export function EmitirReciboModal({
   const { data: templates, isLoading: loadingTpls } = useDocumentTemplates("recibo");
   const { data: clientes, isLoading: loadingClientes } = useClientes();
   const emitir = useEmitirRecibo();
+  const requestIdRefMain = useRef(0);
+  const timeoutRefMain = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (timeoutRefMain.current) clearTimeout(timeoutRefMain.current);
+    };
+  }, []);
 
   const [templateId, setTemplateId] = useState<string>("");
   const [clienteId, setClienteId] = useState<string>(defaultClienteId ?? "");
