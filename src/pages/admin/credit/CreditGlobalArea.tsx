@@ -318,6 +318,20 @@ export default function CreditGlobalArea() {
     }
   };
 
+  const handleSyncEos = async () => {
+    try {
+      const { data: profile } = await supabase.from("profiles").select("tenant_id").eq("user_id", user?.id).single();
+      const { data, error } = await supabase.functions.invoke('eos-listar-propostas', {
+        body: { tenant_id: profile?.tenant_id }
+      });
+      if (error) throw error;
+      toast({ title: "Sincronização concluída", description: `${data.syncCount} propostas atualizadas.` });
+      queryClient.invalidateQueries({ queryKey: ["admin-credit-analyses"] });
+    } catch (error: any) {
+      toast({ title: "Erro na sincronização", description: error.message, variant: "destructive" });
+    }
+  };
+
   const exportToExcel = () => {
     const ws = XLSX.utils.json_to_sheet(filteredAnalyses?.map(a => ({
       Cliente: a.deal?.title || a.lead?.nome,
