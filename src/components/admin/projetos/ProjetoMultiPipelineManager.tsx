@@ -14,6 +14,8 @@ import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
 import { useUserFunnelOrder } from "@/hooks/useUserFunnelOrder";
 import { useUserRole } from "@/hooks/useUserRole";
+import { formatBRL } from "@/lib/formatters";
+import { VincularFornecedorModal } from "@/components/vendor/VincularFornecedorModal";
 import {
   AlertDialog,
   AlertDialogAction,
