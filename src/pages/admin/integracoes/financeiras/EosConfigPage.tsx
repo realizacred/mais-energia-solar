@@ -110,6 +110,7 @@ export default function EosIntegrationConfig() {
         ativo: formData.ativo,
         eos_onboarding_step: formData.eos_onboarding_step,
         eos_integrador_id: formData.eos_integrador_id,
+        eos_webhook_secret: formData.eos_webhook_secret,
         updated_at: new Date().toISOString()
       };
 
