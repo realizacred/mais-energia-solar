@@ -170,6 +170,15 @@ export default function CreditGlobalArea() {
   const [simulationOptions, setSimulationOptions] = useState<any[]>([]);
   const [isSendingToEos, setIsSendingToEos] = useState(false);
 
+  useEffect(() => {
+    if (selectedAnalysis?.simulacao_resultado) {
+      const results = selectedAnalysis.simulacao_resultado;
+      setSimulationOptions(Array.isArray(results) ? results : (results.opcoes || []));
+    } else {
+      setSimulationOptions([]);
+    }
+  }, [selectedAnalysis]);
+
   const { data: checklist } = useCreditBankChecklist(selectedAnalysis?.bank_config_id || undefined);
   
   const filteredChecklist = useMemo(() => {
