@@ -807,7 +807,7 @@ export function CreditAnalysisWizard({
                         <span className="text-muted-foreground">CPF/CNPJ:</span>
                         <span className="font-medium text-right">{formData.cpf_cnpj || formData.cnpj}</span>
                         <span className="text-muted-foreground">Renda Mensal:</span>
-                        <span className="font-medium text-right">{formatBRL(parseFloat(formData.renda_mensal || '0'))}</span>
+                        <span className="font-medium text-right">{formatBRL(parseBRNumber(formData.renda_mensal || '0'))}</span>
                       </div>
                     </div>
 
