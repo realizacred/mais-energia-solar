@@ -1,4 +1,7 @@
-
+/**
+ * @deprecated Este componente foi substituído pelo EmitirReciboModal.tsx
+ * NÃO usar em novos desenvolvimentos.
+ */
 import { formatBRL } from "@/lib/formatters"; import { Dialog, DialogContent } from "@/components/ui/dialog";
  import { Button } from "@/components/ui/button";
  import { Printer, X } from "lucide-react";
