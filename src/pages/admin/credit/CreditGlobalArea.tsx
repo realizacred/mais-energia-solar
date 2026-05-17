@@ -32,9 +32,10 @@ import {
   Printer,
   CalendarDays,
   FileSpreadsheet,
-  RefreshCw
+  RefreshCw,
+  Building
 } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { 
   Table, 
@@ -82,7 +83,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { useCreditBankChecklist } from "@/hooks/useCreditConfigs";
+import { useCreditBankChecklist, useCreditBankConfigs } from "@/hooks/useCreditConfigs";
 import { 
   LineChart, 
   Line, 
@@ -447,9 +448,9 @@ export default function CreditGlobalArea() {
         <div>
           <h1 className="text-3xl font-bold tracking-tight flex items-center gap-3">
             <Activity className="h-8 w-8 text-primary" />
-            Bank Operations Core
+            Credit Operations
           </h1>
-          <p className="text-muted-foreground">Governança, observabilidade e orquestração de crédito enterprise.</p>
+          <p className="text-muted-foreground">Monitoramento e gestão centralizada de solicitações de crédito.</p>
         </div>
         <div className="flex gap-2">
           <Button variant="outline" size="sm" className="gap-2" onClick={handleSyncEos}>
@@ -527,8 +528,9 @@ export default function CreditGlobalArea() {
       </div>
 
       <Tabs defaultValue="my-queue" className="w-full">
-        <TabsList className="grid w-full grid-cols-5 lg:w-[900px] mb-4 print:hidden">
+        <TabsList className="grid w-full grid-cols-6 lg:w-[1050px] mb-4 print:hidden">
           <TabsTrigger value="my-queue">Minha Fila</TabsTrigger>
+          <TabsTrigger value="banks_queue">Fila por Banco</TabsTrigger>
           <TabsTrigger value="analyses">Global de Análises</TabsTrigger>
           <TabsTrigger value="reports">Relatórios</TabsTrigger>
           <TabsTrigger value="jobs">Orquestração</TabsTrigger>
@@ -588,6 +590,13 @@ export default function CreditGlobalArea() {
               </Card>
             )}
           </div>
+        </TabsContent>
+
+        <TabsContent value="banks_queue">
+          <BanksQueueView 
+            analyses={analyses || []} 
+            onFilterByBank={(bankId) => setFilters(f => ({ ...f, bank: bankId, status: "all" }))} 
+          />
         </TabsContent>
 
         <TabsContent value="analyses">
@@ -1108,6 +1117,98 @@ function AnalysisCard({ analysis, onAction }: { analysis: any, onAction: (type: 
         </div>
       </CardContent>
     </Card>
+  );
+}
+
+function BanksQueueView({ analyses, onFilterByBank }: { analyses: any[], onFilterByBank: (bankName: string) => void }) {
+  const { data: bankConfigs } = useCreditBankConfigs();
+  
+  const bankStats = useMemo(() => {
+    if (!bankConfigs) return [];
+    
+    return bankConfigs.map(bank => {
+      const bankAnalyses = analyses.filter(a => a.banco === bank.bank_name || a.bank_config_id === bank.id);
+      const aguardando = bankAnalyses.filter(a => a.status === 'aguardando_analise').length;
+      const aprovadas = bankAnalyses.filter(a => ['aprovado_interno', 'aprovada', 'aprovado'].includes(a.status)).length;
+      const reprovadas = bankAnalyses.filter(a => ['reprovado', 'reprovada'].includes(a.status)).length;
+      const pre_aprovadas = bankAnalyses.filter(a => a.eos_status === 'pre_aprovada').length;
+      
+      const metadata = (bank as any).technical_metadata;
+      const type = metadata?.tipo === 'api_integrada' ? 'API' : 
+                   metadata?.fonte_sync === 'manual' ? 'Manual' : 'Parcial';
+
+      return {
+        id: bank.id,
+        name: bank.bank_name,
+        type,
+        aguardando,
+        aprovadas,
+        reprovadas,
+        pre_aprovadas
+      };
+    });
+  }, [bankConfigs, analyses]);
+
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      {bankStats.map((bank) => (
+        <Card key={bank.id} className="border-border/40 hover:shadow-md transition-shadow">
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-base font-bold flex items-center gap-2">
+                <Building className="h-4 w-4 text-primary" />
+                {bank.name}
+              </CardTitle>
+              <Badge variant={bank.type === 'API' ? 'success' : bank.type === 'Manual' ? 'outline' : 'warning'}>
+                {bank.type}
+              </Badge>
+            </div>
+            <CardDescription className="text-xs">
+              {bank.type === 'API' ? '● Integração Direta' : bank.type === 'Parcial' ? '⚠ Integração Parcial' : '⚠ Fluxo Manual'}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1">
+                <p className="text-[10px] uppercase font-semibold text-muted-foreground">Aguardando</p>
+                <p className="text-xl font-bold">{bank.aguardando}</p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-[10px] uppercase font-semibold text-muted-foreground">Aprovadas</p>
+                <p className="text-xl font-bold text-success">{bank.aprovadas}</p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-[10px] uppercase font-semibold text-muted-foreground">Reprovadas</p>
+                <p className="text-xl font-bold text-destructive">{bank.reprovadas}</p>
+              </div>
+              {bank.name.toLowerCase().includes('eos') && (
+                <div className="space-y-1">
+                  <p className="text-[10px] uppercase font-semibold text-muted-foreground">Pré-Aprov.</p>
+                  <p className="text-xl font-bold text-teal-600">{bank.pre_aprovadas}</p>
+                </div>
+              )}
+            </div>
+            <div className="flex gap-2 pt-2">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="flex-1 text-xs"
+                onClick={() => onFilterByBank(bank.name)}
+              >
+                Ver fila
+              </Button>
+              <Button 
+                variant="secondary" 
+                size="sm" 
+                className="flex-1 text-xs"
+              >
+                {bank.type === 'API' ? 'Sincronizar' : '+ Nova ficha'}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      ))}
+    </div>
   );
 }
 

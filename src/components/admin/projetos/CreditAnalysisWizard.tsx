@@ -5,6 +5,7 @@
  * - Libs: formatBRL, formatDateTime, cn, isValidCpf, isValidCnpj
  */
 import { useState, useMemo, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import { 
   Dialog, 
   DialogContent, 
@@ -32,7 +33,8 @@ import {
   Calculator,
   Edit2,
   Zap,
-  Loader2
+  Loader2,
+  Search
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -137,6 +139,71 @@ export function CreditAnalysisWizard({
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [searchStatus, setSearchStatus] = useState<'idle' | 'found' | 'not_found'>('idle');
+
+  const handleSearchCliente = async (val: string) => {
+    if (!val) return;
+    const digits = val.replace(/\D/g, "");
+    if (digits.length !== 11 && digits.length !== 14) {
+      toast({ title: "Formato inválido", description: "CPF deve ter 11 dígitos e CNPJ 14.", variant: "destructive" });
+      return;
+    }
+
+    try {
+      // 1. Buscar em clientes
+      const { data: cliente } = await supabase
+        .from("clientes")
+        .select("*")
+        .or(`cpf_cnpj.eq.${digits},cpf_cnpj.eq.${val}`)
+        .limit(1)
+        .single();
+
+      if (cliente) {
+        setFormData(prev => ({
+          ...prev,
+          cliente_nome: cliente.nome || "",
+          cpf_cnpj: formatCpfCnpj(cliente.cpf_cnpj || digits),
+          cliente_email: cliente.email || "",
+          cliente_telefone: formatPhone(cliente.telefone || ""),
+          cliente_data_nascimento: cliente.data_nascimento || "",
+          renda_mensal: (cliente.payment_composition as any)?.renda_mensal?.toString() || prev.renda_mensal,
+          patrimonio: (cliente.payment_composition as any)?.patrimonio?.toString() || prev.patrimonio,
+          razao_social: cliente.empresa || cliente.nome || "",
+          cnpj: digits.length === 14 ? digits : prev.cnpj,
+        }));
+        setSearchStatus('found');
+        toast({ title: "Cliente encontrado", description: "Dados preenchidos automaticamente." });
+        return;
+      }
+
+      // 2. Fallback em leads
+      const { data: lead } = await supabase
+        .from("leads")
+        .select("*")
+        .or(`telefone_normalized.ilike.%${digits.slice(-8)}%,email.eq.${val}`)
+        .limit(1)
+        .single();
+      
+      // Se não achou por telefone/email, tentar CPF se a tabela leads tivesse (não tem por padrão no dump, mas vamos tentar se existir coluna)
+      // O dump mostra que leads tem 'cpf' ou 'cpf_cnpj'? Não, mostra leads.email e leads.telefone_normalized.
+      
+      if (lead) {
+        setFormData(prev => ({
+          ...prev,
+          cliente_nome: lead.nome || "",
+          cliente_email: lead.email || "",
+          cliente_telefone: formatPhone(lead.telefone || ""),
+        }));
+        setSearchStatus('found');
+        toast({ title: "Lead encontrado", description: "Dados parciais preenchidos." });
+        return;
+      }
+
+      setSearchStatus('not_found');
+    } catch (e) {
+      setSearchStatus('not_found');
+    }
+  };
 
   const { data: banks } = useCreditBankConfigs();
   const { data: checklist } = useCreditBankChecklist(formData.bank_config_id || undefined);
@@ -386,7 +453,49 @@ export function CreditAnalysisWizard({
 
               {step === 2 && (
                 <div className="space-y-6 animate-in slide-in-from-right-2 duration-300">
-                  <h3 className="font-bold text-lg">Dados do Cliente</h3>
+                  <div className="flex flex-col gap-4">
+                    <div className="bg-muted/30 p-4 rounded-lg space-y-3">
+                      <Label className="text-sm font-semibold flex items-center gap-2">
+                        <Search className="h-4 w-4" />
+                        Buscar cliente por CPF/CNPJ
+                      </Label>
+                      <div className="flex gap-2">
+                        <Input 
+                          placeholder="___.___.___-__"
+                          value={formData.cpf_cnpj}
+                          onChange={(e) => setFormData({...formData, cpf_cnpj: formatCpfCnpj(e.target.value)})}
+                          onBlur={(e) => {
+                            const val = e.target.value.replace(/\D/g, "");
+                            if (val.length === 11 || val.length === 14) {
+                              handleSearchCliente(val);
+                            }
+                          }}
+                        />
+                        <Button 
+                          type="button" 
+                          variant="secondary"
+                          onClick={() => handleSearchCliente(formData.cpf_cnpj.replace(/\D/g, ""))}
+                        >
+                          Buscar
+                        </Button>
+                      </div>
+                      {searchStatus === 'found' && (
+                        <div className="flex items-center gap-2 text-xs text-success font-medium animate-in fade-in slide-in-from-top-1">
+                          <CheckCircle2 className="h-3.5 w-3.5" />
+                          Cliente encontrado: {formData.cliente_nome} — dados preenchidos automaticamente
+                        </div>
+                      )}
+                      {searchStatus === 'not_found' && (
+                        <div className="flex items-center gap-2 text-xs text-amber-600 font-medium animate-in fade-in slide-in-from-top-1">
+                          <AlertCircle className="h-3.5 w-3.5" />
+                          Cliente não encontrado — preencha os dados manualmente
+                        </div>
+                      )}
+                    </div>
+
+                    <h3 className="font-bold text-lg">Dados do Cliente</h3>
+                  </div>
+
                   {formData.tipo_pessoa === 'PF' ? (
                     <div className="grid grid-cols-2 gap-4">
                        <div className="col-span-2 space-y-1">
