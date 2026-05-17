@@ -781,5 +781,97 @@ AP-48 PATH COM ESPAÇOS NO STORAGE
 ✓ Certo: `generated/123/contrato_de_venda.docx`
 
 =============================================================================
-FIM DO AGENTS.md v4.5
+BLOCO 30 — NOTIFICATION HUB (v1.0)
+=============================================================================
+
+Edge Function: notification-hub
+Tabela de regras: notification_rules
+Config admin: /admin/notificacoes-config
+
+EVENTOS DISPONÍVEIS:
+projeto_status_mudou, credito_aprovado, 
+credito_reprovado, credito_aguardando_documentos,
+proposta_enviada, proposta_aceita,
+documento_solicitado, recibo_emitido,
+comissao_aprovada, comissao_paga
+
+CANAIS: email | whatsapp | inapp
+
+RB-96 NOTIFICAÇÕES — USAR NOTIFICATION HUB
+Todo evento de negócio que gera notificação 
+DEVE passar pelo notification-hub.
+NUNCA disparar email/WhatsApp diretamente 
+de componente React ou hook.
+SEMPRE via: supabase.functions.invoke('notification-hub', { body: { evento, tenant_id, dados } })
+
+AP-49 NOTIFICAÇÃO DIRETA SEM HUB
+✗ Errado: chamar wa_outbox diretamente do frontend
+✓ Certo: invocar notification-hub com o evento
+
+=============================================================================
+BLOCO 31 — PORTAL DO CLIENTE (v1.0)
+=============================================================================
+
+Rota pública: /portal/:token
+RPC: resolve_portal_token
+Token: projetos.portal_token (UUID único por projeto)
+
+RB-97 PORTAL CLIENTE — TOKEN OBRIGATÓRIO
+Acesso ao portal SEMPRE via portal_token.
+NUNCA expor projeto_id diretamente na URL pública.
+NUNCA exigir login do cliente no portal.
+Se portal_ativo = false → "Portal desativado".
+Se token inválido → "Link inválido".
+
+AP-50 EXPOR PROJETO_ID NA URL PÚBLICA
+✗ Errado: /portal/3173eac0-79b2-4791...
+✓ Certo: /portal/{portal_token_opaco}
+
+=============================================================================
+BLOCO 32 — COMISSÕES (v1.0)
+=============================================================================
+
+TABELAS: comissoes, comissoes_transacional, 
+commission_plans, pagamentos_comissao
+
+FLUXO OBRIGATÓRIO:
+deal 'ganho' → trigger cria comissao (pendente)
+gerente aprova → status 'aprovada' → notifica consultor
+gerente paga → status 'paga' → notifica consultor
+
+RB-98 COMISSÕES — IDEMPOTÊNCIA
+NUNCA criar 2 comissões para o mesmo deal_id.
+SEMPRE verificar: SELECT id FROM comissoes 
+WHERE deal_id = $deal_id BEFORE INSERT.
+
+RB-99 COMISSÕES — RLS POR ROLE
+Consultor: vê só suas comissões (consultor_id = auth.uid())
+Gerente/Admin: vê todas do tenant
+
+=============================================================================
+BLOCO 33 — TEMPLATES DE DOCUMENTO (v1.0)
+=============================================================================
+
+TABELA: document_templates
+STORAGE: generated-documents/templates/
+SANITIZAÇÃO: sempre usar sanitizeStoragePath() (RB-94)
+
+VARIÁVEIS CANÔNICAS (variablesCatalog.ts):
+Cliente: cliente_nome, cliente_cpf_cnpj, cliente_endereco
+Empresa: empresa_nome, empresa_cnpj, empresa_responsavel
+Consultor: consultor_nome, consultor_telefone
+Projeto: projeto_numero, projeto_potencia, projeto_valor_total
+Financeiro: saldo_devedor, valor_por_extenso, data_pagamento_br
+
+RB-100 TEMPLATES — VARIÁVEIS VIA CATALOG
+NUNCA hardcodar dados no template.
+SEMPRE usar variablesCatalog.ts como SSOT.
+Variável sem valor → string vazia (nunca undefined).
+
+AP-51 TEMPLATE SEM ARQUIVO BASE
+✗ Errado: document_templates com arquivo_base_path NULL
+✓ Certo: gerar e salvar arquivo base antes de ativar template
+
+=============================================================================
+FIM DO AGENTS.md v5.0
 =============================================================================
