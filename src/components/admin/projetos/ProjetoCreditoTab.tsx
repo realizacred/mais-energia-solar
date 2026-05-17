@@ -221,7 +221,7 @@ export function ProjetoCreditoTab({ dealId, leadId, clienteId, clienteCpfCnpj, v
                   <p className="text-[10px] font-bold text-muted-foreground uppercase flex items-center gap-1.5">
                     <Calendar className="h-3 w-3" /> Data Solicitação
                   </p>
-                  <p className="text-sm font-medium">{formatDateTime(latestAnalise.created_at)}</p>
+                  <p className="text-sm font-medium">{displayDate(latestAnalise.created_at)}</p>
                 </div>
                 <div className="space-y-1">
                   <p className="text-[10px] font-bold text-muted-foreground uppercase flex items-center gap-1.5">
