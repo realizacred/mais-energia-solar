@@ -280,16 +280,15 @@ export function useClientesProjetosCount(clienteIds: string[]) {
     queryFn: async () => {
       const counts = new Map<string, { projetos: number; deals: number }>();
       ids.forEach((id) => counts.set(id, { projetos: 0, deals: 0 }));
-      const [projRes, dealRes] = await Promise.all([
-        supabase.from("projetos").select("cliente_id").in("cliente_id", ids),
-        supabase.from("deals").select("customer_id").in("customer_id", ids),
-      ]);
-      for (const r of (projRes.data || []) as any[]) {
+      
+      const { projects, deals } = await customerService.fetchProjectsAndDealsCount(ids);
+      
+      for (const r of projects as any[]) {
         const id = r.cliente_id as string;
         const cur = counts.get(id);
         if (cur) cur.projetos += 1;
       }
-      for (const r of (dealRes.data || []) as any[]) {
+      for (const r of deals as any[]) {
         const id = r.customer_id as string;
         const cur = counts.get(id);
         if (cur) cur.deals += 1;
