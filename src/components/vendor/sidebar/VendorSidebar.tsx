@@ -211,7 +211,7 @@ export function VendorSidebar({
       collapsible="icon"
       className="sidebar-premium border-0"
     >
-      <SidebarHeader className="border-b border-sidebar-border/50 px-3 py-3.5">
+      <SidebarHeader className="border-b border-sidebar-border/30 px-4 py-5 bg-sidebar-background/50 backdrop-blur-sm">
         <Link
           to="/"
           className="flex items-center gap-3 transition-all duration-200 hover:opacity-80"
