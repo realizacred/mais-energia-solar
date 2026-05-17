@@ -23,7 +23,8 @@ import {
   CheckCircle2,
   Circle,
   AlertCircle,
-  CreditCard
+  CreditCard,
+  UserPlus
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -87,6 +88,21 @@ export function CreditAnalysisWizard({
     entrada: initialData?.entrada?.toString() || "0",
     prazo_meses: initialData?.prazo_meses?.toString() || "60",
     observacoes: initialData?.observacoes || "",
+    carencia: initialData?.carencia?.toString() || "1",
+    patrimonio: initialData?.patrimonio?.toString() || "0",
+    avalista_nome: (initialData as any)?.avalista_nome || "",
+    avalista_cpf: (initialData as any)?.avalista_cpf || "",
+    avalista_email: (initialData as any)?.avalista_email || "",
+    avalista_telefone: (initialData as any)?.avalista_telefone || "",
+    avalista_renda_mensal: (initialData as any)?.avalista_renda_mensal?.toString() || "",
+    avalista_patrimonio: (initialData as any)?.avalista_patrimonio?.toString() || "",
+    avalista_data_nascimento: (initialData as any)?.avalista_data_nascimento || "",
+    avalista_cep: (initialData as any)?.avalista_cep || "",
+    avalista_rua: (initialData as any)?.avalista_rua || "",
+    avalista_bairro: (initialData as any)?.avalista_bairro || "",
+    avalista_cidade: (initialData as any)?.avalista_cidade || "",
+    avalista_estado: (initialData as any)?.avalista_estado || "",
+    avalista_numero: (initialData as any)?.avalista_numero || "",
   });
 
   const { data: banks } = useCreditBankConfigs();
@@ -111,6 +127,10 @@ export function CreditAnalysisWizard({
       valor_solicitado: parseFloat(formData.valor_solicitado) || 0,
       entrada: parseFloat(formData.entrada) || 0,
       prazo_meses: parseInt(formData.prazo_meses) || 0,
+      carencia: parseInt(formData.carencia) || 1,
+      patrimonio: parseFloat(formData.patrimonio) || 0,
+      avalista_renda_mensal: parseFloat(formData.avalista_renda_mensal) || 0,
+      avalista_patrimonio: parseFloat(formData.avalista_patrimonio) || 0,
       deal_id: dealId,
       lead_id: leadId,
       cliente_id: clienteId,
@@ -207,19 +227,98 @@ export function CreditAnalysisWizard({
                     />
                   </div>
                 </div>
-                <div className="space-y-2">
-                  <Label className="text-sm font-semibold">{formData.tipo_pessoa === 'pf' ? 'Renda Mensal' : 'Faturamento Mensal'}</Label>
-                  <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">R$</span>
-                    <Input 
-                      type="number"
-                      placeholder="0,00" 
-                      value={formData.renda_mensal} 
-                      onChange={e => setFormData({...formData, renda_mensal: e.target.value})}
-                      className="pl-9 bg-muted/30"
-                    />
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label className="text-sm font-semibold">{formData.tipo_pessoa === 'pf' ? 'Renda Mensal' : 'Faturamento Mensal'}</Label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">R$</span>
+                      <Input 
+                        type="number"
+                        placeholder="0,00" 
+                        value={formData.renda_mensal} 
+                        onChange={e => setFormData({...formData, renda_mensal: e.target.value})}
+                        className="pl-9 bg-muted/30"
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-sm font-semibold">Patrimônio Aproximado</Label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">R$</span>
+                      <Input 
+                        type="number"
+                        placeholder="0,00" 
+                        value={formData.patrimonio} 
+                        onChange={e => setFormData({...formData, patrimonio: e.target.value})}
+                        className="pl-9 bg-muted/30"
+                      />
+                    </div>
                   </div>
                 </div>
+
+                <div className="space-y-2">
+                  <Label className="text-sm font-semibold">Carência (Meses)</Label>
+                  <Select 
+                    value={formData.carencia} 
+                    onValueChange={v => setFormData({...formData, carencia: v})}
+                  >
+                    <SelectTrigger className="bg-muted/30">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {[0, 1, 2, 3, 4, 5, 6].map(m => (
+                        <SelectItem key={m} value={m.toString()}>{m === 0 ? "Sem carência" : `${m} meses`}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {formData.tipo_pessoa === 'pj' && (
+                  <div className="space-y-4 border-t pt-4">
+                    <h5 className="text-sm font-bold flex items-center gap-2">
+                      <UserPlus className="h-4 w-4 text-primary" />
+                      Dados do Avalista (Sócio/Interveniente)
+                    </h5>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label className="text-xs">Nome Completo</Label>
+                        <Input 
+                          value={formData.avalista_nome} 
+                          onChange={e => setFormData({...formData, avalista_nome: e.target.value})}
+                          className="bg-muted/30 h-8 text-xs"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="text-xs">CPF</Label>
+                        <Input 
+                          value={formData.avalista_cpf} 
+                          onChange={e => setFormData({...formData, avalista_cpf: formatCpfCnpj(e.target.value)})}
+                          className="bg-muted/30 h-8 text-xs"
+                        />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label className="text-xs">E-mail</Label>
+                        <Input 
+                          type="email"
+                          value={formData.avalista_email} 
+                          onChange={e => setFormData({...formData, avalista_email: e.target.value})}
+                          className="bg-muted/30 h-8 text-xs"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="text-xs">Telefone</Label>
+                        <Input 
+                          value={formData.avalista_telefone} 
+                          onChange={e => setFormData({...formData, avalista_telefone: e.target.value})}
+                          className="bg-muted/30 h-8 text-xs"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 

@@ -48,6 +48,23 @@ export interface AnaliseCredito {
   checklist_snapshot: any;
   created_at: string;
   updated_at: string;
+  carencia?: number | null;
+  patrimonio?: number | null;
+  avalista_nome?: string | null;
+  avalista_cpf?: string | null;
+  avalista_email?: string | null;
+  avalista_data_nascimento?: string | null;
+  avalista_telefone?: string | null;
+  avalista_renda_mensal?: number | null;
+  avalista_patrimonio?: number | null;
+  avalista_cep?: string | null;
+  avalista_rua?: string | null;
+  avalista_bairro?: string | null;
+  avalista_cidade?: string | null;
+  avalista_estado?: string | null;
+  avalista_numero?: string | null;
+  eos_proposta_protocolo?: string | null;
+  eos_enviado_at?: string | null;
 }
 
 export interface AnaliseCreditoHistorico {
@@ -346,6 +363,57 @@ export function useVincularDocumentoCredito() {
         .single();
 
       if (error) throw error;
+
+      // Se a análise já foi enviada para a financeira (EOS), enviar o documento automaticamente
+      if (current?.status === 'enviado_financeira' && data.analise_credito_id) {
+        try {
+          const { data: docDetails } = await supabase
+            .from("project_documents")
+            .select("*")
+            .eq("id", project_document_id)
+            .single();
+
+          if (docDetails?.storage_path) {
+            const { data: { publicUrl } } = supabase.storage
+              .from(docDetails.bucket || 'project-documents')
+              .getPublicUrl(docDetails.storage_path);
+
+            // Mapear categorias para tipos EOS
+            let eosDocType = 'COMPR_RESIDENCIA';
+            const cat = docDetails.categoria?.toLowerCase();
+            
+            // Buscar detalhes da análise para saber tipo_pessoa e protocolo
+            const { data: analise } = await supabase
+              .from("analise_credito")
+              .select("eos_proposta_protocolo, tenant_id, tipo_pessoa")
+              .eq("id", analise_credito_id)
+              .single();
+
+            if (cat?.includes('identidade') || cat?.includes('cpf') || cat?.includes('rg')) {
+              eosDocType = analise?.tipo_pessoa === 'pj' ? 'IDENTIFICACAO_PJ' : 'IDENTIFICACAO_PF';
+            } else if (cat?.includes('energia') || cat?.includes('conta')) {
+              eosDocType = 'CONTA_ENERGIA_PROJETO_FINALIZADO';
+            } else if (cat?.includes('art')) {
+              eosDocType = 'ART';
+            }
+
+            if (analise?.eos_proposta_protocolo) {
+              await supabase.functions.invoke('eos-enviar-documento', {
+                body: {
+                  protocolo: analise.eos_proposta_protocolo,
+                  tipo_documento: eosDocType,
+                  file_url: publicUrl,
+                  tenant_id: analise.tenant_id,
+                  analise_id: analise_credito_id
+                }
+              });
+            }
+          }
+        } catch (err) {
+          console.error("Erro ao enviar documento para EOS:", err);
+        }
+      }
+
       return data;
     },
     onSuccess: (_, vars) => {
