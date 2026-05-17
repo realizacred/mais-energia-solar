@@ -138,9 +138,12 @@ export function useFollowupComercialInbox(filters: FollowupInboxFilters = {}) {
     queryKey: ["followup-comercial-inbox", { ...filters, sort }],
     initialPageParam: { value: null as number | null, id: null as string | null },
     queryFn: async ({ pageParam }): Promise<FollowupInboxRow[]> => {
+      const { data: { user } } = await supabase.auth.getUser();
+      const p_consultor_id = filters.consultorId || (user?.id);
+
       const { data, error } = await supabase.rpc("get_followup_inbox_page", {
         p_classe: filters.classe && filters.classe !== "todos" ? filters.classe : null,
-        p_consultor_id: filters.consultorId ?? null,
+        p_consultor_id,
         p_dias_min: filters.diasMin && filters.diasMin > 0 ? filters.diasMin : null,
         p_search: filters.search && filters.search.trim().length >= 2 ? filters.search.trim() : null,
         p_sort: sort,
@@ -175,9 +178,12 @@ export function useFollowupComercialInboxSummary(filters: FollowupInboxFilters =
   return useQuery({
     queryKey: ["followup-comercial-inbox-summary", filters],
     queryFn: async (): Promise<FollowupInboxSummary> => {
+      const { data: { user } } = await supabase.auth.getUser();
+      const p_consultor_id = filters.consultorId || (user?.id);
+
       const { data, error } = await supabase.rpc("get_followup_inbox_summary", {
         p_classe: filters.classe && filters.classe !== "todos" ? filters.classe : null,
-        p_consultor_id: filters.consultorId ?? null,
+        p_consultor_id,
         p_dias_min: filters.diasMin && filters.diasMin > 0 ? filters.diasMin : null,
         p_search: filters.search && filters.search.trim().length >= 2 ? filters.search.trim() : null,
       });

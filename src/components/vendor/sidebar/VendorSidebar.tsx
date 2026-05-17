@@ -40,8 +40,9 @@ interface VendorSidebarProps {
   isAdminMode?: boolean;
   isViewingAsVendedor?: boolean;
   onSignOut: () => void;
-  badgeCounts?: Record<string, number>;
 }
+
+import { useVendorBadges } from "@/hooks/useVendorBadges";
 
 function VendorSidebarItem({
   item,
@@ -190,7 +191,9 @@ export function VendorSidebar({
   isAdminMode,
   isViewingAsVendedor,
   onSignOut,
-  badgeCounts,
+  const { data: realBadgeCounts } = useVendorBadges();
+  const mergedBadgeCounts = { ...badgeCounts, ...realBadgeCounts };
+
 }: VendorSidebarProps) {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
@@ -232,7 +235,7 @@ export function VendorSidebar({
             key={section.label}
             section={section}
             activeTab={activeTab}
-            badgeCounts={badgeCounts}
+            badgeCounts={mergedBadgeCounts}
           />
         ))}
       </SidebarContent>
