@@ -726,6 +726,83 @@ export default function CreditGlobalArea() {
               </div>
             )}
 
+            {actionType === 'eos_integrate' && (
+              <div className="space-y-6">
+                {!simulationOptions || simulationOptions.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-8 space-y-4 border-2 border-dashed rounded-lg bg-muted/20">
+                    <Calculator className="h-12 w-12 text-primary/40" />
+                    <div className="text-center">
+                      <p className="text-sm font-medium">Nenhuma simulação ativa</p>
+                      <p className="text-xs text-muted-foreground">Clique abaixo para buscar taxas reais na EOS.</p>
+                    </div>
+                    <Button 
+                      onClick={() => handleEosSimulate(selectedAnalysis)} 
+                      disabled={isSimulating}
+                      className="gap-2"
+                    >
+                      {isSimulating ? (
+                        <> <RefreshCw className="h-4 w-4 animate-spin" /> Processando... </>
+                      ) : (
+                        <> <Send className="h-4 w-4" /> Simular Taxas Reais </>
+                      )}
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                    <div className="flex justify-between items-center">
+                      <h4 className="text-sm font-semibold flex items-center gap-2">
+                        <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+                        Opções de Parcelamento EOS
+                      </h4>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="h-8 text-[10px]" 
+                        onClick={() => handleEosSimulate(selectedAnalysis)}
+                        disabled={isSimulating}
+                      >
+                        <RefreshCw className={cn("h-3 w-3 mr-1", isSimulating && "animate-spin")} />
+                        Recarregar
+                      </Button>
+                    </div>
+                    
+                    <div className="border rounded-md overflow-hidden">
+                      <Table>
+                        <TableHeader className="bg-muted/50">
+                          <TableRow>
+                            <TableHead className="h-9 text-[11px]">Prazo</TableHead>
+                            <TableHead className="h-9 text-[11px]">Parcela</TableHead>
+                            <TableHead className="h-9 text-[11px] text-right">Ação</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {(Array.isArray(simulationOptions) ? simulationOptions : []).map((opt, i) => (
+                            <TableRow key={i} className="hover:bg-muted/30">
+                              <TableCell className="py-2 font-medium">{opt.prazo}x</TableCell>
+                              <TableCell className="py-2">{formatBRL(opt.parcela)}</TableCell>
+                              <TableCell className="py-2 text-right">
+                                <Button 
+                                  size="sm" 
+                                  className="h-7 text-[10px] px-2"
+                                  onClick={() => handleEosSend(selectedAnalysis, opt)}
+                                  disabled={isSendingToEos}
+                                >
+                                  Escolher
+                                </Button>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                    <p className="text-[10px] text-muted-foreground italic">
+                      * Taxas e parcelas sujeitas a alteração pela financeira no momento da formalização.
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
+
             {(actionType === 'reject' || actionType === 'request_docs' || actionType === 'approve') && (
               <div className="space-y-2">
                 <label className="text-sm font-medium">Observações / Motivo</label>
