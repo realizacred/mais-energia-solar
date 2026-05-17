@@ -1,3 +1,8 @@
+/**
+ * Tabelas: integration_providers, financeiras_config, integration_connections, integration_health_cache
+ * Shell central de integrações — NÃO criar segunda central paralela
+ * Rotas filhas sob /admin/integracoes/{dominio}/{secao}
+ */
 import React, { useState, useMemo, useRef, useEffect, lazy, Suspense } from "react";
 import { useSearchParams } from "react-router-dom";
 import { IntegrationTutorialSection } from "./IntegrationTutorialSection";
@@ -16,7 +21,7 @@ import {
   Calendar, Mail, MessageCircle, Video, CreditCard, ReceiptText, Globe,
   Workflow, FileSignature, Zap, CloudSun, Sprout, Cpu, Gauge, Radio,
   Building2, Calculator, QrCode, Webhook, LayoutGrid, Power, ArrowLeft,
-  PackageSearch,
+  PackageSearch, Smartphone, Bot,
 } from "lucide-react";
 import {
   listProviders,
@@ -113,7 +118,7 @@ type TabFilter = "all" | "active" | "inactive";
 
 const CATEGORY_ORDER: IntegrationCategory[] = [
   "monitoring", "crm", "billing", "messaging", "calendar", "email",
-  "storage", "meetings", "nf", "api", "automation", "signature", "suppliers",
+  "storage", "meetings", "signature", "nf", "api", "automation", "suppliers",
 ];
 
 export default function IntegrationsCatalogPage() {
@@ -197,8 +202,16 @@ export default function IntegrationsCatalogPage() {
       logo_key: null,
     };
     
-    return [...nonMonitoring, ...monitoringFromRegistry, ...eosSynthetic, tuyaProvider];
-  }, [dbProviders]);
+    const allProviders = [...nonMonitoring, ...monitoringFromRegistry, ...eosSynthetic, tuyaProvider];
+
+    return allProviders.filter((p) => {
+      const q = search.toLowerCase();
+      const matchLabel = p.label.toLowerCase().includes(q);
+      const matchDesc = p.description.toLowerCase().includes(q);
+      const matchCat = CATEGORY_LABELS[p.category]?.toLowerCase().includes(q);
+      return !q || matchLabel || matchDesc || matchCat;
+    });
+  }, [dbProviders, search]);
 
   const { data: connections = [] } = useQuery({
     queryKey: ["integration-connections"],
@@ -310,7 +323,11 @@ export default function IntegrationsCatalogPage() {
   const filtered = useMemo(() => {
     return providers.filter((p) => {
       const q = search.toLowerCase();
-      const matchSearch = !q || p.label.toLowerCase().includes(q) || p.description.toLowerCase().includes(q);
+      const matchLabel = p.label.toLowerCase().includes(q);
+      const matchDesc = p.description.toLowerCase().includes(q);
+      const matchCat = CATEGORY_LABELS[p.category]?.toLowerCase().includes(q);
+      const matchSearch = !q || matchLabel || matchDesc || matchCat;
+      
       if (!matchSearch) return false;
       if (selectedCategory !== "all" && p.category !== selectedCategory) return false;
       const status = getConnectionStatus(p.id);
@@ -326,9 +343,6 @@ export default function IntegrationsCatalogPage() {
   const categoryCounts = useMemo(() => {
     const counts: Record<string, number> = {};
     providers.forEach((p) => {
-      const q = search.toLowerCase();
-      const matchSearch = !q || p.label.toLowerCase().includes(q) || p.description.toLowerCase().includes(q);
-      if (!matchSearch) return;
       const status = getConnectionStatus(p.id);
       const isActive = status === "connected";
       let passTab = true;
@@ -347,7 +361,7 @@ export default function IntegrationsCatalogPage() {
       }
     });
     return counts;
-  }, [providers, search, tabFilter, connections, legacyIntegrations]);
+  }, [providers, tabFilter, connections, legacyIntegrations]);
 
   // Auto-open integration config from URL params
   useEffect(() => {
@@ -525,9 +539,20 @@ export default function IntegrationsCatalogPage() {
               ) : (
                 (() => {
                   const isMonitoringView = selectedCategory === "monitoring" || selectedCategory === "all";
-                  const monitoringFunctional = filtered.filter(p => p.category === "monitoring" && FUNCTIONAL_MONITORING_IDS.has(p.id));
-                  const monitoringStub = filtered.filter(p => p.category === "monitoring" && !FUNCTIONAL_MONITORING_IDS.has(p.id));
-                  const nonMonitoring = filtered.filter(p => p.category !== "monitoring");
+                  
+                  const getSortScore = (p: IntegrationProvider) => {
+                    const status = getConnectionStatus(p.id);
+                    if (status === "connected") return 0;
+                    if (status === "error") return 1;
+                    if (p.status === "available") return 2;
+                    return 3; // beta/coming_soon
+                  };
+
+                  const sortedFiltered = [...filtered].sort((a, b) => getSortScore(a) - getSortScore(b));
+
+                  const monitoringFunctional = sortedFiltered.filter(p => p.category === "monitoring" && FUNCTIONAL_MONITORING_IDS.has(p.id));
+                  const monitoringStub = sortedFiltered.filter(p => p.category === "monitoring" && !FUNCTIONAL_MONITORING_IDS.has(p.id));
+                  const nonMonitoring = sortedFiltered.filter(p => p.category !== "monitoring");
 
                   const renderCard = (provider: IntegrationProvider, isStubGroup = false) => (
                     <IntegrationProviderCard
@@ -605,19 +630,40 @@ export default function IntegrationsCatalogPage() {
 
         <TabsContent value="webhooks" className="mt-6">
           <Suspense fallback={<LoadingState message="Carregando webhooks…" />}>
-            <WebhookManagerTab />
+            <div className="space-y-6">
+              <PageHeader 
+                title="Webhooks" 
+                description="Receba dados de leads e dispare notificações para sistemas externos via HTTP."
+                icon={Webhook}
+              />
+              <WebhookManagerTab />
+            </div>
           </Suspense>
         </TabsContent>
 
         <TabsContent value="instancias" className="mt-6">
           <Suspense fallback={<LoadingState message="Carregando instâncias…" />}>
-            <WaInstancesManagerTab />
+            <div className="space-y-6">
+              <PageHeader 
+                title="Instâncias WhatsApp" 
+                description="Conecte seu WhatsApp via QR Code e gerencie múltiplas instâncias de atendimento."
+                icon={Smartphone}
+              />
+              <WaInstancesManagerTab />
+            </div>
           </Suspense>
         </TabsContent>
 
         <TabsContent value="automacao" className="mt-6">
           <Suspense fallback={<LoadingState message="Carregando automação…" />}>
-            <WhatsAppAutomationConfigTab />
+            <div className="space-y-6">
+              <PageHeader 
+                title="Automação WhatsApp" 
+                description="Configure regras de auto-resposta, mensagens de boas-vindas e lembretes inteligentes."
+                icon={Bot}
+              />
+              <WhatsAppAutomationConfigTab />
+            </div>
           </Suspense>
         </TabsContent>
 

@@ -81,10 +81,10 @@ function StatusIndicator({ provider, connStatus }: { provider: IntegrationProvid
 
   if (isConnected) {
     return (
-      <Badge className="text-[10px] font-semibold bg-success/15 text-success border-success/25 px-2.5 py-0.5 gap-1">
+      <Badge className="text-[10px] font-semibold bg-emerald-500/10 text-emerald-600 border-emerald-500/20 px-2.5 py-0.5 gap-1">
         <span className="relative flex h-1.5 w-1.5">
-          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-success opacity-75" />
-          <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-success" />
+          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-500 opacity-75" />
+          <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500" />
         </span>
         Conectado
       </Badge>
@@ -93,20 +93,11 @@ function StatusIndicator({ provider, connStatus }: { provider: IntegrationProvid
   if (isError) {
     return (
       <Badge variant="outline" className="text-[10px] font-semibold bg-destructive/10 text-destructive border-destructive/20 px-2.5 py-0.5 gap-1">
-        <AlertCircle className="h-3 w-3" /> Erro
+        <AlertCircle className="h-3 w-3" /> Falha
       </Badge>
     );
   }
-  if (isBeta) {
-    return <Badge className="text-[10px] font-medium bg-warning/15 text-warning border-warning/25 px-2 py-0.5">Beta</Badge>;
-  }
-  if (isStub || isComingSoon) {
-    return <Badge variant="outline" className="text-[10px] font-medium text-muted-foreground border-border/60 px-2 py-0.5">Em breve</Badge>;
-  }
-  if (isMonitoring && provider.capabilities?.sync_plants && provider.capabilities?.sync_health) {
-    return <Badge className="text-[10px] font-medium bg-primary/10 text-primary border-primary/20 px-2 py-0.5">Produção</Badge>;
-  }
-
+  
   // Handle EOS status badge logic
   if (provider.id === "eos-financiamento-solar" && connStatus === "maintenance") {
     return <Badge variant="outline" className="text-[10px] font-semibold bg-amber-500/10 text-amber-500 border-amber-500/20 px-2.5 py-0.5 gap-1">
@@ -114,7 +105,13 @@ function StatusIndicator({ provider, connStatus }: { provider: IntegrationProvid
     </Badge>;
   }
 
-  return null;
+  if (isBeta) {
+    return <Badge className="text-[10px] font-medium bg-amber-500/15 text-amber-600 border-amber-500/25 px-2 py-0.5">Beta</Badge>;
+  }
+  if (isStub || isComingSoon) {
+    return <Badge variant="outline" className="text-[10px] font-medium text-muted-foreground border-border/60 px-2 py-0.5">Em breve</Badge>;
+  }
+  return <Badge className="text-[10px] font-medium bg-slate-800 text-slate-100 border-slate-700 px-2 py-0.5">Produção</Badge>;
 }
 
 export function IntegrationProviderCard({
