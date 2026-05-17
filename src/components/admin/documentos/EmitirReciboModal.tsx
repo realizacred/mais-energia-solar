@@ -306,24 +306,23 @@ export function EmitirReciboModal({
   }, [template]);
 
   const canSubmit =
-    !!templateId && !!clienteId && Number(valor) > 0 && !emitir.isPending;
+    !!templateId && !!clienteId && Number(valor) > 0 && Number(valor) <= saldoDevedorAtual + 0.01 && !!formaPagamento && !emitir.isPending;
 
   async function handleSubmit() {
     if (!canSubmit) return;
-    const dados: Record<string, unknown> = { ...dynFields };
-    if (descricao) dados["descricao"] = descricao;
-    if (valor) dados["valor"] = Number(valor);
-    if (formaPagamento) dados["forma_pagamento"] = formaPagamento;
+    const camposExtras: Record<string, unknown> = { ...dynFields };
+    if (instituicaoFinanceira) camposExtras["instituicao_financeira"] = instituicaoFinanceira;
 
     const id = await emitir.mutateAsync({
-      template_id: templateId,
+      template: template?.nome || "Recibo",
       cliente_id: clienteId,
-      projeto_id: projetoId || null,
-      deal_id: defaultDealId ?? null,
+      projeto_id: projetoId!,
       descricao: descricao || undefined,
       numero: numero || undefined,
       valor: Number(valor),
-      dados_preenchidos: dados,
+      forma_pagamento: formaPagamento,
+      data_pagamento: dataPagamento,
+      campos_extras: camposExtras,
       generate_pdf: true,
     });
     onEmitted?.(id);
