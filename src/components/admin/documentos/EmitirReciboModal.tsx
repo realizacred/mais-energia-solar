@@ -676,22 +676,22 @@ export function EmitirReciboModal({
               {saldoRestanteAposRecibo <= 0 ? (
                 <span className="text-success font-bold flex items-center gap-1">Quitado ✓</span>
               ) : saldoRestanteAposRecibo < valorTotalVenda ? (
-                <span className="text-amber-500 font-bold">Restam {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(saldoRestanteAposRecibo)}</span>
+                <span className="text-amber-500 font-bold">Restam {formatBRL(saldoRestanteAposRecibo)}</span>
               ) : null}
             </div>
             <div className="grid grid-cols-3 gap-2 mt-2">
               <div className="flex flex-col">
                 <span className="text-[10px] text-muted-foreground uppercase">Valor Venda</span>
-                <span className="text-sm font-bold">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(valorTotalVenda)}</span>
+                <span className="text-sm font-bold">{formatBRL(valorTotalVenda)}</span>
               </div>
               <div className="flex flex-col border-l pl-2">
                 <span className="text-[10px] text-muted-foreground uppercase">Total Pago</span>
-                <span className="text-sm font-bold text-success">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalPagoHistorico)}</span>
+                <span className="text-sm font-bold text-success">{formatBRL(totalPagoHistorico)}</span>
               </div>
               <div className="flex flex-col border-l pl-2">
                 <span className="text-[10px] text-muted-foreground uppercase">Saldo Devedor</span>
                 <span className={cn("text-sm font-bold", saldoDevedorAtual > 0 ? "text-destructive" : "text-success")}>
-                  {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(saldoDevedorAtual)}
+                  {formatBRL(saldoDevedorAtual)}
                 </span>
               </div>
             </div>
