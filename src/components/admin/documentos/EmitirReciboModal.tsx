@@ -168,6 +168,16 @@ export function EmitirReciboModal({
   const [formaPagamento, setFormaPagamento] = useState<string>("");
   const [dataPagamento, setDataPagamento] = useState<string>(new Date().toISOString().slice(0, 10));
   const [instituicaoFinanceira, setInstituicaoFinanceira] = useState<string>("");
+  // BUG 4 — campos dinâmicos por forma de pagamento
+  const [pixComprovante, setPixComprovante] = useState<string>("");
+  const [chequeBanco, setChequeBanco] = useState<string>("");
+  const [chequeAgencia, setChequeAgencia] = useState<string>("");
+  const [chequeConta, setChequeConta] = useState<string>("");
+  const [chequeNumero, setChequeNumero] = useState<string>("");
+  const [cartaoBandeira, setCartaoBandeira] = useState<string>("");
+  const [cartaoParcelas, setCartaoParcelas] = useState<string>("1");
+  const [cartaoNsu, setCartaoNsu] = useState<string>("");
+  const [boletoLinhaDigitavel, setBoletoLinhaDigitavel] = useState<string>("");
   const [dynFields, setDynFields] = useState<Record<string, string>>({});
   const [loadingContext, setLoadingContext] = useState(false);
   const [projectContext, setProjectContext] = useState<any>(null);
