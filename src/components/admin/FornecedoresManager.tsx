@@ -18,6 +18,7 @@ import {
 } from "@/hooks/useFornecedores";
 import type { Fornecedor } from "@/hooks/useFornecedores";
 import { useToast } from "@/hooks/use-toast";
+import { useTenantId } from "@/hooks/useTenantId";
 import { PageHeader } from "@/components/ui-kit";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -81,6 +82,7 @@ function InfoRow({ icon: Icon, label, value }: { icon?: any; label: string; valu
 export function FornecedoresManager() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const { data: tenantId } = useTenantId();
   const { data: fornecedores = [], isLoading: loading } = useFornecedores();
   const salvarMutation = useSalvarFornecedor();
   const deletarMutation = useDeletarFornecedor();
@@ -228,7 +230,7 @@ export function FornecedoresManager() {
       toast({ title: "Nome é obrigatório", variant: "destructive" });
       return;
     }
-    const payload = {
+    const payload: any = {
       nome: form.nome.trim(),
       cnpj: form.cnpj.trim() || null,
       inscricao_estadual: form.inscricao_estadual.trim() || null,
@@ -245,6 +247,11 @@ export function FornecedoresManager() {
       categorias: form.categorias,
       observacoes: form.observacoes.trim() || null,
     };
+
+    // RB-76: Garantir tenant_id no INSERT para evitar bloqueio por RLS
+    if (!editing && tenantId) {
+      payload.tenant_id = tenantId;
+    }
 
     try {
       await salvarMutation.mutateAsync({ id: editing?.id, data: payload });
