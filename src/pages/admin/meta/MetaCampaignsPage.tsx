@@ -81,15 +81,15 @@ export default function MetaCampaignsPage() {
 
   // Summary of filtered campaigns
   const summary = useMemo(() => {
-    return filtered.reduce(
-      (acc, c) => ({
-        spend: acc.spend + c.spend,
-        impressions: acc.impressions + c.impressions,
-        clicks: acc.clicks + c.clicks,
-        reach: acc.reach + c.reach,
-      }),
-      { spend: 0, impressions: 0, clicks: 0, reach: 0 }
-    );
+    const leads = filtered.reduce((acc, c) => acc + (c.leads_count || 0), 0);
+    const spend = filtered.reduce((acc, c) => acc + (c.spend || 0), 0);
+    const clicks = filtered.reduce((acc, c) => acc + (c.clicks || 0), 0);
+    return {
+      spend,
+      leads,
+      cpl: leads > 0 ? spend / leads : 0,
+      clicks
+    };
   }, [filtered]);
 
   const handleSync = async () => {
@@ -151,10 +151,10 @@ export default function MetaCampaignsPage() {
 
       {/* Summary cards */}
       {!isLoading && filtered.length > 0 && (
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-          <StatCard icon={DollarSign} label="Investimento" value={formatBRL(summary.spend)} />
-          <StatCard icon={Users} label="Alcance" value={formatInteger(summary.reach)} />
-          <StatCard icon={Eye} label="Impressões" value={formatInteger(summary.impressions)} />
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <StatCard icon={Users} label="Leads" value={formatInteger(summary.leads)} color="success" />
+          <StatCard icon={DollarSign} label="Custo por Lead" value={formatBRL(summary.cpl)} color="warning" />
+          <StatCard icon={DollarSign} label="Investido" value={formatBRL(summary.spend)} />
           <StatCard icon={MousePointerClick} label="Cliques" value={formatInteger(summary.clicks)} />
         </div>
       )}
