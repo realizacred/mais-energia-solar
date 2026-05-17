@@ -384,7 +384,9 @@ export function EmitirReciboModal({
                 <span className="text-sm font-semibold">{projectContext?.clientes?.nome || "Selecione um projeto"}</span>
                 <span className="text-[10px] text-muted-foreground uppercase tracking-tight">{projectContext?.clientes?.cpf_cnpj || "CPF/CNPJ não disponível"}</span>
               </div>
-              <Badge variant="outline" className="text-[9px] uppercase">Projeto vinculado</Badge>
+              <div className="text-right">
+                <Badge variant="outline" className="text-[9px] uppercase">Projeto vinculado</Badge>
+              </div>
             </div>
           </div>
 
