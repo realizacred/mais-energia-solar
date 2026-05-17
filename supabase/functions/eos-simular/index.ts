@@ -6,6 +6,12 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
+function formatCpf(cpf: string) {
+  const clean = cpf.replace(/\D/g, '');
+  if (clean.length !== 11) return cpf;
+  return clean.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, "$1.$2.$3-$4");
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
@@ -17,78 +23,103 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
-    const { analise_id, valor, prazo_meses, cpf_cnpj, tipo_pessoa, tenant_id } = await req.json()
+    const { analise_id, tenant_id } = await req.json()
 
-    if (!tenant_id || !cpf_cnpj || !valor) {
-      throw new Error('Missing required fields: tenant_id, cpf_cnpj, valor')
+    if (!analise_id || !tenant_id) {
+      throw new Error('analise_id and tenant_id are required')
     }
 
-    // 1. Buscar credenciais
-    const { data: config, error: configError } = await supabaseClient
-      .from('financeiras_config')
-      .select('*')
-      .eq('tenant_id', tenant_id)
-      .eq('financeira', 'eos')
-      .eq('ativo', true)
+    // 1. Buscar Análise de Crédito
+    const { data: analise, error: analiseError } = await supabaseClient
+      .from('analise_credito')
+      .select('*, deals!analise_credito_deal_id_fkey(id, title)')
+      .eq('id', analise_id)
       .single()
 
-    if (configError || !config) {
-      throw new Error('Integração EOS não configurada ou inativa para este tenant')
+    if (analiseError || !analise) {
+      throw new Error('Análise de crédito não encontrada')
     }
 
-    // 2. Obter Token (chamando a função interna para segurança)
-    const tokenResponse = await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/eos-get-token`, {
+    // 2. Buscar Cliente
+    const { data: cliente, error: clienteError } = await supabaseClient
+      .from('clientes')
+      .select('nome, cpf_cnpj, data_nascimento, tipo_pessoa')
+      .eq('id', analise.cliente_id)
+      .single()
+
+    if (clienteError || !cliente) {
+      throw new Error('Cliente não encontrado')
+    }
+
+    // 3. Buscar Valores na Proposta (mais recente aceita ou oficial)
+    const { data: proposta, error: propostaError } = await supabaseClient
+      .from('proposta_versoes')
+      .select('valor_total, snapshot')
+      .eq('tenant_id', tenant_id)
+      .eq('proposta_id', analise.deal_id) // Assumindo que proposta_id na tabela proposta_versoes refira-se ao deal_id em alguns contextos ou existe propostas
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+
+    // Fallback: se não encontrar proposta vinculada ao deal_id direto, tenta buscar na tabela propostas intermediária se existir
+    // Mas vamos simplificar usando o valor_solicitado da analise como total se não achar
+    const valorTotal = proposta?.valor_total || analise.valor_solicitado;
+    const snapshot = proposta?.snapshot as any;
+    const valorMaoObra = snapshot?.precos?.mao_obra || 0;
+    const valorProduto = (snapshot?.precos?.equipamentos || snapshot?.precos?.kit) || (valorTotal - valorMaoObra);
+
+    // 4. Obter API Key (Chamando a função interna)
+    const apikeyResponse = await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/eos-get-apikey`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`
       },
-      body: JSON.stringify({
-        client_id: config.client_id,
-        client_secret: config.client_secret,
-        ambiente: config.ambiente
-      })
+      body: JSON.stringify({ tenant_id })
     })
 
-    const tokenData = await tokenResponse.json()
-    if (!tokenResponse.ok) throw new Error(tokenData.error || 'Erro ao obter token EOS')
+    const apikeyData = await apikeyResponse.json()
+    if (!apikeyResponse.ok) throw new Error(apikeyData.error || 'Erro ao obter credenciais EOS')
 
-    const accessToken = tokenData.access_token
-    const baseUrl = config.ambiente === 'producao' 
-      ? 'https://api.eosfin.com.br' 
-      : 'https://api.test.eosfin.com.br'
+    const { api_key, base_url } = apikeyData
 
-    // 3. Chamada de Simulação EOS
-    const eosResponse = await fetch(`${baseUrl}/simulacoes`, {
+    // 5. Construir Payload Real EOS
+    const payload = {
+      tipoPessoa: cliente.tipo_pessoa === 'PJ' ? 'PJ' : 'PF',
+      valorMaoObra: Number(valorMaoObra),
+      valorProduto: Number(valorProduto),
+      entrada: Number(analise.entrada || 0),
+      carencia: 1, // Default conforme solicitado
+      cpf: formatCpf(cliente.cpf_cnpj),
+      dataNascimento: cliente.data_nascimento ? new Date(cliente.data_nascimento).toISOString() : null,
+      nomeCompleto: cliente.nome
+    }
+
+    // 6. Chamada API EOS
+    const eosResponse = await fetch(`${base_url}/proposta/partner/simulate`, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${accessToken}`,
+        'x-api-key': api_key,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        valor: Number(valor),
-        prazo: Number(prazo_meses),
-        documento: cpf_cnpj.replace(/\D/g, ''),
-        tipo_pessoa: tipo_pessoa?.toUpperCase() === 'PJ' ? 'PJ' : 'PF'
-      }),
+      body: JSON.stringify(payload),
     })
 
     const eosData = await eosResponse.json()
     if (!eosResponse.ok) {
-      console.error('EOS Simulation Error:', eosData)
-      throw new Error(eosData.message || 'Erro na simulação EOS')
+      console.error('EOS API Error:', eosData)
+      throw new Error(eosData.message || eosData.error || 'Erro na simulação EOS')
     }
 
-    // 4. Salvar resultado se houver analise_id
-    if (analise_id) {
-      await supabaseClient
-        .from('analise_credito')
-        .update({
-          simulacao_resultado: eosData,
-          simulacao_at: new Date().toISOString()
-        } as any)
-        .eq('id', analise_id)
-    }
+    // 7. Salvar resultado (EOS retorna array de objetos { parcela, prazo })
+    // Salvar o retorno completo no campo simulacao_resultado
+    await supabaseClient
+      .from('analise_credito')
+      .update({
+        simulacao_resultado: eosData,
+        simulacao_at: new Date().toISOString()
+      } as any)
+      .eq('id', analise_id)
 
     return new Response(JSON.stringify(eosData), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
