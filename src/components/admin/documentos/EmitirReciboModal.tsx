@@ -66,7 +66,8 @@ export function EmitirReciboModal({
   const [loadingContext, setLoadingContext] = useState(false);
   const [projectContext, setProjectContext] = useState<any>(null);
   const [proposalContext, setProposalContext] = useState<any>(null);
-  const [totalPago, setTotalPago] = useState(0);
+  const [totalPagoHistorico, setTotalPagoHistorico] = useState(0);
+  const [ultimoNumeroRecibo, setUltimoNumeroRecibo] = useState(0);
 
   useEffect(() => {
     if (open) {
