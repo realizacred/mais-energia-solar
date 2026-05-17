@@ -279,8 +279,7 @@ export function SuprimentosListPage({ projetoId }: SuprimentosListPageProps) {
         clienteNome={projetoId ? propostas?.[0]?.cliente_nome : "Vários"}
         onSuccess={() => {
           setVincularOpen(false);
-          // Query invalidation handled inside hook or via refetch
-          window.location.reload(); // Quick fix for full refresh on complex join
+          refetch();
         }}
         onCancel={() => setVincularOpen(false)}
       />
