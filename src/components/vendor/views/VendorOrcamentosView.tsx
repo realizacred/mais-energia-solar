@@ -25,6 +25,10 @@ import { toast } from "sonner";
 import { Users, UserPlus, Package, Clock, ExternalLink } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { cn } from "@/lib/utils";
 
 export default function VendorOrcamentosView({ portal }: Props) {
   const { sortOption, updateSort } = useOrcamentoSort("vendedor_portal");
