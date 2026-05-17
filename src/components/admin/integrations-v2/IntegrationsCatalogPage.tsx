@@ -323,7 +323,11 @@ export default function IntegrationsCatalogPage() {
   const filtered = useMemo(() => {
     return providers.filter((p) => {
       const q = search.toLowerCase();
-      const matchSearch = !q || p.label.toLowerCase().includes(q) || p.description.toLowerCase().includes(q);
+      const matchLabel = p.label.toLowerCase().includes(q);
+      const matchDesc = p.description.toLowerCase().includes(q);
+      const matchCat = CATEGORY_LABELS[p.category]?.toLowerCase().includes(q);
+      const matchSearch = !q || matchLabel || matchDesc || matchCat;
+      
       if (!matchSearch) return false;
       if (selectedCategory !== "all" && p.category !== selectedCategory) return false;
       const status = getConnectionStatus(p.id);
