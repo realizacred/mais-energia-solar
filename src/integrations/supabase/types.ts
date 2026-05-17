@@ -439,6 +439,7 @@ export type Database = {
       }
       analise_credito: {
         Row: {
+          area_instalacao: number | null
           avalista_bairro: string | null
           avalista_cep: string | null
           avalista_cidade: string | null
@@ -456,24 +457,42 @@ export type Database = {
           bank_config_id: string | null
           carencia: number | null
           checklist_snapshot: Json | null
+          cliente_data_nascimento: string | null
+          cliente_email: string | null
           cliente_id: string | null
+          cliente_nome: string | null
+          cliente_telefone: string | null
+          cnpj: string | null
+          com_seguro: boolean | null
           cpf_cnpj: string | null
           created_at: string
           criado_por: string | null
           data_envio: string | null
           data_retorno: string | null
           deal_id: string | null
+          endereco_bairro: string | null
+          endereco_cep: string | null
+          endereco_cidade: string | null
+          endereco_complemento: string | null
+          endereco_estado: string | null
+          endereco_logradouro: string | null
+          endereco_numero: string | null
           entrada: number | null
           eos_enviado_at: string | null
           eos_proposta_protocolo: string | null
           eos_status: string | null
           id: string
           is_locked: boolean | null
+          kit_fotovoltaico: number | null
           lead_id: string | null
+          mao_obra: number | null
+          media_conta_energia: number | null
           observacoes: string | null
           patrimonio: number | null
+          potencia_instalada: number | null
           prazo_meses: number | null
           protocolo_banco: string | null
+          razao_social: string | null
           renda_mensal: number | null
           responsavel_id: string | null
           rules_snapshot: Json | null
@@ -481,6 +500,7 @@ export type Database = {
           simulacao_at: string | null
           simulacao_resultado: Json | null
           simulation_id: string | null
+          situacao_imovel: string | null
           sla_vencimento: string | null
           snapshot_data: Json | null
           status: string
@@ -494,6 +514,7 @@ export type Database = {
           version: number | null
         }
         Insert: {
+          area_instalacao?: number | null
           avalista_bairro?: string | null
           avalista_cep?: string | null
           avalista_cidade?: string | null
@@ -511,24 +532,42 @@ export type Database = {
           bank_config_id?: string | null
           carencia?: number | null
           checklist_snapshot?: Json | null
+          cliente_data_nascimento?: string | null
+          cliente_email?: string | null
           cliente_id?: string | null
+          cliente_nome?: string | null
+          cliente_telefone?: string | null
+          cnpj?: string | null
+          com_seguro?: boolean | null
           cpf_cnpj?: string | null
           created_at?: string
           criado_por?: string | null
           data_envio?: string | null
           data_retorno?: string | null
           deal_id?: string | null
+          endereco_bairro?: string | null
+          endereco_cep?: string | null
+          endereco_cidade?: string | null
+          endereco_complemento?: string | null
+          endereco_estado?: string | null
+          endereco_logradouro?: string | null
+          endereco_numero?: string | null
           entrada?: number | null
           eos_enviado_at?: string | null
           eos_proposta_protocolo?: string | null
           eos_status?: string | null
           id?: string
           is_locked?: boolean | null
+          kit_fotovoltaico?: number | null
           lead_id?: string | null
+          mao_obra?: number | null
+          media_conta_energia?: number | null
           observacoes?: string | null
           patrimonio?: number | null
+          potencia_instalada?: number | null
           prazo_meses?: number | null
           protocolo_banco?: string | null
+          razao_social?: string | null
           renda_mensal?: number | null
           responsavel_id?: string | null
           rules_snapshot?: Json | null
@@ -536,6 +575,7 @@ export type Database = {
           simulacao_at?: string | null
           simulacao_resultado?: Json | null
           simulation_id?: string | null
+          situacao_imovel?: string | null
           sla_vencimento?: string | null
           snapshot_data?: Json | null
           status?: string
@@ -549,6 +589,7 @@ export type Database = {
           version?: number | null
         }
         Update: {
+          area_instalacao?: number | null
           avalista_bairro?: string | null
           avalista_cep?: string | null
           avalista_cidade?: string | null
@@ -566,24 +607,42 @@ export type Database = {
           bank_config_id?: string | null
           carencia?: number | null
           checklist_snapshot?: Json | null
+          cliente_data_nascimento?: string | null
+          cliente_email?: string | null
           cliente_id?: string | null
+          cliente_nome?: string | null
+          cliente_telefone?: string | null
+          cnpj?: string | null
+          com_seguro?: boolean | null
           cpf_cnpj?: string | null
           created_at?: string
           criado_por?: string | null
           data_envio?: string | null
           data_retorno?: string | null
           deal_id?: string | null
+          endereco_bairro?: string | null
+          endereco_cep?: string | null
+          endereco_cidade?: string | null
+          endereco_complemento?: string | null
+          endereco_estado?: string | null
+          endereco_logradouro?: string | null
+          endereco_numero?: string | null
           entrada?: number | null
           eos_enviado_at?: string | null
           eos_proposta_protocolo?: string | null
           eos_status?: string | null
           id?: string
           is_locked?: boolean | null
+          kit_fotovoltaico?: number | null
           lead_id?: string | null
+          mao_obra?: number | null
+          media_conta_energia?: number | null
           observacoes?: string | null
           patrimonio?: number | null
+          potencia_instalada?: number | null
           prazo_meses?: number | null
           protocolo_banco?: string | null
+          razao_social?: string | null
           renda_mensal?: number | null
           responsavel_id?: string | null
           rules_snapshot?: Json | null
@@ -591,6 +650,7 @@ export type Database = {
           simulacao_at?: string | null
           simulacao_resultado?: Json | null
           simulation_id?: string | null
+          situacao_imovel?: string | null
           sla_vencimento?: string | null
           snapshot_data?: Json | null
           status?: string
