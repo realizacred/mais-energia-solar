@@ -58,9 +58,36 @@ export function usePagamentoManual() {
         );
       }
 
-      // 2. Insert pagamento
+      // 2. Get projeto_id from recebimento
+      const { data: recData } = await supabase
+        .from("recebimentos")
+        .select("projeto_id, cliente_id")
+        .eq("id", params.recebimentoId)
+        .single();
+
+      // 3. Insert into lancamentos_financeiros
+      const { data: lancamento, error: lancErr } = await supabase
+        .from("lancamentos_financeiros")
+        .insert({
+          tenant_id: tenantId,
+          tipo: "receita",
+          valor: params.valorPago,
+          forma_pagamento: params.formaPagamento,
+          data_lancamento: params.dataPagamento,
+          status: "confirmado",
+          origem: "pagamento_manual",
+          projeto_id: recData?.projeto_id,
+          cliente_id: recData?.cliente_id,
+          descricao: `Pagamento Parcela ${params.parcelaId}`,
+        } as any)
+        .select("id")
+        .single();
+
+      if (lancErr) throw lancErr;
+
+      // 4. Insert legacy pagamento record
       const { data: pagamento, error: pagErr } = await supabase
-        .from("_deprecated_pagamentos")
+        .from("_deprecated_pagamentos" as any)
         .insert({
           recebimento_id: params.recebimentoId,
           valor_pago: params.valorPago,
