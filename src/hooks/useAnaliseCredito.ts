@@ -367,39 +367,42 @@ export function useVincularDocumentoCredito() {
       // Se a análise já foi enviada para a financeira (EOS), enviar o documento automaticamente
       if (current?.status === 'enviado_financeira' && data.analise_credito_id) {
         try {
-          // Buscar detalhes do documento para pegar a URL
           const { data: docDetails } = await supabase
             .from("project_documents")
             .select("*")
             .eq("id", project_document_id)
             .single();
 
-          if (docDetails?.file_url) {
-            // Mapear categorias para tipos EOS se possível, ou usar um default
-            // Tipos EOS: IDENTIFICACAO_PF, IDENTIFICACAO_PJ, COMPR_RESIDENCIA, CONTA_ENERGIA_PROJETO_FINALIZADO, ART
-            let eosDocType = 'COMPR_RESIDENCIA'; // Default
+          if (docDetails?.storage_path) {
+            const { data: { publicUrl } } = supabase.storage
+              .from(docDetails.bucket || 'project-documents')
+              .getPublicUrl(docDetails.storage_path);
+
+            // Mapear categorias para tipos EOS
+            let eosDocType = 'COMPR_RESIDENCIA';
             const cat = docDetails.categoria?.toLowerCase();
+            
+            // Buscar detalhes da análise para saber tipo_pessoa e protocolo
+            const { data: analise } = await supabase
+              .from("analise_credito")
+              .select("eos_proposta_protocolo, tenant_id, tipo_pessoa")
+              .eq("id", analise_credito_id)
+              .single();
+
             if (cat?.includes('identidade') || cat?.includes('cpf') || cat?.includes('rg')) {
-              eosDocType = values?.tipo_pessoa === 'pj' ? 'IDENTIFICACAO_PJ' : 'IDENTIFICACAO_PF';
+              eosDocType = analise?.tipo_pessoa === 'pj' ? 'IDENTIFICACAO_PJ' : 'IDENTIFICACAO_PF';
             } else if (cat?.includes('energia') || cat?.includes('conta')) {
               eosDocType = 'CONTA_ENERGIA_PROJETO_FINALIZADO';
             } else if (cat?.includes('art')) {
               eosDocType = 'ART';
             }
 
-            // Buscar protocolo
-            const { data: analise } = await supabase
-              .from("analise_credito")
-              .select("eos_proposta_protocolo, tenant_id")
-              .eq("id", analise_credito_id)
-              .single();
-
             if (analise?.eos_proposta_protocolo) {
               await supabase.functions.invoke('eos-enviar-documento', {
                 body: {
                   protocolo: analise.eos_proposta_protocolo,
                   tipo_documento: eosDocType,
-                  file_url: docDetails.file_url,
+                  file_url: publicUrl,
                   tenant_id: analise.tenant_id,
                   analise_id: analise_credito_id
                 }
