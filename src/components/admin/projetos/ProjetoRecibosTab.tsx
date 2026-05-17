@@ -108,15 +108,15 @@ export function ProjetoRecibosTab({
                       <Badge variant="outline" className={`text-[10px] ${STATUS_VARIANT[r.status]}`}>
                         {STATUS_LABEL[r.status]}
                       </Badge>
-                      {r.template?.nome && (
-                        <Badge variant="secondary" className="text-[10px]">{r.template.nome}</Badge>
+                      {r.template && (
+                        <Badge variant="secondary" className="text-[10px]">{r.template}</Badge>
                       )}
                       {r.numero && (
                         <Badge variant="outline" className="text-[10px]">Nº {r.numero}</Badge>
                       )}
                     </div>
                     <p className="text-[11px] text-muted-foreground mt-0.5">
-                      {fmtBRL(Number(r.valor))} • {format(new Date(r.emitido_em), "dd/MM/yy HH:mm")}
+                      {fmtBRL(Number(r.valor))} • {format(new Date(r.created_at), "dd/MM/yy HH:mm")}
                     </p>
                     {r.descricao && (
                       <p className="text-[11px] text-muted-foreground mt-0.5 truncate">{r.descricao}</p>
