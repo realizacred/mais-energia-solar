@@ -66,19 +66,59 @@ export function ProjetoRecibosTab({
     }
   }, [defaultProjetoId, recibos]);
 
+  const requestIdRef = useRef(0);
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+
   async function handleOpenPdf(r: Recibo) {
+    const currentId = ++requestIdRef.current;
+    const toastId = toast.loading("Preparando PDF...");
+    
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    timeoutRef.current = setTimeout(() => {
+      if (currentId === requestIdRef.current) {
+        toast.dismiss(toastId);
+        toast.error("Tempo esgotado ao abrir PDF. Tente regerar o arquivo.");
+      }
+    }, 8000);
+
     try {
       let path = r.pdf_url;
       if (!path) {
         const res = await regen.mutateAsync(r.id);
         path = res.pdf_url;
       }
+      
+      if (currentId !== requestIdRef.current) {
+        toast.dismiss(toastId);
+        return;
+      }
+
       const url = await getReciboSignedUrl(path!);
+      
+      if (currentId !== requestIdRef.current) {
+        toast.dismiss(toastId);
+        return;
+      }
+
       window.open(url, "_blank", "noopener,noreferrer");
+      toast.dismiss(toastId);
     } catch (e: any) {
-      toast.error(e?.message || "Não foi possível abrir o PDF");
+      if (currentId === requestIdRef.current) {
+        toast.dismiss(toastId);
+        toast.error(e?.message || "Não foi possível abrir o PDF");
+      }
+    } finally {
+      if (currentId === requestIdRef.current && timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
     }
   }
+
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    };
+  }, []);
 
   return (
     <div className="space-y-4">
