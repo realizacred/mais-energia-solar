@@ -109,10 +109,10 @@ export function usePagamentoManual() {
 
       if (pagErr) throw pagErr;
 
-      // 3. Update parcela status
+      // 5. Update parcela status
       const updateFields: Record<string, unknown> = {
         status: "paga",
-        pagamento_id: pagamento.id,
+        pagamento_id: (pagamento as any).id,
       };
 
       // If parcela had a cobranca, mark it as paid
@@ -134,7 +134,7 @@ export function usePagamentoManual() {
 
       if (parcErr) throw parcErr;
 
-      // 4. Check if all parcelas are paid → close recebimento
+      // 6. Check if all parcelas are paid → close recebimento
       const { data: allParcelas } = await supabase
         .from("parcelas")
         .select("id, status")
@@ -160,10 +160,10 @@ export function usePagamentoManual() {
       qc.invalidateQueries({ queryKey: ["financeiro-dashboard"] });
 
       // Fire-and-forget WA notification
-      if (_data?.id) {
+      if ((_data as any)?.id) {
         supabase.functions.invoke("notificar-pagamento-wa", {
           body: {
-            pagamento_id: _data.id,
+            pagamento_id: (_data as any).id,
             tipo: "pagamento_recebido",
           },
         }).catch(() => { /* never block */ });
