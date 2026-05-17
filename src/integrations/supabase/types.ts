@@ -466,6 +466,7 @@ export type Database = {
           entrada: number | null
           eos_enviado_at: string | null
           eos_proposta_protocolo: string | null
+          eos_status: string | null
           id: string
           is_locked: boolean | null
           lead_id: string | null
@@ -520,6 +521,7 @@ export type Database = {
           entrada?: number | null
           eos_enviado_at?: string | null
           eos_proposta_protocolo?: string | null
+          eos_status?: string | null
           id?: string
           is_locked?: boolean | null
           lead_id?: string | null
@@ -574,6 +576,7 @@ export type Database = {
           entrada?: number | null
           eos_enviado_at?: string | null
           eos_proposta_protocolo?: string | null
+          eos_status?: string | null
           id?: string
           is_locked?: boolean | null
           lead_id?: string | null
@@ -6691,6 +6694,7 @@ export type Database = {
           eos_api_key: string
           eos_integrador_id: string | null
           eos_onboarding_step: number | null
+          eos_webhook_secret: string | null
           financeira: string
           id: string
           tenant_id: string
@@ -6703,6 +6707,7 @@ export type Database = {
           eos_api_key: string
           eos_integrador_id?: string | null
           eos_onboarding_step?: number | null
+          eos_webhook_secret?: string | null
           financeira?: string
           id?: string
           tenant_id: string
@@ -6715,6 +6720,7 @@ export type Database = {
           eos_api_key?: string
           eos_integrador_id?: string | null
           eos_onboarding_step?: number | null
+          eos_webhook_secret?: string | null
           financeira?: string
           id?: string
           tenant_id?: string
