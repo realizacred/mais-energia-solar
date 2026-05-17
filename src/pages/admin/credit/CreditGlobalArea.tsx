@@ -763,7 +763,145 @@ export default function CreditGlobalArea() {
           </DialogHeader>
 
           <div className="grid gap-4 py-4">
-            {actionType === 'reassign' && (
+            {actionType === 'view_details' && (
+              <div className="space-y-6">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <label className="text-xs text-muted-foreground">Cliente</label>
+                    <p className="text-sm font-medium">{selectedAnalysis?.deal?.title || selectedAnalysis?.lead?.nome}</p>
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs text-muted-foreground">Status Interno</label>
+                    <Badge variant={getStatusVariant(selectedAnalysis?.status)}>{selectedAnalysis?.status}</Badge>
+                  </div>
+                </div>
+
+                {selectedAnalysis?.eos_proposta_protocolo && (
+                  <div className="border rounded-lg p-4 space-y-4 bg-muted/30">
+                    <div className="flex justify-between items-center">
+                      <h4 className="font-semibold text-primary flex items-center gap-2">
+                        <ShieldAlert className="h-4 w-4" /> Integração EOS
+                      </h4>
+                      <Button variant="outline" size="sm" className="h-7 text-[10px]" onClick={() => refetchEosDetails()}>
+                        <RefreshCw className={cn("h-3 w-3 mr-1", isLoadingEosDetails && "animate-spin")} />
+                        Atualizar da EOS
+                      </Button>
+                    </div>
+
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                      <div className="space-y-1">
+                        <label className="text-[10px] uppercase text-muted-foreground">Protocolo</label>
+                        <p className="text-sm font-mono">{selectedAnalysis.eos_proposta_protocolo}</p>
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-[10px] uppercase text-muted-foreground">Status EOS</label>
+                        <Badge variant="outline" className={cn("capitalize text-[10px]", getEosStatusColor(selectedAnalysis.eos_status))}>
+                          {selectedAnalysis.eos_status?.replace('_', ' ') || 'Sincronizando...'}
+                        </Badge>
+                      </div>
+                    </div>
+
+                    {eosDetails?.ficha && (
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 p-3 bg-white rounded border border-border/50">
+                        <div className="space-y-0.5">
+                          <label className="text-[9px] uppercase text-muted-foreground">Financiador</label>
+                          <p className="text-xs font-medium">{eosDetails.ficha.financiador}</p>
+                        </div>
+                        <div className="space-y-0.5">
+                          <label className="text-[9px] uppercase text-muted-foreground">Parcela</label>
+                          <p className="text-xs font-medium">{formatBRL(eosDetails.ficha.parcela)}</p>
+                        </div>
+                        <div className="space-y-0.5">
+                          <label className="text-[9px] uppercase text-muted-foreground">CET</label>
+                          <p className="text-xs font-medium">{eosDetails.ficha.cet}% a.a.</p>
+                        </div>
+                        <div className="space-y-0.5">
+                          <label className="text-[9px] uppercase text-muted-foreground">Prazo</label>
+                          <p className="text-xs font-medium">{eosDetails.ficha.tempoFinanciado} meses</p>
+                        </div>
+                      </div>
+                    )}
+
+                    {eosDetails?.documentos && (
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-semibold uppercase text-muted-foreground">Documentos na EOS</label>
+                        <div className="space-y-1 max-h-[150px] overflow-y-auto pr-2">
+                          {eosDetails.documentos.map((doc: any, i: number) => (
+                            <div key={i} className="flex items-center justify-between p-2 bg-white rounded border border-border/40 text-xs">
+                              <span className="font-medium">{doc.label}</span>
+                              <div className="flex items-center gap-2">
+                                <Badge variant="outline" className={cn(
+                                  "text-[9px] h-4", 
+                                  doc.status === 'Entregue' ? "bg-emerald-50 text-emerald-600 border-emerald-100" : "bg-amber-50 text-amber-600 border-amber-100"
+                                )}>
+                                  {doc.status}
+                                </Badge>
+                                {doc.status !== 'Entregue' && (
+                                  <Button 
+                                    variant="ghost" 
+                                    size="icon" 
+                                    className="h-6 w-6"
+                                    onClick={() => {
+                                      const input = document.createElement('input');
+                                      input.type = 'file';
+                                      input.onchange = async (e) => {
+                                        const file = (e.target as HTMLInputElement).files?.[0];
+                                        if (file) {
+                                          toast({ title: "Enviando documento...", description: file.name });
+                                          const reader = new FileReader();
+                                          reader.onload = async () => {
+                                            try {
+                                              const base64 = (reader.result as string).split(',')[1];
+                                              const { error } = await supabase.functions.invoke('eos-enviar-documento', {
+                                                body: {
+                                                  analise_id: selectedAnalysis.id,
+                                                  tipo_documento: doc.tipoDocumento,
+                                                  file_name: file.name,
+                                                  file_content: base64
+                                                }
+                                              });
+                                              if (error) throw error;
+                                              toast({ title: "Sucesso", description: "Documento enviado para EOS." });
+                                              refetchEosDetails();
+                                            } catch (err: any) {
+                                              toast({ title: "Erro no envio", description: err.message, variant: "destructive" });
+                                            }
+                                          };
+                                          reader.readAsDataURL(file);
+                                        }
+                                      };
+                                      input.click();
+                                    }}
+                                  >
+                                    <Download className="h-3 w-3" />
+                                  </Button>
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                <div className="space-y-2">
+                  <label className="text-xs font-medium">Ações Rápidas</label>
+                  <div className="flex flex-wrap gap-2">
+                    <Button variant="outline" size="sm" onClick={() => setActionType('approve')} className="text-emerald-600 border-emerald-100 bg-emerald-50/50">
+                      Aprovar Interno
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={() => setActionType('reject')} className="text-destructive border-red-100 bg-red-50/50">
+                      Reprovar
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={() => setActionType('request_docs')}>
+                      Solicitar Docs
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            )}
+
               <div className="space-y-2">
                 <label className="text-sm font-medium">Novo Gerente</label>
                 <Select value={targetManagerId} onValueChange={setTargetManagerId}>
