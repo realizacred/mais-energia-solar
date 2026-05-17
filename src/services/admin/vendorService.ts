@@ -31,7 +31,7 @@ export const vendorService = {
     return (data ?? []) as unknown as Fornecedor[];
   },
 
-  async save(id?: string, data: Record<string, any>) {
+  async save(id: string | undefined, data: Record<string, any>) {
     if (id) {
       const { error } = await supabase
         .from("fornecedores")
