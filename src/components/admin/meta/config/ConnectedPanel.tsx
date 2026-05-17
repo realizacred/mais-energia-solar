@@ -2,14 +2,13 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
-import { CheckCircle2, Settings, Pause, Play, Facebook, Zap, ArrowRight } from "lucide-react";
+import { Settings, Pause, Play, Facebook, Zap, ArrowRight, LogOut } from "lucide-react";
 import { toast } from "sonner";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { MetaLeadAdsDiagnosticsCard } from "@/components/admin/integrations/MetaLeadAdsDiagnosticsCard";
 import type { MetaConfigMap } from "./useMetaFbConfigs";
 import { META_KEYS, useDisconnectMeta } from "./useMetaFbConfigs";
-import { LogOut } from "lucide-react";
 
 interface ConnectedPanelProps {
   configs: MetaConfigMap;
@@ -76,7 +75,9 @@ export function ConnectedPanel({ configs, automation, pipelineName, stageName, r
                     {isActive ? "Conectado" : "Inativo"}
                   </Badge>
                 </div>
-                <p className="text-[11px] text-muted-foreground">Token configurado</p>
+                <p className="text-[11px] text-muted-foreground">
+                  {mainConfig?.account_name ? `Conectado como ${mainConfig.account_name}` : "Token configurado"}
+                </p>
               </div>
             </div>
             <div className="flex items-center gap-2">
@@ -102,7 +103,6 @@ export function ConnectedPanel({ configs, automation, pipelineName, stageName, r
                 <LogOut className="h-3.5 w-3.5 mr-1" /> Desconectar
               </Button>
             </div>
-
           </div>
         </CardContent>
       </Card>
