@@ -626,7 +626,14 @@ export default function IntegrationsCatalogPage() {
 
         <TabsContent value="webhooks" className="mt-6">
           <Suspense fallback={<LoadingState message="Carregando webhooks…" />}>
-            <WebhookManagerTab />
+            <div className="space-y-6">
+              <PageHeader 
+                title="Webhooks" 
+                description="Receba dados de leads e dispare notificações para sistemas externos via HTTP."
+                icon={Webhook}
+              />
+              <WebhookManagerTab />
+            </div>
           </Suspense>
         </TabsContent>
 
