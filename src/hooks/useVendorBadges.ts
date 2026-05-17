@@ -9,7 +9,7 @@ export function useVendorBadges() {
   return useQuery({
     queryKey: ["vendor-sidebar-badges", user?.id],
     enabled: !!user?.id,
-    staleTime: 60 * 1000,
+    staleTime: 60000,
     queryFn: async () => {
       const currentUserId = user!.id;
       
