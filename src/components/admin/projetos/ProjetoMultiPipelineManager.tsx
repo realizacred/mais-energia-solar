@@ -157,6 +157,18 @@ export function ProjetoMultiPipelineManager({ dealId, dealStatus, pipelines, all
   const [ordemCompra, setOrdemCompra] = useState<any>(null);
   const [loadingOrdem, setLoadingOrdem] = useState(false);
 
+  const [projectData, setProjectData] = useState<any>(null);
+
+  const fetchProjectData = useCallback(async () => {
+    if (!dealId) return;
+    const { data } = await supabase
+      .from("projetos")
+      .select("tenant_id, cliente_id")
+      .eq("id", dealId)
+      .maybeSingle();
+    if (data) setProjectData(data);
+  }, [dealId]);
+
   const fetchOrdemCompra = useCallback(async () => {
     if (!dealId) return;
     setLoadingOrdem(true);
@@ -180,7 +192,8 @@ export function ProjetoMultiPipelineManager({ dealId, dealStatus, pipelines, all
 
   useEffect(() => {
     fetchOrdemCompra();
-  }, [fetchOrdemCompra]);
+    fetchProjectData();
+  }, [fetchOrdemCompra, fetchProjectData]);
 
 
   // Load memberships
