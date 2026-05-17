@@ -13,7 +13,8 @@ import { TopCampaignsChart } from "@/components/admin/meta/TopCampaignsChart";
 import { MetaTimeSeriesChart } from "@/components/admin/meta/MetaTimeSeriesChart";
 import { SpendDistributionChart } from "@/components/admin/meta/SpendDistributionChart";
 import { MetaNavTabs } from "@/components/admin/meta/MetaNavTabs";
-import { MetricsGuideSheet } from "@/components/admin/meta/MetricsGuideSheet";
+import { MarketingGuideModal } from "@/components/admin/marketing/MarketingGuideModal";
+import { Info } from "lucide-react";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
@@ -63,6 +64,7 @@ export default function MetaDashboardPage() {
   const [syncing, setSyncing] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
+  const [guideOpen, setGuideOpen] = useState(false);
 
   const metrics = data?.totals;
   const isConnected = status?.isActive && status?.hasToken;
@@ -98,11 +100,15 @@ export default function MetaDashboardPage() {
     <div className="space-y-6">
       <PageHeader
         icon={BarChart2}
-        title="Meta Ads — Painel"
+        title="Marketing — Relatórios"
         description="Visão geral de performance dos anúncios"
         actions={
           <div className="flex items-center gap-2">
-            <MetricsGuideSheet />
+            <MarketingGuideModal open={guideOpen} onOpenChange={setGuideOpen} />
+            <Button variant="outline" size="sm" onClick={() => setGuideOpen(true)} className="gap-1.5">
+              <Info className="w-4 h-4" />
+              Guia
+            </Button>
             <Button
               onClick={handleSync}
               disabled={syncing || !status?.isActive}
