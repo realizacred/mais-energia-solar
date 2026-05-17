@@ -639,7 +639,14 @@ export default function IntegrationsCatalogPage() {
 
         <TabsContent value="instancias" className="mt-6">
           <Suspense fallback={<LoadingState message="Carregando instâncias…" />}>
-            <WaInstancesManagerTab />
+            <div className="space-y-6">
+              <PageHeader 
+                title="Instâncias WhatsApp" 
+                description="Conecte seu WhatsApp via QR Code e gerencie múltiplas instâncias de atendimento."
+                icon={Smartphone}
+              />
+              <WaInstancesManagerTab />
+            </div>
           </Suspense>
         </TabsContent>
 
