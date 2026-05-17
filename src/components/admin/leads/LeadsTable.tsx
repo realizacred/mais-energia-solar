@@ -59,6 +59,7 @@ export function LeadsTable({ leads, statuses = [], onToggleVisto, onView, onDele
             <TableHead className="w-12">Visto</TableHead>
             <TableHead className="w-24">Código</TableHead>
             <TableHead>Nome</TableHead>
+            <TableHead>Origem</TableHead>
             <TableHead className="w-[155px] min-w-[155px]">Telefone</TableHead>
             <TableHead>Consultor</TableHead>
             <TableHead>Localização</TableHead>
@@ -95,6 +96,31 @@ export function LeadsTable({ leads, statuses = [], onToggleVisto, onView, onDele
                 </Badge>
               </TableCell>
               <TableCell className="font-medium align-middle">{lead.nome}</TableCell>
+              <TableCell className="align-middle">
+                {(() => {
+                  const origin = (lead.origem || "organico").toLowerCase();
+                  if (origin.includes("facebook") || lead.facebook_lead_id) {
+                    return (
+                      <Badge variant="outline" className="bg-blue-500/10 text-blue-600 border-blue-500/20 text-[10px] font-semibold flex items-center gap-1 w-fit">
+                        <MessageSquare className="w-3 h-3" />
+                        Facebook Ads {lead.campanha_nome || lead.campaign_name ? `— ${lead.campanha_nome || lead.campaign_name}` : ""}
+                      </Badge>
+                    );
+                  }
+                  if (origin === "solarmarket") {
+                    return (
+                      <Badge variant="outline" className="bg-orange-500/10 text-orange-600 border-orange-500/20 text-[10px] font-semibold w-fit">
+                        SolarMarket
+                      </Badge>
+                    );
+                  }
+                  return (
+                    <Badge variant="outline" className="bg-muted text-muted-foreground border-border text-[10px] font-medium w-fit">
+                      Orgânico
+                    </Badge>
+                  );
+                })()}
+              </TableCell>
               <TableCell className="whitespace-nowrap align-middle">
                 <div className="flex items-center gap-1">
                   <Phone className="w-3 h-3 text-muted-foreground shrink-0" />
