@@ -204,7 +204,6 @@ export default function LeadsPipeline() {
     // Interceptor: Pedido Efetuado
     const isPedidoEfetuado = statusId === "b3fe8902-69f1-4b58-b60c-64b1e795bf88";
     if (isPedidoEfetuado) {
-      // Check if project (lead with converted status) already has an order
       const { data: ordensExistentes } = await supabase
         .from("ordens_compra")
         .select("id")
