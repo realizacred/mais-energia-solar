@@ -89,8 +89,8 @@ export default function IntegrationGuidesManager() {
       ) : filtered.length === 0 ? (
         <EmptyState
           icon={BookOpen}
-          title="Nenhum guia encontrado"
-          description="Crie um guia para ajudar na configuração de integrações"
+          title="Nenhum guia disponível"
+          description="Em breve — esta seção está em desenvolvimento. Novos tutoriais passo a passo serão adicionados aqui."
         />
       ) : (
         <div className="rounded-lg border border-border overflow-hidden overflow-x-auto">          <Table>
