@@ -600,6 +600,7 @@ export default function CreditGlobalArea() {
                     <TableHead>Valor</TableHead>
                     <TableHead>Responsável</TableHead>
                     <TableHead>Status</TableHead>
+                    <TableHead>Status EOS</TableHead>
                     <TableHead>Data</TableHead>
                     <TableHead className="text-right">Ação</TableHead>
                   </TableRow>
