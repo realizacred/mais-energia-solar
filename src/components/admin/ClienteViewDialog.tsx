@@ -275,7 +275,8 @@ export function ClienteViewDialog({ cliente, open, onOpenChange }: ClienteViewDi
   const totalDocs =
     (docs.identidade_urls?.length || 0) +
     (docs.comprovante_endereco_urls?.length || 0) +
-    (docs.comprovante_beneficiaria_urls?.length || 0);
+    (docs.comprovante_beneficiaria_urls?.length || 0) +
+    projectDocs.length;
 
   const handleDocsChange = async (updated: typeof docs) => {
     setDocs(updated);
