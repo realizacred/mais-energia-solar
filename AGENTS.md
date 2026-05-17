@@ -756,5 +756,30 @@ CHECKLIST DE PR PARA FEATURES DO PORTAL:
 [ ] Leads disponíveis filtram consultor_id IS NULL
 
 =============================================================================
-FIM DO AGENTS.md v4.4
+BLOCO 30 — GERAÇÃO DE DOCUMENTOS (v1.0)
+=============================================================================
+
+RB-94 STORAGE — SANITIZAÇÃO DE PATHS OBRIGATÓRIA
+Todo arquivo gerado (DOCX/PDF) salvo no storage DEVE ter o path sanitizado.
+NUNCA usar o nome do template ou do cliente diretamente no path.
+SEMPRE aplicar a função sanitizePath antes de compor o file name.
+Regras de sanitização:
+- Remover acentos (normalize('NFD'))
+- Substituir espaços e caracteres especiais por underscore (_)
+- Converter para lowercase
+- Remover underscores duplos e trim
+Padrão obrigatório no path: `generated/{tenant_id}/{deal_id}/{timestamp}_{safe_name}.{ext}`
+
+RB-95 DOCUMENTOS — VARIÁVEIS MONETÁRIAS SEM R$
+Variáveis monetárias injetadas em templates DOCX DEVEM retornar apenas o número formatado.
+O prefixo "R$" já deve estar presente de forma estática no template .docx.
+NUNCA enviar "R$ 1.000,00" para o placeholder se o template já tem "R$ [valor]".
+Helper: stripCurrencyPrefix(valor) antes do merge.
+
+AP-48 PATH COM ESPAÇOS NO STORAGE
+✗ Errado: `generated/123/Contrato de Venda.docx`
+✓ Certo: `generated/123/contrato_de_venda.docx`
+
+=============================================================================
+FIM DO AGENTS.md v4.5
 =============================================================================
