@@ -170,23 +170,31 @@ export function ProjetoDocChecklist({ dealId, compact = false }: Props) {
 
   // ─── Full mode ──────────────────────────────────
   return (
-    <Card className="border-border/60">
-      <CardHeader className="p-3 sm:p-3 pb-1 sm:pb-1">
+    <Card className="border-border/60 overflow-hidden">
+      <CardHeader className="p-4 sm:p-4 pb-2 sm:pb-2 space-y-3">
         <div className="flex items-center justify-between">
-          <CardTitle className="text-sm font-bold flex items-center gap-2">
-            <FileText className="h-4 w-4 text-primary" />
-            Checklist de Documentos
-          </CardTitle>
+          <div className="space-y-1">
+            <CardTitle className="text-sm font-bold flex items-center gap-2">
+              <FileText className="h-4 w-4 text-primary" />
+              Checklist de Documentos
+            </CardTitle>
+            <p className="text-[11px] text-muted-foreground">
+              {completed} de {total} documentos entregues ({Math.round(progress)}%)
+            </p>
+          </div>
           <span className={cn(
-            "text-xs font-bold px-2 py-0.5 rounded-full",
-            completed === total ? "bg-success/10 text-success" : completed > 0 ? "bg-warning/10 text-warning" : "bg-muted text-muted-foreground"
+            "text-xs font-bold px-2 py-0.5 rounded-full transition-colors",
+            completed === total ? "bg-success/10 text-success" : completed > 0 ? "bg-amber-500/10 text-amber-600" : "bg-muted text-muted-foreground"
           )}>
             {completed}/{total}
           </span>
         </div>
-        <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden mt-1">
+        <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
           <div
-            className={cn("h-full rounded-full transition-all duration-300", completed === total ? "bg-success" : "bg-primary")}
+            className={cn(
+              "h-full rounded-full transition-all duration-500 ease-in-out",
+              progress === 100 ? "bg-success" : progress > 40 ? "bg-amber-500" : "bg-orange-500"
+            )}
             style={{ width: `${progress}%` }}
           />
         </div>
