@@ -62,7 +62,7 @@ export function ProjetoRecibosTab({
       let path = r.pdf_url;
       if (!path) {
         const res = await regen.mutateAsync(r.id);
-        path = res.pdf_path;
+        path = res.pdf_url;
       }
       const url = await getReciboSignedUrl(path!);
       window.open(url, "_blank", "noopener,noreferrer");
