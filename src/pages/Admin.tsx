@@ -505,6 +505,11 @@ const AdminRoutes = () => (
     <Route path="validacao" element={<ValidacaoVendasManager />} />
     <Route path="tarefas" element={<TasksSlaDashboard />} />
     
+    {/* Marketing */}
+    <Route path="marketing/campanhas" element={<MetaCampaignsPage />} />
+    <Route path="marketing/relatorios" element={<MetaDashboardPage />} />
+    <Route path="marketing/configuracoes" element={<MetaFacebookConfigPage />} />
+    
     {/* Clientes */}
     <Route path="clientes" element={<ClientesManager />} />
     <Route path="checklists" element={<ChecklistsManager />} />
