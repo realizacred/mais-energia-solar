@@ -30,7 +30,11 @@ import {
 } from "@/services/monitoring/monitorService";
 import type { IntegrationProvider, IntegrationCategory, ConnectionStatus } from "@/services/integrations/types";
 import { CATEGORY_LABELS, CATEGORY_ICONS } from "@/services/integrations/types";
-import { PROVIDER_REGISTRY, toIntegrationProvider, LEGACY_ID_MAP } from "@/services/monitoring/providerRegistry";
+import { 
+  PROVIDER_REGISTRY, 
+  toIntegrationProvider, 
+  LEGACY_ID_MAP 
+} from "@/services/monitoring/providerRegistry";
 import { IntegrationProviderCard } from "./IntegrationProviderCard";
 import { IntegrationProviderDrawer } from "./IntegrationProviderDrawer";
 import { cn } from "@/lib/utils";
@@ -79,6 +83,7 @@ const DEDICATED_COMPONENTS: Record<string, React.LazyExoticComponent<React.Compo
   public_api: lazy(() => import("@/pages/admin/OpenAIConfigPage")),
   tuya_iot: lazy(() => import("@/components/admin/integrations-api/ApisPage")),
   gotenberg: lazy(() => import("@/components/admin/integrations-v2/GotenbergConfigPanel")),
+  "eos-financiamento-solar": lazy(() => import("@/pages/admin/integracoes/financeiras/EosConfigPage")),
 };
 
 /* Tab-level lazy components */
@@ -126,7 +131,12 @@ export default function IntegrationsCatalogPage() {
 
   /** Open dedicated inline view or generic drawer */
   const handleConfigure = (provider: IntegrationProvider) => {
+    // If it has a dedicated component OR is a special redirect-only provider
     if (DEDICATED_COMPONENTS[provider.id]) {
+      setInlineProviderId(provider.id);
+    } else if (provider.id === "eos-financiamento-solar") {
+      // Direct navigation for EOS to its existing config page
+      setSearchParams({ integration: provider.id, tab: "catalogo" }, { replace: true });
       setInlineProviderId(provider.id);
     } else {
       setDrawerProvider(provider);
@@ -151,6 +161,25 @@ export default function IntegrationsCatalogPage() {
     const nonMonitoring = dbProviders.filter((p) => p.category !== "monitoring");
     const monitoringFromRegistry = PROVIDER_REGISTRY.map(toIntegrationProvider);
     
+    // Check for EOS synthetic provider - we manually inject it if not in DB to ensure it always exists in catalog
+    const hasEosInDb = dbProviders.some(p => p.id === "eos-financiamento-solar");
+    const eosSynthetic: IntegrationProvider[] = !hasEosInDb ? [{
+      id: "eos-financiamento-solar",
+      category: "billing",
+      label: "EOS Financiamento Solar",
+      description: "Financiamento solar via plataforma EOS — simulação e envio de propostas PF e PJ.",
+      status: "available",
+      auth_type: "x-api-key",
+      credential_schema: [],
+      tutorial: { steps: ["Obtenha sua API Key no painel da EOS", "Insira a chave na página de configuração", "Ative as notificações automáticas"] },
+      capabilities: { simulation: true, proposals: true },
+      platform_managed_keys: false,
+      popularity: 90,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      logo_key: "Calculator",
+    }] : [];
+    
     const tuyaProvider: IntegrationProvider = {
       id: "tuya_iot",
       category: "api",
@@ -168,7 +197,7 @@ export default function IntegrationsCatalogPage() {
       logo_key: null,
     };
     
-    return [...nonMonitoring, ...monitoringFromRegistry, tuyaProvider];
+    return [...nonMonitoring, ...monitoringFromRegistry, ...eosSynthetic, tuyaProvider];
   }, [dbProviders]);
 
   const { data: connections = [] } = useQuery({

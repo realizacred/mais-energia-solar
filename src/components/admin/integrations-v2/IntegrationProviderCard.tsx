@@ -106,6 +106,14 @@ function StatusIndicator({ provider, connStatus }: { provider: IntegrationProvid
   if (isMonitoring && provider.capabilities?.sync_plants && provider.capabilities?.sync_health) {
     return <Badge className="text-[10px] font-medium bg-primary/10 text-primary border-primary/20 px-2 py-0.5">Produção</Badge>;
   }
+
+  // Handle EOS status badge logic
+  if (provider.id === "eos-financiamento-solar" && connStatus === "maintenance") {
+    return <Badge variant="outline" className="text-[10px] font-semibold bg-amber-500/10 text-amber-500 border-amber-500/20 px-2.5 py-0.5 gap-1">
+      <AlertCircle className="h-3 w-3" /> Configuração pendente
+    </Badge>;
+  }
+
   return null;
 }
 
