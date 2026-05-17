@@ -1047,6 +1047,40 @@ export function ProjetoMultiPipelineManager({ dealId, dealStatus, pipelines, all
                   </div>
                 </div>
 
+                {/* Exibição do fornecedor se for funil de Equipamento */}
+                {(activeMembership.pipeline_name.toLowerCase().includes('equipamento') || activeMembership.pipeline_name.toLowerCase().includes('suprimentos')) && ordemCompra && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 5 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="mt-4 p-3 rounded-lg border border-border bg-muted/30 space-y-1.5"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-1.5 text-xs font-bold text-foreground">
+                        <Package className="h-3.5 w-3.5 text-primary" />
+                        {ordemCompra.fornecedores?.nome || "Fornecedor vinculado"}
+                      </div>
+                      <Badge variant="outline" className="text-[9px] uppercase h-4 px-1 bg-background">
+                        {ordemCompra.status || 'Pendente'}
+                      </Badge>
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-[10px] text-muted-foreground">
+                      <div className="flex items-center gap-1">
+                        <Truck className="h-3 w-3" />
+                        Pedido: {ordemCompra.numero_pedido || "—"}
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <DollarSign className="h-3 w-3" />
+                        {formatBRL(ordemCompra.valor_total || 0)}
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <Calendar className="h-3 w-3" />
+                        Entrega: {ordemCompra.data_previsao_entrega ? new Date(ordemCompra.data_previsao_entrega + "T12:00:00").toLocaleDateString("pt-BR") : "—"}
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+
                 {/* Terminal stages (e.g. "Perdido") — shown separately below the line */}
                 {terminalLostStages.length > 0 && (
                   <div className="flex items-center gap-2 pt-1">
@@ -1089,6 +1123,31 @@ export function ProjetoMultiPipelineManager({ dealId, dealStatus, pipelines, all
               </div>
             );
           })()}
+
+          {/* Modal de Interceptação de Fornecedor */}
+          {fornecedorModal && (
+            <VincularFornecedorModal
+              open={!!fornecedorModal}
+              onOpenChange={(open) => !open && setFornecedorModal(null)}
+              projetoId={fornecedorModal.projetoId}
+              clienteNome={projetoNome || "NÃO IDENTIFICADO"}
+              onSuccess={() => {
+                const { membershipId, etapaId } = fornecedorModal;
+                setFornecedorModal(null);
+                // Força atualização da etapa após vincular
+                supabase
+                  .from("deal_pipeline_stages")
+                  .update({ stage_id: etapaId })
+                  .eq("id", membershipId)
+                  .then(() => {
+                    fetchMemberships();
+                    onMembershipChange?.();
+                    fetchOrdemCompra();
+                  });
+              }}
+              onCancel={() => setFornecedorModal(null)}
+            />
+          )}
         </div>
       )}
     </div>
