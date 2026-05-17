@@ -136,6 +136,8 @@ export function CreditAnalysisWizard({
     com_seguro: initialData?.com_seguro ?? false,
   });
 
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
   const { data: banks } = useCreditBankConfigs();
   const { data: checklist } = useCreditBankChecklist(formData.bank_config_id || undefined);
   const { data: creditDocs } = useAnaliseCreditoDocumentos(initialData?.id || "");
@@ -147,7 +149,86 @@ export function CreditAnalysisWizard({
 
   const [isLinkingDoc, setIsLinkingDoc] = useState<{checklistId: string, itemName: string} | null>(null);
 
-  const handleNext = () => setStep((s) => (s + 1) as Step);
+  const validateStep = (currentStep: number): boolean => {
+    const newErrors: Record<string, string> = {};
+
+    if (currentStep === 2) {
+      if (formData.tipo_pessoa === 'PF') {
+        if (!formData.cliente_nome || formData.cliente_nome.length < 3) 
+          newErrors.cliente_nome = "Nome completo é obrigatório";
+        if (!formData.cpf_cnpj) 
+          newErrors.cpf_cnpj = "CPF é obrigatório";
+        else if (!isValidCpf(formData.cpf_cnpj.replace(/\D/g, "")))
+          newErrors.cpf_cnpj = "CPF inválido";
+        
+        if (!formData.cliente_data_nascimento) {
+          newErrors.cliente_data_nascimento = "Data de nascimento é obrigatória";
+        } else {
+          const birthDate = new Date(formData.cliente_data_nascimento);
+          const today = new Date();
+          let age = today.getFullYear() - birthDate.getFullYear();
+          const m = today.getMonth() - birthDate.getMonth();
+          if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) age--;
+          if (age < 18 || age > 90) newErrors.cliente_data_nascimento = "Idade entre 18 e 90 anos";
+        }
+
+        const phoneDigits = formData.cliente_telefone.replace(/\D/g, "");
+        if (!phoneDigits) newErrors.cliente_telefone = "Telefone é obrigatório";
+        else if (phoneDigits.length < 10 || phoneDigits.length > 11) newErrors.cliente_telefone = "Telefone inválido";
+
+        if (!formData.cliente_email) newErrors.cliente_email = "E-mail é obrigatório";
+        else if (validateEmail(formData.cliente_email)) newErrors.cliente_email = "E-mail inválido";
+
+        if (!formData.renda_mensal || parseFloat(formData.renda_mensal.replace(/[^\d,]/g, "").replace(",", ".")) <= 0) 
+          newErrors.renda_mensal = "Renda mensal é obrigatória";
+      } else {
+        // PJ validation
+        if (!formData.cnpj) newErrors.cnpj = "CNPJ é obrigatório";
+        else if (!isValidCnpj(formData.cnpj.replace(/\D/g, ""))) newErrors.cnpj = "CNPJ inválido";
+        if (!formData.razao_social) newErrors.razao_social = "Razão social é obrigatória";
+        
+        const phoneDigits = formData.cliente_telefone.replace(/\D/g, "");
+        if (!phoneDigits) newErrors.cliente_telefone = "Telefone é obrigatório";
+        else if (phoneDigits.length < 10 || phoneDigits.length > 11) newErrors.cliente_telefone = "Telefone inválido";
+        
+        if (!formData.cliente_email) newErrors.cliente_email = "E-mail é obrigatório";
+        else if (validateEmail(formData.cliente_email)) newErrors.cliente_email = "E-mail inválido";
+
+        // Avalista
+        if (!formData.avalista_nome) newErrors.avalista_nome = "Nome do avalista é obrigatório";
+        if (!formData.avalista_cpf) newErrors.avalista_cpf = "CPF do avalista é obrigatório";
+        else if (!isValidCpf(formData.avalista_cpf.replace(/\D/g, ""))) newErrors.avalista_cpf = "CPF inválido";
+      }
+    }
+
+    if (currentStep === 3) {
+      if (!formData.kit_fotovoltaico || parseFloat(formData.kit_fotovoltaico) <= 0) 
+        newErrors.kit_fotovoltaico = "Valor do kit é obrigatório";
+      if (!formData.potencia_instalada || parseFloat(formData.potencia_instalada) <= 0)
+        newErrors.potencia_instalada = "Potência do sistema é obrigatória";
+      if (!formData.situacao_imovel)
+        newErrors.situacao_imovel = "Situação do imóvel é obrigatória";
+      
+      const cepDigits = formData.endereco_cep.replace(/\D/g, "");
+      if (cepDigits.length !== 8) newErrors.endereco_cep = "CEP inválido";
+      if (!formData.endereco_numero) newErrors.endereco_numero = "Número é obrigatório";
+    }
+
+    if (currentStep === 4) {
+      if (!formData.prazo_meses) newErrors.prazo_meses = "Selecione um prazo";
+      if (!formData.carencia) newErrors.carencia = "Selecione a carência";
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleNext = () => {
+    if (validateStep(step)) {
+      setStep((s) => (s + 1) as Step);
+    }
+  };
+
   const handleBack = () => setStep((s) => (s - 1) as Step);
 
   const handleSave = async (asDraft = true) => {
