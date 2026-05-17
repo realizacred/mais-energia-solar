@@ -486,21 +486,71 @@ export function EmitirReciboModal({
 
   async function handleSubmit() {
     if (!canSubmit) return;
-    const camposExtras: Record<string, unknown> = { ...dynFields };
+    const camposExtras: Record<string, any> = { ...dynFields };
     if (instituicaoFinanceira) camposExtras["instituicao_financeira"] = instituicaoFinanceira;
-    if (formaPagamento === "PIX" && pixComprovante) camposExtras["pix_comprovante"] = pixComprovante;
+
+    // Metadados estruturados por forma de pagamento
+    if (formaPagamento === "PIX") {
+      camposExtras["pix"] = {
+        chave_pix: pixChave,
+        codigo_rastreio: rastreio,
+        comprovante: pixComprovante
+      };
+      // Aliases para variáveis de template
+      camposExtras["pix_chave"] = pixChave;
+      camposExtras["pix_comprovante"] = pixComprovante;
+    }
+
     if (formaPagamento === "Cheque") {
-      if (chequeBanco) camposExtras["cheque_banco"] = chequeBanco;
-      if (chequeAgencia) camposExtras["cheque_agencia"] = chequeAgencia;
-      if (chequeConta) camposExtras["cheque_conta"] = chequeConta;
-      if (chequeNumero) camposExtras["cheque_numero"] = chequeNumero;
+      camposExtras["cheque"] = {
+        banco: chequeBanco,
+        agencia: chequeAgencia,
+        conta: chequeConta,
+        numero: chequeNumero,
+        titular_nome: chequeTitular,
+        titular_cpf: chequeTitularCpf,
+        terceiro: isChequeTerceiro,
+        data_cheque: chequeData,
+        pre_datado: isChequePreDatado,
+        data_deposito: chequeDataDeposito,
+        valor: valor
+      };
+      // Aliases para variáveis de template
+      camposExtras["cheque_banco"] = chequeBanco;
+      camposExtras["cheque_numero"] = chequeNumero;
+      camposExtras["cheque_titular"] = chequeTitular;
+      camposExtras["cheque_data"] = chequeData;
     }
+
+    if (formaPagamento === "TED/DOC") {
+      camposExtras["transferencia"] = {
+        banco_origem: instituicaoFinanceira,
+        codigo_rastreio: rastreio,
+        comprovante: pixComprovante
+      };
+    }
+
     if (formaPagamento.startsWith("Cartão")) {
-      if (cartaoBandeira) camposExtras["cartao_bandeira"] = cartaoBandeira;
-      if (cartaoParcelas) camposExtras["cartao_parcelas"] = cartaoParcelas;
-      if (cartaoNsu) camposExtras["cartao_nsu"] = cartaoNsu;
+      camposExtras["cartao"] = {
+        bandeira: cartaoBandeira,
+        parcelas: cartaoParcelas,
+        ultimos_digitos: cartaoUltimosDigitos,
+        nsu: cartaoNsu,
+        valor_parcela: Number(cartaoParcelas) > 0 ? (Number(valor) / Number(cartaoParcelas)).toFixed(2) : valor
+      };
+      // Aliases para variáveis de template
+      camposExtras["cartao_bandeira"] = cartaoBandeira;
+      camposExtras["cartao_parcelas"] = cartaoParcelas;
     }
-    if (formaPagamento === "Boleto" && boletoLinhaDigitavel) camposExtras["boleto_linha_digitavel"] = boletoLinhaDigitavel;
+
+    if (formaPagamento === "Boleto") {
+      camposExtras["boleto"] = {
+        numero: boletoNumero,
+        data_vencimento: boletoVencimento,
+        banco_emissor: boletoBanco,
+        linha_digitavel: boletoLinhaDigitavel
+      };
+    }
 
     try {
       // 1. Criar lançamento financeiro primeiro
