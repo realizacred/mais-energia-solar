@@ -16,6 +16,7 @@ import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { FilePreviewModal, type FilePreviewTarget } from "./FilePreviewModal";
 import { logUploadDiagnostics } from "@/lib/projectUploadDiagnostics";
+import { getStorageBucket } from "@/lib/storage";
 
 export interface CustomFieldFileMeta {
   storage_path: string;
@@ -120,6 +121,7 @@ export function CustomFieldFileInput({
       tenantId = await getTenantId();
       const userId = (await supabase.auth.getUser()).data.user?.id;
       const uploaded: CustomFieldFileMeta[] = [];
+      const bucket = getStorageBucket("campo_customizado");
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
         currentFile = file;
@@ -127,7 +129,7 @@ export function CustomFieldFileInput({
         const path = `${tenantId}/deals/${dealId}/custom-fields/${fieldKey}/${Date.now()}_${i}_${safeName}`;
         currentPath = path;
         const { error } = await supabase.storage
-          .from("projeto-documentos")
+          .from(bucket)
           .upload(path, file, { upsert: false, contentType: file.type || undefined });
         if (error) throw error;
         uploaded.push({

@@ -119,7 +119,7 @@ export function useUploadProjectDocument() {
       );
 
       const { error: upErr } = await supabase.storage
-        .from("project-documents")
+        .from(bucket)
         .upload(storagePath, file, { 
           upsert: false, 
           contentType: file.type,
