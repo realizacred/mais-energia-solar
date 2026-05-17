@@ -57,10 +57,13 @@ export function EmitirReciboModal({
   const [descricao, setDescricao] = useState<string>("");
   const [numero, setNumero] = useState<string>("");
   const [formaPagamento, setFormaPagamento] = useState<string>("");
+  const [dataPagamento, setDataPagamento] = useState<string>(new Date().toISOString().slice(0, 10));
+  const [instituicaoFinanceira, setInstituicaoFinanceira] = useState<string>("");
   const [dynFields, setDynFields] = useState<Record<string, string>>({});
   const [loadingContext, setLoadingContext] = useState(false);
   const [projectContext, setProjectContext] = useState<any>(null);
   const [proposalContext, setProposalContext] = useState<any>(null);
+  const [totalPago, setTotalPago] = useState(0);
 
   useEffect(() => {
     if (open) {
