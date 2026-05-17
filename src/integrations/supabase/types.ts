@@ -3629,6 +3629,44 @@ export type Database = {
           },
         ]
       }
+      consultor_historico: {
+        Row: {
+          acao: string
+          consultor_id: string | null
+          created_at: string | null
+          id: string
+          lead_id: string | null
+          metadata: Json | null
+          tenant_id: string
+        }
+        Insert: {
+          acao: string
+          consultor_id?: string | null
+          created_at?: string | null
+          id?: string
+          lead_id?: string | null
+          metadata?: Json | null
+          tenant_id: string
+        }
+        Update: {
+          acao?: string
+          consultor_id?: string | null
+          created_at?: string | null
+          id?: string
+          lead_id?: string | null
+          metadata?: Json | null
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "consultor_historico_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       consultor_metas: {
         Row: {
           ano: number
@@ -17585,6 +17623,7 @@ export type Database = {
           created_at: string
           id: string
           nome: string
+          percentual_comissao: number | null
           settings: Json | null
           status: string
           telefone: string | null
@@ -17599,6 +17638,7 @@ export type Database = {
           created_at?: string
           id?: string
           nome: string
+          percentual_comissao?: number | null
           settings?: Json | null
           status?: string
           telefone?: string | null
@@ -17613,6 +17653,7 @@ export type Database = {
           created_at?: string
           id?: string
           nome?: string
+          percentual_comissao?: number | null
           settings?: Json | null
           status?: string
           telefone?: string | null
