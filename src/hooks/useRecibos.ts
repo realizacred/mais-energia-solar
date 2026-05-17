@@ -1,5 +1,5 @@
 // Recibos — emissão, listagem, PDF.
-// SSOT: tabela `recibos_emitidos` + bucket `recibos`.
+// SSOT: tabela `recibos` + bucket `recibos`.
 // Reutiliza document_templates (categoria='recibo').
 // §16/§23: queries em hooks com staleTime; invalidação após mutações.
 
