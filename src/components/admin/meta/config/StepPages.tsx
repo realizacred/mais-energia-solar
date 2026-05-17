@@ -82,14 +82,30 @@ export function StepPages({ configs, onNext, onBack }: StepPagesProps) {
 
   const handleNext = async () => {
     try {
+      // 1. Save to integration_configs (legacy)
       await saveMutation.mutateAsync({ serviceKey: META_KEYS.selectedPages, apiKey: JSON.stringify(selectedPages) });
       await saveMutation.mutateAsync({ serviceKey: META_KEYS.selectedAccounts, apiKey: JSON.stringify(selectedAccounts) });
+      
+      // 2. Save to facebook_integrations (new table)
+      const { data: profile } = await supabase.from("profiles").select("tenant_id").single();
+      if (profile?.tenant_id) {
+        await supabase
+          .from("facebook_integrations")
+          .update({
+            page_ids: selectedPages,
+            ad_account_ids: selectedAccounts,
+            updated_at: new Date().toISOString()
+          })
+          .eq("tenant_id", profile.tenant_id);
+      }
+
       toast.success("Seleção salva ✅");
       onNext();
     } catch (err: any) {
       toast.error(err.message);
     }
   };
+
 
   const hasPermissionError = pagesQuery.isError || accountsQuery.isError;
 
