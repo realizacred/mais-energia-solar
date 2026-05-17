@@ -22,40 +22,25 @@ export interface OperationalStatusInfo {
 }
 
 const STATUS_CONFIG: Record<OperationalStatus, OperationalStatusInfo> = {
-  operacional_nao_iniciado: { 
-    status: "operacional_nao_iniciado", 
-    label: "Pronto para Engenharia", 
-    colorClass: "bg-slate-100 text-slate-600 border-slate-200" 
-  },
-  aguardando_documentos: { 
-    status: "aguardando_documentos", 
-    label: "Aguardando Documentos", 
-    colorClass: "bg-amber-100 text-amber-700 border-amber-200" 
-  },
-  em_engenharia: { 
-    status: "em_engenharia", 
-    label: "Em Engenharia", 
-    colorClass: "bg-blue-100 text-blue-700 border-blue-200" 
-  },
-  engenharia_aprovada: { 
-    status: "engenharia_aprovada", 
-    label: "Engenharia Aprovada", 
-    colorClass: "bg-blue-500 text-white border-blue-600" 
-  },
-  instalacao_agendada: { 
-    status: "instalacao_agendada", 
-    label: "Instalação Agendada", 
-    colorClass: "bg-indigo-100 text-indigo-700 border-indigo-200" 
+  em_operacao: { 
+    status: "em_operacao", 
+    label: "Usina em Operação", 
+    colorClass: "bg-success/10 text-success border-success/20 font-bold" 
   },
   em_instalacao: { 
     status: "em_instalacao", 
     label: "Em Instalação", 
-    colorClass: "bg-indigo-500 text-white border-indigo-600" 
+    colorClass: "bg-blue-500 text-white border-blue-600" 
   },
   instalacao_concluida: { 
     status: "instalacao_concluida", 
     label: "Instalação Concluída", 
     colorClass: "bg-emerald-100 text-emerald-700 border-emerald-200" 
+  },
+  instalacao_agendada: { 
+    status: "instalacao_agendada", 
+    label: "Instalação Agendada", 
+    colorClass: "bg-indigo-100 text-indigo-700 border-indigo-200" 
   },
   aguardando_homologacao: { 
     status: "aguardando_homologacao", 
@@ -67,10 +52,30 @@ const STATUS_CONFIG: Record<OperationalStatus, OperationalStatusInfo> = {
     label: "Homologação Aprovada", 
     colorClass: "bg-purple-500 text-white border-purple-600" 
   },
-  em_operacao: { 
-    status: "em_operacao", 
-    label: "Usina em Operação", 
-    colorClass: "bg-success/10 text-success border-success/20 font-bold" 
+  em_engenharia: { 
+    status: "em_engenharia", 
+    label: "Em Engenharia", 
+    colorClass: "bg-purple-100 text-purple-700 border-purple-200" 
+  },
+  engenharia_aprovada: { 
+    status: "engenharia_aprovada", 
+    label: "Engenharia Aprovada", 
+    colorClass: "bg-blue-500 text-white border-blue-600" 
+  },
+  pedido_em_andamento: { 
+    status: "pedido_em_andamento", 
+    label: "Pedido em Andamento", 
+    colorClass: "bg-amber-100 text-amber-700 border-amber-200" 
+  },
+  operacional_nao_iniciado: { 
+    status: "operacional_nao_iniciado", 
+    label: "Pronto para Engenharia", 
+    colorClass: "bg-slate-100 text-slate-600 border-slate-200" 
+  },
+  aguardando_documentos: { 
+    status: "aguardando_documentos", 
+    label: "Aguardando Documentos", 
+    colorClass: "bg-amber-100 text-amber-700 border-amber-200" 
   },
   desconhecido: { 
     status: "desconhecido", 
