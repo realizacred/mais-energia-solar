@@ -26,8 +26,8 @@ import { useEmitirRecibo, useRecibos, type Recibo, useReciboPDF, useDeleteRecibo
 import type { DocumentTemplate, FormFieldSchema } from "./types";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
-import { Badge } from "@/components/ui/badge";
-import { formatBRL, formatDateTime, formatNameCapitalize, formatCurrency } from "@/lib/formatters/index";
+import { Badge } from "@/components/ui-kit/Badge";
+import { formatBRL, formatDateTime, formatNameCapitalize, formatNumberBR } from "@/lib/formatters/index";
 import { formatCpfCnpj } from "@/lib/formatters/index";
 import { toast } from "sonner";
 import { CurrencyInput } from "@/components/ui-kit/inputs/CurrencyInput";
