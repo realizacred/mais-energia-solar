@@ -240,11 +240,16 @@ export function ProjetoCreditoTab({ dealId, leadId, clienteId, clienteCpfCnpj, v
                 </div>
                 <div className="space-y-1">
                   <p className="text-[10px] font-bold text-muted-foreground uppercase flex items-center gap-1.5">
-                    <CheckCircle2 className="h-3 w-3" /> Valor Aprovado
+                    <CheckCircle2 className="h-3 w-3" /> Protocolo/Aprovado
                   </p>
-                  <p className={cn("text-sm font-bold", latestAnalise.valor_aprovado ? "text-success" : "text-muted-foreground")}>
-                    {latestAnalise.valor_aprovado ? formatBRL(latestAnalise.valor_aprovado) : "—"}
-                  </p>
+                  <div className="flex flex-col">
+                    <p className={cn("text-sm font-bold", latestAnalise.valor_aprovado ? "text-success" : "text-muted-foreground")}>
+                      {latestAnalise.valor_aprovado ? formatBRL(latestAnalise.valor_aprovado) : (latestAnalise.eos_proposta_protocolo || "—")}
+                    </p>
+                    {latestAnalise.eos_proposta_protocolo && (
+                      <span className="text-[9px] text-muted-foreground font-mono">EOS: {latestAnalise.eos_proposta_protocolo}</span>
+                    )}
+                  </div>
                 </div>
               </div>
 
