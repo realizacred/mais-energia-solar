@@ -9,7 +9,7 @@
  */
 
 // ─── Re-exports from existing SSOT files ─────────────────────
-export {
+import {
   formatBRL,
   formatBRLInteger,
   formatBRLCompact,
@@ -18,8 +18,16 @@ export {
   roundCurrency,
 } from "../formatters";
 
-
 export {
+  formatBRL,
+  formatBRLInteger,
+  formatBRLCompact,
+  formatNumberBR,
+  parseBRNumber,
+  roundCurrency,
+};
+
+import {
   formatCpfCnpj,
   onlyDigits,
   isValidCpf,
@@ -29,12 +37,30 @@ export {
 } from "../cpfCnpjUtils";
 
 export {
+  formatCpfCnpj,
+  onlyDigits,
+  isValidCpf,
+  isValidCnpj,
+  isValidCpfCnpj,
+  CPF_CNPJ_MAX_LENGTH,
+};
+
+import {
   formatPhone as formatPhoneMasked,
   formatCEP,
   formatName,
   normalizeEmail,
   validateEmail,
 } from "../validations";
+
+export {
+  formatPhoneMasked,
+  formatCEP,
+  formatName,
+  normalizeEmail,
+  validateEmail,
+};
+
 
 // ─── DOCUMENT FORMATTERS ─────────────────────────────────────
 
