@@ -167,9 +167,9 @@ function ComissoesWidget({ vendedor }: { vendedor: any }) {
       const yearStart = new Date(now.getFullYear(), 0, 1).toISOString();
 
       // 1. Get closed deals (sales) for this month
-      const { data: monthDeals, error: monthErr } = await supabase
+      const { data: monthDeals, error: monthErr } = await (supabase as any)
         .from("deals")
-        .select("id, valor_projeto")
+        .select("id, deal_value")
         .eq("consultor_id", user!.id)
         .eq("status", "ganho")
         .gte("closed_at", monthStart);
@@ -177,17 +177,18 @@ function ComissoesWidget({ vendedor }: { vendedor: any }) {
       if (monthErr) throw monthErr;
 
       // 2. Get closed deals for this year
-      const { data: yearDeals, error: yearErr } = await supabase
+      const { data: yearDeals, error: yearErr } = await (supabase as any)
         .from("deals")
-        .select("id, valor_projeto")
+        .select("id, deal_value")
         .eq("consultor_id", user!.id)
         .eq("status", "ganho")
         .gte("closed_at", yearStart);
 
       if (yearErr) throw yearErr;
 
-      const monthValue = monthDeals?.reduce((acc, d) => acc + (Number(d.valor_projeto) || 0), 0) || 0;
-      const yearValue = yearDeals?.reduce((acc, d) => acc + (Number(d.valor_projeto) || 0), 0) || 0;
+      const monthValue = monthDeals?.reduce((acc: number, d: any) => acc + (Number(d.deal_value) || 0), 0) || 0;
+      const yearValue = yearDeals?.reduce((acc: number, d: any) => acc + (Number(d.deal_value) || 0), 0) || 0;
+
       
       return {
         monthValue,
