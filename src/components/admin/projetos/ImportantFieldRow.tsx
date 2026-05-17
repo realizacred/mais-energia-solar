@@ -235,67 +235,18 @@ export function ImportantFieldRow({ field, value, dealId, onSaved, showSeparator
   if (field.field_type === "boolean") {
     return (
       <>
-        <div className="flex items-center gap-2 py-1 px-1">
+        <div className="flex items-center gap-2 py-2 px-1">
           <FieldIcon className="h-3.5 w-3.5 shrink-0 text-primary" />
           <span className="text-xs text-foreground flex-1 min-w-0 truncate" title={field.title}>{field.title}</span>
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] text-muted-foreground uppercase font-medium">
+              {value?.value_boolean ? "Sim" : "Não"}
+            </span>
             <Switch
               checked={value?.value_boolean ?? false}
-              onCheckedChange={() => toggleBool()}
+              onCheckedChange={(val) => save(val)}
               disabled={saving || disabled}
             />
-        </div>
-        {showSeparator && <Separator />}
-      </>
-    );
-  }
-
-  // ── Editing row ──
-  if (editing) {
-    return (
-      <>
-        <div className="flex items-center gap-2 py-1 px-1 min-w-0">
-          <FieldIcon className="h-3.5 w-3.5 shrink-0 text-primary" />
-          <span className="text-xs text-foreground truncate min-w-0 w-[120px] shrink-0" title={field.title}>{field.title}</span>
-          <div className="flex-1 flex items-center gap-1.5 justify-end min-w-0">
-            {field.field_type === "select" && options.length > 0 ? (
-              <Select value={draft || "none"} onValueChange={(v) => setDraft(v === "none" ? "" : v)}>
-                <SelectTrigger className="h-8 text-xs w-full min-w-0">
-                  <SelectValue placeholder="Selecione" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">Nenhum</SelectItem>
-                  {options.map(opt => (
-                    <SelectItem key={opt} value={opt}>{opt}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            ) : field.field_type === "textarea" ? (
-              <Textarea
-                ref={inputRef as React.RefObject<HTMLTextAreaElement>}
-                value={draft}
-                onChange={e => setDraft(e.target.value)}
-                onKeyDown={handleKeyDown}
-                className="text-sm w-full min-w-0 min-h-[60px] resize-none"
-              />
-            ) : (
-              <Input
-                ref={inputRef as React.RefObject<HTMLInputElement>}
-                type={field.field_type === "number" || field.field_type === "currency" || field.field_type === "percent" ? "number" : field.field_type === "date" ? "date" : "text"}
-                value={draft}
-                onChange={e => setDraft(e.target.value)}
-                onKeyDown={handleKeyDown}
-                className="h-8 text-sm w-full min-w-0"
-                step={field.field_type === "currency" || field.field_type === "percent" ? "0.01" : undefined}
-                min={field.field_type === "percent" ? 0 : undefined}
-                max={field.field_type === "percent" ? 100 : undefined}
-              />
-            )}
-            <Button variant="ghost" size="icon" onClick={save} disabled={saving} className="h-7 w-7 shrink-0 hover:bg-primary/10 text-primary transition-colors">
-              <Check className="h-3.5 w-3.5" />
-            </Button>
-            <Button variant="ghost" size="icon" onClick={cancel} className="h-7 w-7 shrink-0 hover:bg-destructive/10 text-muted-foreground transition-colors">
-              <X className="h-3.5 w-3.5" />
-            </Button>
           </div>
         </div>
         {showSeparator && <Separator />}
@@ -303,31 +254,89 @@ export function ImportantFieldRow({ field, value, dealId, onSaved, showSeparator
     );
   }
 
-  // ── Display row ──
-  return (
-    <>
-      <div
-        className={cn(
-          "flex items-center gap-2 py-1 px-1 group -mx-1 rounded-md transition-colors",
-          !disabled ? "hover:bg-muted/40 cursor-pointer" : "opacity-80"
-        )}
-        onClick={startEdit}
-      >
-        <FieldIcon className="h-3.5 w-3.5 shrink-0 text-primary" />
-        <span className="text-xs text-foreground flex-1 min-w-0 truncate" title={field.title}>{field.title}</span>
-        <div className={cn(
-          "text-xs px-2 py-0.5 rounded border text-center truncate w-[130px] transition-all",
-          displayValue === "—"
-            ? "text-muted-foreground/40 border-dashed border-primary/30 group-hover:border-primary/60 group-hover:text-primary/70"
-            : "font-medium text-foreground border-border bg-muted/30"
-        )}>
-          {displayValue === "—" ? "Clique para preencher" : displayValue}
+  // ── Text / Textarea row (Always visible inputs for important fields) ──
+  if (field.field_type === "text" || field.field_type === "textarea" || field.field_type === "number" || field.field_type === "currency" || field.field_type === "percent" || field.field_type === "date") {
+    const isTextarea = field.field_type === "textarea" || field.title.toLowerCase().includes("equipamento") || field.title.toLowerCase().includes("localiza") || field.title.toLowerCase().includes("wi-fi");
+    
+    return (
+      <>
+        <div className="py-2.5 px-1 space-y-1.5">
+          <div className="flex items-center gap-2">
+            <FieldIcon className="h-3.5 w-3.5 shrink-0 text-primary" />
+            <span className="text-xs font-bold text-foreground truncate" title={field.title}>{field.title}</span>
+            {saving && <Loader2 className="h-3 w-3 animate-spin text-muted-foreground ml-auto" />}
+          </div>
+          
+          {isTextarea ? (
+            <Textarea
+              placeholder="Clique para preencher..."
+              className="w-full border border-border bg-background rounded-md p-2 text-sm resize-none focus-visible:ring-1 focus-visible:ring-primary min-h-[60px]"
+              rows={2}
+              defaultValue={field.field_type === "number" ? (value?.value_number?.toString() ?? "") : (value?.value_text ?? "")}
+              onBlur={(e) => {
+                if (e.target.value !== (field.field_type === "number" ? (value?.value_number?.toString() ?? "") : (value?.value_text ?? ""))) {
+                  save(e.target.value);
+                }
+              }}
+              disabled={disabled || saving}
+            />
+          ) : (
+            <div className="relative">
+              <Input
+                type={field.field_type === "number" || field.field_type === "currency" || field.field_type === "percent" ? "number" : field.field_type === "date" ? "date" : "text"}
+                placeholder="Clique para preencher..."
+                className="h-8 text-sm w-full bg-background border-border focus-visible:ring-1 focus-visible:ring-primary"
+                defaultValue={field.field_type === "number" || field.field_type === "currency" || field.field_type === "percent" ? (value?.value_number?.toString() ?? "") : field.field_type === "date" ? (value?.value_date ?? "") : (value?.value_text ?? "")}
+                onBlur={(e) => {
+                  const currentVal = field.field_type === "number" || field.field_type === "currency" || field.field_type === "percent" ? (value?.value_number?.toString() ?? "") : field.field_type === "date" ? (value?.value_date ?? "") : (value?.value_text ?? "");
+                  if (e.target.value !== currentVal) {
+                    save(e.target.value);
+                  }
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") (e.target as HTMLInputElement).blur();
+                }}
+                disabled={disabled || saving}
+              />
+            </div>
+          )}
         </div>
-        {!disabled && <Pencil className="h-4 w-4 shrink-0 text-primary/40 group-hover:text-primary transition-colors" />}
-      </div>
-      {showSeparator && <Separator />}
-    </>
-  );
+        {showSeparator && <Separator />}
+      </>
+    );
+  }
+
+  // ── Select type row (keeps standard behavior but with inline feel) ──
+  if (field.field_type === "select" || field.field_type === "multiselect") {
+    const options: string[] = Array.isArray(field.options) ? field.options : [];
+    return (
+      <>
+        <div className="flex items-center justify-between gap-2 py-2 px-1">
+          <div className="flex items-center gap-2 min-w-0">
+            <FieldIcon className="h-3.5 w-3.5 shrink-0 text-primary" />
+            <span className="text-xs font-bold text-foreground truncate" title={field.title}>{field.title}</span>
+          </div>
+          <Select 
+            value={field.field_type === "number" ? (value?.value_number?.toString() ?? "none") : (value?.value_text ?? "none")} 
+            onValueChange={(v) => save(v === "none" ? null : v)}
+            disabled={disabled || saving}
+          >
+            <SelectTrigger className="h-8 text-xs w-[140px] bg-background border-border">
+              <SelectValue placeholder="Selecione" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="none">Nenhum</SelectItem>
+              {options.map(opt => (
+                <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        {showSeparator && <Separator />}
+      </>
+    );
+  }
+
 }
 
 function getDisplayValue(field: FieldDef, val: FieldValue | undefined): string {
