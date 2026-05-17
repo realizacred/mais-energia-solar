@@ -193,6 +193,22 @@ export default function CreditGlobalArea() {
     }
   }, [selectedAnalysis]);
 
+  const { data: eosDetails, isLoading: isLoadingEosDetails, refetch: refetchEosDetails } = useQuery({
+    queryKey: ["eos-details", selectedAnalysis?.eos_proposta_protocolo],
+    queryFn: async () => {
+      const { data: profile } = await supabase.from("profiles").select("tenant_id").eq("user_id", user?.id).single();
+      const { data, error } = await supabase.functions.invoke('eos-detalhe-proposta', {
+        body: { 
+          protocolo: selectedAnalysis.eos_proposta_protocolo,
+          tenant_id: profile?.tenant_id
+        }
+      });
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!selectedAnalysis?.eos_proposta_protocolo && actionType === 'view_details',
+  });
+
   const { data: checklist } = useCreditBankChecklist(selectedAnalysis?.bank_config_id || undefined);
   
   const filteredChecklist = useMemo(() => {
