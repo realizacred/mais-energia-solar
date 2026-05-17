@@ -32,6 +32,8 @@ import {
   displayCpfCnpj,
   displayCurrency,
   formatKwp,
+  formatBRL,
+  formatDateTime,
 } from "@/lib/formatters/index";
 import {
   useClienteProjetos,
