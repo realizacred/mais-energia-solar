@@ -97,6 +97,9 @@ export class DuplicateClienteError extends Error {
   }
 }
 
+const onlyDigits = (v: string) => v.replace(/\D/g, "");
+const normalizePhone = (v: string) => v.replace(/\D/g, "").replace(/^55/, "");
+
 export function useSalvarCliente() {
   const qc = useQueryClient();
   return useMutation({
