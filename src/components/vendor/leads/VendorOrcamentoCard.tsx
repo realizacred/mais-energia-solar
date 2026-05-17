@@ -1,4 +1,4 @@
-import { Phone, Eye, Trash2, ShoppingCart, UserCheck, Calendar, MapPin, Zap, ExternalLink, FileText } from "lucide-react";
+import { Phone, Eye, Trash2, ShoppingCart, UserCheck, Calendar, MapPin, Zap, ExternalLink, FileText, AlertTriangle, Clock, CheckCircle } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { formatPhoneBR } from "@/lib/formatters";
@@ -9,6 +9,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 
 import { OrcamentoStatusSelector } from "@/components/vendor/OrcamentoStatusSelector";
+import { classifyOrcamentoOperationalStatus, getTerminalStatusIds } from "@/modules/orcamentos/utils/operationalFilters";
 import type { LeadStatus } from "@/types/lead";
 import type { OrcamentoVendedor } from "@/hooks/useOrcamentosVendedor";
 
@@ -43,6 +44,21 @@ export function VendorOrcamentoCard({
       ? "bg-primary/5 border-primary/20" 
       : "";
 
+  const opStatus = classifyOrcamentoOperationalStatus(orcamento, getTerminalStatusIds(statuses));
+  
+  const statusBadge = (() => {
+    switch (opStatus) {
+      case "urgente":
+        return <Badge variant="destructive" className="text-[10px] h-4 px-1 gap-1"><AlertTriangle className="w-2.5 h-2.5" /> Urgente</Badge>;
+      case "atencao":
+        return <Badge variant="outline" className="text-[10px] h-4 px-1 gap-1 border-warning text-warning bg-warning/5"><Clock className="w-2.5 h-2.5" /> Pendente</Badge>;
+      case "em_dia":
+        return <Badge variant="outline" className="text-[10px] h-4 px-1 gap-1 border-success text-success bg-success/5"><CheckCircle className="w-2.5 h-2.5" /> Em dia</Badge>;
+      default:
+        return null;
+    }
+  })();
+
   return (
     <Card className={cardBg}>
       <CardContent className="p-3 sm:p-4 space-y-3">
@@ -72,6 +88,7 @@ export function VendorOrcamentoCard({
                   <Badge variant="outline" className="text-[10px] h-4 px-1.5 font-mono opacity-70">
                     {orcamento.orc_code || "-"}
                   </Badge>
+                  {statusBadge}
                 </div>
               </div>
             </div>
