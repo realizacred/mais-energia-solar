@@ -139,11 +139,16 @@ export function LeadAlerts({ leads, diasAlerta = 3 }: LeadAlertsProps) {
   };
 
   return (
-    <Card className="bg-gradient-to-r from-primary/5 to-secondary/5 border-primary/10">
-      <CardContent className="pt-3 sm:pt-4 px-3 sm:px-6">
-        <div className="flex items-center gap-2 mb-2 sm:mb-3">
-          <Sparkles className="h-4 w-4 text-primary" />
-          <span className="text-xs sm:text-sm font-medium text-primary">Assistente Inteligente</span>
+    <Card className="border-none shadow-xl bg-gradient-to-br from-primary/10 via-background to-background relative overflow-hidden group transition-all duration-500 hover:shadow-primary/10">
+      <div className="absolute -right-4 -top-4 p-8 opacity-[0.03] rotate-12 group-hover:rotate-0 transition-transform duration-700">
+        <Sparkles className="h-24 w-24 text-primary" />
+      </div>
+      <CardContent className="pt-5 sm:pt-6 px-4 sm:px-8 relative z-10">
+        <div className="flex items-center gap-2 mb-4">
+          <div className="p-1.5 bg-primary rounded-lg shadow-lg shadow-primary/20">
+            <Sparkles className="h-4 w-4 text-primary-foreground animate-pulse" />
+          </div>
+          <span className="text-xs sm:text-sm font-black text-primary uppercase tracking-[0.2em]">IA Assistente</span>
         </div>
         
         {alertas.length === 0 ? (
