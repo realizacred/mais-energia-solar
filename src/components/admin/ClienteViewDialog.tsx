@@ -231,6 +231,7 @@ export function ClienteViewDialog({ cliente, open, onOpenChange }: ClienteViewDi
   const propostaIds = propostas.map((p) => p.id);
   const { data: versoes = [] } = useClientePropostaVersoes(propostaIds);
   const { data: conversas = [], isLoading: loadingWa } = useClienteConversasWa(cliente?.telefone ?? null);
+  const { data: projectDocs = [] } = useClienteProjectDocuments(cliente?.id ?? null);
 
   // Estado local dos documentos (sincroniza com o cliente quando reabre)
   const [docs, setDocs] = useState({
