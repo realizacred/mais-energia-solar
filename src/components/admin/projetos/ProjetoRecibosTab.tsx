@@ -56,6 +56,14 @@ export function ProjetoRecibosTab({
 
   const [emitirOpen, setEmitirOpen] = useState(false);
   const [logsReciboId, setLogsReciboId] = useState<string | null>(null);
+  const [financeiro, setFinanceiro] = useState<{ valor_total: number; total_pago: number; saldo_devedor: number; percentual_pago: number } | null>(null);
+
+  useEffect(() => {
+    if (defaultProjetoId) {
+      supabase.rpc('get_saldo_projeto', { p_projeto_id: defaultProjetoId })
+        .then(({ data }) => setFinanceiro(data as any));
+    }
+  }, [defaultProjetoId, recibos]);
 
   async function handleOpenPdf(r: Recibo) {
     try {
@@ -72,7 +80,33 @@ export function ProjetoRecibosTab({
   }
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
+      {financeiro && (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <Card className="bg-muted/30">
+            <CardContent className="pt-4">
+              <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">Valor Total</p>
+              <p className="text-xl font-bold">{fmtBRL(financeiro.valor_total)}</p>
+            </CardContent>
+          </Card>
+          <Card className="bg-success/5 border-success/20">
+            <CardContent className="pt-4">
+              <p className="text-[10px] text-success uppercase font-bold tracking-wider">Recebido ({financeiro.percentual_pago}%)</p>
+              <p className="text-xl font-bold text-success">{fmtBRL(financeiro.total_pago)}</p>
+              <div className="w-full bg-success/20 h-1.5 rounded-full mt-2 overflow-hidden">
+                <div className="bg-success h-full transition-all" style={{ width: `${financeiro.percentual_pago}%` }} />
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="bg-destructive/5 border-destructive/20">
+            <CardContent className="pt-4">
+              <p className="text-[10px] text-destructive uppercase font-bold tracking-wider">Saldo Devedor</p>
+              <p className="text-xl font-bold text-destructive">{fmtBRL(financeiro.saldo_devedor)}</p>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
       <Card className="border-l-4 border-l-primary">
         <CardHeader className="pb-3 flex flex-row items-center justify-between">
           <CardTitle className="text-sm font-semibold flex items-center gap-2">
