@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Loader2, Send, FileText } from "lucide-react";
+import { Loader2, Send, FileText, Calculator, Landmark } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -21,12 +21,12 @@ import {
 } from "@/components/ui/select";
 import { useDocumentTemplates } from "./useDocumentTemplates";
 import { useClientes } from "@/hooks/useClientes";
-import { useEmitirRecibo } from "@/hooks/useRecibos";
+import { useEmitirRecibo, type Recibo } from "@/hooks/useRecibos";
 import type { DocumentTemplate, FormFieldSchema } from "./types";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
-import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
+import { formatBRL } from "@/lib/formatters";
 
 interface EmitirReciboModalProps {
   open: boolean;
