@@ -396,24 +396,20 @@ export function EmitirReciboModal({
         return merged;
       });
     }
-  }, [template, projectContext, proposalContext]);
-  // Em modo global (sem defaultProjetoId), ao escolher cliente buscar projeto principal
-  useEffect(() => {
-    if (defaultProjetoId) return;
-    if (!clienteId) return;
-    let cancelled = false;
-    (async () => {
-      const { data } = await supabase
-        .from("projetos")
-        .select("id")
-        .eq("cliente_id", clienteId)
-        .eq("is_principal", true)
-        .limit(1)
-        .maybeSingle();
-      if (!cancelled) setProjetoId(data?.id ?? null);
-    })();
-    return () => { cancelled = true; };
-  }, [clienteId, defaultProjetoId]);
+
+    // Auto-fill specialized fields for receipts
+    if (template?.subcategoria) {
+      setDynFields(prev => {
+        const merged = { ...prev };
+        merged["valor_recibo"] = valor;
+        merged["numero_recibo"] = numero || (ultimoNumeroRecibo + 1).toString();
+        merged["saldo_devedor"] = saldoRestanteAposRecibo.toFixed(2);
+        merged["projeto_valor_total"] = valorTotalVenda.toFixed(2);
+        return merged;
+      });
+    }
+  }, [template, projectContext, proposalContext, valor, numero, ultimoNumeroRecibo, saldoRestanteAposRecibo, valorTotalVenda]);
+
 
 
   const schema: FormFieldSchema[] = useMemo(() => {
