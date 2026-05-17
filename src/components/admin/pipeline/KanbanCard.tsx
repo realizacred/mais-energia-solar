@@ -273,7 +273,6 @@ function KanbanCardMenu({
   );
 }
 
-}
 
 function FornecedorPedidoInfo({ projetoId }: { projetoId: string }) {
   const { data: ordem } = useQuery({
