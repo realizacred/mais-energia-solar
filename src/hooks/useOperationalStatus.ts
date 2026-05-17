@@ -151,7 +151,8 @@ export function useOperationalStatus(dealId: string | null) {
       // 6. Funil "Equipamento" em andamento?
       const equipamentoPipeline = funnelMemberships.find((m: any) => 
         m.pipeline_name.toLowerCase().includes("equipamento") || 
-        m.pipeline_name.toLowerCase().includes("suprimentos")
+        m.pipeline_name.toLowerCase().includes("suprimentos") ||
+        m.pipeline_name.toLowerCase().includes("pedido")
       );
       if (equipamentoPipeline) {
         return STATUS_CONFIG.pedido_em_andamento;
