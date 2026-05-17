@@ -42,6 +42,7 @@ const DOC_STATUS_MAP: Record<string, { label: string; color: string }> = {
   sent_for_signature: { label: "Aguardando assinatura", color: "bg-warning/10 text-warning" },
   signed: { label: "Assinado ✓", color: "bg-success/10 text-success" },
   cancelled: { label: "Cancelado", color: "bg-destructive/10 text-destructive" },
+  substituido: { label: "Substituído", color: "bg-muted text-muted-foreground" },
 };
 
 const SIGNATURE_STATUS_MAP: Record<string, { label: string; color: string }> = {
