@@ -146,8 +146,8 @@ export function VendorOrcamentoCard({
               <span className="text-[10px]">PROPOSTA OK</span>
             </Badge>
           ) : (
-            <Badge variant="outline" className="border-dashed h-7 px-2 flex items-center gap-1 text-muted-foreground bg-muted/30">
-              <span className="text-[10px]">SEM PROPOSTA</span>
+            <Badge variant="warning" className="h-7 px-2 flex items-center gap-1 text-[10px] animate-pulse">
+              SEM PROPOSTA
             </Badge>
           )}
 
