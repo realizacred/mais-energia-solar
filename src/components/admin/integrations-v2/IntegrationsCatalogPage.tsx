@@ -1,3 +1,8 @@
+/**
+ * Tabelas: integration_providers, financeiras_config, integration_connections, integration_health_cache
+ * Shell central de integrações — NÃO criar segunda central paralela
+ * Rotas filhas sob /admin/integracoes/{dominio}/{secao}
+ */
 import React, { useState, useMemo, useRef, useEffect, lazy, Suspense } from "react";
 import { useSearchParams } from "react-router-dom";
 import { IntegrationTutorialSection } from "./IntegrationTutorialSection";
