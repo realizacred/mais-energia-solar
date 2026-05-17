@@ -294,6 +294,7 @@ export function useProjetoDetalheData(dealId: string) {
         allStagesMap,
         userNamesMap,
         docsCount,
+        portalToken,
       };
     },
     staleTime: STALE_TIME,
