@@ -192,7 +192,7 @@ export function useEmitirRecibo() {
   });
 }
 
-/** Gera (ou regera) PDF do recibo via Gotenberg. Atualiza pdf_path. */
+/** Gera (ou regera) PDF do recibo via Gotenberg. Atualiza pdf_url. */
 export function useReciboPDF() {
   const qc = useQueryClient();
   return useMutation({
@@ -201,7 +201,7 @@ export function useReciboPDF() {
         body: { recibo_id: reciboId },
       });
       if (error) throw error;
-      return data as { pdf_path: string };
+      return data as { pdf_url: string };
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: [QUERY_KEY] });
