@@ -34,7 +34,6 @@ export interface Recibo {
 export interface ReciboFilters {
   cliente_id?: string;
   projeto_id?: string;
-  deal_id?: string;
 }
 
 export function useRecibos(filters: { cliente_id?: string; projeto_id?: string }) {
