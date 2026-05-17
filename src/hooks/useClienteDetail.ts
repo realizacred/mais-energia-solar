@@ -1,7 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
-const STALE_TIME = 1000 * 60 * 5;
+// Modal do cliente exige dados frescos a cada abertura (RB-67)
+const STALE_TIME = 0;
+const REFETCH_ON_MOUNT = "always" as const;
 
 export interface ClienteProjeto {
   id: string;
