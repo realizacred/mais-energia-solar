@@ -1,4 +1,4 @@
-import { Phone, Eye, Trash2, ShoppingCart, UserCheck, Calendar, MapPin, Zap, ExternalLink, FileText, AlertTriangle, Clock, CheckCircle } from "lucide-react";
+import { Phone, Eye, Trash2, ShoppingCart, UserCheck, Calendar, MapPin, Zap, ExternalLink, FileText, AlertTriangle, Clock, CheckCircle, CreditCard } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { formatPhoneBR } from "@/lib/formatters";
@@ -23,6 +23,7 @@ interface VendorOrcamentoCardProps {
   onDelete?: () => void;
   onConvert?: () => void;
   onQuickProposal?: () => void;
+  onCreditRequest?: (lead: OrcamentoVendedor) => void;
   quickLoading?: boolean;
 }
 
