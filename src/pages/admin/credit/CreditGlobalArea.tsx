@@ -604,6 +604,11 @@ export default function CreditGlobalArea() {
                             <DropdownMenuItem onClick={() => { setSelectedAnalysis(analysis); setActionType('request_docs'); }}>
                               <FileSearch className="h-4 w-4 mr-2" /> Solicitar Docs
                             </DropdownMenuItem>
+                            {analysis.banco?.toLowerCase().includes('eos') && (
+                              <DropdownMenuItem onClick={() => { setSelectedAnalysis(analysis); setActionType('eos_integrate'); }} className="text-primary">
+                                <Calculator className="h-4 w-4 mr-2" /> Simulação EOS
+                              </DropdownMenuItem>
+                            )}
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </TableCell>
