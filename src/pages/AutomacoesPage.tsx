@@ -6,7 +6,7 @@
 import { lazy, Suspense } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { LoadingState } from "@/components/ui-kit/LoadingState";
-import { Zap, Kanban, MessageCircle, Webhook, History, FileCheck } from "lucide-react";
+import { Zap, Kanban, MessageCircle, Webhook, History, FileCheck, ShieldCheck } from "lucide-react";
 
 const PipelineAutomations = lazy(() =>
   import("@/components/admin/pipeline/PipelineAutomations").then((m) => ({
@@ -17,6 +17,12 @@ const PipelineAutomations = lazy(() =>
 const StageDocumentsManager = lazy(() =>
   import("@/components/admin/automacoes/StageDocumentsManager").then((m) => ({
     default: m.StageDocumentsManager,
+  }))
+);
+
+const StageValidationsManager = lazy(() =>
+  import("@/components/admin/automacoes/StageValidationsManager").then((m) => ({
+    default: m.StageValidationsManager,
   }))
 );
 
@@ -59,6 +65,10 @@ export default function AutomacoesPage() {
             <Kanban className="h-4 w-4" />
             Funil
           </TabsTrigger>
+          <TabsTrigger value="validacoes" className="gap-2 shrink-0 whitespace-nowrap">
+            <ShieldCheck className="h-4 w-4" />
+            Validações (RB-76)
+          </TabsTrigger>
           <TabsTrigger value="documentos" className="gap-2 shrink-0 whitespace-nowrap">
             <FileCheck className="h-4 w-4" />
             Checklist / Docs
@@ -80,6 +90,12 @@ export default function AutomacoesPage() {
         <TabsContent value="pipeline" className="mt-0">
           <Suspense fallback={<LoadingState message="Carregando automações de funil..." />}>
             <PipelineAutomations />
+          </Suspense>
+        </TabsContent>
+
+        <TabsContent value="validacoes" className="mt-0">
+          <Suspense fallback={<LoadingState message="Carregando sistema de validações..." />}>
+            <StageValidationsManager />
           </Suspense>
         </TabsContent>
 
