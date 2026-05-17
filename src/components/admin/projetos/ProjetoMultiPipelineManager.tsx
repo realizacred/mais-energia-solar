@@ -504,11 +504,11 @@ export function ProjetoMultiPipelineManager({ dealId, dealStatus, pipelines, all
       supabase.functions.invoke('notification-hub', {
         body: {
           evento: 'projeto_status_mudou',
-          tenant_id: (membership as any)?.tenant_id || (projectContext as any)?.tenant_id,
+          tenant_id: (membership as any)?.tenant_id || projectData?.tenant_id,
           dados: {
             projeto_id: dealId,
             status_novo: stageName,
-            cliente_id: (projectContext as any)?.cliente_id
+            cliente_id: projectData?.cliente_id
           }
         }
       }).catch(err => console.error("[notification-hub] Erro ao invocar:", err));
