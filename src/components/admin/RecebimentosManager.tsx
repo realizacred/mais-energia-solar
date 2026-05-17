@@ -4,13 +4,13 @@ import { Spinner } from "@/components/ui-kit/Spinner";
 import { supabase } from "@/integrations/supabase/client";
 import { useRecebimentosFull, useClientesAtivos, useRefreshRecebimentos } from "@/hooks/useRecebimentos";
 import { toast } from "@/hooks/use-toast";
-import { formatBRL } from "@/lib/formatters";
+import { displayCurrency as formatBRL } from "@/lib/formatters/index";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { DateInput } from "@/components/ui-kit/inputs/DateInput";
-import { CurrencyInput } from "@/components/ui-kit/inputs/CurrencyInput";
+import { DateInput, CurrencyInput } from "@/components/ui-kit/inputs";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+
 import { Card } from "@/components/ui/card";
 import { SectionCard } from "@/components/ui-kit/SectionCard";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
