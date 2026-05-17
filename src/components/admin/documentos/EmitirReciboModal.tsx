@@ -381,20 +381,48 @@ export function EmitirReciboModal({
     const camposExtras: Record<string, unknown> = { ...dynFields };
     if (instituicaoFinanceira) camposExtras["instituicao_financeira"] = instituicaoFinanceira;
 
-    const id = await emitir.mutateAsync({
-      template: template?.nome || "Recibo",
-      cliente_id: clienteId,
-      projeto_id: projetoId!,
-      descricao: descricao || undefined,
-      numero: numero || undefined,
-      valor: Number(valor),
-      forma_pagamento: formaPagamento,
-      data_pagamento: dataPagamento,
-      campos_extras: camposExtras,
-      generate_pdf: true,
-    });
-    onEmitted?.(id);
-    onOpenChange(false);
+    try {
+      // 1. Criar lançamento financeiro primeiro
+      const { data: lancamento, error: lancErr } = await supabase
+        .from("lancamentos_financeiros")
+        .insert({
+          tenant_id: projectContext?.tenant_id,
+          projeto_id: projetoId,
+          cliente_id: clienteId,
+          tipo: 'receita',
+          valor: Number(valor),
+          forma_pagamento: formaPagamento,
+          data_lancamento: dataPagamento,
+          status: 'confirmado',
+          origem: 'recibo_emitido',
+          descricao: `Recibo: ${template?.nome || "Geral"}`
+        } as any)
+        .select("id")
+        .single();
+
+      if (lancErr) throw lancErr;
+
+      // 2. Emitir recibo vinculado ao lançamento
+      const id = await emitir.mutateAsync({
+        template: template?.nome || "Recibo",
+        cliente_id: clienteId,
+        projeto_id: projetoId!,
+        descricao: descricao || undefined,
+        numero: numero || undefined,
+        valor: Number(valor),
+        forma_pagamento: formaPagamento,
+        data_pagamento: dataPagamento,
+        campos_extras: camposExtras,
+        generate_pdf: true,
+        lancamento_id: lancamento.id
+      });
+      
+      onEmitted?.(id);
+      onOpenChange(false);
+    } catch (err: any) {
+      console.error("[handleSubmit] Error:", err);
+      toast.error("Erro ao processar recibo: " + (err.message || "Erro desconhecido"));
+    }
   }
 
   return (
