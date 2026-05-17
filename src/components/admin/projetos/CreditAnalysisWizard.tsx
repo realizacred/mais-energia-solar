@@ -4,7 +4,7 @@
  * - Hooks: useCreateAnaliseCredito, useUpdateAnaliseCredito, useAnaliseCreditoDocumentos, useVincularDocumentoCredito, useProjectDocuments, useCreditBankConfigs, useCreditBankChecklist
  * - Libs: formatBRL, formatDateTime, cn, isValidCpf, isValidCnpj
  */
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { 
   Dialog, 
   DialogContent, 
@@ -53,7 +53,7 @@ import {
 } from "@/hooks/useAnaliseCredito";
 import { useProjectDocuments } from "@/hooks/useProjectDocuments";
 import { useCreditBankConfigs, useCreditBankChecklist } from "@/hooks/useCreditConfigs";
-import { formatBRL } from "@/lib/formatters";
+import { formatBRL, parseBRNumber } from "@/lib/formatters";
 import { formatDateTime } from "@/lib/dateUtils";
 import { isValidCpf, isValidCnpj, formatCpfCnpj } from "@/lib/cpfCnpjUtils";
 import { Badge } from "@/components/ui/badge";
@@ -62,6 +62,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
 import { Switch } from "@/components/ui/switch";
+import { validateEmail, formatPhone, formatCEP } from "@/lib/validations";
 
 interface Props {
   isOpen: boolean;
@@ -135,6 +136,8 @@ export function CreditAnalysisWizard({
     com_seguro: initialData?.com_seguro ?? false,
   });
 
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
   const { data: banks } = useCreditBankConfigs();
   const { data: checklist } = useCreditBankChecklist(formData.bank_config_id || undefined);
   const { data: creditDocs } = useAnaliseCreditoDocumentos(initialData?.id || "");
@@ -146,26 +149,114 @@ export function CreditAnalysisWizard({
 
   const [isLinkingDoc, setIsLinkingDoc] = useState<{checklistId: string, itemName: string} | null>(null);
 
-  const handleNext = () => setStep((s) => (s + 1) as Step);
+  const validateStep = (currentStep: number): boolean => {
+    const newErrors: Record<string, string> = {};
+
+    if (currentStep === 2) {
+      if (formData.tipo_pessoa === 'PF') {
+        if (!formData.cliente_nome || formData.cliente_nome.length < 3) 
+          newErrors.cliente_nome = "Nome completo é obrigatório";
+        if (!formData.cpf_cnpj) 
+          newErrors.cpf_cnpj = "CPF é obrigatório";
+        else if (!isValidCpf(formData.cpf_cnpj.replace(/\D/g, "")))
+          newErrors.cpf_cnpj = "CPF inválido";
+        
+        if (!formData.cliente_data_nascimento) {
+          newErrors.cliente_data_nascimento = "Data de nascimento é obrigatória";
+        } else {
+          const birthDate = new Date(formData.cliente_data_nascimento);
+          const today = new Date();
+          let age = today.getFullYear() - birthDate.getFullYear();
+          const m = today.getMonth() - birthDate.getMonth();
+          if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) age--;
+          if (age < 18 || age > 90) newErrors.cliente_data_nascimento = "Idade entre 18 e 90 anos";
+        }
+
+        const phoneDigits = formData.cliente_telefone.replace(/\D/g, "");
+        if (!phoneDigits) newErrors.cliente_telefone = "Telefone é obrigatório";
+        else if (phoneDigits.length < 10 || phoneDigits.length > 11) newErrors.cliente_telefone = "Telefone inválido";
+
+        if (!formData.cliente_email) newErrors.cliente_email = "E-mail é obrigatório";
+        else if (validateEmail(formData.cliente_email)) newErrors.cliente_email = "E-mail inválido";
+
+        if (!formData.renda_mensal || parseFloat(formData.renda_mensal.replace(/[^\d,]/g, "").replace(",", ".")) <= 0) 
+          newErrors.renda_mensal = "Renda mensal é obrigatória";
+      } else {
+        // PJ validation
+        if (!formData.cnpj) newErrors.cnpj = "CNPJ é obrigatório";
+        else if (!isValidCnpj(formData.cnpj.replace(/\D/g, ""))) newErrors.cnpj = "CNPJ inválido";
+        if (!formData.razao_social) newErrors.razao_social = "Razão social é obrigatória";
+        
+        const phoneDigits = formData.cliente_telefone.replace(/\D/g, "");
+        if (!phoneDigits) newErrors.cliente_telefone = "Telefone é obrigatório";
+        else if (phoneDigits.length < 10 || phoneDigits.length > 11) newErrors.cliente_telefone = "Telefone inválido";
+        
+        if (!formData.cliente_email) newErrors.cliente_email = "E-mail é obrigatório";
+        else if (validateEmail(formData.cliente_email)) newErrors.cliente_email = "E-mail inválido";
+
+        // Avalista
+        if (!formData.avalista_nome) newErrors.avalista_nome = "Nome do avalista é obrigatório";
+        if (!formData.avalista_cpf) newErrors.avalista_cpf = "CPF do avalista é obrigatório";
+        else if (!isValidCpf(formData.avalista_cpf.replace(/\D/g, ""))) newErrors.avalista_cpf = "CPF inválido";
+      }
+    }
+
+    if (currentStep === 3) {
+      if (!formData.kit_fotovoltaico || parseFloat(formData.kit_fotovoltaico) <= 0) 
+        newErrors.kit_fotovoltaico = "Valor do kit é obrigatório";
+      if (!formData.potencia_instalada || parseFloat(formData.potencia_instalada) <= 0)
+        newErrors.potencia_instalada = "Potência do sistema é obrigatória";
+      if (!formData.situacao_imovel)
+        newErrors.situacao_imovel = "Situação do imóvel é obrigatória";
+      
+      const cepDigits = formData.endereco_cep.replace(/\D/g, "");
+      if (cepDigits.length !== 8) newErrors.endereco_cep = "CEP inválido";
+      if (!formData.endereco_numero) newErrors.endereco_numero = "Número é obrigatório";
+    }
+
+    if (currentStep === 4) {
+      if (!formData.prazo_meses) newErrors.prazo_meses = "Selecione um prazo";
+      if (!formData.carencia) newErrors.carencia = "Selecione a carência";
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleNext = () => {
+    if (validateStep(step)) {
+      setStep((s) => (s + 1) as Step);
+    }
+  };
+
   const handleBack = () => setStep((s) => (s - 1) as Step);
 
   const handleSave = async (asDraft = true) => {
+    if (!asDraft && !validateStep(step)) return;
+
     const status: AnaliseCreditoStatus = asDraft ? 'rascunho' : 'pendente_documentos';
+    
+    // Converte data para ISO 8601 se existir
+    const isoNascimento = formData.cliente_data_nascimento 
+      ? new Date(formData.cliente_data_nascimento).toISOString() 
+      : null;
+    
     const data: any = {
       ...formData,
-      renda_mensal: parseFloat(formData.renda_mensal) || 0,
+      cliente_data_nascimento: isoNascimento,
+      renda_mensal: parseBRNumber(formData.renda_mensal) || 0,
       valor_solicitado: parseFloat(formData.valor_solicitado) || 0,
-      entrada: parseFloat(formData.entrada) || 0,
+      entrada: parseBRNumber(formData.entrada) || 0,
       prazo_meses: parseInt(formData.prazo_meses) || 0,
       carencia: parseInt(formData.carencia) || 1,
-      patrimonio: parseFloat(formData.patrimonio) || 0,
-      avalista_renda_mensal: parseFloat(formData.avalista_renda_mensal) || 0,
-      avalista_patrimonio: parseFloat(formData.avalista_patrimonio) || 0,
-      kit_fotovoltaico: parseFloat(formData.kit_fotovoltaico) || 0,
-      mao_obra: parseFloat(formData.mao_obra) || 0,
-      potencia_instalada: parseFloat(formData.potencia_instalada) || 0,
-      media_conta_energia: parseFloat(formData.media_conta_energia) || 0,
-      area_instalacao: parseFloat(formData.area_instalacao) || 0,
+      patrimonio: parseBRNumber(formData.patrimonio) || 0,
+      avalista_renda_mensal: parseBRNumber(formData.avalista_renda_mensal) || 0,
+      avalista_patrimonio: parseBRNumber(formData.avalista_patrimonio) || 0,
+      kit_fotovoltaico: parseBRNumber(formData.kit_fotovoltaico) || 0,
+      mao_obra: parseBRNumber(formData.mao_obra) || 0,
+      potencia_instalada: parseFloat(formData.potencia_instalada.toString().replace(",", ".")) || 0,
+      media_conta_energia: parseBRNumber(formData.media_conta_energia) || 0,
+      area_instalacao: parseFloat(formData.area_instalacao.toString().replace(",", ".")) || 0,
       deal_id: dealId,
       lead_id: leadId,
       cliente_id: clienteId,
@@ -173,21 +264,6 @@ export function CreditAnalysisWizard({
     };
 
     try {
-      // RB-62, RB-63: Validação de CPF/CNPJ antes de salvar
-      const documentToValidate = formData.tipo_pessoa === 'PF' ? formData.cpf_cnpj : formData.cnpj;
-      if (documentToValidate) {
-        const digits = documentToValidate.replace(/\D/g, "");
-        const isValid = formData.tipo_pessoa === 'PF' ? isValidCpf(digits) : isValidCnpj(digits);
-        if (!isValid) {
-          toast({
-            title: "Documento inválido",
-            description: `O ${formData.tipo_pessoa.toUpperCase()} informado não é válido.`,
-            variant: "destructive"
-          });
-          return;
-        }
-      }
-
       if (initialData?.id) {
         await updateMutation.mutateAsync({ id: initialData.id, ...data });
       } else {
@@ -209,7 +285,7 @@ export function CreditAnalysisWizard({
         if (isInstallation) {
           setFormData(prev => ({
             ...prev,
-            endereco_cep: cep,
+            endereco_cep: formatCEP(cep),
             endereco_logradouro: data.logradouro,
             endereco_bairro: data.bairro,
             endereco_cidade: data.localidade,
@@ -218,7 +294,7 @@ export function CreditAnalysisWizard({
         } else {
           setFormData(prev => ({
             ...prev,
-            avalista_cep: cep,
+            avalista_cep: formatCEP(cep),
             avalista_rua: data.logradouro,
             avalista_bairro: data.bairro,
             avalista_cidade: data.localidade,
@@ -239,11 +315,11 @@ export function CreditAnalysisWizard({
   }, [checklist, formData.tipo_pessoa]);
 
   const valorTotalProjeto = useMemo(() => {
-    return (parseFloat(formData.kit_fotovoltaico || '0') + parseFloat(formData.mao_obra || '0'));
+    return (parseBRNumber(formData.kit_fotovoltaico || '0') + parseBRNumber(formData.mao_obra || '0'));
   }, [formData.kit_fotovoltaico, formData.mao_obra]);
 
   const valorFinanciado = useMemo(() => {
-    return valorTotalProjeto - parseFloat(formData.entrada || '0');
+    return valorTotalProjeto - parseBRNumber(formData.entrada || '0');
   }, [valorTotalProjeto, formData.entrada]);
 
   return (
@@ -315,36 +391,85 @@ export function CreditAnalysisWizard({
                     <div className="grid grid-cols-2 gap-4">
                        <div className="col-span-2 space-y-1">
                          <Label>Nome Completo *</Label>
-                         <Input value={formData.cliente_nome} onChange={e => setFormData({...formData, cliente_nome: e.target.value})} placeholder="Nome completo" />
+                         <Input 
+                            value={formData.cliente_nome} 
+                            onChange={e => setFormData({...formData, cliente_nome: e.target.value})} 
+                            placeholder="Nome completo" 
+                            className={errors.cliente_nome ? "border-red-500" : ""}
+                         />
+                         {errors.cliente_nome && <p className="text-red-500 text-xs mt-1">{errors.cliente_nome}</p>}
                        </div>
                        <div className="space-y-1">
                          <Label>CPF *</Label>
-                         <Input value={formData.cpf_cnpj} onChange={e => setFormData({...formData, cpf_cnpj: formatCpfCnpj(e.target.value)})} placeholder="000.000.000-00" />
+                         <Input 
+                            value={formData.cpf_cnpj} 
+                            onChange={e => setFormData({...formData, cpf_cnpj: formatCpfCnpj(e.target.value)})} 
+                            placeholder="000.000.000-00" 
+                            className={errors.cpf_cnpj ? "border-red-500" : ""}
+                         />
+                         {errors.cpf_cnpj && <p className="text-red-500 text-xs mt-1">{errors.cpf_cnpj}</p>}
                        </div>
                        <div className="space-y-1">
                          <Label>Data de Nascimento *</Label>
-                         <Input type="date" value={formData.cliente_data_nascimento} onChange={e => setFormData({...formData, cliente_data_nascimento: e.target.value})} />
+                         <Input 
+                            type="date" 
+                            value={formData.cliente_data_nascimento} 
+                            onChange={e => setFormData({...formData, cliente_data_nascimento: e.target.value})} 
+                            className={errors.cliente_data_nascimento ? "border-red-500" : ""}
+                         />
+                         {errors.cliente_data_nascimento && <p className="text-red-500 text-xs mt-1">{errors.cliente_data_nascimento}</p>}
                        </div>
                        <div className="space-y-1">
                          <Label>Telefone *</Label>
-                         <Input value={formData.cliente_telefone} onChange={e => setFormData({...formData, cliente_telefone: e.target.value})} placeholder="(00) 00000-0000" />
+                         <Input 
+                            value={formData.cliente_telefone} 
+                            onChange={e => setFormData({...formData, cliente_telefone: formatPhone(e.target.value)})} 
+                            placeholder="(00) 00000-0000" 
+                            className={errors.cliente_telefone ? "border-red-500" : ""}
+                         />
+                         {errors.cliente_telefone && <p className="text-red-500 text-xs mt-1">{errors.cliente_telefone}</p>}
                        </div>
                        <div className="space-y-1">
                          <Label>E-mail *</Label>
-                         <Input value={formData.cliente_email} onChange={e => setFormData({...formData, cliente_email: e.target.value})} placeholder="email@exemplo.com" />
+                         <Input 
+                            value={formData.cliente_email} 
+                            onChange={e => setFormData({...formData, cliente_email: e.target.value})} 
+                            placeholder="email@exemplo.com" 
+                            className={errors.cliente_email ? "border-red-500" : ""}
+                         />
+                         {errors.cliente_email && <p className="text-red-500 text-xs mt-1">{errors.cliente_email}</p>}
                        </div>
                        <div className="space-y-1">
                          <Label>Renda Mensal *</Label>
                          <div className="relative">
                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">R$</span>
-                           <Input type="number" className="pl-9" value={formData.renda_mensal} onChange={e => setFormData({...formData, renda_mensal: e.target.value})} placeholder="0,00" />
+                           <Input 
+                              className={cn("pl-9", errors.renda_mensal ? "border-red-500" : "")} 
+                              value={formData.renda_mensal} 
+                              onChange={e => {
+                                const val = e.target.value.replace(/\D/g, "");
+                                const formatted = val ? (Number(val) / 100).toLocaleString('pt-BR', { minimumFractionDigits: 2 }) : "";
+                                setFormData({...formData, renda_mensal: formatted});
+                              }} 
+                              placeholder="0,00" 
+                           />
                          </div>
+                         {errors.renda_mensal && <p className="text-red-500 text-xs mt-1">{errors.renda_mensal}</p>}
                        </div>
                        <div className="space-y-1">
                          <Label>Patrimônio Estimado</Label>
                          <div className="relative">
                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">R$</span>
-                           <Input type="number" className="pl-9" value={formData.patrimonio} onChange={e => setFormData({...formData, patrimonio: e.target.value})} placeholder="0,00" />
+                           <Input 
+                              className="pl-9" 
+                              value={formData.patrimonio} 
+                              onChange={e => {
+                                const val = e.target.value.replace(/\D/g, "");
+                                const formatted = val ? (Number(val) / 100).toLocaleString('pt-BR', { minimumFractionDigits: 2 }) : "";
+                                setFormData({...formData, patrimonio: formatted});
+                              }} 
+                              placeholder="0,00" 
+                           />
                          </div>
                        </div>
                     </div>
@@ -353,19 +478,43 @@ export function CreditAnalysisWizard({
                       <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-1">
                           <Label>CNPJ *</Label>
-                          <Input value={formData.cnpj} onChange={e => setFormData({...formData, cnpj: formatCpfCnpj(e.target.value)})} placeholder="00.000.000/0000-00" />
+                          <Input 
+                            value={formData.cnpj} 
+                            onChange={e => setFormData({...formData, cnpj: formatCpfCnpj(e.target.value)})} 
+                            placeholder="00.000.000/0000-00" 
+                            className={errors.cnpj ? "border-red-500" : ""}
+                          />
+                          {errors.cnpj && <p className="text-red-500 text-xs mt-1">{errors.cnpj}</p>}
                         </div>
                         <div className="space-y-1">
                           <Label>Nome Fantasia *</Label>
-                          <Input value={formData.razao_social} onChange={e => setFormData({...formData, razao_social: e.target.value})} placeholder="Nome da Empresa" />
+                          <Input 
+                            value={formData.razao_social} 
+                            onChange={e => setFormData({...formData, razao_social: e.target.value})} 
+                            placeholder="Nome da Empresa" 
+                            className={errors.razao_social ? "border-red-500" : ""}
+                          />
+                          {errors.razao_social && <p className="text-red-500 text-xs mt-1">{errors.razao_social}</p>}
                         </div>
                         <div className="space-y-1">
                           <Label>Telefone *</Label>
-                          <Input value={formData.cliente_telefone} onChange={e => setFormData({...formData, cliente_telefone: e.target.value})} placeholder="(00) 00000-0000" />
+                          <Input 
+                            value={formData.cliente_telefone} 
+                            onChange={e => setFormData({...formData, cliente_telefone: formatPhone(e.target.value)})} 
+                            placeholder="(00) 00000-0000" 
+                            className={errors.cliente_telefone ? "border-red-500" : ""}
+                          />
+                          {errors.cliente_telefone && <p className="text-red-500 text-xs mt-1">{errors.cliente_telefone}</p>}
                         </div>
                         <div className="space-y-1">
                           <Label>E-mail *</Label>
-                          <Input value={formData.cliente_email} onChange={e => setFormData({...formData, cliente_email: e.target.value})} placeholder="email@empresa.com" />
+                          <Input 
+                            value={formData.cliente_email} 
+                            onChange={e => setFormData({...formData, cliente_email: e.target.value})} 
+                            placeholder="email@empresa.com" 
+                            className={errors.cliente_email ? "border-red-500" : ""}
+                          />
+                          {errors.cliente_email && <p className="text-red-500 text-xs mt-1">{errors.cliente_email}</p>}
                         </div>
                       </div>
 
@@ -374,11 +523,21 @@ export function CreditAnalysisWizard({
                         <div className="grid grid-cols-2 gap-4 text-xs">
                           <div className="col-span-2 space-y-1">
                             <Label>Nome Completo *</Label>
-                            <Input className="h-8" value={formData.avalista_nome} onChange={e => setFormData({...formData, avalista_nome: e.target.value})} />
+                            <Input 
+                              className={cn("h-8", errors.avalista_nome ? "border-red-500" : "")} 
+                              value={formData.avalista_nome} 
+                              onChange={e => setFormData({...formData, avalista_nome: e.target.value})} 
+                            />
+                            {errors.avalista_nome && <p className="text-red-500 text-xs mt-1">{errors.avalista_nome}</p>}
                           </div>
                           <div className="space-y-1">
                             <Label>CPF *</Label>
-                            <Input className="h-8" value={formData.avalista_cpf} onChange={e => setFormData({...formData, avalista_cpf: formatCpfCnpj(e.target.value)})} />
+                            <Input 
+                              className={cn("h-8", errors.avalista_cpf ? "border-red-500" : "")} 
+                              value={formData.avalista_cpf} 
+                              onChange={e => setFormData({...formData, avalista_cpf: formatCpfCnpj(e.target.value)})} 
+                            />
+                            {errors.avalista_cpf && <p className="text-red-500 text-xs mt-1">{errors.avalista_cpf}</p>}
                           </div>
                           <div className="space-y-1">
                             <Label>Data de Nascimento *</Label>
@@ -386,7 +545,7 @@ export function CreditAnalysisWizard({
                           </div>
                           <div className="space-y-1">
                             <Label>Telefone *</Label>
-                            <Input className="h-8" value={formData.avalista_telefone} onChange={e => setFormData({...formData, avalista_telefone: e.target.value})} />
+                            <Input className="h-8" value={formData.avalista_telefone} onChange={e => setFormData({...formData, avalista_telefone: formatPhone(e.target.value)})} />
                           </div>
                           <div className="space-y-1">
                             <Label>E-mail *</Label>
@@ -394,15 +553,31 @@ export function CreditAnalysisWizard({
                           </div>
                           <div className="space-y-1">
                             <Label>Renda Mensal *</Label>
-                            <Input className="h-8" type="number" value={formData.avalista_renda_mensal} onChange={e => setFormData({...formData, avalista_renda_mensal: e.target.value})} />
+                            <Input 
+                              className="h-8" 
+                              value={formData.avalista_renda_mensal} 
+                              onChange={e => {
+                                const val = e.target.value.replace(/\D/g, "");
+                                const formatted = val ? (Number(val) / 100).toLocaleString('pt-BR', { minimumFractionDigits: 2 }) : "";
+                                setFormData({...formData, avalista_renda_mensal: formatted});
+                              }} 
+                            />
                           </div>
                           <div className="space-y-1">
                             <Label>Patrimônio *</Label>
-                            <Input className="h-8" type="number" value={formData.avalista_patrimonio} onChange={e => setFormData({...formData, avalista_patrimonio: e.target.value})} />
+                            <Input 
+                              className="h-8" 
+                              value={formData.avalista_patrimonio} 
+                              onChange={e => {
+                                const val = e.target.value.replace(/\D/g, "");
+                                const formatted = val ? (Number(val) / 100).toLocaleString('pt-BR', { minimumFractionDigits: 2 }) : "";
+                                setFormData({...formData, avalista_patrimonio: formatted});
+                              }} 
+                            />
                           </div>
                           <div className="space-y-1">
                             <Label>CEP *</Label>
-                            <Input className="h-8" value={formData.avalista_cep} onChange={e => setFormData({...formData, avalista_cep: e.target.value})} onBlur={() => fetchCep(formData.avalista_cep, false)} />
+                            <Input className="h-8" value={formData.avalista_cep} onChange={e => setFormData({...formData, avalista_cep: formatCEP(e.target.value)})} onBlur={() => fetchCep(formData.avalista_cep, false)} />
                           </div>
                           <div className="col-span-2 grid grid-cols-3 gap-2">
                              <div className="col-span-2 space-y-1">
@@ -429,14 +604,31 @@ export function CreditAnalysisWizard({
                        <Label>Valor do Kit Fotovoltaico *</Label>
                        <div className="relative">
                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">R$</span>
-                         <Input type="number" className="pl-9" value={formData.kit_fotovoltaico} onChange={e => setFormData({...formData, kit_fotovoltaico: e.target.value})} />
+                         <Input 
+                            className={cn("pl-9", errors.kit_fotovoltaico ? "border-red-500" : "")} 
+                            value={formData.kit_fotovoltaico} 
+                            onChange={e => {
+                                const val = e.target.value.replace(/\D/g, "");
+                                const formatted = val ? (Number(val) / 100).toLocaleString('pt-BR', { minimumFractionDigits: 2 }) : "";
+                                setFormData({...formData, kit_fotovoltaico: formatted});
+                            }} 
+                         />
                        </div>
+                       {errors.kit_fotovoltaico && <p className="text-red-500 text-xs mt-1">{errors.kit_fotovoltaico}</p>}
                      </div>
                      <div className="space-y-1">
                        <Label>Valor da Mão de Obra *</Label>
                        <div className="relative">
                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">R$</span>
-                         <Input type="number" className="pl-9" value={formData.mao_obra} onChange={e => setFormData({...formData, mao_obra: e.target.value})} />
+                         <Input 
+                            className="pl-9" 
+                            value={formData.mao_obra} 
+                            onChange={e => {
+                                const val = e.target.value.replace(/\D/g, "");
+                                const formatted = val ? (Number(val) / 100).toLocaleString('pt-BR', { minimumFractionDigits: 2 }) : "";
+                                setFormData({...formData, mao_obra: formatted});
+                            }} 
+                         />
                        </div>
                      </div>
                      <div className="col-span-2 bg-primary/10 p-4 rounded-xl flex justify-between items-center border border-primary/20">
@@ -448,20 +640,32 @@ export function CreditAnalysisWizard({
                      </div>
                      <div className="space-y-1">
                         <Label>Potência do Sistema (kWp) *</Label>
-                        <Input type="number" value={formData.potencia_instalada} onChange={e => setFormData({...formData, potencia_instalada: e.target.value})} />
+                        <Input 
+                            className={errors.potencia_instalada ? "border-red-500" : ""} 
+                            value={formData.potencia_instalada} 
+                            onChange={e => setFormData({...formData, potencia_instalada: e.target.value.replace(",", ".")})} 
+                        />
+                        {errors.potencia_instalada && <p className="text-red-500 text-xs mt-1">{errors.potencia_instalada}</p>}
                      </div>
                      <div className="space-y-1">
                         <Label>Valor da Conta de Energia (R$)</Label>
-                        <Input type="number" value={formData.media_conta_energia} onChange={e => setFormData({...formData, media_conta_energia: e.target.value})} />
+                        <Input 
+                            value={formData.media_conta_energia} 
+                            onChange={e => {
+                                const val = e.target.value.replace(/\D/g, "");
+                                const formatted = val ? (Number(val) / 100).toLocaleString('pt-BR', { minimumFractionDigits: 2 }) : "";
+                                setFormData({...formData, media_conta_energia: formatted});
+                            }} 
+                        />
                      </div>
                      <div className="space-y-1">
                         <Label>Área de Instalação (m²)</Label>
-                        <Input type="number" value={formData.area_instalacao} onChange={e => setFormData({...formData, area_instalacao: e.target.value})} />
+                        <Input value={formData.area_instalacao} onChange={e => setFormData({...formData, area_instalacao: e.target.value.replace(",", ".")})} />
                      </div>
                      <div className="space-y-1">
                         <Label>Situação do Imóvel *</Label>
                         <Select value={formData.situacao_imovel} onValueChange={v => setFormData({...formData, situacao_imovel: v})}>
-                          <SelectTrigger>
+                          <SelectTrigger className={errors.situacao_imovel ? "border-red-500" : ""}>
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
@@ -470,6 +674,7 @@ export function CreditAnalysisWizard({
                             <SelectItem value="ALUGADO">Alugado</SelectItem>
                           </SelectContent>
                         </Select>
+                        {errors.situacao_imovel && <p className="text-red-500 text-xs mt-1">{errors.situacao_imovel}</p>}
                      </div>
                   </div>
 
@@ -478,7 +683,13 @@ export function CreditAnalysisWizard({
                     <div className="grid grid-cols-2 gap-4">
                        <div className="space-y-1">
                          <Label>CEP *</Label>
-                         <Input value={formData.endereco_cep} onChange={e => setFormData({...formData, endereco_cep: e.target.value})} onBlur={() => fetchCep(formData.endereco_cep)} />
+                         <Input 
+                            className={errors.endereco_cep ? "border-red-500" : ""} 
+                            value={formData.endereco_cep} 
+                            onChange={e => setFormData({...formData, endereco_cep: formatCEP(e.target.value)})} 
+                            onBlur={() => fetchCep(formData.endereco_cep)} 
+                         />
+                         {errors.endereco_cep && <p className="text-red-500 text-xs mt-1">{errors.endereco_cep}</p>}
                        </div>
                        <div className="space-y-1">
                          <Label>Cidade / UF</Label>
@@ -487,12 +698,17 @@ export function CreditAnalysisWizard({
                        <div className="col-span-2 grid grid-cols-3 gap-2">
                           <div className="col-span-2 space-y-1">
                             <Label>Logradouro</Label>
-                            <Input value={formData.endereco_logradouro} onChange={e => setFormData({...formData, endereco_logradouro: e.target.value})} />
-                          </div>
-                          <div className="space-y-1">
-                            <Label>Número *</Label>
-                            <Input value={formData.endereco_numero} onChange={e => setFormData({...formData, endereco_numero: e.target.value})} />
-                          </div>
+                             <Input value={formData.endereco_logradouro} onChange={e => setFormData({...formData, endereco_logradouro: e.target.value})} />
+                           </div>
+                           <div className="space-y-1">
+                             <Label>Número *</Label>
+                             <Input 
+                                className={errors.endereco_numero ? "border-red-500" : ""} 
+                                value={formData.endereco_numero} 
+                                onChange={e => setFormData({...formData, endereco_numero: e.target.value})} 
+                             />
+                             {errors.endereco_numero && <p className="text-red-500 text-xs mt-1">{errors.endereco_numero}</p>}
+                           </div>
                        </div>
                     </div>
                   </div>
@@ -516,7 +732,14 @@ export function CreditAnalysisWizard({
 
                   <div className="space-y-2">
                     <Label>Valor de Entrada (R$)</Label>
-                    <Input type="number" value={formData.entrada} onChange={e => setFormData({...formData, entrada: e.target.value})} />
+                    <Input 
+                      value={formData.entrada} 
+                      onChange={e => {
+                        const val = e.target.value.replace(/\D/g, "");
+                        const formatted = val ? (Number(val) / 100).toLocaleString('pt-BR', { minimumFractionDigits: 2 }) : "";
+                        setFormData({...formData, entrada: formatted});
+                      }} 
+                    />
                   </div>
 
                   <div className="space-y-3">
@@ -534,6 +757,7 @@ export function CreditAnalysisWizard({
                         </Button>
                       ))}
                     </div>
+                    {errors.prazo_meses && <p className="text-red-500 text-xs mt-1">{errors.prazo_meses}</p>}
                   </div>
 
                   <div className="space-y-3">
@@ -551,6 +775,7 @@ export function CreditAnalysisWizard({
                         </Button>
                       ))}
                     </div>
+                    {errors.carencia && <p className="text-red-500 text-xs mt-1">{errors.carencia}</p>}
                   </div>
 
                   <div className="flex items-center justify-between p-4 rounded-xl border bg-muted/10">
@@ -582,7 +807,7 @@ export function CreditAnalysisWizard({
                         <span className="text-muted-foreground">CPF/CNPJ:</span>
                         <span className="font-medium text-right">{formData.cpf_cnpj || formData.cnpj}</span>
                         <span className="text-muted-foreground">Renda Mensal:</span>
-                        <span className="font-medium text-right">{formatBRL(parseFloat(formData.renda_mensal || '0'))}</span>
+                        <span className="font-medium text-right">{formatBRL(parseBRNumber(formData.renda_mensal || '0'))}</span>
                       </div>
                     </div>
 
