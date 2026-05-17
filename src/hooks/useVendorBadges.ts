@@ -26,8 +26,7 @@ export function useVendorBadges() {
       const last24h = subDays(now, 1).toISOString();
       const todayEnd = endOfDay(now).toISOString();
 
-      // Use a more generic approach to avoid deep type instantiation errors
-      const urgentLeadsReq = supabase
+      const { count: urgentLeadsCount } = await supabase
         .from("leads")
         .select("id", { count: "exact", head: true })
         .eq("consultor_id", currentUserId)
@@ -35,20 +34,20 @@ export function useVendorBadges() {
         .not("status_id", "in", "('ganho', 'perdido', 'convertido')")
         .or(`ultimo_contato.is.null,ultimo_contato.lt.${threeDaysAgo}`);
 
-      const overdueTasksReq = (supabase as any)
+      const { count: overdueTasksCount } = await (supabase as any)
         .from("tarefas")
         .select("id", { count: "exact", head: true })
         .eq("created_by", currentUserId) 
         .neq("status", "concluida")
         .lte("data_vencimento", todayEnd);
 
-      const pendingCreditReq = supabase
+      const { count: pendingCreditCount } = await supabase
         .from("analise_credito")
         .select("id", { count: "exact", head: true })
         .eq("criado_por", currentUserId)
         .eq("status", "aguardando_documentos");
 
-      const unreadChatsReq = supabase
+      const { count: unreadChatsCount } = await supabase
         .from("wa_conversations")
         .select("id", { count: "exact", head: true })
         .eq("assigned_to", currentUserId)
@@ -57,18 +56,11 @@ export function useVendorBadges() {
         .eq("ultima_mensagem_de", "cliente")
         .gt("ultima_mensagem_at", last24h);
 
-      const [urgentLeads, overdueTasks, pendingCredit, unreadChats] = await Promise.all([
-        urgentLeadsReq,
-        overdueTasksReq,
-        pendingCreditReq,
-        unreadChatsReq
-      ]);
-
       return {
-        orcamentos: urgentLeads.count || 0,
-        agenda: overdueTasks.count || 0,
-        credito: pendingCredit.count || 0,
-        whatsapp: unreadChats.count || 0
+        orcamentos: urgentLeadsCount || 0,
+        agenda: overdueTasksCount || 0,
+        credito: pendingCreditCount || 0,
+        whatsapp: unreadChatsCount || 0
       };
     },
   });
