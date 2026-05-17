@@ -2,13 +2,13 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
-import { CheckCircle2, Settings, Pause, Play, Facebook, Zap, ArrowRight } from "lucide-react";
+import { Settings, Pause, Play, Facebook, Zap, ArrowRight, LogOut } from "lucide-react";
 import { toast } from "sonner";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { MetaLeadAdsDiagnosticsCard } from "@/components/admin/integrations/MetaLeadAdsDiagnosticsCard";
 import type { MetaConfigMap } from "./useMetaFbConfigs";
-import { META_KEYS } from "./useMetaFbConfigs";
+import { META_KEYS, useDisconnectMeta } from "./useMetaFbConfigs";
 
 interface ConnectedPanelProps {
   configs: MetaConfigMap;
@@ -21,6 +21,7 @@ interface ConnectedPanelProps {
 
 export function ConnectedPanel({ configs, automation, pipelineName, stageName, responsibleName, onReconfigure }: ConnectedPanelProps) {
   const queryClient = useQueryClient();
+  const disconnectMutation = useDisconnectMeta();
 
   const toggleActive = useMutation({
     mutationFn: async (active: boolean) => {
@@ -74,10 +75,12 @@ export function ConnectedPanel({ configs, automation, pipelineName, stageName, r
                     {isActive ? "Conectado" : "Inativo"}
                   </Badge>
                 </div>
-                <p className="text-[11px] text-muted-foreground">Token configurado</p>
+                <p className="text-[11px] text-muted-foreground">
+                  {mainConfig?.account_name ? `Conectado como ${mainConfig.account_name}` : "Token configurado"}
+                </p>
               </div>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
               <Switch
                 checked={isActive}
                 onCheckedChange={(v) => toggleActive.mutate(v)}
@@ -85,6 +88,19 @@ export function ConnectedPanel({ configs, automation, pipelineName, stageName, r
               />
               <Button variant="outline" size="sm" onClick={onReconfigure}>
                 <Settings className="h-3.5 w-3.5 mr-1" /> Gerenciar
+              </Button>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                onClick={() => {
+                  if (confirm("Tem certeza que deseja desconectar o Facebook?")) {
+                    disconnectMutation.mutate();
+                  }
+                }}
+                disabled={disconnectMutation.isPending}
+              >
+                <LogOut className="h-3.5 w-3.5 mr-1" /> Desconectar
               </Button>
             </div>
           </div>

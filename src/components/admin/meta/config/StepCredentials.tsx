@@ -1,48 +1,54 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle2, Eye, EyeOff, Loader2, Save, Copy, ShieldCheck, Users, BarChart3 } from "lucide-react";
+import { CheckCircle2, Loader2, ShieldCheck, Users, BarChart3, Facebook } from "lucide-react";
 import { toast } from "sonner";
-import { META_KEYS, type MetaConfigMap, useSaveMetaKey } from "./useMetaFbConfigs";
+import { META_KEYS, type MetaConfigMap } from "./useMetaFbConfigs";
 import { supabase } from "@/integrations/supabase/client";
+import { useQuery } from "@tanstack/react-query";
 
 interface StepCredentialsProps {
   configs: MetaConfigMap;
   onNext: () => void;
 }
 
-interface FieldDef {
-  key: string;
-  label: string;
-  placeholder: string;
-  description: string;
-  isSecret: boolean;
-}
-
-const FIELDS: FieldDef[] = [
-  { key: META_KEYS.appId, label: "ID do Aplicativo", placeholder: "Ex: 744200091640333", description: "Encontrado em Configurações → Básico", isSecret: false },
-  { key: META_KEYS.appSecret, label: "Chave Secreta do Aplicativo", placeholder: "Cole a chave secreta...", description: "Usado para validar webhooks", isSecret: true },
-  { key: META_KEYS.accessToken, label: "Token de Acesso", placeholder: "Cole o token (começa com EAA...)", description: "Gere no Graph API Explorer", isSecret: true },
-  { key: META_KEYS.verifyToken, label: "Token de Verificação", placeholder: "Ex: minha-chave-2026", description: "Use a mesma frase no webhook do Meta", isSecret: false },
-];
-
 export function StepCredentials({ configs, onNext }: StepCredentialsProps) {
-  const [values, setValues] = useState<Record<string, string>>({});
-  const [showKeys, setShowKeys] = useState<Record<string, boolean>>({});
   const [diagStatus, setDiagStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [diagError, setDiagError] = useState("");
-  const saveMutation = useSaveMetaKey();
+  
+  const { data: profile } = useQuery({
+    queryKey: ["current-user-profile"],
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return null;
+      const { data } = await supabase.from("profiles").select("tenant_id").eq("user_id", user.id).single();
+      return data;
+    }
+  });
 
-  const allConfigured = FIELDS.every(f => configs[f.key]?.api_key);
+  const appId = configs[META_KEYS.appId]?.api_key || "1550819325829627";
+  const isConnected = !!configs[META_KEYS.accessToken]?.api_key;
 
-  const handleSave = async (key: string) => {
-    const val = values[key]?.trim();
-    if (!val) return;
-    await saveMutation.mutateAsync({ serviceKey: key, apiKey: val });
-    setValues(prev => ({ ...prev, [key]: "" }));
-    toast.success("Chave salva ✅");
+  const handleConnect = () => {
+    if (!profile?.tenant_id) {
+      toast.error("Tenant não encontrado");
+      return;
+    }
+
+    const SUPABASE_URL = "https://bguhckqkpnziykpbwbeu.supabase.co";
+    const REDIRECT_URI = `${SUPABASE_URL}/functions/v1/facebook-oauth-callback`;
+    const SCOPES = [
+      "ads_read",
+      "leads_retrieval",
+      "pages_read_engagement",
+      "pages_manage_metadata",
+      "pages_show_list",
+      "ads_management"
+    ].join(",");
+
+    const fbUrl = `https://www.facebook.com/v18.0/dialog/oauth?client_id=${appId}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&scope=${SCOPES}&state=${profile.tenant_id}`;
+    
+    window.location.href = fbUrl;
   };
 
   const handleValidateAndAdvance = async () => {
@@ -57,15 +63,13 @@ export function StepCredentials({ configs, onNext }: StepCredentialsProps) {
         return;
       }
       setDiagStatus("success");
-      toast.success("Token válido ✅");
+      toast.success("Conexão validada ✅");
       setTimeout(() => onNext(), 800);
     } catch (err: any) {
       setDiagStatus("error");
       setDiagError(err.message || "Erro inesperado");
     }
   };
-
-  const webhookUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/facebook-lead-webhook`;
 
   return (
     <div className="space-y-6">
@@ -83,64 +87,50 @@ export function StepCredentials({ configs, onNext }: StepCredentialsProps) {
         ))}
       </div>
 
-      {/* Credential fields */}
-      <div className="space-y-4">
-        {FIELDS.map((field) => {
-          const config = configs[field.key];
-          const maskedKey = config?.api_key
-            ? config.api_key.slice(0, 6) + "••••••" + config.api_key.slice(-4)
-            : null;
+      {/* OAuth Button Area */}
+      <div className="flex flex-col items-center justify-center p-8 border-2 border-dashed rounded-xl bg-muted/30 space-y-4">
+        <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
+          <Facebook className="h-8 w-8 text-primary" />
+        </div>
+        
+        <div className="text-center space-y-2 max-w-sm">
+          <h3 className="font-bold text-lg">Facebook Ads</h3>
+          <p className="text-sm text-muted-foreground">
+            Conecte sua conta do Facebook para receber leads e métricas de anúncios automaticamente.
+          </p>
+        </div>
 
-          return (
-            <div key={field.key} className="space-y-1.5">
-              <Label className="text-sm font-medium">{field.label}</Label>
-              <p className="text-[11px] text-muted-foreground">{field.description}</p>
+        <Button 
+          size="lg" 
+          onClick={handleConnect} 
+          className="bg-[#1877F2] hover:bg-[#166fe5] text-white px-8 h-12 gap-2"
+          disabled={!profile}
+        >
+          <Facebook className="h-5 w-5 fill-current" />
+          Conectar com Facebook
+        </Button>
 
-              {maskedKey && (
-                <div className="flex items-center gap-2 p-2 rounded-md bg-muted/50 border">
-                  <CheckCircle2 className="h-4 w-4 text-success shrink-0" />
-                  <span className="text-xs font-mono flex-1 truncate">
-                    {showKeys[field.key] ? config?.api_key : maskedKey}
-                  </span>
-                  <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setShowKeys(p => ({ ...p, [field.key]: !p[field.key] }))}>
-                    {showKeys[field.key] ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
-                  </Button>
-                </div>
-              )}
-
-              <div className="flex gap-2">
-                <Input
-                  type={field.isSecret ? "password" : "text"}
-                  placeholder={maskedKey ? "Cole para substituir..." : field.placeholder}
-                  value={values[field.key] || ""}
-                  onChange={(e) => setValues(prev => ({ ...prev, [field.key]: e.target.value }))}
-                  className="text-sm"
-                />
-                <Button
-                  onClick={() => handleSave(field.key)}
-                  disabled={!values[field.key]?.trim() || saveMutation.isPending}
-                  size="sm"
-                  variant="outline"
-                >
-                  {saveMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
-                </Button>
-              </div>
-            </div>
-          );
-        })}
-      </div>
-
-      {/* Webhook URL */}
-      <div className="space-y-1.5">
-        <Label className="text-sm font-medium">URL do Webhook</Label>
-        <p className="text-[11px] text-muted-foreground">Cole esta URL no painel do Meta → Webhooks → Página → leadgen</p>
-        <div className="flex items-center gap-2 p-2 bg-muted/50 rounded-md border">
-          <code className="text-[11px] break-all flex-1 select-all">{webhookUrl}</code>
-          <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={() => { navigator.clipboard.writeText(webhookUrl); toast.success("URL copiada!"); }}>
-            <Copy className="h-3.5 w-3.5" />
-          </Button>
+        <div className="flex flex-col gap-1.5 items-center text-[11px] text-muted-foreground pt-2">
+          <span className="flex items-center gap-1.5">✓ Seguro — usamos OAuth oficial</span>
+          <span className="flex items-center gap-1.5">✓ Você controla as permissões</span>
+          <span className="flex items-center gap-1.5">✓ Desconecte a qualquer momento</span>
         </div>
       </div>
+
+      {isConnected && (
+        <div className="p-4 rounded-lg bg-success/10 border border-success/20 flex items-center gap-3">
+          <div className="w-10 h-10 rounded-full bg-success/20 flex items-center justify-center shrink-0">
+            <CheckCircle2 className="h-5 w-5 text-success" />
+          </div>
+          <div className="flex-1">
+            <p className="text-sm font-semibold text-success">Facebook Conectado</p>
+            <p className="text-xs text-success/80">Sua conta está sincronizada e ativa.</p>
+          </div>
+          <Button variant="outline" size="sm" onClick={handleValidateAndAdvance}>
+            {diagStatus === "loading" ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : "Validar conexão"}
+          </Button>
+        </div>
+      )}
 
       {/* Validation status */}
       {diagStatus === "error" && (
@@ -156,9 +146,8 @@ export function StepCredentials({ configs, onNext }: StepCredentialsProps) {
 
       {/* Action */}
       <div className="flex justify-end pt-2">
-        <Button onClick={handleValidateAndAdvance} disabled={!allConfigured || diagStatus === "loading"}>
-          {diagStatus === "loading" && <Loader2 className="h-4 w-4 animate-spin mr-1" />}
-          Conectar e validar
+        <Button onClick={() => onNext()} disabled={!isConnected || diagStatus === "loading"}>
+          Avançar para Páginas
         </Button>
       </div>
     </div>

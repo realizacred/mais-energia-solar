@@ -5,6 +5,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { parseEdgeFunctionError } from "@/lib/parseEdgeFunctionError";
+import { toast } from "sonner";
 
 export const META_KEYS = {
   appId: "meta_facebook_app_id",
@@ -25,21 +26,49 @@ export interface MetaConfigMap {
     api_key: string;
     is_active: boolean;
     updated_at: string;
+    account_name?: string;
   };
 }
+
 
 export function useMetaFbConfigs() {
   return useQuery({
     queryKey: [QUERY_KEY],
     queryFn: async () => {
       const keys = Object.values(META_KEYS);
-      const { data, error } = await supabase
+      
+      // Fetch from integration_configs
+      const { data: configs, error: configsError } = await supabase
         .from("integration_configs")
         .select("id, service_key, api_key, is_active, updated_at")
         .in("service_key", keys);
-      if (error) throw error;
+      
+      if (configsError) throw configsError;
+
+      // Fetch from facebook_integrations (the new OAuth system)
+      const { data: fbIntegrations, error: fbError } = await supabase
+        .from("facebook_integrations")
+        .select("*")
+        .maybeSingle();
+
+      if (fbError) throw fbError;
+
       const map: MetaConfigMap = {};
-      data?.forEach((c) => (map[c.service_key] = c));
+      configs?.forEach((c) => (map[c.service_key] = c));
+
+      // If we have an OAuth integration, override the access token in the map
+      if (fbIntegrations && fbIntegrations.status === 'connected') {
+        map[META_KEYS.accessToken] = {
+          id: fbIntegrations.id,
+          service_key: META_KEYS.accessToken,
+          api_key: fbIntegrations.access_token || "",
+          is_active: fbIntegrations.status === 'connected',
+          updated_at: fbIntegrations.connected_at || fbIntegrations.updated_at,
+          account_name: fbIntegrations.connected_account_name,
+        };
+
+      }
+
       return map;
     },
     staleTime: STALE_TIME,
@@ -134,6 +163,33 @@ export function useSaveMetaAutomation() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["fb-lead-automation"] });
+    },
+  });
+}
+
+export function useDisconnectMeta() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async () => {
+      // 1. Mark as disconnected in DB
+      const { error } = await supabase
+        .from("facebook_integrations")
+        .update({ status: 'disconnected', access_token: null })
+        .eq('status', 'connected'); 
+      
+      if (error) throw error;
+
+      // 2. Clear integration_configs too for backward compatibility
+      await supabase
+        .from("integration_configs")
+        .delete()
+        .eq("service_key", META_KEYS.accessToken);
+
+      return { success: true };
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEY] });
+      toast.success("Desconectado do Facebook");
     },
   });
 }
