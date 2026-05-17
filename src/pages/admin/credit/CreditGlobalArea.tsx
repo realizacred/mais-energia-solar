@@ -129,15 +129,6 @@ export default function CreditGlobalArea() {
     localStorage.setItem("credit-global-filters", JSON.stringify(filters));
   }, [filters]);
 
-  useEffect(() => {
-    if (selectedAnalysis?.simulacao_resultado) {
-      const results = selectedAnalysis.simulacao_resultado;
-      setSimulationOptions(Array.isArray(results) ? results : (results.opcoes || []));
-    } else {
-      setSimulationOptions([]);
-    }
-  }, [selectedAnalysis]);
-
   const { data: analyses, isLoading } = useQuery({
     queryKey: ["admin-credit-analyses"],
     queryFn: async () => {
