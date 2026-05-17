@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Loader2, Send, FileText } from "lucide-react";
+import { Loader2, Send, FileText, Calculator, Landmark, ShieldCheck, History } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -21,12 +21,13 @@ import {
 } from "@/components/ui/select";
 import { useDocumentTemplates } from "./useDocumentTemplates";
 import { useClientes } from "@/hooks/useClientes";
-import { useEmitirRecibo } from "@/hooks/useRecibos";
+import { useEmitirRecibo, useRecibos, type Recibo } from "@/hooks/useRecibos";
 import type { DocumentTemplate, FormFieldSchema } from "./types";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
-import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
+import { formatBRL } from "@/lib/formatters";
+import { format } from "date-fns";
 
 interface EmitirReciboModalProps {
   open: boolean;
@@ -35,6 +36,7 @@ interface EmitirReciboModalProps {
   defaultProjetoId?: string;
   defaultDealId?: string;
   onEmitted?: (reciboId: string) => void;
+  showHistory?: boolean;
 }
 
 /**
@@ -66,7 +68,8 @@ export function EmitirReciboModal({
   const [loadingContext, setLoadingContext] = useState(false);
   const [projectContext, setProjectContext] = useState<any>(null);
   const [proposalContext, setProposalContext] = useState<any>(null);
-  const [totalPago, setTotalPago] = useState(0);
+  const [totalPagoHistorico, setTotalPagoHistorico] = useState(0);
+  const [ultimoNumeroRecibo, setUltimoNumeroRecibo] = useState(0);
 
   useEffect(() => {
     if (open) {
@@ -77,17 +80,19 @@ export function EmitirReciboModal({
       setDescricao("");
       setNumero("");
       setFormaPagamento("");
+      setDataPagamento(new Date().toISOString().slice(0, 10));
       setDynFields({});
       setProjectContext(null);
       setProposalContext(null);
-      setTotalPago(0);
+      setTotalPagoHistorico(0);
+      setUltimoNumeroRecibo(0);
       setInstituicaoFinanceira("");
 
       if (defaultProjetoId) {
         setLoadingContext(true);
         (async () => {
           try {
-            const [projRes, totalPagoRes] = await Promise.all([
+            const [projRes, recibosRes] = await Promise.all([
               supabase
                 .from("projetos")
                 .select("*, clientes(*)")
@@ -95,7 +100,7 @@ export function EmitirReciboModal({
                 .maybeSingle(),
               supabase
                 .from("recibos")
-                .select("valor")
+                .select("valor, numero")
                 .eq("projeto_id", defaultProjetoId)
                 .eq("status", "emitido")
             ]);
@@ -107,9 +112,14 @@ export function EmitirReciboModal({
                 setClienteId(projeto.cliente_id);
               }
 
-              // Calcular total pago
-              const pago = (totalPagoRes.data || []).reduce((acc, r) => acc + Number(r.valor), 0);
-              setTotalPago(pago);
+              // Calcular total pago e pegar último número
+              const pago = (recibosRes.data || []).reduce((acc, r) => acc + Number(r.valor), 0);
+              setTotalPagoHistorico(pago);
+              
+              const numeros = (recibosRes.data || [])
+                .map(r => parseInt(r.numero || "0"))
+                .filter(n => !isNaN(n));
+              setUltimoNumeroRecibo(numeros.length > 0 ? Math.max(...numeros) : 0);
 
               // Buscar proposta aceita
               const dealId = defaultDealId ?? (projeto as any).deal_id;
@@ -175,19 +185,18 @@ export function EmitirReciboModal({
     [templates, templateId],
   );
 
-  // Bloco 1, 3 e 4: Cálculo de saldo e sugestões automáticas
   const valorTotalVenda = useMemo(() => {
     return Number(proposalContext?.versao?.valor_total ?? projectContext?.valor_total ?? 0);
   }, [proposalContext, projectContext]);
 
   const saldoDevedorAtual = useMemo(() => {
-    return Math.max(0, valorTotalVenda - totalPago);
-  }, [valorTotalVenda, totalPago]);
+    return Math.max(0, valorTotalVenda - totalPagoHistorico);
+  }, [valorTotalVenda, totalPagoHistorico]);
 
   const saldoRestanteAposRecibo = useMemo(() => {
     const vRecibo = Number(valor || 0);
-    return valorTotalVenda - totalPago - vRecibo;
-  }, [valorTotalVenda, totalPago, valor]);
+    return valorTotalVenda - totalPagoHistorico - vRecibo;
+  }, [valorTotalVenda, totalPagoHistorico, valor]);
 
   // Aplicar sugestões baseadas no template
   useEffect(() => {
@@ -198,14 +207,15 @@ export function EmitirReciboModal({
       const sugerido = valorTotalVenda * 0.3;
       setValor(sugerido.toFixed(2));
       setDescricao("Sinal referente ao contrato de instalação solar");
+      setNumero(""); // Sinal geralmente é o primeiro
     } else if (nome.includes("quitação") || nome.includes("quitacao")) {
       setValor(saldoDevedorAtual.toFixed(2));
       setDescricao("Quitação do contrato de instalação solar");
     } else if (nome.includes("parcela")) {
-      // Buscar último recibo para incrementar número? (Opcional, manual por enquanto ou auto se houver histórico)
       setDescricao(`Parcela do contrato de instalação solar`);
+      setNumero((ultimoNumeroRecibo + 1).toString());
     }
-  }, [template, valorTotalVenda, saldoDevedorAtual]);
+  }, [template, valorTotalVenda, saldoDevedorAtual, ultimoNumeroRecibo]);
 
   // Auto-fill dynamic fields. Roda assim que houver projectContext/proposalContext,
   // e re-aplica quando um template é selecionado depois.
@@ -374,9 +384,11 @@ export function EmitirReciboModal({
             <div className="p-2.5 rounded-lg border bg-muted/50 flex justify-between items-center">
               <div className="flex flex-col">
                 <span className="text-sm font-semibold">{projectContext?.clientes?.nome || "Selecione um projeto"}</span>
-                <span className="text-[10px] text-muted-foreground uppercase tracking-tight">{projectContext?.clientes?.cpf_cnpj || "CPF/CNPJ não disponível"}</span>
+                <span className="text-[10px] text-muted-foreground uppercase tracking-tight font-mono">{projectContext?.clientes?.cpf_cnpj || "CPF/CNPJ não disponível"}</span>
               </div>
-              <Badge variant="outline" className="text-[9px] uppercase">Projeto vinculado</Badge>
+              <div className="text-right">
+                <Badge variant="outline" className="text-[9px] uppercase font-bold bg-background/50">Projeto vinculado</Badge>
+              </div>
             </div>
           </div>
 
@@ -396,7 +408,7 @@ export function EmitirReciboModal({
               </div>
               <div className="flex flex-col border-l pl-2">
                 <span className="text-[10px] text-muted-foreground uppercase">Total Pago</span>
-                <span className="text-sm font-bold text-success">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalPago)}</span>
+                <span className="text-sm font-bold text-success">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalPagoHistorico)}</span>
               </div>
               <div className="flex flex-col border-l pl-2">
                 <span className="text-[10px] text-muted-foreground uppercase">Saldo Devedor</span>
@@ -520,7 +532,15 @@ export function EmitirReciboModal({
                   </div>
                 ))}
               </div>
+          {defaultProjetoId && (
+            <div className="sm:col-span-2 border-t pt-4 space-y-4">
+              <h4 className="font-bold flex items-center gap-2 text-sm uppercase tracking-wider text-muted-foreground">
+                <History className="h-4 w-4" /> Histórico de Recibos
+              </h4>
+              <ReciboHistoryList projetoId={defaultProjetoId} />
             </div>
+          )}
+        </div>
           )}
         </div>
 

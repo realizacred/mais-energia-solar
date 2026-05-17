@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Plus, Pencil, Receipt, Sparkles, FileText, Download, Trash2, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -43,9 +43,15 @@ export function RecibosTab() {
 
   const { data: templates, isLoading, upsert } = useDocumentTemplates("recibo");
   const { settings: brand } = useBrandSettings();
-  const { data: recibos, isLoading: loadingRecibos } = useRecibos({});
+  const { data: recibos, isLoading: loadingRecibos, refetch: refetchRecibos } = useRecibos({});
   const regenPdf = useReciboPDF();
   const deleteRecibo = useDeleteRecibo();
+
+  useEffect(() => {
+    if (innerTab === "emitidos") {
+      refetchRecibos();
+    }
+  }, [innerTab, refetchRecibos]);
 
   const seeding = upsert.isPending;
 
@@ -79,7 +85,7 @@ export function RecibosTab() {
       let path = r.pdf_url;
       if (!path) {
         const res = await regenPdf.mutateAsync(r.id);
-        path = res.pdf_path;
+        path = res.pdf_url;
       }
       const url = await getReciboSignedUrl(path!);
       window.open(url, "_blank", "noopener,noreferrer");
@@ -121,11 +127,11 @@ export function RecibosTab() {
 
       <Tabs value={innerTab} onValueChange={(v) => setInnerTab(v as "templates" | "emitidos")}>
         <TabsList className="bg-muted/50 p-1 rounded-xl">
-          <TabsTrigger value="templates" className="text-xs gap-1.5">
+          <TabsTrigger value="templates" className="text-xs gap-1.5 font-bold">
             <Receipt className="h-3.5 w-3.5" />
             Templates
           </TabsTrigger>
-          <TabsTrigger value="emitidos" className="text-xs gap-1.5">
+          <TabsTrigger value="emitidos" className="text-xs gap-1.5 font-bold">
             <Sparkles className="h-3.5 w-3.5" />
             Recibos emitidos {recibos?.length ? `(${recibos.length})` : ""}
           </TabsTrigger>
@@ -249,6 +255,7 @@ export function RecibosTab() {
                         <p className="text-[11px] text-muted-foreground mt-0.5">
                           {fmtBRL(Number(r.valor))} • {format(new Date(r.created_at), "dd/MM/yy HH:mm")}
                           {r.numero ? ` • Nº ${r.numero}` : ""}
+                          {r.forma_pagamento && <Badge variant="outline" className="text-[9px] ml-2 font-normal">{r.forma_pagamento}</Badge>}
                         </p>
                         {r.descricao && (
                           <p className="text-[11px] text-muted-foreground mt-0.5 truncate">{r.descricao}</p>
@@ -272,9 +279,10 @@ export function RecibosTab() {
                         </Button>
                         <Button
                           size="icon" variant="ghost" className="h-7 w-7 text-destructive hover:text-destructive"
-                          title="Excluir"
+                          title={r.status === 'cancelado' ? "Já cancelado" : "Cancelar recibo"}
+                          disabled={r.status === 'cancelado'}
                           onClick={() => {
-                            if (confirm("Excluir este recibo?")) deleteRecibo.mutate(r.id);
+                            if (confirm("Deseja cancelar este recibo? O status será alterado para cancelado.")) deleteRecibo.mutate(r.id);
                           }}
                         >
                           <Trash2 className="h-3.5 w-3.5" />

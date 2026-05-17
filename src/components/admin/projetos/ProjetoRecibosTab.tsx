@@ -33,7 +33,7 @@ function fmtBRL(v: number) {
 }
 
 interface ProjetoRecibosTabProps {
-  filters: ReciboFilters;            // { projeto_id?, cliente_id?, deal_id? }
+  filters: ReciboFilters;            // { projeto_id?, cliente_id? }
   defaultClienteId?: string;
   defaultProjetoId?: string;
   defaultDealId?: string;
@@ -62,7 +62,7 @@ export function ProjetoRecibosTab({
       let path = r.pdf_url;
       if (!path) {
         const res = await regen.mutateAsync(r.id);
-        path = res.pdf_path;
+        path = res.pdf_url;
       }
       const url = await getReciboSignedUrl(path!);
       window.open(url, "_blank", "noopener,noreferrer");
@@ -117,6 +117,7 @@ export function ProjetoRecibosTab({
                     </div>
                     <p className="text-[11px] text-muted-foreground mt-0.5">
                       {fmtBRL(Number(r.valor))} • {format(new Date(r.created_at), "dd/MM/yy HH:mm")}
+                      {r.forma_pagamento && <Badge variant="outline" className="text-[9px] ml-2">{r.forma_pagamento}</Badge>}
                     </p>
                     {r.descricao && (
                       <p className="text-[11px] text-muted-foreground mt-0.5 truncate">{r.descricao}</p>
@@ -155,8 +156,9 @@ export function ProjetoRecibosTab({
                     <Button
                       size="icon" variant="ghost"
                       className="h-7 w-7 text-destructive hover:text-destructive"
-                      title="Excluir"
-                      onClick={() => { if (confirm("Excluir este recibo?")) del.mutate(r.id); }}
+                      title={r.status === 'cancelado' ? "Já cancelado" : "Cancelar recibo"}
+                      disabled={r.status === 'cancelado'}
+                      onClick={() => { if (confirm("Deseja cancelar este recibo? O status será alterado para cancelado.")) del.mutate(r.id); }}
                     >
                       <Trash2 className="h-3.5 w-3.5" />
                     </Button>

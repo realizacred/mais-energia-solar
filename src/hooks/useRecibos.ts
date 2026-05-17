@@ -1,5 +1,5 @@
 // Recibos — emissão, listagem, PDF.
-// SSOT: tabela `recibos_emitidos` + bucket `recibos`.
+// SSOT: tabela `recibos` + bucket `recibos`.
 // Reutiliza document_templates (categoria='recibo').
 // §16/§23: queries em hooks com staleTime; invalidação após mutações.
 
@@ -43,7 +43,7 @@ export function useRecibos(filters: { cliente_id?: string; projeto_id?: string }
       let q = supabase
         .from("recibos")
         .select(
-          "*, cliente:clientes(id, nome, cpf_cnpj)"
+          "*, cliente:clientes(id, nome, cpf_cnpj), projeto:projetos(id, valor_total)"
         )
         .order("created_at", { ascending: false });
 
@@ -79,7 +79,7 @@ export function useEmitirRecibo() {
       const { tenantId, userId } = await getCurrentTenantId();
 
       const { data, error } = await supabase
-        .from("recibos" as any)
+        .from("recibos")
         .insert({
           tenant_id: tenantId,
           projeto_id: input.projeto_id,
@@ -93,7 +93,7 @@ export function useEmitirRecibo() {
           campos_extras: input.campos_extras ?? {},
           status: "emitido",
           created_by: userId,
-        })
+        } as any)
         .select("id")
         .single();
 
@@ -192,7 +192,7 @@ export function useEmitirRecibo() {
   });
 }
 
-/** Gera (ou regera) PDF do recibo via Gotenberg. Atualiza pdf_path. */
+/** Gera (ou regera) PDF do recibo via Gotenberg. Atualiza pdf_url. */
 export function useReciboPDF() {
   const qc = useQueryClient();
   return useMutation({
@@ -201,7 +201,7 @@ export function useReciboPDF() {
         body: { recibo_id: reciboId },
       });
       if (error) throw error;
-      return data as { pdf_path: string };
+      return data as { pdf_url: string };
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: [QUERY_KEY] });
@@ -274,8 +274,8 @@ export function useDeleteRecibo() {
   return useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase
-        .from("recibos_emitidos" as any)
-        .update({ deleted_at: new Date().toISOString() } as any)
+        .from("recibos" as any)
+        .update({ status: "cancelado" } as any)
         .eq("id", id);
       if (error) throw error;
     },
