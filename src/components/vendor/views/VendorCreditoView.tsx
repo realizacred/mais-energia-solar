@@ -19,7 +19,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
-import { formatBRL, displayDate, displayCpfCnpj } from "@/lib/formatters";
+import { formatBRL, displayDate, displayCpfCnpj } from "@/lib/formatters/index";
 import { cn } from "@/lib/utils";
 
 import { STATUS_CONFIG } from "@/components/admin/projetos/ProjetoCreditoTab";

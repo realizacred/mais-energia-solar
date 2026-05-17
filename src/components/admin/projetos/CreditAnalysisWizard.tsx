@@ -55,7 +55,7 @@ import {
 } from "@/hooks/useAnaliseCredito";
 import { useProjectDocuments } from "@/hooks/useProjectDocuments";
 import { useCreditBankConfigs, useCreditBankChecklist } from "@/hooks/useCreditConfigs";
-import { formatBRL, parseBRNumber, displayCpfCnpj, displayDate, displayPhone } from "@/lib/formatters";
+import { formatBRL, parseBRNumber, displayCpfCnpj, displayDate, displayPhone } from "@/lib/formatters/index";
 import { formatDateTime } from "@/lib/dateUtils";
 import { isValidCpf, isValidCnpj, formatCpfCnpj } from "@/lib/cpfCnpjUtils";
 import { Badge } from "@/components/ui/badge";

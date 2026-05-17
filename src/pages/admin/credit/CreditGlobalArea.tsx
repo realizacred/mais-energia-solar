@@ -47,7 +47,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { formatBRL, displayDate, displayCpfCnpj } from "@/lib/formatters";
+import { formatBRL, displayDate, displayCpfCnpj } from "@/lib/formatters/index";
 import { formatDistanceToNow, isWithinInterval, startOfDay, endOfDay, differenceInDays, startOfMonth, format, subDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useCreditMetrics } from "@/hooks/useCreditDomain";
@@ -663,7 +663,7 @@ export default function CreditGlobalArea() {
                         )}
                       </TableCell>
                       <TableCell className="text-xs text-muted-foreground">
-                        {displayDate(analise.created_at)}
+                        {displayDate(analysis.created_at)}
                       </TableCell>
                       <TableCell className="text-right">
                         <DropdownMenu>
