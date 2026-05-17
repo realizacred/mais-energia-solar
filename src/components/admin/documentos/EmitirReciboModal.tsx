@@ -77,37 +77,64 @@ export function EmitirReciboModal({
       setDynFields({});
       setProjectContext(null);
       setProposalContext(null);
+      setTotalPago(0);
+      setInstituicaoFinanceira("");
 
-      // Auto-fetch context if project ID is provided
       if (defaultProjetoId) {
         setLoadingContext(true);
         (async () => {
           try {
-            const { data: projeto, error: projErr } = await supabase
-              .from("projetos")
-              .select("*, clientes(*)")
-              .eq("id", defaultProjetoId)
-              .maybeSingle();
+            const [projRes, totalPagoRes] = await Promise.all([
+              supabase
+                .from("projetos")
+                .select("*, clientes(*)")
+                .eq("id", defaultProjetoId)
+                .maybeSingle(),
+              supabase
+                .from("recibos")
+                .select("valor")
+                .eq("projeto_id", defaultProjetoId)
+                .eq("status", "emitido")
+            ]);
 
-            if (!projErr && projeto) {
+            if (projRes.data) {
+              const projeto = projRes.data;
               setProjectContext(projeto);
               if (!defaultClienteId && projeto.cliente_id) {
                 setClienteId(projeto.cliente_id);
               }
 
-              // Buscar proposta aceita do deal (suggestion para valor + parcelas)
+              // Calcular total pago
+              const pago = (totalPagoRes.data || []).reduce((acc, r) => acc + Number(r.valor), 0);
+              setTotalPago(pago);
+
+              // Buscar proposta aceita
               const dealId = defaultDealId ?? (projeto as any).deal_id;
               if (dealId) {
-                const { data: prop } = await supabase
-                  .from("propostas_nativas")
-                  .select("id, deal_id, status, created_at")
-                  .eq("deal_id", dealId)
-                  .eq("status", "aceita")
-                  .order("created_at", { ascending: false })
-                  .limit(1)
-                  .maybeSingle();
-                if (prop) {
-                  // Buscar versão atual + opção de pagamento principal
+                const [propRes, creditRes] = await Promise.all([
+                  supabase
+                    .from("propostas_nativas")
+                    .select("id, deal_id, status, created_at")
+                    .eq("deal_id", dealId)
+                    .eq("status", "aceita")
+                    .order("created_at", { ascending: false })
+                    .limit(1)
+                    .maybeSingle(),
+                  supabase
+                    .from("analise_credito")
+                    .select("banco")
+                    .eq("deal_id", dealId)
+                    .order("created_at", { ascending: false })
+                    .limit(1)
+                    .maybeSingle()
+                ]);
+
+                if (creditRes.data?.banco) {
+                  setInstituicaoFinanceira(creditRes.data.banco);
+                }
+
+                if (propRes.data) {
+                  const prop = propRes.data;
                   const { data: versao } = await supabase
                     .from("proposta_versoes")
                     .select("id, valor_total, potencia_kwp")
@@ -115,6 +142,7 @@ export function EmitirReciboModal({
                     .order("versao_numero", { ascending: false })
                     .limit(1)
                     .maybeSingle();
+                  
                   const { data: opcao } = versao
                     ? await supabase
                         .from("proposta_pagamento_opcoes")
@@ -124,6 +152,7 @@ export function EmitirReciboModal({
                         .limit(1)
                         .maybeSingle()
                     : { data: null as any };
+                    
                   setProposalContext({ proposta: prop, versao, opcao });
                 }
               }
