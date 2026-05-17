@@ -917,7 +917,7 @@ export function EmitirReciboModal({
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1.5">
                   <Label className="text-xs font-semibold text-muted-foreground italic">Valor da parcela</Label>
-                  <Input readOnly value={new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(valor || 0) / (Number(cartaoParcelas) || 1))} className="bg-muted" />
+                  <Input readOnly value={formatBRL(Number(valor || 0) / (Number(cartaoParcelas) || 1))} className="bg-muted" />
                 </div>
                 <div className="space-y-1.5">
                   <Label className="text-xs font-semibold text-muted-foreground italic">Últimos 4 dígitos</Label>
