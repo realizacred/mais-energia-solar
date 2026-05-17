@@ -16,14 +16,14 @@ export async function checkFinancialLock(
 ): Promise<{ locked: boolean; reason?: string }> {
   // 1. Verificar se o pagamento existe e sua data
   const { data: payment, error: pError } = await supabase
-    .from('pagamentos')
+    .from('_deprecated_pagamentos' as any)
     .select('created_at, data_pagamento')
     .eq('id', paymentId)
     .single();
 
   if (pError || !payment) return { locked: true, reason: 'Pagamento não encontrado' };
 
-  const paymentDate = new Date(payment.data_pagamento || payment.created_at);
+  const paymentDate = new Date((payment as any).data_pagamento || (payment as any).created_at);
   const paymentDateOnly = paymentDate.toISOString().split('T')[0];
 
   // 2. Verificar trava por dias (se configurado)
