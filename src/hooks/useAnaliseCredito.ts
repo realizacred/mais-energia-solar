@@ -65,6 +65,26 @@ export interface AnaliseCredito {
   avalista_numero?: string | null;
   eos_proposta_protocolo?: string | null;
   eos_enviado_at?: string | null;
+  cliente_nome?: string | null;
+  cliente_email?: string | null;
+  cliente_telefone?: string | null;
+  cliente_data_nascimento?: string | null;
+  cnpj?: string | null;
+  razao_social?: string | null;
+  kit_fotovoltaico?: number | null;
+  mao_obra?: number | null;
+  potencia_instalada?: number | null;
+  media_conta_energia?: number | null;
+  area_instalacao?: number | null;
+  situacao_imovel?: string | null;
+  endereco_cep?: string | null;
+  endereco_logradouro?: string | null;
+  endereco_numero?: string | null;
+  endereco_bairro?: string | null;
+  endereco_cidade?: string | null;
+  endereco_estado?: string | null;
+  endereco_complemento?: string | null;
+  com_seguro?: boolean | null;
 }
 
 export interface AnaliseCreditoHistorico {
