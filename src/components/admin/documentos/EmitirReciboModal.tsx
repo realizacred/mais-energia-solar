@@ -385,8 +385,6 @@ export function EmitirReciboModal({
     }
   }, [template, valorTotalVenda, saldoDevedorAtual, ultimoNumeroRecibo]);
 
-  // Auto-fill dynamic fields. Roda assim que houver projectContext/proposalContext,
-  // e re-aplica quando um template é selecionado depois.
   useEffect(() => {
     if (!projectContext && !proposalContext) return;
 
@@ -399,7 +397,7 @@ export function EmitirReciboModal({
     const opcao = proposalContext?.opcao;
 
     const has = (key: string, ...tokens: string[]) =>
-      tokens.some((t) => key.includes(t));
+      tokens.some((t) => key.toLowerCase().includes(t));
 
     schema.forEach((field) => {
       const key = field.key.toLowerCase();
@@ -409,7 +407,7 @@ export function EmitirReciboModal({
           updates[field.key] = cliente.nome || "";
         }
         if (has(key, "cpf", "cnpj", "documento")) {
-          updates[field.key] = cliente.cpf_cnpj || "";
+          updates[field.key] = formatCpfCnpj(cliente.cpf_cnpj || "");
         }
         if (key === "email" || has(key, "e_mail", "email_cliente")) {
           updates[field.key] = cliente.email || "";
@@ -426,13 +424,24 @@ export function EmitirReciboModal({
       }
 
       if (has(key, "valor_total", "valor_venda", "valor_projeto", "valor_proposta")) {
-        const v = versao?.valor_total ?? projectContext?.valor_total;
-        if (v) updates[field.key] = String(v);
+        updates[field.key] = formatBRL(valorTotalVenda);
       }
 
       if (has(key, "potencia", "kwp")) {
         const p = versao?.potencia_kwp ?? projectContext?.potencia_kwp;
         if (p) updates[field.key] = String(p);
+      }
+
+      if (has(key, "valor_recibo", "valor_do_recibo")) {
+        updates[field.key] = formatBRL(valor);
+      }
+      
+      if (has(key, "saldo_devedor", "saldo_restante")) {
+        updates[field.key] = formatBRL(saldoRestanteAposRecibo);
+      }
+
+      if (has(key, "data_pagamento", "data_do_pagamento")) {
+        updates[field.key] = dataPagamento ? new Date(dataPagamento + 'T12:00:00').toLocaleDateString('pt-BR') : "";
       }
 
       // Parcelas (total)
