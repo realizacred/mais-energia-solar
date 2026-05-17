@@ -486,15 +486,21 @@ function ProjetoDetalheContent() {
         observacoes: editProjetoDescricao.trim() || null,
       })
       .eq("id", projetoId);
-    setSavingProjeto(false);
+    
     if (error) {
+      setSavingProjeto(false);
       toast({ title: "Erro ao salvar", description: error.message, variant: "destructive" });
       return;
     }
+
+    // Invalidate project detail queries
+    await queryClient.invalidateQueries({ queryKey: ["projeto-detalhe"] });
+    await queryClient.invalidateQueries({ queryKey: ["projeto-detalhe-data", dealId] });
+    await queryClient.invalidateQueries({ queryKey: ["projetos-pipeline"] });
+    
+    setSavingProjeto(false);
     toast({ title: "Projeto atualizado" });
     setEditProjetoOpen(false);
-    queryClient.invalidateQueries({ queryKey: ["projeto-detalhe"] });
-    queryClient.invalidateQueries({ queryKey: ["projetos-pipeline"] });
     silentRefresh?.();
   };
 
