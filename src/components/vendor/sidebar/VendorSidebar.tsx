@@ -167,7 +167,7 @@ function VendorSidebarSectionGroup({
         </CollapsibleTrigger>
         <CollapsibleContent>
           <SidebarGroupContent>
-            <SidebarMenu className="gap-px mt-0.5 ml-4 pl-3 border-l border-sidebar-border/40">
+            <SidebarMenu className="gap-0.5 mt-1 ml-4 pl-3 border-l-2 border-sidebar-border/20">
               {section.items.map((item) => (
                 <VendorSidebarItem
                   key={item.id}
