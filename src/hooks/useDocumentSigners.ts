@@ -126,43 +126,43 @@ export function useUpdateSignerStatus() {
       if (observacao) updateData.observacao = observacao;
       if (assinadoPorTipo) updateData.assinado_por_tipo = assinadoPorTipo;
       
-      // Se assinado físico, também preenchemos signed_at original para compatibilidade
       if (status === "signed_fisico") {
         updateData.signed_at = assinadoAt || new Date().toISOString();
       }
 
       const { data: signer, error: fetchError } = await supabase
-        .from("document_signers" as any)
+        .from("document_signers")
         .select("document_id")
         .eq("id", signerId)
-        .single();
+        .maybeSingle();
       
-      if (fetchError) throw fetchError;
+      if (fetchError || !signer) throw fetchError || new Error("Signatário não encontrado");
+
+      const docId = (signer as any).document_id;
 
       const { error } = await supabase
-        .from("document_signers" as any)
+        .from("document_signers")
         .update(updateData)
         .eq("id", signerId);
       
       if (error) throw error;
 
-      // Verificar se todos assinaram para atualizar o documento
       const { data: allSigners, error: signersError } = await supabase
-        .from("document_signers" as any)
+        .from("document_signers")
         .select("status")
-        .eq("document_id", signer.document_id);
+        .eq("document_id", docId);
       
       if (!signersError && allSigners) {
-        const allSigned = allSigners.every(s => s.status === "signed" || s.status === "signed_fisico");
+        const allSigned = (allSigners as any[]).every(s => s.status === "signed" || s.status === "signed_fisico");
         if (allSigned) {
           await supabase
             .from("generated_documents")
-            .update({ status: "signed" }) // ou "assinado_completo" conforme sugerido, mas o código atual usa "signed"
-            .eq("id", signer.document_id);
+            .update({ status: "signed" }) 
+            .eq("id", docId);
         }
       }
 
-      return { documentId: signer.document_id };
+      return { documentId: docId };
     },
     onSuccess: (data) => {
       qc.invalidateQueries({ queryKey: [QUERY_KEY, data.documentId] });
