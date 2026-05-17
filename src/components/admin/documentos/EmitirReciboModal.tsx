@@ -700,15 +700,13 @@ export function EmitirReciboModal({
           </div>
 
           <div className="space-y-1.5">
-            <Label className="text-xs">Valor deste Recibo (R$)</Label>
-            <Input
-              type="number" step="0.01" min="0"
+            <Label className="text-xs font-semibold">Valor deste Recibo *</Label>
+            <CurrencyInput
               value={valor}
-              onChange={(e) => setValor(e.target.value)}
-              placeholder="0,00"
-              className={cn(Number(valor) > saldoDevedorAtual + 0.01 && "border-destructive text-destructive")}
+              onChange={(val) => setValor(val)}
+              className={cn(valor > saldoDevedorAtual + 0.01 && "border-destructive text-destructive")}
             />
-            {Number(valor) > saldoDevedorAtual + 0.01 && (
+            {valor > saldoDevedorAtual + 0.01 && (
               <p className="text-[10px] text-destructive font-medium italic">Valor maior que o saldo devedor!</p>
             )}
           </div>
