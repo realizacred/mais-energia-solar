@@ -212,25 +212,32 @@ export function VendorSidebar({
       className="sidebar-premium border-0"
     >
       <SidebarHeader className="border-b border-sidebar-border/30 px-4 py-5 bg-sidebar-background/50 backdrop-blur-sm">
-        <Link
-          to="/"
-          className="flex items-center gap-3 transition-all duration-200 hover:opacity-80"
-        >
-          {collapsed ? (
-            <div className="p-1.5 rounded-xl bg-primary/10 hover:bg-primary/15 transition-colors mx-auto">
-              <Sun className="h-5 w-5 text-primary" />
-            </div>
-          ) : (
-            <div className="flex items-center gap-3">
-              <img src={logo} alt="Logo" className="h-8 w-auto" />
-              <div className="flex flex-col">
-                <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-primary/80">
-                  Consultor
-                </span>
+        <div className="flex items-center justify-between gap-2">
+          <Link
+            to="/"
+            className="flex items-center gap-3 transition-all duration-300 hover:opacity-80 min-w-0"
+          >
+            {collapsed ? (
+              <div className="p-1.5 rounded-xl bg-primary/10 hover:bg-primary/15 transition-colors mx-auto shadow-sm">
+                <Sun className="h-5 w-5 text-primary" />
               </div>
-            </div>
+            ) : (
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="p-1.5 rounded-xl bg-primary/5 border border-primary/10 shadow-inner shrink-0">
+                  <img src={logo} alt="Logo" className="h-8 w-auto" />
+                </div>
+                <div className="flex flex-col min-w-0">
+                  <span className="text-[10px] font-black uppercase tracking-[0.2em] text-primary truncate">
+                    Consultor
+                  </span>
+                </div>
+              </div>
+            )}
+          </Link>
+          {!collapsed && (
+            <SidebarTrigger className="h-8 w-8 rounded-lg hover:bg-sidebar-accent transition-colors shrink-0" />
           )}
-        </Link>
+        </div>
       </SidebarHeader>
 
       <SidebarContent className="scrollbar-thin py-2 space-y-0.5">
