@@ -1250,12 +1250,9 @@ function StatCard({ title, value, icon: Icon, color }: any) {
   );
 }
 
+// Note: Use displayDate from @/lib/formatters instead of this function if possible.
 function formatDateTime(dateStr: string) {
-  try {
-    return new Date(dateStr).toLocaleString('pt-BR');
-  } catch (e) {
-    return dateStr;
-  }
+  return displayDate(dateStr);
 }
 
 function getStatusVariant(status: string): any {
