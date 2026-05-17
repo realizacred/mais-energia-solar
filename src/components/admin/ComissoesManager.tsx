@@ -322,6 +322,20 @@ export function ComissoesManager() {
         paga_por: user?.id,
       });
       toast({ title: "Comissão marcada como paga!" });
+
+      // Notificar Hub
+      supabase.functions.invoke('notification-hub', {
+        body: {
+          evento: 'comissao_paga',
+          tenant_id: (comissao as any).tenant_id,
+          dados: {
+            comissao_id: comissao.id,
+            consultor_id: comissao.consultor_id,
+            valor: comissao.valor_comissao,
+            descricao: comissao.descricao
+          }
+        }
+      }).catch(err => console.error("[notification-hub] Erro ao invocar:", err));
     } catch (error) {
       toast({ title: "Erro ao pagar comissão", variant: "destructive" });
     }
