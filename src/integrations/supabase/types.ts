@@ -5230,6 +5230,8 @@ export type Database = {
           origem: string | null
           owner_id: string
           pipeline_id: string
+          portal_ativo: boolean | null
+          portal_token: string | null
           previous_status: string | null
           projeto_id: string
           reopened_at: string | null
@@ -5259,6 +5261,8 @@ export type Database = {
           origem?: string | null
           owner_id: string
           pipeline_id: string
+          portal_ativo?: boolean | null
+          portal_token?: string | null
           previous_status?: string | null
           projeto_id: string
           reopened_at?: string | null
@@ -5288,6 +5292,8 @@ export type Database = {
           origem?: string | null
           owner_id?: string
           pipeline_id?: string
+          portal_ativo?: boolean | null
+          portal_token?: string | null
           previous_status?: string | null
           projeto_id?: string
           reopened_at?: string | null
@@ -33015,6 +33021,7 @@ export type Database = {
         Returns: string
       }
       resolve_phone_to_email: { Args: { _phone: string }; Returns: string }
+      resolve_portal_token: { Args: { p_token: string }; Returns: Json }
       resolve_projeto_id: { Args: { p_projeto_num: number }; Returns: string }
       resolve_projeto_id_by_num: {
         Args: { p_projeto_num: number; p_tenant_id: string }
