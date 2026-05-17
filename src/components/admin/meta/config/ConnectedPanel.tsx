@@ -79,7 +79,7 @@ export function ConnectedPanel({ configs, automation, pipelineName, stageName, r
                 <p className="text-[11px] text-muted-foreground">Token configurado</p>
               </div>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
               <Switch
                 checked={isActive}
                 onCheckedChange={(v) => toggleActive.mutate(v)}
@@ -88,7 +88,21 @@ export function ConnectedPanel({ configs, automation, pipelineName, stageName, r
               <Button variant="outline" size="sm" onClick={onReconfigure}>
                 <Settings className="h-3.5 w-3.5 mr-1" /> Gerenciar
               </Button>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                onClick={() => {
+                  if (confirm("Tem certeza que deseja desconectar o Facebook?")) {
+                    disconnectMutation.mutate();
+                  }
+                }}
+                disabled={disconnectMutation.isPending}
+              >
+                <LogOut className="h-3.5 w-3.5 mr-1" /> Desconectar
+              </Button>
             </div>
+
           </div>
         </CardContent>
       </Card>
