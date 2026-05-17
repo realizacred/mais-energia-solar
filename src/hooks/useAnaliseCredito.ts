@@ -48,6 +48,23 @@ export interface AnaliseCredito {
   checklist_snapshot: any;
   created_at: string;
   updated_at: string;
+  carencia?: number | null;
+  patrimonio?: number | null;
+  avalista_nome?: string | null;
+  avalista_cpf?: string | null;
+  avalista_email?: string | null;
+  avalista_data_nascimento?: string | null;
+  avalista_telefone?: string | null;
+  avalista_renda_mensal?: number | null;
+  avalista_patrimonio?: number | null;
+  avalista_cep?: string | null;
+  avalista_rua?: string | null;
+  avalista_bairro?: string | null;
+  avalista_cidade?: string | null;
+  avalista_estado?: string | null;
+  avalista_numero?: string | null;
+  eos_proposta_protocolo?: string | null;
+  eos_enviado_at?: string | null;
 }
 
 export interface AnaliseCreditoHistorico {
