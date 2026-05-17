@@ -757,6 +757,7 @@ export function CreditAnalysisWizard({
                         </Button>
                       ))}
                     </div>
+                    {errors.prazo_meses && <p className="text-red-500 text-xs mt-1">{errors.prazo_meses}</p>}
                   </div>
 
                   <div className="space-y-3">
