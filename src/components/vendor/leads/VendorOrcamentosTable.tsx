@@ -304,7 +304,7 @@ export function VendorOrcamentosTable({
                       className="flex items-center gap-1 hover:text-primary hover:underline"
                     >
                       <Phone className="w-3 h-3 text-muted-foreground" />
-                      {formatPhoneBR(orc.telefone)}
+                      {displayPhone(orc.telefone)}
                     </a>
                   </TableCell>
                   <TableCell className="align-middle">
