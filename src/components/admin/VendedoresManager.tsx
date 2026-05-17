@@ -7,8 +7,12 @@ import { ConsultorHorariosEdit } from "@/components/admin/settings/ConsultorHora
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
-import { formatPhone, formatName } from "@/lib/validations";
-import { PhoneInput } from "@/components/ui-kit/inputs/PhoneInput";
+import { 
+  displayPhone as formatPhoneBR,
+  formatNameCapitalize as formatName
+} from "@/lib/formatters/index";
+import { PhoneInput } from "@/components/ui-kit/inputs";
+
 import { getPublicUrl } from "@/lib/getPublicUrl";
 import { isEmailAlreadyRegisteredError, parseInvokeError } from "@/lib/supabaseFunctionError";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
