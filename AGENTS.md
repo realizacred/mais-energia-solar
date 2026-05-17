@@ -873,5 +873,99 @@ AP-51 TEMPLATE SEM ARQUIVO BASE
 ✓ Certo: gerar e salvar arquivo base antes de ativar template
 
 =============================================================================
-FIM DO AGENTS.md v5.0
+=============================================================================
+BLOCO 34 — GESTÃO DE DOCUMENTOS E ASSINATURAS (v1.0)
+=============================================================================
+TABELAS:
+- generated_documents: status, cancelado_at, cancelado_por,
+  motivo_cancelamento, pdf_cancelado_url
+- document_signers: status, assinado_por_tipo ('digital'|'fisico'),
+  assinado_at, observacao
+
+ESTADOS DO DOCUMENTO:
+  rascunho → gerado → aguardando_assinatura
+  → assinado_parcial → assinado_completo
+  → cancelado | substituido
+
+RB-101 DOCUMENTOS — CANCELAMENTO COM FAIXA
+Ao cancelar documento: gerar PDF com faixa diagonal
+vermelha via edge function cancel-document.
+NUNCA deletar PDF original — manter histórico.
+Salvar PDF cancelado em pdf_cancelado_url.
+
+RB-102 DOCUMENTOS — ASSINATURA FÍSICA
+Assinatura física registrada em document_signers
+com assinado_por_tipo = 'fisico'.
+NUNCA considerar documento assinado sem registro
+em document_signers para cada signatário.
+
+AP-51 DELETAR DOCUMENTO SEM CANCELAR
+✗ Errado: DELETE FROM generated_documents WHERE id = X
+✓ Certo: UPDATE SET status = 'cancelado' + gerar PDF faixa
+
+=============================================================================
+BLOCO 35 — CONDIÇÕES DE PAGAMENTO (v1.0)
+=============================================================================
+CAMPOS DINÂMICOS POR FORMA:
+- Cheque: banco, agencia, conta, numero, titular, pre_datado
+- PIX: chave_pix, comprovante
+- Cartão: bandeira, parcelas, nsu
+- Boleto: numero, data_vencimento
+Salvos em lancamentos_financeiros.metadata (JSONB).
+
+VARIÁVEIS DE TEMPLATE:
+  {{pagamento.cheque_banco}}
+  {{pagamento.cheque_numero}}
+  {{pagamento.cheque_titular}}
+  {{pagamento.pix_chave}}
+  {{pagamento.cartao_bandeira}}
+  {{pagamento.cartao_parcelas}}
+  {{pagamento.valor_restante}}
+  {{pagamento.forma_entrada}}
+  {{pagamento.parcelas_descricao}}
+  {{financeiro.saldo_devedor}}
+
+RB-103 PAGAMENTO — CAMPOS OBRIGATÓRIOS POR FORMA
+Ao selecionar forma de pagamento em qualquer modal:
+SEMPRE exibir campos específicos da forma.
+NUNCA aceitar cheque sem número e titular.
+NUNCA aceitar cartão sem bandeira e parcelas.
+Salvar SEMPRE em metadata JSONB do lançamento.
+
+=============================================================================
+BLOCO 36 — FORMATAÇÃO GLOBAL CONCLUÍDA (v1.0)
+=============================================================================
+COBERTURA COMPLETA (todas as áreas formatadas):
+- Modal do cliente ✓
+- Lista de leads ✓
+- Ficha de crédito ✓
+- Lista de recibos ✓
+- PDFs gerados ✓
+- Contratos gerados ✓
+
+FUNÇÕES CANÔNICAS (src/lib/formatters/index.ts):
+  formatCpf(), formatCnpj(), formatCpfCnpj()
+  formatPhone(), formatCep()
+  formatCurrency(), formatCurrencyInput(), parseCurrency()
+  formatDateBR(), parseDateBR(), formatDateTime()
+  formatKwp(), formatName()
+  displayCpfCnpj(), displayPhone(), displayCurrency()
+  displayDate(), sanitizeStoragePath()
+
+RB-104 FORMATAÇÃO — ZERO DADO CRU NA UI
+NUNCA exibir CPF/CNPJ sem máscara na interface.
+NUNCA exibir data em formato ISO na interface.
+NUNCA exibir valor monetário sem R$ na interface.
+NUNCA exibir telefone sem máscara na interface.
+Usar SEMPRE as funções de src/lib/formatters/index.ts.
+
+AP-52 FORMATAR INLINE NO COMPONENTE
+✗ Errado: {cliente.cpf} direto no JSX
+✓ Certo: {displayCpfCnpj(cliente.cpf)}
+
+AP-53 DATA ISO NA UI
+✗ Errado: {created_at} → "2026-05-17T14:30:00"
+✓ Certo: {formatDateBR(created_at)} → "17/05/2026"
+=============================================================================
+FIM DO AGENTS.md v5.1
 =============================================================================
