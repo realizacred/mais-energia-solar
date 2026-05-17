@@ -369,7 +369,7 @@ function resolveFromContext(
   }
   if (key === "comercial.responsavel_nome") return s(ctx.comercial?.responsavel_nome);
   if (key === "comercial.responsavel_email") return s(ctx.comercial?.responsavel_email);
-  if (key === "comercial.responsavel_celular") return s(ctx.comercial?.responsavel_celular);
+  if (key === "comercial.responsavel_celular") return displayPhone(ctx.comercial?.responsavel_celular);
   if (key === "comercial.representante_nome") {
     return s(
       ctx.comercial?.representante_nome
