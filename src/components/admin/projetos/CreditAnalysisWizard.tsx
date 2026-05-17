@@ -545,7 +545,7 @@ export function CreditAnalysisWizard({
                           </div>
                           <div className="space-y-1">
                             <Label>Telefone *</Label>
-                            <Input className="h-8" value={formData.avalista_telefone} onChange={e => setFormData({...formData, avalista_telefone: e.target.value})} />
+                            <Input className="h-8" value={formData.avalista_telefone} onChange={e => setFormData({...formData, avalista_telefone: formatPhone(e.target.value)})} />
                           </div>
                           <div className="space-y-1">
                             <Label>E-mail *</Label>
@@ -553,15 +553,31 @@ export function CreditAnalysisWizard({
                           </div>
                           <div className="space-y-1">
                             <Label>Renda Mensal *</Label>
-                            <Input className="h-8" type="number" value={formData.avalista_renda_mensal} onChange={e => setFormData({...formData, avalista_renda_mensal: e.target.value})} />
+                            <Input 
+                              className="h-8" 
+                              value={formData.avalista_renda_mensal} 
+                              onChange={e => {
+                                const val = e.target.value.replace(/\D/g, "");
+                                const formatted = val ? (Number(val) / 100).toLocaleString('pt-BR', { minimumFractionDigits: 2 }) : "";
+                                setFormData({...formData, avalista_renda_mensal: formatted});
+                              }} 
+                            />
                           </div>
                           <div className="space-y-1">
                             <Label>Patrimônio *</Label>
-                            <Input className="h-8" type="number" value={formData.avalista_patrimonio} onChange={e => setFormData({...formData, avalista_patrimonio: e.target.value})} />
+                            <Input 
+                              className="h-8" 
+                              value={formData.avalista_patrimonio} 
+                              onChange={e => {
+                                const val = e.target.value.replace(/\D/g, "");
+                                const formatted = val ? (Number(val) / 100).toLocaleString('pt-BR', { minimumFractionDigits: 2 }) : "";
+                                setFormData({...formData, avalista_patrimonio: formatted});
+                              }} 
+                            />
                           </div>
                           <div className="space-y-1">
                             <Label>CEP *</Label>
-                            <Input className="h-8" value={formData.avalista_cep} onChange={e => setFormData({...formData, avalista_cep: e.target.value})} onBlur={() => fetchCep(formData.avalista_cep, false)} />
+                            <Input className="h-8" value={formData.avalista_cep} onChange={e => setFormData({...formData, avalista_cep: formatCEP(e.target.value)})} onBlur={() => fetchCep(formData.avalista_cep, false)} />
                           </div>
                           <div className="col-span-2 grid grid-cols-3 gap-2">
                              <div className="col-span-2 space-y-1">
