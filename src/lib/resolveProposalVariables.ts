@@ -128,15 +128,15 @@ export interface ResolverResult {
 
 // ── Formatters ───────────────────────────────────────────────
 
-// AP-17: all monetary values return pure numbers without R$ — template adds currency symbol
+// AP-17: all monetary values return formatted with R$ for templates
 function fmtCurrency(v: number | null | undefined): string {
   if (v == null) return "-";
-  return new Intl.NumberFormat("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(v);
+  return formatBRL(v);
 }
 
 function fmtNumber(v: number | null | undefined, decimals = 2): string {
   if (v == null) return "-";
-  return new Intl.NumberFormat("pt-BR", { minimumFractionDigits: decimals, maximumFractionDigits: decimals }).format(v);
+  return formatNumber(v, decimals);
 }
 
 function fmtPercent(v: number | null | undefined): string {
