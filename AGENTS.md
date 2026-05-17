@@ -974,13 +974,8 @@ FLUXO: DocumentosTab → WaSendDocModal → wa_outbox → WaInbox
 
 RB-105 WHATSAPP — USAR SISTEMA INTERNO
 NUNCA abrir wa.me externo para envio de documentos.
-SEMPRE usar WaSendDocModal que enfileira em wa_outbox 
-via RPC enqueue_wa_outbox_item.
-Mensagem gravada em wa_messages para rastreabilidade.
-
-AP-54 ABRIR WA.ME PARA DOCUMENTO
-✗ Errado: window.open('https://wa.me/...')
-✓ Certo: abrir WaSendDocModal com documento
+SEMPRE usar WaSendDocModal via wa_outbox.
+AP-54: window.open('wa.me') → usar WaSendDocModal
 
 =============================================================================
 BLOCO 38 — VALIDAÇÕES CONFIGURÁVEIS POR ETAPA (v1.0)
@@ -989,25 +984,67 @@ TABELA: pipeline_stage_validations
 TIPOS: documento_obrigatorio | valor_minimo | 
        campo_preenchido | fornecedor_vinculado | 
        aprovacao_manual
-COMPORTAMENTOS:
-  bloquear_avanco = true  → impede avanço de etapa
-  bloquear_avanco = false → só avisa (toast)
 
-RB-106 VALIDAÇÕES — NÃO DUPLICAR INTERCEPTOR
-O interceptor de fornecedor (RB-90) já existe em 
-ProjetoMultiPipelineManager.
-Novas validações de fornecedor usam 
-pipeline_stage_validations — não criar segundo interceptor.
-
+RB-106 NÃO DUPLICAR INTERCEPTOR RB-90
 RB-107 ALERTAS FINANCEIROS — UM POR VEZ
-Componente AlertasFinanceirosProjeto gerencia 
-todos os alertas de recebimento.
-NUNCA renderizar 2 alertas financeiros simultâneos.
-Prioridade: Sinal > Pagamento Pendente > Nenhum
+  Componente AlertasFinanceirosProjeto gerencia tudo.
+  Prioridade: Sinal > Pagamento Pendente > Nenhum
+AP-55: dois alertas financeiros simultâneos proibido
 
-AP-55 DOIS ALERTAS FINANCEIROS
-✗ Errado: "Criar recebimento" + "Sinal pendente" juntos
-✓ Certo: AlertasFinanceirosProjeto com lógica de prioridade
 =============================================================================
-FIM DO AGENTS.md v5.2
+BLOCO 39 — MÓDULO MARKETING & ADS (v1.0)
 =============================================================================
+ROTAS:
+  /admin/marketing/campanhas
+  /admin/marketing/relatorios
+  /admin/marketing/configuracoes
+TABELAS:
+  facebook_integrations (tenant_id, access_token,
+    expires_at, ad_account_ids, page_ids, status)
+  leads.origem, leads.campanha_nome,
+  leads.campanha_id, leads.ad_nome
+AUTENTICAÇÃO: OAuth por tenant (não global)
+  Edge Function: facebook-oauth-callback
+  Token longa duração: 60 dias, renovação automática
+
+RB-108 FACEBOOK — OAUTH POR TENANT
+NUNCA usar token global para todos os tenants.
+SEMPRE salvar access_token em facebook_integrations
+com tenant_id isolado por RLS.
+1 App do Facebook → N tenants via OAuth.
+
+RB-109 LEADS — SALVAR ORIGEM
+Todo lead criado via webhook do Facebook DEVE ter:
+  origem = 'facebook_ads'
+  campanha_nome = payload.campaign_name
+  campanha_id = payload.campaign_id
+NUNCA criar lead do Facebook sem origem registrada.
+
+AP-56 TOKEN FACEBOOK GLOBAL
+✗ Errado: 1 token para todos os tenants
+✓ Certo: facebook_integrations por tenant_id
+
+AP-57 LEAD SEM ORIGEM
+✗ Errado: INSERT leads sem campo origem
+✓ Certo: sempre incluir origem + campanha_nome
+
+=============================================================================
+BLOCO 40 — CHECKLIST DE DOCUMENTOS (v1.0)
+=============================================================================
+COMPONENTE: ChecklistDocumentos (no detalhe do projeto)
+FUNCIONALIDADES:
+  Barra de progresso dinâmica (laranja→amber→verde)
+  Botão "Anexar" por item pendente
+  Anexar → marca concluído automaticamente
+  Data de entrega no item concluído
+  Painel de pendências obrigatórias
+
+RB-110 CHECKLIST — SALVAR AO ANEXAR
+Ao anexar documento no checklist:
+SEMPRE marcar item como concluído automaticamente.
+NUNCA exigir passo extra para confirmar entrega.
+Atualizar barra de progresso em tempo real.
+=============================================================================
+FIM DO AGENTS.md v6.0
+=============================================================================
+
