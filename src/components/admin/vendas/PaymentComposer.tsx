@@ -28,9 +28,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
-import { CurrencyInput } from "@/components/ui-kit/inputs/CurrencyInput";
-import { DateInput } from "@/components/ui-kit/inputs/DateInput";
-import { formatBRL } from "@/lib/formatters";
+import { CurrencyInput, DateInput } from "@/components/ui-kit/inputs";
+import { displayCurrency as formatBRL } from "@/lib/formatters/index";
+
 import {
   type PaymentItemInput,
   type FormaPagamento,

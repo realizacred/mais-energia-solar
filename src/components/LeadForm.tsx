@@ -20,7 +20,8 @@ import {
   TIPOS_TELHADO,
   REDES_ATENDIMENTO,
 } from "@/lib/validations";
-import { formatPhone, formatCEP, formatNameCapitalize as formatName } from "@/lib/formatters/index";
+import { formatPhoneBR as formatPhone, formatCEP, formatNameCapitalize as formatName } from "@/lib/formatters/index";
+
 
 import ConsumptionChart from "./ConsumptionChart";
 import FileUpload from "./FileUpload";
