@@ -459,10 +459,10 @@ export function ClienteViewDialog({ cliente, open, onOpenChange }: ClienteViewDi
                     </p>
                     <div className="p-3 rounded-lg bg-muted/50 border border-border">
                       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                        <InfoField label="Potência" value={`${Number(potenciaEfetiva).toFixed(2)} kWp`} />
+                        <InfoField label="Potência" value={formatKwp(Number(potenciaEfetiva))} />
                         <InfoField label="Placas" value={numeroPlacasEfetivo?.toString() || null} />
                         <InfoField label="Inversor" value={inversorEfetivo} />
-                        <InfoField label="Instalação" value={cliente.data_instalacao ? formatDate(cliente.data_instalacao + "T12:00:00") : null} />
+                        <InfoField label="Instalação" value={displayDate(cliente.data_instalacao)} />
                       </div>
                     </div>
                   </div>
