@@ -200,7 +200,7 @@ export function CreditAnalysisWizard({
             {initialData ? "Editar Análise" : "Nova Solicitação de Crédito"}
           </DialogTitle>
           <div className="flex items-center gap-2 mt-4">
-            {[1, 2, 3, 4].map((s) => (
+            {[1, 2, 3, 4, 5].map((s) => (
               <div key={s} className="flex items-center flex-1">
                 <div 
                   className={cn(
@@ -211,7 +211,7 @@ export function CreditAnalysisWizard({
                 >
                   {step > s ? <Check className="h-4 w-4" /> : s}
                 </div>
-                {s < 4 && <div className={cn("h-1 flex-1 mx-2 rounded-full", step > s ? "bg-success" : "bg-muted")} />}
+                {s < 5 && <div className={cn("h-1 flex-1 mx-2 rounded-full", step > s ? "bg-success" : "bg-muted")} />}
               </div>
             ))}
           </div>
