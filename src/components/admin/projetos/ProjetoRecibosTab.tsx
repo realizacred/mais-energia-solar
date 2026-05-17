@@ -18,17 +18,13 @@ import {
 import { EmitirReciboModal } from "@/components/admin/documentos/EmitirReciboModal";
 import { toast } from "sonner";
 
-const STATUS_LABEL: Record<ReciboEmitido["status"], string> = {
+const STATUS_LABEL: Record<Recibo["status"], string> = {
   emitido: "Emitido",
-  enviado: "Enviado",
-  assinado: "Assinado",
   cancelado: "Cancelado",
 };
 
-const STATUS_VARIANT: Record<ReciboEmitido["status"], string> = {
+const STATUS_VARIANT: Record<Recibo["status"], string> = {
   emitido: "bg-info/10 text-info border-info/20",
-  enviado: "bg-success/10 text-success border-success/20",
-  assinado: "bg-primary/10 text-primary border-primary/20",
   cancelado: "bg-destructive/10 text-destructive border-destructive/20",
 };
 
