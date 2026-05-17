@@ -768,7 +768,7 @@ export function ClientesManager({ onSelectCliente }: ClientesManagerProps) {
                         )}
                       </div>
                       {cliente.cpf_cnpj && (
-                        <p className="text-xs text-muted-foreground">{cliente.cpf_cnpj}</p>
+                        <p className="text-xs text-muted-foreground">{formatCpfCnpj(cliente.cpf_cnpj)}</p>
                       )}
                     </div>
                   </TableCell>
