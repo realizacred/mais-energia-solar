@@ -694,6 +694,7 @@ export type Database = {
           eos_enviado_at: string | null
           eos_proposta_protocolo: string | null
           eos_status: string | null
+          ficha_pdf_url: string | null
           id: string
           is_locked: boolean | null
           kit_fotovoltaico: number | null
@@ -769,6 +770,7 @@ export type Database = {
           eos_enviado_at?: string | null
           eos_proposta_protocolo?: string | null
           eos_status?: string | null
+          ficha_pdf_url?: string | null
           id?: string
           is_locked?: boolean | null
           kit_fotovoltaico?: number | null
@@ -844,6 +846,7 @@ export type Database = {
           eos_enviado_at?: string | null
           eos_proposta_protocolo?: string | null
           eos_status?: string | null
+          ficha_pdf_url?: string | null
           id?: string
           is_locked?: boolean | null
           kit_fotovoltaico?: number | null

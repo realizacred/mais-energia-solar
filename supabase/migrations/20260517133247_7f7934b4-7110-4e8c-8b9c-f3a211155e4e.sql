@@ -1,0 +1,1 @@
+ALTER TABLE public.analise_credito ADD COLUMN IF NOT EXISTS ficha_pdf_url TEXT;
