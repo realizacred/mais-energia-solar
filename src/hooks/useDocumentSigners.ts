@@ -18,12 +18,15 @@ export interface DocumentSignerRow {
   phone: string | null;
   role: string | null;
   order_index: number;
-  status: "pending" | "viewed" | "signed" | "refused";
+  status: "pending" | "viewed" | "signed" | "refused" | "signed_fisico" | "cancelled";
   sign_url: string | null;
   viewed_at: string | null;
   signed_at: string | null;
   refused_at: string | null;
   last_resent_at: string | null;
+  assinado_por_tipo: "digital" | "fisico";
+  observacao: string | null;
+  assinado_at: string | null;
 }
 
 const QUERY_KEY = "document-signers" as const;
@@ -94,6 +97,80 @@ export function useResendSigner() {
     },
     onError: (err: any) => {
       toast({ title: "Erro ao reenviar", description: err.message, variant: "destructive" });
+    },
+  });
+}
+
+export function useUpdateSignerStatus() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ 
+      signerId, 
+      status, 
+      assinadoAt, 
+      observacao, 
+      assinadoPorTipo 
+    }: { 
+      signerId: string; 
+      status: DocumentSignerRow["status"]; 
+      assinadoAt?: string; 
+      observacao?: string;
+      assinadoPorTipo?: "digital" | "fisico";
+    }) => {
+      const updateData: any = { 
+        status, 
+        updated_at: new Date().toISOString() 
+      };
+      
+      if (assinadoAt) updateData.assinado_at = assinadoAt;
+      if (observacao) updateData.observacao = observacao;
+      if (assinadoPorTipo) updateData.assinado_por_tipo = assinadoPorTipo;
+      
+      if (status === "signed_fisico") {
+        updateData.signed_at = assinadoAt || new Date().toISOString();
+      }
+
+      const { data: signer, error: fetchError } = await supabase
+        .from("document_signers")
+        .select("document_id")
+        .eq("id", signerId)
+        .maybeSingle();
+      
+      if (fetchError || !signer) throw fetchError || new Error("Signatário não encontrado");
+
+      const docId = (signer as any).document_id;
+
+      const { error } = await supabase
+        .from("document_signers")
+        .update(updateData)
+        .eq("id", signerId);
+      
+      if (error) throw error;
+
+      const { data: allSigners, error: signersError } = await supabase
+        .from("document_signers")
+        .select("status")
+        .eq("document_id", docId);
+      
+      if (!signersError && allSigners) {
+        const allSigned = (allSigners as any[]).every(s => s.status === "signed" || s.status === "signed_fisico");
+        if (allSigned) {
+          await supabase
+            .from("generated_documents")
+            .update({ status: "signed" }) 
+            .eq("id", docId);
+        }
+      }
+
+      return { documentId: docId };
+    },
+    onSuccess: (data) => {
+      qc.invalidateQueries({ queryKey: [QUERY_KEY, data.documentId] });
+      qc.invalidateQueries({ queryKey: ["projeto-documentos-generated"] });
+      toast({ title: "Signatário atualizado" });
+    },
+    onError: (err: any) => {
+      toast({ title: "Erro ao atualizar", description: err.message, variant: "destructive" });
     },
   });
 }

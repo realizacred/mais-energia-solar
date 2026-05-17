@@ -2,14 +2,19 @@
  * DocumentSignersPanel — mostra status individual por signatário do documento.
  * Aparece abaixo do card quando o documento foi enviado e ainda não está totalmente assinado.
  */
-import { Mail, Loader2, CheckCircle2, Eye, Clock, XCircle } from "lucide-react";
+import { Mail, Loader2, CheckCircle2, Eye, Clock, XCircle, MoreVertical, PenTool, Ban } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { useDocumentSigners, useResendSigner, type DocumentSignerRow } from "@/hooks/useDocumentSigners";
+import { useDocumentSigners, useResendSigner, useUpdateSignerStatus, type DocumentSignerRow } from "@/hooks/useDocumentSigners";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 
 interface Props {
   documentId: string;
@@ -17,10 +22,12 @@ interface Props {
 }
 
 const STATUS_BADGE: Record<DocumentSignerRow["status"], { label: string; cls: string; icon: React.ReactNode }> = {
-  signed:  { label: "Assinado",   cls: "bg-success/10 text-success border-success/20",       icon: <CheckCircle2 className="h-3 w-3" /> },
-  viewed:  { label: "Visualizou", cls: "bg-info/10 text-info border-info/20",                icon: <Eye className="h-3 w-3" /> },
-  pending: { label: "Pendente",   cls: "bg-warning/10 text-warning border-warning/20",       icon: <Clock className="h-3 w-3" /> },
-  refused: { label: "Recusou",    cls: "bg-destructive/10 text-destructive border-destructive/20", icon: <XCircle className="h-3 w-3" /> },
+  signed:        { label: "Assinado",          cls: "bg-success/10 text-success border-success/20",       icon: <CheckCircle2 className="h-3 w-3" /> },
+  signed_fisico: { label: "Assinado Físico",   cls: "bg-success/10 text-success border-success/20",       icon: <PenTool className="h-3 w-3" /> },
+  viewed:        { label: "Visualizou",        cls: "bg-info/10 text-info border-info/20",                icon: <Eye className="h-3 w-3" /> },
+  pending:       { label: "Pendente",          cls: "bg-warning/10 text-warning border-warning/20",       icon: <Clock className="h-3 w-3" /> },
+  refused:       { label: "Recusou",           cls: "bg-destructive/10 text-destructive border-destructive/20", icon: <XCircle className="h-3 w-3" /> },
+  cancelled:     { label: "Cancelado",         cls: "bg-muted text-muted-foreground border-muted-foreground/20", icon: <Ban className="h-3 w-3" /> },
 };
 
 const BACKFILL_STATUSES = new Set(["sent", "viewed", "partially_signed"]);
@@ -28,7 +35,12 @@ const BACKFILL_STATUSES = new Set(["sent", "viewed", "partially_signed"]);
 export function DocumentSignersPanel({ documentId, signatureStatus }: Props) {
   const { data: signers = [], isLoading } = useDocumentSigners(documentId);
   const resend = useResendSigner();
+  const updateStatus = useUpdateSignerStatus();
   const qc = useQueryClient();
+
+  const [physicalSignModal, setPhysicalSignModal] = useState<DocumentSignerRow | null>(null);
+  const [physicalSignDate, setPhysicalSignDate] = useState(new Date().toISOString().split("T")[0]);
+  const [physicalSignObs, setPhysicalSignObs] = useState("");
 
   const triggeredRef = useRef<Set<string>>(new Set());
   const [backfilling, setBackfilling] = useState(false);
@@ -79,14 +91,32 @@ export function DocumentSignersPanel({ documentId, signatureStatus }: Props) {
     return null;
   }
 
+  const handleConfirmPhysical = () => {
+    if (!physicalSignModal) return;
+    updateStatus.mutate({
+      signerId: physicalSignModal.id,
+      status: "signed_fisico",
+      assinadoAt: physicalSignDate,
+      observacao: physicalSignObs,
+      assinadoPorTipo: "fisico"
+    }, {
+      onSuccess: () => {
+        setPhysicalSignModal(null);
+        setPhysicalSignObs("");
+      }
+    });
+  };
+
   return (
     <div className="mx-3 mb-2 rounded-lg border border-border/60 bg-muted/20 p-2 space-y-1">
       <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground px-1">
-        Signatários ({signers.filter(s => s.status === "signed").length}/{signers.length})
+        Signatários ({signers.filter(s => s.status === "signed" || s.status === "signed_fisico").length}/{signers.length})
       </p>
       {signers.map((s) => {
         const cfg = STATUS_BADGE[s.status] ?? STATUS_BADGE.pending;
         const canResend = s.status === "pending" || s.status === "viewed";
+        const isCompleted = s.status === "signed" || s.status === "signed_fisico";
+
         return (
           <div key={s.id} className="flex items-center gap-2 px-2 py-1.5 rounded-md bg-card border border-border/40">
             <div className="flex-1 min-w-0">
@@ -97,26 +127,87 @@ export function DocumentSignersPanel({ documentId, signatureStatus }: Props) {
               {s.email && (
                 <p className="text-[10px] text-muted-foreground truncate">{s.email}</p>
               )}
+              {s.observacao && (
+                <p className="text-[9px] text-muted-foreground italic mt-0.5">Obs: {s.observacao}</p>
+              )}
             </div>
             <Badge variant="outline" className={cn("text-[10px] h-5 px-1.5 gap-1", cfg.cls)}>
               {cfg.icon}
               {cfg.label}
             </Badge>
-            {canResend && (
-              <Button
-                size="icon"
-                variant="ghost"
-                className="h-6 w-6 text-primary"
-                title={s.last_resent_at ? `Reenviado em ${new Date(s.last_resent_at).toLocaleString("pt-BR")}` : "Reenviar e-mail"}
-                onClick={() => resend.mutate(s.id)}
-                disabled={resend.isPending}
-              >
-                {resend.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <Mail className="h-3 w-3" />}
-              </Button>
-            )}
+
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button size="icon" variant="ghost" className="h-7 w-7">
+                  <MoreVertical className="h-3.5 w-3.5" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                {!isCompleted && s.status !== "cancelled" && (
+                  <DropdownMenuItem onClick={() => setPhysicalSignModal(s)} className="gap-2">
+                    <PenTool className="h-4 w-4" />
+                    Marcar como assinado fisicamente
+                  </DropdownMenuItem>
+                )}
+                {canResend && (
+                  <DropdownMenuItem onClick={() => resend.mutate(s.id)} className="gap-2">
+                    <Mail className="h-4 w-4" />
+                    Reenviar e-mail
+                  </DropdownMenuItem>
+                )}
+                {s.status !== "cancelled" && !isCompleted && (
+                  <DropdownMenuItem 
+                    onClick={() => updateStatus.mutate({ signerId: s.id, status: "cancelled" })} 
+                    className="gap-2 text-destructive"
+                  >
+                    <Ban className="h-4 w-4" />
+                    Cancelar envio
+                  </DropdownMenuItem>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         );
       })}
+
+      <Dialog open={!!physicalSignModal} onOpenChange={(open) => !open && setPhysicalSignModal(null)}>
+        <DialogContent className="sm:max-w-[400px]">
+          <DialogHeader>
+            <DialogTitle>Confirmar assinatura física</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label className="text-xs">Signatário</Label>
+              <p className="text-sm font-medium">{physicalSignModal?.name}</p>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="date" className="text-xs">Data da assinatura *</Label>
+              <Input
+                id="date"
+                type="date"
+                value={physicalSignDate}
+                onChange={(e) => setPhysicalSignDate(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="obs" className="text-xs">Observação (opcional)</Label>
+              <Textarea
+                id="obs"
+                placeholder="Assinou presencialmente em..."
+                value={physicalSignObs}
+                onChange={(e) => setPhysicalSignObs(e.target.value)}
+                className="resize-none"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setPhysicalSignModal(null)}>Cancelar</Button>
+            <Button onClick={handleConfirmPhysical} disabled={updateStatus.isPending}>
+              {updateStatus.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Confirmar"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
