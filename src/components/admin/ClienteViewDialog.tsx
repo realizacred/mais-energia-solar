@@ -331,7 +331,7 @@ export function ClienteViewDialog({ cliente, open, onOpenChange }: ClienteViewDi
               </div>
               <div className="flex items-center gap-3 mt-0.5 flex-wrap">
                 <span className="text-xs text-muted-foreground flex items-center gap-1">
-                  <Phone className="w-3 h-3" />{formatPhoneBR(cliente.telefone) || cliente.telefone}
+                  <Phone className="w-3 h-3" />{displayPhone(cliente.telefone)}
                 </span>
                 {cliente.email && (
                   <span className="text-xs text-muted-foreground flex items-center gap-1">
@@ -350,7 +350,7 @@ export function ClienteViewDialog({ cliente, open, onOpenChange }: ClienteViewDi
                 </Badge>
                 <Badge variant="outline" className="text-xs text-muted-foreground">
                   <Calendar className="w-3 h-3 mr-1" />
-                  Cliente desde {formatDate(cliente.created_at)}
+                  Cliente desde {displayDate(cliente.created_at)}
                 </Badge>
               </div>
             </div>
@@ -368,7 +368,7 @@ export function ClienteViewDialog({ cliente, open, onOpenChange }: ClienteViewDi
             <KpiCard
               icon={Zap}
               label="Potência"
-              value={potenciaEfetiva ? `${Number(potenciaEfetiva).toFixed(2)} kWp` : "—"}
+              value={formatKwp(Number(potenciaEfetiva))}
               borderColor="border-l-warning"
               iconBg="bg-warning/10 text-warning"
             />
