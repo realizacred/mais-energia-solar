@@ -147,11 +147,11 @@ function VendorSidebarSectionGroup({
         <CollapsibleTrigger asChild>
           <SidebarGroupLabel
             className={`
-              text-[10px] font-bold uppercase tracking-[0.12em] px-3 py-2.5
+              text-[10px] font-black uppercase tracking-[0.2em] px-3 py-3
               flex items-center gap-2.5 cursor-pointer select-none
-              transition-all duration-200 ease-in-out
-              hover:bg-sidebar-accent rounded-lg
-              text-sidebar-foreground/70
+              transition-all duration-300 ease-in-out
+              hover:bg-sidebar-accent/50 rounded-xl
+              text-sidebar-foreground/60
             `}
           >
             <div className={`w-6 h-6 rounded-md flex items-center justify-center shrink-0 ${section.indicatorClass || 'bg-sidebar-accent'}`}>
