@@ -669,6 +669,18 @@ export function DocumentosTab({ dealId, clienteTelefone, consultorTelefone: cons
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {waSendDoc && (
+        <WaSendDocModal
+          open={!!waSendDoc}
+          onClose={() => setWaSendDoc(null)}
+          document={waSendDoc.doc}
+          projectId={dealId}
+          clienteId={clienteData?.id}
+          clienteNome={waSendDoc.target === "cliente" ? clienteData?.nome : consultorData?.nome}
+          clienteTelefone={waSendDoc.target === "cliente" ? clienteTelefone : consultorTelefone}
+        />
+      )}
     </div>
   );
 }
