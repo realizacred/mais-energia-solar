@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
+import { getStorageBucket } from "@/lib/storage";
 
 export type AnaliseCreditoStatus = 
   | 'rascunho'
@@ -395,7 +396,7 @@ export function useVincularDocumentoCredito() {
 
           if (docDetails?.storage_path) {
             const { data: { publicUrl } } = supabase.storage
-              .from(docDetails.bucket || 'project-documents')
+              .from(docDetails.bucket || getStorageBucket("projeto"))
               .getPublicUrl(docDetails.storage_path);
 
             // Mapear categorias para tipos EOS

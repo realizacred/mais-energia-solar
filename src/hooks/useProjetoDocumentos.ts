@@ -2,6 +2,7 @@ import { useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
+import { getStorageBucket } from "@/lib/storage";
 
 // ─── Types ────────────────────────────────────────
 export interface StorageFile {
@@ -167,7 +168,7 @@ export function useDeletarArquivo(dealId: string) {
     mutationFn: async (fileName: string) => {
       const tenantId = await getTenantId();
       const path = `${tenantId}/deals/${dealId}/${fileName}`;
-      const { error } = await supabase.storage.from("projeto-documentos").remove([path]);
+      const { error } = await supabase.storage.from(getStorageBucket("projeto")).remove([path]);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -185,7 +186,7 @@ export async function downloadArquivo(dealId: string, fileName: string) {
   try {
     const tenantId = await getTenantId();
     const path = `${tenantId}/deals/${dealId}/${fileName}`;
-    const { data, error } = await supabase.storage.from("projeto-documentos").createSignedUrl(path, 300, { download: fileName });
+    const { data, error } = await supabase.storage.from(getStorageBucket("projeto")).createSignedUrl(path, 300, { download: fileName });
     if (error) throw error;
     if (!data?.signedUrl) throw new Error("URL não disponível");
     const a = document.createElement("a");
