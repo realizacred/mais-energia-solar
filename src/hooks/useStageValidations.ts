@@ -26,7 +26,7 @@ export function useStageValidations(stageId?: string) {
     queryKey: ["stage_validations", stageId],
     enabled: !!stageId,
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from("pipeline_stage_validations")
         .select("*")
         .eq("stage_id", stageId)
@@ -43,7 +43,6 @@ export function usePipelineStageValidations(pipelineId?: string) {
     queryKey: ["pipeline_validations", pipelineId],
     enabled: !!pipelineId,
     queryFn: async () => {
-      // First get stages for this pipeline
       const { data: stages } = await supabase
         .from("pipeline_stages")
         .select("id")
@@ -53,7 +52,7 @@ export function usePipelineStageValidations(pipelineId?: string) {
       
       const stageIds = stages.map(s => s.id);
       
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from("pipeline_stage_validations")
         .select("*")
         .in("stage_id", stageIds)
@@ -71,7 +70,7 @@ export function useSaveStageValidation() {
       const { tenantId } = await getCurrentTenantId();
       
       if (payload.id) {
-        const { data, error } = await supabase
+        const { data, error } = await (supabase as any)
           .from("pipeline_stage_validations")
           .update(payload)
           .eq("id", payload.id)
@@ -80,7 +79,7 @@ export function useSaveStageValidation() {
         if (error) throw error;
         return data;
       } else {
-        const { data, error } = await supabase
+        const { data, error } = await (supabase as any)
           .from("pipeline_stage_validations")
           .insert({ ...payload, tenant_id: tenantId })
           .select()
@@ -100,7 +99,7 @@ export function useDeleteStageValidation() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({ id }: { id: string, stage_id: string }) => {
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from("pipeline_stage_validations")
         .delete()
         .eq("id", id);
