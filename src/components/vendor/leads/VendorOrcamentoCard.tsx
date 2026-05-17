@@ -1,8 +1,6 @@
 import { Phone, Eye, Trash2, ShoppingCart, UserCheck, Calendar, MapPin, Zap, ExternalLink, FileText, AlertTriangle, Clock, CheckCircle, CreditCard, ChevronDown, ChevronUp } from "lucide-react";
 import { useState } from "react";
-import { format } from "date-fns";
-import { ptBR } from "date-fns/locale";
-import { formatPhoneBR } from "@/lib/formatters";
+import { displayDate, displayPhone } from "@/lib/formatters/index";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -102,7 +100,7 @@ export function VendorOrcamentoCard({
                   className="flex items-center gap-1 text-success font-medium hover:underline"
                 >
                   <Phone className="w-3 h-3" />
-                  <span>{formatPhoneBR(orcamento.telefone)}</span>
+                  <span>{displayPhone(orcamento.telefone)}</span>
                 </a>
 
                 {!orcamento.proposta_token && (
@@ -130,7 +128,7 @@ export function VendorOrcamentoCard({
                 <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-tight">Data de Cadastro</p>
                 <div className="flex items-center gap-1.5">
                   <Calendar className="w-3.5 h-3.5 text-muted-foreground" />
-                  <span className="text-xs">{format(new Date(orcamento.created_at), "dd/MM/yyyy", { locale: ptBR })}</span>
+                  <span className="text-xs">{displayDate(orcamento.created_at)}</span>
                 </div>
               </div>
               <div className="space-y-1">

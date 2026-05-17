@@ -26,9 +26,15 @@ import {
   TrendingDown, Send, ChevronRight, Sun, Receipt,
 } from "lucide-react";
 import { ProjetoRecibosTab } from "./projetos/ProjetoRecibosTab";
-import { formatDate, formatDateTime } from "@/lib/dateUtils";
-import { formatPhoneBR, formatBRL } from "@/lib/formatters";
-import { formatCpfCnpj } from "@/lib/cpfCnpjUtils";
+import {
+  displayDate,
+  displayPhone,
+  displayCpfCnpj,
+  displayCurrency,
+  formatKwp,
+  formatBRL,
+  formatDateTime,
+} from "@/lib/formatters/index";
 import {
   useClienteProjetos,
   useClientePropostas,
@@ -325,7 +331,7 @@ export function ClienteViewDialog({ cliente, open, onOpenChange }: ClienteViewDi
               </div>
               <div className="flex items-center gap-3 mt-0.5 flex-wrap">
                 <span className="text-xs text-muted-foreground flex items-center gap-1">
-                  <Phone className="w-3 h-3" />{formatPhoneBR(cliente.telefone) || cliente.telefone}
+                  <Phone className="w-3 h-3" />{displayPhone(cliente.telefone)}
                 </span>
                 {cliente.email && (
                   <span className="text-xs text-muted-foreground flex items-center gap-1">
@@ -344,7 +350,7 @@ export function ClienteViewDialog({ cliente, open, onOpenChange }: ClienteViewDi
                 </Badge>
                 <Badge variant="outline" className="text-xs text-muted-foreground">
                   <Calendar className="w-3 h-3 mr-1" />
-                  Cliente desde {formatDate(cliente.created_at)}
+                  Cliente desde {displayDate(cliente.created_at)}
                 </Badge>
               </div>
             </div>
@@ -362,7 +368,7 @@ export function ClienteViewDialog({ cliente, open, onOpenChange }: ClienteViewDi
             <KpiCard
               icon={Zap}
               label="Potência"
-              value={potenciaEfetiva ? `${Number(potenciaEfetiva).toFixed(2)} kWp` : "—"}
+              value={formatKwp(Number(potenciaEfetiva))}
               borderColor="border-l-warning"
               iconBg="bg-warning/10 text-warning"
             />
@@ -418,10 +424,10 @@ export function ClienteViewDialog({ cliente, open, onOpenChange }: ClienteViewDi
                     </p>
                     <div className="grid grid-cols-2 gap-3">
                       <InfoField label="Código" value={cliente.cliente_code} />
-                      <InfoField label="CPF/CNPJ" value={formatCpfCnpj(cliente.cpf_cnpj || "")} />
-                      <InfoField label="Data de nascimento" value={cliente.data_nascimento ? formatDate(cliente.data_nascimento + "T12:00:00") : null} />
+                      <InfoField label="CPF/CNPJ" value={displayCpfCnpj(cliente.cpf_cnpj)} />
+                      <InfoField label="Data de nascimento" value={displayDate(cliente.data_nascimento)} />
                       <InfoField label="E-mail" value={cliente.email} />
-                      <InfoField label="Telefone" value={cliente.telefone} />
+                      <InfoField label="Telefone" value={displayPhone(cliente.telefone)} />
                     </div>
                   </div>
 
@@ -453,10 +459,10 @@ export function ClienteViewDialog({ cliente, open, onOpenChange }: ClienteViewDi
                     </p>
                     <div className="p-3 rounded-lg bg-muted/50 border border-border">
                       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                        <InfoField label="Potência" value={`${Number(potenciaEfetiva).toFixed(2)} kWp`} />
+                        <InfoField label="Potência" value={formatKwp(Number(potenciaEfetiva))} />
                         <InfoField label="Placas" value={numeroPlacasEfetivo?.toString() || null} />
                         <InfoField label="Inversor" value={inversorEfetivo} />
-                        <InfoField label="Instalação" value={cliente.data_instalacao ? formatDate(cliente.data_instalacao + "T12:00:00") : null} />
+                        <InfoField label="Instalação" value={displayDate(cliente.data_instalacao)} />
                       </div>
                     </div>
                   </div>
@@ -505,12 +511,12 @@ export function ClienteViewDialog({ cliente, open, onOpenChange }: ClienteViewDi
                               <StatusBadge status={p.status} />
                             </div>
                             <div className="flex items-center gap-3 mt-0.5 text-xs text-muted-foreground">
-                              <span>{formatDate(p.created_at)}</span>
+                              <span>{displayDate(p.created_at)}</span>
                               {melhorVersao?.valor_total && (
-                                <span className="font-medium text-foreground">{formatCurrency(melhorVersao.valor_total)}</span>
+                                <span className="font-medium text-foreground">{displayCurrency(melhorVersao.valor_total)}</span>
                               )}
                               {melhorVersao?.potencia_kwp && (
-                                <span>{melhorVersao.potencia_kwp} kWp</span>
+                                <span>{formatKwp(melhorVersao.potencia_kwp)}</span>
                               )}
                               {pVersoes.length > 0 && (
                                 <span>{pVersoes.length} versão(ões)</span>
@@ -547,9 +553,9 @@ export function ClienteViewDialog({ cliente, open, onOpenChange }: ClienteViewDi
                             <StatusBadge status={p.status} />
                           </div>
                           <div className="flex items-center gap-3 mt-0.5 text-xs text-muted-foreground">
-                            <span>{formatDate(p.created_at)}</span>
-                            {p.potencia_kwp && <span>{p.potencia_kwp} kWp</span>}
-                            {p.valor_total && <span>{formatCurrency(p.valor_total)}</span>}
+                            <span>{displayDate(p.created_at)}</span>
+                            {p.potencia_kwp && <span>{formatKwp(p.potencia_kwp)}</span>}
+                            {p.valor_total && <span>{displayCurrency(p.valor_total)}</span>}
                           </div>
                         </div>
                         <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />

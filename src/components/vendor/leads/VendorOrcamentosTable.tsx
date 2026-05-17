@@ -1,9 +1,7 @@
 import { useState } from "react";
 import { Phone, Eye, Trash2, ShoppingCart, UserCheck, MessageSquare, History, Pencil, ExternalLink, CreditCard } from "lucide-react";
 // ... keep existing code
-import { format } from "date-fns";
-import { ptBR } from "date-fns/locale";
-import { formatPhoneBR } from "@/lib/formatters";
+import { displayDate, displayPhone } from "@/lib/formatters/index";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -306,7 +304,7 @@ export function VendorOrcamentosTable({
                       className="flex items-center gap-1 hover:text-primary hover:underline"
                     >
                       <Phone className="w-3 h-3 text-muted-foreground" />
-                      {formatPhoneBR(orc.telefone)}
+                      {displayPhone(orc.telefone)}
                     </a>
                   </TableCell>
                   <TableCell className="align-middle">
@@ -334,7 +332,7 @@ export function VendorOrcamentosTable({
                     />
                   </TableCell>
                   <TableCell className="align-middle">
-                    {format(new Date(orc.created_at), "dd/MM/yyyy", { locale: ptBR })}
+                    {displayDate(orc.created_at)}
                   </TableCell>
                   <TableCell className="text-right align-middle">
                     <TooltipProvider>
