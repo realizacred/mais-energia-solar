@@ -66,24 +66,30 @@ function SortablePipelineTab({
     zIndex: isDragging ? 20 : undefined,
   };
   return (
-    <button
-      ref={setNodeRef}
-      style={style}
-      onClick={onSelect}
-      {...attributes}
-      {...listeners}
-      className={cn(
-        "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all whitespace-nowrap shrink-0 touch-none select-none",
-        isDragging ? "cursor-grabbing" : "cursor-grab",
-        active
-          ? "bg-secondary/10 text-secondary border border-secondary/30 shadow-sm"
-          : "bg-muted/40 text-muted-foreground hover:bg-muted/80 border border-transparent",
-      )}
-      title="Arraste para reordenar • Clique para selecionar"
-    >
-      <GripVertical className="h-3 w-3 opacity-50" />
-      {pipelineName}
-    </button>
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <button
+          ref={setNodeRef}
+          style={style}
+          onClick={onSelect}
+          {...attributes}
+          {...listeners}
+          className={cn(
+            "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all whitespace-nowrap shrink-0 touch-none select-none",
+            isDragging ? "cursor-grabbing" : "cursor-grab",
+            active
+              ? "bg-secondary/10 text-secondary border border-secondary/30 shadow-sm"
+              : "bg-muted/40 text-muted-foreground hover:bg-muted/80 border border-transparent",
+          )}
+        >
+          <GripVertical className="h-3 w-3 opacity-50" />
+          {pipelineName}
+        </button>
+      </TooltipTrigger>
+      <TooltipContent side="bottom" className="text-xs">
+        Arraste para reordenar • Clique para selecionar
+      </TooltipContent>
+    </Tooltip>
   );
 }
 
