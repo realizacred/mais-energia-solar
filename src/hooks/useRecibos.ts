@@ -69,6 +69,7 @@ export interface EmitirReciboInput {
   data_pagamento: string;
   campos_extras?: Record<string, unknown>;
   generate_pdf?: boolean;
+  lancamento_id?: string;
 }
 
 export function useEmitirRecibo() {
