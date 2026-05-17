@@ -158,9 +158,30 @@ export default function VendorCreditoView() {
                       <p className="text-[10px] uppercase font-medium text-muted-foreground">Valor Solicitado</p>
                       <p className="text-sm font-bold text-primary">{formatBRL(analise.valor_solicitado || 0)}</p>
                     </div>
-                    <Button variant="ghost" size="sm" className="h-8 gap-1.5 text-xs text-muted-foreground">
-                      Ver detalhes <ArrowRight className="h-3.5 w-3.5" />
-                    </Button>
+                    <div className="flex gap-2">
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="h-8 gap-1.5 text-xs text-muted-foreground"
+                        onClick={async (e) => {
+                          e.stopPropagation();
+                          try {
+                            const { data, error } = await supabase.functions.invoke('gerar-ficha-credito-pdf', {
+                              body: { analise_credito_id: analise.id }
+                            });
+                            if (error) throw error;
+                            if (data?.url) window.open(data.url, '_blank');
+                          } catch (err) {
+                            console.error(err);
+                          }
+                        }}
+                      >
+                        <FileDown className="h-3.5 w-3.5" /> PDF
+                      </Button>
+                      <Button variant="ghost" size="sm" className="h-8 gap-1.5 text-xs text-muted-foreground">
+                        Ver detalhes <ArrowRight className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
