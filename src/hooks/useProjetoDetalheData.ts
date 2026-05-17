@@ -215,6 +215,8 @@ export function useProjetoDetalheData(dealId: string) {
         .select("bucket,storage_path,file_name,size_bytes,mime_type,deal_id,projeto_id,origem")
         .eq("is_deleted", false)
         .or(orFilter.join(","));
+      
+      const existingPaths = new Set();
       for (const r of (pdRows || []) as any[]) {
         items.push({
           bucket: r.bucket,
@@ -225,6 +227,7 @@ export function useProjetoDetalheData(dealId: string) {
           scope: r.deal_id || r.projeto_id || scopeDefault,
           origem: r.origem,
         });
+        existingPaths.add(r.storage_path);
       }
 
       // Custom field files (mesma fonte usada pelo Hub)
@@ -237,7 +240,7 @@ export function useProjetoDetalheData(dealId: string) {
         if (!f || f.field_type !== "file") continue;
         const metas = parseFileMetaArray(row.value_text);
         for (const m of metas) {
-          if (!m?.storage_path) continue;
+          if (!m?.storage_path || existingPaths.has(m.storage_path)) continue;
           items.push({
             bucket: "projeto-documentos",
             storage_path: m.storage_path,
@@ -247,19 +250,24 @@ export function useProjetoDetalheData(dealId: string) {
             scope: d.id,
             origem: "custom_field",
           });
+          existingPaths.add(m.storage_path);
         }
       }
 
-      // Filtrar itens por origem antes de contar documentos lógicos
-      // Hub esconde 'generated' e 'recibo' no filtered que alimenta groups, 
-      // mas totalCount usa totalUnique do hook que NÃO filtra.
-      // Corrigindo para alinhar com a visão real do usuário (uploads + campos custom).
-      const finalItems = items.filter(it => it.origem !== 'generated' && it.origem !== 'recibo');
-      docsCount = countLogicalDocs(finalItems as any);
+      // 1. Contar documentos físicos únicos (uploads reais)
+      // Hub esconde 'generated' e 'recibo' da lista de arquivos do projeto
+      const physicalDocs = items.filter(it => it.origem !== 'generated' && it.origem !== 'recibo');
+      docsCount = countLogicalDocs(physicalDocs as any);
       
-      // Generated count separado para somar ao total da aba
-      const generatedCount = items.filter(it => it.origem === 'generated').length;
-      docsCount += generatedCount;
+      // 2. Somar documentos gerados (Contratos/Procurações) ativos
+      const { count: genCount } = await supabase
+        .from("generated_documents")
+        .select("*", { count: "exact", head: true })
+        .eq("deal_id", d.id)
+        .neq("status", "cancelled");
+      
+      docsCount += (genCount || 0);
+
 
 
       // Fetch projeto identity (nome próprio, código, num, descrição) — separado do cliente.

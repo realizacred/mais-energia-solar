@@ -82,14 +82,11 @@ export function normalizeProjectDocuments(rawDocs: ProjectDocument[]): {
   const uniqueDocs: ProjectDocument[] = [];
 
   for (const doc of rawDocs) {
-    const storageKey = `${doc.bucket}::${doc.storage_path}`;
-    // Use bucket + storage_path as primary key, fallback to ID if needed
-    // Do NOT deduplicate based on file_name alone if paths are different (could be same file name for different documents)
-    const primaryKey = storageKey;
+    // Use storage_path as primary key for deduplication
+    const primaryKey = doc.storage_path;
     const checksumKey = doc.checksum;
 
-    let existing = byStorageKey.get(primaryKey) || 
-                   (checksumKey ? byChecksum.get(checksumKey) : undefined);
+    let existing = byStorageKey.get(primaryKey);
 
     if (existing) {
       existing.metadata = {
@@ -100,11 +97,13 @@ export function normalizeProjectDocuments(rawDocs: ProjectDocument[]): {
           { id: doc.id, origem: doc.origem, storage_path: doc.storage_path }
         ]
       };
+      // Keep the oldest created_at for the "original" document
       if (new Date(doc.created_at) < new Date(existing.created_at)) {
         existing.created_at = doc.created_at;
       }
       continue;
     }
+
 
     const newDoc = { ...doc };
     byStorageKey.set(primaryKey, newDoc);
