@@ -247,31 +247,7 @@ export function DocumentosTab({ dealId, clienteTelefone, consultorTelefone: cons
     }
   };
 
-  const enviarWhatsApp = async (doc: GeneratedDocRow, destinatario: "cliente" | "consultor") => {
-    const telefone = destinatario === "cliente" ? clienteTelefone : consultorTelefone;
-    if (!telefone) {
-      toast({
-        title: destinatario === "cliente" ? "Cliente sem telefone cadastrado" : "Consultor sem telefone cadastrado",
-        variant: "destructive",
-      });
-      return;
-    }
-    let mensagem = `Olá! Segue o documento: ${doc.title}`;
-    if (doc.pdf_path) {
-      try {
-        const { data } = await supabase.storage
-          .from("document-files")
-          .createSignedUrl(doc.pdf_path, 7 * 24 * 3600);
-        if (data?.signedUrl) {
-          mensagem += `\n\n${data.signedUrl}`;
-        }
-      } catch {
-      }
-    }
-    const tel = telefone.replace(/\D/g, "");
-    const url = `https://wa.me/55${tel}?text=${encodeURIComponent(mensagem)}`;
-    window.open(url, "_blank");
-  };
+  // Removed legacy enviarWhatsApp in favor of WaSendDocModal
 
   const docsByCategory = useMemo(() => {
     const groups: Record<string, GeneratedDocRow[]> = {};
