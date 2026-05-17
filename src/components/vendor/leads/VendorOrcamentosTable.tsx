@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Phone, Eye, Trash2, ShoppingCart, UserCheck, MessageSquare, History, Pencil, ExternalLink } from "lucide-react";
+import { Phone, Eye, Trash2, ShoppingCart, UserCheck, MessageSquare, History, Pencil, ExternalLink, CreditCard } from "lucide-react";
 // ... keep existing code
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -47,6 +47,7 @@ interface VendorOrcamentosTableProps {
   onStatusChange: (orcamentoId: string, newStatusId: string | null) => void;
   onDelete?: (orcamento: OrcamentoVendedor) => void;
   onConvert?: (orcamento: OrcamentoVendedor) => void;
+  onCreditRequest?: (lead: OrcamentoVendedor) => void;
   onRefresh?: () => void;
 }
 
@@ -59,6 +60,7 @@ export function VendorOrcamentosTable({
   onStatusChange,
   onDelete,
   onConvert,
+  onCreditRequest,
   onRefresh,
 }: VendorOrcamentosTableProps) {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -163,6 +165,7 @@ export function VendorOrcamentosTable({
                     }
                   } : undefined}
                   onQuickProposal={undefined}
+                  onCreditRequest={onCreditRequest}
                   quickLoading={false}
                 />
               </div>
@@ -377,6 +380,19 @@ export function VendorOrcamentosTable({
                             </Button>
                           </TooltipTrigger>
                           <TooltipContent>Ver detalhes</TooltipContent>
+                        </Tooltip>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="text-primary hover:text-primary hover:bg-primary/10"
+                              onClick={() => onCreditRequest?.(orc)}
+                            >
+                              <CreditCard className="w-4 h-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Solicitar análise de crédito</TooltipContent>
                         </Tooltip>
                         {orc.proposta_token ? (
                           <Tooltip>

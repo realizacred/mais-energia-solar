@@ -3,50 +3,72 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { subDays, endOfDay } from "date-fns";
 
-/**
- * Hook to fetch badge counts for the vendor sidebar.
- * RB-76: Real counts for urgent leads, overdue tasks, and pending credit docs.
- */
 export function useVendorBadges() {
   const { user } = useAuth();
 
   return useQuery({
     queryKey: ["vendor-sidebar-badges", user?.id],
     enabled: !!user?.id,
-    staleTime: 60 * 1000, // 1 minute
+    staleTime: 60000,
     queryFn: async () => {
+      const currentUserId = user!.id;
+      
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("tenant_id")
+        .eq("user_id", currentUserId)
+        .single();
+
+      if (!profile?.tenant_id) return { orcamentos: 0, agenda: 0, credito: 0, whatsapp: 0 };
+
       const now = new Date();
       const threeDaysAgo = subDays(now, 3).toISOString();
+      const last24h = subDays(now, 1).toISOString();
+      const todayEnd = endOfDay(now).toISOString();
 
-      // 1. Leads Urgentes (+3 dias sem contato, status ativo)
-      const { count: urgentLeadsCount } = await supabase
+      // Use a more generic approach to avoid deep type instantiation errors
+      const urgentLeadsReq = supabase
         .from("leads")
-        .select("*", { count: "exact", head: true })
-        .eq("consultor_id", user!.id)
+        .select("id", { count: "exact", head: true })
+        .eq("consultor_id", currentUserId)
         .is("deleted_at", null)
         .not("status_id", "in", "('ganho', 'perdido', 'convertido')")
         .or(`ultimo_contato.is.null,ultimo_contato.lt.${threeDaysAgo}`);
 
-      // 2. Agenda (Tarefas vencidas ou para hoje)
-      const todayEnd = endOfDay(now).toISOString();
-      const { count: overdueTasksCount } = await (supabase as any)
+      const overdueTasksReq = (supabase as any)
         .from("tarefas")
-        .select("*", { count: "exact", head: true })
-        .eq("created_by", user!.id) 
+        .select("id", { count: "exact", head: true })
+        .eq("created_by", currentUserId) 
         .neq("status", "concluida")
         .lte("data_vencimento", todayEnd);
 
-      // 3. Crédito (Fichas aguardando documentos)
-      const { count: pendingCreditCount } = await supabase
+      const pendingCreditReq = supabase
         .from("analise_credito")
-        .select("*", { count: "exact", head: true })
-        .eq("criado_por", user!.id)
+        .select("id", { count: "exact", head: true })
+        .eq("criado_por", currentUserId)
         .eq("status", "aguardando_documentos");
 
+      const unreadChatsReq = supabase
+        .from("wa_conversations")
+        .select("id", { count: "exact", head: true })
+        .eq("assigned_to", currentUserId)
+        .eq("tenant_id", profile.tenant_id)
+        .eq("status", "aberta")
+        .eq("ultima_mensagem_de", "cliente")
+        .gt("ultima_mensagem_at", last24h);
+
+      const [urgentLeads, overdueTasks, pendingCredit, unreadChats] = await Promise.all([
+        urgentLeadsReq,
+        overdueTasksReq,
+        pendingCreditReq,
+        unreadChatsReq
+      ]);
+
       return {
-        orcamentos: urgentLeadsCount || 0,
-        agenda: overdueTasksCount || 0,
-        credito: pendingCreditCount || 0,
+        orcamentos: urgentLeads.count || 0,
+        agenda: overdueTasks.count || 0,
+        credito: pendingCredit.count || 0,
+        whatsapp: unreadChats.count || 0
       };
     },
   });

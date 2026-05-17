@@ -103,6 +103,8 @@ export function useVendedorPortal() {
   const [selectedOrcamento, setSelectedOrcamento] = useState<OrcamentoVendedor | null>(null);
   const [isConvertOpen, setIsConvertOpen] = useState(false);
   const [orcamentoToConvert, setOrcamentoToConvert] = useState<OrcamentoVendedor | null>(null);
+  const [isWizardOpen, setIsWizardOpen] = useState(false);
+  const [orcamentoForWizard, setOrcamentoForWizard] = useState<OrcamentoVendedor | null>(null);
 
   // Gamification hook — guard: only pass real UUID, never "admin" string
   const safeVendedorId = vendedor?.id && vendedor.id !== "admin" ? vendedor.id : null;
@@ -338,6 +340,10 @@ export function useVendedorPortal() {
     setIsConvertOpen,
     orcamentoToConvert,
     setOrcamentoToConvert,
+    isWizardOpen,
+    setIsWizardOpen,
+    orcamentoForWizard,
+    setOrcamentoForWizard,
 
     // Orcamentos
     orcamentos: orcamentosData.orcamentos,

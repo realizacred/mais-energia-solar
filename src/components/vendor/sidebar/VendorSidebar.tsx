@@ -196,7 +196,11 @@ export function VendorSidebar({
   badgeCounts,
 }: VendorSidebarProps) {
   const { data: realBadgeCounts } = useVendorBadges();
-  const mergedBadgeCounts = { ...badgeCounts, ...realBadgeCounts };
+  const mergedBadgeCounts = { 
+    ...badgeCounts, 
+    ...realBadgeCounts,
+    whatsapp: realBadgeCounts?.whatsapp || 0
+  };
 
 
 
