@@ -162,14 +162,14 @@ export function LeadAlerts({ leads, diasAlerta = 3 }: LeadAlertsProps) {
             </p>
           </div>
         ) : (
-          <div className="space-y-2 sm:space-y-3">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             {alertas.map((alerta) => {
               const styles = getAlertStyles(alerta.tipo);
               
               return (
                 <div 
                   key={alerta.lead.id}
-                  className={`relative p-2.5 sm:p-3 rounded-lg border ${styles.bg} transition-all duration-200`}
+                  className={`relative p-4 rounded-xl border-none shadow-md ${styles.bg} transition-all duration-300 hover:scale-[1.02] hover:shadow-lg`}
                 >
                   <button
                     onClick={() => dismissAlert(alerta.lead.id)}
