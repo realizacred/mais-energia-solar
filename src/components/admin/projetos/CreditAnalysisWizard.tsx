@@ -4,7 +4,7 @@
  * - Hooks: useCreateAnaliseCredito, useUpdateAnaliseCredito, useAnaliseCreditoDocumentos, useVincularDocumentoCredito, useProjectDocuments, useCreditBankConfigs, useCreditBankChecklist
  * - Libs: formatBRL, formatDateTime, cn, isValidCpf, isValidCnpj
  */
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { 
   Dialog, 
   DialogContent, 
@@ -53,7 +53,7 @@ import {
 } from "@/hooks/useAnaliseCredito";
 import { useProjectDocuments } from "@/hooks/useProjectDocuments";
 import { useCreditBankConfigs, useCreditBankChecklist } from "@/hooks/useCreditConfigs";
-import { formatBRL } from "@/lib/formatters";
+import { formatBRL, parseBRNumber } from "@/lib/formatters";
 import { formatDateTime } from "@/lib/dateUtils";
 import { isValidCpf, isValidCnpj, formatCpfCnpj } from "@/lib/cpfCnpjUtils";
 import { Badge } from "@/components/ui/badge";
@@ -62,6 +62,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
 import { Switch } from "@/components/ui/switch";
+import { validateEmail, formatPhoneMasked as formatPhone } from "@/lib/validations";
 
 interface Props {
   isOpen: boolean;
