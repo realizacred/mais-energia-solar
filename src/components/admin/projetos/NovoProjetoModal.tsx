@@ -36,6 +36,8 @@ import {
   DEFAULT_TIPO_PROJETO_SOLAR,
   type TipoProjetoSolar,
 } from "@/lib/tipoProjetoSolar";
+import { formatCpfCnpj } from "@/lib/cpfCnpjUtils";
+import { formatPhone } from "@/lib/validations";
 
 const schema = z.object({
   nomeProjeto: z.string().trim().max(150, "Nome do projeto deve ter no máximo 150 caracteres").optional(),
