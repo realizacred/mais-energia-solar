@@ -95,15 +95,15 @@ function VendorSidebarItem({
         <item.icon className={`h-[18px] w-[18px] shrink-0 sidebar-icon ${isActive ? 'text-primary-foreground' : section.iconColor || 'text-sidebar-foreground-muted'}`} data-active={isActive} />
         {item.description ? (
           <div className="flex flex-col items-start min-w-0 flex-1">
-            <span className="text-[13px] truncate leading-tight">
+            <span className="text-[13px] sm:truncate leading-tight whitespace-normal sm:whitespace-nowrap">
               {item.title}
             </span>
-            <span className="text-[10px] opacity-55 font-normal truncate leading-tight">
+            <span className="text-[10px] opacity-55 font-normal sm:truncate leading-tight hidden sm:block">
               {item.description}
             </span>
           </div>
         ) : (
-          <span className="text-[13px] truncate flex-1">{item.title}</span>
+          <span className="text-[13px] sm:truncate flex-1 whitespace-normal sm:whitespace-nowrap">{item.title}</span>
         )}
         {badgeCount > 0 && !collapsed && (
           <span className="relative flex shrink-0">
@@ -214,7 +214,7 @@ export function VendorSidebar({
   return (
     <Sidebar
       collapsible="icon"
-      className="sidebar-premium border-0"
+      className="sidebar-premium border-0 !w-[180px] md:!w-[260px]"
     >
       <SidebarHeader className="border-b border-sidebar-border/30 px-4 py-5 bg-sidebar-background/50 backdrop-blur-sm">
         <div className="flex items-center justify-between gap-2">
