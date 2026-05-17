@@ -363,6 +363,54 @@ export function useVincularDocumentoCredito() {
         .single();
 
       if (error) throw error;
+
+      // Se a análise já foi enviada para a financeira (EOS), enviar o documento automaticamente
+      if (current?.status === 'enviado_financeira' && data.analise_credito_id) {
+        try {
+          // Buscar detalhes do documento para pegar a URL
+          const { data: docDetails } = await supabase
+            .from("project_documents")
+            .select("*")
+            .eq("id", project_document_id)
+            .single();
+
+          if (docDetails?.file_url) {
+            // Mapear categorias para tipos EOS se possível, ou usar um default
+            // Tipos EOS: IDENTIFICACAO_PF, IDENTIFICACAO_PJ, COMPR_RESIDENCIA, CONTA_ENERGIA_PROJETO_FINALIZADO, ART
+            let eosDocType = 'COMPR_RESIDENCIA'; // Default
+            const cat = docDetails.categoria?.toLowerCase();
+            if (cat?.includes('identidade') || cat?.includes('cpf') || cat?.includes('rg')) {
+              eosDocType = values?.tipo_pessoa === 'pj' ? 'IDENTIFICACAO_PJ' : 'IDENTIFICACAO_PF';
+            } else if (cat?.includes('energia') || cat?.includes('conta')) {
+              eosDocType = 'CONTA_ENERGIA_PROJETO_FINALIZADO';
+            } else if (cat?.includes('art')) {
+              eosDocType = 'ART';
+            }
+
+            // Buscar protocolo
+            const { data: analise } = await supabase
+              .from("analise_credito")
+              .select("eos_proposta_protocolo, tenant_id")
+              .eq("id", analise_credito_id)
+              .single();
+
+            if (analise?.eos_proposta_protocolo) {
+              await supabase.functions.invoke('eos-enviar-documento', {
+                body: {
+                  protocolo: analise.eos_proposta_protocolo,
+                  tipo_documento: eosDocType,
+                  file_url: docDetails.file_url,
+                  tenant_id: analise.tenant_id,
+                  analise_id: analise_credito_id
+                }
+              });
+            }
+          }
+        } catch (err) {
+          console.error("Erro ao enviar documento para EOS:", err);
+        }
+      }
+
       return data;
     },
     onSuccess: (_, vars) => {
