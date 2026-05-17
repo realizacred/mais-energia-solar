@@ -648,6 +648,9 @@ export default function CreditGlobalArea() {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => { setSelectedAnalysis(analysis); setActionType('view_details'); }}>
+                              <FileSearch className="h-4 w-4 mr-2" /> Ver Detalhes
+                            </DropdownMenuItem>
                             <DropdownMenuItem onClick={() => { setSelectedAnalysis(analysis); setActionType('reassign'); }}>
                               <UserPlus className="h-4 w-4 mr-2" /> Reatribuir
                             </DropdownMenuItem>
