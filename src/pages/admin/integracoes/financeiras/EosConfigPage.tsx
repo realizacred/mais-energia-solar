@@ -37,6 +37,7 @@ export default function EosIntegrationConfig() {
   const [isSaving, setIsSaving] = useState(false);
   const [isTesting, setIsTesting] = useState(false);
   const [isRegistering, setIsRegistering] = useState(false);
+  const [isRegisteringWebhook, setIsRegisteringWebhook] = useState(false);
   const [testResult, setTestResult] = useState<'success' | 'error' | null>(null);
 
   const { data: config, isLoading: isConfigLoading } = useQuery({
@@ -77,7 +78,8 @@ export default function EosIntegrationConfig() {
     ambiente: "sandbox",
     ativo: false,
     eos_onboarding_step: 1,
-    eos_integrador_id: ""
+    eos_integrador_id: "",
+    eos_webhook_secret: ""
   });
 
   useEffect(() => {
@@ -87,7 +89,8 @@ export default function EosIntegrationConfig() {
         ambiente: config.ambiente || "sandbox",
         ativo: config.ativo || false,
         eos_onboarding_step: config.eos_onboarding_step || 1,
-        eos_integrador_id: config.eos_integrador_id || ""
+        eos_integrador_id: config.eos_integrador_id || "",
+        eos_webhook_secret: config.eos_webhook_secret || ""
       });
       if (config.eos_api_key) setTestResult('success');
     }
@@ -107,6 +110,7 @@ export default function EosIntegrationConfig() {
         ativo: formData.ativo,
         eos_onboarding_step: formData.eos_onboarding_step,
         eos_integrador_id: formData.eos_integrador_id,
+        eos_webhook_secret: formData.eos_webhook_secret,
         updated_at: new Date().toISOString()
       };
 
@@ -194,6 +198,39 @@ export default function EosIntegrationConfig() {
       });
     } finally {
       setIsRegistering(false);
+    }
+  };
+
+  const handleRegisterWebhook = async () => {
+    setIsRegisteringWebhook(true);
+    try {
+      const { data: profile } = await supabase.from("profiles").select("tenant_id").eq("user_id", user?.id).single();
+      
+      const { data, error } = await supabase.functions.invoke('eos-webhook-cadastro', {
+        body: { tenant_id: profile?.tenant_id }
+      });
+
+      if (error) throw error;
+
+      toast({ 
+        title: "Webhook cadastrado!", 
+        description: "Notificações automáticas ativadas com sucesso." 
+      });
+      
+      setFormData(prev => ({ 
+        ...prev, 
+        eos_onboarding_step: 3
+      }));
+      
+      queryClient.invalidateQueries({ queryKey: ["financeiras-config"] });
+    } catch (error: any) {
+      toast({ 
+        title: "Erro no webhook", 
+        description: error.message, 
+        variant: "destructive" 
+      });
+    } finally {
+      setIsRegisteringWebhook(false);
     }
   };
 
@@ -347,6 +384,57 @@ export default function EosIntegrationConfig() {
               <div className="space-y-2">
                 <Label>ID Integrador (EOS)</Label>
                 <Input value={formData.eos_integrador_id} readOnly className="bg-muted font-mono" />
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Step 3: Webhooks */}
+        <Card className={cn(
+          "border-border/40 shadow-sm transition-all", 
+          (!formData.eos_integrador_id) && "opacity-40 grayscale pointer-events-none"
+        )}>
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center justify-between">
+              Passo 3: Notificações Automáticas
+              {formData.eos_onboarding_step >= 3 && (
+                <Badge variant="outline" className="bg-teal-500/10 text-teal-500 border-teal-500/20 gap-1">
+                  <CheckCircle2 className="h-3 w-3" /> Webhook Ativo
+                </Badge>
+              )}
+            </CardTitle>
+            <CardDescription>Ative o recebimento de atualizações de status em tempo real.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {formData.eos_onboarding_step < 3 ? (
+              <Button 
+                className="w-full gap-2"
+                onClick={handleRegisterWebhook}
+                disabled={isRegisteringWebhook}
+              >
+                <RefreshCw className={cn("h-4 w-4", isRegisteringWebhook && "animate-spin")} />
+                {isRegisteringWebhook ? "Ativando..." : "Ativar notificações automáticas"}
+              </Button>
+            ) : (
+              <div className="space-y-3">
+                <div className="p-3 bg-teal-500/5 border border-teal-500/20 rounded-lg flex items-start gap-3">
+                  <CheckCircle2 className="h-5 w-5 text-teal-500 mt-0.5" />
+                  <div>
+                    <p className="text-sm font-medium text-teal-700">Webhook configurado com sucesso</p>
+                    <p className="text-xs text-teal-600/80">Sua conta já está recebendo atualizações da EOS.</p>
+                  </div>
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs text-muted-foreground">URL de Recebimento</Label>
+                  <Input 
+                    value={`${window.location.origin.replace('8080', '54321')}/functions/v1/eos-webhook-receiver`} 
+                    readOnly 
+                    className="text-xs bg-muted/50 h-8" 
+                  />
+                  <p className="text-[10px] text-muted-foreground italic">
+                    * A URL real utiliza o domínio do seu projeto Supabase.
+                  </p>
+                </div>
               </div>
             )}
           </CardContent>

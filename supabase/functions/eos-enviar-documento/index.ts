@@ -25,73 +25,102 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
-    const { protocolo, tipo_documento, file_url, tenant_id, analise_id } = await req.json()
+    const payload = await req.json()
+    const { 
+      tipo_documento, 
+      file_url, 
+      file_content, 
+      file_name, 
+      tenant_id, 
+      analise_id 
+    } = payload
 
-    if (!protocolo || !tipo_documento || !file_url || !tenant_id) {
-      throw new Error('protocolo, tipo_documento, file_url and tenant_id are required')
+    let { protocolo } = payload
+
+    // Se não veio protocolo mas veio analise_id, buscar na base
+    if (!protocolo && analise_id) {
+      const { data: analise } = await supabaseClient
+        .from('analise_credito')
+        .select('eos_proposta_protocolo, tenant_id')
+        .eq('id', analise_id)
+        .single()
+      
+      protocolo = analise?.eos_proposta_protocolo
+      if (!tenant_id) {
+        // use tenant_id from analise if not provided
+        payload.tenant_id = analise?.tenant_id
+      }
     }
 
-    if (!VALID_DOC_TYPES.includes(tipo_documento)) {
-      return new Response(JSON.stringify({ error: `Tipo de documento inválido: ${tipo_documento}` }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 422,
-      })
+    if (!protocolo || !tipo_documento || (!file_url && !file_content)) {
+      throw new Error('protocolo, tipo_documento, and (file_url or file_content) are required')
     }
+
+    const tId = tenant_id || payload.tenant_id
+    if (!tId) throw new Error('tenant_id is required')
 
     // 1. Obter credenciais EOS
-    const apikeyResponse = await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/eos-get-apikey`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`
-      },
-      body: JSON.stringify({ tenant_id })
-    })
+    const { data: config, error: configError } = await supabaseClient
+      .from('financeiras_config')
+      .select('eos_api_key, ambiente')
+      .eq('tenant_id', tId)
+      .eq('financeira', 'eos')
+      .single()
 
-    const apikeyData = await apikeyResponse.json()
-    if (!apikeyResponse.ok) throw new Error(apikeyData.error || 'Erro ao obter credenciais EOS')
-    const { api_key, base_url } = apikeyData
+    if (configError || !config) throw new Error('Integração EOS não configurada')
 
-    // 2. Baixar arquivo
-    const fileResponse = await fetch(file_url)
-    if (!fileResponse.ok) throw new Error('Erro ao baixar arquivo do storage')
-    const fileBlob = await fileResponse.blob()
+    const baseUrl = config.ambiente === 'producao' 
+      ? 'https://api.eosfin.com.br' 
+      : 'https://api.test.eosfin.com.br'
 
-    // 3. Montar FormData para multipart/form-data
+    // 2. Obter o arquivo como Blob
+    let fileBlob: Blob
+    let finalFileName = file_name || 'documento.pdf'
+
+    if (file_content) {
+      // Decode base64
+      const binaryString = atob(file_content)
+      const bytes = new Uint8Array(binaryString.length)
+      for (let i = 0; i < binaryString.length; i++) {
+        bytes[i] = binaryString.charCodeAt(i)
+      }
+      fileBlob = new Blob([bytes], { type: 'application/pdf' })
+    } else {
+      const fileResponse = await fetch(file_url)
+      if (!fileResponse.ok) throw new Error('Erro ao baixar arquivo do storage')
+      fileBlob = await fileResponse.blob()
+    }
+
+    // 3. Montar FormData
     const formData = new FormData()
-    // O nome do campo pode variar conforme a API, mas geralmente é 'file' ou 'arquivo'
-    // Vamos usar 'arquivo' ou 'documento' conforme padrão comum, mas a doc não especificou o nome do campo multipart
-    // Supondo que a API espera o arquivo no corpo como multipart
-    formData.append('arquivo', fileBlob, 'documento.pdf')
+    formData.append('arquivo', fileBlob, finalFileName)
 
     // 4. Enviar para EOS
-    const eosResponse = await fetch(`${base_url}/proposta/partner/api/envia-documentos/${protocolo}/${tipo_documento}`, {
+    const eosResponse = await fetch(`${baseUrl}/proposta/partner/api/envia-documentos/${protocolo}/${tipo_documento}`, {
       method: 'POST',
       headers: {
-        'x-api-key': api_key,
-        // Ao usar FormData, o fetch define o Content-Type automaticamente com o boundary correto
+        'x-api-key': config.eos_api_key,
       },
       body: formData,
     })
 
-    const eosData = await eosResponse.json()
     if (!eosResponse.ok) {
-      console.error('EOS API Error:', eosData)
-      throw new Error(eosData.message || 'Erro ao enviar documento para EOS')
+      const eosData = await eosResponse.text()
+      throw new Error(`Erro API EOS: ${eosData}`)
     }
 
-    // 5. Gravar evento se analise_id foi fornecido
+    // 5. Gravar evento
     if (analise_id) {
       await supabaseClient
         .from('credit_analysis_events')
         .insert({
           analise_id,
           tipo: 'documento_enviado_eos',
-          metadata: { tipo_documento, protocolo }
+          metadata: { tipo_documento, protocolo, file_name: finalFileName }
         })
     }
 
-    return new Response(JSON.stringify(eosData), {
+    return new Response(JSON.stringify({ success: true }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 200,
     })

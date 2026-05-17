@@ -106,6 +106,20 @@ import * as XLSX from 'xlsx';
  * Substitui: nenhum (evolução do existente)
  */
 
+const getEosStatusColor = (status: string) => {
+  const map: Record<string, string> = {
+    em_andamento: "bg-blue-500/10 text-blue-500 border-blue-500/20",
+    em_analise: "bg-amber-500/10 text-amber-500 border-amber-500/20",
+    pre_aprovada: "bg-teal-500/10 text-teal-500 border-teal-500/20",
+    formalizacao: "bg-purple-500/10 text-purple-500 border-purple-500/20",
+    paga: "bg-emerald-500/10 text-emerald-500 border-emerald-500/20",
+    recusada: "bg-destructive/10 text-destructive border-destructive/20",
+    cancelada: "bg-slate-500/10 text-slate-500 border-slate-500/20",
+    simulacao: "bg-blue-500/10 text-blue-500 border-blue-500/20"
+  };
+  return map[status] || "bg-slate-500/10 text-slate-500 border-slate-500/20";
+};
+
 export default function CreditGlobalArea() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -162,7 +176,7 @@ export default function CreditGlobalArea() {
 
   // Action States
   const [selectedAnalysis, setSelectedAnalysis] = useState<any>(null);
-  const [actionType, setActionType] = useState<'approve' | 'reject' | 'request_docs' | 'reassign' | 'eos_integrate' | null>(null);
+  const [actionType, setActionType] = useState<'approve' | 'reject' | 'request_docs' | 'reassign' | 'eos_integrate' | 'view_details' | null>(null);
   const [actionNotes, setActionNotes] = useState("");
   const [targetManagerId, setTargetManagerId] = useState("");
   const [pendingDocs, setPendingDocs] = useState<string[]>([]);
@@ -178,6 +192,22 @@ export default function CreditGlobalArea() {
       setSimulationOptions([]);
     }
   }, [selectedAnalysis]);
+
+  const { data: eosDetails, isLoading: isLoadingEosDetails, refetch: refetchEosDetails } = useQuery({
+    queryKey: ["eos-details", selectedAnalysis?.eos_proposta_protocolo],
+    queryFn: async () => {
+      const { data: profile } = await supabase.from("profiles").select("tenant_id").eq("user_id", user?.id).single();
+      const { data, error } = await supabase.functions.invoke('eos-detalhe-proposta', {
+        body: { 
+          protocolo: selectedAnalysis.eos_proposta_protocolo,
+          tenant_id: profile?.tenant_id
+        }
+      });
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!selectedAnalysis?.eos_proposta_protocolo && actionType === 'view_details',
+  });
 
   const { data: checklist } = useCreditBankChecklist(selectedAnalysis?.bank_config_id || undefined);
   
@@ -318,6 +348,20 @@ export default function CreditGlobalArea() {
     }
   };
 
+  const handleSyncEos = async () => {
+    try {
+      const { data: profile } = await supabase.from("profiles").select("tenant_id").eq("user_id", user?.id).single();
+      const { data, error } = await supabase.functions.invoke('eos-listar-propostas', {
+        body: { tenant_id: profile?.tenant_id }
+      });
+      if (error) throw error;
+      toast({ title: "Sincronização concluída", description: `${data.syncCount} propostas atualizadas.` });
+      queryClient.invalidateQueries({ queryKey: ["admin-credit-analyses"] });
+    } catch (error: any) {
+      toast({ title: "Erro na sincronização", description: error.message, variant: "destructive" });
+    }
+  };
+
   const exportToExcel = () => {
     const ws = XLSX.utils.json_to_sheet(filteredAnalyses?.map(a => ({
       Cliente: a.deal?.title || a.lead?.nome,
@@ -408,6 +452,9 @@ export default function CreditGlobalArea() {
           <p className="text-muted-foreground">Governança, observabilidade e orquestração de crédito enterprise.</p>
         </div>
         <div className="flex gap-2">
+          <Button variant="outline" size="sm" className="gap-2" onClick={handleSyncEos}>
+            <RefreshCw className="h-4 w-4" /> Sincronizar EOS
+          </Button>
           <Popover>
             <PopoverTrigger asChild>
               <Button variant="outline" className="gap-2">
@@ -569,6 +616,7 @@ export default function CreditGlobalArea() {
                     <TableHead>Valor</TableHead>
                     <TableHead>Responsável</TableHead>
                     <TableHead>Status</TableHead>
+                    <TableHead>Status EOS</TableHead>
                     <TableHead>Data</TableHead>
                     <TableHead className="text-right">Ação</TableHead>
                   </TableRow>
@@ -596,6 +644,15 @@ export default function CreditGlobalArea() {
                           {analysis.status}
                         </Badge>
                       </TableCell>
+                      <TableCell>
+                        {analysis.eos_proposta_protocolo ? (
+                          <Badge variant="outline" className={cn("capitalize", getEosStatusColor(analysis.eos_status))}>
+                            {analysis.eos_status?.replace('_', ' ') || 'Pendente'}
+                          </Badge>
+                        ) : (
+                          <span className="text-muted-foreground">-</span>
+                        )}
+                      </TableCell>
                       <TableCell className="text-xs text-muted-foreground">
                         {format(new Date(analysis.created_at), "dd/MM/yy")}
                       </TableCell>
@@ -607,6 +664,9 @@ export default function CreditGlobalArea() {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => { setSelectedAnalysis(analysis); setActionType('view_details'); }}>
+                              <FileSearch className="h-4 w-4 mr-2" /> Ver Detalhes
+                            </DropdownMenuItem>
                             <DropdownMenuItem onClick={() => { setSelectedAnalysis(analysis); setActionType('reassign'); }}>
                               <UserPlus className="h-4 w-4 mr-2" /> Reatribuir
                             </DropdownMenuItem>
@@ -686,7 +746,7 @@ export default function CreditGlobalArea() {
 
       {/* Action Modals */}
       <Dialog open={!!actionType} onOpenChange={(open) => !open && setActionType(null)}>
-        <DialogContent className={cn("sm:max-w-[425px]", actionType === 'eos_integrate' && "sm:max-w-[600px]")}>
+        <DialogContent className={cn("sm:max-w-[425px]", (actionType === 'eos_integrate' || actionType === 'view_details') && "sm:max-w-[600px]")}>
           <DialogHeader>
             <DialogTitle>
               {actionType === 'approve' && "Confirmar Aprovação Interna"}
@@ -694,6 +754,7 @@ export default function CreditGlobalArea() {
               {actionType === 'request_docs' && "Solicitar Documentação Adicional"}
               {actionType === 'reassign' && "Reatribuir Gerente"}
               {actionType === 'eos_integrate' && "Simulação EOS Financiamento Solar"}
+              {actionType === 'view_details' && "Detalhes da Análise"}
             </DialogTitle>
             <DialogDescription>
               {selectedAnalysis?.deal?.title || selectedAnalysis?.lead?.nome} - {formatBRL(selectedAnalysis?.valor_solicitado || 0)}
@@ -702,6 +763,145 @@ export default function CreditGlobalArea() {
           </DialogHeader>
 
           <div className="grid gap-4 py-4">
+            {actionType === 'view_details' && (
+              <div className="space-y-6">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <label className="text-xs text-muted-foreground">Cliente</label>
+                    <p className="text-sm font-medium">{selectedAnalysis?.deal?.title || selectedAnalysis?.lead?.nome}</p>
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs text-muted-foreground">Status Interno</label>
+                    <Badge variant={getStatusVariant(selectedAnalysis?.status)}>{selectedAnalysis?.status}</Badge>
+                  </div>
+                </div>
+
+                {selectedAnalysis?.eos_proposta_protocolo && (
+                  <div className="border rounded-lg p-4 space-y-4 bg-muted/30">
+                    <div className="flex justify-between items-center">
+                      <h4 className="font-semibold text-primary flex items-center gap-2">
+                        <ShieldAlert className="h-4 w-4" /> Integração EOS
+                      </h4>
+                      <Button variant="outline" size="sm" className="h-7 text-[10px]" onClick={() => refetchEosDetails()}>
+                        <RefreshCw className={cn("h-3 w-3 mr-1", isLoadingEosDetails && "animate-spin")} />
+                        Atualizar da EOS
+                      </Button>
+                    </div>
+
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                      <div className="space-y-1">
+                        <label className="text-[10px] uppercase text-muted-foreground">Protocolo</label>
+                        <p className="text-sm font-mono">{selectedAnalysis.eos_proposta_protocolo}</p>
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-[10px] uppercase text-muted-foreground">Status EOS</label>
+                        <Badge variant="outline" className={cn("capitalize text-[10px]", getEosStatusColor(selectedAnalysis.eos_status))}>
+                          {selectedAnalysis.eos_status?.replace('_', ' ') || 'Sincronizando...'}
+                        </Badge>
+                      </div>
+                    </div>
+
+                    {eosDetails?.ficha && (
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 p-3 bg-white rounded border border-border/50">
+                        <div className="space-y-0.5">
+                          <label className="text-[9px] uppercase text-muted-foreground">Financiador</label>
+                          <p className="text-xs font-medium">{eosDetails.ficha.financiador}</p>
+                        </div>
+                        <div className="space-y-0.5">
+                          <label className="text-[9px] uppercase text-muted-foreground">Parcela</label>
+                          <p className="text-xs font-medium">{formatBRL(eosDetails.ficha.parcela)}</p>
+                        </div>
+                        <div className="space-y-0.5">
+                          <label className="text-[9px] uppercase text-muted-foreground">CET</label>
+                          <p className="text-xs font-medium">{eosDetails.ficha.cet}% a.a.</p>
+                        </div>
+                        <div className="space-y-0.5">
+                          <label className="text-[9px] uppercase text-muted-foreground">Prazo</label>
+                          <p className="text-xs font-medium">{eosDetails.ficha.tempoFinanciado} meses</p>
+                        </div>
+                      </div>
+                    )}
+
+                    {eosDetails?.documentos && (
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-semibold uppercase text-muted-foreground">Documentos na EOS</label>
+                        <div className="space-y-1 max-h-[150px] overflow-y-auto pr-2">
+                          {eosDetails.documentos.map((doc: any, i: number) => (
+                            <div key={i} className="flex items-center justify-between p-2 bg-white rounded border border-border/40 text-xs">
+                              <span className="font-medium">{doc.label}</span>
+                              <div className="flex items-center gap-2">
+                                <Badge variant="outline" className={cn(
+                                  "text-[9px] h-4", 
+                                  doc.status === 'Entregue' ? "bg-emerald-50 text-emerald-600 border-emerald-100" : "bg-amber-50 text-amber-600 border-amber-100"
+                                )}>
+                                  {doc.status}
+                                </Badge>
+                                {doc.status !== 'Entregue' && (
+                                  <Button 
+                                    variant="ghost" 
+                                    size="icon" 
+                                    className="h-6 w-6"
+                                    onClick={() => {
+                                      const input = document.createElement('input');
+                                      input.type = 'file';
+                                      input.onchange = async (e) => {
+                                        const file = (e.target as HTMLInputElement).files?.[0];
+                                        if (file) {
+                                          toast({ title: "Enviando documento...", description: file.name });
+                                          const reader = new FileReader();
+                                          reader.onload = async () => {
+                                            try {
+                                              const base64 = (reader.result as string).split(',')[1];
+                                              const { error } = await supabase.functions.invoke('eos-enviar-documento', {
+                                                body: {
+                                                  analise_id: selectedAnalysis.id,
+                                                  tipo_documento: doc.tipoDocumento,
+                                                  file_name: file.name,
+                                                  file_content: base64
+                                                }
+                                              });
+                                              if (error) throw error;
+                                              toast({ title: "Sucesso", description: "Documento enviado para EOS." });
+                                              refetchEosDetails();
+                                            } catch (err: any) {
+                                              toast({ title: "Erro no envio", description: err.message, variant: "destructive" });
+                                            }
+                                          };
+                                          reader.readAsDataURL(file);
+                                        }
+                                      };
+                                      input.click();
+                                    }}
+                                  >
+                                    <Download className="h-3 w-3" />
+                                  </Button>
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                <div className="space-y-2">
+                  <label className="text-xs font-medium">Ações Rápidas</label>
+                  <div className="flex flex-wrap gap-2">
+                    <Button variant="outline" size="sm" onClick={() => setActionType('approve')} className="text-emerald-600 border-emerald-100 bg-emerald-50/50">
+                      Aprovar Interno
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={() => setActionType('reject')} className="text-destructive border-red-100 bg-red-50/50">
+                      Reprovar
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={() => setActionType('request_docs')}>
+                      Solicitar Docs
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {actionType === 'reassign' && (
               <div className="space-y-2">
                 <label className="text-sm font-medium">Novo Gerente</label>
