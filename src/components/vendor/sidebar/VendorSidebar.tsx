@@ -91,7 +91,7 @@ function VendorSidebarItem({
           }
         `}
       >
-        <item.icon className={`h-[18px] w-[18px] shrink-0 sidebar-icon ${isActive ? 'text-sidebar-primary' : section.iconColor || 'text-sidebar-foreground-muted'}`} data-active={isActive} />
+        <item.icon className={`h-[18px] w-[18px] shrink-0 sidebar-icon ${isActive ? 'text-primary-foreground' : section.iconColor || 'text-sidebar-foreground-muted'}`} data-active={isActive} />
         {item.description ? (
           <div className="flex flex-col items-start min-w-0 flex-1">
             <span className="text-[13px] truncate leading-tight">
