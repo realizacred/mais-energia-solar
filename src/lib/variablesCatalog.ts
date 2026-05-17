@@ -1325,6 +1325,9 @@ export const VARIABLES_CATALOG: CatalogVariable[] = [
   // ── Cartão ──
   v("pagamento", "pagamento.cartao_bandeira", "pagamento_cartao_bandeira", "Bandeira do Cartão", "Bandeira (Visa, Master, etc.)", "-", "Visa", "BT e MT", { escopo: "documento" }),
   v("pagamento", "pagamento.cartao_parcelas", "pagamento_cartao_parcelas", "Parcelas no Cartão", "Número de parcelas no cartão", "UN", "10", "BT e MT", { escopo: "documento" }),
+  v("pagamento", "pagamento.cartao_valor_parcela", "pagamento_cartao_valor_parcela", "Valor da Parcela no Cartão", "Valor de cada parcela no cartão", "R$", "R$ 450,00", "BT e MT", { escopo: "documento" }),
+  v("pagamento", "pagamento.cartao_ultimos_digitos", "pagamento_cartao_ultimos_digitos", "Últimos 4 Dígitos do Cartão", "Últimos 4 dígitos para controle", "-", "4242", "BT e MT", { escopo: "documento" }),
+
 
   v("financeiro", "financeiro.saldo_devedor", "saldo_devedor", "Saldo Devedor", "Quanto falta pagar (considerando recibos emitidos)", "R$", "R$ 10.450,00", "BT e MT", { escopo: "documento" }),
 
