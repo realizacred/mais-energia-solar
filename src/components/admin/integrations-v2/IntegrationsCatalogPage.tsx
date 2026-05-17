@@ -535,9 +535,20 @@ export default function IntegrationsCatalogPage() {
               ) : (
                 (() => {
                   const isMonitoringView = selectedCategory === "monitoring" || selectedCategory === "all";
-                  const monitoringFunctional = filtered.filter(p => p.category === "monitoring" && FUNCTIONAL_MONITORING_IDS.has(p.id));
-                  const monitoringStub = filtered.filter(p => p.category === "monitoring" && !FUNCTIONAL_MONITORING_IDS.has(p.id));
-                  const nonMonitoring = filtered.filter(p => p.category !== "monitoring");
+                  
+                  const getSortScore = (p: IntegrationProvider) => {
+                    const status = getConnectionStatus(p.id);
+                    if (status === "connected") return 0;
+                    if (status === "error") return 1;
+                    if (p.status === "available") return 2;
+                    return 3; // beta/coming_soon
+                  };
+
+                  const sortedFiltered = [...filtered].sort((a, b) => getSortScore(a) - getSortScore(b));
+
+                  const monitoringFunctional = sortedFiltered.filter(p => p.category === "monitoring" && FUNCTIONAL_MONITORING_IDS.has(p.id));
+                  const monitoringStub = sortedFiltered.filter(p => p.category === "monitoring" && !FUNCTIONAL_MONITORING_IDS.has(p.id));
+                  const nonMonitoring = sortedFiltered.filter(p => p.category !== "monitoring");
 
                   const renderCard = (provider: IntegrationProvider, isStubGroup = false) => (
                     <IntegrationProviderCard
