@@ -192,7 +192,7 @@ export default function IntegrationsCatalogPage() {
       logo_key: null,
     };
     
-    return [...nonMonitoring, ...monitoringFromRegistry, tuyaProvider];
+    return [...nonMonitoring, ...monitoringFromRegistry, ...eosSynthetic, tuyaProvider];
   }, [dbProviders]);
 
   const { data: connections = [] } = useQuery({
