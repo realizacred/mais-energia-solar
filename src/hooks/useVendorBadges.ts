@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { subDays, startOfDay, endOfDay } from "date-fns";
+import { subDays, endOfDay } from "date-fns";
 
 /**
  * Hook to fetch badge counts for the vendor sidebar.
@@ -32,7 +32,7 @@ export function useVendorBadges() {
       const { count: overdueTasksCount } = await supabase
         .from("tarefas")
         .select("*", { count: "exact", head: true })
-        .eq("created_by", user!.id) // fallback since responsavel_id might be missing
+        .eq("created_by", user!.id) 
         .neq("status", "concluida")
         .lte("data_vencimento", todayEnd);
 
