@@ -1,8 +1,6 @@
 import { Phone, Eye, Trash2, ShoppingCart, UserCheck, Calendar, MapPin, Zap, ExternalLink, FileText, AlertTriangle, Clock, CheckCircle, CreditCard, ChevronDown, ChevronUp } from "lucide-react";
 import { useState } from "react";
-import { format } from "date-fns";
-import { ptBR } from "date-fns/locale";
-import { formatPhoneBR } from "@/lib/formatters";
+import { displayDate, displayPhone } from "@/lib/formatters/index";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
