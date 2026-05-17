@@ -464,6 +464,19 @@ export function EmitirReciboModal({
     if (!canSubmit) return;
     const camposExtras: Record<string, unknown> = { ...dynFields };
     if (instituicaoFinanceira) camposExtras["instituicao_financeira"] = instituicaoFinanceira;
+    if (formaPagamento === "PIX" && pixComprovante) camposExtras["pix_comprovante"] = pixComprovante;
+    if (formaPagamento === "Cheque") {
+      if (chequeBanco) camposExtras["cheque_banco"] = chequeBanco;
+      if (chequeAgencia) camposExtras["cheque_agencia"] = chequeAgencia;
+      if (chequeConta) camposExtras["cheque_conta"] = chequeConta;
+      if (chequeNumero) camposExtras["cheque_numero"] = chequeNumero;
+    }
+    if (formaPagamento.startsWith("Cartão")) {
+      if (cartaoBandeira) camposExtras["cartao_bandeira"] = cartaoBandeira;
+      if (cartaoParcelas) camposExtras["cartao_parcelas"] = cartaoParcelas;
+      if (cartaoNsu) camposExtras["cartao_nsu"] = cartaoNsu;
+    }
+    if (formaPagamento === "Boleto" && boletoLinhaDigitavel) camposExtras["boleto_linha_digitavel"] = boletoLinhaDigitavel;
 
     try {
       // 1. Criar lançamento financeiro primeiro
