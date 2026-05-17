@@ -60,7 +60,7 @@ export function usePagamentoManual() {
 
       // 2. Insert pagamento
       const { data: pagamento, error: pagErr } = await supabase
-        .from("pagamentos")
+        .from("_deprecated_pagamentos")
         .insert({
           recebimento_id: params.recebimentoId,
           valor_pago: params.valorPago,

@@ -90,7 +90,7 @@ export function ParcelasManager({ open, onOpenChange, recebimento, onUpdate }: P
     if (paidIds.length === 0) return;
 
     supabase
-      .from("pagamentos")
+      .from("_deprecated_pagamentos")
       .select("parcela_id, comprovante_url")
       .in("id", paidIds)
       .then(({ data }) => {

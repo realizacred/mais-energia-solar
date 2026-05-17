@@ -59,7 +59,7 @@ export function useRegistrarPagamento() {
       observacoes: string | null;
     }) => {
       const { data: inserted, error } = await supabase
-        .from("pagamentos")
+        .from("_deprecated_pagamentos")
         .insert({
           recebimento_id: recebimentoId,
           valor_pago,
@@ -94,7 +94,7 @@ export function useDeletarPagamento() {
         .update({ status: "pendente", pagamento_id: null })
         .eq("pagamento_id", pagamentoId);
 
-      const { error } = await supabase.from("pagamentos").delete().eq("id", pagamentoId);
+      const { error } = await supabase.from("_deprecated_pagamentos").delete().eq("id", pagamentoId);
       if (error) throw error;
     },
     onSuccess: () => {

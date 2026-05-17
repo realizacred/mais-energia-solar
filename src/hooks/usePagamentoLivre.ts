@@ -47,7 +47,7 @@ export function usePagamentosDoRecebimento(recebimentoId: string | null) {
     queryFn: async () => {
       if (!recebimentoId) return [];
       const { data, error } = await supabase
-        .from("pagamentos")
+        .from("_deprecated_pagamentos")
         .select("id, valor_pago, forma_pagamento, data_pagamento, observacoes, comprovante_url, observacoes_internas")
         .eq("recebimento_id", recebimentoId)
         .order("data_pagamento", { ascending: false });
@@ -77,7 +77,7 @@ export function usePagamentoLivre() {
       }
 
       const { data: pagamento, error } = await supabase
-        .from("pagamentos")
+        .from("_deprecated_pagamentos")
         .insert({
           recebimento_id: params.recebimentoId,
           valor_pago: params.valorPago,
