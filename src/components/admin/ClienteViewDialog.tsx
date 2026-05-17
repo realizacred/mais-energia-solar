@@ -129,7 +129,7 @@ function KpiCard({
           <Icon className="w-4 h-4" />
         </div>
         <div className="min-w-0">
-          <p className="text-lg font-bold tracking-tight text-foreground leading-none truncate">
+          <p className="text-sm sm:text-base font-bold tracking-tight text-foreground leading-tight whitespace-nowrap overflow-hidden text-ellipsis">
             {value}
           </p>
           <p className="text-xs text-muted-foreground mt-0.5">{label}</p>
