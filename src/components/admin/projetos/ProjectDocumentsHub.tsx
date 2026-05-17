@@ -94,12 +94,12 @@ interface Props {
 
 const ORIGEM_LABEL: Record<ProjectDocumentOrigem, string> = {
   manual: "Manual",
-  generated: "Proposta gerada",
-  custom_field: "Campo customizado",
-  checklist_cliente: "Checklist cliente",
-  checklist_instalador: "Checklist instalador",
-  checklist_doc: "Checklist documental",
-  post_sale: "Pós-venda",
+  generated: "Proposta Gerada",
+  custom_field: "Campo Customizado",
+  checklist_cliente: "Checklist Cliente",
+  checklist_instalador: "Checklist Instalador",
+  checklist_doc: "Checklist Documental",
+  post_sale: "Pós-Venda",
   legacy: "Legado",
   recibo: "Recibo",
 };
