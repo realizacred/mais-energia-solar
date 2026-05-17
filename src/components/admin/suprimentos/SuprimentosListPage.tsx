@@ -255,8 +255,27 @@ export function SuprimentosListPage({ projetoId }: SuprimentosListPageProps) {
                       ? new Date(o.data_previsao_entrega + "T12:00:00").toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" })
                       : "—"}
                   </TableCell>
-                  <TableCell className="text-right font-mono text-sm text-foreground">
-                    {formatBRL(o.valor_total || 0)}
+                  <TableCell className="text-right">
+                    <div className="flex items-center justify-end gap-2">
+                      <span className="font-mono text-sm text-foreground">
+                        {formatBRL(o.valor_total || 0)}
+                      </span>
+                      {o.status === "rascunho" && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 text-destructive hover:text-destructive hover:bg-destructive/10"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (confirm("Excluir esta ordem de compra em rascunho?")) {
+                              excluirOrdem.mutate(o.id);
+                            }
+                          }}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      )}
+                    </div>
                   </TableCell>
                 </TableRow>
               ))
