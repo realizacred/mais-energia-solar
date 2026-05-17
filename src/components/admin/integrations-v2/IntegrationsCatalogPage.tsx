@@ -156,6 +156,25 @@ export default function IntegrationsCatalogPage() {
     const nonMonitoring = dbProviders.filter((p) => p.category !== "monitoring");
     const monitoringFromRegistry = PROVIDER_REGISTRY.map(toIntegrationProvider);
     
+    // Check for EOS synthetic provider - we manually inject it if not in DB to ensure it always exists in catalog
+    const hasEosInDb = dbProviders.some(p => p.id === "eos-financiamento-solar");
+    const eosSynthetic: IntegrationProvider[] = !hasEosInDb ? [{
+      id: "eos-financiamento-solar",
+      category: "billing",
+      label: "EOS Financiamento Solar",
+      description: "Financiamento solar via plataforma EOS — simulação e envio de propostas PF e PJ.",
+      status: "available",
+      auth_type: "x-api-key",
+      credential_schema: [],
+      tutorial: { steps: ["Obtenha sua API Key no painel da EOS", "Insira a chave na página de configuração", "Ative as notificações automáticas"] },
+      capabilities: { simulation: true, proposals: true },
+      platform_managed_keys: false,
+      popularity: 90,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      logo_key: "Calculator",
+    }] : [];
+    
     const tuyaProvider: IntegrationProvider = {
       id: "tuya_iot",
       category: "api",
