@@ -746,7 +746,7 @@ export default function CreditGlobalArea() {
 
       {/* Action Modals */}
       <Dialog open={!!actionType} onOpenChange={(open) => !open && setActionType(null)}>
-        <DialogContent className={cn("sm:max-w-[425px]", actionType === 'eos_integrate' && "sm:max-w-[600px]")}>
+        <DialogContent className={cn("sm:max-w-[425px]", (actionType === 'eos_integrate' || actionType === 'view_details') && "sm:max-w-[600px]")}>
           <DialogHeader>
             <DialogTitle>
               {actionType === 'approve' && "Confirmar Aprovação Interna"}
@@ -754,6 +754,7 @@ export default function CreditGlobalArea() {
               {actionType === 'request_docs' && "Solicitar Documentação Adicional"}
               {actionType === 'reassign' && "Reatribuir Gerente"}
               {actionType === 'eos_integrate' && "Simulação EOS Financiamento Solar"}
+              {actionType === 'view_details' && "Detalhes da Análise"}
             </DialogTitle>
             <DialogDescription>
               {selectedAnalysis?.deal?.title || selectedAnalysis?.lead?.nome} - {formatBRL(selectedAnalysis?.valor_solicitado || 0)}
