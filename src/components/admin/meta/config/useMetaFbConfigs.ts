@@ -26,8 +26,10 @@ export interface MetaConfigMap {
     api_key: string;
     is_active: boolean;
     updated_at: string;
+    account_name?: string;
   };
 }
+
 
 export function useMetaFbConfigs() {
   return useQuery({
@@ -62,7 +64,9 @@ export function useMetaFbConfigs() {
           api_key: fbIntegrations.access_token || "",
           is_active: fbIntegrations.status === 'connected',
           updated_at: fbIntegrations.connected_at || fbIntegrations.updated_at,
+          account_name: fbIntegrations.connected_account_name,
         };
+
       }
 
       return map;
