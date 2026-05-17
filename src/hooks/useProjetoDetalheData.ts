@@ -258,10 +258,11 @@ export function useProjetoDetalheData(dealId: string) {
       let projetoCodigo: string | null = null;
       let projetoNum: number | null = null;
       let projetoDescricao: string | null = null;
+      let portalToken: string | null = null;
       if (d.projeto_id) {
         const { data: projetoIdent } = await supabase
           .from("projetos")
-          .select("nome, codigo, projeto_num, observacoes")
+          .select("nome, codigo, projeto_num, observacoes, portal_token")
           .eq("id", d.projeto_id)
           .maybeSingle();
         if (projetoIdent) {
@@ -269,6 +270,7 @@ export function useProjetoDetalheData(dealId: string) {
           projetoCodigo = (projetoIdent as any).codigo ?? null;
           projetoNum = (projetoIdent as any).projeto_num ?? null;
           projetoDescricao = (projetoIdent as any).observacoes ?? null;
+          portalToken = (projetoIdent as any).portal_token ?? null;
         }
       }
 
