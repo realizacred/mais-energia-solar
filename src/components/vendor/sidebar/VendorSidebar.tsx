@@ -109,7 +109,7 @@ function VendorSidebarItem({
             <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-50 ${
               isActive ? "bg-background" : "bg-primary"
             }`} />
-            <span className={`relative min-w-[20px] h-5 px-1 text-[10px] font-bold rounded-full flex items-center justify-center ${
+            <span className={`relative min-w-[20px] h-5 px-1.5 text-[10px] font-black rounded-full flex items-center justify-center shadow-sm ${
               isActive
                 ? "bg-background text-primary"
                 : "bg-primary text-primary-foreground"
