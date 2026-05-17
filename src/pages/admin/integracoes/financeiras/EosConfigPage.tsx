@@ -17,6 +17,7 @@ import { toast } from "@/hooks/use-toast";
 import { ShieldCheck, Save, ExternalLink, Key, CheckCircle2, XCircle, RefreshCw } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
 
 export default function EosIntegrationConfig() {
   const { user } = useAuth();
