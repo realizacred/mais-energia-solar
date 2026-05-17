@@ -27,6 +27,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { formatBRL } from "@/lib/formatters";
+import { formatCpfCnpj } from "@/lib/formatters/index";
 import { format } from "date-fns";
 import { toast } from "sonner";
 
@@ -167,6 +168,16 @@ export function EmitirReciboModal({
   const [formaPagamento, setFormaPagamento] = useState<string>("");
   const [dataPagamento, setDataPagamento] = useState<string>(new Date().toISOString().slice(0, 10));
   const [instituicaoFinanceira, setInstituicaoFinanceira] = useState<string>("");
+  // BUG 4 — campos dinâmicos por forma de pagamento
+  const [pixComprovante, setPixComprovante] = useState<string>("");
+  const [chequeBanco, setChequeBanco] = useState<string>("");
+  const [chequeAgencia, setChequeAgencia] = useState<string>("");
+  const [chequeConta, setChequeConta] = useState<string>("");
+  const [chequeNumero, setChequeNumero] = useState<string>("");
+  const [cartaoBandeira, setCartaoBandeira] = useState<string>("");
+  const [cartaoParcelas, setCartaoParcelas] = useState<string>("1");
+  const [cartaoNsu, setCartaoNsu] = useState<string>("");
+  const [boletoLinhaDigitavel, setBoletoLinhaDigitavel] = useState<string>("");
   const [dynFields, setDynFields] = useState<Record<string, string>>({});
   const [loadingContext, setLoadingContext] = useState(false);
   const [projectContext, setProjectContext] = useState<any>(null);
@@ -190,6 +201,8 @@ export function EmitirReciboModal({
       setTotalPagoHistorico(0);
       setUltimoNumeroRecibo(0);
       setInstituicaoFinanceira("");
+      setPixComprovante(""); setChequeBanco(""); setChequeAgencia(""); setChequeConta(""); setChequeNumero("");
+      setCartaoBandeira(""); setCartaoParcelas("1"); setCartaoNsu(""); setBoletoLinhaDigitavel("");
 
       if (defaultProjetoId) {
         setLoadingContext(true);
@@ -287,6 +300,33 @@ export function EmitirReciboModal({
     () => (templates ?? []).find((t) => t.id === templateId),
     [templates, templateId],
   );
+
+  // BUG 3 — Auto-sugerir template ao abrir, baseado no estado do projeto
+  useEffect(() => {
+    if (!open || templateId || !templates || templates.length === 0) return;
+    // Aguarda contexto carregar para decidir
+    if (loadingContext) return;
+
+    const valorVenda = Number(proposalContext?.versao?.valor_total ?? projectContext?.valor_total ?? 0);
+    const pago = totalPagoHistorico;
+    const saldo = Math.max(0, valorVenda - pago);
+
+    const pick = (...tokens: string[]) =>
+      templates.find((t) => {
+        const n = (t.nome || "").toLowerCase();
+        return tokens.some((tok) => n.includes(tok));
+      });
+
+    let sugerido: DocumentTemplate | undefined;
+    if (valorVenda > 0 && saldo <= 0.01) {
+      sugerido = pick("quitação", "quitacao");
+    } else if (pago > 0) {
+      sugerido = pick("parcela");
+    } else if (proposalContext?.proposta) {
+      sugerido = pick("sinal", "entrada");
+    }
+    if (sugerido) setTemplateId(sugerido.id);
+  }, [open, templates, loadingContext, projectContext, proposalContext, totalPagoHistorico, templateId]);
 
   const valorTotalVenda = useMemo(() => {
     return Number(proposalContext?.versao?.valor_total ?? projectContext?.valor_total ?? 0);
@@ -424,6 +464,19 @@ export function EmitirReciboModal({
     if (!canSubmit) return;
     const camposExtras: Record<string, unknown> = { ...dynFields };
     if (instituicaoFinanceira) camposExtras["instituicao_financeira"] = instituicaoFinanceira;
+    if (formaPagamento === "PIX" && pixComprovante) camposExtras["pix_comprovante"] = pixComprovante;
+    if (formaPagamento === "Cheque") {
+      if (chequeBanco) camposExtras["cheque_banco"] = chequeBanco;
+      if (chequeAgencia) camposExtras["cheque_agencia"] = chequeAgencia;
+      if (chequeConta) camposExtras["cheque_conta"] = chequeConta;
+      if (chequeNumero) camposExtras["cheque_numero"] = chequeNumero;
+    }
+    if (formaPagamento.startsWith("Cartão")) {
+      if (cartaoBandeira) camposExtras["cartao_bandeira"] = cartaoBandeira;
+      if (cartaoParcelas) camposExtras["cartao_parcelas"] = cartaoParcelas;
+      if (cartaoNsu) camposExtras["cartao_nsu"] = cartaoNsu;
+    }
+    if (formaPagamento === "Boleto" && boletoLinhaDigitavel) camposExtras["boleto_linha_digitavel"] = boletoLinhaDigitavel;
 
     try {
       // 1. Criar lançamento financeiro primeiro
@@ -533,7 +586,7 @@ export function EmitirReciboModal({
             <div className="p-2.5 rounded-lg border bg-muted/50 flex justify-between items-center">
               <div className="flex flex-col">
                 <span className="text-sm font-semibold">{projectContext?.clientes?.nome || "Selecione um projeto"}</span>
-                <span className="text-[10px] text-muted-foreground uppercase tracking-tight font-mono">{projectContext?.clientes?.cpf_cnpj || "CPF/CNPJ não disponível"}</span>
+                <span className="text-[10px] text-muted-foreground uppercase tracking-tight font-mono">{projectContext?.clientes?.cpf_cnpj ? formatCpfCnpj(projectContext.clientes.cpf_cnpj) : "CPF/CNPJ não disponível"}</span>
               </div>
               <div className="text-right">
                 <Badge variant="outline" className="text-[9px] uppercase font-bold bg-background/50">Projeto vinculado</Badge>
@@ -609,13 +662,61 @@ export function EmitirReciboModal({
           </div>
 
           {formaPagamento === "Financiamento" && (
-            <div className="space-y-1.5">
+            <div className="space-y-1.5 sm:col-span-2">
               <Label className="text-xs">Instituição Financeira</Label>
-              <Input
-                value={instituicaoFinanceira}
-                onChange={(e) => setInstituicaoFinanceira(e.target.value)}
-                placeholder="Ex: EOS, BV, Santander..."
-              />
+              <Input value={instituicaoFinanceira} onChange={(e) => setInstituicaoFinanceira(e.target.value)} placeholder="Ex: EOS, BV, Santander..." />
+            </div>
+          )}
+
+          {formaPagamento === "PIX" && (
+            <div className="space-y-1.5 sm:col-span-2">
+              <Label className="text-xs">ID / Comprovante do PIX</Label>
+              <Input value={pixComprovante} onChange={(e) => setPixComprovante(e.target.value)} placeholder="E2E ID ou nº do comprovante" />
+            </div>
+          )}
+
+          {formaPagamento === "Boleto" && (
+            <div className="space-y-1.5 sm:col-span-2">
+              <Label className="text-xs">Linha Digitável do Boleto</Label>
+              <Input value={boletoLinhaDigitavel} onChange={(e) => setBoletoLinhaDigitavel(e.target.value)} placeholder="00000.00000 00000.000000 00000.000000 0 00000000000000" />
+            </div>
+          )}
+
+          {formaPagamento === "Cheque" && (
+            <div className="sm:col-span-2 grid grid-cols-2 gap-2">
+              <div className="space-y-1.5">
+                <Label className="text-xs">Banco</Label>
+                <Input value={chequeBanco} onChange={(e) => setChequeBanco(e.target.value)} placeholder="Ex: 341 - Itaú" />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">Nº do Cheque</Label>
+                <Input value={chequeNumero} onChange={(e) => setChequeNumero(e.target.value)} placeholder="000123" />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">Agência</Label>
+                <Input value={chequeAgencia} onChange={(e) => setChequeAgencia(e.target.value)} placeholder="0000" />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">Conta</Label>
+                <Input value={chequeConta} onChange={(e) => setChequeConta(e.target.value)} placeholder="00000-0" />
+              </div>
+            </div>
+          )}
+
+          {(formaPagamento === "Cartão de Crédito" || formaPagamento === "Cartão de Débito") && (
+            <div className="sm:col-span-2 grid grid-cols-3 gap-2">
+              <div className="space-y-1.5">
+                <Label className="text-xs">Bandeira</Label>
+                <Input value={cartaoBandeira} onChange={(e) => setCartaoBandeira(e.target.value)} placeholder="Visa, Master..." />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">{formaPagamento === "Cartão de Crédito" ? "Parcelas" : "Parcelas (1)"}</Label>
+                <Input type="number" min={1} max={formaPagamento === "Cartão de Crédito" ? 24 : 1} value={cartaoParcelas} onChange={(e) => setCartaoParcelas(e.target.value)} disabled={formaPagamento === "Cartão de Débito"} />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">NSU / Autorização</Label>
+                <Input value={cartaoNsu} onChange={(e) => setCartaoNsu(e.target.value)} placeholder="000000" />
+              </div>
             </div>
           )}
 
