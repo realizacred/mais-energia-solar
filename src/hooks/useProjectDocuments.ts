@@ -300,17 +300,34 @@ export function useDocumentsCount({ projetoId, dealId }: { projetoId?: string | 
       // 3. Contar campos customizados do tipo arquivo (que ainda não foram migrados para project_documents)
       // Nota: Este passo pode causar duplicidade se o arquivo já estiver em project_documents.
       // Como o objetivo é precisão, vamos filtrar por caminhos únicos se possível, ou simplificar.
+      let cfCount = 0;
+      // Para evitar contagem duplicada, vamos buscar os caminhos já em project_documents
+      const { data: pdRows } = await supabase
+        .from("project_documents")
+        .select("storage_path")
+        .eq("is_deleted", false)
+        .or(orFilter.join(","));
+      const existingPaths = new Set((pdRows || []).map(r => r.storage_path));
+
       const { data: cfRows } = await supabase
         .from("deal_custom_field_values")
         .select("value_text, deal_custom_fields!inner(field_type)")
         .eq("deal_id", dealId || "");
-      
-      let cfCount = 0;
-      const pdPaths = new Set(); // Para evitar contar o que já está em project_documents
 
-      // Se tivéssemos os caminhos de project_documents, poderíamos filtrar. 
-      // Por simplicidade e seguindo a regra de "Contrato + 3 uploads = 4", 
-      // vamos focar nos gerados + uploads reais.
+      for (const row of (cfRows || []) as any[]) {
+        if (row.deal_custom_fields?.field_type === "file") {
+          const metas = parseFileMetaArray(row.value_text);
+          for (const m of metas) {
+            if (m?.storage_path && !existingPaths.has(m.storage_path)) {
+              cfCount++;
+              existingPaths.add(m.storage_path);
+            }
+          }
+        }
+      }
+
+      return (pdCount || 0) + (genCount || 0) + cfCount;
+
 
     },
   });
