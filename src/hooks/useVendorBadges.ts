@@ -26,37 +26,35 @@ export function useVendorBadges() {
       const last24h = subDays(now, 1).toISOString();
       const todayEnd = endOfDay(now).toISOString();
 
-      const [urgentLeads, overdueTasks, pendingCredit, unreadChats] = await Promise.all([
-        supabase
-          .from("leads")
-          .select("id", { count: "exact", head: true })
-          .eq("consultor_id", currentUserId)
-          .is("deleted_at", null)
-          .not("status_id", "in", "('ganho', 'perdido', 'convertido')")
-          .or(`ultimo_contato.is.null,ultimo_contato.lt.${threeDaysAgo}`),
+      const urgentLeads = await supabase
+        .from("leads")
+        .select("id", { count: "exact", head: true })
+        .eq("consultor_id", currentUserId)
+        .is("deleted_at", null)
+        .not("status_id", "in", "('ganho', 'perdido', 'convertido')")
+        .or(`ultimo_contato.is.null,ultimo_contato.lt.${threeDaysAgo}`);
 
-        supabase
-          .from("tarefas" as any)
-          .select("id", { count: "exact", head: true })
-          .eq("created_by", currentUserId) 
-          .neq("status", "concluida")
-          .lte("data_vencimento", todayEnd),
+      const overdueTasks = await supabase
+        .from("tarefas" as any)
+        .select("id", { count: "exact", head: true })
+        .eq("created_by", currentUserId) 
+        .neq("status", "concluida")
+        .lte("data_vencimento", todayEnd);
 
-        supabase
-          .from("analise_credito")
-          .select("id", { count: "exact", head: true })
-          .eq("criado_por", currentUserId)
-          .eq("status", "aguardando_documentos"),
+      const pendingCredit = await supabase
+        .from("analise_credito")
+        .select("id", { count: "exact", head: true })
+        .eq("criado_por", currentUserId)
+        .eq("status", "aguardando_documentos");
 
-        supabase
-          .from("wa_conversations")
-          .select("id", { count: "exact", head: true })
-          .eq("assigned_to", currentUserId)
-          .eq("tenant_id", profile.tenant_id)
-          .eq("status", "aberta")
-          .eq("ultima_mensagem_de", "cliente")
-          .gt("ultima_mensagem_at", last24h)
-      ]);
+      const unreadChats = await supabase
+        .from("wa_conversations")
+        .select("id", { count: "exact", head: true })
+        .eq("assigned_to", currentUserId)
+        .eq("tenant_id", profile.tenant_id)
+        .eq("status", "aberta")
+        .eq("ultima_mensagem_de", "cliente")
+        .gt("ultima_mensagem_at", last24h);
 
       return {
         orcamentos: urgentLeads.count || 0,
