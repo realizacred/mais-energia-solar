@@ -541,6 +541,8 @@ export function EmitirReciboModal({
       // Aliases para variáveis de template
       camposExtras["cartao_bandeira"] = cartaoBandeira;
       camposExtras["cartao_parcelas"] = cartaoParcelas;
+      camposExtras["cartao_valor_parcela"] = Number(cartaoParcelas) > 0 ? (Number(valor) / Number(cartaoParcelas)).toFixed(2) : valor;
+      camposExtras["cartao_ultimos_digitos"] = cartaoUltimosDigitos;
     }
 
     if (formaPagamento === "Boleto") {
