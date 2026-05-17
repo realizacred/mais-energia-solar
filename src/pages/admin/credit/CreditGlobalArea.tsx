@@ -1119,6 +1119,97 @@ function AnalysisCard({ analysis, onAction }: { analysis: any, onAction: (type: 
   );
 }
 
+function BanksQueueView({ analyses, onFilterByBank }: { analyses: any[], onFilterByBank: (bankName: string) => void }) {
+  const { data: bankConfigs } = useCreditBankConfigs();
+  
+  const bankStats = useMemo(() => {
+    if (!bankConfigs) return [];
+    
+    return bankConfigs.map(bank => {
+      const bankAnalyses = analyses.filter(a => a.banco === bank.bank_name || a.bank_config_id === bank.id);
+      const aguardando = bankAnalyses.filter(a => a.status === 'aguardando_analise').length;
+      const aprovadas = bankAnalyses.filter(a => ['aprovado_interno', 'aprovada', 'aprovado'].includes(a.status)).length;
+      const reprovadas = bankAnalyses.filter(a => ['reprovado', 'reprovada'].includes(a.status)).length;
+      const pre_aprovadas = bankAnalyses.filter(a => a.eos_status === 'pre_aprovada').length;
+      
+      const type = bank.technical_metadata?.tipo === 'api_integrada' ? 'API' : 
+                   bank.technical_metadata?.fonte_sync === 'manual' ? 'Manual' : 'Parcial';
+
+      return {
+        id: bank.id,
+        name: bank.bank_name,
+        type,
+        aguardando,
+        aprovadas,
+        reprovadas,
+        pre_aprovadas
+      };
+    });
+  }, [bankConfigs, analyses]);
+
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      {bankStats.map((bank) => (
+        <Card key={bank.id} className="border-border/40 hover:shadow-md transition-shadow">
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-base font-bold flex items-center gap-2">
+                <Building className="h-4 w-4 text-primary" />
+                {bank.name}
+              </CardTitle>
+              <Badge variant={bank.type === 'API' ? 'success' : bank.type === 'Manual' ? 'outline' : 'warning'}>
+                {bank.type}
+              </Badge>
+            </div>
+            <CardDescription className="text-xs">
+              {bank.type === 'API' ? '● Integração Direta' : bank.type === 'Parcial' ? '⚠ Integração Parcial' : '⚠ Fluxo Manual'}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1">
+                <p className="text-[10px] uppercase font-semibold text-muted-foreground">Aguardando</p>
+                <p className="text-xl font-bold">{bank.aguardando}</p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-[10px] uppercase font-semibold text-muted-foreground">Aprovadas</p>
+                <p className="text-xl font-bold text-success">{bank.aprovadas}</p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-[10px] uppercase font-semibold text-muted-foreground">Reprovadas</p>
+                <p className="text-xl font-bold text-destructive">{bank.reprovadas}</p>
+              </div>
+              {bank.name.toLowerCase().includes('eos') && (
+                <div className="space-y-1">
+                  <p className="text-[10px] uppercase font-semibold text-muted-foreground">Pré-Aprov.</p>
+                  <p className="text-xl font-bold text-teal-600">{bank.pre_aprovadas}</p>
+                </div>
+              )}
+            </div>
+            <div className="flex gap-2 pt-2">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="flex-1 text-xs"
+                onClick={() => onFilterByBank(bank.name)}
+              >
+                Ver fila
+              </Button>
+              <Button 
+                variant="secondary" 
+                size="sm" 
+                className="flex-1 text-xs"
+              >
+                {bank.type === 'API' ? 'Sincronizar' : '+ Nova ficha'}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      ))}
+    </div>
+  );
+}
+
 function StatCard({ title, value, icon: Icon, color }: any) {
   return (
     <Card className="border-border/40">
