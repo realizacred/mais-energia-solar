@@ -127,9 +127,8 @@ export function useOperationalStatus(dealId: string | null) {
       if ((checklists || []).length > 0) return STATUS_CONFIG.em_engenharia;
 
       // 9. Aguardando Documentos (If deal is won but docs missing)
-      const docChecklist = deal?.doc_checklist as Record<string, any> | null;
-      const DOC_KEYS = ["rg_cnh", "conta_luz", "iptu_imovel"]; 
-      const hasMissingDocs = docChecklist ? DOC_KEYS.some(k => !docChecklist[k]) : true;
+      // Agora usamos o campo docs_completos retornado pelo RPC consolidado
+      const hasMissingDocs = deal?.docs_completos === false;
       
       if (deal?.status === "won" && hasMissingDocs) return STATUS_CONFIG.aguardando_documentos;
 
