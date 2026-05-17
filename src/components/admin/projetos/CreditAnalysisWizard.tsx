@@ -165,8 +165,8 @@ export function CreditAnalysisWizard({
           cliente_email: cliente.email || "",
           cliente_telefone: formatPhone(cliente.telefone || ""),
           cliente_data_nascimento: cliente.data_nascimento || "",
-          renda_mensal: cliente.payment_composition?.renda_mensal?.toString() || prev.renda_mensal,
-          patrimonio: cliente.payment_composition?.patrimonio?.toString() || prev.patrimonio,
+          renda_mensal: (cliente.payment_composition as any)?.renda_mensal?.toString() || prev.renda_mensal,
+          patrimonio: (cliente.payment_composition as any)?.patrimonio?.toString() || prev.patrimonio,
           razao_social: cliente.empresa || cliente.nome || "",
           cnpj: digits.length === 14 ? digits : prev.cnpj,
         }));
