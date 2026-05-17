@@ -282,49 +282,47 @@ export function useDocumentsCount({ projetoId, dealId }: { projetoId?: string | 
       if (projetoId) orFilter.push(`projeto_id.eq.${projetoId}`);
       if (dealId) orFilter.push(`deal_id.eq.${dealId}`);
 
-      // 1. Contar project_documents (excluindo recibos e outros que não devem contar na aba principal)
-      const { count: pdCount } = await supabase
+      // 1. Contar project_documents (excluindo recibos e gerados da contagem de "uploads físicos")
+      const { data: pdRows } = await supabase
         .from("project_documents")
-        .select("*", { count: "exact", head: true })
+        .select("storage_path, origem")
         .eq("is_deleted", false)
-        .not("origem", "eq", "recibo")
         .or(orFilter.join(","));
+      
+      const physicalPaths = new Set();
+      (pdRows || []).forEach(r => {
+        if (r.origem !== 'generated' && r.origem !== 'recibo') {
+          physicalPaths.add(r.storage_path);
+        }
+      });
 
-      // 2. Contar documentos gerados (generated_documents) - apenas ativos
+      // 2. Contar documentos gerados ativos (Contratos/Procurações)
       const { count: genCount } = await supabase
         .from("generated_documents")
         .select("*", { count: "exact", head: true })
         .eq("deal_id", dealId || "")
         .neq("status", "cancelled");
 
-      // 3. Contar campos customizados do tipo arquivo (que ainda não foram migrados para project_documents)
-      // Nota: Este passo pode causar duplicidade se o arquivo já estiver em project_documents.
-      // Como o objetivo é precisão, vamos filtrar por caminhos únicos se possível, ou simplificar.
-      let cfCount = 0;
-      // Para evitar contagem duplicada, vamos buscar os caminhos já em project_documents
-      const { data: pdRows } = await supabase
-        .from("project_documents")
-        .select("storage_path")
-        .eq("is_deleted", false)
-        .or(orFilter.join(","));
-      const existingPaths = new Set((pdRows || []).map(r => r.storage_path));
-
+      // 3. Contar campos customizados do tipo arquivo (não duplicados)
       const { data: cfRows } = await supabase
         .from("deal_custom_field_values")
         .select("value_text, deal_custom_fields!inner(field_type)")
         .eq("deal_id", dealId || "");
-
+      
       for (const row of (cfRows || []) as any[]) {
         if (row.deal_custom_fields?.field_type === "file") {
           const metas = parseFileMetaArray(row.value_text);
           for (const m of metas) {
-            if (m?.storage_path && !existingPaths.has(m.storage_path)) {
-              cfCount++;
-              existingPaths.add(m.storage_path);
+            if (m?.storage_path && !physicalPaths.has(m.storage_path)) {
+              physicalPaths.add(m.storage_path);
             }
           }
         }
       }
+
+      // Total = Uploads Únicos + Gerados Ativos
+      return physicalPaths.size + (genCount || 0);
+
 
       return (pdCount || 0) + (genCount || 0) + cfCount;
 
