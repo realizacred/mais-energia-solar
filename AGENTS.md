@@ -542,5 +542,81 @@ CHECKLIST DE PR PARA FEATURES DE CRÉDITO:
 [ ] Comentário no topo do componente declarando tabelas e hooks usados
 
 =============================================================================
-FIM DO AGENTS.md v4.2
+BLOCO 27 — REGRAS DE FORMULÁRIO E VALIDAÇÃO (v1.0)
+=============================================================================
+
+RB-82 FORMULÁRIOS — VALIDAÇÃO ANTES DE AVANÇAR
+Todo wizard/formulário com múltiplos passos DEVE:
+- Bloquear botão "Próximo" até todos os obrigatórios válidos
+- Exibir erros INLINE abaixo de cada campo (não só toast)
+- NUNCA enviar dados inválidos para o banco
+- NUNCA enviar string vazia para campo tipado (date, number, uuid)
+Padrão: validar no onBlur + no clique de "Próximo".
+
+RB-83 FORMULÁRIOS — MÁSCARAS OBRIGATÓRIAS EM TEMPO REAL
+Campos com formato fixo DEVEM aplicar máscara no onChange:
+- CPF:   XXX.XXX.XXX-XX      (11 dígitos)
+- CNPJ:  XX.XXX.XXX/XXXX-XX  (14 dígitos)
+- CEP:   XXXXX-XXX            (8 dígitos)
+- Fone:  (XX) XXXXX-XXXX      (10-11 dígitos)
+- Moeda: R$ X.XXX,XX          (formato PT-BR)
+- kWp:   aceitar vírgula ou ponto como decimal
+NUNCA exibir campo de CPF/CNPJ sem máscara.
+NUNCA exibir valor monetário sem prefixo R$ e separador de milhar.
+Biblioteca recomendada: react-input-mask ou implementação própria.
+
+RB-84 FORMULÁRIOS — DATAS SEMPRE EM ISO NO BANCO
+Campos de data DEVEM:
+- Exibir para o usuário: DD/MM/AAAA (formato PT-BR)
+- Salvar no banco: YYYY-MM-DDT00:00:00.000Z (ISO 8601)
+- NUNCA salvar string vazia em campo DATE/TIMESTAMPTZ
+- NUNCA salvar data sem validar se é uma data real
+- Validar: new Date(value).toString() !== 'Invalid Date'
+Conversão obrigatória antes de qualquer INSERT/UPDATE:
+  const iso = new Date(yyyy, mm-1, dd).toISOString()
+
+RB-85 FORMULÁRIOS — VALORES MONETÁRIOS EM DECIMAL NO BANCO
+Campos de valor R$ DEVEM:
+- Exibir: R$ 8.918,53 (formato PT-BR com vírgula decimal)
+- Salvar: 8918.53 (DECIMAL com ponto, sem R$ e sem separador de milhar)
+- NUNCA salvar string "R$ 8.918,53" em campo DECIMAL
+Conversão obrigatória:
+  const decimal = parseFloat(value.replace(/\./g, '').replace(',', '.'))
+
+RB-86 FORMULÁRIOS — CEP DISPARA AUTOCOMPLETE
+Campo CEP DEVE:
+- Ao completar 8 dígitos: chamar https://viacep.com.br/ws/{cep}/json/
+- Preencher automaticamente: logradouro, bairro, cidade, estado
+- Mostrar loading durante a consulta
+- Se CEP inválido: exibir erro inline
+- Campos preenchidos pelo CEP ficam editáveis (não readonly)
+NUNCA deixar usuário preencher cidade/estado manualmente
+sem antes tentar o auto-complete via CEP.
+
+RB-87 FORMULÁRIOS — CPF/CNPJ COM CHECKSUM
+Validação de CPF e CNPJ DEVE usar algoritmo de checksum completo.
+NÃO validar só formato (quantidade de dígitos).
+CPFs como 111.111.111-11 passam no formato mas FALHAM no checksum.
+Usar funções canônicas: isValidCpf() e isValidCnpj()
+de src/lib/validators.ts (criar se não existir).
+NUNCA aceitar CPF/CNPJ inválido no banco.
+
+AP-39 AVANÇAR WIZARD SEM VALIDAR
+✗ Errado: permitir "Próximo" com campos obrigatórios vazios
+✓ Certo: validar todos os campos do passo atual antes de avançar
+
+AP-40 DATA COMO STRING VAZIA
+✗ Errado: INSERT INTO tabela (data_nascimento) VALUES ('')
+✓ Certo: validar → converter → INSERT VALUES ('1990-01-25T00:00:00.000Z')
+
+AP-41 MOEDA SEM CONVERSÃO
+✗ Errado: INSERT INTO tabela (valor) VALUES ('R$ 8.918,53')
+✓ Certo: parseFloat('8.918,53'.replace(/\./g,'').replace(',','.')) → 8918.53
+
+AP-42 CEP SEM AUTOCOMPLETE
+✗ Errado: usuário digita cidade e estado manualmente
+✓ Certo: CEP completo → ViaCEP → preencher campos automaticamente
+
+=============================================================================
+FIM DO AGENTS.md v4.3
 =============================================================================
