@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { Send, MessageSquare, UserPen, Mail } from "lucide-react";
+import { Send, MessageSquare, UserPen, Mail, AlertTriangle, ExternalLink, Plus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
@@ -8,6 +8,17 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Spinner } from "@/components/ui-kit/Spinner";
+import { useNavigate } from "react-router-dom";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { FormModalTemplate, FormGrid, FormSection } from "@/components/ui-kit/FormModalTemplate";
 import { EmailInput } from "@/components/ui/EmailInput";
 import { PhoneInput } from "@/components/ui-kit/inputs/PhoneInput";
