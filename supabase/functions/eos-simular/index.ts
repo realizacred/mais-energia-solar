@@ -23,10 +23,55 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
-    const { analise_id, tenant_id } = await req.json()
+    const { analise_id, tenant_id, test_mode } = await req.json()
 
-    if (!analise_id || !tenant_id) {
-      throw new Error('analise_id and tenant_id are required')
+    if (!tenant_id) {
+      throw new Error('tenant_id is required')
+    }
+
+    if (test_mode) {
+      // Mock para teste de conexão
+      const apikeyResponse = await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/eos-get-apikey`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`
+        },
+        body: JSON.stringify({ tenant_id })
+      })
+      const apikeyData = await apikeyResponse.json()
+      if (!apikeyResponse.ok) throw new Error(apikeyData.error || 'Erro de autenticação')
+
+      const { api_key, base_url } = apikeyData
+      const testPayload = {
+        tipoPessoa: 'PF',
+        valorMaoObra: 1000,
+        valorProduto: 9000,
+        entrada: 0,
+        carencia: 1,
+        cpf: '000.000.000-00',
+        dataNascimento: '2000-01-01T00:00:00.000Z',
+        nomeCompleto: 'Teste de Conexão'
+      }
+
+      const eosResponse = await fetch(`${base_url}/proposta/partner/simulate`, {
+        method: 'POST',
+        headers: {
+          'x-api-key': api_key,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(testPayload),
+      })
+
+      if (!eosResponse.ok) throw new Error('Chave inválida ou erro na API EOS')
+      return new Response(JSON.stringify({ success: true }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 200,
+      })
+    }
+
+    if (!analise_id) {
+      throw new Error('analise_id is required for real simulation')
     }
 
     // 1. Buscar Análise de Crédito
