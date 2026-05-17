@@ -903,6 +903,7 @@ export default function CreditGlobalArea() {
             )}
 
             {actionType === 'reassign' && (
+              <div className="space-y-2">
                 <label className="text-sm font-medium">Novo Gerente</label>
                 <Select value={targetManagerId} onValueChange={setTargetManagerId}>
                   <SelectTrigger><SelectValue placeholder="Selecione o gerente" /></SelectTrigger>
