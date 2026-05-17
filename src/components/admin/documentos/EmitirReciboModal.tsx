@@ -387,13 +387,53 @@ export function EmitirReciboModal({
             )}
           </div>
 
+          <div className="space-y-1.5 p-3 rounded-lg bg-muted/30 sm:col-span-2">
+            <div className="flex justify-between items-center text-xs">
+              <span className="text-muted-foreground font-medium uppercase tracking-wider">Resumo do Financeiro</span>
+              {saldoRestanteAposRecibo <= 0 ? (
+                <span className="text-success font-bold flex items-center gap-1">Quitado ✓</span>
+              ) : saldoRestanteAposRecibo < valorTotalVenda ? (
+                <span className="text-amber-500 font-bold">Restam {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(saldoRestanteAposRecibo)}</span>
+              ) : null}
+            </div>
+            <div className="grid grid-cols-3 gap-2 mt-2">
+              <div className="flex flex-col">
+                <span className="text-[10px] text-muted-foreground uppercase">Valor Venda</span>
+                <span className="text-sm font-bold">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(valorTotalVenda)}</span>
+              </div>
+              <div className="flex flex-col border-l pl-2">
+                <span className="text-[10px] text-muted-foreground uppercase">Total Pago</span>
+                <span className="text-sm font-bold text-success">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalPago)}</span>
+              </div>
+              <div className="flex flex-col border-l pl-2">
+                <span className="text-[10px] text-muted-foreground uppercase">Saldo Devedor</span>
+                <span className={cn("text-sm font-bold", saldoDevedorAtual > 0 ? "text-destructive" : "text-success")}>
+                  {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(saldoDevedorAtual)}
+                </span>
+              </div>
+            </div>
+          </div>
+
           <div className="space-y-1.5">
-            <Label className="text-xs">Valor (R$)</Label>
+            <Label className="text-xs">Valor deste Recibo (R$)</Label>
             <Input
               type="number" step="0.01" min="0"
               value={valor}
               onChange={(e) => setValor(e.target.value)}
               placeholder="0,00"
+              className={cn(Number(valor) > saldoDevedorAtual + 0.01 && "border-destructive text-destructive")}
+            />
+            {Number(valor) > saldoDevedorAtual + 0.01 && (
+              <p className="text-[10px] text-destructive font-medium italic">Valor maior que o saldo devedor!</p>
+            )}
+          </div>
+
+          <div className="space-y-1.5">
+            <Label className="text-xs">Data do Pagamento</Label>
+            <Input
+              type="date"
+              value={dataPagamento}
+              onChange={(e) => setDataPagamento(e.target.value)}
             />
           </div>
 
@@ -402,14 +442,28 @@ export function EmitirReciboModal({
             <Select value={formaPagamento} onValueChange={setFormaPagamento}>
               <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="Pix">Pix</SelectItem>
-                <SelectItem value="Boleto">Boleto</SelectItem>
+                <SelectItem value="PIX">PIX</SelectItem>
+                <SelectItem value="TED/DOC">Transferência (TED/DOC)</SelectItem>
+                <SelectItem value="Boleto">Boleto Bancário</SelectItem>
                 <SelectItem value="Cartão de Crédito">Cartão de Crédito</SelectItem>
-                <SelectItem value="Transferência Bancária">Transferência Bancária</SelectItem>
+                <SelectItem value="Cartão de Débito">Cartão de Débito</SelectItem>
                 <SelectItem value="Dinheiro">Dinheiro</SelectItem>
+                <SelectItem value="Cheque">Cheque</SelectItem>
+                <SelectItem value="Financiamento">Financiamento (EOS / Banco)</SelectItem>
               </SelectContent>
             </Select>
           </div>
+
+          {formaPagamento === "Financiamento" && (
+            <div className="space-y-1.5">
+              <Label className="text-xs">Instituição Financeira</Label>
+              <Input
+                value={instituicaoFinanceira}
+                onChange={(e) => setInstituicaoFinanceira(e.target.value)}
+                placeholder="Ex: EOS, BV, Santander..."
+              />
+            </div>
+          )}
 
           <div className="space-y-1.5 sm:col-span-2">
             <Label className="text-xs">Número (opcional)</Label>
