@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Layers, Trash2 } from "lucide-react";
+import { Layers, Trash2, ShieldCheck } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
 import {
@@ -25,9 +25,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { ProjetoEtapaManager } from "./ProjetoEtapaManager";
 import { ProjetoAutomacaoConfig } from "./ProjetoAutomacaoConfig";
+import { StageValidationsConfig } from "./StageValidationsConfig";
 import type { Pipeline, PipelineStage } from "@/hooks/useDealPipeline";
 
 interface Props {
