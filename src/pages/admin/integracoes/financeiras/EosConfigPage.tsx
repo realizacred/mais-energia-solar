@@ -325,11 +325,11 @@ export default function EosIntegrationConfig() {
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Responsável:</span>
-                  <span className="font-medium">{tenantData.adminProfile?.full_name}</span>
+                  <span className="font-medium">{tenantData.adminProfile?.nome}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">E-mail:</span>
-                  <span className="font-medium">{tenantData.adminProfile?.email}</span>
+                  <span className="font-medium">{user?.email}</span>
                 </div>
               </div>
             )}
