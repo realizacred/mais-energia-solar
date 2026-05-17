@@ -144,44 +144,46 @@ export function useEmitirRecibo() {
         }
       }
 
-      // Espelhar recibo no centro financeiro (lancamentos_financeiros)
-      try {
-        const marker = `recibo_id:${reciboId}`;
-        const { data: existing } = await supabase
-          .from("lancamentos_financeiros")
-          .select("id")
-          .eq("tenant_id", tenantId)
-          .ilike("observacoes", `%${marker}%`)
-          .maybeSingle();
-
-        if (!existing) {
-          const templateNome = input.template || "Recibo";
-          const numeroSuffix = input.numero ? ` #${input.numero}` : "";
-          const descricaoFinal = `${templateNome}${numeroSuffix}`;
-
-          const { error: lancErr } = await supabase
+      // Espelhar recibo no centro financeiro (lancamentos_financeiros) se não houver vínculo explícito
+      if (!input.lancamento_id) {
+        try {
+          const marker = `recibo_id:${reciboId}`;
+          const { data: existing } = await supabase
             .from("lancamentos_financeiros")
-            .insert({
-              tenant_id: tenantId,
-              tipo: "receita",
-              categoria: "recibo",
-              descricao: descricaoFinal,
-              valor: input.valor,
-              data_lancamento: input.data_pagamento || new Date().toISOString().slice(0, 10),
-              status: "confirmado",
-              cliente_id: input.cliente_id ?? null,
-              projeto_id: input.projeto_id,
-              observacoes: `${marker}`,
-              created_by: userId,
-            });
-          if (lancErr) {
-            console.warn("[useEmitirRecibo] lancamento financeiro falhou:", lancErr);
-          } else {
-            qc.invalidateQueries({ queryKey: ["lancamentos_financeiros"] });
+            .select("id")
+            .eq("tenant_id", tenantId)
+            .ilike("observacoes", `%${marker}%`)
+            .maybeSingle();
+
+          if (!existing) {
+            const templateNome = input.template || "Recibo";
+            const numeroSuffix = input.numero ? ` #${input.numero}` : "";
+            const descricaoFinal = `${templateNome}${numeroSuffix}`;
+
+            const { error: lancErr } = await supabase
+              .from("lancamentos_financeiros")
+              .insert({
+                tenant_id: tenantId,
+                tipo: "receita",
+                categoria: "recibo",
+                descricao: descricaoFinal,
+                valor: input.valor,
+                data_lancamento: input.data_pagamento || new Date().toISOString().slice(0, 10),
+                status: "confirmado",
+                cliente_id: input.cliente_id ?? null,
+                projeto_id: input.projeto_id,
+                observacoes: `${marker}`,
+                created_by: userId,
+              });
+            if (lancErr) {
+              console.warn("[useEmitirRecibo] lancamento financeiro falhou:", lancErr);
+            } else {
+              qc.invalidateQueries({ queryKey: ["lancamentos_financeiros"] });
+            }
           }
+        } catch (e) {
+          console.warn("[useEmitirRecibo] mirror to lancamentos_financeiros failed:", e);
         }
-      } catch (e) {
-        console.warn("[useEmitirRecibo] mirror to lancamentos_financeiros failed:", e);
       }
 
       return reciboId;
