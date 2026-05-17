@@ -280,28 +280,35 @@ import { getConvertedStatusIds } from "@/modules/orcamentos/utils/operationalFil
          </div>
  
        {/* Charts Row */}
-       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
          {/* Trend Chart */}
-         <Card>
-           <CardHeader className="pb-2">
-             <CardTitle className="text-sm font-medium flex items-center gap-2">
+         <Card className="border-none shadow-md overflow-hidden bg-card/50 backdrop-blur-sm">
+           <CardHeader className="pb-4 border-b border-border/50 bg-muted/20">
+             <CardTitle className="text-sm font-bold flex items-center gap-2 uppercase tracking-wider text-muted-foreground">
                <TrendingUp className="h-4 w-4 text-primary" />
-               Orçamentos Captados (14 dias)
+               Tendência de Captagem (14 dias)
              </CardTitle>
            </CardHeader>
-           <CardContent>
-             <div className="h-[180px]">
+           <CardContent className="pt-6">
+             <div className="h-[220px]">
                <ResponsiveContainer width="100%" height="100%">
                  <LineChart data={trendData}>
-                   <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                   <defs>
+                     <linearGradient id="colorOrc" x1="0" y1="0" x2="0" y2="1">
+                       <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.1}/>
+                       <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0}/>
+                     </linearGradient>
+                   </defs>
+                   <CartesianGrid strokeDasharray="3 3" vertical={false} className="stroke-muted/50" />
                    <XAxis
                      dataKey="date"
-                     tick={{ fontSize: 10 }}
+                     tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
                      tickLine={false}
                      axisLine={false}
+                     dy={10}
                    />
                    <YAxis
-                     tick={{ fontSize: 10 }}
+                     tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
                      tickLine={false}
                      axisLine={false}
                      allowDecimals={false}
@@ -310,17 +317,20 @@ import { getConvertedStatusIds } from "@/modules/orcamentos/utils/operationalFil
                      contentStyle={{
                        backgroundColor: "hsl(var(--background))",
                        border: "1px solid hsl(var(--border))",
-                       borderRadius: "8px",
+                       borderRadius: "12px",
                        fontSize: "12px",
+                       boxShadow: "0 10px 15px -3px rgba(0,0,0,0.1)",
                      }}
+                     cursor={{ stroke: "hsl(var(--primary))", strokeWidth: 1, strokeDasharray: "4 4" }}
                    />
                    <Line
                      type="monotone"
                      dataKey="orcamentos"
                      stroke="hsl(var(--primary))"
-                     strokeWidth={2}
-                     dot={{ fill: "hsl(var(--primary))", strokeWidth: 0, r: 3 }}
-                     activeDot={{ r: 5 }}
+                     strokeWidth={3}
+                     dot={{ fill: "hsl(var(--primary))", strokeWidth: 2, r: 4, stroke: "white" }}
+                     activeDot={{ r: 6, strokeWidth: 0 }}
+                     animationDuration={1500}
                    />
                  </LineChart>
                </ResponsiveContainer>
@@ -329,43 +339,53 @@ import { getConvertedStatusIds } from "@/modules/orcamentos/utils/operationalFil
          </Card>
  
          {/* Status Distribution */}
-         <Card>
-           <CardHeader className="pb-2">
-             <CardTitle className="text-sm font-medium flex items-center gap-2">
+         <Card className="border-none shadow-md overflow-hidden bg-card/50 backdrop-blur-sm">
+           <CardHeader className="pb-4 border-b border-border/50 bg-muted/20">
+             <CardTitle className="text-sm font-bold flex items-center gap-2 uppercase tracking-wider text-muted-foreground">
                <Target className="h-4 w-4 text-primary" />
-               Distribuição por Status
+               Distribuição de Funil
              </CardTitle>
            </CardHeader>
-           <CardContent>
-             <div className="h-[180px]">
+           <CardContent className="pt-6">
+             <div className="h-[220px]">
                {statusDistribution.length > 0 ? (
                  <ResponsiveContainer width="100%" height="100%">
-                   <BarChart data={statusDistribution} layout="vertical">
+                   <BarChart data={statusDistribution} layout="vertical" margin={{ left: -20 }}>
                      <CartesianGrid
                        strokeDasharray="3 3"
-                       className="stroke-muted"
+                       className="stroke-muted/50"
                        horizontal={false}
+                       vertical={false}
                      />
-                     <XAxis type="number" tick={{ fontSize: 10 }} allowDecimals={false} />
+                     <XAxis type="number" hide />
                      <YAxis
                        type="category"
                        dataKey="name"
-                       tick={{ fontSize: 10 }}
-                       width={80}
+                       tick={{ fontSize: 11, fontWeight: 500 }}
+                       width={100}
+                       axisLine={false}
+                       tickLine={false}
                      />
                      <Tooltip
                        contentStyle={{
                          backgroundColor: "hsl(var(--background))",
                          border: "1px solid hsl(var(--border))",
-                         borderRadius: "8px",
+                         borderRadius: "12px",
                          fontSize: "12px",
+                         boxShadow: "0 10px 15px -3px rgba(0,0,0,0.1)",
                        }}
+                       cursor={{ fill: "hsl(var(--muted)/0.3)" }}
                        formatter={(value, name, props) => [
-                         value,
+                         <span className="font-bold text-primary">{value}</span>,
                          props.payload.fullName,
                        ]}
                      />
-                     <Bar dataKey="count" radius={[0, 4, 4, 0]}>
+                     <Bar 
+                      dataKey="count" 
+                      radius={[0, 10, 10, 0]} 
+                      barSize={18}
+                      animationDuration={1500}
+                    >
                        {statusDistribution.map((entry, index) => (
                          <Cell key={`cell-${index}`} fill={entry.color} />
                        ))}
@@ -373,8 +393,9 @@ import { getConvertedStatusIds } from "@/modules/orcamentos/utils/operationalFil
                    </BarChart>
                  </ResponsiveContainer>
                ) : (
-                 <div className="h-full flex items-center justify-center text-muted-foreground text-sm">
-                   Nenhum orçamento ainda
+                 <div className="h-full flex flex-col items-center justify-center text-muted-foreground text-sm">
+                   <Target className="h-10 w-10 opacity-10 mb-2" />
+                   Nenhum dado para exibir
                  </div>
                )}
              </div>
