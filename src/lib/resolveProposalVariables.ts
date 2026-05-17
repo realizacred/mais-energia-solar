@@ -48,6 +48,13 @@ import type {
   PagamentoOpcao,
   ComercialData,
 } from "@/components/admin/propostas-nativas/wizard/types";
+import { 
+  formatBRL, 
+  formatDate, 
+  displayCpfCnpj, 
+  displayPhone, 
+  formatNumber 
+} from "./formatters/index";
 
 // ── Types ────────────────────────────────────────────────────
 
