@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { Send, MessageSquare, UserPen, Mail } from "lucide-react";
+import { Send, MessageSquare, UserPen, Mail, AlertTriangle, ExternalLink, Plus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
@@ -8,6 +8,17 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Spinner } from "@/components/ui-kit/Spinner";
+import { useNavigate } from "react-router-dom";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { FormModalTemplate, FormGrid, FormSection } from "@/components/ui-kit/FormModalTemplate";
 import { EmailInput } from "@/components/ui/EmailInput";
 import { PhoneInput } from "@/components/ui-kit/inputs/PhoneInput";
@@ -108,6 +119,10 @@ export function LeadEditDialog({
   const [sendingWa, setSendingWa] = useState(false);
   const [phoneChanged, setPhoneChanged] = useState(false);
 
+  const [duplicateLead, setDuplicateLead] = useState<{ id: string; nome: string; consultor_nome: string | null } | null>(null);
+  const [showDuplicateDialog, setShowDuplicateDialog] = useState(false);
+  const navigate = useNavigate();
+
   // Reset form when dialog opens
   useEffect(() => {
     if (open) {
@@ -142,7 +157,7 @@ export function LeadEditDialog({
     }
   }, [initialData.telefone]);
 
-  const handleSave = async () => {
+  const handleSave = async (forceCreate = false) => {
     if (!nome.trim() || !telefone.trim()) {
       toast({ title: "Preencha nome e telefone", variant: "destructive" });
       return;
@@ -150,7 +165,33 @@ export function LeadEditDialog({
 
     setSaving(true);
     try {
+      const telefoneDigitos = telefone.replace(/\D/g, "");
+      
+      // Verificação de duplicidade antes do insert/update
+      // Apenas se for um novo cadastro (id temporário ou similar) ou se o telefone mudou
+      if (!forceCreate && (telefone !== initialData.telefone)) {
+        const { data: existente } = await supabase
+          .from('leads')
+          .select('id, nome, consultor_id, profiles:consultor_id(nome)')
+          .eq('telefone_normalized', telefoneDigitos)
+          .neq('status_id', 'perdido') // Assume status 'perdido' como ignorável para duplicidade
+          .limit(1)
+          .maybeSingle();
+
+        if (existente && existente.id !== leadId) {
+          setDuplicateLead({
+            id: existente.id,
+            nome: existente.nome,
+            consultor_nome: (existente.profiles as any)?.nome || null
+          });
+          setShowDuplicateDialog(true);
+          setSaving(false);
+          return;
+        }
+      }
+
       const selectedConsultor = consultores.find((c) => c.id === consultorId);
+
 
       const leadUpdate: Record<string, unknown> = {
         nome: nome.trim(),
@@ -496,6 +537,60 @@ export function LeadEditDialog({
           )}
         </Button>
       </div>
+
+      <AlertDialog open={showDuplicateDialog} onOpenChange={setShowDuplicateDialog}>
+        <AlertDialogContent className="max-w-[90vw] sm:max-w-md">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2 text-warning">
+              <AlertTriangle className="h-5 w-5" />
+              Lead já existe com este telefone
+            </AlertDialogTitle>
+            <AlertDialogDescription className="space-y-4 pt-2">
+              <div className="bg-muted/50 p-4 rounded-lg space-y-2 border border-border">
+                <div className="flex items-center gap-2">
+                  <UserPen className="h-4 w-4 text-muted-foreground shrink-0" />
+                  <span className="font-semibold text-foreground">{duplicateLead?.nome}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Mail className="h-4 w-4 text-muted-foreground shrink-0" />
+                  <span className="text-sm text-muted-foreground">
+                    Consultor: <span className="text-foreground">{duplicateLead?.consultor_nome || "Sem consultor"}</span>
+                  </span>
+                </div>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                Deseja abrir o cadastro existente ou salvar as alterações mesmo assim?
+              </p>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+
+          <AlertDialogFooter className="flex-col gap-2 sm:flex-row mt-4">
+            <AlertDialogCancel onClick={() => setShowDuplicateDialog(false)} className="sm:flex-1">
+              Cancelar
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                setShowDuplicateDialog(false);
+                onOpenChange(false);
+                navigate(`/admin/leads?id=${duplicateLead?.id}`);
+              }}
+              className="sm:flex-1 bg-secondary hover:bg-secondary/90 text-secondary-foreground"
+            >
+              <ExternalLink className="h-4 w-4 mr-2" />
+              Abrir Existente
+            </AlertDialogAction>
+            <AlertDialogAction
+              onClick={() => {
+                setShowDuplicateDialog(false);
+                handleSave(true);
+              }}
+              className="sm:flex-1"
+            >
+              Salvar mesmo assim
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </FormModalTemplate>
   );
 }
