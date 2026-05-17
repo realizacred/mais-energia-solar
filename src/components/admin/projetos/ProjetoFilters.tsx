@@ -53,23 +53,29 @@ function SortableFunilChip({
   };
   return (
     <div ref={setNodeRef} style={style} className="flex items-center shrink-0">
-      <button
-        type="button"
-        onClick={onSelect}
-        {...attributes}
-        {...listeners}
-        className={cn(
-          "flex items-center gap-1 px-3 h-7 text-xs font-medium rounded-md whitespace-nowrap touch-none select-none transition-all",
-          isDragging ? "cursor-grabbing" : "cursor-grab",
-          active
-            ? "bg-background text-foreground shadow-sm"
-            : "text-muted-foreground hover:text-foreground hover:bg-background/50",
-        )}
-        title="Arraste para reordenar • Clique para selecionar"
-      >
-        <GripVertical className="h-3 w-3 opacity-50" />
-        {funil.nome}
-      </button>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <button
+            type="button"
+            onClick={onSelect}
+            {...attributes}
+            {...listeners}
+            className={cn(
+              "flex items-center gap-1 px-3 h-7 text-xs font-medium rounded-md whitespace-nowrap touch-none select-none transition-all",
+              isDragging ? "cursor-grabbing" : "cursor-grab",
+              active
+                ? "bg-background text-foreground shadow-sm"
+                : "text-muted-foreground hover:text-foreground hover:bg-background/50",
+            )}
+          >
+            <GripVertical className="h-3 w-3 opacity-50" />
+            {funil.nome}
+          </button>
+        </TooltipTrigger>
+        <TooltipContent side="bottom" className="text-xs">
+          Arraste para reordenar • Clique para selecionar
+        </TooltipContent>
+      </Tooltip>
       {onEditEtapas && (
         <Button
           variant="ghost"
