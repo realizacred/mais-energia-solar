@@ -100,7 +100,7 @@ export function useOperationalStatus(dealId: string | null) {
         return STATUS_CONFIG.desconhecido;
       }
 
-      const { activation, homologacao, os_instalacao, deal, memberships } = data;
+      const { activation, homologacao, os_instalacao, deal, memberships, projeto } = data;
 
       const funnelMemberships = memberships || [];
 
@@ -141,8 +141,11 @@ export function useOperationalStatus(dealId: string | null) {
       const engenhariaPipeline = funnelMemberships.find((m: any) => 
         m.pipeline_name.toLowerCase().includes("engenharia")
       );
-      if (engenhariaPipeline) {
-        if (engenhariaPipeline.stage_name.toLowerCase().includes("aprovado")) {
+      
+      const isEmEngenharia = engenhariaPipeline || (projeto?.funil_nome?.toLowerCase().includes("engenharia") && projeto?.etapa_nome);
+
+      if (isEmEngenharia) {
+        if (engenhariaPipeline?.stage_name.toLowerCase().includes("aprovado") || projeto?.etapa_nome?.toLowerCase().includes("aprovado")) {
           return STATUS_CONFIG.engenharia_aprovada;
         }
         return STATUS_CONFIG.em_engenharia;
