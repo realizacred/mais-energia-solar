@@ -135,7 +135,7 @@ export default function VendorOrcamentosView({ portal }: Props) {
       <Tabs defaultValue="meus-leads" className="w-full">
         <TabsList className="mb-4">
           <TabsTrigger value="meus-leads" className="gap-2">
-            <Users className="h-4 w-4" /> Meus Leads
+            <Users className="h-4 w-4" /> Meus Leads ({filteredOrcamentos.length})
           </TabsTrigger>
           <TabsTrigger value="leads-disponiveis" className="gap-2">
             <UserPlus className="h-4 w-4" /> Leads Disponíveis
@@ -276,9 +276,8 @@ function AvailableLeadsBadge() {
     }
   });
 
-  if (count === 0) return null;
   return (
-    <Badge variant="destructive" className="ml-1 px-1.5 h-4 min-w-[16px] text-[10px] flex items-center justify-center">
+    <Badge variant="secondary" className="ml-1 px-1.5 h-4 min-w-[16px] text-[10px] flex items-center justify-center bg-muted-foreground/20 text-muted-foreground">
       {count}
     </Badge>
   );
@@ -286,27 +285,35 @@ function AvailableLeadsBadge() {
 
 function StaleProjectsBadge() {
   const { user } = useAuth();
-  const { data: count = 0 } = useQuery({
-    queryKey: ["stale-projects-count", user?.id],
+  const { data: stats = { total: 0, stale: 0 } } = useQuery({
+    queryKey: ["my-projects-stats", user?.id],
     enabled: !!user?.id,
     queryFn: async () => {
       const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
-      const { count, error } = await (supabase as any)
+      const { data, error } = await (supabase as any)
         .from("projetos")
-        .select("*", { count: "exact", head: true })
+        .select("updated_at")
         .eq("consultor_id", user!.id)
-        .not("status", "in", "('cancelado', 'concluido')")
-        .lt("updated_at", sevenDaysAgo);
+        .not("status", "in", "('cancelado', 'concluido')");
+      
       if (error) throw error;
-      return count || 0;
+      
+      const stale = (data || []).filter((p: any) => new Date(p.updated_at) < new Date(sevenDaysAgo)).length;
+      return { total: data?.length || 0, stale };
     }
   });
 
-  if (count === 0) return null;
   return (
-    <Badge variant="destructive" className="ml-1 px-1.5 h-4 min-w-[16px] text-[10px] flex items-center justify-center">
-      {count}
-    </Badge>
+    <div className="flex items-center gap-1">
+      <Badge variant="secondary" className="ml-1 px-1.5 h-4 min-w-[16px] text-[10px] bg-muted-foreground/20 text-muted-foreground">
+        {stats.total}
+      </Badge>
+      {stats.stale > 0 && (
+        <Badge variant="destructive" className="px-1.5 h-4 text-[10px]">
+          {stats.stale}!
+        </Badge>
+      )}
+    </div>
   );
 }
 

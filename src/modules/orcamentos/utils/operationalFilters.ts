@@ -98,7 +98,7 @@ export function classifyOrcamentoOperationalStatus(
 
   if (daysSinceContact >= 45) return "backlog_antigo";
   if (daysSinceContact >= 16) return "reativacao";
-  if (daysSinceContact >= 8) return "urgente";
+  if (daysSinceContact >= 6) return "urgente";
   if (daysSinceContact >= 3) return "atencao";
   return "em_dia";
 }

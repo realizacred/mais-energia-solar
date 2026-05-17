@@ -195,7 +195,14 @@ export function useOrcamentosVendedor({
 
       if (mustFilterByVendedor) {
         if (vendedorId) {
-          const q1 = applySearch(buildBase(terminalStatusIds).eq("consultor_id", vendedorId)).range(from, to);
+          // RB-76 Fix: Filter by BOTH potential consultant ID mappings
+          const { data: profile } = await (supabase as any).from("profiles").select("id").eq("user_id", vendedorId).single();
+          const profileId = profile?.id;
+
+          let filterOr = `consultor_id.eq.${vendedorId}`;
+          if (profileId) filterOr += `,consultor_id.eq.${profileId}`;
+          
+          const q1 = applySearch(buildBase(terminalStatusIds).or(filterOr)).range(from, to);
           const r1 = await q1;
           if (r1.error) throw r1.error;
           primaryRows = r1.data || [];
