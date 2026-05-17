@@ -538,12 +538,12 @@ export function DocumentosTab({ dealId, clienteTelefone, consultorTelefone: cons
       </section>
 
       <section className="space-y-3 mt-8">
-        <ProjectDocumentsHub dealId={dealId} onPreviewFile={setFilePreview} />
+        <ProjectDocumentsHub dealId={dealId} />
       </section>
 
       <SignatureModal
         open={!!signConfirmDoc}
-        onOpenChange={(open) => !open && setSignConfirmDoc(null)}
+        onClose={() => setSignConfirmDoc(null)}
         onSend={handleSendForSignature}
         isPending={signMutation.isPending}
       />
