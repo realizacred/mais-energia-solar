@@ -80,7 +80,7 @@ export function useEmitirRecibo() {
       const { tenantId, userId } = await getCurrentTenantId();
 
       const { data, error } = await supabase
-        .from("recibos")
+        .from("recibos" as any)
         .insert({
           tenant_id: tenantId,
           projeto_id: input.projeto_id,
