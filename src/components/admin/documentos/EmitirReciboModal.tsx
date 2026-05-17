@@ -463,9 +463,13 @@ export function EmitirReciboModal({
     if (Object.keys(updates).length > 0) {
       setDynFields((prev) => {
         const merged = { ...prev };
-        // Não sobrescreve valor já editado pelo usuário
+        // RB-83: Sempre sincroniza campos derivados (valor, saldo, data, cpf) para garantir formatação
         for (const k of Object.keys(updates)) {
-          if (!merged[k]) merged[k] = updates[k];
+          const lowerK = k.toLowerCase();
+          const isDerived = has(lowerK, "valor", "saldo", "total", "data", "cpf", "cnpj");
+          if (!merged[k] || isDerived) {
+            merged[k] = updates[k];
+          }
         }
         return merged;
       });
