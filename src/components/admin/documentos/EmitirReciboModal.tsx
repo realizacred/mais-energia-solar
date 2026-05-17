@@ -201,6 +201,8 @@ export function EmitirReciboModal({
       setTotalPagoHistorico(0);
       setUltimoNumeroRecibo(0);
       setInstituicaoFinanceira("");
+      setPixComprovante(""); setChequeBanco(""); setChequeAgencia(""); setChequeConta(""); setChequeNumero("");
+      setCartaoBandeira(""); setCartaoParcelas("1"); setCartaoNsu(""); setBoletoLinhaDigitavel("");
 
       if (defaultProjetoId) {
         setLoadingContext(true);
