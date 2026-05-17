@@ -157,7 +157,7 @@ export function LeadEditDialog({
     }
   }, [initialData.telefone]);
 
-  const handleSave = async () => {
+  const handleSave = async (forceCreate = false) => {
     if (!nome.trim() || !telefone.trim()) {
       toast({ title: "Preencha nome e telefone", variant: "destructive" });
       return;
@@ -165,7 +165,33 @@ export function LeadEditDialog({
 
     setSaving(true);
     try {
+      const telefoneDigitos = telefone.replace(/\D/g, "");
+      
+      // Verificação de duplicidade antes do insert/update
+      // Apenas se for um novo cadastro (id temporário ou similar) ou se o telefone mudou
+      if (!forceCreate && (telefone !== initialData.telefone)) {
+        const { data: existente } = await supabase
+          .from('leads')
+          .select('id, nome, consultor_id, profiles:consultor_id(nome)')
+          .eq('telefone_normalized', telefoneDigitos)
+          .neq('status_id', 'perdido') // Assume status 'perdido' como ignorável para duplicidade
+          .limit(1)
+          .maybeSingle();
+
+        if (existente && existente.id !== leadId) {
+          setDuplicateLead({
+            id: existente.id,
+            nome: existente.nome,
+            consultor_nome: (existente.profiles as any)?.nome || null
+          });
+          setShowDuplicateDialog(true);
+          setSaving(false);
+          return;
+        }
+      }
+
       const selectedConsultor = consultores.find((c) => c.id === consultorId);
+
 
       const leadUpdate: Record<string, unknown> = {
         nome: nome.trim(),
