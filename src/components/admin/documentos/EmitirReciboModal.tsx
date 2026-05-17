@@ -172,21 +172,37 @@ export function EmitirReciboModal({
     [templates, templateId],
   );
 
-  // Sugestão de valor a partir da proposta aceita (independente de template)
+  // Bloco 1, 3 e 4: Cálculo de saldo e sugestões automáticas
+  const valorTotalVenda = useMemo(() => {
+    return Number(proposalContext?.versao?.valor_total ?? projectContext?.valor_total ?? 0);
+  }, [proposalContext, projectContext]);
+
+  const saldoDevedorAtual = useMemo(() => {
+    return Math.max(0, valorTotalVenda - totalPago);
+  }, [valorTotalVenda, totalPago]);
+
+  const saldoRestanteAposRecibo = useMemo(() => {
+    const vRecibo = Number(valor || 0);
+    return valorTotalVenda - totalPago - vRecibo;
+  }, [valorTotalVenda, totalPago, valor]);
+
+  // Aplicar sugestões baseadas no template
   useEffect(() => {
-    if (valor) return;
-    const v =
-      proposalContext?.versao?.valor_total ??
-      projectContext?.valor_total ??
-      null;
-    if (v && Number(v) > 0) {
-      // Padrão 30% se for sinal
-      const isSinal = template?.nome?.toLowerCase().includes("sinal") ||
-                     descricao?.toLowerCase().includes("sinal");
-      const finalValor = isSinal ? (Number(v) * 0.3) : Number(v);
-      setValor(finalValor.toFixed(2));
+    if (!template) return;
+    
+    const nome = template.nome.toLowerCase();
+    if (nome.includes("sinal")) {
+      const sugerido = valorTotalVenda * 0.3;
+      setValor(sugerido.toFixed(2));
+      setDescricao("Sinal referente ao contrato de instalação solar");
+    } else if (nome.includes("quitação") || nome.includes("quitacao")) {
+      setValor(saldoDevedorAtual.toFixed(2));
+      setDescricao("Quitação do contrato de instalação solar");
+    } else if (nome.includes("parcela")) {
+      // Buscar último recibo para incrementar número? (Opcional, manual por enquanto ou auto se houver histórico)
+      setDescricao(`Parcela do contrato de instalação solar`);
     }
-  }, [proposalContext, projectContext, template, descricao]);
+  }, [template, valorTotalVenda, saldoDevedorAtual]);
 
   // Auto-fill dynamic fields. Roda assim que houver projectContext/proposalContext,
   // e re-aplica quando um template é selecionado depois.
