@@ -60,9 +60,13 @@ export function VincularFornecedorModal({
         projeto_id: projetoId,
         fornecedor_id: fornecedorId,
         numero_pedido: numeroPedido || undefined,
-        valor_total: valorTotal,
         data_previsao_entrega: dataPrevisao || undefined,
         observacoes: observacoes || undefined,
+        itens: [{
+          descricao: "Kit Solar / Equipamentos",
+          quantidade: 1,
+          valor_unitario: valorTotal
+        }]
       });
 
       // 2. Gravar histórico do projeto (evento manual via supabase)

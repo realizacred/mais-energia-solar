@@ -2,6 +2,8 @@ import { useState, useMemo, useCallback } from "react";
 import { cn } from "@/lib/utils";
 import { formatPhoneBR } from "@/lib/formatters";
 import { useToast } from "@/hooks/use-toast";
+import { VincularFornecedorModal } from "@/components/vendor/VincularFornecedorModal";
+import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
@@ -75,6 +77,8 @@ export default function LeadsPipeline() {
   const [selectedCidade, setSelectedCidade] = useState("all");
   const [consumoRange, setConsumoRange] = useState("all");
   const [dateRange, setDateRange] = useState("all");
+
+  const [pendingDrop, setPendingDrop] = useState<{ lead: PipelineLead, statusId: string } | null>(null);
 
   const { toast } = useToast();
 
@@ -196,14 +200,36 @@ export default function LeadsPipeline() {
       setDraggedLead(null);
       return;
     }
+
+    // Interceptor: Pedido Efetuado
+    const isPedidoEfetuado = statusId === "b3fe8902-69f1-4b58-b60c-64b1e795bf88";
+    if (isPedidoEfetuado) {
+      // Check if project (lead with converted status) already has an order
+      const { data: ordensExistentes } = await supabase
+        .from("ordens_compra")
+        .select("id")
+        .eq("projeto_id", draggedLead.id)
+        .limit(1);
+
+      if (!ordensExistentes || ordensExistentes.length === 0) {
+        setPendingDrop({ lead: draggedLead, statusId });
+        setDraggedLead(null);
+        return;
+      }
+    }
+
+    confirmStageChange(draggedLead, statusId);
+  };
+
+  const confirmStageChange = async (lead: PipelineLead, statusId: string) => {
     // Optimistic update
-    setAllLeads(prev => prev.map(l => l.id === draggedLead.id ? { ...l, status_id: statusId } : l));
+    setAllLeads(prev => prev.map(l => l.id === lead.id ? { ...l, status_id: statusId } : l));
     try {
-      await updateLeadMutation.mutateAsync({ id: draggedLead.id, updates: { status_id: statusId } });
-      toast({ title: "Lead movido!", description: `${draggedLead.nome} foi movido para a nova etapa.` });
+      await updateLeadMutation.mutateAsync({ id: lead.id, updates: { status_id: statusId } });
+      toast({ title: "Lead movido!", description: `${lead.nome} foi movido para a nova etapa.` });
     } catch {
       // Rollback
-      setAllLeads(prev => prev.map(l => l.id === draggedLead.id ? { ...l, status_id: draggedLead.status_id } : l));
+      setAllLeads(prev => prev.map(l => l.id === lead.id ? { ...l, status_id: lead.status_id } : l));
       toast({ title: "Erro", description: "Não foi possível mover o lead.", variant: "destructive" });
     } finally {
       setDraggedLead(null);
@@ -311,6 +337,23 @@ export default function LeadsPipeline() {
 
   return (
     <div className="space-y-4">
+      <VincularFornecedorModal
+        open={!!pendingDrop}
+        onOpenChange={(open) => !open && setPendingDrop(null)}
+        projetoId={pendingDrop?.lead.id || ""}
+        clienteNome={pendingDrop?.lead.nome}
+        onSuccess={() => {
+          if (pendingDrop) {
+            confirmStageChange(pendingDrop.lead, pendingDrop.statusId);
+            setPendingDrop(null);
+          }
+        }}
+        onCancel={() => {
+          setPendingDrop(null);
+          toast({ title: "Avanço cancelado", description: "Vincule um fornecedor para avançar para Pedido Efetuado." });
+        }}
+      />
+
       <PageHeader
         icon={LayoutGrid}
         title="Funil comercial"
