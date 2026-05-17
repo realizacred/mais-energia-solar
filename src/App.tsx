@@ -49,6 +49,7 @@ const Sistema = lazy(() => import("./pages/Sistema"));
 const PWADebugPage = lazy(() => import("./pages/PWADebugPage"));
 const OAuthGoogleCallback = lazy(() => import("./pages/OAuthGoogleCallback"));
 const GoogleContactsCallbackPage = lazy(() => import("./pages/admin/GoogleContactsCallbackPage"));
+const PortalCliente = lazy(() => import("./pages/PortalCliente"));
 const IntegrationsSandbox = lazy(() => import("./dev/IntegrationsSandboxRoute"));
 
 const queryClient = new QueryClient({
@@ -120,6 +121,7 @@ const App = () => (
               <Route path="/politica-de-privacidade" element={<PublicLeadShell><PoliticaPrivacidade /></PublicLeadShell>} />
               <Route path="/uc/login" element={<PublicLeadShell><UCLogin /></PublicLeadShell>} />
               <Route path="/uc/:token" element={<PublicLeadShell><UCPublica /></PublicLeadShell>} />
+              <Route path="/portal/:token" element={<PublicLeadShell><PortalCliente /></PublicLeadShell>} />
 
 
               <Route path="/portal" element={<InternalAppShell><TenantGuardGate><PortalSelector /></TenantGuardGate></InternalAppShell>} />
