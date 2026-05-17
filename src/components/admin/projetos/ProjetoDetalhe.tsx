@@ -394,6 +394,13 @@ function ProjetoDetalheContent() {
   const [editProjetoOpen, setEditProjetoOpen] = useState(false);
   const [editProjetoNome, setEditProjetoNome] = useState("");
   const [editProjetoDescricao, setEditProjetoDescricao] = useState("");
+
+  useEffect(() => {
+    if (editProjetoOpen) {
+      setEditProjetoNome(projetoNome ?? "");
+      setEditProjetoDescricao(projetoDescricao ?? "");
+    }
+  }, [editProjetoOpen, projetoNome, projetoDescricao]);
   const [savingProjeto, setSavingProjeto] = useState(false);
   const [reabrirDealOpen, setReabrirDealOpen] = useState(false);
   const [isUpdateValueModalOpen, setIsUpdateValueModalOpen] = useState(false);
