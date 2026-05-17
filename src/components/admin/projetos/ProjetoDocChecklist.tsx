@@ -205,93 +205,160 @@ export function ProjetoDocChecklist({ dealId, compact = false }: Props) {
 
         {useLegacy ? (
           // Legacy mode
-          LEGACY_ITEMS.map(item => {
-            const checked = isLegacyItemChecked(item.key);
-            const hasCanonicalDoc = canonicalDocs.some(d => {
-              const docCat = d.categoria?.toLowerCase().trim();
-              const canonicalCat = LEGACY_CAT_MAP[item.key];
-              return docCat === canonicalCat || 
-                     (canonicalCat === 'rg_cnh' && (docCat === 'identidade' || docCat === 'rg' || docCat === 'cnh'));
-            });
-            
-            return (
-              <button
-                key={item.key}
-                onClick={() => handleLegacyToggle(item.key)}
-                disabled={legacyMutation.isPending}
-                className={cn(
-                  "w-full flex items-center gap-3 px-3 py-1.5 rounded-lg transition-all text-left hover:bg-muted/50",
-                  checked ? "bg-success/5" : "bg-card"
-                )}
-              >
-                <div className={cn(
-                  "w-5 h-5 rounded-md border-2 flex items-center justify-center shrink-0 transition-all",
-                  checked ? "bg-success border-success text-success-foreground" : "border-border bg-card"
-                )}>
-                  {checked && <Check className="h-3 w-3" />}
+          <div className="space-y-1">
+            {LEGACY_ITEMS.map(item => {
+              const checked = isLegacyItemChecked(item.key);
+              const hasCanonicalDoc = canonicalDocs.find(d => {
+                const docCat = d.categoria?.toLowerCase().trim();
+                const canonicalCat = LEGACY_CAT_MAP[item.key];
+                return docCat === canonicalCat || 
+                       (canonicalCat === 'rg_cnh' && (docCat === 'identidade' || docCat === 'rg' || docCat === 'cnh'));
+              });
+              const IconComp = item.icon;
+              
+              return (
+                <div
+                  key={item.key}
+                  className={cn(
+                    "w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-all text-left group",
+                    checked ? "bg-success/10 border-success/10" : "bg-card border-transparent hover:bg-muted/30"
+                  )}
+                >
+                  <button
+                    onClick={() => handleLegacyToggle(item.key)}
+                    disabled={legacyMutation.isPending}
+                    className={cn(
+                      "w-5 h-5 rounded-md border-2 flex items-center justify-center shrink-0 transition-all",
+                      checked ? "bg-success border-success text-success-foreground" : "border-border bg-card"
+                    )}
+                  >
+                    {checked && <Check className="h-3 w-3" />}
+                  </button>
+                  <div className={cn("p-1.5 rounded-md bg-muted shrink-0 transition-colors", checked && "bg-success/20")}>
+                    <IconComp className={cn("h-4 w-4 shrink-0", checked ? "text-success" : item.color)} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className={cn("text-xs font-medium transition-all", checked ? "text-success/80 line-through" : "text-foreground")}>
+                      {item.label}
+                    </p>
+                    {checked && hasCanonicalDoc?.created_at && (
+                      <p className="text-[10px] text-muted-foreground/60 flex items-center gap-1">
+                        <CheckCircle className="h-2.5 w-2.5 text-success" />
+                        Entregue em {formatDateShort(hasCanonicalDoc.created_at)}
+                      </p>
+                    )}
+                  </div>
+                  {checked && hasCanonicalDoc ? (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 px-2 text-[10px] text-success hover:text-success hover:bg-success/10 gap-1.5"
+                      onClick={() => window.open(hasCanonicalDoc.path, '_blank')}
+                    >
+                      <Paperclip className="h-3 w-3" />
+                      Visualizar
+                    </Button>
+                  ) : (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 px-3 text-[11px] text-primary hover:text-primary hover:bg-primary/10 gap-1.5"
+                      onClick={() => handleUploadClick(item.key)}
+                    >
+                      <Upload className="h-3 w-3" />
+                      Anexar
+                    </Button>
+                  )}
                 </div>
-                <span className="text-base mr-1">{item.icon}</span>
-                <span className={cn("text-sm flex-1", checked ? "text-muted-foreground line-through" : "text-foreground font-medium")}>
-                  {item.label}
-                </span>
-                {hasCanonicalDoc && (
-                  <Paperclip className="h-3.5 w-3.5 text-success shrink-0" />
-                )}
-              </button>
-            );
-          })
+              );
+            })}
+          </div>
         ) : (
           // Dynamic mode
-          items.map(item => {
-            const status = statusMap.get(item.id);
-            const checked = !!status?.concluido;
-            const hasFile = !!status?.arquivo_path;
-            return (
-              <div
-                key={item.id}
-                className={cn(
-                  "flex items-center gap-3 px-3 py-1.5 rounded-lg transition-all",
-                  "hover:bg-muted/50",
-                  checked ? "bg-success/5" : "bg-card"
-                )}
-              >
-                <button
-                  onClick={() => handleToggle(item.id)}
-                  disabled={toggleMutation.isPending}
-                  className="shrink-0"
+          <div className="space-y-1">
+            {items.map(item => {
+              const status = statusMap.get(item.id);
+              const checked = !!status?.concluido;
+              const hasFile = !!status?.arquivo_path;
+              
+              // Map dynamic item types to icons
+              const getDynamicIcon = (label: string) => {
+                const l = label.toLowerCase();
+                if (l.includes("rg") || l.includes("cnh") || l.includes("cpf") || l.includes("identidade")) return CreditCard;
+                if (l.includes("luz") || l.includes("energia") || l.includes("fatura")) return Zap;
+                if (l.includes("iptu") || l.includes("casa") || l.includes("imovel")) return Home;
+                if (l.includes("foto")) return Camera;
+                if (l.includes("art") || l.includes("tecnico")) return ClipboardList;
+                if (l.includes("contrato") || l.includes("assinatura")) return PenTool;
+                return FileText;
+              };
+              const DynamicIcon = getDynamicIcon(item.label);
+
+              return (
+                <div
+                  key={item.id}
+                  className={cn(
+                    "flex items-center gap-3 px-3 py-2 rounded-lg transition-all border",
+                    checked ? "bg-success/10 border-success/10" : "bg-card border-transparent hover:bg-muted/30",
+                    item.obrigatorio && !checked && "border-destructive/20 bg-destructive/5"
+                  )}
                 >
-                  <div className={cn(
-                    "w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all",
-                    checked ? "bg-success border-success text-success-foreground" : "border-border bg-card"
-                  )}>
-                    {checked && <Check className="h-3 w-3" />}
-                  </div>
-                </button>
-                <span className="text-base mr-1">{item.icon}</span>
-                <span className={cn("text-sm flex-1", checked ? "text-muted-foreground line-through" : "text-foreground font-medium")}>
-                  {item.label}
-                  {item.obrigatorio && <span className="text-destructive ml-1">*</span>}
-                </span>
-                {hasFile && (
-                  <Paperclip className="h-3.5 w-3.5 text-success shrink-0" />
-                )}
-                {item.aceita_arquivo && (
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-7 w-7 shrink-0"
-                    onClick={() => handleUploadClick(item.id)}
-                    disabled={uploadMutation.isPending}
+                  <button
+                    onClick={() => handleToggle(item.id)}
+                    disabled={toggleMutation.isPending}
+                    className="shrink-0"
                   >
-                    {uploadMutation.isPending && pendingItemRef.current === item.id
-                      ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                      : <Upload className="h-3.5 w-3.5" />
-                    }
-                  </Button>
-                )}
-              </div>
-            );
-          })
+                    <div className={cn(
+                      "w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all",
+                      checked ? "bg-success border-success text-success-foreground" : "border-border bg-card"
+                    )}>
+                      {checked && <Check className="h-3 w-3" />}
+                    </div>
+                  </button>
+                  <div className={cn("p-1.5 rounded-md bg-muted shrink-0 transition-colors", checked && "bg-success/20")}>
+                    <DynamicIcon className={cn("h-4 w-4 shrink-0", checked ? "text-success" : "text-muted-foreground")} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className={cn("text-xs font-medium", checked ? "text-success/80 line-through" : "text-foreground")}>
+                      {item.label}
+                      {item.obrigatorio && !checked && <span className="text-destructive ml-1" title="Obrigatório">★</span>}
+                    </p>
+                    {checked && status?.updated_at && (
+                      <p className="text-[10px] text-muted-foreground/60 flex items-center gap-1">
+                        <CheckCircle className="h-2.5 w-2.5 text-success" />
+                        Concluído em {formatDateShort(status.updated_at)}
+                      </p>
+                    )}
+                  </div>
+                  {checked && hasFile ? (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 px-2 text-[10px] text-success hover:text-success hover:bg-success/10 gap-1.5"
+                      onClick={() => window.open(status.arquivo_path, '_blank')}
+                    >
+                      <Paperclip className="h-3 w-3" />
+                      Visualizar
+                    </Button>
+                  ) : item.aceita_arquivo && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 px-3 text-[11px] text-primary hover:text-primary hover:bg-primary/10 gap-1.5"
+                      onClick={() => handleUploadClick(item.id)}
+                      disabled={uploadMutation.isPending}
+                    >
+                      {uploadMutation.isPending && pendingItemRef.current === item.id
+                        ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        : <Upload className="h-3 w-3" />
+                      }
+                      Anexar
+                    </Button>
+                  )}
+                </div>
+              );
+            })}
+          </div>
         )}
 
         {completed < total && (
