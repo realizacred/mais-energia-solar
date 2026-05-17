@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/dialog";
 import {
   useRecibos, useReciboPDF, useDeleteRecibo, useEnviarReciboWa,
-  useReciboLogs, getReciboSignedUrl, type ReciboEmitido, type ReciboFilters,
+  useReciboLogs, getReciboSignedUrl, type Recibo, type ReciboFilters,
 } from "@/hooks/useRecibos";
 import { EmitirReciboModal } from "@/components/admin/documentos/EmitirReciboModal";
 import { toast } from "sonner";
