@@ -2,14 +2,19 @@
  * DocumentSignersPanel — mostra status individual por signatário do documento.
  * Aparece abaixo do card quando o documento foi enviado e ainda não está totalmente assinado.
  */
-import { Mail, Loader2, CheckCircle2, Eye, Clock, XCircle } from "lucide-react";
+import { Mail, Loader2, CheckCircle2, Eye, Clock, XCircle, MoreVertical, PenTool, Ban } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { useDocumentSigners, useResendSigner, type DocumentSignerRow } from "@/hooks/useDocumentSigners";
+import { useDocumentSigners, useResendSigner, useUpdateSignerStatus, type DocumentSignerRow } from "@/hooks/useDocumentSigners";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 
 interface Props {
   documentId: string;
@@ -17,10 +22,12 @@ interface Props {
 }
 
 const STATUS_BADGE: Record<DocumentSignerRow["status"], { label: string; cls: string; icon: React.ReactNode }> = {
-  signed:  { label: "Assinado",   cls: "bg-success/10 text-success border-success/20",       icon: <CheckCircle2 className="h-3 w-3" /> },
-  viewed:  { label: "Visualizou", cls: "bg-info/10 text-info border-info/20",                icon: <Eye className="h-3 w-3" /> },
-  pending: { label: "Pendente",   cls: "bg-warning/10 text-warning border-warning/20",       icon: <Clock className="h-3 w-3" /> },
-  refused: { label: "Recusou",    cls: "bg-destructive/10 text-destructive border-destructive/20", icon: <XCircle className="h-3 w-3" /> },
+  signed:        { label: "Assinado",          cls: "bg-success/10 text-success border-success/20",       icon: <CheckCircle2 className="h-3 w-3" /> },
+  signed_fisico: { label: "Assinado Físico",   cls: "bg-success/10 text-success border-success/20",       icon: <PenTool className="h-3 w-3" /> },
+  viewed:        { label: "Visualizou",        cls: "bg-info/10 text-info border-info/20",                icon: <Eye className="h-3 w-3" /> },
+  pending:       { label: "Pendente",          cls: "bg-warning/10 text-warning border-warning/20",       icon: <Clock className="h-3 w-3" /> },
+  refused:       { label: "Recusou",           cls: "bg-destructive/10 text-destructive border-destructive/20", icon: <XCircle className="h-3 w-3" /> },
+  cancelled:     { label: "Cancelado",         cls: "bg-muted text-muted-foreground border-muted-foreground/20", icon: <Ban className="h-3 w-3" /> },
 };
 
 const BACKFILL_STATUSES = new Set(["sent", "viewed", "partially_signed"]);
