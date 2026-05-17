@@ -404,7 +404,7 @@ export function EmitirReciboModal({
               </div>
               <div className="flex flex-col border-l pl-2">
                 <span className="text-[10px] text-muted-foreground uppercase">Total Pago</span>
-                <span className="text-sm font-bold text-success">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalPago)}</span>
+                <span className="text-sm font-bold text-success">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalPagoHistorico)}</span>
               </div>
               <div className="flex flex-col border-l pl-2">
                 <span className="text-[10px] text-muted-foreground uppercase">Saldo Devedor</span>
