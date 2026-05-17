@@ -1,5 +1,8 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
+import { ClienteDocumentUpload } from "./ClienteDocumentUpload";
 import { ClientLinkedPlants } from "./monitoring-v2/ClientLinkedPlants";
 import { ClienteEnergiaTab } from "./clientes/ClienteEnergiaTab";
 import { Spinner } from "@/components/ui-kit/Spinner";
@@ -83,6 +86,15 @@ function getSignedUrl(path: string): Promise<string | null> {
 
 const formatCurrency = (val: number | null) =>
   val ? formatBRL(val) : "—";
+
+// Formata valor para card de KPI sem truncar (RB-83)
+// < 100k: completo "R$ XX.XXX,XX"; >= 100k: abreviado "R$ XXXk" / "R$ X,XM"
+const formatCardValue = (val: number | null): string => {
+  if (val == null || isNaN(val)) return "—";
+  if (val >= 1_000_000) return `R$ ${(val / 1_000_000).toFixed(1).replace(".", ",")}M`;
+  if (val >= 100_000) return `R$ ${Math.round(val / 1000)}k`;
+  return formatBRL(val);
+};
 
 function InfoField({ label, value }: { label: string; value: string | null | undefined }) {
   if (!value) return null;
@@ -195,8 +207,18 @@ function TabEmptyState({ icon: Icon, title, description }: { icon: React.Element
 
 export function ClienteViewDialog({ cliente, open, onOpenChange }: ClienteViewDialogProps) {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [previewOpen, setPreviewOpen] = useState(false);
+
+  // Invalida cache ao abrir → garante dados frescos (RB-67)
+  useEffect(() => {
+    if (open && cliente?.id) {
+      queryClient.invalidateQueries({ queryKey: ["cliente-projetos", cliente.id] });
+      queryClient.invalidateQueries({ queryKey: ["cliente-propostas", cliente.id] });
+      queryClient.invalidateQueries({ queryKey: ["cliente-proposta-versoes"] });
+    }
+  }, [open, cliente?.id, queryClient]);
 
   // Data hooks
   const { data: projetos = [], isLoading: loadingProjetos } = useClienteProjetos(cliente?.id ?? null);
@@ -208,19 +230,39 @@ export function ClienteViewDialog({ cliente, open, onOpenChange }: ClienteViewDi
   const { data: versoes = [] } = useClientePropostaVersoes(propostaIds);
   const { data: conversas = [], isLoading: loadingWa } = useClienteConversasWa(cliente?.telefone ?? null);
 
+  // Estado local dos documentos (sincroniza com o cliente quando reabre)
+  const [docs, setDocs] = useState({
+    identidade_urls: cliente?.identidade_urls || [],
+    comprovante_endereco_urls: cliente?.comprovante_endereco_urls || [],
+    comprovante_beneficiaria_urls: cliente?.comprovante_beneficiaria_urls || [],
+  });
+  useEffect(() => {
+    setDocs({
+      identidade_urls: cliente?.identidade_urls || [],
+      comprovante_endereco_urls: cliente?.comprovante_endereco_urls || [],
+      comprovante_beneficiaria_urls: cliente?.comprovante_beneficiaria_urls || [],
+    });
+  }, [cliente?.id, cliente?.identidade_urls, cliente?.comprovante_endereco_urls, cliente?.comprovante_beneficiaria_urls]);
+
   if (!cliente) return null;
 
-  // Fallbacks: dados podem estar NULL no cliente; derivar do projeto/versão mais recente
+  // Hierarquia de dados (RB-67):
+  // 1) versão da proposta aceita (mais recente) > 2) versão mais recente > 3) projeto mais recente > 4) cliente
+  const propostaAceita = propostas.find((p) => p.status === "aceita");
+  const versoesAceitas = propostaAceita
+    ? versoes.filter((v) => v.proposta_id === propostaAceita.id)
+    : [];
+  const versaoFonte = versoesAceitas[0] ?? versoes[0] ?? null;
   const projetoMaisRecente = projetos[0];
-  const versaoMaisRecente = versoes[0];
+
   const valorProjetoEfetivo =
-    cliente.valor_projeto ?? projetoMaisRecente?.valor_total ?? versaoMaisRecente?.valor_total ?? null;
+    versaoFonte?.valor_total ?? projetoMaisRecente?.valor_total ?? cliente.valor_projeto ?? null;
   const potenciaEfetiva =
-    cliente.potencia_kwp ?? projetoMaisRecente?.potencia_kwp ?? versaoMaisRecente?.potencia_kwp ?? null;
+    versaoFonte?.potencia_kwp ?? projetoMaisRecente?.potencia_kwp ?? cliente.potencia_kwp ?? null;
   const inversorEfetivo =
-    cliente.modelo_inversor ?? (projetoMaisRecente as any)?.modelo_inversor ?? null;
+    (projetoMaisRecente as any)?.modelo_inversor ?? cliente.modelo_inversor ?? null;
   const numeroPlacasEfetivo =
-    cliente.numero_placas ?? (projetoMaisRecente as any)?.numero_modulos ?? null;
+    (projetoMaisRecente as any)?.numero_modulos ?? cliente.numero_placas ?? null;
 
   const endereco = [cliente.rua, cliente.numero, cliente.complemento, cliente.bairro].filter(Boolean).join(", ");
   const cidadeEstado = [cliente.cidade, cliente.estado].filter(Boolean).join(" - ");
@@ -228,9 +270,26 @@ export function ClienteViewDialog({ cliente, open, onOpenChange }: ClienteViewDi
   const googleMapsUrl = cliente.localizacao || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(googleMapsQuery)}`;
 
   const totalDocs =
-    (cliente.identidade_urls?.length || 0) +
-    (cliente.comprovante_endereco_urls?.length || 0) +
-    (cliente.comprovante_beneficiaria_urls?.length || 0);
+    (docs.identidade_urls?.length || 0) +
+    (docs.comprovante_endereco_urls?.length || 0) +
+    (docs.comprovante_beneficiaria_urls?.length || 0);
+
+  const handleDocsChange = async (updated: typeof docs) => {
+    setDocs(updated);
+    const { error } = await supabase
+      .from("clientes")
+      .update({
+        identidade_urls: updated.identidade_urls,
+        comprovante_endereco_urls: updated.comprovante_endereco_urls,
+        comprovante_beneficiaria_urls: updated.comprovante_beneficiaria_urls,
+      })
+      .eq("id", cliente.id);
+    if (error) {
+      toast.error("Erro ao salvar documentos: " + error.message);
+    } else {
+      queryClient.invalidateQueries({ queryKey: ["clientes"] });
+    }
+  };
 
   const handlePreviewDoc = async (path: string) => {
     const url = await getSignedUrl(path);
@@ -292,7 +351,7 @@ export function ClienteViewDialog({ cliente, open, onOpenChange }: ClienteViewDi
             <KpiCard
               icon={DollarSign}
               label="Valor do projeto"
-              value={formatCurrency(valorProjetoEfetivo)}
+              value={formatCardValue(valorProjetoEfetivo)}
               borderColor="border-l-primary"
               iconBg="bg-primary/10 text-primary"
             />
@@ -502,29 +561,13 @@ export function ClienteViewDialog({ cliente, open, onOpenChange }: ClienteViewDi
                 <ClientLinkedPlants clientId={cliente.id} />
               </TabsContent>
 
-              {/* ABA 5 — Documentos */}
-              <TabsContent value="docs" className="mt-0 space-y-4">
-                {[
-                  { label: "Identidade (RG/CNH)", paths: cliente.identidade_urls || [] },
-                  { label: "Comprovante de Endereço", paths: cliente.comprovante_endereco_urls || [] },
-                  { label: "Comprovante Beneficiária", paths: cliente.comprovante_beneficiaria_urls || [] },
-                ].map((cat) => (
-                  <div key={cat.label} className="space-y-2">
-                    <h4 className="text-xs font-medium text-muted-foreground">{cat.label}</h4>
-                    {cat.paths.length > 0 ? (
-                      <div className="flex flex-wrap gap-2">
-                        {cat.paths.map((path, idx) => (
-                          <DocumentThumbnail key={idx} path={path} onClick={() => handlePreviewDoc(path)} />
-                        ))}
-                      </div>
-                    ) : (
-                      <p className="text-xs text-muted-foreground italic">Nenhum documento anexado</p>
-                    )}
-                  </div>
-                ))}
-                {totalDocs === 0 && (
-                  <TabEmptyState icon={FileText} title="Nenhum documento" description="Nenhum documento foi anexado a este cliente" />
-                )}
+              {/* ABA 5 — Documentos (com botão Anexar por tipo) */}
+              <TabsContent value="docs" className="mt-0">
+                <ClienteDocumentUpload
+                  clienteId={cliente.id}
+                  documents={docs}
+                  onDocumentsChange={handleDocsChange}
+                />
               </TabsContent>
 
               {/* ABA — Recibos */}
