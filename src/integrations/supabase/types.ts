@@ -12748,6 +12748,7 @@ export type Database = {
         Row: {
           ad_id: string | null
           ad_name: string | null
+          ad_nome: string | null
           adset_id: string | null
           adset_name: string | null
           area: string
@@ -12755,6 +12756,8 @@ export type Database = {
           bairro: string | null
           campaign_id: string | null
           campaign_name: string | null
+          campanha_id: string | null
+          campanha_nome: string | null
           cep: string | null
           cidade: string
           complemento: string | null
@@ -12806,6 +12809,7 @@ export type Database = {
         Insert: {
           ad_id?: string | null
           ad_name?: string | null
+          ad_nome?: string | null
           adset_id?: string | null
           adset_name?: string | null
           area: string
@@ -12813,6 +12817,8 @@ export type Database = {
           bairro?: string | null
           campaign_id?: string | null
           campaign_name?: string | null
+          campanha_id?: string | null
+          campanha_nome?: string | null
           cep?: string | null
           cidade: string
           complemento?: string | null
@@ -12864,6 +12870,7 @@ export type Database = {
         Update: {
           ad_id?: string | null
           ad_name?: string | null
+          ad_nome?: string | null
           adset_id?: string | null
           adset_name?: string | null
           area?: string
@@ -12871,6 +12878,8 @@ export type Database = {
           bairro?: string | null
           campaign_id?: string | null
           campaign_name?: string | null
+          campanha_id?: string | null
+          campanha_nome?: string | null
           cep?: string | null
           cidade?: string
           complemento?: string | null

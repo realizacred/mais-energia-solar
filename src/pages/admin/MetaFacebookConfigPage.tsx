@@ -70,7 +70,7 @@ export default function MetaFacebookConfigPage() {
   if (loadingConfigs || loadingAutomation) {
     return (
       <div className="space-y-6">
-        <PageHeader icon={Facebook} title="Meta Facebook Ads" description="Configure sua integração" />
+        <PageHeader icon={Facebook} title="Marketing — Configurações" description="Configure sua integração" />
         <Card><CardContent className="p-6"><Skeleton className="h-40 w-full" /></CardContent></Card>
       </div>
     );
@@ -86,7 +86,7 @@ export default function MetaFacebookConfigPage() {
   if (showSuccess) {
     return (
       <div className="space-y-6">
-        <PageHeader icon={Facebook} title="Meta Facebook Ads" description="Integração configurada" />
+        <PageHeader icon={Facebook} title="Marketing — Configurações" description="Integração configurada" />
         <Card className="border-border/40">
           <CardContent className="p-8 text-center space-y-4">
             <div className="w-16 h-16 rounded-full bg-success/10 flex items-center justify-center mx-auto">
@@ -114,7 +114,7 @@ export default function MetaFacebookConfigPage() {
   if (isConnected && !shouldShowWizard) {
     return (
       <div className="space-y-6">
-        <PageHeader icon={Facebook} title="Meta Facebook Ads" description="Integração ativa" />
+        <PageHeader icon={Facebook} title="Marketing — Configurações" description="Integração ativa" />
         <ConnectedPanel
           configs={configs!}
           automation={automation}
@@ -133,7 +133,7 @@ export default function MetaFacebookConfigPage() {
   // Wizard
   return (
     <div className="space-y-6">
-      <PageHeader icon={Facebook} title="Meta Facebook Ads" description="Configure sua integração em 3 passos" />
+      <PageHeader icon={Facebook} title="Marketing — Configurações" description="Configure sua integração em 3 passos" />
 
       <Card className="border-border/40">
         <CardContent className="p-5 space-y-6">

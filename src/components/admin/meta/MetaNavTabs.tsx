@@ -2,10 +2,9 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 
 const TABS = [
-  { label: "Painel", path: "/admin/meta-dashboard" },
-  { label: "Campanhas", path: "/admin/meta-campaigns" },
-  { label: "Leads", path: "/admin/meta-leads" },
-  { label: "Configurações", path: "/admin/meta-facebook-config" },
+  { label: "Relatórios", path: "/admin/marketing/relatorios" },
+  { label: "Campanhas", path: "/admin/marketing/campanhas" },
+  { label: "Configurações", path: "/admin/marketing/configuracoes" },
 ];
 
 export function MetaNavTabs() {

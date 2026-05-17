@@ -7,9 +7,9 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { StatCard } from "@/components/ui-kit/StatCard";
 import { MetaNavTabs } from "@/components/admin/meta/MetaNavTabs";
-import { CampaignsGuideSheet } from "@/components/admin/meta/CampaignsGuideSheet";
+import { MarketingGuideModal } from "@/components/admin/marketing/MarketingGuideModal";
 import { SearchInput } from "@/components/ui-kit/SearchInput";
-import { Megaphone, ChevronDown, ChevronUp, ArrowUpDown, RefreshCw, DollarSign, Eye, MousePointerClick, Users } from "lucide-react";
+import { Megaphone, ChevronDown, ChevronUp, ArrowUpDown, RefreshCw, DollarSign, Eye, MousePointerClick, Users, Info } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -46,6 +46,7 @@ export default function MetaCampaignsPage() {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("ALL");
   const [search, setSearch] = useState("");
   const [syncing, setSyncing] = useState(false);
+  const [guideOpen, setGuideOpen] = useState(false);
 
   const toggleSort = (key: SortKey) => {
     if (sortKey === key) {
@@ -81,15 +82,15 @@ export default function MetaCampaignsPage() {
 
   // Summary of filtered campaigns
   const summary = useMemo(() => {
-    return filtered.reduce(
-      (acc, c) => ({
-        spend: acc.spend + c.spend,
-        impressions: acc.impressions + c.impressions,
-        clicks: acc.clicks + c.clicks,
-        reach: acc.reach + c.reach,
-      }),
-      { spend: 0, impressions: 0, clicks: 0, reach: 0 }
-    );
+    const leads = filtered.reduce((acc, c) => acc + (c.leads_count || 0), 0);
+    const spend = filtered.reduce((acc, c) => acc + (c.spend || 0), 0);
+    const clicks = filtered.reduce((acc, c) => acc + (c.clicks || 0), 0);
+    return {
+      spend,
+      leads,
+      cpl: leads > 0 ? spend / leads : 0,
+      clicks
+    };
   }, [filtered]);
 
   const handleSync = async () => {
@@ -129,11 +130,15 @@ export default function MetaCampaignsPage() {
     <div className="space-y-6">
       <PageHeader
         icon={Megaphone}
-        title="Meta Ads — Campanhas"
+        title="Marketing — Campanhas"
         description="Visualize suas campanhas de anúncios"
         actions={
           <div className="flex items-center gap-2">
-            <CampaignsGuideSheet />
+            <MarketingGuideModal open={guideOpen} onOpenChange={setGuideOpen} />
+            <Button variant="outline" size="sm" onClick={() => setGuideOpen(true)} className="gap-1.5">
+              <Info className="w-4 h-4" />
+              Guia
+            </Button>
             <Button
               onClick={handleSync}
               disabled={syncing}
@@ -151,10 +156,10 @@ export default function MetaCampaignsPage() {
 
       {/* Summary cards */}
       {!isLoading && filtered.length > 0 && (
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-          <StatCard icon={DollarSign} label="Investimento" value={formatBRL(summary.spend)} />
-          <StatCard icon={Users} label="Alcance" value={formatInteger(summary.reach)} />
-          <StatCard icon={Eye} label="Impressões" value={formatInteger(summary.impressions)} />
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <StatCard icon={Users} label="Leads" value={formatInteger(summary.leads)} color="success" />
+          <StatCard icon={DollarSign} label="Custo por Lead" value={formatBRL(summary.cpl)} color="warning" />
+          <StatCard icon={DollarSign} label="Investido" value={formatBRL(summary.spend)} />
           <StatCard icon={MousePointerClick} label="Cliques" value={formatInteger(summary.clicks)} />
         </div>
       )}
