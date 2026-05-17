@@ -128,7 +128,7 @@ export function VendorOrcamentoCard({
                 <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-tight">Data de Cadastro</p>
                 <div className="flex items-center gap-1.5">
                   <Calendar className="w-3.5 h-3.5 text-muted-foreground" />
-                  <span className="text-xs">{format(new Date(orcamento.created_at), "dd/MM/yyyy", { locale: ptBR })}</span>
+                  <span className="text-xs">{displayDate(orcamento.created_at)}</span>
                 </div>
               </div>
               <div className="space-y-1">
