@@ -273,10 +273,12 @@ export function ProjetoKanbanStage({ stages, deals, onMoveToStage, onViewProjeto
 
   const automationsByStage = useMemo(() => {
     const map = new Map<string, AutomationRule[]>();
-    automations.forEach(a => {
-      const arr = map.get(a.stage_id) || [];
+    automations.forEach((a: any) => {
+      const stageId = a.stage_id || a.projeto_etapa_id;
+      if (!stageId) return;
+      const arr = map.get(stageId) || [];
       arr.push(a);
-      map.set(a.stage_id, arr);
+      map.set(stageId, arr);
     });
     return map;
   }, [automations]);

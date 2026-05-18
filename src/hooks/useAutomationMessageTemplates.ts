@@ -3,9 +3,9 @@ import { supabase } from "@/integrations/supabase/client";
 
 export interface AutomationMessageTemplate {
   id: string;
-  gatilho: string;
+  evento: string;
   canal: string;
-  template: string;
+  template_mensagem: string;
   ativo: boolean;
   metadata: Record<string, any>;
 }
@@ -18,11 +18,19 @@ export function useAutomationMessageTemplates() {
     queryKey: [QUERY_KEY],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("automation_message_templates")
+        .from("notification_rules")
         .select("*")
-        .order("gatilho");
+        .not("evento", "is", null)
+        .order("evento");
       if (error) throw error;
-      return (data as AutomationMessageTemplate[]) || [];
+      return (data as any[]).map(t => ({
+        id: t.id,
+        evento: t.evento,
+        canal: t.canal,
+        template_mensagem: t.template_mensagem,
+        ativo: t.ativo,
+        metadata: t.metadata || {}
+      })) as AutomationMessageTemplate[];
     },
     staleTime: STALE_TIME,
   });
@@ -43,16 +51,25 @@ export function useSaveAutomationMessageTemplate() {
       
       if (!profile?.tenant_id) throw new Error("Tenant não encontrado");
 
+      const dbPayload = {
+        tenant_id: profile.tenant_id,
+        evento: payload.evento,
+        canal: payload.canal,
+        template_mensagem: payload.template_mensagem,
+        ativo: payload.ativo,
+        metadata: payload.metadata
+      };
+
       if (payload.id) {
         const { error } = await supabase
-          .from("automation_message_templates")
-          .update(payload)
+          .from("notification_rules")
+          .update(dbPayload)
           .eq("id", payload.id);
         if (error) throw error;
       } else {
         const { error } = await supabase
-          .from("automation_message_templates")
-          .insert({ ...payload, tenant_id: profile.tenant_id } as any);
+          .from("notification_rules")
+          .insert(dbPayload);
         if (error) throw error;
       }
     },

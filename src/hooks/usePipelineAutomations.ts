@@ -19,8 +19,8 @@ export interface PipelineAutomation {
   mensagem_notificacao: string | null;
   stage_id: string | null;
   pipeline_id: string | null;
-  funil_projeto_id: string | null;
-  etapa_projeto_id: string | null;
+  projeto_funil_id: string | null;
+  projeto_etapa_id: string | null;
   destino_etapa_projeto_id: string | null;
   execucoes_total: number;
   ultima_execucao: string | null;
