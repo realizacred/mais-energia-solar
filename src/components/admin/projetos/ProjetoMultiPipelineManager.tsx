@@ -5,7 +5,7 @@ import { resolveOrdemStatusByEquipamentoStage } from "@/lib/ordemCompraStageSync
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Layers, Plus, X, Check, ChevronDown, ChevronRight, Trash2, Loader2, GripVertical, Trophy, XCircle, AlertTriangle,
-  Package, Truck, DollarSign, Calendar, Pencil
+  Package, Truck, DollarSign, Calendar, Pencil, RotateCcw
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
