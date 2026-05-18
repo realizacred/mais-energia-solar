@@ -138,12 +138,6 @@ export function ConvertLeadToClientDialog({
         consumo_previsto: step2Data.consumo_previsto || selectedOrcamento?.consumo_previsto || (lead as any)?.consumo_previsto
       };
 
-      console.log("[ConvertLeadToClientDialog] Submitting conversion:", {
-        _lead_id: lead?.id,
-        _orcamento_id: orcamentoId,
-        media_consumo: payload.media_consumo,
-        consumo_previsto: payload.consumo_previsto
-      });
 
       const { data: res, error } = await supabase.rpc("convert_lead_to_venda_v2", { 
         _lead_id: lead?.id, 
