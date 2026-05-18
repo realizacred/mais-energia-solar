@@ -17,6 +17,7 @@ export interface StageValidation {
   configuracao: any;
   mensagem_bloqueio: string | null;
   bloquear_avanco: boolean;
+  aplicar_a_partir: boolean;
   ativo: boolean;
   created_at: string;
 }
