@@ -65,12 +65,12 @@ export function AutomationNodePanel({
           </button>
           <button
             onClick={() => onSelectNewNodeType('condition')}
-            className="flex flex-col items-center justify-center p-4 gap-2 rounded-xl border-2 border-dashed border-orange-200 hover:border-orange-500 hover:bg-orange-50 transition-all group"
+            className="flex flex-col items-center justify-center p-4 gap-2 rounded-xl border-2 border-dashed border-teal-200 hover:border-teal-500 hover:bg-teal-50 transition-all group"
           >
-            <div className="p-3 rounded-lg bg-orange-100 text-orange-600 group-hover:bg-orange-600 group-hover:text-white transition-colors">
+            <div className="p-3 rounded-lg bg-teal-100 text-teal-600 group-hover:bg-teal-600 group-hover:text-white transition-colors">
               <GitBranch className="h-6 w-6" />
             </div>
-            <span className="text-sm font-bold text-orange-700">Condicional</span>
+            <span className="text-sm font-bold text-teal-700">Condicional</span>
           </button>
           <button
             onClick={() => onSelectNewNodeType('search')}
