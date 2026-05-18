@@ -57,16 +57,43 @@ export function ConvertLeadToClientDialog({ lead, open, onOpenChange, onSuccess,
 
   useEffect(() => {
     if (lead && open) {
+      
       const saved = localStorage.getItem(`lead_conversion_${lead.id}`);
       if (saved) {
         const data = JSON.parse(saved);
-        setStep1Data(data.step1Data || { nome: lead.nome, telefone: lead.telefone, email: lead.email, cep: lead.cep });
+        
+        setStep1Data(data.step1Data || { 
+          nome: lead.nome, 
+          telefone: lead.telefone, 
+          email: lead.email || "", 
+          cep: lead.cep || "",
+          cidade: lead.cidade || "",
+          estado: lead.estado || "",
+          bairro: lead.bairro || "",
+          rua: lead.rua || "",
+          numero: lead.numero || "",
+        });
         setStep2Data(data.step2Data || {});
         setIdentidadeFiles(data.identidadeFiles || []);
         setComprovanteFiles(data.comprovanteFiles || []);
         setPaymentItems(data.paymentItems || [createEmptyItem()]);
       } else {
-        setStep1Data({ nome: lead.nome, telefone: lead.telefone, email: lead.email, cep: lead.cep });
+        
+        setStep1Data({ 
+          nome: lead.nome, 
+          telefone: lead.telefone, 
+          email: lead.email || "", 
+          cep: lead.cep || "",
+          cidade: lead.cidade || "",
+          estado: lead.estado || "",
+          bairro: lead.bairro || "",
+          rua: lead.rua || "",
+          numero: lead.numero || "",
+        });
+        setStep2Data({});
+        setIdentidadeFiles([]);
+        setComprovanteFiles([]);
+        setPaymentItems([createEmptyItem()]);
       }
     } else if (!open) {
       setCurrentStep(0);
