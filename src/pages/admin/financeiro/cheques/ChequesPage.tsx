@@ -27,6 +27,7 @@ const STATUS_CONFIG: Record<ChequeStatus, { label: string, color: string, icon: 
   compensado: { label: "Compensado", color: "bg-green-100 text-green-700 border-green-200", icon: CheckCircle2 },
   devolvido: { label: "Devolvido", color: "bg-red-100 text-red-700 border-red-200", icon: AlertCircle },
   repassado: { label: "Repassado", color: "bg-purple-100 text-purple-700 border-purple-200", icon: Share2 },
+  sustado: { label: "Sustado", color: "bg-red-100 text-red-700 border-red-200", icon: AlertCircle },
   cancelado: { label: "Cancelado", color: "bg-gray-100 text-gray-700 border-gray-200", icon: AlertCircle },
 };
 
