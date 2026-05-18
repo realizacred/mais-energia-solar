@@ -2842,7 +2842,6 @@ function PropostasTab({ customerId, dealId, dealTitle, navigate, isClosed, dealS
     );
   };
 
-  const [reabrirOpen, setReabrirOpen] = useState(false);
 
   return (
     <div className="space-y-6">
