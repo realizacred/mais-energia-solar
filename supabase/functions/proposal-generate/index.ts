@@ -1109,6 +1109,22 @@ Inclua: análise do perfil de consumo, adequação técnica do sistema, retorno 
       updateVersao.template_id_used = body.template_id;
     }
 
+    // RB-62: persistir métricas-chave para evitar NULL em proposta_versoes
+    // (consumo_mensal, tarifa_distribuidora, sobredimensionamento, economia_mensal_percent)
+    if (consumoTotal > 0) {
+      updateVersao.consumo_mensal = round2(consumoTotal);
+      updateVersao.sobredimensionamento = round2(((geracaoEstimada - consumoTotal) / consumoTotal) * 100);
+    }
+    if (tarifaMedia > 0) {
+      updateVersao.tarifa_distribuidora = round2(tarifaMedia);
+    }
+    if (consumoTotal > 0 && tarifaMedia > 0) {
+      const contaSemSolar = consumoTotal * tarifaMedia;
+      updateVersao.economia_mensal_percent = contaSemSolar > 0
+        ? round2((economiaMensal / contaSemSolar) * 100)
+        : 0;
+    }
+
     const persistOps = [
       adminClient.from("propostas_nativas")
         .update(updateProposta)
