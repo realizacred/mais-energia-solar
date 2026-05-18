@@ -920,15 +920,15 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
 
       toast({ title: `Proposta marcada como "${getProposalStatusConfig(newStatus).label}"` });
       onRefresh();
-      
-      // Invalidar queries para atualizar a interface em tempo real
-      const queryClient = (window as any).queryClient;
-      if (queryClient) {
-        queryClient.invalidateQueries({ queryKey: ["proposta-aceita-gate", dealId] });
-        queryClient.invalidateQueries({ queryKey: ["projeto-detalhe", dealId] });
-        queryClient.invalidateQueries({ queryKey: ["deal-pipeline-stages", dealId] });
-        queryClient.invalidateQueries({ queryKey: ["deal-pipeline", dealId] });
-      }
+
+      // Invalidação centralizada (SSOT: lib/invalidatePropostaCaches.ts).
+      // Substitui o antigo `(window as any).queryClient` que invalidava só 4 chaves
+      // e causava UI stale (badge "gerada" não virava "aceita", CTAs sumindo).
+      invalidatePropostaCaches(queryClient, {
+        propostaId: p.id,
+        dealId,
+        versaoId: latestVersao?.id || null,
+      });
     } catch (e: any) {
       toast({ title: "Erro ao atualizar status", description: e.message, variant: "destructive" });
     } finally {
