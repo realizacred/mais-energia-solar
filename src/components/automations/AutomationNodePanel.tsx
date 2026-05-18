@@ -65,12 +65,12 @@ export function AutomationNodePanel({
           </button>
           <button
             onClick={() => onSelectNewNodeType('condition')}
-            className="flex flex-col items-center justify-center p-4 gap-2 rounded-xl border-2 border-dashed border-orange-200 hover:border-orange-500 hover:bg-orange-50 transition-all group"
+            className="flex flex-col items-center justify-center p-4 gap-2 rounded-xl border-2 border-dashed border-teal-200 hover:border-teal-500 hover:bg-teal-50 transition-all group"
           >
-            <div className="p-3 rounded-lg bg-orange-100 text-orange-600 group-hover:bg-orange-600 group-hover:text-white transition-colors">
+            <div className="p-3 rounded-lg bg-teal-100 text-teal-600 group-hover:bg-teal-600 group-hover:text-white transition-colors">
               <GitBranch className="h-6 w-6" />
             </div>
-            <span className="text-sm font-bold text-orange-700">Condicional</span>
+            <span className="text-sm font-bold text-teal-700">Condicional</span>
           </button>
           <button
             onClick={() => onSelectNewNodeType('search')}
@@ -131,9 +131,12 @@ export function AutomationNodePanel({
               { type: 'projeto_movido' as TriggerType, icon: ArrowRightLeft, label: 'Projeto Movido' },
               { type: 'projeto_criado' as TriggerType, icon: FolderPlus, label: 'Projeto Criado' },
               { type: 'projeto_ganho' as TriggerType, icon: Trophy, label: 'Projeto Ganho' },
+              { type: 'projeto_perdido' as TriggerType, icon: Trash2, label: 'Projeto Perdido' },
               { type: 'proposta_pronta' as TriggerType, icon: nodeIcons.trigger, label: 'Proposta Pronta' },
               { type: 'atividade_criada' as TriggerType, icon: actionIcons.criar_atividade, label: 'Atividade Criada' },
-              { type: 'campo_customizado' as TriggerType, icon: nodeIcons.search, label: 'Campo Alterado' },
+              { type: 'atividade_concluida' as TriggerType, icon: actionIcons.criar_atividade, label: 'Atividade Concluída' },
+              { type: 'campo_alterado' as TriggerType, icon: nodeIcons.search, label: 'Campo Alterado' },
+              { type: 'cliente_criado' as TriggerType, icon: FolderPlus, label: 'Cliente Criado' },
             ].map((opt) => (
               <button
                 key={opt.type}

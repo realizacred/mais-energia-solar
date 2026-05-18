@@ -31,7 +31,7 @@ export const actionIcons: Record<ActionType, any> = {
 export const nodeColors: Record<AutomationNodeType, string> = {
   trigger: "bg-teal-600",
   action: "bg-blue-600",
-  condition: "bg-orange-600",
+  condition: "bg-teal-500",
   search: "bg-purple-600",
 };
 
@@ -45,6 +45,6 @@ export const nodeTitles: Record<AutomationNodeType, string> = {
 export const nodeTitleColors: Record<AutomationNodeType, string> = {
   trigger: "text-teal-600 dark:text-teal-400",
   action: "text-blue-600 dark:text-blue-400",
-  condition: "text-orange-600 dark:text-orange-400",
+  condition: "text-teal-500 dark:text-teal-400",
   search: "text-purple-600 dark:text-purple-400",
 };

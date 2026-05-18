@@ -188,7 +188,7 @@ export function AutomationFlowEditor({ automationId, onBack }: AutomationFlowEdi
       {/* Main Area */}
       <div className="flex flex-1 overflow-hidden">
         {/* Canvas Area */}
-        <main className="flex-1 overflow-y-auto bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] [background-size:20px_20px] dark:bg-[radial-gradient(#1f2937_1px,transparent_1px)]">
+        <main className="flex-1 overflow-y-auto bg-white">
           <AutomationCanvas 
             nodes={nodes}
             selectedNodeId={selectedNodeId}
