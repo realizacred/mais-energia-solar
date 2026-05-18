@@ -116,13 +116,13 @@ export function AutomationNodePanel({
         </div>
         <div className="grid grid-cols-2 gap-2">
           {[
-            { type: 'whatsapp', icon: MessageCircle, label: 'WhatsApp', color: 'text-teal-600 bg-teal-50 border-teal-100' },
-            { type: 'webhook', icon: Anchor, label: 'Webhook HTTP', color: 'text-blue-600 bg-blue-50 border-blue-100' },
-            { type: 'mover_etapa', icon: ArrowRightLeft, label: 'Mover Etapa', color: 'text-purple-600 bg-purple-50 border-purple-100' },
-            { type: 'email', icon: Mail, label: 'Enviar Email', color: 'text-gray-600 bg-gray-50 border-gray-100' },
-            { type: 'projeto', icon: FolderOpen, label: 'Projeto', color: 'text-green-600 bg-green-50 border-green-100' },
-            { type: 'atividade', icon: CheckSquare, label: 'Atividade', color: 'text-teal-600 bg-teal-50 border-teal-100' },
-            { type: 'cliente', icon: User, label: 'Cliente', color: 'text-pink-600 bg-pink-50 border-pink-100' },
+            { type: 'whatsapp', icon: MessageCircle, label: 'WhatsApp', color: 'text-teal-600 bg-teal-50 border-teal-500' },
+            { type: 'webhook', icon: Anchor, label: 'Webhook HTTP', color: 'text-blue-600 bg-blue-50 border-blue-500' },
+            { type: 'mover_etapa', icon: ArrowRightLeft, label: 'Mover Etapa', color: 'text-purple-600 bg-purple-50 border-purple-500' },
+            { type: 'email', icon: Mail, label: 'Enviar Email', color: 'text-gray-600 bg-gray-50 border-gray-500' },
+            { type: 'projeto', icon: FolderOpen, label: 'Projeto', color: 'text-green-600 bg-green-50 border-green-500' },
+            { type: 'atividade', icon: CheckSquare, label: 'Atividade', color: 'text-teal-600 bg-teal-50 border-teal-500' },
+            { type: 'cliente', icon: User, label: 'Cliente', color: 'text-pink-600 bg-pink-50 border-pink-500' },
           ].map((opt) => (
             <button
               key={opt.type}
