@@ -3,7 +3,7 @@
  * Abas: Pipeline | WhatsApp | Webhooks
  * §DS-01: text-xl font-bold. RB-06: LoadingState. RB-19: TabsList overflow.
  */
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { LoadingState } from "@/components/ui-kit/LoadingState";
 import { Zap, Kanban, MessageCircle, Webhook, History, FileCheck, ShieldCheck, Settings2 } from "lucide-react";
@@ -11,6 +11,12 @@ import { Zap, Kanban, MessageCircle, Webhook, History, FileCheck, ShieldCheck, S
 const PipelineAutomations = lazy(() =>
   import("@/components/admin/pipeline/PipelineAutomations").then((m) => ({
     default: m.PipelineAutomations,
+  }))
+);
+
+const AutomationFlowEditor = lazy(() =>
+  import("@/components/automations/AutomationFlowEditor").then((m) => ({
+    default: m.AutomationFlowEditor,
   }))
 );
 
@@ -49,6 +55,20 @@ const AutomationHistoryPanel = lazy(() =>
 );
 
 export default function AutomacoesPage() {
+  const [editingId, setEditingId] = useState<string | null | undefined>(undefined);
+
+  if (editingId !== undefined) {
+    return (
+      <div className="p-4 md:p-6 space-y-6 h-full">
+        <Suspense fallback={<LoadingState message="Carregando editor..." />}>
+          <AutomationFlowEditor 
+            automationId={editingId} 
+            onBack={() => setEditingId(undefined)} 
+          />
+        </Suspense>
+      </div>
+    );
+  }
   return (
     <div className="p-4 md:p-6 space-y-6">
       {/* Header — §DS-03 */}
@@ -99,7 +119,9 @@ export default function AutomacoesPage() {
 
         <TabsContent value="pipeline" className="mt-0">
           <Suspense fallback={<LoadingState message="Carregando automações de funil..." />}>
-            <PipelineAutomations />
+            <PipelineAutomations 
+              onEdit={(id) => setEditingId(id || null)} 
+            />
           </Suspense>
         </TabsContent>
 
