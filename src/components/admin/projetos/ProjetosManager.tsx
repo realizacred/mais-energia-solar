@@ -31,6 +31,7 @@ import { ProjetoKanbanSkeleton } from "./ProjetoKanbanSkeleton";
 import { ProjetoPerformanceDashboard } from "./ProjetoPerformanceDashboard";
 import { EtiquetasManager } from "./EtiquetasManager";
 import { ProjetoPipelineTemplates } from "./ProjetoPipelineTemplates";
+import { CentralPendencias } from "./CentralPendencias";
 import { cn } from "@/lib/utils";
 import { toast as sonnerToast } from "sonner";
 
@@ -406,6 +407,7 @@ export function ProjetosManager() {
     }, { replace: true });
   }, [setSearchParams]);
   const [activeTab, setActiveTab] = useState<string>("kanban");
+  const [showCentralPendencias, setShowCentralPendencias] = useState(true);
   const [dynamicEtiquetas, setDynamicEtiquetas] = useState<DynamicEtiqueta[]>([]);
   const [defaultFunilApplied, setDefaultFunilApplied] = useState(false);
 
