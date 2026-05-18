@@ -133,7 +133,7 @@ export function ProjetoMultiPipelineManager({ dealId, projetoId, dealStatus, pip
   const [searchParams] = useSearchParams();
   const location = useLocation();
   const projetoIdFromPath = location.pathname.match(/projeto=([0-9a-f-]{36})/i)?.[1] ?? null;
-  const projetoIdAtual = projetoId || searchParams.get("projeto") || searchParams.get("projeto_id") || projetoIdFromPath || dealId;
+  const projetoIdCandidato = projetoId || searchParams.get("projeto") || searchParams.get("projeto_id") || projetoIdFromPath || dealId;
   const isCommercialLocked = dealStatus === "lost" || dealStatus === "won";
   const isTechnicalLocked = dealStatus === "lost" || dealStatus === "canceled";
   const { isAdmin } = useUserRole();
@@ -172,22 +172,26 @@ export function ProjetoMultiPipelineManager({ dealId, projetoId, dealStatus, pip
   const [loadingOrdem, setLoadingOrdem] = useState(false);
 
   const [projectData, setProjectData] = useState<any>(null);
+  const [resolvedProjetoId, setResolvedProjetoId] = useState<string | null>(projetoId || null);
+  const projetoIdAtual = resolvedProjetoId || projetoId || "";
 
   const fetchProjectData = useCallback(async () => {
-    if (!projetoIdAtual) return;
+    if (!projetoIdCandidato) return;
     const { data } = await supabase
       .from("projetos")
-      .select("tenant_id, cliente_id, codigo, projeto_num, clientes(nome)")
-      .eq("id", projetoIdAtual)
+      .select("id, tenant_id, cliente_id, codigo, projeto_num, clientes(nome)")
+      .or(`id.eq.${projetoIdCandidato},deal_id.eq.${dealId},deal_id.eq.${projetoIdCandidato}`)
+      .limit(1)
       .maybeSingle();
     
     if (data) {
+      setResolvedProjetoId((data as any).id);
       setProjectData({
         ...data,
         cliente_nome: (data.clientes as any)?.nome
       });
     }
-  }, [projetoIdAtual]);
+  }, [dealId, projetoIdCandidato]);
 
   const fetchOrdemCompra = useCallback(async () => {
     if (!projetoIdAtual) return;
