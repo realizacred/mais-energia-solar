@@ -149,7 +149,7 @@ function useAutomations() {
           pipeline_stages!pipeline_automations_stage_id_fkey(name),
           destino:pipeline_stages!pipeline_automations_destino_stage_id_fkey(name),
           pipelines!pipeline_automations_pipeline_id_fkey(name),
-          projeto_etapas!pipeline_automations_etapa_projeto_id_fkey(nome),
+          projeto_etapas!pipeline_automations_projeto_etapa_id_fkey(nome),
           destino_projeto:projeto_etapas!pipeline_automations_destino_etapa_projeto_id_fkey(nome),
           projeto_funis!pipeline_automations_projeto_funil_id_fkey(nome)
         `)
