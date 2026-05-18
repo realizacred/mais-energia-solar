@@ -661,7 +661,7 @@ Deno.serve(async (req) => {
             const res = await fetchWithTimeout(
               conversionUrl,
               { method: "POST", body: formData },
-              90000,
+              120000,
             );
             if (!res.ok) {
               const errorText = await res.text();

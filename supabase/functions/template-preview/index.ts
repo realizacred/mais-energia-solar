@@ -1773,7 +1773,7 @@ Deno.serve(async (req) => {
       const pdfResp = await fetch(conversionUrl, {
         method: "POST",
         body: formData,
-        signal: AbortSignal.timeout(90000),
+        signal: AbortSignal.timeout(120000),
       });
       gotenbergResponseTime = Date.now() - gotenbergStart;
       gotenbergResponseStatus = pdfResp.status;

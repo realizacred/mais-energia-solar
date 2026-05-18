@@ -206,7 +206,11 @@ async function generateTermoAceitePdf(admin: any, params: {
   fd.append("marginRight", "0.4");
   fd.append("printBackground", "true");
 
-  const resp = await fetch(`${gotenbergUrl}/forms/chromium/convert/html`, { method: "POST", body: fd });
+  const resp = await fetch(`${gotenbergUrl}/forms/chromium/convert/html`, {
+    method: "POST",
+    body: fd,
+    signal: AbortSignal.timeout(120000),
+  });
   if (!resp.ok) {
     const txt = await resp.text();
     throw new Error(`Gotenberg ${resp.status}: ${txt.slice(0, 200)}`);
@@ -238,14 +242,14 @@ async function sha256Hex(input: string): Promise<string> {
     .join("");
 }
 const VALID_TRANSITIONS: Record<string, string[]> = {
-  rascunho: ["gerada", "cancelada"],
-  gerada: ["enviada", "aceita", "recusada", "cancelada", "rascunho"],
-  enviada: ["vista", "aceita", "recusada", "cancelada", "gerada"],
-  vista: ["aceita", "recusada", "cancelada", "gerada"],
-  aceita: ["recusada", "cancelada", "gerada"],
-  recusada: ["rascunho", "gerada"],
-  expirada: ["gerada"],
-  cancelada: ["rascunho"],
+  'draft':     ['generated'],
+  'generated': ['accepted', 'rejected', 'draft'],
+  'sent':      ['accepted', 'rejected', 'expired'],
+  'accepted':  ['rejected'],
+  'rejected':  ['draft'],
+  'expired':   ['draft'],
+  'excluida':  [],
+  'arquivada': []
 };
 
 Deno.serve(async (req) => {
@@ -336,7 +340,7 @@ Deno.serve(async (req) => {
         aceite_user_agent: user_agent || null,
       };
       if (action === "aceitar") {
-        aceiteFields.decisao = "aceita";
+        aceiteFields.decisao = "accepted";
         if (aceiteNome != null) aceiteFields.aceite_nome = String(aceiteNome);
         if (aceiteDocumento != null) aceiteFields.aceite_documento = String(aceiteDocumento) || null;
         if (aceiteObservacoes != null) aceiteFields.aceite_observacoes = String(aceiteObservacoes) || null;
@@ -349,7 +353,7 @@ Deno.serve(async (req) => {
               : JSON.stringify(formaPagamentoEscolhida);
         }
       } else {
-        aceiteFields.decisao = "recusada";
+        aceiteFields.decisao = "rejected";
         if (motivo != null) aceiteFields.recusa_motivo = String(motivo) || null;
       }
       const { error: stampErr } = await admin
@@ -363,7 +367,7 @@ Deno.serve(async (req) => {
 
     const propostaId = tokenData.proposta_id;
     const tenantId = tokenData.tenant_id;
-    const newStatus = action === "aceitar" ? "aceita" : "recusada";
+    const newStatus = action === "aceitar" ? "accepted" : "rejected";
 
     // 2. Load current proposal
     const { data: proposta, error: pErr } = await admin
@@ -381,7 +385,7 @@ Deno.serve(async (req) => {
     }
 
     // 3. Validate transition
-    const currentStatus = proposta.status || "rascunho";
+    const currentStatus = proposta.status || "draft";
     const allowed = VALID_TRANSITIONS[currentStatus] || [];
     if (!allowed.includes(newStatus)) {
       return new Response(

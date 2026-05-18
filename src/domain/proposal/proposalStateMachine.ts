@@ -7,24 +7,24 @@
  */
 
 export type ProposalStatus =
-  | "rascunho"
-  | "gerada"
-  | "enviada"
-  | "vista"
-  | "aceita"
-  | "recusada"
-  | "expirada"
-  | "cancelada";
+  | "draft"
+  | "generated"
+  | "sent"
+  | "accepted"
+  | "rejected"
+  | "expired"
+  | "excluida"
+  | "arquivada";
 
-const VALID_TRANSITIONS: Record<ProposalStatus, ProposalStatus[]> = {
-  rascunho: ["gerada", "cancelada"],
-  gerada: ["enviada", "aceita", "recusada", "cancelada", "rascunho"],
-  enviada: ["vista", "aceita", "recusada", "cancelada", "gerada"],
-  vista: ["aceita", "recusada", "cancelada", "gerada"],
-  aceita: ["recusada", "cancelada", "gerada"],
-  recusada: ["rascunho", "gerada"],
-  expirada: ["gerada"],
-  cancelada: ["rascunho"],
+const VALID_TRANSITIONS: Record<string, ProposalStatus[]> = {
+  draft: ["generated"],
+  generated: ["sent", "accepted", "rejected", "draft"],
+  sent: ["accepted", "rejected", "expired", "generated"],
+  accepted: ["rejected", "generated"],
+  rejected: ["draft", "generated"],
+  expired: ["generated"],
+  excluida: [],
+  arquivada: [],
 };
 
 /** Check if a transition from → to is valid */
@@ -40,17 +40,17 @@ export function getNextStates(status: string): ProposalStatus[] {
 
 /** UI helpers derived from state machine */
 export function canAcceptFromMachine(status: string): boolean {
-  return canTransition(status, "aceita");
+  return canTransition(status, "accepted");
 }
 
 export function canRejectFromMachine(status: string): boolean {
-  return canTransition(status, "recusada");
+  return canTransition(status, "rejected");
 }
 
 export function canCancelFromMachine(status: string): boolean {
-  return canTransition(status, "cancelada");
+  return canTransition(status, "excluida");
 }
 
 export function canGenerateOsFromStatus(status: string): boolean {
-  return status === "aceita";
+  return status === "accepted";
 }
