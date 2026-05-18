@@ -1,0 +1,2 @@
+ALTER TABLE public.pipeline_automations ADD COLUMN IF NOT EXISTS metadata JSONB DEFAULT '{}'::jsonb;
+COMMENT ON COLUMN public.pipeline_automations.metadata IS 'Stores serialized automation flow (nodes, connections, and configuration).';
