@@ -39,6 +39,7 @@ export interface CatalogKit {
   potencia_inversor?: number | null;
   potencia_modulo?: number | null;
   previsao?: string | null;
+  fornecedor_nome?: string | null;
 }
 
 interface CatalogKitItem {
@@ -119,11 +120,15 @@ export async function fetchActiveKits(
     potenciaMin?: number;
     potenciaMax?: number;
     searchText?: string;
+    fabricanteInversor?: string;
+    inversorModelo?: string;
+    searchDistribuidor?: string;
+    searchModulo?: string;
   }
 ): Promise<{ data: CatalogKit[]; count: number }> {
   let query = supabase
     .from("solar_kit_catalog")
-    .select("id, name, description, estimated_kwp, pricing_mode, fixed_price, source, fornecedor_id, external_data, is_generator, fabricante, fase, tensao, estrutura, disponivel, permite_compra_sem_estoque, preco_por_kwp, is_available_now, product_kind, thumbnail_url, potencia_inversor, potencia_modulo, previsao", { count: "exact" })
+    .select("id, name, description, estimated_kwp, pricing_mode, fixed_price, source, fornecedor_id, fornecedor_nome, external_data, is_generator, fabricante, fase, tensao, estrutura, disponivel, permite_compra_sem_estoque, preco_por_kwp, is_available_now, product_kind, thumbnail_url, potencia_inversor, potencia_modulo, previsao", { count: "exact" })
     .eq("status", "active");
 
   if (onlyGenerators) {
@@ -140,6 +145,13 @@ export async function fetchActiveKits(
   if (filters?.searchText?.trim()) {
     const q = `%${filters.searchText.trim()}%`;
     query = query.or(`name.ilike.${q},description.ilike.${q},fabricante.ilike.${q}`);
+  }
+
+  if (filters?.fabricanteInversor?.trim()) {
+    query = query.ilike("fabricante", `%${filters.fabricanteInversor.trim()}%`);
+  }
+  if (filters?.searchDistribuidor?.trim()) {
+    query = query.or(`name.ilike.%${filters.searchDistribuidor.trim()}%,fornecedor_nome.ilike.%${filters.searchDistribuidor.trim()}%`);
   }
 
   // Paginação

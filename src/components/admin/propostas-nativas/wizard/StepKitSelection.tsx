@@ -180,6 +180,7 @@ export function StepKitSelection({ onNext, onBack }: StepKitProps) {
   const [selectedSolaryumKitId, setSelectedSolaryumKitId] = useState<number | null>(null);
   const [hasRemovedAutoFilter, setHasNewRemovedAutoFilter] = useState(false);
   const [page, setPage] = useState(0);
+  const [totalCount, setTotalCount] = useState(0);
   const pageSize = 20;
 
   // Derive selected catalog kit ID from manualKits meta
@@ -190,25 +191,34 @@ export function StepKitSelection({ onNext, onBack }: StepKitProps) {
     return null;
   }, [manualKits]);
 
-  // Load catalog kits when tab switches to "catalogo" — fetch all, filter client-side
+  // Load catalog kits when tab switches to "catalogo" — fetch with filters
   useEffect(() => {
-    if (tab !== "catalogo" || catalogLoaded.current) return;
+    if (tab !== "catalogo") return;
     setCatalogLoading(true);
     setCatalogError(null);
-    fetchActiveKits(false, page, pageSize) // fetch all products; generator filter applied client-side via includeComponents toggle
+    
+    // UX-05: Auto-apply power filter if potenciaIdeal is set
+    const effectiveFilters = { ...filters };
+    if (potenciaIdeal > 0 && !hasRemovedAutoFilter && filters.potenciaMin === 0 && filters.potenciaMax === 1000) {
+      effectiveFilters.potenciaMin = Math.round(potenciaIdeal * 0.7 * 100) / 100;
+      effectiveFilters.potenciaMax = Math.round(potenciaIdeal * 1.3 * 100) / 100;
+      setFilters(effectiveFilters);
+    }
+
+    fetchActiveKits(includeComponents ? false : true, page, pageSize, {
+      potenciaMin: effectiveFilters.potenciaMin,
+      potenciaMax: effectiveFilters.potenciaMax,
+      searchText: effectiveFilters.searchText,
+      fabricanteInversor: effectiveFilters.fabricanteInversor,
+      inversorModelo: effectiveFilters.inversorModelo,
+      searchDistribuidor: effectiveFilters.searchDistribuidor,
+      searchModulo: effectiveFilters.searchModulo,
+    })
       .then(async (response) => {
         setCatalogKits(response.data);
+        setTotalCount(response.count);
         catalogLoaded.current = true;
         
-        // UX-05: Auto-apply power filter if potenciaIdeal is set
-        if (potenciaIdeal > 0 && !hasRemovedAutoFilter) {
-          setFilters(prev => ({
-            ...prev,
-            potenciaMin: Math.round(potenciaIdeal * 0.7 * 100) / 100,
-            potenciaMax: Math.round(potenciaIdeal * 1.3 * 100) / 100,
-          }));
-        }
-
         if (response.data.length > 0) {
           const summaries = await fetchKitsSummary(response.data.map(k => k.id));
           setCatalogSummaries(summaries);
@@ -216,7 +226,7 @@ export function StepKitSelection({ onNext, onBack }: StepKitProps) {
       })
       .catch((err) => setCatalogError(err.message))
       .finally(() => setCatalogLoading(false));
-  }, [tab, page, potenciaIdeal, hasRemovedAutoFilter]);
+  }, [tab, page, potenciaIdeal, includeComponents, filters]);
 
   const handleSelectCatalogKit = async (kitId: string, kitName: string) => {
     // If items already exist, ask for confirmation
@@ -369,31 +379,13 @@ export function StepKitSelection({ onNext, onBack }: StepKitProps) {
     };
   }, [catalogKits, catalogSummaries]);
 
-  // Filter & sort catalog kits based on sidebar filters
+  // Sort catalog kits based on selection
   const filteredCatalogKits = useMemo(() => {
-    // Default: show only generators unless "includeComponents" toggle is on
-    let result = includeComponents
-      ? [...catalogKits]
-      : catalogKits.filter(k => k.is_generator);
+    let result = [...catalogKits];
 
-    // Potência range filter
-    if (filters.potenciaMin > 0 || filters.potenciaMax < 1000) {
-      result = result.filter(k => {
-        const kwp = k.estimated_kwp ?? 0;
-        return kwp >= filters.potenciaMin && kwp <= filters.potenciaMax;
-      });
-    }
+    // Note: potency and text filtering is now handled server-side in fetchActiveKits
 
-    // General text search (name, description, fabricante)
-    if (filters.searchText.trim()) {
-      const q = filters.searchText.toLowerCase();
-      result = result.filter(k =>
-        k.name.toLowerCase().includes(q) ||
-        (k.description || "").toLowerCase().includes(q) ||
-        (k.fabricante || "").toLowerCase().includes(q)
-      );
-    }
-
+    // Client-side filtering for dropdowns not yet implemented in API
     // Fabricante Inversor dropdown
     if (filters.fabricanteInversor) {
       const q = filters.fabricanteInversor.toLowerCase();
@@ -413,7 +405,7 @@ export function StepKitSelection({ onNext, onBack }: StepKitProps) {
       });
     }
 
-    // Text search by distributor name
+    // Text search by distributor name (client-side extension)
     if (filters.searchDistribuidor.trim()) {
       const q = filters.searchDistribuidor.toLowerCase();
       result = result.filter(k => k.name.toLowerCase().includes(q) || (k.description || "").toLowerCase().includes(q));
@@ -430,18 +422,13 @@ export function StepKitSelection({ onNext, onBack }: StepKitProps) {
 
     // Sort
     if (orderBy === "melhor_kwp") {
-      // UX-05: If auto-filtering by power, prioritize proximity to ideal power within the "melhor_kwp" sorting
       result.sort((a, b) => {
-        // Primary sort: price per kWp
         const priceDiff = (a.preco_por_kwp || Infinity) - (b.preco_por_kwp || Infinity);
-        
-        // If prices are very similar (within 1%), sort by proximity to ideal power
         if (potenciaIdeal > 0 && Math.abs(priceDiff) < (a.preco_por_kwp || 1) * 0.01) {
           const proximityA = Math.abs((a.estimated_kwp || 0) - potenciaIdeal);
           const proximityB = Math.abs((b.estimated_kwp || 0) - potenciaIdeal);
           return proximityA - proximityB;
         }
-        
         return priceDiff;
       });
     } else if (orderBy === "proximidade" && potenciaIdeal > 0) {
@@ -473,7 +460,7 @@ export function StepKitSelection({ onNext, onBack }: StepKitProps) {
     }
 
     return result;
-  }, [catalogKits, catalogSummaries, filters, orderBy, includeComponents, potenciaIdeal]);
+  }, [catalogKits, catalogSummaries, filters, orderBy, potenciaIdeal]);
 
 
   const handleSelectKit = (kit: KitCardData) => {
@@ -1277,8 +1264,8 @@ export function StepKitSelection({ onNext, onBack }: StepKitProps) {
       </AlertDialog>
       <div className="flex items-center justify-center gap-3 py-3 border-t text-sm">
         <button onClick={() => setPage(p => p - 1)} disabled={page === 0} className="px-3 py-1 border rounded disabled:opacity-40">← Anterior</button>
-        <span>Página {page + 1}</span>
-        <button onClick={() => setPage(p => p + 1)} className="px-3 py-1 border rounded">Próxima →</button>
+        <span className="font-medium">Página {page + 1} de {Math.max(1, Math.ceil(totalCount / pageSize))}</span>
+        <button onClick={() => setPage(p => p + 1)} disabled={(page + 1) * pageSize >= totalCount} className="px-3 py-1 border rounded disabled:opacity-40">Próxima →</button>
       </div>
     </div>
   );
