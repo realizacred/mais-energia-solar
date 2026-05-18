@@ -18,7 +18,7 @@ const corsHeaders = {
 // ─── State Machine ────────────────────────────────────────
 const VALID_TRANSITIONS: Record<string, string[]> = {
   'draft':     ['generated', 'cancelled'],
-  'generated': ['sent', 'accepted', 'rejected', 'cancelled', 'draft'],
+  'generated': ['sent', 'cancelled', 'draft'], // Restricted: no accepted/rejected here
   'sent':      ['viewed', 'accepted', 'rejected', 'expired', 'cancelled', 'generated'],
   'viewed':    ['accepted', 'rejected', 'expired', 'cancelled', 'generated'],
   'accepted':  ['rejected', 'cancelled', 'generated'],
