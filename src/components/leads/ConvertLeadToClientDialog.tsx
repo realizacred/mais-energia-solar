@@ -379,7 +379,7 @@ export function ConvertLeadToClientDialog({
           transformador_id: savedData.formData.transformador_id || "",
           localizacao: savedData.formData.localizacao || "",
           observacoes: savedData.formData.observacoes || lead.observacoes || "",
-          simulacao_aceita_id: savedData.formData.simulacao_ace_id || "",
+          simulacao_aceita_id: savedData.formData.simulacao_aceita_id || "",
         });
         
         setIdentidadeFiles(savedData.identidadeFiles || []);
