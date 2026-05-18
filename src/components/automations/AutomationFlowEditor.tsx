@@ -33,36 +33,54 @@ export function AutomationFlowEditor({ automationId, onBack }: AutomationFlowEdi
 
   // Sync state with loaded data
   useEffect(() => {
-    if (initialFlow) {
-      const initialNodes = initialFlow.nodes || [];
-      if (initialNodes.length === 0) {
-        // Garantir que sempre comece com um gatilho
-        setNodes([{
-          id: 'trigger-' + Date.now(),
-          type: 'trigger',
-          order: 1,
-          config: {}
-        }]);
-      } else {
-        setNodes(initialNodes);
-      }
+    if (!automationId) {
+      setNodes([{
+        id: 'trigger-' + Date.now(),
+        type: 'trigger', order: 1, config: {}
+      }]);
+      return;
     }
-  }, [initialFlow]);
 
-  // Load basic auto info if editing
-  useEffect(() => {
-    if (automationId) {
-      supabase.from("pipeline_automations")
-        .select("nome, ativo")
-        .eq("id", automationId)
-        .single()
-        .then(({ data }) => {
-          if (data) {
-            setName(data.nome);
-            setActive(data.ativo);
+    supabase.from('pipeline_automations')
+      .select('*')
+      .eq('id', automationId)
+      .single()
+      .then(({ data }) => {
+        if (!data) return;
+        setName(data.nome);
+        setActive(data.ativo);
+        
+        if (data.metadata?.nodes?.length > 0) {
+          setNodes(data.metadata.nodes);
+        } else {
+          const loadedNodes = [];
+          if (data.tipo_gatilho) {
+            loadedNodes.push({
+              id: 'trigger-1',
+              type: 'trigger',
+              order: 1,
+              config: {
+                triggerType: data.tipo_gatilho,
+                funil_id: data.projeto_funil_id,
+                etapa_id: data.projeto_etapa_id,
+              }
+            });
           }
-        });
-    }
+          if (data.canal_notificacao) {
+            loadedNodes.push({
+              id: 'action-1',
+              type: 'action',
+              order: 2,
+              config: { 
+                actionType: data.canal_notificacao,
+                webhook_url: data.webhook_url,
+                wa_content_template: data.template_mensagem
+              }
+            });
+          }
+          setNodes(loadedNodes);
+        }
+      });
   }, [automationId]);
 
   // Load funis/etapas for panels
