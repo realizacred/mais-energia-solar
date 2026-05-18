@@ -233,9 +233,15 @@ export function VincularFornecedorModal({
             </div>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="previsao">Previsão de Entrega</Label>
-            <DateInput value={dataPrevisao} onChange={setDataPrevisao} />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="data_pedido">Data do Pedido</Label>
+              <DateInput value={dataPedido} onChange={setDataPedido} />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="previsao">Previsão de Entrega</Label>
+              <DateInput value={dataPrevisao} onChange={setDataPrevisao} />
+            </div>
           </div>
 
           <div className="space-y-2">
