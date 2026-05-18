@@ -121,32 +121,9 @@ export function usePropostaRapidaLead() {
       throw new Error("Falha ao gerar projeto na conversão unificada.");
     }
 
-    // Audit log do override (se aplicável)
+    // Audit log do override removido - Triggers automáticos do banco tratam a auditoria
     if (overrideContext) {
-      try {
-        const { data: userResp } = await supabase.auth.getUser();
-        const userId = userResp?.user?.id ?? null;
-        const { tenantId } = await getCurrentTenantId();
-        await supabase.from("audit_logs").insert({
-          tenant_id: tenantId,
-          user_id: userId,
-          user_email: userResp?.user?.email ?? null,
-          acao: "lead_generate_project_duplicate_override",
-          tabela: "deals",
-          registro_id: dealId,
-          dados_novos: {
-            lead_id: lead.id,
-            cliente_id: clienteId,
-            new_deal_id: dealId,
-            new_projeto_id: projetoId,
-            existing_deal_id: overrideContext.existing.deal_id,
-            existing_projeto_id: overrideContext.existing.projeto_id,
-            reason: overrideContext.reason,
-          },
-        } as any);
-      } catch (auditErr) {
-        console.warn("[usePropostaRapidaLead] Falha ao gravar audit log", auditErr);
-      }
+      console.log("[usePropostaRapidaLead] Override context detected. Audit will be handled by DB triggers.");
     }
 
     toast.success("Projeto preparado com sucesso!", {
