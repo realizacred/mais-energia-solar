@@ -129,6 +129,7 @@ interface Props {
 }
 
 export function ProjetoMultiPipelineManager({ dealId, dealStatus, pipelines, allStagesMap, onMembershipChange, initialPipelineId, initialPipelineName }: Props) {
+  const { projetoId } = useParams();
   const isCommercialLocked = dealStatus === "lost" || dealStatus === "won";
   const isTechnicalLocked = dealStatus === "lost" || dealStatus === "canceled";
   const { isAdmin } = useUserRole();
