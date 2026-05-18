@@ -57,14 +57,16 @@ export function ConvertLeadToClientDialog({ lead, open, onOpenChange, onSuccess,
 
   useEffect(() => {
     if (lead && open) {
+      console.log("[ConvertLeadToClientDialog] Hydration effect triggered for lead:", lead.nome);
       
       const saved = localStorage.getItem(`lead_conversion_${lead.id}`);
       if (saved) {
         const data = JSON.parse(saved);
+        console.log("[ConvertLeadToClientDialog] Restoring from localStorage:", data);
         
         setStep1Data(data.step1Data || { 
-          nome: lead.nome, 
-          telefone: lead.telefone, 
+          nome: lead.nome || "", 
+          telefone: lead.telefone || "", 
           email: lead.email || "", 
           cep: lead.cep || "",
           cidade: lead.cidade || "",
@@ -73,15 +75,16 @@ export function ConvertLeadToClientDialog({ lead, open, onOpenChange, onSuccess,
           rua: lead.rua || "",
           numero: lead.numero || "",
         });
-        setStep2Data(data.step2Data || {});
-        setIdentidadeFiles(data.identidadeFiles || []);
-        setComprovanteFiles(data.comprovanteFiles || []);
-        setPaymentItems(data.paymentItems || [createEmptyItem()]);
+        setStep2Data(data.step2Data || {
+          localizacao: (lead as any).localizacao || "",
+          observacoes: (lead as any).observacoes || "",
+        });
       } else {
+        console.log("[ConvertLeadToClientDialog] Fresh hydration from lead properties");
         
         setStep1Data({ 
-          nome: lead.nome, 
-          telefone: lead.telefone, 
+          nome: lead.nome || "", 
+          telefone: lead.telefone || "", 
           email: lead.email || "", 
           cep: (lead as any).cep || "",
           cidade: (lead as any).cidade || "",
@@ -101,7 +104,7 @@ export function ConvertLeadToClientDialog({ lead, open, onOpenChange, onSuccess,
     } else if (!open) {
       setCurrentStep(0);
     }
-  }, [lead, open]);
+  }, [lead, open, orcamentoId]);
 
   const handleSubmit = async () => {
     setLoading(true);
