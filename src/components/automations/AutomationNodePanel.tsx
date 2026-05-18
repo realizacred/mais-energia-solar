@@ -276,6 +276,29 @@ export function AutomationNodePanel({
                   placeholder="Token de segurança"
                 />
               </div>
+            </div>
+          )}
+
+          {localConfig.actionType === 'whatsapp' && (
+            <AutomationWhatsAppForm 
+              config={localConfig} 
+              updateConfig={updateConfig} 
+            />
+          )}
+
+          {localConfig.actionType === 'email' && (
+            <div className="space-y-4 animate-in fade-in">
+              <div className="space-y-2">
+                <Label>Template de Email</Label>
+                <Textarea 
+                  value={localConfig.template_mensagem || ''} 
+                  onChange={(e) => updateConfig({ template_mensagem: e.target.value, canal_notificacao: 'email' })}
+                  placeholder="Olá {nome_cliente}! Este é um email automático..."
+                  rows={4}
+                />
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -330,29 +353,6 @@ export function AutomationNodePanel({
               <div className="flex items-center gap-2 p-2 bg-muted rounded-md text-xs text-muted-foreground">
                 <Info className="h-4 w-4" />
                 <span>Usará o ID do projeto atual automaticamente.</span>
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-
-          {localConfig.actionType === 'whatsapp' && (
-            <AutomationWhatsAppForm 
-              config={localConfig} 
-              updateConfig={updateConfig} 
-            />
-          )}
-
-          {localConfig.actionType === 'email' && (
-            <div className="space-y-4 animate-in fade-in">
-              <div className="space-y-2">
-                <Label>Template de Email</Label>
-                <Textarea 
-                  value={localConfig.template_mensagem || ''} 
-                  onChange={(e) => updateConfig({ template_mensagem: e.target.value, canal_notificacao: 'email' })}
-                  placeholder="Olá {nome_cliente}! Este é um email automático..."
-                  rows={4}
-                />
               </div>
             </div>
           )}
