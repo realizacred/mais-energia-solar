@@ -251,7 +251,38 @@ export function ConvertLeadToClientDialog({
   // Explicit subscription so programmatic setValue always reflects in the UI
   const localizacaoValue = useWatch({ control: form.control, name: "localizacao" });
 
-  // CEP lookup is handled internally by AddressFields component
+  // CEP lookup handling: auto-trigger fetch when lead CEP is pre-filled
+  const currentCep = useWatch({ control: form.control, name: "cep" });
+  const [cepLookedUp, setCepLookedUp] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (open && currentCep && currentCep.replace(/\D/g, "").length === 8 && currentCep !== cepLookedUp) {
+      // Small delay to ensure component is ready
+      const timer = setTimeout(() => {
+        const digits = currentCep.replace(/\D/g, "");
+        fetch(`https://viacep.com.br/ws/${digits}/json/`)
+          .then(r => r.json())
+          .then(data => {
+            if (!data.erro) {
+              // Only fill if current fields are empty to avoid overwriting user input
+              const currentRua = form.getValues("rua");
+              const currentBairro = form.getValues("bairro");
+              
+              if (!currentRua) form.setValue("rua", data.logradouro, { shouldValidate: true });
+              if (!currentBairro) form.setValue("bairro", data.bairro, { shouldValidate: true });
+              if (!form.getValues("cidade")) form.setValue("cidade", data.localidade, { shouldValidate: true });
+              if (!form.getValues("estado")) form.setValue("estado", data.uf, { shouldValidate: true });
+              
+              setCepLookedUp(currentCep);
+            }
+          })
+          .catch(err => console.warn("CEP auto-lookup failed:", err));
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [open, currentCep, cepLookedUp, form]);
+
+  // CEP lookup is handled internally by AddressFields component for manual typing
 
   // Bridge AddressFields ↔ react-hook-form
   const addressValue: AddressData = {
