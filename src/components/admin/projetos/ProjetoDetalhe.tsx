@@ -2734,6 +2734,7 @@ function PropostasTab({ customerId, dealId, dealTitle, navigate, isClosed, dealS
   }, [propostas, expandedId]);
   const [linkedOrcs, setLinkedOrcs] = useState<LinkedOrcamento[]>([]);
   const [loadingLeads, setLoadingLeads] = useState(false);
+  const [reabrirOpen, setReabrirOpen] = useState(false);
 
   // dealSnapshotMeta query removed — staleness now uses versão timestamps only
 
