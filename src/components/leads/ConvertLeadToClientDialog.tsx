@@ -68,6 +68,33 @@ export function ConvertLeadToClientDialog({
   const valorVenda = useMemo(() => propostaVersaoValor || (lead as any)?.valor_projeto || 0, [propostaVersaoValor, lead]);
   const finance = useVendaFinanceSnapshot(valorVenda, paymentItems);
 
+  const mappedHydration = useMemo(
+    () => mapSelectedOrcamentoToConversionData(selectedOrcamento, lead),
+    [selectedOrcamento, lead],
+  );
+  const hydrationId = mappedHydration._orcamento_id || mappedHydration._lead_id || orcamentoId || null;
+  const isInitialHydrationPending = open && !!hydrationId && lastHydratedId.current !== hydrationId;
+  const mappedStep1Data = useMemo<Partial<Step1Data>>(() => ({
+    nome: mappedHydration.nome,
+    telefone: mappedHydration.telefone,
+    email: mappedHydration.email,
+    cpf_cnpj: mappedHydration.cpf_cnpj,
+    data_nascimento: mappedHydration.data_nascimento,
+    cep: mappedHydration.cep,
+    estado: mappedHydration.estado,
+    cidade: mappedHydration.cidade,
+    bairro: mappedHydration.bairro,
+    rua: mappedHydration.rua,
+    numero: mappedHydration.numero,
+    complemento: mappedHydration.complemento,
+  }), [mappedHydration]);
+  const mappedStep2Data = useMemo<Partial<Step2Data>>(() => ({
+    localizacao: mappedHydration.localizacao,
+    observacoes: mappedHydration.observacoes,
+    media_consumo: mappedHydration.media_consumo,
+    consumo_previsto: mappedHydration.consumo_previsto,
+  }), [mappedHydration]);
+
   useEffect(() => {
     if (!open) {
       setCurrentStep(0);
@@ -91,38 +118,17 @@ export function ConvertLeadToClientDialog({
       /* localStorage indisponível — ignorar */
     }
 
-    const mapped = mapSelectedOrcamentoToConversionData(selectedOrcamento, lead);
-    const currentId = mapped._orcamento_id || mapped._lead_id || orcamentoId || null;
+    if (lastHydratedId.current === hydrationId) return;
 
-    if (lastHydratedId.current === currentId) return;
-
-    setStep1Data({
-      nome: mapped.nome,
-      telefone: mapped.telefone,
-      email: mapped.email,
-      cpf_cnpj: mapped.cpf_cnpj,
-      data_nascimento: mapped.data_nascimento,
-      cep: mapped.cep,
-      estado: mapped.estado,
-      cidade: mapped.cidade,
-      bairro: mapped.bairro,
-      rua: mapped.rua,
-      numero: mapped.numero,
-      complemento: mapped.complemento,
-    });
-    setStep2Data({
-      localizacao: mapped.localizacao,
-      observacoes: mapped.observacoes,
-      media_consumo: mapped.media_consumo,
-      consumo_previsto: mapped.consumo_previsto,
-    });
+    setStep1Data(mappedStep1Data);
+    setStep2Data(mappedStep2Data);
     setIdentidadeFiles([]);
     setComprovanteFiles([]);
     setBeneficiariaFiles([]);
     setAssinaturaFiles([]);
     setPaymentItems([createEmptyItem()]);
-    lastHydratedId.current = currentId;
-  }, [lead?.id, selectedOrcamento?.id, open, orcamentoId, lead, selectedOrcamento]);
+    lastHydratedId.current = hydrationId;
+  }, [lead?.id, open, hydrationId, mappedStep1Data, mappedStep2Data]);
 
   const handleSubmit = async () => {
     setLoading(true);
@@ -142,8 +148,8 @@ export function ConvertLeadToClientDialog({
         comprovante_endereco_urls: comprovanteUrls, 
         comprovante_beneficiaria_urls: beneficiariaUrls, 
         assinatura_url: assinaturaUrls[0] || null,
-        media_consumo: step2Data.media_consumo || selectedOrcamento?.media_consumo || (lead as any)?.media_consumo,
-        consumo_previsto: step2Data.consumo_previsto || selectedOrcamento?.consumo_previsto || (lead as any)?.consumo_previsto
+        media_consumo: step2Data.media_consumo ?? mappedHydration.media_consumo,
+        consumo_previsto: step2Data.consumo_previsto ?? mappedHydration.consumo_previsto
       };
 
 
@@ -152,7 +158,7 @@ export function ConvertLeadToClientDialog({
         _payload: payload as any, 
         _payment_composition: paymentItems as any, 
         _idempotency_key: lead?.id,
-        _orcamento_id: orcamentoId 
+        _orcamento_id: mappedHydration._orcamento_id || orcamentoId 
       });
       
       if (error || !(res as any)?.success) throw new Error((res as any)?.message || "Erro na conversão");
@@ -169,8 +175,8 @@ export function ConvertLeadToClientDialog({
   };
 
   const STEPS = [
-    { label: "Pessoal", icon: User, comp: <StepDadosPessoais initialData={step1Data} onChange={(d, v) => { setStep1Data(d); setIsStep1Valid(v); }} /> },
-    { label: "Técnico", icon: FileText, comp: <StepTecnico leadId={lead?.id} initialData={{ ...step2Data, media_consumo: selectedOrcamento?.media_consumo || (lead as any)?.media_consumo, consumo_previsto: selectedOrcamento?.consumo_previsto || (lead as any)?.consumo_previsto }} identidadeFiles={identidadeFiles} comprovanteFiles={comprovanteFiles} beneficiariaFiles={beneficiariaFiles} assinaturaFiles={assinaturaFiles} onFilesChange={(type, files) => { if (type === "identidade") setIdentidadeFiles(files); if (type === "comprovante") setComprovanteFiles(files); if (type === "beneficiaria") setBeneficiariaFiles(files); if (type === "assinatura") setAssinaturaFiles(files); }} onChange={(d, v) => { setStep2Data(d); setIsStep2Valid(v); }} /> },
+    { label: "Pessoal", icon: User, comp: <StepDadosPessoais initialData={isInitialHydrationPending ? mappedStep1Data : step1Data} onChange={(d, v) => { setStep1Data(d); setIsStep1Valid(v); }} /> },
+    { label: "Técnico", icon: FileText, comp: <StepTecnico leadId={lead?.id} initialData={isInitialHydrationPending ? mappedStep2Data : step2Data} identidadeFiles={identidadeFiles} comprovanteFiles={comprovanteFiles} beneficiariaFiles={beneficiariaFiles} assinaturaFiles={assinaturaFiles} onFilesChange={(type, files) => { if (type === "identidade") setIdentidadeFiles(files); if (type === "comprovante") setComprovanteFiles(files); if (type === "beneficiaria") setBeneficiariaFiles(files); if (type === "assinatura") setAssinaturaFiles(files); }} onChange={(d, v) => { setStep2Data(d); setIsStep2Valid(v); }} /> },
     { label: "Financeiro", icon: Wallet, comp: <StepFinanceiro valorVenda={valorVenda} paymentItems={paymentItems} onCompositionChange={setPaymentItems} /> }
   ];
 
