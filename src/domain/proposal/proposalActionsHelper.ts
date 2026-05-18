@@ -1,10 +1,3 @@
-/**
- * proposalActionsHelper.ts
- *
- * Centralized logic for determining which actions are available for a proposal
- * based on its current status. Mirrors backend state machine rules.
- */
-
 import { ProposalStatus, canTransition } from "./proposalStateMachine";
 
 export type ProposalAction =
@@ -34,8 +27,9 @@ export interface AvailableActions {
 
 /**
  * Returns a map of available actions based on the canonical status.
+ * SSOT: Centralizes UI governance according to backend rules.
  */
-export function getAvailableProposalActions(status: string): AvailableActions {
+export function getAvailableProposalActions(status: string | null | undefined): AvailableActions {
   const normalization: Record<string, ProposalStatus> = {
     rascunho: "draft",
     gerada: "generated",
@@ -45,6 +39,7 @@ export function getAvailableProposalActions(status: string): AvailableActions {
     recusada: "rejected",
     expirada: "expired",
     cancelada: "cancelled",
+    visualizada: "viewed",
     // EN names
     draft: "draft",
     generated: "generated",
@@ -56,18 +51,31 @@ export function getAvailableProposalActions(status: string): AvailableActions {
     cancelled: "cancelled",
   };
 
-  const canonical = (normalization[status] || status) as ProposalStatus;
+  const canonical = (normalization[status || "draft"] || status || "draft") as ProposalStatus;
 
   return {
+    // Basic editing/generation: only allowed in initial states
     canGenerate: ["draft", "generated"].includes(canonical),
     canEdit: ["draft", "generated"].includes(canonical),
+    
+    // Sending: allowed in initial states to move to 'sent'
     canSend: ["draft", "generated"].includes(canonical),
-    canView: ["sent", "viewed", "accepted", "rejected"].includes(canonical),
+    
+    // Viewing/Details: allowed after generation
+    canView: ["generated", "sent", "viewed", "accepted", "rejected"].includes(canonical),
+    
+    // Core state machine transitions (Mirroring proposal-transition Edge Function)
     canAccept: canTransition(canonical, "accepted"),
     canReject: canTransition(canonical, "rejected"),
-    canCancel: canTransition(canonical, "cancelled") && canonical !== "accepted" && canonical !== "rejected",
+    
+    // Cancellation: can cancel any time EXCEPT when already terminal/accepted
+    canCancel: canTransition(canonical, "cancelled") && !["accepted", "rejected", "cancelled"].includes(canonical),
+    
+    // Reversions: only from their respective terminal states
     canRevertAccept: canonical === "accepted",
     canRevertReject: canonical === "rejected",
+    
+    // Downstream actions
     canGenerateOs: canonical === "accepted",
   };
 }
