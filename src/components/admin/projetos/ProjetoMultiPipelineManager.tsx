@@ -1160,8 +1160,8 @@ export function ProjetoMultiPipelineManager({ dealId, projetoId, dealStatus, pip
                 {/* Exibição do fornecedor se for funil de Equipamento */}
                 {(activeMembership.pipeline_name.toLowerCase().includes('equipamento') || activeMembership.pipeline_name.toLowerCase().includes('suprimentos')) && ordemCompra && (() => {
                   const stageNameLower = activeMembership.stage_name.toLowerCase();
-                  const stageAdvanced = stageNameLower.includes('pedido pago') || stageNameLower.includes('depósito') || stageNameLower.includes('cliente') || stageNameLower.includes('instalação');
-                  const statusStillDraft = (ordemCompra.status || 'rascunho') === 'rascunho';
+                  const stageAdvanced = stageNameLower.includes('pedido pago') || stageNameLower.includes('depósito') || stageNameLower.includes('deposito') || stageNameLower.includes('cliente') || stageNameLower.includes('instalação') || stageNameLower.includes('instalacao');
+                  const statusStillDraft = (ordemCompra.status || 'rascunho') === 'rascunho' || (ordemCompra.status === 'enviada' && stageAdvanced);
                   const showDraftWarning = stageAdvanced && statusStillDraft;
                   return (
                   <motion.div
