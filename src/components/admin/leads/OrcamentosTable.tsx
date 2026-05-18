@@ -87,8 +87,12 @@ export function OrcamentosTable({
       id: orc.lead_id,
       nome: orc.nome,
       telefone: orc.telefone,
+      email: orc.email || null,
       cidade: orc.cidade || null,
       estado: orc.estado || null,
+      bairro: orc.bairro || null,
+      rua: orc.rua || null,
+      cep: orc.cep || null,
       consultor_id: orc.vendedor_id || null,
       valor_estimado: null,
     };
