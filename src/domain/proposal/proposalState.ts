@@ -59,5 +59,9 @@ export {
 } from "./proposalStateMachine";
 
 export function isActionableStatus(status: string): boolean {
-  return ["enviada", "gerada", "vista", "aceita", "recusada"].includes(status);
+  const actionable = [
+    "enviada", "gerada", "vista", "aceita", "recusada",
+    "sent", "generated", "viewed", "accepted", "rejected"
+  ];
+  return actionable.includes(status);
 }
