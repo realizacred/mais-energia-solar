@@ -895,43 +895,76 @@ async function handleMessageUpsert(
 }
 
 function extractMessageContent(messageContent: any, msg: any): { content: string | null; messageType: string } {
-  if (messageContent.conversation) {
+  if (messageContent?.conversation) {
     return { content: messageContent.conversation, messageType: "text" };
   }
-  if (messageContent.extendedTextMessage?.text) {
+  if (messageContent?.extendedTextMessage?.text) {
     return { content: messageContent.extendedTextMessage.text, messageType: "text" };
   }
-  if (messageContent.imageMessage) {
-    return { content: messageContent.imageMessage.caption || null, messageType: "image" };
+  
+  const imageMsg = messageContent?.ephemeralMessage?.message?.imageMessage
+    ?? messageContent?.imageMessage
+    ?? messageContent?.message?.imageMessage
+    ?? null;
+  if (imageMsg) {
+    return { content: imageMsg.caption || null, messageType: "image" };
   }
-  if (messageContent.videoMessage) {
-    const isGif = messageContent.videoMessage.gifPlayback === true;
-    return { content: messageContent.videoMessage.caption || null, messageType: isGif ? "gif" : "video" };
+  
+  const videoMsg = messageContent?.ephemeralMessage?.message?.videoMessage
+    ?? messageContent?.videoMessage
+    ?? messageContent?.message?.videoMessage
+    ?? null;
+  if (videoMsg) {
+    const isGif = videoMsg.gifPlayback === true;
+    return { content: videoMsg.caption || null, messageType: isGif ? "gif" : "video" };
   }
-  if (messageContent.audioMessage) {
+  
+  const audioMsg = messageContent?.ephemeralMessage?.message?.audioMessage
+    ?? messageContent?.audioMessage
+    ?? messageContent?.message?.audioMessage
+    ?? null;
+  if (audioMsg) {
     return { content: null, messageType: "audio" };
   }
-  if (messageContent.documentMessage) {
-    return { content: messageContent.documentMessage.fileName || null, messageType: "document" };
+  
+  const documentMsg = messageContent?.ephemeralMessage?.message?.documentMessage
+    ?? messageContent?.documentMessage
+    ?? messageContent?.message?.documentMessage
+    ?? null;
+  if (documentMsg) {
+    return { content: documentMsg.fileName || null, messageType: "document" };
   }
-  if (messageContent.stickerMessage) {
+  
+  const stickerMsg = messageContent?.ephemeralMessage?.message?.stickerMessage
+    ?? messageContent?.stickerMessage
+    ?? messageContent?.message?.stickerMessage
+    ?? null;
+  if (stickerMsg) {
     return { content: null, messageType: "sticker" };
   }
-  if (messageContent.locationMessage) {
-    const loc = messageContent.locationMessage;
-    return { content: `${loc.degreesLatitude},${loc.degreesLongitude}`, messageType: "location" };
+  
+  const locationMsg = messageContent?.ephemeralMessage?.message?.locationMessage
+    ?? messageContent?.locationMessage
+    ?? messageContent?.message?.locationMessage
+    ?? null;
+  if (locationMsg) {
+    return { content: `${locationMsg.degreesLatitude},${locationMsg.degreesLongitude}`, messageType: "location" };
   }
-  if (messageContent.contactMessage || messageContent.contactsArrayMessage) {
+  
+  if (messageContent?.contactMessage || messageContent?.contactsArrayMessage) {
     const contactDisplay = extractContactDisplay(messageContent);
     return { content: contactDisplay, messageType: "contact" };
   }
-  if (messageContent.reactionMessage) {
+  if (messageContent?.reactionMessage) {
     return { content: messageContent.reactionMessage.text || null, messageType: "reaction" };
   }
-  if (msg.body || msg.text) {
+  if (msg?.body || msg?.text) {
     return { content: msg.body || msg.text, messageType: "text" };
   }
-  return { content: null, messageType: "text" };
+  
+  // Final fallback for unknown/null media
+  console.warn('[MEDIA] ephemeralMessage or message null/unknown, skipping:', msg?.id || 'unknown');
+  return { content: "Mídia não disponível", messageType: "error" };
 }
 
 /**
