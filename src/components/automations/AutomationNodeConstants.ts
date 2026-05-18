@@ -7,7 +7,9 @@ import {
   Target, 
   GitBranch, 
   Search, 
-  FileText 
+  FileText,
+  CheckSquare,
+  Bell
 } from "lucide-react";
 
 export const nodeIcons: Record<AutomationNodeType, any> = {
@@ -22,6 +24,8 @@ export const actionIcons: Record<ActionType, any> = {
   webhook: Anchor,
   mover_etapa: FolderKanban,
   email: Mail,
+  criar_atividade: CheckSquare,
+  notificar_responsavel: Bell,
 };
 
 export const nodeColors: Record<AutomationNodeType, string> = {
