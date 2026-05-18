@@ -1260,8 +1260,8 @@ export function StepKitSelection({ onNext, onBack }: StepKitProps) {
       </AlertDialog>
       <div className="flex items-center justify-center gap-3 py-3 border-t text-sm">
         <button onClick={() => setPage(p => p - 1)} disabled={page === 0} className="px-3 py-1 border rounded disabled:opacity-40">← Anterior</button>
-        <span>Página {page + 1}</span>
-        <button onClick={() => setPage(p => p + 1)} className="px-3 py-1 border rounded">Próxima →</button>
+        <span className="font-medium">Página {page + 1} de {Math.max(1, Math.ceil(totalCount / pageSize))}</span>
+        <button onClick={() => setPage(p => p + 1)} disabled={(page + 1) * pageSize >= totalCount} className="px-3 py-1 border rounded disabled:opacity-40">Próxima →</button>
       </div>
     </div>
   );
