@@ -30463,6 +30463,7 @@ export type Database = {
           media_url: string | null
           message_id: string | null
           message_type: string
+          metadata: Json | null
           read_at: string | null
           remote_jid: string
           remote_jid_canonical: string | null
@@ -30488,6 +30489,7 @@ export type Database = {
           media_url?: string | null
           message_id?: string | null
           message_type?: string
+          metadata?: Json | null
           read_at?: string | null
           remote_jid: string
           remote_jid_canonical?: string | null
@@ -30513,6 +30515,7 @@ export type Database = {
           media_url?: string | null
           message_id?: string | null
           message_type?: string
+          metadata?: Json | null
           read_at?: string | null
           remote_jid?: string
           remote_jid_canonical?: string | null
