@@ -165,6 +165,14 @@ export function ProjetoMultiPipelineManager({ dealId, projetoId, dealStatus, pip
     etapaId: string;
     etapaNome: string;
     membershipId: string;
+    ordemExistente?: {
+      id: string;
+      fornecedor_id?: string | null;
+      numero_pedido?: string | null;
+      valor_total?: number | null;
+      data_previsao_entrega?: string | null;
+      observacoes?: string | null;
+    } | null;
   } | null>(null);
 
   // Estado para exibir dados do fornecedor/ordem abaixo das bolinhas
