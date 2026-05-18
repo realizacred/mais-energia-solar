@@ -8,7 +8,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Trash2 } from "lucide-react";
+import { Archive } from "lucide-react";
 import type { OrcamentoDisplayItem } from "@/types/orcamento";
 
 interface OrcamentoDeleteDialogProps {
