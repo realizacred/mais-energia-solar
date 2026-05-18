@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -8,8 +8,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import {
   FileText, Loader2, CheckCircle2, Clock, Download, Link2,
   MessageCircle, Mail, Pencil, Eye, Settings2, Wrench,
-  CalendarDays,
+  CalendarDays, AlertCircle,
 } from "lucide-react";
+import { getAvailableProposalActions } from "@/domain/proposal/proposalActionsHelper";
 import { ActionLink } from "./ActionLink";
 import { cn } from "@/lib/utils";
 import { useWhatsAppTemplates } from "@/hooks/useProposalTemplates";
@@ -93,6 +94,8 @@ export function ProposalActionCards({
     });
   }, [onSendWhatsapp, selectedTemplateId, mensagemEditada, mensagemOriginal]);
 
+  const actions = useMemo(() => getAvailableProposalActions(currentStatus), [currentStatus]);
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
       {/* ─── DIMENSIONAMENTO ─── */}
@@ -104,8 +107,8 @@ export function ProposalActionCards({
             <CheckCircle2 className="h-5 w-5 text-success" />
           </div>
 
-          <Button size="sm" variant="outline" className="gap-2 w-full justify-start border-primary/30 text-primary hover:bg-primary/5" onClick={navigateToEdit} disabled={cloning}>
-            <Pencil className="h-3.5 w-3.5" /> Editar Dimensionamento
+          <Button size="sm" variant="outline" className="gap-2 w-full justify-start border-primary/30 text-primary hover:bg-primary/5" onClick={navigateToEdit} disabled={cloning || !actions.canEdit}>
+            <Pencil className="h-3.5 w-3.5" /> {actions.canEdit ? "Editar Dimensionamento" : "Ver Dimensionamento"}
           </Button>
 
           <Separator />
@@ -137,17 +140,26 @@ export function ProposalActionCards({
             variant="outline"
             className={cn("gap-2 w-full justify-start border-primary/30 text-primary hover:bg-primary/5")}
             onClick={onGenerateFile}
-            disabled={rendering}
+            disabled={rendering || !actions.canGenerate}
           >
             {rendering ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileText className="h-3.5 w-3.5" />}
             {html ? "Gerar outro arquivo" : "Gerar arquivo"}
           </Button>
 
+          {(!actions.canGenerate && !html) && (
+            <div className="bg-warning/10 border border-warning/20 rounded p-2 flex gap-2 items-start">
+              <AlertCircle className="h-3.5 w-3.5 text-warning mt-0.5" />
+              <p className="text-[10px] text-warning-foreground leading-tight">
+                A proposta está num status terminal e não pode ser regerada.
+              </p>
+            </div>
+          )}
+
           <Separator />
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-2">
-            <ActionLink icon={Link2} label="Copiar link com rastreio" onClick={() => onCopyLink(true)} disabled={!html && !linkPdf} />
-            <ActionLink icon={Link2} label="Copiar link sem rastreio" onClick={() => onCopyLink(false)} disabled={!html && !linkPdf} />
+            <ActionLink icon={Link2} label="Copiar link com rastreio" onClick={() => onCopyLink(true)} disabled={(!html && !linkPdf) || !actions.canSend} />
+            <ActionLink icon={Link2} label="Copiar link sem rastreio" onClick={() => onCopyLink(false)} disabled={(!html && !linkPdf) || !actions.canSend} />
             {linkPdf && !html ? (
               <ActionLink icon={Download} label="Download de PDF (original)" onClick={() => window.open(linkPdf, "_blank")} />
             ) : (
@@ -221,10 +233,10 @@ export function ProposalActionCards({
           )}
 
           <div className="flex flex-col gap-2">
-            <Button size="sm" className="gap-2 w-full justify-start bg-success hover:bg-success/90 text-success-foreground" onClick={handleSendWhatsapp} disabled={sending}>
+            <Button size="sm" className="gap-2 w-full justify-start bg-success hover:bg-success/90 text-success-foreground" onClick={handleSendWhatsapp} disabled={sending || !actions.canSend}>
               <MessageCircle className="h-3.5 w-3.5" /> Enviar WhatsApp
             </Button>
-            <Button size="sm" variant="outline" className="gap-2 w-full justify-start" onClick={onSendEmail} disabled={sending}>
+            <Button size="sm" variant="outline" className="gap-2 w-full justify-start" onClick={onSendEmail} disabled={sending || !actions.canSend}>
               <Mail className="h-3.5 w-3.5" /> Enviar E-mail
             </Button>
           </div>
