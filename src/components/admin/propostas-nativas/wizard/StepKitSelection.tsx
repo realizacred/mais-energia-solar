@@ -190,25 +190,30 @@ export function StepKitSelection({ onNext, onBack }: StepKitProps) {
     return null;
   }, [manualKits]);
 
-  // Load catalog kits when tab switches to "catalogo" — fetch all, filter client-side
+  // Load catalog kits when tab switches to "catalogo" — fetch with filters
   useEffect(() => {
-    if (tab !== "catalogo" || catalogLoaded.current) return;
+    if (tab !== "catalogo") return;
     setCatalogLoading(true);
     setCatalogError(null);
-    fetchActiveKits(false, page, pageSize) // fetch all products; generator filter applied client-side via includeComponents toggle
+    
+    // UX-05: Auto-apply power filter if potenciaIdeal is set
+    const effectiveFilters = { ...filters };
+    if (potenciaIdeal > 0 && !hasRemovedAutoFilter && filters.potenciaMin === 0 && filters.potenciaMax === 1000) {
+      effectiveFilters.potenciaMin = Math.round(potenciaIdeal * 0.7 * 100) / 100;
+      effectiveFilters.potenciaMax = Math.round(potenciaIdeal * 1.3 * 100) / 100;
+      setFilters(effectiveFilters);
+    }
+
+    fetchActiveKits(includeComponents ? false : true, page, pageSize, {
+      potenciaMin: effectiveFilters.potenciaMin,
+      potenciaMax: effectiveFilters.potenciaMax,
+      searchText: effectiveFilters.searchText,
+    })
       .then(async (response) => {
         setCatalogKits(response.data);
+        setTotalCount(response.count);
         catalogLoaded.current = true;
         
-        // UX-05: Auto-apply power filter if potenciaIdeal is set
-        if (potenciaIdeal > 0 && !hasRemovedAutoFilter) {
-          setFilters(prev => ({
-            ...prev,
-            potenciaMin: Math.round(potenciaIdeal * 0.7 * 100) / 100,
-            potenciaMax: Math.round(potenciaIdeal * 1.3 * 100) / 100,
-          }));
-        }
-
         if (response.data.length > 0) {
           const summaries = await fetchKitsSummary(response.data.map(k => k.id));
           setCatalogSummaries(summaries);
@@ -216,7 +221,7 @@ export function StepKitSelection({ onNext, onBack }: StepKitProps) {
       })
       .catch((err) => setCatalogError(err.message))
       .finally(() => setCatalogLoading(false));
-  }, [tab, page, potenciaIdeal, hasRemovedAutoFilter]);
+  }, [tab, page, potenciaIdeal, includeComponents, filters.potenciaMin, filters.potenciaMax, filters.searchText]);
 
   const handleSelectCatalogKit = async (kitId: string, kitName: string) => {
     // If items already exist, ask for confirmation
