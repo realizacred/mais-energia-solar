@@ -78,21 +78,24 @@ export function ConvertLeadToClientDialog({ lead, open, onOpenChange, onSuccess,
           observacoes: (lead as any).observacoes || "",
         });
       } else {
-        setStep1Data({ 
+        const initialS1 = { 
           nome: lead.nome || "", 
           telefone: lead.telefone || "", 
           email: lead.email || "", 
-          cep: lead.cep || "",
-          cidade: lead.cidade || "",
-          estado: lead.estado || "",
-          bairro: lead.bairro || "",
-          rua: lead.rua || "",
-          numero: lead.numero || "",
-        });
-        setStep2Data({
+          cep: (lead as any).cep || "",
+          cidade: (lead as any).cidade || "",
+          estado: (lead as any).estado || "",
+          bairro: (lead as any).bairro || "",
+          rua: (lead as any).rua || "",
+          numero: (lead as any).numero || "",
+        };
+        const initialS2 = {
           localizacao: (lead as any).localizacao || "",
           observacoes: (lead as any).observacoes || "",
-        });
+        };
+
+        setStep1Data(initialS1);
+        setStep2Data(initialS2);
         setIdentidadeFiles([]);
         setComprovanteFiles([]);
         setPaymentItems([createEmptyItem()]);
