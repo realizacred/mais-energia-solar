@@ -16,7 +16,7 @@ const ACTION_BADGE_COLORS: Record<string, string> = {
   mover_etapa: 'bg-purple-100 text-purple-700 hover:bg-purple-100',
   email:       'bg-gray-100 text-gray-700 hover:bg-gray-100',
   projeto:     'bg-green-100 text-green-700 hover:bg-green-100',
-  atividade:   'bg-orange-100 text-orange-700 hover:bg-orange-100',
+  atividade:   'bg-teal-100 text-teal-700 hover:bg-teal-100',
   cliente:     'bg-pink-100 text-pink-700 hover:bg-pink-100',
 };
 
