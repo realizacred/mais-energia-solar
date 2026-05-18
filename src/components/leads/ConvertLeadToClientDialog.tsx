@@ -15,15 +15,25 @@ import { StepTecnico, type Step2Data } from "./conversion/StepTecnico";
 import { StepFinanceiro } from "./conversion/StepFinanceiro";
 import { useVendaFinanceSnapshot } from "@/hooks/useVendaFinanceSnapshot";
 
+import type { OrcamentoDisplayItem } from "@/types/orcamento";
+
 interface ConvertLeadToClientDialogProps {
   lead: Lead | null;
+  selectedOrcamento?: OrcamentoDisplayItem | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSuccess?: () => void;
   orcamentoId?: string | null;
 }
 
-export function ConvertLeadToClientDialog({ lead, open, onOpenChange, onSuccess, orcamentoId }: ConvertLeadToClientDialogProps) {
+export function ConvertLeadToClientDialog({ 
+  lead, 
+  selectedOrcamento, 
+  open, 
+  onOpenChange, 
+  onSuccess, 
+  orcamentoId 
+}: ConvertLeadToClientDialogProps) {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
