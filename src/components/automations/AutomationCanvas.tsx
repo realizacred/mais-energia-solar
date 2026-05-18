@@ -70,12 +70,12 @@ export function AutomationCanvas({
                     
                     {/* Config Summary Preview */}
                     <div className="mt-2 flex flex-col gap-1.5">
-                      {node.config.actionType === 'whatsapp' && node.config.wa_content_template && (
+                      {node.config.actionType === 'whatsapp' && (node.config as any).wa_content_template && (
                         <div className="text-[11px] text-muted-foreground bg-teal-50/50 p-2 rounded border border-teal-100/50 line-clamp-2 italic">
-                          "{node.config.wa_content_template}"
+                          "{(node.config as any).wa_content_template}"
                         </div>
                       )}
-                      
+
                       <div className="flex flex-wrap gap-1">
                         {node.config.funil_id && (
                           <Badge variant="secondary" className="text-[10px] h-4 bg-teal-100 text-teal-700 hover:bg-teal-100">Funil vinculado</Badge>
