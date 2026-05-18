@@ -101,15 +101,7 @@ Deno.serve(async (req) => {
       due_date: periodEnd.toISOString().split("T")[0],
     });
 
-    // Audit
-    await sb.from("audit_logs").insert({
-      tenant_id: tenantId,
-      user_id: userData.user.id,
-      acao: "monitor.subscription.created",
-      tabela: "monitor_subscriptions",
-      registro_id: (sub as any).id,
-      dados_novos: { plant_id, plan_id, provider, plan_name: (plan as any).name },
-    });
+    // Audit log removed - DB triggers handle this now
 
     return jsonRes({
       success: true,

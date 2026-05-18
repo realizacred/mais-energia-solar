@@ -456,13 +456,7 @@ async function handleSaveConfig(
     checked_at: new Date().toISOString(),
   } as any, { onConflict: "tenant_id" });
 
-  await supabase.from("audit_logs").insert({
-    tenant_id: tenantId,
-    user_id: userId,
-    acao: "growatt_v1.config.saved",
-    tabela: "monitoring_integrations",
-    dados_novos: { provider: "growatt_v1", base_url: normalizedUrl, token_length: token.length },
-  });
+  // Audit log removed - DB triggers handle this now
 
   return { success: true, message: "Configuração salva" };
 }

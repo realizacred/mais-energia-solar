@@ -2889,12 +2889,7 @@ serve(async (req) => {
       updated_at: new Date().toISOString(),
     }).eq("id", int.id);
 
-    // Audit
-    await supabaseAdmin.from("audit_logs").insert({
-      tenant_id: tenantId, user_id: userId, acao: "monitoring.sync.run",
-      tabela: "monitoring_integrations", registro_id: int.id,
-      dados_novos: { provider, mode, plantsUpserted: result.plantsUpserted, metricsUpserted: result.metricsUpserted, errors: result.errors.length },
-    });
+    // Audit log removed - DB triggers handle this now
 
     return jsonResponse({ success: true, plants_synced: result.plantsUpserted, metrics_synced: result.metricsUpserted, errors: result.errors });
   } catch (err) {

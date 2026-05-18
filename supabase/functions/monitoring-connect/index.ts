@@ -886,10 +886,8 @@ async function upsertIntegration(ctx: ConnectContext, data: { status: string; sy
 }
 
 async function auditLog(ctx: ConnectContext, action: string, registroId: string | undefined, dados: Record<string, unknown>) {
-  await ctx.supabaseAdmin.from("audit_logs").insert({
-    tenant_id: ctx.tenantId, user_id: ctx.userId, acao: action,
-    tabela: "monitoring_integrations", registro_id: registroId, dados_novos: dados,
-  });
+  // Direct insert into audit_logs is forbidden. Triggers handle it.
+  console.log(`[MONITORING-CONNECT] Audit log (console): ${action}`, { registroId, ...dados });
 }
 
 // ═══════════════════════════════════════════════════════════
