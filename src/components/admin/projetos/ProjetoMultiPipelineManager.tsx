@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Layers, Plus, X, Check, ChevronDown, ChevronRight, Trash2, Loader2, GripVertical, Trophy, XCircle, AlertTriangle,
-  Package, Truck, DollarSign, Calendar
+  Package, Truck, DollarSign, Calendar, Pencil
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -165,6 +165,14 @@ export function ProjetoMultiPipelineManager({ dealId, projetoId, dealStatus, pip
     etapaId: string;
     etapaNome: string;
     membershipId: string;
+    ordemExistente?: {
+      id: string;
+      fornecedor_id?: string | null;
+      numero_pedido?: string | null;
+      valor_total?: number | null;
+      data_previsao_entrega?: string | null;
+      observacoes?: string | null;
+    } | null;
   } | null>(null);
 
   // Estado para exibir dados do fornecedor/ordem abaixo das bolinhas
@@ -1143,22 +1151,59 @@ export function ProjetoMultiPipelineManager({ dealId, projetoId, dealStatus, pip
                 </div>
 
                 {/* Exibição do fornecedor se for funil de Equipamento */}
-                {(activeMembership.pipeline_name.toLowerCase().includes('equipamento') || activeMembership.pipeline_name.toLowerCase().includes('suprimentos')) && ordemCompra && (
+                {(activeMembership.pipeline_name.toLowerCase().includes('equipamento') || activeMembership.pipeline_name.toLowerCase().includes('suprimentos')) && ordemCompra && (() => {
+                  const stageNameLower = activeMembership.stage_name.toLowerCase();
+                  const stageAdvanced = stageNameLower.includes('pedido pago') || stageNameLower.includes('depósito') || stageNameLower.includes('cliente') || stageNameLower.includes('instalação');
+                  const statusStillDraft = (ordemCompra.status || 'rascunho') === 'rascunho';
+                  const showDraftWarning = stageAdvanced && statusStillDraft;
+                  return (
                   <motion.div
                     initial={{ opacity: 0, y: 5 }}
                     animate={{ opacity: 1, y: 0 }}
                     className="mt-4 p-3 rounded-lg border border-border bg-muted/30 space-y-1.5"
                   >
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-1.5 text-xs font-bold text-foreground">
-                        <Package className="h-3.5 w-3.5 text-primary" />
-                        {ordemCompra.fornecedores?.nome || "Fornecedor vinculado"}
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-1.5 text-xs font-bold text-foreground min-w-0">
+                        <Package className="h-3.5 w-3.5 text-primary shrink-0" />
+                        <span className="truncate">{ordemCompra.fornecedores?.nome || "Fornecedor vinculado"}</span>
                       </div>
-                      <Badge variant="outline" className="text-[9px] uppercase h-4 px-1 bg-background">
-                        {ordemCompra.status || 'Pendente'}
-                      </Badge>
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <Badge variant="outline" className="text-[9px] uppercase h-4 px-1 bg-background">
+                          {ordemCompra.status || 'Pendente'}
+                        </Badge>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-6 px-2 text-[10px] gap-1"
+                          onClick={() => {
+                            if (!projetoIdAtual) {
+                              toast({ title: "Projeto não identificado", variant: "destructive" });
+                              return;
+                            }
+                            setFornecedorModal({
+                              projetoId: projetoIdAtual,
+                              projetoCodigo: projectData?.codigo || (projectData?.projeto_num ? `SM-PROJ-${projectData.projeto_num}` : undefined),
+                              clienteNome: projectData?.cliente_nome,
+                              etapaId: activeMembership.stage_id,
+                              etapaNome: activeMembership.stage_name,
+                              membershipId: activeMembership.id,
+                              ordemExistente: {
+                                id: ordemCompra.id,
+                                fornecedor_id: ordemCompra.fornecedor_id,
+                                numero_pedido: ordemCompra.numero_pedido,
+                                valor_total: ordemCompra.valor_total,
+                                data_previsao_entrega: ordemCompra.data_previsao_entrega,
+                                observacoes: ordemCompra.observacoes,
+                              },
+                            });
+                          }}
+                        >
+                          <Pencil className="h-3 w-3" />
+                          Editar
+                        </Button>
+                      </div>
                     </div>
-                    
+
                     <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-[10px] text-muted-foreground">
                       <div className="flex items-center gap-1">
                         <Truck className="h-3 w-3" />
@@ -1173,8 +1218,19 @@ export function ProjetoMultiPipelineManager({ dealId, projetoId, dealStatus, pip
                         Entrega: {ordemCompra.data_previsao_entrega ? new Date(ordemCompra.data_previsao_entrega + "T12:00:00").toLocaleDateString("pt-BR") : "—"}
                       </div>
                     </div>
+
+                    {showDraftWarning && (
+                      <div className="mt-2 flex items-start gap-2 p-2 rounded-md border border-warning/30 bg-warning/5 text-warning">
+                        <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
+                        <p className="text-[10px] leading-snug">
+                          Pedido está em etapa avançada do funil (<strong>{activeMembership.stage_name}</strong>), mas a ordem ainda está como <strong>rascunho</strong>. Edite o pedido para atualizar o status quando o fornecedor confirmar.
+                        </p>
+                      </div>
+                    )}
                   </motion.div>
-                )}
+                  );
+                })()}
+
 
                 {/* Bloco 1: Aviso de fornecedor ausente (GAP 1) */}
                 {(() => {
@@ -1281,10 +1337,17 @@ export function ProjetoMultiPipelineManager({ dealId, projetoId, dealStatus, pip
               projetoId={fornecedorModal?.projetoId || projetoIdAtual || ""}
               projetoCodigo={fornecedorModal?.projetoCodigo}
               clienteNome={fornecedorModal?.clienteNome}
+              ordemExistente={fornecedorModal?.ordemExistente ?? null}
               onSuccess={() => {
-                const { membershipId, etapaId } = fornecedorModal;
+                const { membershipId, etapaId, ordemExistente } = fornecedorModal;
+                const isEdit = !!ordemExistente?.id;
                 setFornecedorModal(null);
-                // Força atualização da etapa após vincular
+                if (isEdit) {
+                  // Modo edição: não força avanço de etapa
+                  fetchOrdemCompra();
+                  return;
+                }
+                // Modo criação: força atualização da etapa após vincular
                 supabase
                   .from("deal_pipeline_stages")
                   .update({ stage_id: etapaId })
