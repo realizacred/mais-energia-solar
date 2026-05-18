@@ -205,7 +205,9 @@ export function StepDocumento({
   useEffect(() => {
     if (skipTemplateAutoSelect) return;
     if (!templateSelecionado && templates.length > 0) {
-      onTemplateSelecionado(templates[0].id);
+      const defaultTpl = templates.find(t => t.is_default);
+      const firstTpl = templates[0];
+      onTemplateSelecionado(defaultTpl?.id || firstTpl.id);
     }
   }, [templates, templateSelecionado, onTemplateSelecionado, skipTemplateAutoSelect]);
 
