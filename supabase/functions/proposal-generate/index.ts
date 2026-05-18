@@ -1118,8 +1118,8 @@ Inclua: análise do perfil de consumo, adequação técnica do sistema, retorno 
     const updateProposta: any = { versao_atual: versaoNumero };
     const updateVersao: any = {};
 
-    if (body.template_id) {
-      updateVersao.template_id_used = body.template_id;
+    if (resolvedTemplateId) {
+      updateVersao.template_id_used = resolvedTemplateId;
     }
 
     // RB-62: persistir métricas-chave para evitar NULL em proposta_versoes
