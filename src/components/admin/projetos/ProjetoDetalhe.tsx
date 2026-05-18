@@ -315,31 +315,69 @@ function OperationalBadge({ dealId }: { dealId: string }) {
 
 // ─── ErrorBoundary for ProjetoDetalhe (prevents white screen) ───
 class ProjetoDetalheErrorBoundary extends React.Component<
-  { children: React.ReactNode; onBack: () => void },
-  { hasError: boolean; errorMsg: string }
+  { children: React.ReactNode; onBack: () => void; label?: string },
+  { hasError: boolean; errorMsg: string; errorStack: string; resetKey: number }
 > {
-  constructor(props: { children: React.ReactNode; onBack: () => void }) {
+  constructor(props: { children: React.ReactNode; onBack: () => void; label?: string }) {
     super(props);
-    this.state = { hasError: false, errorMsg: "" };
+    this.state = { hasError: false, errorMsg: "", errorStack: "", resetKey: 0 };
   }
   static getDerivedStateFromError(error: Error) {
-    return { hasError: true, errorMsg: error?.message || "Erro desconhecido" };
+    return {
+      hasError: true,
+      errorMsg: error?.message || "Erro desconhecido",
+      errorStack: error?.stack || "",
+    };
   }
   componentDidCatch(error: Error, info: React.ErrorInfo) {
-    console.error("[ProjetoDetalhe] Crash capturado:", error.message, info.componentStack);
+    // Log estruturado para diagnóstico em produção (React minified errors).
+    console.error(
+      `[ProjetoDetalhe${this.props.label ? `/${this.props.label}` : ""}] Crash capturado:`,
+      error.message,
+      "\nstack:", error.stack,
+      "\ncomponentStack:", info.componentStack
+    );
   }
+  handleRetry = () => {
+    this.setState(s => ({ hasError: false, errorMsg: "", errorStack: "", resetKey: s.resetKey + 1 }));
+  };
   render() {
     if (this.state.hasError) {
+      const isReactInternal = /Minified React error #(\d+)/.test(this.state.errorMsg);
+      const errCode = this.state.errorMsg.match(/#(\d+)/)?.[1];
       return (
-        <div className="flex flex-col items-center justify-center py-24 text-center">
+        <div className="flex flex-col items-center justify-center py-16 text-center px-4">
           <AlertCircle className="h-12 w-12 text-destructive mb-4" />
-          <h2 className="text-lg font-bold text-foreground mb-2">Erro ao carregar projeto</h2>
-          <p className="text-sm text-muted-foreground mb-1 max-w-md">{this.state.errorMsg}</p>
-          <Button variant="outline" onClick={this.props.onBack} className="mt-4">Voltar</Button>
+          <h2 className="text-lg font-bold text-foreground mb-2">
+            {this.props.label ? `Erro ao carregar aba "${this.props.label}"` : "Erro ao carregar projeto"}
+          </h2>
+          <p className="text-sm text-muted-foreground mb-1 max-w-md break-words">{this.state.errorMsg}</p>
+          {isReactInternal && errCode && (
+            <a
+              href={`https://react.dev/errors/${errCode}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-xs text-primary underline mb-2"
+            >
+              Ver detalhes do erro React #{errCode}
+            </a>
+          )}
+          {this.state.errorStack && (
+            <details className="mt-2 max-w-xl w-full text-left">
+              <summary className="text-xs text-muted-foreground cursor-pointer">Stack trace</summary>
+              <pre className="text-[10px] text-muted-foreground bg-muted/40 p-2 rounded mt-1 overflow-auto max-h-48">
+                {this.state.errorStack}
+              </pre>
+            </details>
+          )}
+          <div className="flex gap-2 mt-4">
+            <Button variant="outline" onClick={this.handleRetry}>Tentar novamente</Button>
+            <Button variant="ghost" onClick={this.props.onBack}>Voltar</Button>
+          </div>
         </div>
       );
     }
-    return this.props.children;
+    return <React.Fragment key={this.state.resetKey}>{this.props.children}</React.Fragment>;
   }
 }
 
@@ -892,63 +930,65 @@ function ProjetoDetalheContent() {
           exit={{ opacity: 0, y: -6 }}
           transition={{ duration: 0.12 }}
         >
-          {activeTab === "gerenciamento" && (
-            <GerenciamentoTab
-              deal={deal} history={ctx.history} stages={stages}
-              customerName={customerName} customerPhone={customerPhone}
-              customerEmail={customerEmail} customerCpfCnpj={customerCpfCnpj}
-              customerEmpresa={customerEmpresa}
-              customerAddress={customerAddress}
-              ownerName={ownerName}
-              currentStage={currentStage} currentPipeline={currentPipeline}
-              formatDate={formatDate} formatBRL={formatBRL} getStageNameById={getStageNameById}
-              userNamesMap={userNamesMap}
-              onRefreshCustomer={refreshCustomer}
-              onEditCliente={(id) => setEditClienteId(id)}
-            />
-          )}
-          {activeTab === "comunicacao" && (
-            <ProjetoComunicacaoResumo customerId={deal.customer_id} customerPhone={customerPhone} />
-          )}
-          {activeTab === "propostas" && (
-            <PropostasTab customerId={deal.customer_id} dealId={deal.id} dealTitle={deal.title} navigate={navigate} isClosed={isClosed} dealStatus={deal.status} projetoId={projetoId} />
-          )}
-          {activeTab === "documentos" && (
-            <DocumentosTab dealId={deal.id} clienteTelefone={customerPhone} />
-          )}
-          {activeTab === "instalacao" && (
-            <ProjetoInstalacaoTab dealId={deal.id} />
-          )}
-          {activeTab === "suprimentos" && (
-            <div className="p-6">
-              <SuprimentosListPageInline projetoId={projetoId ?? deal.id} />
-            </div>
-          )}
-          {activeTab === "concessionaria" && (
-            <div className="p-6">
-              <ProjetoConcessionariaTab dealId={deal.id} />
-            </div>
-          )}
-          {activeTab === "credito" && (
-            <div className="p-6">
-              <ProjetoCreditoTab 
-                dealId={deal.id} 
-                clienteId={deal.customer_id} 
-                clienteCpfCnpj={customerCpfCnpj}
-                valorProposta={deal.value}
+          <ProjetoDetalheErrorBoundary onBack={onBack} label={activeTab}>
+            {activeTab === "gerenciamento" && (
+              <GerenciamentoTab
+                deal={deal} history={ctx.history} stages={stages}
+                customerName={customerName} customerPhone={customerPhone}
+                customerEmail={customerEmail} customerCpfCnpj={customerCpfCnpj}
+                customerEmpresa={customerEmpresa}
+                customerAddress={customerAddress}
+                ownerName={ownerName}
+                currentStage={currentStage} currentPipeline={currentPipeline}
+                formatDate={formatDate} formatBRL={formatBRL} getStageNameById={getStageNameById}
+                userNamesMap={userNamesMap}
+                onRefreshCustomer={refreshCustomer}
+                onEditCliente={(id) => setEditClienteId(id)}
               />
-            </div>
-          )}
-          {activeTab === "recibos" && (
-            <ProjetoRecibosTab
-              filters={{ projeto_id: projetoId || "" }}
-              defaultClienteId={deal.customer_id ?? undefined}
-              defaultProjetoId={projetoId ?? undefined}
-              defaultDealId={deal.id}
-              title="Recibos do projeto"
-              emptyDescription="Nenhum recibo emitido para este projeto. Use 'Emitir recibo' para registrar sinal, parcela ou quitação."
-            />
-          )}
+            )}
+            {activeTab === "comunicacao" && (
+              <ProjetoComunicacaoResumo customerId={deal.customer_id} customerPhone={customerPhone} />
+            )}
+            {activeTab === "propostas" && (
+              <PropostasTab customerId={deal.customer_id} dealId={deal.id} dealTitle={deal.title} navigate={navigate} isClosed={isClosed} dealStatus={deal.status} projetoId={projetoId} />
+            )}
+            {activeTab === "documentos" && (
+              <DocumentosTab dealId={deal.id} clienteTelefone={customerPhone} />
+            )}
+            {activeTab === "instalacao" && (
+              <ProjetoInstalacaoTab dealId={deal.id} />
+            )}
+            {activeTab === "suprimentos" && (
+              <div className="p-6">
+                <SuprimentosListPageInline projetoId={projetoId ?? deal.id} />
+              </div>
+            )}
+            {activeTab === "concessionaria" && (
+              <div className="p-6">
+                <ProjetoConcessionariaTab dealId={deal.id} />
+              </div>
+            )}
+            {activeTab === "credito" && (
+              <div className="p-6">
+                <ProjetoCreditoTab 
+                  dealId={deal.id} 
+                  clienteId={deal.customer_id} 
+                  clienteCpfCnpj={customerCpfCnpj}
+                  valorProposta={deal.value}
+                />
+              </div>
+            )}
+            {activeTab === "recibos" && (
+              <ProjetoRecibosTab
+                filters={{ projeto_id: projetoId || "" }}
+                defaultClienteId={deal.customer_id ?? undefined}
+                defaultProjetoId={projetoId ?? undefined}
+                defaultDealId={deal.id}
+                title="Recibos do projeto"
+                emptyDescription="Nenhum recibo emitido para este projeto. Use 'Emitir recibo' para registrar sinal, parcela ou quitação."
+              />
+            )}
+          </ProjetoDetalheErrorBoundary>
         </motion.div>
       </AnimatePresence>
 
