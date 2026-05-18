@@ -21,6 +21,8 @@ const step2Schema = z.object({
   localizacao: z.string().min(1, "Localização é obrigatória"),
   simulacao_aceita_id: z.string().optional(),
   observacoes: z.string().optional(),
+  media_consumo: z.number().optional(),
+  consumo_previsto: z.number().optional(),
 });
 
 export type Step2Data = z.infer<typeof step2Schema>;
