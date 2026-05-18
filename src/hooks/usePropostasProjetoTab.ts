@@ -360,6 +360,9 @@ export function usePropostasRealtimeSync(dealId: string, customerId: string | nu
       .channel(`propostas-nativas-realtime-${dealId}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "propostas_nativas" }, invalidate)
       .on("postgres_changes", { event: "*", schema: "public", table: "proposta_versoes" }, invalidate)
+      .on("postgres_changes", { event: "*", schema: "public", table: "proposal_events" }, invalidate)
+      .on("postgres_changes", { event: "*", schema: "public", table: "proposta_kits" }, invalidate)
+      .on("postgres_changes", { event: "*", schema: "public", table: "proposta_versao_ucs" }, invalidate)
       .subscribe();
 
     return () => {
