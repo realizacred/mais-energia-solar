@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2, MessageCircle, Anchor, ArrowRightLeft, Mail, FolderOpen, CheckSquare, User } from "lucide-react";
 import { AutomationFlowNode, TRIGGER_LABELS, ACTION_LABELS } from "@/types/automation-flow";
 import { cn } from "@/lib/utils";
 import { 
@@ -9,6 +9,16 @@ import {
   nodeTitles, 
   nodeTitleColors 
 } from "./AutomationNodeConstants";
+
+const ACTION_BADGE_COLORS: Record<string, string> = {
+  whatsapp:    'bg-teal-100 text-teal-700 hover:bg-teal-100',
+  webhook:     'bg-blue-100 text-blue-700 hover:bg-blue-100', 
+  mover_etapa: 'bg-purple-100 text-purple-700 hover:bg-purple-100',
+  email:       'bg-gray-100 text-gray-700 hover:bg-gray-100',
+  projeto:     'bg-green-100 text-green-700 hover:bg-green-100',
+  atividade:   'bg-orange-100 text-orange-700 hover:bg-orange-100',
+  cliente:     'bg-pink-100 text-pink-700 hover:bg-pink-100',
+};
 
 interface AutomationCanvasProps {
   nodes: AutomationFlowNode[];
