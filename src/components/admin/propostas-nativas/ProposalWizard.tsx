@@ -1896,7 +1896,7 @@ function ProposalWizardContent() {
         if (cli.lead_id) {
           const { data: lead } = await supabase
             .from("leads")
-            .select("id, nome, telefone, lead_code, estado, cidade, media_consumo, tipo_telhado, municipio_ibge_codigo")
+            .select("id, nome, telefone, lead_code, estado, cidade, media_consumo, consumo_previsto, tipo_telhado, municipio_ibge_codigo")
             .eq("id", cli.lead_id)
             .maybeSingle();
           if (!cancelled && lead) {
@@ -1905,6 +1905,7 @@ function ProposalWizardContent() {
               id: lead.id, nome: lead.nome, telefone: lead.telefone,
               lead_code: lead.lead_code || "", estado: lead.estado,
               cidade: lead.cidade, media_consumo: lead.media_consumo,
+              geracao_estimada_kwh: lead.consumo_previsto || undefined,
               tipo_telhado: lead.tipo_telhado,
               municipio_ibge_codigo: lead.municipio_ibge_codigo || undefined,
             });
