@@ -128,8 +128,15 @@ export function AutomationFlowEditor({ automationId, onBack }: AutomationFlowEdi
   };
 
   const handleSave = async () => {
-    if (!name) {
-      toast({ title: "Nome obrigatório", variant: "destructive" });
+    const nomeTrimmed = name.trim();
+    if (!nomeTrimmed) {
+      toast({ title: "Digite um nome para a automação", variant: "destructive" });
+      return;
+    }
+    
+    const trigger = nodes.find(n => n.type === 'trigger');
+    if (!trigger?.config?.triggerType) {
+      toast({ title: "Configure o gatilho primeiro", variant: "destructive" });
       return;
     }
     
@@ -138,14 +145,17 @@ export function AutomationFlowEditor({ automationId, onBack }: AutomationFlowEdi
     saveFlowMutation.mutate({
       automationId,
       flow: { nodes },
-      basicData: { nome: name, ativo: active, tenant_id: tenantId }
+      basicData: { nome: nomeTrimmed, ativo: active, tenant_id: tenantId }
     }, {
       onSuccess: () => {
-        toast({ title: "Automação salva!" });
-        onBack();
+        toast({ title: "Automação salva com sucesso!" });
+        setTimeout(() => {
+          onBack();
+        }, 1000);
       },
       onError: (err: any) => {
-        toast({ title: "Erro ao salvar", description: err.message, variant: "destructive" });
+        console.error('[SAVE ERROR]', err);
+        toast({ title: "Erro ao salvar: " + err.message, variant: "destructive" });
       }
     });
   };

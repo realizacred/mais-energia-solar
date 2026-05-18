@@ -81,54 +81,29 @@ export function useSaveAutomationFlow() {
       const action = flow.nodes.find(n => n.type === "action");
       
       const payload: any = {
-        ...basicData,
+        tenant_id: basicData.tenant_id,
+        nome: basicData.nome.trim(),
+        ativo: basicData.ativo,
+        tipo_gatilho: trigger?.config.triggerType ?? null,
+        projeto_funil_id: trigger?.config.funil_id ?? null,
+        projeto_etapa_id: trigger?.config.etapa_id ?? null,
+        canal_notificacao: action?.config.actionType ?? null,
+        webhook_url: action?.config.webhook_url ?? null,
+        template_mensagem: action?.config.wa_content_template ?? null,
         metadata: flow as any,
-        tipo_gatilho: trigger?.config.triggerType || "manual",
-        tipo_acao: action?.config.actionType || "notificar_responsavel",
       };
-      
-      if (trigger?.config.funil_id) {
-        // Gatilhos de projeto usam projeto_funil_id, deals usam pipeline_id
-        const isLegacy = trigger.config.triggerType === "projeto_movido" || trigger.config.triggerType === "projeto_criado";
-        if (isLegacy) {
-          payload.projeto_funil_id = trigger.config.funil_id;
-          payload.projeto_etapa_id = trigger.config.etapa_id;
-        } else {
-          payload.pipeline_id = trigger.config.funil_id;
-          payload.stage_id = trigger.config.etapa_id;
-        }
-      }
-      
-      if (action?.config.actionType === "mover_etapa") {
-        const isLegacy = trigger?.config.triggerType === "projeto_movido";
-        if (isLegacy) {
-          payload.destino_etapa_projeto_id = action.config.destino_etapa_id;
-        } else {
-          payload.destino_stage_id = action.config.destino_etapa_id;
-        }
-      }
-      
-      if (action?.config.webhook_url) {
-        payload.webhook_url = action.config.webhook_url;
-        payload.webhook_secret = action.config.webhook_secret;
-        payload.webhook_headers = action.config.webhook_headers;
-      }
-      
-      if (action?.config.template_mensagem) {
-        payload.template_mensagem = action.config.template_mensagem;
-        payload.canal_notificacao = action.config.canal_notificacao;
-      }
 
       if (automationId) {
         const { error } = await supabase
           .from("pipeline_automations")
           .update(payload)
-          .eq("id", automationId);
+          .eq("id", automationId)
+          .eq("tenant_id", basicData.tenant_id);
         if (error) throw error;
       } else {
         const { error } = await supabase
           .from("pipeline_automations")
-          .insert(payload);
+          .insert([payload]);
         if (error) throw error;
       }
     },
