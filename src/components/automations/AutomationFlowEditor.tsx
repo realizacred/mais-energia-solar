@@ -13,6 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { LoadingState } from "@/components/ui-kit/LoadingState";
 import { useToast } from "@/hooks/use-toast";
 import { getCurrentTenantId } from "@/lib/getCurrentTenantId";
+import { cn } from "@/lib/utils";
 
 interface AutomationFlowEditorProps {
   automationId: string | null;
