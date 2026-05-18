@@ -159,7 +159,7 @@ export function ConvertLeadToClientDialog({
     }
   }, [lead?.id, open, hydrationKey, mappedStep1Data, mappedStep2Data]);
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (isPending = false) => {
     setLoading(true);
     try {
       const { data: tenantId } = await supabase.rpc("get_user_tenant_id");
@@ -181,19 +181,19 @@ export function ConvertLeadToClientDialog({
         consumo_previsto: step2Data.consumo_previsto ?? mappedHydration.consumo_previsto
       };
 
-
       const { data: res, error } = await supabase.rpc("convert_lead_to_venda_v2", { 
         _lead_id: lead?.id, 
         _payload: payload as any, 
         _payment_composition: paymentItems as any, 
         _idempotency_key: lead?.id,
-        _orcamento_id: mappedHydration._orcamento_id || orcamentoId 
+        _orcamento_id: mappedHydration._orcamento_id || orcamentoId,
+        _is_pending: isPending
       });
       
       if (error || !(res as any)?.success) throw new Error((res as any)?.message || "Erro na conversão");
 
       localStorage.removeItem(`lead_conversion_${lead?.id}`);
-      toast({ title: "Venda convertida!", description: "O lead foi processado com sucesso." });
+      toast({ title: isPending ? "Progresso salvo!" : "Venda convertida!", description: isPending ? "O projeto foi criado como pendente de documentação." : "O lead foi processado com sucesso." });
       onOpenChange(false);
       onSuccess?.();
     } catch (err: any) {
@@ -235,7 +235,22 @@ export function ConvertLeadToClientDialog({
           {currentStep < 2 ? (
             <Button onClick={() => setCurrentStep(s => s + 1)} disabled={currentStep === 0 ? !isStep1Valid : !isStep2Valid}>Próximo</Button>
           ) : (
-            <Button onClick={handleSubmit} disabled={loading || !finance.isValid}>{loading ? <RefreshCw className="animate-spin mr-2" /> : "Converter orçamento"}</Button>
+            <div className="flex gap-2">
+              <Button 
+                variant="outline" 
+                onClick={() => handleSubmit(true)} 
+                disabled={loading || !step1Data.nome || !step1Data.telefone}
+              >
+                {loading ? <RefreshCw className="animate-spin mr-2" /> : "Salvar pendente"}
+              </Button>
+              <Button 
+                onClick={() => handleSubmit(false)} 
+                disabled={loading || !finance.isValid || !isStep1Valid || !isStep2Valid}
+                className="bg-teal-600 hover:bg-teal-700"
+              >
+                {loading ? <RefreshCw className="animate-spin mr-2" /> : "Converter venda"}
+              </Button>
+            </div>
           )}
         </div>
       </DialogContent>
