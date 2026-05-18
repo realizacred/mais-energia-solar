@@ -1468,8 +1468,46 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
             </div>
           </div>
 
-          {/* Expand + Menu */}
-          <div className="flex items-center gap-1 shrink-0 ml-auto">
+          {/* Actions + Expand + Menu */}
+          <div className="flex items-center gap-3 shrink-0 ml-auto">
+            {(() => {
+              const actions = getAvailableProposalActions(p.status);
+              if (!actions.canAccept && !actions.canReject) return null;
+              
+              return (
+                <div className="hidden sm:flex items-center gap-2 mr-2">
+                  {actions.canAccept && (
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
+                      className="h-7 text-[10px] md:text-xs gap-1 border-success/50 text-success hover:bg-success/10 font-medium px-2" 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        updatePropostaStatus("aceita");
+                      }} 
+                      disabled={updatingStatus}
+                    >
+                      <CheckCircle className="h-3 w-3" /> Aceitar
+                    </Button>
+                  )}
+                  {actions.canReject && (
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
+                      className="h-7 text-[10px] md:text-xs gap-1 border-destructive/50 text-destructive hover:bg-destructive/10 font-medium px-2" 
+                      disabled={updatingStatus}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setRecusaDialogOpen(true);
+                      }}
+                    >
+                      <AlertCircle className="h-3 w-3" /> Recusar
+                    </Button>
+                  )}
+                </div>
+              );
+            })()}
+
             <ChevronDown className={cn("h-4 w-4 text-muted-foreground transition-transform", isExpanded && "rotate-180")} />
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
