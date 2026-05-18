@@ -109,18 +109,29 @@ function usePipelines() {
   });
 }
 
-function usePipelineStages(pipelineId: string | null) {
+function usePipelineStages(pipelineId: string | null, type: 'modern' | 'legacy' = 'modern') {
   return useQuery({
-    queryKey: ["pipeline_stages_for_automations", pipelineId],
+    queryKey: ["pipeline_stages_for_automations", pipelineId, type],
     queryFn: async () => {
       if (!pipelineId) return [];
-      const { data, error } = await supabase
-        .from("pipeline_stages")
-        .select("id, name, position")
-        .eq("pipeline_id", pipelineId)
-        .order("position");
-      if (error) throw error;
-      return data as StageOption[];
+      
+      if (type === 'modern') {
+        const { data, error } = await supabase
+          .from("pipeline_stages")
+          .select("id, name, position")
+          .eq("pipeline_id", pipelineId)
+          .order("position");
+        if (error) throw error;
+        return data as StageOption[];
+      } else {
+        const { data, error } = await supabase
+          .from("projeto_etapas")
+          .select("id, name:nome, position:ordem")
+          .eq("funil_id", pipelineId)
+          .order("ordem");
+        if (error) throw error;
+        return data as StageOption[];
+      }
     },
     staleTime: STALE_TIME,
     enabled: !!pipelineId,
