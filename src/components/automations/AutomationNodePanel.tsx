@@ -141,8 +141,6 @@ export function AutomationNodePanel({
               { type: 'atividade_criada' as TriggerType, icon: CheckSquare, label: 'Atividade Criada' },
               { type: 'atividade_concluida' as TriggerType, icon: CheckCircle2, label: 'Atividade Concluída' },
               { type: 'campo_alterado' as TriggerType, icon: Search, label: 'Campo Alterado' },
-              { type: 'cliente_alterado' as TriggerType, icon: UserCog, label: 'Cliente Alterado' },
-              { type: 'cliente_criado' as TriggerType, icon: FolderPlus, label: 'Cliente Criado' },
             ].map((opt) => (
               <button
                 key={opt.type}
