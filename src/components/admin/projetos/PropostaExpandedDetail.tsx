@@ -965,9 +965,13 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
   // Auto-render ONLY when no persisted PDF exists, status indicates generation happened,
   // AND the version was actually generated with a template (template_id_used is set).
   // Without template_id_used, no auto-render — avoids showing a random template preview.
+  // Guard: nunca dispara mais de uma vez para a mesma versão (anti-loop em DOCX,
+  // onde handleRender não popula `html` e o effect re-rodaria a cada mudança de dep).
+  const autoRenderedVersionRef = useRef<string | null>(null);
   useEffect(() => {
     if (!isExpanded || activeTab !== "arquivo" || html || rendering) return;
     if (!latestVersao?.id) return;
+    if (autoRenderedVersionRef.current === latestVersao.id) return;
     // Skip auto-render if persisted PDF or external link_pdf exists (migrated proposals)
     if (latestVersao.output_pdf_path || latestVersao.link_pdf) return;
     // Skip auto-render if version was never generated with a template
@@ -976,6 +980,7 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
     const pStatus = p.status?.toLowerCase();
     if (vStatus === "generated" || vStatus === "ativa" ||
         pStatus === "generated" || pStatus === "sent" || pStatus === "accepted") {
+      autoRenderedVersionRef.current = latestVersao.id;
       handleRender();
     }
   }, [isExpanded, activeTab, latestVersao?.id]);
