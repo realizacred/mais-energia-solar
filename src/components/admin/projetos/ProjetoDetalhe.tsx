@@ -2810,17 +2810,19 @@ function PropostasTab({ customerId, dealId, dealTitle, navigate, isClosed, dealS
   const outras = propostas.filter(p => p.id !== principal?.id);
 
   const isPropostaOutdated = (prop: any) => {
+    // SSOT backend: has_unpublished_changes é setado por proposal_create_version
+    // (TRUE em intent='draft', FALSE em intent='generated'/regenerate).
+    if (typeof prop.has_unpublished_changes === 'boolean') {
+      return prop.has_unpublished_changes;
+    }
+
+    // Fallback legado: linhas antigas sem flag preenchida — heurística por timestamp.
     const lv = prop.versoes?.[0];
     if (!lv?.gerado_em) return false;
-
-    // Use usuario_editou_em (explicit user edit) if available, fallback to updated_at
     const editadoEm = lv.usuario_editou_em;
     if (!editadoEm) return false;
-
     const geradoTime = new Date(lv.gerado_em).getTime();
     const editadoTime = new Date(editadoEm).getTime();
-
-    // Grace period of 60s for system updates that happen right after generation
     return (editadoTime - geradoTime) > 60_000;
   };
 
