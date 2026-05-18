@@ -383,6 +383,7 @@ export function LeadsView() {
         open={isConvertOpen}
         onOpenChange={setIsConvertOpen}
         onSuccess={fetchOrcamentos}
+        orcamentoId={selectedOrcamento?.id}
       />
 
       <ImportarLeadsModal
