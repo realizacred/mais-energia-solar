@@ -29,6 +29,7 @@ export interface OfflineConversion {
   identidadeFiles: DocumentFile[];
   comprovanteFiles: DocumentFile[];
   beneficiariaFiles: DocumentFile[];
+  paymentItems?: unknown[];
   savedAt: string;
   synced?: boolean;
 }
@@ -108,56 +109,16 @@ export function useOfflineConversionSync() {
         valor_projeto: valorProjeto,
       };
 
-      // Check for existing client (CLI- deduplication)
-      const { data: existingCliente } = await supabase
-        .from("clientes")
-        .select("id")
-        .eq("lead_id", conversion.leadId)
-        .maybeSingle();
+      const { data: rpcRes, error: rpcError } = await supabase.rpc("convert_lead_to_venda_v2", {
+        _lead_id: conversion.leadId,
+        _payload: clientePayload as any,
+        _payment_composition: (conversion.paymentItems || []) as any,
+        _idempotency_key: conversion.leadId,
+      });
 
-      let cliente: { id: string } | null = null;
-
-      if (existingCliente) {
-        // Update existing client instead of duplicating
-        const { data: updated, error: updateError } = await supabase
-          .from("clientes")
-          .update({ ...clientePayload, updated_at: new Date().toISOString() })
-          .eq("id", existingCliente.id)
-          .select("id")
-          .single();
-
-        if (updateError) throw updateError;
-        cliente = updated;
-      } else {
-        // Create new client
-        const { data: created, error: insertError } = await supabase
-          .from("clientes")
-          // cliente_code é gerado automaticamente pelo trigger generate_cliente_code()
-          .insert({ ...clientePayload, lead_id: conversion.leadId } as any)
-          .select("id")
-          .single();
-
-        if (insertError) throw insertError;
-        cliente = created;
-      }
-
-      if (!cliente) throw new Error("Falha ao criar/atualizar cliente.");
-
-      // Update lead status to "Aguardando Validação" (admin needs to approve)
-      const { data: convertidoStatus } = await supabase
-        .from("lead_status")
-        .select("id")
-        .eq("nome", "Aguardando Validação")
-        .single();
-
-      if (convertidoStatus) {
-        const { error: leadStatusError } = await supabase
-          .from("leads")
-          .update({ status_id: convertidoStatus.id })
-          .eq("id", conversion.leadId);
-
-        if (leadStatusError) throw leadStatusError;
-      }
+      if (rpcError) throw rpcError;
+      const result = rpcRes as { success?: boolean; message?: string } | null;
+      if (!result?.success) throw new Error(result?.message || "Falha ao sincronizar conversão.");
 
       return { success: true };
     } catch (error) {

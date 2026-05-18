@@ -56,6 +56,7 @@ import {
 } from "@/components/ui/form";
 import { DocumentUpload, DocumentFile, uploadDocumentFiles } from "./DocumentUpload";
 import type { Lead } from "@/types/lead";
+import { isValidCpfCnpj } from "@/lib/cpfCnpjUtils";
 
 interface Disjuntor {
   id: string;
@@ -82,7 +83,7 @@ const formSchema = z.object({
   nome: z.string().min(2, "Nome é obrigatório"),
   telefone: z.string().min(10, "Telefone é obrigatório"),
   email: z.string().optional().refine(val => !val || z.string().email().safeParse(val).success, "E-mail inválido"),
-  cpf_cnpj: z.string().min(11, "CPF/CNPJ é obrigatório"),
+  cpf_cnpj: z.string().min(11, "CPF/CNPJ é obrigatório").refine(isValidCpfCnpj, "CPF/CNPJ inválido"),
   data_nascimento: z.string().optional(),
   cep: z.string().optional(),
   estado: z.string().optional(),
@@ -393,10 +394,11 @@ export function ConvertLeadToClientDialog({
 
       if (savedData?.formData) {
         const leadEmail = lead.email && lead.email.includes('@') ? lead.email : "";
+        const savedEmail = savedData.formData.email && savedData.formData.email.includes('@') ? savedData.formData.email : "";
         form.reset({
           nome: savedData.formData.nome || lead.nome || "",
           telefone: savedData.formData.telefone || lead.telefone || "",
-          email: savedData.formData.email || leadEmail,
+          email: savedEmail || leadEmail,
           cpf_cnpj: savedData.formData.cpf_cnpj || (lead as any).cpf_cnpj || "",
           data_nascimento: savedData.formData.data_nascimento || "",
           cep: savedData.formData.cep || lead.cep || "",
@@ -549,11 +551,8 @@ export function ConvertLeadToClientDialog({
     return (
       identidadeFiles.length > 0 &&
       comprovanteFiles.length > 0 &&
-      !!form.getValues("email") &&
       !!form.getValues("cpf_cnpj") &&
-      !!form.getValues("bairro") &&
-      !!form.getValues("rua") &&
-      !!form.getValues("numero") &&
+      isValidCpfCnpj(form.getValues("cpf_cnpj")) &&
       !!form.getValues("disjuntor_id") &&
       !!form.getValues("transformador_id") &&
       !!form.getValues("localizacao")
@@ -563,11 +562,7 @@ export function ConvertLeadToClientDialog({
   // Get list of missing required items
   const getMissingItems = () => {
     const missing: string[] = [];
-    if (!form.getValues("email")) missing.push("E-mail");
-    if (!form.getValues("cpf_cnpj")) missing.push("CPF/CNPJ");
-    if (!form.getValues("bairro")) missing.push("Bairro");
-    if (!form.getValues("rua")) missing.push("Rua");
-    if (!form.getValues("numero")) missing.push("Número");
+    if (!form.getValues("cpf_cnpj") || !isValidCpfCnpj(form.getValues("cpf_cnpj"))) missing.push("CPF/CNPJ válido");
     if (identidadeFiles.length === 0) missing.push("Identidade (RG/CNH)");
     if (comprovanteFiles.length === 0) missing.push("Comprovante de Endereço");
     if (!form.getValues("disjuntor_id")) missing.push("Disjuntor");
@@ -587,11 +582,7 @@ export function ConvertLeadToClientDialog({
 
     try {
       const missing: string[] = [];
-      if (!form.getValues("email")) missing.push("E-mail");
-      if (!form.getValues("cpf_cnpj")) missing.push("CPF/CNPJ");
-      if (!form.getValues("bairro")) missing.push("Bairro");
-      if (!form.getValues("rua")) missing.push("Rua");
-      if (!form.getValues("numero")) missing.push("Número");
+        if (!form.getValues("cpf_cnpj") || !isValidCpfCnpj(form.getValues("cpf_cnpj"))) missing.push("CPF/CNPJ válido");
       if (identidadeFiles.length === 0) missing.push("Identidade");
       if (comprovanteFiles.length === 0) missing.push("Comprovante de Endereço");
       if (!form.getValues("disjuntor_id")) missing.push("Disjuntor");
@@ -750,7 +741,7 @@ export function ConvertLeadToClientDialog({
       });
       
       // Auto-navigate to the step with missing info
-      if (missingItems.some(item => ["E-mail", "CPF/CNPJ", "Bairro", "Rua", "Número"].includes(item))) {
+      if (missingItems.some(item => ["CPF/CNPJ válido"].includes(item))) {
         setCurrentStep(0);
       } else if (missingItems.some(item => ["Identidade (RG/CNH)", "Comprovante de Endereço", "Disjuntor", "Transformador", "Localização"].includes(item))) {
         setCurrentStep(1);
@@ -989,7 +980,7 @@ export function ConvertLeadToClientDialog({
   const canAdvanceStep = (step: number): boolean => {
     if (step === 0) {
       const v = form.getValues();
-      return !!(v.nome && v.telefone && v.cpf_cnpj && v.cpf_cnpj.replace(/\D/g, '').length >= 11);
+      return !!(v.nome && v.telefone && v.cpf_cnpj && isValidCpfCnpj(v.cpf_cnpj));
     }
     return true;
   };
@@ -998,7 +989,7 @@ export function ConvertLeadToClientDialog({
   const isStepComplete = (step: number): boolean => {
     const v = form.getValues();
     if (step === 0) {
-      return !!(v.nome && v.telefone && v.email && v.cpf_cnpj && v.estado && v.cidade && v.bairro && v.rua && v.numero);
+      return !!(v.nome && v.telefone && v.cpf_cnpj && isValidCpfCnpj(v.cpf_cnpj));
     }
     if (step === 1) {
       return !!(v.disjuntor_id && v.transformador_id && v.localizacao && identidadeFiles.length > 0 && comprovanteFiles.length > 0);
@@ -1006,7 +997,18 @@ export function ConvertLeadToClientDialog({
     return true;
   };
 
-  const handleNext = () => {
+  const handleNext = async () => {
+    if (currentStep === 0) {
+      const valid = await form.trigger(["nome", "telefone", "cpf_cnpj"]);
+      if (!valid || !canAdvanceStep(0)) {
+        toast({
+          title: "Dados obrigatórios",
+          description: "Preencha nome, telefone e CPF/CNPJ válido para avançar.",
+          variant: "destructive",
+        });
+        return;
+      }
+    }
     setCurrentStep((s) => Math.min(s + 1, STEPS.length - 1));
   };
 
