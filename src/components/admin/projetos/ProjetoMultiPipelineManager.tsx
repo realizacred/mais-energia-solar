@@ -172,8 +172,8 @@ export function ProjetoMultiPipelineManager({ dealId, projetoId, dealStatus, pip
   const [loadingOrdem, setLoadingOrdem] = useState(false);
 
   const [projectData, setProjectData] = useState<any>(null);
-  const [resolvedProjetoId, setResolvedProjetoId] = useState<string | null>(projetoId || null);
-  const projetoIdAtual = resolvedProjetoId || projetoId || "";
+  const [resolvedProjetoId, setResolvedProjetoId] = useState<string | null>(null);
+  const projetoIdAtual = resolvedProjetoId || "";
 
   const fetchProjectData = useCallback(async () => {
     if (!projetoIdCandidato) return;
@@ -1199,6 +1199,7 @@ export function ProjetoMultiPipelineManager({ dealId, projetoId, dealStatus, pip
                           variant="outline" 
                           size="sm" 
                           className="h-7 text-[10px] w-fit gap-1 border-warning/40 hover:bg-warning/10"
+                          disabled={!projetoIdAtual}
                           onClick={() => {
                             if (!projetoIdAtual) {
                               toast({ title: "Projeto não identificado", variant: "destructive" });
