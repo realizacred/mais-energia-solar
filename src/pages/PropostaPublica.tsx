@@ -967,7 +967,9 @@ export default function PropostaPublica() {
       )}
 
       {/* ── ACCEPTANCE / REJECTION FORM ──────────────── */}
-      <div className="max-w-lg mx-auto px-4 pb-12">
+      {propostaStatus && (propostaStatus === "vista" || propostaStatus === "viewed") && (
+        <div className="max-w-lg mx-auto px-4 pb-12">
+
         <Card className="border-border/60">
           <CardContent className="py-6 space-y-4">
             <h3 className="text-lg font-semibold text-center">Sua Decisão</h3>
