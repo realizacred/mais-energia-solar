@@ -29,13 +29,37 @@ const VALID_TRANSITIONS: Record<string, ProposalStatus[]> = {
 
 /** Check if a transition from → to is valid */
 export function canTransition(from: string, to: string): boolean {
-  const allowed = VALID_TRANSITIONS[from as ProposalStatus];
-  return allowed ? allowed.includes(to as ProposalStatus) : false;
+  const normalization: Record<string, ProposalStatus> = {
+    'rascunho': 'draft',
+    'gerada': 'generated',
+    'enviada': 'sent',
+    'vista': 'viewed',
+    'aceita': 'accepted',
+    'recusada': 'rejected',
+    'expirada': 'expired',
+    'cancelada': 'cancelled'
+  };
+  const canonicalFrom = normalization[from] || from;
+  const canonicalTo = normalization[to] || to;
+  
+  const allowed = VALID_TRANSITIONS[canonicalFrom as ProposalStatus];
+  return allowed ? allowed.includes(canonicalTo as ProposalStatus) : false;
 }
 
 /** Get all valid next states from current status */
 export function getNextStates(status: string): ProposalStatus[] {
-  return VALID_TRANSITIONS[status as ProposalStatus] || [];
+  const normalization: Record<string, ProposalStatus> = {
+    'rascunho': 'draft',
+    'gerada': 'generated',
+    'enviada': 'sent',
+    'vista': 'viewed',
+    'aceita': 'accepted',
+    'recusada': 'rejected',
+    'expirada': 'expired',
+    'cancelada': 'cancelled'
+  };
+  const canonical = normalization[status] || status;
+  return VALID_TRANSITIONS[canonical as ProposalStatus] || [];
 }
 
 /** UI helpers derived from state machine */
