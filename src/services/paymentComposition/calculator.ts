@@ -207,8 +207,16 @@ function round2(v: number): number {
   return Math.round(v * 100) / 100;
 }
 
+function isValidISO(iso: string | undefined | null): iso is string {
+  if (!iso) return false;
+  const d = new Date(iso + "T12:00:00");
+  return !isNaN(d.getTime());
+}
+
 function addDays(isoDate: string, days: number): string {
+  if (!isoDate) return "";
   const d = new Date(isoDate + "T12:00:00");
+  if (isNaN(d.getTime())) return "";
   d.setDate(d.getDate() + days);
   return d.toISOString().split("T")[0];
 }
