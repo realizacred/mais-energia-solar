@@ -26,6 +26,7 @@ interface AutomationCanvasProps {
   onNodeSelect: (node: AutomationFlowNode) => void;
   onAddNode: (index: number) => void;
   onRemoveNode: (id: string) => void;
+  availableFunis?: any[];
 }
 
 export function AutomationCanvas({ 
