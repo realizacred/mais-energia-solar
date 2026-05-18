@@ -17,8 +17,11 @@ export interface PipelineAutomation {
   destino_stage_id: string | null;
   notificar_responsavel: boolean;
   mensagem_notificacao: string | null;
-  stage_id: string;
-  pipeline_id: string;
+  stage_id: string | null;
+  pipeline_id: string | null;
+  funil_projeto_id: string | null;
+  etapa_projeto_id: string | null;
+  destino_etapa_projeto_id: string | null;
   execucoes_total: number;
   ultima_execucao: string | null;
 }
