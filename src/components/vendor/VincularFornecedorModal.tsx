@@ -49,8 +49,23 @@ export function VincularFornecedorModal({
   };
 
   const handleConfirm = async () => {
+    console.log('[VincularFornecedorModal] Confirmando vínculo:', { 
+      propProjetoId: projetoId, 
+      fornecedorId 
+    });
+
     if (!fornecedorId) {
       toast({ title: "Selecione um fornecedor", variant: "destructive" });
+      return;
+    }
+
+    if (!projetoId || projetoId === "") {
+      toast({ 
+        title: "Erro de Contexto", 
+        description: "ID do projeto não identificado. Tente atualizar a página.", 
+        variant: "destructive" 
+      });
+      console.error('[VincularFornecedorModal] projetoId está nulo ou vazio!');
       return;
     }
 
