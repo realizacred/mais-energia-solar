@@ -1,0 +1,1 @@
+UPDATE projetos SET status = 'aguardando_documentacao' WHERE id = 'eb8c8138-6c80-4e35-8407-04a995beab76';
