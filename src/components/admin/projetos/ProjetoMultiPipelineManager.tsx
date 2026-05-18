@@ -1200,6 +1200,10 @@ export function ProjetoMultiPipelineManager({ dealId, projetoId, dealStatus, pip
                           size="sm" 
                           className="h-7 text-[10px] w-fit gap-1 border-warning/40 hover:bg-warning/10"
                           onClick={() => {
+                            if (!projetoIdAtual) {
+                              toast({ title: "Projeto não identificado", variant: "destructive" });
+                              return;
+                            }
                             setFornecedorModal({
                               projetoId: projetoIdAtual,
                               projetoCodigo: projectData?.codigo || (projectData?.projeto_num ? `SM-PROJ-${projectData.projeto_num}` : undefined),
