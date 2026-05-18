@@ -51,19 +51,36 @@ export function ConvertLeadToClientDialog({
 
   const { isOnline } = useOfflineConversionSync();
 
-  const { data: propostaVersaoValor = 0 } = useQuery({
-    queryKey: ["convert-lead-proposta-valor", lead?.id],
+  const { data: propostaFinanceira = null } = useQuery({
+    queryKey: ["convert-lead-proposta-financeiro", lead?.id],
     enabled: !!lead?.id && open,
     queryFn: async () => {
       const { data: propostas } = await supabase.from("propostas_nativas").select("id").eq("lead_id", lead?.id);
       const ids = (propostas ?? []).map(p => p.id);
-      if (ids.length === 0) return 0;
-      const { data: versao } = await supabase.from("proposta_versoes").select("valor_total").in("proposta_id", ids).order("created_at", { ascending: false }).limit(1).maybeSingle();
-      return Number(versao?.valor_total ?? 0);
+      if (ids.length === 0) return null;
+      const { data: versao } = await supabase.from("proposta_versoes")
+        .select("valor_total, snapshot")
+        .in("proposta_id", ids)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      
+      if (!versao) return null;
+
+      // Try to find a structured payment option in the snapshot
+      const snapshot = versao.snapshot as any;
+      const paymentOptions = snapshot?.pagamentoOpcoes || [];
+      // Prefer an option that isn't just single PIX if available, or the first one
+      const selectedOption = paymentOptions.find((opt: any) => opt.num_parcelas > 1 || opt.entrada > 0) || paymentOptions[0];
+
+      return {
+        valorTotal: Number(versao.valor_total ?? 0),
+        selectedOption: selectedOption || null
+      };
     },
   });
 
-  const valorVenda = useMemo(() => propostaVersaoValor || (lead as any)?.valor_projeto || 0, [propostaVersaoValor, lead]);
+  const valorVenda = useMemo(() => propostaFinanceira?.valorTotal || (lead as any)?.valor_projeto || 0, [propostaFinanceira, lead]);
   const finance = useVendaFinanceSnapshot(valorVenda, paymentItems);
 
   const mappedHydration = useMemo(
@@ -120,7 +137,26 @@ export function ConvertLeadToClientDialog({
     setComprovanteFiles([]);
     setBeneficiariaFiles([]);
     setAssinaturaFiles([]);
-    setPaymentItems([createEmptyItem()]);
+    if (propostaFinanceira?.selectedOption) {
+      const opt = propostaFinanceira.selectedOption;
+      setPaymentItems([{
+        id: crypto.randomUUID(),
+        forma_pagamento: (opt.forma_pagamento || "pix") as any,
+        valor_base: propostaFinanceira.valorTotal,
+        entrada: (opt.entrada || 0) > 0,
+        valor_entrada: opt.entrada || 0,
+        parcelas: opt.num_parcelas || 1,
+        data_pagamento: new Date().toISOString().split("T")[0],
+        data_primeiro_vencimento: opt.num_parcelas > 1 ? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0] : "",
+        intervalo_dias: 30,
+        juros_tipo: "sem_juros",
+        juros_valor: 0,
+        juros_responsavel: "nao_aplica",
+        observacoes: opt.nome ? `Importado da proposta: ${opt.nome}` : "Importado da proposta",
+      }]);
+    } else {
+      setPaymentItems([createEmptyItem()]);
+    }
   }, [lead?.id, open, hydrationKey, mappedStep1Data, mappedStep2Data]);
 
   const handleSubmit = async () => {
