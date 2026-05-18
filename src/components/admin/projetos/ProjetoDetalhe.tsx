@@ -941,13 +941,14 @@ function ProjetoDetalheContent() {
       )}
 
       {/* ── Alertas Financeiros Consolidados (RB-76) ── */}
-      {deal.status === "won" && activeTab === "gerenciamento" && (
+      {(deal.status === "won" || (deal as any).status_projeto === "aguardando_documentacao") && activeTab === "gerenciamento" && (
         <AlertasFinanceirosProjeto 
           dealId={deal.id} 
           customerId={deal.customer_id} 
           customerName={customerName} 
           projetoId={projetoId} 
           setActiveTab={setActiveTab}
+          statusProjeto={(deal as any).status_projeto}
         />
       )}
 
