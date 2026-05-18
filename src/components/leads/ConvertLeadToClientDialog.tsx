@@ -168,8 +168,8 @@ export function ConvertLeadToClientDialog({
   };
 
   const STEPS = [
-    { label: "Pessoal", icon: User, comp: <StepDadosPessoais initialData={step1Data} hydrationKey={hydrationKey} onChange={(d, v) => { setStep1Data(d); setIsStep1Valid(v); }} /> },
-    { label: "Técnico", icon: FileText, comp: <StepTecnico leadId={lead?.id} initialData={step2Data} hydrationKey={hydrationKey} identidadeFiles={identidadeFiles} comprovanteFiles={comprovanteFiles} beneficiariaFiles={beneficiariaFiles} assinaturaFiles={assinaturaFiles} onFilesChange={(type, files) => { if (type === "identidade") setIdentidadeFiles(files); if (type === "comprovante") setComprovanteFiles(files); if (type === "beneficiaria") setBeneficiariaFiles(files); if (type === "assinatura") setAssinaturaFiles(files); }} onChange={(d, v) => { setStep2Data(d); setIsStep2Valid(v); }} /> },
+    { label: "Pessoal", icon: User, comp: <StepDadosPessoais initialData={mappedStep1Data} hydrationKey={hydrationKey} onChange={(d, v) => { setStep1Data(d); setIsStep1Valid(v); }} /> },
+    { label: "Técnico", icon: FileText, comp: <StepTecnico leadId={lead?.id} initialData={mappedStep2Data} hydrationKey={hydrationKey} identidadeFiles={identidadeFiles} comprovanteFiles={comprovanteFiles} beneficiariaFiles={beneficiariaFiles} assinaturaFiles={assinaturaFiles} onFilesChange={(type, files) => { if (type === "identidade") setIdentidadeFiles(files); if (type === "comprovante") setComprovanteFiles(files); if (type === "beneficiaria") setBeneficiariaFiles(files); if (type === "assinatura") setAssinaturaFiles(files); }} onChange={(d, v) => { setStep2Data(d); setIsStep2Valid(v); }} /> },
     { label: "Financeiro", icon: Wallet, comp: <StepFinanceiro valorVenda={valorVenda} paymentItems={paymentItems} onCompositionChange={setPaymentItems} /> }
   ];
 
