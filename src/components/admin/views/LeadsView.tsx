@@ -161,6 +161,7 @@ export function LeadsView() {
       updated_at: orc.updated_at,
     };
     setLeadToConvert(leadForConversion);
+    setSelectedOrcamento(orc); // Garantir que o orcamentoId chegue ao modal
     setIsConvertOpen(true);
   };
 
@@ -382,6 +383,7 @@ export function LeadsView() {
         open={isConvertOpen}
         onOpenChange={setIsConvertOpen}
         onSuccess={fetchOrcamentos}
+        orcamentoId={selectedOrcamento?.id}
       />
 
       <ImportarLeadsModal
