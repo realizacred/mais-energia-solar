@@ -39,6 +39,8 @@ export function AutomationCanvas({
           const isSelected = selectedNodeId === node.id;
           const subtitle = node.type === 'trigger' 
             ? (node.config.triggerType ? TRIGGER_LABELS[node.config.triggerType] : "Configurar gatilho...")
+            : node.type === 'search'
+            ? (node.config.searchType ? `${node.config.searchType.charAt(0).toUpperCase() + node.config.searchType.slice(1)}` : "Configurar busca...")
             : (node.config.actionType ? ACTION_LABELS[node.config.actionType] : "Configurar nó...");
 
           const config = node.config as any;
