@@ -1388,8 +1388,9 @@ export function ConvertLeadToClientDialog({
                           : "Selecione a proposta aceita"}
                       </span>
                     </p>
-                    <PaymentComposer valorVenda={valorVenda} items={paymentItems} onChange={setPaymentItems} />
-                    
+                    <PaymentComposerBoundary>
+                      <PaymentComposer valorVenda={valorVenda} items={paymentItems} onChange={setPaymentItems} />
+                    </PaymentComposerBoundary>
                     {/* Inline Validation §25 */}
                     {!finance.isValid && finance.items.length > 0 && (
                       <div className="mt-4 p-4 rounded-lg bg-destructive/10 border border-destructive/20 space-y-2">
