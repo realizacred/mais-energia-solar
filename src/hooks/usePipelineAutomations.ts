@@ -22,7 +22,7 @@ export function useAutomationFlow(automationId: string | null) {
       if (!data) return { nodes: [] } as AutomationFlow;
 
       // Se tem metadata com nodes, usa ele
-      if (data.metadata?.nodes?.length > 0) {
+      if ((data.metadata as any)?.nodes?.length > 0) {
         return data.metadata as any as AutomationFlow;
       }
 
@@ -35,7 +35,7 @@ export function useAutomationFlow(automationId: string | null) {
           type: 'trigger',
           order: 1,
           config: {
-            triggerType: data.tipo_gatilho,
+            triggerType: data.tipo_gatilho as any,
             funil_id: data.projeto_funil_id,
             etapa_id: data.projeto_etapa_id,
           }
@@ -48,7 +48,7 @@ export function useAutomationFlow(automationId: string | null) {
           type: 'action',
           order: 2,
           config: {
-            actionType: data.canal_notificacao,
+            actionType: data.canal_notificacao as any,
             webhook_url: data.webhook_url,
             wa_content_template: data.template_mensagem,
           }
