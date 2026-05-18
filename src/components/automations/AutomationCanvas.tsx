@@ -1,8 +1,14 @@
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { FileText, Target, GitBranch, Search, Plus, Trash2 } from "lucide-react";
-import { AutomationFlowNode, AutomationNodeType, TRIGGER_LABELS, ACTION_LABELS } from "@/types/automation-flow";
+import { Plus, Trash2 } from "lucide-react";
+import { AutomationFlowNode, TRIGGER_LABELS, ACTION_LABELS } from "@/types/automation-flow";
 import { cn } from "@/lib/utils";
+import { 
+  nodeIcons, 
+  nodeColors, 
+  nodeTitles, 
+  nodeTitleColors 
+} from "./AutomationNodeConstants";
 
 interface AutomationCanvasProps {
   nodes: AutomationFlowNode[];
@@ -11,34 +17,6 @@ interface AutomationCanvasProps {
   onAddNode: (index: number) => void;
   onRemoveNode: (id: string) => void;
 }
-
-const nodeIcons: Record<AutomationNodeType, any> = {
-  trigger: FileText,
-  action: Target,
-  condition: GitBranch,
-  search: Search,
-};
-
-const nodeColors: Record<AutomationNodeType, string> = {
-  trigger: "bg-teal-600",
-  action: "bg-blue-600",
-  condition: "bg-orange-600",
-  search: "bg-purple-600",
-};
-
-const nodeTitles: Record<AutomationNodeType, string> = {
-  trigger: "Gatilho",
-  action: "Ação",
-  condition: "Condicional",
-  search: "Procurar",
-};
-
-const nodeTitleColors: Record<AutomationNodeType, string> = {
-  trigger: "text-teal-600 dark:text-teal-400",
-  action: "text-blue-600 dark:text-blue-400",
-  condition: "text-orange-600 dark:text-orange-400",
-  search: "text-purple-600 dark:text-purple-400",
-};
 
 export function AutomationCanvas({ 
   nodes, 
@@ -62,7 +40,7 @@ export function AutomationCanvas({
           const subtitle = node.type === 'trigger' 
             ? (node.config.triggerType ? TRIGGER_LABELS[node.config.triggerType] : "Configurar gatilho...")
             : (node.config.actionType ? ACTION_LABELS[node.config.actionType] : "Configurar nó...");
-          
+
           return (
             <div key={node.id} className="flex flex-col items-center w-full">
               <div 
