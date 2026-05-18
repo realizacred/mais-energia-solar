@@ -18,6 +18,7 @@ interface VincularFornecedorModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   projetoId: string;
+  projetoCodigo?: string;
   clienteNome?: string;
   onSuccess: () => void;
   onCancel: () => void;
