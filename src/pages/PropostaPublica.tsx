@@ -273,7 +273,7 @@ export default function PropostaPublica() {
         startHeartbeat(td.token);
       }
 
-      const [renderRes, versaoRes, cenariosRes] = await Promise.all([
+      const [renderRes, versaoRes, cenariosRes, propostaRes] = await Promise.all([
         supabase.from("proposta_renders")
           .select("html").eq("versao_id", td.versao_id).eq("tipo", "html").maybeSingle(),
         supabase.from("proposta_versoes")
@@ -282,7 +282,11 @@ export default function PropostaPublica() {
         (supabase as any).from("proposta_cenarios")
           .select("id, ordem, nome, tipo, is_default, preco_final, entrada_valor, num_parcelas, valor_parcela, taxa_juros_mensal, cet_anual, payback_meses, tir_anual, roi_25_anos, economia_primeiro_ano")
           .eq("versao_id", td.versao_id).order("ordem"),
+        supabase.from("propostas_nativas").select("status").eq("id", td.proposta_id).single()
       ]);
+
+      if (propostaRes.data) setPropostaStatus(propostaRes.data.status);
+
 
       if (renderRes.data?.html) setHtml(renderRes.data.html);
       if (versaoRes.data) {
