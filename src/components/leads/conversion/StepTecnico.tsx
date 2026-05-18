@@ -13,6 +13,7 @@ import { DocumentUpload, type DocumentFile } from "../DocumentUpload";
 import { useConversionEquipment } from "@/hooks/useConvertLeadToClient";
 import { SectionTitle } from "./SectionTitle";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 const step2Schema = z.object({
   disjuntor_id: z.string().min(1, "Disjuntor é obrigatório"),
@@ -25,8 +26,8 @@ const step2Schema = z.object({
 export type Step2Data = z.infer<typeof step2Schema>;
 
 interface StepTecnicoProps {
-  projetoId?: string; 
-  initialData: Partial<Step2Data>;
+  leadId?: string; 
+  initialData: Partial<Step2Data>; 
   identidadeFiles: DocumentFile[];
   comprovanteFiles: DocumentFile[];
   beneficiariaFiles: DocumentFile[];
@@ -36,6 +37,7 @@ interface StepTecnicoProps {
 }
 
 export function StepTecnico({ 
+  leadId,
   initialData, 
   identidadeFiles, 
   comprovanteFiles, 
@@ -47,6 +49,7 @@ export function StepTecnico({
   const { toast } = useToast();
   const { data: equipmentData } = useConversionEquipment();
   const [gettingLocation, setGettingLocation] = useState(false);
+  const [simulacoes, setSimulacoes] = useState<any[]>([]);
 
   const form = useForm<Step2Data>({
     resolver: zodResolver(step2Schema),
@@ -54,6 +57,8 @@ export function StepTecnico({
       disjuntor_id: initialData.disjuntor_id || "",
       transformador_id: initialData.transformador_id || "",
       localizacao: initialData.localizacao || "",
+      simulacao_aceita_id: initialData.simulacao_aceita_id || "",
+      observacoes: initialData.observacoes || "",
     },
     mode: "onChange",
   });
@@ -65,49 +70,30 @@ export function StepTecnico({
     onChange(formData as Step2Data, isValid);
   }, [formData, isValid, onChange]);
 
+  useEffect(() => {
+    if (leadId) {
+      supabase.from("simulacoes").select("*").eq("lead_id", leadId).order("created_at", { ascending: false })
+        .then(({ data }) => setSimulacoes(data || []));
+    }
+  }, [leadId]);
+
   const getCurrentLocation = () => {
     if (!navigator.geolocation) {
-      toast({
-        title: "Erro",
-        description: "Geolocalização não é suportada pelo seu navegador.",
-        variant: "destructive",
-      });
+      toast({ title: "Erro", description: "Geolocalização não é suportada.", variant: "destructive" });
       return;
     }
-
     setGettingLocation(true);
-
-    const fallbackTimeout = setTimeout(() => {
-      setGettingLocation(false);
-      toast({
-        title: "Erro",
-        description: "Não foi possível obter a localização. Verifique as permissões do navegador.",
-        variant: "destructive",
-      });
-    }, 15000);
-
     navigator.geolocation.getCurrentPosition(
-      (position) => {
-        clearTimeout(fallbackTimeout);
-        const { latitude, longitude } = position.coords;
-        const googleMapsLink = `https://www.google.com/maps?q=${latitude},${longitude}`;
-        form.setValue("localizacao", googleMapsLink, { shouldValidate: true, shouldDirty: true });
+      (pos) => {
+        const link = `https://www.google.com/maps?q=${pos.coords.latitude},${pos.coords.longitude}`;
+        form.setValue("localizacao", link, { shouldValidate: true });
         setGettingLocation(false);
-        toast({
-          title: "Localização obtida!",
-          description: `Coordenadas: ${latitude.toFixed(6)}, ${longitude.toFixed(6)}`,
-        });
       },
-      (error) => {
-        clearTimeout(fallbackTimeout);
+      () => {
         setGettingLocation(false);
-        toast({
-          title: "Erro de Geolocalização",
-          description: "Não foi possível obter a localização. Tente novamente.",
-          variant: "destructive",
-        });
+        toast({ title: "Erro", description: "Falha ao obter localização.", variant: "destructive" });
       },
-      { enableHighAccuracy: true, timeout: 12000, maximumAge: 0 }
+      { timeout: 10000 }
     );
   };
 
@@ -124,14 +110,10 @@ export function StepTecnico({
                 <FormItem>
                   <FormLabel>Disjuntor *</FormLabel>
                   <Select onValueChange={field.onChange} value={field.value}>
-                    <FormControl>
-                      <SelectTrigger><SelectValue placeholder="Selecione o disjuntor" /></SelectTrigger>
-                    </FormControl>
+                    <FormControl><SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger></FormControl>
                     <SelectContent>
                       {equipmentData?.disjuntores.map((d) => (
-                        <SelectItem key={d.id} value={d.id}>
-                          {d.amperagem}A {d.descricao ? `- ${d.descricao}` : ""}
-                        </SelectItem>
+                        <SelectItem key={d.id} value={d.id}>{d.amperagem}A {d.descricao || ""}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -146,14 +128,10 @@ export function StepTecnico({
                 <FormItem>
                   <FormLabel>Transformador *</FormLabel>
                   <Select onValueChange={field.onChange} value={field.value}>
-                    <FormControl>
-                      <SelectTrigger><SelectValue placeholder="Selecione o transformador" /></SelectTrigger>
-                    </FormControl>
+                    <FormControl><SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger></FormControl>
                     <SelectContent>
                       {equipmentData?.transformadores.map((t) => (
-                        <SelectItem key={t.id} value={t.id}>
-                          {t.potencia_kva} kVA {t.descricao ? `- ${t.descricao}` : ""}
-                        </SelectItem>
+                        <SelectItem key={t.id} value={t.id}>{t.potencia_kva} kVA {t.descricao || ""}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -168,25 +146,10 @@ export function StepTecnico({
             name="localizacao"
             render={({ field }) => (
               <FormItem>
-                <FormLabel className="flex items-center gap-2">
-                  <MapPin className="h-3.5 w-3.5" /> Localização *
-                </FormLabel>
+                <FormLabel className="flex items-center gap-2"><MapPin className="h-3.5 w-3.5" /> Localização *</FormLabel>
                 <div className="flex gap-2">
-                  <FormControl>
-                    <Input
-                      {...field}
-                      placeholder="Link do Google Maps ou coordenadas"
-                      className="flex-1"
-                    />
-                  </FormControl>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="icon"
-                    onClick={getCurrentLocation}
-                    disabled={gettingLocation}
-                    className="shrink-0"
-                  >
+                  <FormControl><Input {...field} placeholder="Link do Google Maps" /></FormControl>
+                  <Button type="button" variant="outline" size="icon" onClick={getCurrentLocation} disabled={gettingLocation}>
                     {gettingLocation ? <Spinner size="sm" /> : <Navigation className="h-4 w-4" />}
                   </Button>
                 </div>
@@ -202,17 +165,15 @@ export function StepTecnico({
               <FormItem>
                 <FormLabel>Proposta Aceita</FormLabel>
                 <Select onValueChange={field.onChange} value={field.value}>
-                  <FormControl>
-                    <SelectTrigger><SelectValue placeholder="Selecione a proposta aceita" /></SelectTrigger>
-                  </FormControl>
+                  <FormControl><SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger></FormControl>
                   <SelectContent>
-                    {/* Simulations would come from a query or prop. 
-                        To keep StepTecnico clean, maybe we fetch them here or pass them.
-                        I'll use a hook inside if possible. */}
-                    <SimulationsOptions leadId={projetoId} />
+                    {simulacoes.map((s) => (
+                      <SelectItem key={s.id} value={s.id}>
+                        {new Date(s.created_at).toLocaleDateString()} - {s.potencia_recomendada_kwp}kWp
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
-                <FormMessage />
               </FormItem>
             )}
           />
@@ -223,8 +184,7 @@ export function StepTecnico({
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Observações</FormLabel>
-                <FormControl><Input {...field} placeholder="Observações adicionais" /></FormControl>
-                <FormMessage />
+                <FormControl><Input {...field} /></FormControl>
               </FormItem>
             )}
           />
@@ -234,61 +194,21 @@ export function StepTecnico({
 
         <div className="space-y-3">
           <SectionTitle>Documentos</SectionTitle>
-
           <div className="bg-muted/50 rounded-lg p-3 space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-medium text-foreground flex items-center gap-1.5">
-                <CreditCard className="h-3.5 w-3.5 text-primary" /> Identidade (RG/CNH)
-              </span>
-              {identidadeFiles.length > 0 ? (
-                <Badge className="bg-success/10 text-success border-0 text-xs">Anexado</Badge>
-              ) : (
-                <Badge variant="outline" className="bg-warning/10 text-warning border-warning/30 text-xs">Pendente</Badge>
-              )}
-            </div>
-            <DocumentUpload label="" description="Frente e verso" files={identidadeFiles} onFilesChange={(f) => onFilesChange("identidade", f)} required />
+            <span className="text-sm font-medium flex items-center gap-1.5"><CreditCard className="h-3.5 w-3.5" /> Identidade (RG/CNH)</span>
+            <DocumentUpload label="" files={identidadeFiles} onFilesChange={(f) => onFilesChange("identidade", f)} required />
           </div>
-
           <div className="bg-muted/50 rounded-lg p-3 space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-medium text-foreground flex items-center gap-1.5">
-                <Home className="h-3.5 w-3.5 text-primary" /> Comprovante de Endereço
-              </span>
-              {comprovanteFiles.length > 0 ? (
-                <Badge className="bg-success/10 text-success border-0 text-xs">Anexado</Badge>
-              ) : (
-                <Badge variant="outline" className="bg-warning/10 text-warning border-warning/30 text-xs">Pendente</Badge>
-              )}
-            </div>
-            <DocumentUpload label="" description="Foto ou arquivo digital" files={comprovanteFiles} onFilesChange={(f) => onFilesChange("comprovante", f)} required />
+            <span className="text-sm font-medium flex items-center gap-1.5"><Home className="h-3.5 w-3.5" /> Endereço</span>
+            <DocumentUpload label="" files={comprovanteFiles} onFilesChange={(f) => onFilesChange("comprovante", f)} required />
           </div>
-
           <div className="bg-muted/50 rounded-lg p-3 space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-medium text-foreground flex items-center gap-1.5">
-                <Zap className="h-3.5 w-3.5 text-primary" /> Comprovante Beneficiária UC
-              </span>
-              {beneficiariaFiles.length > 0 ? (
-                <Badge className="bg-success/10 text-success border-0 text-xs">Anexado</Badge>
-              ) : (
-                <Badge variant="outline" className="bg-muted text-muted-foreground text-xs">Opcional</Badge>
-              )}
-            </div>
-            <DocumentUpload label="" description="Comprovante da unidade consumidora" files={beneficiariaFiles} onFilesChange={(f) => onFilesChange("beneficiaria", f)} />
+            <span className="text-sm font-medium flex items-center gap-1.5"><Zap className="h-3.5 w-3.5" /> Conta Beneficiária</span>
+            <DocumentUpload label="" files={beneficiariaFiles} onFilesChange={(f) => onFilesChange("beneficiaria", f)} />
           </div>
-
           <div className="bg-muted/50 rounded-lg p-3 space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-medium text-foreground flex items-center gap-1.5">
-                <Signature className="h-3.5 w-3.5 text-primary" /> Foto da Assinatura
-              </span>
-              {assinaturaFiles.length > 0 ? (
-                <Badge className="bg-success/10 text-success border-0 text-xs">Anexado</Badge>
-              ) : (
-                <Badge variant="outline" className="bg-muted text-muted-foreground text-xs">Opcional</Badge>
-              )}
-            </div>
-            <DocumentUpload label="" description="Foto da assinatura do cliente no contrato" files={assinaturaFiles} onFilesChange={(f) => onFilesChange("assinatura", f)} accept="image/*" />
+            <span className="text-sm font-medium flex items-center gap-1.5"><Signature className="h-3.5 w-3.5" /> Assinatura</span>
+            <DocumentUpload label="" files={assinaturaFiles} onFilesChange={(f) => onFilesChange("assinatura", f)} />
           </div>
         </div>
       </div>
