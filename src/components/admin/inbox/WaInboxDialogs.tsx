@@ -116,7 +116,7 @@ export function WaAssignDialog({
             <SelectTrigger><SelectValue placeholder="Selecionar..." /></SelectTrigger>
             <SelectContent>
               {vendedores.map((v) => (
-                <SelectItem key={v.id} value={v.user_id || v.id}>{v.nome}</SelectItem>
+                <SelectItem key={v.id} value={v.user_id || v.id || "unassigned"}>{v.nome}</SelectItem>
               ))}
             </SelectContent>
           </Select>
