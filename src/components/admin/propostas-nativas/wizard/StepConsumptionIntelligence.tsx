@@ -43,6 +43,8 @@ interface Props {
   leadFase?: string | null;
   /** Geração desejada/estimada informada pelo cliente no cadastro do lead (kWh/mês). SSOT: leads.consumo_previsto */
   geracaoDesejadaKwh?: number | null;
+  /** Consumo médio informado no cadastro do lead (kWh/mês). SSOT: leads.media_consumo */
+  mediaConsumoLead?: number | null;
 }
 
 
