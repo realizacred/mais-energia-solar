@@ -10,9 +10,11 @@ export type ProposalStatus =
   | "draft"
   | "generated"
   | "sent"
+  | "viewed"
   | "accepted"
   | "rejected"
   | "expired"
+  | "cancelled"
   | "excluida"
   | "arquivada";
 
