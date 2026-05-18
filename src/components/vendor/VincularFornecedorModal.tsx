@@ -110,7 +110,7 @@ export function VincularFornecedorModal({
             <div>
               <DialogTitle className="text-lg font-bold">Vincular Fornecedor ao Pedido</DialogTitle>
               <DialogDescription className="text-sm">
-                Projeto: <span className="font-semibold text-foreground">{projetoCodigo || clienteNome || "NÃO IDENTIFICADO"}</span>
+                Projeto: <span className="font-semibold text-foreground">{projetoCodigo && projetoCodigo.includes('PROJ') ? projetoCodigo : (clienteNome || "NÃO IDENTIFICADO")}</span>
               </DialogDescription>
             </div>
           </div>
