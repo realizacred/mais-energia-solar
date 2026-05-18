@@ -1,13 +1,6 @@
-/**
- * ProposalStatusActions.tsx
- * 
- * Accept/Reject/Revert/OS buttons for ProposalDetail.
- * Handles dialog state internally but delegates mutations to parent.
- */
-
 import { useState } from "react";
 import {
-  CheckCircle2, XCircle, Wrench, Loader2, Undo2,
+  CheckCircle2, XCircle, Wrench, Loader2, Undo2, Ban,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -19,7 +12,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import type { ProposalViewModel } from "@/domain/proposal/ProposalViewModel";
-import { isActionableStatus, canAccept, canReject, canGenerateOs } from "@/domain/proposal/proposalState";
+import { isActionableStatus, canAccept, canReject, canGenerateOs, canCancel } from "@/domain/proposal/proposalState";
 
 interface ProposalStatusActionsProps {
   vm: ProposalViewModel;
@@ -50,6 +43,10 @@ export function ProposalStatusActions({
   // Revert reject dialog
   const [revertRecusaOpen, setRevertRecusaOpen] = useState(false);
   const [revertRecusaMotivo, setRevertRecusaMotivo] = useState("");
+
+  // Cancel dialog
+  const [cancelOpen, setCancelOpen] = useState(false);
+  const [cancelMotivo, setCancelMotivo] = useState("");
 
   const currentStatus = vm.businessStatus;
   const isActionable = isActionableStatus(currentStatus);
@@ -105,6 +102,13 @@ export function ProposalStatusActions({
       {vm.isRejected && (
         <Button size="sm" variant="outline" className="gap-1.5 border-warning/40 text-warning hover:bg-warning/10" onClick={() => { setRevertRecusaMotivo(""); setRevertRecusaOpen(true); }} disabled={updatingStatus}>
           <Undo2 className="h-3.5 w-3.5" /> Remover Recusa
+        </Button>
+      )}
+
+      {/* Cancel Action */}
+      {isActionable && canCancel(currentStatus) && !vm.isAccepted && !vm.isRejected && currentStatus !== "cancelada" && (
+        <Button size="sm" variant="ghost" className="gap-1.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10" onClick={() => { setCancelMotivo(""); setCancelOpen(true); }} disabled={updatingStatus}>
+          <Ban className="h-3.5 w-3.5" /> Cancelar
         </Button>
       )}
 
@@ -189,6 +193,35 @@ export function ProposalStatusActions({
               }}
             >
               Confirmar Remoção
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* ══════ Cancel Proposal Dialog ══════ */}
+      <AlertDialog open={cancelOpen} onOpenChange={setCancelOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Cancelar proposta?</AlertDialogTitle>
+            <AlertDialogDescription>
+              A proposta será marcada como cancelada e não poderá mais ser aceita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="space-y-1.5">
+            <label className="text-xs font-medium text-muted-foreground">Motivo do cancelamento (opcional)</label>
+            <Textarea placeholder="Informe o motivo..." value={cancelMotivo} onChange={(e) => setCancelMotivo(e.target.value)} className="min-h-[80px]" />
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Voltar</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => {
+                onUpdateStatus("cancelada", { motivo: cancelMotivo.trim() });
+                setCancelMotivo("");
+                setCancelOpen(false);
+              }}
+            >
+              Confirmar Cancelamento
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
