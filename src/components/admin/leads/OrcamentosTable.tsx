@@ -425,9 +425,9 @@ export function OrcamentosTable({
                         {onDelete && (
                           <>
                             <DropdownMenuSeparator />
-                            <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => onDelete(orc)}>
-                              <Trash2 className="w-4 h-4 mr-2" />
-                              Excluir
+                            <DropdownMenuItem onClick={() => onDelete(orc)}>
+                              <Archive className="w-4 h-4 mr-2 text-muted-foreground" />
+                              Arquivar
                             </DropdownMenuItem>
                           </>
                         )}
