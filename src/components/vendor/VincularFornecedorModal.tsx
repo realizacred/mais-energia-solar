@@ -19,6 +19,7 @@ interface ExistingOrdem {
   fornecedor_id?: string | null;
   numero_pedido?: string | null;
   valor_total?: number | null;
+  data_pedido?: string | null;
   data_previsao_entrega?: string | null;
   observacoes?: string | null;
 }
@@ -54,6 +55,7 @@ export function VincularFornecedorModal({
   const [fornecedorId, setFornecedorId] = useState("");
   const [numeroPedido, setNumeroPedido] = useState("");
   const [valorTotal, setValorTotal] = useState(0);
+  const [dataPedido, setDataPedido] = useState("");
   const [dataPrevisao, setDataPrevisao] = useState("");
   const [observacoes, setObservacoes] = useState("");
 
@@ -61,6 +63,7 @@ export function VincularFornecedorModal({
     setFornecedorId("");
     setNumeroPedido("");
     setValorTotal(0);
+    setDataPedido("");
     setDataPrevisao("");
     setObservacoes("");
   };
@@ -71,6 +74,7 @@ export function VincularFornecedorModal({
       setFornecedorId(ordemExistente.fornecedor_id || "");
       setNumeroPedido(ordemExistente.numero_pedido || "");
       setValorTotal(Number(ordemExistente.valor_total || 0));
+      setDataPedido(ordemExistente.data_pedido || "");
       setDataPrevisao(ordemExistente.data_previsao_entrega || "");
       setObservacoes(ordemExistente.observacoes || "");
     } else if (open && !ordemExistente) {
@@ -107,6 +111,7 @@ export function VincularFornecedorModal({
           id: ordemExistente.id,
           fornecedor_id: fornecedorId,
           numero_pedido: numeroPedido,
+          data_pedido: dataPedido || null,
           data_previsao_entrega: dataPrevisao || null,
           observacoes: observacoes || null,
           valor_total: valorTotal,
@@ -117,6 +122,7 @@ export function VincularFornecedorModal({
           projeto_id: projetoId,
           fornecedor_id: fornecedorId,
           numero_pedido: numeroPedido,
+          data_pedido: dataPedido || undefined,
           data_previsao_entrega: dataPrevisao || undefined,
           observacoes: observacoes || undefined,
           itens: [{
@@ -227,9 +233,15 @@ export function VincularFornecedorModal({
             </div>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="previsao">Previsão de Entrega</Label>
-            <DateInput value={dataPrevisao} onChange={setDataPrevisao} />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="data_pedido">Data do Pedido</Label>
+              <DateInput value={dataPedido} onChange={setDataPedido} />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="previsao">Previsão de Entrega</Label>
+              <DateInput value={dataPrevisao} onChange={setDataPrevisao} />
+            </div>
           </div>
 
           <div className="space-y-2">

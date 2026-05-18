@@ -267,6 +267,7 @@ export function useAtualizarOrdem() {
       id: string;
       fornecedor_id?: string | null;
       numero_pedido?: string | null;
+      data_pedido?: string | null;
       data_previsao_entrega?: string | null;
       observacoes?: string | null;
       valor_total?: number;

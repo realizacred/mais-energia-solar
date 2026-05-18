@@ -171,6 +171,7 @@ export function ProjetoMultiPipelineManager({ dealId, projetoId, dealStatus, pip
       fornecedor_id?: string | null;
       numero_pedido?: string | null;
       valor_total?: number | null;
+      data_pedido?: string | null;
       data_previsao_entrega?: string | null;
       observacoes?: string | null;
     } | null;
@@ -1198,6 +1199,7 @@ export function ProjetoMultiPipelineManager({ dealId, projetoId, dealStatus, pip
                                 fornecedor_id: ordemCompra.fornecedor_id,
                                 numero_pedido: ordemCompra.numero_pedido,
                                 valor_total: ordemCompra.valor_total,
+                                data_pedido: ordemCompra.data_pedido,
                                 data_previsao_entrega: ordemCompra.data_previsao_entrega,
                                 observacoes: ordemCompra.observacoes,
                               },
@@ -1218,6 +1220,10 @@ export function ProjetoMultiPipelineManager({ dealId, projetoId, dealStatus, pip
                       <div className="flex items-center gap-1">
                         <DollarSign className="h-3 w-3" />
                         {formatBRL(ordemCompra.valor_total || 0)}
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <Calendar className="h-3 w-3" />
+                        Pedido em: {ordemCompra.data_pedido ? new Date(ordemCompra.data_pedido + "T12:00:00").toLocaleDateString("pt-BR") : "—"}
                       </div>
                       <div className="flex items-center gap-1">
                         <Calendar className="h-3 w-3" />
