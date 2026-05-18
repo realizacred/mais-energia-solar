@@ -1896,7 +1896,7 @@ function ProposalWizardContent() {
         if (cli.lead_id) {
           const { data: lead } = await supabase
             .from("leads")
-            .select("id, nome, telefone, lead_code, estado, cidade, media_consumo, tipo_telhado, municipio_ibge_codigo")
+            .select("id, nome, telefone, lead_code, estado, cidade, media_consumo, consumo_previsto, tipo_telhado, municipio_ibge_codigo")
             .eq("id", cli.lead_id)
             .maybeSingle();
           if (!cancelled && lead) {
