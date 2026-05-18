@@ -51,6 +51,10 @@ export function ProposalStatusActions({
   const [revertRecusaOpen, setRevertRecusaOpen] = useState(false);
   const [revertRecusaMotivo, setRevertRecusaMotivo] = useState("");
 
+  // Cancel dialog
+  const [cancelOpen, setCancelOpen] = useState(false);
+  const [cancelMotivo, setCancelMotivo] = useState("");
+
   const currentStatus = vm.businessStatus;
   const isActionable = isActionableStatus(currentStatus);
 
