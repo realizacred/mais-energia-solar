@@ -112,6 +112,13 @@ export function ProposalStatusActions({
         </Button>
       )}
 
+      {/* Cancel Action */}
+      {isActionable && canCancel(currentStatus) && !vm.isAccepted && !vm.isRejected && currentStatus !== "cancelada" && (
+        <Button size="sm" variant="ghost" className="gap-1.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10" onClick={() => { setCancelMotivo(""); setCancelOpen(true); }} disabled={updatingStatus}>
+          <Ban className="h-3.5 w-3.5" /> Cancelar
+        </Button>
+      )}
+
       {/* ══════ Accept Dialog ══════ */}
       <AlertDialog open={aceiteDialogOpen} onOpenChange={setAceiteDialogOpen}>
         <AlertDialogContent>
