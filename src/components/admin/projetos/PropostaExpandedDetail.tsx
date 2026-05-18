@@ -666,7 +666,7 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
   const { data: tenantCtx } = useQuery({ queryKey: ["current-tenant-id"], queryFn: getCurrentTenantId, staleTime: 1000 * 60 * 15 });
   const isMigrated = false;
   const latestVersao = p.versoes[0];
-  const enviadaVersao = p.versoes.find(v => v.status === 'enviada' || v.status === 'sent');
+  const enviadaVersao = p.versoes.find(v => v.status === 'sent' || v.status === 'enviada');
   const hasDivergence = enviadaVersao && latestVersao && 
     latestVersao.valor_total !== null && 
     enviadaVersao.valor_total !== null && 
