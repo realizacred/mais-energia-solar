@@ -82,11 +82,11 @@ export function WaMessageBubble({
 
   /** Render media loading or failed state */
   const renderMediaPlaceholder = (label: string) => {
-    if (mediaFailed) {
+    if (mediaFailed || msg.message_type === "error" || msg.content === "Mídia não disponível") {
       return (
-        <div className="flex items-center gap-2 text-xs text-destructive/70 py-2">
-          <FileWarning className="h-3.5 w-3.5" />
-          <span>{msg.media_error_message || "Mídia não disponível"}</span>
+        <div className="flex items-center gap-2 text-xs text-muted-foreground/60 italic py-2">
+          <FileWarning className="h-3.5 w-3.5 opacity-50" />
+          <span>🚫 Mídia não disponível</span>
         </div>
       );
     }
