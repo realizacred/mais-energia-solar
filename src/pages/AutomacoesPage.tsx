@@ -6,7 +6,7 @@
 import { lazy, Suspense } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { LoadingState } from "@/components/ui-kit/LoadingState";
-import { Zap, Kanban, MessageCircle, Webhook, History, FileCheck, ShieldCheck } from "lucide-react";
+import { Zap, Kanban, MessageCircle, Webhook, History, FileCheck, ShieldCheck, Settings2 } from "lucide-react";
 
 const PipelineAutomations = lazy(() =>
   import("@/components/admin/pipeline/PipelineAutomations").then((m) => ({
@@ -34,6 +34,12 @@ const WhatsAppAutomationTemplates = lazy(() =>
 
 const WebhookManager = lazy(() =>
   import("@/components/admin/WebhookManager")
+);
+
+const AutomationMessageTemplates = lazy(() =>
+  import("@/components/admin/automacoes/AutomationMessageTemplates").then((m) => ({
+    default: m.AutomationMessageTemplates,
+  }))
 );
 
 const AutomationHistoryPanel = lazy(() =>
@@ -81,6 +87,10 @@ export default function AutomacoesPage() {
             <Webhook className="h-4 w-4" />
             Webhooks
           </TabsTrigger>
+          <TabsTrigger value="mensagens" className="gap-2 shrink-0 whitespace-nowrap">
+            <Settings2 className="h-4 w-4" />
+            Mensagens Auto
+          </TabsTrigger>
           <TabsTrigger value="historico" className="gap-2 shrink-0 whitespace-nowrap">
             <History className="h-4 w-4" />
             Histórico
@@ -114,6 +124,12 @@ export default function AutomacoesPage() {
         <TabsContent value="webhooks" className="mt-0">
           <Suspense fallback={<LoadingState message="Carregando webhooks..." />}>
             <WebhookManager />
+          </Suspense>
+        </TabsContent>
+
+        <TabsContent value="mensagens" className="mt-0">
+          <Suspense fallback={<LoadingState message="Carregando configurações de mensagens..." />}>
+            <AutomationMessageTemplates />
           </Suspense>
         </TabsContent>
 

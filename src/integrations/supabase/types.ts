@@ -1372,6 +1372,50 @@ export type Database = {
           },
         ]
       }
+      automation_message_templates: {
+        Row: {
+          ativo: boolean | null
+          canal: string
+          created_at: string | null
+          gatilho: string
+          id: string
+          metadata: Json | null
+          template: string
+          tenant_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          ativo?: boolean | null
+          canal?: string
+          created_at?: string | null
+          gatilho: string
+          id?: string
+          metadata?: Json | null
+          template: string
+          tenant_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          ativo?: boolean | null
+          canal?: string
+          created_at?: string | null
+          gatilho?: string
+          id?: string
+          metadata?: Json | null
+          template?: string
+          tenant_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "automation_message_templates_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       backfill_audit: {
         Row: {
           backfill_batch: string
@@ -16185,6 +16229,7 @@ export type Database = {
       pipeline_automations: {
         Row: {
           ativo: boolean
+          canal_notificacao: string | null
           created_at: string
           destino_etapa_projeto_id: string | null
           destino_stage_id: string | null
@@ -16196,16 +16241,23 @@ export type Database = {
           nome: string
           notificar_responsavel: boolean
           pipeline_id: string | null
+          projeto_etapa_id: string | null
+          projeto_funil_id: string | null
           stage_id: string | null
+          template_mensagem: string | null
           tempo_horas: number
           tenant_id: string
           tipo_acao: string
           tipo_gatilho: string
           ultima_execucao: string | null
           updated_at: string
+          webhook_headers: Json | null
+          webhook_secret: string | null
+          webhook_url: string | null
         }
         Insert: {
           ativo?: boolean
+          canal_notificacao?: string | null
           created_at?: string
           destino_etapa_projeto_id?: string | null
           destino_stage_id?: string | null
@@ -16217,16 +16269,23 @@ export type Database = {
           nome?: string
           notificar_responsavel?: boolean
           pipeline_id?: string | null
+          projeto_etapa_id?: string | null
+          projeto_funil_id?: string | null
           stage_id?: string | null
+          template_mensagem?: string | null
           tempo_horas?: number
           tenant_id?: string
           tipo_acao?: string
           tipo_gatilho?: string
           ultima_execucao?: string | null
           updated_at?: string
+          webhook_headers?: Json | null
+          webhook_secret?: string | null
+          webhook_url?: string | null
         }
         Update: {
           ativo?: boolean
+          canal_notificacao?: string | null
           created_at?: string
           destino_etapa_projeto_id?: string | null
           destino_stage_id?: string | null
@@ -16238,13 +16297,19 @@ export type Database = {
           nome?: string
           notificar_responsavel?: boolean
           pipeline_id?: string | null
+          projeto_etapa_id?: string | null
+          projeto_funil_id?: string | null
           stage_id?: string | null
+          template_mensagem?: string | null
           tempo_horas?: number
           tenant_id?: string
           tipo_acao?: string
           tipo_gatilho?: string
           ultima_execucao?: string | null
           updated_at?: string
+          webhook_headers?: Json | null
+          webhook_secret?: string | null
+          webhook_url?: string | null
         }
         Relationships: [
           {
@@ -16280,6 +16345,20 @@ export type Database = {
             columns: ["pipeline_id"]
             isOneToOne: false
             referencedRelation: "pipelines"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pipeline_automations_projeto_etapa_id_fkey"
+            columns: ["projeto_etapa_id"]
+            isOneToOne: false
+            referencedRelation: "projeto_etapas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pipeline_automations_projeto_funil_id_fkey"
+            columns: ["projeto_funil_id"]
+            isOneToOne: false
+            referencedRelation: "projeto_funis"
             referencedColumns: ["id"]
           },
           {
