@@ -81,6 +81,8 @@ export default function PropostaLanding() {
   const [showReject, setShowReject] = useState(false);
   const [rejectMotivo, setRejectMotivo] = useState("");
   const [acceptForm, setAcceptForm] = useState<AcceptFormData>({ nome: "", documento: "", obs: "" });
+  const [propostaStatus, setPropostaStatus] = useState<string | null>(null);
+
 
   const heartbeatRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const ctaRef = useRef<HTMLDivElement>(null);
