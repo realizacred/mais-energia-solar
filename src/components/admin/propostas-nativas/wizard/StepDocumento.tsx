@@ -166,6 +166,22 @@ export function StepDocumento({
   const [resolvedPdfPreviewUrl, setResolvedPdfPreviewUrl] = useState<string | null>(null);
   const [pdfPreviewError, setPdfPreviewError] = useState<string | null>(null);
   const [showConfirmPublishDialog, setShowConfirmPublishDialog] = useState<{ open: boolean; action: () => void } | null>(null);
+  const [elapsedTime, setElapsedTime] = useState(0);
+
+  useEffect(() => {
+    let timer: number | null = null;
+    if (generating || rendering) {
+      setElapsedTime(0);
+      timer = window.setInterval(() => {
+        setElapsedTime(prev => prev + 1);
+      }, 1000);
+    } else {
+      setElapsedTime(0);
+    }
+    return () => {
+      if (timer) clearInterval(timer);
+    };
+  }, [generating, rendering]);
 
   useEffect(() => {
     let cancelled = false;
@@ -540,17 +556,33 @@ export function StepDocumento({
 
   const renderTemplateTab = () => {
     // ── Generation in progress
-    if (generating) {
-      const statusMsg = generationStatus === "calculating" ? "Calculando dimensionamento..."
+    if (generating || rendering) {
+      let statusMsg = generationStatus === "calculating" ? "Calculando dimensionamento..."
         : generationStatus === "publishing" ? "Publicando versão oficial no CRM..."
         : generationStatus === "published" ? "Versão publicada com sucesso!"
-        : generationStatus === "rendering_pdf" ? "Iniciando geração do PDF..."
+        : generationStatus === "rendering_pdf" ? "Gerando PDF de alta conversão..."
         : "Gerando proposta comercial...";
+
+      if (elapsedTime > 30 && (generating || rendering)) {
+        statusMsg = "Aguarde, a geração está levando mais tempo que o normal (pode levar até 2 minutos)...";
+      }
+      
+      if (elapsedTime > 120 && (generating || rendering)) {
+        statusMsg = "O tempo limite foi atingido. Verifique sua conexão ou tente novamente.";
+      }
+
       return (
-        <div className="flex flex-col items-center justify-center py-20 gap-4">
-          <Sun className="h-12 w-12 text-primary animate-spin" style={{ animationDuration: "2s" }} />
-          <p className="text-sm font-medium text-muted-foreground animate-pulse">{statusMsg}</p>
-          <div className="flex items-center gap-2">
+        <div className="flex flex-col items-center justify-center py-20 gap-4 text-center px-4">
+          <div className="relative">
+            <Sun className="h-14 w-14 text-primary animate-spin" style={{ animationDuration: "3s" }} />
+            <Loader2 className="h-6 w-6 text-primary animate-spin absolute -bottom-1 -right-1" />
+          </div>
+          <div className="space-y-2 max-w-sm">
+            <p className="text-sm font-semibold text-foreground">{statusMsg}</p>
+            <p className="text-xs text-muted-foreground">Gerando proposta... (pode levar até 2 minutos)</p>
+            {elapsedTime > 0 && <p className="text-[10px] text-muted-foreground/60">{elapsedTime}s decorridos</p>}
+          </div>
+          <div className="flex items-center gap-2 mt-2">
             {["calculating", "publishing", "rendering_pdf"].map((s, i) => (
               <div key={s} className={cn(
                 "h-1.5 w-8 rounded-full transition-colors",
@@ -559,6 +591,11 @@ export function StepDocumento({
               )} />
             ))}
           </div>
+          {elapsedTime > 120 && (
+            <Button variant="outline" size="sm" onClick={onGenerate} className="mt-4">
+              Tentar novamente
+            </Button>
+          )}
         </div>
       );
     }
