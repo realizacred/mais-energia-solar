@@ -489,7 +489,7 @@ export function WaConversationList({
             <SelectContent>
               <SelectItem value="all">Instâncias</SelectItem>
               {instances.map(i => (
-                <SelectItem key={i.id} value={i.id}>{i.name}</SelectItem>
+                <SelectItem key={i.id} value={i.id}>{i.nome}</SelectItem>
               ))}
             </SelectContent>
           </Select>
@@ -510,18 +510,18 @@ export function WaConversationList({
         <div className="flex items-center gap-3 pt-0.5 overflow-x-auto no-scrollbar pb-1">
           {onShowGroupsChange && (
             <label className="flex items-center gap-1.5 cursor-pointer shrink-0">
-              <Switch checked={showGroups} onCheckedChange={onShowGroupsChange} size="sm" className="scale-75 origin-left" />
+              <Switch checked={showGroups} onCheckedChange={onShowGroupsChange} className="scale-75 origin-left" />
               <span className="text-[10px] font-medium text-muted-foreground">Grupos</span>
             </label>
           )}
           {onShowHiddenChange && (
             <label className="flex items-center gap-1.5 cursor-pointer shrink-0">
-              <Switch checked={showHidden} onCheckedChange={onShowHiddenChange} size="sm" className="scale-75 origin-left" />
+              <Switch checked={showHidden} onCheckedChange={onShowHiddenChange} className="scale-75 origin-left" />
               <span className="text-[10px] font-medium text-muted-foreground">Ocultas</span>
             </label>
           )}
           <label className="flex items-center gap-1.5 cursor-pointer shrink-0">
-            <Switch checked={!mergeDuplicates} onCheckedChange={(v) => handleMergeChange(!v)} size="sm" className="scale-75 origin-left" />
+            <Switch checked={!mergeDuplicates} onCheckedChange={(v) => handleMergeChange(!v)} className="scale-75 origin-left" />
             <span className="text-[10px] font-medium text-muted-foreground whitespace-nowrap">Ver separadas</span>
           </label>
         </div>
