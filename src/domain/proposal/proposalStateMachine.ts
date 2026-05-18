@@ -17,14 +17,14 @@ export type ProposalStatus =
   | "cancelada";
 
 const VALID_TRANSITIONS: Record<ProposalStatus, ProposalStatus[]> = {
-  rascunho: ["gerada"],
-  gerada: ["enviada", "aceita", "recusada", "cancelada"],
-  enviada: ["vista", "aceita", "recusada", "cancelada"],
-  vista: ["aceita", "recusada", "cancelada"],
-  aceita: ["gerada", "cancelada"],
-  recusada: ["gerada", "enviada"],
+  rascunho: ["gerada", "cancelada"],
+  gerada: ["enviada", "aceita", "recusada", "cancelada", "rascunho"],
+  enviada: ["vista", "aceita", "recusada", "cancelada", "gerada"],
+  vista: ["aceita", "recusada", "cancelada", "gerada"],
+  aceita: ["recusada", "cancelada", "gerada"],
+  recusada: ["rascunho", "gerada"],
   expirada: ["gerada"],
-  cancelada: [],
+  cancelada: ["rascunho"],
 };
 
 /** Check if a transition from → to is valid */
