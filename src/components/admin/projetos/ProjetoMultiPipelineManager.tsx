@@ -545,7 +545,7 @@ export function ProjetoMultiPipelineManager({ dealId, projetoId, dealStatus, pip
           const { data: ordem } = await supabase
             .from('ordens_compra')
             .select('id')
-            .eq('projeto_id', dealId)
+            .eq('projeto_id', projetoIdAtual)
             .order('created_at', { ascending: false })
             .limit(1)
             .maybeSingle();
@@ -568,7 +568,7 @@ export function ProjetoMultiPipelineManager({ dealId, projetoId, dealStatus, pip
           evento: 'projeto_status_mudou',
           tenant_id: (membership as any)?.tenant_id || projectData?.tenant_id,
           dados: {
-            projeto_id: dealId,
+            projeto_id: projetoIdAtual,
             status_novo: stageName,
             cliente_id: projectData?.cliente_id
           }
