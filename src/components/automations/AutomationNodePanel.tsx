@@ -354,6 +354,61 @@ export function AutomationNodePanel({
               </div>
             </div>
           )}
+
+          {(localConfig.actionType === 'mover_etapa' || localConfig.actionType === 'projeto') && (
+            <div className="space-y-4 animate-in fade-in">
+              <div className="space-y-2">
+                <Label>Funil de Destino</Label>
+                <Select 
+                  value={localConfig.funil_id} 
+                  onValueChange={(v) => updateConfig({ funil_id: v })}
+                >
+                  <SelectTrigger><SelectValue placeholder="Mesmo funil" /></SelectTrigger>
+                  <SelectContent>
+                    {availableFunis.map(f => (
+                      <SelectItem key={f.id} value={f.id}>{f.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Mover para Etapa</Label>
+                <Select 
+                  value={localConfig.destino_etapa_id} 
+                  onValueChange={(v) => updateConfig({ destino_etapa_id: v })}
+                >
+                  <SelectTrigger><SelectValue placeholder="Selecione a etapa" /></SelectTrigger>
+                  <SelectContent>
+                    {availableEtapas.filter(e => e.funil_id === localConfig.funil_id || e.pipeline_id === localConfig.funil_id).map(e => (
+                      <SelectItem key={e.id} value={e.id}>{e.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          )}
+
+          {localConfig.actionType === 'atividade' && (
+            <div className="space-y-4 animate-in fade-in">
+              <div className="space-y-2">
+                <Label>Título da Atividade</Label>
+                <Input 
+                  value={localConfig.atividade_titulo || ''} 
+                  onChange={(e) => updateConfig({ atividade_titulo: e.target.value })}
+                  placeholder="Ex: Ligar para confirmar aceite"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Descrição (Opcional)</Label>
+                <Textarea 
+                  value={localConfig.atividade_descricao || ''} 
+                  onChange={(e) => updateConfig({ atividade_descricao: e.target.value })}
+                  placeholder="Instruções para o consultor..."
+                  rows={3}
+                />
+              </div>
+            </div>
+          )}
         </div>
       )}
 
