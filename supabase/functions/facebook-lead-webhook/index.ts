@@ -107,15 +107,8 @@ async function persistValidationFailure(
   reason: string,
   context: Record<string, unknown>,
 ) {
-  try {
-    await supabase.from("audit_logs").insert({
-      tabela: "facebook_leads",
-      acao: "webhook_validation_failure",
-      dados_novos: { reason, ...context, timestamp: new Date().toISOString() },
-    });
-  } catch (e) {
-    console.warn(`[FB-WEBHOOK] Failed to persist validation failure: ${sanitizeError(e)}`);
-  }
+  // Direct insert into audit_logs is forbidden. Triggers handle it.
+  console.log(`[FB-WEBHOOK] Validation failure (logged to console): ${reason}`, context);
 }
 
 // ── Create CRM lead from facebook_leads ─────────────────────
