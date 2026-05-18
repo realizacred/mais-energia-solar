@@ -55,6 +55,7 @@ export function VincularFornecedorModal({
   const [fornecedorId, setFornecedorId] = useState("");
   const [numeroPedido, setNumeroPedido] = useState("");
   const [valorTotal, setValorTotal] = useState(0);
+  const [dataPedido, setDataPedido] = useState("");
   const [dataPrevisao, setDataPrevisao] = useState("");
   const [observacoes, setObservacoes] = useState("");
 
@@ -62,6 +63,7 @@ export function VincularFornecedorModal({
     setFornecedorId("");
     setNumeroPedido("");
     setValorTotal(0);
+    setDataPedido("");
     setDataPrevisao("");
     setObservacoes("");
   };
@@ -72,6 +74,7 @@ export function VincularFornecedorModal({
       setFornecedorId(ordemExistente.fornecedor_id || "");
       setNumeroPedido(ordemExistente.numero_pedido || "");
       setValorTotal(Number(ordemExistente.valor_total || 0));
+      setDataPedido(ordemExistente.data_pedido || "");
       setDataPrevisao(ordemExistente.data_previsao_entrega || "");
       setObservacoes(ordemExistente.observacoes || "");
     } else if (open && !ordemExistente) {
