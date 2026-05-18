@@ -7,7 +7,7 @@
 
 import { useState } from "react";
 import {
-  CheckCircle2, XCircle, Wrench, Loader2, Undo2,
+  CheckCircle2, XCircle, Wrench, Loader2, Undo2, Ban,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
