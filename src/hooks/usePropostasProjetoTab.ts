@@ -212,11 +212,19 @@ export function selectPrincipal(propostas: PropostaNativaProjetoTab[]): Proposta
   if (propostas.length === 0) return null;
   const principal = propostas.find(p => p.is_principal);
   if (principal) return principal;
-  // Fallback: aceita > enviada > gerada > mais recente
-  const statusPriority: Record<string, number> = { aceita: 1, enviada: 2, gerada: 3 };
+  // Fallback: aceita > enviada > vista > gerada > mais recente.
+  // IMPORTANTE: o DB grava EN ("accepted/sent/generated/..."). Antes este código
+  // comparava em PT e o fallback nunca disparava. Agora normalizamos via
+  // `normalizeStatus` (SSOT em domain/proposal/proposalStatus).
+  const statusPriority: Record<string, number> = {
+    accepted: 1,
+    sent: 2,
+    viewed: 3,
+    generated: 4,
+  };
   const sorted = [...propostas].sort((a, b) => {
-    const pa = statusPriority[a.status] ?? 99;
-    const pb = statusPriority[b.status] ?? 99;
+    const pa = statusPriority[normalizeStatus(a.status)] ?? 99;
+    const pb = statusPriority[normalizeStatus(b.status)] ?? 99;
     if (pa !== pb) return pa - pb;
     return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
   });
