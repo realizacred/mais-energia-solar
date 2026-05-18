@@ -52,10 +52,15 @@ export function AutomationNodePanel({
   onSelectNewNodeType
 }: AutomationNodePanelProps) {
   const [localConfig, setLocalConfig] = useState<any>(node?.config || {});
+  const [addingStep, setAddingStep] = useState<'type' | 'action-grid'>('type');
 
   useEffect(() => {
     if (node) setLocalConfig(node.config);
   }, [node]);
+
+  useEffect(() => {
+    if (addingAfterIndex !== null) setAddingStep('type');
+  }, [addingAfterIndex]);
 
   if (addingAfterIndex !== null) {
     return (
