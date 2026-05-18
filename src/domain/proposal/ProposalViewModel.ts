@@ -105,13 +105,19 @@ export function buildProposalViewModel(input: BuildViewModelInput): ProposalView
   // Normalizar snapshot
   const snapshot = normalizeProposalSnapshot(v.snapshot || v.final_snapshot);
 
-  // Status
-  const rawStatus = (p.status || v.status || "rascunho") as string;
-  const businessStatus = (
-    ["rascunho", "gerada", "enviada", "vista", "aceita", "recusada", "expirada", "cancelada"].includes(rawStatus)
-      ? rawStatus
-      : "rascunho"
-  ) as ProposalBusinessStatus;
+  // Status normalization (DB might have PT or EN)
+  const rawStatus = (p.status || v.status || "draft") as string;
+  const normalization: Record<string, ProposalBusinessStatus> = {
+    'draft': 'rascunho',
+    'generated': 'gerada',
+    'sent': 'enviada',
+    'viewed': 'vista',
+    'accepted': 'aceita',
+    'rejected': 'recusada',
+    'expired': 'expirada',
+    'cancelled': 'cancelada'
+  };
+  const businessStatus = (normalization[rawStatus] || rawStatus) as ProposalBusinessStatus;
 
   // State mapping
   let state: ProposalState = "draft";
