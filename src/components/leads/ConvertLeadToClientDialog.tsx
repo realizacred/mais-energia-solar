@@ -1167,8 +1167,8 @@ export function ConvertLeadToClientDialog({
                         name="email"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>E-mail *</FormLabel>
-                            <FormControl><EmailInput value={field.value || ""} onChange={field.onChange} required /></FormControl>
+                            <FormLabel>E-mail</FormLabel>
+                            <FormControl><EmailInput value={field.value || ""} onChange={field.onChange} /></FormControl>
                             <FormMessage />
                           </FormItem>
                         )}
