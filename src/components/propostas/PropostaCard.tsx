@@ -14,7 +14,9 @@ import {
   Flame,
   Eye,
   AlertTriangle,
+  Lock,
 } from "lucide-react";
+import { getAvailableProposalActions } from "@/domain/proposal/proposalActionsHelper";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -154,6 +156,7 @@ export function PropostaCard({ proposta, onOpenDetail, onWhatsApp }: PropostaCar
   );
 
   const status = STATUS_MAP[proposta.status] ?? STATUS_MAP.pendente;
+  const actions = useMemo(() => getAvailableProposalActions(proposta.status), [proposta.status]);
   const priority = derivePriority(proposta, summary);
 
   // Merge: structured columns take precedence, fall back to summary
@@ -300,13 +303,14 @@ export function PropostaCard({ proposta, onOpenDetail, onWhatsApp }: PropostaCar
               <Button
                 variant="ghost"
                 size="sm"
-                className="h-7 gap-1 text-xs"
+                className={cn("h-7 gap-1 text-xs", !actions.canSend && "opacity-50 grayscale")}
+                disabled={!actions.canSend}
                 onClick={(e) => {
                   e.stopPropagation();
-                  onWhatsApp(proposta, summary);
+                  if (actions.canSend) onWhatsApp(proposta, summary);
                 }}
               >
-                <MessageCircle className="h-3.5 w-3.5" />
+                {actions.canSend ? <MessageCircle className="h-3.5 w-3.5" /> : <Lock className="h-3.5 w-3.5" />}
                 WhatsApp
               </Button>
             </TooltipTrigger>
