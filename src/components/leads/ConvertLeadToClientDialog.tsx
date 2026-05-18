@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { ShoppingCart, User, FileText, Wallet, RefreshCw } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -49,8 +49,6 @@ export function ConvertLeadToClientDialog({
   const [assinaturaFiles, setAssinaturaFiles] = useState<DocumentFile[]>([]);
   const [paymentItems, setPaymentItems] = useState<PaymentItemInput[]>([createEmptyItem()]);
 
-  const lastHydratedId = useRef<string | null>(null);
-
   const { isOnline } = useOfflineConversionSync();
 
   const { data: propostaVersaoValor = 0 } = useQuery({
@@ -72,8 +70,7 @@ export function ConvertLeadToClientDialog({
     () => mapSelectedOrcamentoToConversionData(selectedOrcamento, lead),
     [selectedOrcamento, lead],
   );
-  const hydrationId = mappedHydration._orcamento_id || mappedHydration._lead_id || orcamentoId || null;
-  const isInitialHydrationPending = open && !!hydrationId && lastHydratedId.current !== hydrationId;
+  const hydrationKey = mappedHydration._orcamento_id || mappedHydration._lead_id || orcamentoId || null;
   const mappedStep1Data = useMemo<Partial<Step1Data>>(() => ({
     nome: mappedHydration.nome,
     telefone: mappedHydration.telefone,
@@ -98,7 +95,6 @@ export function ConvertLeadToClientDialog({
   useEffect(() => {
     if (!open) {
       setCurrentStep(0);
-      lastHydratedId.current = null;
       return;
     }
 
@@ -118,8 +114,6 @@ export function ConvertLeadToClientDialog({
       /* localStorage indisponível — ignorar */
     }
 
-    if (lastHydratedId.current === hydrationId) return;
-
     setStep1Data(mappedStep1Data);
     setStep2Data(mappedStep2Data);
     setIdentidadeFiles([]);
@@ -127,8 +121,7 @@ export function ConvertLeadToClientDialog({
     setBeneficiariaFiles([]);
     setAssinaturaFiles([]);
     setPaymentItems([createEmptyItem()]);
-    lastHydratedId.current = hydrationId;
-  }, [lead?.id, open, hydrationId, mappedStep1Data, mappedStep2Data]);
+  }, [lead?.id, open, hydrationKey, mappedStep1Data, mappedStep2Data]);
 
   const handleSubmit = async () => {
     setLoading(true);
@@ -175,8 +168,8 @@ export function ConvertLeadToClientDialog({
   };
 
   const STEPS = [
-    { label: "Pessoal", icon: User, comp: <StepDadosPessoais initialData={isInitialHydrationPending ? mappedStep1Data : step1Data} onChange={(d, v) => { setStep1Data(d); setIsStep1Valid(v); }} /> },
-    { label: "Técnico", icon: FileText, comp: <StepTecnico leadId={lead?.id} initialData={isInitialHydrationPending ? mappedStep2Data : step2Data} identidadeFiles={identidadeFiles} comprovanteFiles={comprovanteFiles} beneficiariaFiles={beneficiariaFiles} assinaturaFiles={assinaturaFiles} onFilesChange={(type, files) => { if (type === "identidade") setIdentidadeFiles(files); if (type === "comprovante") setComprovanteFiles(files); if (type === "beneficiaria") setBeneficiariaFiles(files); if (type === "assinatura") setAssinaturaFiles(files); }} onChange={(d, v) => { setStep2Data(d); setIsStep2Valid(v); }} /> },
+    { label: "Pessoal", icon: User, comp: <StepDadosPessoais initialData={mappedStep1Data} hydrationKey={hydrationKey} onChange={(d, v) => { setStep1Data(d); setIsStep1Valid(v); }} /> },
+    { label: "Técnico", icon: FileText, comp: <StepTecnico leadId={lead?.id} initialData={mappedStep2Data} hydrationKey={hydrationKey} identidadeFiles={identidadeFiles} comprovanteFiles={comprovanteFiles} beneficiariaFiles={beneficiariaFiles} assinaturaFiles={assinaturaFiles} onFilesChange={(type, files) => { if (type === "identidade") setIdentidadeFiles(files); if (type === "comprovante") setComprovanteFiles(files); if (type === "beneficiaria") setBeneficiariaFiles(files); if (type === "assinatura") setAssinaturaFiles(files); }} onChange={(d, v) => { setStep2Data(d); setIsStep2Valid(v); }} /> },
     { label: "Financeiro", icon: Wallet, comp: <StepFinanceiro valorVenda={valorVenda} paymentItems={paymentItems} onCompositionChange={setPaymentItems} /> }
   ];
 
@@ -194,7 +187,13 @@ export function ConvertLeadToClientDialog({
             </Button>
           ))}
         </div>
-        <div className="flex-1 overflow-y-auto p-5">{STEPS[currentStep].comp}</div>
+        <div className="flex-1 overflow-y-auto p-5">
+          {STEPS.map((step, index) => (
+            <div key={step.label} className={index === currentStep ? "block" : "hidden"}>
+              {step.comp}
+            </div>
+          ))}
+        </div>
         <div className="p-4 border-t flex justify-between bg-muted/10">
           <Button variant="outline" onClick={() => setCurrentStep(s => Math.max(0, s - 1))} disabled={currentStep === 0}>Anterior</Button>
           {currentStep < 2 ? (
