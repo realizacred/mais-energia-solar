@@ -184,26 +184,52 @@ export function ConvertLeadToClientDialog({
   const simulacaoAceitaId = useWatch({ control: form.control, name: "simulacao_aceita_id" });
 
   // Fetch latest native proposal value for this lead (RB-76 / proposalTotals SSOT not available here)
+  // Fetch latest native proposal value for this lead (RB-76 / proposalTotals SSOT not available here)
   const { data: propostaVersaoValor = 0 } = useQuery({
     queryKey: ["convert-lead-proposta-valor", (lead as any)?.id],
     enabled: !!(lead as any)?.id,
     staleTime: 60_000,
+    gcTime: 300_000,
+    retry: 1,
+    meta: {
+      errorMessage: "Erro ao carregar valor da proposta"
+    },
     queryFn: async (): Promise<number> => {
-      const leadId = (lead as any).id as string;
-      const { data: propostas } = await supabase
-        .from("propostas_nativas")
-        .select("id")
-        .eq("lead_id", leadId);
-      const ids = (propostas ?? []).map((p: any) => p.id);
-      if (ids.length === 0) return 0;
-      const { data: versao } = await supabase
-        .from("proposta_versoes")
-        .select("valor_total, status, created_at")
-        .in("proposta_id", ids)
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      return Number((versao as any)?.valor_total ?? 0) || 0;
+      try {
+        const leadId = (lead as any).id as string;
+        
+        // Use a timeout to avoid hanging the modal
+        const fetchPromise = (async () => {
+          const { data: propostas } = await supabase
+            .from("propostas_nativas")
+            .select("id")
+            .eq("lead_id", leadId);
+          
+          const ids = (propostas ?? []).map((p: any) => p.id);
+          if (ids.length === 0) return 0;
+          
+          const { data: versao } = await supabase
+            .from("proposta_versoes")
+            .select("valor_total, status, created_at")
+            .in("proposta_id", ids)
+            .order("created_at", { ascending: false })
+            .limit(1)
+            .maybeSingle();
+            
+          return Number((versao as any)?.valor_total ?? 0) || 0;
+        })();
+
+        // Race against a 10s timeout
+        return await Promise.race([
+          fetchPromise,
+          new Promise<number>((_, reject) => 
+            setTimeout(() => reject(new Error("Timeout carregando proposta")), 10000)
+          )
+        ]);
+      } catch (err) {
+        console.warn("[ConvertLead] Query timeout or error, using defaults:", err);
+        return 0;
+      }
     },
   });
 
@@ -335,11 +361,12 @@ export function ConvertLeadToClientDialog({
       }
 
       if (savedData?.formData) {
+        const leadEmail = lead.email && lead.email.includes('@') ? lead.email : "";
         form.reset({
           nome: savedData.formData.nome || lead.nome || "",
           telefone: savedData.formData.telefone || lead.telefone || "",
-          email: savedData.formData.email || "",
-          cpf_cnpj: savedData.formData.cpf_cnpj || "",
+          email: savedData.formData.email || leadEmail,
+          cpf_cnpj: savedData.formData.cpf_cnpj || (lead as any).cpf_cnpj || "",
           data_nascimento: savedData.formData.data_nascimento || "",
           cep: savedData.formData.cep || lead.cep || "",
           estado: savedData.formData.estado || lead.estado || "",
@@ -352,7 +379,7 @@ export function ConvertLeadToClientDialog({
           transformador_id: savedData.formData.transformador_id || "",
           localizacao: savedData.formData.localizacao || "",
           observacoes: savedData.formData.observacoes || lead.observacoes || "",
-          simulacao_aceita_id: savedData.formData.simulacao_aceita_id || "",
+          simulacao_aceita_id: savedData.formData.simulacao_ace_id || "",
         });
         
         setIdentidadeFiles(savedData.identidadeFiles || []);
@@ -377,11 +404,12 @@ export function ConvertLeadToClientDialog({
           });
         }
       } else {
+        const leadEmail = lead.email && lead.email.includes('@') ? lead.email : "";
         form.reset({
           nome: lead.nome || "",
           telefone: lead.telefone || "",
-          email: "",
-          cpf_cnpj: "",
+          email: leadEmail,
+          cpf_cnpj: (lead as any).cpf_cnpj || "",
           data_nascimento: "",
           cep: lead.cep || "",
           estado: lead.estado || "",
