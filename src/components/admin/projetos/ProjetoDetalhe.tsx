@@ -148,13 +148,15 @@ function AlertasFinanceirosProjeto({
   customerId, 
   projetoId, 
   setActiveTab,
-  customerName
+  customerName,
+  statusProjeto
 }: {
   dealId: string;
   customerId: string | null;
   projetoId: string | null;
   setActiveTab: (t: TabId) => void;
   customerName: string;
+  statusProjeto?: string;
 }) {
   const [emitirOpen, setEmitirOpen] = useState(false);
   const { data: financial } = useFinancialSummary(dealId, projetoId);
@@ -162,6 +164,32 @@ function AlertasFinanceirosProjeto({
   const { data: recebimento } = useClienteRecebimentoDetalhes(
     hasRecebimento ? customerId : null
   );
+
+  // Alerta de Documentação Pendente (RB-108)
+  if (statusProjeto === "aguardando_documentacao") {
+    return (
+      <Card className="mb-2 border-l-[3px] border-l-amber-500 bg-amber-500/5">
+        <CardContent className="flex items-center gap-4 p-4">
+          <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-amber-500/10 text-amber-600 shrink-0">
+            <FileText className="w-5 h-5" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-semibold text-amber-900 dark:text-amber-100">Projeto Salvo Pendente</p>
+            <p className="text-xs text-amber-700 dark:text-amber-300">
+              Complete os dados do cliente e anexe os documentos obrigatórios para avançar no funil.
+            </p>
+          </div>
+          <Button
+            size="sm"
+            className="bg-amber-600 hover:bg-amber-700 text-white shrink-0 gap-1.5"
+            onClick={() => setActiveTab("documentos")}
+          >
+            <Upload className="h-3.5 w-3.5" /> Resolver agora
+          </Button>
+        </CardContent>
+      </Card>
+    );
+  }
 
   if (!financial) return null;
 
