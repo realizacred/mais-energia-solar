@@ -139,25 +139,29 @@ export function WaInboxStats({ conversations, compact = false, onSelect, activeK
 
   if (compact) {
     return (
-      <div className="flex items-center gap-2 overflow-x-auto px-3 py-2.5 no-scrollbar bg-card/80 border-b border-border/30 select-none touch-action-manipulation">
+      <div className="flex items-center gap-1 select-none overflow-x-auto no-scrollbar shrink-0">
         {statItems.map((stat) => {
           const isActive = activeKey && stat.key === activeKey;
           const interactive = !!onSelect && !!stat.key;
+          if (stat.key === null) return null; // Skip satisfaction in compact header
+          
           return (
-            <button
-              type="button"
-              key={stat.label}
-              onClick={() => handleClick(stat.key)}
-              disabled={!interactive}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full ${stat.bg} border ${
-                isActive ? "border-primary ring-1 ring-primary/40" : "border-border/20"
-              } shrink-0 min-h-[32px] ${interactive ? "cursor-pointer hover:brightness-95" : "cursor-default"}`}
-              aria-pressed={!!isActive}
-            >
-              <stat.icon className={`h-3.5 w-3.5 ${stat.color}`} />
-              <span className="text-sm font-bold text-foreground leading-none">{stat.value}</span>
-              <span className="text-[10px] text-muted-foreground leading-none">{stat.label}</span>
-            </button>
+            <Tooltip key={stat.label}>
+              <TooltipTrigger asChild>
+                <button
+                  type="button"
+                  onClick={() => handleClick(stat.key)}
+                  disabled={!interactive}
+                  className={`flex items-center gap-1.5 px-2 py-1 rounded-md transition-colors ${
+                    isActive ? "bg-primary/10 ring-1 ring-primary/30" : "hover:bg-accent/50"
+                  } ${interactive ? "cursor-pointer" : "cursor-default"}`}
+                >
+                  <div className={`w-2 h-2 rounded-full ${stat.bg.replace('/10', '')} ${stat.color}`} />
+                  <span className="text-xs font-bold text-foreground leading-none">{stat.value}</span>
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" className="text-[10px]">{stat.label}</TooltipContent>
+            </Tooltip>
           );
         })}
       </div>
