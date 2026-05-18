@@ -340,11 +340,11 @@ export function OrcamentosTable({
                       {onDelete && (
                         <Tooltip>
                           <TooltipTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive/80" onClick={() => onDelete(orc)}>
-                              <Trash2 className="w-4 h-4" />
+                            <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-primary" onClick={() => onDelete(orc)}>
+                              <Archive className="w-4 h-4" />
                             </Button>
                           </TooltipTrigger>
-                          <TooltipContent>Excluir</TooltipContent>
+                          <TooltipContent>Arquivar</TooltipContent>
                         </Tooltip>
                       )}
                     </div>
