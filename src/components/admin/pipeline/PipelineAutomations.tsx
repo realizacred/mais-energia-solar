@@ -51,8 +51,8 @@ interface PipelineAutomation {
   tenant_id: string;
   pipeline_id: string | null;
   stage_id: string | null;
-  funil_projeto_id: string | null;
-  etapa_projeto_id: string | null;
+  projeto_funil_id: string | null;
+  projeto_etapa_id: string | null;
   destino_etapa_projeto_id: string | null;
   nome: string;
   ativo: boolean;
@@ -151,7 +151,7 @@ function useAutomations() {
           pipelines!pipeline_automations_pipeline_id_fkey(name),
           projeto_etapas!pipeline_automations_etapa_projeto_id_fkey(nome),
           destino_projeto:projeto_etapas!pipeline_automations_destino_etapa_projeto_id_fkey(nome),
-          projeto_funis!pipeline_automations_funil_projeto_id_fkey(nome)
+          projeto_funis!pipeline_automations_projeto_funil_id_fkey(nome)
         `)
         .order("created_at", { ascending: false });
       if (error) throw error;
@@ -201,8 +201,8 @@ function useCreateAutomation() {
         insertData.stage_id = payload.stage_id;
         insertData.destino_stage_id = payload.destino_stage_id;
       } else {
-        insertData.funil_projeto_id = payload.pipeline_id;
-        insertData.etapa_projeto_id = payload.stage_id;
+        insertData.projeto_funil_id = payload.pipeline_id;
+        insertData.projeto_etapa_id = payload.stage_id;
         insertData.destino_etapa_projeto_id = payload.destino_stage_id;
       }
 
