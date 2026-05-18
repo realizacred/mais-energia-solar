@@ -14,6 +14,7 @@ export type TriggerType =
   | 'atividade_concluida'
   | 'campo_alterado'
   | 'cliente_criado'
+  | 'cliente_alterado'
 
 export type ActionType =
   | 'whatsapp'
@@ -37,6 +38,7 @@ export const TRIGGER_LABELS: Record<string, string> = {
   atividade_concluida: 'Atividade Concluída',
   campo_alterado:   'Campo Alterado',
   cliente_criado:   'Cliente Criado',
+  cliente_alterado: 'Cliente Alterado',
 }
 
 export const ACTION_LABELS: Record<string, string> = {

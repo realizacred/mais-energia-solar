@@ -14,7 +14,12 @@ import {
   Info,
   GitBranch,
   Search,
-  FolderKanban
+  FolderKanban,
+  XCircle,
+  CheckCircle2,
+  UserCog,
+  FileText,
+  CheckSquare
 } from "lucide-react";
 import { AutomationFlowNode, TriggerType, ActionType, TRIGGER_LABELS, ACTION_LABELS, AutomationNodeType } from "@/types/automation-flow";
 import { cn } from "@/lib/utils";
@@ -131,11 +136,12 @@ export function AutomationNodePanel({
               { type: 'projeto_movido' as TriggerType, icon: ArrowRightLeft, label: 'Projeto Movido' },
               { type: 'projeto_criado' as TriggerType, icon: FolderPlus, label: 'Projeto Criado' },
               { type: 'projeto_ganho' as TriggerType, icon: Trophy, label: 'Projeto Ganho' },
-              { type: 'projeto_perdido' as TriggerType, icon: Trash2, label: 'Projeto Perdido' },
-              { type: 'proposta_pronta' as TriggerType, icon: nodeIcons.trigger, label: 'Proposta Pronta' },
-              { type: 'atividade_criada' as TriggerType, icon: actionIcons.criar_atividade, label: 'Atividade Criada' },
-              { type: 'atividade_concluida' as TriggerType, icon: actionIcons.criar_atividade, label: 'Atividade Concluída' },
-              { type: 'campo_alterado' as TriggerType, icon: nodeIcons.search, label: 'Campo Alterado' },
+              { type: 'projeto_perdido' as TriggerType, icon: XCircle, label: 'Projeto Perdido' },
+              { type: 'proposta_pronta' as TriggerType, icon: FileText, label: 'Proposta Pronta' },
+              { type: 'atividade_criada' as TriggerType, icon: CheckSquare, label: 'Atividade Criada' },
+              { type: 'atividade_concluida' as TriggerType, icon: CheckCircle2, label: 'Atividade Concluída' },
+              { type: 'campo_alterado' as TriggerType, icon: Search, label: 'Campo Alterado' },
+              { type: 'cliente_alterado' as TriggerType, icon: UserCog, label: 'Cliente Alterado' },
               { type: 'cliente_criado' as TriggerType, icon: FolderPlus, label: 'Cliente Criado' },
             ].map((opt) => (
               <button
@@ -154,7 +160,7 @@ export function AutomationNodePanel({
             ))}
           </div>
 
-          {(localConfig.triggerType === 'projeto_movido' || localConfig.triggerType === 'projeto_criado') && (
+          {(localConfig.triggerType === 'projeto_movido' || localConfig.triggerType === 'projeto_criado' || localConfig.triggerType === 'projeto_ganho' || localConfig.triggerType === 'projeto_perdido') && (
             <div className="space-y-4 animate-in fade-in slide-in-from-top-2">
               <div className="space-y-2">
                 <Label>Funil do Projeto</Label>
@@ -194,6 +200,32 @@ export function AutomationNodePanel({
                     ))}
                   </SelectContent>
                 </Select>
+              </div>
+            </div>
+          )}
+
+          {(localConfig.triggerType === 'atividade_criada' || localConfig.triggerType === 'atividade_concluida') && (
+            <div className="space-y-4 animate-in fade-in slide-in-from-top-2">
+              <div className="space-y-2">
+                <Label>Título da Atividade (Contém)</Label>
+                <Input 
+                  value={localConfig.atividade_titulo_contem || ''} 
+                  onChange={(e) => updateConfig({ atividade_titulo_contem: e.target.value })}
+                  placeholder="Ex: Ligação, Visita..."
+                />
+              </div>
+            </div>
+          )}
+
+          {localConfig.triggerType === 'projeto_perdido' && (
+            <div className="space-y-4 animate-in fade-in slide-in-from-top-2">
+              <div className="space-y-2">
+                <Label>Motivo da Perda (Contém)</Label>
+                <Input 
+                  value={localConfig.perda_motivo_contem || ''} 
+                  onChange={(e) => updateConfig({ perda_motivo_contem: e.target.value })}
+                  placeholder="Ex: Preço, Concorrente..."
+                />
               </div>
             </div>
           )}
