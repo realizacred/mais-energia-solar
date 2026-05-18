@@ -16245,6 +16245,7 @@ export type Database = {
           execucoes_total: number
           id: string
           mensagem_notificacao: string | null
+          metadata: Json | null
           nome: string
           notificar_responsavel: boolean
           pipeline_id: string | null
@@ -16271,6 +16272,7 @@ export type Database = {
           execucoes_total?: number
           id?: string
           mensagem_notificacao?: string | null
+          metadata?: Json | null
           nome?: string
           notificar_responsavel?: boolean
           pipeline_id?: string | null
@@ -16297,6 +16299,7 @@ export type Database = {
           execucoes_total?: number
           id?: string
           mensagem_notificacao?: string | null
+          metadata?: Json | null
           nome?: string
           notificar_responsavel?: boolean
           pipeline_id?: string | null
