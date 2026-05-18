@@ -983,8 +983,8 @@ export function ConvertLeadToClientDialog({
 
   const Title = () => (
     <div className="flex flex-row items-center gap-3 p-5 pb-4 border-b border-border shrink-0">
-      <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-        <ShoppingCart className="w-5 h-5 text-primary" />
+      <div className="w-9 h-9 rounded-lg bg-teal-500/10 flex items-center justify-center shrink-0">
+        <ShoppingCart className="w-5 h-5 text-teal-600" />
       </div>
       <div className="flex-1">
         <h2 className="text-base font-semibold text-foreground leading-none">
@@ -1046,7 +1046,7 @@ export function ConvertLeadToClientDialog({
                   onClick={() => idx < currentStep && setCurrentStep(idx)}
                   className={`flex items-center gap-2 px-2 sm:px-3 py-2 rounded-lg transition-colors w-full min-w-0 h-auto ${
                     isActive
-                      ? "bg-primary/10 text-primary hover:bg-primary/15"
+                      ? "bg-teal-500/10 text-teal-600 hover:bg-teal-500/15"
                       : stepComplete
                       ? "text-success cursor-pointer hover:bg-muted/50"
                       : stepIncomplete
@@ -1057,7 +1057,7 @@ export function ConvertLeadToClientDialog({
                 >
                   <div className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 ${
                     isActive
-                      ? "bg-primary text-primary-foreground"
+                      ? "bg-teal-600 text-white"
                       : stepComplete
                       ? "bg-success/10 text-success"
                       : stepIncomplete
@@ -1072,7 +1072,7 @@ export function ConvertLeadToClientDialog({
                   </div>
                 </Button>
                 {idx < STEPS.length - 1 && (
-                  <div className={`w-4 h-px shrink-0 ${stepComplete ? "bg-success" : stepIncomplete ? "bg-warning" : "bg-border"}`} />
+                  <div className={`w-4 h-px shrink-0 ${stepComplete ? "bg-success" : stepIncomplete ? "bg-warning" : "bg-teal-200"}`} />
                 )}
               </div>
             );
