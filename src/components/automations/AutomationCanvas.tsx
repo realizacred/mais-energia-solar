@@ -82,7 +82,9 @@ export function AutomationCanvas({
 
                       <div className="flex flex-wrap gap-1">
                         {config.funil_id && (
-                          <Badge variant="secondary" className="text-[10px] h-4 bg-teal-100 text-teal-700 hover:bg-teal-100">Funil vinculado</Badge>
+                          <Badge variant="secondary" className="text-[10px] h-4 bg-teal-100 text-teal-700 hover:bg-teal-100">
+                            {config.searchType === 'responsavel' ? 'Buscar no funil' : 'Funil vinculado'}
+                          </Badge>
                         )}
                         {config.actionType === 'whatsapp' && (
                           <>
