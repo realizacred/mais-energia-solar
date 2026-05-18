@@ -133,7 +133,7 @@ export function ProjetoMultiPipelineManager({ dealId, projetoId, dealStatus, pip
   const [searchParams] = useSearchParams();
   const location = useLocation();
   const projetoIdFromPath = location.pathname.match(/projeto=([0-9a-f-]{36})/i)?.[1] ?? null;
-  const projetoIdAtual = projetoId || searchParams.get("projeto") || searchParams.get("projeto_id") || projetoIdFromPath || dealId;
+  const projetoIdCandidato = projetoId || searchParams.get("projeto") || searchParams.get("projeto_id") || projetoIdFromPath || dealId;
   const isCommercialLocked = dealStatus === "lost" || dealStatus === "won";
   const isTechnicalLocked = dealStatus === "lost" || dealStatus === "canceled";
   const { isAdmin } = useUserRole();
@@ -172,22 +172,26 @@ export function ProjetoMultiPipelineManager({ dealId, projetoId, dealStatus, pip
   const [loadingOrdem, setLoadingOrdem] = useState(false);
 
   const [projectData, setProjectData] = useState<any>(null);
+  const [resolvedProjetoId, setResolvedProjetoId] = useState<string | null>(null);
+  const projetoIdAtual = resolvedProjetoId || "";
 
   const fetchProjectData = useCallback(async () => {
-    if (!projetoIdAtual) return;
+    if (!projetoIdCandidato) return;
     const { data } = await supabase
       .from("projetos")
-      .select("tenant_id, cliente_id, codigo, projeto_num, clientes(nome)")
-      .eq("id", projetoIdAtual)
+      .select("id, tenant_id, cliente_id, codigo, projeto_num, clientes(nome)")
+      .or(`id.eq.${projetoIdCandidato},deal_id.eq.${dealId},deal_id.eq.${projetoIdCandidato}`)
+      .limit(1)
       .maybeSingle();
     
     if (data) {
+      setResolvedProjetoId((data as any).id);
       setProjectData({
         ...data,
         cliente_nome: (data.clientes as any)?.nome
       });
     }
-  }, [projetoIdAtual]);
+  }, [dealId, projetoIdCandidato]);
 
   const fetchOrdemCompra = useCallback(async () => {
     if (!projetoIdAtual) return;
@@ -384,7 +388,7 @@ export function ProjetoMultiPipelineManager({ dealId, projetoId, dealStatus, pip
           supabase.from("project_documents" as any).select("categoria").eq("deal_id", dealId).eq("is_deleted", false),
           supabase.from("deal_custom_field_values").select("field_id, value_text").eq("deal_id", dealId),
           supabase.from("deal_custom_fields").select("id, field_key"),
-          supabase.from("ordens_compra").select("id").eq("projeto_id", dealId).limit(1)
+          supabase.from("ordens_compra").select("id").eq("projeto_id", projetoIdAtual).limit(1)
         ]);
 
         const projectDocuments = (projectDocsRes.data || []) as any[];
@@ -471,11 +475,17 @@ export function ProjetoMultiPipelineManager({ dealId, projetoId, dealStatus, pip
     const isPedidoEfetuado = stageName.includes('pedido efetuado');
     const isPedidoPago = stageName.includes('pedido pago');
 
+    if ((isPedidoEfetuado || isPedidoPago) && !projetoIdAtual) {
+      toast({ title: "Projeto não identificado", description: "Aguarde o carregamento do projeto e tente novamente.", variant: "destructive" });
+      setSaving(null);
+      return;
+    }
+
     if (isPedidoEfetuado) {
       const { data: ordens } = await supabase
         .from('ordens_compra')
         .select('id, fornecedor_id, fornecedores(nome)')
-        .eq('projeto_id', dealId)
+        .eq('projeto_id', projetoIdAtual)
         .limit(1);
 
       if (ordens && ordens.length > 0) {
@@ -488,7 +498,9 @@ export function ProjetoMultiPipelineManager({ dealId, projetoId, dealStatus, pip
         }
       } else {
         setFornecedorModal({
-          projetoId: dealId,
+          projetoId: projetoIdAtual,
+          projetoCodigo: projectData?.codigo || (projectData?.projeto_num ? `SM-PROJ-${projectData.projeto_num}` : undefined),
+          clienteNome: projectData?.cliente_nome,
           etapaId: newStageId,
           etapaNome: newStage?.name || "",
           membershipId
@@ -503,7 +515,7 @@ export function ProjetoMultiPipelineManager({ dealId, projetoId, dealStatus, pip
       const { data: ordens } = await supabase
         .from('ordens_compra')
         .select('id')
-        .eq('projeto_id', dealId)
+        .eq('projeto_id', projetoIdAtual)
         .limit(1);
 
       if (!ordens || ordens.length === 0) {
@@ -539,7 +551,7 @@ export function ProjetoMultiPipelineManager({ dealId, projetoId, dealStatus, pip
           const { data: ordem } = await supabase
             .from('ordens_compra')
             .select('id')
-            .eq('projeto_id', dealId)
+            .eq('projeto_id', projetoIdAtual)
             .order('created_at', { ascending: false })
             .limit(1)
             .maybeSingle();
@@ -562,7 +574,7 @@ export function ProjetoMultiPipelineManager({ dealId, projetoId, dealStatus, pip
           evento: 'projeto_status_mudou',
           tenant_id: (membership as any)?.tenant_id || projectData?.tenant_id,
           dados: {
-            projeto_id: dealId,
+            projeto_id: projetoIdAtual,
             status_novo: stageName,
             cliente_id: projectData?.cliente_id
           }
@@ -1193,7 +1205,12 @@ export function ProjetoMultiPipelineManager({ dealId, projetoId, dealStatus, pip
                           variant="outline" 
                           size="sm" 
                           className="h-7 text-[10px] w-fit gap-1 border-warning/40 hover:bg-warning/10"
+                          disabled={!projetoIdAtual}
                           onClick={() => {
+                            if (!projetoIdAtual) {
+                              toast({ title: "Projeto não identificado", variant: "destructive" });
+                              return;
+                            }
                             setFornecedorModal({
                               projetoId: projetoIdAtual,
                               projetoCodigo: projectData?.codigo || (projectData?.projeto_num ? `SM-PROJ-${projectData.projeto_num}` : undefined),
