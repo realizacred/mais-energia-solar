@@ -6,8 +6,7 @@ import { Switch } from "@/components/ui/switch";
 import { ArrowLeft, Save } from "lucide-react";
 import { AutomationCanvas } from "./AutomationCanvas";
 import { AutomationNodePanel } from "./AutomationNodePanel";
-import { AutomationFlow, AutomationFlowNode, AutomationNodeType } from "@/types/automation-flow";
-import { useAutomationFlow, useSaveAutomationFlow } from "@/hooks/usePipelineAutomations";
+import { AutomationFlowNode, AutomationNodeType } from "@/types/automation-flow";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { LoadingState } from "@/components/ui-kit/LoadingState";
@@ -22,47 +21,71 @@ interface AutomationFlowEditorProps {
 
 export function AutomationFlowEditor({ automationId, onBack }: AutomationFlowEditorProps) {
   const { toast } = useToast();
-  const { data: initialFlow, isLoading: isLoadingFlow } = useAutomationFlow(automationId);
-  const saveFlowMutation = useSaveAutomationFlow();
   
   const [nodes, setNodes] = useState<AutomationFlowNode[]>([]);
   const [name, setName] = useState("");
   const [active, setActive] = useState(true);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [addingAfterIndex, setAddingAfterIndex] = useState<number | null>(null);
+  const [isLoading, setIsLoading] = useState(!!automationId);
 
-  // Sync state with loaded data
+  // Sync state with loaded data (PARTE C)
   useEffect(() => {
-    if (initialFlow) {
-      const initialNodes = initialFlow.nodes || [];
-      if (initialNodes.length === 0) {
-        // Garantir que sempre comece com um gatilho
-        setNodes([{
-          id: 'trigger-' + Date.now(),
-          type: 'trigger',
-          order: 1,
-          config: {}
-        }]);
-      } else {
-        setNodes(initialNodes);
-      }
+    if (!automationId) {
+      setNodes([{
+        id: 'trigger-' + Date.now(),
+        type: 'trigger', order: 1, config: {}
+      }]);
+      setIsLoading(false);
+      return;
     }
-  }, [initialFlow]);
 
-  // Load basic auto info if editing
-  useEffect(() => {
-    if (automationId) {
-      supabase.from("pipeline_automations")
-        .select("nome, ativo")
-        .eq("id", automationId)
-        .single()
-        .then(({ data }) => {
-          if (data) {
-            setName(data.nome);
-            setActive(data.ativo);
+    setIsLoading(true);
+    supabase.from('pipeline_automations')
+      .select('*')
+      .eq('id', automationId)
+      .single()
+      .then(({ data }) => {
+        if (!data) {
+          setIsLoading(false);
+          return;
+        }
+        setName(data.nome);
+        setActive(data.ativo);
+        
+        const metadata = data.metadata as any;
+        if (metadata?.nodes?.length > 0) {
+          setNodes(metadata.nodes);
+        } else {
+          const loadedNodes: AutomationFlowNode[] = [];
+          if (data.tipo_gatilho) {
+            loadedNodes.push({
+              id: 'trigger-1',
+              type: 'trigger',
+              order: 1,
+              config: {
+                triggerType: data.tipo_gatilho as any,
+                funil_id: data.projeto_funil_id,
+                etapa_id: data.projeto_etapa_id,
+              }
+            });
           }
-        });
-    }
+          if (data.canal_notificacao) {
+            loadedNodes.push({
+              id: 'action-1',
+              type: 'action',
+              order: 2,
+              config: { 
+                actionType: data.canal_notificacao as any,
+                webhook_url: data.webhook_url,
+                wa_content_template: data.template_mensagem
+              }
+            });
+          }
+          setNodes(loadedNodes);
+        }
+        setIsLoading(false);
+      });
   }, [automationId]);
 
   // Load funis/etapas for panels
@@ -74,8 +97,8 @@ export function AutomationFlowEditor({ automationId, onBack }: AutomationFlowEdi
         supabase.from("projeto_funis").select("id, nome").order("nome")
       ]);
       return [
-        ...(modern.data || []).map(p => ({ ...p, type: 'modern' })),
-        ...(legacy.data || []).map(p => ({ id: p.id, name: p.nome, type: 'legacy' }))
+        ...(modern.data || []).map(p => ({ ...p, type: 'modern' as const })),
+        ...(legacy.data || []).map(p => ({ id: p.id, name: p.nome, type: 'legacy' as const }))
       ];
     }
   });
@@ -88,8 +111,8 @@ export function AutomationFlowEditor({ automationId, onBack }: AutomationFlowEdi
         supabase.from("projeto_etapas").select("id, funil_id, nome").order("ordem")
       ]);
       return [
-        ...(modern.data || []).map(s => ({ ...s, type: 'modern' })),
-        ...(legacy.data || []).map(s => ({ ...s, type: 'legacy' }))
+        ...(modern.data || []).map(s => ({ ...s, type: 'modern' as const })),
+        ...(legacy.data || []).map(s => ({ ...s, type: 'legacy' as const }))
       ];
     }
   });
@@ -128,39 +151,60 @@ export function AutomationFlowEditor({ automationId, onBack }: AutomationFlowEdi
   };
 
   const handleSave = async () => {
-    const nomeTrimmed = name.trim();
-    if (!nomeTrimmed) {
+    const noGatilho = nodes.find(n => n.type === 'trigger');
+    const primeiraAcao = nodes.find(n => n.type === 'action');
+
+    const nomeAutomacao = name;
+    const isAtivo = active;
+
+    if (!nomeAutomacao?.trim()) {
       toast({ title: "Digite um nome para a automação", variant: "destructive" });
       return;
     }
-    
-    const trigger = nodes.find(n => n.type === 'trigger');
-    if (!trigger?.config?.triggerType) {
+    if (!noGatilho?.config?.triggerType) {
       toast({ title: "Configure o gatilho primeiro", variant: "destructive" });
       return;
     }
-    
+
     const { tenantId } = await getCurrentTenantId();
-    
-    saveFlowMutation.mutate({
-      automationId,
-      flow: { nodes },
-      basicData: { nome: nomeTrimmed, ativo: active, tenant_id: tenantId }
-    }, {
-      onSuccess: () => {
-        toast({ title: "Automação salva com sucesso!" });
-        setTimeout(() => {
-          onBack();
-        }, 1000);
-      },
-      onError: (err: any) => {
-        console.error('[SAVE ERROR]', err);
-        toast({ title: "Erro ao salvar: " + err.message, variant: "destructive" });
+
+    const payload: any = {
+      tenant_id: tenantId,
+      nome: nomeAutomacao.trim(),
+      ativo: isAtivo,
+      tipo_gatilho: noGatilho?.config?.triggerType ?? null,
+      projeto_funil_id: noGatilho?.config?.funil_id ?? null,
+      projeto_etapa_id: noGatilho?.config?.etapa_id ?? null,
+      canal_notificacao: primeiraAcao?.config?.actionType ?? null,
+      webhook_url: primeiraAcao?.config?.webhook_url ?? null,
+      template_mensagem: primeiraAcao?.config?.wa_content_template ?? null,
+      metadata: { nodes: nodes },
+    };
+
+    try {
+      if (automationId) {
+        const { error } = await supabase
+          .from('pipeline_automations')
+          .update(payload)
+          .eq('id', automationId)
+          .eq('tenant_id', tenantId);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from('pipeline_automations')
+          .insert(payload);
+        if (error) throw error;
       }
-    });
+
+      toast({ title: "Automação salva!" });
+      setTimeout(() => onBack(), 1000);
+    } catch (error: any) {
+      console.error('[SAVE ERROR]', error);
+      toast({ title: "Erro ao salvar: " + error.message, variant: "destructive" });
+    }
   };
 
-  if (isLoadingFlow) return <LoadingState message="Carregando fluxograma..." />;
+  if (isLoading) return <LoadingState message="Carregando fluxograma..." />;
 
   const selectedNode = nodes.find(n => n.id === selectedNodeId) || null;
 
@@ -198,11 +242,10 @@ export function AutomationFlowEditor({ automationId, onBack }: AutomationFlowEdi
         </div>
         <Button 
           onClick={handleSave} 
-          disabled={saveFlowMutation.isPending} 
           className="gap-2 px-6 bg-teal-600 hover:bg-teal-700 text-white transition-all shadow-md hover:shadow-lg active:scale-95"
         >
           <Save className="h-4 w-4" />
-          {saveFlowMutation.isPending ? 'Salvando...' : 'Salvar Fluxo'}
+          Salvar Fluxo
         </Button>
       </header>
 
@@ -239,4 +282,3 @@ export function AutomationFlowEditor({ automationId, onBack }: AutomationFlowEdi
     </div>
   );
 }
-
