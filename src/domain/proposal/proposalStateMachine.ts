@@ -76,7 +76,7 @@ export function canRejectFromMachine(status: string): boolean {
 }
 
 export function canCancelFromMachine(status: string): boolean {
-  return canTransition(status, "excluida");
+  return canTransition(status, "cancelled");
 }
 
 export function canGenerateOsFromStatus(status: string): boolean {
