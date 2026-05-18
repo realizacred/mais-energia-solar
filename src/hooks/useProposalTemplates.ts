@@ -15,6 +15,7 @@ export interface PropostaTemplate {
   categoria: string;
   tipo: string;
   thumbnail_url: string | null;
+  is_default: boolean;
 }
 
 export interface EmailTemplate {
