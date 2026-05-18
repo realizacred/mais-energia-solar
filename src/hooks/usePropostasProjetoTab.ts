@@ -6,6 +6,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 // SSOT: total da proposta vem SEMPRE de getCanonicalProposalTotal — não recalcule aqui.
 import { getCanonicalProposalTotal } from "@/services/proposal/proposalTotals";
+// SSOT: normalização de status (PT/EN) — NUNCA comparar strings literais.
+import { normalizeStatus } from "@/domain/proposal/proposalStatus";
 
 // ─── Types ──────────────────────────────────────────
 export interface VersaoProjetoTab {
@@ -99,12 +101,16 @@ export function usePropostasProjetoTab(dealId: string, customerId: string | null
 
       const ids = data.map((p: any) => p.id);
 
-      // Fetch versoes
+      // Fetch versoes — incluímos `substituida_em` para identificar versão ATIVA
+      // (canonical: substituida_em IS NULL). Ordenação: ativa primeiro, depois
+      // por versao_numero desc. Garante que `versoes[0]` == versão ativa (consumida
+      // pelo PropostaExpandedDetail como `latestVersao`).
       const { data: versoes } = await supabase
         .from("proposta_versoes")
-        .select("id, proposta_id, versao_numero, valor_total, potencia_kwp, status, economia_mensal, geracao_mensal, payback_meses, tir, vpl, created_at, snapshot, output_pdf_path, output_docx_path, link_pdf, public_slug, gerado_em, usuario_editou_em, template_id_used, generation_status, generation_error")
+        .select("id, proposta_id, versao_numero, valor_total, potencia_kwp, status, economia_mensal, geracao_mensal, payback_meses, tir, vpl, created_at, snapshot, output_pdf_path, output_docx_path, link_pdf, public_slug, gerado_em, usuario_editou_em, template_id_used, generation_status, generation_error, substituida_em")
         .in("proposta_id", ids)
-        .order("created_at", { ascending: false });
+        .order("substituida_em", { ascending: true, nullsFirst: true })
+        .order("versao_numero", { ascending: false });
 
       // Fetch UC geração
       const versaoIds = (versoes || []).map((v: any) => v.id);
@@ -206,11 +212,19 @@ export function selectPrincipal(propostas: PropostaNativaProjetoTab[]): Proposta
   if (propostas.length === 0) return null;
   const principal = propostas.find(p => p.is_principal);
   if (principal) return principal;
-  // Fallback: aceita > enviada > gerada > mais recente
-  const statusPriority: Record<string, number> = { aceita: 1, enviada: 2, gerada: 3 };
+  // Fallback: aceita > enviada > vista > gerada > mais recente.
+  // IMPORTANTE: o DB grava EN ("accepted/sent/generated/..."). Antes este código
+  // comparava em PT e o fallback nunca disparava. Agora normalizamos via
+  // `normalizeStatus` (SSOT em domain/proposal/proposalStatus).
+  const statusPriority: Record<string, number> = {
+    accepted: 1,
+    sent: 2,
+    viewed: 3,
+    generated: 4,
+  };
   const sorted = [...propostas].sort((a, b) => {
-    const pa = statusPriority[a.status] ?? 99;
-    const pb = statusPriority[b.status] ?? 99;
+    const pa = statusPriority[normalizeStatus(a.status)] ?? 99;
+    const pb = statusPriority[normalizeStatus(b.status)] ?? 99;
     if (pa !== pb) return pa - pb;
     return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
   });

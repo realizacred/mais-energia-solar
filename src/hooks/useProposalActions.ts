@@ -11,7 +11,8 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "@/hooks/use-toast";
 import { formatBRL } from "@/lib/formatters";
 import { renderProposal, sendProposal } from "@/services/proposalApi";
-import { getPublicUrl } from "@/lib/getPublicUrl";
+import { invalidatePropostaCaches } from "@/lib/invalidatePropostaCaches";
+import { getProposalWebUrl } from "@/services/proposal/proposalLinks";
 import {
   transitionProposalStatus,
   generateOs as svcGenerateOs,
@@ -30,9 +31,11 @@ export function useProposalActions({ versaoId, propostaRaw, vm }: UseProposalAct
   const qc = useQueryClient();
 
   const invalidate = () => {
-    qc.invalidateQueries({ queryKey: ["proposal-detail", versaoId] });
-    qc.invalidateQueries({ queryKey: ["proposta-aceita-gate"] });
-    qc.invalidateQueries({ queryKey: ["deal-propostas"] });
+    invalidatePropostaCaches(qc, {
+      propostaId: propostaRaw?.id || null,
+      dealId: propostaRaw?.deal_id || null,
+      versaoId: versaoId || null,
+    });
   };
 
   // ─── Transition Status (backend-driven) ─────────────────
@@ -163,7 +166,7 @@ export function useProposalActions({ versaoId, propostaRaw, vm }: UseProposalAct
       if (!propostaRaw?.id || !versaoId) throw new Error("Proposta não carregada");
       const tipo = withTracking ? "tracked" : "public";
       const token = await getOrCreateProposalToken(propostaRaw.id, versaoId, tipo);
-      const url = `${getPublicUrl()}/proposta/${token}`;
+      const url = getProposalWebUrl(token);
       try {
         await navigator.clipboard.writeText(url);
       } catch {

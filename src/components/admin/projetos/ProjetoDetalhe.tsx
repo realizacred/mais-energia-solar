@@ -62,6 +62,7 @@ import { useProjetoNotes } from "@/hooks/useProjetoNotes";
 import { useProjetoActivities } from "@/hooks/useProjetoActivities";
 import { useConsultoresAtivos } from "@/hooks/useConsultoresAtivos";
 import { usePropostasProjetoTab, usePropostasRealtimeSync, selectPrincipal, useSetPropostaPrincipal, useArquivarProposta } from "@/hooks/usePropostasProjetoTab";
+import { normalizeStatus } from "@/domain/proposal/proposalStatus";
 import {
   ProjetoDetalheProvider,
   useProjetoDetalhe,
@@ -2962,28 +2963,31 @@ function PropostasTab({ customerId, dealId, dealTitle, navigate, isClosed, dealS
 
                   {/* Proposal indicator + action */}
                   <div className="flex items-center gap-1.5 shrink-0">
-                    {linkedProposta && (
-                      <Badge 
-                        variant="outline" 
-                        className={cn(
-                          "text-[9px] gap-1 border-opacity-20",
-                          linkedProposta.status === 'accepted' && "bg-success/10 text-success border-success/40",
-                          linkedProposta.status === 'generated' && "bg-primary/10 text-primary border-primary/40",
-                          linkedProposta.status === 'sent' && "bg-info/10 text-info border-info/40",
-                          linkedProposta.status === 'rejected' && "bg-destructive/10 text-destructive border-destructive/40"
-                        )}
-                      >
-                        {linkedProposta.status === 'accepted' ? (
-                          <><CheckCircle className="h-2.5 w-2.5" /> Proposta aceita</>
-                        ) : linkedProposta.status === 'rejected' ? (
-                          <><XCircle className="h-2.5 w-2.5" /> Proposta recusada</>
-                        ) : linkedProposta.status === 'sent' ? (
-                          <><Eye className="h-2.5 w-2.5" /> Proposta enviada</>
-                        ) : (
-                          <><CheckCircle className="h-2.5 w-2.5" /> Proposta gerada</>
-                        )}
-                      </Badge>
-                    )}
+                    {linkedProposta && (() => {
+                      const normStatus = normalizeStatus(linkedProposta.status);
+                      return (
+                        <Badge
+                          variant="outline"
+                          className={cn(
+                            "text-[9px] gap-1 border-opacity-20",
+                            normStatus === 'accepted' && "bg-success/10 text-success border-success/40",
+                            normStatus === 'generated' && "bg-primary/10 text-primary border-primary/40",
+                            normStatus === 'sent' && "bg-info/10 text-info border-info/40",
+                            normStatus === 'rejected' && "bg-destructive/10 text-destructive border-destructive/40"
+                          )}
+                        >
+                          {normStatus === 'accepted' ? (
+                            <><CheckCircle className="h-2.5 w-2.5" /> Proposta aceita</>
+                          ) : normStatus === 'rejected' ? (
+                            <><XCircle className="h-2.5 w-2.5" /> Proposta recusada</>
+                          ) : normStatus === 'sent' ? (
+                            <><Eye className="h-2.5 w-2.5" /> Proposta enviada</>
+                          ) : (
+                            <><CheckCircle className="h-2.5 w-2.5" /> Proposta gerada</>
+                          )}
+                        </Badge>
+                      );
+                    })()}
                     {!isClosed && (
                       <Button
                         variant="outline"

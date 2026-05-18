@@ -1,7 +1,9 @@
 import { useState, useEffect, useMemo, useRef } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { invalidatePropostaCaches } from "@/lib/invalidatePropostaCaches";
+import { getProposalWebUrl } from "@/services/proposal/proposalLinks";
 import { getCurrentTenantId } from "@/lib/getCurrentTenantId";
-import { getPublicUrl } from "@/lib/getPublicUrl";
+
 import { useNavigate } from "react-router-dom";
 import { ProposalSnapshotView } from "@/components/admin/propostas-nativas/ProposalSnapshotView";
 import { StepDocumento } from "@/components/admin/propostas-nativas/wizard/StepDocumento";
@@ -663,6 +665,7 @@ interface Props {
 
 export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, onToggle, dealId, customerId, onRefresh, isOutdated, onSetPrincipal, onArchive }: Props) {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { data: tenantCtx } = useQuery({ queryKey: ["current-tenant-id"], queryFn: getCurrentTenantId, staleTime: 1000 * 60 * 15 });
   const isMigrated = false;
   const latestVersao = p.versoes[0];
@@ -917,15 +920,15 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
 
       toast({ title: `Proposta marcada como "${getProposalStatusConfig(newStatus).label}"` });
       onRefresh();
-      
-      // Invalidar queries para atualizar a interface em tempo real
-      const queryClient = (window as any).queryClient;
-      if (queryClient) {
-        queryClient.invalidateQueries({ queryKey: ["proposta-aceita-gate", dealId] });
-        queryClient.invalidateQueries({ queryKey: ["projeto-detalhe", dealId] });
-        queryClient.invalidateQueries({ queryKey: ["deal-pipeline-stages", dealId] });
-        queryClient.invalidateQueries({ queryKey: ["deal-pipeline", dealId] });
-      }
+
+      // Invalidação centralizada (SSOT: lib/invalidatePropostaCaches.ts).
+      // Substitui o antigo `(window as any).queryClient` que invalidava só 4 chaves
+      // e causava UI stale (badge "gerada" não virava "aceita", CTAs sumindo).
+      invalidatePropostaCaches(queryClient, {
+        propostaId: p.id,
+        dealId,
+        versaoId: latestVersao?.id || null,
+      });
     } catch (e: any) {
       toast({ title: "Erro ao atualizar status", description: e.message, variant: "destructive" });
     } finally {
@@ -952,7 +955,7 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
       try {
         const { getOrCreateProposalToken } = await import("@/services/proposal/proposalDetail.service");
         const token = await getOrCreateProposalToken(p.id, latestVersao.id, "public");
-        setPublicUrl(`${getPublicUrl()}/proposta/${token}`);
+        setPublicUrl(getProposalWebUrl(token));
       } catch {
         // Silent — will be populated on manual copy
       }
@@ -1178,7 +1181,7 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
     const { getOrCreateProposalToken } = await import("@/services/proposal/proposalDetail.service");
     const tipo = withTracking ? "tracked" : "public";
     const token = await getOrCreateProposalToken(p.id, latestVersao.id, tipo);
-    const url = `${getPublicUrl()}/proposta/${token}`;
+    const url = getProposalWebUrl(token);
 
     if (!withTracking) {
       setPublicUrl(url);
@@ -1206,7 +1209,7 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
         canal,
         lead_id: undefined,
       });
-      const canonicalUrl = `${getPublicUrl()}/proposta/${result.token}`;
+      const canonicalUrl = getProposalWebUrl(result.token);
       setPublicUrl(canonicalUrl);
       if (canal === "whatsapp" && result.whatsapp_sent) {
         toast({ title: "Proposta enviada via WhatsApp! ✅" });
