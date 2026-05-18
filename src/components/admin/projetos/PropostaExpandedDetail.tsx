@@ -971,8 +971,8 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
     if (!latestVersao.template_id_used && !templateSelecionado) return;
     const vStatus = latestVersao.status?.toLowerCase();
     const pStatus = p.status?.toLowerCase();
-    if (vStatus === "generated" || vStatus === "gerada" || vStatus === "ativa" ||
-        pStatus === "gerada" || pStatus === "generated" || pStatus === "enviada" || pStatus === "aceita") {
+    if (vStatus === "generated" || vStatus === "ativa" ||
+        pStatus === "generated" || pStatus === "sent" || pStatus === "accepted") {
       handleRender();
     }
   }, [isExpanded, activeTab, latestVersao?.id]);
