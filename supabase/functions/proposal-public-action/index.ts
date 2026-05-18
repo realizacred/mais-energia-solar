@@ -367,14 +367,14 @@ Deno.serve(async (req) => {
 
     const propostaId = tokenData.proposta_id;
     const tenantId = tokenData.tenant_id;
-    const mappedStatus = action === "aceitar" ? "aceita" : "recusada";
+    const mappedStatus = action === "aceitar" ? "accepted" : "rejected";
 
     // 2. Call canonical proposal_update_status RPC (Backend-driven atomic transition)
     // This handles: validation, status sync, deal status, financial snapshot, siblings rejection, and audit.
     const { data: rpcResult, error: rpcErr } = await admin.rpc("proposal_update_status", {
       p_proposta_id: propostaId,
       p_new_status: mappedStatus,
-      p_motivo: mappedStatus === "recusada" ? (motivo || "Aceite público recusado") : null
+      p_motivo: mappedStatus === "rejected" ? (motivo || "Aceite público recusado") : null
     });
 
     if (rpcErr || (rpcResult as any)?.error) {
