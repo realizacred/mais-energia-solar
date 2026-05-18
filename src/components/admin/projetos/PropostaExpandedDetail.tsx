@@ -1586,22 +1586,40 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
 
                   {(() => {
                     const actions = getAvailableProposalActions(p.status);
+                    
+                    // Se não tem ações de aceitar/recusar, não renderiza nada aqui
                     if (!actions.canAccept && !actions.canReject) return null;
+
                     return (
                       <div className="flex items-center gap-2">
                         {actions.canAccept && (
-                          <Button size="sm" variant="outline" className="h-7 text-xs gap-1 border-success text-success hover:bg-success/10" onClick={() => updatePropostaStatus("aceita")} disabled={updatingStatus}>
+                          <Button 
+                            size="sm" 
+                            variant="outline" 
+                            className="h-7 text-xs gap-1 border-success text-success hover:bg-success/10 font-medium" 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              updatePropostaStatus("aceita");
+                            }} 
+                            disabled={updatingStatus}
+                          >
                             <CheckCircle className="h-3 w-3" /> Aceitar
                           </Button>
                         )}
                         {actions.canReject && (
                           <AlertDialog open={recusaDialogOpen} onOpenChange={setRecusaDialogOpen}>
                             <AlertDialogTrigger asChild>
-                              <Button size="sm" variant="outline" className="h-7 text-xs gap-1 border-destructive text-destructive hover:bg-destructive/10" disabled={updatingStatus}>
+                              <Button 
+                                size="sm" 
+                                variant="outline" 
+                                className="h-7 text-xs gap-1 border-destructive text-destructive hover:bg-destructive/10 font-medium" 
+                                disabled={updatingStatus}
+                                onClick={(e) => e.stopPropagation()}
+                              >
                                 <AlertCircle className="h-3 w-3" /> Recusar
                               </Button>
                             </AlertDialogTrigger>
-                            <AlertDialogContent className="w-[90vw] max-w-md">
+                            <AlertDialogContent className="w-[90vw] max-w-md" onClick={(e) => e.stopPropagation()}>
                               <AlertDialogHeader>
                                 <div className="flex items-center gap-3 mb-2">
                                   <div className="w-9 h-9 rounded-lg bg-destructive/10 flex items-center justify-center shrink-0">
@@ -1611,10 +1629,22 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
                                 </div>
                                 <AlertDialogDescription>Informe o motivo da recusa (opcional).</AlertDialogDescription>
                               </AlertDialogHeader>
-                              <textarea placeholder="Motivo da recusa..." value={recusaMotivo} onChange={(e) => setRecusaMotivo(e.target.value)} className="min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm" />
+                              <textarea 
+                                placeholder="Motivo da recusa..." 
+                                value={recusaMotivo} 
+                                onChange={(e) => setRecusaMotivo(e.target.value)} 
+                                className="min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm" 
+                              />
                               <AlertDialogFooter>
                                 <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                <AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={() => { updatePropostaStatus("recusada", { motivo: recusaMotivo }); setRecusaMotivo(""); setRecusaDialogOpen(false); }}>
+                                <AlertDialogAction 
+                                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90" 
+                                  onClick={() => { 
+                                    updatePropostaStatus("recusada", { motivo: recusaMotivo }); 
+                                    setRecusaMotivo(""); 
+                                    setRecusaDialogOpen(false); 
+                                  }}
+                                >
                                   Confirmar Recusa
                                 </AlertDialogAction>
                               </AlertDialogFooter>
