@@ -676,8 +676,9 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
     enviadaVersao.valor_total !== null && 
     Math.abs(latestVersao.valor_total - enviadaVersao.valor_total) > 0.01;
 
-  const wpPrice = latestVersao?.valor_total && latestVersao?.potencia_kwp
-    ? (latestVersao.valor_total / (latestVersao.potencia_kwp * 1000)).toFixed(2)
+  const canonicalTotalLatest = getCanonicalProposalTotal(latestVersao as any);
+  const wpPrice = canonicalTotalLatest > 0 && latestVersao?.potencia_kwp
+    ? (canonicalTotalLatest / (latestVersao.potencia_kwp * 1000)).toFixed(2)
     : null;
 
   // Templates for DOCX/HTML detection
