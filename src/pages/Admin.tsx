@@ -556,7 +556,7 @@ const AdminRoutes = () => (
     
     {/* Financeiro */}
     <Route path="financeiro-dashboard" element={<FinanceiroDashboard />} />
-    <Route path="lancamentos" element={<LancamentosPage />} />
+    <Route path="lancamentos_financeiros" element={<LancamentosPage />} />
     <Route path="recebimentos" element={<RecebimentosManager />} />
     <Route path="financeiro/cheques" element={<ChequesPage />} />
 
