@@ -439,8 +439,21 @@ export default function PropostaLanding() {
       <div className="pl-landing" style={{ minHeight: "100vh" }}>
         <style>{LANDING_STYLES}</style>
         <TemplateHtmlRenderer blocks={templateBlocks} variables={templateVariables} />
+        <div ref={ctaRef} style={{ width: "100%" }}>
+          {(propostaStatus === "vista" || propostaStatus === "viewed") && (
+            <ProposalCTASection
+              {...sectionProps}
+              acceptForm={acceptForm}
+              onAcceptFormChange={setAcceptForm}
+              onAccept={handleAccept}
+              onReject={() => setShowReject(true)}
+              submitting={submitting}
+            />
+          )}
+        </div>
       </div>
     );
+
   }
 
   if (!isLegacyMigrated) {
