@@ -236,6 +236,8 @@ export function WaInbox({ vendorMode = false, vendorUserId, showCompactStats = f
     } catch {}
   };
 
+  const handleReopen = () => { if (selectedConv) { reopenConversation(selectedConv.id); setSelectedConv({ ...selectedConv, status: "open" }); } };
+
   const handleTransfer = async (toUserId: string, reason?: string) => {
     if (!selectedConv) return;
     const targetVendedor = vendedores.find((v) => v.user_id === toUserId || v.id === toUserId);
