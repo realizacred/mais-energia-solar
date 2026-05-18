@@ -111,6 +111,7 @@ export function VincularFornecedorModal({
           id: ordemExistente.id,
           fornecedor_id: fornecedorId,
           numero_pedido: numeroPedido,
+          data_pedido: dataPedido || null,
           data_previsao_entrega: dataPrevisao || null,
           observacoes: observacoes || null,
           valor_total: valorTotal,
@@ -121,6 +122,7 @@ export function VincularFornecedorModal({
           projeto_id: projetoId,
           fornecedor_id: fornecedorId,
           numero_pedido: numeroPedido,
+          data_pedido: dataPedido || undefined,
           data_previsao_entrega: dataPrevisao || undefined,
           observacoes: observacoes || undefined,
           itens: [{
