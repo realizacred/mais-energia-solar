@@ -367,234 +367,26 @@ Deno.serve(async (req) => {
 
     const propostaId = tokenData.proposta_id;
     const tenantId = tokenData.tenant_id;
-    const newStatus = action === "aceitar" ? "accepted" : "rejected";
+    const mappedStatus = action === "aceitar" ? "aceita" : "recusada";
 
-    // 2. Load current proposal
-    const { data: proposta, error: pErr } = await admin
-      .from("propostas_nativas")
-      .select("id, status, lead_id, cliente_id, projeto_id, tenant_id")
-      .eq("id", propostaId)
-      .eq("tenant_id", tenantId)
-      .single();
+    // 2. Call canonical proposal_update_status RPC (Backend-driven atomic transition)
+    // This handles: validation, status sync, deal status, financial snapshot, siblings rejection, and audit.
+    const { data: rpcResult, error: rpcErr } = await admin.rpc("proposal_update_status", {
+      p_proposta_id: propostaId,
+      p_new_status: mappedStatus,
+      p_motivo: mappedStatus === "recusada" ? (motivo || "Aceite público recusado") : null
+    });
 
-    if (pErr || !proposta) {
+    if (rpcErr || (rpcResult as any)?.error) {
+      console.error("[proposal-public-action] RPC error:", rpcErr || (rpcResult as any)?.error);
       return new Response(
-        JSON.stringify({ error: "Proposta não encontrada" }),
-        { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({ error: (rpcResult as any)?.error || "Erro ao processar ação na proposta" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    // 3. Validate transition
-    const currentStatus = proposta.status || "draft";
-    const allowed = VALID_TRANSITIONS[currentStatus] || [];
-    if (!allowed.includes(newStatus)) {
-      return new Response(
-        JSON.stringify({
-          error: `Transição inválida: ${currentStatus} → ${newStatus}`,
-          allowed,
-        }),
-        { status: 422, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    // 3b. Idempotency check
-    const { data: existingEvent } = await admin
-      .from("proposal_events")
-      .select("id")
-      .eq("proposta_id", propostaId)
-      .eq("tipo", newStatus === "aceita" ? "proposta_aceita" : "proposta_recusada")
-      .maybeSingle();
-
-    if (existingEvent) {
-      return new Response(
-        JSON.stringify({
-          success: true,
-          idempotent: true,
-          message: `Ação '${action}' já registrada anteriormente`,
-          previous_status: currentStatus,
-          new_status: newStatus,
-        }),
-        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    // 4. Build update payload
-    const now = new Date().toISOString();
-    const updateData: Record<string, unknown> = { status: newStatus };
-
-    if (newStatus === "aceita") {
-      updateData.aceita_at = now;
-      updateData.is_principal = true;
-    }
-    if (newStatus === "recusada") {
-      updateData.recusada_at = now;
-      updateData.recusa_motivo = motivo || null;
-    }
-    // Clear opposite timestamps
-    if (newStatus !== "aceita") {
-      updateData.aceita_at = null;
-      updateData.aceite_motivo = null;
-    }
-    if (newStatus !== "recusada") {
-      updateData.recusada_at = null;
-      updateData.recusa_motivo = null;
-    }
-
-    // 5. Execute update
-    const { error: updateErr } = await admin
-      .from("propostas_nativas")
-      .update(updateData)
-      .eq("id", propostaId);
-
-    if (updateErr) throw updateErr;
-
-    // 5a. Sync proposta_versoes.status
-    try {
-      const statusMap: Record<string, string> = {
-        aceita: "accepted",
-        recusada: "rejected",
-      };
-      const { data: latestVersao } = await admin
-        .from("proposta_versoes")
-        .select("id")
-        .eq("proposta_id", propostaId)
-        .order("versao_numero", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-
-      if (latestVersao?.id) {
-        await admin
-          .from("proposta_versoes")
-          .update({ status: statusMap[newStatus] || newStatus })
-          .eq("id", latestVersao.id);
-      }
-    } catch (syncErr) {
-      console.error("[proposal-public-action] Erro ao sincronizar versão:", syncErr);
-    }
-
-    // 5b. On accept: reject siblings + cancel generated documents
-    if (newStatus === "aceita" && proposta.projeto_id) {
-      // Clear is_principal on siblings
-      await admin
-        .from("propostas_nativas")
-        .update({ is_principal: false })
-        .eq("projeto_id", proposta.projeto_id)
-        .neq("id", propostaId);
-
-      // Reject actionable siblings
-      const { data: siblings } = await admin
-        .from("propostas_nativas")
-        .select("id")
-        .eq("projeto_id", proposta.projeto_id)
-        .neq("id", propostaId)
-        .in("status", ["gerada", "enviada", "vista", "rascunho"]);
-
-      if (siblings && siblings.length > 0) {
-        await admin
-          .from("propostas_nativas")
-          .update({
-            status: "recusada",
-            recusada_at: now,
-            recusa_motivo: "Outra proposta do projeto foi aceita (aceite público)",
-          })
-          .in("id", siblings.map((s: any) => s.id));
-      }
-
-      // Cancel generated documents (RB-44: never cancel signed)
-      try {
-        await admin
-          .from("generated_documents")
-          .update({
-            status: "cancelled",
-            observacao: "Nova proposta aceita (aceite público)",
-            updated_at: now,
-          })
-          .eq("deal_id", proposta.projeto_id)
-          .eq("status", "generated")
-          .neq("signature_status", "signed");
-      } catch (docErr) {
-        console.error("[proposal-public-action] Erro ao cancelar documentos:", docErr);
-      }
-
-      // Generate commission (same logic as proposal-transition)
-      try {
-        const { data: existingComm } = await admin
-          .from("comissoes")
-          .select("id")
-          .eq("tenant_id", tenantId)
-          .eq("projeto_id", proposta.projeto_id)
-          .neq("status", "cancelada")
-          .maybeSingle();
-
-        if (!existingComm && proposta.lead_id) {
-          const { data: versao } = await admin
-            .from("proposta_versoes")
-            .select("potencia_kwp, valor_total")
-            .eq("proposta_id", propostaId)
-            .order("versao_numero", { ascending: false })
-            .limit(1)
-            .maybeSingle();
-
-          const valorTotal = versao?.valor_total || 0;
-          const potenciaKwp = versao?.potencia_kwp || 0;
-
-          if (valorTotal > 0) {
-            const { data: lead } = await admin
-              .from("leads")
-              .select("consultor_id")
-              .eq("id", proposta.lead_id)
-              .maybeSingle();
-
-            if (lead?.consultor_id) {
-              const { data: plan } = await admin
-                .from("commission_plans")
-                .select("parameters")
-                .eq("tenant_id", tenantId)
-                .eq("is_active", true)
-                .limit(1)
-                .maybeSingle();
-
-              const percentual = (plan?.parameters as any)?.percentual ?? 5;
-
-              let clienteNome = "Cliente";
-              if (proposta.cliente_id) {
-                const { data: cl } = await admin
-                  .from("clientes")
-                  .select("nome")
-                  .eq("id", proposta.cliente_id)
-                  .maybeSingle();
-                clienteNome = cl?.nome || clienteNome;
-              }
-
-              await admin.from("comissoes").insert({
-                tenant_id: tenantId,
-                consultor_id: lead.consultor_id,
-                cliente_id: proposta.cliente_id,
-                projeto_id: proposta.projeto_id,
-                descricao: `Proposta aceita (público) - ${clienteNome} (${potenciaKwp}kWp)`,
-                valor_base: valorTotal,
-                percentual_comissao: percentual,
-                valor_comissao: (valorTotal * percentual) / 100,
-                mes_referencia: new Date().getMonth() + 1,
-                ano_referencia: new Date().getFullYear(),
-                status: "pendente",
-              });
-            }
-          }
-        }
-      } catch (commErr) {
-        console.error("[proposal-public-action] Erro ao gerar comissão:", commErr);
-      }
-    }
-
-    // 6. Cancel commissions on reject
-    if (newStatus === "recusada" && proposta.projeto_id) {
-      await admin
-        .from("comissoes")
-        .update({ status: "cancelada", observacoes: `Proposta recusada (público)` })
-        .eq("projeto_id", proposta.projeto_id)
-        .eq("status", "pendente");
-    }
+    const currentStatus = (rpcResult as any).previous_status || "sent";
+    const newStatus = (rpcResult as any).new_status || mappedStatus;
 
     // 7. Compute integrity hashes (only on accept) and persist token state
     let snapshotHash: string | null = null;

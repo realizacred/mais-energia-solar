@@ -909,13 +909,9 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
 
       // ── Comissão ao aceitar é gerada automaticamente pelo trigger trg_proposta_aceita_comissao ──
 
-      // ── Cancelar comissão se recusada ──
-      if (newStatus === "recusada" && dealId) {
-        await supabase.from("comissoes")
-          .update({ status: "cancelada", observacoes: `Proposta ${newStatus}` })
-          .eq("projeto_id", dealId)
-          .eq("status", "pendente");
-      }
+      // ── Side effects on acceptance/rejection (commissions, deals, projects) ──
+      // These are now handled ATOMICALLY in the backend by the proposal_update_status RPC.
+      // The frontend only needs to invalidate the cache.
 
       toast({ title: `Proposta marcada como "${getProposalStatusConfig(newStatus).label}"` });
       onRefresh();
