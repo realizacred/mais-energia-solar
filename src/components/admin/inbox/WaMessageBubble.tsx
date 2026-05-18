@@ -355,8 +355,8 @@ export function WaMessageBubble({
 
           {/* Fallback for corrupted/empty messages — no content and no media */}
           {!msg.content && !msg.media_url && !["location", "reaction"].includes(msg.message_type) && (
-            <p className="whitespace-pre-wrap break-words text-sm italic text-muted-foreground">
-              Mensagem não disponível
+            <p className="whitespace-pre-wrap break-words text-sm italic text-muted-foreground opacity-70">
+              🚫 Mídia não disponível
             </p>
           )}
 
