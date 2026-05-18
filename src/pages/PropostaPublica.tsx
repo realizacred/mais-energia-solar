@@ -1052,6 +1052,8 @@ export default function PropostaPublica() {
           </CardContent>
         </Card>
       </div>
+      )}
+
 
       {/* Reject Confirmation Dialog */}
       <AlertDialog open={showRejectConfirm} onOpenChange={setShowRejectConfirm}>
