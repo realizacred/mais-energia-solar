@@ -279,10 +279,10 @@ function StatusBadge({ status, aceita_at, enviada_at, recusada_at, created_at }:
   // Map internal status to badge type
   const getBadgeType = () => {
     const normalized = status.toLowerCase();
-    if (["aceita", "accepted", "aprovada", "ganha"].includes(normalized)) return "aceita";
-    if (["enviada", "sent", "visualizada", "vista"].includes(normalized)) return "enviada";
-    if (["gerada", "generated"].includes(normalized)) return "gerada";
-    if (["rascunho", "draft"].includes(normalized)) return "rascunho";
+    if (["accepted", "aceita", "aprovada", "ganha"].includes(normalized)) return "accepted";
+    if (["sent", "enviada", "visualizada", "vista"].includes(normalized)) return "sent";
+    if (["generated", "gerada"].includes(normalized)) return "generated";
+    if (["draft", "rascunho"].includes(normalized)) return "draft";
     return null;
   };
 
@@ -310,16 +310,16 @@ function getStatusDateLabel(
   recusada_at: string | null,
   created_at: string | null,
 ): string {
-  if (["aceita", "accepted", "aprovada", "ganha"].includes(status) && aceita_at) {
+  if (["accepted", "aceita", "aprovada", "ganha"].includes(status) && aceita_at) {
     return `Aceita em ${formatDateTime(aceita_at)}`;
   }
-  if (["recusada", "rejected", "rejeitada", "perdida"].includes(status) && recusada_at) {
+  if (["rejected", "rejected", "rejeitada", "perdida"].includes(status) && recusada_at) {
     return `Recusada em ${formatDateTime(recusada_at)}`;
   }
-  if (["enviada", "sent"].includes(status) && enviada_at) {
+  if (["sent", "enviada"].includes(status) && enviada_at) {
     return `Enviada em ${formatDateTime(enviada_at)}`;
   }
-  if (["expirada", "expired"].includes(status) && created_at) {
+  if (["expired", "expirada"].includes(status) && created_at) {
     return `Expirada • Criada em ${formatDateTime(created_at)}`;
   }
   return `Criada em ${formatDateTime(created_at || "")}`;
@@ -328,8 +328,8 @@ function getStatusDateLabel(
 function StatusIcon({ status, isPrincipal }: { status: string; isPrincipal: boolean }) {
   const s = getProposalStatusConfig(status);
   const colorCls = s?.iconCls || (isPrincipal ? "text-primary" : "text-muted-foreground");
-  const isAccepted = ["aceita", "ganha"].includes(status);
-  const isRejected = ["rejeitada", "recusada", "perdida"].includes(status);
+  const isAccepted = ["accepted", "aceita", "ganha"].includes(status);
+  const isRejected = ["rejected", "rejeitada", "recusada", "perdida"].includes(status);
   
   if (isAccepted) return <CheckCircle className={cn("h-6 w-6 shrink-0 mr-3", colorCls)} />;
   if (isRejected) return <AlertCircle className={cn("h-6 w-6 shrink-0 mr-3", colorCls)} />;
@@ -666,7 +666,7 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
   const { data: tenantCtx } = useQuery({ queryKey: ["current-tenant-id"], queryFn: getCurrentTenantId, staleTime: 1000 * 60 * 15 });
   const isMigrated = false;
   const latestVersao = p.versoes[0];
-  const enviadaVersao = p.versoes.find(v => v.status === 'enviada' || v.status === 'sent');
+  const enviadaVersao = p.versoes.find(v => v.status === 'sent' || v.status === 'enviada');
   const hasDivergence = enviadaVersao && latestVersao && 
     latestVersao.valor_total !== null && 
     enviadaVersao.valor_total !== null && 
@@ -772,7 +772,7 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
 
   const handleEditWithProtection = async (editFn: () => void) => {
     // RB-49: Block edit completely if signed contract exists
-    if (p.status === "aceita") {
+    if (p.status === "accepted") {
       const { data: signedDocs } = await supabase
         .from("generated_documents")
         .select("id")
@@ -971,8 +971,8 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
     if (!latestVersao.template_id_used && !templateSelecionado) return;
     const vStatus = latestVersao.status?.toLowerCase();
     const pStatus = p.status?.toLowerCase();
-    if (vStatus === "generated" || vStatus === "gerada" || vStatus === "ativa" ||
-        pStatus === "gerada" || pStatus === "generated" || pStatus === "enviada" || pStatus === "aceita") {
+    if (vStatus === "generated" || vStatus === "ativa" ||
+        pStatus === "generated" || pStatus === "sent" || pStatus === "accepted") {
       handleRender();
     }
   }, [isExpanded, activeTab, latestVersao?.id]);
@@ -1483,7 +1483,7 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
                       className="h-7 text-[10px] md:text-xs gap-1 border-success/50 text-success hover:bg-success/10 font-medium px-2" 
                       onClick={(e) => {
                         e.stopPropagation();
-                        updatePropostaStatus("aceita");
+                        updatePropostaStatus("accepted");
                       }} 
                       disabled={updatingStatus}
                     >
