@@ -115,6 +115,8 @@ export function AutomationNodePanel({
 
   const panelTitle = node.type === 'trigger' 
     ? (node.config.triggerType ? TRIGGER_LABELS[node.config.triggerType] : 'Configurar Gatilho')
+    : node.type === 'search'
+    ? (node.config.searchType ? `Procurar ${node.config.searchType.charAt(0).toUpperCase() + node.config.searchType.slice(1)}` : 'Configurar Busca')
     : (node.config.actionType ? ACTION_LABELS[node.config.actionType] : 'Configurar Ação');
 
   return (
