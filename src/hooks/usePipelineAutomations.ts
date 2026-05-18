@@ -37,7 +37,7 @@ export function usePipelineAutomations(pipelineId: string | null) {
       const { data, error } = await supabase
         .from("pipeline_automations")
         .select("*")
-        .or(`pipeline_id.eq.${pipelineId},funil_projeto_id.eq.${pipelineId}`)
+        .or(`pipeline_id.eq.${pipelineId},projeto_funil_id.eq.${pipelineId}`)
         .order("created_at");
       if (error) throw error;
       return (data as PipelineAutomation[]) || [];
