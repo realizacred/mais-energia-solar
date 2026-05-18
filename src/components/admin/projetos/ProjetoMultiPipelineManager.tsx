@@ -1198,6 +1198,7 @@ export function ProjetoMultiPipelineManager({ dealId, projetoId, dealStatus, pip
                                 fornecedor_id: ordemCompra.fornecedor_id,
                                 numero_pedido: ordemCompra.numero_pedido,
                                 valor_total: ordemCompra.valor_total,
+                                data_pedido: ordemCompra.data_pedido,
                                 data_previsao_entrega: ordemCompra.data_previsao_entrega,
                                 observacoes: ordemCompra.observacoes,
                               },
