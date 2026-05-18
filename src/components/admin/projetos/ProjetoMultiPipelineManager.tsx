@@ -154,6 +154,8 @@ export function ProjetoMultiPipelineManager({ dealId, dealStatus, pipelines, all
   // Estado para interceptador de fornecedor
   const [fornecedorModal, setFornecedorModal] = useState<{
     projetoId: string;
+    projetoCodigo?: string;
+    clienteNome?: string;
     etapaId: string;
     etapaNome: string;
     membershipId: string;
