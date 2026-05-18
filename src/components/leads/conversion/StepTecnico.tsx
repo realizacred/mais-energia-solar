@@ -194,6 +194,40 @@ export function StepTecnico({
               </FormItem>
             )}
           />
+
+          <FormField
+            control={form.control}
+            name="simulacao_aceita_id"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Proposta Aceita</FormLabel>
+                <Select onValueChange={field.onChange} value={field.value}>
+                  <FormControl>
+                    <SelectTrigger><SelectValue placeholder="Selecione a proposta aceita" /></SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {/* Simulations would come from a query or prop. 
+                        To keep StepTecnico clean, maybe we fetch them here or pass them.
+                        I'll use a hook inside if possible. */}
+                    <SimulationsOptions leadId={projetoId} />
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="observacoes"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Observações</FormLabel>
+                <FormControl><Input {...field} placeholder="Observações adicionais" /></FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
         </div>
 
         <div className="border-t border-border" />
