@@ -58,8 +58,12 @@ export function useProposalActions({ versaoId, propostaRaw, vm }: UseProposalAct
 
       invalidate();
     },
-    onError: (err: Error) => {
-      toast({ title: "Erro ao atualizar status", description: err.message, variant: "destructive" });
+    onError: (err: any) => {
+      let description = err.message;
+      if (err.message?.includes("invalid_transition")) {
+        description = "Essa proposta ainda não pode ser aceita/recusada. Ela precisa ser enviada e visualizada pelo cliente antes.";
+      }
+      toast({ title: "Ação não permitida", description, variant: "destructive" });
     },
   });
 
