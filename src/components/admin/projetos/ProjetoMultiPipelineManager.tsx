@@ -1246,6 +1246,7 @@ export function ProjetoMultiPipelineManager({ dealId, dealStatus, pipelines, all
               open={!!fornecedorModal}
               onOpenChange={(open) => !open && setFornecedorModal(null)}
               projetoId={fornecedorModal?.projetoId || ""}
+              projetoCodigo={fornecedorModal?.projetoCodigo}
               clienteNome={activeMembership?.pipeline_name}
               onSuccess={() => {
                 const { membershipId, etapaId } = fornecedorModal;
