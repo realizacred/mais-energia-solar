@@ -28,6 +28,7 @@ export function VincularFornecedorModal({
   open,
   onOpenChange,
   projetoId,
+  projetoCodigo,
   clienteNome,
   onSuccess,
   onCancel
