@@ -26,6 +26,8 @@ export interface PaymentItemInput {
   juros_valor: number; // percentage or fixed amount
   juros_responsavel: JurosResponsavel;
   observacoes: string;
+  /** Valor da entrada quando entrada=true. Subtraído do valor_base para cálculo das parcelas. */
+  valor_entrada?: number;
 }
 
 export interface PaymentItemComputed extends PaymentItemInput {
