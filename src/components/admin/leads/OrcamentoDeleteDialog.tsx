@@ -8,7 +8,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Trash2 } from "lucide-react";
+import { Archive } from "lucide-react";
 import type { OrcamentoDisplayItem } from "@/types/orcamento";
 
 interface OrcamentoDeleteDialogProps {
@@ -31,26 +31,29 @@ export function OrcamentoDeleteDialog({
       <AlertDialogContent className="w-[90vw] max-w-md">
         <AlertDialogHeader>
           <div className="flex items-center gap-3 mb-2">
-            <div className="w-9 h-9 rounded-lg bg-destructive/10 flex items-center justify-center shrink-0">
-              <Trash2 className="w-5 h-5 text-destructive" />
+            <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+              <Archive className="w-5 h-5 text-primary" />
             </div>
-            <AlertDialogTitle>Excluir Lead/Orçamento</AlertDialogTitle>
+            <AlertDialogTitle>Arquivar Lead/Orçamento</AlertDialogTitle>
           </div>
           <AlertDialogDescription>
-            Tem certeza que deseja excluir <strong>{orcamento.orc_code || orcamento.id}</strong> de{" "}
-            <strong>{orcamento.nome}</strong>?
+            Tem certeza que deseja arquivar o lead <strong>{orcamento.nome}</strong>?
             <br /><br />
-            Esta ação <strong>remove em cascata</strong>: lead, cliente vinculado, projetos,
-            propostas, deals e demais ramificações. Não pode ser desfeito.
+            Este lead deixará de aparecer no funil principal. O histórico de orçamentos, 
+            atividades e WhatsApp será preservado para auditoria.
+            <br /><br />
+            <span className="text-xs text-muted-foreground">
+              * Só é possível arquivar leads sem propostas aceitas ou vendas concluídas.
+            </span>
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel>Cancelar</AlertDialogCancel>
           <AlertDialogAction
             onClick={onConfirm}
-            className="border-destructive text-destructive hover:bg-destructive/10 border bg-transparent"
+            className="border-primary text-primary hover:bg-primary/10 border bg-transparent"
           >
-            Excluir
+            Arquivar
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

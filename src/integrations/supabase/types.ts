@@ -31860,6 +31860,7 @@ export type Database = {
         }
         Returns: string
       }
+      archive_lead: { Args: { p_lead_id: string }; Returns: Json }
       assert_proposta_status_enum_labels: { Args: never; Returns: undefined }
       assign_wa_conversation_by_phone: {
         Args: { _phone_digits: string }

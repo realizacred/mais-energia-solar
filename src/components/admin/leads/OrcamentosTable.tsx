@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Phone, Eye, Trash2, ShoppingCart, UserCheck, MessageSquare, History, UserPlus, Pencil, MoreHorizontal, UserRound, RotateCcw, ScrollText, Loader2, FolderOpen, Link2 } from "lucide-react";
+import { Phone, Eye, Trash2, ShoppingCart, UserCheck, MessageSquare, History, UserPlus, Pencil, MoreHorizontal, UserRound, RotateCcw, ScrollText, Loader2, FolderOpen, Link2, Archive } from "lucide-react";
 import { VincularClienteDialog } from "./VincularClienteDialog";
 import { usePropostaRapidaLead } from "@/hooks/usePropostaRapidaLead";
 import type { QuickLeadData } from "@/hooks/usePropostaRapidaLead";
@@ -340,11 +340,11 @@ export function OrcamentosTable({
                       {onDelete && (
                         <Tooltip>
                           <TooltipTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive/80" onClick={() => onDelete(orc)}>
-                              <Trash2 className="w-4 h-4" />
+                            <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-primary" onClick={() => onDelete(orc)}>
+                              <Archive className="w-4 h-4" />
                             </Button>
                           </TooltipTrigger>
-                          <TooltipContent>Excluir</TooltipContent>
+                          <TooltipContent>Arquivar</TooltipContent>
                         </Tooltip>
                       )}
                     </div>
@@ -425,9 +425,9 @@ export function OrcamentosTable({
                         {onDelete && (
                           <>
                             <DropdownMenuSeparator />
-                            <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => onDelete(orc)}>
-                              <Trash2 className="w-4 h-4 mr-2" />
-                              Excluir
+                            <DropdownMenuItem onClick={() => onDelete(orc)}>
+                              <Archive className="w-4 h-4 mr-2 text-muted-foreground" />
+                              Arquivar
                             </DropdownMenuItem>
                           </>
                         )}

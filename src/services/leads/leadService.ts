@@ -62,7 +62,7 @@ export const leadService = {
   },
 
   async delete(id: string) {
-    const { error } = await supabase.rpc("delete_lead_cascade", { p_lead_id: id });
+    const { error } = await supabase.rpc("archive_lead", { p_lead_id: id });
     if (error) throw error;
   },
 

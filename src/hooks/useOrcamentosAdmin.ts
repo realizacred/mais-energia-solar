@@ -68,7 +68,8 @@ export function useOrcamentosAdmin({
 
       let query = supabase
         .from("orcamentos")
-        .select(ORC_ADMIN_SELECT, { count: "exact" });
+        .select(ORC_ADMIN_SELECT, { count: "exact" })
+        .is("leads.deleted_at", null);
 
       // Apply standard filters
       // Phase 1: search uses telefone_normalized (canonical digits) + cidade.
@@ -315,27 +316,36 @@ export function useOrcamentosAdmin({
 
   const deleteOrcamento = useCallback(async (orcamentoId: string) => {
     try {
-      // Busca o lead pai e cascateia: lead → cliente → projetos → propostas → deals → orçamentos
+      // Busca o lead pai
       const { data: orc, error: orcErr } = await supabase
         .from("orcamentos")
-        .select("lead_id")
+        .select("lead_id, leads(nome)")
         .eq("id", orcamentoId)
         .maybeSingle();
       if (orcErr) throw orcErr;
 
-      if (orc?.lead_id) {
-        const { error } = await supabase.rpc("delete_lead_cascade", { p_lead_id: orc.lead_id });
-        if (error) throw error;
-      } else {
-        const { error } = await supabase.from("orcamentos").delete().eq("id", orcamentoId);
-        if (error) throw error;
+      if (!orc?.lead_id) {
+        throw new Error("Lead não encontrado");
+      }
+
+      const { data, error } = await supabase.rpc("archive_lead", { p_lead_id: orc.lead_id });
+      if (error) throw error;
+      
+      const res = data as any;
+      if (res && res.success === false) {
+        toast({
+          title: "Não é possível arquivar",
+          description: res.error || "Este lead possui vínculos que impedem o arquivamento.",
+          variant: "destructive",
+        });
+        return false;
       }
 
       setOrcamentos((prev) => prev.filter((o) => o.id !== orcamentoId));
       setTotalCount((prev) => prev - 1);
       toast({
-        title: "Lead excluído",
-        description: "Lead, orçamento e vínculos (cliente, projetos, propostas, deals) foram removidos.",
+        title: "Lead arquivado",
+        description: `O lead ${orc.leads?.nome || ""} foi arquivado com sucesso.`,
       });
       return true;
     } catch (error) {
