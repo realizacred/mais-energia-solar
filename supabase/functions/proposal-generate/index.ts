@@ -464,7 +464,7 @@ Deno.serve(async (req) => {
     const anoAtual = new Date().getFullYear();
     const distribuidoraId = uc1.distribuidora_id || null;
 
-    const [fioBRes, tributacaoRes, irradiacaoRes, defaultPremissasRes, consultorRes, tariffVersionRes, tenantPremisesRes, concessionariaRes, aneelRunRes] = await Promise.all([
+    const [fioBRes, tributacaoRes, irradiacaoRes, defaultPremissasRes, consultorRes, tariffVersionRes, tenantPremisesRes, concessionariaRes, aneelRunRes, templateRes] = await Promise.all([
       adminClient.from("fio_b_escalonamento")
         .select("ano, percentual_nao_compensado")
         .or(`tenant_id.eq.${tenantId},tenant_id.is.null`)
@@ -517,7 +517,20 @@ Deno.serve(async (req) => {
         .order("started_at", { ascending: false })
         .limit(1)
         .maybeSingle(),
+      // ── TEMPLATE: Fetch default template if not provided ──
+      !body.template_id
+        ? adminClient.from("proposta_templates")
+            .select("id")
+            .eq("tenant_id", tenantId)
+            .eq("ativo", true)
+            .eq("is_default", true)
+            .limit(1)
+            .maybeSingle()
+        : Promise.resolve({ data: null, error: null }),
     ]);
+
+    // Resolve template_id (payload > default from DB)
+    const resolvedTemplateId = body.template_id || templateRes.data?.id;
 
     const consultorId = consultorRes.data?.id ?? null;
     const geracaoMediaKwpMes = irradiacaoRes.data?.geracao_media_kwp_mes ?? 120;
