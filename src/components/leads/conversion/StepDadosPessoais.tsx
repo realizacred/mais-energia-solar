@@ -36,7 +36,7 @@ interface StepDadosPessoaisProps {
 export function StepDadosPessoais({ initialData, onChange }: StepDadosPessoaisProps) {
   const form = useForm<Step1Data>({
     resolver: zodResolver(step1Schema),
-    values: {
+    defaultValues: {
       nome: initialData.nome || "",
       telefone: initialData.telefone || "",
       email: initialData.email || "",

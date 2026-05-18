@@ -134,10 +134,11 @@ export function ConvertLeadToClientDialog({
         comprovante_endereco_urls: comprovanteUrls, 
         comprovante_beneficiaria_urls: beneficiariaUrls, 
         assinatura_url: assinaturaUrls[0] || null,
-        // Adicionando dados técnicos que podem estar faltando no payload mas existem no source
-        media_consumo: selectedOrcamento?.media_consumo || (lead as any)?.media_consumo,
-        consumo_previsto: selectedOrcamento?.consumo_previsto || (lead as any)?.consumo_previsto
+        media_consumo: step2Data.media_consumo || selectedOrcamento?.media_consumo || (lead as any)?.media_consumo,
+        consumo_previsto: step2Data.consumo_previsto || selectedOrcamento?.consumo_previsto || (lead as any)?.consumo_previsto
       };
+
+
       const { data: res, error } = await supabase.rpc("convert_lead_to_venda_v2", { 
         _lead_id: lead?.id, 
         _payload: payload as any, 
