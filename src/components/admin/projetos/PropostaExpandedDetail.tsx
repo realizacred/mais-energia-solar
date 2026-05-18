@@ -1455,7 +1455,7 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <p className={cn("text-sm font-bold text-foreground", hasDivergence && "cursor-help underline decoration-dotted decoration-warning/50 underline-offset-2")}>
-                        {latestVersao?.valor_total ? formatBRL(latestVersao.valor_total) : "—"}
+                        {canonicalTotalLatest > 0 ? formatBRL(canonicalTotalLatest) : "—"}
                       </p>
                     </TooltipTrigger>
                     {hasDivergence && (
