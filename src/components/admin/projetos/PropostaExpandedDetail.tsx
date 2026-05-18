@@ -1483,7 +1483,7 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
                       className="h-7 text-[10px] md:text-xs gap-1 border-success/50 text-success hover:bg-success/10 font-medium px-2" 
                       onClick={(e) => {
                         e.stopPropagation();
-                        updatePropostaStatus("aceita");
+                        updatePropostaStatus("accepted");
                       }} 
                       disabled={updatingStatus}
                     >
