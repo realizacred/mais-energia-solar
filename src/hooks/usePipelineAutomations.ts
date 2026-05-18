@@ -80,7 +80,7 @@ export function useSaveAutomationFlow() {
       const trigger = flow.nodes.find(n => n.type === "trigger");
       const action = flow.nodes.find(n => n.type === "action");
       
-      const payload = {
+      const payload: any = {
         tenant_id: basicData.tenant_id,
         nome: basicData.nome.trim(),
         ativo: basicData.ativo,
@@ -90,7 +90,7 @@ export function useSaveAutomationFlow() {
         canal_notificacao: action?.config.actionType ?? null,
         webhook_url: action?.config.webhook_url ?? null,
         template_mensagem: action?.config.wa_content_template ?? null,
-        metadata: flow,
+        metadata: flow as any,
       };
 
       if (automationId) {
@@ -103,7 +103,7 @@ export function useSaveAutomationFlow() {
       } else {
         const { error } = await supabase
           .from("pipeline_automations")
-          .insert(payload);
+          .insert([payload]);
         if (error) throw error;
       }
     },
