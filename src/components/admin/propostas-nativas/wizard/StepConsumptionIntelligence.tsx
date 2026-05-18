@@ -54,7 +54,7 @@ type PreSubTab = "premissas" | "equipamentos";
 function StepConsumptionIntelligenceImpl({
   ucs, onUcsChange, potenciaKwp, onPotenciaChange,
   preDimensionamento: pd, onPreDimensionamentoChange: setPd,
-  irradiacao, ghiSeries, latitude, somenteGhi, leadFase, geracaoDesejadaKwh,
+  irradiacao, ghiSeries, latitude, somenteGhi, leadFase, geracaoDesejadaKwh, mediaConsumoLead,
 }: Props) {
 
   const [activeTab, setActiveTab] = useState<ActiveTab>("ucs");
