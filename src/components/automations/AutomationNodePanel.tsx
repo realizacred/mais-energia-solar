@@ -39,7 +39,7 @@ interface AutomationNodePanelProps {
   onUpdate: (node: AutomationFlowNode) => void;
   onRemove: (id: string) => void;
   addingAfterIndex: number | null;
-  onSelectNewNodeType: (type: AutomationNodeType) => void;
+  onSelectNewNodeType: (type: AutomationNodeType, initialConfig?: any) => void;
 }
 
 export function AutomationNodePanel({ 
