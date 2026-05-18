@@ -4,22 +4,26 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { 
-  FolderKanban, 
-  Edit, 
-  User, 
-  ListTodo, 
-  FileText, 
+  FolderPlus, 
+  Trophy, 
+  FileCheck, 
+  CheckSquare, 
+  Edit3, 
+  ArrowRightLeft,
   Anchor, 
   Mail, 
   MessageSquare, 
   Trash2, 
   AlertTriangle,
-  Info
+  Info,
+  Target,
+  GitBranch,
+  Search,
+  FolderKanban
 } from "lucide-react";
-import { AutomationFlowNode, TriggerType, ActionType } from "@/types/automation-flow";
+import { AutomationFlowNode, TriggerType, ActionType, TRIGGER_LABELS, ACTION_LABELS, AutomationNodeType } from "@/types/automation-flow";
 import { cn } from "@/lib/utils";
 
 interface AutomationNodePanelProps {
@@ -28,6 +32,8 @@ interface AutomationNodePanelProps {
   availableEtapas: any[];
   onUpdate: (node: AutomationFlowNode) => void;
   onRemove: (id: string) => void;
+  addingAfterIndex: number | null;
+  onSelectNewNodeType: (type: AutomationNodeType) => void;
 }
 
 export function AutomationNodePanel({ 
@@ -35,13 +41,55 @@ export function AutomationNodePanel({
   availableFunis, 
   availableEtapas, 
   onUpdate, 
-  onRemove 
+  onRemove,
+  addingAfterIndex,
+  onSelectNewNodeType
 }: AutomationNodePanelProps) {
   const [localConfig, setLocalConfig] = useState<any>(node?.config || {});
 
   useEffect(() => {
     if (node) setLocalConfig(node.config);
   }, [node]);
+
+  if (addingAfterIndex !== null) {
+    return (
+      <div className="p-6 space-y-6">
+        <div>
+          <h2 className="text-lg font-bold">Adicionar Passo</h2>
+          <p className="text-xs text-muted-foreground">Escolha o tipo de nó para adicionar ao fluxo</p>
+        </div>
+        <div className="grid grid-cols-2 gap-4">
+          <button
+            onClick={() => onSelectNewNodeType('action')}
+            className="flex flex-col items-center justify-center p-4 gap-2 rounded-xl border-2 border-dashed border-blue-200 hover:border-blue-500 hover:bg-blue-50 transition-all group"
+          >
+            <div className="p-3 rounded-lg bg-blue-100 text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition-colors">
+              <Target className="h-6 w-6" />
+            </div>
+            <span className="text-sm font-bold text-blue-700">Ação</span>
+          </button>
+          <button
+            onClick={() => onSelectNewNodeType('condition')}
+            className="flex flex-col items-center justify-center p-4 gap-2 rounded-xl border-2 border-dashed border-orange-200 hover:border-orange-500 hover:bg-orange-50 transition-all group"
+          >
+            <div className="p-3 rounded-lg bg-orange-100 text-orange-600 group-hover:bg-orange-600 group-hover:text-white transition-colors">
+              <GitBranch className="h-6 w-6" />
+            </div>
+            <span className="text-sm font-bold text-orange-700">Condicional</span>
+          </button>
+          <button
+            onClick={() => onSelectNewNodeType('search')}
+            className="flex flex-col items-center justify-center p-4 gap-2 rounded-xl border-2 border-dashed border-purple-200 hover:border-purple-500 hover:bg-purple-50 transition-all group col-span-2"
+          >
+            <div className="p-3 rounded-lg bg-purple-100 text-purple-600 group-hover:bg-purple-600 group-hover:text-white transition-colors">
+              <Search className="h-6 w-6" />
+            </div>
+            <span className="text-sm font-bold text-purple-700">Procurar</span>
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   if (!node) {
     return (
@@ -65,11 +113,15 @@ export function AutomationNodePanel({
 
   const isEquipamento = availableFunis.find(f => f.id === localConfig.funil_id)?.name?.toLowerCase().includes("equipamento");
 
+  const panelTitle = node.type === 'trigger' 
+    ? (node.config.triggerType ? TRIGGER_LABELS[node.config.triggerType] : 'Configurar Gatilho')
+    : (node.config.actionType ? ACTION_LABELS[node.config.actionType] : 'Configurar Ação');
+
   return (
     <div className="p-6 space-y-6 h-full overflow-y-auto">
       <div className="flex items-center justify-between border-b pb-4">
         <div>
-          <h2 className="text-lg font-bold capitalize">{node.type === 'trigger' ? 'Configurar Gatilho' : 'Configurar Ação'}</h2>
+          <h2 className="text-lg font-bold">{panelTitle}</h2>
           <p className="text-xs text-muted-foreground">Defina o comportamento deste passo</p>
         </div>
         <Button variant="ghost" size="icon" className="text-destructive" onClick={() => onRemove(node.id)}>
@@ -81,18 +133,20 @@ export function AutomationNodePanel({
         <div className="space-y-6">
           <div className="grid grid-cols-2 gap-2">
             {[
-              { type: 'projeto_movido' as TriggerType, icon: FolderKanban, label: 'Projeto Movido' },
-              { type: 'projeto_criado' as TriggerType, icon: User, label: 'Projeto Criado' },
-              { type: 'proposta_gerada' as TriggerType, icon: FileText, label: 'Proposta Pronta' },
-              { type: 'campo_customizado' as TriggerType, icon: ListTodo, label: 'Campo Alterado' },
+              { type: 'projeto_movido' as TriggerType, icon: ArrowRightLeft, label: 'Projeto Movido' },
+              { type: 'projeto_criado' as TriggerType, icon: FolderPlus, label: 'Projeto Criado' },
+              { type: 'projeto_ganho' as TriggerType, icon: Trophy, label: 'Projeto Ganho' },
+              { type: 'proposta_pronta' as TriggerType, icon: FileCheck, label: 'Proposta Pronta' },
+              { type: 'atividade_criada' as TriggerType, icon: CheckSquare, label: 'Atividade Criada' },
+              { type: 'campo_customizado' as TriggerType, icon: Edit3, label: 'Campo Alterado' },
             ].map((opt) => (
               <button
                 key={opt.type}
                 onClick={() => updateConfig({ triggerType: opt.type })}
                 className={cn(
-                  "flex flex-col items-center justify-center p-3 gap-2 rounded-lg border transition-all text-xs font-medium",
+                  "flex flex-col items-center justify-center p-3 gap-2 rounded-lg border transition-all text-[11px] font-medium leading-tight h-20 text-center",
                   localConfig.triggerType === opt.type 
-                    ? "bg-primary/10 border-primary text-primary" 
+                    ? "bg-teal-50 border-teal-500 text-teal-700" 
                     : "bg-card hover:bg-muted"
                 )}
               >
@@ -161,9 +215,9 @@ export function AutomationNodePanel({
                 key={opt.type}
                 onClick={() => updateConfig({ actionType: opt.type })}
                 className={cn(
-                  "flex flex-col items-center justify-center p-3 gap-2 rounded-lg border transition-all text-xs font-medium",
+                  "flex flex-col items-center justify-center p-3 gap-2 rounded-lg border transition-all text-xs font-medium h-20 text-center",
                   localConfig.actionType === opt.type 
-                    ? "bg-primary/10 border-primary text-primary" 
+                    ? "bg-blue-50 border-blue-500 text-blue-700" 
                     : "bg-card hover:bg-muted"
                 )}
               >
@@ -183,50 +237,7 @@ export function AutomationNodePanel({
                   placeholder="https://api.seusistema.com/webhook"
                 />
               </div>
-              <div className="space-y-2">
-                <Label>Secret (Header Authorization)</Label>
-                <Input 
-                  type="password"
-                  value={localConfig.webhook_secret || ''} 
-                  onChange={(e) => updateConfig({ webhook_secret: e.target.value })}
-                  placeholder="Token de segurança"
-                />
-              </div>
-            </div>
-          )}
-
-          {localConfig.actionType === 'whatsapp' && (
-            <div className="space-y-4 animate-in fade-in">
-              <div className="space-y-2">
-                <Label>Template da Mensagem</Label>
-                <Textarea 
-                  value={localConfig.template_mensagem || ''} 
-                  onChange={(e) => updateConfig({ template_mensagem: e.target.value, canal_notificacao: 'whatsapp' })}
-                  placeholder="Olá {nome_cliente}! Seu projeto..."
-                  rows={4}
-                />
-                <div className="flex flex-wrap gap-1.5 mt-2">
-                  {['{nome_cliente}', '{valor_total}', '{potencia_kwp}', '{link_proposta}'].map(variable => (
-                    <button
-                      key={variable}
-                      onClick={() => updateConfig({ template_mensagem: (localConfig.template_mensagem || '') + variable })}
-                      className="px-2 py-1 bg-secondary hover:bg-secondary/80 rounded text-[10px] font-mono border border-border"
-                    >
-                      {variable}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <Alert className="py-2 bg-blue-50 border-blue-100">
-                <Info className="h-3 w-3 text-blue-600" />
-                <AlertDescription className="text-[10px] text-blue-800">
-                  Mensagens serão enviadas via Evolution API (wa_outbox). Sem links externos.
-                </AlertDescription>
-              </Alert>
-            </div>
-          )}
-        </div>
-      )}
-    </div>
+...
   );
 }
+
