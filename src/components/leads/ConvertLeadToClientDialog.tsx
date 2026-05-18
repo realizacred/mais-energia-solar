@@ -78,7 +78,7 @@ export function ConvertLeadToClientDialog({ lead, open, onOpenChange, onSuccess,
         setComprovanteFiles(data.comprovanteFiles || []);
         setPaymentItems(data.paymentItems || [createEmptyItem()]);
       } else {
-        console.log("[ConvertLeadToClientDialog] No saved data, using lead properties");
+        
         setStep1Data({ 
           nome: lead.nome, 
           telefone: lead.telefone, 
