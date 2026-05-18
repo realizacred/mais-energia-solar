@@ -399,7 +399,7 @@ function resolveFromContext(
     const token = s((ctx.finalSnapshot as any)?.token_publico);
     if (token) {
       const base = (import.meta as any).env?.VITE_APP_URL ?? "https://maisenergiasolar.lovable.app";
-      return `${base}/proposta/${token}`;
+      return `${base}/pl/${token}`;
     }
     return null;
   }
