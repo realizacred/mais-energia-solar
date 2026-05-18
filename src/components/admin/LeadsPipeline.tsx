@@ -339,8 +339,8 @@ export default function LeadsPipeline() {
       <VincularFornecedorModal
         open={!!pendingDrop}
         onOpenChange={(open) => !open && setPendingDrop(null)}
-        projetoId={pendingDrop?.lead.id || ""}
-        clienteNome={pendingDrop?.lead.nome}
+        projetoId={pendingDrop?.lead?.id || ""}
+        clienteNome={pendingDrop?.lead?.nome}
         onSuccess={() => {
           if (pendingDrop) {
             confirmStageChange(pendingDrop.lead, pendingDrop.statusId);
