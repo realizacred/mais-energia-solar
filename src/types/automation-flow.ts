@@ -23,6 +23,9 @@ export type ActionType =
   | 'mover_etapa'
   | 'criar_atividade'
   | 'notificar_responsavel'
+  | 'projeto'
+  | 'atividade'
+  | 'cliente'
 
 export type SearchType =
   | 'projeto'
